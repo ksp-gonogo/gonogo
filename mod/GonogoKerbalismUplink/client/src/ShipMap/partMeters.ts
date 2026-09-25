@@ -1,4 +1,8 @@
-import type { ContributionEntry, VesselParts } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type ContributionEntry,
+  value as quantity,
+  type VesselParts,
+} from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf, magnitudeOr, type Quantityish } from "@ksp-gonogo/ui-kit";
 import type { KerbalismProfile } from "../__generated__/contract";
 import { resourceFacts } from "../ecosystem";
@@ -99,8 +103,8 @@ export function computeKerbalismPartMeters(
         partId: String(part.id),
         resource: name,
         displayName: fact.displayName,
-        amount,
-        capacity,
+        amount: quantity("units", amount),
+        capacity: quantity("units", capacity),
         status: partMeterStatus(
           amount,
           capacity,

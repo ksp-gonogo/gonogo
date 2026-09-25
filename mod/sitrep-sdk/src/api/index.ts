@@ -41,7 +41,7 @@ import {
   whyNotSendable,
 } from "../plan-composition";
 import { type PlanDraft, PlanDraftStore } from "../plan-drafts";
-import type { ReckonableReading, TopicReading } from "../reading";
+import type { Reading, ReckonableReading, TopicReading } from "../reading";
 import type { ReckonableFields, ReckonableTopic } from "../reckonability";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
@@ -431,9 +431,10 @@ export const registerSettingsTab = (def: SettingsTabDefinition): void =>
  * `true` is a compile error at the call site rather than a `Switch` rendering
  * a tolerance.
  */
-export function registerSetting<T extends SettingType = "boolean">(
-  def: SettingDefinitionOf<T>,
-): void;
+export function registerSetting<
+  T extends SettingType = "boolean",
+  Topic extends TopicId = TopicId,
+>(def: SettingDefinitionOf<T, Topic>): void;
 /**
  * Register an ALREADY-TYPED definition, for a client that built its rows as a
  * list and registers them in a loop.
@@ -446,7 +447,9 @@ export function registerSetting<T extends SettingType = "boolean">(
  * exactly the shape a list has.
  */
 export function registerSetting(def: SettingDefinition): void;
-export function registerSetting(def: SettingDefinition): void {
+export function registerSetting(
+  def: SettingDefinitionOf<SettingType, TopicId> | SettingDefinition,
+): void {
   // The cast collapses an unresolved T to the union the host takes. Every
   // instantiation of T IS a member of that union, but TypeScript will not
   // prove it while T is still a parameter.
@@ -812,11 +815,18 @@ export function useStream<T>(topic: string): T | undefined {
  * result. One evaluation per Sitrep frame is shared across every widget reading
  * the same handle (and any contribution that lists it in `deps`). Returns
  * `undefined` with no provider mounted, or before the first frame lands.
+ *
+ * A processor whose own deps include a reading answers a `Reading<R>`, because
+ * its inputs carried currency and so its answer is datable. One depending only
+ * on raw topic ids answers the bare `R`: there is nothing to date it by, and
+ * inventing an instant would be a claim nothing supports. The handle's own
+ * brand decides which, so the two cannot be confused at a call site.
  */
-export function useProcessor<R>(handle: {
+export function useProcessor<R, Carried extends boolean>(handle: {
   readonly id: string;
   readonly __resultType?: R;
-}): R | undefined {
+  readonly __carriesCurrency?: Carried;
+}): (Carried extends true ? Reading<R> : R) | undefined {
   return getHost().useProcessor(handle);
 }
 
@@ -963,8 +973,13 @@ export function useReplaySessionActive(): boolean {
  * with nothing on the other end, so the member retires with the shim.
  */
 export function getGameHost(): string {
-  const env = (import.meta as unknown as { env?: Record<string, string> }).env;
-  const buildDefault = env?.VITE_SITREP_HOST || "localhost";
+  const env: unknown = Reflect.get(import.meta, "env");
+  const configured: unknown =
+    typeof env === "object" && env !== null
+      ? Reflect.get(env, "VITE_SITREP_HOST")
+      : undefined;
+  const buildDefault =
+    typeof configured === "string" && configured ? configured : "localhost";
   return readSetting(GAME_HOST_KEY) ?? buildDefault;
 }
 // The read half of the contribution registry. The WRITE half stays on
@@ -1018,10 +1033,13 @@ export function AugmentSlot<S extends string>(props: {
   name: S;
   props: SlotProps<S>;
 }): ReactElement {
-  return createElement(
-    getHost().AugmentSlot,
-    props as unknown as { name: string; props?: Record<string, unknown> },
-  );
+  /* The host's slot takes the erased form, because it renders slots for every
+     widget and cannot know which one it holds. */
+  const erased: { name: string; props?: Record<string, unknown> } = {
+    name: props.name,
+    props: props.props as Record<string, unknown>,
+  };
+  return createElement(getHost().AugmentSlot, erased);
 }
 
 // `ContributionsProvider` is NOT a shim here any more. It is

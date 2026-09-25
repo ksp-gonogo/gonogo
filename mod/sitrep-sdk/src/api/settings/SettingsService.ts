@@ -117,7 +117,8 @@ export class SettingsService {
     const raw = this.storage.getItem(STORAGE_KEY);
     if (!raw) return;
     try {
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const parsed: unknown = JSON.parse(raw);
+      if (typeof parsed !== "object" || parsed === null) return;
       for (const [k, v] of Object.entries(parsed)) this.values.set(k, v);
     } catch {
       // Corrupt value: wipe and start clean.

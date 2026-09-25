@@ -1,9 +1,10 @@
 // @vitest-environment node
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Dimension, lookupUnit } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
+import { readJsonObject } from "./ratchetBaseRef";
 import VERDICTS from "./reckoning-candidates.json";
 
 /**
@@ -86,9 +87,34 @@ interface Descriptor {
 const NON_QUANTITY = new Set(["text", "id", "flag", "enum", "n/a"]);
 
 const root = repoRoot();
-const descriptors = descriptorPaths(root).map(
-  (path) => JSON.parse(readFileSync(path, "utf8")) as Descriptor,
-);
+
+/**
+ * One generated unit descriptor, with the three blocks this scan walks filled
+ * in: a descriptor missing one of them would make the walk read zero units and
+ * report a clean tree.
+ */
+function readDescriptor(path: string): Descriptor {
+  const parsed = readJsonObject(path);
+  const vocabulary = parsed.vocabulary;
+  const types = parsed.types;
+  const topics = parsed.topics;
+  if (
+    !Array.isArray(vocabulary) ||
+    typeof types !== "object" ||
+    types === null ||
+    typeof topics !== "object" ||
+    topics === null
+  ) {
+    throw new Error(`${path} is not a unit descriptor`);
+  }
+  return {
+    vocabulary: vocabulary.filter((token) => typeof token === "string"),
+    types: types as Descriptor["types"],
+    topics: topics as Descriptor["topics"],
+  };
+}
+
+const descriptors = descriptorPaths(root).map(readDescriptor);
 
 /**
  * Tokens an Uplink declared for itself, which core's registry has never heard

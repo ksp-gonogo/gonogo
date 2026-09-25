@@ -7,7 +7,7 @@ import {
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
+import { commandArgs, MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   act,
   fireEvent,
@@ -248,7 +248,7 @@ describe("NavballComponent", () => {
       const sent = fixture.transport.sentCommands.find(
         (c) =>
           c.command === "vessel.control.setThrottle" &&
-          (c.args as { value: number }).value === 0.75,
+          commandArgs<"vessel.control.setThrottle">(c.args).value === 0.75,
       );
       expect(sent).toBeDefined();
     });

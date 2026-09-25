@@ -1,0 +1,194 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. One vessel, two contributors on one slot: the fuel tank (LiquidFuel/Oxidizer) gets its meters from the built-in contribution, the life support tank (Water/Food) from this Uplink's `ShipMap/partMeters.ts`. Both supplies carry flow-mode ordinal 3 (STACK_PRIORITY_SEARCH), which does not pool, so each earns a per-part meter; without an ordinal the contribution cannot tell pooling and draws nothing. The tank also carries this Uplink's fitted-process part-meta row (a running water recycler, `ShipMap/partMeta.ts`), which shows in the part tooltip. Food.amount is deliberately small (0.4) to catch a rounding-to-zero bug in the tooltip's meter label. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current.",
+    "scenario": "supply-tank-meters-stopped-arriving"
+  },
+  "_scene": {
+    "contribution": "kerbalism:ship-map-part-meters",
+    "hostWidget": "ship-map",
+    "caption": "The same tanks once the link drops",
+    "modes": ["default"],
+    "size": {
+      "w": 8,
+      "h": 10
+    },
+    "paints": ["3 parts"]
+  },
+  "_stream": {
+    "emits": [
+      {
+        "topic": "vessel.parts",
+        "payload": {
+          "parts": [
+            {
+              "id": "1",
+              "name": "mk1pod.v2",
+              "title": "Mk1 Command Pod",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1.14,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.8,
+              "inverseStage": -1,
+              "maxTemp": 1200,
+              "category": "Pods",
+              "categoryOrdinal": 6,
+              "modules": ["ModuleCommand"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {},
+              "moduleStates": []
+            },
+            {
+              "id": "2",
+              "parentId": "1",
+              "name": "fuelTankSmallFlat",
+              "title": "FL-T400 Fuel Tank",
+              "position": {
+                "x": 0,
+                "y": -1.145,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1.85,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.25,
+              "inverseStage": 1,
+              "maxTemp": 2000,
+              "category": "FuelTank",
+              "categoryOrdinal": 7,
+              "modules": [],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "LiquidFuel": {
+                  "amount": 90,
+                  "maxAmount": 180
+                },
+                "Oxidizer": {
+                  "amount": 100,
+                  "maxAmount": 220
+                }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "3",
+              "parentId": "2",
+              "name": "kerbalismSupplyTank",
+              "title": "PPD-12 Life Support Tank",
+              "position": {
+                "x": 0,
+                "y": -2.79,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.3,
+              "inverseStage": 1,
+              "maxTemp": 2000,
+              "category": "FuelTank",
+              "categoryOrdinal": 7,
+              "modules": [],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "Water": {
+                  "amount": 42.3,
+                  "maxAmount": 180
+                },
+                "Food": {
+                  "amount": 0.4,
+                  "maxAmount": 90
+                }
+              },
+              "moduleStates": []
+            }
+          ]
+        }
+      },
+      {
+        "topic": "kerbalism.available",
+        "payload": true
+      },
+      {
+        "topic": "kerbalism.profile",
+        "payload": {
+          "name": "Default",
+          "resources": {
+            "Water": {
+              "flowMode": "STACK_PRIORITY_SEARCH",
+              "displayName": "Water",
+              "isSupply": true,
+              "lowThreshold": 0.2,
+              "flowModeOrdinal": 3
+            },
+            "Food": {
+              "flowMode": "STACK_PRIORITY_SEARCH",
+              "displayName": "Food",
+              "isSupply": true,
+              "lowThreshold": 0.15,
+              "flowModeOrdinal": 3
+            }
+          },
+          "rules": [],
+          "processes": []
+        }
+      },
+      {
+        "topic": "kerbalism.lifesupport",
+        "payload": {
+          "rates": {
+            "Water": -0.002,
+            "Food": -0.0007
+          },
+          "processes": [
+            {
+              "resource": "recycler",
+              "title": "Water Recycler",
+              "capacity": 1,
+              "running": true,
+              "broken": false,
+              "flightId": 3
+            }
+          ],
+          "greenhouses": []
+        }
+      }
+    ],
+    "stopsArriving": true
+  }
+}

@@ -9,6 +9,7 @@
   "exclude": [
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
-    "src/reckoner-test-topics.ts"
+    "src/reckoner-test-topics.ts",
+    "src/derived-get-fixture.ts"
   ]
 }

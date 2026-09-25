@@ -4,6 +4,22 @@ import { LogRingBuffer } from "./ringBuffer.js";
 import { tagRegistry } from "./tags.js";
 import type { LogEntry, LogTransport } from "./types.js";
 
+/** The `message` of one entry of a parsed `exportLogs()` dump, or a failure naming what was there instead. */
+function exportedMessage(entry: unknown): string {
+  if (typeof entry !== "object" || entry === null || !("message" in entry)) {
+    throw new Error(
+      `exported entry carries no message: ${JSON.stringify(entry)}`,
+    );
+  }
+  const { message } = entry;
+  if (typeof message !== "string") {
+    throw new Error(
+      `exported message is not a string: ${JSON.stringify(message)}`,
+    );
+  }
+  return message;
+}
+
 describe("ConsoleLogger tag gating", () => {
   let consoleSpy: ReturnType<typeof vi.spyOn>;
 
@@ -88,10 +104,13 @@ describe("ConsoleLogger tag gating", () => {
     logger.info("two");
     logger.info("three");
     logger.info("four");
-    const dump = JSON.parse(logger.exportLogs()) as Array<{ message: string }>;
+    const parsed: unknown = JSON.parse(logger.exportLogs());
+    if (!Array.isArray(parsed)) {
+      throw new Error("exportLogs did not serialise a JSON array");
+    }
+    const dump: unknown[] = parsed;
     expect(dump).toHaveLength(3);
-    expect(dump[0].message).toBe("two");
-    expect(dump[2].message).toBe("four");
+    expect(dump.map(exportedMessage)).toEqual(["two", "three", "four"]);
   });
 });
 

@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes } from "react";
 import { forwardRef } from "react";
 import styled, { css } from "styled-components";
+import { focusRing } from "./focusRing";
 
 export type ToggleButtonTone = "neutral" | "go" | "nogo" | "warn";
 export type ToggleButtonSize = "sm" | "md";
@@ -85,11 +86,11 @@ const TONE_ACTIVE = {
 
 const SIZE_STYLES = {
   sm: css`
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-caption);
     padding: var(--space-2, 2px) var(--space-8, 8px);
   `,
   md: css`
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-compact);
     padding: var(--inset-control, var(--space-6, 6px) var(--space-12, 12px));
   `,
 } as const;
@@ -114,7 +115,7 @@ const ToggleButton__Body = styled.button<{
   /* Sentence case, the same as the kit's Button: this label is the thing being
      chosen, and a row of shouted choices reads as an alarm rather than a
      picker. */
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   cursor: pointer;
   transition: background var(--duration-fast, 100ms), border-color var(--duration-fast, 100ms), color var(--duration-fast, 100ms);
 
@@ -132,10 +133,7 @@ const ToggleButton__Body = styled.button<{
     }
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 
   &:disabled {
     opacity: 0.4;

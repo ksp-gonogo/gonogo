@@ -1,5 +1,6 @@
 import { useCallback, useId } from "react";
 import styled from "styled-components";
+import { focusRing } from "./focusRing";
 
 export interface StepperProps<T> {
   /**
@@ -161,11 +162,11 @@ const Stepper__Step = styled.button`
   justify-content: center;
   min-width: var(--space-24, 24px);
   font-family: inherit;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   font-weight: 600;
   line-height: var(--line-height-flush);
   padding: var(--space-4, 4px) var(--space-8, 8px);
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   cursor: pointer;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
@@ -178,10 +179,7 @@ const Stepper__Step = styled.button`
     }
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 
   &:disabled {
     opacity: 0.4;
@@ -197,18 +195,15 @@ const Stepper__Step = styled.button`
 const Stepper__Value = styled.div`
   text-align: center;
   font-family: var(--font-family-mono);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
   padding: var(--space-4, 4px) var(--space-8, 8px);
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
   border: 1px solid var(--color-border-subtle);
   background: var(--color-surface-sunken);
 
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
+  ${focusRing}
 
   &[aria-disabled="true"] {
     opacity: 0.4;
@@ -217,6 +212,6 @@ const Stepper__Value = styled.div`
 
 const Stepper__Note = styled.div`
   grid-column: 1 / -1;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
 `;

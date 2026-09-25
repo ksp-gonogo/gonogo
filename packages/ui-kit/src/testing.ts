@@ -161,3 +161,175 @@ export {
   WidgetHost,
   WidgetHostFor,
 } from "./renderWidget";
+
+/**
+ * One observation of `target` at the given size, as a real `ResizeObserverEntry`.
+ *
+ * jsdom lays nothing out, so a component that sizes itself from an observation
+ * never gets one and renders at zero. Every box the interface declares is
+ * filled: a partial entry has to be asserted into place, and a component reading
+ * a box the fixture left out then gets `undefined` rather than a size.
+ */
+export function resizeObservation(
+  target: Element,
+  size: { width: number; height: number },
+): ResizeObserverEntry {
+  const box: ResizeObserverSize = {
+    blockSize: size.height,
+    inlineSize: size.width,
+  };
+  return {
+    target,
+    contentRect: DOMRectReadOnly.fromRect({
+      width: size.width,
+      height: size.height,
+    }),
+    borderBoxSize: [box],
+    contentBoxSize: [box],
+    devicePixelContentBoxSize: [box],
+  };
+}
+
+/**
+ * Who currently holds `globalThis.ResizeObserver`, or `null` when nobody does.
+ *
+ * These installers assign the global directly rather than through
+ * `vi.stubGlobal`, so `vi.unstubAllGlobals()` does not undo them and the
+ * returned closure is the only way back. A caller that drops the closure has
+ * installed something it can no longer remove, and nothing said so: two files
+ * shadowed the binding that held it with a local `const restore = () => {}`,
+ * their teardown called the shadow, and the only symptom was a
+ * `noUnusedVariables` warning indistinguishable from a dead import.
+ *
+ * So a second install over a live one throws. That catches the dropped closure
+ * on the NEXT install rather than never, which for the two real cases is the
+ * second test in the file, and it leaves alone the legitimate shape of
+ * installing once at module scope for a whole file and never restoring.
+ *
+ * Shared between both installers on purpose: the resource is the global, not
+ * either function, so installing a drivable one over a fixed-size one is the
+ * same mistake.
+ */
+let resizeObserverHolder: string | null = null;
+
+function claimResizeObserver(installer: string): void {
+  if (resizeObserverHolder !== null) {
+    throw new Error(
+      `${installer}: globalThis.ResizeObserver is already held by ` +
+        `${resizeObserverHolder}, which has not been restored.\n\n` +
+        `These installers return the ONLY uninstall, so whoever called ` +
+        `${resizeObserverHolder} still owes a call to it. The way this is ` +
+        `usually lost is a local binding shadowing the one that holds it:\n\n` +
+        `  let restoreResizeObserver = () => {};\n` +
+        `  beforeEach(() => { restoreResizeObserver = install...(); });\n` +
+        `  describe("...", () => {\n` +
+        `    const restoreResizeObserver = () => {};  // shadows it\n` +
+        `    afterEach(() => { restoreResizeObserver(); });  // calls the shadow\n` +
+        `  });\n\n` +
+        `Call the restore you were given, or install once at module scope and ` +
+        `never restore, which is also fine.`,
+    );
+  }
+  resizeObserverHolder = installer;
+}
+
+/** Idempotent: restoring twice is harmless, and the second call owes nothing. */
+function releaseResizeObserver(): void {
+  resizeObserverHolder = null;
+}
+
+/**
+ * Install a `ResizeObserver` that reports one fixed size to everything observed,
+ * and return the uninstall.
+ *
+ * `deliver` chooses when the callback fires: `"sync"` during `observe`, or
+ * `"macrotask"` for a component that must not see a size during its own mount.
+ *
+ * The returned closure is the only way to uninstall, and installing again
+ * without calling it throws. See {@link resizeObserverHolder}.
+ */
+export function installFixedSizeResizeObserver(options: {
+  width: number;
+  height: number;
+  deliver?: "sync" | "macrotask";
+}): () => void {
+  claimResizeObserver("installFixedSizeResizeObserver");
+  const previous = globalThis.ResizeObserver;
+  const { width, height, deliver = "sync" } = options;
+
+  class FixedSizeResizeObserver implements ResizeObserver {
+    readonly callback: ResizeObserverCallback;
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback;
+    }
+    observe(target: Element): void {
+      const fire = () =>
+        this.callback([resizeObservation(target, { width, height })], this);
+      if (deliver === "sync") fire();
+      else setTimeout(fire, 0);
+    }
+    unobserve(): void {}
+    disconnect(): void {}
+  }
+
+  globalThis.ResizeObserver = FixedSizeResizeObserver;
+  return () => {
+    globalThis.ResizeObserver = previous;
+    releaseResizeObserver();
+  };
+}
+
+/** A `ResizeObserver` a test drives by hand: see {@link installDrivableResizeObserver}. */
+export interface DrivableResizeObservers {
+  /** Deliver one observation of `target` at `size` to every observer watching it. */
+  resize(target: Element, size: { width: number; height: number }): void;
+  uninstall(): void;
+}
+
+/**
+ * Install a `ResizeObserver` whose observations a test delivers itself, rather
+ * than the one fixed size {@link installFixedSizeResizeObserver} reports.
+ *
+ * For a component whose behaviour is the RESPONSE to a size change: hand it one
+ * width, assert, hand it another. `resize` reaches only observers that are
+ * actually watching the element, so an assertion cannot pass against a component
+ * that never subscribed.
+ */
+export function installDrivableResizeObserver(): DrivableResizeObservers {
+  claimResizeObserver("installDrivableResizeObserver");
+  const previous = globalThis.ResizeObserver;
+  const live = new Set<DrivableResizeObserver>();
+
+  class DrivableResizeObserver implements ResizeObserver {
+    readonly observed = new Set<Element>();
+    readonly callback: ResizeObserverCallback;
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback;
+      live.add(this);
+    }
+    observe(target: Element): void {
+      this.observed.add(target);
+    }
+    unobserve(target: Element): void {
+      this.observed.delete(target);
+    }
+    disconnect(): void {
+      this.observed.clear();
+    }
+  }
+
+  globalThis.ResizeObserver = DrivableResizeObserver;
+  return {
+    resize(target, size) {
+      for (const observer of live) {
+        if (!observer.observed.has(target)) continue;
+        observer.callback([resizeObservation(target, size)], observer);
+      }
+    },
+    uninstall() {
+      live.clear();
+      globalThis.ResizeObserver = previous;
+      releaseResizeObserver();
+    },
+  };
+}

@@ -43,6 +43,26 @@ const CALENDAR_FIELDS = [
  * way to see a field that arrived as `null` (present key, undefined magnitude)
  * apart from one that never arrived at all.
  */
+/** The keys the payload arrived with, which is the other half of the report. */
+function payloadKeys(payload: unknown): string[] {
+  return typeof payload === "object" && payload !== null
+    ? Object.keys(payload)
+    : [];
+}
+
+/**
+ * One calendar field's magnitude as the probe prints it, and `undefined` when
+ * the payload did not carry it: reporting which fields ARRIVED is the whole
+ * subject of this characterisation.
+ */
+function fieldMagnitude(payload: unknown, field: string): number | undefined {
+  if (typeof payload !== "object" || payload === null) return undefined;
+  const value: unknown = Reflect.get(payload, field);
+  if (typeof value !== "object" || value === null) return undefined;
+  const magnitude: unknown = Reflect.get(value, "magnitude");
+  return typeof magnitude === "number" ? magnitude : undefined;
+}
+
 function CalendarProbe() {
   // Branches on the ARM: `pending`, `unowned` and `absent`, and this probe
   // reports which one arrived.
@@ -50,15 +70,11 @@ function CalendarProbe() {
   if (reading.state === "pending") return <p>calendar:pending</p>;
   if (reading.state === "unowned") return <p>calendar:unowned</p>;
   if (reading.state === "absent") return <p>calendar:absent</p>;
-  const record = reading.value as unknown as Record<
-    string,
-    { magnitude?: number } | null
-  >;
   const magnitudes = CALENDAR_FIELDS.map(
-    (field) => `${field}=${record[field]?.magnitude}`,
+    (field) => `${field}=${fieldMagnitude(reading.value, field)}`,
   ).join(" ");
   return (
-    <p>{`calendar:keys=${Object.keys(record).join(",")} ${magnitudes}`}</p>
+    <p>{`calendar:keys=${payloadKeys(reading.value).join(",")} ${magnitudes}`}</p>
   );
 }
 

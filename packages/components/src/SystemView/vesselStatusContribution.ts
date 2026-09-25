@@ -4,7 +4,6 @@ import {
   contactPhase,
   type FleetVesselSilence,
   getLatestFleetVesselSilence,
-  getViewUt,
   overdueSeconds,
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
@@ -26,9 +25,14 @@ import { writeQuantity } from "@ksp-gonogo/ui-kit";
 // mirrored there by whichever widget keeps the vessel's silence topic
 // subscribed via `useFleetVesselSilence`, SystemView included): the same
 // "static pointer bridges a lifetime/scope mismatch" discipline
-// `getViewUt()` already uses for the view clock. The aggregator re-runs
-// `compute` every telemetry frame regardless of which declared dep actually
-// changed, so this stays live.
+// `getViewUt()` already uses for the view clock.
+//
+// The reckoning is a Processor rather than the contribution's own `compute`
+// because it is a function of the view clock and of that bridge, neither of
+// which is a declared dep. A contribution recomputes only when its declared
+// inputs move; a Processor is evaluated every frame and notifies only when
+// its answer changes, so the countdown advances, and a loss is announced, off
+// the frame's own `viewUt` with nothing re-rendering while it holds still.
 //
 // A `label` is a plain string the host draws wherever it likes, so the
 // durations below go through `writeQuantity`, the sanctioned string escape,
@@ -125,19 +129,23 @@ export function computeVesselStatus(
   ];
 }
 
-CORE_UPLINK_CLIENT.registerContribution({
-  id: "system-view-vessel-silence-status",
-  contributes: "system-view.vessel-status",
-  deps: ["vessel.identity"],
-  compute: (topics) => {
-    const vesselId = topics["vessel.identity"]?.vesselId;
+const VESSEL_CONTACT_STATUS = CORE_UPLINK_CLIENT.registerProcessor({
+  id: "system-view-vessel-contact-status",
+  deps: ["vessel.identity"] as const,
+  compute: ([identity], { viewUt }) => {
+    const vesselId = identity?.vesselId;
     if (typeof vesselId !== "string" || vesselId === "") return null;
-    const nowUt = getViewUt();
-    if (nowUt == null) return null;
     return computeVesselStatus(
       vesselId,
       getLatestFleetVesselSilence(vesselId),
-      nowUt,
+      viewUt,
     );
   },
+});
+
+CORE_UPLINK_CLIENT.registerContribution({
+  id: "system-view-vessel-silence-status",
+  contributes: "system-view.vessel-status",
+  deps: [VESSEL_CONTACT_STATUS],
+  compute: (topics) => topics[VESSEL_CONTACT_STATUS.id] ?? null,
 });

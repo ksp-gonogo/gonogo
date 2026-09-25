@@ -23,6 +23,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import {
   expectNoA11yViolations,
+  installFixedSizeResizeObserver,
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -61,39 +62,36 @@ interface VesselScenario {
   atmosphere?: { depth: number };
 }
 
+/**
+ * The per-augment settings block of a widget config, and `undefined` when the
+ * config carries none.
+ */
+function augmentSettingsOf(
+  config: Record<string, unknown> | undefined,
+): Record<string, Record<string, unknown>> | undefined {
+  const settings = config?.augmentSettings;
+  return typeof settings === "object" && settings !== null
+    ? (settings as Record<string, Record<string, unknown>>)
+    : undefined;
+}
+
 describe("MapViewComponent", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
   // Unmount before the state-mutating teardown (buffered.disconnect / clearBodies
   // / clearAugments), which would otherwise re-render a still-mounted tree.
   const trees: Array<() => void> = [];
+  let restoreResizeObserver: () => void = () => {};
 
   beforeEach(async () => {
     clearRegistry();
     clearBodies();
     registerStockBodies();
 
-    vi.stubGlobal(
-      "ResizeObserver",
-      class FakeResizeObserver {
-        private cb: ResizeObserverCallback;
-        constructor(cb: ResizeObserverCallback) {
-          this.cb = cb;
-        }
-        observe(_el: Element) {
-          this.cb(
-            [
-              {
-                contentRect: { width: 600, height: 300 },
-              } as ResizeObserverEntry,
-            ],
-            this as unknown as ResizeObserver,
-          );
-        }
-        unobserve() {}
-        disconnect() {}
-      },
-    );
+    restoreResizeObserver = installFixedSizeResizeObserver({
+      width: 600,
+      height: 300,
+    });
 
     source = new MockDataSource();
     buffered = new BufferedDataSource({ source, store: new MemoryStore() });
@@ -105,6 +103,7 @@ describe("MapViewComponent", () => {
     for (const unmount of trees) unmount();
     trees.length = 0;
     buffered.disconnect();
+    restoreResizeObserver();
     vi.unstubAllGlobals();
     clearBodies();
   });
@@ -150,9 +149,7 @@ describe("MapViewComponent", () => {
     onConfigChange?: (config: Record<string, unknown>) => void;
     children: ReactNode;
   }) {
-    const augmentSettings = config?.augmentSettings as
-      | Record<string, Record<string, unknown>>
-      | undefined;
+    const augmentSettings = augmentSettingsOf(config);
     return (
       <WidgetMetaContext.Provider
         value={{ componentId: "map-view", contributionSlots: [] }}
@@ -777,11 +774,9 @@ describe("MapViewComponent", () => {
       await user.click(screen.getByRole("button", { name: "Save" }));
 
       expect(onSave).toHaveBeenCalledTimes(1);
-      const saved = onSave.mock.calls[0]?.[0] as Record<string, unknown>;
+      const saved = onSave.mock.calls[0]?.[0];
       expect(
-        (saved.augmentSettings as Record<string, Record<string, unknown>>)?.[
-          "test-map-sections-settings"
-        ]?.show,
+        augmentSettingsOf(saved)?.["test-map-sections-settings"]?.show,
       ).toBe(false);
 
       const { container, fixture } = renderMap(saved);

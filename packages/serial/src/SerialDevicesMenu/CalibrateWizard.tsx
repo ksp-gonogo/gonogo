@@ -388,13 +388,13 @@ const Wrap = styled.div`
   gap: var(--gap-section);
   padding: var(--space-12);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   background: var(--color-surface-raised);
 `;
 
 const Header = styled.h4`
   margin: 0;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--color-text-faint);
@@ -406,7 +406,7 @@ const SampleViewer = styled.div`
   gap: var(--gap-related);
   padding: var(--space-8);
   background: var(--color-surface-app);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-regular);
   overflow-x: auto;
 `;
 
@@ -456,7 +456,7 @@ const Char = styled.button<{ $highlighted: boolean; $active: boolean }>`
 `;
 
 const Hint = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
 `;
 
@@ -471,7 +471,7 @@ const InputRow = styled.div<{ $active: boolean }>`
   flex-direction: column;
   gap: var(--gap-related);
   padding: var(--space-8);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   border: 1px solid
     ${({ $active }) =>
       $active ? "var(--color-status-info-fg)" : "var(--color-border-subtle)"};
@@ -482,18 +482,18 @@ const InputLabel = styled.div`
   display: flex;
   align-items: center;
   gap: var(--gap-related);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
 `;
 
 const InputKind = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--color-text-faint);
 `;
 
 const Slice = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-dim);
 `;
 
@@ -503,7 +503,7 @@ const SliceVal = styled.span`
 `;
 
 const LivePreview = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-status-info-fg);
 `;
 
@@ -516,7 +516,7 @@ const RangeRow = styled.div`
 
 const Capturing = styled.div`
   flex: 1;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   color: var(--color-status-warning-bg);
 `;
 

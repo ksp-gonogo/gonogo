@@ -17,8 +17,9 @@ describe("memoryStorage", () => {
 
   it("coerces non-string values to strings on setItem", () => {
     const s = memoryStorage();
-    // Storage.setItem accepts string, but the spec coerces, match that.
-    s.setItem("n", 42 as unknown as string);
+    // Storage.setItem accepts string, but the spec coerces, match that: the
+    // call below is what a caller with a loose value actually makes.
+    Reflect.apply(s.setItem, s, ["n", 42]);
     expect(s.getItem("n")).toBe("42");
   });
 

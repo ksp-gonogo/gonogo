@@ -1,9 +1,9 @@
 import {
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   useStream,
 } from "@ksp-gonogo/sitrep-client";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, cleanup, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { ModalTelemetryBridge } from "./ModalTelemetryBridge";

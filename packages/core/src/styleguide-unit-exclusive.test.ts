@@ -63,6 +63,11 @@ const KIT_FORMATTERS = [
 const UNIT_IMPL = new Set([
   "packages/ui-kit/src/units.ts",
   "packages/ui-kit/src/Unit.tsx",
+  // The half of Unit that answers what a reading says about its figure, split
+  // out so the instruments resolve a reading the same way the readout does.
+  // It reaches a formatter for one thing: the instant a held number was last a
+  // reading of now, written on the game's own calendar.
+  "packages/ui-kit/src/readingCurrency.ts",
   "packages/ui-kit/src/formatDuration.ts",
   "packages/ui-kit/src/formatKspDate.ts",
   "packages/ui-kit/src/format.ts",

@@ -34,8 +34,6 @@ import {
   type GeneratedTrueNowTopic,
 } from "./__generated__/delay-roles";
 
-export type { GeneratedHeldAtHomeTopic, GeneratedTrueNowTopic };
-
 /**
  * Which view time a read of a topic is entitled to.
  *

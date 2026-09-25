@@ -5,6 +5,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { readJsonObject } from "./ratchetBaseRef";
 
 /**
  * A published document may not tell a third-party author to install something
@@ -107,19 +108,18 @@ function knownPackages(): Map<string, KnownPackage> {
     } catch {
       return;
     }
-    const pkg = JSON.parse(readFileSync(manifest, "utf8")) as {
-      name?: string;
-      exports?: Record<string, unknown>;
-      dependencies?: Record<string, string>;
-      devDependencies?: Record<string, string>;
-    };
-    if (pkg.name?.startsWith("@ksp-gonogo/")) {
-      found.set(pkg.name, { exports: pkg.exports });
+    const pkg = readJsonObject(manifest);
+    const name = pkg.name;
+    const exports = pkg.exports;
+    if (typeof name === "string" && name.startsWith("@ksp-gonogo/")) {
+      found.set(name, {
+        exports:
+          typeof exports === "object" && exports !== null
+            ? (exports as Record<string, unknown>)
+            : undefined,
+      });
     }
-    for (const name of Object.keys({
-      ...pkg.dependencies,
-      ...pkg.devDependencies,
-    })) {
+    for (const name of dependencyNames(pkg)) {
       if (name.startsWith("@ksp-gonogo/")) dependencies.add(name);
     }
   };
@@ -167,6 +167,18 @@ function split(specifier: string): { name: string; subpath: string } {
   const name = parts.slice(0, 2).join("/");
   const rest = parts.slice(2).join("/");
   return { name, subpath: rest ? `./${rest}` : "." };
+}
+
+/** The dependency and devDependency names a manifest declares. */
+function dependencyNames(pkg: Record<string, unknown>): string[] {
+  const names: string[] = [];
+  for (const field of ["dependencies", "devDependencies"]) {
+    const block: unknown = pkg[field];
+    if (typeof block === "object" && block !== null) {
+      names.push(...Object.keys(block));
+    }
+  }
+  return names;
 }
 
 describe("published docs name packages that exist", () => {

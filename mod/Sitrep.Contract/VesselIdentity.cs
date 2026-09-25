@@ -8,7 +8,7 @@ namespace Sitrep.Contract;
 /// The <c>vessel.identity</c> channel payload: kills V-13 (one typed
 /// <see cref="Situation"/> enum replaces the v.situation/v.situationString/
 /// v.landedAt triplet) and moves <c>missionTime</c> off the wire entirely:
-/// <see cref="LaunchUt"/> is static after liftoff (sampleUt - missionTime),
+/// <see cref="LaunchUt"/> is static after liftoff,
 /// so MET (mission elapsed time) is a consumer-side derivation
 /// (viewUt - launchUt) rather than a tick-rate field that would force this
 /// whole record to re-emit every tick.
@@ -37,7 +37,7 @@ public class VesselIdentity
     [SitrepUnit(Units.Id)]
     public int? ParentBodyIndex { get; set; }
 
-    /// <summary>sampleUt - missionTime; null before the vessel's launch clock has started. See the class doc comment.</summary>
+    /// <summary>The UT the vessel's mission clock started from, fixed from liftoff. <c>null</c> while the vessel is in <c>PreLaunch</c> and whenever the clock is unknown, never the current UT. See the class doc comment.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? LaunchUt { get; set; }
 

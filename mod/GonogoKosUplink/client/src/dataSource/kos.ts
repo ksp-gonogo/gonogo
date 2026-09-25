@@ -146,6 +146,17 @@ export class KosDataSource {
   // responsibility, not this source's.
   async relay(method: string, args: unknown): Promise<unknown> {
     if (method === "executeScript") {
+      if (
+        typeof args !== "object" ||
+        args === null ||
+        typeof Reflect.get(args, "cpu") !== "string" ||
+        typeof Reflect.get(args, "script") !== "string" ||
+        !Array.isArray(Reflect.get(args, "args"))
+      ) {
+        throw new Error(
+          'kos relay handle: "executeScript" needs a cpu, a script and an args list',
+        );
+      }
       const a = args as {
         cpu: string;
         script: string;

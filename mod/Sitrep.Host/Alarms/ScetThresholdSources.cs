@@ -240,23 +240,33 @@ namespace Sitrep.Host.Alarms
             _sources = sources ?? ScetThresholdSources.CoreOnly;
         }
 
-        public ScetReading Read(string subject, string topic, string fieldPath)
+        public IDictionary<string, object?>? ReadPayload(string subject, string topic) =>
+            Payload(topic) is { } root
+                && ScetPayload.ReadSource(root) is { } source
+                && string.Equals(source, subject, StringComparison.Ordinal)
+                    ? root
+                    : null;
+
+        /// <summary>This tick's payload for <paramref name="topic"/>, built once and shared by every alarm that reads it.</summary>
+        private IDictionary<string, object?>? Payload(string topic)
         {
             if (_snapshot == null
                 || string.IsNullOrEmpty(topic)
-                || string.IsNullOrEmpty(fieldPath)
                 || !_sources.TryGetBuilder(topic, out var builder))
             {
-                return ScetReading.NotObservable;
+                return null;
             }
-
             if (!_payloads.TryGetValue(topic, out var payload))
             {
                 payload = builder(_snapshot);
                 _payloads[topic] = payload;
             }
+            return payload as IDictionary<string, object?>;
+        }
 
-            if (payload is not IDictionary<string, object?> root)
+        public ScetReading Read(string subject, string topic, string fieldPath)
+        {
+            if (string.IsNullOrEmpty(fieldPath) || Payload(topic) is not { } root)
             {
                 return ScetReading.NotObservable;
             }

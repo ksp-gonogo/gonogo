@@ -1,4 +1,5 @@
 import type { TopicId, TopicPayload } from "../index";
+import type { Reading } from "../reading";
 import type { TimelinePoint } from "../timeline";
 import type { TopicReading } from "./client-reading";
 
@@ -19,7 +20,11 @@ import type { TopicReading } from "./client-reading";
  * Opaque, branded handle returned by defineProcessor. Never constructed by
  * hand: carries the result type R through inference for downstream consumers.
  */
-export interface ProcessorHandle<R, Id extends string = string> {
+export interface ProcessorHandle<
+  R,
+  Id extends string = string,
+  Carried extends boolean = boolean,
+> {
   /**
    * The owner-stamped id this processor registered under.
    *
@@ -33,7 +38,30 @@ export interface ProcessorHandle<R, Id extends string = string> {
   readonly id: Id;
   /** Type-only brand: never present at runtime, carries R through inference. */
   readonly __resultType?: R;
+  /**
+   * Type-only brand: whether this processor ANSWERS with currency.
+   *
+   * True when its own deps include a reading, which is what makes the answer
+   * datable. Carried on the handle because every consumer, a hook and a nested
+   * dep alike, has to know which of the two shapes it is receiving; a processor
+   * that gained or lost a reading dep would otherwise change what it hands back
+   * with nothing to notice.
+   */
+  readonly __carriesCurrency?: Carried;
 }
+
+/**
+ * Whether a dep list makes its processor's answer datable.
+ *
+ * Wrapped in a tuple so a union of deps does not distribute: the question is
+ * about the list as a whole, and a distributed `extends never` answers it once
+ * per member.
+ */
+export type CarriesCurrency<Deps extends readonly Dep[]> = [
+  Extract<Deps[number], ReadingDep>,
+] extends [never]
+  ? false
+  : true;
 
 /**
  * A dep asking for a Topic's `Reading` rather than its bare payload.
@@ -158,13 +186,15 @@ export function isSubjectDep(dep: Dep): dep is SubjectDep<unknown> {
  * yet).
  */
 type ResolvedDep<D extends Dep> =
-  D extends ProcessorHandle<infer R>
-    ? R
-    : D extends ReadingDep<infer T>
-      ? TopicReading<TopicPayload<T>>
-      : D extends TopicId
-        ? TopicPayload<D> | undefined
-        : never;
+  D extends ProcessorHandle<infer R, string, true>
+    ? Reading<R>
+    : D extends ProcessorHandle<infer R>
+      ? R
+      : D extends ReadingDep<infer T>
+        ? TopicReading<TopicPayload<T>>
+        : D extends TopicId
+          ? TopicPayload<D> | undefined
+          : never;
 
 /** Positionally-mapped tuple of resolved dependency values, in deps order. */
 export type ResolvedDeps<Deps extends readonly Dep[]> = {
@@ -219,7 +249,7 @@ export function defineProcessor<
   owner: string;
   deps: Deps;
   compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => R;
-}): ProcessorHandle<R, `${string}:${Id}`> {
+}): ProcessorHandle<R, `${string}:${Id}`, CarriesCurrency<Deps>> {
   /* Typed rather than inferred: a template expression widens to `string`, and
      the stamped id is what a contribution keys this processor's result by, so
      the shape has to survive as far as the handle. */

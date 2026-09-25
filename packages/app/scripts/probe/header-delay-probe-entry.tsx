@@ -1,10 +1,6 @@
 import { ScreenProvider } from "@ksp-gonogo/core";
-import {
-  StubTransport,
-  TelemetryClient,
-  TelemetryProvider,
-} from "@ksp-gonogo/sitrep-client";
-import { harnessTheme } from "@ksp-gonogo/sitrep-sdk/testing";
+import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
+import { harnessTheme, StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";

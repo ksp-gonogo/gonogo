@@ -28,14 +28,17 @@
           "rates": {},
           "processes": [],
           "greenhouses": [],
-          "asOfUt": 1000000
+          "asOfKerbalismUt": 1000000
         }
       },
       {
         "topic": "vessel.resources",
         "payload": {
           "resources": {},
-          "meta": { "source": "vessel:2", "quality": 1 }
+          "meta": {
+            "source": "vessel:2",
+            "quality": 1
+          }
         }
       },
       {
@@ -44,7 +47,10 @@
           "count": 0,
           "capacity": 0,
           "crew": [],
-          "meta": { "source": "vessel:2", "quality": 1 }
+          "meta": {
+            "source": "vessel:2",
+            "quality": 1
+          }
         }
       }
     ]

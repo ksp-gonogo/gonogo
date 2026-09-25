@@ -1,4 +1,3 @@
-import type { CommandResponse } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it, vi } from "vitest";
 import { ManualClock } from "./clock";
 import { Courier } from "./courier";
@@ -14,7 +13,7 @@ describe("Courier command round-trip", () => {
     const handler = vi.fn((command: string) => ({ ok: command }));
     courier.setCommandHandler(handler);
 
-    const onResponse = vi.fn();
+    const onResponse = vi.fn<Parameters<Courier["dispatchCommand"]>[5]>();
     courier.dispatchCommand("vessel", "r1", "deploy", null, "KSC", onResponse);
 
     // Nothing yet: command is still in flight uplink.
@@ -32,7 +31,7 @@ describe("Courier command round-trip", () => {
     // Downlink elapsed: confirmation arrives back at the vantage.
     clock.advanceTo(4);
     expect(onResponse).toHaveBeenCalledTimes(1);
-    const response = onResponse.mock.calls[0][0] as CommandResponse<unknown>;
+    const response = onResponse.mock.calls[0][0];
     expect(response).toMatchObject({
       type: "command-response",
       requestId: "r1",
@@ -56,7 +55,7 @@ describe("Courier command round-trip", () => {
     const handler = vi.fn((command: string) => ({ ok: command }));
     courier.setCommandHandler(handler);
 
-    const onResponse = vi.fn();
+    const onResponse = vi.fn<Parameters<Courier["dispatchCommand"]>[5]>();
     courier.dispatchCommand("vessel", "r1", "deploy", null, "KSC", onResponse);
 
     clock.advanceTo(100);

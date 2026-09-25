@@ -1,10 +1,7 @@
 import { AugmentSlot, clearAugments, registerAugment } from "@ksp-gonogo/core";
-import {
-  StubTransport,
-  TelemetryClient,
-  TelemetryProvider,
-} from "@ksp-gonogo/sitrep-client";
+import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import { Quality, type TopicId } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, cleanup, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { DomainAvailabilityProvider } from "@ksp-gonogo/ui-kit";
 import { afterEach, describe, expect, it } from "vitest";
@@ -22,6 +19,14 @@ afterEach(() => {
   cleanup();
   clearAugments();
 });
+
+/* The propless probe slot this file mounts, declared because an undeclared
+   slot id carries no props at all. */
+declare module "@ksp-gonogo/core" {
+  interface SlotRegistry {
+    "e2e-availability.slot": Record<string, never>;
+  }
+}
 
 describe("AugmentAvailabilityFeeder end-to-end gating", () => {
   it("keeps a demomod-gated augment hidden until demomod.available arrives on the stream, then renders it", async () => {

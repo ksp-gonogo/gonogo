@@ -14,7 +14,6 @@
  */
 
 import {
-  StubTransport,
   setActiveTelemetryClientForTests,
   TelemetryClient,
 } from "@ksp-gonogo/sitrep-client";
@@ -123,8 +122,29 @@ const localStorageMock = {
 };
 vi.stubGlobal("localStorage", localStorageMock);
 
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { PeerClientService } from "../peer/PeerClientService";
 import { PeerHostService } from "../peer/PeerHostService";
+
+/**
+ * A dispatch as an OLDER station sends it: the wire message carries no
+ * `label` or `topic` at all, which the current signature declares required and
+ * is the case this file exists to characterise.
+ */
+function sendWithoutLabelOrTopic(
+  client: PeerClientService,
+  requestId: string,
+  command: string,
+  args: unknown,
+): void {
+  (
+    client.sendSitrepCommand as (
+      requestId: string,
+      command: string,
+      args: unknown,
+    ) => void
+  )(requestId, command, args);
+}
 
 describe("sitrep-command-request label/topic tunnel (station → host)", () => {
   afterEach(() => {
@@ -184,13 +204,7 @@ describe("sitrep-command-request label/topic tunnel (station → host)", () => {
     for (let i = 0; i < 6; i++) await Promise.resolve();
 
     // Simulate an older station's wire message: no label/topic fields at all.
-    client.sendSitrepCommand(
-      "c1",
-      "kos.run",
-      { script: "boot.ks" },
-      undefined as unknown as string,
-      undefined as unknown as string,
-    );
+    sendWithoutLabelOrTopic(client, "c1", "kos.run", { script: "boot.ks" });
 
     for (let i = 0; i < 6; i++) await Promise.resolve();
 

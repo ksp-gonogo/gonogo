@@ -138,7 +138,7 @@ function installNoopWebSocket(): void {
       this.readyState = 3;
     }
   }
-  // Cast through unknown: the structural shape matches the WebSocket
-  // global closely enough for any consumer that reaches into it.
-  (globalThis as unknown as { WebSocket: unknown }).WebSocket = NoopWebSocket;
+  /* The structural shape matches the WebSocket global closely enough for any
+     consumer that reaches into it. */
+  Reflect.set(globalThis, "WebSocket", NoopWebSocket);
 }

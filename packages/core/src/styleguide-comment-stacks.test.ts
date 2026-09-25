@@ -12,7 +12,12 @@ import {
   scanCommentStacks,
   stacksIn,
 } from "./comment-stacks.scan";
-import { ratchetBaseRef, sourceAtRatchetBase } from "./ratchetBaseRef";
+import {
+  baseCounts,
+  baseNumberFields,
+  ratchetBaseRef,
+  sourceAtRatchetBase,
+} from "./ratchetBaseRef";
 
 /**
  * Comment-stack ratchet. CLAUDE.md has always said that a genuinely multi-line
@@ -252,9 +257,7 @@ describe("comment stacks", () => {
     it("COMMENT_STACK_DEBT", () => {
       const at = baseAllowlist();
       if (!at) return;
-      const before = at.lists.COMMENT_STACK_DEBT as
-        | Record<string, number>
-        | undefined;
+      const before = baseCounts(at.lists, "COMMENT_STACK_DEBT");
       if (!before) return;
 
       const sum = (list: Record<string, number>): number =>
@@ -297,9 +300,11 @@ describe("comment stacks", () => {
     it("SCAN_FLOORS", () => {
       const at = baseAllowlist();
       if (!at) return;
-      const before = at.lists.SCAN_FLOORS as
-        | { files: number; filesWithStack: number; stacks: number }
-        | undefined;
+      const before = baseNumberFields(at.lists, "SCAN_FLOORS", [
+        "files",
+        "filesWithStack",
+        "stacks",
+      ]);
       if (!before) return;
       const lowered: string[] = [];
       for (const key of ["files", "filesWithStack", "stacks"] as const) {

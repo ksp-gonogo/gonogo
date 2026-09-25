@@ -15,7 +15,6 @@ import type {
   TriggerSnapshot,
 } from "@ksp-gonogo/components";
 import {
-  StubTransport,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -25,12 +24,12 @@ import {
   vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import { PropagationHorizonKind, TrajectoryKind } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { ManeuverTriggerClientService } from "../maneuverTriggers/ManeuverTriggerClientService";
 import { ManeuverTriggerHostService } from "../maneuverTriggers/ManeuverTriggerHostService";
-import type { PeerClientService } from "../peer/PeerClientService";
-import type { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
+import { asClientService, asHostService } from "../test/peerFakes";
 
 const FROZEN: FrozenPlanInputs = {
   preset: "circularize-apo",
@@ -250,13 +249,10 @@ describe("Maneuver trigger peer roundtrip", () => {
     // Wire host broadcasts straight into the client.
     host.setOnBroadcast((msg) => client.deliver(msg));
 
-    const hostSvc = new ManeuverTriggerHostService(
-      host as unknown as PeerHostService,
-      { storage: memoryStorage() },
-    );
-    const clientSvc = new ManeuverTriggerClientService(
-      client as unknown as PeerClientService,
-    );
+    const hostSvc = new ManeuverTriggerHostService(asHostService(host), {
+      storage: memoryStorage(),
+    });
+    const clientSvc = new ManeuverTriggerClientService(asClientService(client));
 
     // Station arms via its peer-client surface. Baseline apoapsisRadius
     // (707_000) stays below 750_000: pending until the orbit changes.
@@ -298,13 +294,10 @@ describe("Maneuver trigger peer roundtrip", () => {
     const host = fakePeerHost();
     const client = fakePeerClient();
     host.setOnBroadcast((msg) => client.deliver(msg));
-    const hostSvc = new ManeuverTriggerHostService(
-      host as unknown as PeerHostService,
-      { storage: memoryStorage() },
-    );
-    const clientSvc = new ManeuverTriggerClientService(
-      client as unknown as PeerClientService,
-    );
+    const hostSvc = new ManeuverTriggerHostService(asHostService(host), {
+      storage: memoryStorage(),
+    });
+    const clientSvc = new ManeuverTriggerClientService(asClientService(client));
 
     clientSvc.arm({
       dataKey: "vessel.state.apoapsisRadius",

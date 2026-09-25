@@ -180,7 +180,7 @@ function fractionReckoning(
 ): Reckoning<Value<"ratio">> {
   if (reading.reckoning.status !== "available") return { status: "none" };
   const reckoned = reading.reckoning;
-  const path = `${kerbal}.rules.${index}.value`;
+  const path = `${kerbal}.rules.${index}.problem`;
   // The model's own path vocabulary, read back verbatim: `crewReckoning.ts`
   // keys both `modelled` and `bands` by this string, dotted from the payload
   // root. A rule missing from `modelled` is one the model copied rather than
@@ -188,7 +188,7 @@ function fractionReckoning(
   // observation.
   const moved = reckoned.modelled.find((field) => field.path === path);
   if (!moved) return { status: "none" };
-  const carried = reckoned.value[kerbal]?.rules?.[index]?.value;
+  const carried = reckoned.value[kerbal]?.rules?.[index]?.problem;
   const band = bandIn(bandFor(reckoned, path), "units");
   return {
     status: "available",

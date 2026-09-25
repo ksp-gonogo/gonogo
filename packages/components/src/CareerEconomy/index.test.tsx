@@ -172,6 +172,18 @@ describe("CareerEconomy", () => {
     await act(async () => {});
   });
 
+  it("puts the net ahead of the rates it sums, so a small tile cannot hide it", async () => {
+    mount(OVERHAUL);
+
+    const net = await screen.findByText("Net gain");
+    const subsidy = screen.getByText("Subsidy");
+    expect(
+      net.compareDocumentPosition(subsidy) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    await act(async () => {});
+  });
+
   it("names a net drain when the upkeep outruns the subsidy", async () => {
     mount({ ...OVERHAUL, subsidyPerDay: 100 });
 
@@ -244,9 +256,12 @@ describe("CareerEconomy", () => {
     expect(
       screen.queryByText(/no career economy has arrived/i),
     ).not.toBeInTheDocument();
+    /* And nothing says it in words. The fifteen marks above ARE the statement,
+       which is what this test is named for; a sentence repeating them says the
+       same thing twice, in the space the readings need. */
     expect(
-      screen.getByText(/no longer current: these are the last rates/i),
-    ).toBeInTheDocument();
+      screen.queryByText(/no longer current: these are the last rates/i),
+    ).not.toBeInTheDocument();
 
     await act(async () => {});
   });

@@ -1,5 +1,6 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
+import { derivedGetOf } from "./derived-get-fixture";
 import { makeMeta, type WireOf, wrapWire } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import type { DerivedGet } from "./timeline-store";
@@ -121,8 +122,7 @@ function getWith(points: {
       epoch: 0,
     };
   }
-  return (<T>(topic: string) =>
-    map[topic] as TimelinePoint<T> | undefined) as DerivedGet;
+  return derivedGetOf(map);
 }
 
 describe("deriveVesselStateReckoning: the atmospheric interface", () => {

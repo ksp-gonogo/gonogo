@@ -79,7 +79,7 @@ const StatusIndicator__Row = styled.div<{ "data-tone": StatusTone }>`
   display: flex;
   align-items: center;
   gap: var(--space-8, 8px);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   /*
      One rung in from the old --space-6, because the height is the token's job
      now and the inset's only remaining one is keeping a WRAPPED sentence off
@@ -94,7 +94,7 @@ const StatusIndicator__Row = styled.div<{ "data-tone": StatusTone }>`
   min-height: var(--control-height, 28px);
   background: var(--color-surface-raised);
   border: 1px solid;
-  border-radius: var(--radius-sm, 3px);
+  border-radius: var(--radius-regular, 3px);
 
   ${({ "data-tone": tone }) => TONE_BORDER[tone]}
 `;

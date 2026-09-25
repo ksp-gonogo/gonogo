@@ -85,9 +85,11 @@ export const GridItemContent = memo(function GridItemContent({
   // INSTANCE's saved config, which is a thing only the dashboard holds. Leaving
   // each widget to thread it down as slot props stops the capability at
   // whichever widget has bothered to do it.
-  const augmentSettings = item.config?.augmentSettings as
-    | Record<string, Record<string, unknown>>
-    | undefined;
+  const saved = item.config?.augmentSettings;
+  const augmentSettings =
+    typeof saved === "object" && saved !== null
+      ? (saved as Record<string, Record<string, unknown>>)
+      : undefined;
   const setAugmentSetting = useCallback(
     (augmentId: string, key: string, value: unknown) => {
       const current = (item.config?.augmentSettings ?? {}) as Record<
@@ -257,7 +259,7 @@ const CellHeader = styled.div`
   background: var(--color-surface-panel);
   cursor: grab;
   flex-shrink: 0;
-  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  border-radius: var(--radius-regular) var(--radius-regular) 0 0;
   display: flex;
   align-items: center;
   justify-content: flex-end;

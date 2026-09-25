@@ -26,19 +26,17 @@ type Equal<A, B> =
     : false;
 type Expect<T extends true> = T;
 
-// The augmentation merged through the re-export, so the slot's props ARE the declared shape rather than the loose fallback.
+// The augmentation merged through the re-export, so the slot's props ARE the declared shape.
 type _Merged = Expect<
   Equal<SlotProps<"slotaug.test">, { instanceId: string; zoom: number }>
 >;
 
-// Negative control: an undeclared slot id falls back to the loose record, proving the positive above is a real merge and not the fallback.
-type _UndeclaredIsLoose = Expect<
-  Equal<SlotProps<"nope.not-declared">, Record<string, unknown>>
->;
+// Negative control: an undeclared slot id carries no props, proving the positive above is a real merge.
+type _UndeclaredIsNever = Expect<Equal<SlotProps<"nope.not-declared">, never>>;
 
 // @ts-expect-error the merged props type is `{ instanceId: string; zoom: number }`,
 // so `zoom: string` is not assignable: proves the precise (non-fallback) type resolved.
 const _bad: SlotProps<"slotaug.test"> = { instanceId: "x", zoom: "no" };
 
-export type { _Merged, _UndeclaredIsLoose };
+export type { _Merged, _UndeclaredIsNever };
 export const _slotAugmentationFixtures = [_bad];

@@ -38,9 +38,9 @@ export interface StatusBreakdownEntry {
 }
 
 /**
- * A per-grid-item, off-tree status store: the generic `createStore` for the
- * register/update/subscribe/snapshot machinery, plus one derived view,
- * `getSummary`, the max-merge the panel actually shows.
+ * A per-grid-item, off-tree status store: register, update, subscribe and
+ * snapshot, plus one derived view, `getSummary`, the max-merge the panel
+ * actually shows.
  *
  * HARD RULE from the design applies verbatim: the live status data lives in the
  * store, never in a React context value, so a contribution change re-renders

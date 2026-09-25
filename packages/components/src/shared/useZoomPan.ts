@@ -50,7 +50,7 @@ export function useZoomPan<E extends HTMLElement = HTMLDivElement>(
     panY: 0,
   });
 
-  const ref = useRef<E>(null);
+  const ref = useRef<E | null>(null);
   const activePointers = useRef<Map<number, PointerPos>>(new Map());
   const lastPanPos = useRef<PointerPos | null>(null);
   const lastPinchDist = useRef<number | null>(null);

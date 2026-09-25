@@ -60,7 +60,7 @@ export const Readout = styled.div<{ $tone?: ReadoutTone }>`
 
 /** Muted secondary line for both readout sizes (e.g. units, mode tag). */
 export const ReadoutCaption = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   font-weight: 400;
   letter-spacing: 0.05em;
   color: var(--color-text-muted);
@@ -83,7 +83,7 @@ export const StatusPill = styled.div<{ $tone: ReadoutTone }>`
      the text flow and wrong for a tiny-mode widget's whole state readout. */
   padding: var(--space-6, 6px) var(--space-12, 12px);
   border-radius: var(--radius-pill, 999px);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;

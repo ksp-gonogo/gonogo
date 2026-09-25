@@ -1,11 +1,11 @@
 import {
-  StubTransport,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import { PerfBudget } from "@ksp-gonogo/sitrep-sdk";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -16,9 +16,12 @@ import {
   useContributions,
 } from "./contributionsRuntime";
 
-declare module "./contributions" {
+declare module "@ksp-gonogo/sitrep-sdk" {
   interface ContributionRegistry {
-    "fixture.perf": { entry: { id: string; label: string }; topics: never };
+    "fixture.perf": {
+      entry: { id: string; label: string };
+      topics: "comms.link";
+    };
   }
 }
 
@@ -63,8 +66,12 @@ function Rows(): ReactElement {
 }
 
 /** Mounts one widget declaring the fixture slot, with frames under the test's control. */
-function mountWidget(): { frame: () => void } {
-  const client = new TelemetryClient(new StubTransport());
+function mountWidget(): {
+  frame: () => void;
+  transport: StubTransport;
+} {
+  const transport = new StubTransport();
+  const client = new TelemetryClient(transport);
   const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
   // The clock's own rAF loop mints frames on its own schedule, which would make
   // the count this test asserts on a function of how long the machine took.
@@ -88,7 +95,7 @@ function mountWidget(): { frame: () => void } {
   mounted.push(unmount);
   // One `act` per frame: batched into a single one, React would coalesce the
   // sixty notifications into one render and the aggregation would run once.
-  return { frame: () => act(() => store.beginFrame()) };
+  return { frame: () => act(() => store.beginFrame()), transport };
 }
 
 describe("the contribution slot perf budget", () => {
@@ -116,18 +123,30 @@ describe("the contribution slot perf budget", () => {
   });
 
   it("still fires on a slot whose entries genuinely change on every frame", () => {
-    let n = 0;
+    // A slot recomputes when a declared input moves, so the spin comes from
+    // one: a reading that changes every frame.
     registerContribution({
       id: "spinning",
       contributes: "fixture.perf",
-      compute: () => [{ id: "row", label: `spin ${n++}` }],
+      deps: ["comms.link"],
+      compute: (topics) => [
+        {
+          id: "row",
+          label: `spin ${String(topics["comms.link"]?.connected)}`,
+        },
+      ],
     });
 
     const budgetsBefore = new Map(
       contributionBudgets().map((b) => [b.name, b.getExceedanceCount()]),
     );
-    const { frame } = mountWidget();
-    for (let i = 0; i < FRAMES_PER_SECOND; i++) frame();
+    const { frame, transport } = mountWidget();
+    for (let i = 0; i < FRAMES_PER_SECOND; i++) {
+      act(() => {
+        transport.emit("comms.link", { connected: i % 2 === 0 });
+      });
+      frame();
+    }
 
     const budget = budgetFor("fixture.perf");
     expect(budget.rate()).toBeGreaterThan(budget.threshold);

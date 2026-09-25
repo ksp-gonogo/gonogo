@@ -948,7 +948,7 @@ const ControlDelayStream__Zones = styled.div`
      content margin, same as the legend, so the outermost labels don't touch
      the widget edges. */
   margin: 0 var(--space-16, 16px);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.06em;
 
@@ -967,7 +967,7 @@ const ControlDelayStream__Legend = styled.div`
      horizontal margin (not edge to edge, same as the zone labels above it), and
      carries a little bottom breathing since the pinned rail is padding-free. */
   margin: 0 var(--space-16, 16px) var(--space-4, 4px);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.06em;
 

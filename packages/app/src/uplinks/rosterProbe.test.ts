@@ -1,4 +1,5 @@
-import { StubTransport, TelemetryClient } from "@ksp-gonogo/sitrep-client";
+import { TelemetryClient } from "@ksp-gonogo/sitrep-client";
+import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   decodeRosterPayload,

@@ -127,26 +127,60 @@ namespace Sitrep.Host
                 parentBodyIndex = ResolveBodyIndex(snapshot!, parentBodyName);
             }
 
-            double? launchUt = null;
-            if (TryGetGroup(vessel, "flight", out var flight))
-            {
-                var missionTime = GetDouble(flight, "missionTime");
-                if (missionTime.HasValue)
-                {
-                    launchUt = snapshot!.Ut - missionTime.Value;
-                }
-            }
+            var situation = ParseSituation(GetString(identity, "situation"));
 
             return new VesselIdentity
             {
                 VesselId = vesselId!,
                 Name = GetString(identity, "name") ?? "",
                 VesselType = ParseVesselType(GetString(identity, "vesselType")),
-                Situation = ParseSituation(GetString(identity, "situation")),
+                Situation = situation,
                 ParentBodyIndex = parentBodyIndex,
-                LaunchUt = launchUt,
+                LaunchUt = ResolveLaunchUt(snapshot!, vessel, identity, situation),
                 Meta = BuildMeta(vesselId!),
             };
+        }
+
+        /// <summary>
+        /// The UT the vessel's mission clock started from, or null while it has not.
+        ///
+        /// <para>Null in PreLaunch, because KSP re-stamps <c>Vessel.launchTime</c> to the
+        /// current UT on every update until the craft leaves the pad. A value there would
+        /// move with the clock, and a consumer's <c>viewUt - launchUt</c> would read a
+        /// positive mission time for a craft that has not launched.</para>
+        ///
+        /// <para>Otherwise KSP's own <c>launchTime</c>, which is fixed from liftoff.
+        /// <c>Ut - missionTime</c> is only the fallback for a snapshot that predates the
+        /// field: the two halves of it are read at different moments, so under warp it
+        /// wanders by seconds between samples.</para>
+        /// </summary>
+        private static double? ResolveLaunchUt(
+            KspSnapshot snapshot,
+            IDictionary<string, object?> vessel,
+            IDictionary<string, object?> identity,
+            Situation situation)
+        {
+            if (situation == Situation.PreLaunch)
+            {
+                return null;
+            }
+
+            var launchTime = GetDouble(identity, "launchTime");
+            if (launchTime.HasValue)
+            {
+                return launchTime.Value;
+            }
+
+            if (TryGetGroup(vessel, "flight", out var flight))
+            {
+                var missionTime = GetDouble(flight, "missionTime");
+                if (missionTime.HasValue)
+                {
+                    return snapshot.Ut - missionTime.Value;
+                }
+            }
+
+            return null;
         }
 
         public static VesselOrbit? BuildOrbit(KspSnapshot? snapshot)

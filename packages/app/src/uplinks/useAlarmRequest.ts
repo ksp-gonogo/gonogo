@@ -63,7 +63,6 @@ function toAlarmTrigger(trigger: UplinkAlarmTrigger): AlarmTrigger {
       kind: "time",
       ut: trigger.ut,
       leadSeconds: trigger.leadSeconds ?? DEFAULT_LEAD_SECONDS,
-      vantage: trigger.vantage ?? "command",
     };
   }
   return {

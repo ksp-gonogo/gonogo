@@ -144,20 +144,26 @@ export interface UplinkManifestInputs {
  * `dist/`, so the same expression works from either.
  */
 function sdkVersion(): string {
-  const pkg = JSON.parse(
-    readFileSync(join(import.meta.dirname, "..", "package.json"), "utf8"),
-  ) as { version?: string };
-  return pkg.version ?? "";
+  const pkg = readJsonFile(
+    join(import.meta.dirname, "..", "package.json"),
+    "the sdk's own package.json",
+  );
+  return typeof pkg.version === "string" ? pkg.version : "";
 }
 
 function readJsonFile(path: string, what: string): Record<string, unknown> {
+  let parsed: unknown;
   try {
-    return JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
+    parsed = JSON.parse(readFileSync(path, "utf8"));
   } catch (err) {
     throw new Error(
       `${what} at ${path} is not valid JSON: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error(`${what} at ${path} does not hold a JSON object.`);
+  }
+  return parsed as Record<string, unknown>;
 }
 
 /**

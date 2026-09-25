@@ -47,7 +47,7 @@ const Label = styled.span<{ $compact: boolean }>`
 const NameSpan = styled.button<{ $compact: boolean }>`
   background: none;
   border: 1px dashed transparent;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   padding: var(--inset-control-compact);
   font-size: ${({ $compact }) => ($compact ? "11px" : "14px")};
   color: var(--color-status-info-fg);
@@ -63,7 +63,7 @@ const NameSpan = styled.button<{ $compact: boolean }>`
 const NameInput = styled.input<{ $compact: boolean }>`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-text-faint);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   padding: var(--inset-control-compact);
   color: var(--color-status-info-fg);
   font-size: ${({ $compact }) => ($compact ? "11px" : "14px")};

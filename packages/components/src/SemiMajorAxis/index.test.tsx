@@ -1,7 +1,7 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SemiMajorAxisComponent } from "./index";
 
@@ -30,10 +30,6 @@ describe("SemiMajorAxisComponent", () => {
       pinnedUt: 10,
       suspendFrames: true,
     });
-  });
-
-  afterEach(() => {
-    stream = undefined as unknown as ReturnType<typeof setupStreamFixture>;
   });
 
   function renderSma(size: { w: number; h: number } = { w: 5, h: 6 }) {

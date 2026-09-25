@@ -1,6 +1,7 @@
-import type { ComponentProps, Value } from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentProps, Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
+  combineReadings,
   registerComponent,
   useProcessor,
   useTelemetry,
@@ -20,8 +21,10 @@ import {
   MeterStack,
   magnitudeOf,
   magnitudeOr,
+  Notice,
   NULL_DISPLAY,
   Panel,
+  ReadoutCaption,
   Section,
   type Severity,
   Stack,
@@ -30,7 +33,7 @@ import {
   Text,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import { useMemo } from "react";
+import { createContext, useContext, useMemo } from "react";
 import type {
   KerbalismGreenhouseEntry,
   KerbalismHabitat,
@@ -163,19 +166,29 @@ function rowValueLabel(row: ResourceRow): string {
  *  duration path, `formatQuantity` → `formatDuration`) instead of the
  *  hand-rolled `speakQuantity` string that function returns. */
 function RowValueDisplay({ row }: { row: ResourceRow }) {
+  const ledger = useContext(LedgerReadingContext);
   if (row.capacity <= 0) return <>not fitted</>;
   const sec = row.secondsToEmpty;
+  const left = value("s", Math.max(0, sec ?? 0));
   return (
     <>
       {fmtAmt(row.amount)} / {fmtAmt(row.capacity)} ·{" "}
       {sec == null || !Number.isFinite(sec) ? (
         "steady"
       ) : (
-        <Unit value={value("s", Math.max(0, sec))} />
+        <Unit value={ledger ? combineReadings([ledger], () => left) : left} />
       )}
     </>
   );
 }
+
+/**
+ * The reading the resource ledger was derived from, so a figure drawn deep in
+ * a row says how current it is without every row between being handed it.
+ */
+const LedgerReadingContext = createContext<Reading<unknown> | undefined>(
+  undefined,
+);
 
 /** Same resting-tone rule as `toneForRow`: wear is always slowly draining by
  *  nature, so the countdown does the alarming and the fraction only warns at
@@ -270,7 +283,18 @@ function toGreenhouseRow(g: KerbalismGreenhouseEntry): GreenhouseRow {
 function ShipSystemsComponent(
   _props: Readonly<ComponentProps<ShipSystemsConfig>>,
 ) {
-  const ship = useProcessor(SHIP_SYSTEMS);
+  /*
+   * Both value-bearing arms. The ledger below is FIGURES, and a summary that
+   * has stopped being current is still the last real one: blanking the panel
+   * would take the supply levels away from an operator at exactly the moment
+   * the link went quiet. How current the resource levels behind it are is
+   * carried separately, on the summary's own provenance field.
+   */
+  const shipReading = useProcessor(SHIP_SYSTEMS);
+  const ship =
+    shipReading?.state === "observed" || shipReading?.state === "stale"
+      ? shipReading.value
+      : undefined;
   // Read outside the Processor (unlike the four `kerbalism.profile`/
   // `lifesupport`/resources/crew deps `SHIP_SYSTEMS` already shares with the
   // panel badge): nothing else in this widget's own render derives from
@@ -321,7 +345,20 @@ function ShipSystemsComponent(
     );
   }
 
-  return <ShipSystemsBody ship={ship} weather={weather} utNow={utNow} />;
+  return (
+    <LedgerReadingContext.Provider value={shipReading}>
+      <ShipSystemsBody
+        ship={ship}
+        weather={weather}
+        utNow={utNow}
+        heldAsOfUt={
+          shipReading?.state === "stale"
+            ? magnitudeOr(shipReading.asOfUt, Number.NaN)
+            : undefined
+        }
+      />
+    </LedgerReadingContext.Provider>
+  );
 }
 
 /**
@@ -348,11 +385,19 @@ function ShipSystemsBody({
   ship,
   weather,
   utNow,
+  heldAsOfUt,
 }: {
   ship: ShipSystems;
   weather: KerbalismSpaceWeather | undefined;
   utNow: number | undefined;
+  /** When the ledger was last current, or `undefined` while it still is. */
+  heldAsOfUt: number | undefined;
 }) {
+  const held = heldAsOfUt !== undefined;
+  const heldFor =
+    held && utNow !== undefined && Number.isFinite(heldAsOfUt)
+      ? Math.max(0, utNow - heldAsOfUt)
+      : undefined;
   const { summary } = ship;
   // The "Limiting factors" banner names a cause's ROOT resource but the
   // sentence's subject is the resource it explains (see `LimitedByMessage`),
@@ -434,7 +479,7 @@ function ShipSystemsBody({
           aria-live="polite"
           severity={severityFromBadgeEntryTone(status.tone)}
         >
-          {status.label}
+          {held ? `${status.label} · held` : status.label}
         </Badge>
       }
       panelFooter={
@@ -459,6 +504,23 @@ function ShipSystemsBody({
         )
       }
       sections={[
+        /* The caveat sits over the figures it qualifies rather than only in
+           the header, where a badge beside confident numbers is what an
+           operator reads past. */
+        held && (
+          <Section key="held" full>
+            <ReadoutCaption role="status">
+              at last contact
+              {heldFor !== undefined && (
+                <>
+                  {", "}
+                  <Unit value={value("s", heldFor)} />
+                  {" ago"}
+                </>
+              )}
+            </ReadoutCaption>
+          </Section>
+        ),
         /* Radiation leads the widget: the operator's own call, it is the
            attractive visual (the sparkline trend), so it earns the top
            slot rather than sitting below the resource ledger, and it spans
@@ -473,15 +535,13 @@ function ShipSystemsBody({
         summary.causes.length > 0 && (
           /* Spans, like any warning the sections below it are qualified by.
 
-             Card, the same container every other section in this widget uses:
-             hand-stitching `Box` per section is how some rows end up boxed and
-             some not. */
+             A Notice rather than a Card: this is a statement ABOUT the
+             sections below it, not a record among them, and it is announced
+             when it appears. The announcement contract is the component's, so
+             this site no longer carries a hand-written role and aria-live. */
           <Section key="causes" full>
-            <Card role="status" aria-live="polite">
-              <Stack>
-                <Text tone="nogo" weight="semibold" size="sm">
-                  Limiting factors
-                </Text>
+            <Notice tone="alert" title="Limiting factors">
+              <Stack gap="xs">
                 {summary.causes.flatMap((cause) =>
                   cause.explains.length > 0
                     ? cause.explains.map((explained) => {
@@ -522,7 +582,7 @@ function ShipSystemsBody({
                       ],
                 )}
               </Stack>
-            </Card>
+            </Notice>
           </Section>
         ),
         <Section key="supplies">
@@ -533,7 +593,7 @@ function ShipSystemsBody({
                 key={row.name}
                 row={row}
                 ship={ship}
-                categoryColor={resourceColors.get(row.name)}
+                identityColor={resourceColors.get(row.name)}
               />
             ))}
           </MeterStack>
@@ -547,7 +607,7 @@ function ShipSystemsBody({
                   key={row.name}
                   row={row}
                   ship={ship}
-                  categoryColor={resourceColors.get(row.name)}
+                  identityColor={resourceColors.get(row.name)}
                 />
               ))}
             </MeterStack>
@@ -609,8 +669,16 @@ function ShipSystemsBody({
         <Section key="processes">
           <SectionHead
             label="Processes"
-            value={processSummary}
-            tone={brokenCount > 0 ? "nogo" : unknownCount > 0 ? "warn" : "go"}
+            value={held ? "run state held" : processSummary}
+            tone={
+              held
+                ? undefined
+                : brokenCount > 0
+                  ? "nogo"
+                  : unknownCount > 0
+                    ? "warn"
+                    : "go"
+            }
           />
           <Stack>
             {processes.map((p) => (
@@ -618,9 +686,17 @@ function ShipSystemsBody({
                 <Text tone="default" size="xs">
                   {p.name}
                 </Text>
-                <Badge severity={processSeverity(p.state)} size="sm">
-                  {p.state}
-                </Badge>
+                {/* The heading above says whose state is held; the badge only
+                    has the width of the one it replaces. */}
+                {held ? (
+                  <Badge severity="info" size="sm">
+                    held
+                  </Badge>
+                ) : (
+                  <Badge severity={processSeverity(p.state)} size="sm">
+                    {p.state}
+                  </Badge>
+                )}
               </Cluster>
             ))}
           </Stack>
@@ -682,15 +758,15 @@ function SectionHead({
 function ResourceLedgerRow({
   row,
   ship,
-  categoryColor,
+  identityColor,
 }: {
   row: ResourceRow;
   ship: ShipSystems;
   /** This resource's colour from `useResourceColorMap`, rendered as the
-   *  Card's top-edge identity strip. `undefined` renders no strip (the
-   *  colour map is always populated for a row present in `summary`, this
-   *  is just the prop's own honest optionality). */
-  categoryColor?: string;
+   *  Card's top-edge identity tab. `undefined` renders no tab (the colour map
+   *  is always populated for a row present in `summary`, this is just the
+   *  prop's own honest optionality). */
+  identityColor?: string;
 }) {
   const ledger = useMemo<Ledger>(
     () =>
@@ -704,12 +780,12 @@ function ResourceLedgerRow({
   );
 
   return (
-    // testid escape hatch: a plain visual container, no role/label of its
-    // own to query by (the Meter it wraps already carries the accessible
-    // name), so a stable hook is the only way a test can reach THIS row's
-    // own Card to assert its categoryColor strip.
+    // No title: the Meter below already carries the resource's name and its
+    // accessible name, so a heading above it would say the same word twice.
+    // The testid is the escape hatch a test needs to reach THIS row's own card
+    // and assert its identity tab, there being no role or label of its own.
     <Card
-      categoryColor={categoryColor}
+      identityColor={identityColor}
       data-testid={`resource-card-${row.name}`}
     >
       <Stack>
@@ -852,7 +928,7 @@ function LedgerBody({ ledger }: { ledger: Ledger }) {
           </Cluster>
         ))
       )}
-      <Divider space="xs" />
+      <Divider />
       <Cluster justify="between" wrap>
         <Text tone="muted" size="xs">
           Net (derived)

@@ -17,9 +17,16 @@
  * of any zones/markers that a non-sighted operator needs.
  */
 
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import { bandIn, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import {
+  InstrumentBound,
+  InstrumentHeldMark,
+  sayHeld,
+} from "./instrumentCurrency";
+import { NULL_DISPLAY } from "./NullValue";
+import { resolveCurrency, type UnitValue } from "./readingCurrency";
 import { type FormatsFor, quantityScale, speakQuantity } from "./units";
 
 export interface TapeZone<U extends string = string> {
@@ -52,8 +59,8 @@ export interface TapeProps<U extends string = string> {
    * so its numbers face the content they annotate instead of the panel border.
    */
   labelSide?: "left" | "right";
-  /** Current value: the pointer position. */
-  value: Value<U>;
+  /** Current value: the pointer position, or the whole reading it arrived in. */
+  value: UnitValue<U>;
   /** Bottom of the scale. */
   min: Value<U>;
   /** Top of the scale. */
@@ -131,6 +138,9 @@ export function Tape<U extends string = string>({
   }, [fillHeight]);
   const h = fillHeight ? measured : height;
 
+  // Split first, so the figure and the statements about it go separate ways.
+  const { shown, notCurrent, caption, band } = resolveCurrency(value);
+
   /*
    * The scale, unwrapped ONCE into the strip's own pixel geometry. Everything
    * below is arithmetic on bare numbers, which is what a `y` coordinate is
@@ -139,13 +149,17 @@ export function Tape<U extends string = string>({
    * READER sees goes back out through the unit layer, at the tick labels, the
    * pointer flag, the unit header and `aria-valuetext`.
    */
-  const current = value.magnitude;
+  const current = shown?.magnitude ?? Number.NaN;
   const axisMin = min.magnitude;
   const axisMax = max.magnitude;
   const span = axisMax - axisMin;
   const safe = Number.isFinite(current) ? current : axisMin;
   const clamped =
     span > 0 ? Math.max(axisMin, Math.min(axisMax, safe)) : axisMin;
+  // A reading carrying no number gets no pointer: one resting at the foot of
+  // the rail would say the vessel is there. A number that is present but
+  // non-finite keeps the fallback to the foot of the rail.
+  const hasFigure = shown != null;
 
   /*
    * One rung for the whole strip, settled from the top of it (or from the
@@ -154,10 +168,18 @@ export function Tape<U extends string = string>({
    * they are actually printed in.
    */
   const scale = quantityScale(max, { format });
-  const spoken = speakQuantity(
-    { magnitude: safe, unit: value.unit },
-    { format: scale.rung },
-  );
+  const spoken =
+    shown == null
+      ? NULL_DISPLAY
+      : speakQuantity(
+          { magnitude: safe, unit: shown.unit },
+          { format: scale.rung },
+        );
+  // Where the model would defend its answer, on the rail the pointer runs up.
+  // Narrowed to the figure's own unit: an interval placed by a number of
+  // another kind is an interval about something else.
+  const interval =
+    shown == null || band === null ? null : (bandIn(band, shown.unit) ?? null);
 
   // Floored: a `fillHeight` rail measures whatever the surrounding layout
   // leaves it (e.g. LandingStatus's AltitudeRail squeezed by sibling
@@ -172,6 +194,15 @@ export function Tape<U extends string = string>({
     const t = Math.max(0, Math.min(1, (v - axisMin) / span));
     return PAD_TOP + (1 - t) * usable;
   };
+
+  /*
+   * A quantity's way onto the rail, and the single unwrap on that path. `yOf`
+   * already pins anything off the ends of the scale, so what this adds is the
+   * ordering being done in the ALGEBRA: `min`/`max` convert before they
+   * compare, and a zone written on another rung of the same kind is otherwise
+   * ordered by its bare number, which `Math.min` on two magnitudes cannot see.
+   */
+  const onRail = (q: Value<U>): number => yOf(q.magnitude);
 
   const trackTop = PAD_TOP;
   const trackBottom = PAD_TOP + usable;
@@ -199,7 +230,8 @@ export function Tape<U extends string = string>({
     <Tape__Meter
       ref={wrapRef}
       role="meter"
-      aria-label={ariaLabel ?? "Tape"}
+      aria-label={sayHeld(ariaLabel ?? "Tape", caption)}
+      data-not-current={notCurrent ? "" : undefined}
       aria-valuenow={clamped}
       aria-valuemin={axisMin}
       aria-valuemax={axisMax}
@@ -236,15 +268,11 @@ export function Tape<U extends string = string>({
 
         {/* Zones */}
         {zones?.map((z) => {
-          const from = z.from.magnitude;
-          const to = z.to.magnitude;
-          const lo = Math.min(from, to);
-          const hi = Math.max(from, to);
-          const yHi = yOf(hi);
-          const yLo = yOf(lo);
+          const yHi = onRail(z.from.max(z.to));
+          const yLo = onRail(z.from.min(z.to));
           const h = Math.max(0, yLo - yHi);
           return (
-            <g key={`zone-${lo}-${hi}-${z.label ?? ""}`}>
+            <g key={`zone-${yLo}-${yHi}-${z.label ?? ""}`}>
               <rect
                 x={trackX}
                 y={yHi}
@@ -310,11 +338,10 @@ export function Tape<U extends string = string>({
 
         {/* Markers (to the right of the track) */}
         {markers?.map((m) => {
-          const at = m.value.magnitude;
-          const y = yOf(at);
+          const y = onRail(m.value);
           const color = m.color ?? "var(--color-accent-fg)";
           return (
-            <g key={`marker-${at}-${m.label ?? ""}`}>
+            <g key={`marker-${y}-${m.label ?? ""}`}>
               <polygon
                 points={
                   mirrored
@@ -343,25 +370,46 @@ export function Tape<U extends string = string>({
         {/* Spans the track, so it follows the mirror. Pinning it to the
             unmirrored TRACK_X leaves the pointer on the opposite side from the
             track it points at whenever labelSide flips. */}
-        <line
-          x1={trackX - 6}
-          y1={pointerY}
-          x2={trackX + TRACK_W + 6}
-          y2={pointerY}
-          stroke="var(--color-accent-fg)"
-          strokeWidth={2}
-        />
-        <text
-          x={mirrored ? labelX + 2 : labelX - 2}
-          y={Math.max(trackTop + 4, Math.min(trackBottom - 4, pointerY))}
-          textAnchor={labelAnchor}
-          dominantBaseline="middle"
-          fontSize={11}
-          fontWeight="bold"
-          fill="var(--color-accent-fg)"
-        >
-          {scale.mark(safe)}
-        </text>
+        {/* The model's two bounds, across the rail the pointer runs up */}
+        {interval !== null &&
+          (["lo", "hi"] as const).map((end) => {
+            const y = onRail(interval[end]);
+            return (
+              <InstrumentBound
+                key={end}
+                end={end}
+                x1={trackX}
+                y1={y}
+                x2={trackX + TRACK_W}
+                y2={y}
+              />
+            );
+          })}
+
+        {hasFigure && (
+          <>
+            <line
+              x1={trackX - 6}
+              y1={pointerY}
+              x2={trackX + TRACK_W + 6}
+              y2={pointerY}
+              stroke="var(--color-accent-fg)"
+              strokeWidth={2}
+            />
+            <text
+              x={mirrored ? labelX + 2 : labelX - 2}
+              y={Math.max(trackTop + 4, Math.min(trackBottom - 4, pointerY))}
+              textAnchor={labelAnchor}
+              dominantBaseline="middle"
+              fontSize={11}
+              fontWeight="bold"
+              fill="var(--color-accent-fg)"
+            >
+              {scale.mark(safe)}
+              {notCurrent && <InstrumentHeldMark size={5} />}
+            </text>
+          </>
+        )}
 
         {/* The scale's own symbol, shown once, taken from the same rung every
             tick and the pointer flag are written at (those stay symbol-less to

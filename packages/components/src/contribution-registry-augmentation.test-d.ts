@@ -45,15 +45,26 @@ type _SegmentMerged = Expect<
   Equal<ContributionEntry<"any-widget.augtest-seg">, { magnitude: number }>
 >;
 
-// ── Negative control: an undeclared slot id falls back to the loose record,
-//    proving the two positives above are real merges and not the fallback.
-type _UndeclaredIsLoose = Expect<
-  Equal<ContributionEntry<"nope.not-declared">, Record<string, unknown>>
+// ── Negative control: a NAMED slot id nothing declares carries no entry shape,
+//    proving the two positives above are real merges and not a fallback.
+type _UndeclaredIsNever = Expect<
+  Equal<ContributionEntry<"nope.not-declared">, never>
+>;
+
+// ── An id erased to `string` is what a REGISTRY READ holds, and keeps the open
+//    record: the reader fished the contribution out by key and declared nothing.
+type _ErasedStaysLoose = Expect<
+  Equal<ContributionEntry<string>, Record<string, unknown>>
 >;
 
 // @ts-expect-error the merged full-id entry is `{ label: string }`, so a
 // number is not assignable: proves the precise (non-fallback) type resolved.
 const _bad: ContributionEntry<"augtest.rows"> = { label: 42 };
 
-export type { _FullIdMerged, _SegmentMerged, _UndeclaredIsLoose };
+export type {
+  _ErasedStaysLoose,
+  _FullIdMerged,
+  _SegmentMerged,
+  _UndeclaredIsNever,
+};
 export const _augmentationFixtures = [_bad];

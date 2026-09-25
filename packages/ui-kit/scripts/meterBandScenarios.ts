@@ -29,6 +29,13 @@ export interface MeterCase {
   tank?: { amount: number; capacity: number; unit: "units" };
   /** Not a reading of now: how the sheet asks for the stale treatment. */
   stale?: boolean;
+  /**
+   * A stale reading that names no grade, which is a real shape off the wire:
+   * a figure can stop being current without anything saying HOW. It is here
+   * because staleness alone is what dims the fill, and a sheet where every
+   * stale row carries a grade cannot show that.
+   */
+  gradeless?: boolean;
   /** What the case is here to show, printed under the bar. */
   note?: string;
 }
@@ -228,6 +235,27 @@ export const SHEETS: MeterSheet[] = [
         band: { lo: 0.42, hi: 0.58, kind: "sigma1" },
         note: "for comparison: neither mark is against an end",
       },
+    ],
+  },
+  {
+    id: "dense-stale",
+    title: "A dense stack at tile width, stale mixed with current",
+    blurb:
+      "Eight rows at the width a real tile gives them, half of them no longer " +
+      "current. The question is whether the room reserved for the not-current " +
+      "mark reads as cramped when every row pays it, which one meter on a " +
+      "specimen sheet cannot show.",
+    width: 260,
+    cases: [
+      { label: "LiquidFuel", fraction: 0.82, stale: true },
+      { label: "Oxidizer", fraction: 0.79 },
+      { label: "MonoPropellant", fraction: 0.44, stale: true },
+      { label: "ElectricCharge", fraction: 0.96, tone: "info" },
+      { label: "Ablator", fraction: 0.12, tone: "warn", stale: true },
+      { label: "XenonGas", fraction: 0.6 },
+      { label: "Ore", fraction: 0.05, tone: "warn", stale: true },
+      { label: "IntakeAir", fraction: 0.33 },
+      { label: "SolidFuel", fraction: 0.71, stale: true, gradeless: true },
     ],
   },
 ];

@@ -208,7 +208,7 @@ const NodeLi = styled.li<{ $completed: boolean }>`
   border: 1px solid
     ${({ $completed }) =>
       $completed ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
 `;
 
 const NodeMain = styled.div`
@@ -225,14 +225,14 @@ const NodePrimary = styled.div<{ $completed: boolean }>`
   display: flex;
   align-items: center;
   gap: var(--gap-related);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-value);
   color: ${({ $completed }) =>
     $completed ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
   font-weight: ${({ $completed }) => ($completed ? 600 : 400)};
 `;
 
 const NodeMeta = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-dim);
   letter-spacing: 0.04em;
 `;
@@ -252,7 +252,7 @@ const StepButton = styled(IconButton)<{ $active: boolean }>`
   color: var(--color-text-muted);
   width: 22px;
   height: 22px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -268,7 +268,7 @@ const DeleteButton = styled.button`
   color: var(--color-text-muted);
   width: 22px;
   height: 22px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -294,7 +294,7 @@ const EditGrid = styled.div`
 `;
 
 const EditHint = styled.div`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-dim);
   letter-spacing: 0.04em;
   text-align: right;
@@ -311,7 +311,7 @@ const EditActions = styled.div`
 // and the align-self it sets for form footers are overridden here.
 const CompactPrimaryButton = styled(PrimaryButton)`
   align-self: auto;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   /* The compact-button inset, shared with SecondaryButton below. A control by
      class, but not on the control inset: --inset-control's 6px vertical would
      make these two footer buttons taller than the 22px row controls above
@@ -323,9 +323,9 @@ const SecondaryButton = styled.button`
   background: transparent;
   color: var(--color-text-muted);
   border: 1px solid var(--color-border-subtle);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   padding: var(--space-4) var(--space-10);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   &:disabled {
     opacity: 0.5;

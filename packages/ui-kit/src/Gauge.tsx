@@ -1,5 +1,13 @@
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import { bandIn, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
+import {
+  InstrumentBound,
+  InstrumentHeldMark,
+  InstrumentNoFigure,
+  sayHeld,
+} from "./instrumentCurrency";
+import { NULL_DISPLAY } from "./NullValue";
+import { resolveCurrency, type UnitValue } from "./readingCurrency";
 import { type FormatsFor, speakQuantity, writeQuantity } from "./units";
 
 /**
@@ -19,6 +27,17 @@ import { type FormatsFor, speakQuantity, writeQuantity } from "./units";
  * in the wrong place. The centre readout is written from that unit too: there
  * is no unit label to pass, because passing one is how a gauge came to be able
  * to show a number and a symbol that disagreed.
+ *
+ * ## Handed a whole `Reading`, it also draws how well the number is known
+ *
+ * `value` takes the reading it arrived in as readily as the quantity, and then
+ * the gauge decides what to draw: a not-current reading marks the readout, a
+ * model's interval puts a bound on the arc, and a reading carrying no number at
+ * all shows no needle rather than parking one at the bottom of the scale.
+ *
+ * The AXIS is not widened with it. `min` and `max` are the scale the caller
+ * chose to draw against, not something read from a vessel, so there is no
+ * currency for them to carry.
  */
 export interface GaugeZone<U extends string = string> {
   /** Lower bound of the zone (inclusive). */
@@ -30,7 +49,8 @@ export interface GaugeZone<U extends string = string> {
 }
 
 export interface GaugeProps<U extends string = string> {
-  value: Value<U>;
+  /** The figure the needle points at, or the whole reading it arrived in. */
+  value: UnitValue<U>;
   min: Value<U>;
   max: Value<U>;
   width: number;
@@ -104,6 +124,10 @@ export function Gauge<U extends string = string>({
   trackColor = "var(--color-border-subtle)",
   ariaLabel,
 }: Readonly<GaugeProps<U>>) {
+  // Split first, so the figure and the statements about it go separate ways.
+  // Everything below works on the figure.
+  const { shown, notCurrent, caption, band } = resolveCurrency(value);
+
   /*
    * The axis, unwrapped ONCE into the SVG's own coordinate space. Everything
    * below this line is trigonometry on bare numbers, which is what a path
@@ -112,18 +136,38 @@ export function Gauge<U extends string = string>({
    * comparable at all. Every figure a READER sees goes back out through the
    * unit layer, at the centre readout and in the accessible name.
    */
-  const v = value.magnitude;
+  const v = shown?.magnitude ?? Number.NaN;
   const lo = min.magnitude;
   const hi = max.magnitude;
   const safeValue = Number.isFinite(v) ? v : lo;
+  /*
+   * Every OTHER quantity's way onto the arc, clamped in the algebra and
+   * unwrapped once here. `min`/`max` convert before they compare, so a zone
+   * bound written on another rung of the same kind lands where it belongs
+   * rather than where its bare number would put it, which is the failure
+   * `Math.max` on two magnitudes cannot see.
+   */
+  const onAxis = (q: Value<U>): number => q.max(min).min(max).magnitude;
+  // A reading that carries no number gets no needle: one parked at the bottom
+  // of the scale would say the value IS that. A number that is present but
+  // non-finite is a different case and keeps the fallback to the foot of the
+  // scale, which is where a bare quantity of the same shape lands.
+  const hasFigure = shown != null;
 
   /*
    * An SVG `<text>` cannot contain a `<span>`, so `<Unit>` will not go in one
    * and `writeQuantity` is the sanctioned way out: it is the same formatter
    * and the same attach rule, rendered to a string.
    */
-  const spoken = speakQuantity(value, { format });
-  const centreLabel = valueLabel ?? writeQuantity(value, { format });
+  const spoken =
+    shown == null ? NULL_DISPLAY : speakQuantity(shown, { format });
+  const centreLabel =
+    valueLabel ?? (shown == null ? null : writeQuantity(shown, { format }));
+  // Where the model would defend its answer, on the arc the needle swings over.
+  // Narrowed to the figure's own unit: an interval placed by a number in
+  // another kind is an interval about something else.
+  const bounds =
+    shown == null || band === null ? null : (bandIn(band, shown.unit) ?? null);
 
   // Pad the bounding box so the half-circle isn't clipped at the edges. The
   // arc lives in the upper half; reserve a strip below for the centre readout,
@@ -145,7 +189,7 @@ export function Gauge<U extends string = string>({
         height={Math.max(0, height)}
         viewBox={`0 0 ${Math.max(0, width)} ${Math.max(0, height)}`}
         role="img"
-        aria-label={ariaLabel ?? `Gauge: ${spoken}`}
+        aria-label={sayHeld(ariaLabel ?? `Gauge: ${spoken}`, caption)}
         style={{ display: "block", maxWidth: "100%", height: "auto" }}
       >
         <title>{ariaLabel ?? "Gauge"}</title>
@@ -172,7 +216,8 @@ export function Gauge<U extends string = string>({
       // `overflow: hidden`. No-op when the slot is already >= `width`.
       viewBox={`0 0 ${width} ${height}`}
       role="img"
-      aria-label={ariaLabel ?? `Gauge: ${spoken}`}
+      aria-label={sayHeld(ariaLabel ?? `Gauge: ${spoken}`, caption)}
+      data-not-current={notCurrent ? "" : undefined}
       style={{
         display: "block",
         fontFamily: "monospace",
@@ -192,8 +237,8 @@ export function Gauge<U extends string = string>({
         />
         {/* Zones */}
         {zones?.map((z, i) => {
-          const from = clamp(z.from.magnitude, lo, hi);
-          const to = clamp(z.to.magnitude, lo, hi);
+          const from = onAxis(z.from);
+          const to = onAxis(z.to);
           if (to <= from) return null;
           return (
             <path
@@ -207,28 +252,58 @@ export function Gauge<U extends string = string>({
             />
           );
         })}
+        {/* The model's two bounds, straddling the arc the needle swings over */}
+        {bounds !== null &&
+          (["lo", "hi"] as const).map((end) => {
+            const at = pointOnArc(onAxis(bounds[end]), lo, hi, radius);
+            // Radial, so the mark crosses the track rather than lying along it:
+            // a tangential dash at this thickness reads as another zone.
+            const inner = radius - TRACK_THICKNESS / 2;
+            const outer = radius + TRACK_THICKNESS / 2;
+            return (
+              <InstrumentBound
+                key={end}
+                end={end}
+                x1={(at.x / radius) * inner}
+                y1={(at.y / radius) * inner}
+                x2={(at.x / radius) * outer}
+                y2={(at.y / radius) * outer}
+              />
+            );
+          })}
         {/* Needle */}
-        <line
-          x1={0}
-          y1={0}
-          x2={needle.x}
-          y2={needle.y}
-          stroke={needleColor}
-          strokeWidth={2}
-          strokeLinecap="round"
-        />
-        <circle cx={0} cy={0} r={NEEDLE_HUB_RADIUS} fill={needleColor} />
+        {hasFigure && (
+          <>
+            <line
+              x1={0}
+              y1={0}
+              x2={needle.x}
+              y2={needle.y}
+              stroke={needleColor}
+              strokeWidth={2}
+              strokeLinecap="round"
+            />
+            <circle cx={0} cy={0} r={NEEDLE_HUB_RADIUS} fill={needleColor} />
+          </>
+        )}
       </g>
       {/* Centre value, unit and all: see `centreLabel` on why it is a string */}
-      <text
-        x={cx}
-        y={cy + 18}
-        textAnchor="middle"
-        fontSize={16}
-        fill="var(--color-text-primary)"
-      >
-        {centreLabel}
-      </text>
+      {centreLabel === null ? (
+        <InstrumentNoFigure x={cx} y={cy + 18} size={16}>
+          {NULL_DISPLAY}
+        </InstrumentNoFigure>
+      ) : (
+        <text
+          x={cx}
+          y={cy + 18}
+          textAnchor="middle"
+          fontSize={16}
+          fill="var(--color-text-primary)"
+        >
+          {centreLabel}
+          {notCurrent && <InstrumentHeldMark size={7} />}
+        </text>
+      )}
     </svg>
   );
 }

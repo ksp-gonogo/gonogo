@@ -13,8 +13,6 @@ import {
   ScreenProvider,
 } from "@ksp-gonogo/core";
 import {
-  createFakeWallClock,
-  StubTransport,
   systemUplinkHealthChannel,
   TelemetryClient,
   TelemetryProvider,
@@ -22,6 +20,10 @@ import {
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  createFakeWallClock,
+  StubTransport,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   act,
   fireEvent,
@@ -232,6 +234,17 @@ afterEach(() => {
   __resetUplinkOutcomes();
   __clearSettingsTabsForTests();
 });
+
+/**
+ * The registered source this row binds to.
+ *
+ * A source-backed row's binding closures are handed the source the registry
+ * holds under `sourceId`, which it stores erased: the id does not determine
+ * the type, so the client that wrote the binding is the one that knows.
+ */
+function throttleSource(source: unknown): ThrottleSource {
+  return source as ThrottleSource;
+}
 
 describe("SettingsModal Data Sources tab: single Gonogo/Sitrep connection", () => {
   it("shows the Sitrep Stream connection row when registered", async () => {
@@ -710,9 +723,9 @@ function registerThrottleSetting() {
     backing: "source-backed",
     type: "boolean",
     sourceId: "throttle-src",
-    read: (s) => (s as ThrottleSource).getThrottle(),
-    write: (s, v) => (s as ThrottleSource).setThrottle(v),
-    subscribe: (s, cb) => (s as ThrottleSource).onThrottleChange(cb),
+    read: (s) => throttleSource(s).getThrottle(),
+    write: (s, v) => throttleSource(s).setThrottle(v),
+    subscribe: (s, cb) => throttleSource(s).onThrottleChange(cb),
     category: "Test",
     label: "Throttle main render",
     description: "A source-backed setting bound to a DataSource.",
@@ -843,6 +856,15 @@ interface FramePrefs {
   declutter: boolean;
 }
 
+/* The example Topic these rows read. A stream-backed row names a Topic the
+   contract carries, so a row pointing at one nothing publishes does not
+   compile rather than rendering nothing forever. */
+declare module "@ksp-gonogo/sitrep-sdk" {
+  interface TopicPayloadMap {
+    "example.settings": FramePrefs;
+  }
+}
+
 const FRAME_PREFS: FramePrefs = {
   frameName: "Kerbin-centred inertial",
   tolerance: 1,
@@ -856,7 +878,7 @@ function registerStreamBackedRows() {
     backing: "stream-backed",
     type: "text",
     topic: "example.settings",
-    select: (p) => (p as FramePrefs).frameName,
+    select: (p) => p.frameName,
     category: "Example",
     group: "Plotting frame",
     label: "Selected frame",
@@ -867,7 +889,7 @@ function registerStreamBackedRows() {
     backing: "stream-backed",
     type: "number",
     topic: "example.settings",
-    select: (p) => value("m", (p as FramePrefs).tolerance),
+    select: (p) => value("m", p.tolerance),
     category: "Example",
     group: "Prediction",
     label: "Prediction tolerance",
@@ -878,7 +900,7 @@ function registerStreamBackedRows() {
     backing: "stream-backed",
     type: "number",
     topic: "example.settings",
-    select: (p) => (p as FramePrefs).maxSteps,
+    select: (p) => p.maxSteps,
     category: "Example",
     group: "Prediction",
     label: "Max steps",

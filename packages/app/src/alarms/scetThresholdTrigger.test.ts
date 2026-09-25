@@ -2,7 +2,12 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { AlarmStateMachine } from "./AlarmStateMachine";
 import { AlarmWarpPlanner } from "./AlarmWarpPlanner";
 import type { Alarm, ThresholdTrigger } from "./types";
-import { isScetTrigger, migrateAlarm, scetThresholdAddress } from "./types";
+import {
+  isAtSubjectVantage,
+  migrateAlarm,
+  modOwnsLatch,
+  scetThresholdAddress,
+} from "./types";
 
 /**
  * A threshold armed on the craft's clock is the mod's to evaluate, and these
@@ -51,6 +56,9 @@ describe("SCET threshold trigger", () => {
   beforeEach(() => {
     now = 1000;
     alarms = [];
+    /* Nothing refused, which is the default and is what these cases are about:
+       the mod took these alarms, so this side leaves their latch alone. The
+       other half is the kind being mod-owned. */
     sm = new AlarmStateMachine(() => now);
     planner = new AlarmWarpPlanner(
       () => alarms,
@@ -58,9 +66,20 @@ describe("SCET threshold trigger", () => {
     );
   });
 
-  it("is a SCET trigger, and a command-vantage threshold is not", () => {
-    expect(isScetTrigger(scetAlarm().trigger)).toBe(true);
-    expect(isScetTrigger(thresholdAlarm().trigger)).toBe(false);
+  it("is read at its subject's vantage, and a command-vantage threshold is not", () => {
+    expect(isAtSubjectVantage(scetAlarm().trigger)).toBe(true);
+    expect(isAtSubjectVantage(thresholdAlarm().trigger)).toBe(false);
+  });
+
+  /**
+   * The two questions coincide for a threshold and are still not the same
+   * question: this one is the migration table, and the command-vantage half is
+   * what a later step flips once a real session has shown the two evaluators
+   * agreeing.
+   */
+  it("is latched by the mod, and a command-vantage threshold is not yet", () => {
+    expect(modOwnsLatch(scetAlarm().trigger)).toBe(true);
+    expect(modOwnsLatch(thresholdAlarm().trigger)).toBe(false);
   });
 
   it("does not track the match here, and does not touch the latch", () => {
@@ -76,12 +95,13 @@ describe("SCET threshold trigger", () => {
   it("stays pending until the notice latches it, then runs the banner window", () => {
     const alarm = scetAlarm();
     alarms.push(alarm);
-    expect(sm.deriveState(alarm, now, now - 1)).toBe("pending");
+    expect(sm.deriveState(alarm, now)).toBe("pending");
 
     // What `AlarmHostService.onScetFired` does with the mod's notice.
     alarm.matchSinceUT = now;
-    expect(sm.deriveState(alarm, now, now - 1)).toBe("firing");
-    expect(sm.deriveState(alarm, now + 5, now)).toBe("fired");
+    alarm.state = sm.deriveState(alarm, now);
+    expect(alarm.state).toBe("firing");
+    expect(sm.deriveState(alarm, now + 5)).toBe("fired");
   });
 
   it("does not wait out its own sustain window, because the mod already did", () => {
@@ -92,7 +112,7 @@ describe("SCET threshold trigger", () => {
        one is latched by a notice the mod only sends once the window is already
        satisfied, so adding the window again here would hold the banner back by
        a second copy of a wait that has happened. */
-    expect(sm.deriveState(alarm, now, now - 1)).toBe("firing");
+    expect(sm.deriveState(alarm, now)).toBe("firing");
   });
 
   it("is not a warp-to target, because the stop happens upstream of us", () => {
@@ -115,7 +135,7 @@ describe("SCET threshold trigger", () => {
     // No stream behind it, so the read fails and the latch is left alone: the
     // three-answer rule, unchanged by the SCET arm existing.
     expect(sm.updateThresholdTracking(alarm, now, now - 1)).toBe(false);
-    expect(sm.deriveState(alarm, now, now - 1)).toBe("pending");
+    expect(sm.deriveState(alarm, now)).toBe("pending");
   });
 });
 

@@ -1,0 +1,124 @@
+{
+  "_meta": {
+    "scenario": "kerbin-lko-equator-stopped-arriving",
+    "notes": "Circular 85 km equatorial parking orbit, prograde. The ground track is a flat line along the equator, which is what the projection should draw for inclination 0. Then the link drops: the transport disconnects after the scene is staged, so every reading this widget draws is held rather than current."
+  },
+  "v.body": "Kerbin",
+  "v.lat": 0,
+  "v.long": 75,
+  "v.altitude": 85000,
+  "n.pitch": 0,
+  "n.heading": 90,
+  "v.dynamicPressure": 0,
+  "v.mach": 0,
+  "v.surfaceSpeed": 2070.873,
+  "v.verticalSpeed": 0,
+  "t.universalTime": 1234567,
+  "o.encounterExists": false,
+  "o.orbitPatches": [],
+  "o.maneuverNodes": [],
+  "a.physicsMode": "Orbital",
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 685000,
+          "ecc": 0,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 1234567,
+          "mu": 3531600000000,
+          "patches": [
+            {
+              "sma": 685000,
+              "ecc": 0,
+              "inc": 0,
+              "lan": 0,
+              "argPe": 0,
+              "meanAnomalyAtEpoch": 0,
+              "epoch": 1234567,
+              "period": 1895.527,
+              "startUt": 1234567,
+              "endUt": 1236462.527,
+              "patchStartTransition": 0,
+              "patchEndTransition": 1,
+              "peA": 85000,
+              "apA": 85000,
+              "semiLatusRectum": 685000,
+              "semiMinorAxis": 685000,
+              "referenceBody": "Kerbin",
+              "referenceBodyIndex": 1,
+              "mu": 3531600000000
+            }
+          ],
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        },
+        "meta": {
+          "quality": 1
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0,
+          "longitude": 75,
+          "altitudeAsl": 85000,
+          "altitudeTerrain": 85000,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 2070.873,
+          "orbitalSpeed": 2270.599,
+          "gForce": 1,
+          "dynamicPressureKPa": 0,
+          "mach": 0,
+          "atmDensity": 0
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 3,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null,
+              "surfaceGravity": 1.00034160493135,
+              "rotationPeriod": 21549.4251830899
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 1234567,
+    "stopsArriving": true
+  }
+}

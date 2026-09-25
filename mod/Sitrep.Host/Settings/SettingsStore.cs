@@ -122,8 +122,11 @@ namespace Sitrep.Host.Settings
 
         /// <summary>
         /// Stage a value for the next <see cref="Commit"/>, after checking it
-        /// against the declared row. An undeclared path takes the text as it
-        /// stands.
+        /// against the encoding every value obeys and against the declared row.
+        /// An undeclared path is held to the encoding and takes the text
+        /// otherwise as it stands. A refusal is an
+        /// <see cref="ArgumentException"/> whose message is the reason, fit to
+        /// show an operator.
         /// </summary>
         public void Stage(string path, string text)
         {
@@ -131,6 +134,12 @@ namespace Sitrep.Host.Settings
             if (text == null)
             {
                 throw new ArgumentNullException(nameof(text));
+            }
+
+            var refusal = SettingsText.RefusalOf(text);
+            if (refusal != null)
+            {
+                throw new ArgumentException(path + ": " + refusal, nameof(text));
             }
 
             if (_rows.TryGetValue(path, out var row) && !row.Accepts(text))

@@ -91,11 +91,11 @@ const Stat__Root = styled.dl`
   padding: var(--space-6, 6px) var(--space-8, 8px);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs, 2px);
+  border-radius: var(--radius-regular, 2px);
 `;
 
 const Stat__Label = styled.dt`
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
@@ -112,7 +112,7 @@ const Stat__Figure = styled.dd<{ $tone: StatTone }>`
   align-items: baseline;
   flex-wrap: wrap;
   gap: var(--space-4, 4px);
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-figure);
   font-weight: 700;
   line-height: var(--line-height-tight, 1.2);
   font-variant-numeric: tabular-nums;
@@ -122,6 +122,6 @@ const Stat__Figure = styled.dd<{ $tone: StatTone }>`
 const Stat__Detail = styled.dd`
   margin: 0;
   min-width: 0;
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
 `;

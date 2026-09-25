@@ -32,7 +32,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { Fragment } from "react";
 import { heldGrade } from "../shared/heldGrade";
-import { magnitudeOf, type Quantityish } from "../shared/magnitude";
+import { asQuantityish, magnitudeOf } from "../shared/magnitude";
 import type { Instrument } from "./instrument";
 import { ScienceExperimentRow } from "./ScienceExperimentRow";
 
@@ -121,7 +121,8 @@ export function parseInstruments(raw: unknown): Instrument[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
   const out: Instrument[] = [];
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     const partId =
@@ -164,10 +165,11 @@ export function parseInstruments(raw: unknown): Instrument[] | null {
 export function sumExperimentDataAmount(raw: unknown): number {
   if (!Array.isArray(raw)) return 0;
   let total = 0;
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const dataAmount = magnitudeOf(
-      (entry as Record<string, unknown>).dataAmount as Quantityish,
+      asQuantityish((entry as Record<string, unknown>).dataAmount),
     );
     if (dataAmount !== null) {
       total += dataAmount;
@@ -213,18 +215,19 @@ export function parseLab(raw: unknown): LabStatus[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
   const out: LabStatus[] = [];
-  for (const entry of raw) {
+  const entries: unknown[] = raw;
+  for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     out.push({
       partName: typeof e.partName === "string" ? e.partName : "Lab",
-      dataStored: magnitudeOf(e.dataStored as Quantityish),
-      dataStorage: magnitudeOf(e.dataStorage as Quantityish),
-      storedScience: magnitudeOf(e.storedScience as Quantityish),
+      dataStored: magnitudeOf(asQuantityish(e.dataStored)),
+      dataStorage: magnitudeOf(asQuantityish(e.dataStorage)),
+      storedScience: magnitudeOf(asQuantityish(e.storedScience)),
       processingData: asFlag(e.processingData),
       statusText: typeof e.statusText === "string" ? e.statusText : null,
-      scientistCount: magnitudeOf(e.scientistCount as Quantityish),
-      scienceRate: magnitudeOf(e.scienceRate as Quantityish),
+      scientistCount: magnitudeOf(asQuantityish(e.scientistCount)),
+      scienceRate: magnitudeOf(asQuantityish(e.scienceRate)),
       isOperational: asFlag(e.isOperational),
     });
   }

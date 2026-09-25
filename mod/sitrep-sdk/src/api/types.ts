@@ -188,16 +188,31 @@ export interface ThemeDefinition {
 
 /**
  * Declaration-merging seam for slot props. An augmenting package merges a slot
- * id → props type; a slot not (yet) in the registry falls back to a loose bag.
+ * id → props type.
  */
 // biome-ignore lint/suspicious/noEmptyInterface: declaration-merging seam
 export interface SlotRegistry {}
 
 export type SlotId = keyof SlotRegistry;
 
+/**
+ * An open record when the id has been erased to `string`, which is what a
+ * REGISTRY READ holds: it fished the value out by a string key and knows
+ * nothing about what was declared. `never` for an id that IS named and that
+ * nothing declares, so a typo describes no shape at all.
+ */
+type ErasedOrNever<S extends string> = string extends S
+  ? Record<string, unknown>
+  : never;
+
+/**
+ * The props a slot passes its augments, and `never` for a slot no package has
+ * merged. A loose bag here would type an augment of a MISSPELLED slot id, and
+ * the props it reads off that bag, exactly as it types a correct one.
+ */
 export type SlotProps<S extends string> = S extends keyof SlotRegistry
   ? SlotRegistry[S]
-  : Record<string, unknown>;
+  : never;
 
 /**
  * Declaration-merging seam for what a widget is currently FOCUSED ON, keyed by
@@ -216,10 +231,14 @@ export type SlotProps<S extends string> = S extends keyof SlotRegistry
 // biome-ignore lint/suspicious/noEmptyInterface: declaration-merging seam
 export interface WidgetScopeRegistry {}
 
-/** The scope a given widget publishes; a loose record for one that publishes none. */
+/**
+ * The scope a given widget publishes, and `never` for a NAMED widget that
+ * publishes none. A `C` erased to `string` gets the open record, for the reason
+ * {@link ErasedOrNever} gives.
+ */
 export type WidgetScope<C extends string> = C extends keyof WidgetScopeRegistry
   ? WidgetScopeRegistry[C]
-  : Record<string, unknown>;
+  : ErasedOrNever<C>;
 
 // --- Contributions (pure-data slot composition) ------------------------------
 
@@ -443,12 +462,12 @@ export type ContributionEntry<S extends string> =
   S extends keyof ContributionRegistry
     ? ContributionRegistry[S] extends { entry: infer E }
       ? E
-      : Record<string, unknown>
+      : never
     : [SegmentOf<S>] extends [ComponentSlotSegment]
       ? [SegmentOf<S>] extends [never]
-        ? Record<string, unknown>
+        ? ErasedOrNever<S>
         : ComponentSlotRegistry[SegmentOf<S>]
-      : Record<string, unknown>;
+      : ErasedOrNever<S>;
 
 /** Which slot ids a declared contribution slot names as its topics. */
 type DeclaredTopicUnion<S extends string> = S extends keyof ContributionRegistry
@@ -509,7 +528,11 @@ export type Contributed<E> = E & {
 export type ContributionDep =
   | TopicId
   | { readonly reading: TopicId }
-  | { readonly id: string; readonly __resultType?: unknown };
+  | {
+      readonly id: string;
+      readonly __resultType?: unknown;
+      readonly __carriesCurrency?: boolean;
+    };
 
 /**
  * The KEY the aggregation writes one dep's value under: a Topic id under
@@ -544,6 +567,12 @@ type DepKey<E> = E extends string
  * differ; this types what a contribution is actually given. No contribution in
  * the tree uses a reading dep today, so nothing is relying on either reading of
  * it.</para>
+ *
+ * <para>A PROCESSOR dep is the other way round and must track the evaluator
+ * exactly: a processor whose own deps include a reading answers a `Reading`,
+ * and the stored value a contribution is handed is that same answer. Typing it
+ * as the bare result here would hand a contribution a reading while telling it
+ * otherwise, which is the defect the brand exists to prevent.</para>
  */
 type DepValue<E> = E extends string
   ? TopicPayload<E & TopicId> | undefined
@@ -552,7 +581,9 @@ type DepValue<E> = E extends string
       ? TopicPayload<T> | undefined
       : never
     : E extends { readonly id: string; readonly __resultType?: infer R }
-      ? R | undefined
+      ? E extends { readonly __carriesCurrency?: true }
+        ? Reading<R> | undefined
+        : R | undefined
       : never;
 
 /** Every dep a contribution declared, keyed and typed the way it arrives. */

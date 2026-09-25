@@ -85,7 +85,7 @@ const SwitchThumb = styled.div<{ $checked: boolean; $disabled?: boolean }>`
 `;
 
 const SwitchText = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.08em;
   text-transform: uppercase;

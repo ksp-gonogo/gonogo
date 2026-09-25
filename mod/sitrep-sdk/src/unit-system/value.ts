@@ -356,6 +356,15 @@ export interface Value<U extends string = string> {
    */
   minus(other: Value<PointCounterpart<U>>): Value<VectorResult<U>>;
   minus(other: Value<Addend<U>> | BareOperand<U>): Value<U>;
+  /*
+   * The SAME-unit arm, LAST so it catches only what the two above cannot.
+   * `Addend<U>` is deferred while `U` is still a type parameter, so two
+   * operands of one generic unit do not compile against either arm even though
+   * they are plainly the same kind. A concrete unit still resolves above this:
+   * a point lands in the point arm and keeps its vector result, which is why
+   * the return is conditional rather than a flat `Value<U>`.
+   */
+  minus(other: Value<U>): Value<U extends PointUnit ? VectorResult<U> : U>;
 
   /**
    * Total. Any dimension over any dimension; `rep/f` is coherent.
@@ -498,8 +507,19 @@ export interface Value<U extends string = string> {
    * that `Math.max(0, elapsed.magnitude)` was written as five times, and it
    * keeps its type on the way out instead of shedding it. See {@link BareOperand}.
    */
+  /*
+   * The SAME-unit arm, first so it wins the overload resolution it is about.
+   * `CombinableWith<U>` is deferred while `U` is still a type parameter, so a
+   * component generic over its own unit cannot show `Value<U>` satisfies it,
+   * and `q.max(min)` fails to compile for two operands that are plainly one
+   * kind. A value is always combinable with its own unit, so this arm asserts
+   * nothing the wider one would not have allowed, and it returns the narrow
+   * `Value<U>` rather than the union because both operands are already it.
+   */
+  min(other: Value<U>): Value<U>;
   min(other: BareOperand<U>): Value<U>;
   min(other: Value<CombinableWith<U>>): Value<U> | Value<CombinableWith<U>>;
+  max(other: Value<U>): Value<U>;
   max(other: BareOperand<U>): Value<U>;
   max(other: Value<CombinableWith<U>>): Value<U> | Value<CombinableWith<U>>;
 }
@@ -788,12 +808,10 @@ const prototype = {
  * "Cannot add Klevin and K". Wrong, but loudly, rather than quietly wrong.
  */
 export function value<U extends string>(unit: U, magnitude: number): Value<U> {
-  const instance = Object.create(prototype) as {
-    magnitude: number;
-    unit: U;
-  };
-  instance.magnitude = magnitude;
-  instance.unit = unit;
+  const instance: { magnitude: number; unit: U } = Object.assign(
+    Object.create(prototype),
+    { magnitude, unit },
+  );
   return instance as Value<U>;
 }
 

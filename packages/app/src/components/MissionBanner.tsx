@@ -94,6 +94,6 @@ const InlinePair = styled.span`
 `;
 
 const FieldValue = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-value);
   color: var(--color-text-muted);
 `;

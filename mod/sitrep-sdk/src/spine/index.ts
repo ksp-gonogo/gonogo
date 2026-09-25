@@ -63,6 +63,7 @@ export * from "./connection-error-warning";
 export * from "./connectivity-history";
 export * from "./context";
 export * from "./contributed-channels";
+export * from "./contribution-scope";
 export * from "./contributions";
 export * from "./core-reckoners";
 export * from "./dashboard-item";

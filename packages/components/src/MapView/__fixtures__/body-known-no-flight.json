@@ -1,0 +1,47 @@
+{
+  "_meta": {
+    "scenario": "body-known-no-flight",
+    "notes": "The body is named and the position is not. `vessel.identity` and `system.bodies` have both arrived and between them say which body the craft is at; `vessel.flight` is carried and has produced nothing, so there is no latitude, longitude or altitude. The first MapView scene with a MISSING input rather than a cold start: every other scene is healthy telemetry, which is why no render pair could show a read that stops depending on a sibling channel."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 3,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null,
+              "surfaceGravity": 1.00034160493135,
+              "rotationPeriod": 21549.4251830899
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

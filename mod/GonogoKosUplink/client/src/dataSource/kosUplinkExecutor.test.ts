@@ -4,8 +4,10 @@ import {
   StubTransport,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { GeneratedCommandArgsMap } from "../__generated__/command-map";
 import type { KosProcessorInfo, KosRunResult } from "../__generated__/contract";
 import { isKosScriptError } from "../shared/KosScriptError";
+import { recordDispatch } from "../test/recordedCommands";
 import { KosUplinkExecutor } from "./kosUplinkExecutor";
 import { buildKosWrapper } from "./kosWrapper";
 
@@ -30,7 +32,7 @@ import { buildKosWrapper } from "./kosWrapper";
 
 interface DispatchedCommand {
   command: string;
-  args: { coreId: number; requestId: string; command: string };
+  args: GeneratedCommandArgsMap["kos.run"];
 }
 
 function makeClient() {
@@ -43,7 +45,7 @@ function makeClient() {
 function captureDispatches(transport: StubTransport): DispatchedCommand[] {
   const commands: DispatchedCommand[] = [];
   transport.setCommandHandler((command, args) => {
-    commands.push({ command, args: args as DispatchedCommand["args"] });
+    recordDispatch<"kos.run">(commands, command, args);
     return { success: true, errorCode: 0 };
   });
   return commands;
@@ -315,7 +317,10 @@ describe("KosUplinkExecutor", () => {
       caught = err;
     }
     expect(isKosScriptError(caught)).toBe(true);
-    expect((caught as Error).message).toBe("engine flameout");
+    if (!(caught instanceof Error)) {
+      throw new Error(`expected an Error, got: ${String(caught)}`);
+    }
+    expect(caught.message).toBe("engine flameout");
   });
 
   it("rejects after timeoutMs when no kos.run.<coreId> result ever arrives", async () => {

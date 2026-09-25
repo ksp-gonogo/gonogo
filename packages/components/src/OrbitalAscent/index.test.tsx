@@ -5,6 +5,7 @@ import {
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type StreamFixture,
@@ -37,6 +38,7 @@ const VESSEL_STATE_INPUTS = [
 ] as const;
 
 describe("OrbitalAscentComponent", () => {
+  let restoreResizeObserver: () => void = () => {};
   // Trees are unmounted synchronously in afterEach before clearBodies()
   // notifies the body-registry subscribers, that notification re-renders a
   // still-mounted widget, the act() anti-pattern. RTL auto-cleanup runs after
@@ -50,33 +52,17 @@ describe("OrbitalAscentComponent", () => {
     // which leaves LineChart's `size` null and skips the SVG paths we want
     // to assert against. Stub a version that fires once on observe(), the
     // same shape used by the Graph widget's own tests.
-    vi.stubGlobal(
-      "ResizeObserver",
-      class FakeResizeObserver {
-        private cb: ResizeObserverCallback;
-        constructor(cb: ResizeObserverCallback) {
-          this.cb = cb;
-        }
-        observe(_el: Element) {
-          this.cb(
-            [
-              {
-                contentRect: { width: 400, height: 300 },
-              } as ResizeObserverEntry,
-            ],
-            this as unknown as ResizeObserver,
-          );
-        }
-        unobserve() {}
-        disconnect() {}
-      },
-    );
+    restoreResizeObserver = installFixedSizeResizeObserver({
+      width: 400,
+      height: 300,
+    });
   });
 
   afterEach(() => {
     for (const unmount of trees) unmount();
     trees.length = 0;
     clearBodies();
+    restoreResizeObserver();
     vi.unstubAllGlobals();
   });
 

@@ -38,7 +38,7 @@
               "name": "eating",
               "input": "Food",
               "output": "",
-              "ratePerSecond": 0.000002
+              "ratePerSecond": 2e-6
             }
           ],
           "processes": []
@@ -47,7 +47,10 @@
       {
         "topic": "kerbalism.lifesupport",
         "payload": {
-          "rates": { "Food": -0.000004, "ElectricCharge": -0.02 },
+          "rates": {
+            "Food": -4e-6,
+            "ElectricCharge": -0.02
+          },
           "habitat": {
             "pressure": 1,
             "poisoning": 0.02,
@@ -67,20 +70,31 @@
               "lampEcDrawPerSec": 0.6,
               "lightToleranceWm2": 400,
               "pressureTolerance": 0.9,
-              "radiationToleranceRadPerSec": 0.00001
+              "radiationToleranceRadPerSec": 1e-5
             }
           ],
-          "asOfUt": 1000000
+          "asOfKerbalismUt": 1000000
         }
       },
       {
         "topic": "vessel.resources",
         "payload": {
           "resources": {
-            "ElectricCharge": { "current": 45, "max": 900, "active": true },
-            "Food": { "current": 260, "max": 600, "active": true }
+            "ElectricCharge": {
+              "current": 45,
+              "max": 900,
+              "active": true
+            },
+            "Food": {
+              "current": 260,
+              "max": 600,
+              "active": true
+            }
           },
-          "meta": { "source": "vessel:3", "quality": 1 }
+          "meta": {
+            "source": "vessel:3",
+            "quality": 1
+          }
         }
       },
       {
@@ -89,11 +103,23 @@
           "count": 3,
           "capacity": 4,
           "crew": [
-            { "name": "Valentina Kerman", "trait": "Pilot" },
-            { "name": "Bob Kerman", "trait": "Scientist" },
-            { "name": "Bill Kerman", "trait": "Engineer" }
+            {
+              "name": "Valentina Kerman",
+              "trait": "Pilot"
+            },
+            {
+              "name": "Bob Kerman",
+              "trait": "Scientist"
+            },
+            {
+              "name": "Bill Kerman",
+              "trait": "Engineer"
+            }
           ],
-          "meta": { "source": "vessel:3", "quality": 1 }
+          "meta": {
+            "source": "vessel:3",
+            "quality": 1
+          }
         }
       }
     ]

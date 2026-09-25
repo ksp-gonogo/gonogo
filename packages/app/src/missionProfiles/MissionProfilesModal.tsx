@@ -353,13 +353,13 @@ const SaveRow = styled.div`
 
 const Hint = styled.p`
   margin: 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-dim);
 `;
 
 const Empty = styled.div`
   color: var(--color-text-faint);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   padding: var(--space-8) 0;
 `;
 
@@ -372,7 +372,7 @@ const List = styled.div`
 const ProfileRow = styled.div`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   padding: var(--inset-surface);
   display: flex;
   flex-direction: column;
@@ -387,13 +387,13 @@ const ProfileHeader = styled.div`
 `;
 
 const ProfileName = styled.span`
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-value);
   color: var(--color-text-primary);
   font-weight: 600;
 `;
 
 const ProfileMeta = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-faint);
 `;
 
@@ -412,10 +412,10 @@ const DangerButton = styled(Button)`
 const Warning = styled.div`
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-alert-muted);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-regular);
   padding: var(--inset-surface);
   color: var(--color-status-nogo-fg);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
 `;
 
 const BindingsField = styled.div`
@@ -425,7 +425,7 @@ const BindingsField = styled.div`
 `;
 
 const BindingsLabel = styled.span`
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   color: var(--color-text-muted);
 `;
 

@@ -62,9 +62,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private const string RecordingFileName = "reference-session-2026-07-07.json";
         private const string FixtureFileName = "reference-wire-fixture.json";
-        private static readonly TimeSpan TickTimeout = TimeSpan.FromSeconds(10);
-        private static readonly TimeSpan ReaderPollTimeout = TimeSpan.FromSeconds(2);
-        private static readonly TimeSpan FinalDrainDelay = TimeSpan.FromMilliseconds(750);
+        private static readonly TimeSpan TickTimeout = TestBudgets.Op;
+        private static readonly TimeSpan ReaderPollTimeout = TestBudgets.ReaderPoll;
+        private static readonly TimeSpan FinalDrainDelay = TestBudgets.FinalDrain;
 
         private static string RecordingsDir([CallerFilePath] string sourceFilePath = "")
         {

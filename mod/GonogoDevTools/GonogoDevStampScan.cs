@@ -32,21 +32,18 @@ namespace Gonogo.DevTools
     /// default), this addon does nothing at all.
     ///
     /// <c>once: false</c> re-instantiates this every time the flight scene loads;
-    /// <see cref="_lastAppliedId"/> is static so a request applies once per KSP
-    /// process even across scene reloads.
+    /// <see cref="DevRequestLedger"/> applies a request once across scene reloads AND
+    /// restarts, and refuses one written before the running session started.
     /// </summary>
     [KSPAddon(KSPAddon.Startup.Flight, once: false)]
     public sealed class GonogoDevStampScan : MonoBehaviour
     {
-        /// <summary>Process-wide last-applied request id, so writing the same
-        /// file twice (or a scene reload re-reading it) never re-stamps.</summary>
-        private static string? _lastAppliedId;
-
         private const float PollIntervalSeconds = 1f;
         private float _sinceLastPoll;
 
         private string? _requestPath;
         private string? _resultPath;
+        private DevRequestLedger? _ledger;
 
         // SCANsat's SCANtype bit values (from the SCANsat.SCANtype [Flags] enum).
         // Passed by NAME in the request; mapped here so the request file never
@@ -77,6 +74,7 @@ namespace Gonogo.DevTools
                 var pluginData = Path.Combine(assemblyDir, "PluginData");
                 _requestPath = Path.Combine(pluginData, "scanstamp-request.cfg");
                 _resultPath = Path.Combine(pluginData, "scanstamp-result.cfg");
+                _ledger = new DevRequestLedger(Path.Combine(pluginData, "scanstamp-applied.cfg"));
             }
             catch (Exception ex)
             {
@@ -126,8 +124,22 @@ namespace Gonogo.DevTools
                 return;
             }
 
-            if (string.Equals(id, _lastAppliedId, StringComparison.Ordinal))
+            var decision = _ledger!.Admit(id!, File.GetLastWriteTimeUtc(_requestPath), out var stampFailure);
+            if (stampFailure != null)
             {
+                Debug.LogWarning("[Gonogo] dev-scanstamp: could not stamp id=" + id
+                    + " as applied, so a restart may apply it again: " + stampFailure);
+            }
+
+            if (decision == DevRequestDecision.AlreadyApplied)
+            {
+                return;
+            }
+
+            if (decision == DevRequestDecision.PredatesSession)
+            {
+                Debug.LogWarning("[Gonogo] dev-scanstamp: request id=" + id + " predates this KSP session; refused");
+                WriteResult(id!, ok: false, DevRequestLedger.PredatesSessionMessage);
                 return;
             }
 
@@ -136,9 +148,6 @@ namespace Gonogo.DevTools
 
         private void ApplyRequest(string id, ConfigNode node)
         {
-            // Claim the id up-front so a broken request is not retried every second.
-            _lastAppliedId = id;
-
             try
             {
                 var bodyName = node.GetValue("body");

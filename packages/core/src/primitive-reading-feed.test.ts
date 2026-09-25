@@ -434,6 +434,18 @@ describe("no primitive is fed a reading's value instead of the reading", () => {
  * widened, the entries already at zero are where to look first.
  */
 const DERIVED_FEED_DEBT: Record<string, number> = {
+  /*
+   * Newly VISIBLE rather than newly written, and the widening that exposed it
+   * was on the PRIMITIVE: feeding a gauge a minted quantity only counts as a
+   * drop once the gauge can take the reading instead, which it now can.
+   *
+   * The site itself is the element-chosen-by-predicate shape: the rotor is
+   * picked out of a list, and a payload is addressed by path, so the selected
+   * rotor's rpm has no path to be read as a field reading. The widget already
+   * carries the currency by hand, withholding the rpm and naming which half is
+   * dated, so nothing here is drawing a held figure as though it were current.
+   */
+  "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 1,
   "mod/GonogoKerbalismUplink/client/src/CrewSurvival/summary.tsx": 1,
   /*
    * SIX, and none of them is migratable, which makes this entry a different
@@ -473,14 +485,51 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
    * observed-only read plus a minted `Value` is the ruled behaviour, so this
    * site is not debt a migration can pay. Revisit only if that ruling changes.
    */
-  "packages/components/src/CommSignal/index.tsx": 1,
+  /*
+   * Newly VISIBLE rather than newly written, and the widening that exposed
+   * these three files was on `Countdown`: handing a clock a minted duration
+   * only counts as a dropped currency once the clock can take the reading
+   * instead, which it now can.
+   *
+   * Each is a client-computed `instant - viewUt`, which is the kind that
+   * already advances because the caller recomputes it every frame. What they
+   * cannot yet say is that the INSTANT behind them has stopped arriving, and
+   * that arrives with the topics they read rather than with the primitive.
+   */
+  "packages/components/src/CommSignal/index.tsx": 2,
   "packages/components/src/CrewStatus/index.tsx": 2,
   "packages/components/src/CurrentOrbit/index.tsx": 2,
-  "packages/components/src/LandingStatus/index.tsx": 2,
+  /*
+   * TWO, and newly VISIBLE rather than newly written. The Δv budget reaches
+   * this widget from a processor, and a processor that deps on a reading now
+   * ANSWERS with one, so the unwrap that feeds these two figures is a currency
+   * the walk can see being dropped where before there was none to drop.
+   *
+   * Held deliberately: every readout here is a figure rather than a control, so
+   * both value-bearing arms are taken and the panel keeps its numbers when the
+   * link goes quiet. What is missing is the MARK, and that arrives when the
+   * budget's per-field currency retires into the reading rather than sitting
+   * beside it as its own `budget.state`.
+   */
+  "packages/components/src/FuelStatus/index.tsx": 2,
+  "packages/components/src/LandingStatus/index.tsx": 3,
   "packages/components/src/LaunchDirector/index.tsx": 1,
   "packages/components/src/MapView/index.tsx": 2,
-  "packages/components/src/Navball/index.tsx": 1,
+  "packages/components/src/Navball/index.tsx": 2,
   "packages/components/src/SpaceCenterStatus/index.tsx": 1,
+  /*
+   * Newly VISIBLE, through `Gauge` taking a reading. The figure is thrust over
+   * weight, arithmetic across two fields of one reading, so there is no
+   * reading OF the ratio to hand the dial; the widget captions a held figure
+   * instead of marking it.
+   */
+  "packages/components/src/Twr/index.tsx": 1,
+  /*
+   * Newly VISIBLE, through `Countdown` taking a reading, and the same shape as
+   * the three clocks above: the SOI countdown is a client-computed
+   * `transitionUt - viewUt`, recomputed every frame.
+   */
+  "packages/components/src/shared/OrbitalEventChips.tsx": 1,
 };
 
 describe("no primitive is fed a figure a reading's currency was dropped from", () => {

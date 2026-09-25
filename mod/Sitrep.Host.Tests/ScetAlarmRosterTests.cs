@@ -29,6 +29,8 @@ namespace Sitrep.Host.Tests
             /// <summary>Every (subject, topic, path) the roster asked for, in order.</summary>
             public readonly List<string> Asked = new List<string>();
 
+            public IDictionary<string, object?>? ReadPayload(string subject, string topic) => null;
+
             public ScetReading Read(string subject, string topic, string fieldPath)
             {
                 Asked.Add(subject + "|" + topic + "|" + fieldPath);
@@ -325,13 +327,16 @@ namespace Sitrep.Host.Tests
 
             Assert.Equal("a", notice.Id);
             Assert.Equal(1000, notice.FiredAtUt);
-            // Three fields now, and the third is admissible for the reason the
-            // other two are: NONE of them is a reading. Audience is the place the
-            // operator named when they armed it, so it tells a client something it
-            // wrote down itself. What must never appear here is the value that
-            // matched, or anything derived from it.
+            // Four fields, and each is admissible for the same reason: NONE of
+            // them is a reading. The vantage is the place the operator named when
+            // they armed it, so it tells a client something it wrote down itself.
+            // ActionsWithheld says whether the craft being flown was the one the
+            // actions were for, which is the player's choice of vessel rather
+            // than anything measured aboard. What must never appear here is the
+            // value that matched, anything derived from it, or how the craft
+            // answered an action.
             Assert.Equal(
-                new[] { "Audience", "FiredAtUt", "Id" },
+                new[] { "ActionsWithheld", "FiredAtUt", "Id", "Vantage" },
                 typeof(ScetAlarmFired).GetProperties().Select(p => p.Name).OrderBy(n => n).ToArray());
         }
 
@@ -620,71 +625,71 @@ namespace Sitrep.Host.Tests
         /// express.
         /// </summary>
         [Fact]
-        public void ArmingRecordsTheAudienceTheArgumentsNamed()
+        public void ArmingRecordsTheVantageTheArgumentsNamed()
         {
             var roster = new ScetAlarmRoster();
             var args = TimeAlarm("a", 1000);
-            args.Audience = "vessel:abc";
+            args.Vantage = "vessel:abc";
 
             roster.Arm(args, "ksc");
 
             var row = Assert.Single(roster.Snapshot());
             Assert.Equal("ksc", row.ArmedBy);
-            Assert.Equal("vessel:abc", row.Audience);
+            Assert.Equal("vessel:abc", row.Vantage);
         }
 
         /// <summary>
-        /// An alarm with no audience is judged against the simulation, which is
-        /// what every alarm meant before the field existed, so an older client's
-        /// arm keeps the behaviour it had.
+        /// An arm that names no vantage is resolved to the alarm's own subject,
+        /// which is the reading every alarm was judged against before the field
+        /// existed, so an older client's arm keeps the behaviour it had. Resolved
+        /// at arm time rather than left empty, so the roster a client reconciles
+        /// against says where each alarm is read.
         /// </summary>
         [Fact]
-        public void AnArmThatNamesNoAudienceIsTheSimulations()
+        public void AnArmThatNamesNoVantageIsReadAtItsOwnSubject()
         {
             var roster = new ScetAlarmRoster();
 
             roster.Arm(TimeAlarm("a", 1000), "ksc");
 
-            Assert.Equal("", Assert.Single(roster.Snapshot()).Audience);
+            Assert.Equal("game", Assert.Single(roster.Snapshot()).Vantage);
         }
 
         /// <summary>
-        /// Re-arming the same id with a different audience is a real change, so
-        /// the roster republishes. It would otherwise compare equal on every
+        /// Re-arming the same id at a different vantage is a real change, so the
+        /// roster republishes. It would otherwise compare equal on every
         /// published field and the client's list and the host's would disagree
-        /// about whose ledger the alarm is judged against, silently.
+        /// about when the alarm comes due, silently.
         /// </summary>
         [Fact]
-        public void ChangingOnlyTheAudienceIsAChange()
+        public void ChangingOnlyTheVantageIsAChange()
         {
             var roster = new ScetAlarmRoster();
             roster.Arm(TimeAlarm("a", 1000), "ksc");
 
             var moved = TimeAlarm("a", 1000);
-            moved.Audience = "ksc";
+            moved.Vantage = "ksc";
 
             Assert.True(roster.Arm(moved, "ksc"));
             Assert.False(roster.Arm(moved, "ksc"));
         }
 
         /// <summary>
-        /// The notice carries the audience it was armed under, so a client can
-        /// tell the simulation's verdict (which already stopped the warp) from
-        /// one place's opinion (which stopped nothing) without consulting the
-        /// roster first.
+        /// The notice carries the vantage it was armed at, so a client can tell
+        /// which place learned it without consulting the roster first.
         /// </summary>
         [Fact]
-        public void TheNoticeSaysWhoseVerdictItIs()
+        public void TheNoticeSaysWhichPlaceLearnedIt()
         {
             var roster = new ScetAlarmRoster();
             var args = ThresholdAlarm("a", 100_000);
-            args.Audience = "ksc";
+            args.Vantage = "ksc";
             roster.Arm(args, "ksc");
 
             var notice = Assert.Single(
                 roster.Evaluate(1000, new FakeReader { Next = ScetReading.Observed(101_000) }).Fired);
 
-            Assert.Equal("ksc", notice.Audience);
+            Assert.Equal("ksc", notice.Vantage);
         }
     }
 }

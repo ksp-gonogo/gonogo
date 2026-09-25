@@ -43,7 +43,12 @@ const PART_LIVE = new Map<number, PartLiveWireInput>(
     .filter(([key]) => key !== "_comment")
     .map(([flightId, modules]) => [
       Number(flightId),
-      { partState: { seq: 0, modules: modules as PartStateModule[] } },
+      {
+        partState: {
+          seq: 0,
+          modules: Array.isArray(modules) ? (modules as PartStateModule[]) : [],
+        },
+      },
     ]),
 );
 
@@ -180,9 +185,13 @@ function controlWire(throttle?: number) {
  *  chose to draw from it. The delivery proof for a read whose value never
  *  reaches the DOM. */
 function sampled(fixture: ReturnType<typeof mount>["fixture"], topic: string) {
-  return fixture.store.sample(topic, fixture.store.currentFrame())?.payload as
-    | Record<string, unknown>
-    | undefined;
+  const payload = fixture.store.sample(
+    topic,
+    fixture.store.currentFrame(),
+  )?.payload;
+  return typeof payload === "object" && payload !== null
+    ? (payload as Record<string, unknown>)
+    : undefined;
 }
 
 describe("ShipMap: the throttle coercion to zero", () => {

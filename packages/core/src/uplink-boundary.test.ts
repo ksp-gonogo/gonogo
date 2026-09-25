@@ -5,6 +5,7 @@
 // check below, asserts `new TextEncoder().encode("") instanceof Uint8Array`
 // and throws "JavaScript environment is broken" under jsdom, where that
 // realm doesn't line up. Nothing else in this file touches the DOM.
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -80,26 +81,14 @@ interface ModOwnership {
 
 const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
   kerbcast: {
-    /*
-     * GonogoKerbcastUplink owns both kerbcast's CONTROL plane (camera
-     * inventory, capabilities, docking-port association, health, aim/zoom
-     * commands) and its MEDIA half (the WebRTC/playout path, npm name
-     * @ksp-gonogo/gonogo-kerbcast-uplink): ONE directory owns both planes, and
-     * the client is not a special-cased core package.
-     * (mod/GonogoKerbcastUplink covers client/: isUnderOwnedDir is a prefix
-     * match: so the client half needs no separate entry.)
-     */
     patterns: [/kerbcast/i, /hullcam/i],
-    ownedDirs: [
-      "mod/GonogoKerbcastUplink",
-      "mod/GonogoKerbcastUplink.Tests",
-      /*
-       * GonogoKerbcastUplink's own contract slice: KerbcastCameraEntry/
-       * KerbcastSetFieldOfViewArgs/KerbcastSetPanArgs live here, not in
-       * Sitrep.Contract.
-       */
-      "mod/GonogoKerbcastUplink.Contract",
-    ],
+    /*
+     * No owning directory: any mention of kerbcast's control plane (camera
+     * inventory, capabilities, docking-port association, aim/zoom commands) or
+     * its media half anywhere in core is a violation, which is the stronger
+     * guard now that neither plane has a directory here to own it.
+     */
+    ownedDirs: [],
   },
   scansat: {
     patterns: [
@@ -118,16 +107,12 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
       // ends so it doesn't match inside "COVERAGE_SCAN_TYPES" or similar.
       /\bSCAN_TYPE\b/,
     ],
-    ownedDirs: [
-      "mod/GonogoScansatUplink",
-      "mod/GonogoScansatUplink.Tests",
-      /*
-       * GonogoScansatUplink's own contract slice: ScanningVesselEntry/
-       * ScanSensorEntry/ScanTrackColor/ScanScienceEntry/ScanAnomalyEntry live
-       * here, not in Sitrep.Contract.
-       */
-      "mod/GonogoScansatUplink.Contract",
-    ],
+    /*
+     * No owning directory: any mention of SCANsat anywhere in core is a
+     * violation, which is the stronger guard now there is no directory here
+     * to own it.
+     */
+    ownedDirs: [],
   },
   kos: {
     /*
@@ -178,10 +163,12 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
       /\bAGExt\b/,
       /\bAGX[0-9A-Za-z]/,
     ],
-    ownedDirs: [
-      "mod/GonogoActionGroupsExtendedUplink",
-      "mod/GonogoActionGroupsExtendedUplink.Tests",
-    ],
+    /*
+     * No owning directory: any mention of Action Groups Extended anywhere in
+     * core is a violation, which is the stronger guard now there is no
+     * directory here to own it.
+     */
+    ownedDirs: [],
   },
   mechjeb: {
     /*
@@ -191,15 +178,12 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
      * gonogo-mechjeb-uplink alike.
      */
     patterns: [/mechjeb/i],
-    ownedDirs: [
-      "mod/GonogoMechJebUplink",
-      "mod/GonogoMechJebUplink.Tests",
-      /*
-       * GonogoMechJebUplink's own contract slice: MechJebAscentArgs/
-       * MechJebNoArgs live here, not in Sitrep.Contract.
-       */
-      "mod/GonogoMechJebUplink.Contract",
-    ],
+    /*
+     * No owning directory: any mention of MechJeb anywhere in core is a
+     * violation, which is the stronger guard now there is no directory here
+     * to own it.
+     */
+    ownedDirs: [],
   },
   avionics: {
     // "avionics" alone is distinctive enough (no unrelated-word collision:
@@ -210,18 +194,12 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     // avionics.available/gonogo-avionics-uplink alike.
     patterns: [/avionics/i],
     /*
-     * RP-1's dirs, not an avionics Uplink's. Avionics is not a separate mod: it
-     * is RP-1.
-     *
-     * The token is kept rather than retired, and re-owned rather than widened:
-     * an avionics reference outside RP-1's three dirs is still a boundary
-     * failure, which is what the check is for.
+     * Avionics is not a separate mod, it is RP-1, and RP-1's directories have
+     * gone. No owning directory: any avionics reference anywhere in core is a
+     * violation, which is the stronger guard and the reason the token is kept
+     * rather than retired.
      */
-    ownedDirs: [
-      "mod/GonogoRp1Uplink",
-      "mod/GonogoRp1Uplink.Tests",
-      "mod/GonogoRp1Uplink.Contract",
-    ],
+    ownedDirs: [],
   },
   kerbalism: {
     // "kerbalism" alone is distinctive enough: no unrelated word in this
@@ -250,10 +228,12 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     // it. The mod models per-engine reliability and registers generically into
     // the "reliability" capability, so core should never name it in code.
     patterns: [/testflight/i],
-    ownedDirs: [
-      "mod/GonogoTestFlightUplink",
-      "mod/GonogoTestFlightUplink.Tests",
-    ],
+    /*
+     * No owning directory: any mention of TestFlight anywhere in core is a
+     * violation, which is the stronger guard now there is no directory here
+     * to own it.
+     */
+    ownedDirs: [],
   },
   principia: {
     // The Uplink LEFT for gonogo-uplinks and ownedDirs is []: with no owning
@@ -288,18 +268,98 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     // contains it. Deliberately NOT "far", which is an ordinary English word and
     // a substring of several more. Nothing on the wire carries either: this
     // Uplink's id is "aero" and its Topics are aero.available / aero.state, so
-    // the mod's name appears only in the directory, the assembly and the client
-    // package specifier that loads it.
+    // the mod's name appears only in the assembly and the client package
+    // specifier that loads it.
     patterns: [/ferram/i],
-    ownedDirs: [
-      "mod/GonogoFerramAerospaceResearchUplink",
-      "mod/GonogoFerramAerospaceResearchUplink.Tests",
-      // This Uplink's own contract slice: AeroState lives here, not in
-      // Sitrep.Contract.
-      "mod/GonogoFerramAerospaceResearchUplink.Contract",
-    ],
+    /*
+     * No owning directory: any mention of Ferram Aerospace Research anywhere in core is a
+     * violation, which is the stronger guard now there is no directory here
+     * to own it.
+     */
+    ownedDirs: [],
   },
 };
+
+/**
+ * Every `ownedDirs` path is a directory git still tracks something under.
+ *
+ * <p><b>What a stale one does.</b> `ownedDirs` EXCLUDES files beneath it from
+ * being reported as boundary violations. A path that no longer exists matches
+ * no file, so the exclusion is a no-op and the scan is STRICTER rather than
+ * broken. That is why seven departures left one behind without anything going
+ * red, and why this is a hazard rather than a defect: if a directory with one
+ * of those names ever reappears, the block silently starts excusing it, and
+ * that exclusion was reviewed by nobody.</p>
+ *
+ * <p><b>Why it is derived and not a step in the departure script.</b>
+ * `scripts/depart-uplink.mjs` is optional and this table is not, so a check
+ * that only runs when someone remembers the script catches the departures that
+ * used it. Asking git catches every one.</p>
+ *
+ * <p>Emptying the list is the sanctioned end state, not a deletion: `ModOwnership`
+ * says "EMPTY means the mod owns nothing here any more", and a block with no
+ * owned directories is the STRICTEST setting, still guarding the departed mod's
+ * name against reappearing unallowlisted.</p>
+ */
+describe("MOD_OWNERSHIP owns directories that still exist", () => {
+  /** Repo-relative directories git tracks at least one file under. */
+  const trackedDirs = (): Set<string> => {
+    const out = new Set<string>();
+    const listed = execFileSync("git", ["ls-files", "-z"], {
+      cwd: findRepoRoot(dirname(fileURLToPath(import.meta.url))),
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    }).split("\0");
+    for (const rel of listed) {
+      if (rel === "") continue;
+      const parts = rel.split("/");
+      for (let i = 1; i < parts.length; i++) {
+        out.add(parts.slice(0, i).join("/"));
+      }
+    }
+    return out;
+  };
+
+  it("reads a table with mods in it, so an empty walk cannot pass for clean", () => {
+    /*
+     * The assertion below is `toEqual([])`, which a table that stopped parsing
+     * or was emptied satisfies perfectly. This is the repo's most-repeated
+     * defect and the guard is one line.
+     */
+    const tokens = Object.keys(MOD_OWNERSHIP);
+    expect(tokens.length).toBeGreaterThanOrEqual(8);
+    expect(tokens).toContain("kerbalism");
+    expect(trackedDirs().size).toBeGreaterThan(100);
+  });
+
+  it("names no directory git has stopped tracking", () => {
+    const tracked = trackedDirs();
+    const stale: string[] = [];
+    for (const [token, { ownedDirs }] of Object.entries(MOD_OWNERSHIP)) {
+      for (const dir of ownedDirs) {
+        if (!tracked.has(dir.replace(/\/$/, "")))
+          stale.push(`${token}: ${dir}`);
+      }
+    }
+    expect(
+      stale,
+      [
+        "A MOD_OWNERSHIP block owns a directory that no longer exists.",
+        "",
+        "The exclusion is a no-op today, so nothing is red and nothing is wrong",
+        "yet. It becomes wrong the moment a directory of that name reappears:",
+        "the block would excuse it from the boundary scan, silently, on a",
+        "coincidence of naming.",
+        "",
+        "If the Uplink has departed, empty the block's `ownedDirs` rather than",
+        "deleting the block. Empty is the strictest setting and still guards the",
+        "mod's name against reappearing unallowlisted:",
+        "",
+        ...stale.map((s) => `  ${s}`),
+      ].join("\n"),
+    ).toEqual([]);
+  });
+});
 
 /**
  * Source with comments removed and STRING LITERALS KEPT.

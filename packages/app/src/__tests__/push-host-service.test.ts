@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
 import { PushHostService } from "../pushToMain/PushHostService";
+import { asHostService } from "../test/peerFakes";
 
 // Thin fake: just the handlers PushHostService subscribes to.
 interface FakeHost {
@@ -50,7 +51,7 @@ function makeFakeHost(): FakeHost {
   };
 
   return {
-    service: fake as unknown as PeerHostService,
+    service: asHostService(fake),
     firePush: (p, m) => {
       for (const cb of pushSubs) cb(p, m);
     },

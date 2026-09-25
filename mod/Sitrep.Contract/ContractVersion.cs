@@ -474,11 +474,34 @@ namespace Sitrep.Contract
         /// mod is still pre-release with NO external Uplinks, and the app and mod
         /// ship together, so no artifact exists that was built against the old
         /// shape.</para>
+        ///
+        /// <para><b>Bumped 17 -&gt; 18: an alarm names the place that decides when
+        /// it comes due, and "audience" was the wrong word for that.</b> Three
+        /// <c>member-removed</c>, one rename each on
+        /// <see cref="ScetAlarm"/>, <see cref="ScetAlarmFired"/> and
+        /// <see cref="ScetAlarmArmArgs"/>: <c>Audience</c> becomes
+        /// <c>Vantage</c>.</para>
+        ///
+        /// <para>Two reasons, and the second is the one that makes it a rename
+        /// rather than a preference. "Audience" already means the subscriber
+        /// population one class away (<c>Sitrep.Host.Alarms.ScetRosterAudience</c>,
+        /// which decides when the roster goes on the wire), so one feature spelled
+        /// the same word for two things. And the field no longer selects between
+        /// two kinds of alarm: there is one kind, always read at a vantage, and
+        /// this field decides WHEN it comes due and whether the warp stops with
+        /// it. No word meaning "who is listening" can carry that.</para>
+        ///
+        /// <para>An empty value is ACCEPTED and resolved at arm time to the
+        /// alarm's <see cref="ScetAlarm.Subject"/>, which is what every alarm was
+        /// already judged against, so a client that names no vantage keeps the
+        /// behaviour it had and nothing persisted has to move.</para>
+        ///
+        /// <para>Sanctioned on the same standing grounds as every Major above.</para>
         /// </remarks>
-        public const int Major = 17;
+        public const int Major = 18;
 
         /// <summary>
-        /// Reset to 0 alongside the Major 16 -&gt; 17 bump (see <see cref="Major"/>).
+        /// Reset to 0 alongside the Major 17 -&gt; 18 bump (see <see cref="Major"/>).
         /// The Minor history below belongs to the earlier Major lines and is
         /// retained for provenance; every one of those additive changes is
         /// carried forward.
@@ -1615,9 +1638,10 @@ namespace Sitrep.Contract
         ///
         /// <para><b>Major-16 line, Bumped 5 -&gt; 6: an alarm can name whose
         /// knowledge it is judged against.</b> One new member on each of three
-        /// existing types: <see cref="ScetAlarmArmArgs.Audience"/>,
-        /// <see cref="ScetAlarm.Audience"/> and
-        /// <see cref="ScetAlarmFired.Audience"/>. All three default to the empty
+        /// existing types: <see cref="ScetAlarmArmArgs.Vantage"/>,
+        /// <see cref="ScetAlarm.Vantage"/> and
+        /// <see cref="ScetAlarmFired.Vantage"/>, all three spelled
+        /// <c>Audience</c> until the Major 17 -&gt; 18 rename. All three default to the empty
         /// string, which is the behaviour every alarm already had, so an Uplink
         /// built against 16.5 is unaffected and the frozen Major-16 floor is NOT
         /// re-frozen.</para>
@@ -1790,21 +1814,22 @@ namespace Sitrep.Contract
         /// light-time over frames that were arriving at a different one, and could not
         /// say how far its own centre was from the craft at all.</para>
         ///
-        /// <para><b>Major-17 line, Bumped 1 -&gt; 2: a launch is held to where it was
-        /// ordered from.</b> <see cref="CommandErrorCode"/> gains
-        /// <see cref="CommandErrorCode.NotAtSite"/>, appended to a wire enum that
+        /// <para><b>Major-17 line, Bumped 1 -&gt; 2: a launch is held to the centre it
+        /// was ordered from.</b> <see cref="CommandErrorCode"/> gains
+        /// <see cref="CommandErrorCode.OutOfReach"/> (code 24), appended to a wire enum that
         /// already declares <see cref="CommandErrorCode.Unknown"/> as the
         /// forward-compat fallback, so a consumer that has not heard of it reads an
         /// unrecognised refusal rather than the wrong one. Nothing removed, renamed or
         /// renumbered, so an Uplink built against 17.0 is unaffected and the frozen
         /// Major-17 floor is NOT re-frozen.</para>
         ///
-        /// <para>A launch is instant for every vantage, so the distance between the
-        /// vantage and the pad cannot be expressed as a delay, and without a refusal
-        /// any vantage could launch from any pad, including one on another world.
-        /// Reusing an existing arm would have told the operator the flight was not
-        /// clear or the craft was wrong, when what is wrong is where they are
-        /// standing.</para>
+        /// <para>A launch is instant for every vantage, so where the sender stands
+        /// cannot be expressed as a delay, and without a refusal any centre could
+        /// launch from any pad, including one on another world. The rule is the
+        /// planetary system rather than a distance: a centre anywhere in the pad's own
+        /// system may launch, and one outside it is refused. Reusing an existing arm
+        /// would have told the operator the flight was not clear or the craft was
+        /// wrong, when what is wrong is which centre sent it.</para>
         ///
         /// <para><b>Major-17 line, Bumped 2 -&gt; 3:</b> <see cref="WarpState.KeyframeFloorSec"/>, the
         /// real-time floor on periodic keyframes, so a client inferring staleness from
@@ -1816,10 +1841,55 @@ namespace Sitrep.Contract
         /// tell a span no observation covers from a channel that did not change.
         /// Additive, nothing removed or retyped.</para>
         ///
-        /// <para><b>Major-17 line, Bumped 4 -&gt; 5:</b> <see cref="CareerStrategies.ActivationPatched"/>,
+        /// <para><b>Reset to 0 alongside the Major 17 -&gt; 18 bump</b> (see
+        /// <see cref="Major"/>). The Minor history above belongs to the earlier Major
+        /// lines and is retained for provenance.</para>
+        ///
+        /// <para><b>Major-18 line, Bumped 0 -&gt; 1:</b> <see cref="RosterCommsControlSource.Unknown"/>,
+        /// appended, for a control level the producer cannot name, which it had
+        /// been reporting as <see cref="RosterCommsControlSource.None"/>. Additive,
+        /// nothing removed or retyped, so an Uplink built against 18.0 is
+        /// unaffected.</para>
+        ///
+        /// <para><b>Major-18 line, Bumped 1 -&gt; 2: a SCET alarm can act on the
+        /// craft in the frame it fires.</b> One new enum,
+        /// <see cref="ScetAlarmActionKind"/>, one new type,
+        /// <see cref="ScetAlarmAction"/>, and new members on three existing types:
+        /// <see cref="ScetAlarmArmArgs.OnFire"/> and
+        /// <see cref="ScetAlarmArmArgs.ActsOn"/>, the same two on
+        /// <see cref="ScetAlarm"/>, and <see cref="ScetAlarmFired.ActionsWithheld"/>.
+        /// Every one defaults to "no actions", which is what every alarm already
+        /// was, so an Uplink built against 18.0 is unaffected.</para>
+        ///
+        /// <para>An action named by the client and dispatched after the notice
+        /// reached it landed on the craft a light-time after the alarm fired.
+        /// Held by the simulation it runs in the fire's own frame, which is only
+        /// honest where the craft itself could have judged the condition, so an
+        /// arm carrying actions anywhere else is refused.</para>
+        ///
+        /// <para><b>Major-18 line, Bumped 2 -&gt; 3: a SCET alarm can watch a
+        /// contract objective.</b> One new member,
+        /// <see cref="ScetAlarmConditionKind.ContractParameter"/>, and three new
+        /// fields on <see cref="ScetAlarmCondition"/>:
+        /// <see cref="ScetAlarmCondition.ContractId"/>,
+        /// <see cref="ScetAlarmCondition.ParameterTitle"/> and
+        /// <see cref="ScetAlarmCondition.TargetState"/>. Appended, so no existing
+        /// ordinal moves, and every new field defaults to what an alarm of the
+        /// two existing kinds never reads, so an Uplink built against 18.2 is
+        /// unaffected.</para>
+        ///
+        /// <para><b>Major-18 line, Bumped 3 -&gt; 4:</b> an appended <c>Unknown</c> on
+        /// <see cref="CommsControlSource"/>, <see cref="CommsControlStateKind"/> and
+        /// <see cref="CommsControlGrade"/>, the comms half of the roster's own
+        /// <c>Unknown</c> above, for a control level the producer cannot name, which it
+        /// had been reporting as <c>None</c>. Additive, nothing removed or retyped, so
+        /// an Uplink built against 18.3 is unaffected.</para>
+        ///
+        /// <para><b>Major-18 line, Bumped 4 -&gt; 5:</b> <see cref="CareerStrategies.ActivationPatched"/>,
         /// whether another mod alters KSP's own strategy activation, which decides
         /// whether <c>career.strategy.activate</c> can commit with the Administration
-        /// Building shut. Additive, nothing removed or retyped.</para>
+        /// Building shut. Additive, nothing removed or retyped, so an Uplink built
+        /// against 18.4 is unaffected.</para>
         /// </remarks>
         public const int Minor = 5;
     }

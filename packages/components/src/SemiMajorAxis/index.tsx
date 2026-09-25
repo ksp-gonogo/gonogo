@@ -2,8 +2,8 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { defineTopicManifest, registerComponent } from "@ksp-gonogo/core";
 
 const topics = defineTopicManifest({
-  channels: ["vessel.orbit", "vessel.state"],
-  fields: ["vessel.orbit.sma", "vessel.state.referenceBodyName"],
+  channels: ["vessel.orbit", "vessel.state", "system.bodies"],
+  fields: ["vessel.orbit.sma", "vessel.orbit.referenceBodyIndex"],
 });
 
 import { useDataSeries } from "@ksp-gonogo/data";
@@ -13,7 +13,6 @@ import {
   type TopicReading,
   useStream,
   useViewUt,
-  type VesselState,
   withoutReckoning,
 } from "@ksp-gonogo/sitrep-client";
 import {
@@ -25,7 +24,7 @@ import {
 import { EmptyState, Panel, Sparkline } from "@ksp-gonogo/ui";
 import { ReadoutCaption, Section, Unit } from "@ksp-gonogo/ui-kit";
 import { useCallback, useRef, useState } from "react";
-import styled from "styled-components";
+import { useBodyName } from "../shared/useBodyName";
 
 type SemiMajorAxisConfig = Record<string, never>;
 
@@ -51,14 +50,6 @@ function SemiMajorAxisComponent({
   w,
   h,
 }: Readonly<ComponentProps<SemiMajorAxisConfig>>) {
-  // Both reads ride the Uplink stream directly, no legacy `useTelemetry("data",
-  // ...)` fallback:
-  //  - `sma` is the raw `vessel.orbit.sma` element, read off the canonical
-  //    whole-`vessel.orbit` Topic.
-  //  - `referenceBody` is the SDK-derived `vessel.state.referenceBodyName`
-  //    display map (the client resolves `vessel.orbit.referenceBodyIndex`
-  //    against `system.bodies`, see `vessel-state.ts`). It isn't a wire
-  //    `TopicId`, so it reads through `useStream`.
   /**
    * SMA is a scalar readout beside a label, so it DATES rather than blanks.
    * Withholding a stale value is for the widgets that turn one into a verdict;
@@ -94,8 +85,9 @@ function SemiMajorAxisComponent({
     viewUt && smaObservedUt
       ? Math.max(0, viewUt.minus(smaObservedUt).magnitude)
       : undefined;
-  const referenceBody =
-    useStream<VesselState>("vessel.state")?.referenceBodyName ?? undefined;
+  const referenceBody = useBodyName(
+    stillTrue(orbitReading, undefined)?.referenceBodyIndex,
+  );
   // `useDataSeries` (sparkline history) carries the same stream shim, `o.sma`
   // maps to the raw `vessel.orbit.sma` field-subtopic, so once `vessel.orbit`
   // is carried this sparkline reads its window straight off the
@@ -175,14 +167,15 @@ function SemiMajorAxisComponent({
       sections={
         <Section full gap="sm">
           {showSubtitle && (
-            <SmaCaption>
+            <ReadoutCaption style={SMA_CAPTION_STYLE}>
               Semi-major axis{referenceBody ? ` · ${referenceBody}` : ""}
-            </SmaCaption>
+            </ReadoutCaption>
           )}
-          <SmaDisplay
+          <div
             role="status"
             aria-live="polite"
             style={{
+              ...SMA_DISPLAY_STYLE,
               fontSize: `${readoutFontPx}px`,
               // Muted while held: the tone carries the caveat at a glance, the
               // caption below says it in words.
@@ -195,7 +188,7 @@ function SemiMajorAxisComponent({
                 muted tone above and the caption below are the widget's own
                 additions to that, not the only thing saying it. */}
             <Unit value={readingOf(orbitReading, (orbit) => orbit.sma)} />
-          </SmaDisplay>
+          </div>
           {/* The caveat belongs on the value rather than in the panel chrome: a
             header badge beside a confident-looking number is the thing an
             operator reads past. */}
@@ -224,14 +217,14 @@ function SemiMajorAxisComponent({
             </ReadoutCaption>
           )}
           {showSparkline && (
-            <SparkSlot ref={sparkRef}>
+            <div ref={sparkRef} style={SPARK_SLOT_STYLE}>
               <Sparkline
                 values={sparkValues}
                 width={sparkWidth}
                 height={28}
                 ariaLabel="SMA trend"
               />
-            </SparkSlot>
+            </div>
           )}
         </Section>
       }
@@ -239,27 +232,25 @@ function SemiMajorAxisComponent({
   );
 }
 
-const SmaCaption = styled.div`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  letter-spacing: 0.04em;
-  text-align: center;
-`;
+/** Centres the kit's caption over the reading it introduces. */
+const SMA_CAPTION_STYLE = { textAlign: "center" } as const;
 
-const SmaDisplay = styled.div`
-  /* Off the type scale: display tier (the scale stops at 16px), and in any
-     case overridden at runtime by the inline readoutFontPx style. */
-  font-size: 28px;
-  letter-spacing: 0.04em;
-  color: var(--color-text-primary);
-  text-align: center;
-  white-space: nowrap;
-`;
+/**
+ * The reading itself. Display tier, so it is off the type scale, and the size
+ * here is only a floor: the widget measures its own width and writes a
+ * `readoutFontPx` over it every render, which is why this cannot be a rung.
+ */
+const SMA_DISPLAY_STYLE = {
+  fontSize: "28px",
+  letterSpacing: "0.04em",
+  color: "var(--color-text-primary)",
+  textAlign: "center",
+  whiteSpace: "nowrap",
+} as const;
 
-const SparkSlot = styled.div`
-  width: 100%;
-  height: 28px;
-`;
+/** Reserves the sparkline's height before it measures, so the rows below it
+ *  do not jump on the first paint. */
+const SPARK_SLOT_STYLE = { width: "100%", height: "28px" } as const;
 
 registerComponent<SemiMajorAxisConfig>({
   id: "semi-major-axis",

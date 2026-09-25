@@ -314,7 +314,7 @@ const MobileCellHeader = styled.div`
   height: 32px;
   flex-shrink: 0;
   background: var(--color-surface-panel);
-  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  border-radius: var(--radius-regular) var(--radius-regular) 0 0;
   padding: 0 var(--space-4);
 `;
 
@@ -337,7 +337,7 @@ const MobileCellHeaderRight = styled.div`
 `;
 
 const MobileCellName = styled.span`
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -356,7 +356,7 @@ const WidthToggleBtn = styled.button`
   border: none;
   color: var(--color-text-faint);
   cursor: pointer;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-compact);
   line-height: var(--line-height-flush);
   padding: var(--inset-control-compact);
   margin-left: var(--space-2);
@@ -378,11 +378,11 @@ const ReorderBtn = styled.button`
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-compact);
   line-height: var(--line-height-flush);
   width: 28px;
   height: 24px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-regular);
   display: inline-flex;
   align-items: center;
   justify-content: center;

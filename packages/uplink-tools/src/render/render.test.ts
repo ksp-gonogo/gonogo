@@ -18,7 +18,11 @@ import { join } from "node:path";
 import { deflateSync } from "node:zlib";
 import { afterEach, describe, expect, it } from "vitest";
 import type { UplinkInventory } from "../render-probe";
-import { refuseToClobberHandWrittenReadme } from "./cli";
+import {
+  compareAssetNames,
+  refuseToClobberHandWrittenReadme,
+  wholePageRestyle,
+} from "./cli";
 import { resolveUplinkPackage } from "./context";
 import {
   linkedAssets,
@@ -881,5 +885,144 @@ describe("frames become an animation", () => {
         pingPong: false,
       }),
     ).toThrow();
+  });
+});
+
+/**
+ * A rendered PNG's BYTES are not drift, and its NAME is.
+ *
+ * Written down in three places and disbelieved twice, most recently as a finding
+ * that one Uplink's `docs --check` was "a coin flip on PNG bytes, independent of
+ * any change anyone makes". It never was: this comparison has read `readdir`
+ * since the day it was written. But a rule that lives only in prose can be
+ * reversed by a change that looks like a tightening, and the reversal would be
+ * invisible until CI went red on every machine at once.
+ *
+ * Both directions, because a comparison that reported nothing would pass the
+ * first half on its own.
+ */
+describe("what makes an asset stale", () => {
+  // Any bytes at all. This comparison never opens a file, which is the whole
+  // claim, so a PNG that is not a PNG is the honest fixture for it.
+  const bytes = (body: string) => Buffer.from(body, "utf8");
+
+  const assetDir = (files: Record<string, Buffer | string>): string => {
+    const dir = mkdtempSync(join(tmpdir(), "gonogo-assets-"));
+    temporaries.push(dir);
+    for (const [name, body] of Object.entries(files))
+      writeFileSync(join(dir, name), body);
+    return dir;
+  };
+
+  it("is not the bytes: a picture that rasterised differently is current", async () => {
+    const committed = assetDir({ "a--default.png": bytes("one rasteriser") });
+    const generated = assetDir({
+      "a--default.png": bytes("a different rasteriser, same picture"),
+    });
+
+    const differences: string[] = [];
+    await compareAssetNames(committed, generated, differences);
+
+    expect(differences).toEqual([]);
+  });
+
+  it("is the names: a fixture added or deleted moves the page", async () => {
+    const committed = assetDir({ "gone--default.png": bytes("a picture") });
+    const generated = assetDir({ "new--default.png": bytes("a picture") });
+
+    const differences: string[] = [];
+    await compareAssetNames(committed, generated, differences);
+
+    expect(differences).toHaveLength(2);
+    expect(differences.join("\n")).toContain("missing asset new--default.png");
+    expect(differences.join("\n")).toContain("stale asset gone--default.png");
+  });
+});
+
+/**
+ * "Every picture moved, none of them in tree or text" is a different fact from
+ * "this picture moved", and the per-asset lines cannot say which happened.
+ *
+ * The negatives matter more than the positive here. A note that appears under
+ * every red is a note nobody reads, and a kit change is the ONE cause that
+ * reaches every asset at once while leaving every element count and every string
+ * alone.
+ */
+describe("naming a whole-page restyle", () => {
+  const shape = (hash: string, elements = 40, text = "the same words") => ({
+    hash,
+    elements,
+    text,
+  });
+  const verdict = (
+    stale: {
+      file: string;
+      was: ReturnType<typeof shape>;
+      now: ReturnType<typeof shape>;
+    }[],
+    unrecorded: string[] = [],
+  ) => ({ stale, unrecorded });
+
+  it("fires when every recorded asset moved and none moved in tree or text", () => {
+    const note = wholePageRestyle(
+      verdict([
+        { file: "a.png", was: shape("1"), now: shape("2") },
+        { file: "b.png", was: shape("3"), now: shape("4") },
+      ]),
+      2,
+    );
+
+    expect(note).toContain("All 2 recorded asset(s) moved");
+    expect(note).toContain("kit or theme change");
+  });
+
+  it("stays silent when only some of the page moved, which is a widget edit", () => {
+    expect(
+      wholePageRestyle(
+        verdict([{ file: "a.png", was: shape("1"), now: shape("2") }]),
+        3,
+      ),
+    ).toBeUndefined();
+  });
+
+  it("stays silent when the tree moved, whatever else did", () => {
+    expect(
+      wholePageRestyle(
+        verdict([
+          { file: "a.png", was: shape("1", 40), now: shape("2", 41) },
+          { file: "b.png", was: shape("3"), now: shape("4") },
+        ]),
+        2,
+      ),
+    ).toBeUndefined();
+  });
+
+  it("stays silent when the visible text moved", () => {
+    expect(
+      wholePageRestyle(
+        verdict([
+          { file: "a.png", was: shape("1"), now: shape("2", 40, "new words") },
+        ]),
+        1,
+      ),
+    ).toBeUndefined();
+  });
+
+  it("counts against what was RECORDED, not against every asset rendered", () => {
+    // An unrecorded asset cannot be stale, so a page that is half unrecorded
+    // still reads as wholly restyled when every recorded one moved.
+    expect(
+      wholePageRestyle(
+        verdict(
+          [{ file: "a.png", was: shape("1"), now: shape("2") }],
+          ["b.png"],
+        ),
+        2,
+      ),
+    ).toContain("All 1 recorded asset(s) moved");
+  });
+
+  it("stays silent when nothing is stale at all", () => {
+    expect(wholePageRestyle(verdict([]), 4)).toBeUndefined();
   });
 });

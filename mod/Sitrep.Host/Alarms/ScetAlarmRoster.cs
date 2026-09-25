@@ -29,6 +29,75 @@ namespace Sitrep.Host.Alarms
         /// only way a tick can learn about a command handler's work.
         /// </summary>
         public bool RosterChanged { get; set; }
+
+        /// <summary>
+        /// The onboard actions this tick's fires owe the craft, in the order the
+        /// alarms were armed. Only an alarm read at its own subject's vantage
+        /// queues any, so these all come due in the main-thread pass, the frame
+        /// the warp stops in.
+        /// </summary>
+        public List<ScetAlarmActionsDue> ActionsDue { get; } = new List<ScetAlarmActionsDue>();
+    }
+
+    /// <summary>One fire's onboard actions, and the notice that reports whether they were withheld.</summary>
+    public sealed class ScetAlarmActionsDue
+    {
+        public ScetAlarmActionsDue(ScetAlarmFired notice, string actsOn, IReadOnlyList<ScetAlarmAction> actions)
+        {
+            Notice = notice;
+            ActsOn = actsOn;
+            Actions = actions;
+        }
+
+        /// <summary>The notice about to be published for this fire. Written to when the actions are withheld.</summary>
+        public ScetAlarmFired Notice { get; }
+
+        /// <summary>See <see cref="ScetAlarm.ActsOn"/>.</summary>
+        public string ActsOn { get; }
+
+        public IReadOnlyList<ScetAlarmAction> Actions { get; }
+    }
+
+    /// <summary>
+    /// One tick in progress, between <see cref="ScetAlarmRoster.BeginTick"/> and
+    /// <see cref="ScetAlarmRoster.EndTick"/>.
+    ///
+    /// <para>It exists because a tick is evaluated in more than one PASS, on more
+    /// than one thread: the entries read off the simulation's own state are
+    /// evaluated on the Unity main thread, the rest off the archive on the
+    /// Courier. What is genuinely once-per-tick, the rewind clear and the
+    /// off-tick change flag, happens in <c>BeginTick</c> and is carried here, so
+    /// a second pass cannot do it again.</para>
+    /// </summary>
+    public sealed class ScetAlarmTickState
+    {
+        internal readonly double NowUt;
+
+        /// <summary>
+        /// Whether a pass may read anything at all. A non-finite clock and a
+        /// rewind both END the tick where they are found: there is nothing to
+        /// evaluate against a clock that is not a number, and everything held
+        /// across a rewind was armed in a timeline that no longer exists.
+        /// </summary>
+        internal readonly bool Live;
+
+        internal readonly ScetAlarmTick Tick;
+
+        internal ScetAlarmTickState(double nowUt, bool live, ScetAlarmTick tick)
+        {
+            NowUt = nowUt;
+            Live = live;
+            Tick = tick;
+        }
+
+        /// <summary>
+        /// Whether anything has asked for the warp to stop so far this tick.
+        /// Read between passes, by the one that holds the actuator.
+        /// </summary>
+        public bool StopWarp => Tick.StopWarp;
+
+        /// <summary>The onboard actions queued so far this tick. Read between passes, by the one that holds the actuator.</summary>
+        public IReadOnlyList<ScetAlarmActionsDue> ActionsDue => Tick.ActionsDue;
     }
 
     /// <summary>
@@ -58,8 +127,8 @@ namespace Sitrep.Host.Alarms
     ///
     /// <para><b>What is decided here never reaches the wire.</b> The notice
     /// carries an id and an instant. The reading that caused it does not: the
-    /// stop crosses light-time because warp is a property of the simulation, and
-    /// the telemetry stays where it was.</para>
+    /// warp stops where the alarm came due, and the telemetry stays where it
+    /// was.</para>
     /// </summary>
     public sealed class ScetAlarmRoster
     {
@@ -137,14 +206,19 @@ namespace Sitrep.Host.Alarms
                 Name = args.Name ?? "",
                 ArmedBy = armedBy ?? "",
                 // Taken from the arguments, unlike ArmedBy: an operator at one
-                // centre may ask what another centre can currently see, and
-                // where the command entered cannot express that. See
-                // ScetAlarm.Audience.
-                Audience = args.Audience ?? "",
-                Subject = string.IsNullOrEmpty(args.Subject) ? "game" : args.Subject,
+                // centre may ask when another centre will know. Resolved HERE
+                // rather than left empty for a reader to interpret, so the
+                // roster a client reconciles against says where each alarm is
+                // read and nowhere has to work it out twice.
+                Vantage = ScetAlarmVantage.Of(args),
+                Subject = ScetAlarmVantage.SubjectOf(args),
                 Condition = Copy(condition),
                 State = ScetAlarmState.Armed,
                 FiredAtUt = null,
+                OnFire = Copy(args.OnFire),
+                ActsOn = args.OnFire != null && args.OnFire.Count > 0
+                    ? ScetAlarmActions.ActsOnOf(args)
+                    : "",
             };
 
             var index = IndexOf(args.Id);
@@ -201,42 +275,85 @@ namespace Sitrep.Host.Alarms
         }
 
         /// <summary>
-        /// Advance to <paramref name="nowUt"/> and say what is due, reading any
-        /// threshold conditions through <paramref name="state"/>.
+        /// Advance to <paramref name="nowUt"/> and say what is due, reading EVERY
+        /// threshold condition through the one reader <paramref name="state"/>.
         ///
-        /// <para>A universal time that has gone BACKWARDS is a quickload or a
-        /// revert, and everything held was armed in the timeline that was
-        /// abandoned. The roster clears itself rather than carrying a latch
-        /// across; the empty roster it then publishes is what tells a client to
-        /// re-arm, so no separate reset message is needed.</para>
-        ///
-        /// <para><paramref name="state"/> is optional and its absence is not an
-        /// error: a tick with no snapshot to read has nothing to say about any
-        /// threshold, and a roster holding only time alarms never asks. The
-        /// posture either way is that an alarm which cannot be evaluated does
-        /// not fire.</para>
+        /// <para>The whole-roster form of <see cref="BeginTick"/>,
+        /// <see cref="EvaluatePass"/> and <see cref="EndTick"/>, for a caller
+        /// whose entries all read from the same place. A caller whose entries
+        /// read from different places, and therefore on different threads, uses
+        /// the three.</para>
         /// </summary>
         public ScetAlarmTick Evaluate(double nowUt, IScetStateReader? state = null)
         {
-            // Reported once and cleared, on whichever tick comes first: an arm is
-            // a change exactly once, and a tick that cannot evaluate at all still
-            // has to carry it, or a clock that went briefly non-finite would eat
-            // the operator's arm.
+            var tick = BeginTick(nowUt);
+            EvaluatePass(tick, null, _ => state);
+            return EndTick(tick);
+        }
+
+        /// <summary>
+        /// Open a tick at <paramref name="nowUt"/>: the once-per-tick decisions,
+        /// taken before any reading.
+        ///
+        /// <para>Two of them, and they are once-per-tick in the strong sense that
+        /// doing them twice would be wrong rather than merely wasteful. The
+        /// off-tick change flag is reported exactly once, on whichever tick comes
+        /// first, including one that cannot evaluate at all, or a clock that went
+        /// briefly non-finite would eat the operator's arm. And a clock that has
+        /// gone BACKWARDS is a quickload or a revert: everything held was armed
+        /// in the timeline that was abandoned, so the roster clears itself rather
+        /// than carrying a latch across, and the empty roster it then publishes
+        /// is what tells a client to re-arm.</para>
+        /// </summary>
+        public ScetAlarmTickState BeginTick(double nowUt)
+        {
             var tick = new ScetAlarmTick { RosterChanged = _pendingChange };
             _pendingChange = false;
 
             if (double.IsNaN(nowUt) || double.IsInfinity(nowUt))
             {
-                return tick;
+                return new ScetAlarmTickState(nowUt, live: false, tick);
             }
 
             if (_lastEvaluatedUt.HasValue && nowUt < _lastEvaluatedUt.Value - RewindToleranceSeconds)
             {
                 tick.RosterChanged |= Clear();
                 _lastEvaluatedUt = nowUt;
-                return tick;
+                return new ScetAlarmTickState(nowUt, live: false, tick);
             }
             _lastEvaluatedUt = nowUt;
+
+            return new ScetAlarmTickState(nowUt, live: true, tick);
+        }
+
+        /// <summary>
+        /// Evaluate the entries <paramref name="mine"/> accepts, reading each
+        /// through the reader <paramref name="readerFor"/> gives it. A null
+        /// <paramref name="mine"/> takes every entry.
+        ///
+        /// <para>Callable more than once per tick, and meant to be: an entry read
+        /// off the simulation's own state must be evaluated on the Unity main
+        /// thread and one read off the archive on the Courier, so the tick is
+        /// split by WHERE each alarm reads rather than by holding a roster
+        /// each. Every pass in a tick shares one <see cref="ScetAlarmTickState"/>
+        /// and therefore one universal time, which is why a time condition comes
+        /// due on the same tick at every vantage.</para>
+        ///
+        /// <para><paramref name="readerFor"/> may answer null, and its absence is
+        /// not an error: a tick with no snapshot to read has nothing to say about
+        /// any threshold, and a pass over nothing but time alarms never asks. The
+        /// posture either way is that an alarm which cannot be evaluated does not
+        /// fire.</para>
+        /// </summary>
+        public void EvaluatePass(
+            ScetAlarmTickState? state,
+            Func<ScetAlarm, bool>? mine,
+            Func<ScetAlarm, IScetStateReader?>? readerFor)
+        {
+            if (state == null || !state.Live)
+            {
+                return;
+            }
 
             foreach (var entry in _entries)
             {
@@ -249,20 +366,38 @@ namespace Sitrep.Host.Alarms
                 {
                     continue;
                 }
+                if (mine != null && !mine(entry.Alarm))
+                {
+                    continue;
+                }
 
                 switch (condition.Kind)
                 {
                     case ScetAlarmConditionKind.Time:
-                        EvaluateTime(entry, condition, nowUt, tick);
+                        EvaluateTime(entry, condition, state.NowUt, state.Tick);
                         break;
                     case ScetAlarmConditionKind.Threshold:
-                        EvaluateThreshold(entry, condition, nowUt, tick, state);
+                        EvaluateThreshold(
+                            entry,
+                            condition,
+                            state.NowUt,
+                            state.Tick,
+                            readerFor == null ? null : readerFor(entry.Alarm));
+                        break;
+                    case ScetAlarmConditionKind.ContractParameter:
+                        EvaluateContractParameter(
+                            entry,
+                            condition,
+                            state.NowUt,
+                            state.Tick,
+                            readerFor == null ? null : readerFor(entry.Alarm));
                         break;
                 }
             }
-
-            return tick;
         }
+
+        /// <summary>Close the tick and answer what it decided, over every pass.</summary>
+        public ScetAlarmTick EndTick(ScetAlarmTickState state) => state.Tick;
 
         private static void EvaluateTime(
             Entry entry, ScetAlarmCondition condition, double nowUt, ScetAlarmTick tick)
@@ -324,7 +459,48 @@ namespace Sitrep.Host.Alarms
                 return;
             }
 
-            if (!Matches(reading.Value, condition.Op, condition.Threshold))
+            Held(entry, condition, Matches(reading.Value, condition.Op, condition.Threshold), nowUt, tick);
+        }
+
+        /// <summary>
+        /// One contract objective against the career the reader hands over, the
+        /// same two instants as a threshold: the warp stops on the first tick the
+        /// objective is in its target state, and the alarm fires once it has
+        /// stayed there for the sustain window.
+        ///
+        /// <para>Career bookkeeping belongs to the save rather than to a craft, so
+        /// it is read at the <c>"game"</c> subject whatever the alarm names, and
+        /// a craft being lost says nothing about it: there is no
+        /// <see cref="ScetAlarmState.Unreachable"/> here.</para>
+        /// </summary>
+        private static void EvaluateContractParameter(
+            Entry entry,
+            ScetAlarmCondition condition,
+            double nowUt,
+            ScetAlarmTick tick,
+            IScetStateReader? state)
+        {
+            if (state?.ReadPayload("game", CareerViewProvider.Topic) is not { } career)
+            {
+                return;
+            }
+            var matched = ScetPayload.MatchContractParameter(
+                career, condition.ContractId ?? "", condition.ParameterTitle ?? "", condition.TargetState);
+            if (matched is { } holds)
+            {
+                Held(entry, condition, holds, nowUt, tick);
+            }
+        }
+
+        /// <summary>
+        /// A condition read as holding or not this tick: stop the warp on its
+        /// first match, start or clear the sustain window, and fire once it has
+        /// held for the whole window.
+        /// </summary>
+        private static void Held(
+            Entry entry, ScetAlarmCondition condition, bool holds, double nowUt, ScetAlarmTick tick)
+        {
+            if (!holds)
             {
                 entry.MatchSinceUt = null;
                 return;
@@ -382,15 +558,25 @@ namespace Sitrep.Host.Alarms
             entry.Alarm.FiredAtUt = nowUt;
             tick.StopWarp = true;
             tick.RosterChanged = true;
-            tick.Fired.Add(new ScetAlarmFired
+            var notice = new ScetAlarmFired
             {
                 Id = entry.Alarm.Id,
                 FiredAtUt = nowUt,
-                // Echoed so a reader can tell the simulation's verdict from one
-                // audience's without consulting the roster. The two mean
-                // different things and only the first stopped anything.
-                Audience = entry.Alarm.Audience ?? "",
-            });
+                // Echoed so a reader can tell which place learned it without
+                // consulting the roster. A notice at the subject's own vantage
+                // is the one the warp stopped for.
+                Vantage = entry.Alarm.Vantage ?? "",
+            };
+            tick.Fired.Add(notice);
+            // The arm refuses actions anywhere else, and this holds the line
+            // again for an entry that reached the roster by another route: an
+            // action queued from a command centre's verdict would act on the
+            // craft a light-time before the craft could have been told.
+            if (entry.Alarm.OnFire.Count > 0 && ScetAlarmVantage.IsTheSubjectsOwn(entry.Alarm))
+            {
+                tick.ActionsDue.Add(new ScetAlarmActionsDue(
+                    notice, entry.Alarm.ActsOn ?? "", Copy(entry.Alarm.OnFire)));
+            }
         }
 
         /// <summary>
@@ -409,11 +595,13 @@ namespace Sitrep.Host.Alarms
                     Id = a.Id,
                     Name = a.Name,
                     ArmedBy = a.ArmedBy,
-                    Audience = a.Audience,
+                    Vantage = a.Vantage,
                     Subject = a.Subject,
                     Condition = Copy(a.Condition),
                     State = a.State,
                     FiredAtUt = a.FiredAtUt,
+                    OnFire = Copy(a.OnFire),
+                    ActsOn = a.ActsOn,
                 });
             }
             return rows;
@@ -441,7 +629,7 @@ namespace Sitrep.Host.Alarms
             return held.State == ScetAlarmState.Armed
                 && string.Equals(held.Name, incoming.Name, StringComparison.Ordinal)
                 && string.Equals(held.ArmedBy, incoming.ArmedBy, StringComparison.Ordinal)
-                && string.Equals(held.Audience, incoming.Audience, StringComparison.Ordinal)
+                && string.Equals(held.Vantage, incoming.Vantage, StringComparison.Ordinal)
                 && string.Equals(held.Subject, incoming.Subject, StringComparison.Ordinal)
                 && held.Condition != null
                 && held.Condition.Kind == incoming.Condition.Kind
@@ -451,7 +639,46 @@ namespace Sitrep.Host.Alarms
                 && string.Equals(held.Condition.FieldPath, incoming.Condition.FieldPath, StringComparison.Ordinal)
                 && held.Condition.Op == incoming.Condition.Op
                 && held.Condition.Threshold == incoming.Condition.Threshold
-                && held.Condition.SustainSeconds == incoming.Condition.SustainSeconds;
+                && held.Condition.SustainSeconds == incoming.Condition.SustainSeconds
+                && string.Equals(held.Condition.ContractId, incoming.Condition.ContractId, StringComparison.Ordinal)
+                && string.Equals(held.Condition.ParameterTitle, incoming.Condition.ParameterTitle, StringComparison.Ordinal)
+                && held.Condition.TargetState == incoming.Condition.TargetState
+                && string.Equals(held.ActsOn, incoming.ActsOn, StringComparison.Ordinal)
+                && SameActions(held.OnFire, incoming.OnFire);
+        }
+
+        private static bool SameActions(List<ScetAlarmAction> held, List<ScetAlarmAction> incoming)
+        {
+            if (held.Count != incoming.Count)
+            {
+                return false;
+            }
+            for (var i = 0; i < held.Count; i++)
+            {
+                if (held[i].Kind != incoming[i].Kind || held[i].Group != incoming[i].Group)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>Actions detached from whoever handed them over, for the reason <see cref="Copy(ScetAlarmCondition?)"/> gives.</summary>
+        private static List<ScetAlarmAction> Copy(List<ScetAlarmAction>? actions)
+        {
+            var copy = new List<ScetAlarmAction>(actions?.Count ?? 0);
+            if (actions == null)
+            {
+                return copy;
+            }
+            foreach (var a in actions)
+            {
+                if (a != null)
+                {
+                    copy.Add(new ScetAlarmAction { Kind = a.Kind, Group = a.Group });
+                }
+            }
+            return copy;
         }
 
         /// <summary>
@@ -476,6 +703,9 @@ namespace Sitrep.Host.Alarms
                 Op = c.Op,
                 Threshold = c.Threshold,
                 SustainSeconds = c.SustainSeconds,
+                ContractId = c.ContractId ?? "",
+                ParameterTitle = c.ParameterTitle ?? "",
+                TargetState = c.TargetState,
             };
         }
     }

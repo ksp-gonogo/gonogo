@@ -1,3 +1,4 @@
+import { noteUndeclaredRead } from "@ksp-gonogo/sitrep-sdk/spine";
 import { useEffect } from "react";
 import { useStream } from "./use-stream";
 import { wireMagnitude } from "./wire-magnitude";
@@ -225,6 +226,7 @@ const latestSilenceByVessel = new Map<string, FleetVesselSilence>();
 export function getLatestFleetVesselSilence(
   vesselId: string,
 ): FleetVesselSilence | undefined {
+  noteUndeclaredRead("getLatestFleetVesselSilence");
   return latestSilenceByVessel.get(vesselId);
 }
 

@@ -70,12 +70,15 @@ describe("topoSortActivationOrder", () => {
       thrown = err;
     }
 
-    expect(thrown).toBeInstanceOf(DependencyCycleError);
-    const err = thrown as DependencyCycleError;
-    expect(err.cycle).toContain("a");
-    expect(err.cycle).toContain("b");
-    expect(err.message).toContain("a");
-    expect(err.message).toContain("b");
+    if (!(thrown instanceof DependencyCycleError)) {
+      throw new Error(
+        `expected a DependencyCycleError, got: ${String(thrown)}`,
+      );
+    }
+    expect(thrown.cycle).toContain("a");
+    expect(thrown.cycle).toContain("b");
+    expect(thrown.message).toContain("a");
+    expect(thrown.message).toContain("b");
   });
 
   it("throws DependencyCycleError for a longer cycle (a -> b -> c -> a)", () => {
@@ -108,8 +111,11 @@ describe("topoSortActivationOrder", () => {
     } catch (err) {
       thrown = err;
     }
-    expect(thrown).toBeInstanceOf(DependencyCycleError);
-    const err = thrown as DependencyCycleError;
-    expect(err.cycle).not.toContain("outer");
+    if (!(thrown instanceof DependencyCycleError)) {
+      throw new Error(
+        `expected a DependencyCycleError, got: ${String(thrown)}`,
+      );
+    }
+    expect(thrown.cycle).not.toContain("outer");
   });
 });

@@ -1,5 +1,6 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
+import { derivedGetOf } from "./derived-get-fixture";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import type { DerivedGet } from "./timeline-store";
@@ -42,10 +43,7 @@ function uplinksPoint(
 function fakeGet(
   point: TimelinePoint<RawSystemUplinksPayload> | undefined,
 ): DerivedGet {
-  return (<T>(topic: string) =>
-    topic === "system.uplinks"
-      ? (point as unknown as TimelinePoint<T> | undefined)
-      : undefined) as DerivedGet;
+  return derivedGetOf({ "system.uplinks": point });
 }
 
 describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {

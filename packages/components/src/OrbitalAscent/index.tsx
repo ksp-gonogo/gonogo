@@ -4,7 +4,8 @@ import {
   defineTopicManifest,
   registerComponent,
 } from "@ksp-gonogo/core";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import { useStream } from "@ksp-gonogo/sitrep-client";
+import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import {
@@ -13,6 +14,7 @@ import {
   GraphView,
   type ReferenceCurve,
 } from "../Graph";
+import { useBodyName } from "../shared/useBodyName";
 import { useComputedSeries } from "../shared/useComputedSeries";
 import { useStreamBody } from "../shared/useStreamBody";
 
@@ -33,12 +35,12 @@ function horizontalOf(surfaceSpeed: number, verticalSpeed: number): number {
 const topics = defineTopicManifest({
   // `system.bodies` is read directly: the reference curve needs the body's own
   // radius and gravitational parameter, and both are reported there.
-  channels: ["vessel.state", "vessel.flight", "system.bodies"],
+  channels: ["vessel.flight", "vessel.identity", "system.bodies"],
   fields: [
     "vessel.flight.altitudeAsl",
     "vessel.flight.surfaceSpeed",
     "vessel.flight.verticalSpeed",
-    "vessel.state.parentBodyName",
+    "vessel.identity.parentBodyIndex",
   ],
 });
 
@@ -91,15 +93,14 @@ function OrbitalAscentComponent({
   config,
 }: Readonly<ComponentProps<OrbitalAscentConfig>>) {
   /*
-   * Body name reads off the client-derived `vessel.state` channel
-   * (`parentBodyName`, an index→name display map).
-   *
    * Both axes come off `vessel.flight`'s own buffered history: the altitude as
    * a fetched series, and the horizontal speed computed here from the surface
    * and vertical speeds on the same samples, because the wire carries no
    * horizontal speed of its own.
    */
-  const bodyName = useStream<VesselState>("vessel.state")?.parentBodyName;
+  const bodyName = useBodyName(
+    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
+  );
   const body = useStreamBody(bodyName);
 
   const windowSec = config?.windowSec ?? 600;

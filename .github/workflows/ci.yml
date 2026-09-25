@@ -87,7 +87,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm install --frozen-lockfile
 
-      - run: pnpm lint
+      # `lint:ci`, not `lint`: the latter is `biome check --write .`, which FIXES
+      # what it finds and then exits 0, so this step could not fail on anything
+      # biome can auto-fix. Measured on one file: `biome check` exits 1 where
+      # `biome check --write` exits 0 having repaired it, and in CI the repair is
+      # discarded with the runner. `lint` stays a fixer because that is what a
+      # human wants from it; `biome ci` never writes.
+      #
+      # The local pre-commit hook already runs the verify-only form, so a
+      # hand-written commit was covered. What was not: a commit that bypasses
+      # hooks, which includes every GITHUB_TOKEN push a workflow makes.
+      - run: pnpm lint:ci
 
       # `pnpm typecheck` is the ONLY thing that runs the workspace's
       # `*.test-d.ts` type-level assertions: vitest goes through esbuild and
@@ -731,6 +741,38 @@ jobs:
           name: nuget-sitrep-contract
           path: ${{ runner.temp }}/nuget/*
           retention-days: 7
+
+      # Whether an Uplink's C# half builds from the PACKAGE rather than the
+      # source tree, which every other build here uses. Blocking for the Uplink
+      # known to leave cleanly, and for the planted gap, which must fail or the
+      # probe could not see a real one. The script's header has the reasoning.
+      - name: An Uplink builds against the packed contract
+        env:
+          KSP_GAMEDATA: ${{ github.workspace }}/ksp-managed/GameData
+          KSP_MANAGED: ${{ github.workspace }}/ksp-managed/KSP_Data/Managed
+        run: |
+          set -euo pipefail
+          if [ ! -f "$KSP_MANAGED/Assembly-CSharp.dll" ]; then
+            echo "::warning::KSP reference assemblies absent: NuGet extraction probe NOT RUN (soft-degrade, forks only)."
+            exit 0
+          fi
+          node scripts/nuget-extraction-probe.mjs --nupkg "$RUNNER_TEMP"/nuget/KspGonogo.Sitrep.Contract.*.nupkg --uplink GonogoKosUplink
+          node scripts/nuget-extraction-probe.mjs --nupkg "$RUNNER_TEMP"/nuget/KspGonogo.Sitrep.Contract.*.nupkg --plant --uplink GonogoKosUplink
+
+      # Every Uplink, reported rather than gated: one that reaches a repo path no
+      # package carries is a finding about that Uplink, and this step names it.
+      - name: Which Uplinks build against the packed contract
+        continue-on-error: true
+        env:
+          KSP_GAMEDATA: ${{ github.workspace }}/ksp-managed/GameData
+          KSP_MANAGED: ${{ github.workspace }}/ksp-managed/KSP_Data/Managed
+        run: |
+          set -euo pipefail
+          if [ ! -f "$KSP_MANAGED/Assembly-CSharp.dll" ]; then
+            echo "::warning::KSP reference assemblies absent: NuGet extraction probe NOT RUN (soft-degrade, forks only)."
+            exit 0
+          fi
+          node scripts/nuget-extraction-probe.mjs --nupkg "$RUNNER_TEMP"/nuget/KspGonogo.Sitrep.Contract.*.nupkg
 
   e2e:
     runs-on: ubuntu-latest

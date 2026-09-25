@@ -29,7 +29,7 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     public class ContributedRequirementTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan Timeout = TestBudgets.Op;
 
         private const string OwnedCommand = "owner.launch";
         private const string UngatedCommand = "owner.ping";

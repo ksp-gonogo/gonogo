@@ -32,7 +32,7 @@ const FIXTURES = import.meta.glob<{ default: Record<string, unknown> }>(
 
 interface Fixture {
   _meta?: { patchesAbsent?: string };
-  _stream?: { emits?: Array<{ channel?: string }> };
+  _stream?: { stopsArriving?: boolean; emits?: Array<{ channel?: string }> };
 }
 
 /** The registered default size. A tiny cell renders no map at all, so a zero there says nothing. */
@@ -77,6 +77,8 @@ describe("MapView predicts a ground track from its fixtures", () => {
       fixture._stream?.emits?.some((e) => e?.channel === "vessel.orbit") ??
       false;
     if (!emitsOrbit) continue;
+    /* A live prediction is this test's subject; a scene the link drops out of is judged by `staleScenes.test.tsx`. */
+    if (fixture._stream?.stopsArriving === true) continue;
 
     const absent = fixture._meta?.patchesAbsent;
     it(`${slug} ${absent ? "draws no track, and says why in the fixture" : "draws a track"}`, async () => {
