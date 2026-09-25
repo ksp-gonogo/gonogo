@@ -5125,13 +5125,25 @@ namespace Sitrep.Host
         /// </summary>
         internal void Publish(string topic, object? payload, double ut) => EnqueueJob(new PublishJob(topic, payload, ut));
 
-        /// <summary>Test-only deterministic variant of <see cref="Tick"/>: blocks until the Courier thread finishes processing this tick.</summary>
+        /// <summary>
+        /// Test-only deterministic variant of <see cref="Tick"/>: blocks until the
+        /// Courier thread finishes processing this tick. Throws
+        /// <see cref="TimeoutException"/> when it does not finish within
+        /// <paramref name="timeout"/>, so a wedged Courier, a tick that threw
+        /// before completing, or an engine that was never started fails the
+        /// caller instead of reading as a tick that ran.
+        /// </summary>
         internal void TickAndWait(double ut, KspSnapshot? snapshot, TimeSpan timeout)
         {
             var barrier = new ManualResetEventSlim(false);
             CaptureCommandCentresOnMain();
             EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), CaptureSignalDelayOnMain(snapshot), CaptureConnectivityOnMain(snapshot), CapturePathBreakOnMain(snapshot, ut), barrier));
-            barrier.Wait(timeout);
+            if (!barrier.Wait(timeout))
+            {
+                throw new TimeoutException(
+                    "TickAndWait(ut=" + ut.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                    + ") did not complete within " + timeout.TotalMilliseconds.ToString(System.Globalization.CultureInfo.InvariantCulture) + " ms");
+            }
         }
 
         /// <summary>
@@ -5148,12 +5160,23 @@ namespace Sitrep.Host
         public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<string>? onRefused = null, Action<double>? onAccepted = null) =>
             EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic, onRefused, onAccepted));
 
-        /// <summary>Test-only deterministic variant of <see cref="DispatchCommand"/>.</summary>
+        /// <summary>
+        /// Test-only deterministic variant of <see cref="DispatchCommand"/>: blocks
+        /// until the Courier thread has processed the dispatch (not until the
+        /// command resolves, which may be delayed). Throws
+        /// <see cref="TimeoutException"/> when the dispatch is not processed within
+        /// <paramref name="timeout"/>.
+        /// </summary>
         internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "", Action<string>? onRefused = null, Action<double>? onAccepted = null)
         {
             var barrier = new ManualResetEventSlim(false);
             EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label, topic, onRefused, onAccepted));
-            barrier.Wait(timeout);
+            if (!barrier.Wait(timeout))
+            {
+                throw new TimeoutException(
+                    "DispatchCommandAndWait(command=\"" + command + "\", vantage=\"" + vantage + "\") was not processed within "
+                    + timeout.TotalMilliseconds.ToString(System.Globalization.CultureInfo.InvariantCulture) + " ms");
+            }
         }
 
         /// <summary>Test-only visibility into one topic's emission counters; see <c>GonogoBodiesServer.BodiesEmitterCounters</c>'s equivalent doc comment for why tests need this rather than inferring it from wire silence.</summary>
@@ -6963,11 +6986,12 @@ namespace Sitrep.Host
             // No explicit uplinkDelaySeconds: the Courier falls back to
             // DelayTo(vantage, node) -- the same ledger delay used above -- so
             // telemetry and command delay share one per-(vantage, node) model.
-            _courier.DispatchCommand(node, requestId, job.Command, job.Args, job.Vantage, response =>
-            {
-                job.OnResult(response.Result);
-                job.Done?.Set();
-            });
+            _courier.DispatchCommand(node, requestId, job.Command, job.Args, job.Vantage, response => job.OnResult(response.Result));
+
+            // The response rides the delay and lands on a later tick, which a
+            // caller blocked on Done cannot produce, so Done marks the dispatch
+            // as handed to the Courier rather than as answered.
+            job.Done?.Set();
         }
 
         /// <summary>
