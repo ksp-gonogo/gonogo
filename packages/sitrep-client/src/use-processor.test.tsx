@@ -4,7 +4,7 @@ import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
 import { clearProcessorRuntime } from "./processorEvaluator";
 import { clearProcessors, defineProcessor } from "./processors";
-import { StubTransport } from "./stub-transport";
+import { makeMeta, StubTransport } from "./stub-transport";
 import { TimelineStore } from "./timeline-store";
 import { useProcessor } from "./use-processor";
 import { ViewClock } from "./view-clock";
@@ -50,8 +50,7 @@ describe("useProcessor", () => {
       </TelemetryProvider>,
     );
 
-    // Before the first frame the evaluator has produced nothing.
-    expect(screen.getByText("value:none")).toBeTruthy();
+    expect(screen.getByText("value:0")).toBeTruthy();
 
     source = 5;
     act(() => store.beginFrame());
@@ -77,5 +76,72 @@ describe("useProcessor", () => {
 
     render(<Widget />);
     expect(screen.getByText("value:none")).toBeTruthy();
+  });
+  /*
+   * A consumer has its answer inside the mount, against the frame the store
+   * already holds, rather than rendering "nothing" and changing one animation
+   * frame later with no input having moved.
+   */
+  describe("answers on the frame it mounts on", () => {
+    function liveStore(signal: number): TimelineStore {
+      const store = new TimelineStore(
+        new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
+      );
+      store.ingest("comms.signal", {
+        validAt: 0,
+        payload: signal,
+        meta: makeMeta({ validAt: 0, deliveredAt: 0 }),
+        epoch: 0,
+      });
+      store.beginFrame();
+      return store;
+    }
+
+    function signalProbe() {
+      const handle = defineProcessor({
+        id: "signal-percent",
+        owner: "core",
+        deps: ["comms.signal"] as const,
+        compute: ([signal]) =>
+          typeof signal === "number" ? `${signal * 100}%` : "none",
+      });
+      return function Widget() {
+        const value = useProcessor(handle);
+        return <div>signal:{value ?? "unevaluated"}</div>;
+      };
+    }
+
+    it("when it mounts together with its provider", () => {
+      const Widget = signalProbe();
+      render(
+        <TelemetryProvider
+          client={new TelemetryClient(new StubTransport())}
+          store={liveStore(0.42)}
+        >
+          <Widget />
+        </TelemetryProvider>,
+      );
+
+      expect(screen.getByText("signal:42%")).toBeTruthy();
+    });
+
+    it("when it mounts into a provider that is already running", () => {
+      const Widget = signalProbe();
+      const client = new TelemetryClient(new StubTransport());
+      const store = liveStore(0.42);
+      const { rerender } = render(
+        <TelemetryProvider client={client} store={store}>
+          <div />
+        </TelemetryProvider>,
+      );
+
+      rerender(
+        <TelemetryProvider client={client} store={store}>
+          <Widget />
+        </TelemetryProvider>,
+      );
+
+      expect(screen.getByText("signal:42%")).toBeTruthy();
+    });
   });
 });

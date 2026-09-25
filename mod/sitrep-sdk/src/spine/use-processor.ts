@@ -20,9 +20,10 @@ export type ProcessorResult<R, Carried extends boolean> = Carried extends true
  * calling component (ref-counted, so N widgets reading the same processor
  * share one evaluation) and deactivates on unmount.
  *
- * Degrades to undefined with no TelemetryProvider mounted, or before the first
- * frame lands, matching every other useStream-family hook's disconnected
- * contract.
+ * The value is there from the mount: the processor is evaluated against the
+ * store's current frame as it activates, then again on every frame boundary.
+ * Degrades to undefined with no TelemetryProvider mounted, matching every other
+ * useStream-family hook's disconnected contract.
  *
  * ## What comes back says how current it is, where the derivation can know
  *

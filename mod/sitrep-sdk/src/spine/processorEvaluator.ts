@@ -176,9 +176,10 @@ export function setActiveTimelineStore(store: TimelineStore | undefined): void {
   resetFrameTracking();
   activeStore = store;
   // Back-fill: any processors activated before the store arrived get their
-  // frame source connected now.
+  // frame source connected now, and an answer for the frame the store holds.
   ensureFrameSubscription();
   ensureAllTopicSubscriptions();
+  evaluateAllActive();
 }
 
 /**
@@ -315,8 +316,8 @@ function teardownAllTopicSubscriptions(): void {
 }
 
 /**
- * Clear every entry's per-frame freshness mark, forcing a re-evaluation on the
- * next frame. Deliberately keeps `value` (a swap holds the last-known value
+ * Clear every entry's per-frame freshness mark, forcing a re-evaluation against
+ * the new store. Deliberately keeps `value` (a swap holds the last-known value
  * until the new store produces one) and `refCount`/`listeners` (the widgets are
  * still mounted). Used on store change to defeat the fresh-store generation
  * collision.
@@ -618,8 +619,8 @@ function evaluate(id: string, token: { generation: number }): void {
   const values = def.deps.map((dep) => resolveDep(dep, token));
   // The frame's own frozen view time, so a processor deriving a remaining
   // duration from an instant on the wire has a clock without reaching for a
-  // wall clock. Here `activeStore` is always non-null: `evaluateAllActive` is
-  // the only caller and returns early without one.
+  // wall clock. Here `activeStore` is always non-null: every caller checks for
+  // one before evaluating.
   const computed = runOutsideContributionScope(() =>
     def.compute(values as never, {
       viewUt: activeStore?.currentFrame().viewUt ?? 0,
@@ -695,6 +696,10 @@ function evaluateAllActive(): void {
  * transitive Processor dep, via evaluateAllActive's topo walk) to the frame
  * boundary, lazily, on first activation. Ref-counted so N activators share one
  * evaluation. Returns the deactivate function.
+ *
+ * With a store already wired, the processor is also evaluated against the
+ * store's current frame here, so its first answer lands with the activation
+ * rather than on the next frame boundary.
  */
 export function activateProcessor(id: string): () => void {
   const entry = entryFor(id);
@@ -705,6 +710,10 @@ export function activateProcessor(id: string): () => void {
     // (both no-ops until the store / subscriber arrive, then back-filled).
     ensureFrameSubscription();
     ensureTopicSubscriptions(id);
+    if (activeStore) {
+      const token = activeStore.currentFrame();
+      for (const depId of topoOrder(id)) evaluate(depId, token);
+    }
   }
   return () => {
     entry.refCount--;

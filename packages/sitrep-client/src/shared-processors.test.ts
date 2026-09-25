@@ -210,7 +210,7 @@ function countEvaluations(): { get: () => number; stop: () => void } {
  * widgets would have produced had each kept deriving for itself.
  */
 describe("the evaluation counter", () => {
-  it("counts per DERIVATION, not per frame: 2 processors over 5 frames reads 10", () => {
+  it("counts per DERIVATION, not per frame: 2 processors over activation and 5 frames reads 12", () => {
     const counter = countEvaluations();
     const off = [
       activateProcessor(CELESTIAL_FACTS.id),
@@ -221,7 +221,7 @@ describe("the evaluation counter", () => {
 
     for (let i = 0; i < 5; i++) store.beginFrame();
 
-    expect(counter.get()).toBe(10);
+    expect(counter.get()).toBe(12);
 
     counter.stop();
     for (const deactivate of off) deactivate();
@@ -229,7 +229,7 @@ describe("the evaluation counter", () => {
 });
 
 describe("CELESTIAL_FACTS", () => {
-  it("evaluates ONCE per frame for 4 consumers: 5 frames, 4 activations, 5 evaluations", () => {
+  it("evaluates ONCE per frame for 4 consumers: 4 activations and 5 frames, 6 evaluations", () => {
     const counter = countEvaluations();
     // Four activations stands for the four sites that each re-derived the whole
     // catalogue every frame: SystemView's body, SystemView's config component,
@@ -239,7 +239,8 @@ describe("CELESTIAL_FACTS", () => {
     store.ingest("system.bodies", point(0, SYSTEM));
     for (let i = 0; i < 5; i++) store.beginFrame();
 
-    expect(counter.get()).toBe(5);
+    // One for the first activation, none for the three that share it, one per frame.
+    expect(counter.get()).toBe(6);
 
     counter.stop();
     for (const deactivate of off) deactivate();
@@ -387,7 +388,7 @@ describe("DELTA_V_BUDGET", () => {
     store.ingest("vessel.structure", point(0, { currentStage: 1 }));
   }
 
-  it("evaluates ONCE per frame for 4 consumers: 5 frames, 4 activations, 5 evaluations", () => {
+  it("evaluates ONCE per frame for 4 consumers: 4 activations and 5 frames, 6 evaluations", () => {
     const counter = countEvaluations();
     // FuelStatus, ManeuverPlanner, TransferWindow, LandingStatus.
     const off = [1, 2, 3, 4].map(() => activateProcessor(DELTA_V_BUDGET.id));
@@ -395,7 +396,8 @@ describe("DELTA_V_BUDGET", () => {
     ingestCraft();
     for (let i = 0; i < 5; i++) store.beginFrame();
 
-    expect(counter.get()).toBe(5);
+    // One for the first activation, none for the three that share it, one per frame.
+    expect(counter.get()).toBe(6);
 
     counter.stop();
     for (const deactivate of off) deactivate();

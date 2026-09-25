@@ -162,10 +162,11 @@ describe("the registered Kerbalism processors, on a still wire", () => {
     emitAll(fixture, 380);
     runFrames(fixture, 20);
 
-    // The one derivation, and then nothing: twenty frames over an unmoving
-    // wire is twenty chances to wake every consumer for no reason, and that is
-    // the defect this counts.
-    expect(watched.handovers).toBe(1);
+    // The answer the consumer mounts on, the one derivation once the wire
+    // arrives, and then nothing: twenty frames over an unmoving wire is twenty
+    // chances to wake every consumer for no reason, and that is the defect this
+    // counts.
+    expect(watched.handovers).toBe(2);
   });
 
   it("hands CREW_SURVIVAL's consumer one snapshot, not one per frame", () => {
@@ -174,7 +175,7 @@ describe("the registered Kerbalism processors, on a still wire", () => {
     emitAll(fixture, 379);
     runFrames(fixture, 20);
 
-    expect(watched.handovers).toBe(1);
+    expect(watched.handovers).toBe(2);
   });
 
   it("still hands over a new snapshot when the wire actually moves", () => {
@@ -195,8 +196,8 @@ describe("the registered Kerbalism processors, on a still wire", () => {
     runFrames(fixture, 5);
 
     // The counterweight: silencing a processor whose input genuinely changed
-    // would be a worse defect than the churn.
-    expect(watched.handovers).toBe(2);
+    // would be a worse defect than the churn. Mount, first wire, moved wire.
+    expect(watched.handovers).toBe(3);
   });
 });
 
@@ -228,9 +229,9 @@ describe("the notify guard's own gate, seen from inside an Uplink", () => {
     const before = registered?.rate() ?? 0;
     runFrames(fixture, 5);
 
-    // Frame 1 is a real change (no previous value); frames 2-5 are the four the
-    // guard could not read.
-    expect((registered?.rate() ?? 0) - before).toBe(4);
+    // The mount evaluated first, so all five frames are ones the guard could
+    // not read.
+    expect((registered?.rate() ?? 0) - before).toBe(5);
 
     // Deliberate breach, so the gate's own documented escape.
     registered?.reset();
@@ -262,7 +263,7 @@ describe("the registered Kerbalism processors, on an advancing wire", () => {
       });
     }
 
-    // The first derivation, then one per later observation.
-    expect(watched.handovers).toBe(6);
+    // The answer at mount, the first derivation, then one per later observation.
+    expect(watched.handovers).toBe(7);
   });
 });

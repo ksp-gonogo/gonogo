@@ -52,10 +52,16 @@ describe("DELTA_V_BUDGET over a live stream", () => {
    * site: the maneuver planner read 0 as "unknown", showed no shortfall, and
    * left the commit enabled for a craft with nothing left to burn.
    */
-  it("has no budget at all before a frame, which is not a budget of zeros", () => {
-    // `useProcessor`'s disconnected contract, and the shape every consumer
-    // branches on: nothing has arrived, so there is nothing to be wrong about.
-    expect(renderProbe().renders.at(-1)).toBeUndefined();
+  it("mounts on a pending budget with no totals, which is not a budget of zeros", () => {
+    // Nothing has arrived, so there is nothing to be wrong about: every total
+    // is absent rather than zero, and the budget says it is still waiting.
+    const last = renderProbe().renders.at(-1);
+    expect(last?.budget.state).toBe("pending");
+    expect(last?.totalVac).toBeNull();
+    expect(last?.totalAsl).toBeNull();
+    expect(last?.totalActual).toBeNull();
+    expect(last?.stages).toEqual([]);
+    expect(last?.activeStage).toBeNull();
   });
 
   it("reports null totals for an EMPTY stage list, not zero", async () => {
