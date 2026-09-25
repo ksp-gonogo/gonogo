@@ -10,7 +10,6 @@ import { useDataSeries } from "@ksp-gonogo/data";
 import {
   observedAt,
   readingOf,
-  type TopicReading,
   useStream,
   useViewUt,
   withoutReckoning,
@@ -19,6 +18,7 @@ import {
   type ControlFrame,
   controlFrameLabel,
   lengthsAreLengths,
+  stillTrue,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { EmptyState, Panel, Sparkline } from "@ksp-gonogo/ui";
@@ -29,22 +29,6 @@ import { useBodyName } from "../shared/useBodyName";
 type SemiMajorAxisConfig = Record<string, never>;
 
 const SPARK_WINDOW_SEC = 300;
-
-/**
- * The value of a FACT: something that stays true until an event changes it, and no
- * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
- * what an `absent` tombstone means here, which is a different answer from `pending`
- * and must not collapse into it.
- */
-function stillTrue<T, A>(
-  reading: TopicReading<T>,
-  whenConfirmedNothing: A,
-): T | A | undefined {
-  if (reading.state === "observed") return reading.value;
-  if (reading.state === "stale") return reading.value;
-  if (reading.state === "absent") return whenConfirmedNothing;
-  return undefined;
-}
 
 function SemiMajorAxisComponent({
   w,

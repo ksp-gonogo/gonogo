@@ -11,11 +11,15 @@ import {
   CELESTIAL_FACTS,
   type CelestialBody,
   DELTA_V_BUDGET,
-  type TopicReading,
   useProcessor,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import { TargetKind, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  stillTrue,
+  TargetKind,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { Placeholder } from "@ksp-gonogo/ui";
 import {
   Badge,
@@ -155,22 +159,6 @@ const fmtCountdown = (sec: number): string => {
   if (d < 1000) return `in ${Math.round(d)} d`;
   return `in ${(d / kspYearDays()).toFixed(1)} y`;
 };
-
-/**
- * The value of a FACT: something that stays true until an event changes it, and no
- * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
- * what an `absent` tombstone means here, which is a different answer from `pending`
- * and must not collapse into it.
- */
-function stillTrue<T, A>(
-  reading: TopicReading<T>,
-  whenConfirmedNothing: A,
-): T | A | undefined {
-  if (reading.state === "observed") return reading.value;
-  if (reading.state === "stale") return reading.value;
-  if (reading.state === "absent") return whenConfirmedNothing;
-  return undefined;
-}
 
 /**
  * How a body is named to the operator. The catalogue's own name when the save

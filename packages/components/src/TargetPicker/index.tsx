@@ -8,12 +8,9 @@ import {
   registerComponent,
   useActionInput,
 } from "@ksp-gonogo/core";
+import { useCommand, withoutReckoning } from "@ksp-gonogo/sitrep-client";
 import {
-  type TopicReading,
-  useCommand,
-  withoutReckoning,
-} from "@ksp-gonogo/sitrep-client";
-import {
+  stillTrue,
   TargetKind,
   type TargetListEntry,
   VesselType,
@@ -133,22 +130,6 @@ const targetPickerActions = [
   },
 ] as const satisfies readonly ActionDefinition[];
 type TargetPickerActions = typeof targetPickerActions;
-
-/**
- * The value of a FACT: something that stays true until an event changes it, and no
- * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
- * what an `absent` tombstone means here, which is a different answer from `pending`
- * and must not collapse into it.
- */
-function stillTrue<T, A>(
-  reading: TopicReading<T>,
-  whenConfirmedNothing: A,
-): T | A | undefined {
-  if (reading.state === "observed") return reading.value;
-  if (reading.state === "stale") return reading.value;
-  if (reading.state === "absent") return whenConfirmedNothing;
-  return undefined;
-}
 
 /**
  * Stable per-entry id: used both as the pending-spinner disambiguator and

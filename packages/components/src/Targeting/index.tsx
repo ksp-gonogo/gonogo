@@ -6,12 +6,12 @@ import {
 } from "@ksp-gonogo/core";
 import {
   observedAt,
-  type TopicReading,
   useViewUt,
   withoutReckoning,
 } from "@ksp-gonogo/sitrep-client";
 import {
   type ReckoningBasis,
+  stillTrue,
   TargetKind,
   type Value,
   value,
@@ -162,22 +162,6 @@ const APPROACH_ENTER_M = 5_000;
 const APPROACH_EXIT_M = 5_500;
 
 type ViewMode = "tracking" | "approach" | "docking-hud";
-
-/**
- * The value of a FACT: something that stays true until an event changes it, and no
- * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
- * what an `absent` tombstone means here, which is a different answer from `pending`
- * and must not collapse into it.
- */
-function stillTrue<T, A>(
-  reading: TopicReading<T>,
-  whenConfirmedNothing: A,
-): T | A | undefined {
-  if (reading.state === "observed") return reading.value;
-  if (reading.state === "stale") return reading.value;
-  if (reading.state === "absent") return whenConfirmedNothing;
-  return undefined;
-}
 
 function TargetingComponent({
   config,
