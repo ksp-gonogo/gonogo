@@ -80,7 +80,10 @@ export function AlarmsLauncherBridge({
       },
     };
   }, [snap, onDelete]);
-  const pending = useMemo(() => pendingAlarmSummaries(snap.alarms), [snap]);
+  const pending = useMemo(
+    () => pendingAlarmSummaries(snap.alarms, snap.scetArmRefusals),
+    [snap],
+  );
   return (
     <AlarmsLauncherProvider
       launcher={launcher}
@@ -96,12 +99,17 @@ export function AlarmsLauncherBridge({
 /**
  * The alarms yet to fire, soonest first. An alarm with no instant sorts after
  * every alarm with one, in the order it was set.
+ *
+ * One the simulation refused to watch is left out, since it can never fire and
+ * so can never stop a warp it was set to end.
  */
 export function pendingAlarmSummaries(
   alarms: readonly Alarm[],
+  refused: Readonly<Record<string, string>> = {},
 ): PendingAlarmSummary[] {
   return alarms
     .filter((a) => a.state === "pending" || a.state === "arming")
+    .filter((a) => !(a.id in refused))
     .map((a) => ({
       id: a.id,
       name: a.name,
