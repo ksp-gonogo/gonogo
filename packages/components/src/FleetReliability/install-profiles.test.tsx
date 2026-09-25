@@ -85,7 +85,11 @@ async function replay(
  * mode a profile harness has to be able to tell apart from a real finding.
  */
 function InstallReadout() {
-  const health = useStream<SystemUplinkHealth>("system.uplinkHealth");
+  const healthReading = useStream<SystemUplinkHealth>("system.uplinkHealth");
+  const health =
+    healthReading.state === "observed" || healthReading.state === "stale"
+      ? healthReading.value
+      : undefined;
   if (!health) return <p>roster: pending</p>;
   return (
     <p>

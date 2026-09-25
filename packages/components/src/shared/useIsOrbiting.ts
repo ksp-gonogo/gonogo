@@ -1,8 +1,6 @@
 import { useOrbitSolve } from "@ksp-gonogo/core";
-import { useStream } from "@ksp-gonogo/sitrep-client";
-import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
-import { useBodyName } from "./useBodyName";
+import { useBodyName, useParentBodyIndex } from "./useBodyName";
 import { useStreamBody } from "./useStreamBody";
 
 type OrbitInfo = {
@@ -21,9 +19,7 @@ export function useIsOrbiting(): OrbitInfo {
   // a hyperbolic/escape orbit, which has no apoapsis, and that case reaches the
   // same guard.
   const solve = useOrbitSolve();
-  const bodyName = useBodyName(
-    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
-  );
+  const bodyName = useBodyName(useParentBodyIndex());
   const PeA = solve?.periapsisAlt ?? undefined;
   const ApA = solve?.apoapsisAlt ?? undefined;
 

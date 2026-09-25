@@ -54,7 +54,12 @@ function SemiMajorAxisComponent({
   // Held rather than never-seen: only `stale` reads as "the link went quiet",
   // and a cold start must not accuse it.
   const smaHeld = orbitReading.state === "stale";
-  const controlFrame = useStream<ControlFrame>("system.frame");
+  const frameReading = useStream<ControlFrame>("system.frame");
+  // The selected frame is a setting, which a quiet link does not change.
+  const controlFrame =
+    frameReading.state === "observed" || frameReading.state === "stale"
+      ? frameReading.value
+      : undefined;
   const lengthsPulsate = lengthsAreLengths(controlFrame) === "invalid";
   // Age of the observation against the FRAME's view time, never a wall clock:
   // two reads in one frame must not disagree about how old the same sample is.

@@ -53,7 +53,11 @@ const FLIGHT: WireOf<VesselFlightPayload> = {
 function Altitude() {
   // A derived `vessel.state.*` field, so it arrives as a plain number: the
   // client computes it rather than reading it off the wire.
-  const alt = useStream<number | null>("vessel.state.altitudeAsl");
+  const altReading = useStream<number | null>("vessel.state.altitudeAsl");
+  const alt =
+    altReading.state === "observed" || altReading.state === "stale"
+      ? altReading.value
+      : undefined;
   return <div>alt:{alt === undefined ? NULL_DISPLAY : String(alt)}</div>;
 }
 
@@ -104,7 +108,11 @@ describe("TelemetryProvider bridges client -> TimelineStore -> useStream for der
     const client = new TelemetryClient(transport);
 
     function Raw() {
-      const v = useStream<number>("v.raw");
+      const vReading = useStream<number>("v.raw");
+      const v =
+        vReading.state === "observed" || vReading.state === "stale"
+          ? vReading.value
+          : undefined;
       return <div>raw:{v ?? NULL_DISPLAY}</div>;
     }
 

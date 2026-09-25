@@ -60,8 +60,12 @@ export function fleetVesselResourceList(
 export function useFleetVesselResources(
   guid: string,
 ): readonly FleetVesselResource[] | undefined {
-  const raw = useStream<{ resources?: Record<string, WireAmount> | null }>(
-    `fleet.${guid}.resources`,
-  );
+  const reading = useStream<{
+    resources?: Record<string, WireAmount> | null;
+  }>(`fleet.${guid}.resources`);
+  const raw =
+    reading.state === "observed" || reading.state === "stale"
+      ? reading.value
+      : undefined;
   return useMemo(() => (raw ? fleetVesselResourceList(raw) : undefined), [raw]);
 }

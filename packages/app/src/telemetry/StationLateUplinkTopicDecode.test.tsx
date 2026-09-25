@@ -77,7 +77,10 @@ const UNIT = "m";
 function Probe({ topic = TOPIC }: { topic?: string }) {
   const reading = useStream<{ depth: unknown }>(topic);
   const carried = useCarriedChannels().has(topic);
-  const depth = reading?.depth;
+  const depth =
+    reading.state === "observed" || reading.state === "stale"
+      ? reading.value.depth
+      : undefined;
   return (
     <div>
       <span data-testid="carried">{carried ? "carried" : "not-carried"}</span>

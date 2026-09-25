@@ -97,7 +97,12 @@ function parse(node: ManeuverNode): ParsedManeuverNode {
  * to the plan.
  */
 export function useManeuverNodes(): readonly ParsedManeuverNode[] {
-  const nodes = useStream<VesselManeuver>("vessel.maneuver")?.nodes;
+  // The plan as last reported, held: a plan stands until someone changes it.
+  const plan = useStream<VesselManeuver>("vessel.maneuver");
+  const nodes =
+    plan.state === "observed" || plan.state === "stale"
+      ? plan.value.nodes
+      : undefined;
   return useMemo(() => {
     if (!Array.isArray(nodes) || nodes.length === 0) return EMPTY;
     return nodes.map(parse);

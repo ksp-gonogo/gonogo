@@ -547,7 +547,10 @@ function LaunchDirectorComponent({
   // for, so `useTelemetry("crash.hasRecent")` won't typecheck. `useStream`
   // is the sanctioned read for an untyped tail topic: same route off the
   // mounted store, no legacy shim. FlightOutcomeBanner reads it identically.
-  const crashHasRecent = useStream<boolean>("crash.hasRecent");
+  const crashHasRecent = stillTrue(
+    useStream<boolean>("crash.hasRecent"),
+    undefined,
+  );
   // crash.hasRecent is session-wide, a debris crash from a previous flight
   // would block recovery of a successfully landed craft. Pull the most
   // recent crash snapshot too so we can scope the gate to the active

@@ -45,7 +45,11 @@ export function scienceCreditTopic(guid: string): string {
  * enforced server-side, so there is nothing here to wait on or gate client-side.
  */
 export function useScienceCredit(guid: string): ScienceCreditEvent | undefined {
-  return useStream<ScienceCreditEvent>(scienceCreditTopic(guid));
+  // An event, so it holds: a credit does not un-happen down a quiet link.
+  const reading = useStream<ScienceCreditEvent>(scienceCreditTopic(guid));
+  return reading.state === "observed" || reading.state === "stale"
+    ? reading.value
+    : undefined;
 }
 
 /** One revealed credit plus how long ago (in UT seconds) it actually happened. */

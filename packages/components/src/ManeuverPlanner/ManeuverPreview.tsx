@@ -292,7 +292,12 @@ function ProjectedRows({
    * frames defined by a pair of bodies do not have one, so a number here would
    * be exactly as meaningless as the same number on the current orbit.
    */
-  const controlFrame = useStream<ControlFrame>("system.frame");
+  const frameReading = useStream<ControlFrame>("system.frame");
+  // The selected frame is a setting, which a quiet link does not change.
+  const controlFrame =
+    frameReading.state === "observed" || frameReading.state === "stale"
+      ? frameReading.value
+      : undefined;
   const apsides = apsidesExist(controlFrame);
 
   if (!projected) {

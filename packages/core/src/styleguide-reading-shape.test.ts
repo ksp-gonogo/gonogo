@@ -101,12 +101,16 @@ const ACCESSORS =
  * Deliberately not anchored to a specific receiver name. `topics` is the convention
  * and not a rule, and a scan that hard-coded it would go blind again the first time
  * someone named the manifest something else.
+ *
+ * `useStream` answers with a reading too, for a topic with no `TopicId`, so its reads
+ * carry the same hazard and are matched alongside, type arguments and all.
  */
 const READ_ASSIGNMENT =
-  /const (\w+)\s*=\s*(?:\w+\.)?useTelemetry\([^)]*\)\s*;\s*$/;
+  /const (\w+)\s*=\s*(?:\w+\.)?(?:useTelemetry|useStream(?:<.*>)?)\([^)]*\)\s*;\s*$/;
 
-/** The same two spellings, unanchored, for collecting every variable bound to a read. */
-const READ_BINDING = /const (\w+)\s*=\s*(?:\w+\.)?useTelemetry\(/;
+/** The same spellings, unanchored, for collecting every variable bound to a read. */
+const READ_BINDING =
+  /const (\w+)\s*=\s*(?:\w+\.)?(?:useTelemetry|useStream(?:<.*>)?)\(/;
 
 /**
  * The two sanctioned exceptions, with their reasons.
@@ -231,7 +235,9 @@ function bareReadings(sources: ReadonlyMap<string, string>): Suspect[] {
   for (const [file, text] of sources) {
     if (/\.test\.tsx?$|\.test-d\.tsx?$/.test(file)) continue;
     if (ALLOWED.has(file)) continue;
-    if (!text.includes("useTelemetry(")) continue;
+    if (!text.includes("useTelemetry(") && !text.includes("useStream")) {
+      continue;
+    }
     const lines = text.split("\n");
     for (const [index, line] of lines.entries()) {
       const assigned = READ_ASSIGNMENT.exec(line);
@@ -299,7 +305,9 @@ function pendingOnlyGates(sources: ReadonlyMap<string, string>): Suspect[] {
   for (const [file, text] of sources) {
     if (/\.test\.tsx?$|\.test-d\.tsx?$/.test(file)) continue;
     if (ALLOWED.has(file)) continue;
-    if (!text.includes("useTelemetry(")) continue;
+    if (!text.includes("useTelemetry(") && !text.includes("useStream")) {
+      continue;
+    }
     const lines = text.split("\n");
     const readings = new Set<string>();
     for (const line of lines) {
@@ -323,6 +331,43 @@ function pendingOnlyGates(sources: ReadonlyMap<string, string>): Suspect[] {
   }
   return found;
 }
+
+/**
+ * A payload field taken straight off a `useStream(...)` call.
+ *
+ * A stream read answers with a reading, and a reading answers ANY property it does
+ * not own with that field's own reading, so `useStream<VesselState>(t)?.subjectId`
+ * compiles and hands over a `Reading<string>` where a string was meant. Where the
+ * receiver is typed the compiler says so; where it takes `unknown`, compares with
+ * `==`, or spreads into JSX it says nothing, and the figure renders as though the
+ * vessel reported nothing. Only the currency members may be read off the call.
+ */
+function fieldsOffStreamCall(sources: ReadonlyMap<string, string>): Suspect[] {
+  const found: Suspect[] = [];
+  const call =
+    /useStream\s*(?:<[^()]*?>)?\s*\((?:[^()]|\([^()]*\))*\)\s*\??\.\s*(\w+)/g;
+  for (const [file, text] of sources) {
+    if (/\.test\.tsx?$|\.test-d\.tsx?$/.test(file)) continue;
+    if (ALLOWED.has(file)) continue;
+    if (!text.includes("useStream")) continue;
+    for (const m of text.matchAll(call)) {
+      const member = m[1];
+      if (member === undefined || member in CURRENCY_MEMBERS) continue;
+      const line = text.slice(0, m.index).split("\n").length;
+      found.push({ at: `${file}:${line}`, variable: member });
+    }
+  }
+  return found;
+}
+
+const CURRENCY_MEMBERS = {
+  state: true,
+  value: true,
+  atUt: true,
+  asOfUt: true,
+  grade: true,
+  reckoning: true,
+};
 
 const files = trackedSourceFiles();
 
@@ -571,6 +616,57 @@ describe("styleguide: a Reading is never handed on whole", () => {
       ],
     ]);
     expect(pendingOnlyGates(considered)).toEqual([]);
+  });
+
+  it("takes no payload field straight off a stream read", () => {
+    const suspects = fieldsOffStreamCall(sources);
+    const detail = suspects
+      .map((s) => `  ${s.at}  (.${s.variable})`)
+      .join("\n");
+    expect(
+      suspects,
+      suspects.length === 0
+        ? ""
+        : `A field is read straight off \`useStream(...)\`, which answers with a ` +
+            `reading: the property is that field's own READING, not its value, ` +
+            `and a receiver typed \`unknown\` takes it without complaint:\n${detail}` +
+            `\n\nBind the reading and branch on \`.state\` first.`,
+    ).toEqual([]);
+  });
+
+  /**
+   * Guard on the guard: the call shapes the tree actually writes, a type argument
+   * with its own angle brackets, a topic built by a call, and one split over lines,
+   * each seen; the currency members left alone.
+   */
+  it("still sees a field off a stream call in every shape the tree writes", () => {
+    const tree = new Map([
+      [
+        "plain.tsx",
+        'const id = useStream<VesselState>("vessel.state")?.subjectId;',
+      ],
+      [
+        "nested.tsx",
+        "const raw = useStream<WireOf<Orbit>>(topicFor(guid)).elements;",
+      ],
+      [
+        "split.tsx",
+        [
+          "const index =",
+          '  useStream<VesselIdentity>("vessel.identity")',
+          "    ?.parentBodyIndex;",
+        ].join("\n"),
+      ],
+      [
+        "currency.tsx",
+        'const held = useStream<number>("v.alt").state === "stale";',
+      ],
+    ]);
+    expect(fieldsOffStreamCall(tree)).toEqual([
+      { at: "plain.tsx:1", variable: "subjectId" },
+      { at: "nested.tsx:1", variable: "elements" },
+      { at: "split.tsx:2", variable: "parentBodyIndex" },
+    ]);
   });
 
   it("scans a non-trivial number of files, so a broken file list cannot pass", () => {

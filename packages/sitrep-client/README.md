@@ -54,10 +54,11 @@ Wraps a `Transport` and provides:
 `TelemetryProvider` supplies a `TelemetryClient` to the tree via context;
 `useTelemetryClient()` reads it.
 
-- **`useStream<T>(topic: string): T | undefined`**: reactively reads the
-  latest value for a topic (`useSyncExternalStore` over the client's
-  ref-counted subscription). Renders `undefined` until the first sample
-  arrives, then re-renders on every subsequent one. Unmounting releases the
+- **`useStream<T>(topic: string): TopicReading<T>`**: reactively reads a
+  topic, raw or derived, as a reading (`useSyncExternalStore` over the
+  client's ref-counted subscription). `pending` until the first sample
+  arrives, `observed` while samples keep arriving, and `stale`, carrying the
+  last real observation, once they stop. Unmounting releases the
   subscription; when the last subscriber for a topic goes away, the client
   sends `unsubscribe` to the transport.
 - **`useCommand(command: string): { send, status }`**: `send(args?)`
@@ -79,9 +80,16 @@ import {
 function MissionPanel() {
   const altitude = useStream<number>("v.alt");
   const { send, status } = useCommand("stage");
+  const shown =
+    altitude.state === "observed" || altitude.state === "stale"
+      ? altitude.value
+      : "n/a";
   return (
     <div>
-      <span>altitude: {altitude ?? "n/a"}</span>
+      <span>
+        altitude: {shown}
+        {altitude.state === "stale" && " (last known)"}
+      </span>
       <button onClick={() => send()} disabled={status.phase === "in-flight"}>
         stage
       </button>
@@ -110,8 +118,8 @@ the `Transport` boundary changing. `@ksp-gonogo/sitrep-server`'s `Courier` +
 every hook behaves identically, just lagged by whatever network delay the
 courier's `StubNetwork` is configured with:
 
-- **`useStream`** renders `undefined` until a sample's delay elapses, then
-  the delayed value: same "sticky last value" contract as M2, just later.
+- **`useStream`** answers `pending` until a sample's delay elapses, then
+  the delayed value: the same reading as M2, just later.
 - **`useCommand`**'s `in-flight` status now carries a real `etaConfirm`
   (`CourierTransport.predictConfirmEta()`, rather than the same-tick
   fallback `StubTransport` produces), and a command whose node goes

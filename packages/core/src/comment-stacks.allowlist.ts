@@ -97,7 +97,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "mod/sitrep-sdk/src/spine/replay-transport.ts": 2,
   "mod/sitrep-sdk/src/spine/use-data-sources.ts": 2,
   "mod/sitrep-sdk/src/spine/use-stream-event.ts": 1,
-  "mod/sitrep-sdk/src/spine/use-stream.ts": 2,
   "mod/sitrep-sdk/src/spine/use-telemetry.ts": 1,
   "mod/sitrep-sdk/src/testing/install-real-test-host.ts": 1,
   "mod/sitrep-sdk/src/topic-fields.test.ts": 2,

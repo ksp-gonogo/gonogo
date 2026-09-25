@@ -17,7 +17,7 @@
 
 import type { ComponentType } from "react";
 import type { CommandArgs, CommandId, CommandReply } from "../commands";
-import type { Reading } from "../reading";
+import type { Reading, TopicReading } from "../reading";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
 import type { UplinkAlarmRequest } from "./alarm-request";
@@ -133,7 +133,7 @@ export interface GonogoHost {
    * `useRouteCommands` for the full contract.
    */
   useRouteCommands(topic: string): UseRouteCommandsResult;
-  useStream<T>(topic: string): T | undefined;
+  useStream<T>(topic: string): TopicReading<T>;
   /**
    * Reactively read a Processor's current, frame-memoised value (mirrors
    * `@ksp-gonogo/sitrep-client`'s `useProcessor`, the augment-side consumption

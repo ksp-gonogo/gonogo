@@ -25,7 +25,7 @@ import {
   useViewUt,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import type { VesselIdentity, VesselManeuver } from "@ksp-gonogo/sitrep-sdk";
+import type { VesselManeuver } from "@ksp-gonogo/sitrep-sdk";
 import { Switch } from "@ksp-gonogo/ui";
 import {
   kspCalendar,
@@ -42,7 +42,7 @@ import { magnitudeOf } from "../shared/magnitude";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 import { bodyNamed } from "../shared/streamBody";
 import { trajectoryWithheldCopy } from "../shared/trajectoryWithheld";
-import { useBodyName } from "../shared/useBodyName";
+import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import {
   cameraTransform,
   fitCamera,
@@ -418,7 +418,21 @@ function MapViewComponent({
   // ballistic impact point. `vessel.maneuver` carries the post-burn
   // node trajectories reshaped into the legacy `o.maneuverNodes` shape.
   const flightReading = useTelemetry("vessel.flight");
-  const vesselState = useStream<VesselState>("vessel.state");
+  const vesselStateReading = useStream<VesselState>("vessel.state");
+  /*
+   * The patch chain is the orbit's own shape and holds with it. The impact
+   * point and the encounter sign are MARKERS, claims about now, so like the
+   * craft's own dot they come from a current reading or not at all.
+   */
+  const vesselStateHeld =
+    vesselStateReading.state === "observed" ||
+    vesselStateReading.state === "stale"
+      ? vesselStateReading.value
+      : undefined;
+  const vesselStateCurrent =
+    vesselStateReading.state === "observed"
+      ? vesselStateReading.value
+      : undefined;
   // The HUD readouts (q, mach, speeds) show the last observed numbers with the
   // caption below saying how old they are: a number beside a label can be
   // dated honestly.
@@ -502,15 +516,12 @@ function MapViewComponent({
     ) ?? undefined;
   // Collapsed deliberately: MapView draws the name or draws nothing, and has
   // no third rendering for a catalogue that is a confirmed tombstone.
-  const bodyName =
-    useBodyName(
-      useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
-    ) ?? undefined;
+  const bodyName = useBodyName(useParentBodyIndex()) ?? undefined;
   const q = flight?.dynamicPressureKPa;
   const mach = flight?.mach;
   const speed = flight?.surfaceSpeed?.magnitude;
   const vSpeed = flight?.verticalSpeed;
-  const orbitPatches = vesselState?.orbitPatches;
+  const orbitPatches = vesselStateHeld?.orbitPatches;
   // The patch chain is the provider's own, reshaped off `vessel.orbit.patches`,
   // so projecting it is not invention. What a patch does NOT carry is a shape:
   // the statement covering it is the `trajectoryKind` on the horizon riding the
@@ -546,18 +557,22 @@ function MapViewComponent({
   // built a positional delta-v triple and never read the burn's FRAME, so a
   // planner with more than one frame would have had its burns silently relabelled
   // by a mapper this widget did not even use the output of.
-  const maneuverNodes = useStream<VesselManeuver>("vessel.maneuver")?.nodes;
+  const planReading = useStream<VesselManeuver>("vessel.maneuver");
+  const maneuverNodes =
+    planReading.state === "observed" || planReading.state === "stale"
+      ? planReading.value.nodes
+      : undefined;
   // t.universalTime is dropped as a data key, it was never a stream, it IS
   // the SDK view-UT the propagation is evaluated at, so read that directly.
   // `.magnitude` at the read: this widget threads the view time through geometry and
   // solver code typed on plain numbers, and the instant type earns nothing there.
   const universalTime = useViewUt()?.magnitude;
-  const impactLat = vesselState?.landingPredictedLat ?? undefined;
-  const impactLon = vesselState?.landingPredictedLon ?? undefined;
+  const impactLat = vesselStateCurrent?.landingPredictedLat ?? undefined;
+  const impactLon = vesselStateCurrent?.landingPredictedLon ?? undefined;
   // SOI encounter / escape (-1 escape, 0 none, 1 encounter). Only the
   // marker draw cares about the sign; the chips component owns the body/time
   // readouts.
-  const encounterExists = vesselState?.encounterExists;
+  const encounterExists = vesselStateCurrent?.encounterExists;
   // Whether we should bother computing any prediction at all. Consumed by
   // both the current-orbit and maneuver memoisations and the chip overlay.
   const predictionEnabled = showPrediction;

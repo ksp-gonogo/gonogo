@@ -18,7 +18,7 @@ const topics = defineTopicManifest({
 });
 
 import { useStream } from "@ksp-gonogo/sitrep-client";
-import type { VesselIdentity, VesselOrbit } from "@ksp-gonogo/sitrep-sdk";
+import type { VesselOrbit } from "@ksp-gonogo/sitrep-sdk";
 import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import {
@@ -27,7 +27,7 @@ import {
   GraphView,
   type ReferenceCurve,
 } from "../Graph";
-import { useBodyName } from "../shared/useBodyName";
+import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useComputedSeries } from "../shared/useComputedSeries";
 import { useStreamBody } from "../shared/useStreamBody";
 
@@ -97,11 +97,12 @@ function buildPeriodCurve(
 function KeplerPeriodComponent({
   config,
 }: Readonly<ComponentProps<KeplerPeriodConfig>>) {
-  const bodyName = useBodyName(
-    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
-  );
+  const bodyName = useBodyName(useParentBodyIndex());
+  const orbitReading = useStream<VesselOrbit>("vessel.orbit");
   const referenceBody = useBodyName(
-    useStream<VesselOrbit>("vessel.orbit")?.referenceBodyIndex,
+    orbitReading.state === "observed" || orbitReading.state === "stale"
+      ? orbitReading.value.referenceBodyIndex
+      : undefined,
   );
   /*
    * o.referenceBody is the authoritative answer for the body the orbit is

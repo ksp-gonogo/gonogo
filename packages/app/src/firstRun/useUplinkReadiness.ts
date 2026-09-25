@@ -163,7 +163,14 @@ export interface UseUplinkReadinessResult {
  * stream and the loader's outcome store, re-derived whenever either moves.
  */
 export function useUplinkReadiness(): UseUplinkReadinessResult {
-  const roster = useStream<SystemUplinkHealth>("system.uplinkHealth");
+  const reading = useStream<SystemUplinkHealth>("system.uplinkHealth");
+  // A held roster is still the roster: uplinks do not come and go with the link.
+  const roster =
+    reading.state === "observed" || reading.state === "stale"
+      ? reading.value
+      : reading.state === "absent"
+        ? null
+        : undefined;
   const outcomes = useSyncExternalStore(
     subscribeUplinkOutcomes,
     getUplinkOutcomes,

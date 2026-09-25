@@ -54,3 +54,15 @@ export function useBodyName(
   }
   return reading.value?.nameByIndex[index];
 }
+
+/**
+ * The index of the body the active craft is around, held through a quiet link:
+ * which body that is does not change because its telemetry stopped arriving,
+ * and every figure the name labels is held on the same terms.
+ */
+export function useParentBodyIndex(): number | null | undefined {
+  const identity = useTelemetry("vessel.identity");
+  return identity.state === "observed" || identity.state === "stale"
+    ? identity.value.parentBodyIndex
+    : undefined;
+}

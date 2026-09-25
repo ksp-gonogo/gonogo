@@ -79,7 +79,11 @@ function buildFixture() {
 }
 
 function StreamProbe({ topic }: { topic: string }) {
-  const value = useStream<unknown>(topic);
+  const valueReading = useStream<unknown>(topic);
+  const value =
+    valueReading.state === "observed" || valueReading.state === "stale"
+      ? valueReading.value
+      : undefined;
   return <div data-testid="probe">{value === undefined ? "-" : "v"}</div>;
 }
 

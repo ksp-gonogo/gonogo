@@ -225,7 +225,11 @@ afterEach(() => {
 
 /** Renders a topic's sampled value + certainty as one comparable string. Reads through `TimelineStore.sample`, the exact surface `useDataValue`'s shim and every real widget read through. */
 function Probe({ testId, topic }: { testId: string; topic: string }) {
-  const value = useStream<Record<string, unknown>>(topic);
+  const valueReading = useStream<Record<string, unknown>>(topic);
+  const value =
+    valueReading.state === "observed" || valueReading.state === "stale"
+      ? valueReading.value
+      : undefined;
   const store = useTelemetryStore();
   const certainty = useCertainty(store, topic);
   return (
@@ -290,8 +294,13 @@ function StationApp({
 const UPLINK_DOMAIN = "thirdparty";
 
 function ChainProbe() {
+  const devicesReading = useStream<Array<{ id?: number }>>(
+    `${UPLINK_DOMAIN}.devices`,
+  );
   const devices =
-    useStream<Array<{ id?: number }>>(`${UPLINK_DOMAIN}.devices`) ?? [];
+    devicesReading.state === "observed" || devicesReading.state === "stale"
+      ? devicesReading.value
+      : [];
   const id = devices[0]?.id;
   if (id === undefined)
     return <div data-testid="station-terminal">no devices detected</div>;

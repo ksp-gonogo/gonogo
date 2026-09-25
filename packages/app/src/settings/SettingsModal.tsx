@@ -120,9 +120,11 @@ export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
   // than Healthy.
   const dataSources = useDataSources();
   const sitrepSource = dataSources.find((s) => s.id === "sitrep");
-  const uplinkHealth = useStream<SystemUplinkHealth>("system.uplinkHealth");
+  const healthReading = useStream<SystemUplinkHealth>("system.uplinkHealth");
   const uplinkIssue =
-    uplinkHealth?.uplinks.some((u) => u.health.state !== "healthy") ?? false;
+    healthReading.state === "observed" || healthReading.state === "stale"
+      ? healthReading.value.uplinks.some((u) => u.health.state !== "healthy")
+      : false;
   const dataSourceIssue =
     showDataSources &&
     (sitrepSource?.status === "disconnected" ||
@@ -309,15 +311,18 @@ function UplinkLoaderSection() {
  */
 function UplinkHealthList() {
   const hostDown = useTelemetryHostDown();
-  const uplinkHealth = useStream<SystemUplinkHealth>("system.uplinkHealth");
+  const healthReading = useStream<SystemUplinkHealth>("system.uplinkHealth");
   const [showHealthy, setShowHealthy] = useState(false);
 
   if (hostDown) {
     return <Placeholder>{NO_TELEMETRY_HOST_MESSAGE}</Placeholder>;
   }
-  if (uplinkHealth === undefined) {
+  if (healthReading.state === "pending" || healthReading.state === "unowned") {
     return <Placeholder>Waiting for uplink health report...</Placeholder>;
   }
+  // A held report is still the roster: uplinks do not come and go with the link.
+  const uplinkHealth =
+    healthReading.state === "absent" ? null : healthReading.value;
   if (uplinkHealth === null || uplinkHealth.uplinks.length === 0) {
     return <Placeholder>No uplinks registered</Placeholder>;
   }
@@ -553,7 +558,14 @@ function SettingRow({ def }: { def: SettingDefinition }) {
  * placeholder, which is the honest reading of both: the mod has not said.
  */
 function StreamBackedRow({ def }: { def: StreamBackedSetting }) {
-  const payload = useStream<unknown>(def.topic);
+  const reading = useStream<unknown>(def.topic);
+  // A setting the mod reported holds until it reports another.
+  const payload =
+    reading.state === "observed" || reading.state === "stale"
+      ? reading.value
+      : reading.state === "absent"
+        ? null
+        : undefined;
   return (
     <SettingReadOnlyLine $indented={def.dependsOn !== undefined}>
       <ReadOnlyField

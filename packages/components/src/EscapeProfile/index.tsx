@@ -12,13 +12,11 @@ const topics = defineTopicManifest({
   fields: ["vessel.flight.altitudeAsl", "vessel.flight.orbitalSpeed"],
 });
 
-import { useStream } from "@ksp-gonogo/sitrep-client";
-import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import { Box, Stack } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useMemo } from "react";
 import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
-import { useBodyName } from "../shared/useBodyName";
+import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useStreamBody } from "../shared/useStreamBody";
 
 export interface EscapeProfileConfig {
@@ -72,9 +70,7 @@ function EscapeProfileComponent({
   config,
   w,
 }: Readonly<ComponentProps<EscapeProfileConfig>>) {
-  const bodyName = useBodyName(
-    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
-  );
+  const bodyName = useBodyName(useParentBodyIndex());
   /*
    * The body as the running game reports it, matched by name against the same
    * `system.bodies` roster the name came from. A lookup in the bundled stock

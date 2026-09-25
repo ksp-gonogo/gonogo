@@ -785,9 +785,11 @@ export function useRouteCommands(topic: string): UseRouteCommandsResult {
 }
 
 /**
- * Reactively read the latest payload on `topic`, raw wire Topic or client-side
- * derived channel alike, sampled at the current view instant. `undefined` with
- * no stream mounted, before the first sample, and for a topic nothing publishes.
+ * Reactively read `topic`, raw wire Topic or client-side derived channel alike,
+ * as a {@link TopicReading} sampled at the current view instant: the latest
+ * payload and how current it is. `pending` with no stream mounted and before
+ * the first sample, `unowned` for a topic nothing publishes, and `stale` once a
+ * topic that was arriving stops, carrying the last real observation.
  *
  * `topic` is a `string` rather than a {@link TopicId} because the ids this
  * resolves are a superset of the generated union in two directions: a derived
@@ -797,14 +799,12 @@ export function useRouteCommands(topic: string): UseRouteCommandsResult {
  * union at all. {@link WidgetChannelId} is the closed union of the two
  * first-party halves, and is the type to annotate a first-party read with.
  *
- * Unlike {@link useTelemetry} this collapses every kind of absence into
- * `undefined`: pending, unowned, absent and stale are indistinguishable, and
- * `T` is whatever the caller supplies with nothing checking it was right. Reach
- * for it when the topic has no {@link TopicId} entry (a derived channel, or your
- * own Uplink's), and for a wire Topic prefer `useTelemetry`, whose
- * {@link Reading} carries the currency an operator needs.
+ * Unlike {@link useTelemetry}, `T` is whatever the caller supplies with nothing
+ * checking it was right. Reach for it when the topic has no {@link TopicId}
+ * entry (a derived channel, or your own Uplink's), and for a wire Topic prefer
+ * `useTelemetry`, whose payload type comes from the contract.
  */
-export function useStream<T>(topic: string): T | undefined {
+export function useStream<T>(topic: string): TopicReading<T> {
   return getHost().useStream<T>(topic);
 }
 

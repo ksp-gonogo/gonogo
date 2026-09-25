@@ -82,10 +82,17 @@ describe("kos.processors Topic (relocated out of Sitrep.Contract)", () => {
     );
 
     await waitFor(() => {
-      expect(result.current?.[0]?.coreId).toBe(7);
+      expect(
+        result.current.state === "observed" && result.current.value[0]?.coreId,
+      ).toBe(7);
     });
-    expect(result.current?.[0]?.tag).toBe("mainframe");
-    expect(result.current?.[0]?.processorMode).toBe("READY");
+    expect(
+      result.current.state === "observed" && result.current.value[0]?.tag,
+    ).toBe("mainframe");
+    expect(
+      result.current.state === "observed" &&
+        result.current.value[0]?.processorMode,
+    ).toBe("READY");
   });
 });
 
