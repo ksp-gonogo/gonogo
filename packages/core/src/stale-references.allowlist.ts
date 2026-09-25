@@ -24,8 +24,6 @@ export const STALE_REFERENCE_DEBT: Record<string, number> = {
   "packages/components/src/LandingStatus/descentLayers.test.ts -> DescentEnvelope.test.tsx": 1,
   "packages/components/src/MapView/stream.test.tsx -> maneuver-legacy.test.ts": 1,
   "packages/components/src/PowerSystems/dual-run.test.tsx -> Targeting/dual-run.test.tsx": 1,
-  "packages/components/src/ShipMap/PartActionMenu.tsx -> PartActionMenu.test.tsx": 1,
-  "packages/components/src/ShipMap/usePartActions.ts -> usePartActions.test.ts": 1,
   "packages/components/src/SystemView/projection.integration.test.tsx -> readFrame.integration.test.tsx": 1,
   "packages/core/src/declarations.ts -> map-topic.rawFieldRoots.coverage.test.ts": 1,
   "packages/core/src/uplink-boundary.allowlist.ts -> flag.test.ts": 3,

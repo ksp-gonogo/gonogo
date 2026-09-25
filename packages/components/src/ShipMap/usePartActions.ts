@@ -3,8 +3,8 @@ import type { PartActionEntry, PartActions } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * The dynamic per-part PAW namespace the mod publishes: this MUST match
- * `PartActionsViewProvider.TopicPrefix` (mod/Sitrep.Host/PartActionsViewProvider.cs).
- * `usePartActions.test.ts` asserts the composed topic string so a rename on
+ * `PartActionsViewProvider.PartActionsPrefix` (mod/Sitrep.Host/PartActionsViewProvider.cs).
+ * `partActions.cs-sync.test.ts` reads it out of the C# source, so a rename on
  * either side is a red test rather than a silently dead subscription.
  */
 export const PART_ACTIONS_TOPIC_PREFIX = "vessel.partActions.";

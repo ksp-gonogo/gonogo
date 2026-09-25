@@ -6,8 +6,8 @@ import { usePartActions } from "./usePartActions";
 /**
  * The mod command that fires one PAW button. MUST match
  * `PartActionCommandProvider.InvokePartActionCommand`
- * (mod/Sitrep.Host/PartActionCommandProvider.cs); `PartActionMenu.test.tsx`
- * asserts the string.
+ * (mod/Sitrep.Host/PartActionCommandProvider.cs); `partActions.cs-sync.test.ts`
+ * reads it out of the C# source.
  */
 export const INVOKE_PART_ACTION_COMMAND = "vessel.invokePartAction";
 
