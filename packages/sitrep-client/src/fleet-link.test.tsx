@@ -6,7 +6,8 @@ import { useFleetVesselLink } from "./fleet-link";
 import { StubTransport } from "./stub-transport";
 
 function LinkProbe({ guid }: { guid: string }) {
-  const link = useFleetVesselLink(guid);
+  const reading = useFleetVesselLink(guid);
+  const link = reading.state === "observed" ? reading.value : undefined;
   const text = link
     ? `${link.oneWaySeconds ?? "none"}/${link.connected}`
     : "waiting";

@@ -9,7 +9,11 @@ import { afterEach, describe, expect, it } from "vitest";
 import { ModalTelemetryBridge } from "./ModalTelemetryBridge";
 
 function AltitudeReader() {
-  const value = useStream<number>("v.alt");
+  const valueReading = useStream<number>("v.alt");
+  const value =
+    valueReading.state === "observed" || valueReading.state === "stale"
+      ? valueReading.value
+      : undefined;
   return (
     <div data-testid="altitude">
       {value === undefined ? "no-client" : String(value)}

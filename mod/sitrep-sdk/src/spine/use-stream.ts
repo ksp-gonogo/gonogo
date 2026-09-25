@@ -1,5 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
-import type { StreamStatusValue } from "../api/types";
+import { type TopicReading, topicReading } from "../reading";
 import {
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
@@ -7,17 +7,26 @@ import {
 import { subscribeTopicRead } from "./subscribe-read";
 
 /**
- * Reactively reads the latest value for `topic`, raw OR derived: from the
- * `TimelineStore` supplied (indirectly, via `TelemetryProvider`'s auto-built
- * default) by the nearest `TelemetryProvider`.
+ * Reactively reads `topic`, raw OR derived, as a {@link TopicReading}: the
+ * latest value AND how current it is, from the `TimelineStore` supplied
+ * (indirectly, via `TelemetryProvider`'s auto-built default) by the nearest
+ * `TelemetryProvider`.
  *
- * It goes through `store.sample(topic, store.currentFrame())`, never
+ * A reading rather than the bare payload because the payload outlives the
+ * data: the store keeps the last sample after a topic stops arriving, so a bare
+ * read goes on handing a widget a confident figure the link has stopped
+ * vouching for. The reading makes the caller branch first, exactly as
+ * `useTelemetry` does for a typed Topic: `observed` is current, `stale` is the
+ * last real observation held (with its instant and grade), and `pending`,
+ * `unowned` and `absent` carry no value at all. A derived channel
+ * (`vessel.state`) computes its own currency from its inputs, so its reading is
+ * as honest as a raw one.
+ *
+ * It goes through `store.sampleReading(topic, store.currentFrame())`, never
  * `client.getValue(topic)`. `getValue` only ever sees raw `stream-data` frames
  * whose `topic` matches literally, so it is permanently `undefined` for a
  * derived topic like `vessel.state.altitudeAsl`: no server channel ever sends
- * that literal topic string. `sample` resolves BOTH kinds transparently, which
- * is its whole point, per its own doc: "callers never need to know whether a
- * topic is raw or derived".
+ * that literal topic string. The store resolves BOTH kinds transparently.
  *
  * `subscribe` does two things, both required for a DERIVED topic to ever
  * actually receive data:
@@ -29,22 +38,18 @@ import { subscribeTopicRead } from "./subscribe-read";
  *   every other read path in the tree; see its doc for why the reckoner half
  *   belongs there.
  * - **Frame-driven reactivity** (`store.subscribeFrame`): re-renders on every
- *   frame the provider mints (`TelemetryProvider` calls `beginFrame()` on
- *   every ingest tick), not on a raw per-topic callback, since a derived value
- *   can change from an ingest on any of several input topics, not one fixed
- *   topic name.
+ *   frame the provider mints, not on a raw per-topic callback, since a derived
+ *   value can change from an ingest on any of several input topics.
  *
- * `getSnapshot` reads `store.sample(topic, store.currentFrame())`, which
- * returns the same memoized `TimelinePoint` object within a frame, so
- * `useSyncExternalStore` correctly bails out of re-rendering when nothing
- * relevant to `topic` actually changed.
+ * `sampleReading` keeps a reading's identity while its point, status and epoch
+ * are unchanged, so `useSyncExternalStore` bails out of re-rendering when
+ * nothing relevant to `topic` changed.
+ *
+ * `pending` with no provider mounted (disconnected, or the frame before
+ * `SitrepTelemetryProvider`'s client is built), so a stream widget renders an
+ * empty state instead of throwing.
  */
-export function useStream<T>(topic: string): T | undefined {
-  // Degrade gracefully when no `TelemetryProvider` is mounted (disconnected,
-  // or the frame before `SitrepTelemetryProvider`'s client is built), mirror
-  // `useTelemetry`'s `*Optional` contract so a stream widget renders an empty
-  // state instead of throwing (which the ErrorBoundary would otherwise turn
-  // into an error card on every disconnected dashboard).
+export function useStream<T>(topic: string): TopicReading<T> {
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
 
@@ -61,71 +66,22 @@ export function useStream<T>(topic: string): T | undefined {
     [client, store, topic],
   );
 
-  const getSnapshot = useCallback((): T | undefined => {
-    if (!store) return undefined;
-    const point = store.sample<T>(topic, store.currentFrame());
-    // `point.payload` may itself be `null` (a confirmed tombstone), passed
-    // through as-is, same as the pre-bridge `client.getValue()` read would
-    // have for a raw topic; only "no point at all" collapses to `undefined`.
-    return point ? (point.payload as T | undefined) : undefined;
+  const getSnapshot = useCallback((): TopicReading<T> => {
+    if (!store) return NO_PROVIDER as TopicReading<T>;
+    return store.sampleReading<T>(topic, store.currentFrame());
   }, [store, topic]);
 
   return useSyncExternalStore(subscribe, getSnapshot);
 }
+
 /**
- * The CURRENCY of `topic`, raw or derived, resolved from context exactly as
- * {@link useStream} resolves the value.
- *
- * A derived channel computes its own currency: `vessel.state` declares
- * `deriveStatus` and `deriveReckoning` on its channel definition, so the
- * channel knows how current its figures are even though its payload carries
- * no `Reading`. `useStream` returns that payload alone, so a widget drawing
- * from a derived channel has no other way to tell a current figure from one
- * that has stopped arriving.
- *
- * `useStreamStatus` in `@ksp-gonogo/sitrep-client` reads the same
- * `store.sampleStatus`, and its own doc prescribes the pairing: "pair the two
- * hooks for `{ value, status }`-shaped widget consumption". What it cannot do
- * is find the store, because it takes one as an argument while `useStream`
- * resolves it from the provider. Mirroring that resolution here is what makes
- * a derived channel's currency reachable from the place that draws it.
- *
- * Inferring a derived channel's staleness from a SIBLING channel is not an
- * equivalent: it holds only while the sibling's currency tracks the derived
- * value's, and nothing enforces that.
- *
- * Same frame as the value: both go through `store.currentFrame()`, so a pair
- * read in one render cannot disagree about which frame it describes.
+ * One shared `pending` for the no-provider path: a fresh object per call would
+ * fail `useSyncExternalStore`'s reference comparison and loop.
  */
-export function useTopicStatus(topic: string): StreamStatusValue {
-  const client = useTelemetryClientOptional();
-  const store = useTelemetryStoreOptional();
-
-  const subscribe = useCallback(
-    (onStoreChange: () => void) => {
-      if (!client || !store) return () => {};
-      const releaseInputs = subscribeTopicRead(client, store, topic);
-      const unsubscribeFrame = store.subscribeFrame(onStoreChange);
-      return () => {
-        unsubscribeFrame();
-        releaseInputs();
-      };
-    },
-    [client, store, topic],
-  );
-
-  /*
-   * `"resyncing"` with no provider, not `"live"`: the honest floor is "nothing
-   * has told us anything yet", and defaulting to live would make an unmounted
-   * dashboard claim currency it cannot have.
-   */
-  const getSnapshot = useCallback((): StreamStatusValue => {
-    if (!store) return "resyncing";
-    return store.sampleStatus(topic, store.currentFrame());
-  }, [store, topic]);
-
-  return useSyncExternalStore(subscribe, getSnapshot);
-}
+const NO_PROVIDER = topicReading<never>({
+  state: "pending",
+  reckoning: { status: "none" },
+});
 
 /**
  * Reactively reads the latest RAW value for `topic` straight off
@@ -157,9 +113,8 @@ export function useTopicStatus(topic: string): StreamStatusValue {
  * ever sees raw `stream-data` frames whose `topic` matches literally, so
  * this hook is for raw command-centre topics only, never a derived channel.
  *
- * Degrades to `undefined` with no `TelemetryProvider` mounted (or before
- * anything has arrived for `topic`), matching every other `useStream`-family
- * hook's disconnected contract.
+ * Degrades to `undefined` with no `TelemetryProvider` mounted, or before
+ * anything has arrived for `topic`.
  */
 export function useLatestValue<T>(topic: string): T | undefined {
   const client = useTelemetryClientOptional();

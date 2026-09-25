@@ -4,8 +4,6 @@ import {
   defineTopicManifest,
   registerComponent,
 } from "@ksp-gonogo/core";
-import { useStream } from "@ksp-gonogo/sitrep-client";
-import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import {
@@ -14,7 +12,7 @@ import {
   GraphView,
   type ReferenceCurve,
 } from "../Graph";
-import { useBodyName } from "../shared/useBodyName";
+import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useComputedSeries } from "../shared/useComputedSeries";
 import { useStreamBody } from "../shared/useStreamBody";
 
@@ -98,9 +96,7 @@ function OrbitalAscentComponent({
    * and vertical speeds on the same samples, because the wire carries no
    * horizontal speed of its own.
    */
-  const bodyName = useBodyName(
-    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
-  );
+  const bodyName = useBodyName(useParentBodyIndex());
   const body = useStreamBody(bodyName);
 
   const windowSec = config?.windowSec ?? 600;

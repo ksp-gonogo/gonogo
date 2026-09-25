@@ -503,9 +503,13 @@ function LandingStatusComponent({
    * are the pair `Targeting` already measures its range with, so the two
    * widgets cannot drift on the same figure.
    */
-  const targetStream = useStream<{ relativePosition?: Vec3Of<"m"> }>(
+  const targetReading = useStream<{ relativePosition?: Vec3Of<"m"> }>(
     "vessel.target",
   );
+  const targetStream =
+    targetReading.state === "observed" || targetReading.state === "stale"
+      ? targetReading.value
+      : undefined;
   const targetRange = targetStream?.relativePosition
     ? vecMagnitude(bare(targetStream.relativePosition))
     : undefined;
@@ -639,6 +643,13 @@ function LandingStatusComponent({
    * withheld the countdown on every board that simply does not carry every topic.
    */
   const mayInstruct = datedInputs.length === 0;
+  /*
+   * The range to a target is a description the burn does not rest on, so a
+   * held one joins the caption without refusing the instruction.
+   */
+  const describedInputs = isDated(targetReading)
+    ? [...datedInputs, "target"]
+    : datedInputs;
 
   // ve + burnout mass of the ACTIVE engine(s), see `deriveActiveBurnParams`.
   const { exhaustVelocity, burnoutMass } = deriveActiveBurnParams(
@@ -1228,7 +1239,7 @@ function LandingStatusComponent({
             </span>
           </div>
         </Section>,
-        bodyName !== undefined || datedInputs.length > 0 ? (
+        bodyName !== undefined || describedInputs.length > 0 ? (
           <Section key="context" full>
             {bodyName !== undefined && (
               <Text tone="muted" size="xs">
@@ -1243,7 +1254,7 @@ function LandingStatusComponent({
               naming which readings are no longer current, because losing contact
               mid-descent is the expected case and a blank board is the worst answer
               available. The ignition instant is refused separately, in CommitLayer. */}
-            <DescribedFromLastKnown readings={datedInputs} />
+            <DescribedFromLastKnown readings={describedInputs} />
           </Section>
         ) : null,
         /* The rail and the readouts beside it are the instrument: they take

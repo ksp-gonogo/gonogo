@@ -1,3 +1,4 @@
+import type { TopicReading } from "./reading";
 import { useStream } from "./use-stream";
 
 /**
@@ -17,7 +18,9 @@ export interface FleetVesselLink {
   connected: boolean;
 }
 
-/** The per-vessel delay + connectivity for fleet vessel `guid`, or undefined until it arrives. */
-export function useFleetVesselLink(guid: string): FleetVesselLink | undefined {
+/** The per-vessel delay + connectivity for fleet vessel `guid`, as a reading. */
+export function useFleetVesselLink(
+  guid: string,
+): TopicReading<FleetVesselLink> {
   return useStream<FleetVesselLink>(`fleet.${guid}.delay`);
 }

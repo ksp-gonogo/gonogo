@@ -46,7 +46,11 @@ const LATE_CHANNEL: DerivedChannelDefinition<number> = {
 };
 
 function Probe() {
-  const value = useStream<number>(DERIVED_TOPIC);
+  const valueReading = useStream<number>(DERIVED_TOPIC);
+  const value =
+    valueReading.state === "observed" || valueReading.state === "stale"
+      ? valueReading.value
+      : undefined;
   return (
     <div data-testid="derived">{value === undefined ? "blank" : value}</div>
   );

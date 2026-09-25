@@ -11,7 +11,6 @@ import {
   useOrbitTrajectory,
   useStream,
 } from "@ksp-gonogo/sitrep-client";
-import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import {
   apsidesExist,
   type ControlFrame,
@@ -35,7 +34,7 @@ import { useEffect, useRef, useState } from "react";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
-import { useBodyName } from "../shared/useBodyName";
+import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 import { useStreamBody } from "../shared/useStreamBody";
 
@@ -115,7 +114,12 @@ function CurrentOrbitComponent({
    * exist, and that is a different thing to tell someone than an em-dash, which
    * this widget already uses to mean "absent on this trajectory".
    */
-  const controlFrame = useStream<ControlFrame>("system.frame");
+  const frameReading = useStream<ControlFrame>("system.frame");
+  // The selected frame is a setting, which a quiet link does not change.
+  const controlFrame =
+    frameReading.state === "observed" || frameReading.state === "stale"
+      ? frameReading.value
+      : undefined;
   const apsides = apsidesExist(controlFrame);
   const noApsidesHere = apsides === "invalid";
   // Every read rides the SDK stream directly, no legacy `useTelemetry("data",
@@ -199,9 +203,7 @@ function CurrentOrbitComponent({
    * around does not change down a link that has gone quiet.
    */
   const refBody = useBodyName(observedOrbit?.referenceBodyIndex);
-  const bodyName = useBodyName(
-    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
-  );
+  const bodyName = useBodyName(useParentBodyIndex());
   // Connectivity indicator: `o.sma` is the representative topic (its resolved
   // `vessel.orbit.sma` stream drives the badge).
 

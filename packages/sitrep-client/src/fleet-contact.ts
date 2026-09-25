@@ -1,5 +1,6 @@
 import { noteUndeclaredRead } from "@ksp-gonogo/sitrep-sdk/spine";
 import { useEffect } from "react";
+import type { TopicReading } from "./reading";
 import { useStream } from "./use-stream";
 import { wireMagnitude } from "./wire-magnitude";
 
@@ -201,10 +202,14 @@ export function overdueSeconds(
   return predicted == null ? undefined : nowUt - predicted;
 }
 
-/** The core per-vessel contact facts for fleet vessel `guid`, or undefined until they arrive. */
+/**
+ * The core per-vessel contact facts for fleet vessel `guid`, as a reading: a
+ * reachability that has stopped arriving is held and says so, rather than
+ * standing as a present-tense answer.
+ */
 export function useFleetVesselContact(
   guid: string,
-): FleetVesselContact | undefined {
+): TopicReading<FleetVesselContact> {
   return useStream<FleetVesselContact>(`fleet.${guid}.contact`);
 }
 
@@ -234,7 +239,16 @@ export function getLatestFleetVesselSilence(
 export function useFleetVesselSilence(
   guid: string,
 ): FleetVesselSilence | undefined {
-  const silence = useStream<FleetVesselSilence>(`silence.${guid}.state`);
+  /*
+   * Held through a quiet link: the silence is itself a reckoning, carrying its
+   * own predicted instant, and its phase advances on the view clock rather
+   * than on arrivals.
+   */
+  const silenceReading = useStream<FleetVesselSilence>(`silence.${guid}.state`);
+  const silence =
+    silenceReading.state === "observed" || silenceReading.state === "stale"
+      ? silenceReading.value
+      : undefined;
   // Mirrored synchronously during RENDER, not inside a useEffect: every
   // component's render phase in a commit finishes before any component's
   // effects run, so a sibling contribution aggregator's effect (which reads

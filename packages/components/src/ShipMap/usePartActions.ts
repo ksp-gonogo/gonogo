@@ -46,16 +46,21 @@ export interface PartActionsRead {
  * the menu) optimistically mutates state.</p>
  */
 export function usePartActions(flightId: number): PartActionsRead {
-  // `useStream` takes a raw topic string and degrades to `undefined` with no
+  // `useStream` takes a raw topic string and answers `pending` with no
   // provider mounted. A dynamic sub-topic has no member in the `TopicId` union
   // (see the SDK's `TOPIC_IDS` doc), so the canonical typed `useTelemetry`
   // cannot name it; the prefix is carried via `DYNAMIC_CARRIED_TOPIC_PREFIXES`
   // so the store resolves it to its own identity rather than mis-splitting it
   // into a `<domain.channel>.<fieldPath>` nothing publishes.
-  const payload = useStream<PartActions>(partActionsTopic(flightId));
+  const reading = useStream<PartActions>(partActionsTopic(flightId));
+  // What a part offers changes only when an action fires, so the list holds.
+  const payload =
+    reading.state === "observed" || reading.state === "stale"
+      ? reading.value
+      : undefined;
 
   return {
     actions: payload?.actions,
-    pending: payload === undefined,
+    pending: reading.state === "pending" || reading.state === "unowned",
   };
 }

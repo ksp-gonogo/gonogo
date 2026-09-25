@@ -8,6 +8,7 @@ import {
 import {
   contactPhase,
   overdueSeconds,
+  readingOf,
   useFleetVesselContact,
   useFleetVesselLink,
   useFleetVesselSilence,
@@ -523,20 +524,41 @@ function FleetSignalCell({
   tone: Tone;
   label: string;
 }) {
-  const contact = useFleetVesselContact(guid);
-  const link = useFleetVesselLink(guid);
+  const contactReading = useFleetVesselContact(guid);
+  const linkReading = useFleetVesselLink(guid);
+  const contact = stillTrue(contactReading, undefined);
+  const link = stillTrue(linkReading, undefined);
   const oneWay = link?.oneWaySeconds ?? null;
   // ONE reading of the one field, so the Link term and the Delay label cannot
   // disagree about it. Read separately, an arrived record whose `connected` was
   // absent said "no path" in one place and labelled its light-time current in
   // the other.
   const reachable = contact == null ? null : contact.connected === true;
+  /*
+   * A reachability that has stopped arriving is the last one known, and says
+   * so: "connected" with nothing behind it is the present-tense claim this
+   * cell exists to get right.
+   */
+  const contactHeld = contactReading.state === "stale";
   const linkState =
-    reachable == null ? "unknown" : reachable ? "connected" : "no path";
-  // A light-time measured before the link went down. Still worth showing (it is
-  // what a reacquisition is planned against) but it is not a present reading,
-  // and the freeze means it cannot become one until the vessel is back.
-  const heldOver = reachable === false;
+    reachable == null
+      ? "unknown"
+      : `${reachable ? "connected" : "no path"}${contactHeld ? " (last known)" : ""}`;
+  // A light-time measured before the link went down, or one that has stopped
+  // arriving. Still worth showing (it is what a reacquisition is planned
+  // against) but it is not a present reading.
+  const heldOver =
+    reachable === false || contactHeld || linkReading.state === "stale";
+  /*
+   * Handed over as readings so the figures carry their own currency. The row
+   * draws only once `oneWay` is known, so the zero is never on screen.
+   */
+  const oneWayReading = readingOf(linkReading, (l) =>
+    value("s", l.oneWaySeconds ?? 0),
+  );
+  const roundTripReading = readingOf(linkReading, (l) =>
+    value("s", 2 * (l.oneWaySeconds ?? 0)),
+  );
   return (
     <Disclosure
       ariaLabel={`${vesselName} signal`}
@@ -577,9 +599,9 @@ function FleetSignalCell({
               {heldOver ? "Delay (last known)" : "Delay"}
             </dt>
             <dd style={{ margin: 0, color: "var(--color-text-primary)" }}>
-              one-way ~<Unit value={value("s", oneWay)} decimals={1} /> ·
-              round-trip ~
-              <Unit value={value("s", 2 * oneWay)} decimals={1} />
+              one-way ~<Unit value={oneWayReading} decimals={1} /> · round-trip
+              ~
+              <Unit value={roundTripReading} decimals={1} />
             </dd>
           </div>
         )}

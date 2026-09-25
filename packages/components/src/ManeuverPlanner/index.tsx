@@ -20,7 +20,6 @@ import {
   useStream,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import {
   EmptyState,
@@ -38,7 +37,7 @@ import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
 import { bodyFromStream } from "../shared/streamBody";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
-import { useBodyName } from "../shared/useBodyName";
+import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { ArmedTriggersList } from "./ArmedTriggersList";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
 import { BurnConformanceRow } from "./BurnConformanceRow";
@@ -252,9 +251,15 @@ function ManeuverPlannerComponent({
           : undefined,
     ) ?? undefined;
   const radius = solve?.orbitalRadius ?? undefined;
-  const parentBodyIndex =
-    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex;
-  const bodies = useStream<BodyRadiusTable>("system.bodies");
+  const parentBodyIndex = useParentBodyIndex();
+  const bodiesReading = useStream<BodyRadiusTable>("system.bodies");
+  // The roster does not decay, and a tombstone is the one null it answers.
+  const bodies =
+    bodiesReading.state === "observed" || bodiesReading.state === "stale"
+      ? bodiesReading.value
+      : bodiesReading.state === "absent"
+        ? null
+        : undefined;
   const refBody = useBodyName(orbit?.referenceBodyIndex);
   const bodyName = useBodyName(parentBodyIndex);
   const parentBodyRadius = bodyRadiusOf(bodies, parentBodyIndex);

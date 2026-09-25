@@ -72,7 +72,12 @@ function worstOf(entries: readonly UplinkHealthEntry[]): UplinkHealthEntry {
 export function useUplinkHealthFor(
   channels: readonly string[],
 ): UplinkHealthForResult {
-  const uplinkHealth = useStream<SystemUplinkHealth>("system.uplinkHealth");
+  const healthReading = useStream<SystemUplinkHealth>("system.uplinkHealth");
+  // Ownership is a roster, which a quiet link does not change.
+  const uplinkHealth =
+    healthReading.state === "observed" || healthReading.state === "stale"
+      ? healthReading.value
+      : undefined;
 
   if (channels.length === 0) {
     return { status: "no-channels" };

@@ -8,6 +8,7 @@ import {
 import {
   DELTA_V_BUDGET,
   type DeltaVStage,
+  observedValue,
   type ResourceAmountMap,
   useProcessor,
   useStream,
@@ -136,9 +137,12 @@ function useResourceReading(def: ResourceDef): { value: number; max: number } {
     resourcesReading.state === "observed"
       ? resourcesReading.value.resources
       : undefined;
-  const stageCurrent = useStream<ResourceAmountMap>("dv.currentStageResource");
-  const stageMaxMap = useStream<ResourceAmountMap>(
-    "dv.currentStageResourceMax",
+  // The stage's share is the same gauge, so it is withheld on the same terms.
+  const stageCurrent = observedValue(
+    useStream<ResourceAmountMap>("dv.currentStageResource"),
+  );
+  const stageMaxMap = observedValue(
+    useStream<ResourceAmountMap>("dv.currentStageResourceMax"),
   );
 
   const vessel = magnitudeOr(vesselResources?.[def.name]?.current, 0);

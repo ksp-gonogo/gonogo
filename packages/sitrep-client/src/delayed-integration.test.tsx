@@ -34,7 +34,11 @@ import { useStream } from "./use-stream";
  * component changes when the transport underneath starts modelling delay.
  */
 function MissionPanel() {
-  const altitude = useStream<number>("alt");
+  const altitudeReading = useStream<number>("alt");
+  const altitude =
+    altitudeReading.state === "observed" || altitudeReading.state === "stale"
+      ? altitudeReading.value
+      : undefined;
   const cmd = useCommand("deploy");
   return (
     <div>

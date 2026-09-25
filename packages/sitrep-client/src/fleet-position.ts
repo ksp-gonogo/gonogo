@@ -31,7 +31,14 @@ export function useFleetVesselPosition(guid: string): StateVector | null {
    * `undefined`. Nothing did; the annotation was still a trap for the next
    * caller, and `wrapTypePayload` stating its own conversion is what surfaced it.
    */
-  const raw = useStream<WireOf<VesselOrbitPayload>>(`fleet.${guid}.orbit`);
+  const orbitReading = useStream<WireOf<VesselOrbitPayload>>(
+    `fleet.${guid}.orbit`,
+  );
+  // Held elements are what dead reckoning propagates from.
+  const raw =
+    orbitReading.state === "observed" || orbitReading.state === "stale"
+      ? orbitReading.value
+      : undefined;
   const viewUt = useViewUt();
   return useMemo(() => {
     if (!raw || viewUt == null) return null;

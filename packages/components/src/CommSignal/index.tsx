@@ -6,7 +6,6 @@ import {
   useContributions,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useStream } from "@ksp-gonogo/sitrep-client";
 import {
   CONTROL_STATE_NAMES,
   type CommsHop,
@@ -14,7 +13,6 @@ import {
   collapseControlStateLevel,
   enumNameOf,
   type Value,
-  type VesselComms,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -179,19 +177,24 @@ function CommSignalComponent({
    * nothing here unwraps a magnitude to do it.
    */
   /*
-   * The control state is read off the sticky last payload rather than off the
-   * reading above, because the pill it draws has no absence to show: the
-   * empty state below is what a screen with no comms at all renders, and a
-   * pill that blanked between frames would read as a control loss.
+   * The control state is HELD through a stale reading rather than taken from
+   * the observation alone, because the pill it draws has no absence to show:
+   * the empty state below is what a screen with no comms at all renders, and a
+   * pill that blanked between frames would read as a control loss. A held one
+   * is withheld on screen by `noSignal`, which the same reading's staleness
+   * sets.
    */
-  const commsStream = useStream<VesselComms>("vessel.comms");
+  const commsHeld =
+    commsReading.state === "observed" || commsReading.state === "stale"
+      ? commsReading.value
+      : undefined;
   const controlState =
-    commsStream == null
+    commsHeld === undefined
       ? undefined
-      : collapseControlStateLevel(commsStream.controlState);
+      : collapseControlStateLevel(commsHeld.controlState);
   const controlStateName = enumNameOf<ControlStateName>(
     CONTROL_STATE_NAMES,
-    commsStream?.controlState,
+    commsHeld?.controlState,
   );
   const delayReading = useTelemetry("comms.delay");
   const delay =

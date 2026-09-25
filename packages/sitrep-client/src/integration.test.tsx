@@ -20,7 +20,11 @@ import { useStream } from "./use-stream";
  * the transport's other end (`StubTransport`) faked.
  */
 function MissionPanel() {
-  const altitude = useStream<number>("v.alt");
+  const altitudeReading = useStream<number>("v.alt");
+  const altitude =
+    altitudeReading.state === "observed" || altitudeReading.state === "stale"
+      ? altitudeReading.value
+      : undefined;
   const cmd = useCommand("stage");
   return (
     <div>
@@ -98,9 +102,13 @@ describe("sitrep-client end-to-end spine", () => {
     const client = new TelemetryClient(transport);
 
     function OrbitPatchesProbe() {
-      const patches = useStream<{ referenceBody: string }[]>(
+      const patchesReading = useStream<{ referenceBody: string }[]>(
         "vessel.state.orbitPatches",
       );
+      const patches =
+        patchesReading.state === "observed" || patchesReading.state === "stale"
+          ? patchesReading.value
+          : undefined;
       // The patch's own body, not a count: a count reads the same whether the
       // derivation ran or handed back an array of nothing.
       return (

@@ -1072,8 +1072,12 @@ function SpaceWeatherComponent({
     factsReading?.state === "observed" || factsReading?.state === "stale"
       ? factsReading.value
       : undefined;
+  // Which body the craft is around does not change down a quiet link.
+  const identityReading = useStream<VesselIdentity>("vessel.identity");
   const parentIndex =
-    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex;
+    identityReading.state === "observed" || identityReading.state === "stale"
+      ? identityReading.value.parentBodyIndex
+      : undefined;
   const fallbackBodyName =
     parentIndex == null ? undefined : facts?.nameByIndex[parentIndex];
 

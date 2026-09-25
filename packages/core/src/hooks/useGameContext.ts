@@ -153,8 +153,12 @@ export function useGameContext(): GameContext {
       : undefined;
   // `null` (the list carried no occupancy) and `undefined` (no derived state
   // yet) are the same answer to a caller: nobody has told us.
+  // Held on the same terms as the scene above.
+  const padReading = useStream<SpaceCenterState>("spaceCenter.state");
   const padOccupiedRaw =
-    useStream<SpaceCenterState>("spaceCenter.state")?.padOccupied ?? undefined;
+    padReading.state === "observed" || padReading.state === "stale"
+      ? (padReading.value.padOccupied ?? undefined)
+      : undefined;
   const careerModeReading = useTelemetry("career.mode");
   const careerModeRaw =
     careerModeReading.state === "observed" ||

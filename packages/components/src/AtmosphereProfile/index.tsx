@@ -5,8 +5,6 @@ import {
   pressureFromProfile,
   registerComponent,
 } from "@ksp-gonogo/core";
-import { useStream } from "@ksp-gonogo/sitrep-client";
-import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
 import { readingOf, value } from "@ksp-gonogo/sitrep-sdk";
 import { Fill, speakQuantity, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
@@ -18,7 +16,7 @@ import {
 } from "../Graph";
 import { magnitudeOf } from "../shared/magnitude";
 import type { StreamBody } from "../shared/streamBody";
-import { useBodyName } from "../shared/useBodyName";
+import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useStreamBody } from "../shared/useStreamBody";
 
 export interface AtmosphereProfileConfig {
@@ -138,9 +136,7 @@ function AtmosphereProfileComponent({
         ? flightReading.value
         : undefined;
   const flightNotCurrent = flightReading.state === "stale";
-  const bodyName = useBodyName(
-    useStream<VesselIdentity>("vessel.identity")?.parentBodyIndex,
-  );
+  const bodyName = useBodyName(useParentBodyIndex());
   /* Resolved against the same `system.bodies` roster the name came from, not
      against the bundled table of STOCK bodies: a planet pack renames both
      sides together, and a name lookup in the table missed every one of them. */

@@ -175,7 +175,11 @@ function SpaceCenterStatusComponent({
   const scene =
     sceneReading.state === "observed" ? sceneReading.value.scene : undefined;
   const lastScene = stillTrue(sceneReading, undefined)?.scene;
-  const spaceCenterState = useStream<SpaceCenterState>("spaceCenter.state");
+  // The pad changes when a vessel rolls out or launches, so it holds like the site.
+  const spaceCenterState = stillTrue(
+    useStream<SpaceCenterState>("spaceCenter.state"),
+    undefined,
+  );
   const padOccupied = spaceCenterState?.padOccupied;
   const padVesselTitle = spaceCenterState?.padVesselTitle ?? undefined;
   // Facility upgrades are a KSC ground action with no vessel signal delay, so

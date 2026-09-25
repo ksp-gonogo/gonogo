@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import type { TopicReading } from "../reading";
 import { useTelemetryClientOptional } from "./context";
 import type { DelayAuthority } from "./delay-authority";
 import { useSelectedVantage } from "./use-selected-vantage";
@@ -30,6 +31,16 @@ export function isOwnCraftVantage(
 }
 
 /**
+ * The craft the samples are about, held through a quiet link: which craft that
+ * is does not change because its telemetry stopped arriving.
+ */
+function subjectOf(reading: TopicReading<VesselState>): string | undefined {
+  return reading.state === "observed" || reading.state === "stale"
+    ? reading.value.subjectId
+    : undefined;
+}
+
+/**
  * Whether THIS session's selected vantage is the craft its own telemetry is
  * about: true for a pilot strapped into the active craft, false for a ground
  * operator whatever centre they picked.
@@ -53,7 +64,7 @@ export function isOwnCraftVantage(
 export function useOwnCraftVantage(): boolean {
   const client = useTelemetryClientOptional();
   const selectedVantage = useSelectedVantage();
-  const subjectId = useStream<VesselState>("vessel.state")?.subjectId;
+  const subjectId = subjectOf(useStream<VesselState>("vessel.state"));
   // No client means no session to be at a vantage at all, which is neither the
   // pilot case nor a lie about one: fall through to the wire's own delay.
   if (!client) return false;
@@ -129,7 +140,7 @@ function OwnCraftDelayWatch({
   authority: DelayAuthority;
   selectedVantage: string;
 }) {
-  const subjectId = useStream<VesselState>("vessel.state")?.subjectId;
+  const subjectId = subjectOf(useStream<VesselState>("vessel.state"));
   const ownCraftVantage = isOwnCraftVantage(selectedVantage, subjectId);
   useEffect(() => {
     authority.setOwnCraftVantage(ownCraftVantage);

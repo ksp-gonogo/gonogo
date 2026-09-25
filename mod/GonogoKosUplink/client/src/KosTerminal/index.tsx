@@ -602,7 +602,13 @@ function KosTerminalLive({
    * nothing rendered as a confirmed absence of CPUs. `reported` keeps them
    * apart for the copy; everything downstream wants a concrete array.
    */
-  const reportedProcessors = useStream<KosProcessorInfo[]>("kos.processors");
+  // The CPUs aboard change only with the craft's parts, so a held list holds.
+  const processorsReading = useStream<KosProcessorInfo[]>("kos.processors");
+  const reportedProcessors =
+    processorsReading.state === "observed" ||
+    processorsReading.state === "stale"
+      ? processorsReading.value
+      : undefined;
   const reported = reportedProcessors != null;
   const processors = reportedProcessors ?? [];
   const [pickedCoreId, setPickedCoreId] = useState<number | null>(null);

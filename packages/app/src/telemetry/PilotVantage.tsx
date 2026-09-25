@@ -32,7 +32,12 @@ import { useEffect } from "react";
  * the ground vantage, which is where its data genuinely comes from.
  */
 function usePilotCraftVantageId(): string | undefined {
-  const subjectId = useStream<VesselState>("vessel.state")?.subjectId;
+  // The craft the samples are about, which a quiet link does not change.
+  const subjectReading = useStream<VesselState>("vessel.state");
+  const subjectId =
+    subjectReading.state === "observed" || subjectReading.state === "stale"
+      ? subjectReading.value.subjectId
+      : undefined;
   // Same read as `VantageControl`'s `useActiveCentres`, minus the home-centre question this has no use for: a stale roster is still the roster, and only never-arrived is empty.
   const rosterReading = useTelemetry("commandCentre.roster");
   const roster =

@@ -67,7 +67,10 @@ function ScienceDataComponent({
   const { inFlight, hasGameSignal, isCareerLike } = useGameContext();
   const noVessel = hasGameSignal && !inFlight;
 
-  const identity = useStream<VesselIdentity>("vessel.identity");
+  const identity = stillTrue(
+    useStream<VesselIdentity>("vessel.identity"),
+    undefined,
+  );
   // Collapsed deliberately: the Aboard tab names the body or names nothing,
   // with no third rendering for a tombstoned catalogue.
   const body = useBodyName(identity?.parentBodyIndex) ?? undefined;
