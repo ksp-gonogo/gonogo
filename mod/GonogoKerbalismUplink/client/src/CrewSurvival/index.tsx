@@ -116,7 +116,7 @@ function CrewSurvivalBadgeAugment({
   const label = !answer.stale
     ? warning.label
     : modelled
-      ? `${warning.label} (modelled)`
+      ? `${warning.label} · modelled`
       : `${warning.label} · held`;
   return (
     <Badge

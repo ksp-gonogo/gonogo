@@ -1,6 +1,6 @@
 import type { MeterEntry } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { writeQuantity } from "@ksp-gonogo/ui-kit";
+import { magnitudeOf, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { KERBALISM } from "../uplink";
 import {
   CREW_SURVIVAL,
@@ -79,6 +79,14 @@ export function survivalMeters(
       // Namespaced by kerbal: two kerbals both have a "stress" rule, and a
       // meter stack keyed on the rule name alone would collide across rows.
       const id = ruleKey(kerbal.name, rule.name);
+      const reading = readings?.[id];
+      /*
+       * Once the reading has stopped arriving, `rule.fraction` is the crew
+       * model's figure, so it reaches the meter only where there is no reading
+       * to draw. Beside a reading, the header and the fill's tone are the
+       * observation's, and the model's figure is the kit's pair of marks.
+       */
+      const observed = magnitudeOf(reading?.value) ?? rule.fraction;
       entries.push({
         id,
         label: ruleLabel(rule.name),
@@ -93,9 +101,11 @@ export function survivalMeters(
          * and a meter drawn from it is the picture every one of these was
          * before the model existed.
          */
-        value: readings?.[id] ?? value("ratio", rule.fraction),
-        tone: toneFor(rule.fraction),
-        valueLabel: pct(rule.fraction),
+        value: reading ?? value("ratio", rule.fraction),
+        tone: toneFor(observed),
+        // A caller's label replaces the kit's `<Unit>`, and with it the mark
+        // saying the figure is held, so a reading goes without one.
+        ...(reading === undefined ? { valueLabel: pct(rule.fraction) } : {}),
         // The roster row this meter belongs beside. CrewStatus mounts one
         // `<WidgetMeters row={name}>` per kerbal, so each entry lands under the
         // kerbal it is about.
