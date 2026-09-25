@@ -23,13 +23,17 @@ Power balance and per-experiment science progress for Breaking Ground deployed s
 | Reads | `deployed.bases`, `game.dlc.breakingGround` |
 | Slots | `deployed-science.experiment` |
 | Default size | 5 × 9 |
-| Scenes | 3 |
+| Scenes | 4 |
 
 ![Breaking Ground not installed: the empty state names the missing DLC rather than reporting an empty roster](docs/assets/breaking-ground-absent--default.png)
 
 ![Duna base with no controller connection: progress bars still carry their fill, so the state has to read off the power indicator. The experiment name is deliberately long enough to reach the `Truncate`, which is what an operator sees for most real Breaking Ground part names at this tile](docs/assets/controller-not-connected--default.png)
 
 ![The same widget at its minimum size](docs/assets/controller-not-connected--min.png)
+
+![The same bases once the link drops: each completion figure carries its held mark](docs/assets/mun-and-minmus-bases-stopped-arriving--default.png)
+
+![The same widget at its minimum size](docs/assets/mun-and-minmus-bases-stopped-arriving--min.png)
 
 ![A powered Mun base with two experiments collecting, above a Minmus base that has lost power overnight](docs/assets/mun-and-minmus-bases--default.png)
 

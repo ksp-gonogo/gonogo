@@ -69,7 +69,11 @@ Vessel-wide Kerbalism resource ledger: root-cause diagnosis, every profile resou
 | Slots | `ship-systems.life-support` |
 | Only while present | `flight` |
 | Default size | 9 × 15 |
-| Scenes | 2 |
+| Scenes | 3 |
+
+![The same shortage once the link drops: the ledger is drawn as held, and says when it was last current](docs/assets/ec-shortage-limits-water-stopped-arriving--default.png)
+
+![The same widget at its minimum size](docs/assets/ec-shortage-limits-water-stopped-arriving--min.png)
 
 ![Electric Charge short and named as the limiting factor, with the Water shortage it explains sorted underneath it](docs/assets/ec-shortage-limits-water--default.png)
 
@@ -88,9 +92,11 @@ Sun vantage plus vessel exposure: a per-star activity diagram for every star thi
 | Uses if present | `vessel.flight` |
 | Only while present | `flight` |
 | Default size | 8 × 11 |
-| Scenes | 6 |
+| Scenes | 8 |
 
 ![Two stars, one quiet and one with an inbound CME, each on its own activity diagram](docs/assets/binary--default.png)
+
+![The same vessel after the link drops: dose, shielding and CMEs held and dated, the belt position and the verdict withheld](docs/assets/inner-belt-link-lost--default.png)
 
 ![The craft inside the inner radiation belt, dose an order of magnitude up and the belt ring lit](docs/assets/inner-belt--default.png)
 
@@ -99,6 +105,8 @@ Sun vantage plus vessel exposure: a per-star activity diagram for every star thi
 ![A sheltered craft in low Kerbin orbit: quiet star, no CME, habitat dose inside the magnetosphere](docs/assets/nominal--default.png)
 
 ![The same widget at its minimum size](docs/assets/nominal--min.png)
+
+![The same storm once the link drops: the forecast is withdrawn rather than held](docs/assets/storm-inbound-stopped-arriving--default.png)
 
 ![A CME in transit, the tracker naming its target body, its transit progress and its impact ETA](docs/assets/storm-inbound--default.png)
 
@@ -111,9 +119,11 @@ Sun vantage plus vessel exposure: a per-star activity diagram for every star thi
 | `life-support-greenhouse` | `ship-systems.life-support` | – |  | 1 |  |
 | `crew-status-radiation-summary` | `crew-status.summary` | – | only while `kerbalism` | 0 |  |
 | `crew-status-survival-badge` | `crew-status.row-badges` | – | only while `kerbalism` | 0 |  |
-| `science-data-aboard-row-file-manager` | `science-data.aboard-row` | – | only while `kerbalism` | 2 |  |
+| `science-data-aboard-row-file-manager` | `science-data.aboard-row` | – | only while `kerbalism` | 3 |  |
 
 ![Greenhouse halted in shadow: the growth rate stops and the row names the reason, while the reason named underneath rather than left to a stopped rate](docs/assets/greenhouse-halted-in-the-dark--default.png)
+
+![The same records once the link drops: the archive reads offline and the situation is awaited again](docs/assets/file-and-sample-on-one-subject-stopped-arriving--default.png)
 
 ![File Manager controls under a Science Data Aboard row: one subject carrying a file and a sample, so every verb the augment knows renders at once](docs/assets/file-and-sample-on-one-subject--default.png)
 
@@ -126,6 +136,7 @@ Sun vantage plus vessel exposure: a per-star activity diagram for every star thi
 | `kerbalism:ship-systems-badge` | `ship-systems.badges` | `processor:kerbalism:ship-systems` | only while `flight` |
 | `kerbalism:crew-survival-meters` | `crew-status.meters` | `processor:kerbalism:crew-survival`, `processor:kerbalism:crew-rule-readings` | only while `kerbalism` |
 | `kerbalism:crew-survival-badge` | `crew-status.badges` | `processor:kerbalism:crew-survival` | only while `kerbalism` |
+| `kerbalism:crew-survival-band-badge` | `crew-status.badges` | `processor:kerbalism:crew-rule-readings`, `processor:kerbalism:crew-survival` | only while `kerbalism` |
 | `kerbalism:crew-survival-row-tone` | `crew-status.row-tone` | `processor:kerbalism:crew-survival` | only while `kerbalism` |
 | `kerbalism:space-weather-badge` | `space-weather.badges` | `kerbalism.spaceweather` | only while `kerbalism` |
 | `kerbalism:system-view-cme` | `system-view.entities` | `kerbalism.spaceweather` | only while `kerbalism` |
@@ -137,7 +148,13 @@ Sun vantage plus vessel exposure: a per-star activity diagram for every star thi
 
 ![The same roster over a two-sample window: the model still carries the accumulators, offers no interval, and the meters draw no marks](docs/assets/dose-band-the-model-declines--default.png)
 
+![The same crew once the link drops: every survival badge says it is held](docs/assets/radiation-dose-critical-stopped-arriving--default.png)
+
 ![Per-kerbal survival meters contributed into Crew Status: one kerbal near a fatal radiation dose, one on a death clock, one healthy](docs/assets/radiation-dose-critical--default.png)
+
+![A header badge from the crew model's own interval: the figure is under critical, the band's pessimistic end is past it](docs/assets/dose-band-reaching-critical--default.png)
+
+![The same tanks once the link drops](docs/assets/supply-tank-meters-stopped-arriving--default.png)
 
 ![Supply tank meters contributed into Ship Map beside the built-in propellant meters, Food drained low enough to carry a status border](docs/assets/supply-tank-meters--default.png)
 

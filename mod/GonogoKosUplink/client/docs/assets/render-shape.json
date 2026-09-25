@@ -3,27 +3,42 @@
   "engine": "chromium",
   "assets": {
     "boot-then-run--default.gif": {
-      "hash": "01a7fd7d8f6c4f5b",
+      "hash": "45d28e4632b4ed7a",
       "elements": 58,
       "text": "a0774835"
     },
     "cpu-picker-untagged--default.png": {
-      "hash": "0bca758f35047e25",
+      "hash": "05ad9be2b46201e5",
       "elements": 31,
       "text": "54cb2e54"
     },
     "lander-cpu-attached--default.png": {
-      "hash": "4dd56fdeb484e7f0",
+      "hash": "418f001fde30420f",
+      "elements": 67,
+      "text": "12f1d671"
+    },
+    "lander-cpu-attached-stopped-arriving--default.png": {
+      "hash": "418f001fde30420f",
       "elements": 67,
       "text": "12f1d671"
     },
     "two-cpus-idle--default.png": {
-      "hash": "97fcd2dd10e9cb6e",
+      "hash": "7ada36b5c1213f65",
       "elements": 33,
       "text": "db7edf95"
     },
     "two-cpus-idle--min.png": {
-      "hash": "97fcd2dd10e9cb6e",
+      "hash": "7ada36b5c1213f65",
+      "elements": 33,
+      "text": "db7edf95"
+    },
+    "two-cpus-idle-stopped-arriving--default.png": {
+      "hash": "7ada36b5c1213f65",
+      "elements": 33,
+      "text": "db7edf95"
+    },
+    "two-cpus-idle-stopped-arriving--min.png": {
+      "hash": "7ada36b5c1213f65",
       "elements": 33,
       "text": "db7edf95"
     }
