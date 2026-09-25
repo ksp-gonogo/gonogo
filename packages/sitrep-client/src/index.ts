@@ -49,12 +49,20 @@ export {
 export * from "@ksp-gonogo/sitrep-sdk/media";
 export type {
   ActionGroupStatePayload,
+  ImpactPoint,
+  ImpactPointInput,
+  PredictionRef,
   VesselFlightPayload,
   VesselOrbitPayload,
   VesselPropulsionPayload,
   WireOrbitElements,
 } from "@ksp-gonogo/sitrep-sdk/spine";
-export { buildElements } from "@ksp-gonogo/sitrep-sdk/spine";
+export {
+  buildElements,
+  findImpactPoint,
+  predictImpactPoint,
+  ROTATION_PERIOD_SECONDS,
+} from "@ksp-gonogo/sitrep-sdk/spine";
 export {
   type AutoCommandOptions,
   type AutoCommandStatus,
@@ -314,17 +322,11 @@ export {
 export type { NeverReckonable } from "./never-reckonable";
 export { isNeverReckonable, NEVER_RECKONABLE } from "./never-reckonable";
 export type {
-  ImpactPoint,
   LegacyOrbitPatch,
   OrbitPatchWirePayload,
-  PredictionRef,
   TransitionName,
 } from "./orbit-patches";
-export {
-  findImpactPoint,
-  mapOrbitPatch,
-  ROTATION_PERIOD_SECONDS,
-} from "./orbit-patches";
+export { mapOrbitPatch } from "./orbit-patches";
 export {
   activateProcessor,
   // Test-only: resets the shared Processor runtime cache (evaluated values +

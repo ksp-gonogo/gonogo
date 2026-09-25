@@ -20,10 +20,10 @@ import {
 import {
   mapOrbitPatch,
   type OrbitTrajectory,
+  predictImpactPoint,
   useOrbitTrajectory,
   useStream,
   useViewUt,
-  type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import type { VesselManeuver } from "@ksp-gonogo/sitrep-sdk";
 import { Switch } from "@ksp-gonogo/ui";
@@ -38,6 +38,7 @@ import {
   WidgetSections,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { encounterKindOf } from "../shared/encounterKind";
 import { magnitudeOf } from "../shared/magnitude";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 import { bodyNamed } from "../shared/streamBody";
@@ -95,18 +96,17 @@ import { shouldSuppressVanillaBase } from "./vanillaSuppression";
 import "./vanillaPoiProvider";
 
 const topics = defineTopicManifest({
-  /* `system.bodies` is read directly, not just as a `vessel.state` input: the
-     mapped body's radius and rotation period come off it, keyed by the name the
-     running game reports rather than looked up in the bundled stock table. */
-  /* `vessel.orbit` is here for the chip row rendered inside this panel, which
-     reads the encounter off the sample and solves the next apsis from the
-     elements. Neither is a field of `vessel.state` any more, and the next apsis
-     is not a field of anything: it is solved, so the channel is what carries
-     it. */
+  /* `system.bodies` gives the mapped body's radius and rotation period, keyed
+     by the name the running game reports rather than looked up in the bundled
+     stock table. */
+  /* `vessel.orbit` carries the patch chain the ground track is drawn from, the
+     encounter the marker and the chip row show, and the horizon and arc the
+     impact point is propagated under. The chip row also solves the next apsis
+     from its elements, which is not a field of anything, so the channel is
+     what carries it. */
   channels: [
     "vessel.flight",
     "vessel.orbit",
-    "vessel.state",
     "vessel.identity",
     "system.bodies",
   ],
@@ -114,9 +114,14 @@ const topics = defineTopicManifest({
     "vessel.flight.latitude",
     "vessel.flight.longitude",
     "vessel.flight.altitudeAsl",
+    "vessel.flight.altitudeTerrain",
+    "vessel.flight.verticalSpeed",
     "vessel.identity.parentBodyIndex",
-    "vessel.state.orbitPatches",
-    "vessel.state.encounterExists",
+    "vessel.orbit.patches",
+    "vessel.orbit.encounter",
+    "vessel.orbit.mu",
+    "vessel.orbit.horizon",
+    "vessel.orbit.arc",
   ],
 });
 
@@ -411,28 +416,11 @@ function MapViewComponent({
   // points, not an opt-in extension-shaped feature: default on (T-POI-7).
   const showPois = config?.showPois ?? true;
 
-  // Vessel kinematics read straight off the stream: raw `vessel.flight.*`
-  // fields for the surface-frame measurements, and the client-derived
-  // `vessel.state` channel for the quality-picked altitude, the index→name
-  // body label, the reshaped orbit-patch chain, the encounter sign, and the
-  // ballistic impact point. `vessel.maneuver` carries the post-burn
-  // node trajectories reshaped into the legacy `o.maneuverNodes` shape.
+  // Vessel kinematics read straight off the stream: `vessel.flight` for the
+  // surface-frame measurements, `vessel.orbit` for the patch chain, the
+  // encounter and the propagation the impact point is found under.
+  // `vessel.maneuver` carries the post-burn node trajectories.
   const flightReading = useTelemetry("vessel.flight");
-  const vesselStateReading = useStream<VesselState>("vessel.state");
-  /*
-   * The patch chain is the orbit's own shape and holds with it. The impact
-   * point and the encounter sign are MARKERS, claims about now, so like the
-   * craft's own dot they come from a current reading or not at all.
-   */
-  const vesselStateHeld =
-    vesselStateReading.state === "observed" ||
-    vesselStateReading.state === "stale"
-      ? vesselStateReading.value
-      : undefined;
-  const vesselStateCurrent =
-    vesselStateReading.state === "observed"
-      ? vesselStateReading.value
-      : undefined;
   // The HUD readouts (q, mach, speeds) show the last observed numbers with the
   // caption below saying how old they are: a number beside a label can be
   // dated honestly.
@@ -521,7 +509,6 @@ function MapViewComponent({
   const mach = flight?.mach;
   const speed = flight?.surfaceSpeed?.magnitude;
   const vSpeed = flight?.verticalSpeed;
-  const orbitPatches = vesselStateHeld?.orbitPatches;
   // The patch chain is the provider's own, reshaped off `vessel.orbit.patches`,
   // so projecting it is not invention. What a patch does NOT carry is a shape:
   // the statement covering it is the `trajectoryKind` on the horizon riding the
@@ -544,6 +531,28 @@ function MapViewComponent({
       : orbitReading.reckoning.status === "available"
         ? { ...orbitSampleObserved, ...orbitReading.reckoning.value }
         : orbitSampleObserved;
+  /*
+   * The patch chain is the orbit's own shape and holds with it, stale included.
+   * Memoised on the sample so the ground-track and maneuver memos below, which
+   * key on the array, rerun only when a new sample lands.
+   */
+  const orbitPatches = useMemo(
+    () =>
+      orbitSampleObserved === undefined
+        ? undefined
+        : (orbitSampleObserved.patches ?? []).map(mapOrbitPatch),
+    [orbitSampleObserved],
+  );
+  /*
+   * The encounter and the impact point are MARKERS, claims about now, so like
+   * the craft's own dot they come from a current reading or not at all.
+   */
+  const orbitCurrent =
+    orbitReading.state === "observed" ? orbitReading.value : undefined;
+  const flightCurrent =
+    flightReading.state === "observed" ? flightReading.value : undefined;
+  // Only the marker draw cares which kind; the chips own the body and time.
+  const encounterKind = encounterKindOf(orbitCurrent?.encounter);
   const trajectory: OrbitTrajectory | null = useOrbitTrajectory(orbitSample);
   const trajectoryWithheld =
     trajectory !== null && trajectory.shape === "withheld" ? trajectory : null;
@@ -567,12 +576,6 @@ function MapViewComponent({
   // `.magnitude` at the read: this widget threads the view time through geometry and
   // solver code typed on plain numbers, and the instant type earns nothing there.
   const universalTime = useViewUt()?.magnitude;
-  const impactLat = vesselStateCurrent?.landingPredictedLat ?? undefined;
-  const impactLon = vesselStateCurrent?.landingPredictedLon ?? undefined;
-  // SOI encounter / escape (-1 escape, 0 none, 1 encounter). Only the
-  // marker draw cares about the sign; the chips component owns the body/time
-  // readouts.
-  const encounterExists = vesselStateCurrent?.encounterExists;
   // Whether we should bother computing any prediction at all. Consumed by
   // both the current-orbit and maneuver memoisations and the chip overlay.
   const predictionEnabled = showPrediction;
@@ -606,6 +609,31 @@ function MapViewComponent({
     () => bodyNamed(bodies, targetBodyId),
     [bodies, targetBodyId],
   );
+  /* Current only while both samples it is solved from are, answered on the
+     measured basis alone, and propagated under whatever the orbit's own
+     provider vouches for. */
+  const impact = useMemo(
+    () =>
+      orbitCurrent === undefined ||
+      flightCurrent === undefined ||
+      universalTime === undefined
+        ? null
+        : predictImpactPoint({
+            orbit: orbitCurrent,
+            flight: flightCurrent,
+            bodies,
+            viewUt: universalTime,
+          }),
+    [orbitCurrent, flightCurrent, bodies, universalTime],
+  );
+  // (0, 0) is the "no prediction" sentinel, never a point to mark.
+  const impactMarked =
+    impact !== null &&
+    Number.isFinite(impact.lat) &&
+    Number.isFinite(impact.lon) &&
+    !(impact.lat === 0 && impact.lon === 0);
+  const impactLat = impactMarked ? impact.lat : undefined;
+  const impactLon = impactMarked ? impact.lon : undefined;
   // True when the map is showing the active vessel's body, i.e. there's
   // no override, OR the override happens to equal the vessel's body. When
   // false (an override DIVERGES from the vessel's body), the
@@ -1116,10 +1144,10 @@ function MapViewComponent({
     // SOI transition marker: the last sample of the prediction is the
     // ground position just before the patch ends, which is exactly the
     // ground track at SOI change (predictGroundTrack terminates on
-    // patch.referenceBody mismatch). Only renders when `o.encounterExists`
-    // is non-zero; -1 = escape (orange ring), 1 = encounter (green ring).
-    // Drawn in world space so it pans/zooms with the map.
-    if (typeof encounterExists === "number" && encounterExists !== 0) {
+    // patch.referenceBody mismatch). Only renders when the orbit names an
+    // encounter (cyan ring) or an escape (orange ring). Drawn in world space
+    // so it pans/zooms with the map.
+    if (encounterKind !== null) {
       let last: TrackSample | null = null;
       for (let i = predictionSegments.length - 1; i >= 0; i--) {
         const seg = predictionSegments[i];
@@ -1141,7 +1169,7 @@ function MapViewComponent({
         );
         const r = 6 / camera.zoom;
         ctx.strokeStyle =
-          encounterExists === 1
+          encounterKind === "encounter"
             ? "rgba(64, 200, 255, 0.9)"
             : "rgba(255, 180, 64, 0.9)";
         ctx.lineWidth = 1.5 / camera.zoom;
@@ -1156,16 +1184,8 @@ function MapViewComponent({
       }
     }
 
-    // Impact marker. (0, 0) is the
-    // "no prediction" sentinel; skip it. Rendered in world space so the
-    // marker pans/zooms with the map.
-    if (
-      impactLat !== undefined &&
-      impactLon !== undefined &&
-      Number.isFinite(impactLat) &&
-      Number.isFinite(impactLon) &&
-      !(impactLat === 0 && impactLon === 0)
-    ) {
+    // Impact marker, in world space so it pans and zooms with the map.
+    if (impactLat !== undefined && impactLon !== undefined) {
       const { x: ix, y: iy } = adjustedMap(
         WORLD_W,
         WORLD_H,
@@ -1192,7 +1212,7 @@ function MapViewComponent({
     impactLat,
     impactLon,
     adjustedMap,
-    encounterExists,
+    encounterKind,
   ]);
 
   // ── Data layer: vessel dot in world → screen space ────────────────────────
@@ -1483,14 +1503,19 @@ function MapViewComponent({
                     />
                     <OverlayCanvas ref={overlayRef} />
                     <PersistentDataCanvas ref={persistentDataRef} />
-                    {/* The sampled-segment count, on the layer that draws it. A
-                      canvas has no inspectable content, so without this the only
-                      observable difference between a drawn track and a refused one
+                    {/* The sampled-segment count and the markers the layer is
+                      handed, on the layer that draws them. A canvas has no
+                      inspectable content, so without these the only observable
+                      difference between a drawn track or marker and a refused one
                       is pixels nothing can read, and a gate whose effect cannot be
                       seen reports success either way. */}
                     <PredictionCanvas
                       ref={predictionRef}
                       data-prediction-segments={predictionSegments.length}
+                      data-encounter-marker={encounterKind ?? undefined}
+                      data-impact-marker={
+                        impactLat !== undefined ? "" : undefined
+                      }
                     />
                     <DataCanvas ref={dataRef} />
                     {positionNotice !== undefined && (

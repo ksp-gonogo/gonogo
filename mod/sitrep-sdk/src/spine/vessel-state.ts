@@ -17,6 +17,7 @@ import {
   type UnitsByField,
 } from "../units";
 import type { ModelledField } from "./client-reading";
+import { predictImpactPoint } from "./impact-point";
 import type { OrbitElements } from "./kepler";
 import {
   buildElements,
@@ -24,12 +25,7 @@ import {
   magnitude,
   trySolve,
 } from "./kepler-reckoning";
-import {
-  findImpactPoint,
-  type LegacyOrbitPatch,
-  mapOrbitPatch,
-  ROTATION_PERIOD_SECONDS,
-} from "./orbit-patches";
+import { type LegacyOrbitPatch, mapOrbitPatch } from "./orbit-patches";
 import { bodyRadiusOf, solveOrbit } from "./orbital-solve";
 import { STANDARD_GRAVITY } from "./propagation";
 import type { StreamStatusValue } from "./stream-status";
@@ -316,21 +312,10 @@ export interface VesselState {
    */
   isSplashed: boolean | null | undefined;
   /**
-   * Predicted surface-impact latitude, degrees (behind
-   * `land.predictedLat`, LandingStatus): the last pre-surface
-   * sample of a vacuum-ballistic walk over `orbitPatches` (`findImpactPoint`
-   * in `orbit-patches.ts`), horizon-bounded by the closed-form ballistic fall
-   * time so the walk only ever runs while an impact is actually imminent.
-   * MEASURED basis only (reads `vessel.flight`); `null` in the propagated
-   * basis, when not descending (`verticalSpeed ≥ 0`), at or below the terrain
-   * (`altitudeTerrain ≤ 0`), when a required input (`system.bodies` radius, a
-   * finite `mu`) is missing, when nothing reports the body's rotation period
-   * (the stream does not carry one and the stock `ROTATION_PERIOD_SECONDS`
-   * fallback does not know the body), or when the walk never finds an impact
-   * within its bounded horizon. Vacuum-exact; on an atmospheric body this
-   * ignores drag: the WIDGET (which already knows whether the body has an
-   * atmosphere via `getBody()`) is responsible for an honest "approximate"
-   * treatment, not this field.
+   * Predicted surface-impact latitude, degrees: `predictImpactPoint`
+   * (`impact-point.ts`) over this frame's `vessel.orbit`, `vessel.flight` and
+   * `system.bodies`, so `null` wherever that answers none. MEASURED basis
+   * only; `null` in the propagated basis.
    */
   landingPredictedLat: number | null;
   /** Predicted surface-impact longitude, degrees. Same discipline as `landingPredictedLat`; always defined together. */
@@ -470,38 +455,6 @@ function resolveBodyRadius(
   // the other thing that needs a body radius. This is the part that reads the
   // topic, which is the only part that belongs to this channel.
   return bodyRadiusOf(bodiesPoint.payload, index);
-}
-
-/**
- * Resolve a body INDEX to its sidereal rotation period (seconds) via
- * `system.bodies`. Same discipline as `resolveBodyRadius`.
- *
- * <p>The impact walk needs it to turn a time of flight into a longitude, and
- * took it from a hardcoded table of STOCK bodies keyed by NAME. Under a planet
- * pack no name matched, so the predicted impact point was simply never drawn,
- * and the table's own comment recorded that as an accepted limitation rather
- * than as the defect it is. The stream reports the period per body, so the
- * table is now only a fallback for a stream that does not.</p>
- */
-function resolveBodyRotationPeriod(
-  get: DerivedGet,
-  index: number | null | undefined,
-): number | null | undefined {
-  if (index == null) return undefined;
-  const bodiesPoint = get<SystemBodiesPayload>("system.bodies");
-  if (!bodiesPoint) return undefined;
-  if (bodiesPoint.payload === null) return null;
-  const body = bodiesPoint.payload.bodies.find((b) => b.index === index);
-  const reported = body?.rotationPeriod;
-  if (reported == null) return undefined;
-  /*
-   * Unwrapped rather than returned as-is: the field is declared here as a
-   * number but arrives as a `Value` once `wrap-units` has run, and the walk
-   * divides by it. A period that does not survive as a finite number is no
-   * period at all, so it falls through to the stock table.
-   */
-  const seconds = magnitudeOr(reported, Number.NaN);
-  return Number.isFinite(seconds) ? seconds : undefined;
 }
 
 /**
@@ -702,159 +655,38 @@ const LANDING_NONE: LandingDerivations = {
 };
 
 /**
- * Horizon multiplier + cap on `findImpactPoint`'s walk (see
- * `deriveLanding`'s doc comment): 1.5× the closed-form ballistic fall time
- * gives the patch-walk enough margin to actually cross the surface
- * (the closed-form model and the patch walk use different bases, vertical
- * vDown-only vs. full 3D propagation: so they don't reach zero altitude at
- * EXACTLY the same instant), capped at 20 minutes so a bad closed-form
- * estimate can never turn into an unbounded loop.
- */
-const IMPACT_WALK_HORIZON_MULTIPLIER = 1.5;
-const IMPACT_WALK_MAX_HORIZON_SEC = 1200;
-/** ~60 samples across the bounded horizon: plenty of precision for a landing-site marker, cheap enough to run every `vessel.state` evaluation while descending. */
-const IMPACT_WALK_MIN_STEPS = 60;
-
-/**
- * The client-derived ballistic impact point (`vessel.state.landingPredicted*`),
- * MEASURED basis only. Every input is already on the wire and carried: no
- * terrain asset, no drag model, no mod-side channel:
- *
- * - `g = mu/(radius+altitudeAsl)²`, gravitational acceleration at the current
- *   radius. `mu` is the parent body's GM off `vessel.orbit.mu` (a physical
- *   body constant, valid even in the Loaded basis where the orbital ELEMENTS
- *   are osculating garbage); `radius` is the reference body's mean radius from
- *   `system.bodies` (same lookup as `deriveApsides`).
- * - `h = altitudeTerrain` (height above terrain) and `vDown = -verticalSpeed`
- *   (positive downward), both off `vessel.flight`.
- *
- * The pair is `null` unless the vessel is descending toward terrain that is
- * still below it (`verticalSpeed < 0` and `h > 0`) and `g` resolves finite and
- * positive. Vacuum throughout, ignoring atmospheric drag, so on an atmospheric
- * body the bounding fall time is an upper bound (the widget already labels that
- * case "treat as upper bound").
+ * The impact point for the measured basis: `predictImpactPoint` over this
+ * frame's samples, which is where the whole solve and its propagation seam
+ * live.
  *
  * ## It predicts a future EVENT, and that is not what a reckoner does
  *
- * This is the distinction worth holding, because the word "prediction" covers
- * both and the mechanism only covers one. A reckoner carries a topic's OWN
- * value forward past the last observation of it, and every field it moves is
- * that field at the view time. These two are a different claim: they are
- * quantities ABOUT an event that has not happened, computed from measurements
- * at the view time, and they are stale in exactly the way their inputs are.
- *
- * So the honest label for the pair is the one it already has. The reading says
- * `measured` and, past the last sample, `stale`, which is the truthful account
- * of a number solved from an observation that has stopped arriving. Reckoning
- * it would mean claiming the descent continued the way the arithmetic says, and
- * a descent is the one regime where that is least defensible: the whole reason
- * `atmospheric-reckoning.ts` exists is that a craft in air is not following
- * anything a closed form here describes.
+ * A reckoner carries a topic's OWN value forward past the last observation of
+ * it, and every field it moves is that field at the view time. This pair is a
+ * different claim: a quantity ABOUT an event that has not happened, computed
+ * from measurements at the view time, and stale in exactly the way its inputs
+ * are. Reckoning it would mean claiming the descent continued the way the
+ * arithmetic says, and a descent is the one regime where that is least
+ * defensible: the whole reason `atmospheric-reckoning.ts` exists is that a
+ * craft in air is not following anything a closed form here describes.
  *
  * The two never overlap, and the code says so rather than the comment:
  * `keplerAdmissibility` withdraws for a craft under physics, which is every
- * frame this function produces a number on, so `deriveVesselStateReckoning`
- * returns `undefined` on precisely those frames. The pair is also absent from
- * `KEPLER_MODELLED_FIELDS` for the plainer reason that it does not exist on
- * that branch at all (`LANDING_NONE` there), so it is not an omission from that
- * list the way the three the list names are. Both facts are pinned in
+ * frame this produces a number on, so `deriveVesselStateReckoning` returns
+ * `undefined` on precisely those frames. The pair is also absent from
+ * `KEPLER_MODELLED_FIELDS` because it does not exist on that branch at all
+ * (`LANDING_NONE` there). Both facts are pinned in
  * `vessel-state-prediction-paths.test.ts`.
- *
- * If the descent itself ever wants carrying across a gap in contact, the model
- * for it exists and IS registered: `vessel.flight`'s `rate-integration` arm,
- * which advances the measured vertical speed by its own observed rate of change
- * rather than by a drag model it would have to invent. The right shape would be
- * to feed a reckoned flight state, never to stamp a basis on these two.
  */
 function deriveLanding(
   get: DerivedGet,
   orbit: VesselOrbitPayload,
   flight: VesselFlightPayload,
-  orbitPatches: LegacyOrbitPatch[],
   viewUt: number,
 ): LandingDerivations {
-  // Magnitudes: everything from here is the ballistic-fall solve, which is
-  // arithmetic in canonical SI.
-  const h = mag(flight.altitudeTerrain);
-  const vDown = -mag(flight.verticalSpeed);
-  // Only meaningful while descending toward terrain still below the vessel.
-  if (!(h > 0) || !(vDown > 0)) return LANDING_NONE;
-
-  const radius = resolveBodyRadius(get, orbit.referenceBodyIndex);
-  if (radius == null) return LANDING_NONE;
-  const alt = mag(flight.altitudeAsl);
-  const g = mag(orbit.mu) / ((radius + alt) * (radius + alt));
-  if (!(g > 0) || !Number.isFinite(g)) return LANDING_NONE;
-
-  // Ballistic no-burn fall to terrain: positive root of ½g·t² + vDown·t − h = 0.
-  // It bounds the walk below rather than being published itself.
-  const timeToImpact = finiteOrNull(
-    (-vDown + Math.sqrt(vDown * vDown + 2 * g * h)) / g,
-  );
-
-  return derivePredictedImpact(
-    orbitPatches,
-    radius,
-    resolveBodyRotationPeriod(get, orbit.referenceBodyIndex),
-    flight,
-    viewUt,
-    timeToImpact,
-  );
-}
-
-/**
- * `landingPredictedLat`/`Lon`'s source: a horizon-bounded vacuum-ballistic
- * walk over `orbitPatches` (`findImpactPoint`, `orbit-patches.ts`). Bounding
- * the horizon off `deriveLanding`'s own closed-form `timeToImpact` estimate
- * (see `IMPACT_WALK_HORIZON_MULTIPLIER`'s doc comment) keeps this cheap: the
- * walk only ever runs while `deriveLanding`'s vertical-fall model already
- * says impact is imminent, never on every `vessel.state` evaluation for a
- * vessel that's merely in orbit. `null`/`null` when `timeToImpact` itself is
- * null, there are no orbit patches yet, or nothing reports the body's rotation
- * period: the stream does not carry one and it is not in the stock
- * `ROTATION_PERIOD_SECONDS` table either.
- */
-function derivePredictedImpact(
-  orbitPatches: LegacyOrbitPatch[],
-  bodyRadius: number,
-  reportedRotationPeriod: number | null | undefined,
-  flight: VesselFlightPayload,
-  viewUt: number,
-  timeToImpact: number | null,
-): { landingPredictedLat: number | null; landingPredictedLon: number | null } {
-  const none = { landingPredictedLat: null, landingPredictedLon: null };
-  if (
-    timeToImpact == null ||
-    !(timeToImpact > 0) ||
-    orbitPatches.length === 0
-  ) {
-    return none;
-  }
-  const bodyName = orbitPatches[0].referenceBody;
-  /*
-   * The stream's own figure first. The stock table behind it is keyed by NAME
-   * and only carries stock bodies, so it answers for a stock game whose stream
-   * predates the field and for nothing else.
-   */
-  const rotationPeriod =
-    reportedRotationPeriod ?? ROTATION_PERIOD_SECONDS[bodyName];
-  if (rotationPeriod == null) return none;
-
-  const horizonSec = Math.min(
-    timeToImpact * IMPACT_WALK_HORIZON_MULTIPLIER,
-    IMPACT_WALK_MAX_HORIZON_SEC,
-  );
-  const stepSec = Math.max(1, horizonSec / IMPACT_WALK_MIN_STEPS);
-  const impact = findImpactPoint(
-    orbitPatches,
-    bodyName,
-    bodyRadius,
-    rotationPeriod,
-    { ut: viewUt, lat: mag(flight.latitude), lon: mag(flight.longitude) },
-    horizonSec,
-    stepSec,
-  );
-  if (!impact) return none;
+  const bodies = get<SystemBodiesPayload>("system.bodies")?.payload;
+  const impact = predictImpactPoint({ orbit, flight, bodies, viewUt });
+  if (!impact) return LANDING_NONE;
   return {
     landingPredictedLat: impact.lat,
     landingPredictedLon: impact.lon,
@@ -1058,9 +890,8 @@ export function deriveVesselState(
     twr: deriveTwr(get),
     isControllable: deriveIsControllable(get),
     ...deriveIdentityFlags(get),
-    // The ballistic impact prediction: LIVE here (measured basis), off
-    // vessel.flight + vessel.orbit.mu + the system.bodies radius.
-    ...deriveLanding(get, orbit, flight, orbitPatchesLegacy, viewUt),
+    // The ballistic impact prediction: LIVE here (measured basis).
+    ...deriveLanding(get, orbit, flight, viewUt),
     orbitPatches: orbitPatchesLegacy,
     subjectId,
   };

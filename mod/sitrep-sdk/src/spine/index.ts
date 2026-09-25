@@ -73,6 +73,7 @@ export * from "./delta-v-budget";
 export * from "./dv-stage-resources";
 export * from "./gated-read-warning";
 export * from "./heartbeat-tracker";
+export * from "./impact-point";
 export * from "./kepler";
 export * from "./kepler-reckoning";
 export * from "./lagrange";
