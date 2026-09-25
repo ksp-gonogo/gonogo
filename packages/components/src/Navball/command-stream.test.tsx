@@ -464,4 +464,36 @@ describe("Navball commands nothing it was not asked to", () => {
     await letTheStreamTick();
     expect(streamCalls(handler)).toEqual([]);
   });
+
+  it("refuses a 10% step while the throttle has neither a reading nor a command", async () => {
+    const { handler } = mountDisplayOnly("nav-step-blind", ["vessel.control"]);
+    act(() => {
+      dispatchAction("nav-step-blind", "throttle-up", {
+        kind: "button",
+        value: true,
+      });
+    });
+    await letTheStreamTick();
+    expect(streamCalls(handler)).toEqual([]);
+  });
+
+  it("steps from the confirmed throttle once one is read", async () => {
+    const { fixture, handler } = mountDisplayOnly("nav-step-read", [
+      "vessel.control",
+    ]);
+    act(() => {
+      fixture.emit("vessel.control", { throttle: 0.5 });
+    });
+    act(() => {
+      dispatchAction("nav-step-read", "throttle-up", {
+        kind: "button",
+        value: true,
+      });
+    });
+    await waitFor(() =>
+      expect(handler).toHaveBeenCalledWith("vessel.control.setThrottle", {
+        value: 0.6,
+      }),
+    );
+  });
 });
