@@ -1,3 +1,4 @@
+import { DashboardItemContext, dispatchAction } from "@ksp-gonogo/core";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
@@ -98,7 +99,9 @@ function mount(
   });
   const view = render(
     <fixture.Provider>
-      <LibrationPointsComponent config={config as never} id="lp" />
+      <DashboardItemContext.Provider value={{ instanceId: "lp" }}>
+        <LibrationPointsComponent config={config as never} id="lp" />
+      </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
   act(() => {
@@ -315,5 +318,46 @@ describe("LibrationPoints: the craft's offset", () => {
     const { view } = mount({ pair: "Mun" }, 0);
     await svgOf(view);
     await expectNoA11yViolations(view.container);
+  });
+});
+
+describe("LibrationPoints: the pair control has an action", () => {
+  function press(): void {
+    act(() => {
+      dispatchAction("lp", "cyclePair", { kind: "button", value: true });
+    });
+  }
+
+  it("steps the pair on a press, through Auto and back round to where it started", async () => {
+    const { view } = mount({ pair: "Kerbin" }, 0);
+    const pairOf = async () =>
+      (await svgOf(view)).getAttribute("data-libration-pair");
+    const select = () =>
+      view.container.querySelector("select") as HTMLSelectElement;
+    expect(await pairOf()).toBe("Kerbol-Kerbin");
+
+    const seen = new Set<string>();
+    const steps = select().options.length;
+    for (let i = 0; i < steps; i++) {
+      press();
+      seen.add(select().value);
+    }
+
+    expect(seen).toEqual(new Set(["auto", "Kerbin", "Mun"]));
+    expect(select().value).toBe("Kerbin");
+    expect(await pairOf()).toBe("Kerbol-Kerbin");
+    await act(async () => {});
+  });
+
+  it("ignores the release of a held button", async () => {
+    const { view } = mount({ pair: "Kerbin" }, 0);
+    await svgOf(view);
+    act(() => {
+      dispatchAction("lp", "cyclePair", { kind: "button", value: false });
+    });
+    expect(
+      (view.container.querySelector("select") as HTMLSelectElement).value,
+    ).toBe("Kerbin");
+    await act(async () => {});
   });
 });
