@@ -10,7 +10,11 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import { contractObjectives, ObjectivesComponent } from "./index";
+import {
+  contractObjectives,
+  ObjectivesComponent,
+  ObjectivesSection,
+} from "./index";
 
 /** One contract as it arrives on `career.status`, before `parseContracts`. */
 const contract = (over: Record<string, unknown> = {}) => ({
@@ -154,5 +158,22 @@ describe("objective mapping", () => {
     const items = contractObjectives(parsed(contract({ parameters: [] })));
     expect(items).toHaveLength(1);
     expect(items[0]?.title).toBe("Explore the Mun");
+  });
+});
+
+describe("ObjectivesSection", () => {
+  it("marks a pending objective by colour, never by fading the row its muted text already sits in", () => {
+    render(
+      <ObjectivesSection
+        items={[
+          { id: "p", title: "Plant a flag", state: "pending", source: "Mun" },
+          { id: "r", title: "Reach the Mun", state: "reached", source: "Mun" },
+        ]}
+      />,
+    );
+    const pending = screen.getByText("Plant a flag");
+    expect(pending.closest("li")?.style.opacity ?? "").toBe("");
+    expect(pending.style.color).toBe("var(--color-text-muted)");
+    expect(screen.getByText("Reach the Mun").style.color).toBe("");
   });
 });
