@@ -304,6 +304,8 @@ export const SNAPSHOT = {
     paused: false,
     // ChannelEmitter.KeyframeFloorRealSec, which the mod sends on every sample.
     keyframeFloorSec: 1,
+    // SampleCadence.IntervalUt, the mod's 1x sample spacing, sent on every sample.
+    sampleIntervalUt: 1,
     meta: payloadMeta,
   },
 
