@@ -56,8 +56,8 @@ function survivalBadges(
   const label =
     currency === "modelled"
       ? critical === 1
-        ? "Crit (modelled)"
-        : `${critical} crit (modelled)`
+        ? "Crit · modelled"
+        : `${critical} crit · modelled`
       : critical === 1
         ? "Critical · held"
         : `${critical} critical · held`;

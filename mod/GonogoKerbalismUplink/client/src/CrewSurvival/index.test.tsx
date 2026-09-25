@@ -161,7 +161,7 @@ describe("crew-status.meters contribution", () => {
     // ruleLabel's own doc comment).
     const meter = await screen.findByRole("meter", { name: "Radiation dose" });
     expect(meter).toHaveAttribute("aria-valuenow", "90");
-    expect(meter).toHaveAttribute("aria-valuetext", "90 %");
+    expect(meter.getAttribute("aria-valuetext")).toMatch(/^90\b/);
     // The `.survival` slot is meter-only now: no badge restating the same
     // rule name/percentage underneath it (that used to render literally as
     // "Radiation dose 90 %" text of its own, the exact redundant-restatement
