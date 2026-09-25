@@ -1,11 +1,12 @@
 using System;
+using Gonogo.KSP.Gates;
 using KSP.Localization;
 
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// What the GAME calls one of its own enum members, for the sentence an
-    /// operator reads on a refusal.
+    /// What the GAME calls one of its own enum members, craft or launch sites,
+    /// for the words an operator reads.
     ///
     /// <para>Nothing here composes English. Many of KSP's state enums carry
     /// <c>[Description("#autoLOC_...")]</c> and KSP's own <c>Localizer</c> resolves
@@ -13,7 +14,7 @@ namespace Gonogo.KSP
     /// this mod keeping a table of KSP's vocabulary that goes stale on every
     /// update and is wrong everywhere but English.</para>
     ///
-    /// <para><b>Meant for KSP's enums.</b> A <c>Sitrep.Contract</c> enum gains
+    /// <para><b>The enum half is meant for KSP's enums.</b> A <c>Sitrep.Contract</c> enum gains
     /// nothing here: its members carry no <c>[Description]</c>, its name is
     /// already ours to write, and this would only lower-case it.</para>
     /// </summary>
@@ -131,6 +132,35 @@ namespace Gonogo.KSP
         /// </summary>
         public static string VesselName(Vessel vessel) =>
             string.IsNullOrEmpty(vessel.vesselName) ? "Vessel" : Name(vessel.vesselName, vessel.vesselName);
+
+        /// <summary>
+        /// A launch site as the player sees it in game, by the id a launch names
+        /// it with, or the id itself when the game has no readable name for it.
+        ///
+        /// <para>The KSC pad and runway are asked by their facility, because
+        /// <c>PSystemSetup.GetLaunchSiteDisplayName</c> answers those from the
+        /// facility's own display-name field, which holds the bare id: it returns
+        /// <c>LaunchPad</c>, never <c>Launch Pad</c>. The game's own label for a
+        /// facility is <c>ScenarioUpgradeableFacilities.GetFacilityName</c>, the
+        /// one its space-centre screens show. Every other site is asked through
+        /// <c>GetLaunchSiteDisplayName</c>, which resolves a <c>LaunchSite</c>'s
+        /// name properly.</para>
+        /// </summary>
+        public static string LaunchSiteName(string siteId)
+        {
+            try
+            {
+                return Resolved(
+                    FacilityGateHelp.TryParseFacility(siteId, out var facility)
+                        ? FacilityGateHelp.DisplayName(facility)
+                        : PSystemSetup.Instance?.GetLaunchSiteDisplayName(siteId),
+                    siteId);
+            }
+            catch (Exception)
+            {
+                return siteId;
+            }
+        }
 
         /// <summary>
         /// A string KSP has already put through <c>Localizer</c>, or

@@ -3122,7 +3122,7 @@ namespace Gonogo.KSP
                 sites.Add(new Dictionary<string, object?>
                 {
                     ["name"] = name,
-                    ["displayName"] = (name != null ? setup.GetLaunchSiteDisplayName(name) : null) ?? site.launchSiteName,
+                    ["displayName"] = name != null ? GameWords.LaunchSiteName(name) : site.launchSiteName,
                     ["editorFacility"] = site.editorFacility.ToString(),
                     ["body"] = body != null ? body.bodyName : null,
                     ["isStock"] = isStock,

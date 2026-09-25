@@ -40,7 +40,7 @@ public class LaunchSiteEntry
     [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
 
-    /// <summary>Human-facing display name (<c>PSystemSetup.GetLaunchSiteDisplayName</c>, falling back to <c>LaunchSite.launchSiteName</c>).</summary>
+    /// <summary>Human-facing display name, as the game's own screens show it in the player's language, or the site's <c>name</c> when the game has none it can resolve.</summary>
     [SitrepUnit(Units.Text)]
     public string? DisplayName { get; set; }
 
