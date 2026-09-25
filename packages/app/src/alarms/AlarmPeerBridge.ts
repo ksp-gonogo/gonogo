@@ -1,9 +1,11 @@
+import { logger } from "@ksp-gonogo/logger";
 import type { PeerMessage } from "../peer/protocol";
-import type {
-  Alarm,
-  AlarmFireAction,
-  AlarmRequestedBy,
-  AlarmSnapshot,
+import {
+  type Alarm,
+  type AlarmFireAction,
+  type AlarmRequestedBy,
+  type AlarmSnapshot,
+  parseTrigger,
 } from "./types";
 
 /**
@@ -77,10 +79,23 @@ export class AlarmPeerBridge {
   ) {
     if (!host) return;
     host.onAlarmAdd((peerId, msg) => {
+      // A station's trigger is checked here, where it enters: one the
+      // simulation could never watch is not an alarm, so no row is made.
+      const trigger = parseTrigger(msg.trigger);
+      if (trigger === null) {
+        logger.warn(
+          "alarm-host: a station's alarm names nothing the simulation can watch",
+          {
+            peerId,
+            name: msg.name,
+          },
+        );
+        return;
+      }
       handlers.addAlarm({
         name: msg.name,
         notes: msg.notes,
-        trigger: msg.trigger,
+        trigger,
         createdBy: peerId,
         // Two different questions, so both are carried: `createdBy` is which
         // screen the request came from, `requestedBy` is which Uplink asked
@@ -89,8 +104,24 @@ export class AlarmPeerBridge {
         onFire: msg.onFire,
       });
     });
-    host.onAlarmUpdate((_peerId, msg) => {
-      handlers.updateAlarm(msg.id, msg.patch);
+    host.onAlarmUpdate((peerId, msg) => {
+      const { trigger: raw, ...rest } = msg.patch;
+      if (raw === undefined) {
+        handlers.updateAlarm(msg.id, rest);
+        return;
+      }
+      const trigger = parseTrigger(raw);
+      if (trigger === null) {
+        logger.warn(
+          "alarm-host: a station's edit names nothing the simulation can watch",
+          {
+            peerId,
+            id: msg.id,
+          },
+        );
+        return;
+      }
+      handlers.updateAlarm(msg.id, { ...rest, trigger });
     });
     host.onAlarmDelete((_peerId, id) => {
       handlers.deleteAlarm(id);
@@ -121,17 +152,8 @@ export class AlarmPeerBridge {
   }
 
   broadcastFire(alarm: Alarm, observedUT: number | null): void {
-    // Backwards-compatible top-level `ut` for stations on older bundles.
-    // Threshold alarms report the UT at which the condition fired
-    // (matchSinceUT + sustain).
-    const firedUt =
-      alarm.trigger.kind === "time"
-        ? alarm.trigger.ut
-        : alarm.trigger.kind === "event"
-          ? // Event: matchSinceUT is the reveal UT (no sustain to add).
-            (alarm.matchSinceUT ?? observedUT ?? 0)
-          : (alarm.matchSinceUT ?? observedUT ?? 0) +
-            alarm.trigger.sustainSeconds;
+    // The instant the simulation fired it, or failing that the moment this screen learned of it.
+    const firedUt = alarm.eventUT ?? alarm.matchSinceUT ?? observedUT ?? 0;
     this.host?.broadcast({
       type: "alarm-fired",
       id: alarm.id,

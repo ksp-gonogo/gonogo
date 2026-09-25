@@ -27,7 +27,7 @@ export function severityFromAlarmState(state: AlarmState): Severity | null {
 /**
  * The data subject an alarm is about, as a key that can be matched against a
  * widget's declared topics, or `null` when it has no per-widget subject. A
- * threshold alarm names its `dataKey`, an event alarm its `topic`, a
+ * threshold alarm names its `dataKey`, a
  * contract-parameter alarm belongs to whatever widget reads the active
  * contracts, and a time alarm has no data subject at all (it is a mission-wide
  * countdown, so it lights no single widget).
@@ -41,8 +41,6 @@ export function alarmSubjectKey(alarm: Alarm): string | null {
   switch (alarm.trigger.kind) {
     case "threshold":
       return alarm.trigger.dataKey;
-    case "event":
-      return alarm.trigger.topic;
     case "contract-parameter":
       return "career.status.contracts.active";
     case "time":

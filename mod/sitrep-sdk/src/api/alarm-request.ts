@@ -16,8 +16,7 @@
 //
 // Only the two trigger arms an Uplink can state honestly are published here.
 // `contract-parameter` addresses stock career contracts, which is the app's
-// vocabulary rather than an Uplink's, and `event` has no producer wired yet, so
-// an alarm on one would sit pending for ever. Publishing either would freeze an
+// vocabulary rather than an Uplink's, and publishing it would freeze an
 // app-internal shape as third-party API for no reachable use.
 // ---------------------------------------------------------------------------
 
@@ -44,8 +43,8 @@ import type { UplinkClientHandle } from "./types";
  * A `"scet"` threshold can be refused: what the simulation is able to read
  * pre-reveal is a table inside the mod, and it is not published anywhere a
  * caller could consult first. A refusal is not silent, the operator's row says
- * NOT ARMED and carries the mod's reason. A `"command"` threshold the simulation
- * refuses is judged by the app instead, on its own once-a-second tick.
+ * NOT ARMED and carries the mod's reason, and the alarm never fires: the
+ * simulation judges every alarm, at either vantage, and nothing else does.
  */
 export type UplinkAlarmVantage = "command" | "scet";
 

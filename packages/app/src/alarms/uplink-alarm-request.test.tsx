@@ -19,7 +19,7 @@ import { ModalProvider } from "@ksp-gonogo/ui-kit";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PeerMessage } from "../peer/protocol";
-import { firingAlarm } from "../test/firingAlarm";
+import { modFireNotice } from "../test/modFire";
 import { AlarmHostService } from "./AlarmHostService";
 import { AlarmPeerBridge } from "./AlarmPeerBridge";
 import { AlarmsLauncherBridge } from "./AlarmsLauncherBridge";
@@ -478,10 +478,9 @@ describe("an Uplink's alarm after the Uplink is gone", () => {
       storage: memoryStorage(),
       getOwltSeconds: () => 0,
     });
-    const firing = firingAlarm();
     const alarm = svc.addAlarm({
       name: "Launch pad upgrade complete",
-      trigger: firing.trigger,
+      trigger: { kind: "time", ut: 5000, leadSeconds: 10 },
       requestedBy: {
         uplinkId: "gone-uplink",
         uplinkName: "Removed Uplink",
@@ -490,9 +489,10 @@ describe("an Uplink's alarm after the Uplink is gone", () => {
     });
 
     /* Nothing is loaded for `gone-uplink`: no client handle, no registration,
-       no bundle. The alarm comes due and is unaffected, which is the whole rule
+       no bundle. The alarm fires and is unaffected, which is the whole rule
        here: the Uplink's absence must not remove the alarm or blank its row. */
-    publish(firing.due.topic, firing.due.record);
+    const notice = modFireNotice(alarm.id, 5000);
+    publish(notice.topic, notice.record);
     vi.advanceTimersByTime(1000);
 
     const after = svc.snapshot().alarms.find((a) => a.id === alarm.id);

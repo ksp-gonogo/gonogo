@@ -1,5 +1,4 @@
 import type { AlarmRequestedBy } from "@ksp-gonogo/components";
-import { migrateValueKey } from "../telemetry/renamedValueKeys";
 
 export type { AlarmRequestedBy };
 
@@ -17,17 +16,16 @@ export type AlarmState =
 export type ThresholdOp = ">" | ">=" | "<" | "<=" | "==" | "!=";
 
 /**
- * Which clock an alarm's instant is on, and therefore who evaluates it.
+ * Where a threshold is judged. The simulation judges every alarm; this picks
+ * which readings it judges against.
  *
- * - `"command"`: the clock the operator is reading. The alarm fires when the
- *   VIEW time reaches it, which is one light-time after the craft passed it.
- *   Evaluated here, on the client, the way every alarm always has been.
- * - `"scet"`: the craft's own clock. The alarm fires when the GAME's time
- *   reaches it, and the mod stops the warp for everybody when it does.
- *   Evaluated on the mod, because a client holds only delayed readings.
+ * - `"command"`: what the command centre this screen commands from has been
+ *   told, so the alarm fires when that place learns the condition holds, one
+ *   light-time after the craft passed it
+ * - `"scet"`: the craft's own state, so the alarm fires when the craft reaches
+ *   the condition
  *
- * Absent means `"command"`, so every persisted alarm and every LAN session
- * keeps exactly the behaviour it had.
+ * Absent means `"command"`.
  */
 export type AlarmVantage = "command" | "scet";
 
@@ -46,11 +44,6 @@ export interface TimeTrigger {
 /**
  * Whether this trigger is read at its own subject's vantage: the craft's own
  * clock and the craft's own state, upstream of the reveal gate.
- *
- * Only the two arms that can carry a vantage can answer, and the question is
- * about WHERE the condition is compared, nothing else. It is not
- * {@link modOwnsLatch}: that asks who writes the latch, and the two coincided
- * until the mod began evaluating alarms at places other than their subject.
  */
 export function isAtSubjectVantage(trigger: AlarmTrigger): boolean {
   // A time alarm names no craft and no place. A universal time is the same
@@ -60,54 +53,9 @@ export function isAtSubjectVantage(trigger: AlarmTrigger): boolean {
   return trigger.kind === "threshold" && trigger.vantage === "scet";
 }
 
-/**
- * Whether the MOD decides when this alarm fires, and so the client must not
- * write its latch.
- *
- * Two evaluators writing one latch field clear each other's, which is the
- * hazard `AlarmStateMachine.updateThresholdTracking` describes. This is the
- * one place that answers it: the body IS the migration table, so a kind moves
- * in one row and the whole state of the migration reads in ten lines.
- *
- * **Necessary, not sufficient.** A kind being mod-owned says the mod SHOULD
- * hold the alarm; it does not say the mod DOES. An arm can be refused, for a
- * vantage that names no place or a Topic with no reading behind it, and an
- * alarm nobody holds whose latch nobody writes never fires at all. A caller
- * suppressing client behaviour composes this with
- * `ScetAlarmBridge.holdsAlarm`, which is the mod's own statement of what it
- * took. This one stops a kind flipping too early; that one stops a flip
- * landing in a hole.
- *
- * Takes the TRIGGER rather than the alarm, because the kind is all it reads: a
- * caller holding only a trigger would otherwise have to assert a whole alarm
- * around it, and that assertion becomes a lie the moment this reads a second
- * field.
- */
-export function modOwnsLatch(trigger: AlarmTrigger): boolean {
-  switch (trigger.kind) {
-    case "time":
-      // Every time alarm, with no vantage test. The instant is the game's own
-      // universal time and every clock agrees on it, so there is no second
-      // opinion for this side to hold.
-      return true;
-    case "threshold":
-      // Mod-owned wherever the mod can read it: at its own subject, and at a
-      // command vantage when the trigger carries the Topic address the mod
-      // resolves. An addressless threshold names a key no Topic stands behind,
-      // so the mod is never asked to hold it and this side keeps the latch.
-      return isAtSubjectVantage(trigger) || thresholdAddress(trigger) !== null;
-    case "contract-parameter":
-    case "event":
-      // The mod cannot evaluate either yet. A contract parameter reads a
-      // list-shaped Topic that a dotted path cannot index, and nothing
-      // produces an event occurrence at all.
-      return false;
-  }
-}
-
 export interface ThresholdTrigger {
   kind: "threshold";
-  /** Data key to read (e.g. `v.altitude`, `v.surfaceVelocity`). */
+  /** The value key the operator picked, as the picker and the row name it. */
   dataKey: string;
   /** Comparison operator. */
   op: ThresholdOp;
@@ -119,62 +67,20 @@ export interface ThresholdTrigger {
    * 0 fires immediately on first match.
    */
   sustainSeconds: number;
-  /**
-   * Which clock the comparison is made on. See {@link AlarmVantage}.
-   *
-   * This is the arm that genuinely cannot be done anywhere else. A time alarm
-   * only needs a clock and the client has one; "is the craft above 100 km NOW"
-   * needs the craft's state now, which reaches the ground a light-time late and
-   * by then is the answer to a different question.
-   */
+  /** Where the comparison is judged. See {@link AlarmVantage}. */
   vantage?: AlarmVantage;
   /**
-   * SCET only: the Topic whose payload carries the value, as the wire spells a
-   * Topic (`"vessel.flight"`).
+   * The Topic whose payload carries the value, as the wire spells a Topic
+   * (`"vessel.flight"`). Required: the simulation judges every threshold, and
+   * it addresses a reading as a Topic and a path into its payload.
    *
    * The flat {@link dataKey} cannot stand in for it. It is `topic + "." +
    * fieldPath` with nothing marking the join, and a Topic can have two segments
    * or three (`vessel.orbit.truth`), so splitting one back apart is a guess.
-   * The simulation addresses a reading as a Topic and a path into its payload,
-   * and this is that address carried rather than reconstructed.
    */
-  topic?: string;
-  /** SCET only: the dotted path into {@link topic}'s payload (`"altitudeAsl"`). */
-  fieldPath?: string;
-}
-
-/**
- * The Topic-and-path address a SCET threshold is armed against, or null when
- * the trigger is not one or carries no address.
- *
- * Null is a real answer rather than an impossible state: a key that came from a
- * live `DataSource` rather than from the contract's own field catalogue has no
- * Topic behind it, so there is nothing for the simulation to resolve.
- */
-export function scetThresholdAddress(
-  trigger: AlarmTrigger,
-): { topic: string; fieldPath: string } | null {
-  if (trigger.kind !== "threshold" || trigger.vantage !== "scet") return null;
-  return thresholdAddress(trigger);
-}
-
-/**
- * The same address for a threshold on EITHER clock, or null when it carries
- * none.
- *
- * A command-vantage threshold does not need one to work: it is evaluated here,
- * against the flat {@link ThresholdTrigger.dataKey} this client already reads.
- * It carries one so the simulation can be asked the same question about what
- * this vantage has been told, which is the only way to find out whether the two
- * evaluators agree.
- */
-export function thresholdAddress(
-  trigger: AlarmTrigger,
-): { topic: string; fieldPath: string } | null {
-  if (trigger.kind !== "threshold") return null;
-  const { topic, fieldPath } = trigger;
-  if (!topic || !fieldPath) return null;
-  return { topic, fieldPath };
+  topic: string;
+  /** The dotted path into {@link topic}'s payload (`"altitudeAsl"`). */
+  fieldPath: string;
 }
 
 /**
@@ -196,7 +102,7 @@ export function actionsRunAboard(trigger: AlarmTrigger): boolean {
   if (trigger.kind !== "threshold" || !isAtSubjectVantage(trigger)) {
     return false;
   }
-  return thresholdAddress(trigger)?.topic.startsWith("vessel.") ?? false;
+  return trigger.topic.startsWith("vessel.");
 }
 
 export type ContractParameterTargetState = "Complete" | "Failed";
@@ -225,42 +131,10 @@ export interface ContractParameterTrigger {
   sustainSeconds: number;
 }
 
-/**
- * Fires on the arrival of a discrete occurrence on an `event` stream topic
- * (the discrete-occurrence primitive: see `EventTimeline` in
- * `@ksp-gonogo/sitrep-client`). Unlike threshold / contract-parameter, which
- * are level-triggered (a condition that holds), an event trigger is
- * edge-triggered: it latches the moment a matching occurrence is *revealed*,
- * then fires and stays fired: an occurrence is a fact of the past, it never
- * "un-happens".
- *
- * Only occurrences revealed *after* the alarm begins watching count, so
- * creating an alarm never replays an event already in the buffer (mirrors
- * `useStreamEvent`, which skips the sticky replay). No `sustainSeconds`: a
- * discrete edge has nothing to sustain.
- *
- * Scaffold note: no producer topic is wired yet. The host reads revealed
- * occurrences through an injected reader on `AlarmStateMachine` that currently
- * defaults to empty: so an `event` alarm sits perpetually pending until a
- * producer is wired. Fail-safe, same posture as a typo'd contract-parameter.
- */
-export interface EventTrigger {
-  kind: "event";
-  /** Event-stream topic id whose occurrences drive this alarm. */
-  topic: string;
-  /**
-   * Optional occurrence-kind filter. When set, only occurrences whose `kind`
-   * string-equals this fire the alarm; unset fires on any occurrence on the
-   * topic.
-   */
-  eventKind?: string;
-}
-
 export type AlarmTrigger =
   | TimeTrigger
   | ThresholdTrigger
-  | ContractParameterTrigger
-  | EventTrigger;
+  | ContractParameterTrigger;
 
 /**
  * Side-effect to dispatch when the alarm fires. Currently action-group only:
@@ -307,23 +181,15 @@ export interface Alarm {
   /** Wall-clock `Date.now()` when created. */
   createdAt: number;
   /**
-   * Threshold alarms only: UT seconds when the condition first matched
-   * in the current run. Reset to null whenever the condition becomes
-   * false, so the sustain timer always measures contiguous match.
+   * The view-clock UT at which this screen learned the simulation fired the
+   * alarm, which opens the banner's firing window. Null until then.
    */
   matchSinceUT?: number | null;
   /**
-   * The UT at which the thing that fired this alarm actually HAPPENED, as
-   * distinct from `matchSinceUT`, which is the UT it was revealed at. Under
-   * signal delay the two are far apart, and "when did it happen" is the number
-   * the operator wants; the reveal UT cannot stand in for it, and it has to
-   * keep being the reveal UT because that is what opens the firing window.
-   * Undefined until something latches.
-   *
-   * Set by the two arms whose firing instant is not the client's own clock:
-   * an `event` trigger latches the occurrence's own UT, and a SCET time
-   * trigger latches the instant the mod reported stopping the warp at. Both
-   * are on the craft's clock, and both render with the SCET qualifier.
+   * The UT the simulation fired the alarm at, as distinct from
+   * {@link matchSinceUT}, the UT this screen learned of it. Under signal delay
+   * the two are far apart, and "when did it happen" is the number the operator
+   * wants. Undefined until the alarm fires.
    */
   eventUT?: number;
   /**
@@ -334,10 +200,10 @@ export interface Alarm {
   onFire?: AlarmFireAction[];
   /**
    * Set when this alarm fired without its `onFire` actions being dispatched,
-   * because the fire was discovered rather than watched: found already due on
-   * the first evaluation after a reload, or made due by an edit. A command sent
-   * now for a condition met arbitrarily long ago is not a late action but the
-   * wrong one. Cleared when the alarm goes back to waiting.
+   * because the fire was discovered rather than watched: a notice replayed to
+   * a screen that was not running when the alarm fired. A command sent now for
+   * a condition met arbitrarily long ago is not a late action but the wrong
+   * one.
    */
   actionsWithheld?: true;
 }
@@ -488,176 +354,104 @@ const ALARM_STATES: readonly AlarmState[] = [
   "fired",
 ];
 
-/** A persisted `state` when it is one this build knows, and `undefined` for a
- *  record written by a build that named a state this one has never had. */
-function asAlarmState(value: unknown): AlarmState | undefined {
-  return ALARM_STATES.find((state) => state === value);
-}
+const THRESHOLD_OPS: readonly ThresholdOp[] = [
+  ">",
+  ">=",
+  "<",
+  "<=",
+  "==",
+  "!=",
+];
 
-/** Migrate v1 persisted alarms (top-level `ut` / `leadSeconds`) into the
- *  v2 `trigger` shape. Idempotent: already-v2 records pass through. */
-export function migrateAlarm(raw: unknown): Alarm | null {
-  const alarm = migrateAlarmShape(raw);
-  if (
-    alarm &&
-    typeof raw === "object" &&
-    raw !== null &&
-    "actionsWithheld" in raw &&
-    raw.actionsWithheld === true
-  ) {
-    alarm.actionsWithheld = true;
-  }
-  return alarm;
-}
-
-function migrateAlarmShape(raw: unknown): Alarm | null {
+/**
+ * A saved alarm in today's shape, or null for anything else, which is dropped
+ * rather than converted.
+ */
+export function parseAlarm(raw: unknown): Alarm | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
   if (typeof r.id !== "string" || typeof r.name !== "string") return null;
-  const state = asAlarmState(r.state);
-  const createdBy = typeof r.createdBy === "string" ? r.createdBy : "main";
-  const createdAt = typeof r.createdAt === "number" ? r.createdAt : Date.now();
-  const notes = typeof r.notes === "string" ? r.notes : undefined;
-  const matchSinceUT =
-    typeof r.matchSinceUT === "number" ? r.matchSinceUT : null;
-  const onFire = parseOnFire(r.onFire);
-  const requestedBy = parseRequestedBy(r.requestedBy);
-
-  if (r.trigger && typeof r.trigger === "object") {
-    const t = r.trigger as Record<string, unknown>;
-    if (t.kind === "time" && typeof t.ut === "number") {
-      return {
-        id: r.id,
-        name: r.name,
-        notes,
-        trigger: {
-          kind: "time",
-          ut: t.ut,
-          leadSeconds:
-            typeof t.leadSeconds === "number"
-              ? t.leadSeconds
-              : DEFAULT_LEAD_SECONDS,
-          /* `t.vantage` is deliberately dropped. A time alarm is compared
-             against the game's own universal time, which every clock agrees on,
-             so a persisted vantage names a choice the system can no longer
-             honour and carrying it forward would suggest one exists. */
-        },
-        state: state ?? "pending",
-        createdBy,
-        requestedBy,
-        createdAt,
-        onFire,
-      };
-    }
-    if (
-      t.kind === "threshold" &&
-      typeof t.dataKey === "string" &&
-      typeof t.value === "number" &&
-      typeof t.op === "string"
-    ) {
-      /* A SCET threshold is only a SCET threshold if it carries the address the
-         simulation resolves. Without one there is nothing to arm, and an alarm
-         that can never be armed would sit pending forever with nothing on
-         screen saying why; demoted to the command vantage it is at least the
-         alarm the operator can watch working. Anything that is not the literal
-         "scet" is the command vantage for the same reason the time arm gives:
-         the absent field has to mean the behaviour every persisted alarm
-         already had. */
-      const topic = typeof t.topic === "string" ? t.topic : "";
-      const fieldPath = typeof t.fieldPath === "string" ? t.fieldPath : "";
-      const addressed = topic !== "" && fieldPath !== "";
-      return {
-        id: r.id,
-        name: r.name,
-        notes,
-        trigger: {
-          kind: "threshold",
-          dataKey: migrateValueKey(t.dataKey),
-          op: t.op as ThresholdOp,
-          value: t.value,
-          sustainSeconds:
-            typeof t.sustainSeconds === "number"
-              ? t.sustainSeconds
-              : DEFAULT_SUSTAIN_SECONDS,
-          vantage: t.vantage === "scet" && addressed ? "scet" : "command",
-          ...(addressed ? { topic, fieldPath } : {}),
-        },
-        state: state ?? "pending",
-        createdBy,
-        requestedBy,
-        createdAt,
-        matchSinceUT,
-        onFire,
-      };
-    }
-    if (
-      t.kind === "contract-parameter" &&
-      typeof t.contractId === "number" &&
-      typeof t.parameterTitle === "string"
-    ) {
-      const targetState = t.targetState === "Failed" ? "Failed" : "Complete";
-      return {
-        id: r.id,
-        name: r.name,
-        notes,
-        trigger: {
-          kind: "contract-parameter",
-          contractId: t.contractId,
-          parameterTitle: t.parameterTitle,
-          targetState,
-          sustainSeconds:
-            typeof t.sustainSeconds === "number" ? t.sustainSeconds : 0,
-        },
-        state: state ?? "pending",
-        createdBy,
-        requestedBy,
-        createdAt,
-        matchSinceUT,
-        onFire,
-      };
-    }
-    if (t.kind === "event" && typeof t.topic === "string") {
-      return {
-        id: r.id,
-        name: r.name,
-        notes,
-        trigger: {
-          kind: "event",
-          topic: t.topic,
-          eventKind: typeof t.eventKind === "string" ? t.eventKind : undefined,
-        },
-        state: state ?? "pending",
-        createdBy,
-        requestedBy,
-        createdAt,
-        matchSinceUT,
-        eventUT: typeof r.eventUT === "number" ? r.eventUT : undefined,
-        onFire,
-      };
-    }
+  if (typeof r.createdBy !== "string" || typeof r.createdAt !== "number") {
     return null;
   }
-
-  // Pre-v2: top-level ut + leadSeconds
-  if (typeof r.ut !== "number") return null;
+  const state = ALARM_STATES.find((known) => known === r.state);
+  const trigger = parseTrigger(r.trigger);
+  if (state === undefined || trigger === null) return null;
   return {
     id: r.id,
     name: r.name,
-    notes,
-    trigger: {
-      kind: "time",
-      ut: r.ut,
-      leadSeconds:
-        typeof r.leadSeconds === "number"
-          ? r.leadSeconds
-          : DEFAULT_LEAD_SECONDS,
-    },
-    state: state ?? "pending",
-    createdBy,
-    requestedBy,
-    createdAt,
-    onFire,
+    notes: typeof r.notes === "string" ? r.notes : undefined,
+    trigger,
+    state,
+    createdBy: r.createdBy,
+    requestedBy: parseRequestedBy(r.requestedBy),
+    createdAt: r.createdAt,
+    matchSinceUT: typeof r.matchSinceUT === "number" ? r.matchSinceUT : null,
+    eventUT: typeof r.eventUT === "number" ? r.eventUT : undefined,
+    onFire: parseOnFire(r.onFire),
+    ...(r.actionsWithheld === true ? { actionsWithheld: true } : {}),
   };
+}
+
+/**
+ * A trigger the simulation can be asked to watch, or null for one it cannot:
+ * an unknown kind, a missing field, or a threshold with no Topic address.
+ *
+ * Also the check on a trigger arriving from a station, which this code did not
+ * construct.
+ */
+export function parseTrigger(raw: unknown): AlarmTrigger | null {
+  if (!raw || typeof raw !== "object") return null;
+  const t = raw as Record<string, unknown>;
+  if (t.kind === "time") {
+    if (typeof t.ut !== "number" || typeof t.leadSeconds !== "number") {
+      return null;
+    }
+    return { kind: "time", ut: t.ut, leadSeconds: t.leadSeconds };
+  }
+  if (t.kind === "threshold") {
+    const op = THRESHOLD_OPS.find((known) => known === t.op);
+    if (
+      op === undefined ||
+      typeof t.dataKey !== "string" ||
+      typeof t.value !== "number" ||
+      typeof t.sustainSeconds !== "number" ||
+      typeof t.topic !== "string" ||
+      t.topic === "" ||
+      typeof t.fieldPath !== "string" ||
+      t.fieldPath === ""
+    ) {
+      return null;
+    }
+    return {
+      kind: "threshold",
+      dataKey: t.dataKey,
+      op,
+      value: t.value,
+      sustainSeconds: t.sustainSeconds,
+      vantage: t.vantage === "scet" ? "scet" : "command",
+      topic: t.topic,
+      fieldPath: t.fieldPath,
+    };
+  }
+  if (t.kind === "contract-parameter") {
+    if (
+      typeof t.contractId !== "number" ||
+      typeof t.parameterTitle !== "string" ||
+      (t.targetState !== "Complete" && t.targetState !== "Failed") ||
+      typeof t.sustainSeconds !== "number"
+    ) {
+      return null;
+    }
+    return {
+      kind: "contract-parameter",
+      contractId: t.contractId,
+      parameterTitle: t.parameterTitle,
+      targetState: t.targetState,
+      sustainSeconds: t.sustainSeconds,
+    };
+  }
+  return null;
 }
 
 /**

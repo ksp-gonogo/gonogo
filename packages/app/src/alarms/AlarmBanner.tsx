@@ -356,12 +356,8 @@ function CollapsedCPInline({
 
 function isWarpToCandidate(alarm: Alarm): boolean {
   if (alarm.trigger.kind === "time") return true;
-  // Contract-parameter and event triggers are discrete transitions, no
-  // monotonic axis to warp toward.
-  if (alarm.trigger.kind === "contract-parameter") return false;
-  if (alarm.trigger.kind === "event") return false;
-  const op = alarm.trigger.op;
-  return op !== "==" && op !== "!=";
+  // Every other kind is judged by the simulation, which stops the warp itself.
+  return false;
 }
 
 type Tone = "idle" | "set" | "arm" | "fire";

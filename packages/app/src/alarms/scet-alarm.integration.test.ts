@@ -1,6 +1,5 @@
 import { deriveTimeContexts } from "@ksp-gonogo/core";
 import { memoryStorage } from "@ksp-gonogo/core/test";
-import { logger } from "@ksp-gonogo/logger";
 import {
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
@@ -158,9 +157,9 @@ interface ModStandIn {
   markUnreachable(id: string): void;
   /** The player switches to another craft, and the mod cancels every alarm still armed. */
   switchCraft(): void;
-  /** Tell the CLIENT an altitude, stamped now, so its own threshold evaluator has a reading to cross on. */
+  /** Tell the CLIENT an altitude, stamped now, so a test can show this side judges nothing off it. */
   showClientAltitude(altitudeAsl: number): void;
-  /** Tell the CLIENT one contract objective's state, stamped now, so its own contract evaluator has a list to match. */
+  /** Tell the CLIENT one contract objective's state, stamped now, so a test can show this side judges nothing off it. */
   showClientObjective(parameterTitle: string, stateOrdinal: number): void;
   /** Point the app-wide active-client seam back at this session's client. */
   attach(): void;
@@ -950,11 +949,7 @@ describe("SCET alarms", () => {
 
     /* The same instant, asked for twice. A universal time is the same instant
        wherever it is watched from, so there is no clock to choose between and
-       both come due together, when the GAME reaches it.
-
-       This used to assert the opposite: the two carried a vantage each and
-       fired a light-time apart. That gap was never a fact about a UT, it was
-       the client evaluating one of them against its own delayed clock. */
+       both come due together, when the GAME reaches it. */
     const target = UT_START + 200;
     const first = svc.addAlarm({
       name: "First",
@@ -1384,12 +1379,8 @@ describe("SCET alarms", () => {
     expect(after).toEqual([alarm.id]);
   });
 
-  /**
-   * A contract objective is shadowed like a command-vantage threshold: the
-   * simulation judges it against what this place has been told of the career,
-   * and the client stays the one that latches.
-   */
-  it("arms a contract objective for the simulation to shadow", async () => {
+  /** The simulation judges a contract objective against what this place has been told of the career. */
+  it("arms a contract objective for the simulation to judge", async () => {
     const session = startSession(OWLT);
     session.emitAt(UT_START);
     const svc = new AlarmHostService(null, {
@@ -1622,8 +1613,7 @@ describe("SCET alarms", () => {
      * all: the two clocks print the same string, so a label on an instant
      * would say nothing an operator could check. That is a statement about a
      * LABEL and nothing on the arming path consults it. `ScetAlarmBridge` arms
-     * any pending SCET trigger, `AlarmStateMachine` declines to evaluate any
-     * SCET trigger locally whatever the delay, and the mod fires on its own
+     * any pending trigger whatever the delay, and the mod fires on its own
      * clock, which at zero delay is the operator's clock too.
      *
      * An Uplink may ask for `vantage: "scet"` at any delay, and so can the
@@ -1993,7 +1983,7 @@ describe("SCET alarms", () => {
    * threshold with no Topic address is never sent, and a refused arm is handed
    * back.
    */
-  describe("command-vantage threshold, latched by the mod", () => {
+  describe("command-vantage threshold, judged by the mod", () => {
     const COMMAND_VANTAGE_ALTITUDE = {
       kind: "threshold",
       dataKey: "vessel.flight.altitudeAsl",
@@ -2093,7 +2083,7 @@ describe("SCET alarms", () => {
       expect(session.warpDispatchedAt).toEqual([]);
     });
 
-    it("does not latch from this side's own reading of it", async () => {
+    it("is never judged from this side's own reading of it", async () => {
       const session = startSession(OWLT);
       session.emitAt(UT_START);
       const svc = host();
@@ -2140,33 +2130,7 @@ describe("SCET alarms", () => {
       expect(row?.state).not.toBe("pending");
     });
 
-    it("keeps a threshold with no Topic address on this side", async () => {
-      const session = startSession(OWLT);
-      session.emitAt(UT_START);
-      const svc = host();
-      const alarm = svc.addAlarm({
-        name: "Altitude",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.flight.altitudeAsl",
-          op: ">",
-          value: 100_000,
-          sustainSeconds: 0,
-          vantage: "command",
-        },
-      });
-      await run(session, UT_START + 4 * DT);
-      expect(session.armed()).not.toContain(alarm.id);
-
-      session.showClientAltitude(150_000);
-      await runFrom(session, UT_START + 4 * DT, UT_START + 8 * DT + OWLT);
-      const row = svc.snapshot().alarms.find((a) => a.id === alarm.id);
-      svc.dispose();
-
-      expect(row?.state).not.toBe("pending");
-    });
-
-    it("takes the latch back when the mod refuses the arm", async () => {
+    it("shows the mod's refusal, and never fires, when the mod refuses the arm", async () => {
       const session = startSession(OWLT);
       session.emitAt(UT_START);
       const svc = host();
@@ -2180,23 +2144,54 @@ describe("SCET alarms", () => {
       });
       await run(session, UT_START + 4 * DT);
       expect(session.armed()).not.toContain(alarm.id);
-      expect(session.armAttempts(alarm.id)).toBeGreaterThan(0);
 
       session.showClientAltitude(150_000);
       await runFrom(session, UT_START + 4 * DT, UT_START + 8 * DT + OWLT);
-      const row = svc.snapshot().alarms.find((a) => a.id === alarm.id);
+      const snap = svc.snapshot();
       svc.dispose();
 
-      expect(row?.state).not.toBe("pending");
+      expect(snap.alarms.find((a) => a.id === alarm.id)?.state).toBe("pending");
+      expect(snap.scetArmRefusals?.[alarm.id]).toBe(
+        "no SCET threshold can be read from 'vessel.orbit'",
+      );
+    });
+
+    /**
+     * `vessel.state` is derived on this side, partly reckoned rather than
+     * measured, and the simulation publishes no such Topic. An alarm on it is
+     * refused where it is armed, which is what keeps every alarm off a reckoned
+     * value.
+     */
+    it("is refused on a Topic this side derives, so no alarm fires on a reckoned value", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = host();
+      const alarm = svc.addAlarm({
+        name: "Time to apoapsis",
+        trigger: {
+          kind: "threshold",
+          dataKey: "vessel.state.timeToAp",
+          op: "<",
+          value: 60,
+          sustainSeconds: 0,
+          vantage: "command",
+          topic: "vessel.state",
+          fieldPath: "timeToAp",
+        },
+      });
+      await run(session, UT_START + 8 * DT + OWLT);
+      const snap = svc.snapshot();
+      svc.dispose();
+
+      expect(session.armed()).not.toContain(alarm.id);
+      expect(snap.alarms.find((a) => a.id === alarm.id)?.state).toBe("pending");
+      expect(snap.scetArmRefusals?.[alarm.id]).toBe(
+        "no SCET threshold can be read from 'vessel.state'",
+      );
     });
   });
 
-  /**
-   * A contract objective is still shadowed: the mod judges it and says so, and
-   * this side keeps the latch until that kind has its own evidence. The shadow
-   * log is what gathers it, so both of its directions are driven here.
-   */
-  describe("contract objective shadow", () => {
+  describe("contract objective, judged by the mod", () => {
     const MUN_ORBIT = {
       kind: "contract-parameter",
       contractId: 42,
@@ -2214,7 +2209,7 @@ describe("SCET alarms", () => {
       });
     }
 
-    it("does not latch from the mod's verdict", async () => {
+    it("latches from the mod's verdict", async () => {
       const session = startSession(OWLT);
       session.emitAt(UT_START);
       const svc = host();
@@ -2227,11 +2222,11 @@ describe("SCET alarms", () => {
       const row = svc.snapshot().alarms.find((a) => a.id === alarm.id);
       svc.dispose();
 
-      expect(row?.state).toBe("pending");
-      expect(row?.eventUT).toBeUndefined();
+      expect(row?.state).not.toBe("pending");
+      expect(row?.eventUT).toBe(UT_START + 4 * DT);
     });
 
-    it("latches from this side's own reading of the career", async () => {
+    it("is never judged from this side's own reading of the career", async () => {
       const session = startSession(OWLT);
       session.emitAt(UT_START);
       const svc = host();
@@ -2243,121 +2238,7 @@ describe("SCET alarms", () => {
       const row = svc.snapshot().alarms.find((a) => a.id === alarm.id);
       svc.dispose();
 
-      expect(row?.state).not.toBe("pending");
-    });
-
-    it("records the mod firing while the client is still pending", async () => {
-      const warn = vi.spyOn(logger, "warn");
-      const session = startSession(OWLT);
-      session.emitAt(UT_START);
-      const svc = host();
-      const alarm = svc.addAlarm({ name: "Mun", trigger: { ...MUN_ORBIT } });
-      await run(session, UT_START + 4 * DT);
-
-      session.fireForVantage(alarm.id);
-      await runFrom(session, UT_START + 4 * DT, UT_START + 5 * DT);
-      svc.dispose();
-
-      expect(
-        warn.mock.calls.some(([m]) =>
-          String(m).includes("mod fired first, client still pending"),
-        ),
-      ).toBe(true);
-      warn.mockRestore();
-    });
-
-    /**
-     * The shadow record has to say whether a fire happened under warp, since
-     * that is where the two clocks part furthest. The same mod-first fire is
-     * run at 1x and at 1000x and must read differently, and the figure is the
-     * rate the game reported rather than the rung it was set to.
-     */
-    it.each([
-      { label: "at 1x", gameIndex: 0, expected: 1 },
-      { label: "under warp", gameIndex: 5, expected: 1000 },
-    ])("records the game's warp rate on a shadow fire $label", async ({
-      gameIndex,
-      expected,
-    }) => {
-      const warn = vi.spyOn(logger, "warn");
-      const session = startSession(OWLT);
-      session.emitAt(UT_START);
-      const svc = host();
-      const alarm = svc.addAlarm({ name: "Mun", trigger: { ...MUN_ORBIT } });
-      await run(session, UT_START + 4 * DT);
-      session.setGameWarp(gameIndex);
-      const warped = UT_START + 4 * DT + OWLT + 2 * DT;
-      await runFrom(session, UT_START + 4 * DT, warped);
-
-      session.fireForVantage(alarm.id);
-      await runFrom(session, warped, warped + OWLT + 2 * DT);
-      svc.dispose();
-
-      const line = warn.mock.calls.find(([m]) =>
-        String(m).includes("mod fired first, client still pending"),
-      );
-      expect(line?.[1]).toMatchObject({ id: alarm.id, warpRate: expected });
-      warn.mockRestore();
-    });
-
-    it("records the warp rate on the client's own fire under warp", async () => {
-      const info = vi.spyOn(logger, "info");
-      const session = startSession(OWLT);
-      session.emitAt(UT_START);
-      const svc = host();
-      const alarm = svc.addAlarm({ name: "Mun", trigger: { ...MUN_ORBIT } });
-      await run(session, UT_START + 4 * DT);
-      session.setGameWarp(5);
-      session.fireForVantage(alarm.id);
-      const told = UT_START + 4 * DT + OWLT + 2 * DT;
-      await runFrom(session, UT_START + 4 * DT, told);
-
-      session.showClientObjective("Orbit the Mun", KspParameterState.Complete);
-      await runFrom(session, told, told + OWLT + 2 * DT);
-      svc.dispose();
-
-      const line = info.mock.calls.find(([m]) =>
-        String(m).includes("client fired, mod had already agreed"),
-      );
-      expect(line?.[1]).toMatchObject({ id: alarm.id, warpRate: 1000 });
-      info.mockRestore();
-    });
-
-    it("does not let an edited alarm inherit the verdict on the condition it replaced", async () => {
-      const info = vi.spyOn(logger, "info");
-      const warn = vi.spyOn(logger, "warn");
-      const session = startSession(OWLT);
-      session.emitAt(UT_START);
-      const svc = host();
-      const alarm = svc.addAlarm({ name: "Mun", trigger: { ...MUN_ORBIT } });
-      let ut = UT_START + 4 * DT;
-      await run(session, ut);
-      session.fireForVantage(alarm.id);
-      await runFrom(session, ut, ut + OWLT + 2 * DT);
-      ut += OWLT + 2 * DT;
-
-      svc.updateAlarm(alarm.id, {
-        trigger: { ...MUN_ORBIT, parameterTitle: "Land on the Mun" },
-      });
-      session.showClientObjective(
-        "Land on the Mun",
-        KspParameterState.Complete,
-      );
-      await runFrom(session, ut, ut + OWLT + 4 * DT);
-      svc.dispose();
-
-      const logged = (spy: typeof info, message: string) =>
-        spy.mock.calls.filter(
-          ([m, ctx]) =>
-            m === message &&
-            (ctx as { id?: string } | undefined)?.id === alarm.id,
-        ).length;
-      expect(
-        logged(info, "alarm-shadow: client fired, mod had already agreed"),
-      ).toBe(0);
-      expect(logged(warn, "alarm-shadow: client fired, mod has not")).toBe(1);
-      info.mockRestore();
-      warn.mockRestore();
+      expect(row?.state).toBe("pending");
     });
   });
 });

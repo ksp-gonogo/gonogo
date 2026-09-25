@@ -47,15 +47,10 @@ export function useAlarmRequest(
  *
  * The two shapes differ in one substantive way: a threshold is addressed out
  * there as a Topic and a path, and the app's own arm additionally carries the
- * joined `dataKey` that the client-side evaluation reads. It is derived here
- * rather than asked for, because the join is the app's spelling of an address
- * the caller already gave, and a caller free to spell it themselves is a caller
+ * joined `dataKey` the row and the picker name it by. It is derived here rather
+ * than asked for, because the join is the app's spelling of an address the
+ * caller already gave, and a caller free to spell it themselves is a caller
  * free to spell it differently from the Topic they named.
- *
- * The address is carried on both vantages, not just the SCET one the modal
- * fills it for. It costs nothing on a command-vantage alarm and it means the
- * operator can flip an Uplink's alarm onto the craft's clock afterwards without
- * the row silently having nothing to arm.
  */
 function toAlarmTrigger(trigger: UplinkAlarmTrigger): AlarmTrigger {
   if (trigger.kind === "time") {

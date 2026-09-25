@@ -14,10 +14,12 @@ const at = (ut: number): AlarmTrigger => ({
 
 const threshold: AlarmTrigger = {
   kind: "threshold",
-  dataKey: "vessel.state.altitudeAsl",
+  dataKey: "vessel.flight.altitudeAsl",
   op: "<",
   value: 70_000,
   sustainSeconds: 0,
+  topic: "vessel.flight",
+  fieldPath: "altitudeAsl",
 };
 
 describe("pendingAlarmSummaries", () => {

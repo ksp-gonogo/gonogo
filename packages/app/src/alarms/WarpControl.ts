@@ -1,13 +1,12 @@
 import { logger } from "@ksp-gonogo/logger";
 import { dispatchActiveCommandTopic } from "@ksp-gonogo/sitrep-client";
 import type { AlarmWarpPlanner } from "./AlarmWarpPlanner";
-import type { Alarm, AlarmWarpState } from "./types";
+import type { AlarmWarpState } from "./types";
 import type { WarpRateTable } from "./WarpRateTable";
 
 /**
  * The fastest rate to run at when there is no arrival time to plan against:
- * an alarm that is eligible but not yet trackable, or a threshold the
- * simulation cannot model.
+ * an alarm that is eligible but already inside its warp stop.
  *
  * A RATE, not a warp index: an index is only ever shorthand for "100x on
  * stock's ladder", and an install that republishes the ladder makes the
@@ -15,7 +14,6 @@ import type { WarpRateTable } from "./WarpRateTable";
  * Naming the rate says the same thing on every install.
  */
 const UNPLANNABLE_MAX_RATE = 100;
-const WARP_COMMAND_COOLDOWN_MS = 1_500;
 
 export interface WarpControlContext {
   /** Current observed warp index, used to skip redundant commands. */
@@ -55,15 +53,15 @@ export interface WarpToTarget {
 }
 
 /**
- * Owns the "warp to next alarm" controller and the on-arming step-down.
- * Reads alarm/UT state through `AlarmWarpPlanner`; mutates only its own
- * session fields and forwards intent stamps to the host.
+ * Owns the "warp to next alarm" controller. Reads alarm/UT state through
+ * `AlarmWarpPlanner`; mutates only its own session fields and forwards intent
+ * stamps to the host. It never stops the warp for an alarm: the simulation does
+ * that in the frame the alarm comes due.
  */
 export class WarpControl {
   private warpToActive = false;
   private warpToAlarmId: string | null = null;
   private warpToTargetIndex = 0;
-  private lastStepDownAt = 0;
   private warpSafetyMarginSeconds: number;
   /** The index the last dispatched `time.setWarpIndex` asked for, null before it has asked for anything. */
   private commandedIndex: number | null = null;
@@ -73,7 +71,6 @@ export class WarpControl {
   constructor(
     private readonly planner: AlarmWarpPlanner,
     private readonly ctx: WarpControlContext,
-    private readonly nowMs: () => number,
     initialMarginSeconds: number,
   ) {
     this.warpSafetyMarginSeconds = initialMarginSeconds;
@@ -206,10 +203,7 @@ export class WarpControl {
       return;
     }
     this.warpToAlarmId = target.alarm.id;
-    const targetIndex = this.computeWarpToIndex(
-      target.remainingGameSeconds,
-      target.alarm,
-    );
+    const targetIndex = this.computeWarpToIndex(target.remainingGameSeconds);
     this.warpToTargetIndex = targetIndex;
     if (targetIndex === currentIndex) return;
     this.ctx.registerOwnWarpIntent();
@@ -238,15 +232,6 @@ export class WarpControl {
     this.warpToTargetIndex = 0;
     this.commandedIndex = null;
     this.observedAtCommand = null;
-  }
-
-  /** Drop warp to 0× when an alarm transitions to arming/firing.
-   *  Throttled so a sustained arming state doesn't flood KSP. */
-  stepWarpDown(): void {
-    const now = this.nowMs();
-    if (now - this.lastStepDownAt < WARP_COMMAND_COOLDOWN_MS) return;
-    this.lastStepDownAt = now;
-    this.commandWarp(0);
   }
 
   /**
@@ -279,15 +264,9 @@ export class WarpControl {
    * being fixed: the table belongs to the install, and only the install (or the
    * game's own behaviour, watched) can say what a rung means.
    */
-  private computeWarpToIndex(
-    remainingGameSeconds: number,
-    target: Alarm,
-  ): number {
+  private computeWarpToIndex(remainingGameSeconds: number): number {
     if (remainingGameSeconds <= 0) return 0;
-    const marginRate = remainingGameSeconds / this.effectiveMarginSeconds();
-    const maxRate = this.planner.hasUnmodelableThresholdOther(target)
-      ? Math.min(marginRate, UNPLANNABLE_MAX_RATE)
-      : marginRate;
+    const maxRate = remainingGameSeconds / this.effectiveMarginSeconds();
     return this.ctx.getRateTable().chooseIndex(maxRate);
   }
 

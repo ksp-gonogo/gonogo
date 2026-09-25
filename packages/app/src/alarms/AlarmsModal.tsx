@@ -55,7 +55,6 @@ import {
   DEFAULT_LEAD_SECONDS,
   DEFAULT_SUSTAIN_SECONDS,
   isAtSubjectVantage,
-  modOwnsLatch,
 } from "./types";
 
 /**
@@ -145,8 +144,7 @@ export function AlarmsModal({
   /* Value-restricted keys: a threshold compares against a scalar Value (per the
      Uplink Domain/Topic/Value/Stream/Asset vocab), so this hides enums,
      booleans, opaque structs, untyped raws, AND any legacy key with no stream
-     home (the alarm's `readTelemetryNumber` reads off the stream: see
-     `AlarmStateMachine`).
+     home.
 
      The catalogue rather than `useValueKeys`, which is the same list with the
      same filter and hands back the narrower `DataKeyMeta`. A SCET threshold is
@@ -249,23 +247,25 @@ export function AlarmsModal({
    *
    * The catalogue entry's own Topic and path, which every entry enumerated from
    * the contract carries. A key a live `DataSource` supplied from its own
-   * `schema()` has neither, and nothing can be resolved for it. Checked at
-   * PRESS rather than by hiding the row, so the operator still sees a key they
-   * can read on a graph and learns only that this ARM cannot use it.
+   * `schema()` has neither, and nothing can be resolved for it, so no alarm can
+   * be set on it: the simulation judges every alarm. Checked at PRESS rather
+   * than by hiding the row, so the operator still sees a key they can read on a
+   * graph and learns only that an alarm cannot use it.
    *
    * Nothing has to be undone first. The kinematics the picker offers are the
    * wire spellings now, so what it shows is already an address the simulation
    * can be given.
    */
-  const scetAddress = useMemo(() => {
+  const address = useMemo(() => {
     if (selectedKey === null) return null;
     if (selectedKey.topic === "" || selectedKey.fieldPath === "") return null;
     return { topic: selectedKey.topic, fieldPath: selectedKey.fieldPath };
   }, [selectedKey]);
-  const scetAddressable = scetAddress !== null;
+  const addressable = address !== null;
   const draftAboard =
     kind === "time" ||
     (vantage === "scet" &&
+      address !== null &&
       actionsRunAboard({
         kind: "threshold",
         dataKey: trimmedKey,
@@ -273,16 +273,14 @@ export function AlarmsModal({
         value: valueN,
         sustainSeconds: 0,
         vantage,
-        ...(scetAddress ?? {}),
+        ...address,
       }));
   const addDisabled =
     trimmedName === "" ||
     (kind === "time" &&
       (!Number.isFinite(offsetN) || offsetN <= 0 || snapshot.ut === null)) ||
     (kind === "threshold" &&
-      (trimmedKey === "" ||
-        !Number.isFinite(valueN) ||
-        (vantage === "scet" && !scetAddressable)));
+      (trimmedKey === "" || !Number.isFinite(valueN) || !addressable));
 
   const handleAdd = () => {
     if (addDisabled) return;
@@ -307,6 +305,8 @@ export function AlarmsModal({
           Number.isFinite(lead) && lead > 0 ? lead : DEFAULT_LEAD_SECONDS,
       };
     } else {
+      // `addDisabled` refuses a key with no address.
+      if (address === null) return;
       const sustain = Number.parseFloat(sustainSeconds);
       trigger = {
         kind: "threshold",
@@ -318,14 +318,7 @@ export function AlarmsModal({
             ? sustain
             : DEFAULT_SUSTAIN_SECONDS,
         vantage,
-        /* The Topic and the path, carried whenever the field HAS one, whatever
-           clock the alarm is on. A SCET threshold cannot be armed without it,
-           which `addDisabled` already refuses; a command-vantage one does not
-           need it to work, and carries it so the simulation can shadow-evaluate
-           the same alarm against what this vantage has been told and the two
-           answers can be compared. Either whole or absent, never half-filled:
-           `scetAddress` resolves both halves or neither. */
-        ...(scetAddress !== null ? scetAddress : {}),
+        ...address,
       };
     }
     onAdd({
@@ -525,7 +518,7 @@ export function AlarmsModal({
                 clearable
               />
               <FieldHint>Any telemetry value that returns a number.</FieldHint>
-              {vantage === "scet" && trimmedKey !== "" && !scetAddressable && (
+              {trimmedKey !== "" && !addressable && (
                 <FieldHint>
                   <code>{trimmedKey}</code> has no Topic behind it, so there is
                   no address the simulation could read it from.
@@ -1125,7 +1118,7 @@ function sortKey(a: Alarm): number {
  * `contexts` says which clock each instant here belongs to, and the two
  * genuinely differ within one row: an alarm's own UT is a view-clock instant
  * (the pipeline ticks on the view clock, so that is when the operator will be
- * told), while an event alarm's `eventUT` is the occurrence's own SCET, which
+ * told), while a SCET threshold's `eventUT` is the craft's own clock, which
  * under delay is long before. Labelling them lets the row carry both without
  * the reader having to know which is which.
  */
@@ -1159,11 +1152,9 @@ function describeTrigger(
   if (a.trigger.kind === "contract-parameter") {
     const t = a.trigger;
     const matchInfo =
-      a.matchSinceUT != null && utNow != null
-        ? ` · matched ${writeQuantity(value("s", utNow - a.matchSinceUT))} (need ${writeQuantity(value("s", t.sustainSeconds))})`
-        : t.sustainSeconds > 0
-          ? ` · sustain ${writeQuantity(value("s", t.sustainSeconds))}`
-          : "";
+      t.sustainSeconds > 0
+        ? ` · sustain ${writeQuantity(value("s", t.sustainSeconds))}`
+        : "";
     return (
       <code>
         {t.parameterTitle} → {t.targetState}
@@ -1171,47 +1162,24 @@ function describeTrigger(
       </code>
     );
   }
-  if (a.trigger.kind === "event") {
-    const t = a.trigger;
-    return (
-      <>
-        <code>
-          {t.topic}
-          {t.eventKind != null && ` · ${t.eventKind}`}
-        </code>
-        {/* When it HAPPENED, not when it reached us: under delay the row
-            otherwise said only that something had, and never when. */}
-        {a.eventUT != null && (
-          <>
-            {" · "}
-            <MissionDate value={a.eventUT} context={contexts.scet} />
-          </>
-        )}
-      </>
-    );
-  }
-  // Threshold: narrow exhausted by the three `kind` checks above.
+  // Threshold: narrow exhausted by the two `kind` checks above.
   const t = a.trigger;
   const scet = t.vantage === "scet";
-  /* An alarm the mod latches reports the window it is waiting for, never
-     progress through it. The mod measures the sustain on its own ticks, and
-     `matchSinceUT` on this side is the REVEAL of the fire notice rather than
-     the moment the condition began holding: rendering it as "matched 3s" would
-     be inventing a progress bar for a window this client never watched. */
+  /* The window it is waiting for, never progress through it: the simulation
+     measures the sustain on its own ticks, and nothing on this side watched the
+     condition begin holding. */
   const matchInfo =
-    !modOwnsLatch(t) && a.matchSinceUT != null && utNow != null
-      ? ` · matched ${writeQuantity(value("s", utNow - a.matchSinceUT))} (need ${writeQuantity(value("s", t.sustainSeconds))})`
-      : t.sustainSeconds > 0
-        ? ` · sustain ${writeQuantity(value("s", t.sustainSeconds))}`
-        : "";
+    t.sustainSeconds > 0
+      ? ` · sustain ${writeQuantity(value("s", t.sustainSeconds))}`
+      : "";
   return (
     <>
       <code>
         {t.dataKey} {t.op} {t.value}
         {matchInfo}
       </code>
-      {/* When the craft crossed it, on the craft's clock: the same instant an
-          event alarm reports, and the only number a fired SCET row can give. */}
+      {/* When the craft crossed it, on the craft's clock: the only number a
+          fired SCET row can give. */}
       {scet && a.eventUT != null && (
         <>
           {" · "}

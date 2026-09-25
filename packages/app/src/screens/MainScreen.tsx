@@ -24,8 +24,7 @@ import {
   SerialPortRecoveryWatcher,
 } from "@ksp-gonogo/serial";
 import type { Transport } from "@ksp-gonogo/sitrep-client";
-import { getViewUt } from "@ksp-gonogo/sitrep-client";
-import { RootProviders, readRevealedEvents } from "@ksp-gonogo/sitrep-sdk";
+import { RootProviders } from "@ksp-gonogo/sitrep-sdk";
 import { BannerStack, FabClusterProvider } from "@ksp-gonogo/ui";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -259,17 +258,7 @@ export function MainScreen({
   // (the useState initializer only runs once per mount cycle).
   const [goNoGoHost] = useState(() => new GoNoGoHostService(peerHostService));
   const [pushHost] = useState(() => new PushHostService(peerHostService));
-  const [alarmHost] = useState(() =>
-    createAlarmHost(peerHostService, {
-      /*
-       * Feed the `event` alarm trigger from whichever Uplinks registered a
-       * source for the Topic. `getViewUt()` is the operator's delayed view
-       * clock, so an edge stamped at its live capture UT reveals only once the
-       * view catches up past it: the signal delay realised for free.
-       */
-      getRevealedEvents: (topic) => readRevealedEvents(topic, getViewUt()),
-    }),
-  );
+  const [alarmHost] = useState(() => createAlarmHost(peerHostService));
   const [notesHost] = useState(() => createNotesHost(peerHostService));
   const [commcastLog] = useState(() =>
     hostsThePeerMesh ? createCommcastLog() : null,

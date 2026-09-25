@@ -73,7 +73,7 @@ const CARRIED = [
 /**
  * Two alarms that put both clocks in one list: a time alarm, whose UT is a
  * view-clock instant because that is when the operator will be told, and a
- * fired event alarm, whose `eventUT` is the occurrence's own SCET and so sits
+ * fired SCET threshold, whose `eventUT` is the craft's own clock and so sits
  * one light-time before the moment it was revealed.
  */
 function alarms(): Alarm[] {
@@ -88,8 +88,17 @@ function alarms(): Alarm[] {
     },
     {
       id: "a2",
-      name: "Signal lost",
-      trigger: { kind: "event", topic: "comms.events", eventKind: "los" },
+      name: "Light-time over zero",
+      trigger: {
+        kind: "threshold",
+        dataKey: "comms.delay.oneWaySeconds",
+        op: ">",
+        value: 0,
+        sustainSeconds: 0,
+        vantage: "scet",
+        topic: "comms.delay",
+        fieldPath: "oneWaySeconds",
+      },
       state: "fired",
       createdBy: "main",
       createdAt: 0,

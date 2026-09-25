@@ -58,13 +58,9 @@ namespace Gonogo.KSP
     /// rewind clear and the off-tick change flag, happen once in
     /// <see cref="ScetAlarmRoster.BeginTick"/>.</para>
     ///
-    /// <para><b>The audience verdict is SHADOW.</b> It goes on the same two
-    /// channels as the simulation's, tagged with the audience it belongs to, and
-    /// nothing in the game or the client latches from it yet: the client still
-    /// evaluates its own command-vantage alarms and compares. Running both
-    /// evaluators live against one latch field is unsafe in the exact way the
-    /// client's own <c>AlarmStateMachine.updateThresholdTracking</c> comment
-    /// describes.</para>
+    /// <para>The audience verdict goes on the same two channels as the
+    /// simulation's, tagged with the audience it belongs to, and the client
+    /// latches from it: nothing on the client judges an alarm.</para>
     ///
     /// <para>The decision-making is in <see cref="ScetAlarmRoster"/> (what is
     /// due) and <see cref="ScetRosterAudience"/> (when the roster goes on the

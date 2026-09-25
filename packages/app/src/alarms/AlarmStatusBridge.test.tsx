@@ -27,6 +27,8 @@ const threshold = (dataKey: string): AlarmTrigger => ({
   op: ">",
   value: 0,
   sustainSeconds: 0,
+  topic: "vessel.flight",
+  fieldPath: "altitudeAsl",
 });
 
 function snapshotOf(alarms: Alarm[]): AlarmSnapshot {
@@ -82,12 +84,7 @@ describe("alarmSubjectKey / alarmMatchesWidget", () => {
     expect(alarmMatchesWidget(alarm, ["vessel.velocity"])).toBe(false);
   });
 
-  it("attributes an event alarm by its topic and a time alarm to nothing", () => {
-    const event = makeAlarm("e", "E", "firing", {
-      kind: "event",
-      topic: "mission.events",
-    });
-    expect(alarmMatchesWidget(event, ["mission.events"])).toBe(true);
+  it("attributes a time alarm to nothing", () => {
     const time = makeAlarm("t", "T", "firing", {
       kind: "time",
       ut: 100,
