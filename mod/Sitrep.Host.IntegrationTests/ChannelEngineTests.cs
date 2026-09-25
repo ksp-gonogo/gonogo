@@ -1528,7 +1528,7 @@ namespace Sitrep.Host.IntegrationTests
         /// input actually enters the engine.
         /// </summary>
         [Fact]
-        public async Task UnguardedCommandHandlerExceptionFailSoftsOnlyThatCommandAndKeepsTheCourierThreadAlive()
+        public async Task MalformedWireArgsAreRefusedForThatCallAndKeepTheCourierThreadAlive()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new CrashyCommandTestUplink());
@@ -1557,12 +1557,12 @@ namespace Sitrep.Host.IntegrationTests
                     SentAt = 0.0,
                 }));
 
-                // InvokeCommandHandler catches the cast exception, refuses
-                // just this command, and the caller gets an error frame naming
-                // it rather than a null result that reads as success.
+                // The args are refused at dispatch as an unreadable request,
+                // naming the command, rather than reaching the handler or
+                // reading as success.
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
                 Assert.Equal("r1", error.RequestId);
-                Assert.Equal("E_UNAVAILABLE", error.Code);
+                Assert.Equal("invalid-envelope", error.Code);
                 Assert.Contains(CrashyCommandTestUplink.Command, error.Message);
                 Assert.True(engine.AvailabilityOf(CrashyCommandTestUplink.UplinkId).IsAvailable);
 
@@ -1580,7 +1580,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// IMPORTANT-B: the SAME fail-soft mechanism as the test above, but
+        /// IMPORTANT-B: the SAME refusal as the test above, but
         /// with a genuinely STRUCTURED (JSON-object) wire arg, the shape
         /// <c>EnvelopeCodec</c> parses a command's args into by default
         /// (double/string/bool/<c>Dictionary&lt;string, object?&gt;</c>, see
@@ -1589,7 +1589,7 @@ namespace Sitrep.Host.IntegrationTests
         /// shape distinctly from the scalar-vs-scalar mismatch above.
         /// </summary>
         [Fact]
-        public async Task StructuredWireArgsMismatchedAgainstADeclaredScalarHandlerFailSoftsInsteadOfCrashing()
+        public async Task StructuredWireArgsMismatchedAgainstADeclaredScalarHandlerAreRefusedInsteadOfCrashing()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new ScalarArgCommandTestUplink());
@@ -1609,7 +1609,7 @@ namespace Sitrep.Host.IntegrationTests
 
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
                 Assert.Equal("r-structured", error.RequestId);
-                Assert.Equal("E_UNAVAILABLE", error.Code);
+                Assert.Equal("invalid-envelope", error.Code);
                 Assert.Contains(ScalarArgCommandTestUplink.Command, error.Message);
                 Assert.True(engine.AvailabilityOf(ScalarArgCommandTestUplink.UplinkId).IsAvailable);
             }
