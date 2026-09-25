@@ -345,15 +345,14 @@ function StageStackSection({
         const dv = pickDeltaV(s, mode);
         const twr = pickTWR(s, mode);
         const active = s.stage === currentStage;
-        // parseStages yields NaN burnTime for a stage with no burn data;
-        // show "0s" for that (and for a non-positive value) rather than
-        // the helper's NULL_DISPLAY, matching the pre-refactor local formatter.
-        const burn =
-          Number.isFinite(s.burnTime) && s.burnTime > 0 ? (
-            <Unit value={value("s", s.burnTime)} />
-          ) : (
-            "0s"
-          );
+        // NaN is a burn time the wire did not carry, not a stage that burns for no time.
+        const burn = !Number.isFinite(s.burnTime) ? (
+          NULL_DISPLAY
+        ) : s.burnTime > 0 ? (
+          <Unit value={value("s", s.burnTime)} />
+        ) : (
+          "0s"
+        );
         return (
           <Grid
             key={s.stage}
