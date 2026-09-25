@@ -54,14 +54,15 @@ namespace Gonogo.KSP
             // from too (SitrepCommandAttribute.Delay).
             Commands = new List<CommandDeclaration>
             {
+                // The reverts, recover and launch carry declared gates (see
+                // GateDeclarations): the flight scene for both reverts,
+                // ClearToSaveStatus for recover, the scene rule and the two
+                // ship-free PreFlightTests for launch. All are answerable with
+                // no arguments, so the control can be dark with a reason.
                 Command(FlightOpsCommandProvider.RevertToLaunchCommand),
                 Command(FlightOpsCommandProvider.RevertToEditorCommand),
                 Command(FlightOpsCommandProvider.ToTrackingStationCommand),
                 Command(FlightOpsCommandProvider.SwitchVesselCommand),
-                // recover and launch carry declared gates (see GateDeclarations):
-                // ClearToSaveStatus for the first, the scene rule and the two
-                // ship-free PreFlightTests for the second. Both are answerable
-                // with no arguments, so the control can be dark with a reason.
                 Command(FlightOpsCommandProvider.RecoverCommand),
                 Command(FlightOpsCommandProvider.LaunchCommand),
             },

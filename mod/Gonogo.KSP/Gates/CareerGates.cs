@@ -52,6 +52,17 @@ namespace Gonogo.KSP.Gates
             };
         }
 
+        /// <summary>
+        /// The one scene whose <c>FlightDriver</c> revert flags describe the game
+        /// now. Leaving flight clears neither flag nor the saved states behind
+        /// them, so in any other scene they still describe the previous flight.
+        /// Revert availability is sampled only here, and both reverts declare it.
+        /// </summary>
+        public const GameScenes RevertScene = GameScenes.FLIGHT;
+
+        /// <summary>The game is in <see cref="RevertScene"/>.</summary>
+        public static CommandRequirement InRevertScene => Scene(RevertScene);
+
         /// <summary>The flight is in a state KSP would let you leave (<c>FlightGlobals.ClearToSave()</c>).</summary>
         public static CommandRequirement ClearToSave => new CommandRequirement
         {

@@ -97,6 +97,19 @@ namespace Gonogo.KSP.Gates
                     SpaceCenterFacility.AstronautComplex, KspGateEvaluators.Quantities.ActiveCrew),
             };
 
+            // Both reverts restore a state FlightDriver saved during THIS
+            // flight, which only the flight scene still describes. The
+            // actuator refuses outside it too; declared, the control is dark
+            // with the scene named before anyone presses it.
+            table[FlightOpsCommandProvider.RevertToLaunchCommand] = new[]
+            {
+                CareerGates.InRevertScene,
+            };
+            table[FlightOpsCommandProvider.RevertToEditorCommand] = new[]
+            {
+                CareerGates.InRevertScene,
+            };
+
             // Recovery is destructive and KSP will not do it while the craft is
             // throttled up, on a ladder, or about to hit something.
             // ClearToSaveStatus names every arm it can refuse with and needs no
