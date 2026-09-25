@@ -33,7 +33,6 @@ namespace Sitrep.Host.IntegrationTests
     public class CommandRefusalTests
     {
         private static readonly TimeSpan Timeout = TestBudgets.Op;
-        private static readonly TimeSpan SettleWindow = TestBudgets.Quiet;
 
         [Fact]
         public void UnknownCommandIsRefusedRatherThanDroppedSilently()
@@ -49,7 +48,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.DispatchCommandAndWait(
                     "nothing.registered.this", null, "vantage-1",
                     r => { resolved = true; result = r; },
-                    SettleWindow,
+                    Timeout,
                     onRefused: reason => refusal = reason);
 
                 Assert.False(resolved, "an unknown command has no handler, so it must never produce a RESULT");
@@ -78,7 +77,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.DispatchCommandAndWait(
                     RefusalTestUplink.Command, "x", "vantage-1",
                     _ => resolved = true,
-                    SettleWindow,
+                    Timeout,
                     onRefused: reason => refusal = reason);
 
                 Assert.False(resolved);
@@ -107,7 +106,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.DispatchCommandAndWait(
                     RefusalTestUplink.Command, "ping", "vantage-1",
                     r => result = r,
-                    SettleWindow,
+                    Timeout,
                     onRefused: reason => refusal = reason);
 
                 Assert.Null(refusal);
@@ -138,7 +137,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.DispatchCommandAndWait(
                     GatedTestUplink.Command, "x", "vantage-1",
                     r => result = r,
-                    SettleWindow,
+                    Timeout,
                     onRefused: reason => refusal = reason);
 
                 Assert.Null(refusal);
@@ -179,7 +178,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.DispatchCommandAndWait(
                     GatedTestUplink.Command, "x", "vantage-1",
                     r => result = r,
-                    SettleWindow,
+                    Timeout,
                     onRefused: reason => refusal = reason);
 
                 Assert.Null(result);
@@ -208,7 +207,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.DispatchCommandAndWait(
                     GatedTestUplink.Command, "x", "vantage-1",
                     r => result = r,
-                    SettleWindow,
+                    Timeout,
                     onRefused: reason => refusal = reason);
 
                 Assert.Null(result);
@@ -237,7 +236,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.DispatchCommandAndWait(
                     GatedTestUplink.Command, "x", "vantage-1",
                     r => result = r,
-                    SettleWindow,
+                    Timeout,
                     onRefused: reason => refusal = reason);
 
                 Assert.Null(result);

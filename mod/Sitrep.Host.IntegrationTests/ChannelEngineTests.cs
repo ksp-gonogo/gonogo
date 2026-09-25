@@ -439,7 +439,7 @@ namespace Sitrep.Host.IntegrationTests
                 await using var clientB = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 await SubscribeAsync(clientB, topic, Timeout);
 
-                var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+                var deadline = DateTime.UtcNow + TestBudgets.Op;
                 while (uplink.SubscribeNotifications.Length < 2 && DateTime.UtcNow < deadline)
                 {
                     await Task.Delay(25);
@@ -1179,7 +1179,7 @@ namespace Sitrep.Host.IntegrationTests
             { IsBackground = true, Name = "test-stopper" };
             stopper.Start();
 
-            Assert.True(stopReturned.Wait(TimeSpan.FromSeconds(15)),
+            Assert.True(stopReturned.Wait(TestBudgets.Op),
                 "Stop() must complete promptly, a hang here means the Courier was left parked on a command that re-enqueued after the shutdown flush");
         }
 
@@ -1856,9 +1856,9 @@ namespace Sitrep.Host.IntegrationTests
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 await SubscribeAsync(client, PoisonPayloadTestUplink.Topic, Timeout);
 
-                engine.TickAndWait(0.0, PoisonPayloadTestUplink.Snapshot(), TimeSpan.FromMilliseconds(500));
-                engine.TickAndWait(1.0, PoisonPayloadTestUplink.Snapshot(), TimeSpan.FromMilliseconds(500));
-                engine.TickAndWait(2.0, PoisonPayloadTestUplink.Snapshot(), TimeSpan.FromMilliseconds(500));
+                engine.TickAndWait(0.0, PoisonPayloadTestUplink.Snapshot(), TestBudgets.Op);
+                engine.TickAndWait(1.0, PoisonPayloadTestUplink.Snapshot(), TestBudgets.Op);
+                engine.TickAndWait(2.0, PoisonPayloadTestUplink.Snapshot(), TestBudgets.Op);
 
                 // Announced ONCE and then quiet: the payload can never
                 // serialize, so no telemetry frame ever reaches the wire, but
@@ -1908,16 +1908,16 @@ namespace Sitrep.Host.IntegrationTests
                 // Records one poison sample into the archive so a SECOND
                 // subscriber's synchronous catch-up has something already
                 // "arrived" to (attempt to) deliver.
-                engine.TickAndWait(0.0, PoisonPayloadTestUplink.Snapshot(), TimeSpan.FromMilliseconds(500));
+                engine.TickAndWait(0.0, PoisonPayloadTestUplink.Snapshot(), TestBudgets.Op);
 
                 await using var clientB = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                var ack = await SubscribeAsync(clientB, PoisonPayloadTestUplink.Topic, TimeSpan.FromSeconds(2));
+                var ack = await SubscribeAsync(clientB, PoisonPayloadTestUplink.Topic, TestBudgets.Op);
                 Assert.Equal("subscribed", ack.Name);
                 Assert.Equal(2, engine.SubscriberCountFor(PoisonPayloadTestUplink.Topic));
 
                 await clientB.DisposeAsync();
 
-                var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(3);
+                var deadline = DateTime.UtcNow + TestBudgets.Op;
                 while (engine.SubscriberCountFor(PoisonPayloadTestUplink.Topic) != 1 && DateTime.UtcNow < deadline)
                 {
                     await Task.Delay(25);
@@ -2095,7 +2095,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.DispatchCommandAndWait(
                     MessageGetterThrowsCommandTestUplink.Command, null, "vantage-1",
                     _ => resolved = true,
-                    TimeSpan.FromMilliseconds(500));
+                    TestBudgets.Op);
 
                 // The guard must attribute the failure and still let
                 // onResult/Done fire, despite the poisoned Message getter.
@@ -3549,7 +3549,7 @@ namespace Sitrep.Host.IntegrationTests
                 // it's never observed -- the archive's tail stays pinned at
                 // the real value 1.0.
                 await client.SendAsync(EnvelopeCodec.WriteUnsubscribe(new Unsubscribe { Topic = TombstoneTestUplink.Topic }));
-                var unsubDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(3);
+                var unsubDeadline = DateTime.UtcNow + TestBudgets.Op;
                 while (engine.SubscriberCountFor(TombstoneTestUplink.Topic) != 0 && DateTime.UtcNow < unsubDeadline)
                 {
                     await Task.Delay(25);
@@ -3844,7 +3844,7 @@ namespace Sitrep.Host.IntegrationTests
                 // player quickloads. The archive's tail for the target
                 // topic stays pinned at the real "Mun"@0 value.
                 await client.SendAsync(EnvelopeCodec.WriteUnsubscribe(new Unsubscribe { Topic = VesselViewProvider.TargetTopic }));
-                var unsubDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(3);
+                var unsubDeadline = DateTime.UtcNow + TestBudgets.Op;
                 while (engine.SubscriberCountFor(VesselViewProvider.TargetTopic) != 0 && DateTime.UtcNow < unsubDeadline)
                 {
                     await Task.Delay(25);

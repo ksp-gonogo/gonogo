@@ -39,7 +39,7 @@ namespace Sitrep.Host.IntegrationTests
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 Assert.Equal("subscribed", (await SubscribeAsync(client, OpaqueUplink.Topic, Timeout)).Name);
 
-                engine.TickAndWait(0.0, OpaqueUplink.Snapshot(), TimeSpan.FromMilliseconds(500));
+                engine.TickAndWait(0.0, OpaqueUplink.Snapshot(), TestBudgets.Op);
 
                 var frame = await client.ReceiveBinaryAsync(Timeout);
                 Assert.True(BinaryFrameCodec.TryParseStreamBinary(
@@ -81,7 +81,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 Assert.Equal("subscribed", (await SubscribeAsync(client, OpaqueUplink.Topic, Timeout)).Name);
-                engine.TickAndWait(0.0, OpaqueUplink.Snapshot(), TimeSpan.FromMilliseconds(500));
+                engine.TickAndWait(0.0, OpaqueUplink.Snapshot(), TestBudgets.Op);
 
                 var frame = await client.ReceiveBinaryAsync(Timeout);
                 Assert.True(BinaryFrameCodec.TryParseStreamBinary(
@@ -114,7 +114,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 Assert.Equal("subscribed", (await SubscribeAsync(client, OpaqueUplink.Topic, Timeout)).Name);
-                engine.TickAndWait(0.0, OpaqueUplink.Snapshot(), TimeSpan.FromMilliseconds(500));
+                engine.TickAndWait(0.0, OpaqueUplink.Snapshot(), TestBudgets.Op);
 
                 var data = await ReceiveStreamDataAsync(client, Timeout);
                 Assert.Equal(OpaqueUplink.Topic, data.Topic);
@@ -154,7 +154,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 Assert.Equal("subscribed", (await SubscribeAsync(client, OpaqueUplink.Topic, Timeout)).Name);
-                engine.TickAndWait(0.0, OpaqueUplink.Snapshot(), TimeSpan.FromMilliseconds(500));
+                engine.TickAndWait(0.0, OpaqueUplink.Snapshot(), TestBudgets.Op);
 
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
                 Assert.Equal("payload-serialization-error", error.Code);
@@ -185,7 +185,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 Assert.Equal("subscribed", (await SubscribeAsync(client, OpaqueUplink.Topic, Timeout)).Name);
-                engine.TickAndWait(0.0, OpaqueUplink.Snapshot(), TimeSpan.FromMilliseconds(500));
+                engine.TickAndWait(0.0, OpaqueUplink.Snapshot(), TestBudgets.Op);
 
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
                 Assert.Equal("payload-serialization-error", error.Code);
