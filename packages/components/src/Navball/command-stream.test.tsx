@@ -2,6 +2,7 @@ import {
   clearActionHandlers,
   clearRegistry,
   DashboardItemContext,
+  dispatchAction,
   PerfBudget,
   registerDataSource,
 } from "@ksp-gonogo/core";
@@ -372,5 +373,95 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
         pitchTrim: 1,
       }),
     );
+  });
+});
+
+describe("Navball commands nothing it was not asked to", () => {
+  const STREAM_COMMANDS = [
+    "vessel.control.setThrottle",
+    "vessel.control.setAxes",
+  ];
+
+  function streamCalls(handler: ReturnType<typeof vi.fn>): unknown[][] {
+    return handler.mock.calls.filter(
+      (call) =>
+        typeof call[0] === "string" && STREAM_COMMANDS.includes(call[0]),
+    );
+  }
+
+  /** Several coalescing ticks of the control stream (10 Hz), held inside act so the widget's updates stay in scope. */
+  async function letTheStreamTick(): Promise<void> {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 450));
+    });
+  }
+
+  function mountDisplayOnly(instanceId: string, carried: string[]) {
+    const fixture = setupStreamFixture({
+      carriedChannels: carried,
+      pinnedUt: 0,
+      suspendFrames: true,
+    });
+    const handler = vi.fn(() => ({ ok: true }));
+    fixture.transport.setCommandHandler(handler);
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId }}>
+          <NavballComponent
+            config={{}}
+            id={instanceId}
+            w={CONTROL_SIZE.w}
+            h={CONTROL_SIZE.h}
+          />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+    return { fixture, handler };
+  }
+
+  it("sends no throttle or axis command when it mounts before any control reading", async () => {
+    const { handler } = mountDisplayOnly("nav-no-intent", ["vessel.control"]);
+    await letTheStreamTick();
+    expect(streamCalls(handler)).toEqual([]);
+  });
+
+  it("does not send a delayed throttle readback back at the craft while untouched", async () => {
+    const { fixture, handler } = mountDisplayOnly("nav-no-echo", [
+      "vessel.control",
+      "comms.delay",
+    ]);
+    act(() => {
+      fixture.emit("comms.delay", { oneWaySeconds: 2 });
+      fixture.emit("vessel.control", { throttle: 0.6 });
+    });
+    await letTheStreamTick();
+    expect(streamCalls(handler)).toEqual([]);
+  });
+
+  it("still sends the throttle once the operator commands it", async () => {
+    const { handler } = mountDisplayOnly("nav-touched", ["vessel.control"]);
+    act(() => {
+      dispatchAction("nav-touched", "set-throttle", {
+        kind: "analog",
+        value: 0.4,
+      });
+    });
+    await waitFor(() =>
+      expect(handler).toHaveBeenCalledWith("vessel.control.setThrottle", {
+        value: 0.4,
+      }),
+    );
+  });
+
+  it("treats a NaN analog throttle as no command, never as a cut", async () => {
+    const { handler } = mountDisplayOnly("nav-nan", ["vessel.control"]);
+    act(() => {
+      dispatchAction("nav-nan", "set-throttle", {
+        kind: "analog",
+        value: Number.NaN,
+      });
+    });
+    await letTheStreamTick();
+    expect(streamCalls(handler)).toEqual([]);
   });
 });

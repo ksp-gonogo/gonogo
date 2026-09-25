@@ -70,8 +70,8 @@ export interface ControlStream {
   inTransit: ControlSample[];
   /** Confirmed readback samples, populated for age ~ 2T..3T, empty when the axis has no readback. */
   echo: ControlSample[];
-  /** Current commanded value in the shared 0..1 band. */
-  current: number;
+  /** Current commanded value in the shared 0..1 band, or `null` while nothing has been commanded. */
+  current: number | null;
   /**
    * What this entry IS on the rail's three axes:
    * `railTagsForControlAxis(channel.writeCommand)`.
@@ -115,7 +115,13 @@ function trimBySpan(ring: LoggedSample[], nowUt: number, span: number): void {
  */
 export function useControlStream(
   channelId: string,
-  value: number,
+  /**
+   * The operator's commanded value, or `null` for no intent yet. `null` sends
+   * nothing and logs no command sample: a stream that has not been touched
+   * must not command the craft, neither to a default nor back to a readback
+   * that is a round trip old.
+   */
+  value: number | null,
   options?: ControlStreamOptions,
 ): ControlStream {
   const channel = getControlChannel(channelId);
@@ -236,10 +242,12 @@ export function useControlStream(
       const dispatch = toArgsRef.current;
       if (!dispatch) return;
       const raw = valueRef.current;
-      recordSample(commandRing.current, {
-        atUt: nowUtRef.current,
-        value: normalize01(raw, range),
-      });
+      if (raw !== null) {
+        recordSample(commandRing.current, {
+          atUt: nowUtRef.current,
+          value: normalize01(raw, range),
+        });
+      }
       const echo = echoRawRef.current;
       if (typeof echo === "number" && Number.isFinite(echo)) {
         recordSample(readbackRing.current, {
@@ -249,8 +257,8 @@ export function useControlStream(
       }
       const last = lastSentRef.current;
       if (
-        last === null ||
-        exceedsDeadband(raw, last, range, DISPATCH_DEADBAND)
+        raw !== null &&
+        (last === null || exceedsDeadband(raw, last, range, DISPATCH_DEADBAND))
       ) {
         lastSentRef.current = raw;
         onDispatchRef.current?.();
@@ -268,7 +276,7 @@ export function useControlStream(
         oneWaySeconds,
         inTransit: [],
         echo: [],
-        current: normalize01(value, range),
+        current: value === null ? null : normalize01(value, range),
         tags,
       };
     }
@@ -287,7 +295,7 @@ export function useControlStream(
       oneWaySeconds,
       inTransit,
       echo,
-      current: normalize01(value, range),
+      current: value === null ? null : normalize01(value, range),
       tags,
     };
   }, [channelId, label, oneWaySeconds, nowUt, value, range, tags]);

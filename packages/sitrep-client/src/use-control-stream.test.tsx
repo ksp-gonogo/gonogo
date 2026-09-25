@@ -39,7 +39,7 @@ function setupFixture() {
 }
 
 // A probe that renders the hook's return as inspectable text.
-function Probe({ value }: { value: number }) {
+function Probe({ value }: { value: number | null }) {
   const s = useControlStream("vessel.control.throttle", value, {
     label: "Throttle",
     range: "unit",
@@ -54,7 +54,7 @@ function Probe({ value }: { value: number }) {
   );
 }
 
-function mountProbe(value: number) {
+function mountProbe(value: number | null) {
   const fixture = setupFixture();
   render(
     <fixture.Provider>
@@ -68,6 +68,33 @@ describe("useControlStream", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+  });
+
+  it("sends nothing and logs no command while the value is null, even with a readback arriving", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { transport, wall } = mountProbe(null);
+    act(() => {
+      transport.emit("comms.delay", { oneWaySeconds: 1 });
+      transport.emit("vessel.control", { throttle: 0.42 });
+    });
+    for (let i = 0; i < 10; i++) {
+      wall.advanceBy(0.1);
+      // eslint-disable-next-line no-await-in-loop
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(50);
+      });
+    }
+    expect(transport.sentCommands).toEqual([]);
+    expect(screen.getByTestId("in-transit-count").textContent).toBe("0");
+  });
+
+  it("sends a value it is given, so the null case above is not passing on a stream that never sends", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { transport } = mountProbe(0.5);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+    expect(transport.sentCommands.length).toBeGreaterThan(0);
   });
 
   it("surfaces the channel label and the one-way delay from comms.delay", async () => {
