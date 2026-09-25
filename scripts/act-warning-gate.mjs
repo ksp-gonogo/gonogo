@@ -95,6 +95,12 @@ import { readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { cpus, loadavg } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  compare,
+  confirmationTotalLine,
+  formatProblem,
+  reconcile,
+} from "./act-warning-compare.mjs";
 import { KNOWN_ACT_WARNINGS } from "./act-warning-debt.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -507,15 +513,19 @@ for (const pkg of packages) {
     measured[`${pkg.short}/${file}`] = n;
     total += n;
   }
+  printPackageLine(pkg, total, failed);
+  for (const failure of failures) console.log(`    ${failure}`);
+}
+
+function printPackageLine(pkg, total, failed) {
   console.log(
     `  ${pkg.short.padEnd(32)} ${String(total).padStart(4)}${failed ? "  (SUITE FAILED)" : ""}`,
   );
-  for (const failure of failures) console.log(`    ${failure}`);
 }
 
 const total = Object.values(measured).reduce((a, b) => a + b, 0);
 console.log(
-  `\ntotal: ${total} act warnings across ${Object.keys(measured).length} files` +
+  `\nfirst run total: ${total} act warnings across ${Object.keys(measured).length} files` +
     `\n${loadLine()}` +
     `\neach test held mounted ${STRETCH_FRAMES} frames after its body; suites took ` +
     `${Math.round((Date.now() - started) / 1000)} s\n`,
@@ -587,24 +597,9 @@ if (crashed.length > 0) {
 const measuredPackages = new Set(packages.map((p) => p.short));
 const inScope = (file) => measuredPackages.has(file.split("/")[0]);
 
-function compare(counts) {
-  const out = [];
-  for (const [file, n] of Object.entries(counts)) {
-    const known = KNOWN_ACT_WARNINGS[file];
-    if (known === undefined) out.push(`NEW    ${file}: ${n}`);
-    else if (n > known) out.push(`WORSE  ${file}: ${known} -> ${n}`);
-  }
-  for (const [file, known] of Object.entries(KNOWN_ACT_WARNINGS)) {
-    if (!inScope(file)) continue;
-    const n = counts[file] ?? 0;
-    if (n < known) out.push(`BETTER ${file}: ${known} -> ${n}`);
-  }
-  return out;
-}
+const firstProblems = compare(measured, KNOWN_ACT_WARNINGS, inScope);
 
-let problems = compare(measured);
-
-if (problems.length === 0) {
+if (firstProblems.length === 0) {
   console.log("act-warning-gate: clean, every file matches the debt exactly.");
   process.exit(0);
 }
@@ -619,15 +614,19 @@ if (problems.length === 0) {
 // Confirmation runs on both sides deliberately. A spuriously HIGH reading would
 // otherwise fail an innocent branch, and a spuriously LOW one would demand a debt
 // update that then bounces back.
-const suspectPackages = new Set(
-  problems.map((p) => p.split(/\s+/)[1].split("/")[0]),
-);
+const suspectPackages = new Set(firstProblems.map((p) => p.file.split("/")[0]));
 console.error(
-  `Discrepancy in ${[...suspectPackages].join(", ")}; re-measuring to see whether it reproduces.\n`,
+  `Discrepancy in ${[...suspectPackages].join(", ")} on the first run; re-measuring to see whether it reproduces.\n` +
+    `Every count from here on is the confirmation run's, and the first-run total above is a different measurement.\n`,
 );
 const confirmed = { ...measured };
 for (const pkg of packages.filter((p) => suspectPackages.has(p.short))) {
-  const { counts, provoked } = measure(pkg);
+  const { counts, failed, provoked } = measure(pkg);
+  printPackageLine(
+    pkg,
+    Object.values(counts).reduce((a, b) => a + b, 0),
+    failed,
+  );
   if (provoked === 0) {
     console.error(
       `\nBLIND: the provocation in ${pkg.short} was counted on the first run and not ` +
@@ -642,19 +641,30 @@ for (const pkg of packages.filter((p) => suspectPackages.has(p.short))) {
     confirmed[`${pkg.short}/${file}`] = n;
 }
 
-// A discrepancy reproduces when the second run finds the same kind of problem in the
-// same file, whatever its count. Matching the whole line, count included, dropped a
-// NEW file that emitted 10 on one run and 11 on the next as "not reproduced".
-const problemKey = (p) => p.slice(0, p.lastIndexOf(":"));
-const second = new Map(compare(confirmed).map((p) => [problemKey(p), p]));
-const vanished = problems.filter((p) => !second.has(problemKey(p)));
-problems = problems
-  .filter((p) => second.has(problemKey(p)))
-  .map((p) => second.get(problemKey(p)));
+console.log(`\n${confirmationTotalLine(confirmed, suspectPackages)}\n`);
+
+/*
+ * A discrepancy reproduces when the confirmation finds the same kind of problem in
+ * the same file, whatever its count: a NEW file emitting 10 on one run and 11 on the
+ * next has reproduced.
+ */
+const { reproduced, vanished, confirmationOnly } = reconcile({
+  first: measured,
+  confirmation: confirmed,
+  debt: KNOWN_ACT_WARNINGS,
+  inScope,
+});
+const listed = (ps, run) =>
+  ps.map((p) => `  ${formatProblem(p, run)}`).join("\n");
 
 if (vanished.length > 0) {
   console.error(
-    `Not reproduced on the second run, so not failed on:\n${vanished.map((v) => `  ${v}`).join("\n")}\n`,
+    `Not reproduced on the confirmation run, so not failed on:\n${listed(vanished, "first run")}\n`,
+  );
+}
+if (confirmationOnly.length > 0) {
+  console.error(
+    `Only on the confirmation run, so not failed on:\n${listed(confirmationOnly, "confirmation run")}\n`,
   );
 }
 
@@ -672,12 +682,12 @@ if (vanished.length > 0) {
 // still does the job it exists for, which is that nothing grows and nothing new
 // appears; tightening the numbers after a real fix is a deliberate `--update` in the
 // same commit, and the reminder below is what prompts it.
-const better = problems.filter((p) => p.startsWith("BETTER"));
-problems = problems.filter((p) => !p.startsWith("BETTER"));
+const better = reproduced.filter((p) => p.kind === "BETTER");
+const problems = reproduced.filter((p) => p.kind !== "BETTER");
 
 if (better.length > 0) {
   console.log(
-    `Below the recorded count, twice:\n${better.map((b) => `  ${b}`).join("\n")}\n` +
+    `Below the recorded count, twice:\n${listed(better, "confirmation run")}\n` +
       `If you fixed these, run \`pnpm act-warning-gate --update --only <substring>\` ` +
       `naming the files above, and commit the debt ` +
       `with the fix.\nIf you did not, they are intermittent and the entry stays at the ` +
@@ -690,7 +700,9 @@ if (problems.length === 0) {
   process.exit(0);
 }
 
-console.error(`${problems.join("\n")}\n`);
+console.error(
+  `${problems.map((p) => formatProblem(p, "confirmation run")).join("\n")}\n`,
+);
 console.error(
   "An act warning is always our bug (CLAUDE.md, Testing Philosophy). A new or grown " +
     "entry means a test started updating React outside act(), and it reproduced on a " +
