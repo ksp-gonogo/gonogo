@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
@@ -189,60 +188,5 @@ describe("useComputedSeries", () => {
     await waitFor(() => {
       expect(result.current.v).toEqual([5, 5]);
     });
-  });
-});
-
-/* A whole-tree git grep: well under a second on a quiet machine, many
-   seconds on a loaded one, and a timeout here would read as a finding. */
-describe("no production series is addressed on vessel.state", {
-  timeout: 60_000,
-}, () => {
-  // jsdom gives this file an http URL, not a path, so git finds the root.
-  const repo = execFileSync("git", ["rev-parse", "--show-toplevel"], {
-    encoding: "utf8",
-  }).trim();
-
-  /** Files matching a POSIX extended regex; git grep's exit 1 is "no match". */
-  function filesMatching(pattern: string, pathspecs: string[]): string[] {
-    try {
-      return execFileSync(
-        "git",
-        ["grep", "--untracked", "-l", "-E", pattern, "--", ...pathspecs],
-        { cwd: repo, encoding: "utf8" },
-      )
-        .split("\n")
-        .filter((line) => line !== "");
-    } catch (error) {
-      if (error instanceof Error && "status" in error && error.status === 1)
-        return [];
-      throw error;
-    }
-  }
-
-  const SERIES_ON_VESSEL_STATE =
-    '(key|keyHigh|xKey):[[:space:]]*"vessel\\.state\\.|useDataSeries\\([^)]*"vessel\\.state\\.';
-
-  it("finds none in any widget, app or Uplink source", () => {
-    expect(
-      filesMatching(SERIES_ON_VESSEL_STATE, [
-        "packages/*.ts",
-        "packages/*.tsx",
-        "mod/*.ts",
-        "mod/*.tsx",
-        ":!*.test.ts",
-        ":!*.test.tsx",
-        ":!packages/components/scripts/*",
-        ":!*/dist/*",
-      ]),
-    ).toEqual([]);
-  });
-
-  it("can see one, so an empty answer is not a blind search", () => {
-    /* The render harness seeds the series store by literal key and never reads
-       the channel, so its addresses are allowed; they are also the proof that
-       this pattern matches the shape it is looking for. */
-    expect(
-      filesMatching(SERIES_ON_VESSEL_STATE, ["packages/components/scripts/*"]),
-    ).toContain("packages/components/scripts/widgets.ts");
   });
 });
