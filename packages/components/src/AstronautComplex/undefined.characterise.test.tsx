@@ -208,25 +208,22 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
     expect(fundsValue).toHaveTextContent(NULL_DISPLAY);
   });
 
-  it("treats an undefined hire cost as UNAFFORDABLE, disabling Hire with 'Insufficient funds'", async () => {
-    // A partial payload with the applicant list present but every numeric field
-    // missing. `affordable = nextHireCost !== null && ...`, so an absent cost
-    // collapses to false and the operator is told they cannot afford a price
-    // nobody has quoted. The cap readouts go to em dash with no "/ capacity"
-    // suffix at all.
+  it("disables Hire on an unquoted price as 'Hire price not quoted', never as a funds shortfall", async () => {
+    // A partial payload with the applicant list present but every numeric field missing. The cap readouts go to em dash with no "/ capacity" suffix at all.
     renderWidget();
     act(() => {
       fixture.emit("spaceCenter.astronautComplex", { applicants: [APPLICANT] });
     });
 
     const hire = await screen.findByRole("button", {
-      name: /Insufficient funds/,
+      name: /Hire price not quoted/,
     });
     expect(hire).toBeDisabled();
     // The accessible name carries no cost clause, because `costText` is "".
     expect(hire).toHaveAccessibleName(
-      "Hire Desdin Kerman (Insufficient funds)",
+      "Hire Desdin Kerman (Hire price not quoted)",
     );
+    expect(screen.queryByText(/Insufficient funds/)).not.toBeInTheDocument();
     // Active Kerbals: em dash, and no " / n" denominator since capKnown is
     // false. FULL is not claimed either, rosterFull needs a known cap.
     const activeValue = screen.getByText("Active Kerbals").nextElementSibling;
