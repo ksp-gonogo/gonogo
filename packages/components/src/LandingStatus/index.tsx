@@ -7,7 +7,6 @@ import {
   type TopicReading,
   useProcessor,
   useStream,
-  type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import {
   bandIn,
@@ -496,12 +495,10 @@ function LandingStatusComponent({
 }: Readonly<ComponentProps<LandingStatusConfig>>) {
   const [measureScroller, scrollerHeight] = useScrollerHeight();
 
-  const vs = useStream<VesselState>("vessel.state");
   /*
-   * Range to the target, off `vessel.target`'s own relative position rather
-   * than the `vessel.state.targetDistance` copy of it. `bare`/`vecMagnitude`
-   * are the pair `Targeting` already measures its range with, so the two
-   * widgets cannot drift on the same figure.
+   * Range to the target, off `vessel.target`'s own relative position.
+   * `bare`/`vecMagnitude` are the pair `Targeting` measures its range with, so
+   * the two widgets cannot drift on the same figure.
    */
   const targetReading = useStream<{ relativePosition?: Vec3Of<"m"> }>(
     "vessel.target",
@@ -1364,14 +1361,6 @@ registerComponent<LandingStatusConfig>({
   minSize: { w: 4, h: 6 },
   component: LandingStatusComponent,
   dataRequirements: [
-    // `vessel.state` is a DERIVED channel read wholesale via useStream. Its
-    // raw inputs are listed below because carrying them is what carries it,
-    // but the channel itself has to be named too: alarm attribution matches an
-    // alarm's subject field against what the widget declares, and every
-    // descent alarm (`land.timeToImpact` and friends) resolves to a
-    // `vessel.state.*` field that none of those inputs contains. Without this
-    // line no alarm could reach this widget at all.
-    "vessel.state",
     "vessel.orbit",
     "vessel.identity",
     "system.bodies",

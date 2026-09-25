@@ -2,7 +2,7 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { defineTopicManifest, registerComponent } from "@ksp-gonogo/core";
 
 const topics = defineTopicManifest({
-  channels: ["vessel.orbit", "vessel.state", "system.bodies"],
+  channels: ["vessel.orbit", "system.bodies"],
   fields: ["vessel.orbit.sma", "vessel.orbit.referenceBodyIndex"],
 });
 
