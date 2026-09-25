@@ -1,11 +1,13 @@
 import {
   TelemetryClient,
   TelemetryProvider,
+  useViewUt,
   type VesselOrbitPayload,
 } from "@ksp-gonogo/sitrep-client";
 import {
   PropagationHorizonKind,
   Quality,
+  Staleness,
   type SystemBodies,
   TrajectoryKind,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -69,6 +71,20 @@ function makeHarness() {
   return { transport, client, Provider };
 }
 
+/**
+ * The solve beside the view instant it was solved for.
+ *
+ * The hook answers `null` until the view clock's first frame lands, whatever
+ * the elements say, because there is no instant to solve FOR yet. That frame
+ * arrives on a timer a tick after the samples, so a bare `waitFor(null)` can
+ * be satisfied by the pre-frame `null` and assert nothing about the rule; on a
+ * fast run it passes and on a slow one it catches the solve. A test that
+ * expects `null` for a REASON waits for `viewUt` first.
+ */
+function useSolveAtFrame() {
+  return { solve: useOrbitSolve(), viewUt: useViewUt()?.magnitude };
+}
+
 describe("useOrbitSolve", () => {
   it("answers null before any elements have arrived", () => {
     const { Provider } = makeHarness();
@@ -117,13 +133,46 @@ describe("useOrbitSolve", () => {
   });
 
   /**
-   * The slice's whole point, and the behaviour `vessel.state` used to get by
-   * picking on quality itself. Under physics the elements are osculating: the
-   * conic declines, so there is nothing to solve and the widgets that read this
-   * draw the absence rather than a number computed from elements nothing is
-   * propagating.
+   * Under physics the elements are osculating, so the conic declines to carry
+   * them to the view time. A CURRENT reading still answers in full: the apsides
+   * and period are algebra on the elements as they stand, and the countdowns
+   * are the game's own, sent on the sample and run down by the view time since.
    */
-  it("answers null while the craft is loaded, because the conic withdraws", async () => {
+  it("answers a loaded craft's apsides and the game's own countdowns", async () => {
+    const { transport, Provider } = makeHarness();
+    const { result } = renderHook(() => useOrbitSolve(), {
+      wrapper: Provider,
+    });
+
+    act(() => {
+      transport.emit(
+        "vessel.orbit",
+        { ...ORBIT, timeToAp: 600, timeToPe: 1500 },
+        { quality: Quality.Loaded, source: "vessel:1" },
+      );
+      transport.emit("system.bodies", BODIES, {
+        quality: Quality.OnRails,
+        source: "system:1",
+      });
+    });
+
+    await waitFor(() => expect(result.current?.apoapsisAlt).toBe(100_000));
+    expect(result.current?.periapsisAlt).toBe(100_000);
+    expect(typeof result.current?.period).toBe("number");
+    // The view instant is the sample's own, so nothing has elapsed to run them
+    // down by.
+    expect(result.current?.timeToAp).toBe(600);
+    expect(result.current?.timeToPe).toBe(1500);
+    expect(result.current?.nextApsisType).toBe(1);
+    expect(result.current?.timeToNextApsis).toBe(600);
+  });
+
+  /**
+   * The countdowns are the game's, never the conic's: a loaded sample that
+   * carries none answers the apsides and leaves every countdown absent, rather
+   * than advancing osculating elements to invent one.
+   */
+  it("answers no countdown for a loaded sample that carries none", async () => {
     const { transport, Provider } = makeHarness();
     const { result } = renderHook(() => useOrbitSolve(), {
       wrapper: Provider,
@@ -140,16 +189,57 @@ describe("useOrbitSolve", () => {
       });
     });
 
-    // The elements themselves ARRIVED; only the model refused. Assert after a
-    // settled frame so this is not just reading the pre-emission null.
-    await waitFor(() => expect(result.current).toBeNull());
-    act(() => {
-      transport.emit("vessel.orbit", ORBIT, {
-        quality: Quality.Loaded,
-        source: "vessel:1",
-      });
+    await waitFor(() => expect(result.current?.apoapsisAlt).toBe(100_000));
+    expect(result.current?.timeToAp).toBeNull();
+    expect(result.current?.timeToPe).toBeNull();
+    expect(result.current?.nextApsisType).toBeNull();
+    expect(result.current?.timeToNextApsis).toBeNull();
+  });
+
+  /**
+   * Where the refusal still bites. A STALE reading under physics answers
+   * nothing: under thrust the elements are not constants of the orbit, so old
+   * ones say nothing about the orbit the craft is on now, countdowns included.
+   */
+  it("answers null for a STALE reading while the craft is loaded", async () => {
+    const { transport, Provider } = makeHarness();
+    const { result } = renderHook(() => useSolveAtFrame(), {
+      wrapper: Provider,
     });
-    await waitFor(() => expect(result.current).toBeNull());
+
+    act(() => {
+      transport.emit("system.bodies", BODIES, {
+        quality: Quality.OnRails,
+        source: "system:1",
+      });
+      transport.emit(
+        "vessel.orbit",
+        { ...ORBIT, timeToAp: 600, timeToPe: 1500 },
+        {
+          quality: Quality.OnRails,
+          source: "vessel:1",
+        },
+      );
+    });
+    // The control: the same harness does solve, so the null below is the rule.
+    await waitFor(() =>
+      expect(result.current.solve?.apoapsisAlt).toBe(100_000),
+    );
+
+    act(() => {
+      transport.emit(
+        "vessel.orbit",
+        { ...ORBIT, timeToAp: 600, timeToPe: 1500 },
+        {
+          quality: Quality.Loaded,
+          source: "vessel:1",
+          staleness: Staleness.HeldStale,
+        },
+      );
+    });
+
+    await waitFor(() => expect(result.current.solve).toBeNull());
+    expect(result.current.viewUt).toBeDefined();
   });
 
   /**
@@ -159,7 +249,7 @@ describe("useOrbitSolve", () => {
    */
   it("answers null on rails below the atmosphere interface", async () => {
     const { transport, Provider } = makeHarness();
-    const { result } = renderHook(() => useOrbitSolve(), {
+    const { result } = renderHook(() => useSolveAtFrame(), {
       wrapper: Provider,
     });
 
@@ -180,7 +270,8 @@ describe("useOrbitSolve", () => {
       );
     });
 
-    await waitFor(() => expect(result.current).toBeNull());
+    await waitFor(() => expect(result.current.viewUt).toBeDefined());
+    expect(result.current.solve).toBeNull();
   });
 
   it("re-solves as new elements arrive", async () => {
