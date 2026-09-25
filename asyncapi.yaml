@@ -11997,21 +11997,39 @@ components:
       description: |-
         A fault, never a refusal, and the difference decides how a client handles it.
 
-        An `error` frame means the request was never CARRIED: an unknown command, a
-        command whose provider has fail-softed, a result the codec could not serialise,
-        or a `set-vantage` naming a command centre that is not active. No handler ran,
-        so there is nothing to report about what the game thought.
+        An `error` frame means something could not be CARRIED: a frame the mod could
+        not read, an unknown command, a command whose provider has fail-softed, a
+        result or payload the codec could not serialise, a subscription to a topic
+        nothing declares, or a `set-vantage` naming a command centre that is not
+        active. Nothing about the game was decided, so there is no game reason to
+        report.
 
         A command the game REFUSED ran and said no. That arrives as a
         `command-response` with `success: false` and an `errorCode`, correlated on
         `requestId` like any other answer, and it is not an error frame.
 
-        `code` is an open vocabulary rather than an enumeration, and the mod emits
-        three values into it: `unknown-vantage`, a `set-vantage` naming a centre that
-        is not active; `E_UNAVAILABLE`, a dispatch that reached no handler; and
-        `result-serialization-error`, a command that ran and whose result could not be
-        written. A client's own transport mints codes into the same field, so an
-        unrecognised code is still a fault and `message` is what to show for it.
+        `code` is an open vocabulary rather than an enumeration. The mod emits these
+        values into it:
+
+        - `invalid-envelope`: a frame of a known type that could not be read, including
+          a `command-request` whose `args` do not fit the command. Only that call is
+          refused; the command stays available
+        - `unknown-envelope-type`: a frame whose `type` this build does not recognise
+        - `unhandled-envelope`: a frame that parsed as a type this build has nothing
+          to do with
+        - `binary-frame-not-accepted`: a binary frame sent up the socket, which nothing
+          accepts
+        - `E_UNAVAILABLE`: a command that is unknown or unavailable, or whose handler
+          threw. A handler that threw leaves its command unavailable for the session
+        - `result-serialization-error`: a command that ran and whose result could not
+          be written
+        - `unknown-topic`: a subscription to a topic nothing declares
+        - `payload-serialization-error`: a topic whose payload could not be written
+        - `unknown-vantage`: a `set-vantage`, or a command's `vantage`, naming a
+          centre that is not active
+
+        A client's own transport mints codes into the same field, so an unrecognised
+        code is still a fault and `message` is what to show for it.
         `CommandErrorCode`, enumerated in full under `components.schemas`, is a
         different vocabulary: it names REFUSALS and never appears here.
       required:
