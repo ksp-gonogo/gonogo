@@ -404,4 +404,49 @@ describe("SystemViewComponent", () => {
       expect(x !== 0 || y !== 0).toBe(true);
     });
   });
+
+  /**
+   * The next-apsis countdown comes off the orbit model's own solve, so it is
+   * withheld wherever that model refuses to advance the elements. Under physics
+   * they are osculating, a conic does not describe where the craft is going,
+   * and a countdown to an apsis it may never reach is a claim nothing made.
+   */
+  describe("the next-apsis countdown", () => {
+    const orbit = {
+      referenceBodyIndex: 0,
+      sma: 8_000_000,
+      ecc: 0.4,
+      inc: 0,
+      lan: 0,
+      argPe: 0,
+      meanAnomalyAtEpoch: 0.5,
+      epoch: 100,
+      mu: KERBIN_MU,
+      horizon: ANALYTIC_UNBOUNDED_HORIZON,
+    };
+    const scene = (quality: number) => {
+      render(
+        <fixture.Provider>
+          <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
+        </fixture.Provider>,
+      );
+      primeStream();
+      act(() => {
+        fixture.emit("vessel.orbit", orbit, { quality });
+      });
+    };
+
+    it("counts down to the next apsis while the craft is on rails", async () => {
+      scene(0);
+      await waitFor(() => expect(visibleText()).toMatch(/Next (Ap|Pe)/));
+    });
+
+    it("withholds it while the craft is under physics", async () => {
+      scene(1);
+      await waitFor(() =>
+        expect(screen.getAllByText("Kerbin").length).toBeGreaterThanOrEqual(1),
+      );
+      expect(visibleText()).not.toMatch(/Next (Ap|Pe)/);
+    });
+  });
 });

@@ -276,7 +276,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/shared/dockAngles.ts": 3,
   "packages/components/src/shared/OrbitalEventChips.tsx": 1,
   "packages/components/src/Strategies/index.tsx": 1,
-  "packages/components/src/SystemView/index.tsx": 23,
+  "packages/components/src/SystemView/index.tsx": 15,
   // 5: the LAN and argPe coalesce, each `?.magnitude ?? 0` or `?.magnitude`
   // behind a `Number.isFinite` guard, is expressed through `magnitudeOr` and
   // `magnitudeOf` instead and so does not count here. What is left is the five
