@@ -772,15 +772,83 @@ describe("AstronautComplexComponent", () => {
         value: true,
       });
     });
+    // The first press only arms, as the touch path's first tap does, and says so on the row.
+    expect(await screen.findByText("ARMED")).toBeInTheDocument();
+    expect(
+      fixture.transport.sentCommands.find(
+        (c) => c.command === "career.crew.fire",
+      ),
+    ).toBeUndefined();
+
+    act(() => {
+      dispatchAction("astronaut-complex", "fireHighlighted", {
+        kind: "button",
+        value: true,
+      });
+    });
 
     await waitFor(() => {
       const sent = fixture.transport.sentCommands.find(
         (c) => c.command === "career.crew.fire",
       );
       expect(sent).toBeDefined();
-      // The cycle stepped off Bill (index 0) onto Val (index 1) before firing.
+      // The cycle stepped off Bill onto Val before firing.
       expect(sent?.args).toEqual({ kerbalName: "Val Kerman" });
     });
+  });
+
+  it("highlights only a crew member the fire action can reach, and moves off one it cannot", async () => {
+    const user = userEvent.setup();
+    renderWidget();
+    act(() => {
+      emitFunds(fixture, 500000);
+      emitComplex(fixture, {
+        applicants: [],
+        activeCrew: 2,
+        crewCapacity: 13,
+        nextHireCost: NEXT_HIRE_COST,
+      });
+      emitCrewRoster(fixture, [
+        {
+          ...CREW_ROSTER[0],
+          name: "Resting Kerman",
+          standing: CrewStanding.Resting,
+        },
+        CREW_ROSTER[1],
+      ]);
+    });
+    await user.click(await screen.findByRole("tab", { name: "Active" }));
+    await user.click(await screen.findByRole("tab", { name: /^Resting/ }));
+    await screen.findByText("Resting Kerman");
+
+    const selected = screen.getAllByText("SELECTED");
+    expect(selected).toHaveLength(1);
+    expect(selected[0]?.closest("li")?.textContent).toContain("Resting Kerman");
+    expect(
+      screen
+        .getAllByRole("listitem")
+        .filter((li) => li.getAttribute("aria-current") === "true"),
+    ).toHaveLength(1);
+
+    act(() => {
+      dispatchAction("astronaut-complex", "fireHighlighted", {
+        kind: "button",
+        value: true,
+      });
+    });
+    act(() => {
+      dispatchAction("astronaut-complex", "fireHighlighted", {
+        kind: "button",
+        value: true,
+      });
+    });
+    await waitFor(() =>
+      expect(
+        fixture.transport.sentCommands.find(
+          (c) => c.command === "career.crew.fire",
+        )?.args,
+      ).toEqual({ kerbalName: "Resting Kerman" }),
+    );
   });
 
   /**

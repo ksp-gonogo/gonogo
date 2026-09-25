@@ -193,13 +193,13 @@ const NO_SEGMENT_PROPS: Record<string, never> = Object.freeze({});
 const FUNDS_STALE_NOTE = "Funds no longer current";
 
 /**
- * Firing is a per-row action against an arbitrary-length Available list, the
- * same "cycle then act" shape {@link PowerSystems}'s `cycleResource` and
+ * Firing is a per-row action against an arbitrary-length list, the same "cycle
+ * then act" shape {@link PowerSystems}'s `cycleResource` and
  * {@link ResourceOps}'s `next` use for a physical control with no way to pick
- * an arbitrary row: `highlightNextAvailable` walks a highlighted index over
- * the Available crew, `fireHighlighted` fires whoever it currently points at.
- * The mouse/touch path (the per-row {@link FireButton}) doesn't go through
- * this highlight at all, it always targets its own row directly.
+ * an arbitrary row: `highlightNextAvailable` walks the highlight over every
+ * crew member the roster will let go (`canBeSacked`), and `fireHighlighted`
+ * arms on its first press and fires on its second, the same two steps the
+ * per-row {@link FireButton} takes. Moving the highlight disarms.
  */
 const astronautComplexActions = [
   {
@@ -207,14 +207,14 @@ const astronautComplexActions = [
     label: "Next available crew",
     accepts: ["button"],
     description:
-      "Cycles the highlighted Available crew member, the target fireHighlighted acts on.",
+      "Cycles the highlighted crew member, among those who can be fired: the target fireHighlighted acts on.",
   },
   {
     id: "fireHighlighted",
     label: "Fire highlighted crew",
     accepts: ["button"],
     description:
-      "Fires the currently highlighted Available crew member back to the applicant pool. No cost, reversible.",
+      "First press arms, second press fires the highlighted crew member back to the applicant pool.",
   },
 ] as const satisfies readonly ActionDefinition[];
 
@@ -238,7 +238,6 @@ interface Applicant {
  *  books, so they take their safe zero and those badges never render. Rank
  *  is retained on the model (astronauts keep experience when dismissed and
  *  rehired) but withheld from display via `showRank={false}`. */
-
 function applicantStats(a: Applicant): KerbalStatFields {
   return {
     name: a.name,
@@ -349,28 +348,39 @@ function AstronautComplexComponent(
   const fireCmd = useCommand("career.crew.fire", { vantage: META_VANTAGE });
   usePanelDelay(fireCmd);
 
-  const availableCrew = useMemo(
-    () => crewRoster.filter((c) => c.standing === CrewStanding.Available),
+  const sackableCrew = useMemo(
+    () => crewRoster.filter((c) => !c.isApplicant && canBeSacked(c.standing)),
     [crewRoster],
   );
-  const [highlightedFireIndex, setHighlightedFireIndex] = useState(0);
+  const [highlightedName, setHighlightedName] = useState<string | null>(null);
+  const [armedName, setArmedName] = useState<string | null>(null);
+  // By name, so the highlight follows its kerbal when the roster reorders, and falls to the first fireable one when its kerbal leaves.
+  const highlighted =
+    sackableCrew.find((c) => c.name === highlightedName) ?? sackableCrew[0];
 
   useActionInput<AstronautComplexActions>({
     highlightNextAvailable: (payload) => {
       // Fire on the press edge only, so one tap steps one row.
       if (payload.kind === "button" && payload.value !== true) return undefined;
-      if (availableCrew.length === 0) return undefined;
-      const next = (highlightedFireIndex + 1) % availableCrew.length;
-      setHighlightedFireIndex(next);
-      return { highlighted: availableCrew[next]?.name ?? "" };
+      if (sackableCrew.length === 0 || !highlighted) return undefined;
+      const next =
+        sackableCrew[
+          (sackableCrew.indexOf(highlighted) + 1) % sackableCrew.length
+        ];
+      setHighlightedName(next.name);
+      setArmedName(null);
+      return { highlighted: next.name };
     },
     fireHighlighted: (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
-      if (availableCrew.length === 0) return undefined;
-      const target = availableCrew[highlightedFireIndex % availableCrew.length];
-      if (!target) return undefined;
-      void fireCmd.send({ kerbalName: target.name });
-      return { fired: target.name };
+      if (!highlighted) return undefined;
+      if (armedName !== highlighted.name) {
+        setArmedName(highlighted.name);
+        return { armed: highlighted.name };
+      }
+      setArmedName(null);
+      void fireCmd.send({ kerbalName: highlighted.name });
+      return { fired: highlighted.name };
     },
   });
 
@@ -468,7 +478,10 @@ function AstronautComplexComponent(
         <Section key="stats" full>
           <StatStrip role="status" aria-live="polite">
             {fundsStat}
-            <Stat label="Next Hire" tone={affordable ? "neutral" : "nogo"}>
+            <Stat
+              label="Next Hire"
+              tone={nextHireCost === null || affordable ? "neutral" : "nogo"}
+            >
               {nextHireCost !== null ? (
                 <span
                   title={speakQuantity(value("funds", nextHireCost), {
@@ -519,7 +532,10 @@ function AstronautComplexComponent(
                   <ActivePanel
                     crew={crewRoster}
                     fireCmd={fireCmd}
-                    highlightedFireIndex={highlightedFireIndex}
+                    highlightedName={highlighted?.name ?? null}
+                    armed={
+                      armedName !== null && armedName === highlighted?.name
+                    }
                   />
                 ),
               },
@@ -624,9 +640,11 @@ function ApplicantsPanel({
                   disabledReason={
                     rosterFull
                       ? "Roster full"
-                      : !affordable
-                        ? "Insufficient funds"
-                        : undefined
+                      : hireCost === null
+                        ? "Hire price not quoted"
+                        : !affordable
+                          ? "Insufficient funds"
+                          : undefined
                   }
                   hireCmd={hireCmd}
                 />
@@ -682,12 +700,16 @@ function ApplicantsPanel({
 function ActivePanel({
   crew,
   fireCmd,
-  highlightedFireIndex,
+  highlightedName,
+  armed,
 }: {
   crew: CrewRosterRow[];
   /** The shared fire handle; see `ApplicantsPanel`'s `hireCmd`. */
   fireCmd: CommandButtonHandle;
-  highlightedFireIndex: number;
+  /** The crew member `fireHighlighted` acts on. */
+  highlightedName: string | null;
+  /** Whether that crew member's fire is armed: the next `fireHighlighted` press sends it. */
+  armed: boolean;
 }) {
   // Defensive, not load-bearing: spaceCenter.crewRoster never actually
   // carries an applicant (that only appears in the astronautComplex pool),
@@ -731,9 +753,7 @@ function ActivePanel({
                 as="li"
                 key={keys[i]}
                 aria-current={
-                  fireable && i === highlightedFireIndex % members.length
-                    ? "true"
-                    : undefined
+                  fireable && m.name === highlightedName ? "true" : undefined
                 }
               >
                 {/* The identity line, and the sack control at the END of it
@@ -760,6 +780,14 @@ function ActivePanel({
                           isApplicant: false,
                         }}
                       />
+                      {fireable && m.name === highlightedName && (
+                        <Badge
+                          severity={armed ? "critical" : undefined}
+                          size="sm"
+                        >
+                          {armed ? "ARMED" : "SELECTED"}
+                        </Badge>
+                      )}
                       {fireable && (
                         <FireButton kerbalName={m.name} fireCmd={fireCmd} />
                       )}
@@ -853,9 +881,8 @@ function HireButton({
  * Fire: the inverse of {@link HireButton}, no cost (so no figure to speak in
  * the accessible name) but the same two-step commit, because a fire is
  * destructive enough to warrant one even though it is reversible (a re-hire
- * brings the kerbal back with their stats intact). Always enabled: it only ever
- * renders on an Available row, the one roster standing `career.crew.fire`
- * accepts.
+ * brings the kerbal back with their stats intact). Always enabled: it renders
+ * only on a row whose standing `career.crew.fire` accepts (`canBeSacked`).
  */
 function FireButton({
   kerbalName,
