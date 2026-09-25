@@ -29,10 +29,10 @@ describe("note tag values", () => {
 
     // "vessel.control" deliberately absent from carriedChannels: the list is
     // seeded from declarations and a promotion list, not from what arrives.
-    const { result } = renderHook(
-      () => useTagValues(["vessel.control.throttle"]),
-      { wrapper: withProvider(client) },
-    );
+    const tags = ["vessel.control.throttle"];
+    const { result } = renderHook(() => useTagValues(tags), {
+      wrapper: withProvider(client),
+    });
 
     act(() => transport.emit("vessel.control", { throttle: 0.75 }));
 
@@ -41,6 +41,40 @@ describe("note tag values", () => {
     await waitFor(() =>
       expect(result.current.get("vessel.control.throttle")).toBeDefined(),
     );
+  });
+
+  it("does not re-render on animation frames that leave every tag's value unchanged", async () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const tags = ["vessel.control.throttle"];
+    let renders = 0;
+
+    const { result } = renderHook(
+      () => {
+        renders += 1;
+        return useTagValues(tags);
+      },
+      { wrapper: withProvider(client) },
+    );
+
+    act(() => transport.emit("vessel.control", { throttle: 0.75 }));
+    await waitFor(() =>
+      expect(result.current.get("vessel.control.throttle")).toMatchObject({
+        magnitude: 0.75,
+      }),
+    );
+
+    const settled = renders;
+    for (let i = 0; i < 5; i++) {
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve()),
+      );
+    }
+
+    expect(renders).toBe(settled);
+    expect(result.current.get("vessel.control.throttle")).toMatchObject({
+      magnitude: 0.75,
+    });
   });
 
   it("leaves a tag naming no topic at all unresolved, which is the only thing that should render as nothing", () => {

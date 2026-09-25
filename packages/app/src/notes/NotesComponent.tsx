@@ -334,7 +334,9 @@ export function useTagValues(tags: readonly string[]): Map<string, unknown> {
         const releaseInputs = subscribeTopicRead(client, store, topic);
         const unsubscribeFrame = store.subscribeFrame(() => {
           const point = store.sample(topic, store.currentFrame());
-          next.set(tag, point ? point.payload : undefined);
+          const value = point ? point.payload : undefined;
+          if (Object.is(next.get(tag), value)) return;
+          next.set(tag, value);
           scheduleFlush();
         });
         unsubs.push(() => {
