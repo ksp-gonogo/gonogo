@@ -8,7 +8,10 @@ import {
 } from "../test/widgetDomSnapshot";
 import live from "./__fixtures__/radiation-dose-critical.json";
 import held from "./__fixtures__/radiation-dose-critical-stopped-arriving.json";
-import { survivalBadges } from "./badge";
+import rising from "./__fixtures__/radiation-rising.json";
+import risingHeld from "./__fixtures__/radiation-rising-stopped-arriving.json";
+import risingLater from "./__fixtures__/radiation-rising-stopped-arriving-later.json";
+import { survivalBadges, survivalBadgesFor } from "./badge";
 import { CrewSurvivalBadgeAugment } from "./index";
 import type { CrewSurvival } from "./processor";
 
@@ -29,6 +32,12 @@ afterEach(() => {
 });
 
 async function rowBadges(fixture: Record<string, unknown>): Promise<string> {
+  return visibleText(await rowBadgeTree(fixture));
+}
+
+async function rowBadgeTree(
+  fixture: Record<string, unknown>,
+): Promise<HTMLElement> {
   const block = resolveStreamBlock(fixture);
   if (!block) throw new Error("fixture carries no _stream block");
   const stream = setupStreamFixture({
@@ -55,7 +64,7 @@ async function rowBadges(fixture: Record<string, unknown>): Promise<string> {
   unmounts.push(unmount);
   await replayStreamBlock(stream, block);
   await flushProviderFrame();
-  return visibleText(container);
+  return container;
 }
 
 describe("the survival badges say a held death clock is held", () => {
@@ -85,7 +94,90 @@ describe("the survival badges say a held death clock is held", () => {
       ],
       soonestDeathClockSec: 240,
     };
-    expect(survivalBadges(survival, true)?.[0]?.label).toBe("Critical · held");
+    expect(survivalBadges(survival, "held")?.[0]?.label).toBe(
+      "Critical · held",
+    );
+    expect(survivalBadges(survival, "modelled")?.[0]?.label).toBe(
+      "Crit (modelled)",
+    );
     expect(survivalBadges(survival)?.[0]?.label).toBe("Crew critical");
+  });
+
+  /**
+   * A dose that was climbing before the link dropped keeps climbing, carried by
+   * the crew model's own fit of that climb, so a badge can arrive after contact
+   * loss. The death clock beside it is Kerbalism's deadline from its last turn
+   * and is never carried, so it stays held.
+   */
+  describe("a trend carried past contact loss", () => {
+    it("holds the death clock and has nothing critical to carry yet", async () => {
+      const tree = await rowBadgeTree(risingHeld);
+      const text = visibleText(tree);
+      expect(text).toMatch(/to fatal · held/i);
+      expect(text).not.toMatch(/radiation dose critical/i);
+      expect(tree.querySelectorAll("[data-reckoning-basis]")).toHaveLength(0);
+    });
+
+    it("raises the dose badge once the carried dose crosses the line, and says it is modelled", async () => {
+      const tree = await rowBadgeTree(risingLater);
+      expect(visibleText(tree)).toMatch(
+        /radiation dose critical \(modelled\)/i,
+      );
+      expect(visibleText(tree)).toMatch(/to fatal · held/i);
+      const modelled = [...tree.querySelectorAll("[data-reckoning-basis]")];
+      expect(
+        modelled.map((el) => el.getAttribute("data-reckoning-basis")),
+      ).toEqual(["rate-integration"]);
+    });
+
+    it("draws the live trend with no mark at all", async () => {
+      const tree = await rowBadgeTree(rising);
+      expect(visibleText(tree)).not.toMatch(/· held|\(modelled\)/i);
+      expect(tree.querySelectorAll("[data-reckoning-basis]")).toHaveLength(0);
+    });
+  });
+
+  describe("the panel badge's count", () => {
+    const kerbal = (
+      name: string,
+      deathClockSec: number | null,
+      worst: { fraction: number; carried?: boolean },
+    ) => ({
+      name,
+      trait: "Pilot",
+      rules: [{ name: "radiation", ...worst }],
+      worstRule: { name: "radiation", ...worst },
+      deathClockSec,
+      tone: "nogo" as const,
+    });
+
+    it("is modelled when a carried rule is what makes someone critical", () => {
+      const label = survivalBadgesFor({
+        survival: {
+          kerbals: [
+            kerbal("Jebediah Kerman", null, { fraction: 0.83, carried: true }),
+            kerbal("Bill Kerman", 120, { fraction: 0.2 }),
+          ],
+          soonestDeathClockSec: 120,
+          basis: "rate-integration",
+        },
+        stale: true,
+        basis: "rate-integration",
+      })?.[0]?.label;
+      expect(label).toBe("2 crit (modelled)");
+    });
+
+    it("is held when every critical kerbal would be counted without the model", () => {
+      const label = survivalBadgesFor({
+        survival: {
+          kerbals: [kerbal("Bill Kerman", 240, { fraction: 0.2 })],
+          soonestDeathClockSec: 240,
+          basis: "rate-integration",
+        },
+        stale: true,
+        basis: "rate-integration",
+      })?.[0]?.label;
+      expect(label).toBe("Critical · held");
+    });
   });
 });

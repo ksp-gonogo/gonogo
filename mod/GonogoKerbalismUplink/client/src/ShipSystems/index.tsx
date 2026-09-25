@@ -24,7 +24,6 @@ import {
   Notice,
   NULL_DISPLAY,
   Panel,
-  ReadoutCaption,
   Section,
   type Severity,
   Stack,
@@ -351,11 +350,7 @@ function ShipSystemsComponent(
         ship={ship}
         weather={weather}
         utNow={utNow}
-        heldAsOfUt={
-          shipReading?.state === "stale"
-            ? magnitudeOr(shipReading.asOfUt, Number.NaN)
-            : undefined
-        }
+        held={shipReading?.state === "stale"}
       />
     </LedgerReadingContext.Provider>
   );
@@ -385,19 +380,14 @@ function ShipSystemsBody({
   ship,
   weather,
   utNow,
-  heldAsOfUt,
+  held,
 }: {
   ship: ShipSystems;
   weather: KerbalismSpaceWeather | undefined;
   utNow: number | undefined;
-  /** When the ledger was last current, or `undefined` while it still is. */
-  heldAsOfUt: number | undefined;
+  /** Whether the ledger is the last one there was rather than a current one. */
+  held: boolean;
 }) {
-  const held = heldAsOfUt !== undefined;
-  const heldFor =
-    held && utNow !== undefined && Number.isFinite(heldAsOfUt)
-      ? Math.max(0, utNow - heldAsOfUt)
-      : undefined;
   const { summary } = ship;
   // The "Limiting factors" banner names a cause's ROOT resource but the
   // sentence's subject is the resource it explains (see `LimitedByMessage`),
@@ -504,23 +494,6 @@ function ShipSystemsBody({
         )
       }
       sections={[
-        /* The caveat sits over the figures it qualifies rather than only in
-           the header, where a badge beside confident numbers is what an
-           operator reads past. */
-        held && (
-          <Section key="held" full>
-            <ReadoutCaption role="status">
-              at last contact
-              {heldFor !== undefined && (
-                <>
-                  {", "}
-                  <Unit value={value("s", heldFor)} />
-                  {" ago"}
-                </>
-              )}
-            </ReadoutCaption>
-          </Section>
-        ),
         /* Radiation leads the widget: the operator's own call, it is the
            attractive visual (the sparkline trend), so it earns the top
            slot rather than sitting below the resource ledger, and it spans
