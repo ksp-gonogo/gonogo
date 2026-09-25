@@ -5,14 +5,13 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TwrComponent } from "./index";
 
 /**
- * What the dial does once `vessel.state` stops arriving.
+ * What the dial does once its telemetry stops arriving.
  *
- * `useStream` hands back the sticky last value with no currency on it, so
- * before this the gauge went on drawing a confident TWR after telemetry
- * stopped. The figure is HELD and captioned rather than withheld: this
- * widget's whole content is the one number, and its empty state says there is
- * no engine, so nulling a dated TWR would say something false about the craft
- * rather than about the link.
+ * Without the reading's currency the gauge would go on drawing a confident
+ * TWR after telemetry stopped. The figure is HELD and captioned rather than
+ * withheld: this widget's whole content is the one number, and its empty state
+ * says there is no engine, so nulling a dated TWR would say something false
+ * about the craft rather than about the link.
  */
 const STANDARD_GRAVITY = 9.80665;
 
