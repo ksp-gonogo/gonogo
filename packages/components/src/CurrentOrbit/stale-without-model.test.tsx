@@ -91,9 +91,8 @@ describe("CurrentOrbit: a stale orbit with no model", () => {
     /*
      * The ELEMENTS, which are what this widget takes from `vessel.orbit` and so
      * what the rule above governs. Named individually rather than counted: a
-     * count over the whole widget conflates them with the rows fed from
-     * `vessel.state`, and those come through `useStream`, which carries no
-     * currency at all and is a separate hole (see below).
+     * count over the whole widget conflates them with the solved rows, which
+     * are pinned by the count below.
      */
     expect(visibleText()).not.toContain("0.3°"); // inclination
     expect(visibleText()).not.toContain("0.00367"); // eccentricity
@@ -104,12 +103,11 @@ describe("CurrentOrbit: a stale orbit with no model", () => {
     /*
      * The SECOND path into the same falsehood, pinned shut.
      *
-     * `t-Ap`, `t-Pe` and `T` are derived on `vessel.state`, which has no
-     * `Reading`, so a fix confined to the reading path leaves them showing
-     * figures after the orbit has stopped arriving: the same falsehood by a
-     * different route, in the same column. What withholds them is the
-     * channel's own currency, computed by `deriveStatus` on its channel
-     * definition and reported by `useOrbitElements`.
+     * `t-Ap`, `t-Pe` and `T` are solved rather than read, so a fix confined to
+     * the elements would leave them showing figures after the orbit has
+     * stopped arriving: the same falsehood by a different route, in the same
+     * column. What withholds them is the orbit reading's own currency, gating
+     * the solve at the widget.
      *
      * So the whole grid nulls together and the count is EQUAL to the
      * never-arrived baseline rather than short of it. Asserting equality is
