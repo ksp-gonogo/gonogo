@@ -81,63 +81,46 @@ function statsHeader(): HTMLElement {
 }
 
 describe("ResourceOps: what undefined means today", () => {
-  it("claims the vessel has no drills or converters when nothing has arrived at all", async () => {
-    // Pins the `?? []` + `!anything` pair. Nothing has been emitted, so the
-    // widget asserts a fact about the VESSEL ("on this vessel") from the
-    // absence of any frame, and the comment above that branch says so
-    // explicitly: "An empty list is a fact about the vessel, not a missing
-    // backend". Today there is no way for the widget to tell the two apart.
+  it("makes no claim about the vessel when nothing has arrived at all", async () => {
     renderWidget();
 
+    expect(await screen.findByText("No ISRU data")).toBeInTheDocument();
     expect(
-      await screen.findByText("No drills or converters on this vessel"),
-    ).toBeInTheDocument();
-    // Specifically NOT rendered on this branch: the stats header and the
-    // filter box only exist on the populated branch, so their absence is the
-    // rest of what this state looks like.
+      screen.queryByText("No drills or converters on this vessel"),
+    ).not.toBeInTheDocument();
+    // The stats header and the filter box only exist on the populated branch.
     expect(
       screen.queryByRole("group", { name: "Resource ops summary" }),
     ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Search")).not.toBeInTheDocument();
-    // The panel itself still renders, so the operator sees a titled widget
-    // making a confident negative statement rather than a blank tile.
     expect(screen.getByText("RESOURCE OPS")).toBeInTheDocument();
   });
 
-  it("renders the never-arrived case identically to a confirmed empty vessel", async () => {
-    // The migration's whole risk in one assertion: these two states are
-    // different facts (nothing has been said yet, versus the backend said
-    // "none") and today they produce the same pixels.
-    renderWidget();
-    const beforeAnyFrame = screen.getByText(
-      "No drills or converters on this vessel",
-    ).textContent;
-
+  it("tells a vessel confirmed empty apart from one nothing has been heard about", async () => {
     const { fixture } = renderWidget();
+    expect(await screen.findByText("No ISRU data")).toBeInTheDocument();
+
     act(() => {
       fixture.emit("isru.drills", []);
       fixture.emit("isru.converters", []);
     });
 
-    const afterEmptyFrames = await screen.findAllByText(
-      "No drills or converters on this vessel",
-    );
-    expect(afterEmptyFrames).toHaveLength(2);
-    expect(afterEmptyFrames[1]?.textContent).toBe(beforeAnyFrame);
+    expect(
+      await screen.findByText("No drills or converters on this vessel"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("No ISRU data")).not.toBeInTheDocument();
   });
 
-  it("counts a channel that never arrived as zero processes, so one empty channel is the whole answer", async () => {
-    // `converters ?? []`: only `isru.drills` is fed. The empty-vessel branch
-    // still fires, because a fed-empty channel plus a never-fed channel sums
-    // to zero exactly as two fed-empty channels do.
+  it("does not answer for a channel that never arrived: one empty channel is not the whole answer", async () => {
     const { fixture } = renderWidget();
     act(() => {
       fixture.emit("isru.drills", []);
     });
 
+    expect(await screen.findByText("No ISRU data")).toBeInTheDocument();
     expect(
-      await screen.findByText("No drills or converters on this vessel"),
-    ).toBeInTheDocument();
+      screen.queryByText("No drills or converters on this vessel"),
+    ).not.toBeInTheDocument();
   });
 
   it("omits the net EC stat when the converter channel never arrived, the same as when nothing draws power", async () => {

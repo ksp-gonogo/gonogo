@@ -10,7 +10,7 @@ import type {
   IsruDrillEntry,
   IsruResourceFlow,
 } from "@ksp-gonogo/sitrep-sdk";
-import { stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
+import { hasAnswered, stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Card,
@@ -546,6 +546,9 @@ function ResourceOpsComponent(
     [convertersReading],
   );
   const anything = allDrills.length + allConverters.length > 0;
+  // "None on this vessel" is a claim about the craft, so it waits for both channels to have said so.
+  const bothAnswered =
+    hasAnswered(drillsReading) && hasAnswered(convertersReading);
   const staleChannels = [
     ...(drillsNotCurrent ? ["drills"] : []),
     ...(convertersNotCurrent ? ["converters"] : []),
@@ -666,10 +669,10 @@ function ResourceOpsComponent(
         compactTitle={["RES OPS", "RES"]}
         sections={
           <Section full>
-            {/* An empty list is a fact about the vessel, not a missing backend,
-                so this says so rather than blaming the connection. */}
             <EmptyState layout="fill">
-              No drills or converters on this vessel
+              {bothAnswered
+                ? "No drills or converters on this vessel"
+                : "No ISRU data"}
             </EmptyState>
           </Section>
         }

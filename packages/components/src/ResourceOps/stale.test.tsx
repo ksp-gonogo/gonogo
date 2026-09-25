@@ -252,14 +252,10 @@ describe("ResourceOps when an isru channel is not current", () => {
   });
 
   it("says nothing about currency before anything has arrived", async () => {
-    // A cold start is not a dropped link. Conflating them would accuse the mod of
-    // going quiet on every first paint; the widget's pre-existing empty state is
-    // what a never-fed mount shows.
+    // A cold start is not a dropped link: a never-fed mount says it has no ISRU data, and accuses nothing.
     renderWidget();
 
-    expect(
-      await screen.findByText("No drills or converters on this vessel"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("No ISRU data")).toBeInTheDocument();
     expect(visibleText()).not.toMatch(/no longer current/i);
   });
 });
