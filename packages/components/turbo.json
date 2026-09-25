@@ -2,12 +2,15 @@
   "$schema": "https://turbo.build/schema.json",
   "extends": ["//"],
   "tasks": {
-    // promoted-widgets.refresh-paths reads the workflow that refreshes them.
+    // promoted-widgets.refresh-paths reads the workflow that refreshes them, and
+    // partActions.cs-sync reads the part-action names out of the two C# providers.
     "test": {
       "dependsOn": ["^build"],
       "inputs": [
         "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/.github/workflows/refresh-promoted-assets.yml"
+        "$TURBO_ROOT$/.github/workflows/refresh-promoted-assets.yml",
+        "$TURBO_ROOT$/mod/Sitrep.Host/PartActionsViewProvider.cs",
+        "$TURBO_ROOT$/mod/Sitrep.Host/PartActionCommandProvider.cs"
       ]
     }
   }
