@@ -10,7 +10,7 @@ import {
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
-import { WarpMode } from "@ksp-gonogo/sitrep-sdk";
+import { KspParameterState, WarpMode } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PeerMessage } from "../peer/protocol";
@@ -612,34 +612,41 @@ describe("AlarmHostService", () => {
   });
 
   /**
-   * The shadow log's second direction, and the one only this side can see.
+   * The shadow log's second direction, and the one only this side can see,
+   * for the kind still shadowed: a contract objective.
    *
    * The mod going quiet is indistinguishable from agreement unless the client
-   * says so at its own fire, so this is the half that decides whether the flip
-   * in step 7 can be justified at all. Driven rather than read off the source:
-   * a comparison that is never reached records nothing while looking correct.
-   *
-   * The mod's half is proved in `scet-alarm.integration.test.ts`, which can
-   * publish a verdict but deliberately never gives the client a reading of its
-   * own.
+   * says so at its own fire. Driven rather than read off the source: a
+   * comparison that is never reached records nothing while looking correct.
    */
-  it("records the client firing a command-vantage alarm the mod never answered", async () => {
+  it("records the client firing a contract objective the mod never answered", async () => {
     const warn = vi.spyOn(logger, "warn");
     const { svc, telemetry } = makeService();
     svc.addAlarm({
-      name: "Above 70 km",
+      name: "Mun orbit",
       trigger: {
-        kind: "threshold",
-        dataKey: "vessel.state.altitudeAsl",
-        op: ">=",
-        value: 70_000,
+        kind: "contract-parameter",
+        contractId: 42,
+        parameterTitle: "Orbit the Mun",
+        targetState: "Complete",
         sustainSeconds: 0,
-        vantage: "command",
-        topic: "vessel.state",
-        fieldPath: "altitudeAsl",
       },
     });
-    telemetry.set("vessel.state.altitudeAsl", 70_500);
+    telemetry.publishTopic("career.status", {
+      contracts: {
+        active: [
+          {
+            id: "42",
+            parameters: [
+              {
+                title: "Orbit the Mun",
+                stateOrdinal: KspParameterState.Complete,
+              },
+            ],
+          },
+        ],
+      },
+    });
     telemetry.set("t.universalTime", 1100);
     await vi.advanceTimersByTimeAsync(1100);
     await Promise.resolve();
@@ -1615,6 +1622,8 @@ describe("AlarmHostService", () => {
    * told anyone.
    */
   describe("a fire is a fact, whatever route delivers it", () => {
+    // No Topic address, so this side evaluates it: these cases are about the
+    // routes a client-evaluated fire takes.
     const HELD_ALTITUDE = {
       kind: "threshold",
       dataKey: "vessel.state.altitudeAsl",
@@ -1622,8 +1631,6 @@ describe("AlarmHostService", () => {
       value: 70_000,
       sustainSeconds: 60,
       vantage: "command",
-      topic: "vessel.state",
-      fieldPath: "altitudeAsl",
     } as const;
     const STAGE = [{ kind: "action-group", action: "AG1" }] as const;
 

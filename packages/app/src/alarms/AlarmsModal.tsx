@@ -53,6 +53,7 @@ import {
   DEFAULT_LEAD_SECONDS,
   DEFAULT_SUSTAIN_SECONDS,
   isAtSubjectVantage,
+  modOwnsLatch,
 } from "./types";
 
 /**
@@ -1061,13 +1062,13 @@ function describeTrigger(
   // Threshold: narrow exhausted by the three `kind` checks above.
   const t = a.trigger;
   const scet = t.vantage === "scet";
-  /* A SCET arm reports the window it is waiting for, never progress through it.
-     The mod measures the sustain against the craft's own ticks, and
+  /* An alarm the mod latches reports the window it is waiting for, never
+     progress through it. The mod measures the sustain on its own ticks, and
      `matchSinceUT` on this side is the REVEAL of the fire notice rather than
      the moment the condition began holding: rendering it as "matched 3s" would
      be inventing a progress bar for a window this client never watched. */
   const matchInfo =
-    !scet && a.matchSinceUT != null && utNow != null
+    !modOwnsLatch(t) && a.matchSinceUT != null && utNow != null
       ? ` · matched ${writeQuantity(value("s", utNow - a.matchSinceUT))} (need ${writeQuantity(value("s", t.sustainSeconds))})`
       : t.sustainSeconds > 0
         ? ` · sustain ${writeQuantity(value("s", t.sustainSeconds))}`

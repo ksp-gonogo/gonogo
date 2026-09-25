@@ -1,6 +1,6 @@
 import { slopeFit } from "@ksp-gonogo/core";
 import { getObservedValue } from "@ksp-gonogo/sitrep-client";
-import { type Alarm, isAtSubjectVantage } from "./types";
+import type { Alarm } from "./types";
 
 interface ThresholdSample {
   ut: number;
@@ -70,6 +70,15 @@ export class AlarmWarpPlanner {
      * no vantage of its own needs no argument.
      */
     private readonly getOwltSeconds: () => number = () => 0,
+    /**
+     * Whether the mod holds this alarm, and so stops the warp itself in the
+     * frame it decides to. The mod's own statement of what it took
+     * (`ScetAlarmBridge.holdsAlarm`), not a rule about the trigger: an arm can
+     * be refused, and a refused alarm's warp stop is this side's to plan for.
+     * Defaults to "the mod holds nothing", which leaves every alarm to the
+     * ladder.
+     */
+    private readonly modStopsWarp: (alarm: Alarm) => boolean = () => false,
   ) {}
 
   /**
@@ -86,13 +95,8 @@ export class AlarmWarpPlanner {
        threshold has no use for one: the mod stops the warp itself, in the frame
        it decides to, so a ladder planned from delayed samples would only be a
        second authority arriving late.
-
-       Asks the WARP-STOP question, not the vantage one. They coincide today
-       because every alarm the mod holds is at its own subject's vantage or is
-       a command-vantage threshold it does not yet latch. They diverge when
-       that threshold flips: this then wants `ScetAlarmBridge.holdsAlarm`, and
-       the planner has no bridge to ask. */
-    if (isAtSubjectVantage(alarm.trigger)) return;
+ */
+    if (this.modStopsWarp(alarm)) return;
     if (alarm.state !== "pending" || alarm.matchSinceUT != null) {
       this.thresholdSamples.delete(alarm.id);
       return;
@@ -165,13 +169,8 @@ export class AlarmWarpPlanner {
          but the mod is watching it and will stop the warp on its own. A ladder
          aimed at it would be planning against readings a light-time behind the
          comparison that decides it.
-
-         Asks the WARP-STOP question, not the vantage one. They coincide today
-         because every alarm the mod holds is at its own subject's vantage or is
-         a command-vantage threshold it does not yet latch. They diverge when
-         that threshold flips: this then wants `ScetAlarmBridge.holdsAlarm`, and
-         the planner has no bridge to ask. */
-      if (isAtSubjectVantage(a.trigger)) continue;
+ */
+      if (this.modStopsWarp(a)) continue;
       const t = a.trigger;
       if (t.op === "==" || t.op === "!=") continue;
       if (a.matchSinceUT != null) continue;
@@ -194,13 +193,8 @@ export class AlarmWarpPlanner {
          ticks to register in, and a mod-stopped one needs none: the stop happens
          upstream of everything this side can see, at whatever rate the game is
          running.
-
-         Asks the WARP-STOP question, not the vantage one. They coincide today
-         because every alarm the mod holds is at its own subject's vantage or is
-         a command-vantage threshold it does not yet latch. They diverge when
-         that threshold flips: this then wants `ScetAlarmBridge.holdsAlarm`, and
-         the planner has no bridge to ask. */
-      if (isAtSubjectVantage(a.trigger)) return false;
+ */
+      if (this.modStopsWarp(a)) return false;
       if (a.matchSinceUT != null) return false;
       const t = a.trigger;
       if (t.op === "==" || t.op === "!=") return true;
@@ -213,8 +207,8 @@ export class AlarmWarpPlanner {
     /* See `recordThresholdSample`: no samples are kept for one the mod stops,
        so this would answer null anyway. Said here as well, because a reader
        deciding whether a warp-to can target one should not have to trace it
-       through an empty buffer. It carries the same expiry as that one. */
-    if (isAtSubjectVantage(alarm.trigger)) return null;
+       through an empty buffer. */
+    if (this.modStopsWarp(alarm)) return null;
     const t = alarm.trigger;
     if (t.op === "==" || t.op === "!=") return null;
     if (alarm.matchSinceUT != null) return null;
