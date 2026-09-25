@@ -74,6 +74,39 @@ namespace Gonogo.KSP.Tests.Localisation
             Assert.Equal("fallback", GameWords.Name(StockCraftTag, "fallback"));
         }
 
+        /// <summary>
+        /// The pad's id and the game's own label for it: what the facility's
+        /// localisation tag resolves to on the space-centre screens.
+        /// </summary>
+        [Fact]
+        public void TheKscPadIsNamedAsTheGameLabelsItAndNotByItsId()
+        {
+            var tag = FacilityTag(SpaceCenterFacility.LaunchPad);
+            using var _ = new InstalledLocalizer(new Dictionary<string, string> { [tag] = "Launch Pad" });
+
+            Assert.Equal("Launch Pad", GameWords.LaunchSiteName("LaunchPad"));
+        }
+
+        [Fact]
+        public void ASiteTheGameCannotNameIsGivenByItsId()
+        {
+            using var _ = new InstalledLocalizer(new Dictionary<string, string>());
+
+            Assert.Equal("LaunchPad", GameWords.LaunchSiteName("LaunchPad"));
+            Assert.Equal("Desert_Launch_Site", GameWords.LaunchSiteName("Desert_Launch_Site"));
+        }
+
+        /// <summary>
+        /// The tag the game formats for a facility, read back through a
+        /// Localizer that answers every tag with itself, so the test never
+        /// hard-codes a number KSP may renumber.
+        /// </summary>
+        private static string FacilityTag(SpaceCenterFacility facility)
+        {
+            using var _ = new InstalledLocalizer(new Dictionary<string, string>());
+            return ScenarioUpgradeableFacilities.GetFacilityName(facility);
+        }
+
         [Fact]
         public void ALocalizerThatIsNotUpFallsBackRatherThanNamingNothing()
         {

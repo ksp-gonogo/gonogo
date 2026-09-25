@@ -5348,8 +5348,8 @@ export interface LaunchSiteEntry
 	*/
 	name?: string | null;
 	/**
-	* Human-facing display name (`PSystemSetup.GetLaunchSiteDisplayName`, falling
-	* back to `LaunchSite.launchSiteName`).
+	* Human-facing display name, as the game's own screens show it in the player's
+	* language, or the site's `name` when the game has none it can resolve.
 	*/
 	displayName?: string | null;
 	/**
