@@ -152,6 +152,12 @@ Sun vantage plus vessel exposure: a per-star activity diagram for every star thi
 
 ![Per-kerbal survival meters contributed into Crew Status: one kerbal near a fatal radiation dose, one on a death clock, one healthy](docs/assets/radiation-dose-critical--default.png)
 
+![Two minutes after the link dropped: the carried dose has crossed the critical line, so its badge appears, modelled](docs/assets/radiation-rising-stopped-arriving-later--default.png)
+
+![The same crew as the link drops: the dose is carried forward by its own trend, and the death clock is held](docs/assets/radiation-rising-stopped-arriving--default.png)
+
+![A crew dose still climbing: one kerbal just under the critical line, one on a death clock](docs/assets/radiation-rising--default.png)
+
 ![A header badge from the crew model's own interval: the figure is under critical, the band's pessimistic end is past it](docs/assets/dose-band-reaching-critical--default.png)
 
 ![The same tanks once the link drops](docs/assets/supply-tank-meters-stopped-arriving--default.png)
