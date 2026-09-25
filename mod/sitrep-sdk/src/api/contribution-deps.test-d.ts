@@ -34,7 +34,7 @@ CLIENT.registerContribution({
       topics["career.status"]?.economy?.funds?.magnitude;
     void funds;
     // @ts-expect-error a topic nobody declared is not readable at all
-    void topics["vessel.state"];
+    void topics["vessel.flight"];
     // @ts-expect-error and neither is a misspelling of one that was declared
     void topics["career.stats"];
     return [];
@@ -69,7 +69,7 @@ CLIENT.registerContribution({
     const derived: { tally: number } | undefined = topics[PROCESSOR.id];
     void derived;
     // @ts-expect-error a processor dep must not reopen the whole record
-    void topics["vessel.state"];
+    void topics["vessel.flight"];
     return [];
   },
 });

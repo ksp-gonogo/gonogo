@@ -72,36 +72,44 @@ describe("buildFullHistoryStore", () => {
 
   it("registers the production derived channels, so a derived read resolves off the raw topics a recording carries", () => {
     // A recording carries raw wire topics only: nothing ever publishes a
-    // `vessel.state` frame. Without the registration this store resolves the
+    // `system.state` frame. Without the registration this store resolves the
     // topic through the raw-field-subtopic fallback, finds no record, and
     // answers `undefined`: identical to "the recording holds nothing for that
     // key", which is why the gap survived. `isDerivedTopic` is the distinction
     // the answer alone cannot carry.
-    //
-    // Written against `vessel.maneuver.legacy` until that channel was retired.
-    // The mechanism under test is the registration, not the channel, so the
-    // example moved to one that is still derived rather than the test being
-    // dropped with the channel.
     const fixture: ReplayFixture = {
-      subscribedTopics: ["vessel.orbit"],
+      subscribedTopics: ["system.bodies"],
       frames: [
-        frame("vessel.orbit", { referenceBodyIndex: 1, patches: [] }, 0),
-        frame("vessel.orbit", { referenceBodyIndex: 1, patches: [] }, 400),
+        frame("system.bodies", { bodies: [{ name: "Kerbin", index: 1 }] }, 0),
+        frame(
+          "system.bodies",
+          {
+            bodies: [
+              { name: "Kerbin", index: 1 },
+              { name: "Mun", index: 2 },
+            ],
+          },
+          400,
+        ),
       ],
     };
 
     const store = buildFullHistoryStore(fixture);
 
-    expect(store.isDerivedTopic("vessel.state.orbitPatches")).toBe(true);
-    const points = store.sampleDerivedRange<unknown[]>(
-      "vessel.state.orbitPatches",
+    expect(store.isDerivedTopic("system.state.bodyCount")).toBe(true);
+    const points = store.sampleDerivedRange<number>(
+      "system.state.bodyCount",
       0,
       400,
     );
-    // Both instants resolve, not just a truthy answer at one of them: an
-    // unregistered channel and a channel whose `derive()` produced nothing
-    // usable both yield a plausible-looking empty answer.
-    expect(points?.map((p) => p.validAt)).toEqual([0, 400]);
+    // Both instants resolve, each off its own recorded input, not just a
+    // truthy answer at one of them: an unregistered channel and a channel
+    // whose `derive()` produced nothing usable both yield a plausible-looking
+    // empty answer.
+    expect(points?.map((p) => [p.validAt, p.payload])).toEqual([
+      [0, 1],
+      [400, 2],
+    ]);
   });
 
   it("runs synchronously (no pending timers left behind)", () => {

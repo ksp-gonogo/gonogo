@@ -3,7 +3,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOr, Quality } from "@ksp-gonogo/sitrep-sdk";
-import type { VesselOrbitPayload } from "@ksp-gonogo/sitrep-sdk/spine";
+import {
+  buildElements,
+  type VesselOrbitPayload,
+} from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { type OrbitElements, solve } from "./kepler";
@@ -11,7 +14,6 @@ import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import type { Transport, TransportStatus } from "./transport";
-import { vesselStateChannel } from "./vessel-state";
 import { ViewClock } from "./view-clock";
 
 /**
@@ -26,7 +28,7 @@ import { ViewClock } from "./view-clock";
  * gitignored/local-only, regenerated on demand (`dotnet test
  * --filter WireFixtureGeneratorTests` in `mod/`), never present in CI. This
  * file loads that fixture and replays it through a REAL `TelemetryClient` /
- * `TimelineStore`, proving the FULL SDK: derived channels, epoch/ghost
+ * `TimelineStore`, proving the FULL SDK: orbit element decoding, epoch/ghost
  * handling, staleness/certainty, the `ViewClock` estimator: against genuine
  * engine output rather than a hand-built fixture (`recording -> C# engine ->
  * wire -> TS SDK` end to end).
@@ -105,32 +107,27 @@ function degToRad(deg: number): number {
   return (deg * Math.PI) / 180;
 }
 
-/** Narrows a `vessel.state` read down to a non-null position, failing the test with a clear message instead of a bare non-null assertion. */
-function requirePosition(
-  point:
-    | TimelinePoint<{ position: readonly [number, number, number] | null }>
-    | undefined,
-): readonly [number, number, number] {
-  const position = point?.payload?.position;
-  if (!position) {
+/** Narrows a `vessel.orbit` read down to its payload, failing the test with a clear message instead of a bare non-null assertion. */
+function requireOrbit(
+  point: TimelinePoint<VesselOrbitPayload> | undefined,
+): VesselOrbitPayload {
+  const orbit = point?.payload;
+  if (!orbit) {
     throw new Error(
-      `expected a defined vessel.state.position, got ${JSON.stringify(point)}`,
+      `expected a defined vessel.orbit payload, got ${JSON.stringify(point)}`,
     );
   }
-  return position;
+  return orbit;
 }
 
 /**
- * Mirrors `deriveVesselState`'s OnRails element-building (see
- * `vessel-state.ts`), used to independently cross-check the derived channel's
- * own output. Hand-written on purpose: calling the production `buildElements`
- * would make this a copy agreeing with itself.
+ * An independent mirror of the production `buildElements`, used to cross-check
+ * it against a real captured payload. Hand-written on purpose: calling
+ * `buildElements` here would make this a copy agreeing with itself.
  *
  * `magnitudeOr` on every quantity: `VesselOrbitPayload`'s fields are `Value<U>`
- * by the time the decode is done with them, and this took them as bare numbers,
- * so `degToRad` was multiplying an object and `sma`/`mu` were handing `solve` a
- * `Value` where it wants metres. The file is `describe.skipIf`'d on a gitignored
- * fixture, so nothing ran it and nothing type checked it either.
+ * by the time the decode is done with them, while `solve` wants bare metres,
+ * radians and seconds.
  */
 function elementsFromOrbitPayload(orbit: VesselOrbitPayload): OrbitElements {
   return {
@@ -177,7 +174,7 @@ describe.skipIf(!fixtureExists)(
 
     it(
       "drives the whole fixture through TelemetryClient/TimelineStore in fixture order, honoring deliveredAt, " +
-        "and proves derived channels, epoch/ghost handling, staleness/certainty, and the ViewClock estimator all end to end",
+        "and proves orbit element decoding, epoch/ghost handling, staleness/certainty, and the ViewClock estimator all end to end",
       () => {
         const wall = fakeWall(0);
         const clock = new ViewClock({
@@ -186,7 +183,6 @@ describe.skipIf(!fixtureExists)(
           delaySeconds: () => 0,
         });
         const store = new TimelineStore(clock);
-        store.registerDerivedChannel(vesselStateChannel);
 
         const transport = new FixtureTransport();
         const client = new TelemetryClient(transport);
@@ -215,8 +211,8 @@ describe.skipIf(!fixtureExists)(
         let confirmedEdgeSequence: number[] = [];
         let lastDeliveredAt = 0;
 
-        // vessel.state resync-after-rewind observations, one per rewind.
-        const postBumpStateObservations: {
+        // vessel.orbit resync-after-rewind observations, one per rewind.
+        const postBumpOrbitObservations: {
           topic: string;
           definedImmediately: boolean;
         }[] = [];
@@ -305,16 +301,16 @@ describe.skipIf(!fixtureExists)(
             // including vessel.orbit's, UNLESS this very ingest was itself
             // vessel.orbit (in which case its own fresh point survives the
             // sweep, since it's appended before the sweep runs). So
-            // vessel.state can only already resolve here if `topic` is
+            // vessel.orbit can only already resolve here if `topic` is
             // "vessel.orbit": anything else resolving would mean a
             // pre-rewind (dead-epoch) record survived: a ghost.
-            const state = store.sample("vessel.state", token);
-            if (state !== undefined) {
+            const orbit = store.sample("vessel.orbit", token);
+            if (orbit !== undefined) {
               expect(topic).toBe("vessel.orbit");
             }
-            postBumpStateObservations.push({
+            postBumpOrbitObservations.push({
               topic,
-              definedImmediately: state !== undefined,
+              definedImmediately: orbit !== undefined,
             });
           }
 
@@ -407,16 +403,16 @@ describe.skipIf(!fixtureExists)(
         expect(client.getValue("vessel.orbit")).toBeDefined();
         expect(client.getValue("time.warp")).toBeDefined();
 
-        // ================= 2. vessel.state derives from REAL orbit elements =================
+        // ================= 2. a REAL orbit payload solves where the hand mirror does =================
         // Deliberately an ISOLATED store/clock (not the shared one the main
         // drive loop just ran to epoch 3), the shared store's
         // "vessel.orbit" ClientTimeline has long since been swept by the
         // rewind sweeps and now only holds epoch-3 points, so a read at an
         // epoch-0 viewUt against it would just be a (correctly) empty
         // resync, not the wiring proof this section wants. This isolates
-        // "does the derived channel correctly wire a REAL captured
-        // vessel.orbit payload into kepler.solve" from the epoch/rewind
-        // mechanics already proven in section 3.
+        // "does a REAL captured vessel.orbit payload, read back off the
+        // store, build the elements `kepler.solve` wants" from the
+        // epoch/rewind mechanics already proven in section 3.
         expect(epoch0OnRailsOrbit.length).toBeGreaterThan(2);
         const midIndex = Math.floor(epoch0OnRailsOrbit.length / 2);
         const sampleA = epoch0OnRailsOrbit[midIndex];
@@ -436,7 +432,6 @@ describe.skipIf(!fixtureExists)(
           warpRate: () => 1,
         });
         const orbitStore = new TimelineStore(orbitClock);
-        orbitStore.registerDerivedChannel(vesselStateChannel);
         orbitStore.ingest("vessel.orbit", {
           validAt: sampleA.validAt,
           payload: sampleA.payload,
@@ -452,20 +447,20 @@ describe.skipIf(!fixtureExists)(
 
         orbitClock.scrubTo(viewUt1);
         let orbitToken = orbitStore.beginFrame();
-        const state1 = orbitStore.sample<{
-          position: readonly [number, number, number] | null;
-        }>("vessel.state", orbitToken);
-        const pos1 = requirePosition(state1);
+        const orbit1 = requireOrbit(
+          orbitStore.sample<VesselOrbitPayload>("vessel.orbit", orbitToken),
+        );
+        const pos1 = solve(buildElements(orbit1), orbitToken.viewUt).position;
         expect(pos1[0]).toBeCloseTo(expected1.position[0], 3);
         expect(pos1[1]).toBeCloseTo(expected1.position[1], 3);
         expect(pos1[2]).toBeCloseTo(expected1.position[2], 3);
 
         orbitClock.scrubTo(viewUt2);
         orbitToken = orbitStore.beginFrame();
-        const state2 = orbitStore.sample<{
-          position: readonly [number, number, number] | null;
-        }>("vessel.state", orbitToken);
-        const pos2 = requirePosition(state2);
+        const orbit2 = requireOrbit(
+          orbitStore.sample<VesselOrbitPayload>("vessel.orbit", orbitToken),
+        );
+        const pos2 = solve(buildElements(orbit2), orbitToken.viewUt).position;
         expect(pos2[0]).toBeCloseTo(expected2.position[0], 3);
         expect(pos2[1]).toBeCloseTo(expected2.position[1], 3);
         expect(pos2[2]).toBeCloseTo(expected2.position[2], 3);
@@ -475,34 +470,22 @@ describe.skipIf(!fixtureExists)(
 
         // ================= 3. 3 rewinds -> epoch bumps -> NO client ghost =================
         expect(ghostViolations).toEqual([]);
-        expect(postBumpStateObservations.length).toBe(3);
+        expect(postBumpOrbitObservations.length).toBe(3);
         // Stable invariant (holds for ANY reference recording, not just this
-        // one): vessel.state can resolve IMMEDIATELY post-bump only when the
+        // one): vessel.orbit can resolve IMMEDIATELY post-bump only when the
         // very sample that confirmed the rewind was itself vessel.orbit,
         // any other topic bumping the epoch means the store's cross-topic
         // sweep just cleared vessel.orbit's own timeline too, so a genuine
         // resync is required. This is already enforced per-observation
         // inline above (`expect(topic).toBe("vessel.orbit")` whenever
-        // `state !== undefined`); restated here as an aggregate check over
+        // `orbit !== undefined`); restated here as an aggregate check over
         // the whole session.
         //
-        // This block used to ALSO assert that BOTH
-        // branches (immediate AND deferred resolution) were actually
-        // observed across the session's 3 rewinds: a claim about which
-        // topic happens to arrive first after each rewind, i.e. about THIS
-        // capture session's specific frame-interleaving, not about the SDK.
-        // vessel.orbit is comfortably the fastest-cadence channel in the
-        // reference recording, so it is plausible, and, empirically, now
-        // the case: for a regenerated recording to have vessel.orbit be the
-        // very first post-reset sample for every single rewind, hitting only
-        // the "immediate" branch. That made the test flake across fixture
-        // regenerations (a real recording-content dependency, not a
-        // correctness bug: verified deterministic given a FIXED fixture
-        // file: it failed 100% of repeated runs against the same JSON, never
-        // intermittently within one). Dropped in favor of the stable
-        // per-observation invariant below, which holds regardless of how the
-        // 3 rewinds happen to interleave.
-        for (const observation of postBumpStateObservations) {
+        // Which of the two branches (immediate or deferred resolution) each
+        // rewind takes depends on which topic happens to arrive first after
+        // it, a property of the capture's frame interleaving rather than of
+        // the SDK, so only the per-observation invariant is asserted.
+        for (const observation of postBumpOrbitObservations) {
           if (observation.definedImmediately) {
             expect(observation.topic).toBe("vessel.orbit");
           }

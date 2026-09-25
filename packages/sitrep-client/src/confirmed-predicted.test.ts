@@ -1,12 +1,14 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import type {
-  VesselFlightPayload,
-  VesselOrbitPayload,
+import {
+  solveOrbit,
+  type VesselFlightPayload,
+  type VesselOrbitPayload,
 } from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 import type { OrbitElements } from "./kepler";
 import { solveAnomalies } from "./kepler";
 import { makeMeta, type WireOf, wrapWire } from "./stub-transport";
+import { systemStateChannel } from "./system-state";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import { vesselStateChannel } from "./vessel-state";
@@ -16,8 +18,8 @@ import { ViewClock } from "./view-clock";
  * Confirmed-vs-predicted views + the certainty horizon. Complements
  * `view-clock.test.ts` (the clock's own mode/scrub/horizon mechanics) with
  * `TimelineStore`-level integration: real interpolation filling the
- * `ClientTimeline.straddle` seam, real propagation past the horizon for
- * `vessel.state`, and the composition of `certainty` alongside
+ * `ClientTimeline.straddle` seam, real propagation of `vessel.orbit` past
+ * the horizon, and the composition of `certainty` alongside
  * `StreamStatusValue`'s held-stale status and plain undefined/null absence.
  */
 
@@ -59,9 +61,8 @@ function numberPoint(
 }
 
 /**
- * Wire-shaped fixtures, wrapped in the two point-builders below: the same
- * arrangement `vessel-state.test.ts` uses, and for the same reason. A test
- * states what the mod sends; `wrapWire` is what the decode does to it.
+ * Wire-shaped fixtures, wrapped in the two point-builders below. A test states
+ * what the mod sends; `wrapWire` is what the decode does to it.
  */
 type WireOrbit = WireOf<VesselOrbitPayload>;
 type WireFlight = WireOf<VesselFlightPayload>;
@@ -224,7 +225,7 @@ describe("confirmed-range interpolation (M2 design §3.3)", () => {
 });
 
 describe("predicted-range reads (M2 design §3.3)", () => {
-  it("vessel.state (orbital) past the horizon is solved AT the view UT, propagated, marked predicted", () => {
+  it("an orbit past the horizon reads predicted, held at the horizon, in a frame whose view UT runs ahead of it", () => {
     const wall = fakeWall();
     const clock = new ViewClock({
       nowWall: wall.now,
@@ -232,7 +233,6 @@ describe("predicted-range reads (M2 design §3.3)", () => {
       delaySeconds: () => 0,
     });
     const store = new TimelineStore(clock);
-    store.registerDerivedChannel(vesselStateChannel);
 
     store.ingest(
       "vessel.orbit",
@@ -250,9 +250,13 @@ describe("predicted-range reads (M2 design §3.3)", () => {
     // The horizon itself did not move, only the estimate ran ahead of it.
     expect(store.certaintyHorizonUt()).toBe(100);
 
-    const state = store.sample<{
-      trueAnomaly: number | null;
-    }>("vessel.state");
+    // The store holds the orbit last at the horizon and propagates nothing;
+    // the prediction is a reader solving it at the frame's view UT.
+    const orbit = store.sample<VesselOrbitPayload>("vessel.orbit", token);
+    expect(orbit?.payload).toBeTruthy();
+    const solved = orbit?.payload
+      ? solveOrbit(orbit.payload, token.viewUt, null)
+      : undefined;
 
     // Off the WIRE fixture, which is bare numbers: the solver's own contract.
     const elements: OrbitElements = {
@@ -266,13 +270,13 @@ describe("predicted-range reads (M2 design §3.3)", () => {
       mu: CIRCULAR_ORBIT.mu as number,
     };
 
-    expect(state?.payload?.trueAnomaly).toBeCloseTo(
+    expect(solved?.trueAnomaly).toBeCloseTo(
       trueAnomalyDegrees(elements, 150),
       9,
     );
-    // Solved at the horizon instead, the same read lands ~9 degrees behind, so
-    // this is what says the propagation used the view UT rather than the edge.
-    expect(state?.payload?.trueAnomaly).not.toBeCloseTo(
+    // Solved at the horizon instead, the same orbit lands ~9 degrees behind,
+    // so the frame's view UT and the horizon are different instants to a reader.
+    expect(solved?.trueAnomaly).not.toBeCloseTo(
       trueAnomalyDegrees(elements, 100),
       3,
     );
@@ -328,7 +332,6 @@ describe("quickload epoch bump (M2 design §7.6)", () => {
       delaySeconds: () => 0,
     });
     const store = new TimelineStore(clock);
-    store.registerDerivedChannel(vesselStateChannel);
 
     store.ingest(
       "vessel.orbit",
@@ -338,8 +341,8 @@ describe("quickload epoch bump (M2 design §7.6)", () => {
     wall.advanceBy(20);
     store.beginFrame();
 
-    // Sanity: predicted mode is genuinely propagating before the rewind.
-    expect(store.sample("vessel.state")).toBeDefined();
+    // Sanity: predicted mode is genuinely reading the orbit before the rewind.
+    expect(store.sample("vessel.orbit")).toBeDefined();
     expect(store.currentFrame().certainty).toBe("predicted");
 
     // Quickload rewind: some topic delivers a higher-epoch point (the
@@ -352,10 +355,10 @@ describe("quickload epoch bump (M2 design §7.6)", () => {
 
     // vessel.orbit's pre-reset point was swept away by the epoch bump
     // (TimelineStore's cross-topic sweep): no post-reset keyframe has
-    // landed for it yet, so vessel.state must be undefined ("resyncing"),
-    // never a propagation off the dead pre-reset elements.
-    expect(store.sample("vessel.state")).toBeUndefined();
-    expect(store.sampleStatus("vessel.state")).toBe("resyncing");
+    // landed for it yet, so it reads undefined ("resyncing") and there is
+    // nothing for a reader to propagate off the dead pre-reset elements.
+    expect(store.sample("vessel.orbit")).toBeUndefined();
+    expect(store.sampleStatus("vessel.orbit")).toBe("resyncing");
   });
 });
 
@@ -412,7 +415,7 @@ describe("raw frame-cache defeats the epoch guard: the LENS-4 ghost (M2 T5 close
     expect(second).toBeUndefined(); // must NOT be the dead epoch-0 point
   });
 
-  it("vessel.state read via get() must not propagate the pre-bump orbit as a ghost after a mid-token epoch bump", () => {
+  it("a derived read via get() must not recompute off a pre-bump input after a mid-token epoch bump", () => {
     const wall = fakeWall();
     const clock = new ViewClock({
       nowWall: wall.now,
@@ -420,41 +423,38 @@ describe("raw frame-cache defeats the epoch guard: the LENS-4 ghost (M2 T5 close
       delaySeconds: () => 0,
     });
     const store = new TimelineStore(clock);
-    store.registerDerivedChannel(vesselStateChannel);
+    store.registerDerivedChannel(systemStateChannel);
 
-    store.ingest(
-      "vessel.orbit",
-      orbitPoint(CIRCULAR_ORBIT, { validAt: 100, deliveredAt: 100, epoch: 0 }),
-    );
-    clock.setMode("predicted");
+    store.ingest("system.bodies", {
+      validAt: 100,
+      payload: { bodies: [{ name: "Kerbin", index: 1 }] },
+      meta: makeMeta({ validAt: 100, deliveredAt: 100 }),
+      epoch: 0,
+    });
     wall.advanceBy(20);
     store.beginFrame();
     const token = store.currentFrame();
 
-    const first = store.sample<{
-      trueAnomaly: number | null;
-    }>("vessel.state", token);
-    // Sanity: genuinely propagating off the live orbit before the bump. Only
-    // the propagated path solves an anomaly; the measured one leaves it null.
-    expect(typeof first?.payload?.trueAnomaly).toBe("number");
+    // Sanity: genuinely deriving off the live input before the bump.
+    expect(
+      store.sample<{ bodyCount: number }>("system.state", token)?.payload,
+    ).toEqual({ bodyCount: 1 });
 
-    // Mid-token quickload rewind via an UNRELATED topic, vessel.orbit
-    // hasn't re-sampled, so it's swept to the new epoch with no points.
+    // Mid-token quickload rewind via an UNRELATED topic: system.bodies hasn't
+    // re-sampled, so it's swept to the new epoch with no points.
     store.ingest(
       "system.clock",
       numberPoint(4500, 4500, { deliveredAt: 4500, epoch: 1 }),
     );
 
-    // SAME token: no beginFrame(). vessel.state's OWN derived-memo key
-    // already folds epoch, so it recomputes: but that recompute calls
-    // get("vessel.orbit"), i.e. sample("vessel.orbit", token). If THAT raw
-    // read still serves its pre-bump cache entry, the recompute propagates
-    // off the dead epoch-0 orbit and stamps the result with the NEW epoch,
-    // a ghost `vessel.state` masquerading as post-rewind truth.
-    const second = store.sample<{
-      trueAnomaly: number | null;
-    }>("vessel.state", token);
-    expect(second).toBeUndefined(); // must NOT be a ghost propagated off the dead orbit
+    // SAME token: no beginFrame(). The channel's OWN derived-memo key folds
+    // epoch, so it recomputes: but that recompute calls get("system.bodies"),
+    // i.e. sample("system.bodies", token). If THAT raw read still served its
+    // pre-bump cache entry, the recompute would derive off the dead epoch-0
+    // input and stamp the result with the NEW epoch, a ghost masquerading as
+    // post-rewind truth.
+    const second = store.sample<{ bodyCount: number }>("system.state", token);
+    expect(second).toBeUndefined();
   });
 
   // The sibling of the two `sample()`/

@@ -14,24 +14,21 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { clearReckoners, registerCoreReckoners } from "./reckoners";
 import { makeMeta } from "./stub-transport";
 import { TimelineStore } from "./timeline-store";
-import { vesselStateChannel } from "./vessel-state";
 import { ViewClock } from "./view-clock";
 
 /**
  * The deliverable of the reckoning work: what the built-in does IS what a
  * third-party Uplink can do.
  *
- * Reckoning worked in this client long before a value could declare itself
- * reckonable, through `deriveVesselStateReckoning` on the `vessel.state` derived
- * channel. That path is not one an Uplink author can take. A derived channel can
- * only LABEL arithmetic that already happened inside its own `derive`, a wire
- * Topic has no `derive`, and every symbol of the conic sat behind `/spine`,
- * which the isolation gate blocks. So the declared extensibility surface held a
- * single registration: a stub that always declined.
+ * Core registers the conic for `vessel.flight` through the reckoner registry.
+ * An Uplink author has the same registry through the client handle, and the
+ * same conic through the root barrel, so nothing about the built-in model
+ * should be out of an author's reach.
  *
- * This asserts the gap is closed, and asserts it the only way that means
- * anything: by REGISTERING THE SAME MODEL A SECOND TIME through the surface an
- * author has, and comparing the numbers.
+ * This asserts that the only way that means anything: by REGISTERING THE SAME
+ * MODEL A SECOND TIME through the surface an author has, and comparing the
+ * numbers. Two registrations for one topic resolve by clobbering, so the two
+ * are swept in turn, each on a fresh store over the same scene.
  *
  * ## What "the surface an author has" means here, precisely
  *
@@ -41,7 +38,7 @@ import { ViewClock } from "./view-clock";
  * registers through the client handle, so its model is owner-stamped the way an
  * Uplink's is. Nothing it does reaches `/spine`.
  *
- * The HARNESS (the store, the channel definition, the stub meta) imports
+ * The HARNESS (the store, the view clock, the stub meta) imports
  * whatever it likes: driving a `TimelineStore` by hand is a test's job, not an
  * author's.
  *
@@ -183,7 +180,6 @@ function scene(encounterUt?: number) {
     wall = viewUt;
     store.beginFrame();
   };
-  store.registerDerivedChannel(vesselStateChannel);
   store.ingest("system.bodies", point(0, SYSTEM));
   store.ingest(
     "vessel.orbit",
@@ -211,43 +207,53 @@ function scene(encounterUt?: number) {
   return { store, at };
 }
 
+type FlightAnswer = { altitudeAsl: number; orbitalSpeed: number };
+
 /**
- * The two answers for one view time, as a comparable pair. `undefined` on either
- * side means that model withdrew, which is a result rather than a failure to
- * produce one.
+ * `vessel.flight`'s reckoned answer at one view time. `undefined` means the
+ * model withdrew, which is a result rather than a failure to produce one.
  */
-function bothAt(
+function flightAt(
   { store, at }: { store: TimelineStore; at: (viewUt: number) => void },
   viewUt: number,
-): {
-  builtIn: { altitudeAsl: number; orbitalSpeed: number } | undefined;
-  uplink: { altitudeAsl: number; orbitalSpeed: number } | undefined;
-} {
+): FlightAnswer | undefined {
   at(viewUt);
-  const state = store.sampleReading<{
-    altitudeAsl: number | null;
-    orbitalSpeed: number | null;
-  }>("vessel.state");
   const flight = store.sampleReading<{
     altitudeAsl: { magnitude: number };
     orbitalSpeed: { magnitude: number };
   }>("vessel.flight");
-  return {
-    builtIn:
-      state.reckoning.status === "available"
-        ? {
-            altitudeAsl: state.reckoning.value.altitudeAsl as number,
-            orbitalSpeed: state.reckoning.value.orbitalSpeed as number,
-          }
-        : undefined,
-    uplink:
-      flight.reckoning.status === "available"
-        ? {
-            altitudeAsl: flight.reckoning.value.altitudeAsl.magnitude,
-            orbitalSpeed: flight.reckoning.value.orbitalSpeed.magnitude,
-          }
-        : undefined,
-  };
+  return flight.reckoning.status === "available"
+    ? {
+        altitudeAsl: flight.reckoning.value.altitudeAsl.magnitude,
+        orbitalSpeed: flight.reckoning.value.orbitalSpeed.magnitude,
+      }
+    : undefined;
+}
+
+/**
+ * Both registrations' answers at each view time: core's alone first, then the
+ * probe's over core's, each on its own fresh scene.
+ */
+function bothAcross(
+  viewUts: readonly number[],
+  encounterUt?: number,
+): { viewUt: number; builtIn?: FlightAnswer; uplink?: FlightAnswer }[] {
+  clearReckoners();
+  registerCoreReckoners();
+  const coreWorld = scene(encounterUt);
+  const builtIn = viewUts.map((viewUt) => flightAt(coreWorld, viewUt));
+
+  clearReckoners();
+  registerCoreReckoners();
+  registerProbeReckoner();
+  const probeWorld = scene(encounterUt);
+  const uplink = viewUts.map((viewUt) => flightAt(probeWorld, viewUt));
+
+  return viewUts.map((viewUt, i) => ({
+    viewUt,
+    builtIn: builtIn[i],
+    uplink: uplink[i],
+  }));
 }
 
 let disposeHost: () => void;
@@ -269,19 +275,15 @@ afterAll(() => {
 
 describe("core's conic and an Uplink's registration of it are the same model", () => {
   it("agrees at every instant of a full period, including the atmosphere crossing", () => {
-    clearReckoners();
-    registerCoreReckoners();
-    registerProbeReckoner();
-    const world = scene();
-
     // One period of an sma-900 km Kerbin orbit is about 2 850 s. Stepping 50 s
     // walks apoapsis, periapsis and the interface crossings on either side of
     // it, which is where the two models have to withdraw together or not at all.
     const disagreements: string[] = [];
     let answered = 0;
     let withdrawn = 0;
-    for (let viewUt = 0; viewUt <= 2900; viewUt += 50) {
-      const { builtIn, uplink } = bothAt(world, viewUt);
+    const viewUts: number[] = [];
+    for (let viewUt = 0; viewUt <= 2900; viewUt += 50) viewUts.push(viewUt);
+    for (const { viewUt, builtIn, uplink } of bothAcross(viewUts)) {
       if ((builtIn === undefined) !== (uplink === undefined)) {
         disagreements.push(
           `ut ${viewUt}: builtIn ${builtIn ? "answered" : "withdrew"}, uplink ${uplink ? "answered" : "withdrew"}`,
@@ -312,20 +314,14 @@ describe("core's conic and an Uplink's registration of it are the same model", (
   });
 
   it("withdraws together at the SOI transition the elements carry", () => {
-    clearReckoners();
-    registerCoreReckoners();
-    registerProbeReckoner();
-    const world = scene(1200);
-
     // Just inside the transition both answer; at it and past it both stop. The
     // instant itself is the one that matters: an off-by-one in either copy of
     // the guard shows up here and nowhere else.
-    const before = bothAt(world, 1100);
+    const [before, ...past] = bothAcross([1100, 1400, 1450], 1200);
     expect(before.builtIn).toBeDefined();
     expect(before.uplink).toBeDefined();
 
-    for (const viewUt of [1400, 1450]) {
-      const { builtIn, uplink } = bothAt(world, viewUt);
+    for (const { viewUt, builtIn, uplink } of past) {
       expect({ viewUt, builtIn, uplink }).toEqual({
         viewUt,
         builtIn: undefined,

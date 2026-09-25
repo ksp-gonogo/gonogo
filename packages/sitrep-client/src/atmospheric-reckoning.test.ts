@@ -705,12 +705,11 @@ describe("what the descent withdraws on", () => {
  * The same descent as a SERIES: what a chart can draw across the silence the
  * readings above describe one frame at a time.
  *
- * `vessel.flight`'s fields are `Value`s, so until `computeReckonedTail` learned
- * to carry a wrapped quantity the tail was empty on every frame of this
- * scenario and the only topic in the tree that could produce a dashed trace was
- * `vessel.state`, whose record holds bare magnitudes. The point read said "the
- * altitude is 56 827 m, carried by rate-integration" while a plot of the same
- * quantity stopped at the last packet, which is the asymmetry these cases pin.
+ * `vessel.flight`'s fields are `Value`s, so the tail has to carry a wrapped
+ * quantity. A tail that could not would be empty on every frame of this
+ * scenario: the point read would say "the altitude is 56 827 m, carried by
+ * rate-integration" while a plot of the same quantity stopped at the last
+ * packet, which is the asymmetry these cases pin.
  */
 describe("the carried altitude as a plotted tail", () => {
   it("samples the field subtopic across the gap", () => {

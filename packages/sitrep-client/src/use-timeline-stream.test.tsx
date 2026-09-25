@@ -17,7 +17,7 @@ function point(validAt: number, payload: number): TimelinePoint<number> {
 }
 
 function Alt({ store }: { store: TimelineStore }) {
-  const v = useTimelineStream<number>(store, "vessel.state.altitudeAsl");
+  const v = useTimelineStream<number>(store, "vessel.flight.altitudeAsl");
   return <div>alt:{v ?? NULL_DISPLAY}</div>;
 }
 
@@ -30,7 +30,7 @@ describe("useTimelineStream", () => {
     expect(screen.getByText(`alt:${NULL_DISPLAY}`)).toBeTruthy(); // nothing buffered yet
 
     act(() => {
-      store.ingest("vessel.state.altitudeAsl", point(10, 500));
+      store.ingest("vessel.flight.altitudeAsl", point(10, 500));
       store.beginFrame();
     });
     expect(screen.getByText("alt:500")).toBeTruthy();
@@ -38,7 +38,7 @@ describe("useTimelineStream", () => {
     // A new sample arrives but the frame hasn't advanced yet, no re-render
     // to a value the frozen frame token wouldn't itself see.
     act(() => {
-      store.ingest("vessel.state.altitudeAsl", point(20, 600));
+      store.ingest("vessel.flight.altitudeAsl", point(20, 600));
     });
     expect(screen.getByText("alt:500")).toBeTruthy();
 

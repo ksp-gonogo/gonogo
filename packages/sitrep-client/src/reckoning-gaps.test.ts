@@ -11,6 +11,7 @@ import {
   type WireOf,
   wrapWire,
 } from "./stub-transport";
+import { systemStateChannel } from "./system-state";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import { vesselStateChannel } from "./vessel-state";
@@ -23,8 +24,7 @@ import { ViewClock } from "./view-clock";
  * file rather than scattered across the suites that own the mechanisms they
  * break. `reading.ts` argues for three separate API decisions (no horizon
  * field, no failure return on `reckoned`, one `basis` per reading) on premises
- * this file shows are false, and `vessel.state` already ships the failure the
- * whole type exists to prevent.
+ * this file pins as false.
  *
  * Every case here reads in PREDICTED mode. That is not incidental: in
  * confirmed mode the view clock clamps to the newest delivered sample, so
@@ -100,6 +100,17 @@ function orbitPoint(validAt: number): TimelinePoint<VesselOrbitPayload> {
   };
 }
 
+function bodiesPoint(
+  validAt: number,
+): TimelinePoint<{ bodies: { name: string; index: number }[] }> {
+  return {
+    validAt,
+    payload: { bodies: [{ name: "Kerbin", index: 1 }] },
+    meta: makeMeta({ validAt, deliveredAt: validAt }),
+    epoch: 0,
+  };
+}
+
 function numberPoint(validAt: number, payload: number): TimelinePoint<number> {
   return {
     validAt,
@@ -112,19 +123,16 @@ function numberPoint(validAt: number, payload: number): TimelinePoint<number> {
 beforeEach(clearReckoners);
 
 describe("a derived reading must not claim the frame's own view time as its observation", () => {
-  it("vessel.state twenty minutes into a blackout reports the age of the ORBIT observation, not zero", () => {
-    // `deriveVesselState` calls `trySolve(elements, viewUt)` with no staleness
-    // gate, so `vessel.state.position` is already forward-modelled. The point
-    // it comes back on is stamped `validAt: token.viewUt` and
-    // `staleness: Fresh` (`derivedMeta`), so a widget asking how old this is
-    // gets 0 however long the craft has been dark. An age of zero beside a
-    // position carried twenty minutes is the sharpest form of the failure this
-    // type exists to prevent.
+  it("a derived channel twenty minutes into a blackout reports the age of its INPUT's observation, not zero", () => {
+    // A derived record is recomputed every frame, so stamping it with the
+    // frame's own view time would make a widget asking how old it is get 0
+    // however long the craft has been dark. The store tracks the oldest input
+    // the derivation consumed instead, which is how current the record is.
     const wall = fakeWall();
     const { store } = predictedStore(wall);
-    store.registerDerivedChannel(vesselStateChannel);
+    store.registerDerivedChannel(systemStateChannel);
 
-    store.ingest("vessel.orbit", orbitPoint(100));
+    store.ingest("system.bodies", bodiesPoint(100));
     wall.advanceBy(1200);
     store.setTransportConnected(false);
     store.beginFrame();
@@ -132,9 +140,9 @@ describe("a derived reading must not claim the frame's own view time as its obse
     const viewUt = store.currentFrame().viewUt;
     expect(viewUt).toBe(1300);
 
-    const reading = store.sampleReading<unknown>("vessel.state");
+    const reading = store.sampleReading<unknown>("system.state");
     expect(reading.state).toBe("stale");
-    // The age, as the subtraction it now is: twenty minutes since the ORBIT was
+    // The age, as the subtraction it is: twenty minutes since the bodies were
     // observed, not zero because the derived channel was recomputed this frame.
     expect(
       value("ut", viewUt).minus(observedAt(reading) as Value<"ut">),

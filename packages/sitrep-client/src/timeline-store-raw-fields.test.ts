@@ -12,9 +12,7 @@ import { ViewClock } from "./view-clock";
  * The retired flat key vocabulary mapped old per-field keys to
  * dotted SUBTOPIC strings (`"t.currentRate" -> "time.warp.warpRate"`) for
  * nearly every raw channel (`vessel.flight.*`, `vessel.orbit.*`,
- * `vessel.control.*`, `time.warp.*`, ...): everything except the handful of
- * `vessel.state.*` entries, which ride the DERIVED-channel `fields: true`
- * mechanism (`vessel-state.ts`).
+ * `vessel.control.*`, `time.warp.*`, ...).
  *
  * Without the resolution this file exercises, `TimelineStore` would only
  * expose `"<parent>.<field>"` subtopic reads for a REGISTERED DERIVED

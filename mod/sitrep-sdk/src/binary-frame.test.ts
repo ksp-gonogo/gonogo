@@ -129,13 +129,13 @@ describe("decodeBinaryFrame", () => {
     const envelopes = [
       JSON.stringify({
         type: "stream-data",
-        topic: "vessel.state",
-        payload: { altitude: 1234.5 },
+        topic: "vessel.flight",
+        payload: { altitudeAsl: 1234.5 },
         meta: META,
       }),
       JSON.stringify({
         type: "event",
-        topic: "vessel.state",
+        topic: "vessel.flight",
         name: "subscribed",
         meta: META,
       }),

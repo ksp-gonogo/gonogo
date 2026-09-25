@@ -10,12 +10,11 @@ import { ViewClock } from "./view-clock";
 /**
  * `vessel.orbit`'s own model, and the one thing it exists to say.
  *
- * The OnRails/Loaded split used to live only in the `vessel.state` derived
- * channel, and it keys on `meta.quality`, which sits on the POINT. A `Reading`
- * carries no meta and no consumer in this tree reads one, so a widget solving
- * apsides from `vessel.orbit` has no way of knowing the elements are
- * osculating:
- * it would draw a number where the tree deliberately draws nothing.
+ * The OnRails/Loaded split keys on `meta.quality`, which sits on the POINT. A
+ * `Reading` carries no meta and no consumer in this tree reads one, so a widget
+ * solving apsides from `vessel.orbit` has no other way of knowing the elements
+ * are osculating: it would draw a number where the tree deliberately draws
+ * nothing.
  *
  * A reckoner IS handed points, so this is where that decision can live. What a
  * consumer then branches on is the reckoning, which it can already see.

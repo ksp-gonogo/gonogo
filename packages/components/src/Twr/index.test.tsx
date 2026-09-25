@@ -104,6 +104,35 @@ describe("TwrComponent: genuinely runs off the stream (R6 Wave 2)", () => {
     await waitFor(() => expect(visibleText()).toContain("1.83"));
   });
 
+  it("draws no figure for a craft reporting no positive mass, rather than dividing by it", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: VESSEL_STATE_INPUTS,
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+    renderTwr(fixture);
+    act(() => {
+      emitTwr(fixture, 1.832);
+    });
+    await waitFor(() => expect(visibleText()).toContain("1.83"));
+
+    /*
+     * Negative rather than zero: a zero mass divides to Infinity, which the
+     * headline refuses on its own, but a negative one divides to a finite
+     * figure that only the positive-mass rule keeps off the gauge.
+     */
+    act(() => {
+      fixture.emit("vessel.propulsion", {
+        totalMass: -1,
+        dryMass: 0,
+        currentThrust: 200,
+        availableThrust: 200,
+      });
+    });
+    expect(await screen.findByText(/no engine data/i)).toBeInTheDocument();
+    expect(visibleText()).not.toContain("-");
+  });
+
   it("renders the TWR value as the gauge's aria-label so screen readers can read it", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: VESSEL_STATE_INPUTS,

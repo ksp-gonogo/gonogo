@@ -118,11 +118,11 @@ namespace Sitrep.Core.Tests
             {
                 EnvelopeCodec.WriteStreamData(new StreamData<object?>
                 {
-                    Topic = "vessel.state",
-                    Payload = new Dictionary<string, object?> { ["altitude"] = 1234.5 },
+                    Topic = "vessel.flight",
+                    Payload = new Dictionary<string, object?> { ["altitudeAsl"] = 1234.5 },
                     Meta = SampleMeta(),
                 }),
-                EnvelopeCodec.WriteEventMsg(new EventMsg { Topic = "vessel.state", Name = "subscribed", Meta = SampleMeta() }),
+                EnvelopeCodec.WriteEventMsg(new EventMsg { Topic = "vessel.flight", Name = "subscribed", Meta = SampleMeta() }),
                 EnvelopeCodec.WriteErrorMsg(new ErrorMsg { Code = "unknown-topic", Message = "no" }),
             };
 

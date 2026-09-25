@@ -11,7 +11,7 @@ function makeStore(): TimelineStore {
 }
 
 const DERIVED: DerivedChannelDefinition<{ altitudeAsl: number }> = {
-  topic: "vessel.state",
+  topic: "test.derived",
   inputs: ["vessel.orbit", "vessel.flight"],
   derive: () => ({ altitudeAsl: 1 }),
   fields: true,
@@ -33,15 +33,15 @@ describe("isTopicCarried", () => {
     const store = makeStore();
     store.registerDerivedChannel(DERIVED);
 
-    expect(isTopicCarried(store, new Set(), "vessel.state")).toBe(false);
+    expect(isTopicCarried(store, new Set(), "test.derived")).toBe(false);
     expect(
-      isTopicCarried(store, new Set(["vessel.orbit"]), "vessel.state"),
+      isTopicCarried(store, new Set(["vessel.orbit"]), "test.derived"),
     ).toBe(false); // only one of two inputs carried
     expect(
       isTopicCarried(
         store,
         new Set(["vessel.orbit", "vessel.flight"]),
-        "vessel.state",
+        "test.derived",
       ),
     ).toBe(true);
   });
@@ -54,14 +54,14 @@ describe("isTopicCarried", () => {
       isTopicCarried(
         store,
         new Set(["vessel.orbit"]),
-        "vessel.state.altitudeAsl",
+        "test.derived.altitudeAsl",
       ),
     ).toBe(false);
     expect(
       isTopicCarried(
         store,
         new Set(["vessel.orbit", "vessel.flight"]),
-        "vessel.state.altitudeAsl",
+        "test.derived.altitudeAsl",
       ),
     ).toBe(true);
   });

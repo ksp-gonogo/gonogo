@@ -24,7 +24,10 @@ const HORIZONTAL_SPEED_KEY = "orbital-ascent.horizontalSpeed";
  * part is taken out. Clamped before the root, so rounding in two independently
  * reported speeds never yields NaN.
  */
-function horizontalOf(surfaceSpeed: number, verticalSpeed: number): number {
+export function horizontalOf(
+  surfaceSpeed: number,
+  verticalSpeed: number,
+): number {
   return Math.sqrt(
     Math.max(0, surfaceSpeed * surfaceSpeed - verticalSpeed * verticalSpeed),
   );
