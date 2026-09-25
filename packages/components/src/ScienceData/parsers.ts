@@ -8,8 +8,6 @@ export function fixed(value: number, decimals: number): string {
 export interface ParsedExperiment {
   /** Human-readable experiment + biome label (e.g. "Crew report from KSC"). */
   title: string;
-  /** Host part title (e.g. "Mystery Goo Container"). */
-  part: string | null;
   /** Mits of data already collected. */
   dataAmount: number | null;
   /** Stable id we can key React lists on. */
@@ -17,19 +15,8 @@ export interface ParsedExperiment {
 }
 
 /**
- * Parses `science.experiments`. Two wire shapes land here:
- *
- * - Legacy: `{ part, title, dataAmount,
- *   scienceValueBase, transmitBoost, subjectId }` (see
- *   the legacy science data-link handler).
- * - New SDK `science.experiments`: `{ partName, location, experimentId,
- *   subjectId, title, dataAmount, ... }`,
- *   `mod/Sitrep.Host/ScienceViewProvider.cs`'s superset of the legacy shape,
- *   `partName` in place of `part`. `entry.partName ?? entry.part` below
- *   reads either wire's field name identically; every other field the
- *   widget needs (`title`/`dataAmount`/`subjectId`) is spelled the same on
- *   both. `dataAmount` arrives unit-wrapped on the new wire, so it reads
- *   through `magnitudeOf`.
+ * Parses `science.experiments` (`Sitrep.Host.ScienceViewProvider`). `dataAmount`
+ * arrives unit-wrapped, so it reads through `magnitudeOf`.
  */
 export function parseExperiments(raw: unknown): ParsedExperiment[] | null {
   if (raw === null || raw === undefined) return null;
@@ -42,15 +29,8 @@ export function parseExperiments(raw: unknown): ParsedExperiment[] | null {
     const e = entry as Record<string, unknown>;
     const subjectId =
       typeof e.subjectId === "string" ? e.subjectId : `experiment-${i}`;
-    const part =
-      typeof e.partName === "string"
-        ? e.partName
-        : typeof e.part === "string"
-          ? e.part
-          : null;
     out.push({
       title: typeof e.title === "string" ? e.title : "(unnamed)",
-      part,
       dataAmount: magnitudeOf(asQuantityish(e.dataAmount)),
       subjectId,
     });
@@ -117,11 +97,8 @@ export interface ArchiveSubject {
   title: string;
   /** Science banked for this subject so far. */
   science: number;
-  /** Max science this subject can ever yield. */
-  scienceCap: number;
-  /** scienceCap - science; how much science is left in this subject. */
+  /** How much science is left in this subject. */
   remainingPotential: number;
-  subjectValue: number;
 }
 
 /**
@@ -159,9 +136,7 @@ export function parseArchive(raw: unknown): ArchiveSubject[] | null {
       biome: typeof e.biome === "string" ? e.biome : "",
       title: typeof e.title === "string" ? e.title : "(unnamed)",
       science: magnitudeOr(asQuantityish(e.science), 0),
-      scienceCap: magnitudeOr(asQuantityish(e.scienceCap), 0),
       remainingPotential: magnitudeOr(asQuantityish(e.remainingPotential), 0),
-      subjectValue: magnitudeOr(asQuantityish(e.subjectValue), 0),
     });
   }
   return out;

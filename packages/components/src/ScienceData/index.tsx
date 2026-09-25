@@ -74,7 +74,7 @@ function ScienceDataComponent({
 }: Readonly<ComponentProps<ScienceDataConfig>>) {
   const [tab, setTab] = useState<"aboard" | "archive">("aboard");
 
-  // Partial-gate rather than a hard `requires: ["flight"]`: the header SCI
+  // Partial-gate rather than a hard `requires: ["flight"]`: the banked SCI
   // readout stays meaningful at the Space Center (banked science persists
   // across vessels), and so does the Archive tab (career-wide, held at the home
   // command). Only Aboard is vessel-scoped, and with nothing flying it has no
@@ -211,17 +211,15 @@ function ScienceDataComponent({
          grades the host does not derive (`held-stale`, `absent`) for the ONE
          topic this widget's readings actually hang on. */
       panelStatus={breakdownStreamStatus}
-      panelAside={
-        isCareerLike && careerScience !== null ? (
-          <Text size="sm" title="Science banked">
-            {fixed(careerScience, 0)} SCI
-          </Text>
-        ) : undefined
-      }
       /* ONE section: the body is a tab strip, and a tab strip beside anything
-         reads as two widgets rather than as one panel. */
+         reads as two widgets rather than as one panel. The balance sits above
+         the strip inside that section rather than in the header aside, which
+         folds away at narrow widths. */
       sections={
         <Section full>
+          {isCareerLike && careerScience !== null && (
+            <Text size="sm">{fixed(careerScience, 0)} SCI banked</Text>
+          )}
           <Tabs
             tabs={tabs}
             // Kept in step with the disabled tab so this component's own state
