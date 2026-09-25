@@ -1,6 +1,11 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
-import { describe, expect, it } from "vitest";
-import { AlarmBanner, SafetyMarginPill } from "./AlarmBanner";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import {
+  AlarmBanner,
+  AlarmsCancelledPill,
+  SafetyMarginPill,
+} from "./AlarmBanner";
 import { AlarmHostProvider } from "./AlarmHostContext";
 import { AlarmHostService } from "./AlarmHostService";
 import type { Alarm, AlarmSnapshot } from "./types";
@@ -103,6 +108,36 @@ describe("AlarmBanner safety margin", () => {
       </AlarmHostProvider>,
     );
     expect(container.textContent).not.toContain("light-time");
+  });
+});
+
+describe("AlarmsCancelledPill", () => {
+  it("says how many alarms a craft switch cancelled, and why, until acknowledged", async () => {
+    const host = fakeHost({
+      ...snapshotOf([], 0),
+      alarmsCancelled: { count: 2 },
+    });
+    const acknowledge = vi.spyOn(host, "acknowledgeAlarmsCancelled");
+    const { container } = render(
+      <AlarmHostProvider service={host}>
+        <AlarmsCancelledPill />
+      </AlarmHostProvider>,
+    );
+    expect(container.textContent).toContain("Alarms cancelled");
+    expect(container.textContent).toContain("2");
+    expect(container.textContent).toContain("active vessel changed");
+
+    await userEvent.click(screen.getByRole("button", { name: "Ack" }));
+    expect(acknowledge).toHaveBeenCalledOnce();
+  });
+
+  it("CONTROL: renders nothing when nothing was cancelled", () => {
+    const { container } = render(
+      <AlarmHostProvider service={fakeHost(snapshotOf([], 0))}>
+        <AlarmsCancelledPill />
+      </AlarmHostProvider>,
+    );
+    expect(container.textContent).toBe("");
   });
 });
 

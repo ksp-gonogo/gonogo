@@ -33,6 +33,7 @@ import styled from "styled-components";
 import {
   AlarmBanner,
   AlarmHostProvider,
+  AlarmsCancelledPill,
   AlarmsFab,
   AlarmsLauncherBridge,
   AlarmsModal,
@@ -500,6 +501,7 @@ export function MainScreen({
                                             <SafetyMarginPill />
                                             <FiredAlarmPills />
                                             <UnscheduledWarpPill />
+                                            <AlarmsCancelledPill />
                                             <SimulationIndicator />
                                             <SignalLossIndicator />
                                             <SustainedFailureBanner />

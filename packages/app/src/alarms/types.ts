@@ -441,6 +441,13 @@ export interface AlarmSnapshot {
    * screen, or by an Uplink for itself. Absent when there are none.
    */
   scetForeign?: ForeignScetAlarm[];
+  /**
+   * How many of this list's alarms the simulation cancelled because the player
+   * switched to another craft, counted until the operator acknowledges it.
+   * Absent when there is nothing to tell. A cancelled alarm leaves the list
+   * with no row, so this is the only place the operator learns of it.
+   */
+  alarmsCancelled?: { count: number };
 }
 
 /**

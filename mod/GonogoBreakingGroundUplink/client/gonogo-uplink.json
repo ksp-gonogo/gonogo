@@ -9,7 +9,7 @@
   "apiVersion": "3.0.0",
   "uiKitVersion": "0.1.0",
   "contractMajor": 18,
-  "contractMinor": 11,
+  "contractMinor": 12,
   "bundleUrl": "breakingGround/breakingGround.client.js",
   "integrity": "",
   "sdkVersion": "0.0.1"

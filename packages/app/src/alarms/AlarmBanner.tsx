@@ -309,6 +309,33 @@ export function UnscheduledWarpPill() {
   );
 }
 
+/**
+ * Sibling pill saying the simulation cancelled alarms because the player
+ * switched to another craft. The alarms themselves leave the list, so this is
+ * how the operator learns why it is shorter.
+ */
+export function AlarmsCancelledPill() {
+  const snap = useAlarmSnapshot();
+  const host = useAlarmHost();
+  if (!snap.alarmsCancelled) return null;
+  const { count } = snap.alarmsCancelled;
+  return (
+    <Wrap $tone="arm" role="status">
+      <Cluster justify="start" align="baseline" wrap>
+        <Label>{count === 1 ? "Alarm cancelled" : "Alarms cancelled"}</Label>
+        <BannerValue>{count}</BannerValue>
+        <Quiet>active vessel changed</Quiet>
+        <AckButton
+          type="button"
+          onClick={() => host.acknowledgeAlarmsCancelled()}
+        >
+          Ack
+        </AckButton>
+      </Cluster>
+    </Wrap>
+  );
+}
+
 function CollapsedCPInline({
   count,
   onAckAll,

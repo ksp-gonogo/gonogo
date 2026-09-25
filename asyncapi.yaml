@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 18.11.0
+  version: 18.12.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 79 telemetry
     channels a client subscribes to, and 55 commands it dispatches, with the payload
@@ -16229,6 +16229,13 @@ components:
             because universal time belongs to the game. It is on the roster because the
             simulation knows the craft is gone and the command centre does not, and a
             row that will never fire must read as dead rather than as pending forever.
+        - const: 3
+          title: Cancelled
+          description: |-
+            The player switched to a different craft before the alarm came due, so it
+            will never fire. An alarm belongs to the craft being flown when it was
+            armed, whatever its condition reads, and a switch ends every alarm still
+            armed. A kerbal on EVA counts as the craft they stepped out of.
     ScetAlarmThresholdOp:
       type: integer
       description: |-

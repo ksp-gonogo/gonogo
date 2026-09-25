@@ -1,5 +1,6 @@
 export {
   AlarmBanner,
+  AlarmsCancelledPill,
   FiredAlarmPills,
   SafetyMarginPill,
   UnscheduledWarpPill,

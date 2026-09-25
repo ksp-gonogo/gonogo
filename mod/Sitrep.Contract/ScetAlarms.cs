@@ -117,6 +117,14 @@ public enum ScetAlarmState
     /// pending forever.</para>
     /// </summary>
     Unreachable,
+
+    /// <summary>
+    /// The player switched to a different craft before the alarm came due, so it
+    /// will never fire. An alarm belongs to the craft being flown when it was
+    /// armed, whatever its condition reads, and a switch ends every alarm still
+    /// armed. A kerbal on EVA counts as the craft they stepped out of.
+    /// </summary>
+    Cancelled,
 }
 
 /// <summary>

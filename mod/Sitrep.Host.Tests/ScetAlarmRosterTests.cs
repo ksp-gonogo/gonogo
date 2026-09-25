@@ -243,6 +243,97 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void SwitchingToAnotherCraftCancelsEveryArmedAlarm()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.ObserveFlownCraft("vessel:abc");
+            roster.Arm(TimeAlarm("time", 1000), "ksc");
+            roster.Arm(ThresholdAlarm("threshold", 100_000), "ksc");
+            roster.Arm(TimeAlarm("fired", 10), "ksc");
+            roster.Evaluate(500);
+
+            Assert.True(roster.ObserveFlownCraft("vessel:def"));
+
+            var states = roster.Snapshot().ToDictionary(a => a.Id, a => a.State);
+            Assert.Equal(ScetAlarmState.Cancelled, states["time"]);
+            Assert.Equal(ScetAlarmState.Cancelled, states["threshold"]);
+            Assert.Equal(ScetAlarmState.Fired, states["fired"]);
+        }
+
+        [Fact]
+        public void ACancelledAlarmNeverFiresOrStopsTheWarp()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.ObserveFlownCraft("vessel:abc");
+            roster.Arm(TimeAlarm("a", 1000, leadSeconds: 10), "ksc");
+            roster.Evaluate(500);
+            roster.ObserveFlownCraft("vessel:def");
+
+            var tick = roster.Evaluate(2000);
+
+            Assert.Empty(tick.Fired);
+            Assert.False(tick.StopWarp);
+        }
+
+        [Fact]
+        public void ACancellationIsReportedAsAChangeOnTheNextTick()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.ObserveFlownCraft("vessel:abc");
+            roster.Arm(TimeAlarm("a", 1000), "ksc");
+            roster.Evaluate(500);
+            roster.ObserveFlownCraft("vessel:def");
+
+            Assert.True(roster.Evaluate(501).RosterChanged);
+        }
+
+        [Fact]
+        public void LeavingFlightAndReturningToTheSameCraftCancelsNothing()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.ObserveFlownCraft("vessel:abc");
+            roster.Arm(TimeAlarm("a", 1000), "ksc");
+
+            Assert.False(roster.ObserveFlownCraft(null));
+            Assert.False(roster.ObserveFlownCraft("vessel:abc"));
+            Assert.Equal(ScetAlarmState.Armed, roster.Snapshot()[0].State);
+        }
+
+        [Fact]
+        public void AnotherCraftAfterASpellWithNoneIsStillASwitch()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.ObserveFlownCraft("vessel:abc");
+            roster.Arm(TimeAlarm("a", 1000), "ksc");
+            roster.ObserveFlownCraft(null);
+
+            Assert.True(roster.ObserveFlownCraft("vessel:def"));
+            Assert.Equal(ScetAlarmState.Cancelled, roster.Snapshot()[0].State);
+        }
+
+        [Fact]
+        public void TheFirstCraftFlownCancelsNothing()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(TimeAlarm("a", 1000), "ksc");
+
+            Assert.False(roster.ObserveFlownCraft("vessel:abc"));
+            Assert.Equal(ScetAlarmState.Armed, roster.Snapshot()[0].State);
+        }
+
+        [Fact]
+        public void OnlyASubjectNamingAnotherCraftIsAnotherCraft()
+        {
+            var roster = new ScetAlarmRoster();
+            Assert.False(roster.NamesAnotherCraft("vessel:def"));
+
+            roster.ObserveFlownCraft("vessel:abc");
+            Assert.True(roster.NamesAnotherCraft("vessel:def"));
+            Assert.False(roster.NamesAnotherCraft("vessel:abc"));
+            Assert.False(roster.NamesAnotherCraft("game"));
+        }
+
+        [Fact]
         public void ASecondOfClockJitterIsNotARewind()
         {
             var roster = new ScetAlarmRoster();

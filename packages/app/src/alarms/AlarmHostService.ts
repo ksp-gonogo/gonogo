@@ -249,6 +249,9 @@ export class AlarmHostService {
    */
   private onFireRefusals = new Map<string, string>();
 
+  /** Alarms the simulation cancelled on a craft switch since the operator last acknowledged it. */
+  private cancelledUnacknowledged = 0;
+
   /**
    * Alarms read from storage that no tick has evaluated yet. A fire found on
    * that first evaluation was reconstructed from what was persisted, not
@@ -358,6 +361,7 @@ export class AlarmHostService {
         storage: this.storage,
       }),
       onRoster: () => this.emit(),
+      onCancelled: (ids) => this.onScetCancelled(ids),
       nowMs: () => this.opts.nowMs(),
     });
     /* Bound only once assigned: a replayed fire notice ticks the host, and the
@@ -387,6 +391,10 @@ export class AlarmHostService {
           : undefined,
       scetUnreachable: this.unreachableHeld(),
       scetForeign: this.foreignHeld(),
+      alarmsCancelled:
+        this.cancelledUnacknowledged > 0
+          ? { count: this.cancelledUnacknowledged }
+          : undefined,
     };
   }
 
@@ -572,6 +580,13 @@ export class AlarmHostService {
     if (this.warpObserver.acknowledgeUnscheduled()) this.emit();
   }
 
+  /** The operator has read that alarms were cancelled on a craft switch. */
+  acknowledgeAlarmsCancelled(): void {
+    if (this.cancelledUnacknowledged === 0) return;
+    this.cancelledUnacknowledged = 0;
+    this.emit();
+  }
+
   /**
    * Dismiss a fired alarm. Threshold and time alarms both stay in the
    * `fired` state until the user (or a peer) acks, the original "auto
@@ -692,6 +707,25 @@ export class AlarmHostService {
        the way through, here or in the tick that follows: the mod already
        stopped it, and a second authority for one piece of state is a race. */
     this.tick();
+  }
+
+  /**
+   * The simulation cancelled these alarms on a switch to another craft, so they
+   * leave the list with no row, counted into the notice the operator
+   * acknowledges instead. Ids this list does not hold were set by another
+   * screen and are left to it.
+   */
+  private onScetCancelled(ids: readonly string[]): void {
+    const cancelled = new Set(ids);
+    const kept = this.alarms.filter((a) => !cancelled.has(a.id));
+    if (kept.length === this.alarms.length) return;
+    for (const alarm of this.alarms) {
+      if (cancelled.has(alarm.id)) this.forgetAlarm(alarm.id);
+    }
+    this.cancelledUnacknowledged += this.alarms.length - kept.length;
+    this.alarms = kept;
+    this.persist();
+    this.emit();
   }
 
   /**
