@@ -113,43 +113,33 @@ describe("FuelStatus: what undefined means today", () => {
   });
 
   it("reads a resource with no reported capacity as a resource the vessel does not have", async () => {
-    // The `magnitudeOr(..., 0)` + `filter(max > 0)` pair, on `max`. The vessel
-    // genuinely carries 120 units of monoprop and says so; only the capacity is
-    // missing from the frame. The row disappears entirely, which is the same
-    // rendering as a vessel with no RCS tank at all.
+    // A row needs a capacity above zero. The vessel genuinely carries 120 units
+    // of monoprop and says so; only the capacity is missing from the frame. The
+    // row disappears entirely, which is the same rendering as a vessel with no
+    // RCS tank at all.
     const fixture = makeFixture();
     renderFuel(fixture);
 
+    // Xenon is the positive control from the SAME frame: it proves the frame
+    // landed and was read, and RCS proves the missing-max row was dropped.
     act(() => {
       fixture.emit("vessel.resources", {
-        resources: { MonoPropellant: { current: 120 } },
+        resources: {
+          MonoPropellant: { current: 120 },
+          XenonGas: { current: 400, max: 700 },
+        },
       });
     });
 
-    // Wait on a positive control from the SAME frame, so this is not just
-    // asserting on a render that never happened: Xenon proves the frame landed
-    // and was read, and RCS proves the missing-max row was dropped.
-    act(() => {
-      fixture.emit(
-        "vessel.resources",
-        {
-          resources: {
-            MonoPropellant: { current: 120 },
-            XenonGas: { current: 400, max: 700 },
-          },
-        },
-        { validAt: 5 },
-      );
-    });
-
-    await waitFor(() => expect(screen.getByText("Xenon")).toBeInTheDocument());
-    expect(screen.queryByText("RCS")).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole("meter", { name: "Xenon · vessel" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/^RCS/)).not.toBeInTheDocument();
   });
 
-  it("reads a resource with no reported amount as an empty tank", async () => {
-    // The same coercion on `current`. Absence becomes a confident 0.00 and a
-    // zero-width bar: the operator is shown a drained tank rather than an
-    // unknown one, and there is no placeholder anywhere in the row.
+  it("reads a resource with no reported amount as unknown, not as an empty tank", async () => {
+    // The tank is there (its capacity arrived) but its level did not, so the
+    // row stays and says it does not know, rather than drawing a drained tank.
     const fixture = makeFixture();
     const { container } = renderFuel(fixture);
 
@@ -159,14 +149,11 @@ describe("FuelStatus: what undefined means today", () => {
       });
     });
 
-    await waitFor(() => expect(screen.getByText("RCS")).toBeInTheDocument());
-    // A zero, not a placeholder: nothing in the row says the amount is unknown.
-    expect(visibleText(container)).toContain("0.00 / 120.0");
-    expect(visibleText(container)).not.toContain(NULL_DISPLAY);
-    const fills = Array.from(
-      container.querySelectorAll("div[style*='width']"),
-    ).map((el) => (el as HTMLElement).style.width);
-    expect(fills).toContain("0%");
+    await waitFor(() =>
+      expect(screen.getByText("RCS · vessel")).toBeInTheDocument(),
+    );
+    expect(screen.queryByRole("meter", { name: "RCS · vessel" })).toBeNull();
+    expect(visibleText(container)).toContain(NULL_DISPLAY);
   });
 
   it("hides the stage caption while vessel.structure has not arrived, even with a stage count in hand", async () => {
@@ -208,7 +195,7 @@ describe("FuelStatus: what undefined means today", () => {
     // so the stack renders with every row unmarked rather than defaulting the
     // marker onto stage 0. Pinning it because "no marker" is easy to lose.
     const fixture = makeFixture();
-    const { container } = renderFuel(fixture);
+    renderFuel(fixture);
 
     act(() => {
       fixture.emit("dv.stages", [
@@ -218,10 +205,11 @@ describe("FuelStatus: what undefined means today", () => {
     });
 
     await waitFor(() => {
-      const stageTexts = Array.from(container.querySelectorAll("span"))
-        .map((el) => el.textContent ?? "")
-        .filter((t) => /^[▶ ] S\d$/.test(t));
-      expect(stageTexts).toEqual(["  S2", "  S1"]);
+      const stages = screen
+        .queryAllByRole("meter")
+        .map((el) => el.getAttribute("aria-label"))
+        .filter((name) => name !== null && /S\d$/.test(name));
+      expect(stages).toEqual(["S2", "S1"]);
     });
   });
 
