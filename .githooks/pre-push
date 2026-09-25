@@ -24,20 +24,23 @@
 #     read-only (a mismatch fails instead of being silently rewritten).
 #   - Playwright e2e ONLY for changed specs, chromium only. The full matrix
 #     (chromium/firefox/webkit) + visual gate run in CI.
-#   - the C# suites, ONLY when the push changes `mod/`. See
-#     scripts/mod-suite-gate.sh: turbo cannot reach them at all, so without it
-#     this hook runs no C# and a broken C# ratchet reaches staging green.
+#   - CI's `mod` job, step by step: the codegen check and the client-hash
+#     ratchet on every push, and the C# suites, the Uplink plugin compile, the
+#     NuGet package gate and the extraction probe when the push changes mod/,
+#     scripts/ or ci.yml. See scripts/mod-job-gate.sh: turbo cannot reach any of
+#     it, so without it a broken C# ratchet or a stale generated file reaches
+#     staging green.
 #
 # Skip e2e for a quick push:  SKIP_E2E=1 git push   (CI still runs the matrix)
-# Skip the C# suites:         GONOGO_SKIP_MOD_SUITES=1 git push
+# Skip the mod-job steps:     GONOGO_SKIP_MOD_SUITES=1 git push
 # Bypass the whole hook:      git push --no-verify
 # `ci-dev` is the cloud route to staging: work is folded onto it, pushed, and CI
 # runs the full matrix on runners before ci-dev-forward.yml fast-forwards staging
 # to the commit CI validated. Running the local suite here would duplicate that on
 # one core of the dev box, and it is the WEAKER of the two: this hook cannot run
-# the C# mod job, the three-browser e2e matrix, the visual gate or the
-# act-warning ratchet, and CI runs all four. So a ci-dev push keeps lint and skips
-# the suite. Pushes to staging and main are unchanged, because nothing downstream
+# the steps of the `mod` job that need CI's secrets, the three-browser e2e
+# matrix, the visual gate or the act-warning ratchet, and CI runs all of them. So
+# a ci-dev push keeps lint and skips the suite. Pushes to staging and main are unchanged, because nothing downstream
 # re-validates those.
 #
 # Starts at 0 so that reading NO refs leaves the gate ON: an empty stdin means
@@ -99,10 +102,10 @@ elif ! CI=true pnpm exec turbo run test test:scans --concurrency=1 > "$GONOGO_HO
 fi
 echo "pre-push: tests green ($(grep -cE "^ *Tasks:" "$GONOGO_HOOK_LOG" >/dev/null 2>&1 && grep -E "^ *Tasks:" "$GONOGO_HOOK_LOG" | tail -1 | tr -s " " || echo "turbo run complete"))."
 
-# The C# suites, which the turbo run above cannot see under any configuration:
+# CI's `mod` job, which the turbo run above cannot see under any configuration:
 # no workspace package exists under mod/Sitrep.* or mod/Gonogo*Uplink, so there
 # is no task for turbo to find. Output is NOT captured here, unlike the two
-# blocks around it: the gate is quiet by construction (one line per project) and
+# blocks around it: the gate is quiet by construction (one line per step) and
 # its NOT RUN and REDUCED lines have to reach the person pushing.
 if [ "${GONOGO_GATE_DONE:-}" = "1" ]; then
   : # pnpm push ran it before opening the connection
@@ -111,8 +114,8 @@ elif [ "$GONOGO_CI_DEV_ONLY" = "1" ]; then
   # push, and nothing reaches staging until that run is green. The comment at
   # the top of this block is about a push to STAGING, where nothing downstream
   # re-validates; it does not apply to the fold lane.
-  echo "pre-push: ci-dev push, skipping the C# gate (CI's mod job runs it, then forwards staging)."
-elif ! sh "$(git rev-parse --show-toplevel)/scripts/mod-suite-gate.sh"; then
+  echo "pre-push: ci-dev push, skipping the mod-job gate (CI's mod job runs it, then forwards staging)."
+elif ! sh "$(git rev-parse --show-toplevel)/scripts/mod-job-gate.sh"; then
   exit 1
 fi
 

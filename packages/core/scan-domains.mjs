@@ -48,6 +48,7 @@ export const SCAN_DOMAINS = {
   ],
   "src/errormsg-correlator-audit.test.ts": [MOD],
   "src/generated-contract-docs.test.ts": [MOD],
+  "src/mod-job-push-gate.test.ts": [GITHUB, /^scripts\/mod-job-gate\.sh$/],
   "src/one-render-process.test.ts": [MOD],
   "src/publish-mods-matrix-paths.test.ts": [GITHUB, MOD],
   "src/published-barrel-collisions.test.ts": [SDK, UI_KIT, THEME],

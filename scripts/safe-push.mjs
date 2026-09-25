@@ -144,15 +144,14 @@ if (
   process.exit(1);
 }
 
-// The C# suites. `turbo run test test:scans` above cannot reach them under any
-// configuration: there is no workspace package under mod/Sitrep.* or
-// mod/Gonogo*Uplink for turbo to find a task on, so without this the whole
-// push path is blind to them and a broken C# ratchet reaches staging green.
-// The gate runs them only when the push changes mod/, and says NOT RUN in
-// every other case rather than staying quiet.
-console.log("push: C# suites...");
-if (run("sh", ["scripts/mod-suite-gate.sh"]) !== 0) {
-  console.error("push: C# suites failed, nothing pushed.");
+// CI's `mod` job. `turbo run test test:scans` above cannot reach any of it:
+// there is no workspace package under mod/Sitrep.* or mod/Gonogo*Uplink for
+// turbo to find a task on, so without this the whole push path is blind to the
+// C# suites, the codegen check and the package gates. The gate says NOT RUN for
+// every step it declines rather than staying quiet.
+console.log("push: mod-job steps...");
+if (run("sh", ["scripts/mod-job-gate.sh"]) !== 0) {
+  console.error("push: mod-job steps failed, nothing pushed.");
   process.exit(1);
 }
 
