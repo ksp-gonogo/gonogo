@@ -357,6 +357,7 @@ export class AlarmHostService {
         defaults: [],
         storage: this.storage,
       }),
+      onRoster: () => this.emit(),
       nowMs: () => this.opts.nowMs(),
     });
     /* Bound only once assigned: a replayed fire notice ticks the host, and the
@@ -385,7 +386,13 @@ export class AlarmHostService {
           ? Object.fromEntries(this.onFireRefusals)
           : undefined,
       scetUnreachable: this.unreachableHeld(),
+      scetForeign: this.foreignHeld(),
     };
+  }
+
+  private foreignHeld(): AlarmSnapshot["scetForeign"] {
+    const rows = this.scetBridge.foreignAlarms();
+    return rows.length > 0 ? [...rows] : undefined;
   }
 
   /** The alarms of this list the simulation holds as unreachable, or undefined for none. */
@@ -544,6 +551,11 @@ export class AlarmHostService {
     this.emit();
   }
 
+  /**
+   * Remove an alarm. One this list does not hold but the simulation does,
+   * armed by another screen or by an Uplink for itself, is disarmed: any
+   * vantage may remove any alarm.
+   */
   deleteAlarm(id: string): void {
     const before = this.alarms.length;
     this.alarms = this.alarms.filter((a) => a.id !== id);
@@ -551,7 +563,9 @@ export class AlarmHostService {
       this.forgetAlarm(id);
       this.persist();
       this.emit();
+      return;
     }
+    if (this.scetBridge.holdsAlarm(id)) this.scetBridge.disarm(id);
   }
 
   acknowledgeUnscheduledWarp(): void {

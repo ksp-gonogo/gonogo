@@ -13,6 +13,7 @@ import {
   useManeuverNodes,
   useTopicFieldCatalog,
 } from "@ksp-gonogo/data";
+import { useObservedVantage } from "@ksp-gonogo/sitrep-client";
 import {
   KSP_ACTION_GROUP_NAMES,
   KspActionGroup,
@@ -46,6 +47,7 @@ import type {
   AlarmSnapshot,
   AlarmTrigger,
   AlarmVantage,
+  ForeignScetAlarm,
   ThresholdOp,
 } from "./types";
 import {
@@ -136,6 +138,7 @@ export function AlarmsModal({
   prefill,
 }: AlarmsModalProps) {
   const snapshot = useSnapshot();
+  const observedVantage = useObservedVantage();
   // Which clock the instants in this modal are on. Undefined qualifiers on a
   // LAN session, where there is only one clock to be on.
   const timeContexts = useTimeContexts();
@@ -798,8 +801,136 @@ export function AlarmsModal({
           </List>
         )}
       </Stack>
+
+      {snapshot.scetForeign && snapshot.scetForeign.length > 0 && (
+        <Stack as="section" gap="md">
+          <SectionTitle as="h3">
+            Other screens ({snapshot.scetForeign.length})
+          </SectionTitle>
+          <List>
+            {snapshot.scetForeign.map((f) => (
+              <ForeignAlarmRow
+                key={f.id}
+                alarm={f}
+                withheld={conditionWithheld(f, observedVantage)}
+                contexts={timeContexts}
+                onDisarm={() => onDelete(f.id)}
+              />
+            ))}
+          </List>
+        </Stack>
+      )}
     </Wrap>
   );
+}
+
+/**
+ * Whether a foreign alarm's name and condition are kept from this screen.
+ *
+ * Withheld when this screen observes from a vantage other than the one that
+ * armed it, because what another place is watching would otherwise reach here
+ * faster than light could carry it. A TIME alarm is never withheld: a
+ * universal time names no craft and is the same instant everywhere.
+ *
+ * Withheld when this screen's vantage is not known yet, and still withheld
+ * after the alarm fires: the fire notice travels without delay, so lifting it
+ * then would disclose the watched condition at the very instant light could
+ * not have.
+ */
+export function conditionWithheld(
+  alarm: ForeignScetAlarm,
+  observedVantage: string | undefined,
+): boolean {
+  if (alarm.condition?.kind === "time") return false;
+  return observedVantage === undefined || observedVantage !== alarm.armedBy;
+}
+
+function ForeignAlarmRow({
+  alarm,
+  withheld,
+  contexts,
+  onDisarm,
+}: {
+  alarm: ForeignScetAlarm;
+  withheld: boolean;
+  contexts: TimeContexts;
+  onDisarm: () => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const label = withheld ? `Armed at ${alarm.armedBy}` : alarm.name || alarm.id;
+  return (
+    <Card
+      as="li"
+      titleLeft={
+        <Badge size="md">
+          {alarm.condition?.kind === "time" ? "TIME" : "COND"}
+        </Badge>
+      }
+      title={label}
+      titleRight={
+        alarm.state === "armed" ? undefined : (
+          <Badge severity="warning" size="sm">
+            {alarm.state === "fired" ? "FIRED" : "UNREACHABLE"}
+          </Badge>
+        )
+      }
+      right={
+        <RowActions>
+          {confirming ? (
+            <>
+              <GhostButton type="button" onClick={() => setConfirming(false)}>
+                Cancel
+              </GhostButton>
+              <DangerButton
+                type="button"
+                onClick={() => {
+                  onDisarm();
+                  setConfirming(false);
+                }}
+              >
+                Disarm
+              </DangerButton>
+            </>
+          ) : (
+            <GhostButton
+              type="button"
+              aria-label={`Disarm ${label}`}
+              onClick={() => setConfirming(true)}
+            >
+              Disarm
+            </GhostButton>
+          )}
+        </RowActions>
+      }
+    >
+      <RowMeta>
+        {withheld
+          ? "Condition withheld at this vantage"
+          : describeForeignCondition(alarm, contexts)}
+      </RowMeta>
+      <RowMeta>Armed by {alarm.armedBy || "an unnamed vantage"}</RowMeta>
+    </Card>
+  );
+}
+
+function describeForeignCondition(
+  alarm: ForeignScetAlarm,
+  contexts: TimeContexts,
+): React.ReactNode {
+  const c = alarm.condition;
+  if (c === null) return "Condition not readable";
+  switch (c.kind) {
+    case "time":
+      return <MissionDate value={c.ut} context={contexts.scet} />;
+    case "threshold":
+      return (
+        <code>
+          {c.topic}.{c.fieldPath} {c.op} {c.value}
+        </code>
+      );
+    case "contract-parameter":
+      return <code>{c.parameterTitle}</code>;
+  }
 }
 
 /**
