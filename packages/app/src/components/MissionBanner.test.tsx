@@ -6,7 +6,10 @@ import {
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import { CommsDelaySource, value } from "@ksp-gonogo/sitrep-sdk";
-import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  createFakeWallClock,
+  StubTransport,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   act,
   fireEvent,
@@ -17,7 +20,7 @@ import {
 } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
-import type { ReactNode } from "react";
+import { Profiler, type ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { PeerClientProvider } from "../peer/PeerClientContext";
 import { PeerClientService } from "../peer/PeerClientService";
@@ -114,6 +117,46 @@ describe("MissionBanner", () => {
       expect(screen.getByText("Y3 D100 05:15:20")).toBeInTheDocument();
     });
     expect(screen.queryByText("Y1 D5 03:22:37")).toBeNull();
+  });
+
+  it("renders once per second the date shows, not once per frame", () => {
+    const wall = createFakeWallClock();
+    const clock = new ViewClock({ nowWall: wall.now });
+    const store = new TimelineStore(clock);
+    const client = new TelemetryClient(new StubTransport());
+    let commits = 0;
+    render(
+      <TelemetryProvider client={client} store={store}>
+        <Profiler
+          id="banner"
+          onRender={() => {
+            commits += 1;
+          }}
+        >
+          <MissionBanner />
+        </Profiler>
+      </TelemetryProvider>,
+    );
+    clock.suspendFrames();
+    // Samples reach UT 1000 while the view sits at UT 0, so the view runs with the wall clock.
+    act(() => {
+      clock.observeSample(1000, 0);
+      clock.emitFrame();
+    });
+    const before = commits;
+
+    // 64 frames a second rather than 60, so two seconds of them sum to exactly 2.
+    const perSecond = 64;
+    const frames = 2 * perSecond;
+    for (let i = 0; i < frames; i++) {
+      wall.advanceBy(1 / perSecond);
+      act(() => {
+        clock.emitFrame();
+      });
+    }
+
+    expect(screen.getByText("Y1 D1 00:00:02")).toBeInTheDocument();
+    expect(commits - before).toBeLessThanOrEqual(frames / perSecond + 1);
   });
 
   it("exposes the banner as a single labelled group, not a live region", () => {
@@ -230,15 +273,20 @@ const CRAFT = "vessel:abc-123";
  * A provider handed no `store`, so it builds the production one and feeds its
  * `DelayAuthority` from `comms.delay`: the header's delay has to come from that
  * authority, and a fixture store would own a clock delay nothing else computes.
+ *
+ * Its clock reads a fake wall clock, so the view time moves only when a sample
+ * lands rather than with the real one between them.
  */
 function setupDelayedStream() {
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
+  const wall = createFakeWallClock();
 
   function Provider({ children }: { children: ReactNode }) {
     return (
       <TelemetryProvider
         client={client}
+        viewClockOptions={{ nowWall: wall.now }}
         carriedChannels={[
           "commandCentre.roster",
           "commandCentre.activeVesselDelay",
