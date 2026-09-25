@@ -1116,6 +1116,30 @@ namespace Sitrep.Host
         private readonly List<SampledSource> _sampledSources = new List<SampledSource>();
         private readonly Dictionary<string, Availability> _availability = new Dictionary<string, Availability>();
 
+        /// <summary>
+        /// Commands whose handler has thrown, by command, with the reason an
+        /// operator is told. Courier thread only, the same rule as
+        /// <see cref="_availability"/>.
+        ///
+        /// <para>Per command rather than per uplink. A throwing handler is a bug
+        /// in that handler, and its siblings share no state through the engine
+        /// that the throw could have corrupted, so refusing them protects nothing
+        /// and hides the cause: an operator whose launch control goes dead cannot
+        /// tell it was an unrelated command pressed minutes earlier. The command
+        /// that threw stays refused, because what it half-did to the game is
+        /// unknown and running it again would compound it.</para>
+        /// </summary>
+        private readonly Dictionary<string, string> _failedCommands =
+            new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Gate evaluations that have thrown, by command and gate kind, so a
+        /// throw repeated at the sampling cadence is logged once rather than
+        /// twice a second. Written from whichever thread evaluates.
+        /// </summary>
+        private readonly ConcurrentDictionary<string, byte> _loggedGateThrows =
+            new ConcurrentDictionary<string, byte>(StringComparer.Ordinal);
+
         // Retained uplink instances, keyed by Manifest.Id: populated in
         // RegisterUplink alongside _availability/_channelOwner/_commandOwner.
         // Unlike those maps (which only track ownership/status BY id), this
@@ -1179,12 +1203,12 @@ namespace Sitrep.Host
         // per-channel/per-command (see IsChannelAvailable/IsCommandAvailable)
         // rather than tracking availability without acting on it. This is the
         // fail-soft half of the contract: a throwing Register(), or a channel
-        // mapper/command handler that throws at RUNTIME (see
-        // FailSoftChannel/FailSoftCommand), takes the WHOLE owning uplink's
-        // channels and commands inert together, rather than leaving
-        // already-registered ones live against a half-broken uplink. The
-        // sampler loop (see ProcessTick) applies the same rule via each pair's
-        // OwnerId above.
+        // mapper that throws at RUNTIME (see FailSoftChannel), takes the WHOLE
+        // owning uplink's channels and commands inert together, rather than
+        // leaving already-registered ones live against a half-broken uplink.
+        // The sampler loop (see ProcessTick) applies the same rule via each
+        // pair's OwnerId above. A throwing command HANDLER is the exception: it
+        // takes only itself down (see _failedCommands and FailSoftCommand).
         private readonly Dictionary<string, string> _channelOwner = new Dictionary<string, string>();
         private readonly Dictionary<string, string> _commandOwner = new Dictionary<string, string>();
 
@@ -1322,7 +1346,7 @@ namespace Sitrep.Host
             // Routed through InvokeCommandHandler (not a raw dictionary
             // lookup + call) so a handler that throws on THIS delayed path,
             // fired from the Courier thread's own clock callback, see
-            // Courier.ScheduleCommand: fail-softs its owning uplink
+            // Courier.ScheduleCommand: is refused and takes down only itself
             // instead of unwinding out of the Courier's scheduled callback
             // and killing the thread. See InvokeCommandHandler's doc comment.
             _courier.SetCommandHandler(
@@ -3084,11 +3108,19 @@ namespace Sitrep.Host
                 }
                 catch (Exception ex)
                 {
-                    // Same fail-soft posture as a channel mapper, with the
-                    // opposite default: a throwing evaluator marks its owner
-                    // unavailable AND the gate reads Unknown, never Pass.
-                    FailSoftCommand(command, ex);
-                    return GateVerdict.Unknown($"gate kind \"{requirement.Kind}\" threw: {SafeExceptionMessage(ex)}");
+                    // Unknown, never Pass, and nothing else: the same answer as
+                    // an evaluator that returned nothing. An evaluator only
+                    // reads, so a throw has changed nothing an operator needs
+                    // protecting from, and the read that threw (a scene with no
+                    // flight, say) may well answer on the next ask. This also
+                    // runs on the main thread when sampling, where the
+                    // Courier-owned availability state must not be written.
+                    var reason = $"gate kind \"{requirement.Kind}\" threw: {SafeExceptionMessage(ex)}";
+                    if (_loggedGateThrows.TryAdd(command + "\n" + requirement.Kind, 0))
+                    {
+                        LogHost($"command \"{command}\" {reason}");
+                    }
+                    return GateVerdict.Unknown(reason);
                 }
 
                 if (verdict.Outcome == GateOutcome.Abstain)
@@ -3347,8 +3379,8 @@ namespace Sitrep.Host
             // and passes already-typed args (in-process callers/tests) straight
             // through. A genuinely unconvertible value still throws, caught one
             // layer up in InvokeCommandHandler (the SOLE call site for every
-            // registered command handler), which fail-softs just this command's
-            // owning uplink instead of crashing the Courier thread.
+            // registered command handler), which refuses just this command
+            // instead of crashing the Courier thread.
             _commandHandlers[command] = args => handler((TArgs)BindCommandArgs(args, typeof(TArgs))!);
         }
 
@@ -3854,6 +3886,8 @@ namespace Sitrep.Host
         {
             if (!_commandOwner.TryGetValue(command, out var ownerId))
                 return $"command \"{command}\" is not recognised by this host";
+            if (IsUplinkAvailable(ownerId) && _failedCommands.TryGetValue(command, out var failure))
+                return $"command \"{command}\" is unavailable for the rest of this session: {failure}";
             var reason = _availability.TryGetValue(ownerId, out var availability) ? availability.Reason : null;
             return string.IsNullOrWhiteSpace(reason)
                 ? $"command \"{command}\" is unavailable: its uplink \"{ownerId}\" is unavailable"
@@ -3862,6 +3896,7 @@ namespace Sitrep.Host
 
         private bool IsCommandAvailable(string command)
         {
+            if (_failedCommands.ContainsKey(command)) return false;
             return !_commandOwner.TryGetValue(command, out var ownerId) || IsUplinkAvailable(ownerId);
         }
 
@@ -3871,23 +3906,22 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// The SOLE call site that actually invokes a registered command
-        /// handler: shared by <see cref="ProcessDispatchCommand"/>'s
-        /// non-delayed (ground-infrastructure) branch and the delayed path's
-        /// Courier clock-callback (wired via <see cref="Courier.SetCommandHandler"/>
-        /// in the constructor). A command whose owning uplink has gone
-        /// <see cref="Availability.Unavailable"/> (whether from a throwing
-        /// <see cref="ISitrepUplink.Register"/> or a PRIOR runtime throw
-        /// caught here) is skipped entirely, matching "unknown command"
-        /// behavior. Otherwise the handler runs inside a try/catch: a
-        /// mismatched-type wire arg (<see cref="AddCommandHandler{TArgs,TResult}"/>'s
-        /// <c>(TArgs)args!</c> cast) or any other handler-author bug throws
-        /// HERE rather than unwinding onto the Courier thread, caught,
-        /// fail-softs just this command's owning uplink (every other
-        /// registered channel/command is unaffected), and returns
-        /// <c>null</c> as a graceful failure result instead of propagating
-        /// and killing the thread (the CRITICAL-2 fix).
+        /// Delivers a handler's answer, or refuses when the handler threw. A throw
+        /// used to reach the client as a null result, which the client reads as
+        /// success: the command that broke reported that it had worked.
         /// </summary>
+        private static void Deliver(DispatchCommandJob job, object? result)
+        {
+            if (result is HandlerFault fault)
+            {
+                job.OnRefused?.Invoke(fault.Reason);
+            }
+            else
+            {
+                job.OnResult(result);
+            }
+        }
+
         /// <summary>
         /// The seeded propagator this engine plans with, or null when the install has
         /// none. Settable so a host can supply one built from the elected physics,
@@ -4215,11 +4249,23 @@ namespace Sitrep.Host
                 KeplerProvider.StateFrom(elements, orbit.Epoch), orbit.ReferenceBodyIndex);
         }
 
+        /// <summary>
+        /// The sole call site that invokes a registered command handler, shared by
+        /// the undelayed dispatch and the Courier's delayed execute callback.
+        ///
+        /// <para>A handler that throws (a wire argument its <c>TArgs</c> cannot
+        /// bind, or any bug in the handler) is caught here rather than unwinding
+        /// onto the Courier thread. That command alone is refused from then on,
+        /// and this call answers with a <see cref="HandlerFault"/> naming it, so
+        /// the caller is refused rather than told it worked. A command that became
+        /// unavailable while a delayed dispatch was in flight is answered the same
+        /// way, because it did not run.</para>
+        /// </summary>
         internal object? InvokeCommandHandler(string command, object? args, string vantage)
         {
             if (!IsCommandAvailable(command))
             {
-                return null;
+                return new HandlerFault(RefusalReason(command));
             }
 
             // A vantage-aware handler is tried first, and the two stores are
@@ -4235,8 +4281,7 @@ namespace Sitrep.Host
                 }
                 catch (Exception ex)
                 {
-                    FailSoftCommand(command, ex);
-                    return null;
+                    return new HandlerFault(FailSoftCommand(command, "its handler threw", ex));
                 }
             }
 
@@ -4247,23 +4292,17 @@ namespace Sitrep.Host
 
             try
             {
-                // F2 Part 1: route the ACTUAL handler onto the Unity main
-                // thread when configured (production), else run it inline on
-                // the Courier thread (headless default). Either way the same
-                // try/catch fail-softs a throwing handler to its owning
-                // uplink: a marshaled throw is captured on the main thread,
-                // re-surfaced here on the Courier thread (see RunOnMainThread),
-                // and handled identically to an inline throw, so a bad command
-                // never tears down the loop or any other command/uplink (F1
-                // fail-soft parity).
+                // Onto the Unity main thread when configured (production),
+                // else inline on the Courier thread (headless). A marshaled
+                // throw is captured on the main thread and re-surfaced here by
+                // RunOnMainThread, so both are handled identically.
                 return _executeCommandsOnMainThread
                     ? RunOnMainThread(handler, args)
                     : handler(args);
             }
             catch (Exception ex)
             {
-                FailSoftCommand(command, ex);
-                return null;
+                return new HandlerFault(FailSoftCommand(command, "its handler threw", ex));
             }
         }
 
@@ -4451,24 +4490,24 @@ namespace Sitrep.Host
             }
         }
 
-        private void FailSoftCommand(string command, Exception ex)
+        /// <summary>
+        /// Refuses <paramref name="command"/> for the rest of the session and
+        /// logs why, leaving every other command its uplink owns untouched. See
+        /// <see cref="_failedCommands"/> for why the scope is the command.
+        /// Returns the sentence the caller that triggered it should be refused
+        /// with, which names the command.
+        ///
+        /// <para>The exception's Message is read only through
+        /// <see cref="SafeExceptionMessage"/>: it is a virtual getter that can
+        /// itself throw, and a throw here would escape before the command was
+        /// marked, leaving it live to throw again.</para>
+        /// </summary>
+        private string FailSoftCommand(string command, string what, Exception ex)
         {
-            // Attribution must not depend on reading the offending
-            // exception's Message: `ex.Message` is an ordinary virtual
-            // getter: legal (if perverse) third-party code can override it
-            // to throw. Reading it before the _commandOwner lookup and the
-            // MarkUplinkUnavailable call, as a plain `$"...{ex.Message}"`
-            // interpolation does, lets a throwing getter abort this method
-            // early: the throw escapes to CourierLoop's non-attributing
-            // backstop try/catch and the offending uplink's command stays live,
-            // re-throwing forever. SafeExceptionMessage below cannot throw, so
-            // the owner lookup and MarkUplinkUnavailable run regardless of what
-            // ex.Message does.
-            if (_commandOwner.TryGetValue(command, out var ownerId))
-            {
-                MarkUplinkUnavailable(ownerId, $"command \"{command}\" handler threw: {SafeExceptionMessage(ex)}");
-            }
-            Console.Error.WriteLine("[ChannelEngine] command \"" + command + "\" handler threw: " + SafeExceptionMessage(ex));
+            var failure = $"{what}: {SafeExceptionMessage(ex)}";
+            _failedCommands[command] = failure;
+            LogHost("command \"" + command + "\" marked UNAVAILABLE: " + failure);
+            return $"command \"{command}\" failed: {failure}";
         }
 
         /// <summary>
@@ -4524,7 +4563,7 @@ namespace Sitrep.Host
 
         private void FailSoftChannel(string topic, Exception ex, string what = "mapper threw")
         {
-            // Same rationale as FailSoftCommand above: see its doc comment.
+            // Message read defensively for the reason FailSoftCommand gives.
             var reason = $"channel \"{topic}\" {what}: {SafeExceptionMessage(ex)}";
             if (_channelOwner.TryGetValue(topic, out var ownerId))
             {
@@ -6882,11 +6921,10 @@ namespace Sitrep.Host
                 // the Courier's light-time delay model entirely: see the
                 // design doc §4.3. Routed through InvokeCommandHandler (the
                 // SAME funnel the delayed path uses via
-                // Courier.SetCommandHandler) so a throwing handler
-                // fail-softs its own uplink instead of killing the
-                // Courier thread: the CRITICAL-2 fix.
-                var result = InvokeCommandHandler(job.Command, job.Args, job.Vantage);
-                job.OnResult(result);
+                // Courier.SetCommandHandler) so a throwing handler is
+                // refused, and takes down only itself, instead of killing
+                // the Courier thread.
+                Deliver(job, InvokeCommandHandler(job.Command, job.Args, job.Vantage));
                 job.Done?.Set();
                 return;
             }
@@ -6986,7 +7024,7 @@ namespace Sitrep.Host
             // No explicit uplinkDelaySeconds: the Courier falls back to
             // DelayTo(vantage, node) -- the same ledger delay used above -- so
             // telemetry and command delay share one per-(vantage, node) model.
-            _courier.DispatchCommand(node, requestId, job.Command, job.Args, job.Vantage, response => job.OnResult(response.Result));
+            _courier.DispatchCommand(node, requestId, job.Command, job.Args, job.Vantage, response => Deliver(job, response.Result));
 
             // The response rides the delay and lands on a later tick, which a
             // caller blocked on Done cannot produce, so Done marks the dispatch
@@ -7552,7 +7590,7 @@ namespace Sitrep.Host
                             // client gets no response at all, not even an
                             // error, which is true silence. Guarded the same way
                             // as every other uplink-value touch point:
-                            // fail-soft the owning command's uplink and send an
+                            // refuse that command from now on and send an
                             // explicit error response rather than dropping the
                             // reply on the floor.
                             try
@@ -7602,12 +7640,11 @@ namespace Sitrep.Host
                             }
                             catch (Exception ex)
                             {
-                                FailSoftCommand(req.Command, ex);
                                 var error = new ErrorMsg
                                 {
                                     RequestId = req.RequestId,
                                     Code = "result-serialization-error",
-                                    Message = $"command \"{req.Command}\" result could not be serialized: {ex.Message}",
+                                    Message = FailSoftCommand(req.Command, "its result could not be serialized", ex),
                                 };
                                 session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
                             }
@@ -7879,6 +7916,19 @@ namespace Sitrep.Host
                 Payload = payload;
                 Ut = ut;
             }
+        }
+
+        /// <summary>
+        /// What <see cref="InvokeCommandHandler"/> hands back in place of a result
+        /// when the handler threw, so the dispatch can refuse rather than
+        /// deliver. Never leaves the engine: both paths that receive it turn it
+        /// into a refusal before anything reaches a client.
+        /// </summary>
+        private sealed class HandlerFault
+        {
+            public HandlerFault(string reason) => Reason = reason;
+
+            public string Reason { get; }
         }
 
         private sealed class DispatchCommandJob : IEngineJob

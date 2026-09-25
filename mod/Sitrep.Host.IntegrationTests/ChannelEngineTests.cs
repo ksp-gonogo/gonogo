@@ -1557,13 +1557,14 @@ namespace Sitrep.Host.IntegrationTests
                     SentAt = 0.0,
                 }));
 
-                // InvokeCommandHandler catches the cast exception, fail-softs
-                // just this command's owning uplink, and the caller still
-                // gets a (graceful, null) response instead of hanging forever.
-                var response = await ReceiveTypedAsync<CommandResponse<object?>>(client, Timeout);
-                Assert.Equal("r1", response.RequestId);
-                Assert.Null(response.Result);
-                Assert.False(engine.AvailabilityOf(CrashyCommandTestUplink.UplinkId).IsAvailable);
+                // InvokeCommandHandler catches the cast exception, refuses
+                // just this command, and the caller gets an error frame naming
+                // it rather than a null result that reads as success.
+                var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
+                Assert.Equal("r1", error.RequestId);
+                Assert.Equal("E_UNAVAILABLE", error.Code);
+                Assert.Contains(CrashyCommandTestUplink.Command, error.Message);
+                Assert.True(engine.AvailabilityOf(CrashyCommandTestUplink.UplinkId).IsAvailable);
 
                 // The engine STAYS ALIVE: a subsequent tick on the
                 // completely unrelated, healthy channel still delivers
@@ -1606,10 +1607,11 @@ namespace Sitrep.Host.IntegrationTests
                     SentAt = 0.0,
                 }));
 
-                var response = await ReceiveTypedAsync<CommandResponse<object?>>(client, Timeout);
-                Assert.Equal("r-structured", response.RequestId);
-                Assert.Null(response.Result);
-                Assert.False(engine.AvailabilityOf(ScalarArgCommandTestUplink.UplinkId).IsAvailable);
+                var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
+                Assert.Equal("r-structured", error.RequestId);
+                Assert.Equal("E_UNAVAILABLE", error.Code);
+                Assert.Contains(ScalarArgCommandTestUplink.Command, error.Message);
+                Assert.True(engine.AvailabilityOf(ScalarArgCommandTestUplink.UplinkId).IsAvailable);
             }
             finally
             {
@@ -1937,8 +1939,8 @@ namespace Sitrep.Host.IntegrationTests
         /// unserializable result used to throw silently -- the client never
         /// receives ANY response (not even an error) and the failure is
         /// unattributed. Post-fix: the client gets an explicit
-        /// <see cref="ErrorMsg"/> instead of silence, and the owning
-        /// uplink is marked Unavailable.
+        /// <see cref="ErrorMsg"/> naming the command instead of silence, and
+        /// that command alone is refused from then on.
         /// </summary>
         [Fact]
         public async Task UnserializableCommandResultSendsAnErrorResponseInsteadOfSilence()
@@ -1961,7 +1963,8 @@ namespace Sitrep.Host.IntegrationTests
 
                 var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
                 Assert.Equal("r-poison", error.RequestId);
-                Assert.False(engine.AvailabilityOf(PoisonResultCommandTestUplink.UplinkId).IsAvailable);
+                Assert.Contains(PoisonResultCommandTestUplink.Command, error.Message);
+                Assert.True(engine.AvailabilityOf(PoisonResultCommandTestUplink.UplinkId).IsAvailable);
             }
             finally
             {
@@ -2069,21 +2072,17 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// <c>FailSoftCommand</c>/<c>FailSoftChannel</c> must not build
-        /// their log <c>reason</c> via an unguarded <c>$"...{ex.Message}"</c>
-        /// interpolation BEFORE the owner lookup + <c>MarkUplinkUnavailable</c>
-        /// call. <c>Message</c> is an ordinary virtual getter, and a legal
-        /// (if hostile) custom exception can override it to throw, which
-        /// would abort the fail-soft guard before it ever attributed the
+        /// <c>FailSoftCommand</c>/<c>FailSoftChannel</c> must not read
+        /// <c>ex.Message</c> unguarded. <c>Message</c> is an ordinary virtual
+        /// getter, and a legal (if hostile) custom exception can override it to
+        /// throw, which would abort the fail-soft guard before it attributed the
         /// failure, escaping to <c>CourierLoop</c>'s own non-attributing
-        /// backstop try/catch -- the offending uplink would never go
-        /// Unavailable and (for a non-delayed command, as here) the
-        /// dispatch's <c>onResult</c>/<c>Done</c> callback would never fire
-        /// either, since the escape happens before <c>ProcessDispatchCommand</c>
-        /// reaches them.
+        /// backstop try/catch: the command would never be refused and (for a
+        /// non-delayed command, as here) the dispatch's callbacks and
+        /// <c>Done</c> would never fire either.
         /// </summary>
         [Fact]
-        public void CommandHandlerThrowingAnExceptionWhoseMessageGetterThrowsStillMarksTheOwnerUnavailable()
+        public void CommandHandlerThrowingAnExceptionWhoseMessageGetterThrowsIsStillRefused()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new MessageGetterThrowsCommandTestUplink());
@@ -2092,17 +2091,27 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 var resolved = false;
+                string? refusal = null;
                 engine.DispatchCommandAndWait(
                     MessageGetterThrowsCommandTestUplink.Command, null, "vantage-1",
                     _ => resolved = true,
-                    TestBudgets.Op);
+                    TestBudgets.Op,
+                    onRefused: reason => refusal = reason);
 
-                // The guard must attribute the failure and still let
-                // onResult/Done fire, despite the poisoned Message getter.
-                Assert.True(resolved, "onResult should still fire (with a graceful null) once the guard attributes and returns");
-                Assert.False(
-                    engine.AvailabilityOf(MessageGetterThrowsCommandTestUplink.UplinkId).IsAvailable,
-                    "owning uplink should be Unavailable even though ex.Message itself throws");
+                // The guard must attribute the failure and still answer the
+                // caller, despite the poisoned Message getter.
+                Assert.False(resolved);
+                Assert.NotNull(refusal);
+                Assert.Contains(MessageGetterThrowsCommandTestUplink.Command, refusal);
+
+                string? again = null;
+                engine.DispatchCommandAndWait(
+                    MessageGetterThrowsCommandTestUplink.Command, null, "vantage-1",
+                    _ => { },
+                    TestBudgets.Op,
+                    onRefused: reason => again = reason);
+                Assert.NotNull(again);
+                Assert.Contains("for the rest of this session", again);
             }
             finally
             {
