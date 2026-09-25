@@ -20048,11 +20048,30 @@
     },
     {
       "Major": 18,
-      "Note": "Audience -> Vantage on ScetAlarm, ScetAlarmFired and ScetAlarmArmArgs. \"Audience\" already named the subscriber population one class away, and the field no longer selects between two kinds of alarm: there is one kind, always read at a vantage, and this field decides when it comes due. An empty value is accepted and resolved at arm time to the alarm's Subject, so nothing persisted has to move.",
+      "Note": "Audience -> Vantage on ScetAlarm, ScetAlarmFired and ScetAlarmArmArgs. \"Audience\" already named the subscriber population one class away, and the field no longer selects between two kinds of alarm: there is one kind, always read at a vantage, and this field decides when it comes due. An empty value is accepted and resolved at arm time to the alarm's Subject, so nothing persisted has to move. Also a C# seam break, declared in SeamBreaks: the comms backend members take the vessel they answer for.",
       "Breaks": [
         "member-removed:Sitrep.Contract.ScetAlarm.Audience:System.String",
         "member-removed:Sitrep.Contract.ScetAlarmArmArgs.Audience:System.String",
         "member-removed:Sitrep.Contract.ScetAlarmFired.Audience:System.String"
+      ],
+      "SeamBreaks": [
+        {
+          "Seam": "Sitrep.Contract.ICommsBackend",
+          "Members": [
+            "Path() -> Path(object? vessel)",
+            "Network() -> Network(object? vessel)",
+            "StillCarriesTo(string) -> StillCarriesTo(object? vessel, string)",
+            "ControlPathTerminus() -> ControlPathTerminus(object? vessel)"
+          ],
+          "Reason": "Route checking takes the vessel it is about, so a relay dying under a craft off screen breaks that craft's route and no one else's. The provider answers for any vessel through the same members, with no second path for the fleet."
+        },
+        {
+          "Seam": "Sitrep.Contract.CommsBackendBase",
+          "Members": [
+            "protected abstract ControlPath() -> ControlPath(object? vessel)"
+          ],
+          "Reason": "Route checking takes the vessel it is about, so a relay dying under a craft off screen breaks that craft's route and no one else's. The provider answers for any vessel through the same members, with no second path for the fleet."
+        }
       ],
       "Shape": {
         "Types": {

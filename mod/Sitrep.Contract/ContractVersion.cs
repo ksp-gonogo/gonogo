@@ -496,6 +496,16 @@ namespace Sitrep.Contract
         /// already judged against, so a client that names no vantage keeps the
         /// behaviour it had and nothing persisted has to move.</para>
         ///
+        /// <para><b>Also in 18, a C# seam break the wire shape cannot see:</b> route
+        /// checking takes the vessel it is about. <see cref="ICommsBackend.Path"/>,
+        /// <see cref="ICommsBackend.Network"/>, <see cref="ICommsBackend.StillCarriesTo"/>
+        /// and <see cref="ICommsBackend.ControlPathTerminus"/> each gain a leading
+        /// <c>object? vessel</c>, and so does the protected abstract
+        /// <see cref="CommsBackendBase"/>.<c>ControlPath</c>, so an existing backend
+        /// no longer compiles. A relay dying under a craft off screen breaks that
+        /// craft's route and no one else's. Declared in the ledger's
+        /// <c>SeamBreaks</c>, since the shape gate computes wire breaks only.</para>
+        ///
         /// <para>Sanctioned on the same standing grounds as every Major above.</para>
         /// </remarks>
         public const int Major = 18;
