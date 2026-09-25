@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import styled from "styled-components";
 import { bandClaim } from "./bandClaim";
 import { MicroscopeIcon, StarIcon } from "./Icons";
+import { magnitudeOr } from "./magnitude";
 import { NotCurrentMark } from "./NotCurrentMark";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
 /*
@@ -27,6 +28,7 @@ import {
   formatQuantity,
   kindOfUnit,
   type PresentableAs,
+  readsAsOneFigure,
   speakQuantity,
   wordForSymbol,
 } from "./units";
@@ -142,11 +144,16 @@ import { VisuallyHidden } from "./VisuallyHidden";
  *
  * ## How well the number is known, where the model will say
  *
- * A reading whose model publishes an {@link UncertaintyBand} also gets the
- * interval beside the figure: `1 km ± 0.025 km` where the band is symmetric
- * about what is on screen, and `1 km (0.97 to 1.03 km)` where it is not. See
+ * A HELD reading whose model publishes an {@link UncertaintyBand} also gets
+ * the interval beside the figure: `1 km ± 0.025 km` where the band is
+ * symmetric about what is on screen, `1 km (0.97 to 1.03 km)` where it is not,
+ * and `1 km (~1.2 km)` where the two ends print as the same text. See
  * {@link toInterval} for why the short form is conditional rather than the
  * default, and why forcing it would misstate the interval rather than round it.
+ *
+ * A current reading gets no interval text. The figure on screen is an
+ * observation of now, and the model's interval beside it reads as doubt about
+ * that observation, which is not what the model is saying.
  *
  * Drawing it is the PRIMITIVE's job and not the call site's, for the reason
  * `Meter`'s own header gives about the band lookup: sixty widgets each deciding
@@ -397,6 +404,20 @@ function toInterval<U extends string>(
   // Through the algebra, which checks the dimension the same way `bandIn` has
   // already narrowed all three ends to one unit.
   const width = (from: Value<U>, to: Value<U>): string => write(to.minus(from));
+  /*
+   * Ends that print as the same text are drawn as one approximate figure, by
+   * the same test `<Band>` asks, so the two never disagree about when an
+   * interval has stopped showing a width. Where that one figure is also the
+   * figure on screen, the interval adds nothing a reader could see.
+   */
+  const oneFigure = readsAsOneFigure(
+    [
+      { reading: magnitudeOr(band.lo, 0), unit: band.lo.unit },
+      { reading: magnitudeOr(band.hi, 0), unit: band.hi.unit },
+    ],
+    { ...opts, format: rung },
+  );
+  if (oneFigure && write(band.lo) === write(shown)) return null;
   const below = width(band.lo, band.value);
   const above = width(band.value, band.hi);
   const anchored = write(band.value) === write(shown);
@@ -410,7 +431,8 @@ function toInterval<U extends string>(
    */
   const spoken = { ...opts, format: rung };
   return {
-    plusMinus: anchored && below === above ? above : null,
+    oneFigure,
+    plusMinus: !oneFigure && anchored && below === above ? above : null,
     lo: write(band.lo),
     hi: write(band.hi),
     loSaid: speakQuantity(band.lo, spoken),
@@ -421,6 +443,8 @@ function toInterval<U extends string>(
 
 /** The interval as it is written and as it is qualified. See {@link toInterval}. */
 interface Interval {
+  /** Whether both ends print as the same text, so only `lo` is drawn. */
+  oneFigure: boolean;
   /** The half-width, where the short form is honest, and null where it is not. */
   plusMinus: string | null;
   /** The low end for the eye: no symbol, since the pair shares one. */
@@ -659,7 +683,7 @@ export function Unit<U extends string = string>({
      * rather than converting, and nothing is what gets drawn.
      */
     const interval =
-      shown == null || band === null
+      shown == null || band === null || !notCurrent
         ? null
         : toInterval(shown, bandIn(band, shown.unit), resolved, formatted.rung);
     return (
@@ -685,9 +709,21 @@ export function Unit<U extends string = string>({
         {!hideSymbol && <UnitSymbol token={formatted.symbol} spaced />}
         {interval !== null && (
           <Unit__Interval data-unit-band="">
-            {interval.plusMinus === null
-              ? ` (${interval.lo} to ${interval.hi}`
-              : ` ± ${interval.plusMinus}`}
+            {interval.oneFigure ? (
+              <>
+                {" ("}
+                {/* Band's approximate form: the mark is silent and the word
+                    beside it is what is spoken, kept off the clipboard the way
+                    the unit's own word is. */}
+                <span aria-hidden="true">~</span>
+                <Unit__Word data-unit-word="">approximately </Unit__Word>
+                {interval.lo}
+              </>
+            ) : interval.plusMinus === null ? (
+              ` (${interval.lo} to ${interval.hi}`
+            ) : (
+              ` ± ${interval.plusMinus}`
+            )}
             {/* Suppressed with the main symbol rather than separately. A band
                 is stated in the same unit as the figure it widens, so a row
                 that prints the symbol once at the end covers both. */}

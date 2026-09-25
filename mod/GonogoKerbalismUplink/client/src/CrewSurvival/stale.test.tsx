@@ -138,7 +138,7 @@ describe("the dose meter over a carried trend", () => {
     expect(dose.fillWidth).toBe("78%");
     expect(dose.fillDimmed).toBe(true);
     expect(dose.notCurrentMark).not.toBeNull();
-    expect(dose.header).toMatch(/^Radiation dose\s*78/);
+    expect(dose.header).toMatch(/^Radiation dose\s*78\s*%\s*\(~83\s*%\)$/);
     expect(dose.bounds).toHaveLength(2);
     for (const left of dose.bounds) {
       expect(Number.parseFloat(left ?? "")).toBeCloseTo(82.8, 0);
@@ -152,7 +152,7 @@ describe("the dose meter over a carried trend", () => {
     expect(dose.fillWidth).toBe("78%");
     expect(dose.fillDimmed).toBe(false);
     expect(dose.notCurrentMark).toBeNull();
-    expect(dose.header).toMatch(/^Radiation dose\s*78/);
+    expect(dose.header).toMatch(/^Radiation dose\s*78\s*%$/);
   });
 });
 

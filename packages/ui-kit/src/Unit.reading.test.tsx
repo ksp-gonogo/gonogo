@@ -408,12 +408,15 @@ describe("Unit: the staleness slot is announced", () => {
  * same statement the two ends make when the band is symmetric AND about the
  * figure on screen. Everything that is not both falls back to the range, which
  * prints the model's own numbers and cannot misstate them.
+ *
+ * Only a HELD reading carries one: `banded` makes a stale reading unless a test
+ * asks for a current one.
  */
 
 function banded(
   magnitude: number,
   band: { lo: number; value: number; hi: number; kind?: "bound" | "sigma1" },
-  state: "observed" | "stale" = "observed",
+  state: "observed" | "stale" = "stale",
 ): Reading<Value<"m">> {
   const reckoning = {
     status: "available",
@@ -438,6 +441,52 @@ function banded(
 }
 
 describe("Unit: how well the number is known", () => {
+  it("draws no interval beside a current reading", () => {
+    const { container } = render(
+      <Unit
+        value={banded(1000, { lo: 1180, value: 1200, hi: 1220 }, "observed")}
+        decimals={3}
+      />,
+    );
+    expect(visibleText(container)).toBe("1.000 km");
+    expect(container.querySelector("[data-unit-band]")).toBeNull();
+    expect(quantity(container).getAttribute("title")).toBeNull();
+  });
+
+  it("draws ends that print as the same text as one approximate figure, the way Band does", () => {
+    const { container } = render(
+      <Unit
+        value={banded(780, { lo: 830, value: 830, hi: 830 })}
+        decimals={3}
+      />,
+    );
+    const band = container.querySelector("[data-unit-band]");
+    expect(visibleText(container)).toBe("780.000 m (~830.000 m)");
+    expect(band?.textContent).toContain("approximately");
+    expect(band?.textContent?.match(/830/g)).toHaveLength(1);
+  });
+
+  it("collapses ends the display cannot tell apart, not only equal ones", () => {
+    const { container } = render(
+      <Unit
+        value={banded(1000, { lo: 1199.9999, value: 1200, hi: 1200.0001 })}
+        decimals={3}
+      />,
+    );
+    expect(visibleText(container)).toBe("1.000 km (~1.200 km)");
+  });
+
+  it("writes no interval whose one figure is the figure already on screen", () => {
+    const { container } = render(
+      <Unit
+        value={banded(1000, { lo: 1000, value: 1000, hi: 1000 })}
+        decimals={3}
+      />,
+    );
+    expect(visibleText(container)).toBe("1.000 km");
+    expect(container.querySelector("[data-unit-band]")).toBeNull();
+  });
+
   it("writes a symmetric band about the shown figure as a tolerance", () => {
     const { container } = render(
       <Unit
@@ -492,9 +541,10 @@ describe("Unit: how well the number is known", () => {
     const { container } = render(
       <Unit
         value={{
-          state: "observed",
+          state: "stale",
           value: metres(1000),
-          atUt: AT,
+          asOfUt: AT,
+          grade: "held-stale",
           reckoning: {
             status: "available",
             modelled: metres(1000),
@@ -525,8 +575,8 @@ describe("Unit: how well the number is known", () => {
         decimals={3}
       />,
     );
-    expect(quantity(container).getAttribute("title")).toBe(
-      "between 0.975 kilometres and 1.025 kilometres about two thirds of the time",
+    expect(quantity(container).getAttribute("title")).toMatch(
+      /, between 0\.975 kilometres and 1\.025 kilometres about two thirds of the time$/,
     );
   });
 
@@ -542,8 +592,8 @@ describe("Unit: how well the number is known", () => {
         decimals={3}
       />,
     );
-    expect(quantity(container).getAttribute("title")).toBe(
-      "between 0.975 kilometres and 1.025 kilometres",
+    expect(quantity(container).getAttribute("title")).toMatch(
+      /, between 0\.975 kilometres and 1\.025 kilometres$/,
     );
   });
 
