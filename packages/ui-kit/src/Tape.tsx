@@ -21,6 +21,7 @@ import { bandIn, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import {
+  boundsStandApart,
   InstrumentBound,
   InstrumentHeldMark,
   sayHeld,
@@ -225,6 +226,17 @@ export function Tape<U extends string = string>({
   }
 
   const pointerY = yOf(clamped);
+  // Compared as fractions of the rail, from the heights the marks are drawn at.
+  const onScale = (y: number): number =>
+    usable > 0 ? (PAD_TOP + usable - y) / usable : 0;
+  const drawnInterval =
+    interval !== null &&
+    boundsStandApart(onScale(pointerY), [
+      onScale(onRail(interval.lo)),
+      onScale(onRail(interval.hi)),
+    ])
+      ? interval
+      : null;
 
   return (
     <Tape__Meter
@@ -371,9 +383,9 @@ export function Tape<U extends string = string>({
             unmirrored TRACK_X leaves the pointer on the opposite side from the
             track it points at whenever labelSide flips. */}
         {/* The model's two bounds, across the rail the pointer runs up */}
-        {interval !== null &&
+        {drawnInterval !== null &&
           (["lo", "hi"] as const).map((end) => {
-            const y = onRail(interval[end]);
+            const y = onRail(drawnInterval[end]);
             return (
               <InstrumentBound
                 key={end}
