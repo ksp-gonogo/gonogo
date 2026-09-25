@@ -496,7 +496,7 @@ describe("an Uplink's alarm after the Uplink is gone", () => {
     vi.advanceTimersByTime(1000);
 
     const after = svc.snapshot().alarms.find((a) => a.id === alarm.id);
-    expect(after).toBeDefined();
+    expect(after?.state).toBe("firing");
     // The name was captured at request time rather than looked up, so the row
     // still reads. A lookup would go blank at exactly this moment.
     expect(after?.requestedBy?.uplinkName).toBe("Removed Uplink");
