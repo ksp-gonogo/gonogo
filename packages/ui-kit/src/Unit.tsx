@@ -10,7 +10,6 @@ import type { ReactNode } from "react";
 import styled from "styled-components";
 import { bandClaim } from "./bandClaim";
 import { MicroscopeIcon, StarIcon } from "./Icons";
-import { magnitudeOr } from "./magnitude";
 import { NotCurrentMark } from "./NotCurrentMark";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
 /*
@@ -410,13 +409,10 @@ function toInterval<U extends string>(
    * interval has stopped showing a width. Where that one figure is also the
    * figure on screen, the interval adds nothing a reader could see.
    */
-  const oneFigure = readsAsOneFigure(
-    [
-      { reading: magnitudeOr(band.lo, 0), unit: band.lo.unit },
-      { reading: magnitudeOr(band.hi, 0), unit: band.hi.unit },
-    ],
-    { ...opts, format: rung },
-  );
+  const oneFigure = readsAsOneFigure([band.lo, band.hi], {
+    ...opts,
+    format: rung,
+  });
   if (oneFigure && write(band.lo) === write(shown)) return null;
   const below = width(band.lo, band.value);
   const above = width(band.value, band.hi);

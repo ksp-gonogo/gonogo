@@ -6,12 +6,10 @@ import {
   subscribeActiveTelemetryClient,
 } from "@ksp-gonogo/sitrep-client";
 import {
-  asQuantityish,
   COMMAND_LOST,
   COMMAND_UNDELIVERED,
   CommandErrorCode,
   KspParameterState,
-  magnitudeOf,
   type ScetAlarmAction,
   ScetAlarmActionKind,
   ScetAlarmConditionKind,
@@ -840,7 +838,7 @@ function readRosterCondition(raw: unknown): ForeignScetCondition | null {
   const field = (key: string): unknown => Reflect.get(raw, key);
   switch (field("kind")) {
     case ScetAlarmConditionKind.Time: {
-      const ut = magnitudeOf(asQuantityish(field("ut")));
+      const ut = readWireUt(field("ut"));
       return ut === null ? null : { kind: "time", ut };
     }
     case ScetAlarmConditionKind.Threshold: {
@@ -849,7 +847,11 @@ function readRosterCondition(raw: unknown): ForeignScetCondition | null {
         typeof opMember === "number"
           ? THRESHOLD_OP_OF_MEMBER.get(opMember)
           : undefined;
-      const value = magnitudeOf(asQuantityish(field("threshold")));
+      const threshold = field("threshold");
+      const value =
+        typeof threshold === "number" && Number.isFinite(threshold)
+          ? threshold
+          : null;
       const topic = field("topic");
       const fieldPath = field("fieldPath");
       if (
@@ -874,6 +876,25 @@ function readRosterCondition(raw: unknown): ForeignScetCondition | null {
 }
 
 /**
+ * A universal time off a raw alarm frame, or null for anything that is not a
+ * finite one.
+ *
+ * Both shapes are accepted. A field the contract declares as a universal time
+ * arrives as a `Value` once the unit wrap in `parseServerMessage` has keyed its
+ * topic, and as the bare number where it has not, and a reader of raw frames
+ * has to take either.
+ */
+function readWireUt(raw: unknown): number | null {
+  const magnitude =
+    typeof raw === "object" && raw !== null && "magnitude" in raw
+      ? raw.magnitude
+      : raw;
+  return typeof magnitude === "number" && Number.isFinite(magnitude)
+    ? magnitude
+    : null;
+}
+
+/**
  * The `alarm.scet.fired` payload as this side needs it, or null for anything
  * that is not one.
  *
@@ -881,12 +902,6 @@ function readRosterCondition(raw: unknown): ForeignScetCondition | null {
  * the whole channel, so there is nothing an assertion would buy that a check
  * does not, and what arrives here is raw wire rather than anything this code
  * constructed.
- *
- * Both shapes of the instant are accepted. `firedAtUt` is declared as a
- * universal time on the contract, so the unit wrap applied in
- * `parseServerMessage` delivers it as a `Value`; a topic outside the wrap's
- * keying would deliver the bare number, and a reader of raw frames has to take
- * either.
  */
 function readFiredNotice(payload: unknown): {
   id: string;
@@ -898,12 +913,8 @@ function readFiredNotice(payload: unknown): {
   if (id === null) return null;
   if (typeof payload !== "object" || payload === null) return null;
   if (!("firedAtUt" in payload)) return null;
-  const raw = payload.firedAtUt;
-  const magnitude =
-    typeof raw === "object" && raw !== null && "magnitude" in raw
-      ? raw.magnitude
-      : raw;
-  if (typeof magnitude !== "number" || !Number.isFinite(magnitude)) return null;
+  const firedAtUt = readWireUt(payload.firedAtUt);
+  if (firedAtUt === null) return null;
   /* Absent reads as unstated rather than as a place. Nothing routes on it, so a
      host that does not send one is understood rather than ignored. */
   const vantage =
@@ -912,7 +923,7 @@ function readFiredNotice(payload: unknown): {
       : "";
   return {
     id,
-    firedAtUt: magnitude,
+    firedAtUt,
     vantage,
     actionsWithheld:
       "actionsWithheld" in payload && payload.actionsWithheld === true,
