@@ -1,7 +1,12 @@
-import type { ComponentProps } from "@ksp-gonogo/core";
+import type {
+  ActionDefinition,
+  ActionInputPayload,
+  ComponentProps,
+} from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   registerComponent,
+  useActionInput,
   useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
@@ -32,7 +37,14 @@ import {
   useCommandButton,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
-import { useMemo, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import styled from "styled-components";
 import {
   FundsDrain,
@@ -42,6 +54,80 @@ import {
 import { asQuantityish, magnitudeOf, magnitudeOr } from "../shared/magnitude";
 
 type LaunchDirectorConfig = Record<string, never>;
+
+/**
+ * One action per control that has exactly one target on screen. Each presses
+ * the control itself, so a bound input arms on its first press and dispatches
+ * on its second exactly as a click does, and does nothing while that control
+ * is dark or absent. Switching vessel acts on one row of many and has no
+ * action.
+ */
+const launchDirectorActions = [
+  {
+    id: "launch",
+    label: "Launch",
+    accepts: ["button"],
+    description:
+      "First press arms, second press launches the craft selected on the open pad, with the crew selected for it.",
+  },
+  {
+    id: "recover",
+    label: "Recover",
+    accepts: ["button"],
+    description:
+      "First press arms, second press recovers the vessel in flight, or the one standing on the open pad.",
+  },
+  {
+    id: "revertToLaunch",
+    label: "Revert to launch",
+    accepts: ["button"],
+    description:
+      "In flight: first press arms, second press reverts the flight to its launch.",
+  },
+  {
+    id: "revertToEditor",
+    label: "Revert to VAB",
+    accepts: ["button"],
+    description:
+      "First press arms, second press reverts the flight, or the vessel on the open pad, to the VAB.",
+  },
+  {
+    id: "trackingStation",
+    label: "Tracking Station",
+    accepts: ["button"],
+    description:
+      "In flight: first press arms, second press saves the game and leaves for the Tracking Station.",
+  },
+] as const satisfies readonly ActionDefinition[];
+
+export type LaunchDirectorActions = typeof launchDirectorActions;
+type LaunchDirectorActionId = LaunchDirectorActions[number]["id"];
+
+type Press = (armable: boolean) => void;
+
+/**
+ * The press of each on-screen control an action drives, keyed by action id.
+ * A control is listed only while a click on it would do something, so an
+ * action finds nothing to press exactly when the control is dark or absent.
+ */
+const BoundPresses = createContext<Map<LaunchDirectorActionId, Press> | null>(
+  null,
+);
+
+function useBindPress(
+  action: LaunchDirectorActionId | undefined,
+  press: Press,
+  clickable: boolean,
+): void {
+  const registry = useContext(BoundPresses);
+  useEffect(() => {
+    if (!registry || !action || !clickable) return;
+    registry.set(action, press);
+    return () => {
+      if (registry.get(action) === press) registry.delete(action);
+    };
+  }, [registry, action, press, clickable]);
+}
 
 /**
  * The context both LaunchDirector slots pass to their augments. A
@@ -616,6 +702,21 @@ function LaunchDirectorComponent({
   usePanelDelay(toTrackingCmd);
   usePanelDelay(switchCmd);
 
+  const boundPresses = useRef(new Map<LaunchDirectorActionId, Press>()).current;
+  const pressBound =
+    (id: LaunchDirectorActionId) => (payload: ActionInputPayload) => {
+      if (payload.kind === "button" && payload.value !== true) return undefined;
+      boundPresses.get(id)?.(true);
+      return undefined;
+    };
+  useActionInput<LaunchDirectorActions>({
+    launch: pressBound("launch"),
+    recover: pressBound("recover"),
+    revertToLaunch: pressBound("revertToLaunch"),
+    revertToEditor: pressBound("revertToEditor"),
+    trackingStation: pressBound("trackingStation"),
+  });
+
   const ships = parseSavedShips(savedShipsRaw);
   const crew = parseCrew(crewRosterRaw);
   const launchSites = parseLaunchSites(launchSitesRaw);
@@ -738,118 +839,120 @@ function LaunchDirectorComponent({
         lastCrash.vesselName === vesselName);
 
   return (
-    <Panel
-      panelTitle="LAUNCH & RECOVERY"
-      compactTitle={["LAUNCH & REC", "LAUNCH"]}
-      sections={[
-        showSubtitle ? (
-          <Section key="summary" full>
-            <div
-              role="status"
-              aria-live="polite"
-              style={{
-                fontSize: "var(--font-size-compact)",
-                color: "var(--color-text-faint)",
-              }}
-            >
-              {inFlight
-                ? `In flight: ${activeName}${launchSite && (w ?? 7) >= 6 ? ` · from ${launchSite}` : ""}`
-                : padSummary({
-                    pads: pads.length,
-                    occupied: occupiedPads,
-                    unreported: unreportedPads,
-                  })}
-              {typeof careerFunds === "number" && (
-                <FundsReadout title="Available funds">
-                  · <Unit value={value("funds", careerFunds)} />
-                </FundsReadout>
-              )}
-              {/* NOT wrapped in FundsReadout beside it: that span is nowrap, so
+    <BoundPresses.Provider value={boundPresses}>
+      <Panel
+        panelTitle="LAUNCH & RECOVERY"
+        compactTitle={["LAUNCH & REC", "LAUNCH"]}
+        sections={[
+          showSubtitle ? (
+            <Section key="summary" full>
+              <div
+                role="status"
+                aria-live="polite"
+                style={{
+                  fontSize: "var(--font-size-compact)",
+                  color: "var(--color-text-faint)",
+                }}
+              >
+                {inFlight
+                  ? `In flight: ${activeName}${launchSite && (w ?? 7) >= 6 ? ` · from ${launchSite}` : ""}`
+                  : padSummary({
+                      pads: pads.length,
+                      occupied: occupiedPads,
+                      unreported: unreportedPads,
+                    })}
+                {typeof careerFunds === "number" && (
+                  <FundsReadout title="Available funds">
+                    · <Unit value={value("funds", careerFunds)} />
+                  </FundsReadout>
+                )}
+                {/* NOT wrapped in FundsReadout beside it: that span is nowrap, so
                     a readout placed inside it cannot take a second line and clips
                     at the panel edge instead. */}
-              {reportsFundsDrain(netFunds) && (
-                <DrainReadout>
-                  <FundsDrain
-                    funds={careerFunds}
-                    netPerDay={netFunds}
-                    separator
-                  />
-                </DrainReadout>
-              )}
-              {/* The balance is required beside a spend control, and an absent
+                {reportsFundsDrain(netFunds) && (
+                  <DrainReadout>
+                    <FundsDrain
+                      funds={careerFunds}
+                      netPerDay={netFunds}
+                      separator
+                    />
+                  </DrainReadout>
+                )}
+                {/* The balance is required beside a spend control, and an absent
                     balance is the state that rule exists for: it is exactly when
                     the affordability gate above has nothing to judge against. The
                     two ways of having no balance say so differently, because every
                     priced craft is blocked either way and the operator has to know
                     whether that is a cold start or a link that stopped. */}
-              {careerFunds === null && chargesFunds && (
-                <FundsReadout
-                  title={
-                    fundsNotCurrent
-                      ? "The last funds balance is no longer current, so affordability is not being judged"
-                      : "No funds balance has arrived"
-                  }
-                >
-                  · {fundsNotCurrent ? "funds not current" : "funds unknown"}
-                </FundsReadout>
-              )}
-            </div>
-          </Section>
-        ) : null,
-        <Section key="pads">
-          {inFlight ? (
-            <InFlightPanel
-              missionTime={missionTime ?? null}
-              altitudeMeters={altitudeMeters ?? null}
-              canRevertToLaunch={canRevertToLaunch ?? false}
-              canRevertToEditor={canRevertToEditor ?? false}
-              crashBlocked={crashBlocked}
-              availableVessels={availableVessels}
-              recoverCmd={recoverCmd}
-              revertLaunchCmd={revertLaunchCmd}
-              revertEditorCmd={revertEditorCmd}
-              toTrackingCmd={toTrackingCmd}
-              switchCmd={switchCmd}
-            />
-          ) : (
-            <PadSection
-              pads={pads}
-              activePad={activePad}
-              onPickPad={(name) => {
-                setPickedPad(name);
-                setSelectedShip(null);
-                setSelectedCrew(new Set());
-              }}
-              padCraft={padCraft}
-              craftKnown={ships !== null}
-              crew={crew}
-              selectedShip={selectedShip}
-              onSelectShip={(name) => {
-                setSelectedShip(name);
-                setSelectedCrew(new Set());
-              }}
-              selectedCrew={selectedCrew}
-              onToggleCrew={(name) =>
-                setSelectedCrew((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(name)) next.delete(name);
-                  else next.add(name);
-                  return next;
-                })
-              }
-              fundsAvailable={fundsAvailable}
-              funds={careerFunds ?? undefined}
-              rows={rows}
-              letterbox={letterbox}
-              launchCmd={launchCmd}
-              recoverCmd={recoverCmd}
-              revertEditorCmd={revertEditorCmd}
-              slotContext={slotContext}
-            />
-          )}
-        </Section>,
-      ]}
-    />
+                {careerFunds === null && chargesFunds && (
+                  <FundsReadout
+                    title={
+                      fundsNotCurrent
+                        ? "The last funds balance is no longer current, so affordability is not being judged"
+                        : "No funds balance has arrived"
+                    }
+                  >
+                    · {fundsNotCurrent ? "funds not current" : "funds unknown"}
+                  </FundsReadout>
+                )}
+              </div>
+            </Section>
+          ) : null,
+          <Section key="pads">
+            {inFlight ? (
+              <InFlightPanel
+                missionTime={missionTime ?? null}
+                altitudeMeters={altitudeMeters ?? null}
+                canRevertToLaunch={canRevertToLaunch ?? false}
+                canRevertToEditor={canRevertToEditor ?? false}
+                crashBlocked={crashBlocked}
+                availableVessels={availableVessels}
+                recoverCmd={recoverCmd}
+                revertLaunchCmd={revertLaunchCmd}
+                revertEditorCmd={revertEditorCmd}
+                toTrackingCmd={toTrackingCmd}
+                switchCmd={switchCmd}
+              />
+            ) : (
+              <PadSection
+                pads={pads}
+                activePad={activePad}
+                onPickPad={(name) => {
+                  setPickedPad(name);
+                  setSelectedShip(null);
+                  setSelectedCrew(new Set());
+                }}
+                padCraft={padCraft}
+                craftKnown={ships !== null}
+                crew={crew}
+                selectedShip={selectedShip}
+                onSelectShip={(name) => {
+                  setSelectedShip(name);
+                  setSelectedCrew(new Set());
+                }}
+                selectedCrew={selectedCrew}
+                onToggleCrew={(name) =>
+                  setSelectedCrew((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(name)) next.delete(name);
+                    else next.add(name);
+                    return next;
+                  })
+                }
+                fundsAvailable={fundsAvailable}
+                funds={careerFunds ?? undefined}
+                rows={rows}
+                letterbox={letterbox}
+                launchCmd={launchCmd}
+                recoverCmd={recoverCmd}
+                revertEditorCmd={revertEditorCmd}
+                slotContext={slotContext}
+              />
+            )}
+          </Section>,
+        ]}
+      />
+    </BoundPresses.Provider>
   );
 }
 
@@ -1010,6 +1113,7 @@ function PadSection({
                          vessel. */
                       <PadActions>
                         <ArmedButton
+                          bindAs="recover"
                           kind="recover"
                           handle={recoverCmd}
                           commandLabel="Recover"
@@ -1022,6 +1126,7 @@ function PadSection({
                             cannot tell which editor the craft on the pad came
                             from. */}
                         <ArmedButton
+                          bindAs="revertToEditor"
                           kind="revert"
                           handle={revertEditorCmd}
                           args={{ editor: "vab" }}
@@ -1203,6 +1308,7 @@ function PadSection({
                             )}
                             <LaunchControls>
                               <ArmedButton
+                                bindAs="launch"
                                 kind="launch"
                                 handle={launchCmd}
                                 args={{
@@ -1277,6 +1383,11 @@ function InFlightPanel({
     handle: toTrackingCmd,
     commandLabel: "Go to Tracking Station",
   });
+  useBindPress(
+    "trackingStation",
+    trackingStation.press,
+    !trackingStation.isPending,
+  );
   const trackingStationLoss = commandLossSentence({
     label: "Go to Tracking Station",
   });
@@ -1322,6 +1433,7 @@ function InFlightPanel({
       </FlightStats>
       <PadActions>
         <ArmedButton
+          bindAs="recover"
           kind="recover"
           handle={recoverCmd}
           commandLabel="Recover"
@@ -1331,6 +1443,7 @@ function InFlightPanel({
           disabled={crashBlocked}
         />
         <ArmedButton
+          bindAs="revertToLaunch"
           kind="revert"
           handle={revertLaunchCmd}
           commandLabel="Revert to launch"
@@ -1342,6 +1455,7 @@ function InFlightPanel({
           disabled={!canRevertToLaunch}
         />
         <ArmedButton
+          bindAs="revertToEditor"
           kind="revert"
           handle={revertEditorCmd}
           args={{ editor: "vab" }}
@@ -1491,6 +1605,7 @@ function ArmedButton({
   kind,
   disabled,
   pendingLabel,
+  bindAs,
 }: {
   handle: CommandButtonHandle;
   args?: unknown;
@@ -1500,6 +1615,8 @@ function ArmedButton({
   kind: "launch" | "recover" | "revert";
   disabled?: boolean;
   pendingLabel?: string;
+  /** The action that presses this control from a bound input. */
+  bindAs?: LaunchDirectorActionId;
 }) {
   const {
     isArmed,
@@ -1510,6 +1627,13 @@ function ArmedButton({
     hasFailure,
     press,
   } = useCommandButton({ handle, args, commandLabel });
+  // Mirrors which of the renders below takes a click: the pending one never
+  // does, the refused and lost ones always do, the rest unless disabled.
+  useBindPress(
+    bindAs,
+    press,
+    !isPending && (isRefused || isLost || disabled !== true),
+  );
 
   if (isPending) {
     return (
@@ -2148,7 +2272,7 @@ registerComponent<LaunchDirectorConfig>({
     "target.available",
   ],
   defaultConfig: {},
-  actions: [],
+  actions: launchDirectorActions,
   pushable: true,
 });
 
