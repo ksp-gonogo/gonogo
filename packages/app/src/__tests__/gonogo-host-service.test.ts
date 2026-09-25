@@ -12,8 +12,14 @@ import {
   TelemetryClient,
   TimelineStore,
   ViewClock,
+  vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
-import { Situation } from "@ksp-gonogo/sitrep-sdk";
+import {
+  PropagationHorizonKind,
+  Quality,
+  Situation,
+  TrajectoryKind,
+} from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GoNoGoHostService } from "../goNoGo/GoNoGoHostService";
@@ -482,5 +488,102 @@ describe("GoNoGoHostService", () => {
     expect(svc.getSnapshot().abort).toBeNull();
     host.fireVote("peer-1", "go");
     expect(svc.getSnapshot().countdown).not.toBeNull();
+  });
+
+  it("reports launched for a craft that has lifted off and is under physics, with the abort gate open", async () => {
+    /*
+     * Through the REAL derivation rather than a driven `met`: the frames the mod
+     * sends for a craft that has left the pad, every one stamped Loaded, into a
+     * store that runs `vesselStateChannel`. A derivation that nulls `met` under
+     * physics would leave the ascent unlaunched and the abort gate shut.
+     */
+    const ascentTransport = new StubTransport();
+    const ascentClient = new TelemetryClient(ascentTransport);
+    const clock = new ViewClock({
+      nowWall: () => 0,
+      warpRate: () => 1,
+      delaySeconds: () => 0,
+    });
+    clock.scrubTo(1_042);
+    const ascentStore = new TimelineStore(clock);
+    ascentStore.registerDerivedChannel(vesselStateChannel);
+    ascentClient.attachStore(ascentStore);
+    for (const topic of ["vessel.orbit", "vessel.flight", "vessel.identity"]) {
+      ascentClient.subscribe(topic, () => {});
+    }
+    const sent: string[] = [];
+    ascentTransport.setCommandHandler((command) => {
+      sent.push(command);
+      return null;
+    });
+    setActiveTelemetryClientForTests(ascentClient);
+    setActiveTimelineStoreForTests(ascentStore);
+    setActiveViewClockForTests(clock);
+
+    const vessel = "8de0da0e-f691-4327-98bf-fb37cc322b92";
+    const meta = { source: `vessel:${vessel}`, quality: Quality.Loaded };
+    const loaded = { quality: Quality.Loaded, validAt: 1_042 };
+    ascentTransport.emit(
+      "vessel.orbit",
+      {
+        referenceBodyIndex: 1,
+        sma: 420_000,
+        ecc: 0.6,
+        inc: 0,
+        lan: 0,
+        argPe: 0,
+        meanAnomalyAtEpoch: 0,
+        epoch: 1_042,
+        mu: 3.5316e12,
+        patches: [],
+        horizon: {
+          kind: PropagationHorizonKind.Unbounded,
+          trajectoryKind: TrajectoryKind.Analytic,
+        },
+        meta,
+      },
+      loaded,
+    );
+    ascentTransport.emit(
+      "vessel.flight",
+      {
+        latitude: -0.1,
+        longitude: -74.6,
+        altitudeAsl: 8_400,
+        altitudeTerrain: 8_320,
+        verticalSpeed: 310,
+        surfaceSpeed: 420,
+        orbitalSpeed: 560,
+        gForce: 2.1,
+        dynamicPressureKPa: 18,
+        mach: 1.3,
+        atmDensity: 0.4,
+        meta,
+      },
+      loaded,
+    );
+    ascentTransport.emit(
+      "vessel.identity",
+      {
+        vesselId: vessel,
+        name: "Sally-Hut 1",
+        vesselType: 0,
+        situation: Situation.Flying,
+        parentBodyIndex: 1,
+        launchUt: 1_000,
+        meta,
+      },
+      loaded,
+    );
+    host.fireConnect("peer-1");
+    host.fireStationInfo("peer-1", "FLIGHT");
+    ascentStore.beginFrame();
+
+    expect(svc.getSnapshot().launched).toBe(true);
+    host.fireAbort("peer-1");
+    await drainDispatch();
+    expect(svc.getSnapshot().abort?.stationName).toBe("FLIGHT");
+    expect(sent).toContain("vessel.control.setAbort");
+    ascentClient.dispose();
   });
 });
