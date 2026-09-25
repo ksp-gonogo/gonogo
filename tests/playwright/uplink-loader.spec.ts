@@ -10,7 +10,7 @@ import { dashboardWithWidget } from "./helpers";
  * gating it (main.tsx always runs the loader; see that file's
  * `bootUplinksAndRender`). Proves, in a REAL browser on all three engines,
  * that a loaded Uplink client works end to end. It names two ids
- * (`kos,breakingGround`) rather than sweeping `packages/app/uplink-bundle-targets.ts`:
+ * (`kerbalism,breakingGround`) rather than sweeping `packages/app/uplink-bundle-targets.ts`:
  * the mechanism is per-Uplink identical, so a second engine-crossing run of the
  * same nine assertions buys nothing. Any two ids in that file do, and one widget
  * id per Uplink is all this looks for. Widget
@@ -22,19 +22,22 @@ import { dashboardWithWidget } from "./helpers";
  *     fetched as a standalone ESM bundle (/uplinks/<id>.client.js) and
  *     import()ed at runtime, its bare imports resolving through the baked
  *     import map to the app's singleton chunks, so its module-load
- *     registerComponent writes into the app's ONE registry (`kos-terminal` +
+ *     registerComponent writes into the app's ONE registry (`ship-systems` +
  *     `robotics-console` both appear);
  *  2. the injected SDK host is installed on globalThis;
  *  3. a widget from a LOADED (not statically-bundled) Uplink actually RENDERS on
  *     the dashboard: not merely registers. The dashboard is seeded (same
  *     `dashboardWithWidget` mechanism `tests/playwright/helpers.ts`'s
- *     `bootstrapPair` uses for every widget-DOM-mirror spec) with the kos
- *     `kos-terminal` widget before navigation; because `main.tsx` only calls
- *     `renderApp()` AFTER `loadEnabledUplinks` resolves (bootUplinksAndRender
- *     awaits the whole load sequence before the first render), by the time React
- *     mounts the widget's `registerComponent` has already run, so waiting for the
- *     widget's own panel title is a genuine post-load-and-mount render proof, not a
- *     race against the import();
+ *     `bootstrapPair` uses for every widget-DOM-mirror spec) with breakingGround's
+ *     `robotics-console` widget before navigation (chosen over kerbalism's
+ *     `ship-systems` because it declares no `channels`, so `RequiresGuard`
+ *     never gates it behind the "No telemetry host" placeholder this preview
+ *     build's disconnected Sitrep source would otherwise force); because
+ *     `main.tsx` only calls `renderApp()` AFTER `loadEnabledUplinks` resolves
+ *     (bootUplinksAndRender awaits the whole load sequence before the first
+ *     render), by the time React mounts the widget's `registerComponent` has
+ *     already run, so waiting for the widget's own panel title is a genuine
+ *     post-load-and-mount render proof, not a race against the import();
  *  4. the loader's outcome store (`loaderState.ts`'s `getUplinkOutcomes`/
  *     `subscribeUplinkOutcomes`) reports each id as `loaded`: asserted through the
  *     real Settings -> Data Sources "Loaded clients" panel
@@ -48,9 +51,10 @@ import { dashboardWithWidget } from "./helpers";
  *
  * A second test proves the `?uplinkLoaderIds=` override (`flag.ts`'s
  * `loaderBootIdsOverride`) actually narrows which ids the boot call attempts:
- * restricting the boot set to just `kos` fetches only the kos bundle and leaves
- * breakingGround unloaded. That override is the only way to name ids with no mod
- * talking, so both tests here pass it and the pair differ only in the ids.
+ * restricting the boot set to just `kerbalism` fetches only the kerbalism bundle
+ * and leaves breakingGround unloaded. That override is the only way to name ids
+ * with no mod talking, so both tests here pass it and the pair differ only in
+ * the ids.
  *
  * Consent: the loader gates each first load at a new id@version behind operator
  * consent (design §3.5). Both tests seed a remembered grant in localStorage so
@@ -90,7 +94,7 @@ async function seedConsent(page: import("@playwright/test").Page) {
  * Seed the extras the render + Settings-UI proof needs, on top of
  * `seedConsent`:
  *
- *  - a dashboard containing the kos `kos-terminal` widget (same
+ *  - a dashboard containing breakingGround's `robotics-console` widget (same
  *    `dashboardWithWidget` shape `tests/playwright/helpers.ts`'s
  *    `bootstrapPair` seeds for every widget-DOM-mirror spec), so the widget
  *    is on the grid the instant the app renders;
@@ -103,7 +107,7 @@ async function seedConsent(page: import("@playwright/test").Page) {
 async function seedRenderAndSettingsState(
   page: import("@playwright/test").Page,
 ) {
-  const dashboard = dashboardWithWidget("kos-terminal");
+  const dashboard = dashboardWithWidget("robotics-console");
   await page.evaluate(
     ({ dashboardJson }: { dashboardJson: string }) => {
       localStorage.setItem("gonogo:dashboard:main", dashboardJson);
@@ -115,7 +119,7 @@ async function seedRenderAndSettingsState(
 }
 
 test.describe("Uplink loader (default path)", () => {
-  test("kos + breakingGround load via the runtime loader by default (no flag)", async ({
+  test("kerbalism + breakingGround load via the runtime loader by default (no flag)", async ({
     page,
   }) => {
     // Establish the origin, then seed consent + the dashboard/Settings-UI
@@ -125,8 +129,8 @@ test.describe("Uplink loader (default path)", () => {
     await seedConsent(page);
     await seedRenderAndSettingsState(page);
 
-    const kosFetched = page.waitForResponse(
-      (r) => r.url().includes("/uplinks/kos.client.js") && r.ok(),
+    const kerbalismFetched = page.waitForResponse(
+      (r) => r.url().includes("/uplinks/kerbalism.client.js") && r.ok(),
       { timeout: 30_000 },
     );
     const breakingGroundFetched = page.waitForResponse(
@@ -137,24 +141,25 @@ test.describe("Uplink loader (default path)", () => {
     // The ids come in through `?uplinkLoaderIds=` because there is no mod
     // talking here and no shipped default to name them, which is how dev and
     // e2e boot; a real boot gets its ids from the live roster.
-    await page.goto(`${PREVIEW}/?uplinkLoaderIds=kos,breakingGround`, {
+    await page.goto(`${PREVIEW}/?uplinkLoaderIds=kerbalism,breakingGround`, {
       waitUntil: "load",
     });
 
     // Both standalone bundles were fetched by the loader (not statically
     // imported).
-    expect((await kosFetched).status()).toBe(200);
+    expect((await kerbalismFetched).status()).toBe(200);
     expect((await breakingGroundFetched).status()).toBe(200);
 
     // Singleton proof: each loaded bundle's registerComponent wrote into the
-    // app's ONE registry: a kos widget (`kos-terminal`) and a Breaking Ground
-    // widget (`robotics-console`) are both present, resolved through the import map.
+    // app's ONE registry: a Kerbalism widget (`ship-systems`) and a Breaking
+    // Ground widget (`robotics-console`) are both present, resolved through
+    // the import map.
     await expect
       .poll(
         async () => {
           const ids = await registeredComponentIds(page);
           return (
-            ids.includes("kos-terminal") && ids.includes("robotics-console")
+            ids.includes("ship-systems") && ids.includes("robotics-console")
           );
         },
         { timeout: 15_000 },
@@ -169,14 +174,14 @@ test.describe("Uplink loader (default path)", () => {
     );
     expect(hostInstalled).toBe(true);
 
-    // RENDER proof, not just registration: the kos `kos-terminal` widget was
-    // seeded onto the dashboard (`seedRenderAndSettingsState`, above) before
-    // the navigation. `main.tsx`'s `bootUplinksAndRender` only
+    // RENDER proof, not just registration: breakingGround's `robotics-console`
+    // widget was seeded onto the dashboard (`seedRenderAndSettingsState`,
+    // above) before the navigation. `main.tsx`'s `bootUplinksAndRender` only
     // calls `renderApp()` after `loadEnabledUplinks` resolves, so if the
     // widget's own panel title becomes visible, React mounted the dashboard
     // AFTER the loaded bundle's `registerComponent` already ran, this is a
     // loaded (not statically-bundled) Uplink's widget actually rendering.
-    await expect(page.getByText("kOS TERMINAL", { exact: true })).toBeVisible({
+    await expect(page.getByText("ROBOTICS", { exact: true })).toBeVisible({
       timeout: 15_000,
     });
 
@@ -196,7 +201,7 @@ test.describe("Uplink loader (default path)", () => {
     await expect(
       dataSourcesPanel.getByText("Loaded clients", { exact: true }),
     ).toBeVisible({ timeout: 15_000 });
-    for (const name of ["kOS", "Breaking Ground"]) {
+    for (const name of ["Kerbalism", "Breaking Ground"]) {
       await expect(
         dataSourcesPanel.getByText(name, { exact: true }),
       ).toBeVisible();
@@ -223,23 +228,23 @@ test.describe("Uplink loader (default path)", () => {
         breakingGroundRequested = true;
       }
     });
-    const kosFetched = page.waitForResponse(
-      (r) => r.url().includes("/uplinks/kos.client.js") && r.ok(),
+    const kerbalismFetched = page.waitForResponse(
+      (r) => r.url().includes("/uplinks/kerbalism.client.js") && r.ok(),
       { timeout: 30_000 },
     );
 
-    // Restrict the boot-time enabled set to just kos, where the test above
-    // names both: proof the param is read rather than ignored.
-    await page.goto(`${PREVIEW}/?uplinkLoaderIds=kos`, {
+    // Restrict the boot-time enabled set to just kerbalism, where the test
+    // above names both: proof the param is read rather than ignored.
+    await page.goto(`${PREVIEW}/?uplinkLoaderIds=kerbalism`, {
       waitUntil: "load",
     });
 
-    expect((await kosFetched).status()).toBe(200);
+    expect((await kerbalismFetched).status()).toBe(200);
 
     await expect
       .poll(
         async () =>
-          (await registeredComponentIds(page)).includes("kos-terminal"),
+          (await registeredComponentIds(page)).includes("ship-systems"),
         { timeout: 15_000 },
       )
       .toBe(true);
