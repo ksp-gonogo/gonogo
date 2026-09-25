@@ -99,6 +99,10 @@
        passing /p:KspGameData; see .github/workflows/ci.yml's mod job and
        docs/superpowers/plans/2026-07-13-kos-headless-harness-report.md. -->
   <PropertyGroup>
+    <!-- Marks the path below as a guess rather than a request, so a missing
+         harness can tell "no kOS on this machine" from "the path you passed is
+         wrong". -->
+    <_KspGameDataDefaulted Condition="'$(KspGameData)' == ''">true</_KspGameDataDefaulted>
     <KspGameData Condition="'$(KspGameData)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\syncthing\kspdata\GameData</KspGameData>
     <!--
       A git worktree has no local_docs of its own (it is gitignored), so the
@@ -111,6 +115,9 @@
     <KosSafeDll>$(KspGameData)\kOS\Plugins\kOS.Safe.dll</KosSafeDll>
     <KosDll>$(KspGameData)\kOS\Plugins\kOS.dll</KosDll>
     <KosSafeAvailable Condition="Exists('$(KosSafeDll)') And Exists('$(KosDll)')">true</KosSafeAvailable>
+    <!-- Compiled into KosReferenceCoverage.cs as a skipped test, so a run
+         without the harness says so in the same summary line as Passed!. -->
+    <DefineConstants Condition="'$(KosSafeAvailable)' != 'true'">$(DefineConstants);KOS_REFERENCES_ABSENT</DefineConstants>
   </PropertyGroup>
 
   <!-- The SDK auto-globs Headless/**; drop it unless the kOS DLLs are present. -->
@@ -128,6 +135,10 @@
     <Compile Include="..\GonogoKosUplink\ScreenDiffMapper.cs" />
     <Compile Include="Headless\**\*.cs" />
   </ItemGroup>
+
+  <Target Name="RefuseMissingRequestedKspGameData" BeforeTargets="Build" Condition="'$(KosSafeAvailable)' != 'true' And '$(_KspGameDataDefaulted)' != 'true'">
+    <Error Text="KspGameData=$(KspGameData) was passed, but it holds no kOS/Plugins/kOS.Safe.dll and kOS.dll. A path given on purpose that resolves to nothing is a mistake, not a machine without kOS: a relative path from a git worktree, where local_docs does not exist, is the usual cause. Pass the GameData directory that holds kOS/Plugins, or leave KspGameData unset to run without the headless harness." />
+  </Target>
 
   <Target Name="WarnKosHarnessSkipped" BeforeTargets="Build" Condition="'$(KosSafeAvailable)' != 'true'">
     <Warning Text="kOS.Safe.dll / kOS.dll not found under KspGameData=$(KspGameData), the headless kOS terminal harness (GonogoKosUplink.Tests/Headless) is SKIPPED. Pass /p:KspGameData=&lt;GameData containing kOS/Plugins&gt; to compile and run it." />
