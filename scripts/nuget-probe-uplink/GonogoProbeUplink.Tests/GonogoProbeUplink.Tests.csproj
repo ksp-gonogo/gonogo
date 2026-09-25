@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Reaches all three things the package carries (the contract, the
+       TestSupport fakes and assertions, and Sitrep.Core's delay engine) the way
+       an outside Uplink's Tests project does, so the probe fails if any of them
+       stops arriving with it. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- The plugin targets net48 for KSP, so its KSP-free half is compiled in
+       rather than referenced. -->
+  <ItemGroup>
+    <Compile Include="..\GonogoProbeUplink\ProbeUplink.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\mod\Sitrep.Contract\Sitrep.Contract.csproj" />
+    <ProjectReference Include="..\..\..\mod\Sitrep.Core\Sitrep.Core.csproj" />
+    <ProjectReference Include="..\..\..\mod\Sitrep.Contract.TestSupport\Sitrep.Contract.TestSupport.csproj" />
+    <ProjectReference Include="..\GonogoProbeUplink.Contract\GonogoProbeUplink.Contract.csproj" />
+  </ItemGroup>
+</Project>
