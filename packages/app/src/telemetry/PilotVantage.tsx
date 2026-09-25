@@ -1,9 +1,7 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import {
   useSelectedVantage,
-  useStream,
   useTelemetryClientOptional,
-  type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import { useEffect } from "react";
 
@@ -11,17 +9,16 @@ import { useEffect } from "react";
  * The vantage id of the craft this page is aboard, or `undefined` until the
  * craft has named itself AND the roster agrees it is a command centre.
  *
- * The id comes off `vessel.state.subjectId`, which is the orbit PAYLOAD's own
- * `meta.source`. The mod stamps that `"vessel:<guid>"`
- * (`Sitrep.Host.VesselViewProvider.BuildMeta`) and
- * `Gonogo.KSP.CommandCentres.CrewedVesselSource` mints a crewed centre's id
- * from the same guid the same way, so the two strings are equal by
+ * The id comes off the `vessel.orbit` PAYLOAD's own `meta.source`. The mod
+ * stamps that `"vessel:<guid>"` (`Sitrep.Host.VesselViewProvider.BuildMeta`)
+ * and `Gonogo.KSP.CommandCentres.CrewedVesselSource` mints a crewed centre's
+ * id from the same guid the same way, so the two strings are equal by
  * construction rather than by a format this file would otherwise restate.
  *
  * NOT the ENVELOPE `meta.source` beside it, which is the Courier node and is
- * the literal `"system"` for every non-fleet topic. `deriveVesselState` read
- * that one until this landed, so `subjectId` was `"system"`, no roster id
- * could equal it, and this binding never fired at all.
+ * the literal `"system"` for every non-fleet topic, so no roster id could ever
+ * equal it and this binding would never fire. A sample with no payload meta
+ * (a recording or golden fixture) names no craft, and keeps the ground vantage.
  *
  * The roster is asked first because `ChannelEngine.HandleSetVantage` refuses
  * an id that is not a currently-active centre while
@@ -33,10 +30,10 @@ import { useEffect } from "react";
  */
 function usePilotCraftVantageId(): string | undefined {
   // The craft the samples are about, which a quiet link does not change.
-  const subjectReading = useStream<VesselState>("vessel.state");
+  const orbitReading = useTelemetry("vessel.orbit");
   const subjectId =
-    subjectReading.state === "observed" || subjectReading.state === "stale"
-      ? subjectReading.value.subjectId
+    orbitReading.state === "observed" || orbitReading.state === "stale"
+      ? orbitReading.value.meta?.source
       : undefined;
   // Same read as `VantageControl`'s `useActiveCentres`, minus the home-centre question this has no use for: a stale roster is still the roster, and only never-arrived is empty.
   const rosterReading = useTelemetry("commandCentre.roster");
