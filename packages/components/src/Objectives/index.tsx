@@ -215,10 +215,7 @@ function ObjectivesSection({ items, renderAlarm }: ObjectiveSection) {
   return (
     <ul aria-label="Objectives" style={LIST}>
       {items.map((o) => (
-        <li
-          key={o.id}
-          style={{ ...ITEM, opacity: o.state === "pending" ? 0.6 : 1 }}
-        >
+        <li key={o.id} style={ITEM}>
           <span
             style={{ ...GLYPH, color: STATE_COLOR[o.state] }}
             aria-hidden="true"
@@ -226,7 +223,13 @@ function ObjectivesSection({ items, renderAlarm }: ObjectiveSection) {
             {STATE_GLYPH[o.state]}
           </span>
           <div style={TEXT}>
-            <span style={TITLE}>
+            <span
+              style={
+                o.state === "pending"
+                  ? { ...TITLE, color: "var(--color-text-muted)" }
+                  : TITLE
+              }
+            >
               {o.title}
               {o.optional && <span style={OPTIONAL}> (optional)</span>}
             </span>
@@ -413,7 +416,6 @@ const LIST: CSSProperties = {
   gap: "var(--gap-related)",
 };
 
-// Per-state `opacity` is applied inline at the call site.
 const ITEM: CSSProperties = {
   display: "flex",
   gap: "var(--gap-related)",
