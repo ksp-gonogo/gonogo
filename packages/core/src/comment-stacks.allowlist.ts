@@ -250,7 +250,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/components/src/CurrentOrbit/index.tsx": 3,
   "packages/components/src/CurrentOrbit/stream.test.tsx": 2,
   "packages/components/src/CurrentOrbit/undefined.characterise.test.tsx": 1,
-  "packages/components/src/DataSourceStatus/index.tsx": 1,
   "packages/components/src/EscapeProfile/stream.test.tsx": 2,
   "packages/components/src/Experiments/dual-run.test.tsx": 1,
   "packages/components/src/Experiments/index.test.tsx": 1,
