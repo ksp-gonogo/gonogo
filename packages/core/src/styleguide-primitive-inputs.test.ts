@@ -66,13 +66,6 @@ const PRIMITIVES = ["Unit", "Meter"] as const;
 /** The props of those primitives that take a quantity or a reading of one. */
 const QUANTITY_PROPS = ["value", "capacity"] as const;
 
-/**
- * This file, which is the one exclusion and earns it: gate C's fixtures are
- * real call sites written out as strings, so the walk reads them as code. That
- * it does is the proof at GATE level rather than at matcher level.
- */
-const SELF = "packages/core/src/styleguide-primitive-inputs.test.ts";
-
 function walk(dir: string): string[] {
   const out: string[] = [];
   for (const name of readdirSync(dir)) {
@@ -238,15 +231,21 @@ describe("A: the primitives are declared over the per-value Reading", () => {
 describe("B: every call site passes what the primitives declare", () => {
   it("no app or Uplink tag hands one a magnitude, arithmetic or a cast", () => {
     const offenders: string[] = [];
+    let callSites = 0;
     for (const root of styleguideScanRoots(REPO_ROOT)) {
       for (const file of walk(join(REPO_ROOT, root))) {
         const rel = relative(REPO_ROOT, file);
-        if (rel === SELF) continue;
-        for (const offence of offencesIn(readFileSync(file, "utf8"))) {
+        const source = readFileSync(file, "utf8");
+        if (/<(?:Unit|Meter)[\s/>]/.test(source)) callSites++;
+        for (const offence of offencesIn(source)) {
           offenders.push(`${rel}: ${offence}`);
         }
       }
     }
+    /* Most widgets render one of the primitives, so a walk that reaches only a
+       handful of them has stopped reaching the tree, and would pass the check
+       below by having nothing to read. */
+    expect(callSites).toBeGreaterThan(50);
     expect(
       offenders,
       `<Unit> and <Meter> declare that they take a quantity or a whole ` +

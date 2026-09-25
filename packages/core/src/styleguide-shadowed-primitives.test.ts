@@ -64,13 +64,7 @@ const LOCAL_COMPONENT_RE =
 
 function sourceFiles(dir: string): string[] {
   const out: string[] = [];
-  let entries: string[];
-  try {
-    entries = readdirSync(dir);
-  } catch {
-    return out;
-  }
-  for (const entry of entries) {
+  for (const entry of readdirSync(dir)) {
     if (entry === "node_modules" || entry === "dist") continue;
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) {

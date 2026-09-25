@@ -380,26 +380,34 @@ describe("Kepler's equation: the contract every solver must satisfy", () => {
       return out;
     }
 
+    const KERNEL = join(
+      repoRoot,
+      "mod",
+      "sitrep-sdk",
+      "src",
+      "spine",
+      "kepler.ts",
+    );
+
+    /** Every scanned file the detector fires on, the kernel included. */
+    let detected: string[] | undefined;
+    const detectedSolvers = () => {
+      detected ??= sourcesToScan().filter((file) =>
+        NEWTON_RESIDUAL.test(readFileSync(file, "utf8")),
+      );
+      return detected;
+    };
+
     it("exactly one file in the repo iterates Newton on Kepler's equation", () => {
       // The invariant the fix bought. There were THREE: kepler.ts, trajectory.ts, and
       // a hand-copy of trajectory.ts inside orbit-patches.ts whose own comment
       // advertised itself as "same tolerance/cap". Two of them shared a defect
       // precisely because one was copied from the other, and the copy is why fixing
       // the original would not have been enough.
-      const kernel = join(
-        repoRoot,
-        "mod",
-        "sitrep-sdk",
-        "src",
-        "spine",
-        "kepler.ts",
+      const offenders = detectedSolvers().filter(
+        (file) =>
+          file !== KERNEL && !file.endsWith("kepler-conformance.test.ts"),
       );
-      const offenders = sourcesToScan()
-        .filter(
-          (file) =>
-            file !== kernel && !file.endsWith("kepler-conformance.test.ts"),
-        )
-        .filter((file) => NEWTON_RESIDUAL.test(readFileSync(file, "utf8")));
 
       expect(offenders.map((f) => f.slice(repoRoot.length + 1))).toEqual([]);
     });
@@ -440,12 +448,10 @@ describe("Kepler's equation: the contract every solver must satisfy", () => {
     });
 
     it("the kernel itself is what the detector finds, so the scan is looking in the right place", () => {
-      const kernel = readFileSync(
-        join(repoRoot, "mod", "sitrep-sdk", "src", "spine", "kepler.ts"),
-        "utf8",
-      );
-
-      expect(NEWTON_RESIDUAL.test(kernel)).toBe(true);
+      /* Asked of the scan's own result, not of the kernel read by name: a walk
+         that stopped reaching mod/ would otherwise leave both this and the
+         offender check green. */
+      expect(detectedSolvers()).toContain(KERNEL);
     });
 
     /**

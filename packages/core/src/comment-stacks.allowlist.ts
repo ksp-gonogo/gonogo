@@ -446,7 +446,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/core/src/settings/registry.test.ts": 1,
   "packages/core/src/styleguide-banner-comments.test.ts": 1,
   "packages/core/src/styleguide-comment-stacks.test.ts": 2,
-  "packages/core/src/styleguide-delay-ux.test.ts": 3,
+  "packages/core/src/styleguide-delay-ux.test.ts": 2,
   "packages/core/src/styleguide-magnitude-canonical.test.ts": 1,
   "packages/core/src/styleguide-styled-components.test.ts": 2,
   "packages/core/src/styleguide-token-refs.test.ts": 1,
