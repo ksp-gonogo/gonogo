@@ -102,7 +102,20 @@ const isTestFile = (f: string) =>
   /\.(test|test-d|spec)\.tsx?$/.test(f) ||
   /(^|\/)(test|tests|__tests__)\//.test(f);
 const isTs = (f: string) => /\.tsx?$/.test(f);
-const read = (rel: string) => readFileSync(join(REPO_ROOT, rel), "utf8");
+/**
+ * Each file read once per run. The declaration index and the TypeScript scan
+ * both read the published sources, and the C# index and the C# scan both read
+ * every contract; opening a file is what a walk costs on the fleet's machine.
+ */
+const texts = new Map<string, string>();
+const read = (rel: string): string => {
+  let text = texts.get(rel);
+  if (text === undefined) {
+    text = readFileSync(join(REPO_ROOT, rel), "utf8");
+    texts.set(rel, text);
+  }
+  return text;
+};
 
 function parse(rel: string, text?: string): ts.SourceFile {
   return ts.createSourceFile(

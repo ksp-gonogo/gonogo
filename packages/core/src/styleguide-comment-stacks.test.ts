@@ -18,6 +18,7 @@ import {
   ratchetBaseRef,
   sourceAtRatchetBase,
 } from "./ratchetBaseRef";
+import { scanScope } from "./scanScope";
 
 /**
  * Comment-stack ratchet. CLAUDE.md has always said that a genuinely multi-line
@@ -49,7 +50,8 @@ import {
 
 const ALLOWLIST_PATH = "packages/core/src/comment-stacks.allowlist.ts";
 
-const RESULT = scanCommentStacks();
+const SCOPE = scanScope();
+const RESULT = scanCommentStacks(SCOPE.covers);
 
 describe("comment stacks", () => {
   /**
@@ -62,7 +64,9 @@ describe("comment stacks", () => {
   it("actually scanned the source tree", () => {
     const stacks = [...RESULT.counts.values()].reduce((a, b) => a + b, 0);
     const summary = [
-      `scanned ${RESULT.scanned} files`,
+      SCOPE.label,
+      `listed ${RESULT.enumerated} files`,
+      `scanned ${RESULT.scanned}`,
       `${RESULT.generated} skipped as generated`,
       `${RESULT.counts.size} files carry a stack`,
       `${stacks} stacks`,
@@ -72,6 +76,13 @@ describe("comment stacks", () => {
     // visible under `--reporter=verbose`; the default reporter mutes console
     // output for tests that pass.
     console.info(`[comment-stacks] ${summary}`);
+    // The listing is whole-tree in both scopes, so this floor holds in both:
+    // a wrong cwd or an empty `git ls-files` fails here either way.
+    expect(RESULT.enumerated, summary).toBeGreaterThanOrEqual(
+      SCAN_FLOORS.files,
+    );
+    // What the scan FOUND is only a census of the tree when it read the tree.
+    if (SCOPE.mode === "changed") return;
     expect(RESULT.scanned, summary).toBeGreaterThanOrEqual(SCAN_FLOORS.files);
     expect(RESULT.counts.size, summary).toBeGreaterThanOrEqual(
       SCAN_FLOORS.filesWithStack,
@@ -187,6 +198,8 @@ describe("comment stacks", () => {
   it("records no comment stack that is already gone", () => {
     const stale: string[] = [];
     for (const [file, expected] of Object.entries(COMMENT_STACK_DEBT)) {
+      // An unread file has no count, which is not the same as a count of zero.
+      if (!SCOPE.covers(file)) continue;
       const actual = RESULT.counts.get(file) ?? 0;
       if (actual < expected) {
         stale.push(`${file} says ${expected}, actually ${actual}`);

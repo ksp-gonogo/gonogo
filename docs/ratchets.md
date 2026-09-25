@@ -40,13 +40,30 @@ red build is when most people open this page and an essay is no use to them.
 ### How to run one
 
 ```bash
-pnpm --filter @ksp-gonogo/core test:scans      # every cross-package ratchet
+pnpm scans                                     # before a commit: the scans your changes reach
+pnpm scans:full                                # every cross-package ratchet, over the whole tree
 pnpm act-warning-gate                          # the standalone act-warning gate
 
 # one gate, after `pnpm build` once (the suite needs the workspace's dists):
 pnpm --filter @ksp-gonogo/core exec vitest run \
   --config vitest.scans.config.ts src/styleguide-panel-body.test.ts
 ```
+
+`pnpm scans` is the local run. "Changed" is everything this branch touched: files
+that differ between the working tree and its merge-base with `origin/staging`
+(committed, staged, unstaged and deleted alike; `GONOGO_SCANS_BASE=<ref>` measures
+from another ref), plus untracked files git does not ignore. It skips each scan whose
+declared domain in `packages/core/scan-domains.mjs` holds none of those files, and the heaviest
+tree-wide scans judge only the changed files (or build only the packages holding
+them) while still listing the whole tree, so every floor on the listing still holds.
+It prints `CHANGED-ONLY RUN, not the CI gate` above and below its verdict, and it
+fails, rather than passing, when the changed set cannot be computed or is empty.
+
+**CI never runs it.** `ci.yml` runs every scan over the whole tree, and so do the
+pre-push hook and `pnpm push` (turbo passes no undeclared variable through), because
+changes nobody claimed turn up and the whole-tree run is what makes someone own them.
+So a green `pnpm scans` says your changes pass; only `pnpm scans:full` or CI says the
+tree does.
 
 `turbo run test` is a smaller task set and does not reach these. **Commit first, then
 re-run**: several of these scans enumerate with `git ls-files` or `git grep`, so an

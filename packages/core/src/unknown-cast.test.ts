@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 import { transformSync } from "esbuild";
 import { describe, expect, it } from "vitest";
 import { ratchetBaseRef, sourceAtRatchetBase } from "./ratchetBaseRef";
+import { rootsInScope, scanScope } from "./scanScope";
 import {
   DOUBLE_ASSERTION_DEBT,
   ROOT_FILE_FLOORS,
@@ -55,8 +56,14 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(HERE, "..", "..", "..");
 const DEBT_PATH = "packages/core/src/unknown-cast.debt.ts";
 
+const SCOPE = scanScope();
+/** Every root in the full run; the roots holding a changed file otherwise. */
+const ROOTS = rootsInScope(unknownCastScanRoots(REPO_ROOT));
+const inBuiltRoot = (file: string): boolean =>
+  ROOTS.some((root) => file.startsWith(`${root}/`));
+
 /** One scan for the whole file: 25 compiler programs is not a per-test cost. */
-const SCANS: RootScan[] = scanUnknownCasts(REPO_ROOT);
+const SCANS: RootScan[] = scanUnknownCasts(REPO_ROOT, ROOTS);
 
 /**
  * The mod roots as git tracks them: `mod/<name>/client` where that client has a
@@ -335,10 +342,19 @@ describe("the walk covered what it claims to have covered", () => {
     // mod root git tracks a tsconfig for. This was a floor of 22 roots, and seven
     // of them are Uplink clients leaving for the gonogo-uplinks repo, so a floor
     // could not tell a smaller tree from a discovery that stopped matching.
+    console.info(
+      `[unknown-cast] ${SCOPE.label}, built ${ROOTS.length} of ${unknownCastScanRoots(REPO_ROOT).length} roots: ${ROOTS.join(", ")}`,
+    );
     expect(
       SCANS.map((scan) => scan.root).sort(),
-      "The walk did not walk exactly the roots the discovery names. The walk lost its input.",
-    ).toEqual([...unknownCastScanRoots(REPO_ROOT)].sort());
+      "The walk did not walk exactly the roots in scope. The walk lost its input.",
+    ).toEqual([...ROOTS].sort());
+    if (SCOPE.mode === "full") {
+      expect(
+        [...ROOTS].sort(),
+        "The full run did not walk exactly the roots the discovery names.",
+      ).toEqual([...unknownCastScanRoots(REPO_ROOT)].sort());
+    }
     expect(
       unknownCastScanRoots(REPO_ROOT).filter((root) => root.startsWith("mod/")),
       "The mod-root discovery disagrees with the tsconfig.json files git tracks under mod/.",
@@ -366,6 +382,8 @@ describe("the walk covered what it claims to have covered", () => {
   });
 
   it("walked the files and saw the assertions it expects to", () => {
+    // A census of the whole tree, which a run over a few roots is not.
+    if (SCOPE.mode === "changed") return;
     const files = SCANS.reduce((n, scan) => n + scan.files, 0);
     expect(files).toBeGreaterThanOrEqual(SCAN_FLOORS.files);
     // Every non-`const` assertion, offending or not. It holds steady as the
@@ -505,6 +523,8 @@ describe("no new assertion escapes unknown", () => {
   it("has no stale debt entry", () => {
     const live = perPoint(() => true);
     const stale = Object.entries(UNKNOWN_CAST_DEBT)
+      // A point in a root this run did not build has no count, not a count of 0.
+      .filter(([point]) => inBuiltRoot(fileOf(point)))
       .filter(([point, ceiling]) => (live.get(point) ?? 0) < ceiling)
       .map(
         ([point, ceiling]) =>

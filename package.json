@@ -12,6 +12,8 @@
     "codegen": "node scripts/run-codegen.mjs",
     "codegen:check": "bash scripts/codegen-check.sh",
     "test": "turbo test test:scans",
+    "scans": "GONOGO_SCANS=changed pnpm --filter @ksp-gonogo/core exec vitest run --config vitest.scans.config.ts",
+    "scans:full": "pnpm --filter @ksp-gonogo/core exec vitest run --config vitest.scans.config.ts",
     "act-warning-gate": "node scripts/act-warning-gate.mjs",
     "fixture-gated-report": "node scripts/report-fixture-gated-suites.mjs",
     "test:playwright": "playwright test",

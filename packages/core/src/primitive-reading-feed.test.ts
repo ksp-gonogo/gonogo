@@ -12,6 +12,7 @@ import {
   scanProgram,
   scanScratchDir,
 } from "./primitive-reading-feed.scan";
+import { rootsInScope, scanScope } from "./scanScope";
 
 /**
  * The gate on a primitive being handed a reading's value instead of the
@@ -39,8 +40,16 @@ import {
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(HERE, "..", "..", "..");
 
+const SCOPE = scanScope();
+/** Every root the gate knows, whether or not this run builds its program. */
+const ALL_ROOTS = primitiveFeedScanRoots(REPO_ROOT);
+/** Every root in the full run; the roots holding a changed file otherwise. */
+const ROOTS = rootsInScope(ALL_ROOTS);
+const inBuiltRoot = (file: string): boolean =>
+  ROOTS.some((root) => file.startsWith(`${root}/`));
+
 /** One scan for the whole file: 25 compiler programs is not a per-test cost. */
-const SCANS: FeedScan[] = scanPrimitiveReadingFeed(REPO_ROOT);
+const SCANS: FeedScan[] = scanPrimitiveReadingFeed(REPO_ROOT, ROOTS);
 const SITES = SCANS.flatMap((scan) => scan.sites);
 
 /**
@@ -278,7 +287,11 @@ describe("the gate does not flag what is correct", () => {
 
 describe("the walk covered what it claims", () => {
   it("built a program for every root", () => {
-    expect(SCANS.map((s) => s.root)).toEqual(primitiveFeedScanRoots(REPO_ROOT));
+    console.info(
+      `[primitive-reading-feed] ${SCOPE.label}, built ${ROOTS.length} of ${ALL_ROOTS.length} roots: ${ROOTS.join(", ")}`,
+    );
+    expect(SCANS.map((s) => s.root)).toEqual(ROOTS);
+    if (SCOPE.mode === "full") expect(ROOTS).toEqual(ALL_ROOTS);
   });
 
   it("found source files in every root", () => {
@@ -301,7 +314,9 @@ describe("the walk covered what it claims", () => {
         .filter(Boolean)
         .map((p) => dirname(p)),
     );
-    const walked = new Set(SCANS.map((s) => s.root));
+    // Against the enumeration, which is whole-tree on every run; the full run
+    // asserts above that the walk is exactly the enumeration.
+    const walked = new Set(ALL_ROOTS);
     const missed = [...tracked].filter(
       (root) => !walked.has(root) && !walked.has(`${root}/client`),
     );
@@ -309,6 +324,8 @@ describe("the walk covered what it claims", () => {
   });
 
   it("saw reading-accepting props somewhere, or it is looking at nothing", () => {
+    // A census of the tree, which a run over a few roots is not.
+    if (SCOPE.mode === "changed") return;
     const total = SCANS.reduce((n, s) => n + s.readingProps, 0);
     expect(total).toBeGreaterThan(0);
   });
@@ -339,10 +356,7 @@ describe("the walk covered what it claims", () => {
       .split("\n")
       .filter(Boolean);
 
-    const roots = primitiveFeedScanRoots(REPO_ROOT);
-    const inScope = tracked.filter((f) =>
-      roots.some((root) => f.startsWith(`${root}/`)),
-    );
+    const inScope = tracked.filter(inBuiltRoot);
     const namesAPrimitive = inScope.filter((f) =>
       /<(Unit|Meter)\b/.test(readFileSync(join(REPO_ROOT, f), "utf8")),
     );
@@ -534,6 +548,9 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
 
 describe("no primitive is fed a figure a reading's currency was dropped from", () => {
   const derived = SITES.filter((s) => s.via === "derived");
+  const expected = Object.fromEntries(
+    Object.entries(DERIVED_FEED_DEBT).filter(([file]) => inBuiltRoot(file)),
+  );
   const counted = derived.reduce<Record<string, number>>((by, s) => {
     by[s.file] = (by[s.file] ?? 0) + 1;
     return by;
@@ -545,7 +562,7 @@ describe("no primitive is fed a figure a reading's currency was dropped from", (
       "a file above its entry has added a site: pass the reading, or combine. " +
         "A file below its entry has fixed one: lower the number here in the " +
         "same commit, or the next site to appear inherits the allowance.",
-    ).toEqual(DERIVED_FEED_DEBT);
+    ).toEqual(expected);
   });
 });
 

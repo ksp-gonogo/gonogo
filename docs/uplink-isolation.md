@@ -596,8 +596,9 @@ push to find out. In rough order of how fast they answer:
 
 ```bash
 # the TypeScript half: imports, declarations, subpath classification,
-# the augment route, and the same-name guard. All of them, in one task.
-pnpm --filter @ksp-gonogo/core test:scans
+# the augment route, and the same-name guard. All of them, in one task:
+# `pnpm scans` for the ones your changes reach, `pnpm scans:full` for all.
+pnpm scans
 
 # one file of it, while iterating
 pnpm --filter @ksp-gonogo/core exec vitest run src/uplink-isolation.test.ts
@@ -620,7 +621,8 @@ node scripts/uplink-csharp-extraction-probe.mjs --only <UplinkName>
 npx gonogo-uplink bundle
 ```
 
-`pnpm --filter @ksp-gonogo/core test:scans` is the one to run before a commit;
+`pnpm scans` is the one to run before a commit (the scans your branch's changes
+reach; CI runs every one over the whole tree, see `docs/ratchets.md`);
 `turbo run test` is a different, smaller task set and never reaches these
 cross-package ratchets. The shrink-only half of each ratchet compares your debt
 list against the one at the base revision, so a debt entry you deleted only shows
