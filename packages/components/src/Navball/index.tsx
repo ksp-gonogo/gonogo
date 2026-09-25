@@ -1386,9 +1386,7 @@ function ControlSurface({
             {fbwArmed ? "FBW ARMED" : "Arm FBW"}
           </ToggleButton>
           <span style={FBW_HINT}>
-            {fbwArmed
-              ? "Mapped pitch/yaw/roll/translate inputs are live."
-              : "Bind axes via the Inputs tab, then arm to take stick control."}
+            {fbwArmed ? "Stick inputs live" : "Stick inputs off"}
           </span>
         </div>
         {showFbwDelayWarning && delaySeconds !== null && (
@@ -1397,7 +1395,7 @@ function ControlSurface({
               High signal delay
             </span>{" "}
             (<Countdown value={delaySeconds} precise />
-            ), fly-by-wire stick input lags round-trip; expect to overcorrect.
+            ): stick input lands one round trip late
           </StatusIndicator>
         )}
       </div>
