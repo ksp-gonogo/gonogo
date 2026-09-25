@@ -45,12 +45,7 @@ const STALE_SUFFIX = "-stopped-arriving";
  * an operator no way to tell the link has gone. Shrink-only. A scene that
  * starts to differ must come off, and a new one may not go on.
  */
-const UNCHANGED_DEBT = new Set([
-  "contract-manager / multiple-active-contracts-stopped-arriving",
-  "experiments / instruments-holding-data-stopped-arriving",
-  "power-systems / 02-battery-draining-high-load-stopped-arriving",
-  "system-view / kerbin-orbit-comms-active-stopped-arriving",
-]);
+const UNCHANGED_DEBT = new Set<string>([]);
 
 interface Scene {
   name: string;
