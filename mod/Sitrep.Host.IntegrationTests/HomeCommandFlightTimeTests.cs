@@ -18,7 +18,6 @@ namespace Sitrep.Host.IntegrationTests
     public class HomeCommandFlightTimeTests
     {
         private static readonly TimeSpan Timeout = TestBudgets.Op;
-        private static readonly TimeSpan Settle = TestBudgets.Quiet;
 
         private const string Vessel = "vessel:G";
         private const double ActiveVesselDelay = 240.0;
@@ -50,7 +49,7 @@ namespace Sitrep.Host.IntegrationTests
                     "funds",
                     Vessel,
                     _ => Interlocked.Increment(ref resolved),
-                    Settle,
+                    TestBudgets.Op,
                     onRefused: reason => refused = reason,
                     onAccepted: seconds => flightTime = seconds);
 
