@@ -45,6 +45,8 @@ export interface MeterSheet {
   title: string;
   blurb: string;
   width: number;
+  /** How every meter on the sheet is arranged; stacked where absent. */
+  layout?: "stacked" | "row";
   cases: MeterCase[];
 }
 
@@ -256,6 +258,72 @@ export const SHEETS: MeterSheet[] = [
       { label: "Ore", fraction: 0.05, tone: "warn", stale: true },
       { label: "IntakeAir", fraction: 0.33 },
       { label: "SolidFuel", fraction: 0.71, stale: true, gradeless: true },
+    ],
+  },
+  {
+    id: "row-tanks",
+    title: "The row layout: a craft's tanks, one line each",
+    blurb:
+      "Label, bar and figure on one line, the unit written once after the " +
+      "capacity. The bar, the held treatment and the marks are the stacked " +
+      "form's, unchanged.",
+    width: 420,
+    layout: "row",
+    cases: [
+      {
+        label: "Liquid Fuel",
+        fraction: 0.58,
+        tank: { amount: 232, capacity: 400, unit: "units" },
+        fillColor: "hsl(40deg 65% 55%)",
+      },
+      {
+        label: "Oxidizer",
+        fraction: 0.55,
+        tank: { amount: 269, capacity: 489, unit: "units" },
+        band: { lo: 0.44, hi: 0.66, kind: "sigma1" },
+        fillColor: "hsl(200deg 60% 55%)",
+        note: "a band draws the same marks as stacked",
+      },
+      {
+        label: "RCS",
+        fraction: 0.81,
+        tank: { amount: 32.4, capacity: 40, unit: "units" },
+        fillColor: "hsl(120deg 35% 55%)",
+        stale: true,
+        note: "held: dimmed fill and the not-current mark",
+      },
+      {
+        label: "Power",
+        fraction: 0.96,
+        tank: { amount: 192, capacity: 200, unit: "units" },
+        tone: "info",
+      },
+    ],
+  },
+  {
+    id: "row-narrow",
+    title: "The row layout where the line runs out",
+    blurb:
+      "At a narrow width the figure drops to a line of its own at the " +
+      "trailing edge rather than being clipped, so its not-current mark stays " +
+      "visible.",
+    width: 220,
+    layout: "row",
+    cases: [
+      {
+        label: "Liquid Fuel",
+        fraction: 0.58,
+        tank: { amount: 232, capacity: 400, unit: "units" },
+        fillColor: "hsl(40deg 65% 55%)",
+        stale: true,
+      },
+      {
+        label: "RCS",
+        fraction: 0.81,
+        tank: { amount: 32.4, capacity: 40, unit: "units" },
+        fillColor: "hsl(120deg 35% 55%)",
+      },
+      { label: "Dose", fraction: 0.39, tone: "warn", stale: true },
     ],
   },
 ];
