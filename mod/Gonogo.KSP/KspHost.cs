@@ -7,6 +7,7 @@ using Contracts;
 using Expansions;
 using Expansions.Serenity;
 using Gonogo.KSP.Career;
+using Gonogo.KSP.Gates;
 using KSP.UI.Screens;
 using ModuleWheels;
 using Sitrep.Host;
@@ -461,7 +462,7 @@ namespace Gonogo.KSP
                 // above.
                 try
                 {
-                    if (HighLogic.LoadedSceneIsFlight)
+                    if (HighLogic.LoadedScene == CareerGates.RevertScene)
                     {
                         values["revert"] = BuildRevertAvailability();
                     }

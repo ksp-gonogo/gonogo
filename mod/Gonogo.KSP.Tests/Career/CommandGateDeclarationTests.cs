@@ -88,6 +88,12 @@ namespace Gonogo.KSP.Tests.Career
                 byCommand["career.strategy.activate"],
                 r => r.Kind == KspGateEvaluators.Kinds.FacilityLimit
                     && r.Quantity == KspGateEvaluators.Quantities.ActiveStrategies);
+            foreach (var revert in new[] { "ksp.revertToLaunch", "ksp.revertToEditor" })
+            {
+                Assert.Contains(
+                    byCommand[revert],
+                    r => r.Kind == KspGateEvaluators.Kinds.Scene && r.Quantity == "FLIGHT");
+            }
             Assert.Contains(
                 byCommand["ksp.recover"],
                 r => r.Kind == KspGateEvaluators.Kinds.ClearToSave);
