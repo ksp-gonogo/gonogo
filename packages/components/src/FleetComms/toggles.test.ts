@@ -16,23 +16,23 @@ describe("FleetComms toggle store", () => {
   });
 
   it("defaults both toggles on", () => {
-    expect(getFleetCommsToggles()).toEqual({
+    expect(getFleetCommsToggles("sv")).toEqual({
       showCommlinks: true,
       showCommandTraffic: true,
     });
   });
 
   it("setShowCommlinks flips only that toggle", () => {
-    setShowCommlinks(false);
-    expect(getFleetCommsToggles()).toEqual({
+    setShowCommlinks("sv", false);
+    expect(getFleetCommsToggles("sv")).toEqual({
       showCommlinks: false,
       showCommandTraffic: true,
     });
   });
 
   it("setShowCommandTraffic flips only that toggle", () => {
-    setShowCommandTraffic(false);
-    expect(getFleetCommsToggles()).toEqual({
+    setShowCommandTraffic("sv", false);
+    expect(getFleetCommsToggles("sv")).toEqual({
       showCommlinks: true,
       showCommandTraffic: false,
     });
@@ -43,19 +43,25 @@ describe("FleetComms toggle store", () => {
     const unsubscribe = subscribeFleetCommsToggles(() => {
       calls++;
     });
-    setShowCommlinks(false);
+    setShowCommlinks("sv", false);
     expect(calls).toBe(1);
     unsubscribe();
-    setShowCommandTraffic(false);
+    setShowCommandTraffic("sv", false);
     expect(calls).toBe(1);
   });
 
+  it("keeps each instance's toggles apart", () => {
+    setShowCommlinks("sv", false);
+    expect(getFleetCommsToggles("sv").showCommlinks).toBe(false);
+    expect(getFleetCommsToggles("other").showCommlinks).toBe(true);
+  });
+
   it("returns a referentially stable snapshot when nothing changed", () => {
-    const a = getFleetCommsToggles();
-    const b = getFleetCommsToggles();
+    const a = getFleetCommsToggles("sv");
+    const b = getFleetCommsToggles("sv");
     expect(a).toBe(b);
-    setShowCommlinks(false);
-    const c = getFleetCommsToggles();
+    setShowCommlinks("sv", false);
+    const c = getFleetCommsToggles("sv");
     expect(c).not.toBe(a);
   });
 });

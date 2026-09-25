@@ -34,10 +34,8 @@ import {
 import { FramedDisplay, NULL_DISPLAY, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-// FleetComms's `.actions` slot (Commlinks/Traffic toggles) gates THIS host's
-// own shape-contribution render, not a second overlay draw: the graph,
-// highlight and pulse entities are all drawn here. A pure module-scoped store
-// (no augment-only state), safe to read directly.
+// FleetComms's `.actions` toggles gate the graph, highlight and pulse entities drawn here.
+// Each SystemView instance reads its own toggles from that augment's store.
 import { useFleetCommsToggles } from "../FleetComms/toggles";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
@@ -372,10 +370,9 @@ function SystemViewComponent({
   );
   const utNow = useUtNow();
   /*
-   * FleetComms's Commlinks/Traffic toggles: they used
-   * to gate that augment's own straight-line overlay draw; now they gate the
+   * FleetComms's Commlinks/Traffic toggles for this instance: they gate the
    * relay-graph `connection-line` entities and the command-traffic pulses
-   * below, the shapes that superseded it.
+   * below.
    */
   const { showCommlinks, showCommandTraffic } = useFleetCommsToggles();
 
