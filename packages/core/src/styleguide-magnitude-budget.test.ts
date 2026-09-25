@@ -525,6 +525,7 @@ const FUNNEL_BUDGET: Record<string, number> = {
   "mod/GonogoBreakingGroundUplink": 2,
   // One of these is a held reading's `asOfUt` unwrapped for `ShipSystems`' number-typed `heldAsOfUt` prop.
   "mod/GonogoKerbalismUplink": 70,
+  // One of these is `gapModel` comparing a bare `validAt` span against the wire's `time.warp.sampleIntervalUt`.
   "mod/sitrep-sdk": 30,
   // One of these is `GoNoGoHostService` measuring liftoff against `getViewUt()`, which returns a plain number.
   "packages/app": 9,
