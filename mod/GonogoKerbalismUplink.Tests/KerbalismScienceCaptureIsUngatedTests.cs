@@ -24,23 +24,7 @@ namespace GonogoKerbalismUplink.Tests
      */
     public class KerbalismScienceCaptureIsUngatedTests
     {
-        private static string Source()
-        {
-            // Walk up to the repo root rather than assuming a build layout: the
-            // test binary's depth under bin/ differs between local and CI runs.
-            var dir = AppContext.BaseDirectory;
-            for (var i = 0; i < 10 && dir != null; i++)
-            {
-                var candidate = Path.Combine(
-                    dir, "mod", "GonogoKerbalismUplink", "KerbalismUplink.cs");
-                if (File.Exists(candidate)) return File.ReadAllText(candidate);
-                dir = Path.GetDirectoryName(dir);
-            }
-            throw new InvalidOperationException(
-                "KerbalismUplink.cs not found walking up from " + AppContext.BaseDirectory
-                + ". This guard cannot see its subject, which reads the same as a pass, "
-                + "so it fails instead.");
-        }
+        private static string Source() => UplinkSource.Read("KerbalismUplink.cs");
 
         [Fact]
         public void TheScienceCaptureIsRegisteredWithNoSubscriptionPrefix()

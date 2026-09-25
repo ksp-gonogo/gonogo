@@ -25,6 +25,7 @@ const MOD_ROOT = join(
 );
 const FIXTURE = join(
   MOD_ROOT,
+  "GonogoKerbalismUplink.Tests",
   "golden-fixtures",
   "reliability-extensions.json",
 );
@@ -36,8 +37,7 @@ const FIXTURE = join(
  * the real `KerbalismReliabilityMap` serialised through the real `EnvelopeCodec`
  * equals this file byte for byte. So this is not a hand-authored approximation of
  * a wire frame, it is the wire frame, and the two halves of the proof cannot drift
- * without one of them going red. Same shared-JSON discipline as
- * `mod/golden-fixtures/README.md`, in the C#-to-TS direction.
+ * without one of them going red.
  */
 function serverFrame(): { topic: string; payload: ReliabilitySummary } {
   return goldenFrame<ReliabilitySummary>(

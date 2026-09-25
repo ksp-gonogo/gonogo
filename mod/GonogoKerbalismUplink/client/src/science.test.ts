@@ -37,7 +37,12 @@ const MOD_ROOT = join(
   "..",
   "..",
 );
-const FIXTURE = join(MOD_ROOT, "golden-fixtures", "science-extensions.json");
+const FIXTURE = join(
+  MOD_ROOT,
+  "GonogoKerbalismUplink.Tests",
+  "golden-fixtures",
+  "science-extensions.json",
+);
 
 /**
  * A frame the SERVER actually produced, read off disk.
