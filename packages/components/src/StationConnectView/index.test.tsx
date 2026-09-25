@@ -22,6 +22,21 @@ describe("StationConnectView", () => {
     expect(screen.getByRole("button", { name: /connect/i })).not.toBeNull();
   });
 
+  it("replaces the host input's stripped outline with a :focus-visible ring", () => {
+    render(<StationConnectView {...baseProps} />);
+    const input = screen.getByLabelText(/host id/i);
+    const css = Array.from(document.querySelectorAll("style"))
+      .map((el) => el.textContent ?? "")
+      .join("\n");
+    const inputClass = Array.from(input.classList).find((cls) =>
+      css.includes(`.${cls}:focus-visible`),
+    );
+    expect(inputClass).toBeDefined();
+    expect(css).toMatch(
+      new RegExp(`\\.${inputClass}:focus-visible\\{[^}]*outline:2px solid`),
+    );
+  });
+
   it("calls onConnect on button click and onHostInputChange on typing", async () => {
     const onConnect = vi.fn();
     const onHostInputChange = vi.fn();
