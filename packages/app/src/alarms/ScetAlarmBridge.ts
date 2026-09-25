@@ -375,16 +375,18 @@ export class ScetAlarmBridge {
            the first capture. Asked again on a slow cadence rather than every
            tick, because that window lasts as long as the operator leaves it.
 
-           Decided BEFORE the shadow branch below, because whether a refusal can
-           be re-asked is a different question from whether it is worth telling
-           anyone about. Only an arm naming a place other than its own subject
-           can be refused this way, and every one of those is a shadow arm, so
-           deciding it after that branch would retry nothing at all. */
+           Never surfaced, whoever latches the alarm. A refusal on record hands
+           the latch back to this side and puts a row in front of the operator,
+           and neither is true of an answer that is only about the moment. */
         this.askAgainLater(alarm.id);
-      } else {
-        this.owed.delete(alarm.id);
-        this.settled.add(alarm.id);
+        logger.debug("alarm-host: arm deferred until places are known", {
+          id: alarm.id,
+          reason,
+        });
+        return;
       }
+      this.owed.delete(alarm.id);
+      this.settled.add(alarm.id);
       /* A shadow arm that the mod cannot read costs the operator nothing: the
          alarm they are watching is the client's own and is unaffected. So the
          refusal is logged and NOT surfaced, which a SCET refusal must be,

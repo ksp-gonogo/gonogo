@@ -91,10 +91,11 @@ export function modOwnsLatch(trigger: AlarmTrigger): boolean {
       // opinion for this side to hold.
       return true;
     case "threshold":
-      // Mod-owned where it is read at its own subject, which is the population
-      // the mod has always latched. The COMMAND-vantage half waits on two-sided
-      // shadow quiet over a real session.
-      return isAtSubjectVantage(trigger);
+      // Mod-owned wherever the mod can read it: at its own subject, and at a
+      // command vantage when the trigger carries the Topic address the mod
+      // resolves. An addressless threshold names a key no Topic stands behind,
+      // so the mod is never asked to hold it and this side keeps the latch.
+      return isAtSubjectVantage(trigger) || thresholdAddress(trigger) !== null;
     case "contract-parameter":
     case "event":
       // The mod cannot evaluate either yet. A contract parameter reads a

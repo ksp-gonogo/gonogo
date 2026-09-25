@@ -292,6 +292,9 @@ export class AlarmHostService {
       () => this.alarms,
       () => this.observedUT,
       () => this.opts.getOwltSeconds(),
+      // Undefined before the first roster is "not held": planning a ladder for
+      // an alarm the mod turns out to hold costs a redundant step-down at most.
+      (alarm) => this.scetBridge.holdsAlarm(alarm.id) === true,
     );
 
     const initialMargin = this.loadMargin();
@@ -629,7 +632,7 @@ export class AlarmHostService {
   }
 
   /**
-   * The mod fired a SCET alarm and has already stopped the warp.
+   * The mod fired an alarm it latches and has already stopped the warp.
    *
    * Latches the alarm the way a revealed occurrence latches an `event` one, and
    * records the instant the mod reported on `eventUT`, which is that field's

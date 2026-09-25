@@ -52,6 +52,8 @@ describe("SCET threshold trigger", () => {
   let alarms: Alarm[];
   let sm: AlarmStateMachine;
   let planner: AlarmWarpPlanner;
+  /** What the mod's roster says it holds, which is what the planner asks. */
+  let held: Set<string>;
 
   beforeEach(() => {
     now = 1000;
@@ -60,9 +62,12 @@ describe("SCET threshold trigger", () => {
        the mod took these alarms, so this side leaves their latch alone. The
        other half is the kind being mod-owned. */
     sm = new AlarmStateMachine(() => now);
+    held = new Set();
     planner = new AlarmWarpPlanner(
       () => alarms,
       () => now,
+      () => 0,
+      (alarm) => held.has(alarm.id),
     );
   });
 
@@ -72,13 +77,20 @@ describe("SCET threshold trigger", () => {
   });
 
   /**
-   * The two questions coincide for a threshold and are still not the same
-   * question: this one is the migration table, and the command-vantage half is
-   * what a later step flips once a real session has shown the two evaluators
-   * agreeing.
+   * The two questions are not the same question: a command-vantage threshold
+   * is not read at its subject, and the mod latches it all the same wherever it
+   * carries the address the mod reads. One with no address is never sent, so
+   * it stays this side's.
    */
-  it("is latched by the mod, and a command-vantage threshold is not yet", () => {
+  it("is latched by the mod wherever the mod can read it", () => {
     expect(modOwnsLatch(scetAlarm().trigger)).toBe(true);
+    const addressed = thresholdAlarm({
+      vantage: "command",
+      topic: "vessel.flight",
+      fieldPath: "altitudeAsl",
+    });
+    expect(isAtSubjectVantage(addressed.trigger)).toBe(false);
+    expect(modOwnsLatch(addressed.trigger)).toBe(true);
     expect(modOwnsLatch(thresholdAlarm().trigger)).toBe(false);
   });
 
@@ -115,11 +127,12 @@ describe("SCET threshold trigger", () => {
     expect(sm.deriveState(alarm, now)).toBe("firing");
   });
 
-  it("is not a warp-to target, because the stop happens upstream of us", () => {
+  it("is not a warp-to target while the mod holds it, because the stop happens upstream of us", () => {
     const scet = scetAlarm();
     const ordinary = thresholdAlarm();
     ordinary.id = "a2";
     alarms.push(scet);
+    held.add(scet.id);
     expect(planner.findEligiblePendingAlarm()).toBeNull();
     // And it never caps the ladder as an unmodelable one would: there is
     // nothing for extra ticks to buy.
@@ -129,7 +142,7 @@ describe("SCET threshold trigger", () => {
     expect(planner.findEligiblePendingAlarm()?.id).toBe("a2");
   });
 
-  it("keeps the command-vantage threshold evaluating exactly as before", () => {
+  it("keeps a threshold with no address evaluating on this side", () => {
     const alarm = thresholdAlarm({ sustainSeconds: 0 });
     alarms.push(alarm);
     // No stream behind it, so the read fails and the latch is left alone: the
