@@ -298,6 +298,12 @@ jobs:
   # component that updates outside act(), runs that one file, and fails as BLIND if
   # the count does not rise. Without that, a reporter change turns this job into a
   # permanently green no-op, which is exactly the state it was built to end.
+  #
+  # Every suite here runs with each test held mounted three animation frames past its
+  # body, so an update landing a frame late is counted on this quiet runner as it is
+  # on a loaded box. A second plant in every React package updates one frame after
+  # its body and fails the job as BLIND if it is not counted, which is what proves
+  # the hold ran.
   act-warnings:
     runs-on: ubuntu-latest
     steps:

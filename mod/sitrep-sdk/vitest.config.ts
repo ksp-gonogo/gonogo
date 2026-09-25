@@ -6,6 +6,7 @@ export default defineConfig({
     name: "sitrep-sdk",
     environment: "node",
     globals: true,
+    setupFiles: ["./vitest.setup.ts"],
     exclude: ["dist/**", "node_modules/**"],
   },
 });

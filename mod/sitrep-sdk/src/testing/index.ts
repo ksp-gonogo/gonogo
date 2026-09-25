@@ -77,6 +77,11 @@ export {
 export { consoleLogger } from "./console-logger";
 export { createTestTelemetryClient } from "./create-test-telemetry-client";
 export { createFakeWallClock, type FakeWallClock } from "./fake-wall-clock";
+// The act-warning gate's post-body wait, inert unless the gate sets its variable.
+export {
+  ACT_GATE_STRETCH_ENV,
+  installActGateStretch,
+} from "./install-act-gate-stretch";
 // The jsdom shims a widget test needs before it can mount anything.
 export { installDomStubs } from "./install-dom-stubs";
 // The WHOLE host, built from the real implementations rather than a subset. See its

@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import { PerfBudget } from "@ksp-gonogo/sitrep-sdk";
 import {
+  installActGateStretch,
   installDomStubs,
   installRealTestHost,
 } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -39,3 +40,7 @@ installRealTestHost({
 // locale, which is right for an operator and wrong for a snapshot: a render on
 // a French machine has to match one on an American CI runner.
 setQuantityLocale("en-GB");
+
+// Inert unless the act-warning gate sets its variable. Last, so its afterEach is
+// ordered ahead of Testing Library's cleanup; see its doc.
+await installActGateStretch();

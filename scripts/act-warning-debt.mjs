@@ -16,6 +16,10 @@
  * fewer is reported and does not, because the counts are races and a gate that failed
  * on any downward move would go red on an untouched branch on its own schedule.
  *
+ * Counts are measured with every test held mounted three animation frames past its
+ * body (see the gate's header), so a clock still ticking when a test ends adds one
+ * warning per held frame, the same number on every machine.
+ *
  * Counts are per FILE, never a single total. A total lets one file's fix pay for
  * another file's regression, and the net would sit still while the tree got worse.
  *

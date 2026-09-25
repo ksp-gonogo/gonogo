@@ -1,6 +1,9 @@
 import "@testing-library/jest-dom";
 import { PerfBudget } from "@ksp-gonogo/core";
-import { installDomStubs } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  installActGateStretch,
+  installDomStubs,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
 import { muteFixtureEmits } from "./setupStreamFixture";
 
@@ -23,3 +26,7 @@ if (process.env.GONOGO_MUTE_FIXTURE_EMITS === "1") muteFixtureEmits();
 // locale, which is right for an operator and wrong for a snapshot: a render on
 // a French machine has to match one on an American CI runner.
 setQuantityLocale("en-GB");
+
+// Inert unless the act-warning gate sets its variable. Last, so its afterEach is
+// ordered ahead of Testing Library's cleanup; see its doc.
+await installActGateStretch();

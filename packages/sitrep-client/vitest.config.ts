@@ -10,6 +10,7 @@ export default defineConfig({
     name: "sitrep-client",
     environment: "jsdom",
     globals: true,
+    setupFiles: ["./vitest.setup.ts"],
     exclude: ["dist/**", "node_modules/**"],
   },
 });

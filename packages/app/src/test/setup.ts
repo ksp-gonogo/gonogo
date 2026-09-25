@@ -1,7 +1,10 @@
 import "@testing-library/jest-dom";
 import "@testing-library/react"; // ensures IS_REACT_ACT_ENVIRONMENT is set before any test runs
 import { PerfBudget } from "@ksp-gonogo/core";
-import { installDomStubs } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  installActGateStretch,
+  installDomStubs,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
 import { installGonogoHost } from "../uplinks/host";
 
@@ -23,3 +26,7 @@ PerfBudget.installTestGate();
 // locale, which is right for an operator and wrong for a snapshot: a render on
 // a French machine has to match one on an American CI runner.
 setQuantityLocale("en-GB");
+
+// Inert unless the act-warning gate sets its variable. Last, so its afterEach is
+// ordered ahead of Testing Library's cleanup; see its doc.
+await installActGateStretch();

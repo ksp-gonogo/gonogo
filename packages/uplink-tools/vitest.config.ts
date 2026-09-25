@@ -8,6 +8,7 @@ export default defineConfig({
     name: "uplink-tools",
     environment: "jsdom",
     globals: true,
+    setupFiles: ["./src/test/setup.ts"],
     exclude: ["dist/**", "node_modules/**"],
   },
 });
