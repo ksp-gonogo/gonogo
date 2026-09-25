@@ -111,6 +111,22 @@ function stripComments(source: string): string {
   return out;
 }
 
+/**
+ * Each file's comment-stripped text, read once per run. Every test here walks
+ * the whole tree, and on the fleet's machine opening a file is what a walk
+ * costs, so four walks reading the tree four times took 46s where one read
+ * serves them all.
+ */
+const strippedText = new Map<string, string>();
+function stripped(file: string): string {
+  let text = strippedText.get(file);
+  if (text === undefined) {
+    text = stripComments(readFileSync(file, "utf8"));
+    strippedText.set(file, text);
+  }
+  return text;
+}
+
 function collectDeclared(): Set<string> {
   const declared = new Set<string>();
 
@@ -131,7 +147,7 @@ function collectDeclared(): Set<string> {
   // trades some precision for zero false positives: the failure this guard
   // exists to catch is a name that appears NOWHERE as a declaration.
   for (const file of styleguideScanRoots(REPO).flatMap(sourceFiles)) {
-    const text = stripComments(readFileSync(file, "utf8"));
+    const text = stripped(file);
     for (const name of matches(text, DECLARATION_RE)) {
       declared.add(name);
     }
@@ -173,7 +189,7 @@ function collectDangling(declared: Set<string>): DanglingReference[] {
     // This file names undeclared tokens on purpose, as examples.
     if (rel.endsWith("styleguide-token-refs.test.ts")) continue;
 
-    const lines = stripComments(readFileSync(file, "utf8")).split("\n");
+    const lines = stripped(file).split("\n");
     lines.forEach((text, i) => {
       for (const token of matches(text, BARE_REFERENCE_RE)) {
         if (!declared.has(token)) {

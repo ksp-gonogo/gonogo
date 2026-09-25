@@ -640,11 +640,12 @@ export function scanRoot(repoRoot: string, root: string): FeedScan {
   return scanProgram(program, repoRoot, root, `${join(repoRoot, root)}/`);
 }
 
-/** Every root, in order. */
-export function scanPrimitiveReadingFeed(repoRoot: string): FeedScan[] {
-  return primitiveFeedScanRoots(repoRoot).map((root) =>
-    scanRoot(repoRoot, root),
-  );
+/** Every root in order, or the given subset of them. */
+export function scanPrimitiveReadingFeed(
+  repoRoot: string,
+  roots: readonly string[] = primitiveFeedScanRoots(repoRoot),
+): FeedScan[] {
+  return roots.map((root) => scanRoot(repoRoot, root));
 }
 
 /**

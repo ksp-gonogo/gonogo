@@ -384,9 +384,12 @@ export function scanRoot(repoRoot: string, root: string): RootScan {
   return scanProgram(program, repoRoot, root, `${join(repoRoot, root)}/`);
 }
 
-/** Every root, in order. */
-export function scanUnknownCasts(repoRoot: string): RootScan[] {
-  return unknownCastScanRoots(repoRoot).map((root) => scanRoot(repoRoot, root));
+/** Every root in order, or the given subset of them. */
+export function scanUnknownCasts(
+  repoRoot: string,
+  roots: readonly string[] = unknownCastScanRoots(repoRoot),
+): RootScan[] {
+  return roots.map((root) => scanRoot(repoRoot, root));
 }
 
 /**

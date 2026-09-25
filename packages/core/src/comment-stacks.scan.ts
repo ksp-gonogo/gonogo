@@ -128,6 +128,8 @@ export function stacksIn(source: string): CommentStack[] {
 }
 
 export interface CommentStackScan {
+  /** Source files the listing produced, before any was read. */
+  enumerated: number;
   /** Hand-written source files actually read. */
   scanned: number;
   /** Files skipped as generated, by path and by header together. */
@@ -149,8 +151,13 @@ function repoRoot(): string {
  * load-bearing: a stack written into a brand new file is exactly the case this
  * is meant to catch, and a tracked-only listing would report it clean until the
  * commit after the one that introduced it.
+ *
+ * `covers` narrows which listed files are READ, never the listing itself, so
+ * `enumerated` is the whole tree on every run.
  */
-export function scanCommentStacks(): CommentStackScan {
+export function scanCommentStacks(
+  covers: (file: string) => boolean = () => true,
+): CommentStackScan {
   const root = repoRoot();
   const counts = new Map<string, number>();
   const stacks = new Map<string, CommentStack[]>();
@@ -166,6 +173,7 @@ export function scanCommentStacks(): CommentStackScan {
   let scanned = 0;
 
   for (const file of kept) {
+    if (!covers(file)) continue;
     let source: string;
     try {
       source = readFileSync(join(root, file), "utf8");
@@ -183,5 +191,5 @@ export function scanCommentStacks(): CommentStackScan {
       stacks.set(file, hits);
     }
   }
-  return { scanned, generated, counts, stacks };
+  return { enumerated: kept.length, scanned, generated, counts, stacks };
 }

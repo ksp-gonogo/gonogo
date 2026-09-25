@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { scanScope } from "./scanScope";
 
 /**
  * Two guards over the shape of a telemetry read, and both exist because `tsc` is
@@ -332,9 +333,36 @@ const files = trackedSourceFiles();
  * limit under `turbo`'s concurrency while passing comfortably on its own. Halving the
  * I/O is the honest fix; raising the timeout would have hidden the duplication.
  */
-const sources: ReadonlyMap<string, string> = new Map(
-  files.map((f) => [f, readFileSync(join(root, f), "utf8")] as const),
-);
+const read = (f: string) => readFileSync(join(root, f), "utf8");
+
+/**
+ * The changed run's tree: iterating it yields only the changed files, so only
+ * they are judged, while a lookup still reads any tracked file on demand. An
+ * imported narrower is resolved to its declaration wherever it lives, so a
+ * changed widget is judged against the same helpers it would be in the full run.
+ */
+class ChangedSources extends Map<string, string> {
+  readonly #tracked = new Set(files);
+  readonly #fetched = new Map<string, string>();
+  override get(file: string): string | undefined {
+    const own = super.get(file);
+    if (own !== undefined || !this.#tracked.has(file)) return own;
+    let text = this.#fetched.get(file);
+    if (text === undefined) {
+      text = read(file);
+      this.#fetched.set(file, text);
+    }
+    return text;
+  }
+}
+
+const SCOPE = scanScope();
+const sources: ReadonlyMap<string, string> =
+  SCOPE.mode === "full"
+    ? new Map(files.map((f) => [f, read(f)] as const))
+    : new ChangedSources(
+        files.filter(SCOPE.covers).map((f) => [f, read(f)] as const),
+      );
 
 describe("styleguide: a Reading is never handed on whole", () => {
   it("passes no raw reading into something that accepts anything", () => {
@@ -548,6 +576,9 @@ describe("styleguide: a Reading is never handed on whole", () => {
   it("scans a non-trivial number of files, so a broken file list cannot pass", () => {
     // The scan is only worth its green if it actually read the tree. A `git
     // ls-files` that returned nothing would satisfy every assertion above.
+    console.info(
+      `[reading-shape] ${SCOPE.label}, listed ${files.length} files, judged ${sources.size}`,
+    );
     expect(files.length).toBeGreaterThan(500);
     expect(files.some((f) => f.includes("useTelemetry"))).toBe(true);
   });

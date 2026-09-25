@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { scanScope } from "./scanScope";
 
 /**
  * What a live read has to hold up on the wire is decided in ONE place.
@@ -124,6 +125,19 @@ function trackedSources(): string[] {
     );
 }
 
+const SCOPE = scanScope();
+
+/** Each file read once per run: both checks below walk the same tree. */
+const texts = new Map<string, string>();
+function source(rel: string): string {
+  let text = texts.get(rel);
+  if (text === undefined) {
+    text = readFileSync(join(ROOT, rel), "utf8");
+    texts.set(rel, text);
+  }
+  return text;
+}
+
 describe("one seam decides what a read subscribes", () => {
   it("has a probe that can see the pairing it is looking for", () => {
     // A gate that cannot see a violation reports a clean tree, so both verdicts
@@ -187,9 +201,8 @@ describe("one seam decides what a read subscribes", () => {
 
     const offenders = sources
       .filter((rel) => rel !== SEAM)
-      .filter((rel) =>
-        subscribesResolvedTopics(readFileSync(join(ROOT, rel), "utf8")),
-      );
+      .filter(SCOPE.covers)
+      .filter((rel) => subscribesResolvedTopics(source(rel)));
 
     expect(
       offenders,
@@ -203,12 +216,12 @@ describe("one seam decides what a read subscribes", () => {
   });
 
   it("still has the read paths actually going through it", () => {
+    // A census of the whole tree, which the changed-only run does not read.
+    if (SCOPE.mode === "changed") return;
     const callers = trackedSources().filter(
       (rel) =>
         rel !== SEAM &&
-        /\bsubscribeTopicRead\s*\(/.test(
-          executable(readFileSync(join(ROOT, rel), "utf8")),
-        ),
+        /\bsubscribeTopicRead\s*\(/.test(executable(source(rel))),
     );
     expect(
       callers.length,

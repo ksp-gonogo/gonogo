@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { scanScope } from "./scanScope";
 
 /**
  * One border-box reset, in the sheet every gonogo page loads, and nowhere else.
@@ -82,10 +83,12 @@ function declarationsIn(source: string, file: string): Hit[] {
   return hits;
 }
 
+const SCOPE = scanScope();
+
 function scan(): Hit[] {
   const root = repoRoot();
   const hits: Hit[] = [];
-  for (const file of candidates(root)) {
+  for (const file of candidates(root).filter(SCOPE.covers)) {
     let source: string;
     try {
       source = readFileSync(join(root, file), "utf8");
@@ -129,6 +132,15 @@ describe("box-sizing is set once, for the whole document", () => {
           `revisited rather than an exception bolted on.`,
       );
     }
+  });
+
+  it("lists the tree it judges, so an empty listing cannot pass for a clean one", () => {
+    // Whole-tree in both scopes: the changed-only run narrows what is READ,
+    // never what is listed.
+    const listed = candidates(repoRoot());
+    console.info(`[box-sizing] ${SCOPE.label}, listed ${listed.length} files`);
+    expect(listed.length).toBeGreaterThan(1000);
+    expect(listed).toContain(RESET_FILE);
   });
 
   it("sees a declaration it plants, so a clean scan means something", () => {

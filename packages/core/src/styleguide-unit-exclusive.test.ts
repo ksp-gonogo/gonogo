@@ -355,6 +355,20 @@ function scanRoots(root: string): string[] {
   return roots.filter((abs) => existsSync(abs));
 }
 
+/**
+ * Each file's text, read once per run. Three gates and the census each walk the
+ * same tree, and on the fleet's machine opening a file is what a walk costs.
+ */
+const texts = new Map<string, string>();
+function read(file: string): string {
+  let text = texts.get(file);
+  if (text === undefined) {
+    text = readFileSync(file, "utf8");
+    texts.set(file, text);
+  }
+  return text;
+}
+
 function scan(root: string): Scan {
   const reach: Record<string, number> = {};
   const local: Record<string, number> = {};
@@ -368,7 +382,7 @@ function scan(root: string): Scan {
       perRoot[rootKey]++;
       const rel = relative(root, file);
       if (UNIT_IMPL.has(rel)) continue;
-      const source = readFileSync(file, "utf8");
+      const source = read(file);
       const reached = countFormatterReach(source);
       if (reached > 0) reach[rel] = reached;
       const declared = countLocalFormatters(source);
@@ -527,7 +541,7 @@ describe("Unit is the only unit renderer", () => {
     for (const srcDir of scanRoots(REPO_ROOT)) {
       for (const file of walkAll(srcDir)) {
         if (relative(REPO_ROOT, file) === SELF) continue;
-        const code = stripComments(readFileSync(file, "utf8"));
+        const code = stripComments(read(file));
         for (const m of code.matchAll(FROM_UI_KIT)) {
           const bound = m[1];
           const hit = KIT_FORMATTERS.filter((n) =>
