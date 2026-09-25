@@ -361,8 +361,8 @@ function StaleCaption({
       ? Math.max(0, viewUt.minus(observedUt).magnitude)
       : undefined;
   return (
-    <ReadoutCaption role="status">
-      {label}
+    <ReadoutCaption>
+      <span role="status">{label}</span>
       {ageSec !== undefined && (
         <>
           , <Unit value={value("s", ageSec)} /> ago
@@ -1391,8 +1391,11 @@ function ControlSurface({
           </span>
         </div>
         {showFbwDelayWarning && delaySeconds !== null && (
-          <StatusIndicator tone="warn" live>
-            High signal delay (<Countdown value={delaySeconds} precise />
+          <StatusIndicator tone="warn">
+            <span role="status" aria-live="polite">
+              High signal delay
+            </span>{" "}
+            (<Countdown value={delaySeconds} precise />
             ), fly-by-wire stick input lags round-trip; expect to overcorrect.
           </StatusIndicator>
         )}

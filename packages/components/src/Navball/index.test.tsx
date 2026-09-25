@@ -327,6 +327,8 @@ describe("NavballComponent", () => {
       const delayStatus = findDelayStatus();
       expect(delayStatus).toBeDefined();
       expect(delayStatus).toHaveAttribute("aria-live", "polite");
+      // The delay figure ticks with every sample, so it sits outside the region that announces the warning.
+      expect(delayStatus?.textContent).toBe("High signal delay");
     });
 
     it("hides the warning when FBW is disarmed even if delay is high", async () => {
