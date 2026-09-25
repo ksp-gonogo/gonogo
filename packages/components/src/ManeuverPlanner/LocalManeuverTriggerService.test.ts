@@ -5,7 +5,6 @@ import {
   TelemetryClient,
   TimelineStore,
   ViewClock,
-  vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -35,7 +34,6 @@ function fixture() {
   });
   clock.scrubTo(PINNED_UT);
   const store = new TimelineStore(clock);
-  store.registerDerivedChannel(vesselStateChannel);
   client.attachStore(store);
   // `StubTransport.emit` is subscription-gated: without these it delivers
   // nothing and the store never sees a body at all.
@@ -108,7 +106,6 @@ function remountWithoutIdentity(): () => void {
   });
   clock.scrubTo(PINNED_UT);
   const store = new TimelineStore(clock);
-  store.registerDerivedChannel(vesselStateChannel);
   client.attachStore(store);
   client.subscribe("vessel.orbit", () => {});
   setActiveTimelineStoreForTests(store);
@@ -153,10 +150,10 @@ describe("LocalManeuverTriggerService", () => {
     const { commands } = fixture();
     const svc = new LocalManeuverTriggerService();
     try {
-      // apoapsisRadius is 6_771_000 · 1.01, so the condition is already true
-      // and the trigger fires at arm time.
+      // sma is 6_771_000, so the condition is already true and the trigger
+      // fires at arm time.
       svc.arm({
-        dataKey: "vessel.state.apoapsisRadius",
+        dataKey: "vessel.orbit.sma",
         op: ">=",
         value: 6_000_000,
         inputs: FROZEN,
@@ -171,16 +168,16 @@ describe("LocalManeuverTriggerService", () => {
     fixture();
     const svc = new LocalManeuverTriggerService();
     try {
-      // apoapsisRadius is 6_838_710, so this one stays pending.
+      // sma is 6_771_000, so this one stays pending.
       svc.arm({
-        dataKey: "vessel.state.apoapsisRadius",
+        dataKey: "vessel.orbit.sma",
         op: ">=",
         value: 99_000_000,
         inputs: FROZEN,
       });
       // Already true, so this one fires as it is armed and leaves the list, putting its id in `fired`.
       svc.arm({
-        dataKey: "vessel.state.apoapsisRadius",
+        dataKey: "vessel.orbit.sma",
         op: ">=",
         value: 6_000_000,
         inputs: FROZEN,
@@ -198,7 +195,7 @@ describe("LocalManeuverTriggerService", () => {
     try {
       // Stays pending, so nothing here depends on the fired-id bookkeeping.
       svc.arm({
-        dataKey: "vessel.state.apoapsisRadius",
+        dataKey: "vessel.orbit.sma",
         op: ">=",
         value: 99_000_000,
         inputs: FROZEN,

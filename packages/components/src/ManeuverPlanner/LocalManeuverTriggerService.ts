@@ -7,18 +7,12 @@ import {
   getValue,
   getVesselIdentity,
   getVesselOrbit,
-  getVesselState,
   getVesselTarget,
   getViewUt,
   onActiveTimelineFrame,
   solveOrbit,
 } from "@ksp-gonogo/sitrep-client";
-import {
-  buildCurrentOrbit,
-  computeMu,
-  computePlan,
-  isSequence,
-} from "./planning";
+import { buildCurrentOrbit, computePlan, isSequence } from "./planning";
 import type {
   ArmTriggerInput,
   ManeuverTriggerService,
@@ -32,10 +26,10 @@ import { compareThreshold } from "./triggerTypes";
  * `<ManeuverTriggerProvider>` (legacy tests, standalone embeds). Every
  * fixed-field read (vessel/target orbit elements, apo/peri/time-to-apsis,
  * true anomaly, vessel name/body) rides the non-hook `getVesselOrbit()`/
- * `getVesselTarget()`/`getVesselIdentity()`/`getVesselState()`/`getViewUt()`
- * accessors (`@ksp-gonogo/sitrep-client`): the same `TimelineStore` a
- * mounted widget's `useTelemetry` would read, sampled on demand and
- * re-evaluated on `onActiveTimelineFrame` instead of a per-key subscription.
+ * `getVesselTarget()`/`getVesselIdentity()`/`getViewUt()` accessors
+ * (`@ksp-gonogo/sitrep-client`): the same `TimelineStore` a mounted widget's
+ * `useTelemetry` would read, sampled on demand and re-evaluated on
+ * `onActiveTimelineFrame` instead of a per-key subscription.
  *
  * The ARMED TRIGGER's own `dataKey` is an operator-picked key too, but no
  * longer an ARBITRARY one: the widget's `DataKeyPicker` only offers keys
@@ -179,7 +173,6 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
 
   private readLiveOrbit() {
     const orbit = getVesselOrbit();
-    const state = getVesselState();
     const target = getVesselTarget();
     const targetOrbit = target?.orbit;
     /*
@@ -207,13 +200,9 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
      * against.
      */
     const solve = getOrbitSolve();
-    const sma = orbit?.sma;
-    const orbitalSpeed = state?.orbitalSpeed ?? undefined;
-    const radius = solve?.orbitalRadius ?? undefined;
-    const period = solve?.period ?? undefined;
     return {
       currentOrbit: buildCurrentOrbit({
-        sma: sma?.magnitude,
+        sma: orbit?.sma?.magnitude,
         ecc: orbit?.ecc?.magnitude,
         ApR: solve?.apoapsisRadius ?? undefined,
         PeR: solve?.periapsisRadius ?? undefined,
@@ -224,7 +213,8 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
       // SDK's own view time (`getViewUt`, the non-hook `useViewUt`
       // equivalent plain classes need), never a legacy `"data"` read.
       currentUT,
-      mu: computeMu(orbitalSpeed, radius, sma?.magnitude, period),
+      // The parent body's GM as the orbit carries it; 0 is the planner's own "no mu" and plans nothing.
+      mu: orbit?.mu?.magnitude ?? 0,
       trueAnomaly: solve?.trueAnomaly ?? undefined,
       argPe: orbit?.argPe?.magnitude,
       inclination: orbit?.inc?.magnitude,
