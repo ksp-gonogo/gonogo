@@ -553,6 +553,11 @@ describe("LandingStatusComponent", () => {
       stream.emit("comms.delay", { source: 1, oneWaySeconds: 4 });
     });
     expect(await screen.findByText("STAGED")).toBeInTheDocument();
+    // In the body: the header aside folds behind an expand box on a narrow tile, and the link state is what a delayed descent is read by.
+    expect(
+      screen.getByText("STAGED").closest("[data-panel-header]"),
+    ).toBeNull();
+    expect(screen.getByText(/^RT/).closest("[data-panel-header]")).toBeNull();
   });
 
   it("exposes no command controls: Landing is an instrument, not a command surface", async () => {

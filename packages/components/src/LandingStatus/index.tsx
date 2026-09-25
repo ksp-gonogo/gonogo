@@ -1193,48 +1193,41 @@ function LandingStatusComponent({
   return (
     <Panel
       panelTitle="LANDING"
-      // Host-derived, so there is no hand-picked `vessel.surface` badge: the
-      // panel watches every topic this widget declares rather than one chosen
-      // key.
-      // The delay chrome belongs to the panel, not to the body. The regime and
-      // the round trip are the standing state of the LINK rather than part of
-      // the descent readout, which is what the aside is for; carrying them in
-      // the body means a second heading inside a widget that already has one,
-      // sitting above the readout it qualifies.
-      panelAside={
-        // The state and the round trip read left, where they sit naturally
-        // beside the title; only the BADGES float right. A single right-aligned
-        // block would drag the headline state over with it, which reads as a
-        // right-aligned title rather than a left-to-right instrument line.
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "var(--gap-related)",
-            width: "100%",
-          }}
-        >
-          {commitLayerEl}
-          {clocks.roundTripSeconds != null && clocks.roundTripSeconds > 0 && (
-            <Text tone="muted">
-              RT <Countdown value={clocks.roundTripSeconds} precise />
-            </Text>
-          )}
-          <span
+      // Host-derived, so there is no hand-picked `vessel.surface` badge: the panel watches every topic this widget declares rather than one chosen key.
+      sections={[
+        /* The link state, first and full width: the commit and blind countdowns
+           are what a delayed descent is flown by, so they sit in the body where
+           a narrow tile cannot fold them behind the header's expand box. */
+        <Section key="link" full>
+          <div
             style={{
-              marginLeft: "auto",
               display: "flex",
+              flexWrap: "wrap",
               alignItems: "center",
               gap: "var(--gap-related)",
+              width: "100%",
             }}
           >
-            <StatusPill $tone={REGIME_TONE[clocks.regime]}>
-              {REGIME_LABEL[clocks.regime]}
-            </StatusPill>
-          </span>
-        </div>
-      }
-      sections={[
+            {commitLayerEl}
+            {clocks.roundTripSeconds != null && clocks.roundTripSeconds > 0 && (
+              <Text tone="muted">
+                RT <Countdown value={clocks.roundTripSeconds} precise />
+              </Text>
+            )}
+            <span
+              style={{
+                marginLeft: "auto",
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--gap-related)",
+              }}
+            >
+              <StatusPill $tone={REGIME_TONE[clocks.regime]}>
+                {REGIME_LABEL[clocks.regime]}
+              </StatusPill>
+            </span>
+          </div>
+        </Section>,
         bodyName !== undefined || datedInputs.length > 0 ? (
           <Section key="context" full>
             {bodyName !== undefined && (
