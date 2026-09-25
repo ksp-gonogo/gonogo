@@ -51,7 +51,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { asQuantityish, magnitudeOf, magnitudeOr } from "../shared/magnitude";
+import { asQuantityish, magnitudeOf } from "../shared/magnitude";
 import { AttitudeIndicator } from "./AttitudeIndicator";
 
 const topics = defineTopicManifest({
@@ -416,11 +416,8 @@ function NavballComponent({
   const control = lastObserved(topics.useTelemetry("vessel.control"));
   const sasMode = enumNameOf<SasModeName>(SAS_MODE_NAMES, control?.sasMode);
   const sasBadgeMode = sasMode ? badgeSasMode(sasMode) : "";
-  // Magnitudes at the read: throttle drives a slider position and the delay
-  // drives a threshold comparison, both of which are arithmetic. Left wrapped,
-  // the `typeof === "number"` guards below answer "no reading" for every live
-  // value, silently and completely.
-  const throttle = magnitudeOr(control?.throttle, 0);
+  /** The engine's throttle as last confirmed, or `null` before any reading carries one. */
+  const throttle = magnitudeOf(control?.throttle);
   /*
    * Any control level above none is flyable, so the buttons stay live for a
    * probe or a crewed craft alike and go dead only for the `*None` family.
@@ -452,12 +449,12 @@ function NavballComponent({
    * switch, so a freshly-switched craft re-seeds from its own live throttle
    * rather than carrying over the previous vessel's commanded value.
    */
-  const [throttleCmd, setThrottleCmdState] = useState(throttle);
+  const [throttleCmd, setThrottleCmdState] = useState(throttle ?? 0);
   const throttleTouchedRef = useRef(false);
   // State as well as the ref: a first touch that sets the value it already held (ZERO on an unread throttle) changes no other state, and the stream only learns of the intent through a render.
   const [throttleTouched, setThrottleTouched] = useState(false);
   useEffect(() => {
-    if (!throttleTouchedRef.current) setThrottleCmdState(throttle);
+    if (!throttleTouchedRef.current) setThrottleCmdState(throttle ?? 0);
   }, [throttle]);
   const setThrottleCmd = (next: number | ((v: number) => number)) => {
     throttleTouchedRef.current = true;
@@ -487,9 +484,11 @@ function NavballComponent({
       // sitting in `throttle` this render (the two topics often update in
       // the same telemetry frame), and this latch reset must not depend on
       // that coincidence.
-      setThrottleCmdState(throttle);
+      setThrottleCmdState(throttle ?? 0);
     }
   }, [activeVesselId, throttle]);
+  /** Neither a readback nor an operator command: a step of 10% from here would be a step from a guess. */
+  const throttleKnown = throttleTouched || throttle !== null;
   const throttleStream: ControlStream = useControlStream(
     "vessel.control.throttle",
     throttleTouched ? throttleCmd : null,
@@ -731,9 +730,13 @@ function NavballComponent({
       if (v !== null) setThrottleCmd(v);
     },
     "throttle-up": (p) =>
-      isButtonPress(p) && setThrottleCmd((v) => clamp(v + 0.1, 0, 1)),
+      isButtonPress(p) &&
+      throttleKnown &&
+      setThrottleCmd((v) => clamp(v + 0.1, 0, 1)),
     "throttle-down": (p) =>
-      isButtonPress(p) && setThrottleCmd((v) => clamp(v - 0.1, 0, 1)),
+      isButtonPress(p) &&
+      throttleKnown &&
+      setThrottleCmd((v) => clamp(v - 0.1, 0, 1)),
     "throttle-zero": (p) => isButtonPress(p) && setThrottleCmd(0),
     "throttle-full": (p) => isButtonPress(p) && setThrottleCmd(1),
     // Fly-by-wire axes drive their useControlStream state, which coalesces +
@@ -968,15 +971,21 @@ function NavballComponent({
                   <div style={THROTTLE_COLUMN}>
                     <span style={THROTTLE_LABEL}>THR</span>
                     <div style={THROTTLE_BAR}>
-                      <div
-                        style={{
-                          ...THROTTLE_FILL,
-                          height: `${throttle * 100}%`,
-                        }}
-                      />
+                      {throttle !== null && (
+                        <div
+                          style={{
+                            ...THROTTLE_FILL,
+                            height: `${throttle * 100}%`,
+                          }}
+                        />
+                      )}
                     </div>
                     <span style={THROTTLE_VAL}>
-                      <Unit value={value("%", throttle * 100)} decimals={0} />
+                      {throttle === null ? (
+                        NULL_DISPLAY
+                      ) : (
+                        <Unit value={value("%", throttle * 100)} decimals={0} />
+                      )}
                     </span>
                   </div>
                 )}
@@ -1026,7 +1035,7 @@ function NavballComponent({
             <ControlSurface
               disabled={!isControllable}
               sasMode={sasMode ?? null}
-              throttleCmd={throttleCmd}
+              throttleCmd={throttleKnown ? throttleCmd : null}
               onSetThrottleCmd={setThrottleCmd}
               throttleStream={throttleStream}
               axisStreams={axisStreams}
@@ -1234,8 +1243,8 @@ function armLabel(
 interface ControlSurfaceProps {
   disabled: boolean;
   sasMode: string | null;
-  /** Commanded throttle value (0..1): local operator intent, tracks the live readback until touched. Same value as `throttleStream.current`. */
-  throttleCmd: number;
+  /** Commanded throttle value (0..1): local operator intent, tracks the live readback until touched. `null` while there is neither. */
+  throttleCmd: number | null;
   onSetThrottleCmd: (next: number | ((v: number) => number)) => void;
   /** The delayed control-stream buffer for the throttle axis; feeds `<ControlDelayStream>`. */
   throttleStream: ControlStream;
@@ -1321,14 +1330,18 @@ function ControlSurface({
             min={0}
             max={1}
             step={0.01}
-            value={throttleCmd}
+            value={throttleCmd ?? 0}
             onChange={(e) => onSetThrottleCmd(Number(e.target.value))}
             disabled={disabled}
             aria-label="Throttle"
             style={SLIDER}
           />
           <span style={SLIDER_VAL}>
-            <Unit value={value("%", throttleCmd * 100)} decimals={0} />
+            {throttleCmd === null ? (
+              NULL_DISPLAY
+            ) : (
+              <Unit value={value("%", throttleCmd * 100)} decimals={0} />
+            )}
           </span>
         </div>
         <div style={BUTTON_GRID}>
@@ -1342,14 +1355,14 @@ function ControlSurface({
           <Button
             type="button"
             onClick={() => onSetThrottleCmd((v) => clamp(v - 0.1, 0, 1))}
-            disabled={disabled}
+            disabled={disabled || throttleCmd === null}
           >
             −10%
           </Button>
           <Button
             type="button"
             onClick={() => onSetThrottleCmd((v) => clamp(v + 0.1, 0, 1))}
-            disabled={disabled}
+            disabled={disabled || throttleCmd === null}
           >
             +10%
           </Button>

@@ -24,8 +24,9 @@ import { NavballComponent } from "./index";
  *  - `control?.sas === true` / `rcs === true` / `precisionControl === true`
  *    coerce unknown to OFF for display, so an unread SAS looks exactly like a
  *    confirmed-off SAS
- *  - `magnitudeOr(control?.throttle, 0)` coerces unknown to a confident ZERO,
- *    which the throttle bar draws as an engine at idle
+ *  - an unread throttle is the null glyph in the THR readout and the slider's
+ *    value, never a 0% that reads as an engine at idle, and the relative steps
+ *    refuse to move from it
  *  - `if (typeof sasRaw !== "boolean") return` in `toggleSas`/`toggleRcs` is the
  *    one place absence is handled HONESTLY: the command is refused rather than
  *    guessed. It is also the highest-risk site in the file, because after the
@@ -148,12 +149,12 @@ describe("Navball display: what undefined means today", () => {
     // No FBW delay badge, since FBW is unarmed. Pinned so the delay-warning
     // tests below are about `delaySeconds`, not about this row being empty.
     expect(visibleText()).not.toContain("DELAY");
-    // The throttle column rides `showDial`, so the coerced-to-zero throttle is
-    // not on screen yet. Named-element absence, not an empty container.
+    // The throttle column rides `showDial`, so it is not on screen yet.
+    // Named-element absence, not an empty container.
     expect(screen.queryByText("THR")).toBeNull();
   });
 
-  it("draws a confident zero-percent throttle when vessel.control never arrives", async () => {
+  it("draws the null glyph, not a zero-percent throttle, when vessel.control never arrives", async () => {
     mount("nb-undef-throttle");
 
     act(() => {
@@ -162,14 +163,12 @@ describe("Navball display: what undefined means today", () => {
       fixture.emit("vessel.attitude", ATTITUDE);
     });
 
-    // `magnitudeOr(control?.throttle, 0)`: absence becomes a real zero, and the
-    // bar and readout state it as a measurement. There is no placeholder here
-    // and no way to tell an idle engine from an unread one.
     await waitFor(() => expect(screen.getByText("THR")).toBeInTheDocument());
-    expect(visibleText()).toContain("0 %");
+    expect(visibleText()).toContain(`THR${NULL_DISPLAY}`);
+    expect(visibleText()).not.toContain("0 %");
   });
 
-  it("coerces a missing throttle field to zero even when the control record itself arrived", async () => {
+  it("draws the null glyph for a missing throttle field even when the control record itself arrived", async () => {
     mount("nb-undef-partial-control");
 
     act(() => {
@@ -180,14 +179,15 @@ describe("Navball display: what undefined means today", () => {
       fixture.emit("vessel.control", { sas: true });
     });
 
-    // Proof the partial record landed, so the zero below is the coercion and
-    // not a dropped emit.
+    // Proof the partial record landed, so the glyph below is the missing field
+    // and not a dropped emit.
     await waitFor(() =>
       expect(fixture.store.sample("vessel.control")?.payload).toEqual({
         sas: true,
       }),
     );
-    expect(visibleText()).toContain("0 %");
+    expect(visibleText()).toContain(`THR${NULL_DISPLAY}`);
+    expect(visibleText()).not.toContain("0 %");
   });
 });
 
@@ -210,8 +210,16 @@ describe("Navball control surface: what undefined means today", () => {
     // dispatch gate below is what still treats absence as "do nothing".
     expect(screen.queryByRole("button", { name: "SAS ON" })).toBeNull();
     expect(screen.queryByRole("button", { name: "SAS OFF" })).toBeNull();
-    // And the slider states a commanded zero.
-    expect(screen.getByRole("slider", { name: "Throttle" })).toHaveValue("0");
+    // The slider's value is the null glyph, and a step from it is refused
+    // rather than guessed; the absolute commands stay live.
+    const group = screen.getByRole("slider", {
+      name: "Throttle",
+    }).parentElement;
+    expect(group?.textContent).toContain(NULL_DISPLAY);
+    expect(screen.getByRole("button", { name: "+10%" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "−10%" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "ZERO" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "FULL" })).not.toBeDisabled();
   });
 
   it("banners and disables the surface only on a CONFIRMED uncontrollable vessel", async () => {
