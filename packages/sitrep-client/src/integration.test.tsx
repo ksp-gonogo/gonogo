@@ -85,88 +85,52 @@ describe("sitrep-client end-to-end spine", () => {
    * caller that subscribed to it verbatim would wait forever.
    *
    * Written to settle a specific accusation: a channel recorded zero frames in
-   * a 20 s live capture where `vessel.orbit` delivered, and an enumeration of
-   * the mod's emission path narrowed the cause to "no subscriber", leaving
-   * open whether the spine propagates a subscription for a derived channel's
-   * input at all. It does. The assertions below fail if that stops being true,
-   * on the whole chain (provider, client, ref-count, transport) rather than on
-   * `resolveSubscriptionTopics` in isolation, which is where the existing
-   * coverage stops.
-   *
-   * The example was `vessel.maneuver.legacy` until that channel was retired.
-   * What is under test is the subscription propagation, not the channel, so it
-   * moved to one that is still derived.
+   * a 20 s live capture where its input delivered, and an enumeration of the
+   * mod's emission path narrowed the cause to "no subscriber", leaving open
+   * whether the spine propagates a subscription for a derived channel's input
+   * at all. It does. The assertions below fail if that stops being true, on
+   * the whole chain (provider, client, ref-count, transport) rather than on
+   * `resolveSubscriptionTopics` in isolation.
    */
   it("a derived-topic read opens a wire subscription for its input, not for its own name", async () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
 
-    function OrbitPatchesProbe() {
-      const patchesReading = useStream<{ referenceBody: string }[]>(
-        "vessel.state.orbitPatches",
-      );
-      const patches =
-        patchesReading.state === "observed" || patchesReading.state === "stale"
-          ? patchesReading.value
+    function BodyCountProbe() {
+      const countReading = useStream<number>("system.state.bodyCount");
+      const count =
+        countReading.state === "observed" || countReading.state === "stale"
+          ? countReading.value
           : undefined;
-      // The patch's own body, not a count: a count reads the same whether the
-      // derivation ran or handed back an array of nothing.
-      return (
-        <span>
-          patches:
-          {patches?.map((p) => p.referenceBody).join(",") ?? NULL_DISPLAY}
-        </span>
-      );
+      return <span>bodies:{count ?? NULL_DISPLAY}</span>;
     }
 
     const { unmount } = render(
       <TelemetryProvider client={client}>
-        <OrbitPatchesProbe />
+        <BodyCountProbe />
       </TelemetryProvider>,
     );
 
-    expect(transport.isSubscribed("vessel.orbit")).toBe(true);
+    expect(transport.isSubscribed("system.bodies")).toBe(true);
     // Nothing publishes either of these, so a subscription to one is a
     // subscription to silence.
-    expect(transport.isSubscribed("vessel.state")).toBe(false);
-    expect(transport.isSubscribed("vessel.state.orbitPatches")).toBe(false);
+    expect(transport.isSubscribed("system.state")).toBe(false);
+    expect(transport.isSubscribed("system.state.bodyCount")).toBe(false);
 
     // `StubTransport.emit` is subscription-gated, so delivery here is itself
     // the proof the wire subscription is real rather than bookkeeping.
     act(() => {
-      transport.emit("vessel.orbit", {
-        referenceBodyIndex: 1,
-        // A whole patch, because `mapOrbitPatch` reads every field: a partial
-        // one throws inside the derivation and renders nothing, which is not
-        // the failure this test is looking for.
-        patches: [
-          {
-            sma: 700_000,
-            ecc: 0,
-            inc: 0,
-            lan: 0,
-            argPe: 0,
-            meanAnomalyAtEpoch: 0,
-            epoch: 0,
-            period: 1800,
-            startUt: 0,
-            endUt: 1800,
-            patchStartTransition: 0,
-            patchEndTransition: 0,
-            peA: 100_000,
-            apA: 100_000,
-            semiLatusRectum: 700_000,
-            semiMinorAxis: 700_000,
-            referenceBody: "Kerbin",
-          },
+      transport.emit("system.bodies", {
+        bodies: [
+          { name: "Sun", index: 0, parentIndex: null, radius: 261_600_000 },
+          { name: "Kerbin", index: 1, parentIndex: 0, radius: 600_000 },
+          { name: "Mun", index: 2, parentIndex: 1, radius: 200_000 },
         ],
       });
     });
-    await waitFor(() =>
-      expect(screen.getByText(/patches:Kerbin/)).toBeTruthy(),
-    );
+    await waitFor(() => expect(screen.getByText("bodies:3")).toBeTruthy());
 
     unmount();
-    expect(transport.isSubscribed("vessel.orbit")).toBe(false);
+    expect(transport.isSubscribed("system.bodies")).toBe(false);
   });
 });

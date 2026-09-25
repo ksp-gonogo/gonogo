@@ -5,7 +5,7 @@ import {
   registerAugment,
   registerContribution,
 } from "@ksp-gonogo/core";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { VesselType, value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { ContributionsPanelStore, WidgetMetaContext } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
@@ -252,6 +252,24 @@ describe("CrewStatusComponent", () => {
       fixture.emit("vessel.identity", { vesselType: VESSEL_TYPE_EVA });
     });
     await waitFor(() => expect(screen.getByText(/EVA/)).toBeInTheDocument());
+  });
+
+  it("does not call a crewed ship an EVA", async () => {
+    const fixture = newFixture();
+    renderCrew(fixture);
+    act(() => {
+      fixture.emit("vessel.crew", {
+        count: 1,
+        capacity: 1,
+        crew: [{ name: "Jebediah Kerman" }],
+      });
+      fixture.emit("vessel.orbit", ORBIT);
+      fixture.emit("vessel.identity", { vesselType: VesselType.Ship });
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/EVA/)).not.toBeInTheDocument();
   });
 
   /**

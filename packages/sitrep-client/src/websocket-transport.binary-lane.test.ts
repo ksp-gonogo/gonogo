@@ -257,8 +257,8 @@ describe("WebSocketTransport on the binary lane", () => {
       mountTransport();
     const json = JSON.stringify({
       type: "stream-data",
-      topic: "vessel.state",
-      payload: { altitude: 1 },
+      topic: "vessel.flight",
+      payload: { altitudeAsl: 1 },
       meta: makeMeta({ validAt: 1, deliveredAt: 1 }),
     });
 

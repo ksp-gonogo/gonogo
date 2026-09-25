@@ -514,13 +514,13 @@ describe("TimelineStore.resolveSubscriptionTopics: derived-input ref-counting (M
   it("a registered derived channel's own topic resolves to its declared inputs, not itself", () => {
     const store = makeStore();
     store.registerDerivedChannel({
-      topic: "vessel.state",
+      topic: "test.derived",
       inputs: ["vessel.orbit", "vessel.flight"],
       fields: true,
       derive: () => null,
     });
 
-    expect(store.resolveSubscriptionTopics("vessel.state").sort()).toEqual(
+    expect(store.resolveSubscriptionTopics("test.derived").sort()).toEqual(
       ["vessel.flight", "vessel.orbit"].sort(),
     );
   });
@@ -528,14 +528,14 @@ describe("TimelineStore.resolveSubscriptionTopics: derived-input ref-counting (M
   it("a field subtopic of a derived channel resolves to the PARENT channel's inputs", () => {
     const store = makeStore();
     store.registerDerivedChannel({
-      topic: "vessel.state",
+      topic: "test.derived",
       inputs: ["vessel.orbit", "vessel.flight"],
       fields: true,
       derive: () => null,
     });
 
     expect(
-      store.resolveSubscriptionTopics("vessel.state.altitudeAsl").sort(),
+      store.resolveSubscriptionTopics("test.derived.altitudeAsl").sort(),
     ).toEqual(["vessel.flight", "vessel.orbit"].sort());
   });
 

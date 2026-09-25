@@ -3,9 +3,9 @@ import { isCommandId } from "./commands";
 import { DEFAULT_SITREP_CARRIED_TOPICS } from "./default-carried-topics";
 import { isKnownFieldPath } from "./spine/map-topic";
 // Imported for the module-load side effect as much as for the value: this is
-// what registers `vessel.state`'s hand-declared field metadata, and the
+// what registers `spaceCenter.state`'s hand-declared field metadata, and the
 // enumeration below can only see it once that module has run.
-import { vesselStateChannel } from "./spine/vessel-state";
+import { spaceCenterStateChannel } from "./spine/space-center-state";
 import { enumerateTopicFields } from "./topic-fields";
 
 describe("enumerateTopicFields", () => {
@@ -133,49 +133,31 @@ describe("isKnownFieldPath plurality", () => {
 });
 
 describe("enumerateTopicFields on a client-derived channel", () => {
-  it("describes vessel.state, which no generated map knows about", () => {
-    const fields = enumerateTopicFields(vesselStateChannel.topic);
-    const byPath = new Map(fields.map((f) => [f.path, f]));
+  it("describes spaceCenter.state, which no generated map knows about", () => {
     // The channel is computed client-side, so this can only work through the
-    // hand declaration in `vessel-state.ts`. An empty result here means that
-    // declaration stopped being registered, which would silently empty the
-    // largest part of the picker's vocabulary.
-    expect(fields.length).toBeGreaterThan(25);
-    expect(byPath.get("altitudeAsl")).toEqual({
-      path: "altitudeAsl",
-      unit: "m",
-      kind: "quantity",
-    });
-    expect(byPath.get("twr")?.kind).toBe("quantity");
-    expect(byPath.get("isEVA")?.kind).toBe("flag");
-    expect(byPath.get("situationName")?.kind).toBe("text");
-    // A UT instant, not an interval: the unit distinguishes them.
-    expect(byPath.get("encounterUt")?.unit).toBe("ut");
-    // A collection is named but not descended into.
-    expect(byPath.get("orbitPatches")?.kind).toBe("collection");
-  });
-
-  it("offers every quantity on vessel.state as a threshold subject", () => {
-    const quantities = enumerateTopicFields(vesselStateChannel.topic).filter(
-      (f) => f.kind === "quantity",
-    );
-    expect(quantities.length).toBeGreaterThan(15);
+    // hand declaration in `space-center-state.ts`. An empty result here means
+    // that declaration stopped being registered, which would silently drop
+    // every client-derived field from the picker's vocabulary.
+    expect(enumerateTopicFields(spaceCenterStateChannel.topic)).toEqual([
+      { path: "padOccupied", unit: "flag", kind: "flag" },
+      { path: "padVesselTitle", unit: "text", kind: "text" },
+    ]);
   });
 });
 
 describe("isKnownFieldPath on a registered topic", () => {
   it("accepts a derived channel's field that no legacy table ever named", () => {
-    // `vessel.state.subjectId` has no entry in the retiring migration table, so
-    // the only thing that can vouch for it is the field metadata the channel
-    // registers for itself. A judgement that read the generated maps directly
-    // would be blind to that, and to every Uplink-registered Topic with it.
-    void vesselStateChannel;
-    expect(isKnownFieldPath("vessel.state.subjectId")).toBe(true);
+    // `spaceCenter.state` appears in no contract type, so the only thing that
+    // can vouch for its fields is the metadata the channel registers for
+    // itself. A judgement that read the generated maps directly would be blind
+    // to that, and to every Uplink-registered Topic with it.
+    void spaceCenterStateChannel;
+    expect(isKnownFieldPath("spaceCenter.state.padVesselTitle")).toBe(true);
   });
 
   it("still refuses a field the channel does not declare", () => {
-    void vesselStateChannel;
-    expect(isKnownFieldPath("vessel.state.notAField")).toBe(false);
+    void spaceCenterStateChannel;
+    expect(isKnownFieldPath("spaceCenter.state.notAField")).toBe(false);
   });
 });
 

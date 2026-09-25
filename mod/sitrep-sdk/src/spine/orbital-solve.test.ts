@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { WireOrbitElements } from "./kepler-reckoning";
+import { solve } from "./kepler";
+import { buildElements, type WireOrbitElements } from "./kepler-reckoning";
 import { bodyRadiusOf, solveOrbit, solveSelfOrbit } from "./orbital-solve";
 
 /**
@@ -87,6 +88,25 @@ describe("solveOrbit", () => {
     expect(s.periapsisRadius).toBeCloseTo(-SMA * (1 - 1.5), 6);
   });
 
+  /**
+   * The anomaly solve is elliptical-only and throws on a hyperbola, so every
+   * figure built on it reads null rather than a finite number from a formula
+   * that does not apply.
+   */
+  it("reads null for the period, anomaly and apsis countdowns on a hyperbolic orbit, without throwing", () => {
+    let s: ReturnType<typeof solveOrbit> | undefined;
+    expect(() => {
+      s = solveOrbit(circular(-SMA, 1.2), 500, BODY_RADIUS);
+    }).not.toThrow();
+    expect(s?.period).toBeNull();
+    expect(s?.trueAnomaly).toBeNull();
+    expect(s?.timeToAp).toBeNull();
+    expect(s?.timeToPe).toBeNull();
+    expect(s?.nextApsisType).toBeNull();
+    expect(s?.timeToNextApsis).toBeNull();
+    expect(s?.periapsisAlt).toBeCloseTo(-SMA * (1 - 1.2) - BODY_RADIUS, 6);
+  });
+
   it("counts down to periapsis from just past it, and names that apsis next", () => {
     // A quarter period after periapsis: apoapsis is half a period away, and
     // periapsis three quarters, so apoapsis is next.
@@ -123,6 +143,47 @@ describe("solveOrbit", () => {
       6,
     );
     expect(target.periapsisAlt).toBeCloseTo(SMA * 2 - BODY_RADIUS, 6);
+  });
+});
+
+describe("solveOrbit on an eccentric orbit", () => {
+  const ECC = 0.1;
+
+  it("puts the apsis radii at sma(1 +/- ecc), with no body radius needed", () => {
+    const s = solveOrbit(circular(SMA, ECC), 0, undefined);
+    expect(s.apoapsisRadius).toBeCloseTo(SMA * (1 + ECC), 6);
+    expect(s.periapsisRadius).toBeCloseTo(SMA * (1 - ECC), 6);
+  });
+
+  it("measures the orbital radius off the solved position at the view time", () => {
+    const viewUt = 1_234;
+    const { position } = solve(buildElements(circular(SMA, ECC)), viewUt);
+    expect(
+      solveOrbit(circular(SMA, ECC), viewUt, BODY_RADIUS).orbitalRadius,
+    ).toBeCloseTo(Math.hypot(...position), 3);
+  });
+
+  it("names periapsis next while the craft is at it", () => {
+    const s = solveOrbit(circular(SMA, ECC), 0, BODY_RADIUS);
+    expect(s.nextApsisType).toBe(-1);
+    expect(s.timeToNextApsis).toBe(s.timeToPe);
+    expect(s.timeToNextApsis).toBe(0);
+  });
+
+  it("names apoapsis next a moment after periapsis", () => {
+    const s = solveOrbit(circular(SMA, ECC), PERIOD * 0.01, BODY_RADIUS);
+    expect(s.nextApsisType).toBe(1);
+    expect(s.timeToNextApsis).toBe(s.timeToAp);
+  });
+});
+
+describe("solveOrbit on degenerate elements", () => {
+  it("answers null for the period and countdowns of a zero mu, never NaN or Infinity", () => {
+    const zeroMu = { ...circular(), mu: { magnitude: 0 } };
+    const s = solveOrbit(zeroMu, 0, BODY_RADIUS);
+    expect(s.period).toBeNull();
+    expect(s.timeToAp).toBeNull();
+    expect(s.timeToPe).toBeNull();
   });
 });
 

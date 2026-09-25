@@ -1,5 +1,6 @@
 import type { VesselTarget } from "../__generated__/contract";
 import type { ReckonerDefinition } from "../reading";
+import type { DerivedChannelId } from "../topics";
 import { registerReckoner } from "./reckoners";
 
 /**
@@ -117,23 +118,20 @@ registerReckoner("vessel.flight", "core", {
 /*
  * A DERIVED channel is not a Topic, and this registry will not take one.
  *
- * `vessel.state` is the case in hand: it carries three forward models (the
- * conic, the ballistic landing set, the target's own conic) and none of them
- * can be registered here, because this parameter is `TopicId` and
- * `DERIVED_CHANNEL_IDS` is a deliberately separate union with no wire payload
- * for `TopicPayload` to resolve. A derived channel states what it modelled
- * through `DerivedChannelDefinition.deriveReckoning`, which
- * `TimelineStore.derivedReckoner` adapts into the same `ReckonerFor` this
- * registry hands out, so the two are arms of one seam rather than an old
- * mechanism and a new one. Why each of the three stays on that arm is written
- * beside it in `vessel-state.ts`.
+ * `spaceCenter.state` is a production derived channel, so it is a member of
+ * `DERIVED_CHANNEL_IDS`: a deliberately separate union from `TopicId`, with no
+ * wire payload for `TopicPayload` to resolve. This parameter is `TopicId`, so
+ * the id is refused here while it stays a valid `WidgetChannelId` for a read.
  *
  * The directive is the gate, not the prose: widening this parameter to
- * `WidgetChannelId` leaves it unused and fails typecheck, which is exactly when
- * those three reasons want re-reading.
+ * `WidgetChannelId` leaves it unused and fails typecheck. The assignment first
+ * is its control: were the id to leave `DERIVED_CHANNEL_IDS`, the directive
+ * would pass on an id that names nothing, and this line fails instead.
  */
-// @ts-expect-error `vessel.state` is a derived channel, not a Topic.
-registerReckoner("vessel.state", "core", {
+const derivedChannel: DerivedChannelId = "spaceCenter.state";
+void derivedChannel;
+// @ts-expect-error `spaceCenter.state` is a derived channel, not a Topic.
+registerReckoner("spaceCenter.state", "core", {
   deps: [],
   reckon: () => ({ declined: { reason: "model-inapplicable" } }),
 });

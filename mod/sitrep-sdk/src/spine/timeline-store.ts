@@ -2051,11 +2051,10 @@ export class TimelineStore {
     // Deliberately tried SECOND, only once the literal read above came back
     // `undefined`: never first. A topic string that genuinely IS a raw
     // topic in its own right, even a 3+-segment one (`use-timeline-stream
-    // .test.tsx` ingests straight into `"vessel.state.altitudeAsl"` as a
-    // literal topic against a bare store with no derived channel
-    // registered), must keep reading its own literal timeline; shadowing it
-    // unconditionally with the field-split interpretation would silently
-    // stop that from ever resolving.
+    // .test.tsx` ingests straight into `"vessel.flight.altitudeAsl"` as a
+    // literal topic against a bare store), must keep reading its own literal
+    // timeline; shadowing it unconditionally with the field-split
+    // interpretation would silently stop that from ever resolving.
     const rawField = this.resolveRawFieldSubtopic(topic);
     if (!rawField) return literal;
     return this.memoize(

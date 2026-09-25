@@ -1,5 +1,8 @@
 import { CommsDelaySource, Quality, value } from "@ksp-gonogo/sitrep-sdk";
-import type { VesselOrbitPayload } from "@ksp-gonogo/sitrep-sdk/spine";
+import {
+  solveOrbit,
+  type VesselOrbitPayload,
+} from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { COMMS_DELAY_TOPIC, DelayAuthority } from "./delay-authority";
@@ -14,7 +17,6 @@ import {
 } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
-import { vesselStateChannel } from "./vessel-state";
 import { ViewClock } from "./view-clock";
 
 /**
@@ -327,7 +329,7 @@ describe("DelayAuthority → ViewClock (predicted-present horizon)", () => {
   });
 });
 
-/** Wire-shaped, wrapped by `orbitPoint` below: see `vessel-state.test.ts`. */
+/** Wire-shaped: `orbitPoint` below wraps it the way the decode would. */
 const CIRCULAR_ORBIT: WireOf<VesselOrbitPayload> = {
   referenceBodyIndex: 1,
   sma: 700_000,
@@ -353,7 +355,7 @@ const CIRCULAR_ELEMENTS: OrbitElements = {
 
 /**
  * Where the craft is around its orbit at `ut`, in degrees on [0, 360), which
- * is how the channel publishes it.
+ * is how `solveOrbit` returns it.
  *
  * The anomaly is the one quantity here that moves with UT on a circular
  * fixture: radius and speed are constant around such an orbit, so a test that
@@ -383,14 +385,14 @@ function orbitPoint(
 
 describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () => {
   /**
-   * A delayed vessel is propagated FORWARD from its
-   * last confirmed elements to the predicted-present view UT, and any
-   * deterministic object (a body) resolves at that SAME view UT; never a
-   * different instant. Here the delay authority sets the lead, predicted mode
-   * projects the vessel to `utNowEstimate()`, and an independent Kepler solve
-   * standing in for a deterministic body uses the identical frame UT.
+   * Under delay the frame's view UT is the predicted present, ahead of the
+   * confirmed edge. The store holds the vessel's last confirmed elements; a
+   * reader dead-reckons by solving them at that view UT, and a deterministic
+   * object (a body) solved at the SAME view UT agrees on the instant. Here the
+   * delay authority sets the lead and predicted mode puts the view UT at
+   * `utNowEstimate()`.
    */
-  it("propagates the vessel to the predicted-present view UT while a deterministic solve conforms to the same UT", () => {
+  it("puts the view UT at the predicted present, where the held orbit and a deterministic solve share one instant", () => {
     const wall = createFakeWallClock(0);
     const authority = new DelayAuthority();
     authority.observe({
@@ -404,7 +406,6 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
       delaySeconds: authority.delaySeconds,
     });
     const store = new TimelineStore(clock);
-    store.registerDerivedChannel(vesselStateChannel);
 
     store.ingest("vessel.orbit", orbitPoint(CIRCULAR_ORBIT, 100));
 
@@ -420,17 +421,21 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
     // clamp binds first here: the point is the estimate LEADS it.
     expect(store.certaintyHorizonUt()).toBe(100);
 
-    const state = store.sample<{
-      trueAnomaly: number | null;
-    }>("vessel.state");
+    // The store holds the orbit last at the confirmed sample and propagates
+    // nothing; the dead-reckoning is a reader solving it at the view UT.
+    const orbit = store.sample<VesselOrbitPayload>("vessel.orbit");
+    expect(orbit?.payload).toBeTruthy();
+    const solved = orbit?.payload
+      ? solveOrbit(orbit.payload, frame.viewUt, null)
+      : undefined;
 
     // The vessel dead-reckons to the frame's single view UT...
-    expect(state?.payload?.trueAnomaly).toBeCloseTo(
+    expect(solved?.trueAnomaly).toBeCloseTo(
       trueAnomalyDegrees(CIRCULAR_ELEMENTS, frame.viewUt),
       9,
     );
     // ...and not to the confirmed edge, which is the other instant on offer.
-    expect(state?.payload?.trueAnomaly).not.toBeCloseTo(
+    expect(solved?.trueAnomaly).not.toBeCloseTo(
       trueAnomalyDegrees(CIRCULAR_ELEMENTS, store.certaintyHorizonUt()),
       3,
     );
@@ -446,7 +451,7 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
     expect(bodyAtFrameUt.position).not.toEqual(bodyAtConfirmedEdge.position);
   });
 
-  it("delay 0 ⇒ predicted vessel state equals the confirmed read (LAN passthrough)", () => {
+  it("delay 0 ⇒ the predicted orbit solve equals the confirmed read (LAN passthrough)", () => {
     const wall = createFakeWallClock(0);
     const authority = new DelayAuthority(); // 0
     const clock = new ViewClock({
@@ -455,17 +460,20 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
       delaySeconds: authority.delaySeconds,
     });
     const store = new TimelineStore(clock);
-    store.registerDerivedChannel(vesselStateChannel);
 
     store.ingest("vessel.orbit", orbitPoint(CIRCULAR_ORBIT, 100));
     store.beginFrame();
 
     // No wall advance, no delay: confirmed edge == estimate == 100.
     expect(clock.confirmedEdgeUt()).toBe(clock.utNowEstimate());
-    const confirmed = store.sample<{ trueAnomaly: number | null }>(
-      "vessel.state",
-    );
-    expect(confirmed?.payload?.trueAnomaly).toBeCloseTo(
+    const frame = store.currentFrame();
+    expect(frame.viewUt).toBe(100);
+    const orbit = store.sample<VesselOrbitPayload>("vessel.orbit");
+    expect(orbit?.payload).toBeTruthy();
+    const confirmed = orbit?.payload
+      ? solveOrbit(orbit.payload, frame.viewUt, null)
+      : undefined;
+    expect(confirmed?.trueAnomaly).toBeCloseTo(
       trueAnomalyDegrees(CIRCULAR_ELEMENTS, 100),
       9,
     );

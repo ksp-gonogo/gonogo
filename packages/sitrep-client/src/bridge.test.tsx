@@ -1,109 +1,75 @@
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import type {
-  VesselFlightPayload,
-  VesselOrbitPayload,
-} from "@ksp-gonogo/sitrep-sdk/spine";
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
-import { StubTransport, type WireOf } from "./stub-transport";
+import { StubTransport } from "./stub-transport";
 import { useStream } from "./use-stream";
 
 /**
  * The core proof that `TelemetryProvider` bridges the client into a live
- * `TimelineStore`, at the `@ksp-gonogo/sitrep-client` layer (independent of
- * `@ksp-gonogo/core`'s `useDataValue` shim, which has its own end-to-end
- * test): before this, NOTHING fed a `TimelineStore` in
- * production, so `vessel.state.*` (derived) topics were permanently
- * unreachable through `useStream`/`useDataValue` even with a
- * `TelemetryProvider` mounted: the derivation machinery in
- * `vessel-state.ts`/`timeline-store.ts` existed but was wired to nothing.
+ * `TimelineStore`, at the `@ksp-gonogo/sitrep-client` layer: given only a
+ * `client`, the provider auto-builds a store, registers the production derived
+ * channels on it, and feeds it from the client's wire, so a derived subtopic
+ * such as `dv.currentStageResource.<name>` resolves through the SAME provider
+ * a raw-topic `useStream` call works through.
  *
- * `TelemetryProvider` now auto-builds a `TimelineStore`, registers the
- * production derived channels (`vesselStateChannel`), and feeds it from the
- * client's wire: so `useStream("vessel.state.<field>")` resolves through
- * the SAME provider a raw-topic `useStream` call already worked through.
+ * `dv.currentStageResource` is the production channel with two inputs, so it
+ * is the one that can show the provider subscribing every input a derived read
+ * needs rather than just the first.
  */
 
-const ORBIT: WireOf<VesselOrbitPayload> = {
-  referenceBodyIndex: 1,
-  sma: 700_000,
-  ecc: 0,
-  inc: 0,
-  lan: null,
-  argPe: null,
-  meanAnomalyAtEpoch: 0,
-  epoch: 0,
-  mu: 3.5316e12,
-};
-
-const FLIGHT: WireOf<VesselFlightPayload> = {
-  latitude: -0.05,
-  longitude: 42.3,
-  altitudeAsl: 71_234,
-  altitudeTerrain: 71_234,
-  verticalSpeed: 12.5,
-  surfaceSpeed: 1780.2,
-  orbitalSpeed: 1790.9,
-  gForce: 1.1,
-  dynamicPressureKPa: 3.2,
-  mach: 5.1,
-  atmDensity: 0.01,
-};
-
-function Altitude() {
-  // A derived `vessel.state.*` field, so it arrives as a plain number: the
-  // client computes it rather than reading it off the wire.
-  const altReading = useStream<number | null>("vessel.state.altitudeAsl");
-  const alt =
-    altReading.state === "observed" || altReading.state === "stale"
-      ? altReading.value
+function LiquidFuel() {
+  const fuelReading = useStream<Value<"units">>(
+    "dv.currentStageResource.LiquidFuel",
+  );
+  const fuel =
+    fuelReading.state === "observed" || fuelReading.state === "stale"
+      ? fuelReading.value.magnitude
       : undefined;
-  return <div>alt:{alt === undefined ? NULL_DISPLAY : String(alt)}</div>;
+  return <div>fuel:{fuel === undefined ? NULL_DISPLAY : String(fuel)}</div>;
 }
 
-describe("TelemetryProvider bridges client -> TimelineStore -> useStream for derived vessel.state.* topics", () => {
+describe("TelemetryProvider bridges client -> TimelineStore -> useStream for derived topics", () => {
   it("resolves a derived field through useStream, given only `client` (the store is auto-created)", async () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
 
     const { unmount } = render(
       <TelemetryProvider client={client}>
-        <Altitude />
+        <LiquidFuel />
       </TelemetryProvider>,
     );
 
-    expect(screen.getByText(`alt:${NULL_DISPLAY}`)).toBeTruthy();
+    expect(screen.getByText(`fuel:${NULL_DISPLAY}`)).toBeTruthy();
 
     // Ref-counting: subscribing the derived topic must have
     // subscribed its declared INPUTS on the wire, never the (server-unknown)
     // derived topic name itself.
-    expect(transport.isSubscribed("vessel.orbit")).toBe(true);
-    expect(transport.isSubscribed("vessel.flight")).toBe(true);
-    expect(transport.isSubscribed("vessel.state.altitudeAsl")).toBe(false);
+    expect(transport.isSubscribed("dv.stages")).toBe(true);
+    expect(transport.isSubscribed("vessel.structure")).toBe(true);
+    expect(transport.isSubscribed("dv.currentStageResource")).toBe(false);
+    expect(transport.isSubscribed("dv.currentStageResource.LiquidFuel")).toBe(
+      false,
+    );
 
     act(() => {
-      transport.emit("vessel.orbit", ORBIT, {
-        quality: Quality.Loaded,
-        source: "vessel:1",
-      });
-      transport.emit("vessel.flight", FLIGHT, {
-        quality: Quality.Loaded,
-        source: "vessel:1",
-      });
+      transport.emit("vessel.structure", { currentStage: 0 });
+      transport.emit("dv.stages", [
+        { stage: 0, resources: { LiquidFuel: { current: 360, max: 720 } } },
+      ]);
     });
 
     // `TelemetryProvider` coalesces `beginFrame()` to the next animation
     // frame, so the derived read resolves one frame after the emits, not
     // synchronously.
-    await waitFor(() => expect(screen.getByText("alt:71234")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("fuel:360")).toBeTruthy());
 
     // Unsubscribe symmetry: unmounting releases both ref-counted raw inputs.
     unmount();
-    expect(transport.isSubscribed("vessel.orbit")).toBe(false);
-    expect(transport.isSubscribed("vessel.flight")).toBe(false);
+    expect(transport.isSubscribed("dv.stages")).toBe(false);
+    expect(transport.isSubscribed("vessel.structure")).toBe(false);
   });
 
   it("still resolves an ordinary raw (non-derived) topic exactly as before", async () => {

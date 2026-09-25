@@ -1,3 +1,6 @@
+// Imported for the module-load side effect as much as for the value: this is
+// what registers `spaceCenter.state`'s hand-declared field metadata.
+import { spaceCenterStateChannel } from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 import { isKnownFieldPath, mapTopic } from "./map-topic";
 
@@ -17,7 +20,8 @@ describe("isKnownFieldPath", () => {
   });
 
   it("still resolves a derived-channel field, which no contract type declares", () => {
-    expect(isKnownFieldPath("vessel.state.altitudeAsl")).toBe(true);
+    void spaceCenterStateChannel;
+    expect(isKnownFieldPath("spaceCenter.state.padOccupied")).toBe(true);
   });
 
   it("rejects a plausible name the contract does not declare", () => {
@@ -27,7 +31,7 @@ describe("isKnownFieldPath", () => {
     expect(isKnownFieldPath("career.status.economy.upkeep.notASource")).toBe(
       false,
     );
-    expect(isKnownFieldPath("vessel.state.notAField")).toBe(false);
+    expect(isKnownFieldPath("spaceCenter.state.notAField")).toBe(false);
     expect(isKnownFieldPath("notATopic.atAll")).toBe(false);
   });
 

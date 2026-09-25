@@ -123,9 +123,8 @@ describe("a channel's declared delay role", () => {
 
   it("keeps a derived channel mixing roles on the delayed lane", () => {
     const { store } = startStore();
-    /* `system.bodies` is TrueNow and `vessel.flight` is not, which is the shape
-       `vessel.state` really has. The output must not be stamped more current
-       than the most delayed thing it read. */
+    /* `system.bodies` is TrueNow and `vessel.flight` is not. The output must
+       not be stamped more current than the most delayed thing it read. */
     store.ingest("system.bodies", point(UT_NOW, { bodies: [] }));
     store.registerDerivedChannel({
       topic: "mixed.state",

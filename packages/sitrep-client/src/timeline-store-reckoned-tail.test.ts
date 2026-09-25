@@ -12,9 +12,9 @@ import { ViewClock } from "./view-clock";
  *
  * `sampleDerivedRange` next door emits a point only where a declared INPUT
  * changed, which is the whole of history and none of the silence after it.
- * These cases isolate the tail mechanism against small synthetic channels; the
- * full `vessel.state` path runs end to end in `@ksp-gonogo/data`'s
- * `useDataSeries.reckoning.test.tsx` and on a rendered chart in
+ * These cases isolate the tail mechanism against small synthetic channels; a
+ * real topic's tail runs end to end in `@ksp-gonogo/data`'s
+ * `useDataSeries.reckoned.test.tsx` and on a rendered chart in
  * `@ksp-gonogo/components`' `Graph/stream.test.tsx`.
  *
  * The synthetic channel is `test.temperature`, declared in

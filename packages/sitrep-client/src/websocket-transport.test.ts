@@ -780,7 +780,7 @@ describe("WebSocketTransport outbound queue", () => {
 
   it("keeps only the latest vantage selection, and replays it before re-subscribing", () => {
     const { transport, socket } = downTransport();
-    transport.send({ type: "subscribe", topic: "vessel.state" });
+    transport.send({ type: "subscribe", topic: "vessel.orbit" });
     for (const centreId of ["ksc", "woomera", "kourou"]) {
       transport.send({ type: "set-vantage", centreId });
     }
@@ -795,7 +795,7 @@ describe("WebSocketTransport outbound queue", () => {
     // Before the re-subscribes, because the server reads the selected vantage
     // at subscribe time: replayed after, every topic re-points at the old one.
     expect(sent[0].type).toBe("set-vantage");
-    expect(sent[1]).toEqual({ type: "subscribe", topic: "vessel.state" });
+    expect(sent[1]).toEqual({ type: "subscribe", topic: "vessel.orbit" });
 
     transport.dispose();
   });

@@ -1,7 +1,9 @@
 import { Quality, Staleness, value } from "@ksp-gonogo/sitrep-sdk";
 import type { VesselOrbitPayload } from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
+import { dvCurrentStageResourceChannel } from "./dv-stage-resources";
 import { makeMeta } from "./stub-transport";
+import { systemStateChannel } from "./system-state";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import { vesselStateChannel } from "./vessel-state";
@@ -442,6 +444,82 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
 
       expect(store.sampleStatus("vessel.state")).toBe("live");
     });
+  });
+});
+
+/**
+ * A derived channel that declares no `deriveStatus` reads the worst status of
+ * its declared inputs. system.state and dv.currentStageResource both take this
+ * default.
+ */
+describe("a derived channel's default status: worst of its declared inputs, through a real store", () => {
+  function recordPoint<T>(
+    validAt: number,
+    payload: T | null,
+    staleness: Staleness = Staleness.Fresh,
+  ): TimelinePoint<T> {
+    return {
+      validAt,
+      payload,
+      meta: makeMeta({ validAt, deliveredAt: validAt, staleness }),
+      epoch: 0,
+    };
+  }
+
+  const BODIES = { bodies: [{ name: "Kerbin", index: 1 }] };
+
+  function systemStore(): TimelineStore {
+    const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+    const store = new TimelineStore(clock);
+    store.registerDerivedChannel(systemStateChannel);
+    return store;
+  }
+
+  it("carries its input's held-stale status, on the channel and on its field subtopic", () => {
+    const store = systemStore();
+    store.ingest("system.bodies", recordPoint(10, BODIES, Staleness.HeldStale));
+    store.beginFrame();
+
+    expect(store.sampleStatus("system.state")).toBe("held-stale");
+    expect(store.sampleStatus("system.state.bodyCount")).toBe("held-stale");
+  });
+
+  it("reads 'absent' when its input is tombstoned", () => {
+    const store = systemStore();
+    store.ingest("system.bodies", recordPoint(10, null));
+    store.beginFrame();
+
+    expect(store.sampleStatus("system.state")).toBe("absent");
+  });
+
+  it("reads 'resyncing' before its input has arrived", () => {
+    const store = systemStore();
+    store.beginFrame();
+
+    expect(store.sampleStatus("system.state")).toBe("resyncing");
+  });
+
+  it("reads 'live' off a fresh, on-time input", () => {
+    const store = systemStore();
+    store.ingest("system.bodies", recordPoint(10, BODIES));
+    store.beginFrame();
+
+    expect(store.sampleStatus("system.state")).toBe("live");
+  });
+
+  it("takes the WORST of two inputs, not the first", () => {
+    const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+    const store = new TimelineStore(clock);
+    store.registerDerivedChannel(dvCurrentStageResourceChannel);
+
+    store.ingest("dv.stages", recordPoint(10, [{ stage: 0, resources: {} }]));
+    store.ingest(
+      "vessel.structure",
+      recordPoint(10, { currentStage: 0 }, Staleness.HeldStale),
+    );
+    store.beginFrame();
+
+    expect(store.sampleStatus("dv.currentStageResource")).toBe("held-stale");
   });
 });
 
