@@ -188,6 +188,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             private readonly ManualResetEventSlim _stop = new ManualResetEventSlim(false);
             private readonly Thread _thread;
+            private Exception? _fault;
 
             public MainThreadTicker(ChannelEngine engine, MainThreadOnlyHomes homes)
             {
@@ -197,17 +198,29 @@ namespace Sitrep.Host.IntegrationTests
                     homes.MainThreadId = Thread.CurrentThread.ManagedThreadId;
                     started.Set();
                     var ut = 0.0;
-                    while (!_stop.IsSet)
+                    try
                     {
-                        engine.TickAndWait(ut, null, Timeout);
-                        FirstTickDone.Set();
-                        ut += 1.0;
-                        Thread.Sleep(2);
+                        while (!_stop.IsSet)
+                        {
+                            engine.TickAndWait(ut, null, Timeout);
+                            FirstTickDone.Set();
+                            ut += 1.0;
+                            Thread.Sleep(2);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // An exception escaping a raw thread kills the test host, so the
+                        // fault is carried to Stop and fails the test that owns it.
+                        _fault = ex;
                     }
                 })
                 { IsBackground = true, Name = "test-unity-main-thread" };
                 _thread.Start();
-                started.Wait(Timeout);
+                if (!started.Wait(Timeout))
+                {
+                    throw new TimeoutException("the main-thread ticker did not start within " + Timeout);
+                }
             }
 
             public ManualResetEventSlim FirstTickDone { get; } = new ManualResetEventSlim(false);
@@ -215,7 +228,15 @@ namespace Sitrep.Host.IntegrationTests
             public void Stop()
             {
                 _stop.Set();
-                _thread.Join(Timeout);
+                if (!_thread.Join(Timeout))
+                {
+                    throw new TimeoutException("the main-thread ticker did not stop within " + Timeout);
+                }
+                var fault = Interlocked.Exchange(ref _fault, null);
+                if (fault != null)
+                {
+                    throw new InvalidOperationException("the main-thread ticker faulted", fault);
+                }
             }
 
             public void Dispose()
