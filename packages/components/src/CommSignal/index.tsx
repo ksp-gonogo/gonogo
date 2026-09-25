@@ -314,7 +314,8 @@ function CommSignalComponent({
   const strengthValid =
     typeof raw === "number" && Number.isFinite(raw) && raw > 0;
   const pct = strengthValid ? Math.max(0, Math.min(1, raw)) : null;
-  let bars: number;
+  // `null` when nothing arrived to judge the link by: a count of zero is a verdict.
+  let bars: number | null;
   if (noSignal) {
     /*
      * WITHHELD, not zero-as-a-verdict. The bar count is a judgement and the
@@ -337,7 +338,7 @@ function CommSignalComponent({
   } else if (controlState === 0) {
     bars = 0;
   } else {
-    bars = 0;
+    bars = null;
   }
   const control = describeControl(controlStateName, controlState);
 
@@ -774,7 +775,7 @@ function SignalBars({
   tone,
   noSignal,
 }: {
-  bars: number;
+  bars: number | null;
   tone: Tone;
   noSignal?: boolean;
 }) {
@@ -785,7 +786,13 @@ function SignalBars({
          one. An aria-label IS operator-facing copy, so it matches the badge a
          sighted reader sees rather than describing the link as merely "not
          current". */
-      aria-label={noSignal ? "No signal" : `Signal ${bars} of 4`}
+      aria-label={
+        noSignal
+          ? "No signal"
+          : bars === null
+            ? "Signal unknown"
+            : `Signal ${bars} of 4`
+      }
       style={{
         display: "flex",
         alignItems: "flex-end",
@@ -798,7 +805,7 @@ function SignalBars({
       }}
     >
       {[1, 2, 3, 4].map((i) => {
-        const lit = i <= bars;
+        const lit = bars !== null && i <= bars;
         const color = lit ? TONE_COLOR[tone] : "var(--color-border-subtle)";
         return (
           <span

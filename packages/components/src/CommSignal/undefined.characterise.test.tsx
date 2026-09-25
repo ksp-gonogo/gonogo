@@ -126,21 +126,18 @@ describe("CommSignal: what undefined means today", () => {
     await waitFor(() => expect(visibleText()).toContain("1s"));
   });
 
-  it("draws zero bars in the OK tone with an em-dash headline when only connected arrives", async () => {
+  it("draws no lit bars and announces the count as unknown when only connected arrives", async () => {
     const { fixture } = renderComm();
 
     act(() => {
       fixture.emit("comms.link", { connected: true });
     });
 
-    // `hasData` now passes on `connected` alone, and every other read is still
-    // `undefined`. The result is the fail-open render this pass exists to make
-    // visible: a confident "Signal to KSC" / "Signal connected" beside ZERO lit
-    // bars, because the bars fall all the way through to the `else` branch when
-    // both strength and control state are absent.
+    // `hasData` passes on `connected` alone and every other read is still `undefined`, so there is nothing to count bars from: "0 of 4" would be a verdict about signal strength made from no reading of it.
     await waitFor(() =>
-      expect(screen.getByLabelText("Signal 0 of 4")).toBeTruthy(),
+      expect(screen.getByLabelText("Signal unknown")).toBeTruthy(),
     );
+    expect(screen.queryByLabelText("Signal 0 of 4")).toBeNull();
     expect(screen.getByText("Signal to KSC")).toBeTruthy();
     expect(screen.getByText("Signal connected")).toBeTruthy();
     // `describeControl(undefined, undefined)` resolves to NULL_DISPLAY, which
