@@ -342,7 +342,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/components/src/ResourceOps/index.test.tsx": 5,
   "packages/components/src/ResourceOps/index.tsx": 2,
   "packages/components/src/ResourceOps/stale.test.tsx": 1,
-  "packages/components/src/ResourceOps/undefined.characterise.test.tsx": 4,
+  "packages/components/src/ResourceOps/undefined.characterise.test.tsx": 2,
   "packages/components/src/ScienceData/AboardTab.tsx": 2,
   "packages/components/src/ScienceData/ArchiveTab.tsx": 1,
   "packages/components/src/ScienceData/index.test.tsx": 3,
