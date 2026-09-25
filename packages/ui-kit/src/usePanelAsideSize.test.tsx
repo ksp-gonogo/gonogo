@@ -34,6 +34,19 @@ describe("nextAsideCollapsed", () => {
     expect(nextAsideCollapsed(true, 400, 300)).toBe(false);
   });
 
+  it("re-decides with no margin once the content itself is a different width", () => {
+    // Collapsed while a third badge made it 360 wide; that badge is gone and
+    // the content now needs 300 of the 310 available. The dead band is for the
+    // room moving under the same content, not for new content.
+    expect(nextAsideCollapsed(true, 310, 300, 360)).toBe(false);
+    expect(nextAsideCollapsed(true, 310, 300, 300)).toBe(true);
+  });
+
+  it("still collapses new content that does not fit", () => {
+    expect(nextAsideCollapsed(false, 310, 400, 300)).toBe(true);
+    expect(nextAsideCollapsed(true, 310, 320, 360)).toBe(true);
+  });
+
   it("holds the previous state when either measurement is unavailable (0)", () => {
     // 0 means "no real measurement landed yet" (jsdom, pre-layout, an
     // unfired ResizeObserver), not "no room" or "no content".
