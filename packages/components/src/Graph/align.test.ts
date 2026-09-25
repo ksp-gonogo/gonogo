@@ -40,6 +40,14 @@ describe("alignXY", () => {
     expect(out).toEqual({ x: [11], y: [999], breaks: [] });
   });
 
+  it("reads its default tolerance in the basis the series states, so UT-second samples a minute apart do not pair", () => {
+    const xs = { t: [100], v: [7], basis: "ut-seconds" as const };
+    const near = { t: [100.4], v: [1], basis: "ut-seconds" as const };
+    const far = { t: [160], v: [2], basis: "ut-seconds" as const };
+    expect(alignXY(near, xs)).toEqual({ x: [7], y: [1], breaks: [] });
+    expect(alignXY(far, xs)).toEqual({ x: [], y: [], breaks: [] });
+  });
+
   it("allows a custom tolerance", () => {
     const xs = { t: [0], v: [7] };
     const ys = { t: [5000], v: [1] };

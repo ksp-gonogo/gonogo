@@ -1,21 +1,23 @@
-import type { SeriesRange } from "@ksp-gonogo/data";
+import type { SeriesRange, SeriesTimeBasis } from "@ksp-gonogo/data";
 
 /**
- * Tolerance for pairing a Y sample with the most recent X sample. Telemetry
- * ticks at ~4 Hz and derived samples stamp at call time, so same-tick pairs
- * can drift by a few ms; 1 s also bridges one dropped tick.
+ * Tolerance for pairing a Y sample with the most recent X sample: one second,
+ * in whichever unit the series stamps its instants. Telemetry ticks at ~4 Hz,
+ * so a second bridges one dropped tick; read in the wrong unit it pairs
+ * samples a thousand times further apart.
  */
-export const X_ALIGN_TOL_MS = 1000;
+export function xAlignTolerance(basis: SeriesTimeBasis | undefined): number {
+  return basis === "ut-seconds" ? 1 : 1000;
+}
 
 /**
  * Nearest-prior-match pairing of X + Y series by timestamp. For each Y sample
  * at `t_y`, picks the newest X sample with `t_x <= t_y`, emitting the pair if
- * `t_y - t_x <= tolMs`. Assumes both inputs are time-sorted (which
+ * `t_y - t_x <= tolerance`. Assumes both inputs are time-sorted (which
  * `useDataSeries` guarantees).
  *
- * Exact timestamp match isn't viable here because `BufferedDataSource` stamps
- * each `handleSample` call independently: two keys on the same WS tick land
- * microseconds apart, and derived-of-raw pairs call `now()` twice.
+ * Exact timestamp match isn't viable because each key is stamped on its own,
+ * so two keys from the same tick can land a fraction of a tick apart.
  *
  * `ys.breaks` is REINDEXED onto the output rather than passed through, because
  * this drops any Y sample it cannot pair: an index that named a hole in the
@@ -28,7 +30,7 @@ export const X_ALIGN_TOL_MS = 1000;
 export function alignXY(
   ys: SeriesRange<number>,
   xs: SeriesRange<number>,
-  tolMs = X_ALIGN_TOL_MS,
+  tolerance = xAlignTolerance(ys.basis),
 ): { x: number[]; y: number[]; breaks: number[] } {
   const outX: number[] = [];
   const outY: number[] = [];
@@ -40,7 +42,7 @@ export function alignXY(
     const ty = ys.t[yi];
     if (inBreaks.has(yi)) pendingBreak = true;
     while (xi + 1 < xs.t.length && xs.t[xi + 1] <= ty) xi++;
-    if (xi >= 0 && ty - xs.t[xi] <= tolMs) {
+    if (xi >= 0 && ty - xs.t[xi] <= tolerance) {
       if (pendingBreak && outY.length > 0) outBreaks.push(outY.length);
       pendingBreak = false;
       outX.push(xs.v[xi] as number);
