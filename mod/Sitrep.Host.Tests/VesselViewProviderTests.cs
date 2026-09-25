@@ -936,6 +936,7 @@ namespace Sitrep.Host.Tests
                     ["hottestPartSkinTemp"] = 800.0,
                     ["hottestPartSkinMaxTemp"] = 2400.0,
                     ["hottestPartName"] = "Mk1 Command Pod",
+                    ["hottestPartId"] = "4012345678",
                 });
 
             var thermal = VesselViewProvider.BuildThermal(snapshot);
@@ -947,6 +948,28 @@ namespace Sitrep.Host.Tests
             Assert.Equal(500.0, thermal.HottestPart!.InternalTemp);
             Assert.Equal(2400.0, thermal.HottestPart.SkinMaxTemp);
             Assert.Equal("Mk1 Command Pod", thermal.HottestPart.Name);
+            Assert.Equal("4012345678", thermal.HottestPart.Id);
+        }
+
+        [Fact]
+        public void BuildThermalLeavesTheHottestPartIdNullWhenThePartHasNoFlightId()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                thermal: new Dictionary<string, object?>
+                {
+                    ["maxInternalTempRatio"] = 0.6,
+                    ["hottestPartInternalTemp"] = 500.0,
+                    ["hottestPartMaxTemp"] = 1200.0,
+                    ["hottestPartSkinTemp"] = 800.0,
+                    ["hottestPartSkinMaxTemp"] = 2400.0,
+                    ["hottestPartName"] = "Mk1 Command Pod",
+                });
+
+            var thermal = VesselViewProvider.BuildThermal(snapshot);
+
+            Assert.NotNull(thermal!.HottestPart);
+            Assert.Null(thermal.HottestPart!.Id);
         }
 
         [Fact]

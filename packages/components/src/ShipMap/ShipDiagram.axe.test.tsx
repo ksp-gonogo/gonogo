@@ -83,7 +83,7 @@ describe("ShipDiagram a11y", () => {
     const { container } = render(
       <ShipDiagram
         parts={[POD, CHUTE, ENGINE, SOLAR]}
-        highlight="LV-T45 Liquid Fuel Engine"
+        highlightPartId={String(ENGINE.flightId)}
         width={400}
         height={400}
       />,

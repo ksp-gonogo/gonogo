@@ -30,6 +30,10 @@ public class ThermalHottestPart
     /// <summary>Display name of the hottest part (<c>Part.partInfo.title</c>, falling back to <c>Part.name</c>, same convention as <see cref="Sitrep.Contract.VesselPart.Title"/>). Never null when <see cref="VesselThermal.HottestPart"/> itself is non-null.</summary>
     [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
+
+    /// <summary><c>Part.flightID</c> stringified, the same join key as <see cref="Sitrep.Contract.VesselPart.Id"/>, so a client can tell WHICH part is hottest where several share <see cref="Name"/> (a symmetric craft). <c>null</c> when the part has no live flight id yet.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? Id { get; set; }
 }
 
 /// <summary>

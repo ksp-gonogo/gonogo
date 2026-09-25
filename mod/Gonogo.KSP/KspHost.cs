@@ -1254,6 +1254,7 @@ namespace Gonogo.KSP
                 result["hottestPartSkinTemp"] = hottest.skinTemperature;
                 result["hottestPartSkinMaxTemp"] = hottest.skinMaxTemp;
                 result["hottestPartName"] = hottest.partInfo != null ? hottest.partInfo.title : hottest.name;
+                result["hottestPartId"] = hottest.flightID != 0 ? hottest.flightID.ToString() : null;
             }
 
             if (hottestShield != null)

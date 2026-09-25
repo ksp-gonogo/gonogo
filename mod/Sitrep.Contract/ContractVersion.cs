@@ -1928,7 +1928,12 @@ namespace Sitrep.Contract
         /// filled only while the payload's quality is <c>Loaded</c>. Additive,
         /// nothing removed or retyped, so an Uplink built against 18.9 is
         /// unaffected.</para>
+        ///
+        /// <para><b>Major-18 line, Bumped 10 -&gt; 11:</b> <see cref="ThermalHottestPart.Id"/>, the
+        /// hottest part's flight id, so a client can pick out the one part among several
+        /// that share its name. Additive, nothing removed or retyped, so an Uplink built
+        /// against 18.10 is unaffected.</para>
         /// </remarks>
-        public const int Minor = 10;
+        public const int Minor = 11;
     }
 }
