@@ -852,7 +852,7 @@ registerComponent<FleetRosterConfig>({
   id: "fleet-roster",
   name: "Fleet Roster",
   description:
-    "Fleet-wide roster table: one row per known CRAFT (debris, asteroids/comets, flags, EVA kerbals, and deployed science hardware are filtered out, see isRosterCraft) with name, body, crew, and comms link tier (direct/relay/no link), plus a fleet-wide comms-coverage summary. Each row carries a fleet-roster.updates augment slot, which is where an Uplink puts per-vessel health or alarm lines; it renders nothing until one binds, and no Uplink binds it today. When one does it can only ever fill ONE row: reliability.* is active-vessel-only (it carries no vesselId), so every other craft's row shows nothing whatever its condition. SystemView draws only the ACTIVE vessel spatially: system.vessels carries no per-vessel position, so a whole-fleet spatial view is not something this table's data could feed even if SystemView grew a slot for it.",
+    "Fleet-wide roster table: one row per known craft (debris, asteroids, comets, flags, EVA kerbals and deployed science hardware are left out) with name, body, crew and comms link tier (direct, relay, no link), plus a fleet-wide comms-coverage summary. Each row carries a fleet-roster.updates slot for per-vessel health or alarm lines, which Fleet Reliability fills on the active vessel's row.",
   tags: ["telemetry"],
   /*
    * DECLARED, not merely rendered. `effectiveSearchTags` and `uplinkAdditions`
