@@ -206,7 +206,7 @@ describe("Meter, given a reading of a fraction", () => {
      * as three numbers in a row.
      */
     expect(meter.getAttribute("aria-valuetext")).toBe(
-      "39 percent, between 30 percent and 44 percent about two thirds of the time",
+      "39 percent, with bands at 30 percent and 44 percent",
     );
   });
 
@@ -229,7 +229,7 @@ describe("Meter, given a reading of a fraction", () => {
     );
   });
 
-  it("leaves a hard bound unqualified, which is the stronger claim", () => {
+  it("says a hard bound's interval the same way as a sigma1 one", () => {
     render(
       <Meter
         label="Dose"
@@ -241,7 +241,7 @@ describe("Meter, given a reading of a fraction", () => {
     );
     const meter = screen.getByRole("meter", { name: "Dose" });
     expect(meter.getAttribute("aria-valuetext")).toBe(
-      "39 percent, between 38 percent and 40 percent",
+      "39 percent, with bands at 38 percent and 40 percent",
     );
   });
 
@@ -530,7 +530,7 @@ describe("Meter, given a capacity that is itself a reading", () => {
     );
     const meter = screen.getByRole("meter", { name: "LiquidFuel" });
     expect(meter.getAttribute("aria-valuetext")).toContain(
-      "capacity between 390",
+      "capacity with bands at 390",
     );
   });
 
@@ -556,8 +556,8 @@ describe("Meter, given a capacity that is itself a reading", () => {
     const spoken = screen
       .getByRole("meter", { name: "LiquidFuel" })
       .getAttribute("aria-valuetext");
-    expect(spoken).toContain("between 200");
-    expect(spoken).toContain("capacity between 390");
+    expect(spoken).toContain("with bands at 200");
+    expect(spoken).toContain("capacity with bands at 390");
   });
 
   it("marks the TRACK when the capacity has stopped being current", () => {

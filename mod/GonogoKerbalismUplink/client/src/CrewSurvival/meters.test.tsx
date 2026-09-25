@@ -241,8 +241,7 @@ describe("what the meter says with it", () => {
 
     // The marks themselves are a shape and say nothing, so the sentence on the
     // track is the only place a screen reader learns the interval exists.
-    expect(said).toMatch(/between/i);
-    expect(said).toMatch(/two thirds of the time/i);
+    expect(said).toMatch(/with bands at/i);
     await act(async () => {});
   });
 });

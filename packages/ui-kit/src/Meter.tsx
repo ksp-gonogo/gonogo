@@ -446,13 +446,13 @@ function withBands(
     const lo = speakQuantity(bound.loSaid, shared);
     const hi = speakQuantity(bound.hiSaid, shared);
     /*
-     * "between ... and ...", never the bare "lo to hi" the ticks are drawn
-     * from. The bar has already announced its own figure, so a second pair of
-     * numbers behind a comma is three numbers in a row to someone listening,
-     * and the connector is the only thing telling them which two are the
-     * interval.
+     * "with bands at ... and ...", never the bare "lo to hi" the ticks are
+     * drawn from. The bar has already announced its own figure, so a second
+     * pair of numbers behind a comma is three numbers in a row to someone
+     * listening, and the connector is the only thing telling them which two
+     * are the band.
      */
-    return bandClaim(bound.kind, `${lead}between ${lo} and ${hi}`);
+    return bandClaim(bound.kind, `${lead}with bands at ${lo} and ${hi}`);
   };
   const clauses = [
     bounds === null ? null : said(bounds, ""),

@@ -103,10 +103,9 @@ KERBALISM.registerContribution({
  * `survivalBadges`, and a rule the model does not band says nothing either
  * way, because no band is not a band that is comfortably clear.
  *
- * The words say it is the model's range. Not `bandClaim`: that qualifies a
- * statement that the value is INSIDE an interval, and this is a statement that
- * the interval's far end reaches a line, so "about two thirds of the time"
- * appended here would claim the crew reaches critical two times in three.
+ * The words say it is the model's range. Not `bandClaim`: that states a value
+ * is INSIDE an interval, and this states that the interval's far end reaches
+ * a line, which is a different claim regardless of wording.
  */
 function bandBadges(
   readings: RuleReadings | undefined,

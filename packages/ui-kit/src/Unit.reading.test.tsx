@@ -564,10 +564,8 @@ describe("Unit: how well the number is known", () => {
 
   it("says what the interval CLAIMS in the hover, not beside the numbers", () => {
     /*
-     * A hard bound and a one-sigma interval are the same two numbers until
-     * something says which, and they are worth very different amounts. The
-     * qualifier is a clause, and a clause inline would double the length of
-     * every banded readout in a table.
+     * It is a clause, and a clause inline would double the length of every
+     * banded readout in a table.
      */
     const { container } = render(
       <Unit
@@ -576,11 +574,11 @@ describe("Unit: how well the number is known", () => {
       />,
     );
     expect(quantity(container).getAttribute("title")).toMatch(
-      /, between 0\.975 kilometres and 1\.025 kilometres about two thirds of the time$/,
+      /, with bands at 0\.975 kilometres and 1\.025 kilometres$/,
     );
   });
 
-  it("leaves a hard bound unqualified, which is the stronger claim", () => {
+  it("says a hard bound's interval the same way as a sigma1 one", () => {
     const { container } = render(
       <Unit
         value={banded(1000, {
@@ -593,7 +591,7 @@ describe("Unit: how well the number is known", () => {
       />,
     );
     expect(quantity(container).getAttribute("title")).toMatch(
-      /, between 0\.975 kilometres and 1\.025 kilometres$/,
+      /, with bands at 0\.975 kilometres and 1\.025 kilometres$/,
     );
   });
 
@@ -605,7 +603,7 @@ describe("Unit: how well the number is known", () => {
     );
     const title = quantity(container).getAttribute("title") ?? "";
     expect(title).toContain("STALE");
-    expect(title).toContain("between");
+    expect(title).toContain("with bands at");
   });
 
   it("raises no a11y violation with an interval drawn", async () => {

@@ -425,9 +425,9 @@ function toInterval<U extends string>(
    * The SPOKEN ends carry the unit's word where the written ones carry no
    * symbol at all: the visible form renders one `<UnitSymbol>` after the pair,
    * so writing a symbol into each end would print it three times, while a
-   * hover reading "between 0.975 and 1.025" is a pair of numbers about nothing.
-   * `speakQuantity` at the figure's own rung is the same sentence a `<Meter>`
-   * puts in its `aria-valuetext`.
+   * hover reading "with bands at 0.975 and 1.025" is a pair of numbers about
+   * nothing. `speakQuantity` at the figure's own rung is the same sentence a
+   * `<Meter>` puts in its `aria-valuetext`.
    */
   const spoken = { ...opts, format: rung };
   return {
@@ -472,7 +472,7 @@ function hover(
       ? null
       : bandClaim(
           interval.kind,
-          `between ${interval.loSaid} and ${interval.hiSaid}`,
+          `with bands at ${interval.loSaid} and ${interval.hiSaid}`,
         );
   if (caption === null) return said;
   return said === null ? caption : `${caption}, ${said}`;
@@ -698,11 +698,9 @@ export function Unit<U extends string = string>({
         // hovering the digits answers the mark, hovering the symbol answers the
         // unit.
         //
-        // The band's CLAIM is said here rather than beside the numbers. A hard
-        // bound and a one-sigma interval are the same two numbers until
-        // something says which, and they are worth very different amounts; the
-        // qualifier that separates them is a clause, and a clause inline would
-        // double the length of every banded readout in a table.
+        // The band's CLAIM is said here rather than beside the numbers. It is
+        // a clause, and a clause inline would double the length of every
+        // banded readout in a table.
         title={hover(caption, interval) ?? undefined}
       >
         {formatted.value}
