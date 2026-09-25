@@ -1815,7 +1815,7 @@ const WIDGETS: WidgetRenderConfig[] = [
   },
   {
     // Target Picker. Fixtures are SYNTHETIC (no live capture). Reads only the
-    // `"data"` source (tar.* / b.* / o.* keys), no probe kos wiring needed.
+    // `"data"` source (tar.* / b.* / o.* keys).
     // The widget is a single scrolling view, not a tablist: the Suggested +
     // categorised sections (Bodies / Vessels / Parts / Other) plus the
     // current-target summary all render AT ONCE, so every list appears in a
@@ -1863,15 +1863,6 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "landscape-18x10", w: 18, h: 10 },
     ],
   },
-  /*
-   * kos-terminal moved to
-   * @ksp-gonogo/gonogo-kos-uplink/scripts/widgets.ts, joining the widget
-   * itself, which has always lived there: its two probe fixtures went with
-   * it, into a `probe/` subfolder of the widget's own `__fixtures__/`, and
-   * its structural coverage is that package's own KosTerminal/
-   * snapshots.test.tsx. Same move as space-weather below, and as
-   * deployed-science and robotics-console before it.
-   */
   /*
    * space-weather moved to
    * @ksp-gonogo/gonogo-kerbalism-uplink/scripts/widgets.ts with the widget
@@ -1936,10 +1927,10 @@ const WIDGETS: WidgetRenderConfig[] = [
    * ship-systems moved to
    * @ksp-gonogo/gonogo-kerbalism-uplink/scripts/widgets.ts, joining the widget
    * itself, which has always lived there: its three probe fixtures went with
-   * it, into a `probe/` subfolder of the widget's own `__fixtures__/`, the
-   * same shape kos-terminal uses. Nothing in packages/ read them, so no copy
-   * stayed behind: an Uplink that leaves for gonogo-uplinks takes its own test
-   * data with it. Same move as space-weather above.
+   * it, into a `probe/` subfolder of the widget's own `__fixtures__/`.
+   * Nothing in packages/ read them, so no copy stayed behind: an Uplink that
+   * leaves for gonogo-uplinks takes its own test data with it. Same move as
+   * space-weather above.
    */
   {
     // FleetRoster: fleet-wide roster TABLE (one row per known vessel),

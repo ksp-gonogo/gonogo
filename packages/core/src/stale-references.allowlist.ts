@@ -7,8 +7,6 @@
  * promise nothing keeps. See `styleguide-stale-references.test.ts`.
  */
 export const STALE_REFERENCE_DEBT: Record<string, number> = {
-  "mod/GonogoKosUplink/client/src/dataSource/kos-execute-uplink.test.ts -> dataSources/kosUplinkExecutor.test.ts": 1,
-  "mod/GonogoKosUplink/client/src/dataSource/kosUplinkExecutor.test.ts -> ../__tests__/kos-execute-uplink.test.ts": 1,
   "mod/sitrep-sdk/src/media/delayed-playout-buffer.block-colour.test.ts -> DelayedPlayoutBuffer.test.ts": 2,
   "mod/sitrep-sdk/src/media/delayed-playout-buffer.test.ts -> CameraFeed.test.tsx": 1,
   "mod/sitrep-sdk/src/media/encoded-frame-delay.test.ts -> frameDelay.pacing.test.ts": 1,

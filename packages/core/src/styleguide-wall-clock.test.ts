@@ -103,15 +103,6 @@ const ALLOWED_WALL_CLOCK: Record<string, number> = {
   // current a value is. The throttle itself takes the instant as an argument
   // and reads no clock, so this is the only read. 1 read.
   "packages/components/src/SystemView/index.tsx": 1,
-
-  // The only entry the Uplink roots brought with them when the walk widened
-  // to cover them. A local ledger of which kOS CPUs this BROWSER has seen:
-  // `createdAt` when the operator first names one, and two default arguments
-  // supplying "now" to `markSeen` / `reportOnline`, whose callers pass their
-  // own instant. The "last seen N min ago" it backs is the age of a discovery
-  // this session made, not of any telemetry sample, and it is stamped and read
-  // in the same clock throughout. 3 reads.
-  "mod/GonogoKosUplink/client/src/shared/CpuRegistryService.ts": 3,
 };
 
 function findRepoRoot(start: string): string {

@@ -37,13 +37,6 @@ export interface UplinkBundleTarget {
  */
 export const UPLINK_BUNDLE_TARGETS: UplinkBundleTarget[] = [
   {
-    id: "kos",
-    name: "kOS",
-    author: "jonpepler",
-    repo: "ksp-gonogo/GonogoKosUplink",
-    clientDir: resolve(modDir, "GonogoKosUplink/client"),
-  },
-  {
     id: "kerbalism",
     name: "Kerbalism",
     author: "jonpepler",

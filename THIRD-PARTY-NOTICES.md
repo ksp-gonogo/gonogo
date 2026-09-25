@@ -3,22 +3,21 @@
 The gonogo/Sitrep telemetry mod integrates with several third-party KSP mods.
 gonogo/Sitrep does not bundle or redistribute their binaries, these notices
 cover the mods' own licenses, retained here because Sitrep's Uplink
-integrations reference their data formats, wire protocols, or (in kOS's
-case) link directly against their assemblies.
+integrations reference their data formats or wire protocols, or, for kOS,
+link directly against its assemblies.
 
 ## kOS (KerboScript Operating System)
 
 - **Integration:** the kOS Uplink links `kOS.Safe`/`kOS` directly to run
-  Sitrep telemetry scripts on a vessel's kOS CPU (see `mod/GonogoKosUplink/`).
-  This direct link is why `GonogoKosUplink`, and only `GonogoKosUplink`: is licensed
-  **GPL-3.0-only**: kOS is GPLv3-only, and linking a GPLv3-only work requires
-  the linking work to be GPLv3-compatible. `GonogoKosUplink` is a dependency leaf
-  (nothing references it), so that obligation propagates no further; the rest
-  of gonogo, including all other Sitrep assemblies, is MIT. See `LICENSING.md`.
+  Sitrep telemetry scripts on a vessel's kOS CPU, and is **GPL-3.0-only** for
+  that reason: kOS is GPLv3-only, and linking a GPLv3-only work requires the
+  linking work to be GPLv3-compatible. It lives in the gonogo-uplinks
+  repository (`uplinks/kos/`), carrying its own licence and notice. Nothing in
+  this repository links or references kOS.
 - **License:** GNU General Public License v3.0 (GPLv3-only)
 - **Source:** https://github.com/KSP-KOS/KOS
-- Full license text: `local_docs/reference/kos/LICENSE.md`, mirrored in-repo at
-  `LICENSE-GPL-3.0.txt` and `mod/GonogoKosUplink/LICENSE`.
+- Full license text: `LICENSE-GPL-3.0.txt`, and beside the Uplink in
+  gonogo-uplinks.
 
 ## SCANsat
 
@@ -104,8 +103,8 @@ NuGet dependency, `Reinforced.Typings` (MIT, compile-time-only codegen tool
 scoped to `Sitrep.Contract`'s netstandard2.0 build via `PrivateAssets="all"`),
 is not shipped at all.
 
-`kOS` is the single copyleft thing gonogo links, and only `GonogoKosUplink` links
-it. Every other package and assembly is MIT, so third-party Uplinks, whether
+Nothing in this repository links anything copyleft. Every package and assembly
+is MIT, so third-party Uplinks, whether
 they reference the C# contract or the TypeScript `ui-kit` / `core` / `sitrep-sdk`
 surface: need only comply with MIT's terms (retain the copyright/permission
 notice), regardless of the Uplink's own license (GPL, proprietary, ARR, etc.).

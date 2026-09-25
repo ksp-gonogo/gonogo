@@ -191,10 +191,6 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
 
   // ── NOT quantities. Permanent by nature: nothing here has a unit, so
   //    there is no `Value` to hand `<Unit>` and no conversion to do.
-  "mod/GonogoKosUplink/client/src/dataSource/kosWrapper.ts": {
-    count: 2,
-    why: "not a quantity: writes kerboscript literals for a script call",
-  },
   "mod/sitrep-sdk/src/unit-system/dimension.ts": {
     count: 1,
     why: "not a quantity: renders a DIMENSION (L, M, T exponents), the thing a unit has",

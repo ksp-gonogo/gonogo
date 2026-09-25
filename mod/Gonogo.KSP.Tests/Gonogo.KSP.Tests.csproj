@@ -202,13 +202,12 @@
        Gonogo.KSP's own rule that it is the only assembly in the mod allowed
        to reference KSP/Unity types. ConfigNode is a plain data structure with
        no scene/runtime dependency, so it's genuinely loadable and testable in
-       a headless process - the same reasoning GonogoKosUplink.Tests already
-       applies to kOS.Safe.dll. This project therefore compiles the ledger
-       source directly (not a ProjectReference on Gonogo.KSP, which pulls in
-       many files that DO need a live scene) and soft-degrades exactly like
-       that project: when the reference DLL isn't present (a fresh checkout
-       with no synced KSP install / local_docs), this suite is dropped with a
-       build warning instead of failing the build. -->
+       a headless process. This project therefore compiles the ledger source
+       directly (not a ProjectReference on Gonogo.KSP, which pulls in many
+       files that DO need a live scene) and soft-degrades: when the reference
+       DLL isn't present (a fresh checkout with no synced KSP install /
+       local_docs), this suite is dropped with a build warning instead of
+       failing the build. -->
   <PropertyGroup>
     <AssemblyCSharpDll>$(KspManaged)\Assembly-CSharp.dll</AssemblyCSharpDll>
     <KspManagedAvailable Condition="Exists('$(AssemblyCSharpDll)')">true</KspManagedAvailable>

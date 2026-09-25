@@ -342,13 +342,15 @@ if (unexcused.length > 0) {
     );
   }
   if (ungated.length > 0) {
+    const template = rows.find((row) => row.reasons.length === 0);
     parts.push(
       "\n  These have a page that nothing holds to the code, so a stale one passes every\n" +
         "  local gate. Copy the five-line test every other Uplink carries:\n" +
         ungated
-          .map(
-            (row) =>
-              `    cp mod/GonogoKosUplink/client/src/uplink-page.test.ts mod/${row.id}/client/src/`,
+          .map((row) =>
+            template
+              ? `    cp mod/${template.id}/client/src/uplink-page.test.ts mod/${row.id}/client/src/`
+              : `    add mod/${row.id}/client/src/uplink-page.test.ts calling expectUplinkPageCurrent`,
           )
           .join("\n"),
     );

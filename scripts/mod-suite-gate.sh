@@ -82,14 +82,8 @@ fi
 KSP_GAMEDATA="${KSP_GAMEDATA:-$DATA_ROOT/local_docs/syncthing/kspdata/GameData}"
 KSP_MANAGED="${KSP_MANAGED:-$DATA_ROOT/local_docs/syncthing/kspdata/KSP_Data/Managed}"
 
-KOS_ARGS=""
 KSP_ARGS=""
 REDUCED=""
-if [ -f "$KSP_GAMEDATA/kOS/Plugins/kOS.dll" ] && [ -f "$KSP_GAMEDATA/kOS/Plugins/kOS.Safe.dll" ]; then
-  KOS_ARGS="/p:KspGameData=$KSP_GAMEDATA"
-else
-  REDUCED="$REDUCED GonogoKosUplink.Tests(headless-terminal-harness)"
-fi
 if [ -f "$KSP_MANAGED/Assembly-CSharp.dll" ]; then
   KSP_ARGS="/p:KspManaged=$KSP_MANAGED"
 else
@@ -149,7 +143,6 @@ FLAKED=""
 for proj in $PROJECTS; do
   name="$(basename "$proj" .csproj)"
   extra=""
-  [ "$name" = "GonogoKosUplink.Tests" ] && extra="$KOS_ARGS"
   [ "$name" = "Gonogo.KSP.Tests" ] && extra="$KSP_ARGS"
   allowed=1
   case " $RETRIED " in *" $name "*) allowed=$ATTEMPTS ;; esac

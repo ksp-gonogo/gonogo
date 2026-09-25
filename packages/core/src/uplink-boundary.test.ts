@@ -127,15 +127,12 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
       /kos\.(processors|run|compute|terminal|keystroke)/,
       /kOS/,
     ],
-    ownedDirs: [
-      "mod/GonogoKosUplink",
-      "mod/GonogoKosUplink.Tests",
-      /*
-       * GonogoKosUplink's own contract slice: all eleven Kos* wire and
-       * command-arg types live here, not in Sitrep.Contract.
-       */
-      "mod/GonogoKosUplink.Contract",
-    ],
+    /*
+     * No owning directory: any mention of kOS anywhere in core is a
+     * violation, which is the stronger guard now there is no directory here
+     * to own it.
+     */
+    ownedDirs: [],
   },
   realantennas: {
     // Matches both "realantennas" and the singular "realantenna".
@@ -1112,9 +1109,7 @@ describe("the reseed seam is exactly as wide as the scan change", () => {
   it("excuses only a path the base's walk could not reach", () => {
     // Reachable at the `"src"` base: graded as growth, exactly as before.
     expect(reachableAtBaseScope("src", "packages/app/src/main.tsx")).toBe(true);
-    expect(reachableAtBaseScope("src", "mod/GonogoKosUplink/client/x.ts")).toBe(
-      true,
-    );
+    expect(reachableAtBaseScope("src", "mod/sitrep-sdk/src/x.ts")).toBe(true);
     // Unreachable at the `"src"` base: the reseed this widening admits.
     expect(
       reachableAtBaseScope("src", "packages/components/scripts/widgets.ts"),

@@ -398,15 +398,13 @@ jobs:
   # Runs in parallel with `test`/`e2e`/`visual`, on the same triggers.
   #
   # SCOPING: the test projects are listed explicitly rather than building
-  # mod/Gonogo.sln wholesale, because Gonogo.KSP, GonogoKosUplink and
-  # GonogoScansatUplink reference KSP/Unity/SCANsat/kOS assemblies via HintPaths
-  # into a gitignored local KSP install and the solution build would fail on the
-  # missing DLLs.
+  # mod/Gonogo.sln wholesale, because Gonogo.KSP and the Uplink plugins
+  # reference KSP/Unity/mod assemblies via HintPaths into a gitignored local KSP
+  # install and the solution build would fail on the missing DLLs.
   #
   # The reference assemblies themselves are NOT missing here any more: the
   # `ksp-managed` checkout below fetches the private curated ref-DLL set, and
-  # two projects already compile KSP-linked sources against it (GonogoKosUplink's
-  # headless terminal harness, Gonogo.KSP.Tests' ConfigNode-backed ledger). That
+  # Gonogo.KSP.Tests compiles its ConfigNode-backed ledger against it. That
   # is the follow-up this comment used to describe as outstanding; it is done,
   # and the note is kept because believing otherwise is how a KSP-facing layer
   # gets written off as untestable.
@@ -478,9 +476,9 @@ jobs:
       - name: Uplink client hashes are armed
         run: node scripts/client-hash-armed.mjs
 
-      # The headless kOS terminal harness (GonogoKosUplink.Tests/Headless) needs
-      # kOS.Safe.dll + kOS.dll, and Gonogo.KSP.Tests' ConfigNode-backed ledger
-      # suite needs Assembly-CSharp.dll; both live in the private ksp-managed
+      # Gonogo.KSP.Tests' ConfigNode-backed ledger suite needs Assembly-CSharp.dll,
+      # and the Uplink plugin compile and the NuGet extraction probe need the KSP
+      # and mod reference assemblies; all live in the private ksp-managed
       # reference-assembly repo, the same repo the release-build workflows
       # already consume (see _build-uplink-mod.yml).
       #
@@ -490,8 +488,7 @@ jobs:
       # soft-degrading there means the ONLY coverage those KSP-linked sources
       # have silently does not run while the job stays green, and coverage that
       # can vanish without going red is worse than none: it looks like coverage.
-      # See docs/superpowers/plans/2026-07-13-kos-headless-harness-report.md.
-      - name: Checkout kOS reference assemblies (for the terminal harness)
+      - name: Checkout KSP reference assemblies
         id: kspmanaged
         continue-on-error: true
         uses: actions/checkout@v5
@@ -501,9 +498,8 @@ jobs:
           path: ksp-managed
 
       # On the paths that gate a merge or a deploy, the reference assemblies are
-      # not optional: without them GonogoKosUplink.Tests' harness and
-      # Gonogo.KSP.Tests' ledger suite are dropped at BUILD time and the job goes
-      # green having run neither. A missing token is a broken CI configuration,
+      # not optional: without them Gonogo.KSP.Tests' ledger suite is dropped at
+      # BUILD time and the job goes green having run it. A missing token is a broken CI configuration,
       # not a lighter test run, so it fails here where the reason is legible
       # rather than as an absence nobody reads.
       #
@@ -540,20 +536,14 @@ jobs:
           # check that cannot express the failure it exists to catch: it passes
           # on exactly the checkout that silently tests nothing.
           #
-          # This list asserted only Assembly-CSharp.dll and kOS.dll and so had
-          # that hole twice over. GonogoKosUplink.Tests' KosSafeAvailable reads
-          # BOTH kOS.dll and kOS.Safe.dll, so a checkout carrying only kOS.dll
-          # dropped the whole headless terminal harness and passed here.
-          # Gonogo.KSP.Tests additionally resolves UnityEngine.CoreModule.dll for
-          # ConfigNode's Vector3/Quaternion overload sets, and the robotics servo
-          # capture needs UnityEngine.PhysicsModule.dll at TYPE LOAD, because
-          # BaseServo declares ConfigurableJoint fields.
+          # Gonogo.KSP.Tests resolves UnityEngine.CoreModule.dll for ConfigNode's
+          # Vector3/Quaternion overload sets beside Assembly-CSharp.dll, and the
+          # robotics servo capture needs UnityEngine.PhysicsModule.dll at TYPE
+          # LOAD, because BaseServo declares ConfigurableJoint fields.
           required=(
             "KSP_Data/Managed/Assembly-CSharp.dll"
             "KSP_Data/Managed/UnityEngine.CoreModule.dll"
             "KSP_Data/Managed/UnityEngine.PhysicsModule.dll"
-            "GameData/kOS/Plugins/kOS.dll"
-            "GameData/kOS/Plugins/kOS.Safe.dll"
           )
           missing=""
           for rel in "${required[@]}"; do
@@ -562,7 +552,7 @@ jobs:
           done
           if [ -n "$missing" ]; then
             echo "::error::KSP reference assemblies absent on ${{ github.ref }}:$missing"
-            echo "::error::The KSP-linked suites (kOS headless harness, Gonogo.KSP ConfigNode ledger, robotics servo capture) would be DROPPED at build time and this job would pass without them. Check the ksp-gonogo/ksp-managed checkout and the KSP_MANAGED_TOKEN secret."
+            echo "::error::The KSP-linked suites (Gonogo.KSP ConfigNode ledger, robotics servo capture) would be DROPPED at build time and this job would pass without them. Check the ksp-gonogo/ksp-managed checkout and the KSP_MANAGED_TOKEN secret."
             exit 1
           fi
           echo "KSP reference assemblies present (${#required[@]} checked): the KSP-linked suites will run."
@@ -604,19 +594,10 @@ jobs:
           KSP_MANAGED: ${{ github.workspace }}/ksp-managed/KSP_Data/Managed
         run: |
           set -euo pipefail
-          # Enable the headless kOS terminal harness only when the reference
-          # DLLs are actually present (the checkout above may have soft-failed).
-          kos_args=""
-          if [ -f "$KSP_GAMEDATA/kOS/Plugins/kOS.Safe.dll" ] && [ -f "$KSP_GAMEDATA/kOS/Plugins/kOS.dll" ]; then
-            kos_args="/p:KspGameData=$KSP_GAMEDATA"
-            echo "kOS reference assemblies present: headless terminal harness ENABLED"
-          else
-            echo "::warning::kOS reference assemblies absent: headless kOS terminal harness SKIPPED (soft-degrade). Provide the ksp-gonogo/ksp-managed checkout + KSP_MANAGED_TOKEN to enable it."
-          fi
           # Gonogo.KSP.Tests' PendingCreditLedgerTests touch the real
-          # ConfigNode type (Assembly-CSharp.dll), same soft-degrade contract
-          # as the kOS harness above: without the reference DLL the project
-          # still builds and runs its pure-logic currency-delay suites, the
+          # ConfigNode type (Assembly-CSharp.dll), enabled only when the
+          # reference DLLs are actually present (the checkout above may have
+          # soft-failed): without the reference DLL the project still builds and runs its pure-logic currency-delay suites, the
           # ConfigNode-backed ledger tests are dropped with a build warning.
           ksp_managed_args=""
           if [ -f "$KSP_MANAGED/Assembly-CSharp.dll" ]; then
@@ -634,7 +615,6 @@ jobs:
             Sitrep.Skeleton.Tests
             Sitrep.Host.Tests
             Sitrep.Host.IntegrationTests
-            GonogoKosUplink.Tests
             GonogoKerbalismUplink.Tests
             Gonogo.KSP.Tests
           )
@@ -688,12 +668,10 @@ jobs:
           # needed a retry is a probability rather than a fact.
           for p in "${projects[@]}"; do
             echo "::group::dotnet test $p"
-            # Only GonogoKosUplink.Tests reads the kOS reference DLLs (its
-            # headless terminal harness) and only Gonogo.KSP.Tests reads the
-            # KSP_Data/Managed reference DLLs (its ConfigNode-backed ledger
-            # tests); every other project is KSP-free and takes no extra args.
+            # Only Gonogo.KSP.Tests reads the KSP_Data/Managed reference DLLs
+            # (its ConfigNode-backed ledger tests); every other project is
+            # KSP-free and takes no extra args.
             extra=""
-            if [ "$p" = "GonogoKosUplink.Tests" ]; then extra="$kos_args"; fi
             if [ "$p" = "Gonogo.KSP.Tests" ]; then extra="$ksp_managed_args"; fi
             attempts=1
             if [ "$p" = "Sitrep.Host.IntegrationTests" ]; then attempts=2; fi
