@@ -1,0 +1,20 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    // The extension tests read golden fixtures and their C# maps from mod/.
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/mod/**",
+        "!$TURBO_ROOT$/mod/**/bin/Debug/**",
+        "!$TURBO_ROOT$/mod/**/bin/Release/**",
+        "!$TURBO_ROOT$/mod/**/obj/**",
+        "!$TURBO_ROOT$/mod/**/dist/**",
+        "!$TURBO_ROOT$/mod/**/.turbo/**",
+        "!$TURBO_ROOT$/mod/**/node_modules/**"
+      ]
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    // topics.test reads the C# channel ids from the Uplink next door.
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/mod/GonogoKosUplink/**",
+        "!$TURBO_ROOT$/mod/GonogoKosUplink/**/bin/Debug/**",
+        "!$TURBO_ROOT$/mod/GonogoKosUplink/**/bin/Release/**",
+        "!$TURBO_ROOT$/mod/GonogoKosUplink/**/obj/**",
+        "!$TURBO_ROOT$/mod/GonogoKosUplink/**/dist/**",
+        "!$TURBO_ROOT$/mod/GonogoKosUplink/**/.turbo/**",
+        "!$TURBO_ROOT$/mod/GonogoKosUplink/**/node_modules/**"
+      ]
+    }
+  }
+}

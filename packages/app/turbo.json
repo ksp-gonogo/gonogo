@@ -1,0 +1,22 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    // bakedClientHash reads each Uplink's ExpectedClientHash.g.cs and runs
+    // scripts/uplink-matrix.mjs; topic-cs-sync walks mod/ for the C# topic ids.
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/mod/**",
+        "!$TURBO_ROOT$/mod/**/bin/Debug/**",
+        "!$TURBO_ROOT$/mod/**/bin/Release/**",
+        "!$TURBO_ROOT$/mod/**/obj/**",
+        "!$TURBO_ROOT$/mod/**/dist/**",
+        "!$TURBO_ROOT$/mod/**/.turbo/**",
+        "!$TURBO_ROOT$/mod/**/node_modules/**",
+        "$TURBO_ROOT$/scripts/uplink-matrix.mjs"
+      ]
+    }
+  }
+}
