@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOr, Quality } from "@ksp-gonogo/sitrep-sdk";
+import type { VesselOrbitPayload } from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { type OrbitElements, solve } from "./kepler";
@@ -10,7 +11,6 @@ import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import type { Transport, TransportStatus } from "./transport";
-import type { VesselOrbitPayload } from "./vessel-state";
 import { vesselStateChannel } from "./vessel-state";
 import { ViewClock } from "./view-clock";
 

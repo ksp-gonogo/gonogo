@@ -1,4 +1,13 @@
 import { Quality, wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  SystemBodiesPayload,
+  VesselCommsPayload,
+  VesselControlPayload,
+  VesselFlightPayload,
+  VesselIdentityPayload,
+  VesselOrbitPayload,
+  VesselPropulsionPayload,
+} from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 import { derivedGetOf } from "./derived-get-fixture";
 import { type OrbitElements, solve, solveAnomalies } from "./kepler";
@@ -7,17 +16,7 @@ import type { StreamStatusValue } from "./stream-status";
 import { makeMeta, type WireOf } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import type { DerivedGet } from "./timeline-store";
-import {
-  deriveVesselState,
-  deriveVesselStateStatus,
-  type SystemBodiesPayload,
-  type VesselCommsPayload,
-  type VesselControlPayload,
-  type VesselFlightPayload,
-  type VesselIdentityPayload,
-  type VesselOrbitPayload,
-  type VesselPropulsionPayload,
-} from "./vessel-state";
+import { deriveVesselState, deriveVesselStateStatus } from "./vessel-state";
 
 /** Kerbin's mean radius, metres, a realistic reference body for the apsides tests. */
 const KERBIN_RADIUS = 600_000;

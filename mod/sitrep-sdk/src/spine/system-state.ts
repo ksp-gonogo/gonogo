@@ -1,5 +1,5 @@
 import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
-import type { SystemBodiesPayload } from "./vessel-state";
+import type { SystemBodiesPayload } from "./wire-payloads";
 
 /**
  * The `system.state` derived channel: a SYSTEM-scoped sibling of

@@ -1,9 +1,12 @@
 import { type WireOf, wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
+import {
+  propagateVesselOrbit,
+  type VesselOrbitPayload,
+} from "@ksp-gonogo/sitrep-sdk/spine";
 import { useMemo } from "react";
 import { useViewUt } from "./context";
 import type { StateVector } from "./kepler";
 import { useStream } from "./use-stream";
-import { propagateVesselOrbit, type VesselOrbitPayload } from "./vessel-state";
 
 export { propagateVesselOrbit };
 

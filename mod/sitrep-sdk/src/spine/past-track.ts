@@ -1,6 +1,6 @@
 import { rotateInertialToPerifocal, solve } from "./kepler";
+import { buildElements, type WireOrbitElements } from "./kepler-reckoning";
 import type { TrajectoryPoint } from "./orbit-trajectory";
-import { buildElements, type WireOrbitElements } from "./vessel-state";
 
 /** One `vessel.orbit` sample and the instant it was true. */
 export interface OrbitSample {

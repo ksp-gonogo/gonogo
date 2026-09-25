@@ -47,6 +47,14 @@ export {
 // sharing). Now published as `@ksp-gonogo/sitrep-sdk/media`; re-exported here so
 // spine-side call sites keep their import site.
 export * from "@ksp-gonogo/sitrep-sdk/media";
+export type {
+  ActionGroupStatePayload,
+  VesselFlightPayload,
+  VesselOrbitPayload,
+  VesselPropulsionPayload,
+  WireOrbitElements,
+} from "@ksp-gonogo/sitrep-sdk/spine";
+export { buildElements } from "@ksp-gonogo/sitrep-sdk/spine";
 export {
   type AutoCommandOptions,
   type AutoCommandStatus,
@@ -490,18 +498,12 @@ export { useStreamStatus } from "./use-stream-status";
 export { useTimelineStream } from "./use-timeline-stream";
 export { CLIENT_VERSION } from "./version.generated";
 export type {
-  ActionGroupStatePayload,
   BodyRadiusTable,
   OrbitalSolve,
-  VesselFlightPayload,
-  VesselOrbitPayload,
-  VesselPropulsionPayload,
   VesselState,
-  WireOrbitElements,
 } from "./vessel-state";
 export {
   bodyRadiusOf,
-  buildElements,
   deriveVesselState,
   deriveVesselStateStatus,
   solveOrbit,

@@ -1,10 +1,9 @@
-import {
-  TelemetryClient,
-  TelemetryProvider,
-  type VesselFlightPayload,
-  type VesselOrbitPayload,
-} from "@ksp-gonogo/sitrep-client";
+import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import { Quality, registerTopicUnits } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  VesselFlightPayload,
+  VesselOrbitPayload,
+} from "@ksp-gonogo/sitrep-sdk/spine";
 import {
   DEAD_READ_SETTLE_MS,
   resetDeadReadWarnings,

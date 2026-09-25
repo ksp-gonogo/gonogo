@@ -1223,7 +1223,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * legitimately goes to 250": prose only, no AGX type/reference.
        */
       "mod/Sitrep.Host/VesselCommandProvider.cs",
-      "mod/sitrep-sdk/src/spine/vessel-state.ts",
+      /*
+       * ActionGroupStatePayload's doc-comment, the SDK's mirror of
+       * VesselControl.ActionGroupState: names AGX's player-named groups as
+       * what a name can hold, prose only.
+       */
+      "mod/sitrep-sdk/src/spine/wire-payloads.ts",
       /*
        * f.ag<N>-beyond-10 toggle fix: actionGroupHome's
        * doc-comment explains why the write bridge is now a generic

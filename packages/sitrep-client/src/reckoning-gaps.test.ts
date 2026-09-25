@@ -1,5 +1,6 @@
 import "./reckoner-test-topics";
 import { Quality, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import type { VesselOrbitPayload } from "@ksp-gonogo/sitrep-sdk/spine";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { ReckonerDefinition } from "./reading";
 import { observedAt } from "./reading";
@@ -12,7 +13,6 @@ import {
 } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
-import type { VesselOrbitPayload } from "./vessel-state";
 import { vesselStateChannel } from "./vessel-state";
 import { ViewClock } from "./view-clock";
 
