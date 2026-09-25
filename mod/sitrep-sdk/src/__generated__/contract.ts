@@ -4335,7 +4335,14 @@ export enum ScetAlarmState {
 	* simulation knows the craft is gone and the command centre does not, and a
 	* row that will never fire must read as dead rather than as pending forever.
 	*/
-	Unreachable = 2
+	Unreachable = 2,
+	/**
+	* The player switched to a different craft before the alarm came due, so it
+	* will never fire. An alarm belongs to the craft being flown when it was
+	* armed, whatever its condition reads, and a switch ends every alarm still
+	* armed. A kerbal on EVA counts as the craft they stepped out of.
+	*/
+	Cancelled = 3
 }
 /**
 * What a SCET alarm watches for, on the craft's own clock.

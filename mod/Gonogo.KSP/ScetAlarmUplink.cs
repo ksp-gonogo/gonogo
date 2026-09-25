@@ -438,6 +438,17 @@ namespace Gonogo.KSP
 
             lock (_gate)
             {
+                var subject = ScetAlarmVantage.SubjectOf(args);
+                if (_roster.NamesAnotherCraft(subject))
+                {
+                    // Alarms belong to the craft being flown. Accepted, this one
+                    // would be cancelled by the next switch back or fire for a
+                    // craft nobody is flying.
+                    return CommandResult.Fail(
+                        CommandErrorCode.Range,
+                        "alarms watch only the craft being flown, and '" + subject + "' is not it");
+                }
+
                 // An id belongs to exactly one alarm whatever vantage it names,
                 // so a re-arm that moves the vantage REPLACES in place. What
                 // used to need dropping the id from every other roster first is
@@ -493,8 +504,10 @@ namespace Gonogo.KSP
                 ScetAlarmTickState tick;
                 bool stopWarp;
                 List<ScetAlarmActionsDue> actionsDue;
+                var flown = ActiveVesselScope.Current;
                 lock (_gate)
                 {
+                    _roster.ObserveFlownCraft(flown != null ? "vessel:" + flown.id : null);
                     tick = _roster.BeginTick(ut);
                     _roster.EvaluatePass(tick, ScetAlarmVantage.IsTheSubjectsOwn, _ => state);
                     stopWarp = tick.StopWarp;

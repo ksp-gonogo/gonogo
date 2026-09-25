@@ -156,6 +156,8 @@ interface ModStandIn {
   withholdNextActions(): void;
   /** The craft this alarm reads is gone, as the mod decides when the known-vessel roster no longer lists it. */
   markUnreachable(id: string): void;
+  /** The player switches to another craft, and the mod cancels every alarm still armed. */
+  switchCraft(): void;
   /** Tell the CLIENT an altitude, stamped now, so its own threshold evaluator has a reading to cross on. */
   showClientAltitude(altitudeAsl: number): void;
   /** Tell the CLIENT one contract objective's state, stamped now, so its own contract evaluator has a list to match. */
@@ -187,6 +189,7 @@ function startSession(owlt: number): ModStandIn {
   const steppedDown = new Set<string>();
   const fired = new Set<string>();
   const unreachable = new Set<string>();
+  const cancelled = new Set<string>();
   const matchedSince = new Map<string, number>();
   let reading = 0;
   let lastRoster: unknown[] = [];
@@ -287,6 +290,7 @@ function startSession(owlt: number): ModStandIn {
       });
       steppedDown.delete(id);
       fired.delete(id);
+      cancelled.delete(id);
       matchedSince.delete(id);
       return null;
     }
@@ -344,7 +348,13 @@ function startSession(owlt: number): ModStandIn {
                 threshold: arm.condition.threshold,
                 sustainSeconds: arm.condition.sustainSeconds,
               },
-      state: unreachable.has(id) ? 2 : fired.has(id) ? 1 : 0,
+      state: cancelled.has(id)
+        ? 3
+        : unreachable.has(id)
+          ? 2
+          : fired.has(id)
+            ? 1
+            : 0,
       firedAtUt: null,
       onFire: arm.onFire,
       actsOn: arm.actsOn,
@@ -436,6 +446,11 @@ function startSession(owlt: number): ModStandIn {
     markUnreachable(id) {
       unreachable.add(id);
     },
+    switchCraft() {
+      for (const id of conditions.keys()) {
+        if (!fired.has(id)) cancelled.add(id);
+      }
+    },
     showClientAltitude(altitudeAsl) {
       client.subscribe("vessel.flight", () => {});
       transport.emit(
@@ -499,7 +514,7 @@ function startSession(owlt: number): ModStandIn {
       // The mod's pass, on the game's OWN clock: this is the whole point of the
       // arm, and it runs whatever the client can currently see.
       for (const [id, arm] of conditions) {
-        if (fired.has(id)) continue;
+        if (fired.has(id) || cancelled.has(id)) continue;
         /* An alarm at any vantage but its own subject's is judged against what
            that PLACE has been told, out of the Courier's archive, which this
            fixture does not model and should not: that is the mod's own reveal and
@@ -653,6 +668,64 @@ describe("SCET alarms", () => {
     await run(session, UT_START + 8 * DT);
     expect(session.armed()).toEqual([]);
     svc.dispose();
+  });
+
+  describe("a switch to another craft", () => {
+    it("drops the alarm the mod cancelled, and neither arms it again nor lets it fire", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const storage = memoryStorage();
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage,
+        getOwltSeconds: () => OWLT,
+      });
+      const alarm = svc.addAlarm({
+        name: "Apoapsis",
+        trigger: { kind: "time", ut: UT_START + 20 * DT, leadSeconds: 10 },
+      });
+      await run(session, UT_START + 4 * DT);
+      expect(session.armed()).toEqual([alarm.id]);
+      const attempts = session.armAttempts(alarm.id);
+
+      session.switchCraft();
+      await runFrom(session, UT_START + 4 * DT, UT_START + 30 * DT);
+
+      expect(svc.snapshot().alarms).toEqual([]);
+      expect(session.armAttempts(alarm.id)).toBe(attempts);
+      expect(session.firedAtTrueUt).toEqual([]);
+      // Retracted by the screen that set it, so the finished row does not linger.
+      expect(session.armed()).toEqual([]);
+      expect(storage.getItem("gonogo.alarms.list")).toBe("[]");
+      expect(svc.snapshot().alarmsCancelled).toEqual({ count: 1 });
+
+      svc.acknowledgeAlarmsCancelled();
+      expect(svc.snapshot().alarmsCancelled).toBeUndefined();
+      svc.dispose();
+    });
+
+    it("does not show another screen's cancelled alarm as one the simulation holds", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      session.armForeign("uplink-funds");
+      await run(session, UT_START + 2 * DT);
+      expect(svc.snapshot().scetForeign?.map((a) => a.id)).toEqual([
+        "uplink-funds",
+      ]);
+
+      session.switchCraft();
+      await runFrom(session, UT_START + 2 * DT, UT_START + 4 * DT);
+
+      expect(svc.snapshot().scetForeign).toBeUndefined();
+      svc.dispose();
+    });
   });
 
   it("leaves alone an entry it never asked for, such as one an Uplink armed for itself", async () => {

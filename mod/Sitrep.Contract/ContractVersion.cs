@@ -1933,7 +1933,12 @@ namespace Sitrep.Contract
         /// hottest part's flight id, so a client can pick out the one part among several
         /// that share its name. Additive, nothing removed or retyped, so an Uplink built
         /// against 18.10 is unaffected.</para>
+        ///
+        /// <para><b>Major-18 line, Bumped 11 -&gt; 12:</b> <see cref="ScetAlarmState.Cancelled"/>,
+        /// an alarm ended by the player switching to another craft, appended so no
+        /// existing ordinal moves. Additive, so an Uplink built against 18.11 is
+        /// unaffected.</para>
         /// </remarks>
-        public const int Minor = 11;
+        public const int Minor = 12;
     }
 }

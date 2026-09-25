@@ -121,6 +121,12 @@ export interface ScetAlarmBridgeContext {
   };
   /** A roster frame arrived, so what the simulation holds may have changed. */
   onRoster(): void;
+  /**
+   * The simulation cancelled these alarms because the player switched to
+   * another craft. Called before the frame is reconciled, so an alarm dropped
+   * here is not armed again.
+   */
+  onCancelled(ids: readonly string[]): void;
 }
 
 /**
@@ -641,6 +647,8 @@ export class ScetAlarmBridge {
       this.rosterAlarms = readRosterAlarms(payload);
       this.rosterSeen = true;
       this.commandedSinceRoster.clear();
+      const cancelled = readCancelledIds(payload);
+      if (cancelled.length > 0) this.ctx.onCancelled(cancelled);
       this.reconcile();
       this.ctx.onRoster();
     });
@@ -766,6 +774,25 @@ function readUnreachableIds(payload: unknown): ReadonlySet<string> {
   return ids;
 }
 
+/** The ids of the roster rows the simulation cancelled on a craft switch. */
+function readCancelledIds(payload: unknown): readonly string[] {
+  if (!Array.isArray(payload)) return [];
+  const ids: string[] = [];
+  for (const row of payload) {
+    const id = readId(row);
+    if (
+      id !== null &&
+      typeof row === "object" &&
+      row !== null &&
+      "state" in row &&
+      row.state === ScetAlarmState.Cancelled
+    ) {
+      ids.push(id);
+    }
+  }
+  return ids;
+}
+
 /** The ids of the roster rows that hold onboard actions. */
 function readActingIds(payload: unknown): ReadonlySet<string> {
   const ids = new Set<string>();
@@ -817,6 +844,9 @@ function readRosterAlarms(payload: unknown): readonly ForeignScetAlarm[] {
     const name: unknown = Reflect.get(row, "name");
     const armedBy: unknown = Reflect.get(row, "armedBy");
     const state: unknown = Reflect.get(row, "state");
+    // Finished rather than held: nothing here can change it, and the list it
+    // belonged to has already dropped it.
+    if (state === ScetAlarmState.Cancelled) continue;
     rows.push({
       id,
       name: typeof name === "string" ? name : "",

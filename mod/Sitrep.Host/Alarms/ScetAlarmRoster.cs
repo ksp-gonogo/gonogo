@@ -177,8 +177,66 @@ namespace Sitrep.Host.Alarms
         /// </summary>
         private bool _pendingChange;
 
+        /// <summary>
+        /// The craft being flown, in the <c>"vessel:&lt;guid&gt;"</c> vocabulary, or
+        /// null before any has been. Kept through a spell with no craft at all (the
+        /// space centre, the tracking station), so leaving flight and coming back
+        /// to the same craft is not a switch.
+        /// </summary>
+        public string? FlownCraft { get; private set; }
+
         /// <summary>How many alarms are held, armed or fired. For a health report and for tests.</summary>
         public int Count => _entries.Count;
+
+        /// <summary>
+        /// Tell the roster which craft is being flown, <paramref name="craft"/>
+        /// null for none. A change from one craft to a different one cancels every
+        /// alarm still armed: alarms belong to the craft being flown, so a switch
+        /// ends them rather than leaving them to fire for a craft nobody is flying.
+        ///
+        /// <para>Reported as an off-tick change, the same as an arm, so the tick
+        /// that follows republishes the roster. Returns whether anything was
+        /// cancelled.</para>
+        /// </summary>
+        public bool ObserveFlownCraft(string? craft)
+        {
+            if (string.IsNullOrEmpty(craft))
+            {
+                return false;
+            }
+            var previous = FlownCraft;
+            FlownCraft = craft;
+            if (previous == null || string.Equals(previous, craft, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            var cancelled = false;
+            foreach (var entry in _entries)
+            {
+                if (entry.Alarm.State != ScetAlarmState.Armed)
+                {
+                    continue;
+                }
+                entry.Alarm.State = ScetAlarmState.Cancelled;
+                entry.MatchSinceUt = null;
+                cancelled = true;
+            }
+            _pendingChange |= cancelled;
+            return cancelled;
+        }
+
+        /// <summary>
+        /// Whether an arm naming <paramref name="subject"/> is about a craft other
+        /// than the one being flown. Only a craft subject can be: the game belongs
+        /// to whichever craft is flown, and before any craft has been flown there
+        /// is nothing to compare against.
+        /// </summary>
+        public bool NamesAnotherCraft(string? subject) =>
+            FlownCraft != null
+            && subject != null
+            && subject.StartsWith("vessel:", StringComparison.Ordinal)
+            && !string.Equals(subject, FlownCraft, StringComparison.Ordinal);
 
         /// <summary>
         /// Register an alarm, or REPLACE the one already held under the same id.
