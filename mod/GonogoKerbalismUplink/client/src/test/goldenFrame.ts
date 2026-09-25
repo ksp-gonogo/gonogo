@@ -1,11 +1,12 @@
 import { readFileSync } from "node:fs";
 
 /**
- * One recorded wire frame from a `mod/golden-fixtures/*.json` vector file.
+ * One recorded wire frame from a `golden-fixtures/*.json` vector file of this
+ * Uplink's Tests project.
  *
- * The frame is held as a JSON STRING inside the vector, the shape every file in
- * that directory uses: the C# side asserts byte equality against it, and a
- * nested object would be reformatted by the repo's JSON formatter.
+ * The frame is held as a JSON STRING inside the vector: the C# side asserts
+ * byte equality against it, and a nested object would be reformatted by the
+ * repo's JSON formatter.
  *
  * `T` is the payload the CALLER expects, which nothing in the file can confirm,
  * so the one erasure that names it lives here rather than at each test. What the

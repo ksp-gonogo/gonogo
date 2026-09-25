@@ -22,7 +22,7 @@ namespace GonogoKerbalismUplink.Tests
     /// restate the producer and prove nothing about serialisation.</para>
     ///
     /// <para><b>The fixture is the handoff to the client.</b> The JSON asserted here
-    /// is committed as <c>mod/golden-fixtures/science-extensions.json</c> and read
+    /// is committed as <c>golden-fixtures/science-extensions.json</c> in this project and read
     /// back by this Uplink's client test (<c>client/src/science.test.ts</c>), which
     /// drives it through the real decode path and asserts the typed narrow and the
     /// wrapped <c>Value&lt;"MB"&gt;</c>. Neither side can drift without one of the

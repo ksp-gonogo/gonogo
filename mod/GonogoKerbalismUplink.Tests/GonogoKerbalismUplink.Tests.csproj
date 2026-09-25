@@ -7,6 +7,16 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <!-- Where the plugin's sources are, for the tests that read them as text.
+       Stamped into the assembly at build time so no test walks up looking for
+       a repo layout, and the suite runs the same wherever it is checked out. -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>UplinkSourceDir</_Parameter1>
+      <_Parameter2>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\GonogoKerbalismUplink'))</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
@@ -65,15 +75,12 @@
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" />
   </ItemGroup>
 
-  <!-- The cross-language golden fixture: this project WRITES it (from the real
-       codec) and this Uplink's client test READS it back through the real decode
-       path, so server and client cannot drift apart silently. Same
-       shared-JSON-both-sides pattern as mod/golden-fixtures/README.md describes,
-       run in the C#-to-TS direction. -->
+  <!-- The cross-language golden fixtures: this project asserts them against the
+       real codec and this Uplink's client test READS them back through the real
+       decode path, so server and client cannot drift apart silently. They live
+       inside this project so they travel with it. -->
   <ItemGroup>
-    <None Include="..\golden-fixtures\reliability-extensions.json" Link="golden-fixtures/reliability-extensions.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\golden-fixtures\science-extensions.json" Link="golden-fixtures/science-extensions.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\golden-fixtures\isru-extensions.json" Link="golden-fixtures/isru-extensions.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="golden-fixtures\*.json" Link="golden-fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- GonogoKerbalismUplink.Contract: this Uplink's own wire types (relocated

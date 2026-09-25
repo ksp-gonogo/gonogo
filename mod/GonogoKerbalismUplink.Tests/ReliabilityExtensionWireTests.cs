@@ -24,12 +24,11 @@ namespace GonogoKerbalismUplink.Tests
     /// uses.</para>
     ///
     /// <para><b>The fixture is the handoff to the client.</b> The JSON asserted here
-    /// is committed as <c>mod/golden-fixtures/reliability-extensions.json</c> and
+    /// is committed as <c>golden-fixtures/reliability-extensions.json</c> in this project and
     /// read back by this Uplink's client test (<c>client/src/reliability.test.ts</c>),
     /// which drives it through the real decode path and asserts the typed narrow and
     /// the wrapped <c>Value</c>. Neither side can drift without one of the two going
-    /// red: the same shared-JSON discipline <c>mod/golden-fixtures/README.md</c>
-    /// describes, run in the C#-to-TS direction.</para>
+    /// red.</para>
     /// </summary>
     public class ReliabilityExtensionWireTests
     {
@@ -38,8 +37,7 @@ namespace GonogoKerbalismUplink.Tests
 
         /// <summary>
         /// The wire text of one named fixture vector. The frame is held as a JSON
-        /// STRING inside the fixture rather than as an object, which is the shape
-        /// every other file in <c>mod/golden-fixtures/</c> already uses: the point of
+        /// STRING inside the fixture rather than as an object: the point of
         /// this test is byte equality, and a nested object would be reformatted by
         /// the repo's JSON formatter the moment anyone ran the linter.
         /// </summary>

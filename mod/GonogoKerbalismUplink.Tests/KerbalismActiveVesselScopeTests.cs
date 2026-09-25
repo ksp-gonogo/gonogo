@@ -84,17 +84,7 @@ namespace Gonogo.KerbalismUplink.Tests
                 .Where(line => !line.TrimStart().StartsWith("///", StringComparison.Ordinal))
                 .Count(line => line.Contains(DirectRead));
 
-        private static string Read(string fileName)
-        {
-            var dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir != null && !File.Exists(Path.Combine(dir.FullName, "mod", "Gonogo.sln")))
-            {
-                dir = dir.Parent;
-            }
-            Assert.NotNull(dir);
-            var path = Path.Combine(dir!.FullName, "mod", "GonogoKerbalismUplink", fileName);
-            Assert.True(File.Exists(path), fileName + " not found at " + path);
-            return File.ReadAllText(path);
-        }
+        private static string Read(string fileName) =>
+            global::GonogoKerbalismUplink.Tests.UplinkSource.Read(fileName);
     }
 }

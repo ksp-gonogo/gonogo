@@ -23,7 +23,7 @@ namespace GonogoKerbalismUplink.Tests
     /// hand-written flattener rather than a generic dictionary walk.</para>
     ///
     /// <para><b>The fixture is the handoff to the client.</b> The JSON asserted here
-    /// is committed as <c>mod/golden-fixtures/isru-extensions.json</c> and read back
+    /// is committed as <c>golden-fixtures/isru-extensions.json</c> in this project and read back
     /// by this Uplink's client test (<c>client/src/isru.test.ts</c>), which drives it
     /// through the real decode path and asserts the typed narrow and the wrapped
     /// values. Neither side can drift without one of the two going red.</para>

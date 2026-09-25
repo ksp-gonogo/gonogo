@@ -130,18 +130,7 @@ namespace Gonogo.KerbalismUplink.Tests
             Assert.Contains("KerbalismRepairScope.Shortfall", source);
         }
 
-        private static string ReflectionSourcePath()
-        {
-            var dir = new DirectoryInfo(System.AppContext.BaseDirectory);
-            while (dir != null && !File.Exists(Path.Combine(dir.FullName, "mod", "Gonogo.sln")))
-            {
-                dir = dir.Parent;
-            }
-            Assert.NotNull(dir);
-            var path = Path.Combine(
-                dir!.FullName, "mod", "GonogoKerbalismUplink", "KerbalismReflection.cs");
-            Assert.True(File.Exists(path), "KerbalismReflection.cs not found at " + path);
-            return path;
-        }
+        private static string ReflectionSourcePath() =>
+            global::GonogoKerbalismUplink.Tests.UplinkSource.PathOf("KerbalismReflection.cs");
     }
 }
