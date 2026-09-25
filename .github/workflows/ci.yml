@@ -667,10 +667,14 @@ jobs:
           # condition and its own reason right here, rather than a name in a list
           # that outlives whoever knew why it was there.
           #
-          # Retry EVERY project: a pathologically slow/loaded runner instance can
-          # time out even the normally-deterministic suites (Kos, Host.Tests) on
-          # their WS/async paths. A genuine regression fails all 4 attempts and is
-          # still caught; only intermittent-pass flakes are absorbed.
+          # Every project gets ONE attempt, and is expected to pass first time.
+          # Across the last 40 staging runs the old four-attempt retry absorbed
+          # zero flakes for any project: every retry belonged to a run that failed
+          # all four, so it only multiplied the cost of a real failure. The one
+          # exception is Sitrep.Host.IntegrationTests, the only suite with
+          # wall-clock budgets, which gets a second attempt. A pass that needed it
+          # is announced, never reported as a plain pass, because a green that
+          # needed a retry is a probability rather than a fact.
           for p in "${projects[@]}"; do
             echo "::group::dotnet test $p"
             # Only GonogoKosUplink.Tests reads the kOS reference DLLs (its
@@ -680,10 +684,18 @@ jobs:
             extra=""
             if [ "$p" = "GonogoKosUplink.Tests" ]; then extra="$kos_args"; fi
             if [ "$p" = "Gonogo.KSP.Tests" ]; then extra="$ksp_managed_args"; fi
-            attempts=4
+            attempts=1
+            if [ "$p" = "Sitrep.Host.IntegrationTests" ]; then attempts=2; fi
             ok=0
             for a in $(seq 1 "$attempts"); do
-              if dotnet test "$p/$p.csproj" --configuration Release $extra; then ok=1; break; fi
+              if dotnet test "$p/$p.csproj" --configuration Release $extra; then
+                ok=1
+                if [ "$a" -gt 1 ]; then
+                  echo "::warning::$p passed only on attempt $a/$attempts"
+                  echo "- ⚠ \`$p\` passed only on attempt $a of $attempts" >> "$GITHUB_STEP_SUMMARY"
+                fi
+                break
+              fi
               echo "::warning::$p failed test attempt $a/$attempts"
             done
             echo "::endgroup::"
