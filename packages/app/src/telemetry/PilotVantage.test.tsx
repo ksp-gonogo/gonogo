@@ -22,10 +22,10 @@ const ROSTER = [
 
 /**
  * Mounts the binding over a real client/store pipeline, with the craft's own
- * source on the orbit PAYLOAD's meta: that stamp is what `vessel.state`'s
- * `subjectId` is, and it already spells the centre id. Not the envelope's
- * `meta.source`, which is the Courier node and reads "system" for every
- * non-fleet topic.
+ * source on the orbit PAYLOAD's meta, which already spells the centre id. The
+ * envelope's `meta.source` beside it is the Courier node and reads "system"
+ * for every non-fleet topic; `emitOrbitFrom` takes it separately so a case can
+ * put a real centre id there and prove the binding ignores it.
  */
 function mountPilot() {
   const fixture = setupStreamFixture({
@@ -51,20 +51,24 @@ function mountPilot() {
         fixture.store.beginFrame();
       });
     },
-    emitOrbitFrom: (source: string) => {
+    emitOrbitFrom: (source: string | null, envelopeSource = "system") => {
       act(() => {
-        fixture.emit("vessel.orbit", {
-          referenceBodyIndex: 1,
-          sma: 700_000,
-          ecc: 0.01,
-          inc: 0,
-          lan: 0,
-          argPe: 0,
-          meanAnomalyAtEpoch: 0,
-          epoch: 10,
-          mu: 3.5316e12,
-          meta: { source, quality: 0 },
-        });
+        fixture.emit(
+          "vessel.orbit",
+          {
+            referenceBodyIndex: 1,
+            sma: 700_000,
+            ecc: 0.01,
+            inc: 0,
+            lan: 0,
+            argPe: 0,
+            meanAnomalyAtEpoch: 0,
+            epoch: 10,
+            mu: 3.5316e12,
+            ...(source === null ? {} : { meta: { source, quality: 0 } }),
+          },
+          { source: envelopeSource },
+        );
         fixture.store.beginFrame();
       });
     },
@@ -93,6 +97,28 @@ describe("PilotVantage", () => {
     fixture.emitOrbitFrom(CRAFT);
 
     // The mod would refuse this id, and a refused request tracked optimistically would leave every reader of `selectedVantage` naming a centre the frames are not from.
+    expect(fixture.client.selectedVantage).toBeUndefined();
+
+    fixture.unmount();
+  });
+
+  it("names the craft from the orbit sample's own provenance, never the envelope's", () => {
+    const fixture = mountPilot();
+
+    fixture.emitRoster(ROSTER);
+    fixture.emitOrbitFrom("vessel:xyz-999", CRAFT);
+
+    expect(fixture.client.selectedVantage).toBeUndefined();
+
+    fixture.unmount();
+  });
+
+  it("keeps the ground vantage for an orbit sample that names no craft", () => {
+    const fixture = mountPilot();
+
+    fixture.emitRoster(ROSTER);
+    fixture.emitOrbitFrom(null, CRAFT);
+
     expect(fixture.client.selectedVantage).toBeUndefined();
 
     fixture.unmount();

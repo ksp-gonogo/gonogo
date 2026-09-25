@@ -7,7 +7,6 @@ import { createFakeWallClock } from "./fake-wall-clock";
 import { StubTransport } from "./stub-transport";
 import { TimelineStore } from "./timeline-store";
 import { useControlStream } from "./use-control-stream";
-import { vesselStateChannel } from "./vessel-state";
 import { ViewClock } from "./view-clock";
 
 /**
@@ -217,7 +216,6 @@ describe("useControlStream at the craft's own vantage", () => {
 
   function mountAtVantage(vantage: string | undefined) {
     const fixture = setupFixture();
-    fixture.store.registerDerivedChannel(vesselStateChannel);
     render(
       <fixture.Provider>
         <Probe value={0.5} />
@@ -227,7 +225,7 @@ describe("useControlStream at the craft's own vantage", () => {
       fixture.transport.emit("comms.delay", { oneWaySeconds: 1.6 });
       /*
        * Two samples a light-time apart: the confirmed edge sits a delay behind
-       * the newest, so a lone point leaves `vessel.state` unreadable at view
+       * the newest, so a lone point leaves `vessel.orbit` unreadable at view
        * time for reasons that have nothing to do with the vantage.
        */
       for (const validAt of [0, 10]) {

@@ -135,11 +135,15 @@ describe("the pilot's view clock", () => {
       /**
        * Two samples a light-time apart, because one is not a timeline. The
        * confirmed edge sits a whole delay behind the newest sample, so a lone
-       * point leaves `vessel.state` unreadable at view time and the craft
+       * point leaves `vessel.orbit` unreadable at view time and the craft
        * would be invisible to the gate for reasons that have nothing to do
        * with the vantage.
+       *
+       * `source` is the PAYLOAD's provenance, `null` for a sample carrying
+       * none; `envelopeSource` is the Courier node the mod stamps beside it,
+       * `"system"` for every non-fleet topic.
        */
-      emitOrbitFrom: (source: string) => {
+      emitOrbitFrom: (source: string | null, envelopeSource = "system") => {
         act(() => {
           for (const validAt of [0, 2 * GROUND_DELAY]) {
             transport.emit(
@@ -154,9 +158,9 @@ describe("the pilot's view clock", () => {
                 meanAnomalyAtEpoch: 0,
                 epoch: 10,
                 mu: 3.5316e12,
-                meta: { source, quality: 0 },
+                ...(source === null ? {} : { meta: { source, quality: 0 } }),
               },
-              { validAt, deliveredAt: validAt },
+              { validAt, deliveredAt: validAt, source: envelopeSource },
             );
           }
           store?.beginFrame();
@@ -195,6 +199,30 @@ describe("the pilot's view clock", () => {
     f.emitOrbitFrom(CRAFT);
 
     expect(f.delay()).toBe(0);
+    await act(async () => {});
+    f.view.unmount();
+    f.client.dispose();
+  });
+
+  it("names the craft from the sample's own provenance, never the envelope's", async () => {
+    const f = mount();
+    f.emitGroundDelay();
+    f.selectVantage(CRAFT);
+    f.emitOrbitFrom("vessel:xyz-999", CRAFT);
+
+    expect(f.delay()).toBe(GROUND_DELAY);
+    await act(async () => {});
+    f.view.unmount();
+    f.client.dispose();
+  });
+
+  it("holds the ground's light-time for a sample that names no craft", async () => {
+    const f = mount();
+    f.emitGroundDelay();
+    f.selectVantage(CRAFT);
+    f.emitOrbitFrom(null, CRAFT);
+
+    expect(f.delay()).toBe(GROUND_DELAY);
     await act(async () => {});
     f.view.unmount();
     f.client.dispose();

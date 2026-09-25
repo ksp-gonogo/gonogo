@@ -1,10 +1,10 @@
 import { useEffect } from "react";
+import type { VesselOrbit } from "../__generated__/contract";
 import type { TopicReading } from "../reading";
 import { useTelemetryClientOptional } from "./context";
 import type { DelayAuthority } from "./delay-authority";
 import { useSelectedVantage } from "./use-selected-vantage";
 import { useStream } from "./use-stream";
-import type { VesselState } from "./vessel-state";
 
 /**
  * Whether a session observing from `selectedVantage` is standing on the very
@@ -33,10 +33,17 @@ export function isOwnCraftVantage(
 /**
  * The craft the samples are about, held through a quiet link: which craft that
  * is does not change because its telemetry stopped arriving.
+ *
+ * Read off the orbit PAYLOAD's own `meta.source`, `"vessel:<guid>"` as
+ * `Sitrep.Host.VesselViewProvider.BuildMeta` stamps it. Never the envelope's
+ * `meta.source`: that is the Courier node, the literal `"system"` for every
+ * non-fleet topic, which no roster id can equal. Optional-chained because a
+ * recording or golden fixture can carry no payload meta at all, and then the
+ * subject is unknown.
  */
-function subjectOf(reading: TopicReading<VesselState>): string | undefined {
+function subjectOf(reading: TopicReading<VesselOrbit>): string | undefined {
   return reading.state === "observed" || reading.state === "stale"
-    ? reading.value.subjectId
+    ? reading.value.meta?.source
     : undefined;
 }
 
@@ -64,7 +71,7 @@ function subjectOf(reading: TopicReading<VesselState>): string | undefined {
 export function useOwnCraftVantage(): boolean {
   const client = useTelemetryClientOptional();
   const selectedVantage = useSelectedVantage();
-  const subjectId = subjectOf(useStream<VesselState>("vessel.state"));
+  const subjectId = subjectOf(useStream<VesselOrbit>("vessel.orbit"));
   // No client means no session to be at a vantage at all, which is neither the
   // pilot case nor a lie about one: fall through to the wire's own delay.
   if (!client) return false;
@@ -77,8 +84,8 @@ export function useOwnCraftVantage(): boolean {
  * at no delay (see `DelayAuthority.setOwnCraftVantage`).
  *
  * A component rather than a hook call in the provider body because
- * `useOwnCraftVantage` reads `vessel.state`, and every read of a derived topic
- * re-renders its caller on EVERY frame the store mints. In the provider body
+ * `useOwnCraftVantage` reads `vessel.orbit`, and every stream read re-renders
+ * its caller on EVERY frame the store mints. In the provider body
  * that would re-render the whole application tree at frame rate; here it
  * re-renders one leaf that draws nothing. Rendered only alongside an
  * auto-built authority: a caller who supplied their own `store` owns its
@@ -90,8 +97,8 @@ export function useOwnCraftVantage(): boolean {
  * costs is immaterial: the value changes when an operator picks a vantage,
  * not per frame, and the clock re-reads `delaySeconds()` on every one.
  *
- * Split in two so that reading `vessel.state` (and so subscribing the
- * `vessel.orbit` that feeds it) happens ONLY once a vantage has been chosen.
+ * Split in two so that reading (and so subscribing) `vessel.orbit` happens
+ * ONLY once a vantage has been chosen.
  * A session that has chosen none sits wherever the mod put it, which is never
  * the craft's own centre, so the answer is already false and the subject is
  * not worth a subscription. Reading it unconditionally is not a free
@@ -101,7 +108,7 @@ export function useOwnCraftVantage(): boolean {
  * and caught this).
  *
  * The deferral costs nothing where it matters. `PilotVantage` reads
- * `vessel.state` itself before it ever calls `setVantage`, so on a pilot's
+ * `vessel.orbit` itself before it ever calls `setVantage`, so on a pilot's
  * screen the subject is already subscribed and already known at the instant
  * the vantage changes. Anywhere else the gate simply stays false for the frame
  * or two the first orbit sample takes, which errs towards the wire's own
@@ -140,7 +147,7 @@ function OwnCraftDelayWatch({
   authority: DelayAuthority;
   selectedVantage: string;
 }) {
-  const subjectId = subjectOf(useStream<VesselState>("vessel.state"));
+  const subjectId = subjectOf(useStream<VesselOrbit>("vessel.orbit"));
   const ownCraftVantage = isOwnCraftVantage(selectedVantage, subjectId);
   useEffect(() => {
     authority.setOwnCraftVantage(ownCraftVantage);
