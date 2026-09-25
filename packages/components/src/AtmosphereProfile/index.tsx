@@ -108,9 +108,9 @@ function AtmosphereProfileComponent({
    * flying through: an undated three-row overlay pinned to the plot, with no
    * room for an "as of" and no reading of it other than "now". Density is the
    * stronger case still, because it also decides whether the craft counts as
-   * being in atmosphere at all. So a stale record is withheld and the notice
-   * names the reason, rather than the chip holding a sea-level density over a
-   * craft that has since left the air.
+   * being in atmosphere at all. So a stale record withholds the chip rather than
+   * holding a sea-level density over a craft that has since left the air, and
+   * the marked altitude line is what says the record went quiet.
    */
   const flightReading = topics.useTelemetry("vessel.flight");
   /*
@@ -135,7 +135,6 @@ function AtmosphereProfileComponent({
       : flightReading.state === "observed"
         ? flightReading.value
         : undefined;
-  const flightNotCurrent = flightReading.state === "stale";
   const bodyName = useBodyName(useParentBodyIndex());
   /* Resolved against the same `system.bodies` roster the name came from, not
      against the bundled table of STOCK bodies: a planet pack renames both
@@ -146,8 +145,11 @@ function AtmosphereProfileComponent({
    * on the curve and the air it claims to be flying through are the same
    * sample. Read from `flight`, which already carries the modelled fields
    * overlaid, so the altitude moves with the conic exactly as its siblings do.
+   * A held record with no model still places the line, because the line wears
+   * the held-reading mark where the chip could only have stated a present air.
    */
-  const altitude = magnitudeOf(flight?.altitudeAsl) ?? undefined;
+  const altitude =
+    magnitudeOf((flight ?? flightObserved)?.altitudeAsl) ?? undefined;
   // Magnitudes: all three feed threshold checks and the chart's own
   // number-taking readouts.
   const liveDensity = magnitudeOf(flight?.atmDensity);
@@ -250,19 +252,6 @@ function AtmosphereProfileComponent({
     liveDensity !== null &&
     liveDensity > 1e-9 &&
     body?.hasAtmosphere === true;
-  /* The chip vanishes for three unrelated reasons (nothing has arrived, a
-     confirmed vacuum, a stale record) and only the third is worth explaining,
-     so the notice fires on staleness alone. Gated on `chipFits` because a
-     widget too small to have drawn the chip has withheld nothing. */
-  /* And off entirely when the record was modelled forward: the overlay above
-     puts the model into `flight`, so the chip is still drawn, and a notice
-     saying the readings are gone beside the density they produced is the one
-     reading of this the operator cannot make sense of. */
-  const showNotCurrentNotice =
-    chipFits &&
-    flightNotCurrent &&
-    flightReading.reckoning.status !== "available";
-
   return (
     <Fill>
       <Fill grow>
@@ -291,11 +280,6 @@ function AtmosphereProfileComponent({
       {showNoBodyNotice && (
         <div role="status" style={NOTICE_STYLE}>
           Unknown body “{bodyName}”.
-        </div>
-      )}
-      {showNotCurrentNotice && (
-        <div role="status" style={NOTICE_STYLE}>
-          Atmospheric readings no longer current.
         </div>
       )}
       {showLiveChip && (

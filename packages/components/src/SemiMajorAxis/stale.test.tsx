@@ -44,13 +44,19 @@ afterEach(() => {
 function mount(
   fixture: ReturnType<typeof setupStreamFixture>,
   instanceId: string,
+  size: { w: number; h: number } = { w: 5, h: 6 },
 ) {
   // w=5,h=6 clears the subtitle and sparkline size gates, so anything missing
   // below is missing for a currency reason rather than a layout one.
   const { container, unmount } = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId }}>
-        <SemiMajorAxisComponent config={{}} id={instanceId} w={5} h={6} />
+        <SemiMajorAxisComponent
+          config={{}}
+          id={instanceId}
+          w={size.w}
+          h={size.h}
+        />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
@@ -139,6 +145,24 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
     // And it costs the sighted readout nothing: the caption is spoken only.
     expect(visibleText(container)).toContain("675.0 km");
     expect(visibleText(container)).not.toContain("OFFLINE");
+  });
+
+  it("leaves the held mark alone to say it at 3x3, where the age has no room", async () => {
+    // A 3x3 body holds the figure and nothing under it, and a caption drawn
+    // there is cut off by the cell rather than read.
+    const fixture = newFixture();
+    const container = mount(fixture, "sma-stale-tiny", { w: 3, h: 3 });
+    emitOrbit(fixture);
+    await waitFor(() => expect(visibleText(container)).toContain("675.0 km"));
+
+    goStale(fixture);
+
+    await waitFor(() =>
+      expect(container.querySelector("[data-not-current]")).not.toBeNull(),
+    );
+    expect(visibleText(container)).toContain("675.0 km");
+    expect(visibleText(container)).not.toContain("at last contact");
+    expect(container.textContent).toContain("OFFLINE");
   });
 
   it("says nothing about last contact before an orbit has ever arrived", async () => {

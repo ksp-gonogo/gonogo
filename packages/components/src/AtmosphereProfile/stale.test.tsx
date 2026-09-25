@@ -26,8 +26,9 @@ import { AtmosphereProfileComponent } from "./index";
  * The chip already disappears for two innocent reasons, though: nothing has
  * arrived yet, and a confirmed vacuum. So the tests that earn this file are the
  * ones proving the withheld case is DISTINGUISHABLE from those two from outside
- * the component, because a plot that keeps drawing its pressure curve looks
- * entirely healthy while it does it.
+ * the component. The vessel's pressure line carries that: it stays on the held
+ * altitude and wears the held-reading mark, in the drawing and in the chart's
+ * accessible name, and no widget-level sentence repeats it.
  */
 
 const CARRIED = [
@@ -37,7 +38,17 @@ const CARRIED = [
   "system.bodies",
 ];
 
-const NOT_CURRENT = "Atmospheric readings no longer current.";
+const PRESSURE_LINE = /pascals @ 6 km/;
+
+function heldMark(container: HTMLElement): Element | null {
+  return container.querySelector("text [data-not-current-mark]");
+}
+
+function chartName(container: HTMLElement): string {
+  return (
+    container.querySelector("svg[role='img']")?.getAttribute("aria-label") ?? ""
+  );
+}
 
 describe("AtmosphereProfile when the flight reading is not current", () => {
   let restoreResizeObserver: () => void = () => {};
@@ -108,32 +119,49 @@ describe("AtmosphereProfile when the flight reading is not current", () => {
     });
   }
 
-  it("draws the chip while the flight reading is current", async () => {
+  it("draws the chip and an unmarked pressure line while the reading is current", async () => {
     // The control. Without it every assertion below also passes on a widget
-    // that never draws a chip at all.
+    // that never draws a chip or a line at all.
     const { container } = renderWidget();
     emitInAtmosphere();
 
     await waitFor(() => expect(visibleText(container)).toContain("ρ"));
     expect(visibleText(container)).toContain("Air");
     expect(visibleText(container)).toContain("Skin");
-    expect(visibleText(container)).not.toContain(NOT_CURRENT);
+    expect(visibleText(container)).toMatch(PRESSURE_LINE);
+    expect(heldMark(container)).toBeNull();
+    expect(chartName(container)).not.toMatch(PRESSURE_LINE);
   });
 
-  it("withholds the chip and SAYS the readings are no longer current", async () => {
+  it("withholds the chip and marks the pressure line as held", async () => {
     const { container } = renderWidget();
     emitInAtmosphere();
     await waitFor(() => expect(visibleText(container)).toContain("ρ"));
 
     loseTheLink();
 
-    await waitFor(() => expect(visibleText(container)).toContain(NOT_CURRENT));
+    await waitFor(() => expect(heldMark(container)).not.toBeNull());
     // All three rows go together: they are one statement about one air mass,
     // and holding the temperatures beside a withheld density would read as a
     // partial payload rather than a dropped link.
     expect(visibleText(container)).not.toContain("ρ");
     expect(visibleText(container)).not.toContain("Air");
     expect(visibleText(container)).not.toContain("Skin");
+    // The line stays on the altitude it last knew, and a screen reader hears
+    // that it is held, since the dot is a shape it cannot see.
+    expect(visibleText(container)).toMatch(PRESSURE_LINE);
+    expect(chartName(container)).toMatch(/pascals @ 6 km, .+/);
+  });
+
+  it("draws no widget-level sentence about currency, the marked line says it", async () => {
+    const { container } = renderWidget();
+    emitInAtmosphere();
+    await waitFor(() => expect(visibleText(container)).toContain("ρ"));
+
+    loseTheLink();
+
+    await waitFor(() => expect(heldMark(container)).not.toBeNull());
+    expect(container.querySelector("[role='status']")).toBeNull();
   });
 
   it("does not present a withheld chip as a vacuum", async () => {
@@ -144,8 +172,8 @@ describe("AtmosphereProfile when the flight reading is not current", () => {
     emitInAtmosphere();
     await waitFor(() => expect(visibleText(container)).toContain("ρ"));
 
-    // A confirmed zero: the chip goes, and nothing accuses the link, because
-    // nothing is wrong with it.
+    // A confirmed zero: the chip goes, and nothing marks the line, because
+    // nothing is wrong with the link.
     act(() => {
       fixture.emit(
         "vessel.flight",
@@ -154,16 +182,15 @@ describe("AtmosphereProfile when the flight reading is not current", () => {
       );
     });
     await waitFor(() => expect(visibleText(container)).not.toContain("ρ"));
-    expect(visibleText(container)).not.toContain(NOT_CURRENT);
+    expect(heldMark(container)).toBeNull();
 
-    // The same empty chip from a lost link, which does say so.
+    // The same empty chip from a lost link, which does mark it.
     loseTheLink();
-    await waitFor(() => expect(visibleText(container)).toContain(NOT_CURRENT));
+    await waitFor(() => expect(heldMark(container)).not.toBeNull());
   });
 
-  it("keeps drawing the pressure curve, so the notice is the only cue", async () => {
+  it("keeps drawing the pressure curve beside the held line", async () => {
     // The curve is a body model, not telemetry: it is still true, and it stays.
-    // That is exactly why the notice has to exist, the plot looks live.
     const { container } = renderWidget();
     emitInAtmosphere();
     await waitFor(() => expect(visibleText(container)).toContain("ρ"));
@@ -171,16 +198,16 @@ describe("AtmosphereProfile when the flight reading is not current", () => {
 
     loseTheLink();
 
-    await waitFor(() => expect(visibleText(container)).toContain(NOT_CURRENT));
+    await waitFor(() => expect(heldMark(container)).not.toBeNull());
     expect(container.querySelectorAll("path").length).toBe(curvesBefore);
   });
 
-  it("says nothing about currency before anything has ever arrived", () => {
+  it("marks nothing before anything has ever arrived", () => {
     // A cold start is not a dropped link, and conflating them would accuse the
     // link on every first paint.
     const { container } = renderWidget();
 
     expect(visibleText(container)).toContain("Waiting for body telemetry...");
-    expect(visibleText(container)).not.toContain(NOT_CURRENT);
+    expect(heldMark(container)).toBeNull();
   });
 });
