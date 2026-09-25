@@ -14,7 +14,6 @@ import {
   TargetKind,
   type TargetListEntry,
   VesselType,
-  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
@@ -126,7 +125,7 @@ const targetPickerActions = [
     id: "clear-target",
     label: "Clear target",
     accepts: ["button"],
-    description: "Clears the current KSP target via tar.clearTarget.",
+    description: "Clears the current KSP target.",
   },
 ] as const satisfies readonly ActionDefinition[];
 type TargetPickerActions = typeof targetPickerActions;
@@ -661,7 +660,7 @@ function TargetPickerConfigComponent(
         <FieldHint>
           No config: every target (bodies, vessels, docking ports) comes from
           the <code>target.available</code> list. Click a row to set the KSP
-          target; use Clear in the header to drop it.
+          target; Clear target on the current target drops it.
         </FieldHint>
       </Field>
     </ConfigForm>
@@ -903,13 +902,11 @@ const CompactDistance = styled.div`
   letter-spacing: 0.04em;
 `;
 
-// ── Registration ──────────────────────────────────────────────────────────────
-
 registerComponent<TargetPickerConfig>({
   id: "target-picker",
   name: "Target Picker",
   description:
-    "Pick a target from a single Suggested + categorised list (Bodies / Vessels / Parts) driven by the `target.available` channel, or inspect the current target's name / type / distance / Δv with a clear button in the header.",
+    "Pick a target from a single Suggested + categorised list (Bodies / Vessels / Parts) driven by the `target.available` channel, or inspect the current target's name / type / distance / Δv and clear it.",
   tags: ["telemetry", "navigation"],
   defaultSize: { w: 6, h: 11 },
   minSize: { w: 3, h: 3 },
