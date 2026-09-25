@@ -61,20 +61,14 @@ function PerfBudgetsComponent({
         panelTitle="PERF BUDGETS"
         sections={
           <Section>
-            <EmptyState>
-              No budgets registered yet. Budgets self-register at module load;
-              make sure the relevant services are imported.
-            </EmptyState>
+            <EmptyState>No budgets registered</EmptyState>
           </Section>
         }
       />
     );
   }
 
-  const overCount = snapshots.filter((s) => {
-    const ratio = s.threshold > 0 ? s.rate / s.threshold : 0;
-    return ratio >= 1;
-  }).length;
+  const overCount = snapshots.filter((s) => toneOf(s) === "over").length;
   const tone: Tone = overCount > 0 ? "over" : "under";
 
   if (!showFullRows && !showDots) {
@@ -109,13 +103,13 @@ function PerfBudgetsComponent({
               </div>
               <div style={DOT_ROW}>
                 {snapshots.map((s) => {
-                  const ratio = s.threshold > 0 ? s.rate / s.threshold : 0;
-                  const t: Tone =
-                    ratio >= 1 ? "over" : ratio >= 0.75 ? "near" : "under";
+                  const t = toneOf(s);
                   return (
                     <span
                       key={s.name}
-                      title={s.name}
+                      role="img"
+                      aria-label={`${s.name}: ${t}`}
+                      title={`${s.name}: ${t}`}
                       style={{ ...DOT, background: TONE_COLOR[t] }}
                     />
                   );
@@ -135,9 +129,8 @@ function PerfBudgetsComponent({
         <Section>
           <ul style={LIST}>
             {snapshots.map((s) => {
-              const ratio = s.threshold > 0 ? s.rate / s.threshold : 0;
-              const t: Tone =
-                ratio >= 1 ? "over" : ratio >= 0.75 ? "near" : "under";
+              const ratio = ratioOf(s);
+              const t = toneOf(s);
               return (
                 <Card
                   as="li"
@@ -198,6 +191,15 @@ function formatRate(n: number): string {
 }
 
 type Tone = "under" | "near" | "over";
+
+function ratioOf(s: BudgetSnapshot): number {
+  return s.threshold > 0 ? s.rate / s.threshold : 0;
+}
+
+function toneOf(s: BudgetSnapshot): Tone {
+  const ratio = ratioOf(s);
+  return ratio >= 1 ? "over" : ratio >= 0.75 ? "near" : "under";
+}
 
 /** This widget's budget tones, mapped onto the kit's tone vocabulary. */
 const KIT_TONE: Record<Tone, ReadoutTone> = {
