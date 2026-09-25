@@ -675,6 +675,47 @@ describe("SCET alarms", () => {
     }
   });
 
+  it("lists an alarm it never asked for, and disarms it when told to", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    try {
+      session.armForeign("rp1-fund-target");
+      await run(session, UT_START + 4 * DT);
+      expect(svc.snapshot().scetForeign).toEqual([
+        {
+          id: "rp1-fund-target",
+          name: "rp1-fund-target",
+          armedBy: HOME,
+          state: "armed",
+          condition: {
+            kind: "threshold",
+            topic: "career.status",
+            fieldPath: "economy.funds",
+            op: ">=",
+            value: expect.any(Number),
+          },
+        },
+      ]);
+
+      svc.deleteAlarm("rp1-fund-target");
+      for (let ut = UT_START + 5 * DT; ut <= UT_START + 8 * DT; ut += DT) {
+        session.emitAt(ut);
+        nowMs += DT * 1000;
+        await vi.advanceTimersByTimeAsync(DT * 1000);
+      }
+      expect(session.armed()).toEqual([]);
+      expect(svc.snapshot().scetForeign).toBeUndefined();
+    } finally {
+      svc.dispose();
+    }
+  });
+
   it("leaves another screen's alarm armed, so two screens with their own lists do not disarm each other", async () => {
     const session = startSession(OWLT);
     session.emitAt(UT_START);

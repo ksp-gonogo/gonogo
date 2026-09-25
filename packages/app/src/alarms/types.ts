@@ -436,7 +436,37 @@ export interface AlarmSnapshot {
    * `pending` for ever, like an alarm whose condition has not come due yet.
    */
   scetUnreachable?: string[];
+  /**
+   * Alarms the simulation holds that this list does not: armed by another
+   * screen, or by an Uplink for itself. Absent when there are none.
+   */
+  scetForeign?: ForeignScetAlarm[];
 }
+
+/**
+ * An alarm on the simulation's roster that this list does not hold, as the
+ * roster states it. Removing one disarms it; nothing else here can change it.
+ */
+export interface ForeignScetAlarm {
+  id: string;
+  name: string;
+  /** The vantage it was armed from, in the `"ground:<name>"` / `"vessel:<guid>"` vocabulary. */
+  armedBy: string;
+  state: "armed" | "fired" | "unreachable";
+  /** What it watches, or null when the row carried a condition this side cannot read. */
+  condition: ForeignScetCondition | null;
+}
+
+export type ForeignScetCondition =
+  | { kind: "time"; ut: number }
+  | {
+      kind: "threshold";
+      topic: string;
+      fieldPath: string;
+      op: ThresholdOp;
+      value: number;
+    }
+  | { kind: "contract-parameter"; parameterTitle: string };
 
 export const DEFAULT_LEAD_SECONDS = 10;
 export const DEFAULT_SUSTAIN_SECONDS = 0;

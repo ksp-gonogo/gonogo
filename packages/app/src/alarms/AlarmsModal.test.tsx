@@ -26,7 +26,7 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AlarmsModal } from "./AlarmsModal";
+import { AlarmsModal, conditionWithheld } from "./AlarmsModal";
 import type { Alarm, AlarmSnapshot } from "./types";
 import {
   DEFAULT_LEAD_SECONDS,
@@ -1126,5 +1126,142 @@ describe("AlarmsModal vantage choice", () => {
     renderModal();
     const group = await thresholdVantage(userEvent.setup());
     await expectNoA11yViolations(group.parentElement as HTMLElement);
+  });
+});
+
+describe("AlarmsModal alarms other screens armed", () => {
+  beforeEach(registerStubDataSource);
+
+  const KSC = "ground:Kerbal Space Center";
+  const PILOT = "vessel:6f0a-probe";
+
+  const foreign = (
+    id: string,
+    armedBy: string,
+    condition: NonNullable<AlarmSnapshot["scetForeign"]>[number]["condition"],
+    state: "armed" | "fired" | "unreachable" = "armed",
+  ) => ({ id, name: `${id} name`, armedBy, state, condition });
+
+  function renderAtVantage(snapshot: AlarmSnapshot, onDelete = vi.fn()) {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const store = new TimelineStore(
+      new ViewClock({
+        nowWall: () => 0,
+        warpRate: () => 1,
+        delaySeconds: () => 0,
+      }),
+    );
+    client.attachStore(store);
+    const result = render(
+      <TelemetryProvider
+        client={client}
+        store={store}
+        carriedChannels={new Set(["vessel.control"])}
+      >
+        <AlarmsModal
+          useSnapshot={() => snapshot}
+          onAdd={vi.fn()}
+          onUpdate={vi.fn()}
+          onDelete={onDelete}
+        />
+      </TelemetryProvider>,
+    );
+    act(() => {
+      transport.emit(
+        "vessel.control",
+        { sasMode: 0, throttle: 0, actionGroups: [] },
+        { validAt: 0, deliveredAt: 0, vantage: KSC },
+      );
+      store.beginFrame();
+    });
+    return { ...result, onDelete };
+  }
+
+  it("shows what an alarm armed at this screen's own vantage watches", () => {
+    renderAtVantage({
+      ...makeSnapshot(),
+      scetForeign: [
+        foreign("apo", KSC, {
+          kind: "threshold",
+          topic: "vessel.flight",
+          fieldPath: "altitudeAsl",
+          op: ">=",
+          value: 100000,
+        }),
+      ],
+    });
+    expect(screen.getByText("apo name")).toBeInTheDocument();
+    expect(
+      screen.getByText("vessel.flight.altitudeAsl >= 100000"),
+    ).toBeInTheDocument();
+  });
+
+  it("withholds the name and condition of one armed at another vantage, and says who armed it", () => {
+    renderAtVantage({
+      ...makeSnapshot(),
+      scetForeign: [
+        foreign("pe", PILOT, {
+          kind: "threshold",
+          topic: "vessel.flight",
+          fieldPath: "altitudeAsl",
+          op: "<",
+          value: 70000,
+        }),
+      ],
+    });
+    expect(screen.queryByText("pe name")).not.toBeInTheDocument();
+    expect(screen.queryByText(/altitudeAsl/)).not.toBeInTheDocument();
+    expect(screen.getByText(`Armed at ${PILOT}`)).toBeInTheDocument();
+    expect(
+      screen.getByText("Condition withheld at this vantage"),
+    ).toBeInTheDocument();
+  });
+
+  it("never withholds a time alarm, whoever armed it", () => {
+    renderAtVantage({
+      ...makeSnapshot(),
+      scetForeign: [foreign("burn", PILOT, { kind: "time", ut: 5000 })],
+    });
+    expect(screen.getByText("burn name")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Condition withheld at this vantage"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("disarms another screen's alarm once confirmed", async () => {
+    const user = userEvent.setup();
+    const { onDelete } = renderAtVantage({
+      ...makeSnapshot(),
+      scetForeign: [foreign("pe", PILOT, null)],
+    });
+    await user.click(
+      screen.getByRole("button", { name: `Disarm Armed at ${PILOT}` }),
+    );
+    expect(onDelete).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Disarm" }));
+    expect(onDelete).toHaveBeenCalledWith("pe");
+  });
+});
+
+describe("conditionWithheld", () => {
+  const row = {
+    id: "x",
+    name: "x",
+    armedBy: "ground:Kerbal Space Center",
+    state: "armed" as const,
+    condition: { kind: "contract-parameter" as const, parameterTitle: "Orbit" },
+  };
+
+  it("withholds at another vantage, and at one not known yet", () => {
+    expect(conditionWithheld(row, "vessel:6f0a-probe")).toBe(true);
+    expect(conditionWithheld(row, undefined)).toBe(true);
+    expect(conditionWithheld(row, "ground:Kerbal Space Center")).toBe(false);
+  });
+
+  it("still withholds once the alarm has fired", () => {
+    expect(
+      conditionWithheld({ ...row, state: "fired" }, "vessel:6f0a-probe"),
+    ).toBe(true);
   });
 });

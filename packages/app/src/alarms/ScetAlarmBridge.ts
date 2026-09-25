@@ -6,10 +6,12 @@ import {
   subscribeActiveTelemetryClient,
 } from "@ksp-gonogo/sitrep-client";
 import {
+  asQuantityish,
   COMMAND_LOST,
   COMMAND_UNDELIVERED,
   CommandErrorCode,
   KspParameterState,
+  magnitudeOf,
   type ScetAlarmAction,
   ScetAlarmActionKind,
   ScetAlarmConditionKind,
@@ -20,6 +22,8 @@ import {
   type Alarm,
   type AlarmFireAction,
   actionsRunAboard,
+  type ForeignScetAlarm,
+  type ForeignScetCondition,
   isAtSubjectVantage,
   modOwnsLatch,
   type ThresholdOp,
@@ -117,6 +121,8 @@ export interface ScetAlarmBridgeContext {
     get(): readonly string[];
     set(ids: readonly string[]): void;
   };
+  /** A roster frame arrived, so what the simulation holds may have changed. */
+  onRoster(): void;
 }
 
 /**
@@ -172,6 +178,8 @@ export class ScetAlarmBridge {
   private rosterIds: readonly string[] = [];
   /** The ids the mod last said it holds onboard actions for. */
   private rosterActing: ReadonlySet<string> = new Set();
+  /** Every row of the last roster frame, as a readout states it. */
+  private rosterAlarms: readonly ForeignScetAlarm[] = [];
   /** The ids the mod last said can never come due, because their craft is gone. */
   private rosterUnreachable: ReadonlySet<string> = new Set();
   private rosterSeen = false;
@@ -292,6 +300,12 @@ export class ScetAlarmBridge {
   /** The ids the mod holds as unreachable, off its roster. */
   unreachableIds(): readonly string[] {
     return [...this.rosterUnreachable];
+  }
+
+  /** The roster's alarms that the client's own list does not hold. */
+  foreignAlarms(): readonly ForeignScetAlarm[] {
+    const ours = new Set(this.ctx.getAlarms().map((alarm) => alarm.id));
+    return this.rosterAlarms.filter((row) => !ours.has(row.id));
   }
 
   /**
@@ -626,9 +640,11 @@ export class ScetAlarmBridge {
       this.rosterIds = readRosterIds(payload);
       this.rosterActing = readActingIds(payload);
       this.rosterUnreachable = readUnreachableIds(payload);
+      this.rosterAlarms = readRosterAlarms(payload);
       this.rosterSeen = true;
       this.commandedSinceRoster.clear();
       this.reconcile();
+      this.ctx.onRoster();
     });
     this.unsubscribeFired = client.subscribe(SCET_FIRED_TOPIC, (payload) => {
       const notice = readFiredNotice(payload);
@@ -658,6 +674,7 @@ export class ScetAlarmBridge {
     this.rosterIds = [];
     this.rosterActing = new Set();
     this.rosterUnreachable = new Set();
+    this.rosterAlarms = [];
     this.rosterSeen = false;
     this.commandedSinceRoster.clear();
     /* A new connection is a new simulation to ask, so every debt is due now. */
@@ -783,6 +800,77 @@ function readRosterIds(payload: unknown): readonly string[] {
     if (id !== null) ids.push(id);
   }
   return ids;
+}
+
+const THRESHOLD_OP_OF_MEMBER = new Map<number, ThresholdOp>(
+  (Object.keys(THRESHOLD_OP_MEMBER) as ThresholdOp[]).map((op) => [
+    THRESHOLD_OP_MEMBER[op],
+    op,
+  ]),
+);
+
+/** A roster frame's rows, each as a readout states it; a row with no id is skipped. */
+function readRosterAlarms(payload: unknown): readonly ForeignScetAlarm[] {
+  if (!Array.isArray(payload)) return [];
+  const rows: ForeignScetAlarm[] = [];
+  for (const row of payload) {
+    const id = readId(row);
+    if (id === null || typeof row !== "object" || row === null) continue;
+    const name: unknown = Reflect.get(row, "name");
+    const armedBy: unknown = Reflect.get(row, "armedBy");
+    const state: unknown = Reflect.get(row, "state");
+    rows.push({
+      id,
+      name: typeof name === "string" ? name : "",
+      armedBy: typeof armedBy === "string" ? armedBy : "",
+      state:
+        state === ScetAlarmState.Fired
+          ? "fired"
+          : state === ScetAlarmState.Unreachable
+            ? "unreachable"
+            : "armed",
+      condition: readRosterCondition(Reflect.get(row, "condition")),
+    });
+  }
+  return rows;
+}
+
+function readRosterCondition(raw: unknown): ForeignScetCondition | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const field = (key: string): unknown => Reflect.get(raw, key);
+  switch (field("kind")) {
+    case ScetAlarmConditionKind.Time: {
+      const ut = magnitudeOf(asQuantityish(field("ut")));
+      return ut === null ? null : { kind: "time", ut };
+    }
+    case ScetAlarmConditionKind.Threshold: {
+      const opMember = field("op");
+      const op =
+        typeof opMember === "number"
+          ? THRESHOLD_OP_OF_MEMBER.get(opMember)
+          : undefined;
+      const value = magnitudeOf(asQuantityish(field("threshold")));
+      const topic = field("topic");
+      const fieldPath = field("fieldPath");
+      if (
+        typeof topic !== "string" ||
+        typeof fieldPath !== "string" ||
+        op === undefined ||
+        value === null
+      ) {
+        return null;
+      }
+      return { kind: "threshold", topic, fieldPath, op, value };
+    }
+    case ScetAlarmConditionKind.ContractParameter: {
+      const parameterTitle = field("parameterTitle");
+      return typeof parameterTitle === "string"
+        ? { kind: "contract-parameter", parameterTitle }
+        : null;
+    }
+    default:
+      return null;
+  }
 }
 
 /**
