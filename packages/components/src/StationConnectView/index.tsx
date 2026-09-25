@@ -300,6 +300,11 @@ const HostInput = styled.input`
     border-color: var(--color-status-info-fg);
   }
 
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
   /* Touch devices: comfortable tap target. */
   @media (pointer: coarse) {
     min-height: 44px;
