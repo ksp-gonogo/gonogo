@@ -302,14 +302,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoKosUplink/KosHealth.cs",
       "mod/GonogoKosUplink.Tests/KosHealthTests.cs",
       /*
-       * AlarmHostService.ts: a text-only doc-comment mention ("the kerbcast
-       * Uplink's producer"): the service
-       * is mod-agnostic and takes an externally-wired producer; nothing
-       * kerbcast-specific is imported. Its test names the "kerbcast.events"
-       * topic id as a string literal only (TEST-only, same class as
-       * loaderState.test.ts / flag.test.ts above). Both permanent.
+       * AlarmHostService.test.ts names the "kerbcast.events" topic id as a
+       * string literal only (TEST-only, same class as loaderState.test.ts /
+       * flag.test.ts above). Permanent.
        */
-      "packages/app/src/alarms/AlarmHostService.ts",
       "packages/app/src/alarms/AlarmHostService.test.ts",
     ],
   },

@@ -1206,9 +1206,7 @@ export function getWarpState(): WarpState | undefined {
 /**
  * Non-React equivalent of `useTelemetry("career.status.contracts.active")`: the
  * career mode's currently-active contract list, off `career.status`'s
- * `contracts.active` raw-field subtopic. `AlarmStateMachine`'s
- * contract-parameter trigger reads it here, not through
- * `getLatestValue("contracts.active")`.
+ * `contracts.active` raw-field subtopic.
  */
 export function getContractsActive(): CareerContract[] | undefined {
   return sampleActiveTopic<CareerContract[]>("career.status.contracts.active");

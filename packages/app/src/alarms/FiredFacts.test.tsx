@@ -19,10 +19,12 @@ const commandVantage: Alarm = {
   name: "Above 70 km",
   trigger: {
     kind: "threshold",
-    dataKey: "vessel.state.altitudeAsl",
+    dataKey: "vessel.flight.altitudeAsl",
     op: ">=",
     value: 70_000,
     sustainSeconds: 5,
+    topic: "vessel.flight",
+    fieldPath: "altitudeAsl",
   },
   state: "fired",
   createdBy: "main",

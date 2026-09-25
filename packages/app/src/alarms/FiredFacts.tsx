@@ -6,7 +6,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import type { Alarm } from "./types";
-import { isAtSubjectVantage, modOwnsLatch } from "./types";
+import { isAtSubjectVantage } from "./types";
 
 export interface FiredFactsProps {
   alarm: Alarm;
@@ -66,19 +66,14 @@ export function FiredFacts({
 
 /**
  * The instant the alarm fired, on the clock of the vantage it was read at, or
- * null where nothing recorded one. An alarm read aboard, and an event, carry
- * the instant the thing happened; one the mod latched at a command vantage
- * fired when this screen was told, which is its latch; one evaluated here came
- * due once its match had held for its sustain.
+ * null where nothing recorded one. An alarm read aboard carries the instant
+ * the thing happened; one read at a command vantage fired when this screen was
+ * told, which is its latch.
  */
 function firedAt(alarm: Alarm): number | null {
-  const t = alarm.trigger;
-  if (isAtSubjectVantage(t) || t.kind === "event") return alarm.eventUT ?? null;
-  if (t.kind === "time") return t.ut;
-  if (alarm.matchSinceUT == null) return null;
-  return modOwnsLatch(t)
-    ? alarm.matchSinceUT
-    : alarm.matchSinceUT + t.sustainSeconds;
+  return isAtSubjectVantage(alarm.trigger)
+    ? (alarm.eventUT ?? null)
+    : (alarm.matchSinceUT ?? null);
 }
 
 const Fact = styled.span`

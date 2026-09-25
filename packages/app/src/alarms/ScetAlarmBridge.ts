@@ -23,9 +23,7 @@ import {
   type ForeignScetAlarm,
   type ForeignScetCondition,
   isAtSubjectVantage,
-  modOwnsLatch,
   type ThresholdOp,
-  thresholdAddress,
 } from "./types";
 
 /**
@@ -48,8 +46,7 @@ const MAX_UNANSWERED_ARMS = 5;
 
 /**
  * `buildArmArgs`'s answer when the arm cannot be stated YET: no vantage has
- * been observed, or no vessel identity has arrived to name the craft. Distinct
- * from `null`, which is a condition the mod could never be asked about.
+ * been observed, or no vessel identity has arrived to name the craft.
  */
 const NOT_YET = Symbol("not-yet");
 
@@ -80,23 +77,12 @@ export interface ScetAlarmBridgeContext {
   /** The host's current alarm list, read live so the bridge never holds a stale copy. */
   getAlarms(): readonly Alarm[];
   /**
-   * A SCET alarm fired on the mod at `firedAtUt` (the craft's clock) and the
-   * warp is already stopped. `actionsWithheld` says its onboard actions did not
-   * run because the craft being flown was not the one they were for. Must be
+   * The simulation fired an alarm of this list at `firedAtUt` and the warp is
+   * already stopped. `actionsWithheld` says its onboard actions did not run
+   * because the craft being flown was not the one they were for. Must be
    * idempotent: the notice is replayed to a reconnecting client on purpose.
    */
   onFired(id: string, firedAtUt: number, actionsWithheld: boolean): void;
-  /**
-   * The simulation decided a COMMAND-VANTAGE alarm was due, judged against what
-   * `vantage` has been told rather than against the craft's true state.
-   *
-   * Shadow only. The client is still the authority for this alarm and keeps
-   * evaluating it; this exists so the two verdicts can be compared. Latching
-   * from it is the hazard `AlarmStateMachine.updateThresholdTracking` documents:
-   * the latch the mod would write is the same field the client's own tracking
-   * writes, so two authorities for it would clear each other's.
-   */
-  onShadowFired(id: string, firedAtUt: number, vantage: string): void;
   /**
    * The simulation refused to arm this alarm, and said why in its own words.
    *
@@ -130,8 +116,9 @@ export interface ScetAlarmBridgeContext {
 }
 
 /**
- * The client half of the SCET alarm arm: arms and disarms over the stream, and
- * turns the mod's fire notice into a local alarm transition.
+ * The client half of the alarm arm: has the simulation watch every alarm in
+ * this list, and turns its fire notice into a local alarm transition. Nothing
+ * on this side judges a condition.
  *
  * ## Why this reads raw frames rather than `useTelemetry`
  *
@@ -147,8 +134,8 @@ export interface ScetAlarmBridgeContext {
  *
  * ## Reconciliation, not a handshake
  *
- * The client stays the authority for its own alarms: they live in its own
- * localStorage list and only the SCET-armed subset crosses. On every roster
+ * The client's list is the authority for which alarms exist: they live in its
+ * own localStorage list, and every one crosses. On every roster
  * frame the bridge arms what the mod does not hold, and disarms what it holds
  * that this install once asked for and no pending alarm of ours accounts for
  * any more. It is self-healing: after a quickload the mod publishes an empty
@@ -159,19 +146,6 @@ export interface ScetAlarmBridgeContext {
  * this install never asked for is one it knows nothing about, and its absence
  * from our list is not an instruction to delete it. Retracting on absence
  * alone had two screens disarming each other's alarms on every frame.
- *
- * ## What the SHADOW arm adds
- *
- * A command-vantage threshold carrying a Topic address is armed too, naming the
- * vantage this screen commands from. The mod then evaluates it against what that
- * place has been told, and publishes its verdict on the same fire channel tagged
- * with the vantage.
- *
- * Nothing latches from it. The client keeps evaluating the same alarm itself,
- * and the two answers are compared and logged. That is the only configuration
- * that produces evidence: two evaluators on two DIFFERENT alarms would say
- * nothing about whether they agree, and two evaluators on one alarm both
- * writing the latch would clear each other's.
  */
 export class ScetAlarmBridge {
   private readonly ctx: ScetAlarmBridgeContext;
@@ -255,7 +229,6 @@ export class ScetAlarmBridge {
 
   /** The mod is owed an arm for this alarm's current condition, as soon as it can be made. */
   owe(alarm: Alarm): void {
-    if (!isAtSubjectVantage(alarm.trigger) && !isShadowable(alarm)) return;
     this.owed.set(alarm.id, 0);
     this.commandedSinceRoster.delete(alarm.id);
     this.unanswered.delete(alarm.id);
@@ -266,25 +239,9 @@ export class ScetAlarmBridge {
    * Whether the MOD holds this alarm, and therefore whether it will stop the
    * warp when the alarm comes due.
    *
-   * The mod's own statement rather than this side's inference, which is what
-   * makes it safe to suppress a client warp command on. The two are not the
-   * same set: a command-vantage TIME alarm and a threshold whose key has no
-   * Topic behind it are both a kind the mod evaluates and neither is ever
-   * armed, so a rule reading the trigger would strip their stop and leave them
-   * stopping nothing. An arm the mod REFUSED is absent here too, which an
-   * inference could not know.
-   *
-   * **UNDEFINED before the first roster frame**, which is a third answer and not
-   * a shy `false`. The two callers want opposite things from "not known yet" and
-   * only one of them is safe defaulting to false:
-   *
-   * - the WARP stop treats it as false and commands anyway. A second
-   *   `setWarpIndex(0)` against warp already at zero is a no-op
-   * - the LATCH must NOT treat it as false. Latching an alarm the mod is about
-   *   to take moves it out of `pending`, an alarm out of `pending` is armed
-   *   only while an arm is still owed for it, and the alarm is then never
-   *   armed, never held, and never latched by anybody. The absence of a roster
-   *   is the one moment that deadlock can start
+   * The mod's own statement off its roster: an arm it REFUSED, or one not
+   * made yet, is absent. UNDEFINED before the first roster frame, when what it
+   * holds is not known at all.
    */
   holdsAlarm(id: string): boolean | undefined {
     if (!this.rosterSeen) return undefined;
@@ -325,7 +282,6 @@ export class ScetAlarmBridge {
 
     const wanted = new Map<string, Alarm>();
     for (const alarm of this.ctx.getAlarms()) {
-      if (!isAtSubjectVantage(alarm.trigger) && !isShadowable(alarm)) continue;
       /* A PENDING alarm, or one still owed its arm. An alarm that fired after
          the mod was told must not be re-armed when a timeline reset drops the
          roster: its condition is in the past, so it would fire again at once. */
@@ -389,10 +345,6 @@ export class ScetAlarmBridge {
    */
   private arm(alarm: Alarm): void {
     const armed = this.buildArmArgs(alarm);
-    if (armed === null) {
-      this.owed.delete(alarm.id);
-      return;
-    }
     if (armed === NOT_YET) {
       this.askAgainLater(alarm.id);
       return;
@@ -451,25 +403,12 @@ export class ScetAlarmBridge {
       }
       this.owed.delete(alarm.id);
       this.settled.add(alarm.id);
-      /* A shadow arm that the mod cannot read costs the operator nothing: the
-         alarm they are watching is the client's own and is unaffected. So the
-         refusal is logged and NOT surfaced, which a SCET refusal must be,
-         because there the refusal is the whole reason the alarm will never
-         fire. */
-      if (!modOwnsLatch(alarm.trigger)) {
-        logger.debug("alarm-host: shadow arm refused", {
-          id: alarm.id,
-          code: refusal.errorCode,
-          reason,
-        });
-        return;
-      }
       /* The mod is the authority on what it can read, and this is the first
          moment this side could have known. Reported with the mod's own words
          rather than a sentence of ours: the message names the Topic the
          operator chose, and a paraphrase would have to keep a second copy of a
          table we deliberately do not hold. */
-      logger.warn("alarm-host: SCET arm refused", {
+      logger.warn("alarm-host: arm refused", {
         id: alarm.id,
         code: refusal.errorCode,
         reason,
@@ -481,9 +420,7 @@ export class ScetAlarmBridge {
   /**
    * One more arm with no answer. Asked again on the slow cadence until
    * {@link MAX_UNANSWERED_ARMS} have gone unanswered in a row, and then given
-   * up on and said: to the operator for an alarm only the simulation can fire,
-   * since that alarm will now never fire, and to the log for a shadow arm,
-   * whose alarm is still the client's own.
+   * up on and said to the operator, since that alarm will now never fire.
    */
   private noAnswer(alarm: Alarm, message: string): void {
     const count = (this.unanswered.get(alarm.id) ?? 0) + 1;
@@ -496,15 +433,7 @@ export class ScetAlarmBridge {
     this.owed.delete(alarm.id);
     this.settled.add(alarm.id);
     const reason = `the simulation never answered ${count} requests to watch this alarm`;
-    if (!modOwnsLatch(alarm.trigger)) {
-      logger.warn("alarm-host: shadow arm never answered", {
-        id: alarm.id,
-        attempts: count,
-        message,
-      });
-      return;
-    }
-    logger.warn("alarm-host: SCET arm never answered", {
+    logger.warn("alarm-host: arm never answered", {
       id: alarm.id,
       attempts: count,
       message,
@@ -529,23 +458,15 @@ export class ScetAlarmBridge {
   }
 
   /**
-   * The `alarm.scet.arm` arguments for one alarm, `NOT_YET` when they cannot be
-   * stated honestly yet, or null when they never can.
+   * The `alarm.scet.arm` arguments for one alarm, or `NOT_YET` when they cannot
+   * be stated honestly yet: a command-vantage alarm before any frame has named
+   * the place this screen commands from, or a craft-scoped Topic before any
+   * vessel identity has arrived. Both are the first moments of a connection.
    *
-   * Every one of those is a refusal to GUESS: an arm carrying the wrong subject
-   * or place is accepted and then never fires, which is the one outcome an
-   * alarm must not have.
-   *
-   * - null: a threshold key with no Topic behind it, one from a live
-   *   `DataSource` rather than the contract's field catalogue, which the mod
-   *   has no way to interpret
-   * - `NOT_YET`: a command-vantage alarm before any frame has named the place
-   *   this screen commands from, or a craft-scoped Topic before any vessel
-   *   identity has arrived. Both are the first moments of a connection
+   * A refusal to GUESS: an arm carrying the wrong subject or place is accepted
+   * and then never fires, which is the one outcome an alarm must not have.
    */
-  private buildArmArgs(
-    alarm: Alarm,
-  ): Record<string, unknown> | null | typeof NOT_YET {
+  private buildArmArgs(alarm: Alarm): Record<string, unknown> | typeof NOT_YET {
     const trigger = alarm.trigger;
     /* Where the simulation reads this alarm. Empty is sent for a SCET alarm and
        the mod resolves it to the alarm's own subject, which is what a SCET alarm
@@ -598,18 +519,11 @@ export class ScetAlarmBridge {
         },
       };
     }
-    const address = thresholdAddress(trigger);
-    if (address === null || trigger.kind !== "threshold") {
-      logger.warn("alarm-host: SCET threshold has no Topic to read", {
-        id: alarm.id,
-      });
-      return null;
-    }
-    const subject = subjectFor(address.topic);
+    const subject = subjectFor(trigger.topic);
     if (subject === null) {
-      logger.warn("alarm-host: SCET threshold has no subject yet", {
+      logger.warn("alarm-host: threshold has no subject yet", {
         id: alarm.id,
-        topic: address.topic,
+        topic: trigger.topic,
       });
       return NOT_YET;
     }
@@ -621,8 +535,8 @@ export class ScetAlarmBridge {
       ...aboard(alarm, subject),
       condition: {
         kind: ScetAlarmConditionKind.Threshold,
-        topic: address.topic,
-        fieldPath: address.fieldPath,
+        topic: trigger.topic,
+        fieldPath: trigger.fieldPath,
         op: THRESHOLD_OP_MEMBER[trigger.op],
         threshold: trigger.value,
         sustainSeconds: trigger.sustainSeconds,
@@ -655,19 +569,9 @@ export class ScetAlarmBridge {
     this.unsubscribeFired = client.subscribe(SCET_FIRED_TOPIC, (payload) => {
       const notice = readFiredNotice(payload);
       if (!notice) return;
-      /* Which notices this side latches from is the same question as which
-         alarms it delegated, so it is asked the same way the arm asks it. The
-         vantage on the notice cannot answer it: the mod resolves an empty one to
-         the alarm's own subject, and a command centre commanding its own crewed
-         craft names that subject too. An id this side does not hold falls to the
-         shadow arm, which says so. */
-      const armed = this.ctx
-        .getAlarms()
-        .find((alarm) => alarm.id === notice.id);
-      if (armed && modOwnsLatch(armed.trigger)) {
+      // An id this list does not hold was armed by another screen, which latches it itself.
+      if (this.ctx.getAlarms().some((alarm) => alarm.id === notice.id)) {
         this.ctx.onFired(notice.id, notice.firedAtUt, notice.actionsWithheld);
-      } else {
-        this.ctx.onShadowFired(notice.id, notice.firedAtUt, notice.vantage);
       }
     });
   }
@@ -936,7 +840,6 @@ function readWireUt(raw: unknown): number | null {
 function readFiredNotice(payload: unknown): {
   id: string;
   firedAtUt: number;
-  vantage: string;
   actionsWithheld: boolean;
 } | null {
   const id = readId(payload);
@@ -945,39 +848,12 @@ function readFiredNotice(payload: unknown): {
   if (!("firedAtUt" in payload)) return null;
   const firedAtUt = readWireUt(payload.firedAtUt);
   if (firedAtUt === null) return null;
-  /* Absent reads as unstated rather than as a place. Nothing routes on it, so a
-     host that does not send one is understood rather than ignored. */
-  const vantage =
-    "vantage" in payload && typeof payload.vantage === "string"
-      ? payload.vantage
-      : "";
   return {
     id,
     firedAtUt,
-    vantage,
     actionsWithheld:
       "actionsWithheld" in payload && payload.actionsWithheld === true,
   };
-}
-
-/**
- * Whether this alarm is one the simulation can be asked to shadow: a
- * command-vantage THRESHOLD carrying the Topic-and-path address, or a contract
- * objective, which the simulation reads off the career it already builds.
- *
- * Never a time alarm, and that exclusion is not an oversight. The
- * mod judges a command vantage's conditions against the readings that place
- * has been told, but against the GAME's clock, because there is no one clock a
- * vantage keeps: how far behind it sits depends on which craft it is listening
- * to. A command-vantage time alarm evaluated there would fire at the SCET
- * instant, which is a different alarm rather than a second opinion on this one.
- */
-function isShadowable(alarm: Alarm): boolean {
-  if (alarm.trigger.kind === "contract-parameter") return true;
-  return (
-    !isAtSubjectVantage(alarm.trigger) &&
-    thresholdAddress(alarm.trigger) !== null
-  );
 }
 
 /** A non-empty `id` off an arbitrary wire object, or null. */

@@ -1,7 +1,5 @@
 import { memoryStorage } from "@ksp-gonogo/core/test";
-import { logger } from "@ksp-gonogo/logger";
 import {
-  type EventOccurrence,
   resolveValueTopic,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
@@ -10,11 +8,11 @@ import {
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
-import { KspParameterState, WarpMode } from "@ksp-gonogo/sitrep-sdk";
+import { WarpMode } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PeerMessage } from "../peer/protocol";
-import { type FiringAlarm, firingAlarm } from "../test/firingAlarm";
+import { modFireNotice } from "../test/modFire";
 import { AlarmHostService } from "./AlarmHostService";
 
 interface FakeTelemetry {
@@ -282,13 +280,29 @@ function makeHost(): {
   return { host, captured };
 }
 
-/** An alarm whose only job is to fire; see `firingAlarm` for how its kind is chosen. */
-const FIRING = firingAlarm();
+/** An alarm whose only job is to fire; `fireFromMod` is what fires it. */
+const SOME_ALARM = { kind: "time", ut: 5000, leadSeconds: 10 } as const;
 
-/** Makes `alarm` due, from the next tick on. */
-function makeDue(telemetry: FakeTelemetry, alarm: FiringAlarm): void {
-  telemetry.publishTopic(alarm.due.topic, alarm.due.record);
+/** The simulation fires alarm `id` at `firedAtUt`, the only way any alarm fires. */
+function fireFromMod(
+  telemetry: FakeTelemetry,
+  id: string,
+  firedAtUt = 1000,
+): void {
+  const notice = modFireNotice(id, firedAtUt);
+  telemetry.publishTopic(notice.topic, notice.record);
 }
+
+/** A threshold the simulation can be asked to watch. */
+const ALTITUDE_ABOVE_70KM = {
+  kind: "threshold",
+  dataKey: "vessel.flight.altitudeAsl",
+  op: ">=",
+  value: 70_000,
+  sustainSeconds: 0,
+  topic: "vessel.flight",
+  fieldPath: "altitudeAsl",
+} as const;
 
 describe("AlarmHostService", () => {
   let nowMs: number;
@@ -323,70 +337,6 @@ describe("AlarmHostService", () => {
     return { svc, telemetry };
   }
 
-  it("fires an event alarm when the revealed-events reader surfaces a matching occurrence", () => {
-    const telemetry = fakeTelemetry();
-    telemetry.set("t.universalTime", 1000);
-    telemetry.set("t.currentRateIndex", 0);
-    telemetry.set("t.currentRate", 1);
-    const revealed: EventOccurrence[] = [];
-    const svc = new AlarmHostService(null, {
-      nowMs: () => nowMs,
-      tickIntervalMs: 1000,
-      storage: memoryStorage(),
-      getRevealedEvents: (topic) =>
-        topic === "kerbcast.events" ? revealed : [],
-    });
-    svc.addAlarm({
-      name: "Signal lost",
-      trigger: {
-        kind: "event",
-        topic: "kerbcast.events",
-        eventKind: "signal-lost",
-      },
-    });
-    // Baseline established at ut 1000, no occurrence yet.
-    vi.advanceTimersByTime(1000);
-    expect(svc.snapshot().alarms[0].state).toBe("pending");
-
-    // An occurrence reveals after the watch baseline.
-    telemetry.set("t.universalTime", 1005);
-    revealed.push({ ut: 1002, kind: "signal-lost", payload: {}, epoch: 0 });
-    vi.advanceTimersByTime(1000);
-    expect(svc.snapshot().alarms[0].state).toBe("firing");
-  });
-
-  it("fires an event alarm revealed inside a warp step that JUMPED CLEAN OVER it", async () => {
-    /*
-     * The occurrence happened thousands of seconds before the tick that sees
-     * it, and the alarm still fires on that tick rather than being judged late.
-     */
-    const telemetry = fakeTelemetry();
-    telemetry.set("t.universalTime", 1000);
-    telemetry.set("t.currentRateIndex", 7);
-    telemetry.set("t.currentRate", 10000);
-    const revealed: EventOccurrence[] = [];
-    const svc = new AlarmHostService(null, {
-      nowMs: () => nowMs,
-      tickIntervalMs: 1000,
-      storage: memoryStorage(),
-      getRevealedEvents: (topic) =>
-        topic === "kerbcast.events" ? revealed : [],
-    });
-    svc.addAlarm({
-      name: "Signal lost",
-      trigger: { kind: "event", topic: "kerbcast.events" },
-    });
-    telemetry.calls.length = 0;
-
-    // One tick at 10,000x, with the occurrence buried mid-jump.
-    revealed.push({ ut: 5000, kind: "signal-lost", payload: {}, epoch: 0 });
-    telemetry.set("t.universalTime", 11000);
-    await vi.advanceTimersByTimeAsync(1100);
-
-    expect(svc.snapshot().alarms[0].state).toBe("firing");
-    expect(telemetry.calls).toContain("time.setWarpIndex[0]");
-  });
-
   it("adds an alarm and surfaces it in the snapshot", async () => {
     const { svc } = makeService();
     svc.addAlarm({
@@ -400,51 +350,25 @@ describe("AlarmHostService", () => {
   });
 
   /**
-   * A time alarm is the MOD's, whatever vantage it was saved with: its instant
-   * is a universal time and every clock agrees on one, so there is no second
-   * opinion for this side to hold.
-   *
-   * What this replaces is three cases that drove the client's own time
-   * evaluator: the lead window, the warp step that jumps both instants, and
-   * the two-second firing window. Those behaviours did not go away, they moved:
-   * `Sitrep.Host.Alarms.ScetAlarmRoster.EvaluateTime` decides all three now,
-   * against the game's own clock, and `ScetAlarmRosterTests` asserts them
-   * there. Keeping a copy here would have been a second implementation drifting
-   * from the one that actually decides.
+   * The simulation stops the warp in the frame an alarm fires, so the fire
+   * reaching this side is news of a stop already made. A command from here
+   * would be a second authority for the same state, arriving late.
    */
-  /**
-   * The other half of the warp rule, and it lives here rather than beside its
-   * twin in the integration suite for a fixture reason worth stating: that
-   * fixture emits only `vessel.identity`, so an alarm this side evaluates has
-   * nothing to read and can never come due there.
-   *
-   * The alarm is a THRESHOLD with no Topic address: a key from a live
-   * DataSource rather than from the contract's field catalogue. The mod cannot
-   * be armed with one, so nothing there will stop the warp and this side must
-   * still do it. A rule reading the KIND rather than what the mod holds would
-   * have taken that away.
-   */
-  it("still commands the warp for an alarm the mod cannot hold", async () => {
+  it("sends no warp command when an alarm fires", async () => {
     const { svc, telemetry } = makeService();
-    svc.addAlarm({
+    const alarm = svc.addAlarm({
       name: "Tank",
-      trigger: {
-        kind: "threshold",
-        dataKey: "vessel.state.altitudeAsl",
-        op: ">=",
-        value: 70_000,
-        sustainSeconds: 0,
-      },
+      trigger: { ...ALTITUDE_ABOVE_70KM },
     });
     telemetry.set("t.currentRateIndex", 4);
     telemetry.set("t.currentRate", 50);
     telemetry.calls.length = 0;
 
-    telemetry.set("vessel.state.altitudeAsl", 70_500);
+    fireFromMod(telemetry, alarm.id);
     await vi.advanceTimersByTimeAsync(1100);
 
     expect(svc.snapshot().alarms[0].state).toBe("firing");
-    expect(telemetry.calls).toContain("time.setWarpIndex[0]");
+    expect(telemetry.calls).not.toContain("time.setWarpIndex[0]");
   });
 
   it("leaves a time alarm alone, because the mod decides when it comes due", async () => {
@@ -575,9 +499,8 @@ describe("AlarmHostService", () => {
   });
 
   it("loads pre-onFire persisted alarms cleanly with onFire undefined", async () => {
-    // Hand-rolled v1 record (no `onFire` field) seeded directly into
-    // storage: verifies migrateAlarm leaves onFire undefined and the
-    // service treats it as a no-side-effect alarm.
+    // A record with no `onFire` field seeded directly into storage: it loads
+    // with onFire undefined and is a no-side-effect alarm.
     const storage = memoryStorage();
     storage.setItem(
       "gonogo.alarms.list",
@@ -604,66 +527,18 @@ describe("AlarmHostService", () => {
     expect(alarms[0].onFire).toBeUndefined();
   });
 
-  /**
-   * The shadow log's second direction, and the one only this side can see,
-   * for the kind still shadowed: a contract objective.
-   *
-   * The mod going quiet is indistinguishable from agreement unless the client
-   * says so at its own fire. Driven rather than read off the source: a
-   * comparison that is never reached records nothing while looking correct.
-   */
-  it("records the client firing a contract objective the mod never answered", async () => {
-    const warn = vi.spyOn(logger, "warn");
-    const { svc, telemetry } = makeService();
-    svc.addAlarm({
-      name: "Mun orbit",
-      trigger: {
-        kind: "contract-parameter",
-        contractId: 42,
-        parameterTitle: "Orbit the Mun",
-        targetState: "Complete",
-        sustainSeconds: 0,
-      },
-    });
-    telemetry.publishTopic("career.status", {
-      contracts: {
-        active: [
-          {
-            id: "42",
-            parameters: [
-              {
-                title: "Orbit the Mun",
-                stateOrdinal: KspParameterState.Complete,
-              },
-            ],
-          },
-        ],
-      },
-    });
-    telemetry.set("t.universalTime", 1100);
-    await vi.advanceTimersByTimeAsync(1100);
-    await Promise.resolve();
-
-    expect(
-      warn.mock.calls.some(([m]) =>
-        String(m).includes("client fired, mod has not"),
-      ),
-    ).toBe(true);
-    warn.mockRestore();
-  });
-
   describe("onFire side effects", () => {
     it("dispatches each onFire action via the telemetry execute path on transition to firing", async () => {
       const { svc, telemetry } = makeService();
-      svc.addAlarm({
+      const alarm = svc.addAlarm({
         name: "Stage at 70km",
-        trigger: FIRING.trigger,
+        trigger: { ...SOME_ALARM },
         onFire: [
           { kind: "action-group", action: "AG1" },
           { kind: "action-group", action: "Stage" },
         ],
       });
-      makeDue(telemetry, FIRING);
+      fireFromMod(telemetry, alarm.id);
       telemetry.set("t.universalTime", 1100);
       await vi.advanceTimersByTimeAsync(1100);
       // Drain the dispatch microtasks (telemetry.execute is awaited).
@@ -686,272 +561,81 @@ describe("AlarmHostService", () => {
 
     it("does not call execute for alarms without onFire", async () => {
       const { svc, telemetry } = makeService();
-      svc.addAlarm({
+      const alarm = svc.addAlarm({
         name: "Just notify",
-        trigger: FIRING.trigger,
+        trigger: { ...SOME_ALARM },
       });
-      makeDue(telemetry, FIRING);
-      telemetry.set("t.universalTime", 1100);
+      fireFromMod(telemetry, alarm.id);
       await vi.advanceTimersByTimeAsync(1100);
       // Drain microtasks (telemetry.execute is async). Don't use
       // runAllTimersAsync: the host's own tick interval would loop
       // forever under fake timers.
       await Promise.resolve();
       await Promise.resolve();
-      // Filter out warp-step calls (`time.setWarpIndex[0]`) that the warp-down
-      // ladder makes: they're unrelated to onFire dispatch.
-      const userActions = telemetry.calls.filter(
-        (c) => !c.startsWith("time.setWarpIndex"),
-      );
       // It fired, or an empty list would say nothing about onFire at all.
       expect(svc.snapshot().alarms[0].state).toBe("firing");
-      expect(userActions).toEqual([]);
+      expect(telemetry.calls).toEqual([]);
     });
   });
 
-  describe("threshold triggers", () => {
-    it("fires when the telemetry value first crosses a >= threshold (no sustain)", async () => {
-      const { svc, telemetry } = makeService();
-      svc.addAlarm({
-        name: "70km",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
-      });
-      // Start below threshold: alarm stays pending.
-      telemetry.set("vessel.state.altitudeAsl", 50_000);
-      await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().alarms[0].state).toBe("pending");
-      // Cross the threshold: should immediately fire.
-      telemetry.set("vessel.state.altitudeAsl", 70_500);
-      telemetry.set("t.universalTime", 1100);
-      await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().alarms[0].state).toBe("firing");
-    });
+  /**
+   * The simulation judges every alarm. A reading crossing on this screen is a
+   * light-time old and is not the verdict, so it moves nothing here.
+   */
+  it("never judges a threshold from its own reading", async () => {
+    const { svc, telemetry } = makeService();
+    svc.addAlarm({ name: "70km", trigger: { ...ALTITUDE_ABOVE_70KM } });
+    telemetry.publishTopic("vessel.flight", { altitudeAsl: 70_500 });
+    telemetry.set("t.universalTime", 1100);
+    await vi.advanceTimersByTimeAsync(1100);
 
-    /**
-     * The production shape, which every other test in this block goes around:
-     * the mod publishes `vessel.flight` as a record, the decode gives its
-     * declared quantities their units back, and the alarm's `dataKey` reads one
-     * field off that. Reading a threshold subject off a whole Topic is the only
-     * thing an operator can actually arm, and it went unexercised: a bare
-     * number landed directly on a field subtopic passes whether or not the read
-     * can see through a unit.
-     */
-    it("fires on a unit-carrying field of a published Topic record", async () => {
-      const { svc, telemetry } = makeService();
-      svc.addAlarm({
-        name: "Falling fast",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.flight.verticalSpeed",
-          op: "<=",
-          value: -50,
-          sustainSeconds: 0,
-        },
-      });
-      telemetry.publishTopic("vessel.flight", { verticalSpeed: -10 });
-      await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().alarms[0].state).toBe("pending");
-
-      telemetry.publishTopic("vessel.flight", { verticalSpeed: -120 });
-      telemetry.set("t.universalTime", 1100);
-      await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().alarms[0].state).toBe("firing");
-    });
-
-    it("waits for sustain before firing", async () => {
-      const { svc, telemetry } = makeService();
-      svc.addAlarm({
-        name: "Held over",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.flight.surfaceSpeed",
-          op: ">",
-          value: 100,
-          sustainSeconds: 3,
-        },
-      });
-      // First tick: condition matches, but sustain not satisfied.
-      telemetry.set("vessel.flight.surfaceSpeed", 200);
-      telemetry.set("t.universalTime", 1000);
-      await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().alarms[0].state).toBe("pending");
-      expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1000);
-
-      // Two seconds later: still under sustain.
-      telemetry.set("t.universalTime", 1002);
-      await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().alarms[0].state).toBe("pending");
-
-      // Sustain hit at +3s: alarm fires.
-      telemetry.set("t.universalTime", 1003);
-      await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().alarms[0].state).toBe("firing");
-    });
-
-    it("does not treat an unreadable value as the condition ENDING", async () => {
-      /*
-       * `getValue` answers `undefined` for four different situations (nothing
-       * has arrived yet, the link dropped, the value is non-finite, the saved
-       * `dataKey` names a retired subject) and its own doc hands the surface
-       * that stored the key the job of telling them apart. This one collapsed
-       * all four into `matched = false`, i.e. it published a failed read as
-       * the confident fact "the condition just ended", and cleared the sustain
-       * latch. A link that flaps faster than `sustainSeconds` therefore never
-       * lets the alarm fire at all.
-       */
-      const { svc, telemetry } = makeService();
-      telemetry.set("vessel.flight.surfaceSpeed", 200);
-      svc.addAlarm({
-        name: "Held over",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.flight.surfaceSpeed",
-          op: ">",
-          value: 100,
-          sustainSeconds: 10,
-        },
-      });
-      expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1000);
-
-      // The read goes dark. Nothing says the condition ended, so the latch
-      // must survive, and the unobserved seconds must not count toward it.
-      telemetry.set("vessel.flight.surfaceSpeed", null);
-      telemetry.set("t.universalTime", 1004);
-      await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1004);
-      expect(svc.snapshot().alarms[0].state).toBe("pending");
-
-      // The read comes back, still matching: sustain resumes rather than
-      // restarting, and the four dark seconds bought nothing.
-      telemetry.set("vessel.flight.surfaceSpeed", 200);
-      telemetry.set("t.universalTime", 1008);
-      await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1004);
-      expect(svc.snapshot().alarms[0].state).toBe("pending");
-
-      telemetry.set("t.universalTime", 1014);
-      await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().alarms[0].state).toBe("firing");
-    });
-
-    it("fires a sustained threshold whose sustain window the warp step JUMPED CLEAN OVER", async () => {
-      // One tick at 10,000x carries `heldFor` from 0 to 10,000, past a 60-second sustain and the banner window after it.
-      const { svc, telemetry } = makeService();
-      telemetry.set("t.currentRateIndex", 7);
-      telemetry.set("t.currentRate", 10000);
-      telemetry.set("vessel.flight.surfaceSpeed", 200);
-      svc.addAlarm({
-        name: "Held over",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.flight.surfaceSpeed",
-          op: ">",
-          value: 100,
-          sustainSeconds: 60,
-        },
-      });
-      expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1000);
-      expect(svc.snapshot().alarms[0].state).toBe("pending");
-      telemetry.calls.length = 0;
-
-      // One tick at 10,000x: the sustain deadline at UT 1060 is long behind.
-      telemetry.set("t.universalTime", 11000);
-      await vi.advanceTimersByTimeAsync(1100);
-
-      expect(svc.snapshot().alarms[0].state).toBe("firing");
-      expect(telemetry.calls).toContain("time.setWarpIndex[0]");
-    });
-
-    it("resets sustain when the condition stops matching", async () => {
-      const { svc, telemetry } = makeService();
-      svc.addAlarm({
-        name: "Bouncy",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 5,
-        },
-      });
-      // Match starts at UT=1000.
-      telemetry.set("vessel.state.altitudeAsl", 70_500);
-      telemetry.set("t.universalTime", 1000);
-      await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1000);
-
-      // Drop below threshold: match resets.
-      telemetry.set("vessel.state.altitudeAsl", 69_500);
-      telemetry.set("t.universalTime", 1003);
-      await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().alarms[0].matchSinceUT).toBeNull();
-
-      // Cross again at 1010: sustain timer starts fresh, not from 1000.
-      telemetry.set("vessel.state.altitudeAsl", 71_000);
-      telemetry.set("t.universalTime", 1010);
-      await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1010);
-      expect(svc.snapshot().alarms[0].state).toBe("pending");
-    });
-
-    it("stays fired when an oscillating value re-crosses the threshold", async () => {
-      const { svc, telemetry } = makeService();
-      svc.addAlarm({
-        name: "Apoapsis bell",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
-      });
-      // Cross threshold → fires.
-      telemetry.set("vessel.state.altitudeAsl", 70_500);
-      telemetry.set("t.universalTime", 1000);
-      await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().alarms[0].state).toBe("firing");
-      // Two seconds later the firing window closes → fired.
-      telemetry.set("t.universalTime", 1003);
-      await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().alarms[0].state).toBe("fired");
-      // Drop below, then cross again: pre-fix this regressed to firing
-      // and chimed a second time.
-      telemetry.set("vessel.state.altitudeAsl", 69_500);
-      telemetry.set("t.universalTime", 1006);
-      await vi.advanceTimersByTimeAsync(1100);
-      telemetry.set("vessel.state.altitudeAsl", 70_500);
-      telemetry.set("t.universalTime", 1009);
-      await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().alarms[0].state).toBe("fired");
-    });
+    expect(svc.snapshot().alarms[0].state).toBe("pending");
+    expect(svc.snapshot().alarms[0].matchSinceUT).toBeNull();
   });
 
-  it("migrates v1 persisted alarms into the v2 trigger shape", async () => {
+  it("drops a saved alarm in any shape but today's, and keeps the rest", async () => {
     const storage = memoryStorage();
+    const today = {
+      id: "today",
+      name: "Burn",
+      state: "pending",
+      createdBy: "main",
+      createdAt: 1_700_000_000_000,
+      trigger: { kind: "time", ut: 5000, leadSeconds: 10 },
+    };
     storage.setItem(
       "gonogo.alarms.list",
       JSON.stringify([
-        { id: "a", name: "Old", ut: 2500, leadSeconds: 10, state: "pending" },
+        today,
+        // Top-level instant, from before triggers existed.
+        { id: "v1", name: "Old", ut: 2500, leadSeconds: 10, state: "pending" },
+        // A threshold with no Topic address, which nothing could watch.
+        {
+          ...today,
+          id: "addressless",
+          trigger: {
+            kind: "threshold",
+            dataKey: "vessel.state.altitudeAsl",
+            op: ">=",
+            value: 70_000,
+            sustainSeconds: 0,
+          },
+        },
+        // A kind that no longer exists.
+        {
+          ...today,
+          id: "event",
+          trigger: { kind: "event", topic: "kerbcast.events" },
+        },
       ]),
     );
     const svc = new AlarmHostService(null, {
       nowMs: () => nowMs,
       storage,
     });
-    const a = svc.snapshot().alarms[0];
-    expect(a).toBeDefined();
-    expect(a.trigger).toEqual({
-      kind: "time",
-      ut: 2500,
-      leadSeconds: 10,
-    });
+
+    expect(svc.snapshot().alarms.map((a) => a.id)).toEqual(["today"]);
+    svc.dispose();
   });
 
   describe("warp-to manual session", () => {
@@ -966,53 +650,14 @@ describe("AlarmHostService", () => {
       expect(telemetry.calls).toEqual([]);
     });
 
-    it("activates on a threshold-only list and holds at the ramp-up cap", async () => {
+    it("does not start on a list with no time alarm, since the simulation stops the warp for the rest", async () => {
       const { svc, telemetry } = makeService();
-      const a = svc.addAlarm({
-        name: "Threshold",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
-      });
-      // No samples yet → ETA unknown → ladder pinned at 100× while the
-      // slope estimator collects data.
+      svc.addAlarm({ name: "Threshold", trigger: { ...ALTITUDE_ABOVE_70KM } });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask: drain it before any
-      // `telemetry.calls` assertion that follows.
-      await Promise.resolve();
-      await Promise.resolve();
-      expect(svc.snapshot().warpTo).toEqual({
-        alarmId: a.id,
-        targetIndex: 4,
-        targetRate: 100,
-      });
-      expect(telemetry.calls).toContain("time.setWarpIndex[4]");
-    });
-
-    it("ignores equality-op threshold alarms (non-monotonic, can't plan)", async () => {
-      const { svc, telemetry } = makeService();
-      svc.addAlarm({
-        name: "Equality",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: "==",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
-      });
-      const before = [...telemetry.calls];
-      svc.beginWarpTo();
-      // Command dispatch settles on a microtask: drain it before any
-      // `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
       expect(svc.snapshot().warpTo).toBeNull();
-      expect(telemetry.calls).toEqual(before);
+      expect(telemetry.calls).toEqual([]);
     });
 
     it("targets the highest ladder rate that respects the safety margin", async () => {
@@ -1151,30 +796,18 @@ describe("AlarmHostService", () => {
       expect(svc.snapshot().warpTo?.targetIndex).toBe(4); // 100×
     });
 
-    it("caps rate at 100× when any threshold alarm is pending", async () => {
+    it("does not slow the ladder for a pending threshold, which the simulation stops the warp for", async () => {
       const { svc } = makeService();
       svc.addAlarm({
         name: "Far",
         trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
       });
-      svc.addAlarm({
-        name: "Threshold",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
-      });
+      svc.addAlarm({ name: "Threshold", trigger: { ...ALTITUDE_ABOVE_70KM } });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask: drain it before any
-      // `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
-      // Without the cap, far alarm allows idx 5 (1000×). The threshold
-      // presence drops it to idx 4 (100×).
-      expect(svc.snapshot().warpTo?.targetIndex).toBe(4);
+      // The same 1000× (idx 5) the far alarm allows on its own.
+      expect(svc.snapshot().warpTo?.targetIndex).toBe(5);
     });
 
     it("auto-cancels when the last pending time alarm is deleted", async () => {
@@ -1255,130 +888,6 @@ describe("AlarmHostService", () => {
       });
       expect(b.snapshot().warpSafetyMarginSeconds).toBe(30);
       b.dispose();
-    });
-
-    it("ramps up off the cap once a threshold's slope projects a usable ETA", async () => {
-      const { svc, telemetry } = makeService();
-      svc.addAlarm({
-        name: "Altitude",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
-      });
-      telemetry.set("vessel.state.altitudeAsl", 10_000);
-      svc.beginWarpTo();
-      // Command dispatch settles on a microtask: drain it before any
-      // `telemetry.calls` assertion that follows.
-      await Promise.resolve();
-      await Promise.resolve();
-      // Cap until samples accumulate.
-      expect(svc.snapshot().warpTo?.targetIndex).toBe(4);
-      // Feed 4 samples, 1 game-second apart (so MIN_SAMPLE_SPAN_GAME_SECONDS
-      // is satisfied), each adding 100 m altitude → slope = 100 m/s,
-      // distance ≈ 60_000 → ETA ≈ 600s → maxRate 60 → idx 3 (50×).
-      for (let i = 1; i <= 4; i++) {
-        telemetry.set("t.universalTime", 1000 + i);
-        telemetry.set("vessel.state.altitudeAsl", 10_000 + i * 100);
-        await vi.advanceTimersByTimeAsync(1100);
-      }
-      expect(svc.snapshot().warpTo?.targetIndex).toBe(3);
-    });
-
-    it("ramps down to 1× as the threshold approaches", async () => {
-      const { svc, telemetry } = makeService();
-      svc.addAlarm({
-        name: "Altitude",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
-      });
-      svc.beginWarpTo();
-      // Command dispatch settles on a microtask: drain it before any
-      // `telemetry.calls` assertion that follows.
-      await Promise.resolve();
-      await Promise.resolve();
-      // Build a buffer with a 100 m/s climb, well below the threshold.
-      for (let i = 0; i < 6; i++) {
-        telemetry.set("t.universalTime", 1000 + i);
-        telemetry.set("vessel.state.altitudeAsl", 60_000 + i * 100);
-        await vi.advanceTimersByTimeAsync(1100);
-      }
-      const farIndex = svc.snapshot().warpTo?.targetIndex ?? 0;
-      expect(farIndex).toBeGreaterThan(0);
-      // Now jump close to the threshold (still ascending), only ~50m
-      // distance at 100 m/s = 0.5s ETA → drops to idx 0.
-      for (let i = 6; i < 12; i++) {
-        telemetry.set("t.universalTime", 1000 + i);
-        telemetry.set("vessel.state.altitudeAsl", 69_950 + (i - 6) * 100);
-        await vi.advanceTimersByTimeAsync(1100);
-      }
-      const nearIndex = svc.snapshot().warpTo?.targetIndex ?? 0;
-      expect(nearIndex).toBeLessThan(farIndex);
-    });
-
-    it("won't ramp up when the value is drifting away from the threshold", async () => {
-      const { svc, telemetry } = makeService();
-      svc.addAlarm({
-        name: "Altitude",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          sustainSeconds: 0,
-        },
-      });
-      svc.beginWarpTo();
-      // Command dispatch settles on a microtask: drain it before any
-      // `telemetry.calls` assertion that follows.
-      await Promise.resolve();
-      await Promise.resolve();
-      // Descending altitude: moving away from the >= threshold.
-      for (let i = 0; i < 6; i++) {
-        telemetry.set("t.universalTime", 1000 + i);
-        telemetry.set("vessel.state.altitudeAsl", 60_000 - i * 100);
-        await vi.advanceTimersByTimeAsync(1100);
-      }
-      // No usable ETA → cap holds at idx 4.
-      expect(svc.snapshot().warpTo?.targetIndex).toBe(4);
-    });
-
-    it("ends the session when the threshold's condition starts matching", async () => {
-      const { svc, telemetry } = makeService();
-      svc.addAlarm({
-        name: "Altitude",
-        trigger: {
-          kind: "threshold",
-          dataKey: "vessel.state.altitudeAsl",
-          op: ">=",
-          value: 70_000,
-          // Sustain so it stays in `pending` (matchSinceUT set, but state
-          // hasn't transitioned yet): exercises the matchSinceUT guard.
-          sustainSeconds: 30,
-        },
-      });
-      svc.beginWarpTo();
-      // Command dispatch settles on a microtask: drain it before any
-      // `telemetry.calls` assertion that follows.
-      await Promise.resolve();
-      await Promise.resolve();
-      expect(svc.snapshot().warpTo).not.toBeNull();
-      // Cross the threshold.
-      telemetry.set("t.universalTime", 2000);
-      telemetry.set("vessel.state.altitudeAsl", 71_000);
-      await vi.advanceTimersByTimeAsync(1100);
-      // matchSinceUT now set; alarm still `pending` but no longer
-      // eligible: session terminates.
-      expect(svc.snapshot().alarms[0].matchSinceUT).not.toBeNull();
-      expect(svc.snapshot().warpTo).toBeNull();
     });
 
     it("does not flag unscheduled-warp while a warp-to session is active", async () => {
@@ -1493,11 +1002,11 @@ describe("AlarmHostService", () => {
 
     it("broadcasts alarm-snapshot on every emit and alarm-fired when an alarm fires", async () => {
       const { svc, telemetry, captured } = makeServiceWithHost();
-      svc.addAlarm({
+      const alarm = svc.addAlarm({
         name: "Apoapsis",
-        trigger: FIRING.trigger,
+        trigger: { ...SOME_ALARM },
       });
-      makeDue(telemetry, FIRING);
+      fireFromMod(telemetry, alarm.id);
       await vi.advanceTimersByTimeAsync(1100);
       const types = captured.broadcasts.map((m) => m.type);
       expect(types).toContain("alarm-snapshot");
@@ -1508,11 +1017,10 @@ describe("AlarmHostService", () => {
       const { svc, telemetry, captured } = makeServiceWithHost();
       const a = svc.addAlarm({
         name: "Apoapsis",
-        trigger: FIRING.trigger,
+        trigger: { ...SOME_ALARM },
       });
-      // Drive the state machine through firing → fired so the alarm is in the
-      // only state acknowledgeAlarm accepts.
-      makeDue(telemetry, FIRING);
+      // Through firing → fired, the only state acknowledgeAlarm accepts.
+      fireFromMod(telemetry, a.id);
       await vi.advanceTimersByTimeAsync(1100);
       telemetry.set("t.universalTime", 1100);
       await vi.advanceTimersByTimeAsync(1100);
@@ -1525,13 +1033,13 @@ describe("AlarmHostService", () => {
 
     it("carries onFire through alarm-add and dispatches when the alarm fires", async () => {
       const { svc, telemetry, captured } = makeServiceWithHost();
-      // Already satisfied, so the tick inside addAlarm fires it straight away.
-      makeDue(telemetry, FIRING);
       captured.addCb?.("station-1", {
         name: "Stage at 70km",
-        trigger: FIRING.trigger,
+        trigger: { ...SOME_ALARM },
         onFire: [{ kind: "action-group", action: "AG1" }],
       });
+      fireFromMod(telemetry, svc.snapshot().alarms[0].id);
+      await vi.advanceTimersByTimeAsync(1100);
       await Promise.resolve();
       await Promise.resolve();
       expect(svc.snapshot().alarms[0].onFire).toEqual([
@@ -1540,6 +1048,19 @@ describe("AlarmHostService", () => {
       expect(telemetry.calls).toContain(
         "vessel.control.setActionGroup[1=true]",
       );
+    });
+
+    it("refuses a station's alarm the simulation could never watch, and makes no row", async () => {
+      const { svc, captured } = makeServiceWithHost();
+      // What a station on an older build could send, off the wire: no Topic address.
+      const trigger = JSON.parse(
+        '{"kind":"threshold","dataKey":"kos.cpu.load","op":">","value":1,"sustainSeconds":0}',
+      );
+      captured.addCb?.("station-1", {
+        name: "From a live DataSource",
+        trigger,
+      });
+      expect(svc.snapshot().alarms).toEqual([]);
     });
 
     // Without this, a station that connects (or refreshes) after the operator
@@ -1585,15 +1106,15 @@ describe("AlarmHostService", () => {
   });
 
   describe("firing→fired window", () => {
-    it("transitions firing within 2s of the match and to fired thereafter", async () => {
+    it("transitions firing within 2s of learning of the fire and to fired thereafter", async () => {
       const { svc, telemetry } = makeService();
-      svc.addAlarm({
+      const alarm = svc.addAlarm({
         name: "Burn",
-        trigger: FIRING.trigger,
+        trigger: { ...SOME_ALARM },
       });
-      // Cross the threshold: within the 2s firing window.
+      // The notice lands: within the 2s firing window.
       telemetry.set("t.universalTime", 1500);
-      makeDue(telemetry, FIRING);
+      fireFromMod(telemetry, alarm.id);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("firing");
       // Still within the window a second later.
@@ -1608,16 +1129,11 @@ describe("AlarmHostService", () => {
   });
 
   /**
-   * An alarm is about a condition being met, not the instant of meeting it, so
-   * every route by which an alarm comes to have fired owes the operator the
-   * same consequences. Each case asserts all of them, because the failure this
-   * guards against is SILENCE: an alarm whose state says it fired while nothing
-   * told anyone.
+   * Every route by which an alarm comes to have fired owes the operator the same
+   * consequences. The failure this guards against is SILENCE: an alarm whose
+   * state says it fired while nothing told anyone.
    */
   describe("a fire is a fact, whatever route delivers it", () => {
-    // These cases are about the routes a client-evaluated fire takes, and a
-    // sustain is what lets a fire be jumped over, discovered or edited into.
-    const HELD = firingAlarm({ sustainSeconds: 60 });
     const STAGE = [{ kind: "action-group", action: "AG1" }] as const;
 
     function warpingTelemetry(ut: number): FakeTelemetry {
@@ -1625,71 +1141,10 @@ describe("AlarmHostService", () => {
       telemetry.set("t.universalTime", ut);
       telemetry.set("t.currentRateIndex", 7);
       telemetry.set("t.currentRate", 10000);
-      makeDue(telemetry, HELD);
       return telemetry;
     }
 
-    /**
-     * Every consequence of one fire, each exactly once. The banner and the tone
-     * both key on the alarm reaching `firing` or `fired` in a snapshot, and the
-     * snapshots a station receives are the same ones, so the broadcast stream
-     * is where the passage through `firing` is read.
-     *
-     * A fire discovered rather than watched still informs, and withholds its
-     * actions ON THE RECORD: the last snapshot must say so, or a withheld
-     * action would be the same silence as a skipped fire.
-     */
-    async function expectEveryConsequenceOnce(
-      id: string,
-      telemetry: FakeTelemetry,
-      captured: CapturedHost,
-      warn: { mock: { calls: unknown[][] } },
-      actions: "run" | "withheld",
-    ): Promise<void> {
-      await Promise.resolve();
-      await Promise.resolve();
-      const states = captured.broadcasts.flatMap((m) =>
-        m.type === "alarm-snapshot"
-          ? m.snapshot.alarms.filter((a) => a.id === id).map((a) => a.state)
-          : [],
-      );
-      expect.soft(states).toContain("firing");
-      expect
-        .soft(
-          captured.broadcasts.filter(
-            (m) => m.type === "alarm-fired" && m.id === id,
-          ),
-        )
-        .toHaveLength(1);
-      expect
-        .soft(
-          telemetry.calls.filter(
-            (c) => c === "vessel.control.setActionGroup[1=true]",
-          ),
-        )
-        .toHaveLength(actions === "run" ? 1 : 0);
-      const last = captured.broadcasts
-        .flatMap((m) =>
-          m.type === "alarm-snapshot"
-            ? m.snapshot.alarms.filter((a) => a.id === id)
-            : [],
-        )
-        .at(-1);
-      expect
-        .soft(last?.actionsWithheld)
-        .toBe(actions === "withheld" ? true : undefined);
-      expect.soft(telemetry.calls).toContain("time.setWarpIndex[0]");
-      expect
-        .soft(
-          warn.mock.calls.filter(([m]) =>
-            String(m).includes("client fired, mod has not"),
-          ),
-        )
-        .toHaveLength(1);
-    }
-
-    it("fires in full when one warp step carries it past the sustain and the firing window together", async () => {
-      const warn = vi.spyOn(logger, "warn");
+    it("tells the operator and runs the actions when the notice arrives while it watches", async () => {
       const telemetry = warpingTelemetry(1000);
       const { host, captured } = makeHost();
       const svc = new AlarmHostService(host, {
@@ -1699,74 +1154,43 @@ describe("AlarmHostService", () => {
       });
       const alarm = svc.addAlarm({
         name: "Held above 70 km",
-        trigger: { ...HELD.trigger },
+        trigger: { ...ALTITUDE_ABOVE_70KM, sustainSeconds: 60 },
         onFire: [...STAGE],
       });
-      expect(svc.snapshot().alarms[0].state).toBe("pending");
 
+      fireFromMod(telemetry, alarm.id, 11_000);
       telemetry.set("t.universalTime", 11_000);
       await vi.advanceTimersByTimeAsync(1100);
       telemetry.set("t.universalTime", 21_000);
       await vi.advanceTimersByTimeAsync(1100);
+      await Promise.resolve();
+      await Promise.resolve();
 
-      await expectEveryConsequenceOnce(
-        alarm.id,
-        telemetry,
-        captured,
-        warn,
-        "run",
+      const states = captured.broadcasts.flatMap((m) =>
+        m.type === "alarm-snapshot"
+          ? m.snapshot.alarms
+              .filter((a) => a.id === alarm.id)
+              .map((a) => a.state)
+          : [],
       );
+      expect.soft(states).toContain("firing");
+      expect
+        .soft(
+          captured.broadcasts.filter(
+            (m) => m.type === "alarm-fired" && m.id === alarm.id,
+          ),
+        )
+        .toHaveLength(1);
+      expect
+        .soft(
+          telemetry.calls.filter(
+            (c) => c === "vessel.control.setActionGroup[1=true]",
+          ),
+        )
+        .toHaveLength(1);
+      expect.soft(svc.snapshot().alarms[0].actionsWithheld).toBeUndefined();
       expect(svc.snapshot().alarms[0].state).toBe("fired");
       svc.dispose();
-      warn.mockRestore();
-    });
-
-    it("tells the operator, and runs no actions, when it came due while the app was closed", async () => {
-      const warn = vi.spyOn(logger, "warn");
-      const storage = memoryStorage();
-      storage.setItem(
-        "gonogo.alarms.list",
-        JSON.stringify([
-          {
-            id: "held-while-closed",
-            name: "Held above 70 km",
-            state: "pending",
-            createdBy: "main",
-            createdAt: 1_700_000_000_000,
-            matchSinceUT: 900,
-            trigger: { ...HELD.trigger },
-            onFire: [...STAGE],
-          },
-        ]),
-      );
-      const telemetry = warpingTelemetry(5000);
-      const { host, captured } = makeHost();
-      const svc = new AlarmHostService(host, {
-        nowMs: () => nowMs,
-        tickIntervalMs: 1000,
-        storage,
-      });
-      telemetry.set("t.universalTime", 5010);
-      await vi.advanceTimersByTimeAsync(1100);
-
-      await expectEveryConsequenceOnce(
-        "held-while-closed",
-        telemetry,
-        captured,
-        warn,
-        "withheld",
-      );
-      svc.dispose();
-
-      // The record outlives the session that made it.
-      const reopened = new AlarmHostService(null, {
-        nowMs: () => nowMs,
-        tickIntervalMs: 1000,
-        storage,
-      });
-      expect.soft(reopened.snapshot().alarms[0].actionsWithheld).toBe(true);
-      reopened.dispose();
-      warn.mockRestore();
     });
 
     it("tells the operator, and runs no actions, when the mod's notice is replayed as the service starts", async () => {
@@ -1828,41 +1252,6 @@ describe("AlarmHostService", () => {
       expect.soft(svc.snapshot().alarms[0].actionsWithheld).toBe(true);
       svc.dispose();
       error.mockRestore();
-    });
-
-    it("tells the operator, and runs no actions, when an edit makes an alarm already due", async () => {
-      const warn = vi.spyOn(logger, "warn");
-      const telemetry = warpingTelemetry(1000);
-      const { host, captured } = makeHost();
-      const svc = new AlarmHostService(host, {
-        nowMs: () => nowMs,
-        tickIntervalMs: 1000,
-        storage: memoryStorage(),
-      });
-      const alarm = svc.addAlarm({
-        name: "Held above 70 km",
-        trigger: { ...HELD.trigger, sustainSeconds: 600 },
-        onFire: [...STAGE],
-      });
-      telemetry.set("t.universalTime", 1100);
-      await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().alarms[0].state).toBe("pending");
-
-      svc.updateAlarm(alarm.id, {
-        trigger: { ...HELD.trigger, sustainSeconds: 10 },
-      });
-      telemetry.set("t.universalTime", 1101);
-      await vi.advanceTimersByTimeAsync(1100);
-
-      await expectEveryConsequenceOnce(
-        alarm.id,
-        telemetry,
-        captured,
-        warn,
-        "withheld",
-      );
-      svc.dispose();
-      warn.mockRestore();
     });
   });
 });

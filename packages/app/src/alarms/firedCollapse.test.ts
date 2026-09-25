@@ -34,6 +34,8 @@ function threshold(id: string, state: Alarm["state"] = "fired"): Alarm {
       op: ">",
       value: 1000,
       sustainSeconds: 0,
+      topic: "vessel.flight",
+      fieldPath: "altitudeAsl",
     },
   };
 }

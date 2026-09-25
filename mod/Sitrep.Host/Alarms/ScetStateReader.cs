@@ -14,10 +14,9 @@ namespace Sitrep.Host.Alarms
         /// the path names nothing, or the value is not a finite number.
         ///
         /// <para>Deliberately one status rather than four. An alarm that cannot
-        /// be read simply does not fire, which is the same fail-safe posture the
-        /// client's own list takes for a trigger it cannot evaluate, and telling
-        /// the four apart would only let the roster act differently on
-        /// distinctions that all mean "not now".</para>
+        /// be read simply does not fire, and telling the four apart would only
+        /// let the roster act differently on distinctions that all mean "not
+        /// now".</para>
         /// </summary>
         NotObservable,
 

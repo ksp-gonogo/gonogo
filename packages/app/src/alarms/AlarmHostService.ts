@@ -22,11 +22,6 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import type { PeerHostService } from "../peer/PeerHostService";
 import { AlarmPeerBridge } from "./AlarmPeerBridge";
-import {
-  AlarmStateMachine,
-  type RevealedEventsReader,
-} from "./AlarmStateMachine";
-import { AlarmTopicHolds } from "./AlarmTopicHolds";
 import { AlarmWarpPlanner } from "./AlarmWarpPlanner";
 import { ScetAlarmBridge } from "./ScetAlarmBridge";
 import {
@@ -36,39 +31,22 @@ import {
   DEFAULT_WARP_SAFETY_MARGIN_SECONDS,
   MAX_WARP_SAFETY_MARGIN_SECONDS,
   MIN_WARP_SAFETY_MARGIN_SECONDS,
-  migrateAlarm,
-  modOwnsLatch,
+  parseAlarm,
 } from "./types";
 import { WarpControl } from "./WarpControl";
 import { WarpObserver } from "./WarpObserver";
-
-/**
- * Trigger kinds that need match tracking via `matchSinceUT`. Time triggers
- * don't (they fire purely on UT comparison); threshold and contract-parameter
- * track a contiguous match, and event latches `matchSinceUT` on the first
- * matching occurrence.
- */
-function requiresMatchTracking(trigger: AlarmTrigger): boolean {
-  return (
-    trigger.kind === "threshold" ||
-    trigger.kind === "contract-parameter" ||
-    trigger.kind === "event" ||
-    // A mod-owned time alarm is latched from OUTSIDE, by the fire notice, the
-    // same way an event alarm is latched by an occurrence. The client's own
-    // clock never decides it, so it needs the latch field a plain time alarm
-    // does not.
-    modOwnsLatch(trigger)
-  );
-}
 
 /**
  * Main-screen mission-alarm service.
  *
  * Responsibilities:
  *   - Maintain the canonical alarm list (persisted in localStorage).
- *   - Tick at 1 Hz using the SDK's view time (`getViewUt`) to advance alarm
- *     state (pending → arming → firing → fired).
- *   - When an alarm arms, drop KSP's warp to index 0 via `t.timeWarp[0]`.
+ *   - Have the simulation watch every alarm (`ScetAlarmBridge`), and move an
+ *     alarm to `firing` when the simulation says it fired. Nothing here judges
+ *     a condition: the simulation evaluates every alarm and stops the warp
+ *     itself.
+ *   - Tick at 1 Hz on the SDK's view time (`getViewUt`) to settle the banner
+ *     window, drive the warp-to ladder and reconcile with the simulation.
  *   - Watch observed warp state for unscheduled changes (warp went up
  *     without an alarm commanding it or a station explicitly asking for
  *     it): surface as `unscheduledWarp` in the snapshot.
@@ -76,10 +54,9 @@ function requiresMatchTracking(trigger: AlarmTrigger): boolean {
  *   - Accept add / update / delete from peers via the host service.
  *
  * The stateful pieces are extracted into collaborating modules:
- *   - `AlarmStateMachine`: `deriveState` and the match tracking behind it.
- *   - `AlarmWarpPlanner`: the slope-fit sample buffers, the ETA, and the
- *     closest/eligible-alarm queries `WarpControl` asks of them.
- *   - `WarpControl`: the warp-to controller and `stepWarpDown`.
+ *   - `AlarmWarpPlanner`: the closest/eligible-alarm queries `WarpControl`
+ *     asks.
+ *   - `WarpControl`: the warp-to controller.
  *   - `WarpObserver`: warp telemetry + unscheduled-warp detection.
  *   - `AlarmPeerBridge`: peer event wiring and broadcasts.
  */
@@ -95,12 +72,6 @@ export interface AlarmHostOptions {
   nowMs?: () => number;
   tickIntervalMs?: number;
   storage?: Storage;
-  /**
-   * Reader for revealed `event`-topic occurrences, backing the `event`
-   * trigger kind. Defaults to empty (no event alarm ever fires) when omitted;
-   * the main screen passes one wired to the kerbcast Uplink's producer.
-   */
-  getRevealedEvents?: RevealedEventsReader;
   /**
    * One-way light time to the craft, seconds. Defaults to the live
    * `comms.delay` reading; a test injects its own.
@@ -211,23 +182,16 @@ export class AlarmHostService {
   private fireListeners = new Set<FireListener>();
   private tickHandle: ReturnType<typeof setInterval> | null = null;
   private observedUT: number | null = null;
-  /**
-   * The UT of the PREVIOUS tick, so an unreadable read can slide a sustain
-   * latch past the seconds nobody watched rather than let them pay into it.
-   */
-  private lastTickUt: number | null = null;
   private opts: Required<
     Pick<AlarmHostOptions, "nowMs" | "tickIntervalMs" | "getOwltSeconds">
   >;
   private storage: Storage;
   private alarmStore: LocalStorageStore<Alarm[]>;
-  private stateMachine: AlarmStateMachine;
   private warpPlanner: AlarmWarpPlanner;
   private warp: WarpControl;
   private warpObserver: WarpObserver;
   private peerBridge: AlarmPeerBridge;
   private scetBridge: ScetAlarmBridge;
-  private topicHolds = new AlarmTopicHolds();
   /**
    * Why the simulation would not arm an alarm, by alarm id.
    *
@@ -253,25 +217,11 @@ export class AlarmHostService {
   private cancelledUnacknowledged = 0;
 
   /**
-   * Alarms read from storage that no tick has evaluated yet. A fire found on
-   * that first evaluation was reconstructed from what was persisted, not
-   * watched happening, so it is a late fire.
+   * Alarms read from storage that no tick has settled yet. A fire latched
+   * before that first tick is the simulation's notice replayed to a screen
+   * that was not running when it fired, so it is a late fire.
    */
   private unevaluated = new Set<string>();
-
-  /**
-   * What the SIMULATION decided about a command-vantage alarm, by alarm id.
-   *
-   * SHADOW ONLY: nothing reads this to decide anything, and it must not. The
-   * client stays the authority for an alarm on its own clock; this is here so
-   * the two verdicts on one alarm can be compared, in both directions, as they
-   * land. Not persisted and not emitted, because it is evidence about this
-   * session's agreement rather than state anything renders.
-   */
-  private shadowVerdicts = new Map<
-    string,
-    { firedAtUt: number; vantage: string }
-  >();
 
   constructor(host: PeerHostService | null, opts: AlarmHostOptions = {}) {
     this.opts = {
@@ -286,19 +236,10 @@ export class AlarmHostService {
       storage: this.storage,
     });
 
-    this.stateMachine = new AlarmStateMachine(
-      () => this.observedUT,
-      opts.getRevealedEvents,
-      undefined,
-      (alarm) => this.scetArmRefusals.has(alarm.id),
-    );
     this.warpPlanner = new AlarmWarpPlanner(
       () => this.alarms,
       () => this.observedUT,
       () => this.opts.getOwltSeconds(),
-      // Undefined before the first roster is "not held": planning a ladder for
-      // an alarm the mod turns out to hold costs a redundant step-down at most.
-      (alarm) => this.scetBridge.holdsAlarm(alarm.id) === true,
     );
 
     const initialMargin = this.loadMargin();
@@ -319,7 +260,6 @@ export class AlarmHostService {
         registerOwnWarpIntent: () => this.warpObserver.registerIntent(),
         getOwltSeconds: () => this.opts.getOwltSeconds(),
       },
-      this.opts.nowMs,
       initialMargin,
     );
 
@@ -345,8 +285,6 @@ export class AlarmHostService {
       getAlarms: () => this.alarms,
       onFired: (id, firedAtUt, actionsWithheld) =>
         this.onScetFired(id, firedAtUt, actionsWithheld),
-      onShadowFired: (id, firedAtUt, vantage) =>
-        this.onShadowFired(id, firedAtUt, vantage),
       onArmRefused: (id, reason) => {
         if (this.scetArmRefusals.get(id) === reason) return;
         this.scetArmRefusals.set(id, reason);
@@ -462,21 +400,16 @@ export class AlarmHostService {
       name: input.name.trim() || "Alarm",
       notes: input.notes?.trim() || undefined,
       trigger: input.trigger,
-      // Always start "pending": the next tick() transitions to arming /
-      // firing with the usual side effects, so the state machine stays
-      // driven from a single place.
       state: "pending",
       createdBy: input.createdBy ?? "main",
       requestedBy: input.requestedBy,
       createdAt: this.opts.nowMs(),
-      matchSinceUT: requiresMatchTracking(input.trigger) ? null : undefined,
+      matchSinceUT: null,
       onFire:
         input.onFire && input.onFire.length > 0 ? input.onFire : undefined,
     };
     this.alarms.push(alarm);
     this.persist();
-    // Before the tick, which may fire it at once: an alarm whose condition
-    // already holds is owed an arm like any other.
     this.scetBridge.owe(alarm);
     this.tick();
     return alarm;
@@ -522,30 +455,18 @@ export class AlarmHostService {
     };
     const reset = patch.trigger && patch.trigger.kind !== prev.trigger.kind;
     if (reset) {
-      next.matchSinceUT = requiresMatchTracking(next.trigger)
-        ? null
-        : undefined;
-      // The latched occurrence belonged to the trigger being replaced.
+      // The fire belonged to the trigger being replaced.
+      next.matchSinceUT = null;
       next.eventUT = undefined;
       next.state = "pending";
+      next.actionsWithheld = undefined;
     }
-    if (patch.trigger) {
-      this.stateMachine.forget(id);
-      this.warpPlanner.forget(id);
-    }
-    if (reset) next.actionsWithheld = undefined;
     this.alarms[idx] = next;
     // The refusal describes a firing of the alarm as it was configured before
     // this edit, so it does not survive one.
     this.onFireRefusals.delete(id);
-    if (!reset) {
-      this.commitState(next, this.stateMachine.deriveState(next), true);
-    }
-    if (patch.trigger) {
-      // A refusal, and a mod verdict, describe the condition that was replaced.
-      this.scetArmRefusals.delete(id);
-      this.shadowVerdicts.delete(id);
-    }
+    // An arm refusal describes the condition that was replaced.
+    if (patch.trigger) this.scetArmRefusals.delete(id);
     /* Owed an arm whatever state the edit left it in, since the mod already
        holds this id: the diff against its roster sees it as armed, and the
        simulation would go on with the condition, or the onboard actions, that
@@ -606,10 +527,7 @@ export class AlarmHostService {
   /** Everything held per alarm id, dropped when the alarm itself goes. */
   private forgetAlarm(id: string): void {
     this.unevaluated.delete(id);
-    this.stateMachine.forget(id);
-    this.warpPlanner.forget(id);
     this.scetArmRefusals.delete(id);
-    this.shadowVerdicts.delete(id);
     this.onFireRefusals.delete(id);
   }
 
@@ -632,9 +550,7 @@ export class AlarmHostService {
 
   /**
    * Begin a "warp to next alarm" session. The controller targets the
-   * closest pending alarm: time alarms by their UT, threshold alarms by
-   * a least-squares slope projected to the threshold value, and
-   * re-targets each tick.
+   * closest pending time alarm by its UT, and re-targets each tick.
    */
   beginWarpTo(): void {
     if (!this.warp.begin()) return;
@@ -663,16 +579,13 @@ export class AlarmHostService {
       this.tickHandle = null;
     }
     this.scetBridge.dispose();
-    this.topicHolds.releaseAll();
   }
 
   /**
-   * The mod fired an alarm it latches and has already stopped the warp.
+   * The simulation fired an alarm and has already stopped the warp.
    *
-   * Latches the alarm the way a revealed occurrence latches an `event` one, and
-   * records the instant the mod reported on `eventUT`, which is that field's
-   * whole purpose: the UT the thing HAPPENED on the craft's clock, as opposed
-   * to the reveal UT that opened the banner window.
+   * Records the instant it reported on `eventUT`, the UT the thing HAPPENED,
+   * as opposed to the reveal UT that opens the banner window.
    *
    * Idempotent, because the notice is deliberately replayed to a client that
    * reconnects after the fire: an alarm that is not still pending has already
@@ -684,7 +597,7 @@ export class AlarmHostService {
     actionsWithheld: boolean,
   ): void {
     const alarm = this.alarms.find((a) => a.id === id);
-    if (!alarm || !modOwnsLatch(alarm.trigger)) return;
+    if (!alarm) return;
     if (alarm.state !== "pending" || alarm.matchSinceUT != null) return;
     if (actionsWithheld) alarm.actionsWithheld = true;
     // The reveal UT, which is this client's own now: the banner window runs on
@@ -728,88 +641,6 @@ export class AlarmHostService {
     this.emit();
   }
 
-  /**
-   * The simulation's verdict on a COMMAND-VANTAGE alarm, judged against what
-   * `vantage` has been told. Recorded and compared, never acted on.
-   *
-   * <p>Mutating anything from here is the hazard
-   * `AlarmStateMachine.updateThresholdTracking` documents: the latch the mod
-   * would set is the same field this side's own tracking writes, so the two
-   * would clear each other's. Until there is evidence the two agree, the
-   * client's answer is the only one that counts for an alarm on the client's
-   * clock.</p>
-   */
-  private onShadowFired(id: string, firedAtUt: number, vantage: string): void {
-    this.shadowVerdicts.set(id, { firedAtUt, vantage });
-    const alarm = this.alarms.find((a) => a.id === id);
-    if (!alarm) {
-      logger.warn(
-        "alarm-shadow: mod fired an alarm this client does not hold",
-        {
-          id,
-          vantage,
-          firedAtUt,
-          warpRate: this.warpObserver.rateBefore(firedAtUt),
-        },
-      );
-      return;
-    }
-    if (alarm.state === "pending") {
-      logger.warn("alarm-shadow: mod fired first, client still pending", {
-        id,
-        vantage,
-        firedAtUt,
-        clientUt: this.observedUT,
-        warpRate: this.warpObserver.rateBefore(firedAtUt),
-      });
-      return;
-    }
-    logger.info("alarm-shadow: mod agrees, client had already fired", {
-      id,
-      vantage,
-      firedAtUt,
-      clientEventUt: alarm.eventUT ?? null,
-      warpRate: this.warpObserver.rateBefore(firedAtUt),
-    });
-  }
-
-  /**
-   * The other direction: this client has just fired a command-vantage alarm,
-   * so say whether the simulation had reached the same verdict. Silence from
-   * the mod is the divergence worth seeing, and it can only be noticed from
-   * here.
-   */
-  private compareShadowAtClientFire(alarm: Alarm): void {
-    if (modOwnsLatch(alarm.trigger)) return;
-    const verdict = this.shadowVerdicts.get(alarm.id);
-    if (!verdict) {
-      logger.warn("alarm-shadow: client fired, mod has not", {
-        id: alarm.id,
-        clientUt: this.observedUT,
-        warpRate: this.clientFireWarpRate(),
-      });
-      return;
-    }
-    logger.info("alarm-shadow: client fired, mod had already agreed", {
-      id: alarm.id,
-      vantage: verdict.vantage,
-      modFiredAtUt: verdict.firedAtUt,
-      clientUt: this.observedUT,
-      warpRate: this.clientFireWarpRate(),
-    });
-  }
-
-  /**
-   * The rate the game reported in force as this client's fire came due, for
-   * the shadow record: the reading from before the fire's own tick, `null`
-   * when there is none.
-   */
-  private clientFireWarpRate(): number | null {
-    return this.observedUT === null
-      ? null
-      : this.warpObserver.rateBefore(this.observedUT);
-  }
-
   // ── Tick loop ─────────────────────────────────────────────────────────
 
   private start(): void {
@@ -825,68 +656,16 @@ export class AlarmHostService {
     const ut = getViewUt() ?? null;
     this.observedUT = ut ?? this.observedUT;
     this.warpObserver.observeWarp();
-    this.topicHolds.reconcile(this.alarms, (alarm) =>
-      this.stateMachine.latchedElsewhere(alarm),
-    );
 
     if (ut !== null) {
       let changed = false;
       for (const alarm of this.alarms) {
-        /* Don't reorder these three. Match tracking writes the latch, the
-           warp-to sample reads that latch plus last-tick's `alarm.state` to
-           decide whether to keep the rolling buffer, and `deriveState` below
-           commits the new state the sample must not have seen yet. */
-        if (alarm.trigger.kind === "threshold") {
-          if (
-            this.stateMachine.updateThresholdTracking(
-              alarm,
-              ut,
-              this.lastTickUt,
-            )
-          ) {
-            changed = true;
-          }
-          this.warpPlanner.recordThresholdSample(alarm, ut);
-        }
-        // Contract-parameter tracking has the same shape (matchSinceUT
-        // + sustain) but no rolling sample buffer, the underlying
-        // condition is a discrete state-string match, not a numeric
-        // approach.
-        if (alarm.trigger.kind === "contract-parameter") {
-          if (
-            this.stateMachine.updateContractParameterTracking(
-              alarm,
-              ut,
-              this.lastTickUt,
-            )
-          ) {
-            changed = true;
-          }
-        }
-        // Event triggers latch on the first matching occurrence revealed
-        // after the alarm began watching: edge-triggered, no sustain.
-        if (alarm.trigger.kind === "event") {
-          if (this.stateMachine.updateEventTracking(alarm, ut)) {
-            changed = true;
-          }
-        }
-
         const late = this.unevaluated.delete(alarm.id);
-        if (
-          this.commitState(
-            alarm,
-            this.stateMachine.deriveState(alarm, ut),
-            late,
-          )
-        ) {
+        if (this.commitState(alarm, settleState(alarm, ut), late)) {
           changed = true;
         }
       }
       if (changed) this.persist();
-      /* AFTER the loop, so every alarm this tick measures the unobserved gap
-         against the same previous clock rather than one that depends on
-         iteration order. */
-      this.lastTickUt = ut;
     }
 
     this.warp.reconcile(this.observedUT);
@@ -902,16 +681,15 @@ export class AlarmHostService {
    * Move an alarm to `nextState` and pay whatever the move owes. Returns
    * whether the state changed.
    *
-   * A fire is a fact, and every route into it owes the operator the same
-   * notice. The tick, an edit, and the first evaluation after a reload all
-   * arrive here, and the fire is keyed on entering `firing` OR `fired` from a
-   * state that had not fired, so no route can leave an alarm fired without the
-   * operator having been told.
+   * A fire is keyed on entering `firing` OR `fired` from a state that had not
+   * fired, so no route can leave an alarm fired without the operator having
+   * been told. No warp command on the way: the simulation stopped the warp in
+   * the frame the alarm fired.
    *
-   * `late` marks a fire discovered rather than watched: on an edit, or on an
-   * alarm's first evaluation after a reload. The notice still goes out, and the
-   * `onFire` actions do not: dispatched now, they would act on a condition met
-   * arbitrarily long ago, and the row records that they were withheld.
+   * `late` marks a fire discovered rather than watched: a notice replayed as
+   * this screen starts. The notice still goes out, and the `onFire` actions do
+   * not: dispatched now, they would act on a condition met arbitrarily long
+   * ago, and the row records that they were withheld.
    */
   private commitState(
     alarm: Alarm,
@@ -920,22 +698,10 @@ export class AlarmHostService {
   ): boolean {
     if (nextState === alarm.state) return false;
     if (!hasFired(nextState)) alarm.actionsWithheld = undefined;
-    /* TWO stop sites, and they take the same rule. The mod sets its own stop
-       at BOTH instants (the step-down at `ut - lead`, and the fire), so an
-       alarm it holds must not be commanded from here at either: that is the
-       round trip the arm exists to remove. An alarm it does not hold keeps
-       both, or it would come due and halt nothing. */
-    const modStops = this.scetBridge.holdsAlarm(alarm.id);
-    if (alarm.state !== "arming" && nextState === "arming" && !modStops) {
-      this.warp.stepWarpDown();
-    }
     if (!hasFired(alarm.state) && hasFired(nextState)) {
       const withhold = late && (alarm.onFire?.length ?? 0) > 0;
       if (withhold) alarm.actionsWithheld = true;
       this.notifyFire(alarm, !withhold);
-      this.compareShadowAtClientFire(alarm);
-      // Again at the fire: the warp may have recovered since `arming`, and most alarms have no `arming` phase at all.
-      if (!modStops) this.warp.stepWarpDown();
     }
     alarm.state = nextState;
     return true;
@@ -1017,7 +783,7 @@ export class AlarmHostService {
     const stored = this.alarmStore.get();
     if (Array.isArray(stored) && stored.length > 0) {
       this.alarms = stored
-        .map(migrateAlarm)
+        .map(parseAlarm)
         .filter((a): a is Alarm => a !== null);
       this.unevaluated = new Set(this.alarms.map((a) => a.id));
     }
@@ -1055,6 +821,18 @@ export function createAlarmHost(
   opts?: AlarmHostOptions,
 ): AlarmHostService {
   return new AlarmHostService(host, opts);
+}
+
+/**
+ * Where an alarm stands at view time `now`: pending until the simulation's
+ * notice latches it, then `firing` for the two-second banner window from the
+ * moment this screen learned of it, then `fired` until acknowledged.
+ */
+function settleState(alarm: Alarm, now: number): Alarm["state"] {
+  if (alarm.matchSinceUT == null) return alarm.state;
+  if (alarm.state === "fired") return "fired";
+  if (alarm.state !== "firing") return "firing";
+  return now - alarm.matchSinceUT < 2 ? "firing" : "fired";
 }
 
 function hasFired(state: Alarm["state"]): boolean {
