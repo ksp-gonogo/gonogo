@@ -24,6 +24,7 @@
 import { bandIn, type Value } from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
 import {
+  boundsStandApart,
   InstrumentBound,
   InstrumentHeldMark,
   sayHeld,
@@ -190,6 +191,22 @@ export function Dial<U extends string = string>({
   const onAxis = (q: Value<U>): Value<U> => q.max(min).min(max);
   const onFace = (q: Value<U>): number => angleOf(q.magnitude);
 
+  // Compared as fractions of the sweep, from the angles the marks are drawn at.
+  const onSweep = (angle: number): number =>
+    sweep !== 0 ? (angle - startAngle) / sweep : 0;
+  const drawnInterval =
+    interval !== null &&
+    boundsStandApart(
+      onSweep(angleOf(display)),
+      [
+        onSweep(onFace(onAxis(interval.lo))),
+        onSweep(onFace(onAxis(interval.hi))),
+      ],
+      wrap,
+    )
+      ? interval
+      : null;
+
   const isFullCircle = sweep >= 360;
   const needle = pointAt(cx, cy, r * 0.88, angleOf(display));
 
@@ -290,9 +307,9 @@ export function Dial<U extends string = string>({
 
         {/* The model's two bounds, across the track the needle sweeps over */}
         {r > 0 &&
-          interval !== null &&
+          drawnInterval !== null &&
           (["lo", "hi"] as const).map((end) => {
-            const a = onFace(onAxis(interval[end]));
+            const a = onFace(onAxis(drawnInterval[end]));
             const inner = pointAt(cx, cy, r - TRACK_THICKNESS / 2, a);
             const outer = pointAt(cx, cy, r + TRACK_THICKNESS / 2, a);
             return (

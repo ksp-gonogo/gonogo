@@ -1,6 +1,7 @@
 import { bandIn, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import {
+  boundsStandApart,
   InstrumentBound,
   InstrumentHeldMark,
   InstrumentNoFigure,
@@ -166,8 +167,17 @@ export function Gauge<U extends string = string>({
   // Where the model would defend its answer, on the arc the needle swings over.
   // Narrowed to the figure's own unit: an interval placed by a number in
   // another kind is an interval about something else.
-  const bounds =
+  const offered =
     shown == null || band === null ? null : (bandIn(band, shown.unit) ?? null);
+  const onScale = (at: number): number => (hi > lo ? (at - lo) / (hi - lo) : 0);
+  const bounds =
+    offered !== null &&
+    boundsStandApart(onScale(safeValue), [
+      onScale(onAxis(offered.lo)),
+      onScale(onAxis(offered.hi)),
+    ])
+      ? offered
+      : null;
 
   // Pad the bounding box so the half-circle isn't clipped at the edges. The
   // arc lives in the upper half; reserve a strip below for the centre readout,

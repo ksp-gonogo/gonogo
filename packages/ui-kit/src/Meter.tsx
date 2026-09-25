@@ -7,6 +7,7 @@ import {
 import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
 import { bandClaim } from "./bandClaim";
+import { boundsStandApart } from "./instrumentCurrency";
 import { magnitudeOr } from "./magnitude";
 import { NullValue } from "./NullValue";
 import { Unit } from "./Unit";
@@ -246,7 +247,10 @@ export function Meter<U extends string = string>({
   // Where the capacity's own doubt puts the end of the track, as a fraction of
   // the capacity the bar was drawn against. Independent of the value's band and
   // never combined with it: see the header.
-  const endBounds = boundsOn(held.reading, held.figure, held.figure);
+  const endBounds = apartFrom(
+    1,
+    boundsOn(held.reading, held.figure, held.figure),
+  );
   if (capacity !== undefined) {
     // The scope has to enclose the whole bar, not just the header: the rung
     // settled inside it is what `aria-valuetext` is written at, and that
@@ -261,6 +265,7 @@ export function Meter<U extends string = string>({
           shown={shown}
           held={held}
           endBounds={endBounds}
+          at={clamped}
           valueLabel={valueLabel}
           valueLabelNode={valueLabelNode}
         />
@@ -280,7 +285,10 @@ export function Meter<U extends string = string>({
    * caller-supplied `valueLabel`) is for. Writing one string for both is what
    * the unit layer exists to stop: it would announce "72 percent-sign".
    */
-  const bounds = boundsOn(shown.reading, shown.figure, null);
+  const bounds = apartFrom(
+    clamped,
+    boundsOn(shown.reading, shown.figure, null),
+  );
   return (
     <MeterBar
       {...bar}
@@ -419,6 +427,19 @@ function boundsOn<U extends string>(
     hi: magnitudeOr(band.hi.dividedBy(over), 0),
     ...said,
   };
+}
+
+/**
+ * The bounds, or `null` where every one of them sits on the observation.
+ *
+ * Unmarked and unspoken alike: a sentence naming bands the eye was not shown
+ * would be the two readers told two things. `at` is the observation on the same
+ * 0..1 track: the fill's end for the value's band, the track's end for the
+ * capacity's, since the end IS the capacity.
+ */
+function apartFrom(at: number, bounds: MeterBounds | null): MeterBounds | null {
+  if (bounds === null) return null;
+  return boundsStandApart(at, [bounds.lo, bounds.hi]) ? bounds : null;
 }
 
 /**
@@ -623,6 +644,7 @@ function MeterPairBar<U extends string = string>({
   capacity,
   shown,
   held,
+  at,
   valueLabel,
   valueLabelNode,
   ...bar
@@ -632,6 +654,8 @@ function MeterPairBar<U extends string = string>({
     capacity: MeterValue<U> | null;
     shown: Half<U>;
     held: Half<U>;
+    /** Where the fill ends, as the 0..1 the bounds are compared against. */
+    at: number;
   }) {
   // A figure a caller has overridden in BOTH forms is neither drawn nor spoken,
   // so it takes no part in the group: reporting it would move an enclosing
@@ -658,7 +682,10 @@ function MeterPairBar<U extends string = string>({
    * they are spoken and nothing else, and a figure nobody can see must not move
    * the rung the two visible halves are drawn at.
    */
-  const bounds = boundsOn(shown.reading, shown.figure, held.figure);
+  const bounds = apartFrom(
+    at,
+    boundsOn(shown.reading, shown.figure, held.figure),
+  );
   return (
     <MeterBar
       {...bar}
