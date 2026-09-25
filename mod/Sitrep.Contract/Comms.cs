@@ -596,6 +596,13 @@ public readonly struct CommsRouteHop
 /// via <c>host.Kernel.Query&lt;ICommsBackend&gt;("comms")</c>. Implementations
 /// read live KSP/mod state and MUST be called only where such reads are safe
 /// (the capture-on-main seam): the interface itself is pure.</para>
+///
+/// <para>Every accessor that reads a ROUTE takes the craft it is asked about,
+/// as <c>vessel</c>, and none of them assumes the one on screen: the active
+/// craft is simply the vessel its caller passes. <c>vessel</c> is an OPAQUE
+/// handle on the same terms as <see cref="RouteBetween"/>'s node handles. Both
+/// shipped backends read it as a KSP <c>Vessel</c>, and a handle a backend does
+/// not recognise, or a null one, answers as a craft with no route.</para>
 /// </summary>
 public interface ICommsBackend : ISitrepProvider
 {
@@ -620,15 +627,19 @@ public interface ICommsBackend : ISitrepProvider
     /// </summary>
     CommsControl ControlState();
 
-    /// <summary>Ordered hops to KSC: the geometry SignalDelay reads for light-time (§3).</summary>
-    CommsPath Path();
+    /// <summary>
+    /// <paramref name="vessel"/>'s ordered hops home: the geometry SignalDelay
+    /// reads for light-time (§3). Empty when it has no route.
+    /// </summary>
+    CommsPath Path(object? vessel);
 
     /// <summary>
-    /// The network as this backend sees it: the nodes and links a client draws.
-    /// Live read; the shape changes as craft move and ground stations rotate, so a
-    /// caller reads it per frame rather than caching it.
+    /// The network as this backend sees it from <paramref name="vessel"/>: the
+    /// nodes and links a client draws. Live read; the shape changes as craft move
+    /// and ground stations rotate, so a caller reads it per frame rather than
+    /// caching it.
     /// </summary>
-    CommsNetwork Network();
+    CommsNetwork Network(object? vessel);
 
     /// <summary>
     /// The route THIS backend's own router finds between two nodes, as ordered
@@ -659,9 +670,10 @@ public interface ICommsBackend : ISitrepProvider
     IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to);
 
     /// <summary>
-    /// Whether this backend can still carry a signal from the active vessel to
-    /// <paramref name="nodeId"/>, a node it was recently routing THROUGH.
-    /// <c>null</c> means it cannot say.
+    /// Whether this backend can still carry a signal from
+    /// <paramref name="vessel"/> to <paramref name="nodeId"/>, a node that
+    /// vessel's route was recently running THROUGH. <c>null</c> means it cannot
+    /// say.
     ///
     /// <para>It exists to tell two things apart that <see cref="Path"/> alone
     /// cannot, and the difference decides whether telemetry already in flight
@@ -682,7 +694,7 @@ public interface ICommsBackend : ISitrepProvider
     /// <para>Live read, so main thread only, on the same capture-on-main seam as
     /// every accessor above.</para>
     /// </summary>
-    bool? StillCarriesTo(string nodeId);
+    bool? StillCarriesTo(object? vessel, string nodeId);
 
     /// <summary>
     /// The reach rule this backend applies between two nodes: how far apart
@@ -745,9 +757,10 @@ public interface ICommsBackend : ISitrepProvider
     ICommsDegradeModel DegradeModel();
 
     /// <summary>
-    /// The node this backend's OWN control path terminates at, as an opaque
-    /// handle, or null when it terminates nowhere (no connection, or a last hop
-    /// that touches neither a ground station nor a crewed control source).
+    /// The node <paramref name="vessel"/>'s control path, as this backend solved
+    /// it, terminates at, as an opaque handle, or null when it terminates
+    /// nowhere (no connection, or a last hop that touches neither a ground
+    /// station nor a crewed control source).
     ///
     /// <para><b>Why a handle and not a
     /// <see cref="CommsCommandCentre"/>.</b> Naming the centre takes two things
@@ -772,7 +785,7 @@ public interface ICommsBackend : ISitrepProvider
     /// object and MUST NOT cross a thread boundary or outlive the capture that
     /// produced it; core resolves it to a payload on the same seam.</para>
     /// </summary>
-    object? ControlPathTerminus();
+    object? ControlPathTerminus(object? vessel);
 
     /// <summary>
     /// The occlusion geometry this backend applies: which radius of a body

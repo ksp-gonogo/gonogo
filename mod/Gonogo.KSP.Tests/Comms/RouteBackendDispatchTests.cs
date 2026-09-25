@@ -43,7 +43,7 @@ namespace Gonogo.KSP.Tests.Comms
         private sealed class ClosestWhereBackend : ICommsBackend
         {
 
-        public bool? StillCarriesTo(string nodeId) => null;
+        public bool? StillCarriesTo(object? vessel, string nodeId) => null;
             public string ProviderId => "test-closest-where";
 
             public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to)
@@ -71,11 +71,11 @@ namespace Gonogo.KSP.Tests.Comms
             public CommsConnectivity Connectivity() => throw new NotSupportedException();
             public CommsSignal SignalStrength() => throw new NotSupportedException();
             public CommsControl ControlState() => throw new NotSupportedException();
-            public CommsPath Path() => throw new NotSupportedException();
-            public CommsNetwork Network() => throw new NotSupportedException();
+            public CommsPath Path(object? vessel) => throw new NotSupportedException();
+            public CommsNetwork Network(object? vessel) => throw new NotSupportedException();
             public ICommsReachModel ReachModel(object? from, object? to) => throw new NotSupportedException();
 
-            public object? ControlPathTerminus() => throw new NotSupportedException();
+            public object? ControlPathTerminus(object? vessel) => throw new NotSupportedException();
 
             public ICommsOcclusionModel OcclusionModel() => throw new NotSupportedException();
 

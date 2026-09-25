@@ -34,7 +34,7 @@ namespace Sitrep.Contract.Tests
 
             protected override CommsLinkState? LinkState() => new CommsLinkState(true, _grade, 1.0);
 
-            protected override IReadOnlyList<CommsLinkView>? ControlPath() => null;
+            protected override IReadOnlyList<CommsLinkView>? ControlPath(object? vessel) => null;
         }
 
         [Theory]
