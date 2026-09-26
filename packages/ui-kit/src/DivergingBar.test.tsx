@@ -73,3 +73,12 @@ describe("DivergingBar", () => {
     await expectNoA11yViolations(container);
   });
 });
+
+describe("DivergingBar past its scale", () => {
+  it("stops at the end of its half of the track", () => {
+    render(<DivergingBar value={rate(40)} maxAbs={rate(4)} />);
+    const fill = screen.getByTestId("diverging-bar")
+      .lastElementChild as HTMLElement;
+    expect(fill.style.width).toBe("50%");
+  });
+});
