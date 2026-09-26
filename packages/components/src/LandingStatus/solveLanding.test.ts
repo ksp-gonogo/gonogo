@@ -37,9 +37,8 @@ describe("solveSuicideBurn: full-vector Mun descent (spec Appendix A)", () => {
   });
 
   it("says ignite now: the burn no longer fits the remaining altitude", () => {
-    // burnDistance = 540^2/(2*18.45), about 7902 m > 5000 m, so the ignition altitude is negative.
-    expect(s.ignitionAltitude).not.toBeNull();
-    expect(s.ignitionAltitude as number).toBeLessThan(0);
+    // burnDistance = 540^2/(2*18.45), about 7902 m, above the vessel's 5000 m.
+    expect(s.ignitionAltitude as number).toBeCloseTo(7902, -1);
     expect(s.suicideBurnCountdown).toBe(0);
   });
 
@@ -69,6 +68,40 @@ describe("solveSuicideBurn: near-vertical hover descent", () => {
   it("has a positive ignition altitude and a real countdown", () => {
     expect(s.ignitionAltitude as number).toBeGreaterThan(0);
     expect(s.suicideBurnCountdown as number).toBeGreaterThan(0);
+  });
+});
+
+/*
+ * A straight-down descent on the constant-deceleration model, worked by hand:
+ * g = 1.6 m/s^2 at r = 202 km, aMax = 20 kN / 5 t = 4, so aNet = 2.4 m/s^2.
+ */
+describe("solveSuicideBurn: where and when to ignite", () => {
+  const G = 1.6;
+  const R = 202_000;
+  const H = 2000;
+  const V = 40;
+  const s = solveSuicideBurn({
+    heightFromTerrain: H,
+    altitudeAsl: H,
+    verticalSpeed: -V,
+    surfaceSpeed: V,
+    mu: G * R * R,
+    bodyRadius: R - H,
+    availableThrust: 20,
+    totalMass: 5,
+  });
+  // Stopping 40 m/s at 2.4 m/s^2 takes v^2 / 2a of height.
+  const burnLength = (V * V) / (2 * 2.4);
+
+  it("lights at the height the burn needs to stop the vessel", () => {
+    expect(s.ignitionAltitude as number).toBeCloseTo(burnLength, 3);
+  });
+
+  it("counts down the ballistic fall from here to that height", () => {
+    const coast = H - burnLength;
+    // The positive root of 1/2 g t^2 + v t - coast = 0.
+    const fall = (-V + Math.sqrt(V * V + 2 * G * coast)) / G;
+    expect(s.suicideBurnCountdown as number).toBeCloseTo(fall, 3);
   });
 });
 

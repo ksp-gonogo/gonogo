@@ -52,7 +52,7 @@ export interface LandingSolution {
   burnDeltaV: number | null;
   /** Burn duration to null the surface-speed vector, seconds. */
   burnDuration: number | null;
-  /** Terrain height (AGL) at which the burn must begin; <= 0 means "ignite now / past". */
+  /** Terrain height (AGL) at which the burn must begin; a vessel at or below it is past the ignition point. */
   ignitionAltitude: number | null;
   /** Seconds until the latest ignition; 0 when at or past the ignition point. */
   suicideBurnCountdown: number | null;
@@ -269,14 +269,13 @@ export function solveSuicideBurn(inp: SuicideBurnInputs): LandingSolution {
       )
     : constantDecelBurn(surf, h, g, aMax);
 
-  const ignitionAltitude = h - burn.stopDistance;
-  // Ballistic fall through `stopDistance` of vertical altitude; 0 ("IGNITE") at or past the ignition point.
+  // The burn must begin `stopDistance` above terrain; the countdown is the ballistic fall down to that height, 0 ("IGNITE") at or below it.
+  const ignitionAltitude = burn.stopDistance;
+  const coast = h - burn.stopDistance;
   const suicideBurnCountdown =
-    ignitionAltitude <= 0
+    coast <= 0
       ? 0
-      : finiteOrNull(
-          (-vDown + Math.sqrt(vDown * vDown + 2 * g * burn.stopDistance)) / g,
-        );
+      : finiteOrNull((-vDown + Math.sqrt(vDown * vDown + 2 * g * coast)) / g);
 
   return {
     ...solved,

@@ -66,11 +66,10 @@ export function integrate(): Frame[] {
       totalMass: MASS,
     });
     // Burn once the full-vector burn no longer fits the remaining altitude,
-    // solveSuicideBurn signals that with ignitionAltitude <= 0 ("ignite now").
+    // solveSuicideBurn signals that with a zero countdown ("ignite now").
     // Latch it: a real suicide burn stays committed through touchdown rather
     // than un-committing into freefall the instant the solve says it fits again.
-    if (solution.ignitionAltitude != null && solution.ignitionAltitude <= 0)
-      committed = true;
+    if (solution.suicideBurnCountdown === 0) committed = true;
     const burning = committed;
 
     frames.push({ t, aglMeters: agl, vDown, vHoriz, lat, lon, burning });
