@@ -1,6 +1,12 @@
 import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
 import { buildResourcesByFlightId } from "@ksp-gonogo/data";
-import { type VesselParts, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type Reading,
+  type TopicReading,
+  type Value,
+  type VesselParts,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { ShipMapPartMeterEntry } from "./shipTopology";
 
 // The built-in half of the `ship-map.part-meters` self-contribution, and this
@@ -15,8 +21,9 @@ import type { ShipMapPartMeterEntry } from "./shipTopology";
 // future contribution is free to add more resources; this one stays at the
 // five.
 //
-// Reads `vessel.parts` directly (the same Topic `usePartsLive`/`useTopology`
-// already derive ShipMap's own view-model from) rather than a React hook:
+// Reads `vessel.parts` (the same Topic `usePartsLive`/`useTopology` already
+// derive ShipMap's own view-model from) through a processor, so each amount
+// carries the currency of the reading it came from, rather than a React hook:
 // contributions are evaluated by the aggregator outside any component, so the
 // pure `buildResourcesByFlightId` reshaping helper is shared instead of
 // duplicated.
@@ -58,6 +65,9 @@ function statusFor(
   return null;
 }
 
+/** A meter whose amount is the bare quantity read off the wire. */
+type BareMeterEntry = ShipMapPartMeterEntry & { amount: Value<"units"> };
+
 /**
  * Pure core of the built-in contribution, exported so a test can call it
  * directly against a plain `VesselParts` fixture without going through the
@@ -66,10 +76,10 @@ function statusFor(
  */
 export function computeBuiltinPartMeters(
   wire: VesselParts | undefined,
-): readonly ShipMapPartMeterEntry[] {
+): readonly BareMeterEntry[] {
   if (!wire) return [];
   const byFlightId = buildResourcesByFlightId(wire);
-  const entries: ShipMapPartMeterEntry[] = [];
+  const entries: BareMeterEntry[] = [];
   for (const [flightId, resources] of byFlightId) {
     for (const name of DRAINABLE_RESOURCES) {
       const slot = resources[name];
@@ -87,9 +97,70 @@ export function computeBuiltinPartMeters(
   return entries;
 }
 
+/**
+ * One tank's amount on the arm the parts reading it came from arrived on, so
+ * ShipMap can mark a held level rather than draw it as the tank now.
+ */
+function amountReading(
+  parts: Reading<VesselParts | undefined>,
+  amount: Value<"units">,
+): Reading<Value<"units">> {
+  if (parts.state === "observed") {
+    return {
+      state: "observed",
+      value: amount,
+      atUt: parts.atUt,
+      reckoning: { status: "none" },
+    };
+  }
+  if (parts.state === "stale") {
+    return {
+      state: "stale",
+      value: amount,
+      asOfUt: parts.asOfUt,
+      grade: parts.grade,
+      reckoning: { status: "none" },
+    };
+  }
+  return { state: parts.state, reckoning: { status: "none" } };
+}
+
+/**
+ * The meters with each amount carrying the currency of the `vessel.parts`
+ * reading it was read from. A level that has stopped arriving is still the
+ * last one there was, so it is drawn, and marked.
+ */
+export function builtinPartMeterReadings(
+  parts: Reading<VesselParts | undefined> | undefined,
+): readonly ShipMapPartMeterEntry[] {
+  if (parts?.state !== "observed" && parts?.state !== "stale") return [];
+  return computeBuiltinPartMeters(parts.value).map((entry) => ({
+    ...entry,
+    amount: amountReading(parts, entry.amount),
+  }));
+}
+
+/**
+ * `vessel.parts` as a reading, since a contribution is handed a topic's
+ * payload and never its currency.
+ */
+const VESSEL_PARTS_READING = CORE_UPLINK_CLIENT.registerProcessor({
+  id: "ship-map-vessel-parts-reading",
+  deps: [{ reading: "vessel.parts" }] as const,
+  compute: ([parts]: readonly [TopicReading<VesselParts>]):
+    | VesselParts
+    | undefined =>
+    parts.state === "observed" || parts.state === "stale"
+      ? parts.value
+      : undefined,
+});
+
 CORE_UPLINK_CLIENT.registerContribution({
   id: "ship-map-part-meters",
   contributes: "ship-map.part-meters",
-  deps: ["vessel.parts"],
-  compute: (topics) => computeBuiltinPartMeters(topics["vessel.parts"]),
+  // `vessel.parts` stays a bare dep beside the reading: the bare id is what
+  // subscribes the topic, and the processor only reads what is stored.
+  deps: ["vessel.parts", VESSEL_PARTS_READING],
+  compute: (topics) =>
+    builtinPartMeterReadings(topics[VESSEL_PARTS_READING.id]),
 });

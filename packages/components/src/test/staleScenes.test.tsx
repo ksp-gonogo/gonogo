@@ -34,7 +34,11 @@ import {
  */
 
 const FIXTURE_MODULES = import.meta.glob<{ default: Record<string, unknown> }>(
-  ["../*/__fixtures__/*.json", "../*/__render__/*.json"],
+  [
+    "../*/__fixtures__/*.json",
+    "../*/__fixtures__/*/*.json",
+    "../*/__render__/*.json",
+  ],
   { eager: true },
 );
 

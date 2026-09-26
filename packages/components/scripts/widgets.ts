@@ -1919,7 +1919,10 @@ const WIDGETS: WidgetRenderConfig[] = [
         w: 10,
         h: 14,
         hovers: [{ selector: 'g[aria-label^="FL-T400 Fuel Tank"]' }],
-        forFixtures: ["01-builtin-drainable-meters"],
+        forFixtures: [
+          "01-builtin-drainable-meters",
+          "01-builtin-drainable-meters-stopped-arriving",
+        ],
       },
     ],
   },

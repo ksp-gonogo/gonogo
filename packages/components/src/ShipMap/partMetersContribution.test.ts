@@ -1,6 +1,9 @@
 import { type VesselParts, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { computeBuiltinPartMeters } from "./partMetersContribution";
+import {
+  builtinPartMeterReadings,
+  computeBuiltinPartMeters,
+} from "./partMetersContribution";
 
 /**
  * Builds one wire part with the REAL `PartResourceFlow` shape
@@ -121,5 +124,53 @@ describe("computeBuiltinPartMeters", () => {
 
   it("returns an empty list when no wire payload has arrived yet", () => {
     expect(computeBuiltinPartMeters(undefined)).toEqual([]);
+  });
+});
+
+describe("builtinPartMeterReadings", () => {
+  const tank = wire([
+    part("2", { LiquidFuel: { amount: 90, maxAmount: 180 } }),
+  ]);
+
+  it("dates each amount by the parts reading, so a held level is marked", () => {
+    const [entry] = builtinPartMeterReadings({
+      state: "stale",
+      value: tank,
+      asOfUt: value("ut", 500),
+      grade: "disconnected",
+      reckoning: { status: "none" },
+    });
+    expect(entry?.amount).toEqual({
+      state: "stale",
+      value: value("units", 90),
+      asOfUt: value("ut", 500),
+      grade: "disconnected",
+      reckoning: { status: "none" },
+    });
+    expect(entry?.capacity).toEqual(value("units", 180));
+  });
+
+  it("carries a current level as an observation", () => {
+    const [entry] = builtinPartMeterReadings({
+      state: "observed",
+      value: tank,
+      atUt: value("ut", 900),
+      reckoning: { status: "none" },
+    });
+    expect(entry?.amount).toEqual({
+      state: "observed",
+      value: value("units", 90),
+      atUt: value("ut", 900),
+      reckoning: { status: "none" },
+    });
+  });
+
+  it("draws nothing before the parts have arrived", () => {
+    expect(
+      builtinPartMeterReadings({
+        state: "pending",
+        reckoning: { status: "none" },
+      }),
+    ).toEqual([]);
   });
 });
