@@ -30,8 +30,7 @@ const root = execFileSync("git", ["rev-parse", "--show-toplevel"], {
 const scanPath = join(root, "packages/core/src/comment-stacks.scan.ts");
 const outPath = join(root, "packages/core/src/comment-stacks.allowlist.ts");
 
-// esbuild is a dependency of `packages/core`, not of the workspace root, so it
-// resolves from the scan's own directory rather than from this script's.
+// esbuild is a dependency of `packages/core`, not of the workspace root, so it resolves from the scan's own directory rather than from this script's.
 const { transformSync } = createRequire(scanPath)("esbuild");
 
 const js = transformSync(readFileSync(scanPath, "utf8"), {
@@ -46,26 +45,18 @@ new Function("module", "exports", "require", js)(
 );
 
 /**
- * The floors already committed, so a regeneration can only ever raise them.
- * Zeroes when the allowlist does not exist yet, which is the seeding run.
+ * A number already committed in the allowlist, or `fallback` when the file or
+ * the key does not exist yet, which is the seeding run.
  */
-function readPreviousFloors(path) {
-  const empty = { files: 0, filesWithStack: 0, stacks: 0 };
-  let source;
+function readPrevious(key, fallback) {
   try {
-    source = readFileSync(path, "utf8");
+    const found = readFileSync(outPath, "utf8").match(
+      new RegExp(`${key}\\s*[:=]\\s*(\\d+)`),
+    );
+    return found ? Number(found[1]) : fallback;
   } catch {
-    return empty;
+    return fallback;
   }
-  const read = (key) => {
-    const found = source.match(new RegExp(`${key}:\\s*(\\d+)`));
-    return found ? Number(found[1]) : 0;
-  };
-  return {
-    files: read("files"),
-    filesWithStack: read("filesWithStack"),
-    stacks: read("stacks"),
-  };
 }
 
 const result = module_.exports.scanCommentStacks();
@@ -89,40 +80,50 @@ const entries = [...result.counts.entries()].sort(([a], [b]) =>
   a < b ? -1 : 1,
 );
 /*
- * Floors sit well below the seeded census so ordinary churn never touches them
- * and only a broken enumeration does.
- *
- * NEVER LOWERED, even as the census falls. The gate's own shrink-only test
- * refuses a lowered floor, because a floor is what stands between "the scan
- * found nothing" and "the scan looked at nothing", and cleanup must not be able
- * to blind it. A bare `--update` used to recompute all three from the current
- * census, so the first real cleanup lowered two of them and would have failed
- * CI: the generator was quietly writing a file its own gate rejects.
- *
- * It passed locally only because `ratchetBaseRef()` no-ops when HEAD IS the base
- * ref, which is the state a developer is in immediately after a push. The local
- * green was the absence of a check, not the presence of a pass.
+ * The walked-file floor sits well below the census so ordinary churn never
+ * touches it and only a broken enumeration does, and it is NEVER LOWERED: the
+ * gate's own shrink-only test refuses a lowered floor.
  */
-const previous = readPreviousFloors(outPath);
-const floors = {
-  files: Math.max(Math.floor(result.scanned * 0.5), previous.files),
-  filesWithStack: Math.max(
-    Math.floor(result.counts.size * 0.5),
-    previous.filesWithStack,
-  ),
-  stacks: Math.max(Math.floor(total * 0.5), previous.stacks),
-};
+const filesFloor = Math.max(
+  Math.floor(result.scanned * 0.5),
+  readPrevious("files", 0),
+);
+
+/*
+ * Carried through a regeneration rather than recomputed: bumping it is a
+ * deliberate declaration that the matcher widened, and the gate checks the
+ * claim by re-running the previous matcher over the current tree.
+ */
+const matcherRevision = readPrevious("MATCHER_REVISION", 1);
 
 const header = `/**
+ * Which matcher the numbers in this file were measured with.
+ *
+ * Every number below is a measurement, and a measurement means nothing without
+ * the instrument that took it. Widening the matcher is the one change that
+ * legitimately RAISES a shrink-only number, and a bare shrink-only check cannot
+ * tell that from somebody laundering stacks they just wrote. So the revision is
+ * the declaration: bump it in the same commit as the matcher change and the
+ * ratchet re-seeds, leave it alone and every number is shrink-only as before.
+ *
+ * It is not an escape hatch, because a bump is not taken on trust. The ratchet
+ * loads \`comment-stacks.scan.ts\` AS IT STOOD at the base revision, runs that
+ * older matcher over the CURRENT tree, and requires the older numbers to still
+ * hold. A re-seed therefore proves that everything newly counted is something
+ * the old matcher could not see. Same mechanism as
+ * \`banner-comments.allowlist.ts\`.
+ *
+ * 1: a three-line floor, and a run broken only by a non-comment line.
+ * 2: a two-line floor, and a divider or an empty comment line ends a run.
+ */
+export const MATCHER_REVISION = ${matcherRevision};
+
+/**
  * Files carrying a single-sentence \`//\` comment stack, with how many each has.
  *
  * SHRINK-ONLY. Entries may be lowered or removed, never added or raised. A new
  * entry means new code just created the violation, which is the thing the gate
  * exists to stop; fix the comment instead.
- *
- * Seeded from the tree as it stood when the gate landed. The population is large
- * because nothing enforced the rule until now, not because the rule is new: it
- * has been in CLAUDE.md throughout. Starting at zero was never available.
  *
  * Regenerate after a cleanup with:
  *
@@ -147,18 +148,17 @@ const footer = `
  * all of them: a wrong cwd, a renamed root or a \`git ls-files\` that errored into
  * an empty string each look exactly like a clean repo.
  *
- * Deliberately half the seeded census rather than equal to it, so ordinary churn
- * does not trip this and only a broken enumeration does.
+ * It counts files WALKED, and only that. What the scan FOUND is the debt, which
+ * falls as it is paid, so a floor on it would fail the gate for the one outcome
+ * it exists to produce; the census is printed beside the verdict instead.
  */
 export const SCAN_FLOORS = {
-  files: ${floors.files},
-  filesWithStack: ${floors.filesWithStack},
-  stacks: ${floors.stacks},
+  files: ${filesFloor},
 } as const;
 `;
 
 writeFileSync(outPath, header + body + footer);
 console.info(`\nwrote ${outPath}`);
 console.info(
-  `floors: ${floors.files} files, ${floors.filesWithStack} with a stack, ${floors.stacks} stacks`,
+  `floor: ${filesFloor} files walked, matcher revision ${matcherRevision}`,
 );

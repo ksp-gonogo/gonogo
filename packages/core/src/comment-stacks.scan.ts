@@ -15,13 +15,12 @@ import { join } from "node:path";
  * long sentence mashed into a stack of single-line `//` fragments. A merely-long
  * single comment stays one line and relies on editor wrapping.
  *
- * So the defect is specifically ONE SENTENCE spread over three or more `//`
+ * So the defect is specifically ONE SENTENCE spread over two or more `//`
  * lines. A stack of several complete sentences is the "real paragraph" the rule
  * permits and is NOT counted. That distinction is the whole difference between a
- * gate worth having and one that forbids the tree's entire comment style: a loose
- * scan for three consecutive prose `//` lines finds 5197 blocks across 1301
- * files, and this narrower rule finds 1610 across 732. Re-running the loose
- * regex and getting a bigger number is not evidence this scan is broken.
+ * gate worth having and one that forbids the tree's entire comment style, so
+ * re-running a loose regex for consecutive prose `//` lines and getting a bigger
+ * number is not evidence this scan is broken: the two measure different things.
  */
 
 /**
@@ -70,8 +69,36 @@ const PROSE_RE = /[a-z]{3,}\s+[a-z]{3,}/;
  */
 const SENTENCE_BREAK_RE = /[.!?]["'’)\]]?\s+["'“(`[]?[A-Z0-9]/;
 
-/** The smallest stack that can be a violation. Two lines is ordinary wrapping. */
-export const MIN_STACK_LINES = 3;
+/**
+ * A line that ENDS a stack rather than continuing it: a divider, or an empty
+ * comment line.
+ *
+ * Neither is a fragment of a sentence. A divider belongs to the banner gate; an
+ * empty comment line is a paragraph break, which is the very thing that makes
+ * the text around it a paragraph rather than one mashed sentence. Joined into
+ * the run instead, the text passes the prose test on the strength of its prose
+ * half alone, so a banner's closing rule plus the sentence under it would read
+ * as one mashed sentence, and putting it on one line would weld a divider to a
+ * sentence.
+ *
+ * Two shapes, and neither needs a list of rule characters. A bare divider
+ * carries no letter at all. A TITLED one opens or closes with a run of the same
+ * character, which is what `// --- inFlight bookkeeping` and a box-drawn banner
+ * title both are, so a divider drawn in a spelling nobody has thought of yet is
+ * still not mistaken for prose.
+ *
+ * The run has to be at an EDGE. A `===` inside prose backticks is not a divider,
+ * and a run-anywhere test reads `\`== null\`, not \`=== undefined\`` as one.
+ */
+const SEPARATOR_RE =
+  /^[^A-Za-z]*$|^([^A-Za-z0-9\s])\1{2,}|([^A-Za-z0-9\s])\2{2,}$/;
+
+/**
+ * The smallest stack that can be a violation. TWO, because the rule does not
+ * turn on how many fragments a sentence was split into: "a merely-long single
+ * comment stays one line and relies on editor wrapping".
+ */
+export const MIN_STACK_LINES = 2;
 
 export interface CommentStack {
   /** 1-indexed line of the stack's first `//`. */
@@ -100,8 +127,7 @@ export function stacksIn(source: string): CommentStack[] {
       const isViolation =
         PROSE_RE.test(text) &&
         !CODE_LIKE_RE.test(text) &&
-        // Strip a single trailing terminator before looking for an INTERNAL
-        // break, so a stack ending in a full stop is not read as containing one.
+        // Strip a single trailing terminator before looking for an INTERNAL break, so a stack ending in a full stop is not read as containing one.
         !SENTENCE_BREAK_RE.test(text.replace(/[.!?]\s*$/, ""));
       if (isViolation) found.push({ line: start + 1, span: run.length, text });
     }
@@ -110,15 +136,19 @@ export function stacksIn(source: string): CommentStack[] {
 
   for (const [i, raw] of lines.entries()) {
     const trimmed = raw.trim();
-    // `///` is a doc comment (C# XML docs, TS triple-slash directives) and is
-    // already the proper multi-line form, so it never counts.
+    // `///` is a doc comment (C# XML docs, TS triple-slash directives) and is already the proper multi-line form, so it never counts.
     const isLineComment =
       trimmed.startsWith("//") &&
       !trimmed.startsWith("///") &&
       !DIRECTIVE_RE.test(trimmed.slice(2));
     if (isLineComment) {
+      const body = trimmed.slice(2).trim();
+      if (SEPARATOR_RE.test(body)) {
+        flush();
+        continue;
+      }
       if (run.length === 0) start = i;
-      run.push(trimmed.slice(2).trim());
+      run.push(body);
     } else {
       flush();
     }

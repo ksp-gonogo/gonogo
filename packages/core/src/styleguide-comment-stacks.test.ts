@@ -1,12 +1,19 @@
 // @vitest-environment node
-//
-// Node realm rather than the package's jsdom default, matching
-// `styleguide-banner-comments.test.ts`: the shrink-only half transpiles the
-// allowlist at a git ref through esbuild, which asserts a real
-// TextEncoder/Uint8Array realm.
+/*
+ * Node realm rather than the package's jsdom default, matching
+ * `styleguide-banner-comments.test.ts`: the shrink-only half transpiles the
+ * allowlist at a git ref through esbuild, which asserts a real
+ * TextEncoder/Uint8Array realm.
+ */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { transformSync } from "esbuild";
 import { describe, expect, it } from "vitest";
-import { COMMENT_STACK_DEBT, SCAN_FLOORS } from "./comment-stacks.allowlist";
+import {
+  COMMENT_STACK_DEBT,
+  MATCHER_REVISION,
+  SCAN_FLOORS,
+} from "./comment-stacks.allowlist";
 import {
   MIN_STACK_LINES,
   scanCommentStacks,
@@ -14,28 +21,27 @@ import {
 } from "./comment-stacks.scan";
 import {
   baseCounts,
+  baseNumber,
   baseNumberFields,
   ratchetBaseRef,
+  ratchetRepoRoot,
   sourceAtRatchetBase,
 } from "./ratchetBaseRef";
 import { scanScope } from "./scanScope";
 
 /**
- * Comment-stack ratchet. CLAUDE.md has always said that a genuinely multi-line
- * thought uses proper multi-line formatting, never one long sentence mashed into
- * a stack of single-line fragments, and nothing enforced it, so the population
- * grew to 1610 stacks across 732 JS/TS files.
+ * Comment-stack ratchet. CLAUDE.md says that a genuinely multi-line thought uses
+ * proper multi-line formatting, never one long sentence mashed into a stack of
+ * single-line fragments, and that a merely-long single comment stays one line.
  *
- * THE DEFINITION, in one sentence: a violation is three or more consecutive
+ * THE DEFINITION, in one sentence: a violation is two or more consecutive
  * line-comment lines whose joined text is a SINGLE sentence, in a hand-written
- * source file.
+ * source file. A divider or an empty comment line ends a run.
  *
  * The single-sentence part is what makes this gate usable. A loose scan for
- * three consecutive prose comment lines finds 5197 blocks across 1301 files,
- * which is most of the tree; gating on that would forbid the prevailing comment
- * style rather than the defect. A stack of several complete sentences is the
- * "real paragraph" the rule explicitly permits. Getting 5197 from a looser regex
- * is not evidence that this gate is broken; the two measure different things.
+ * consecutive prose comment lines finds most of the tree; gating on that would
+ * forbid the prevailing comment style rather than the defect. A stack of several
+ * complete sentences is the "real paragraph" the rule explicitly permits.
  *
  * JS/TS only, unlike the banner ratchet beside it, which also scans C#. A `//`
  * paragraph is idiomatic .NET because C# keeps `///` for the doc form, so the
@@ -49,6 +55,12 @@ import { scanScope } from "./scanScope";
  */
 
 const ALLOWLIST_PATH = "packages/core/src/comment-stacks.allowlist.ts";
+const SCAN_PATH = "packages/core/src/comment-stacks.scan.ts";
+
+/** The scan module as read back from a git ref, for the re-seed proof. */
+interface BaseScan {
+  scanCommentStacks?: typeof scanCommentStacks;
+}
 
 const SCOPE = scanScope();
 const RESULT = scanCommentStacks(SCOPE.covers);
@@ -71,23 +83,27 @@ describe("comment stacks", () => {
       `${RESULT.counts.size} files carry a stack`,
       `${stacks} stacks`,
     ].join(", ");
-    // The census, not a boolean. A number in the log is what lets the next
-    // person tell "found nothing" from "looked at nothing", and it is only
-    // visible under `--reporter=verbose`; the default reporter mutes console
-    // output for tests that pass.
+    /*
+     * The census, not a boolean. A number in the log is what lets the next
+     * person see the direction of travel beside the verdict, and it is only
+     * visible under `--reporter=verbose`; the default reporter mutes console
+     * output for tests that pass.
+     */
     console.info(`[comment-stacks] ${summary}`);
-    // The listing is whole-tree in both scopes, so this floor holds in both:
-    // a wrong cwd or an empty `git ls-files` fails here either way.
+    // The listing is whole-tree in both scopes, so this floor holds in both: a wrong cwd or an empty `git ls-files` fails here either way.
     expect(RESULT.enumerated, summary).toBeGreaterThanOrEqual(
       SCAN_FLOORS.files,
     );
-    // What the scan FOUND is only a census of the tree when it read the tree.
+    /*
+     * What was WALKED, never what was found. The stack and file-with-stack
+     * counts are the debt, and they fall as it is paid; a floor on them would
+     * fail the gate for the one outcome it exists to produce. A matcher gone
+     * blind is caught elsewhere: by the literal-string test below, and by every
+     * exact debt entry reading low in "records no comment stack that is already
+     * gone".
+     */
     if (SCOPE.mode === "changed") return;
     expect(RESULT.scanned, summary).toBeGreaterThanOrEqual(SCAN_FLOORS.files);
-    expect(RESULT.counts.size, summary).toBeGreaterThanOrEqual(
-      SCAN_FLOORS.filesWithStack,
-    );
-    expect(stacks, summary).toBeGreaterThanOrEqual(SCAN_FLOORS.stacks);
   });
 
   /**
@@ -116,11 +132,41 @@ describe("comment stacks", () => {
     ].join("\n");
     expect(stacksIn(paragraph)).toHaveLength(0);
 
+    // Two lines is the commonest spelling of the defect, not an exemption.
     const twoLines = [
-      `${c} A single sentence that merely wraps across two lines is ordinary`,
-      `${c} and is not what this gate is about.`,
+      `${c} A single sentence hand-wrapped across two lines is the commonest`,
+      `${c} spelling of this defect and is exactly what the gate is about.`,
     ].join("\n");
-    expect(stacksIn(twoLines)).toHaveLength(0);
+    expect(stacksIn(twoLines)).toHaveLength(1);
+
+    // A divider ENDS a run, so the sentence beneath it is judged on its own.
+    const underARule = [
+      `${c} ${"-".repeat(20)}`,
+      `${c} A sentence sitting directly beneath a divider, which is a sentence`,
+      `${c} of its own rather than a continuation of the rule above it.`,
+    ].join("\n");
+    expect(stacksIn(underARule)).toHaveLength(1);
+
+    const titledRule = [
+      `${c} --- Registration ---`,
+      `${c} Proves the widget spreads straight into registerComponent.`,
+    ].join("\n");
+    expect(stacksIn(titledRule)).toHaveLength(0);
+
+    // An empty comment line is a paragraph break, which is what makes the text around it a paragraph rather than one sentence.
+    const acrossAParagraphBreak = [
+      `${c} One complete thought.`,
+      `${c}`,
+      `${c} Another complete thought.`,
+    ].join("\n");
+    expect(stacksIn(acrossAParagraphBreak)).toHaveLength(0);
+
+    // A run of rule characters INSIDE prose is not a divider.
+    const backtickedOperator = [
+      `${c} \`== null\`, not \`=== undefined\`: an explicit null is the NORMAL`,
+      `${c} answer here, since stock KSP has no calendar to anchor against.`,
+    ].join("\n");
+    expect(stacksIn(backtickedOperator)).toHaveLength(1);
 
     const commentedOutCode = [
       `${c} const next = compute(previous);`,
@@ -136,9 +182,11 @@ describe("comment stacks", () => {
     ].join("\n");
     expect(stacksIn(directives)).toHaveLength(0);
 
-    // Triple-slash is a directive form in TS and the doc form in C#; either
-    // way it is already proper multi-line formatting and never counts, however
-    // long the sentence it carries runs on for.
+    /*
+     * Triple-slash is a directive form in TS and the doc form in C#; either way
+     * it is already proper multi-line formatting and never counts, however long
+     * the sentence it carries runs on for.
+     */
     const tripleSlash = [
       `/// <reference types="vite/client" />`,
       `/// spread over as many lines as it likes, because the shape is already`,
@@ -171,7 +219,7 @@ describe("comment stacks", () => {
     expect(
       offenders,
       [
-        "A single sentence was split across three or more // comment lines.",
+        "A single sentence was split across two or more // comment lines.",
         "",
         "CLAUDE.md: a genuinely multi-line thought uses proper multi-line",
         "formatting (a /** */ block or a real paragraph), never one long",
@@ -222,8 +270,8 @@ describe("comment stacks", () => {
   });
 
   /** Guards the constant the whole shape rests on against a quiet edit. */
-  it("still requires three lines to call something a stack", () => {
-    expect(MIN_STACK_LINES).toBe(3);
+  it("calls two lines a stack", () => {
+    expect(MIN_STACK_LINES).toBe(2);
   });
 
   describe("the debt list only ever shrinks", () => {
@@ -238,16 +286,105 @@ describe("comment stacks", () => {
      * did not exist there.
      */
     function baseAllowlist():
-      | { ref: string; lists: Record<string, unknown> }
+      | {
+          base: NonNullable<ReturnType<typeof ratchetBaseRef>>;
+          ref: string;
+          lists: Record<string, unknown>;
+        }
       | undefined {
       const at = ratchetBaseRef();
       if (!at) return undefined;
       const source = sourceAtRatchetBase(at, ALLOWLIST_PATH);
       if (source === null) return undefined;
+      return { base: at, ref: at.ref, lists: load(source) };
+    }
+
+    function load(source: string): Record<string, unknown> {
       const js = transformSync(source, { loader: "ts", format: "cjs" }).code;
       const module_ = { exports: {} as Record<string, unknown> };
-      new Function("module", "exports", js)(module_, module_.exports);
-      return { ref: at.ref, lists: module_.exports };
+      new Function("module", "exports", "require", js)(
+        module_,
+        module_.exports,
+        require,
+      );
+      return module_.exports;
+    }
+
+    /**
+     * Whether this commit declares a widened matcher, and the proof that it
+     * really is one.
+     *
+     * A widening is the only change that legitimately raises these numbers, and
+     * the numbers alone cannot tell "the gate learned to see a spelling" from
+     * "somebody wrote more stacks". So the claim is checked rather than
+     * believed, in the only way that settles it: run the OLD matcher over the
+     * CURRENT tree. If the tree still passes the OLD gate outright, everything
+     * newly counted is something the old matcher could not see, and none of it
+     * is new code. Same mechanism as `styleguide-banner-comments.test.ts`.
+     */
+    function reseed(
+      at: NonNullable<ReturnType<typeof baseAllowlist>>,
+    ): boolean {
+      const was = baseNumber(at.lists, "MATCHER_REVISION") ?? 1;
+      if (was === MATCHER_REVISION) return false;
+
+      expect(
+        MATCHER_REVISION,
+        `MATCHER_REVISION may only go up (${was} at ${at.ref}).`,
+      ).toBeGreaterThan(was);
+
+      const now = readFileSync(join(ratchetRepoRoot(), SCAN_PATH), "utf8");
+      const then = sourceAtRatchetBase(at.base, SCAN_PATH);
+      expect(
+        then,
+        `${SCAN_PATH} cannot be read at ${at.ref}, so the previous matcher ` +
+          "cannot be re-run and the re-seed cannot be checked.",
+      ).not.toBeNull();
+      expect(
+        then !== now,
+        `MATCHER_REVISION went ${was} -> ${MATCHER_REVISION} but ${SCAN_PATH} is ` +
+          "byte-identical to the base. The revision declares a widened matcher; " +
+          "bumping it without one re-seeds every shrink-only number for nothing.",
+      ).toBe(true);
+
+      const old = load(then ?? "") as BaseScan;
+      expect(
+        typeof old.scanCommentStacks,
+        `${SCAN_PATH} at ${at.ref} exports no scanCommentStacks, so the previous ` +
+          "matcher cannot be re-run and the re-seed cannot be checked.",
+      ).toBe("function");
+
+      const before = baseCounts(at.lists, "COMMENT_STACK_DEBT") ?? {};
+      const regraded = old.scanCommentStacks?.().counts ?? new Map();
+      const offenders: string[] = [];
+      for (const [file, count] of regraded) {
+        const budget = before[file];
+        if (budget === undefined) offenders.push(`${file}: ${count}, unlisted`);
+        else if (count > budget) {
+          offenders.push(`${file}: ${count}, debt list said ${budget}`);
+        }
+      }
+
+      expect(
+        offenders,
+        [
+          `MATCHER_REVISION went ${was} -> ${MATCHER_REVISION}, which re-seeds`,
+          "every shrink-only number in the allowlist. That is only sound when the",
+          "tree still PASSES the previous gate, so that everything newly counted",
+          "is something the old matcher could not see.",
+          "",
+          `It does not. Run with the matcher as it stood at ${at.ref}, the current`,
+          "tree fails its own debt list. Clean these first, then re-seed:",
+        ].join("\n"),
+      ).toEqual([]);
+
+      const total = [...RESULT.counts.values()].reduce((a, b) => a + b, 0);
+      console.info(
+        `[comment-stacks] re-seed ${was} -> ${MATCHER_REVISION}: the tree still ` +
+          `passes the ${at.ref} gate, and the widened matcher now counts ` +
+          `${total} stacks in ${RESULT.counts.size} files.`,
+      );
+      return true;
     }
 
     /**
@@ -270,6 +407,7 @@ describe("comment stacks", () => {
     it("COMMENT_STACK_DEBT", () => {
       const at = baseAllowlist();
       if (!at) return;
+      if (reseed(at)) return;
       const before = baseCounts(at.lists, "COMMENT_STACK_DEBT");
       if (!before) return;
 
@@ -305,39 +443,26 @@ describe("comment stacks", () => {
     });
 
     /**
-     * The floors are data in the same file and would otherwise be lowerable with
+     * The floor is data in the same file and would otherwise be lowerable with
      * a one-digit edit that reads as maintenance, which would blind the
      * instrument check above. Same rule as the debt list, in the other
-     * direction: up only.
+     * direction: up only. It counts files WALKED, so no cleanup can lower the
+     * measurement it guards.
      */
     it("SCAN_FLOORS", () => {
       const at = baseAllowlist();
       if (!at) return;
-      const before = baseNumberFields(at.lists, "SCAN_FLOORS", [
-        "files",
-        "filesWithStack",
-        "stacks",
-      ]);
+      const before = baseNumberFields(at.lists, "SCAN_FLOORS", ["files"]);
       if (!before) return;
-      const lowered: string[] = [];
-      for (const key of ["files", "filesWithStack", "stacks"] as const) {
-        if (SCAN_FLOORS[key] < before[key]) {
-          lowered.push(`${key} (${before[key]} -> ${SCAN_FLOORS[key]})`);
-        }
-      }
       expect(
-        lowered,
+        SCAN_FLOORS.files,
         [
-          `The scan floors may only be RAISED, vs ${at.ref}.`,
+          `The scan floor may only be RAISED, vs ${at.ref}.`,
           "",
-          "Lowering a floor blinds the instrument check: it is what stands",
-          "between 'the scan found nothing' and 'the scan looked at nothing'.",
-          "",
-          "The floors sit at half the seeded census precisely so that real",
-          "cleanup never reaches them. If cleanup genuinely has, that is the",
-          "moment to retire this gate, not to lower its floor.",
+          "Lowering it blinds the instrument check: it is what stands between",
+          "'the scan found nothing' and 'the scan looked at nothing'.",
         ].join("\n"),
-      ).toEqual([]);
+      ).toBeGreaterThanOrEqual(before.files);
     });
   });
 });
