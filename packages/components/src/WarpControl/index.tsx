@@ -153,7 +153,7 @@ registerComponent<WarpControlConfig>({
   id: "warp-control",
   name: "Warp Control",
   description:
-    "Set KSP time warp from the dashboard. Shows current warp rate and mode; button row maps to t.timeWarp[0..7].",
+    "Set KSP time warp from the dashboard. Shows the current warp rate and mode, with a button for each warp level.",
   tags: ["control", "time"],
   defaultSize: { w: 6, h: 5 },
   minSize: { w: 4, h: 4 },

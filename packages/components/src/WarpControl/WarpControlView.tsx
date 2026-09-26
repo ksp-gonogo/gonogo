@@ -108,9 +108,7 @@ export function WarpControlView({
                   size="sm"
                   onClick={onTogglePause}
                   aria-label={paused === true ? "Resume game" : "Pause game"}
-                  title={
-                    paused === true ? "Resume (t.unpause)" : "Pause (t.pause)"
-                  }
+                  title={paused === true ? "Resume" : "Pause"}
                 >
                   {paused === true ? (
                     <PlayIcon size={12} />
