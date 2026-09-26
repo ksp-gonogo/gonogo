@@ -223,6 +223,11 @@ export interface CommandButtonState {
    * ran.
    */
   foundText: string | null;
+  /**
+   * What is known about a command that got no reply, composed, or `null`
+   * outside the `lost` phase: the sentence `CommandButton` speaks for it.
+   */
+  lossText: string | null;
   /** This handle has a dead (overdue/lost) dispatch, for the `data-failed` tint. */
   hasFailure: boolean;
   /**
@@ -486,6 +491,10 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
           })
         : null,
     foundText: found ? commandFoundSentence(found) : null,
+    lossText:
+      effectivePhase === "lost"
+        ? commandLossSentence({ args, label: commandLabel })
+        : null,
     hasFailure,
     press,
   };
@@ -672,6 +681,7 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
     isShowingReason,
     refusalText,
     foundText,
+    lossText,
     hasFailure,
     press,
   } = useCommandButton({ handle, args, commandLabel, onConfirmed });
@@ -706,13 +716,7 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
          a warning, and wearing the warning's colour would file it beside the
          loss it replaced. */
       $tone={
-        isRefused || isLost
-          ? "warn"
-          : isFound
-            ? "neutral"
-            : isArmed
-              ? confirmTone
-              : tone
+        isRefused ? "warn" : isFound ? "neutral" : isArmed ? confirmTone : tone
       }
       $size={size}
       $filled={active === true || isArmed || isRefused}
@@ -722,14 +726,15 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
       // Only while it IS busy: a permanent `aria-busy="false"` on every command
       // button in the tree is noise a screen reader has to step over.
       aria-busy={isPending || undefined}
-      // aria-disabled, NOT disabled. A `disabled` button is dropped from some
-      // screen readers' walk entirely, so an operator using one would find no
-      // control at all where a sighted operator sees a dark one with a reason on
-      // it: the same reasoning that stopped a read-only settings row being a
-      // disabled input. It also keeps the control focusable, which is what lets
-      // a press surface the reason.
-      aria-disabled={isBlocked || undefined}
-      disabled={disabled || isPending}
+      /*
+       * aria-disabled, NOT disabled, while blocked or pending. A `disabled`
+       * button is dropped from some screen readers' walk entirely and loses
+       * keyboard focus, so the outcome of a press would land on a control the
+       * operator is no longer on. `press` already ignores a press while pending,
+       * and a blocked press surfaces the reason.
+       */
+      aria-disabled={isBlocked || isPending || undefined}
+      disabled={disabled}
       data-failed={hasFailure ? "true" : undefined}
       data-command-phase={phase}
       // Reports itself without changing how it renders: the operator sees an
@@ -755,10 +760,8 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
           : isLost
             ? // The visible words are two and the fact needs a sentence: a
               // screen-reader user landing on "No reply" learns that something
-              // is up and nothing about what is unknown. The handle carries no
-              // command id, so `commandLabel` is what names this one, the same
-              // half a refusal is named after.
-              commandLossSentence({ args, label: commandLabel })
+              // is up and nothing about what is unknown.
+              (lossText ?? undefined)
             : isFound
               ? // Same rule again, and the gap is widest here: "Found" is one
                 // word and the fact it stands for is a reversal plus a verdict.
@@ -892,7 +895,7 @@ const CommandButton__Body = styled.button<{
       @media (hover: hover) {
         &:hover:not(:disabled) {
           border-color: var(--color-status-warning-bg);
-          color: var(--color-status-warning-fg);
+          color: var(--color-status-warning-fg-muted);
         }
       }
     `}
@@ -900,17 +903,16 @@ const CommandButton__Body = styled.button<{
   /* The command is IN FLIGHT, not unavailable: it reads at full strength with a
      spinner rather than as the greyed-out "you cannot do this" that a plain
      :disabled would say. */
-  &[aria-busy="true"]:disabled {
+  &[aria-busy="true"] {
     opacity: 1;
     cursor: progress;
   }
 
-  /* The shared \`data-failed\` convention (see ToggleButton): a control whose
-     command went overdue or lost echoes it on itself, so the operator sees WHICH
-     control's command died without leaving the panel rail. */
+  /* A control whose command went overdue or lost echoes it on itself, so the
+     operator sees which control's command died without leaving the panel rail. */
   &[data-failed="true"] {
     border-color: var(--color-status-warning-bg);
-    color: var(--color-status-warning-fg);
+    color: var(--color-status-warning-fg-muted);
     background: color-mix(
       in srgb,
       var(--color-status-warning-bg) 18%,

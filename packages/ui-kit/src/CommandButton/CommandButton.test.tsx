@@ -2,13 +2,16 @@ import { CommandErrorCode, railTagsForCommand } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { commandLossSentence } from "../CommandDelay/CommandLossList";
 import { expectNoA11yViolations } from "../expectNoA11yViolations";
+import { emittedStateRuleFor } from "../test/emittedRule";
 import {
   ARM_TIMEOUT_MS,
   CommandButton,
   type CommandButtonHandle,
   type CommandReplyLike,
   REFUSAL_TIMEOUT_MS,
+  useCommandButton,
 } from "./CommandButton";
 
 /*
@@ -200,7 +203,7 @@ describe("CommandButton: the in-flight window", () => {
 
     const pending = await screen.findByRole("button", { name: /Going/ });
     expect(pending).toHaveAttribute("aria-busy", "true");
-    expect(pending).toBeDisabled();
+    expect(pending).toHaveAttribute("aria-disabled", "true");
     expect(pending).toHaveAttribute("data-command-phase", "pending");
 
     // Nothing has come back, and the control must not pretend otherwise.
@@ -860,7 +863,10 @@ describe("CommandButton: the blocked phase", () => {
     );
 
     expect(screen.getByRole("button")).toHaveAttribute("aria-busy", "true");
-    expect(screen.getByRole("button")).not.toHaveAttribute("aria-disabled");
+    expect(screen.getByRole("button")).toHaveAttribute(
+      "data-command-phase",
+      "pending",
+    );
 
     await act(async () => {
       d.resolve(OK);
@@ -1061,5 +1067,77 @@ describe("CommandButton: a lost command that answered after all", () => {
   it("has no axe violations while found", async () => {
     await loseThenFind();
     await expectNoA11yViolations(document.body);
+  });
+});
+
+describe("CommandButton warning text", () => {
+  it("draws a failed control's label and a blocked control's hover in the warning colour made for a dark ground", () => {
+    render(
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK), {
+          gate: {
+            blocked: true,
+            errorCode: 17,
+            detail: "Launch Pad is occupied",
+          },
+        })}
+        label="Launch"
+      />,
+    );
+    const button = screen.getByRole("button");
+    for (const selector of ['[data-failed="true"]', ":hover:not(:disabled)"]) {
+      const rule = emittedStateRuleFor(button, selector);
+      expect(rule, selector).toContain("var(--color-status-warning-fg-muted)");
+    }
+  });
+});
+
+describe("CommandButton keeps keyboard focus through a dispatch", () => {
+  it("stays focused while pending, so the outcome lands on the control the operator is on", async () => {
+    const user = userEvent.setup();
+    const d = deferred();
+    render(
+      <CommandButton
+        handle={makeHandle(() => d.promise)}
+        label="Go"
+        pendingLabel="Going..."
+      />,
+    );
+    await user.tab();
+    await user.keyboard("{Enter}");
+    const pending = await screen.findByRole("button", { name: /Going/ });
+    expect(pending).not.toBeDisabled();
+    expect(pending).toHaveFocus();
+    await act(async () => {
+      d.resolve(OK);
+    });
+  });
+});
+
+describe("useCommandButton's loss sentence", () => {
+  function Custom({ handle }: { handle: CommandButtonHandle }) {
+    const state = useCommandButton({ handle, commandLabel: "Stage" });
+    return (
+      <>
+        <button type="button" onClick={() => state.press(false)}>
+          custom
+        </button>
+        <output>{state.lossText ?? "none"}</output>
+      </>
+    );
+  }
+
+  it("hands a custom control the same sentence CommandButton speaks for a loss", async () => {
+    const user = userEvent.setup();
+    const d = deferred();
+    render(<Custom handle={makeHandle(() => d.promise)} />);
+    expect(screen.getByRole("status")).toHaveTextContent("none");
+    await user.click(screen.getByRole("button", { name: "custom" }));
+    await act(async () => {
+      d.reject(Object.assign(new Error("lost"), { code: "E_LOST" }));
+    });
+    expect(screen.getByRole("status")).toHaveTextContent(
+      commandLossSentence({ label: "Stage" }),
+    );
   });
 });
