@@ -89,7 +89,7 @@ export function Band<U extends string = string>({
   // nothing to get its pins checked.
   return (
     <UnitSharedFormat of={min.unit} separate {...pins}>
-      <BandEnds min={min} max={max} className={className} pins={pins} />
+      <BandEnds min={min} max={max} className={className} />
     </UnitSharedFormat>
   );
 }
@@ -123,16 +123,18 @@ function BandEnds<U extends string = string>({
   min,
   max,
   className,
-  pins,
 }: {
   min: Value<U>;
   max: Value<U>;
   className?: string;
-  pins: Pick<UnitProps<U>, "decimals" | "format" | "as">;
 }) {
-  useSharedFormat(min, pins);
-  useSharedFormat(max, pins);
-  const oneFigure = useReadsAsOneFigure(min, pins);
+  /* Reported bare: the caller's pins are the group's own (see `Band`), so the
+     group settles on them. Passing them here as well would mark each end as
+     having decided its own presentation, which takes it out of the group, and
+     a pinned band would then never learn that its ends read the same. */
+  useSharedFormat(min);
+  useSharedFormat(max);
+  const oneFigure = useReadsAsOneFigure(min);
 
   if (oneFigure) {
     return (
