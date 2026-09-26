@@ -1,11 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { StrategiesComponent } from "./index";
 
@@ -50,20 +45,14 @@ const PRICED = {
 };
 
 describe("Strategies: what a card claims activating it costs", () => {
-  let cmdFixture: MockDataSourceFixture;
   let stream: ReturnType<typeof setupStreamFixture>;
 
-  beforeEach(async () => {
-    cmdFixture = await setupMockDataSource({ keys: [] });
+  beforeEach(() => {
     stream = setupStreamFixture({
       carriedChannels: ["career.status"],
       pinnedUt: 10,
       suspendFrames: true,
     });
-  });
-
-  afterEach(() => {
-    teardownMockDataSource(cmdFixture);
   });
 
   function renderWidget() {

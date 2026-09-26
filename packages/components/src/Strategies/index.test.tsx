@@ -2,12 +2,7 @@ import { DashboardItemContext } from "@ksp-gonogo/core";
 import { commandArgs } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
+import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
   parseEffectLines,
@@ -150,20 +145,14 @@ describe("parseStrategies", () => {
 });
 
 describe("StrategiesComponent", () => {
-  let cmdFixture: MockDataSourceFixture;
   let stream: ReturnType<typeof setupStreamFixture>;
 
-  beforeEach(async () => {
-    cmdFixture = await setupMockDataSource({ keys: [] });
+  beforeEach(() => {
     stream = setupStreamFixture({
       carriedChannels: ["career.status"],
       pinnedUt: 10,
       suspendFrames: true,
     });
-  });
-
-  afterEach(() => {
-    teardownMockDataSource(cmdFixture);
   });
 
   function renderWidget() {
