@@ -1,8 +1,16 @@
 // @vitest-environment node
 //
 // Node realm rather than the package's jsdom default: this builds a TypeScript program over `ts.sys`.
-import { existsSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join, relative } from "node:path";
 import {
   DEFAULT_SITREP_CARRIED_TOPICS,
   isCollectionTopic,
@@ -17,26 +25,27 @@ import {
 
 const REPO_ROOT = join(import.meta.dirname, "..", "..", "..", "..");
 
+type PayloadMap = { file: string; name: string; emitted: string };
+
 /**
- * Every payload map the repo's generated contracts declare: the file and the
- * interface to read, and the generated file whose runtime collection list has
- * to agree with it. The SDK's map is `TopicPayloadMap`, which is the generated
- * map plus the engine-owned hand-declared tail; an Uplink's is its own
- * generated map.
+ * Every payload map the generated contracts under `mod` declare: the file and
+ * the interface to read, and the generated file whose runtime collection list
+ * has to agree with it. The SDK's map is `TopicPayloadMap`, which is the
+ * generated map plus the engine-owned hand-declared tail, and always comes
+ * first; an Uplink's is its own generated map.
  */
-function payloadMaps(): { file: string; name: string; emitted: string }[] {
+function payloadMaps(mod = join(REPO_ROOT, "mod")): PayloadMap[] {
   const sdkMap = join(
     REPO_ROOT,
     "mod/sitrep-sdk/src/__generated__/topic-map.ts",
   );
-  const maps = [
+  const maps: PayloadMap[] = [
     {
       file: join(REPO_ROOT, "mod/sitrep-sdk/src/topics.ts"),
       name: "TopicPayloadMap",
       emitted: sdkMap,
     },
   ];
-  const mod = join(REPO_ROOT, "mod");
   for (const entry of readdirSync(mod).sort()) {
     const file = join(mod, entry, "client/src/__generated__/topic-map.ts");
     if (existsSync(file)) {
@@ -76,8 +85,7 @@ function emittedList(source: ts.SourceFile, name: string): string[] {
  * generated contract rather than of the text: a Topic is a collection when the
  * type its map entry resolves to is array-like.
  */
-function deriveCollectionTopics() {
-  const maps = payloadMaps();
+function deriveCollectionTopics(maps: PayloadMap[]) {
   const program = ts.createProgram(
     maps.flatMap((m) => [m.file, m.emitted]),
     {
@@ -131,14 +139,41 @@ function deriveCollectionTopics() {
     sdkOwned: [...sdkOwned].sort(),
     uplinkOwned: [...uplinkOwned].sort(),
     collections: [...sdkOwned, ...uplinkOwned].sort(),
-    maps: maps.map((m) => m.file.slice(REPO_ROOT.length + 1)),
+    maps: maps.map((m) => relative(REPO_ROOT, m.file)),
     topicsSeen,
     unresolved,
     disagreements,
   };
 }
 
-const derived = deriveCollectionTopics();
+const derived = deriveCollectionTopics(payloadMaps());
+
+/**
+ * A `mod` directory holding two planted Uplink clients, one whose runtime list
+ * agrees with its types and one whose list names the wrong Topic, beside a
+ * client with no generated map at all. The tree may hold no Uplink contract,
+ * so the walk and the checks over it are proved here instead.
+ */
+function plantedMod(): string {
+  const mod = mkdtempSync(join(tmpdir(), "collection-topics-"));
+  const plant = (uplink: string, collections: string) => {
+    const dir = join(mod, uplink, "client/src/__generated__");
+    mkdirSync(dir, { recursive: true });
+    const topic = uplink.toLowerCase();
+    writeFileSync(
+      join(dir, "topic-map.ts"),
+      `export interface GeneratedTopicPayloadMap {\n` +
+        `  "${topic}.list": { id: string }[];\n` +
+        `  "${topic}.record": { id: string };\n` +
+        `}\n` +
+        `export const GENERATED_COLLECTION_TOPIC_IDS = [${collections}] as const;\n`,
+    );
+  };
+  plant("PlantedAgrees", `"plantedagrees.list"`);
+  plant("PlantedDisagrees", `"planteddisagrees.record"`);
+  mkdirSync(join(mod, "PlantedNoContract/client/src"), { recursive: true });
+  return mod;
+}
 
 /**
  * Every collection Topic promoted at once, so a Topic the first-party default
@@ -152,7 +187,6 @@ const ALL_COLLECTIONS_CARRIED: ReadonlySet<string> = new Set([
 describe("collection Topics in the generated contract", () => {
   it("reads the SDK's payload map and every Uplink client's", () => {
     expect(derived.maps[0]).toBe("mod/sitrep-sdk/src/topics.ts");
-    expect(derived.maps.length).toBeGreaterThan(1);
     expect(derived.topicsSeen).toBeGreaterThan(80);
     // A payload type the program failed to resolve reads as `any`, which is
     // not array-like, so it would drop out of the count without a sound.
@@ -186,9 +220,30 @@ describe("collection Topics in the generated contract", () => {
       "spaceCenter.pois",
       "spaceCenter.savedShips",
     ]);
-    // Uplink-owned ones exist too, and are held to the same rule through
-    // the registration their client package makes at load.
-    expect(derived.uplinkOwned.length).toBeGreaterThan(0);
+  });
+
+  it("reads a planted Uplink contract and holds it to the same rule", () => {
+    const mod = plantedMod();
+    try {
+      const maps = payloadMaps(mod);
+      expect(maps.map((m) => relative(mod, m.file))).toEqual([
+        relative(mod, join(REPO_ROOT, "mod/sitrep-sdk/src/topics.ts")),
+        "PlantedAgrees/client/src/__generated__/topic-map.ts",
+        "PlantedDisagrees/client/src/__generated__/topic-map.ts",
+      ]);
+      const planted = deriveCollectionTopics(maps);
+      expect(planted.sdkOwned).toEqual(derived.sdkOwned);
+      expect(planted.uplinkOwned).toEqual([
+        "plantedagrees.list",
+        "planteddisagrees.list",
+      ]);
+      expect(planted.unresolved).toEqual([]);
+      expect(planted.disagreements).toEqual([
+        `${maps[2].emitted}: lists [planteddisagrees.record], types [planteddisagrees.list]`,
+      ]);
+    } finally {
+      rmSync(mod, { recursive: true, force: true });
+    }
   });
 
   it("lists at runtime exactly the Topics each map types as a collection", () => {
