@@ -829,7 +829,7 @@ const InFlightList__Root = styled.div<{ $row: boolean }>`
   column-gap: var(--gap-command-list-column);
   gap: var(--gap-command-list-row);
   padding: var(--inset-command-list);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-compact);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);

@@ -1227,7 +1227,7 @@ const NodeTitleText = styled.span`
    id is its footnote. */
 const NodeId = styled.span`
   font-size: var(--font-size-caption);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--color-text-faint);
   font-weight: 400;
   flex: 0 1000 auto;
@@ -1307,7 +1307,7 @@ const ParentsList = styled.span`
 
 const ParentChip = styled.span`
   font-size: var(--font-size-caption);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--color-text-muted);
   padding: var(--inset-chip);
   background: var(--color-surface-sunken);

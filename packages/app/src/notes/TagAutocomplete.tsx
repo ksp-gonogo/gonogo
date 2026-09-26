@@ -339,7 +339,7 @@ const OptLabel = styled.span`
 
 const OptKey = styled.span`
   font-size: var(--font-size-caption);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--color-text-faint);
   align-self: end;
 `;

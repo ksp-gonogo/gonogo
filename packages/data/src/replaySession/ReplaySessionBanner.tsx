@@ -175,7 +175,7 @@ const SeekBar = styled.input`
 `;
 
 const TimeText = styled.span`
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   white-space: nowrap;

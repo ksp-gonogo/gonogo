@@ -269,10 +269,10 @@ export function Tape<U extends string = string>({
         aria-hidden="true"
         style={
           fillHeight
-            ? { display: "block", fontFamily: "monospace" }
+            ? { display: "block", fontFamily: "var(--font-family-mono)" }
             : {
                 display: "block",
-                fontFamily: "monospace",
+                fontFamily: "var(--font-family-mono)",
                 maxWidth: "100%",
                 height: "auto",
               }

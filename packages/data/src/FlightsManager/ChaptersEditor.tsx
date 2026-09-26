@@ -298,13 +298,13 @@ const Label = styled.span`
 `;
 
 const TimeText = styled.span`
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--color-text-muted);
   white-space: nowrap;
 `;
 
 const DurationText = styled.span`
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   color: var(--color-text-faint);
   font-size: var(--font-size-compact);
   white-space: nowrap;

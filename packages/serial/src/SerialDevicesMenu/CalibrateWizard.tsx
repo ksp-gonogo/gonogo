@@ -412,7 +412,7 @@ const SampleViewer = styled.div`
 
 const Ruler = styled.div`
   display: flex;
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-family-mono);
   /* Deliberately below the --font-size-2xs floor: the tick digits have to fit
      inside a SAMPLE_COL-wide box that the characters below them set. */
   font-size: 9px;
@@ -427,7 +427,7 @@ const RulerTick = styled.span`
 
 const SampleLine = styled.div`
   display: flex;
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-family-mono);
   font-size: ${SAMPLE_COL};
 `;
 
@@ -498,7 +498,7 @@ const Slice = styled.div`
 `;
 
 const SliceVal = styled.span`
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-family-mono);
   color: var(--color-text-primary);
 `;
 

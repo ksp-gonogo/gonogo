@@ -854,7 +854,7 @@ function parameterStyle(state: ContractParameterState) {
 /** The fixed-width column the tick, cross, question mark or ring sits in. */
 function parameterMarkStyle(state: ContractParameterState) {
   return {
-    fontFamily: "monospace",
+    fontFamily: "var(--font-family-mono)",
     width: "10px",
     textAlign: "center",
     color:

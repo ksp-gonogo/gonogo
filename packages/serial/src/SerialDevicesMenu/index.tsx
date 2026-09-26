@@ -459,7 +459,7 @@ const WebSerialUnavailableBanner = styled.div`
   padding: var(--inset-alert-band);
 
   code {
-    font-family: var(--font-mono, monospace);
+    font-family: var(--font-family-mono);
     font-size: var(--font-size-compact);
     word-break: break-all;
     background: var(--color-surface-raised);

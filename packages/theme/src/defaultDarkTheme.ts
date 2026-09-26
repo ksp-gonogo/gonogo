@@ -58,7 +58,7 @@ export const defaultDarkTheme: UiKitTheme = {
   },
   typography: {
     family: {
-      mono: 'ui-monospace, "JetBrains Mono", "IBM Plex Mono", Menlo, Consolas, monospace',
+      mono: "var(--font-family-mono)",
     },
     size: {
       xs: "var(--font-size-xs)",

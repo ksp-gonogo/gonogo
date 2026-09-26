@@ -246,7 +246,7 @@ const ComposerBar__Flag = styled.div<{ $blocked: boolean }>`
      refusing input must not eat a press aimed at the control under it. */
   pointer-events: none;
   padding: var(--inset-chip);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-caption);
   font-weight: bold;
   letter-spacing: 0.04em;

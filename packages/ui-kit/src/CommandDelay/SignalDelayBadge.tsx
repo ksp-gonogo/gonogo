@@ -75,7 +75,7 @@ const SignalDelayBadge__Chip = styled.div`
      shows a delay the strip has declined to draw). */
   flex: 0 0 auto;
   padding: var(--inset-chip-readout);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-compact);
   white-space: nowrap;
   color: var(--color-text-muted);

@@ -236,7 +236,7 @@ export function Dial<U extends string = string>({
         aria-hidden="true"
         style={{
           display: "block",
-          fontFamily: "monospace",
+          fontFamily: "var(--font-family-mono)",
           maxWidth: "100%",
           height: "auto",
         }}

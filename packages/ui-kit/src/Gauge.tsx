@@ -230,7 +230,7 @@ export function Gauge<U extends string = string>({
       data-not-current={notCurrent ? "" : undefined}
       style={{
         display: "block",
-        fontFamily: "monospace",
+        fontFamily: "var(--font-family-mono)",
         maxWidth: "100%",
         height: "auto",
       }}

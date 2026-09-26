@@ -798,7 +798,11 @@ export function LineChart({
       // height we just set, ResizeObserver fires, we set a larger height,
       // and the chart slowly grows turn after turn, visible most clearly
       // on graphs the user keeps open through a long flight.
-      style={{ fontFamily: "monospace", overflow: "visible", display: "block" }}
+      style={{
+        fontFamily: "var(--font-family-mono)",
+        overflow: "visible",
+        display: "block",
+      }}
     >
       <title>{chartLabel}</title>
       {/* Only when something needs it: a chart with no layers should not carry

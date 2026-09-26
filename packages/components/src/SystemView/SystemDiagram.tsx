@@ -1563,7 +1563,7 @@ const TOOLTIP_ROW: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   gap: "var(--gap-section)",
-  fontFamily: "var(--font-mono, monospace)",
+  fontFamily: "var(--font-family-mono)",
   color: "var(--color-text-muted)",
 };
 
