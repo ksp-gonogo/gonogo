@@ -1,5 +1,4 @@
-// Imported for the module-load side effect as much as for the value: this is
-// what registers `spaceCenter.state`'s hand-declared field metadata.
+// Imported for the module-load side effect as much as for the value: this is what registers `spaceCenter.state`'s hand-declared field metadata.
 import { spaceCenterStateChannel } from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 import { isKnownFieldPath, mapTopic } from "./map-topic";

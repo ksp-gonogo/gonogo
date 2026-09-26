@@ -421,8 +421,7 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
     // clamp binds first here: the point is the estimate LEADS it.
     expect(store.certaintyHorizonUt()).toBe(100);
 
-    // The store holds the orbit last at the confirmed sample and propagates
-    // nothing; the dead-reckoning is a reader solving it at the view UT.
+    // The store holds the orbit last at the confirmed sample and propagates nothing; the dead-reckoning is a reader solving it at the view UT.
     const orbit = store.sample<VesselOrbitPayload>("vessel.orbit");
     expect(orbit?.payload).toBeTruthy();
     const solved = orbit?.payload

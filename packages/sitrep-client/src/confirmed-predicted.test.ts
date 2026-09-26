@@ -161,8 +161,7 @@ describe("predicted-range reads (M2 design §3.3)", () => {
     // The horizon itself did not move, only the estimate ran ahead of it.
     expect(store.certaintyHorizonUt()).toBe(100);
 
-    // The store holds the orbit last at the horizon and propagates nothing;
-    // the prediction is a reader solving it at the frame's view UT.
+    // The store holds the orbit last at the horizon and propagates nothing; the prediction is a reader solving it at the frame's view UT.
     const orbit = store.sample<VesselOrbitPayload>("vessel.orbit", token);
     expect(orbit?.payload).toBeTruthy();
     const solved = orbit?.payload
@@ -185,8 +184,7 @@ describe("predicted-range reads (M2 design §3.3)", () => {
       trueAnomalyDegrees(elements, 150),
       9,
     );
-    // Solved at the horizon instead, the same orbit lands ~9 degrees behind,
-    // so the frame's view UT and the horizon are different instants to a reader.
+    // Solved at the horizon instead, the same orbit lands ~9 degrees behind, so the frame's view UT and the horizon are different instants to a reader.
     expect(solved?.trueAnomaly).not.toBeCloseTo(
       trueAnomalyDegrees(elements, 100),
       3,
@@ -264,10 +262,7 @@ describe("quickload epoch bump (M2 design §7.6)", () => {
     );
     store.beginFrame();
 
-    // vessel.orbit's pre-reset point was swept away by the epoch bump
-    // (TimelineStore's cross-topic sweep): no post-reset keyframe has
-    // landed for it yet, so it reads undefined ("resyncing") and there is
-    // nothing for a reader to propagate off the dead pre-reset elements.
+    // vessel.orbit's pre-reset point was swept away by the epoch bump (TimelineStore's cross-topic sweep): no post-reset keyframe has landed for it yet, so it reads undefined ("resyncing") and there is nothing for a reader to propagate off the dead pre-reset elements.
     expect(store.sample("vessel.orbit")).toBeUndefined();
     expect(store.sampleStatus("vessel.orbit")).toBe("resyncing");
   });
@@ -351,8 +346,7 @@ describe("raw frame-cache defeats the epoch guard: the LENS-4 ghost (M2 T5 close
       store.sample<{ bodyCount: number }>("system.state", token)?.payload,
     ).toEqual({ bodyCount: 1 });
 
-    // Mid-token quickload rewind via an UNRELATED topic: system.bodies hasn't
-    // re-sampled, so it's swept to the new epoch with no points.
+    // Mid-token quickload rewind via an UNRELATED topic: system.bodies hasn't re-sampled, so it's swept to the new epoch with no points.
     store.ingest(
       "system.clock",
       numberPoint(4500, 4500, { deliveredAt: 4500, epoch: 1 }),

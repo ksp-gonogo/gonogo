@@ -168,8 +168,7 @@ describe("alarm attribution survives the vocabulary migration", () => {
   });
 
   it("attributes a descent alarm to LandingStatus through the whole topics it declares", () => {
-    // LandingStatus's real declarations: whole wire topics and no fields, so a
-    // descent alarm on one of their fields meets it by containment alone.
+    // LandingStatus's real declarations: whole wire topics and no fields, so a descent alarm on one of their fields meets it by containment alone.
     const landingStatus = [
       "vessel.orbit",
       "vessel.identity",

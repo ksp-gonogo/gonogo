@@ -481,10 +481,7 @@ describe.skipIf(!fixtureExists)(
         // `orbit !== undefined`); restated here as an aggregate check over
         // the whole session.
         //
-        // Which of the two branches (immediate or deferred resolution) each
-        // rewind takes depends on which topic happens to arrive first after
-        // it, a property of the capture's frame interleaving rather than of
-        // the SDK, so only the per-observation invariant is asserted.
+        // Which of the two branches (immediate or deferred resolution) each rewind takes depends on which topic happens to arrive first after it, a property of the capture's frame interleaving rather than of the SDK, so only the per-observation invariant is asserted.
         for (const observation of postBumpOrbitObservations) {
           if (observation.definedImmediately) {
             expect(observation.topic).toBe("vessel.orbit");
