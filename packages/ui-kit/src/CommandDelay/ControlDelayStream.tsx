@@ -2,6 +2,7 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { useId } from "react";
 import styled from "styled-components";
 import { Unit } from "../Unit";
+import { writeQuantity } from "../units";
 import {
   type RailTags,
   railDrawsReturnLeg,
@@ -712,7 +713,6 @@ export function ControlDelayStream({
 
   return (
     <ControlDelayStream__Root
-      aria-label={ariaLabel}
       data-oneway={oneWay}
       data-variant={variant}
       $variant={variant}
@@ -790,10 +790,10 @@ export function ControlDelayStream({
         {variant === "inline" && (
           <g data-role="hover-labels">
             <text x={divX1} y={PAD_T - 0.4} textAnchor="middle" fontSize="2">
-              <Unit value={value("s", oneWay)} decimals={1} />
+              {writeQuantity(value("s", oneWay), { decimals: 1 })}
             </text>
             <text x={divX2} y={PAD_T - 0.4} textAnchor="middle" fontSize="2">
-              <Unit value={value("s", 2 * oneWay)} decimals={1} />
+              {writeQuantity(value("s", 2 * oneWay), { decimals: 1 })}
             </text>
             <text
               x={xAt(oneWay / 2, span, padX)}
