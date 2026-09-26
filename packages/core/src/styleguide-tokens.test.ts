@@ -158,11 +158,11 @@ const BASELINES: Record<Family, Record<string, number>> = {
   /**
    * 9 across 5 files. Four in `StationConnectView` (exempt page), and five
    * hairline or half-height radii deliberately off the semantic names:
-   * CommSignal's 1px bar, ActionGroup's focus-ring radius, InputTester's
+   * CommSignal's round rail stop, ActionGroup's focus-ring radius, InputTester's
    * nested pair, OrbitalEventChips' chip.
    */
   radius: {
-    "packages/components/src/CommSignal/index.tsx": 1,
+    "packages/components/src/CommSignal/CommsPathRoute.tsx": 1,
     "packages/components/src/StationConnectView/StationConnectView.styles.ts": 4,
     "packages/serial/src/InputTester/index.tsx": 2,
   },

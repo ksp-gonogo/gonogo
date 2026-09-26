@@ -498,7 +498,7 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
    * cannot yet say is that the INSTANT behind them has stopped arriving, and
    * that arrives with the topics they read rather than with the primitive.
    */
-  "packages/components/src/CommSignal/index.tsx": 2,
+  "packages/components/src/CommSignal/CommSignalView.tsx": 2,
   "packages/components/src/CrewStatus/CrewStatusView.tsx": 2,
   "packages/components/src/CurrentOrbit/index.tsx": 2,
   "packages/components/src/SpaceCenterStatus/index.tsx": 1,
