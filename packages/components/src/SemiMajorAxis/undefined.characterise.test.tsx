@@ -18,24 +18,12 @@ import { SemiMajorAxisComponent } from "./index";
  *   the whole-widget gate. One "No orbit data" empty state covers at least
  *   four distinct facts: nothing has arrived, the record arrived without an
  *   sma, the topic is a confirmed tombstone, and the number arrived non-finite
- * - `useStream<VesselState>("vessel.state")?.referenceBodyName ?? undefined`
- *   (index.tsx:28) then `referenceBody ? " · X" : ""` (index.tsx:97) collapses
- *   the derived channel's deliberate `null`-versus-`undefined` distinction
- *   back into one rendering
+ * - `useBodyName(orbit.referenceBodyIndex)` then `referenceBody ? " · X" : ""`
+ *   collapses an unnamed body and a body that never arrived into one
+ *   rendering
  */
 
-// `vessel.state.referenceBodyName` is only carried once all eight inputs are,
-// so the subtitle suffix needs the full list even though only two are fed.
-const VESSEL_STATE_INPUTS = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-];
+const SEMI_MAJOR_AXIS_CHANNELS = ["vessel.orbit", "system.bodies"];
 
 function renderSma(fixture: ReturnType<typeof setupStreamFixture>) {
   // w=5,h=6 clears both the subtitle threshold (rows>=5, cols>=4) and the
@@ -52,7 +40,7 @@ function renderSma(fixture: ReturnType<typeof setupStreamFixture>) {
 
 function makeFixture() {
   return setupStreamFixture({
-    carriedChannels: VESSEL_STATE_INPUTS,
+    carriedChannels: SEMI_MAJOR_AXIS_CHANNELS,
     pinnedUt: 10,
     suspendFrames: true,
   });

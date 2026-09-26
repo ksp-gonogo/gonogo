@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "in-flight-ascent",
-    "notes": "Active flight mid-ascent. canRevertToLaunch=true, canRevertToEditor=true. tar.availableVessels includes 2 non-SpaceObject vessels so Switch button is enabled. Funds readout visible. Legacy keys drive snapshots.test.tsx (emitLegacyFixture); `_stream` drives the probe render harness. Two documented drops mirror emitLegacyFixture: v.missionTime can't co-derive with v.altitude off vessel.state (met is OnRails-basis, altitudeAsl is Loaded-basis) so the Loaded basis wins (real altitude, met blank); tar.availableVessels is not replayed (system.vessels ships the new {vessels:[...]} shape the switcher hasn't migrated to). vessel.orbit carries quality:1 (Loaded) so altitudeAsl derives off vessel.flight."
+    "notes": "Active flight mid-ascent. canRevertToLaunch=true, canRevertToEditor=true. tar.availableVessels includes 2 non-SpaceObject vessels so Switch button is enabled. Funds readout visible. `_stream` drives both snapshots.test.tsx and the probe render harness. The mission time renders blank because vessel.identity.launchUt is null; the altitude comes straight off the vessel.flight emit. tar.availableVessels is not replayed (system.vessels ships the new {vessels:[...]} shape the switcher hasn't migrated to). The vessel.orbit emit carries quality:1 (Loaded), a craft under physics."
   },
   "tar.availableVessels": [
     {

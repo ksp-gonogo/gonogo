@@ -113,12 +113,12 @@ describe("widget dataRequirements resolve to something real", () => {
     expect(
       classifyRequirement("career.status.economy.notAField"),
     ).toBeUndefined();
-    expect(classifyRequirement("vessel.state.notAField")).toBeUndefined();
+    expect(classifyRequirement("spaceCenter.state.notAField")).toBeUndefined();
     expect(classifyRequirement("career.status.economy.funds")).toBe(
       "field-path",
     );
     expect(classifyRequirement("career.status")).toBe("wire-topic");
-    expect(classifyRequirement("vessel.state")).toBe("derived-channel");
+    expect(classifyRequirement("spaceCenter.state")).toBe("derived-channel");
     // A key from the retired flat vocabulary. It resolved once, through a
     // migration table that no longer exists, and a declaration naming one now
     // has nothing to resolve against: exactly the answer a name nothing

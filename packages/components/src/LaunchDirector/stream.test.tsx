@@ -17,20 +17,17 @@ import { LaunchDirectorComponent } from "./index";
  * channel, itself derived off `spaceCenter.launchSites`),
  * `kc.launchSite`/`kc.scene` (-> `spaceCenter.scene`'s raw fields),
  * `kc.launchSites` (-> `spaceCenter.launchSites` directly),
- * `v.name` (-> `vessel.identity.name`), `v.missionTime`/`v.altitude` (->
- * the `vessel.state` derived channel's `met`/`altitudeAsl`),
+ * `v.name` (-> `vessel.identity.name`), `v.missionTime` (-> the view time
+ * less `vessel.identity.launchUt`), `v.altitude` (->
+ * `vessel.flight.altitudeAsl`),
  * `ksp.canRevertToLaunch`/`ksp.canRevertToEditor` (->
  * `ksp.revertAvailability`), and `crash.hasRecent`/`crash.lastCrash` (->
  * themselves, whole-topic identity reads). The vessel-switcher reads
  * `target.available` directly (a canonical topic, no shim); see
  * `index.test.tsx`'s dedicated switcher test for coverage of that read.
  *
- * `vessel.state.met`/`altitudeAsl` are mutually exclusive by design
- * (`vessel-state.ts`'s own doc): `met` only derives in the OnRails/
- * "propagated" basis, `altitudeAsl` only in the Loaded/"measured" basis. The
- * ACTIVE (flying) vessel this widget's in-flight panel describes is always
- * Loaded, so `missionTime` genuinely renders the null-display placeholder
- * here: a real, documented gap in the migrated data (not a test omission).
+ * The in-flight scene below reports `launchUt: null`, so `missionTime` renders
+ * the null-display placeholder.
  */
 afterEach(() => {
   clearActionHandlers();
@@ -128,14 +125,8 @@ describe("LaunchDirector: genuinely runs off the stream", () => {
       carriedChannels: [
         "spaceCenter.savedShips",
         "spaceCenter.scene",
-        "vessel.orbit",
         "vessel.flight",
         "vessel.identity",
-        "system.bodies",
-        "vessel.control",
-        "vessel.target",
-        "vessel.comms",
-        "vessel.propulsion",
         "crash.hasRecent",
         "crash.lastCrash",
       ],
@@ -167,23 +158,6 @@ describe("LaunchDirector: genuinely runs off the stream", () => {
         parentBodyIndex: 1,
         launchUt: null,
       });
-      // Loaded quality -> the "measured" basis, so altitudeAsl resolves off
-      // vessel.flight (met stays null: see this file's doc comment).
-      fixture.emit(
-        "vessel.orbit",
-        {
-          referenceBodyIndex: 1,
-          sma: 700000,
-          ecc: 0.01,
-          inc: 0,
-          lan: 0,
-          argPe: 0,
-          meanAnomalyAtEpoch: 0,
-          epoch: 10,
-          mu: 3.5316e12,
-        },
-        { quality: 1 },
-      );
       fixture.emit("vessel.flight", {
         latitude: -0.1,
         longitude: -74.6,

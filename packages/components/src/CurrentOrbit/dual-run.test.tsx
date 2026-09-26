@@ -12,30 +12,19 @@ import { CurrentOrbitComponent } from "./index";
 /**
  * CurrentOrbit renders entirely off the Uplink stream.
  *
- * This file used to be a legacy↔stream behavior-preservation dual-run,
- * asserting the SAME orbit state rendered byte-identical off the legacy
- * `DataSource` and off the stream. That legacy `"data"` `MockDataSource` leg is
- * moot now that every field the widget reads is a clean-home stream Topic and
- * the widget no longer touches the legacy source at all, so it's dropped, what
- * remains is the full stream render on its own: the complete grid (raw
- * `vessel.orbit` elements + `vessel.state`-derived apsis altitudes / period /
- * time-to-apsis), the reference-body subtitle (derived
- * `vessel.state.referenceBodyName`), and the default mini orbit diagram, all
- * from one emit with NO legacy source registered anywhere in this file.
+ * The full stream render with no legacy source registered anywhere in this
+ * file: the complete grid (raw `vessel.orbit` elements plus the apsis
+ * altitudes, period and time-to-apsis solved from them), the reference-body
+ * subtitle (`vessel.orbit.referenceBodyIndex` named against `system.bodies`),
+ * and the default mini orbit diagram, all from one emit.
  *
- * Derived values are computed with the SAME formulas `vessel-state.ts` uses so
- * the assertions track the real derivation rather than hand-picked magic
- * numbers.
+ * Expected values use the same two-body formulas as the solve, so the
+ * assertions track it rather than hand-picked magic numbers.
  */
-const VESSEL_STATE_INPUTS = [
+const CURRENT_ORBIT_CHANNELS = [
   "vessel.orbit",
-  "vessel.flight",
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
 ];
 
 // meanAnomalyAtEpoch 0 with epoch == pinned view UT means the vessel sits at
@@ -55,7 +44,7 @@ describe("CurrentOrbit: full render off the stream (R6 Wave 1)", () => {
     const mode = { name: "default-9x18", w: 9, h: 18 };
 
     const streamFixture = setupStreamFixture({
-      carriedChannels: VESSEL_STATE_INPUTS,
+      carriedChannels: CURRENT_ORBIT_CHANNELS,
       pinnedUt: PINNED_UT,
       suspendFrames: true,
     });
@@ -105,8 +94,8 @@ describe("CurrentOrbit: full render off the stream (R6 Wave 1)", () => {
       });
     });
 
-    // Inclination is raw off vessel.orbit; period is derived off vessel.state,
-    // waiting on both proves the whole mixed raw+derived surface has landed.
+    // Inclination is raw off vessel.orbit; period is solved from its elements,
+    // waiting on both proves the whole mixed raw+solved surface has landed.
     await waitFor(() => {
       if (!visibleText(container).includes("0.3°")) {
         throw new Error("stream leg has not rendered inclination yet");

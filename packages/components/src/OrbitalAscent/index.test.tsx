@@ -14,27 +14,19 @@ import {
 import { OrbitalAscentComponent } from "./index";
 
 /**
- * The widget's own read is the parent-body name, off the client-derived
- * `vessel.state` channel (`parentBodyName`, resolved from
- * `vessel.identity.parentBodyIndex` against `system.bodies`). The reference
+ * The widget's own read is the parent-body name, resolved from
+ * `vessel.identity.parentBodyIndex` against `system.bodies`. The reference
  * curve is then computed client-side from the body registry. The two plotted
- * series (`v.altitude`/`v.horizontalVelocity`) go through the shared GraphView
+ * series (`vessel.flight.altitudeAsl` and the horizontal speed computed off
+ * `vessel.flight`) go through the shared GraphView
  * path and are left empty here, the assertions only cover the body-driven
  * reference curve, so no series data is emitted.
  */
 
-// All eight vessel.state inputs: the carried-channels gate is
-// parent-channel-scoped, so the whole set must be carried for
-// parentBodyName to route off the stream.
-const VESSEL_STATE_INPUTS = [
-  "vessel.orbit",
+const ORBITAL_ASCENT_CHANNELS = [
   "vessel.flight",
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
 ] as const;
 
 describe("OrbitalAscentComponent", () => {
@@ -68,7 +60,7 @@ describe("OrbitalAscentComponent", () => {
 
   function renderAscent() {
     const fixture = setupStreamFixture({
-      carriedChannels: [...VESSEL_STATE_INPUTS],
+      carriedChannels: [...ORBITAL_ASCENT_CHANNELS],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -98,16 +90,6 @@ describe("OrbitalAscentComponent", () => {
     },
   ) {
     act(() => {
-      fixture.emit("vessel.orbit", {
-        referenceBodyIndex: 1,
-        sma: 682500,
-        ecc: 0.00367,
-        inc: 0.3,
-        argPe: 12.5,
-        mu: 3.5316e12,
-        meanAnomalyAtEpoch: 0,
-        epoch: 10,
-      });
       fixture.emit("system.bodies", {
         bodies: [
           {

@@ -30,7 +30,7 @@ import { CurrentOrbitComponent } from "./index";
 describe("CurrentOrbit: a stale orbit with no model", () => {
   it("draws nothing rather than holding the last elements", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["vessel.orbit", "vessel.state"],
+      carriedChannels: ["vessel.orbit"],
       pinnedUt: 10,
       suspendFrames: true,
     });

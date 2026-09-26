@@ -12,8 +12,8 @@ import {
 import { CurrentOrbitComponent } from "./index";
 
 /**
- * Characterisation of what CurrentOrbit DOES today when its telemetry reads
- * are `undefined`. Not what it should do.
+ * Characterisation of what CurrentOrbit does when its telemetry reads are
+ * absent. Not what it should do.
  *
  * Every row of this widget is its own absence gate (`x === undefined ?
  * NULL_DISPLAY : <Unit .../>`), plus three structural ones:
@@ -41,16 +41,10 @@ import { CurrentOrbitComponent } from "./index";
 
 registerStockBodies();
 
-/** All eight `vessel.state` inputs, as `CurrentOrbit/stream.test.tsx` carries them. */
-const VESSEL_STATE_INPUTS = [
+const CURRENT_ORBIT_CHANNELS = [
   "vessel.orbit",
-  "vessel.flight",
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
 ] as const;
 
 const KERBIN_MU = 3.5316e12;
@@ -58,7 +52,7 @@ const KERBIN_RADIUS = 600000;
 
 function renderCurrentOrbit(size: { w: number; h: number }) {
   const fixture = setupStreamFixture({
-    carriedChannels: [...VESSEL_STATE_INPUTS],
+    carriedChannels: [...CURRENT_ORBIT_CHANNELS],
     pinnedUt: 0,
     suspendFrames: true,
   });

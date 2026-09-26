@@ -15,31 +15,11 @@ import { TwrComponent } from "./index";
  */
 const STANDARD_GRAVITY = 9.80665;
 
-const VESSEL_STATE_INPUTS = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.propulsion",
-  "vessel.resources",
-  "vessel.structure",
-  "vessel.control",
-  "vessel.identity",
-  "vessel.crew",
-];
-
-const ORBIT = {
-  apoapsisAltitude: 80_000,
-  periapsisAltitude: 70_000,
-  eccentricity: 0.01,
-  inclination: 0,
-  semiMajorAxis: 675_000,
-  period: 1800,
-  trueAnomaly: 0,
-  referenceBodyName: "Kerbin",
-};
+const TWR_CHANNELS = ["vessel.propulsion"];
 
 function mount() {
   const fixture = setupStreamFixture({
-    carriedChannels: VESSEL_STATE_INPUTS,
+    carriedChannels: TWR_CHANNELS,
     pinnedUt: 10,
     suspendFrames: true,
   });
@@ -52,7 +32,6 @@ function mount() {
   );
   const thrust = 1.8 * STANDARD_GRAVITY;
   act(() => {
-    fixture.emit("vessel.orbit", ORBIT);
     fixture.emit("vessel.propulsion", {
       totalMass: 1,
       dryMass: 0,

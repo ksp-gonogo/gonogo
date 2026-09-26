@@ -29,19 +29,9 @@ import { ScienceDataComponent } from "./index";
  * Every one of those is a falsy-check on a read that becomes a truthy `Reading`.
  */
 
-const VESSEL_STATE_INPUTS = [
-  "vessel.orbit",
-  "vessel.flight",
+const CARRIED = [
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-] as const;
-
-const CARRIED = [
-  ...VESSEL_STATE_INPUTS,
   "vessel.surface",
   "science.experiments",
   "science.experimentBreakdown",
@@ -77,19 +67,9 @@ function feed(fixture: StreamFixture, topic: string, payload: unknown): void {
   });
 }
 
-/** vessel.state's derived inputs, minus `vessel.surface`, so body and situation resolve while the locale stays absent. */
+/** The identity and roster, and no `vessel.surface`, so body and situation resolve while the locale stays absent. */
 function feedSituation(fixture: StreamFixture): void {
   act(() => {
-    fixture.emit("vessel.orbit", {
-      sma: 682500,
-      ecc: 0,
-      inc: 0,
-      argPe: 0,
-      mu: 3.5316e12,
-      meanAnomalyAtEpoch: 0,
-      epoch: 10,
-      referenceBodyIndex: 2,
-    });
     fixture.emit("system.bodies", {
       bodies: [
         { name: "Mun", index: 2, parentIndex: 0, radius: 200_000, orbit: null },

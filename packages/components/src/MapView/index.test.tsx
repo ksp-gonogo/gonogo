@@ -38,16 +38,11 @@ import type { MapBaseLayerContext, MapOverlayContext } from "./index";
 import { MapViewComponent, VanillaSuppressionProbe } from "./index";
 import { MapViewConfigComponent } from "./MapViewConfig";
 
-// All eight vessel.state inputs: the carried gate is parent-channel-scoped.
-const VESSEL_STATE_INPUTS = [
-  "vessel.orbit",
+const MAP_VIEW_CHANNELS = [
   "vessel.flight",
+  "vessel.orbit",
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
 ] as const;
 
 interface VesselScenario {
@@ -183,7 +178,7 @@ describe("MapViewComponent", () => {
     onConfigChange?: (config: Record<string, unknown>) => void,
   ) {
     const fixture = setupStreamFixture({
-      carriedChannels: [...VESSEL_STATE_INPUTS],
+      carriedChannels: [...MAP_VIEW_CHANNELS],
       pinnedUt: 10,
       suspendFrames: true,
     });

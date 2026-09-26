@@ -14,24 +14,19 @@ import { ManeuverPlannerComponent } from "./index";
 
 /**
  * Stream test-adapter proof for ManeuverPlanner's maneuver-node id
- * round-trip: `o.maneuverNodes` (behind `useManeuverNodes`) now reads the
- * `vessel.maneuver.legacy` derived channel (reshaping the real
- * `vessel.maneuver` wire topic), and the id round-trips via the SAME raw
+ * round-trip: `o.maneuverNodes` (behind `useManeuverNodes`) reads the
+ * `vessel.maneuver` wire topic, and the id round-trips via the SAME raw
  * `vessel.maneuver` read (`resolveNodeId` in index.tsx) to feed the real
  * guid into the update/remove commands instead of a positional array
  * index. This is what "un-gapping o.updateManeuverNode/
  * o.removeManeuverNode" (map-command.ts) actually proves end-to-end: a real
  * button click, correlated across the two independently-timed reads,
  * dispatching the right id.
- *
- * `vessel.maneuver.legacy` isn't one of the two derived channels
- * `setupStreamFixture` pre-registers (`vesselStateChannel`/
- * `spaceCenterStateChannel`): register it locally via
- * `fixture.store.registerDerivedChannel(...)`.
+
  *
  * Every OTHER telemetry read this widget makes (`o.sma`/`o.eccentricity`/
  * `o.ApR`/`o.PeR`/`o.timeToAp`/`o.timeToPe`/`o.orbitalSpeed`/`o.radius` off
- * `vessel.orbit`/the derived `vessel.state`, `t.universalTime` off
+ * `vessel.orbit` or solved from its elements, `t.universalTime` off
  * `useViewUt()`) has moved to a canonical Topic read with NO legacy
  * fallback (see `index.tsx`): there is no `setupMockDataSource` leg left
  * in this file at all; `emitOrbitReady` feeds the real

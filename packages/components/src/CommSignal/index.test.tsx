@@ -8,10 +8,9 @@ import { CommSignalComponent } from "./index";
  * CommSignal runs entirely off the stream:
  *  - `comm.connected`      -> `comms.link.connected` (canonical `useTelemetry`)
  *  - `comm.signalStrength` -> `vessel.comms.signalStrength`
- *  - `comm.controlState` / `comm.controlStateName` -> the derived
- *    `vessel.state.commsControlStateOrdinal` / `commsControlStateName` fields
- *    (collapsed from `vessel.comms.controlState`'s `ControlState` enum: see
- *    `vessel-state.ts`), read via `useStream`
+ *  - `comm.controlState` / `comm.controlStateName` -> `vessel.comms.controlState`,
+ *    its `ControlState` ordinal collapsed to a level by
+ *    `collapseControlStateLevel` and named off `CONTROL_STATE_NAMES`
  *  - `comm.signalDelay`    -> `comms.delay.oneWaySeconds`
  *
  * No legacy `MockDataSource` is registered, a real
@@ -19,21 +18,7 @@ import { CommSignalComponent } from "./index";
  * `fixture.emit`.
  */
 
-// `deriveVesselState` produces NO record until `vessel.orbit` is whole (it
-// early-returns `undefined` otherwise), and the derived commsControlState
-// fields hang off that record. A minimal orbit is emitted so the record exists.
-const ORBIT = {
-  sma: 682500,
-  ecc: 0.00367,
-  inc: 0.3,
-  argPe: 12.5,
-  mu: 3.5316e12,
-  meanAnomalyAtEpoch: 0,
-  epoch: 10,
-  referenceBodyIndex: 1,
-};
-
-// `Sitrep.Contract.ControlState` ordinals (vessel-state.ts CONTROL_STATE_NAMES):
+// `Sitrep.Contract.ControlState` ordinals (`CONTROL_STATE_NAMES`):
 // 4 = Full (name "Full", collapsed level 2), 0 = None (name "None", level 0).
 const CONTROL_STATE_FULL = 4;
 const CONTROL_STATE_NONE = 0;
@@ -42,12 +27,7 @@ const renderedTrees: Array<() => void> = [];
 
 function newFixture() {
   return setupStreamFixture({
-    carriedChannels: [
-      "comms.link",
-      "vessel.comms",
-      "comms.delay",
-      "vessel.state",
-    ],
+    carriedChannels: ["comms.link", "vessel.comms", "comms.delay"],
     pinnedUt: 10,
     suspendFrames: true,
   });
@@ -83,7 +63,6 @@ describe("CommSignalComponent", () => {
         signalStrength: 0.82,
         controlState: CONTROL_STATE_FULL,
       });
-      fixture.emit("vessel.orbit", ORBIT);
     });
 
     // ceil(0.82 * 4) = 4 lit bars
@@ -104,7 +83,6 @@ describe("CommSignalComponent", () => {
         signalStrength: 0,
         controlState: CONTROL_STATE_NONE,
       });
-      fixture.emit("vessel.orbit", ORBIT);
     });
 
     await waitFor(() =>

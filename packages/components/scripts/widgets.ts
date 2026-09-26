@@ -1109,20 +1109,20 @@ const WIDGETS: WidgetRenderConfig[] = [
     // `axis` so the "3+ units → AxisWarning" auto path doesn't fire unasked.
     modes: (() => {
       const WINDOW = 600;
-      // Dual-axis line: altitude (left) + horizontal velocity (right).
+      // Dual-axis line: altitude (left) + orbital speed (right).
       const dualLine = {
         windowSec: WINDOW,
         series: [
           {
             id: "alt",
-            key: "vessel.state.altitudeAsl",
+            key: "vessel.flight.altitudeAsl",
             label: "Altitude",
             axis: "primary",
           },
           {
-            id: "hvel",
-            key: "vessel.state.horizontalSpeed",
-            label: "H. velocity",
+            id: "ospd",
+            key: "vessel.flight.orbitalSpeed",
+            label: "Orbital speed",
             axis: "secondary",
           },
         ],
@@ -1149,7 +1149,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             series: [
               {
                 id: "alt",
-                key: "vessel.state.altitudeAsl",
+                key: "vessel.flight.altitudeAsl",
                 label: "Altitude",
                 type: "line",
                 axis: "primary",
@@ -1171,7 +1171,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             series: [
               {
                 id: "vs",
-                key: "vessel.state.verticalSpeed",
+                key: "vessel.flight.verticalSpeed",
                 label: "V. speed (step)",
                 type: "step",
                 axis: "primary",
@@ -1191,7 +1191,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             series: [
               {
                 id: "alt",
-                key: "vessel.state.altitudeAsl",
+                key: "vessel.flight.altitudeAsl",
                 label: "Altitude (scatter)",
                 type: "scatter",
                 axis: "primary",
@@ -1216,7 +1216,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             series: [
               {
                 id: "alt",
-                key: "vessel.state.altitudeAsl",
+                key: "vessel.flight.altitudeAsl",
                 label: "Altitude (sparse scatter)",
                 type: "scatter",
                 axis: "primary",
@@ -1248,7 +1248,7 @@ const WIDGETS: WidgetRenderConfig[] = [
               },
               {
                 id: "altline",
-                key: "vessel.state.altitudeAsl",
+                key: "vessel.flight.altitudeAsl",
                 label: "Altitude",
                 type: "line",
                 axis: "primary",
@@ -1269,7 +1269,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             series: [
               {
                 id: "alt",
-                key: "vessel.state.altitudeAsl",
+                key: "vessel.flight.altitudeAsl",
                 label: "Altitude",
                 axis: "primary",
               },
@@ -1287,7 +1287,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             series: [
               {
                 id: "alt",
-                key: "vessel.state.altitudeAsl",
+                key: "vessel.flight.altitudeAsl",
                 label: "Altitude",
                 axis: "primary",
               },
@@ -1306,7 +1306,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             series: [
               {
                 id: "alt",
-                key: "vessel.state.altitudeAsl",
+                key: "vessel.flight.altitudeAsl",
                 label: "Altitude",
                 axis: "primary",
               },
@@ -1323,11 +1323,11 @@ const WIDGETS: WidgetRenderConfig[] = [
           config: {
             windowSec: WINDOW,
             variant: "chart",
-            xKey: "vessel.state.altitudeAsl",
+            xKey: "vessel.flight.altitudeAsl",
             series: [
               {
                 id: "vs",
-                key: "vessel.state.verticalSpeed",
+                key: "vessel.flight.verticalSpeed",
                 label: "V. speed vs altitude",
                 type: "line",
                 axis: "primary",
@@ -1347,7 +1347,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             series: [
               {
                 id: "alt",
-                key: "vessel.state.altitudeAsl",
+                key: "vessel.flight.altitudeAsl",
                 label: "Altitude",
                 axis: "primary",
               },
@@ -1384,7 +1384,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             series: [
               {
                 id: "alt",
-                key: "vessel.state.altitudeAsl",
+                key: "vessel.flight.altitudeAsl",
                 label: "Altitude (log)",
                 type: "line",
                 axis: "primary",
@@ -1415,11 +1415,10 @@ const WIDGETS: WidgetRenderConfig[] = [
     // drawings of two datasets. The third is the outage with nothing
     // recorded behind it.
     //
-    // Plots a RAW field-subtopic (`vessel.flight.altitudeTerrain`) rather
-    // than the `vessel.state.*` the other Graph scenes use: a derived topic
-    // has no stored range, so its series is replayed through
-    // `sampleDerivedRange` and the per-sample `meta` that carries the gap
-    // does not survive the replay.
+    // Plots a RAW field-subtopic (`vessel.flight.altitudeTerrain`): a raw
+    // topic keeps its stored range, and the per-sample `meta` that carries
+    // the gap rides it. A derived topic's series is replayed through
+    // `sampleDerivedRange`, where that meta does not survive.
     //
     // The X TICK LABELS in these renders are wrong and are not the scene's
     // doing: `LineChart`'s default time formatter reads its domain as unix

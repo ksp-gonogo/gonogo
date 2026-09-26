@@ -11,28 +11,20 @@ import { CurrentOrbitComponent } from "./index";
 /**
  * CurrentOrbit integration test: the widget runs entirely off the SDK stream.
  * `sma`/`eccentricity`/`inclination`/`argPe` are raw `vessel.orbit` elements;
- * `trueAnomaly`/`period`/`referenceBodyName`/`parentBodyName` plus the
- * Ap/Pe/ApR/PeR/timeToAp/timeToPe read through `useOrbitElements` and the
- * `useIsOrbiting` apsis altitudes are SDK-derived `vessel.state.*` fields.
- * `useOrbitElements`/`useIsOrbiting` still ride the `useDataValue` shim, whose
- * carried gate routes to the stream only once ALL EIGHT `vessel.state` inputs
- * are carried, hence the full input list below. No legacy `MockDataSource` is
- * registered anywhere in this file.
+ * `trueAnomaly`/`period` and the Ap/Pe/ApR/PeR/timeToAp/timeToPe figures are
+ * solved from those elements (`useOrbitSolve`), and the reference/parent body
+ * names are `vessel.orbit`/`vessel.identity` indices named against
+ * `system.bodies`. No legacy `MockDataSource` is registered anywhere in this
+ * file.
  *
- * The apsis ALTITUDES are derived (`sma·(1±ecc) − bodyRadius`), so the orbit
- * elements below are chosen to reproduce the ~85 km / ~78 km apoapsis /
- * periapsis the old hand-emitted fixture asserted: sma 681 500 m, ecc 0.005135,
- * Kerbin radius 600 000 m.
+ * The apsis ALTITUDES are solved (`sma·(1±ecc) − bodyRadius`), so the orbit
+ * elements below are chosen to reproduce a ~85 km / ~78 km apoapsis /
+ * periapsis: sma 681 500 m, ecc 0.005135, Kerbin radius 600 000 m.
  */
-const VESSEL_STATE_INPUTS = [
+const CURRENT_ORBIT_CHANNELS = [
   "vessel.orbit",
-  "vessel.flight",
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
 ];
 
 const KERBIN_MU = 3.5316e12;
@@ -43,7 +35,7 @@ describe("CurrentOrbitComponent", () => {
   beforeEach(() => {
     registerStockBodies();
     stream = setupStreamFixture({
-      carriedChannels: VESSEL_STATE_INPUTS,
+      carriedChannels: CURRENT_ORBIT_CHANNELS,
       pinnedUt: 0,
       suspendFrames: true,
     });

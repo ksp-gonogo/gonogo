@@ -17,7 +17,6 @@ import { isGroundedSituation, LandingStatusComponent } from "./index";
 const KERBIN = { index: 1, name: "Kerbin", radius: 600_000, mu: 3.5316e12 };
 
 const CARRIED = [
-  "vessel.state",
   "vessel.orbit",
   "vessel.flight",
   "vessel.identity",

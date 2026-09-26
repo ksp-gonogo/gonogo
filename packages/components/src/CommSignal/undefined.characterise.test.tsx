@@ -7,16 +7,15 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CommSignalComponent } from "./index";
 
 /**
- * What CommSignal DOES today when its telemetry reads are `undefined`, recorded
- * before `useTelemetry` becomes a `Reading`.
+ * What CommSignal does when its telemetry reads are absent.
  *
  * Four reads, each with its own undefined-meaning:
  *  - `useTelemetry("comms.link")?.connected` and
  *    `useTelemetry("vessel.comms")?.signalStrength`: `undefined` covers both
  *    "no record yet" and "record arrived without the field"
- *  - `vesselState?.commsControlStateOrdinal ?? undefined`: the derived channel
- *    means `null` = confirmed tombstone and `undefined` = not arrived, and this
- *    site deliberately flattens the two
+ *  - `collapseControlStateLevel(comms.controlState)`: a tombstoned record and a
+ *    never-arrived one both leave the level `undefined`, so this site flattens
+ *    the two
  *  - `useTelemetry("comms.delay")?.oneWaySeconds`, gated by `delay == null`,
  *    which also flattens tombstone and never-arrived
  *
@@ -26,39 +25,12 @@ import { CommSignalComponent } from "./index";
  * stops gating.
  */
 
-// `deriveVesselState` emits no record at all until `vessel.orbit` is whole, and
-// the commsControlState fields hang off that record, so a test that wants the
-// derived control-state reads to resolve (to a value, to `null`, or to
-// `undefined`) has to feed an orbit first.
-const ORBIT = {
-  sma: 682500,
-  ecc: 0.00367,
-  inc: 0.3,
-  argPe: 12.5,
-  mu: 3.5316e12,
-  meanAnomalyAtEpoch: 0,
-  epoch: 10,
-  referenceBodyIndex: 1,
-};
-
 // `Sitrep.Contract.ControlState` ordinals: 4 = Full (collapses to level 2),
 // 11 = Unknown (name resolves, level collapses to `undefined`).
 const CONTROL_STATE_FULL = 4;
 const CONTROL_STATE_UNKNOWN = 11;
 
-const CARRIED = [
-  "comms.link",
-  "vessel.comms",
-  "comms.delay",
-  "vessel.state",
-  "vessel.orbit",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.propulsion",
-  "vessel.flight",
-];
+const CARRIED = ["comms.link", "vessel.comms", "comms.delay"];
 
 const teardowns: Array<() => void> = [];
 
@@ -151,9 +123,8 @@ describe("CommSignal: what undefined means today", () => {
     const { fixture } = renderComm();
 
     act(() => {
-      fixture.emit("vessel.orbit", ORBIT);
-      // ControlState.Unknown: `commsControlStateName` resolves to "Unknown",
-      // `commsControlStateOrdinal` collapses to `undefined` (no level).
+      // ControlState.Unknown: the name resolves to "Unknown", the level
+      // collapses to `undefined`.
       fixture.emit("vessel.comms", { controlState: CONTROL_STATE_UNKNOWN });
     });
 
@@ -172,7 +143,6 @@ describe("CommSignal: what undefined means today", () => {
     // Start from a live readout, so the collapse below is observably caused by
     // the tombstone rather than by nothing ever having arrived.
     act(() => {
-      fixture.emit("vessel.orbit", ORBIT);
       fixture.emit("vessel.comms", {
         signalStrength: 0.9,
         controlState: CONTROL_STATE_FULL,
@@ -183,10 +153,9 @@ describe("CommSignal: what undefined means today", () => {
     );
 
     act(() => {
-      // A whole-topic tombstone: the subject says there is no comms record.
-      // `commsControlStateOrdinal` becomes `null`, which the widget's
-      // `?? undefined` flattens into the never-arrived case on purpose (its own
-      // comment says the semantics must match the old legacy read exactly).
+      // A whole-topic tombstone: the subject says there is no comms record, and
+      // the control level reads `undefined` exactly as it does before anything
+      // arrives.
       fixture.emit("vessel.comms", null);
     });
 
@@ -203,7 +172,6 @@ describe("CommSignal: what undefined means today", () => {
     const { fixture } = renderComm();
 
     act(() => {
-      fixture.emit("vessel.orbit", ORBIT);
       // Partial payload: the record exists, the strength field within it does
       // not. Distinct from the record being absent, and rendered differently:
       // the bars come off the control state instead of the percentage.
@@ -222,7 +190,6 @@ describe("CommSignal: what undefined means today", () => {
     const { fixture } = renderComm();
 
     act(() => {
-      fixture.emit("vessel.orbit", ORBIT);
       // `strengthValid` requires `raw > 0`, so an observed zero is discarded by
       // the same test that discards an absent field: 0 % is never rendered.
       fixture.emit("vessel.comms", {

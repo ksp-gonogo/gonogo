@@ -13,9 +13,9 @@ import { CrewStatusComponent } from "./index";
  *
  * `v.crewCount` / `v.crew` / `v.crewCapacity` all land on the single
  * `vessel.crew` wire channel (`count` / `capacity` / `crew: CrewMember[]`),
- * read here via the canonical one-arg `useTelemetry`. `v.isEVA` rides the
- * derived `vessel.state.isEVA` field (from `vessel.identity.vesselType`); it
- * is not emitted here, so the EVA badge simply stays off.
+ * read here via the canonical one-arg `useTelemetry`. `v.isEVA` rides
+ * `vessel.identity.vesselType`; it is not emitted here, so the EVA badge
+ * simply stays off.
  *
  * With no legacy source registered, the full roster + capacity render off the
  * stream alone, proving the mapped fields genuinely drive the widget's

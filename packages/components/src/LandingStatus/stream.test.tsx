@@ -23,18 +23,15 @@ import { LandingStatusComponent } from "./index";
  *
  * The rebooted widget runs a FULL-VECTOR suicide-burn solve client-side off the
  * streamed `vessel.flight` / `vessel.propulsion` / `vessel.orbit` channels plus
- * the static stock-body radius (`getBody`), with NO derived `vessel.state.
- * landing*` fields involved. This file proves the whole chain, subscription,
- * carried-channel promotion, derived `vessel.state` body resolution, and the
- * DOM render, works end to end on a real Mun descent, with the horizontal
- * component (the correctness fix) surfaced.
+ * the body's radius. This file proves the whole chain, subscription,
+ * carried-channel promotion, body resolution off `vessel.identity` and
+ * `system.bodies`, and the DOM render, works end to end on a real Mun descent,
+ * with the horizontal component surfaced.
  *
- * `carriedChannels` mirrors `index.test.tsx`'s superset: the carried gate is
- * parent-channel-scoped, and `vessel.orbit` is emitted `{ quality:
- * Quality.Loaded }` so the MEASURED basis is live.
+ * `carriedChannels` mirrors `index.test.tsx`'s superset, and `vessel.orbit` is
+ * emitted `{ quality: Quality.Loaded }`, a craft under physics.
  */
 const CARRIED = [
-  "vessel.state",
   "vessel.orbit",
   "vessel.flight",
   "vessel.identity",
@@ -156,7 +153,7 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
     });
   }
 
-  it("renders the Mun descent board off the derived vessel.state + streamed flight/propulsion", async () => {
+  it("renders the Mun descent board off the streamed identity, flight and propulsion", async () => {
     const { container } = renderWidget();
 
     // Nothing arrived yet: the empty state shows.
@@ -181,7 +178,7 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
     // no terrain patch, so the cross-section has no ground to slice and
     // contributes nothing rather than an empty box with the numbers on it.
     expect(container.textContent).toMatch(/538/);
-    // The subtitle resolves the body off the derived vessel.state channel.
+    // The subtitle names the body off vessel.identity.
     expect(screen.getByText(/mun · vacuum/i)).toBeInTheDocument();
     // Empty state is gone once the descent is streaming.
     expect(container.textContent).not.toContain("No landing in progress");

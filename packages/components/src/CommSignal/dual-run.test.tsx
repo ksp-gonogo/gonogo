@@ -7,35 +7,15 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CommSignalComponent } from "./index";
 
 /**
- * CommSignal's fork↔stream parity behavior test. This was originally a
- * dual-run back when `comm.controlState`/`comm.controlStateName`/
- * `comm.signalDelay` were GAPPED, the stream leg had to feed those three
- * through a legacy `"data"` `MockDataSource` because nothing streamed them.
- * All three are now mapped onto clean homes (control state →
- * the SDK-derived `vessel.state.commsControlState*` display maps off
- * `vessel.comms.controlState`; delay → `comms.delay.oneWaySeconds`), so the
- * legacy MockDataSource leg is dropped: every field now feeds off the real
- * stream pipeline (`TelemetryProvider` + `StubTransport`), and this test
- * proves the full readout: strength headline, bars, control label, and the
- * formatted delay: all resolve off the stream for the same signal state the
+ * CommSignal's full readout off the real stream pipeline
+ * (`TelemetryProvider` + `StubTransport`), with no legacy `DataSource`: the
+ * strength headline, bars, control label (`vessel.comms.controlState`
+ * collapsed to a level and named) and the formatted delay
+ * (`comms.delay.oneWaySeconds`) all resolve for the same signal state the
  * `strong-direct-ksc` fixture depicts.
  */
-// Every input `vesselStateChannel` declares (vessel-state.ts): all must be in
-// the allowlist for the derived `vessel.state.commsControlState*` fields to be
-// treated as carried; `comms.delay` backs `comm.signalDelay`, and `comms.link`
-// carries the connectivity verdict the caption asserts a signal on.
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-  "comms.delay",
-  "comms.link",
-];
+// `comms.link` carries the connectivity verdict the caption asserts a signal on.
+const CARRIED = ["vessel.comms", "comms.delay", "comms.link"];
 
 describe("CommSignal: full readout off the stream (R6 Wave 1)", () => {
   it("resolves strength, bars, control label, and delay off the stream for a strong direct link", async () => {
@@ -54,19 +34,6 @@ describe("CommSignal: full readout off the stream (R6 Wave 1)", () => {
     );
 
     act(() => {
-      // The derived `vessel.state.commsControlState*` fields (control label +
-      // level) require `vessel.orbit` present, `deriveVesselState` returns the
-      // whole record only once the vessel has an orbit (vessel-state.ts).
-      fixture.emit("vessel.orbit", {
-        sma: 680000,
-        ecc: 0.0,
-        inc: 0.0,
-        argPe: 0.0,
-        mu: 3.5316e12,
-        meanAnomalyAtEpoch: 0,
-        epoch: 10,
-        referenceBodyIndex: 1,
-      });
       // `controlState` on the wire is the rich `ControlState` enum ordinal
       // (Full = 4); the SDK collapses it to the widget's level (2) and resolves
       // the "Full" name string.

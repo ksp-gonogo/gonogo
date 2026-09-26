@@ -14,8 +14,7 @@ import {
 import { NavballComponent } from "./index";
 
 /**
- * What Navball DOES today when its telemetry reads are `undefined`, recorded
- * before `useTelemetry` becomes a `Reading`.
+ * What Navball does when its telemetry reads are absent.
  *
  * `vessel.attitude` already reads as a `Reading` (see `reading.test.tsx`), so it
  * is out of scope here. What is left is every OTHER read in the widget, and each
@@ -32,8 +31,8 @@ import { NavballComponent } from "./index";
  *    guessed. It is also the highest-risk site in the file, because after the
  *    migration a `Reading` is always an object and `typeof` never says "boolean",
  *    so a naive port either always refuses or always guesses
- *  - `vesselState?.isControllable !== false` FAILS OPEN: unknown is treated as
- *    controllable, so the control surface is fully live with nothing on the wire
+ *  - `controlLevel === undefined || controlLevel > 0` FAILS OPEN: unknown is
+ *    treated as controllable, so the control surface is fully live with nothing on the wire
  *  - `delaySeconds !== null` gates the fly-by-wire delay warning, so an unread
  *    `comms.delay` arms FBW with no caveat at all
  *  - `activeVesselId` being `undefined` participates in the vessel-switch
@@ -44,9 +43,7 @@ const CARRIED = [
   "vessel.attitude",
   "vessel.control",
   "vessel.identity",
-  "vessel.state",
   "vessel.comms",
-  "vessel.orbit",
   "comms.delay",
 ];
 
@@ -57,19 +54,6 @@ const ATTITUDE = {
   headingRootFrame: 90,
   pitchRootFrame: 45,
   rollRootFrame: 0,
-};
-
-/** Kerbin-ish low orbit: only here to make `vessel.state` produce a record at all. */
-const ORBIT = {
-  referenceBodyIndex: 1,
-  sma: 700_000,
-  ecc: 0,
-  inc: 0,
-  lan: 0,
-  argPe: 0,
-  meanAnomalyAtEpoch: 0,
-  epoch: 0,
-  mu: 3.5316e12,
 };
 
 /** `Sitrep.Contract.ControlState.None`: collapses to level 0, i.e. NOT controllable. */
@@ -195,9 +179,9 @@ describe("Navball control surface: what undefined means today", () => {
   it("leaves the whole control surface live and unbannered when nothing has arrived", () => {
     mount("nb-undef-controls", { w: 10, h: 20, controlMode: true });
 
-    // `isControllable = vesselState?.isControllable !== false` fails OPEN: with
-    // no `vessel.comms` (so no derived `vessel.state` record at all) the widget
-    // asserts the vessel IS controllable and enables every control.
+    // `isControllable` fails OPEN: with no `vessel.comms` there is no control
+    // level, and the widget asserts the vessel IS controllable and enables
+    // every control.
     expect(
       screen.queryByText("Vessel not controllable: buttons disabled."),
     ).toBeNull();
@@ -233,7 +217,6 @@ describe("Navball control surface: what undefined means today", () => {
     });
 
     act(() => {
-      fixture.emit("vessel.orbit", ORBIT);
       fixture.emit("vessel.comms", { controlState: CONTROL_STATE_NONE });
     });
 

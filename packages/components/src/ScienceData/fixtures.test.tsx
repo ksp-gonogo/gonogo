@@ -167,7 +167,7 @@ describe.each(NAMES)("ScienceData probe fixture: %s", (name) => {
 
 describe("ScienceData probe fixtures, read against the widget", () => {
   it("shows the flight fixture's situation line from its identity emit", async () => {
-    // Proves vessel.state actually derives from what the fixture emits, rather
+    // Proves the situation line resolves from what the fixture emits, rather
     // than the widget falling back to its awaiting-telemetry placeholder.
     mount(load("kerbin-flight-partial-science"));
     await waitFor(() =>

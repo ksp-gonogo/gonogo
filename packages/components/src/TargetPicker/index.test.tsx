@@ -420,13 +420,10 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     const user = userEvent.setup();
     renderPicker(fixture);
     act(() => {
-      // producer-consumer-T4: tarType/tarDistance/tarRelVel now derive
-      // NATIVELY off `vessel.target` alone (kind/relativePosition/
-      // relativeVelocity): no `vessel.state` emission (no
-      // `vessel.orbit`/`vessel.flight` inputs) needed to unblock them, unlike
-      // before the fix. kind: 0 -> targetKind "Vessel". relativePosition
-      // magnitude 1500 -> targetDistance; dot(relPos, relVel)/|relPos| ==
-      // -2.5 -> closing.
+      // producer-consumer-T4: tarType/tarDistance/tarRelVel read off
+      // `vessel.target` alone (kind/relativePosition/relativeVelocity).
+      // kind: 0 -> "Vessel". relativePosition magnitude 1500 -> the distance;
+      // dot(relPos, relVel)/|relPos| == -2.5 -> closing.
       fixture.emit("vessel.target", {
         name: "Test Station",
         kind: 0,
@@ -455,13 +452,12 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     });
   });
 
-  it("producer-consumer-T4: current-target kind/distance/Δv render off vessel.target's kind/Part TargetKind, with no vessel.state emission at all", async () => {
+  it("producer-consumer-T4: current-target kind/distance/Δv render off vessel.target's kind/Part TargetKind, with no other channel emitted", async () => {
     renderPicker(fixture);
     act(() => {
       // kind: 4 -> Part (a docking port) -> targetKindLabel "Docking Port".
-      // No `vessel.orbit`/`vessel.flight`/any `vessel.state` input is emitted
-      // anywhere in this test: proves the derived `vessel.state` channel is
-      // no longer a dependency of the current-target detail readout.
+      // No `vessel.orbit`/`vessel.flight` is emitted anywhere in this test:
+      // the current-target detail readout depends on `vessel.target` alone.
       fixture.emit("vessel.target", {
         name: "Port Alpha",
         kind: 4,

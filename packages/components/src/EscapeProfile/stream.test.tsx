@@ -8,40 +8,29 @@ import { EscapeProfileComponent } from "./index";
 /**
  * EscapeProfile's stream proof.
  *
- * Its one direct read, `v.body`, migrated onto the derived
- * `vessel.state.parentBodyName` display map (`vessel.identity.parentBodyIndex`
- * resolved against `system.bodies`). This test runs the widget OFF THE STREAM,
- * a real `TelemetryProvider`/`TimelineStore` pipeline, NO legacy `"data"`
- * source, and proves the streamed body name actually reaches the widget:
- * emitting `vessel.identity` + `system.bodies` for a body with no gravitational
+ * `v.body` is `vessel.identity.parentBodyIndex` resolved against
+ * `system.bodies`. This test runs the widget OFF THE STREAM, a real
+ * `TelemetryProvider`/`TimelineStore` pipeline, NO legacy `"data"` source, and
+ * proves the streamed body name actually reaches the widget: emitting
+ * `vessel.identity` + `system.bodies` for a body with no gravitational
  * parameter surfaces the widget's "No reference data" Notice with that exact
  * name. If the read had silently fallen back to a (nonexistent) legacy source,
  * the body would stay `undefined` and no Notice would render.
  *
- * The plot's trace (`v.altitude`/`v.orbitalVelocity` via `GraphView`) can't
- * stream: both map to DERIVED `vessel.state.*` field-subtopics that
- * `TimelineStore.isDerivedTopic` gates out of `sampleRange`: and `GraphView`'s
- * SVG renders nothing under jsdom regardless, so this asserts on the title +
- * body-driven Notice only.
+ * The plot's trace (`vessel.flight.altitudeAsl`/`orbitalSpeed` via
+ * `GraphView`) is not emitted here, so this asserts on the title + body-driven
+ * Notice only.
  */
-// vessel.state's carried-channels gate is parent-channel-scoped: every
-// vessel.state.* field needs ALL of vesselStateChannel.inputs carried, not just
-// the two parentBodyName consults.
-const VESSEL_STATE_INPUTS = [
-  "vessel.orbit",
+const ESCAPE_PROFILE_CHANNELS = [
   "vessel.flight",
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
 ] as const;
 
 describe("EscapeProfile: reads v.body off the stream (R6)", () => {
   it("surfaces the streamed body name in the no-reference-data notice, with no legacy source", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: VESSEL_STATE_INPUTS,
+      carriedChannels: ESCAPE_PROFILE_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -57,21 +46,7 @@ describe("EscapeProfile: reads v.body off the stream (R6)", () => {
     // The roster reports a radius for "Proxima" and no gravitational parameter,
     // so a resolved streamed name drives the widget's no-reference-data Notice:
     // an observable proof the value streamed.
-    // vessel.orbit gates the whole derived vessel.state record (deriveVesselState),
-    // so it must be present for parentBodyName to resolve at all.
     act(() => {
-      fixture.emit("vessel.orbit", {
-        referenceBodyIndex: 3,
-        sma: 700_000,
-        ecc: 0,
-        inc: 0,
-        lan: 0,
-        argPe: 0,
-        mu: 3.5316e12,
-        meanAnomalyAtEpoch: 0,
-        epoch: 10,
-        encounter: null,
-      });
       fixture.emit("system.bodies", {
         bodies: [
           {

@@ -1,6 +1,10 @@
+import { useOrbitSolve } from "@ksp-gonogo/core";
+import type { OrbitalSolve } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
+import { renderOrbitStream } from "../test/orbitScenario";
+import { OrbitViewComponent } from "./index";
 import { emitScenario, renderOrbitViewStream } from "./streamHarness";
 
 /**
@@ -11,13 +15,13 @@ import { emitScenario, renderOrbitViewStream } from "./streamHarness";
  *   design on a hyperbolic orbit (`ecc >= 1`, no apoapsis exists), the gate
  *   must still show the diagram/pill for a fully-known escape orbit, keyed
  *   off periapsis (always real whenever there's an orbit) instead.
- * - **O3**: the apsis radii must come off `vessel.state` (which is correctly
+ * - **O3**: the apsis radii must come off the orbit solve (which is correctly
  *   `null` for a hyperbolic apoapsis), not a client-side `sma·(1+ecc)`
  *   computation (finite but GARBAGE-negative for a hyperbolic orbit, since
  *   sma<0 there), that garbage must never reach `overlayContext.scale` or
  *   any augment slot prop.
- * - **O4**: while the craft is under physics (Loaded/packed), the derived orbital
- *   elements are null-by-design even though raw `vessel.orbit.sma`/`ecc`
+ * - **O4**: while the craft is under physics (Loaded/packed), the conic
+ *   declines to advance the elements even though raw `vessel.orbit.sma`/`ecc`
  *   are present. The widget must not draw a diagram from those osculating
  *   elements, and must show a distinct "packed" empty state rather than the
  *   generic "No orbital data" (which implies no orbit at all, not true here).
@@ -55,8 +59,16 @@ describe("OrbitView: O2: hyperbolic orbit still counts as hasOrbit", () => {
 
 describe("OrbitView: O3: no finite-negative apoapsis leaks into the overlay scale", () => {
   it("keeps overlayContext.scale periapsis-driven (never a negative apoapsis) on a hyperbolic orbit", async () => {
-    const { container, fixture } = renderOrbitViewStream(
-      { w: 9, h: 18 },
+    let solved: OrbitalSolve | null = null;
+    function SolveProbe() {
+      solved = useOrbitSolve();
+      return null;
+    }
+    const { container } = renderOrbitStream(
+      <>
+        <OrbitViewComponent id="orbitview-o3" w={9} h={18} />
+        <SolveProbe />
+      </>,
       {
         bodyName: "Kerbin",
         sma: -500_000,
@@ -64,6 +76,7 @@ describe("OrbitView: O3: no finite-negative apoapsis leaks into the overlay scal
         argPe: 0,
         quality: Quality.OnRails,
       },
+      "orbitview-o3",
     );
 
     await waitFor(() => {
@@ -72,22 +85,15 @@ describe("OrbitView: O3: no finite-negative apoapsis leaks into the overlay scal
       }
     });
 
-    // White-box: `vessel.state.apoapsisRadius`: the value the widget now
-    // reads for its apsis radii, must be null on this hyperbolic orbit, not
-    // the old client-side `sma·(1+ecc)` finite-negative garbage
-    // (-500000 * 2.4 = -1200000).
-    const apoapsisPoint = fixture.store.sample<number | null>(
-      "vessel.state.apoapsisRadius",
-      fixture.store.currentFrame(),
-    );
-    expect(apoapsisPoint?.payload).toBeNull();
-
-    const periapsisPoint = fixture.store.sample<number | null>(
-      "vessel.state.periapsisRadius",
-      fixture.store.currentFrame(),
-    );
+    // White-box: the solve the widget reads its apsis radii from, in the same
+    // provider. The apoapsis must be null on this hyperbolic orbit, never a
+    // client-side `sma·(1+ecc)` finite-negative figure (-500000 * 2.4 =
+    // -1200000).
+    const solve = solved as OrbitalSolve | null;
+    expect(solve).not.toBeNull();
+    expect(solve?.apoapsisRadius).toBeNull();
     // Periapsis stays real: sma·(1-ecc) = -500000 * (1 - 1.4) = 200000.
-    expect(periapsisPoint?.payload).toBeCloseTo(200_000);
+    expect(solve?.periapsisRadius).toBeCloseTo(200_000);
   });
 });
 

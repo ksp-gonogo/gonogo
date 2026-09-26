@@ -30,32 +30,15 @@ import { CurrentOrbitComponent } from "./index";
  * nothing to draw: an empty roster satisfies the input and still resolves no
  * radius, which is the state this test is about.
  *
- * `o.referenceBody`/`v.body` resolve to their `vessel.state` index→name
- * derivations only once a body matching the orbit's own reference index is in
- * that roster; there is none here, so they render nothing (no subtitle),
- * exactly the graceful-degradation this test asserts.
- *
- * `carriedChannels` lists all EIGHT of `vessel.state`'s declared inputs
- * (`vessel.orbit`/`vessel.flight`/`vessel.identity`/`system.bodies` plus the
- * enum-display-map sources `vessel.control`/`vessel.target`/`vessel.comms` and
- * the TWR source `vessel.propulsion`) even though most of the fields this
- * widget reads only actually consult
- * `vessel.orbit`: the carried-channels gate is parent-channel-scoped, not
- * per-field (see `vessel-state.ts`'s `vesselStateChannel` doc comment).
+ * `o.referenceBody`/`v.body` resolve their indices to names only once a body
+ * matching the orbit's own reference index is in that roster; there is none
+ * here, so they render nothing (no subtitle), exactly the graceful-degradation
+ * this test asserts.
  */
 describe("CurrentOrbit: genuinely runs off the stream (M3 batch 2)", () => {
   it("reads sma/eccentricity/inclination/argPe/period off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        "vessel.orbit",
-        "vessel.flight",
-        "vessel.identity",
-        "system.bodies",
-        "vessel.control",
-        "vessel.target",
-        "vessel.comms",
-        "vessel.propulsion",
-      ],
+      carriedChannels: ["vessel.orbit", "vessel.identity", "system.bodies"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -102,14 +85,12 @@ describe("CurrentOrbit: genuinely runs off the stream (M3 batch 2)", () => {
     await waitFor(() => expect(visibleText()).toContain("0.3°"));
     // Eccentricity (toFixed(4)) also renders off the mapped stream value.
     expect(visibleText()).toContain("0.0037");
-    // Period (T row, formatDuration) renders off the newly-mapped
-    // vessel.state.period: 2π·sqrt(sma³/mu), floored to whole seconds.
-    // (Hand-checked: 2π·sqrt(682500³ / 3.5316e12) ≈ 1885.16s -> "31min 25s";
-    // the formula itself has its own dedicated unit coverage in
-    // vessel-state.test.ts.)
+    // Period (T row, formatDuration) renders off the solve's period:
+    // 2π·sqrt(sma³/mu), floored to whole seconds.
+    // (Hand-checked: 2π·sqrt(682500³ / 3.5316e12) ≈ 1885.16s -> "31min 25s".)
     await waitFor(() => expect(visibleText()).toContain("31min 25s"));
-    // timeToAp/timeToPe (t-Ap/t-Pe rows) also render off the newly-mapped
-    // vessel.state.timeToAp/timeToPe: meanAnomalyAtEpoch: 0, epoch: 10 ==
+    // timeToAp/timeToPe (t-Ap/t-Pe rows) also render off the solve:
+    // meanAnomalyAtEpoch: 0, epoch: 10 ==
     // pinnedUt means meanAnomaly is exactly 0 (periapsis) at this frame, so
     // timeToPe is 0 and timeToAp is exactly half the period.
     expect(visibleText()).toContain("0s");

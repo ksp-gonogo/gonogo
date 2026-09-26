@@ -19,22 +19,11 @@ import {
   parseExperiments,
 } from "./parsers";
 
-// vessel.state's declared derived inputs: body/situation route off the
-// derived vessel.state channel (parentBodyName from vessel.identity +
-// system.bodies; situationName from vessel.identity.situation).
-const VESSEL_STATE_INPUTS = [
-  "vessel.orbit",
-  "vessel.flight",
+// Body and situation come off vessel.identity (the parent body index named
+// against system.bodies, and the situation ordinal).
+const CARRIED = [
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-] as const;
-
-const CARRIED = [
-  ...VESSEL_STATE_INPUTS,
   "vessel.surface",
   "science.experiments",
   "science.experimentBreakdown",
@@ -65,21 +54,11 @@ function renderData(fixture: StreamFixture, w = 8, h = 10) {
   return result;
 }
 
-/** Emits vessel.state's inputs so parentBodyName/situationName resolve. */
+/** Emits the identity and roster the body and situation are named from. */
 function emitSituation(
   fixture: StreamFixture,
   { situation, landedAt }: { situation: number; landedAt: string },
 ) {
-  fixture.emit("vessel.orbit", {
-    sma: 682500,
-    ecc: 0,
-    inc: 0,
-    argPe: 0,
-    mu: 3.5316e12,
-    meanAnomalyAtEpoch: 0,
-    epoch: 10,
-    referenceBodyIndex: 2,
-  });
   fixture.emit("system.bodies", {
     bodies: [
       { name: "Mun", index: 2, parentIndex: 0, radius: 200_000, orbit: null },

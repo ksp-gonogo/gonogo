@@ -17,22 +17,11 @@ import { type StreamFixture, setupStreamFixture } from "./setupStreamFixture";
  * does not.
  */
 
-/**
- * All eight `vessel.state` inputs. A widget's own reads
- * (`useTelemetry`/`useStreamOptional`) don't consult the carried-channels
- * allowlist, but the body-name reads that still ride `vessel.state` go through
- * a carried gate that is parent-channel-scoped: it only routes to the stream
- * once ALL EIGHT of that channel's inputs are carried.
- */
-export const VESSEL_STATE_INPUTS = [
+/** The channels a scenario emits, carried by every orbit-stream fixture. */
+export const ORBIT_SCENARIO_CHANNELS = [
   "vessel.orbit",
-  "vessel.flight",
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
 ] as const;
 
 /** Kerbin's standard gravitational parameter, for finite propagation. */
@@ -72,13 +61,6 @@ export interface OrbitScenario {
    * explicitly to render a sample from a provider that integrates.
    */
   horizon?: PropagationHorizonLike;
-  /** Also emit `vessel.flight`: needed for a "measured" (Loaded) basis scenario, whose `deriveVesselState` branch reads it. Ignored under OnRails. */
-  flight?: {
-    altitudeAsl?: number;
-    verticalSpeed?: number;
-    surfaceSpeed?: number;
-    orbitalSpeed?: number;
-  };
 }
 
 registerStockBodies();
@@ -103,24 +85,6 @@ export function emitScenario(fixture: StreamFixture, s: OrbitScenario): void {
       },
       { quality: s.quality ?? Quality.OnRails },
     );
-    if (s.quality === Quality.Loaded) {
-      // The "measured" basis branch of `deriveVesselState` needs a whole
-      // `vessel.flight` point to resolve at all (undefined otherwise); see
-      // that function's Loaded branch.
-      fixture.emit("vessel.flight", {
-        latitude: 0,
-        longitude: 0,
-        altitudeAsl: s.flight?.altitudeAsl ?? 70000,
-        altitudeTerrain: s.flight?.altitudeAsl ?? 70000,
-        verticalSpeed: s.flight?.verticalSpeed ?? 0,
-        surfaceSpeed: s.flight?.surfaceSpeed ?? 2200,
-        orbitalSpeed: s.flight?.orbitalSpeed ?? 2200,
-        gForce: 0,
-        dynamicPressureKPa: 0,
-        mach: 0,
-        atmDensity: 0,
-      });
-    }
     if (s.bodyName !== undefined) {
       fixture.emit("vessel.identity", {
         vesselId: "v1",
@@ -162,7 +126,7 @@ export interface RenderStreamResult {
 }
 
 /**
- * Mount `node` under a stream fixture that carries every `vessel.state` input,
+ * Mount `node` under a stream fixture that carries every channel a scenario emits,
  * inside a `DashboardItemContext` so per-instance config and augment slots
  * resolve, then (optionally) emit a scenario. Pins the view clock at UT 0 for
  * deterministic propagation.
@@ -173,7 +137,7 @@ export function renderOrbitStream(
   instanceId = "orbit-stream",
 ): RenderStreamResult {
   const fixture = setupStreamFixture({
-    carriedChannels: [...VESSEL_STATE_INPUTS],
+    carriedChannels: [...ORBIT_SCENARIO_CHANNELS],
     pinnedUt: 0,
     suspendFrames: true,
   });

@@ -28,7 +28,7 @@ const renderedTrees: Array<() => void> = [];
 
 function newFixture() {
   return setupStreamFixture({
-    carriedChannels: ["career.status", "vessel.state"],
+    carriedChannels: ["career.status", "vessel.flight"],
     pinnedUt: 0,
     suspendFrames: true,
   });

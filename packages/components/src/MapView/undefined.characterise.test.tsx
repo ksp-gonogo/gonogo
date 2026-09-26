@@ -24,27 +24,20 @@ import type { MapOverlayContext } from "./index";
 import { MapViewComponent } from "./index";
 
 /**
- * What `undefined` MEANS at each of MapView's telemetry reads, as the widget
- * implements it TODAY, ahead of `useTelemetry` returning a `Reading`.
+ * What absence MEANS at each of MapView's telemetry reads.
  *
- * MapView reads two things: `useTelemetry("vessel.flight")` for the raw
- * surface-frame lat/lon, and `useStream<VesselState>("vessel.state")` for the
- * quality-picked altitude and the body name. Every consumer of those two
- * reads spells absence as `=== undefined`, `?.` or `?? 0`, so this file pins
- * which of the four incompatible meanings each site actually gives it.
+ * MapView reads `vessel.flight` for the surface-frame position and altitude,
+ * and names the body off `vessel.identity` and `system.bodies`. Every consumer
+ * of those reads spells absence as `=== undefined`, `?.` or `?? 0`, so this
+ * file pins which of the four incompatible meanings each site actually gives
+ * it.
  */
 
-// All eight vessel.state inputs, same list the widget's own test carries: the
-// derived channel's carried gate is parent-channel-scoped.
-const VESSEL_STATE_INPUTS = [
-  "vessel.orbit",
+const MAP_VIEW_CHANNELS = [
   "vessel.flight",
+  "vessel.orbit",
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
 ] as const;
 
 describe("MapView: what undefined telemetry means today", () => {
@@ -87,7 +80,7 @@ describe("MapView: what undefined telemetry means today", () => {
     size?: { w: number; h: number },
   ) {
     const fixture = setupStreamFixture({
-      carriedChannels: [...VESSEL_STATE_INPUTS],
+      carriedChannels: [...MAP_VIEW_CHANNELS],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -318,18 +311,11 @@ describe("MapView: what undefined telemetry means today", () => {
     await flushFrames();
 
     expect(screen.getByText("Kerbin")).toBeInTheDocument();
-    // This case read IMAGING until 2026-08-25, and it was the most legible
-    // symptom of a real defect rather than a quirk of this widget. The
-    // derivation mapped an absent wire field to NaN, `altSea ?? undefined`
-    // kept NaN (`??` catches null and undefined, not NaN), `altSea ===
-    // undefined` was false, and both `NaN < min` and `NaN > max` are false.
-    // So the one gate written for "no altitude" was bypassed and the widget
-    // stated positively that the craft was inside the imaging window, off a
+    // An unreported `altitudeAsl` reads as absent rather than as a number, so
+    // the "no altitude" gate fires and the widget says it does not know. Were it
+    // NaN, both `NaN < min` and `NaN > max` would be false and the widget would
+    // state positively that the craft was inside the imaging window, off a
     // reading nobody had sent.
-    //
-    // `vessel.state` now answers null for an unreported field, which is what
-    // that field has always declared, so the gate fires and the widget says it
-    // does not know.
     expect(screen.getByText("NO DATA")).toBeInTheDocument();
     expect(screen.queryByText("IMAGING")).toBeNull();
   });

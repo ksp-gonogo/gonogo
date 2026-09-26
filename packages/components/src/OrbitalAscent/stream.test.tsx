@@ -12,46 +12,20 @@ import { OrbitalAscentComponent } from "./index";
  * registered anywhere in this file, so a value only reaches the widget if it
  * actually streamed.
  *
- * `v.body` is mapped to the DERIVED
- * `vessel.state.parentBodyName` field: the index→name display map
- * `deriveVesselState` resolves from `vessel.identity.parentBodyIndex` against
- * `system.bodies` (`vessel-state.ts`). Emitting `vessel.orbit` (which gates the
- * whole `vessel.state` record; default `StubTransport` meta quality is
- * `OnRails`, so the propagated branch runs) plus `vessel.identity` +
- * `system.bodies` makes the derived body name resolve. Streaming a body no
- * bundled table carries is what proves the value came off the stream: the
- * widget renders its "No reference data" notice, which it could not do from a
- * legacy fallback that isn't wired here.
+ * `v.body` is `vessel.identity.parentBodyIndex` named against
+ * `system.bodies`. Streaming a body no bundled table carries is what proves the
+ * value came off the stream: the widget renders its "No reference data"
+ * notice, which it could not do from a legacy fallback that isn't wired here.
  *
- * `carriedChannels` lists all EIGHT of `vessel.state`'s declared inputs, the
- * carried-channels gate is parent-channel-scoped, not per-field (see
- * `vessel-state.ts`'s `vesselStateChannel` doc comment), so even a field that
- * only consults `vessel.identity`/`system.bodies` needs the whole set carried
- * to route.
- *
- * The two plotted series (`v.altitude`/`v.horizontalVelocity`) are NOT
- * asserted here: both map to DERIVED `vessel.state.*` channels, and
- * `useDataSeries` CAN now serve a derived channel's windowed history off the
- * stream via `TimelineStore.sampleDerivedRange` (a replay of `derive()` off
- * the raw inputs' own buffered ranges: `sampleRange` itself still returns
- * `undefined` for a derived topic by design, unchanged). This file just never
- * emits `vessel.flight`, so both series resolve empty/null here regardless,
- * not exercised, not because the stream structurally can't serve them. The
- * widget still renders its chrome, which the assertions below confirm.
+ * The two plotted series (`vessel.flight.altitudeAsl` and the horizontal speed
+ * computed off `vessel.flight`) are NOT asserted here: this file never emits
+ * `vessel.flight`, so both resolve empty. The widget still renders its chrome,
+ * which the assertions below confirm.
  */
 describe("OrbitalAscent: v.body genuinely runs off the stream (R6)", () => {
   it("resolves the streamed parent-body name off the real pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        "vessel.orbit",
-        "vessel.flight",
-        "vessel.identity",
-        "system.bodies",
-        "vessel.control",
-        "vessel.target",
-        "vessel.comms",
-        "vessel.propulsion",
-      ],
+      carriedChannels: ["vessel.flight", "vessel.identity", "system.bodies"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -73,16 +47,6 @@ describe("OrbitalAscent: v.body genuinely runs off the stream (R6)", () => {
     expect(fixture.transport.isSubscribed("system.bodies")).toBe(true);
 
     act(() => {
-      fixture.emit("vessel.orbit", {
-        referenceBodyIndex: 1,
-        sma: 682500,
-        ecc: 0.00367,
-        inc: 0.3,
-        argPe: 12.5,
-        mu: 3.5316e12,
-        meanAnomalyAtEpoch: 0,
-        epoch: 10,
-      });
       fixture.emit("system.bodies", {
         bodies: [
           {
@@ -98,11 +62,10 @@ describe("OrbitalAscent: v.body genuinely runs off the stream (R6)", () => {
     });
 
     /*
-     * The derived vessel.state.parentBodyName streams through as "Gargantua".
+     * The parent body name streams through as "Gargantua".
      * The roster reports a radius for it and no gravitational parameter, so
      * the body resolves and its reference curve does not: the "No reference
-     * data" notice. It used to read "Unknown body", which was the widget
-     * saying it had never heard of a body the stream had just described.
+     * data" notice.
      */
     await waitFor(() => {
       if (!visibleText(container).includes("No reference data")) {

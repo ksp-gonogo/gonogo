@@ -61,11 +61,6 @@ const utFixture = setupStreamFixture({
    */
   suspendFrames: true,
 });
-// `o.maneuverNodes` (behind `useManeuverNodes`) now reads the
-// `vessel.maneuver.legacy` derived channel, reshaping the real
-// `vessel.maneuver` wire topic: not one of the two derived channels
-// `setupStreamFixture` pre-registers (`vesselStateChannel`/
-// `spaceCenterStateChannel`), so register it here.
 
 /**
  * Reconstructs the legacy `o.addManeuverNode[...]` action string from a

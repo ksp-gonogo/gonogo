@@ -43,9 +43,9 @@ async function mount(instanceId: string, pinnedUt = 10) {
     pinnedUt,
     suspendFrames: true,
   });
-  // `tar.type` maps to the derived `vessel.state.targetKind`, which is not
-  // carried here, so the aux source supplies it exactly as `stream.test.tsx`
-  // does. Nothing about the reading path routes through it.
+  // The aux source carries the flat `tar.name`/`tar.type` keys exactly as
+  // `stream.test.tsx` does. The widget reads the target's name and kind off
+  // `vessel.target`, so nothing about the reading path routes through it.
   const legacyAux = await setupMockDataSource({
     id: "data",
     keys: [{ key: "tar.name" }, { key: "tar.type" }],

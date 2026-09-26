@@ -11,8 +11,8 @@ import { type OrbitScenario, renderOrbitViewStream } from "./streamHarness";
  * `renderOrbitViewStream`: the shared legacy `MockDataSource`
  * `snapshotWidgetMode` harness no longer feeds a stream-only widget. Scenarios
  * mirror the retired legacy fixtures as `vessel.orbit` element sets (the
- * apsis radii / true anomaly / body name are derived off the stream, not
- * hand-authored). The view clock is pinned at UT 0 for deterministic
+ * apsis radii / true anomaly are solved from them and the body name resolved
+ * off the stream, not hand-authored). The view clock is pinned at UT 0 for deterministic
  * propagation. Stream reads settle one frame after the emit, so each snapshot
  * waits for the widget to leave its empty state before capturing markup.
  */
@@ -28,14 +28,6 @@ const SCENARIOS: Record<string, OrbitScenario | null> = {
     // axis, where an eccentric orbit is actually observed from.
     meanAnomalyAtEpoch: 0.7208,
   },
-  // NOTE: a hyperbolic escape trajectory (ecc≥1) is deliberately NOT covered
-  // here. The shared `useIsOrbiting` hook reads `o.PeA`/`o.ApA`
-  // (→ `vessel.state.periapsisAlt`/`apoapsisAlt`) through the still-unguarded
-  // `useDataValue` shim, and `deriveVesselState`'s OnRails branch throws on
-  // the elliptical-only Kepler solver for ecc≥1: crashing any widget that
-  // reads a `vessel.state` field for a hyperbolic vessel. That's a SharedLib
-  // gap (deriveVesselState should null-out rather than throw) that still
-  // needs closing; OrbitView's OWN derived read is already guarded.
   "sub-orbital-kerbin": {
     bodyName: "Kerbin",
     sma: 820000,

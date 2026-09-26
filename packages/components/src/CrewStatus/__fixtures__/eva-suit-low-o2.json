@@ -5,15 +5,13 @@
     "widgetSource": "This fixture now uses CrewStatus's real read surfaces end to end: kerbalism.crew (per-kerbal rule accumulators, already consumed by SurvivalMeters) and the generic, already-existing vessel.resources Topic (Sitrep.Contract.VesselResources - {resources: {[name]: {current, max, active}}}, already consumed elsewhere by FuelStatus) for the EVA suit O2/EC readout added to CrewStatus/index.tsx alongside this fixture. The active 'vessel' IS Jebediah on EVA (vessel.identity.vesselType=7, VesselType.EVA), so vessel.crew reports a 1/1 roster of just him and vessel.resources reports his suit's own resource pool - no new wire protocol, no invented fields. Superseded from the prior version of this fixture: an invented 'evaSuit' object nested under kerbalism.crew (nothing in the widget ever read it) and a proposed-but-nonexistent 'recallSec' field - both removed. The suit's Oxygen amount below (1.9/12.5, ~15%) is chosen to sit in the fixture's 'low O2' name; ElectricCharge (6.1/33.0, ~18%) is set low too so both meters read amber/red in the render rather than only one.",
     "ungrounded": [
       "vessel.resources.resources.ElectricCharge - the specific current amount (6.1) is illustrative for the 'low O2' scenario, not derived from a specific Kerbalism climatization-rule computation",
-      "kerbalism.crew[0].rules[breathing].value (0.85) - chosen to read as 'high' alongside the low Oxygen amount above for a coherent scenario, not computed from Rule.Execute's actual degen-per-second formula",
-      "vessel.orbit below - deriveVesselState (vessel-state.ts) produces no record at all, isEVA included, until vessel.orbit is whole (see CrewStatus/index.test.tsx's own ORBIT comment), so a plausible circular Kerbin orbit is emitted purely to unblock the isEVA derivation; this widget never renders any orbit-derived field"
+      "kerbalism.crew[0].rules[breathing].value (0.85) - chosen to read as 'high' alongside the low Oxygen amount above for a coherent scenario, not computed from Rule.Execute's actual degen-per-second formula"
     ]
   },
   "_stream": {
     "carriedChannels": [
       "vessel.crew",
       "vessel.identity",
-      "vessel.orbit",
       "kerbalism.crew",
       "vessel.resources"
     ],
@@ -102,23 +100,6 @@
               "max": 33.0,
               "active": true
             }
-          }
-        }
-      },
-      {
-        "channel": "vessel.orbit",
-        "value": {
-          "referenceBodyIndex": 0,
-          "sma": 687100,
-          "ecc": 0.001,
-          "inc": 0,
-          "argPe": 0,
-          "mu": 3531600000000.0,
-          "meanAnomalyAtEpoch": 0,
-          "epoch": 0,
-          "horizon": {
-            "kind": 1,
-            "trajectoryKind": 1
           }
         }
       }

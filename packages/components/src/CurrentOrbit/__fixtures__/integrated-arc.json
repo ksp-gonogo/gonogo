@@ -4,7 +4,7 @@
     "vessel": "commsat (250 km LKO, Kerbin)",
     "body": "Kerbin",
     "provider": "principia-nbody",
-    "notes": "The same live Principia capture SystemView's integrated-arc-live carries, pointed at this widget. Every other CurrentOrbit fixture leaves vessel.orbit.arc unset, so the mini diagram has always drawn a conic this client sampled from the elements itself. Here the provider sent its own integrated points, 76 of them over a 655 s window in a body-centred inertial frame, and useOrbitTrajectory prefers those: the curve is an OPEN arc reaching only as far as the provider integrated, not a closed ellipse. The emit carries no quality override, unlike SystemView's copy of the same capture, because Quality.Loaded puts deriveVesselState on the measured basis and this scene has no vessel.flight to measure from."
+    "notes": "The same live Principia capture SystemView's integrated-arc-live carries, pointed at this widget. Every other CurrentOrbit fixture leaves vessel.orbit.arc unset, so the mini diagram has always drawn a conic this client sampled from the elements itself. Here the provider sent its own integrated points, 76 of them over a 655 s window in a body-centred inertial frame, and useOrbitTrajectory prefers those: the curve is an OPEN arc reaching only as far as the provider integrated, not a closed ellipse. The emit carries no quality override, unlike SystemView's copy of the same capture, so it reads as a craft on rails."
   },
   "_stream": {
     "carriedChannels": ["vessel.orbit", "vessel.identity", "system.bodies"],

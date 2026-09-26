@@ -25,14 +25,10 @@ import { MapViewComponent } from "./index";
  */
 
 const CARRIED = [
-  "vessel.orbit",
   "vessel.flight",
+  "vessel.orbit",
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
 ];
 
 function mount() {

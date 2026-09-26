@@ -2,61 +2,32 @@ import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import kerbinAscent from "./__fixtures__/kerbin-ascent-to-67km.json";
 import { OrbitalAscentComponent } from "./index";
 
 /**
- * OrbitalAscent's stream render golden. This began life as a legacy-`DataSource`
- * ↔ stream byte-identical dual-run; `v.body` now comes off the client-derived
- * `vessel.state.parentBodyName` field with NO legacy fallback at all (see
- * `stream.test.tsx`), so the legacy leg is gone, same "the legacy leg is gone"
- * story as the sibling widgets' own dual-runs. What remains proves the widget
- * renders correctly off the real stream pipeline for the same ascent state.
- *
- * The two plotted series (`v.altitude`/`v.horizontalVelocity`) stay on a legacy
- * AUX source: both map to DERIVED `vessel.state.*` channels, and this file
- * never emits `vessel.flight`, so `deriveVesselState` never gets a whole record
- * and the series would resolve empty off the stream regardless, the AUX keeps
- * the GraphView backfill path exercised.
+ * OrbitalAscent's stream render golden. `v.body` is
+ * `vessel.identity.parentBodyIndex` named against `system.bodies`, with NO
+ * legacy fallback at all (see `stream.test.tsx`). This proves the widget
+ * renders off the real stream pipeline for an ascent state. The two plotted
+ * series ride `vessel.flight`, which this file does not emit.
  *
  * A body no static table carries ("Gargantua") is streamed so the body's
  * presence is race-safely observable: the "No reference data" notice appears
- * only if `v.body` actually streamed (the AUX source never feeds it), so
- * waiting on it can't false-green on an empty stream. It used to be the
- * "Unknown body" notice, which the widget no longer reaches here: the roster
- * reports a radius for Gargantua and only the gravitational parameter is
- * missing, so the body IS known and its reference curve is not.
+ * only if `v.body` actually streamed, so waiting on it can't false-green on an
+ * empty stream. The roster reports a radius for Gargantua and only the
+ * gravitational parameter is missing, so the body IS known and its reference
+ * curve is not.
  */
-const LEGACY_SERIES_KEYS = ["v.altitude", "v.horizontalVelocity"] as const;
-
 // A body name no bundled table carries, driving the "No reference data" notice.
 const UNTABLED_BODY = "Gargantua";
 
 describe("OrbitalAscent: stream render golden (delay=0)", () => {
   it("renders the ascent state off the stream with v.body streamed", async () => {
     const streamFixture = setupStreamFixture({
-      carriedChannels: [
-        "vessel.orbit",
-        "vessel.flight",
-        "vessel.identity",
-        "system.bodies",
-        "vessel.control",
-        "vessel.target",
-        "vessel.comms",
-        "vessel.propulsion",
-      ],
+      carriedChannels: ["vessel.flight", "vessel.identity", "system.bodies"],
       pinnedUt: 10,
       suspendFrames: true,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: LEGACY_SERIES_KEYS.map((key) => ({ key })),
-      connectSource: true,
     });
     registerStockBodies();
 
@@ -69,22 +40,6 @@ describe("OrbitalAscent: stream render golden (delay=0)", () => {
     );
 
     act(() => {
-      for (const key of LEGACY_SERIES_KEYS) {
-        legacyAux.source.emit(
-          key,
-          kerbinAscent[key as keyof typeof kerbinAscent],
-        );
-      }
-      streamFixture.emit("vessel.orbit", {
-        referenceBodyIndex: 1,
-        sma: 682500,
-        ecc: 0.00367,
-        inc: 0.3,
-        argPe: 12.5,
-        mu: 3.5316e12,
-        meanAnomalyAtEpoch: 0,
-        epoch: 10,
-      });
       streamFixture.emit("system.bodies", {
         bodies: [
           {
@@ -102,8 +57,8 @@ describe("OrbitalAscent: stream render golden (delay=0)", () => {
       });
     });
 
-    // The notice is produced ONLY by the streamed v.body (the AUX source never
-    // feeds it), so this can't false-green on an empty stream.
+    // The notice is produced ONLY by the streamed v.body, so this can't
+    // false-green on an empty stream.
     await waitFor(() => {
       if (!visibleText(container).includes("No reference data")) {
         throw new Error("stream leg has not resolved v.body yet");
@@ -111,7 +66,5 @@ describe("OrbitalAscent: stream render golden (delay=0)", () => {
     });
     expect(visibleText(container)).toContain("ORBITAL ASCENT");
     expect(visibleText(container)).toContain(UNTABLED_BODY);
-
-    teardownMockDataSource(legacyAux);
   });
 });

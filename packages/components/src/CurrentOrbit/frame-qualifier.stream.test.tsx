@@ -20,13 +20,8 @@ import { CurrentOrbitComponent } from "./index";
  */
 const CARRIED = [
   "vessel.orbit",
-  "vessel.flight",
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
   "system.frame",
 ];
 

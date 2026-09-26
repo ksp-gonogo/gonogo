@@ -12,12 +12,7 @@ import { ContractManagerComponent } from "./index";
 /**
  * DOM snapshots off the stream pipeline, driven by each fixture's own
  * `_stream` block.
- *
- * This spec used to build the stream itself: it carried `career.status` and
- * `vessel.state`, emitted a `career.status` payload assembled from the
- * fixtures' flat keys, and additionally emitted a `vessel.orbit`/`vessel.flight`
- * pair purely to gate the derived `vessel.state` record. Each fixture declares
- * the `career.status` emit and its own pinned UT, so the assembly is gone.
+ * Each fixture declares its own `career.status` emit and pinned UT.
  *
  * `awaiting-telemetry` carries no `_stream` block: the pre-telemetry
  * placeholder is its subject, and the un-fed gate lists it as empty by design.

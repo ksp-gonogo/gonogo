@@ -20,41 +20,19 @@ import {
 /**
  * CrewStatus runs entirely off the stream: `vessel.crew`
  * (count/capacity/crew roster, read via the canonical one-arg `useTelemetry`)
- * plus the derived `vessel.state.isEVA` (from `vessel.identity.vesselType`,
- * read via `useStream`). No legacy `MockDataSource` is registered, a real
+ * plus the EVA flag off `vessel.identity.vesselType`. No legacy `MockDataSource` is registered, a real
  * `TelemetryProvider`/`TimelineStore` pipeline feeds the widget via
  * `fixture.emit`.
  */
 
-// `vessel.identity.vesselType === 7` is the EVA kerbal type deriveVesselState
-// maps onto `vessel.state.isEVA` (see `vessel-state.ts`'s VESSEL_TYPE_EVA).
+// `vessel.identity.vesselType === 7` is `VesselType.EVA`, the kerbal on EVA.
 const VESSEL_TYPE_EVA = 7;
-
-// `deriveVesselState` produces NO record until `vessel.orbit` is whole (it
-// early-returns `undefined` otherwise), and every derived field, isEVA
-// included, hangs off that record. A minimal orbit is emitted alongside
-// `vessel.identity` so the record exists and the EVA flag can be derived.
-const ORBIT = {
-  sma: 682500,
-  ecc: 0.00367,
-  inc: 0.3,
-  argPe: 12.5,
-  mu: 3.5316e12,
-  meanAnomalyAtEpoch: 0,
-  epoch: 10,
-  referenceBodyIndex: 1,
-};
 
 const renderedTrees: Array<() => void> = [];
 
 function newFixture() {
   return setupStreamFixture({
-    carriedChannels: [
-      "vessel.crew",
-      "vessel.state",
-      "vessel.identity",
-      "vessel.orbit",
-    ],
+    carriedChannels: ["vessel.crew", "vessel.identity"],
     pinnedUt: 10,
     suspendFrames: true,
   });
@@ -63,13 +41,7 @@ function newFixture() {
 /** The same fixture with `vessel.resources` carried, for the suit meters. */
 function newEvaFixture() {
   return setupStreamFixture({
-    carriedChannels: [
-      "vessel.crew",
-      "vessel.state",
-      "vessel.identity",
-      "vessel.orbit",
-      "vessel.resources",
-    ],
+    carriedChannels: ["vessel.crew", "vessel.identity", "vessel.resources"],
     pinnedUt: 10,
     suspendFrames: true,
   });
@@ -248,7 +220,6 @@ describe("CrewStatusComponent", () => {
         capacity: 1,
         crew: [{ name: "Jebediah Kerman" }],
       });
-      fixture.emit("vessel.orbit", ORBIT);
       fixture.emit("vessel.identity", { vesselType: VESSEL_TYPE_EVA });
     });
     await waitFor(() => expect(screen.getByText(/EVA/)).toBeInTheDocument());
@@ -263,7 +234,6 @@ describe("CrewStatusComponent", () => {
         capacity: 1,
         crew: [{ name: "Jebediah Kerman" }],
       });
-      fixture.emit("vessel.orbit", ORBIT);
       fixture.emit("vessel.identity", { vesselType: VesselType.Ship });
     });
     await waitFor(() =>
@@ -284,7 +254,6 @@ describe("CrewStatusComponent", () => {
         capacity: 1,
         crew: [{ name: "Jebediah Kerman" }],
       });
-      fixture.emit("vessel.orbit", ORBIT);
       fixture.emit("vessel.identity", { vesselType: VESSEL_TYPE_EVA });
     }
 
@@ -344,7 +313,6 @@ describe("CrewStatusComponent", () => {
         capacity: 1,
         crew: [{ name: "Jebediah Kerman" }],
       });
-      fixture.emit("vessel.orbit", ORBIT);
       fixture.emit("vessel.identity", { vesselType: VESSEL_TYPE_EVA });
     }
 

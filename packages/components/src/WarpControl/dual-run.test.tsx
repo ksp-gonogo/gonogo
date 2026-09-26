@@ -8,7 +8,6 @@ import {
   TelemetryProvider,
   TimelineStore,
   ViewClock,
-  vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import { act, render, waitFor, within } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
@@ -208,7 +207,6 @@ describe.skipIf(!realFixtureExists)(
           delaySeconds: () => 0,
         }),
       );
-      store.registerDerivedChannel(vesselStateChannel);
       store.clock.scrubTo(0);
 
       const { container } = render(

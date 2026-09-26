@@ -21,7 +21,7 @@ import { ContractManagerComponent } from "./index";
  * and about the deadline countdown continuing to be computed rather than frozen.
  */
 
-const CARRIED = ["career.status", "vessel.state"];
+const CARRIED = ["career.status", "vessel.flight"];
 
 const renderedTrees: Array<() => void> = [];
 

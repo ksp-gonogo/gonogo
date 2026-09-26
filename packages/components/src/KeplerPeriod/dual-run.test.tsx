@@ -29,17 +29,12 @@ function unmountAll() {
 }
 
 /**
- * KeplerPeriod's behavior test. This was a fork↔stream parity
- * dual-run back when both `useDataValue` reads were GAPPED and the widget
- * stayed 100% legacy: the stream leg had to feed the gapped keys through a
- * legacy `"data"` `MockDataSource` because nothing streamed. `v.body`/
- * `o.referenceBody` are now un-gapped onto the SDK-derived
- * `vessel.state.parentBodyName`/`referenceBodyName` display maps, so the
- * legacy MockDataSource leg is dropped: the widget now feeds entirely from
- * the real stream pipeline (`TelemetryProvider` + `StubTransport`), and this
- * test proves the POSITIVE path: a KNOWN streamed body resolves and the
- * Kepler reference curve renders (the unknown-body degraded path is covered
- * in `stream.test.tsx`).
+ * KeplerPeriod's behavior test. `v.body`/`o.referenceBody` are the
+ * `vessel.identity`/`vessel.orbit` body indices named against
+ * `system.bodies`, and the widget feeds entirely from the real stream
+ * pipeline (`TelemetryProvider` + `StubTransport`). This test proves the
+ * POSITIVE path: a KNOWN streamed body resolves and the Kepler reference curve
+ * renders (the unknown-body degraded path is covered in `stream.test.tsx`).
  */
 let restoreResizeObserver: () => void = () => {};
 
@@ -64,21 +59,16 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const VESSEL_STATE_INPUTS = [
+const KEPLER_PERIOD_CHANNELS = [
   "vessel.orbit",
-  "vessel.flight",
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
 ];
 
 describe("KeplerPeriod: renders the reference curve off the stream (R6 Wave 1)", () => {
   it("draws the Kepler curve once a known reference body streams in", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: VESSEL_STATE_INPUTS,
+      carriedChannels: KEPLER_PERIOD_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -91,8 +81,8 @@ describe("KeplerPeriod: renders the reference curve off the stream (R6 Wave 1)",
       </fixture.Provider>,
     );
 
-    // Kerbin's low orbit (kerbin-lko fixture) expressed as the derived
-    // channel's inputs: `referenceBodyIndex`/`parentBodyIndex` point at
+    // Kerbin's low orbit (kerbin-lko fixture) as the wire carries it:
+    // `referenceBodyIndex`/`parentBodyIndex` point at
     // Kerbin (stock index 1), so `resolveBodyName` -> "Kerbin" and the widget
     // resolves a real BodyDefinition with a `gm` to build the curve from.
     act(() => {

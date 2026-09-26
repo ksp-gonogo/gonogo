@@ -7,8 +7,8 @@ import { type OrbitScenario, renderOrbitViewStream } from "./streamHarness";
 
 /**
  * OrbitView behavioural unit tests. The widget reads
- * exclusively off the SDK stream (`vessel.orbit` + the `vessel.state` derived
- * channel), so these render through a real `TelemetryProvider` via the shared
+ * exclusively off the SDK stream (`vessel.orbit`, with the body named and sized
+ * off `vessel.identity` and `system.bodies`), so these render through a real `TelemetryProvider` via the shared
  * `renderOrbitViewStream` harness: there is no legacy `MockDataSource`
  * anywhere in this file. Reads settle a frame after the emit, so the
  * data-present assertions wait for the diagram/pill rather than reading
@@ -37,7 +37,7 @@ describe("OrbitViewComponent", () => {
       }
     });
     expect(container.textContent).not.toContain("No orbital data");
-    // Subtitle shows the body name resolved off vessel.state.parentBodyName.
+    // Subtitle shows the body name resolved off vessel.identity.parentBodyIndex.
     expect(visibleText(container)).toContain("Kerbin");
   });
 

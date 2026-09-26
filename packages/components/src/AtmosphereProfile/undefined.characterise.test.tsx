@@ -3,7 +3,6 @@ import {
   DashboardItemContext,
   registerStockBodies,
 } from "@ksp-gonogo/core";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import {
   installFixedSizeResizeObserver,
@@ -14,21 +13,19 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AtmosphereProfileComponent } from "./index";
 
 /**
- * What AtmosphereProfile DOES today when its telemetry reads are `undefined`,
- * recorded before `useTelemetry` becomes a `Reading`.
+ * What AtmosphereProfile does when its telemetry reads are absent.
  *
  * Four absence-shaped sites, three different meanings:
- *  - `bodyName = vesselState?.parentBodyName ?? undefined`, then
+ *  - `bodyName = useBodyName(useParentBodyIndex())`, then
  *    `showNoBodyNotice = bodyName !== undefined && body === undefined`: the ONE
  *    place in this widget that distinguishes absent from present-but-unusable,
  *    and it distinguishes them on `undefined` specifically. The body itself now
  *    resolves off the `system.bodies` roster rather than the bundled table of
  *    stock bodies, so "unknown" means neither authority could build one
- *  - `altitude = vesselState?.altitudeAsl ?? undefined`, gated by
- *    `altitude === undefined` inside the threshold memo. The derived channel
- *    leaves `altitudeAsl` `null` on the OnRails (propagated) basis, so this site
- *    flattens "this basis cannot measure altitude" into "nothing has arrived",
- *    and drops the current-pressure marker with no on-screen trace
+ *  - `altitude = magnitudeOf(flight.altitudeAsl) ?? undefined`, gated by
+ *    `altitude === undefined` inside the threshold memo. A flight record that
+ *    omits the altitude drops the current-pressure marker with no on-screen
+ *    trace, while the rest of the chart draws
  *  - `magnitudeOf(flight?.atmDensity)` gated by `liveDensity !== null &&
  *    liveDensity > 1e-9`: absent, non-finite and a genuine vacuum zero all
  *    suppress the HUD chip identically
@@ -36,16 +33,7 @@ import { AtmosphereProfileComponent } from "./index";
  *    flight record drops rows individually
  */
 
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-];
+const CARRIED = ["vessel.flight", "vessel.identity", "system.bodies"];
 
 function renderAtmo() {
   const fixture = setupStreamFixture({
@@ -65,20 +53,14 @@ function renderAtmo() {
 
 /**
  * The body-name resolution chain: `vessel.identity.parentBodyIndex` against a
- * `system.bodies` entry, feeding the derived `vessel.state.parentBodyName`.
- * `quality` decides whether `altitudeAsl` is populated (Loaded) or left `null`
- * (the OnRails default).
+ * `system.bodies` entry, plus the `vessel.flight` record the chip and the
+ * altitude marker read.
  */
 function emitBody(
   fixture: ReturnType<typeof setupStreamFixture>,
   name: string,
-  opts: { quality?: number; flight?: Record<string, unknown> } = {},
+  opts: { flight?: Record<string, unknown> } = {},
 ) {
-  fixture.emit(
-    "vessel.orbit",
-    {},
-    { quality: opts.quality ?? Quality.OnRails },
-  );
   fixture.emit("vessel.flight", opts.flight ?? {});
   fixture.emit("vessel.identity", { parentBodyIndex: 1 });
   fixture.emit("system.bodies", {
@@ -147,7 +129,6 @@ describe("AtmosphereProfile: what undefined means today", () => {
        describe the body behind it, the roster because it reported no radius
        and the bundled table because it has never heard the name. */
     act(() => {
-      fixture.emit("vessel.orbit", {}, { quality: Quality.OnRails });
       fixture.emit("vessel.flight", {});
       fixture.emit("vessel.identity", { parentBodyIndex: 1 });
       fixture.emit("system.bodies", {
@@ -174,13 +155,11 @@ describe("AtmosphereProfile: what undefined means today", () => {
     expect(visibleText(container)).toContain("Waiting for body telemetry...");
   });
 
-  it("silently omits the current-pressure marker while the altitude read is null", async () => {
+  it("silently omits the current-pressure marker while the flight record carries no altitude", async () => {
     const { fixture, container } = renderAtmo();
 
-    // OnRails is the default basis, and `deriveVesselState` leaves `altitudeAsl`
-    // NULL there: a confirmed "this basis does not measure altitude", not a
-    // never-arrived. The widget's `?? undefined` flattens the two, and the
-    // threshold memo's `altitude === undefined` gate then drops the marker.
+    // The flight record arrives with a density and no altitude. The threshold
+    // memo's `altitude === undefined` gate drops the marker.
     act(() => {
       emitBody(fixture, "Kerbin", { flight: { atmDensity: 1.217 } });
     });
@@ -194,15 +173,9 @@ describe("AtmosphereProfile: what undefined means today", () => {
     });
     expect(visibleText(container)).not.toMatch(/pascals/);
 
-    // The same emission on the Loaded basis, where `altitudeAsl` is a real
-    // number, does draw the marker: the omission above is the null read and
-    // nothing else.
+    // The same record with an altitude does draw the marker: the omission
+    // above is the missing field and nothing else.
     act(() => {
-      fixture.emit(
-        "vessel.orbit",
-        {},
-        { quality: Quality.Loaded, validAt: 1, seq: 1, deliveredAt: 1 },
-      );
       fixture.emit(
         "vessel.flight",
         { altitudeAsl: 5_600, atmDensity: 1.217 },
@@ -220,7 +193,6 @@ describe("AtmosphereProfile: what undefined means today", () => {
     // temperatures that DID arrive are withheld with it.
     act(() => {
       emitBody(fixture, "Kerbin", {
-        quality: Quality.Loaded,
         flight: {
           altitudeAsl: 5_600,
           atmosphericTemperature: 289,
@@ -241,7 +213,6 @@ describe("AtmosphereProfile: what undefined means today", () => {
     // Start from a live chip so the disappearance below is caused by the zero.
     act(() => {
       emitBody(fixture, "Kerbin", {
-        quality: Quality.Loaded,
         flight: { altitudeAsl: 5_600, atmDensity: 1.217 },
       });
     });
@@ -270,7 +241,6 @@ describe("AtmosphereProfile: what undefined means today", () => {
     // one place absence is rendered per field rather than per record.
     act(() => {
       emitBody(fixture, "Kerbin", {
-        quality: Quality.Loaded,
         flight: {
           altitudeAsl: 5_600,
           atmDensity: 1.217,

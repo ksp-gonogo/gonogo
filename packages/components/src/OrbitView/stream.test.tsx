@@ -8,19 +8,16 @@ import { renderOrbitViewStream } from "./streamHarness";
  * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
  * `StubTransport`, no legacy `DataSource` anywhere.
  *
- * Every read is now stream-native:
+ * Every read is stream-native:
  * - `vessel.orbit` (raw Topic) → `sma`/`ecc`/`argPe`.
- * - `vessel.state` (derived channel) → `trueAnomaly` (propagated at view-UT),
- *   `parentBodyName` (identity index → `system.bodies` name), and the apsis
- *   radii (`apoapsisRadius`/`periapsisRadius`: `null` on a hyperbolic orbit
- *   or in the "measured" basis, real as soon as `vessel.orbit` lands
- *   otherwise).
+ * - the orbit solve over those elements → `trueAnomaly` (propagated at
+ *   view-UT) and the apsis radii (`apoapsisRadius`/`periapsisRadius`: `null`
+ *   on a hyperbolic orbit, real as soon as `vessel.orbit` lands otherwise).
+ * - the parent body name → `vessel.identity.parentBodyIndex` named against
+ *   `system.bodies`.
  *
- * Because `vessel.state.periapsisRadius` resolves as soon as `vessel.orbit`
- * lands (OnRails), `hasOrbit` goes true and the diagram renders, the exact
- * opposite of the pre-migration correlated-gap behaviour, where those keys
- * were gapped and the widget could never leave its empty state off the
- * stream.
+ * Because the periapsis radius resolves as soon as `vessel.orbit` lands
+ * (OnRails), `hasOrbit` goes true and the diagram renders.
  */
 
 describe("OrbitView: genuinely runs off the stream (R6)", () => {
@@ -45,13 +42,12 @@ describe("OrbitView: genuinely runs off the stream (R6)", () => {
     expect(container.querySelector("svg")).not.toBeNull();
     expect(visibleText(container)).toContain("Kerbin");
 
-    // White-box: the parentBodyName the widget reads is genuinely derived off
-    // the real TimelineStore (mirroring the store.sample the widget's own read
-    // makes), not fabricated.
-    const parentBodyName = fixture.store.sample<string>(
-      "vessel.state.parentBodyName",
+    // White-box: the index the body name is resolved from is the one that
+    // streamed into the real TimelineStore, not fabricated.
+    const identity = fixture.store.sample<{ parentBodyIndex: number }>(
+      "vessel.identity",
       fixture.store.currentFrame(),
     );
-    expect(parentBodyName?.payload).toBe("Kerbin");
+    expect(identity?.payload?.parentBodyIndex).toBe(0);
   });
 });

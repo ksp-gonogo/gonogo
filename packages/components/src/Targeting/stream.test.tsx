@@ -20,11 +20,10 @@ import { TargetingComponent } from "./index";
  * `vecMagnitude`/`radialSpeed`/`deriveDockAngles` in index.tsx: with no
  * legacy `tar.distance`/`tar.o.relativeVelocity`/`dock.x`/`dock.y`/`dock.ax`/
  * `dock.ay` scalar reads at all, and the docking roll/az axis dropped
- * outright (renders the null-display placeholder). `tar.name` rides
- * `vessel.target.name`; `tar.type`
- * maps to the DERIVED `vessel.state.targetKind`, which isn't carried here, so
- * a small `setupMockDataSource` AUX still supplies the target kind (its
- * `vessel.state` inputs would otherwise all have to be carried + emitted).
+ * outright (renders the null-display placeholder). `tar.name` and `tar.type`
+ * ride `vessel.target.name` and `vessel.target.kind`; the small
+ * `setupMockDataSource` AUX carries their flat keys, which the widget does not
+ * read.
  * The TCA test additionally reads the SDK view-UT via `useViewUt`, the
  * replacement for the dropped `t.universalTime` data key.
  */

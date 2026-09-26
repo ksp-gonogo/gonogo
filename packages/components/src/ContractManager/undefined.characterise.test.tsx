@@ -1,5 +1,4 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
@@ -11,8 +10,8 @@ import {
 import { ContractManagerComponent } from "./index";
 
 /**
- * Characterisation: what ContractManager DOES today when its telemetry reads
- * are `undefined`, recorded ahead of `useTelemetry` returning a `Reading`.
+ * Characterisation: what ContractManager does when its telemetry reads are
+ * absent.
  *
  * Two reads carry the risk:
  * - `useTelemetry("career.status")?.contracts` feeds `parseContracts`, which
@@ -24,7 +23,7 @@ import { ContractManagerComponent } from "./index";
  * Every assertion below is an observation, not an endorsement.
  */
 
-const CARRIED = ["career.status", "vessel.state"];
+const CARRIED = ["career.status", "vessel.flight"];
 
 function newFixture() {
   return setupStreamFixture({
@@ -52,7 +51,7 @@ function renderManager(
   );
 }
 
-/** A ReachAltitudeEnvelope parameter: the one thing that reads vessel.state. */
+/** A ReachAltitudeEnvelope parameter: the one thing that reads the altitude. */
 const ALTITUDE_CONTRACT = {
   id: "7001",
   title: "Fly above 5000m",
@@ -75,25 +74,13 @@ const ALTITUDE_CONTRACT = {
   ],
 };
 
-const ORBIT = {
-  sma: 682500,
-  ecc: 0.00367,
-  inc: 0.3,
-  argPe: 12.5,
-  mu: 3.5316e12,
-  meanAnomalyAtEpoch: 0,
-  epoch: 10,
-  referenceBodyIndex: 1,
-};
-
-/** Feed the derived `vessel.state` so `altitudeAsl` is a real number. */
 function emitAltitude(fixture: StreamFixture, altitudeAsl: number) {
-  fixture.emit("vessel.orbit", ORBIT, { quality: Quality.Loaded });
-  fixture.emit(
-    "vessel.flight",
-    { altitudeAsl, verticalSpeed: 0, surfaceSpeed: 0, orbitalSpeed: 0 },
-    { quality: Quality.Loaded },
-  );
+  fixture.emit("vessel.flight", {
+    altitudeAsl,
+    verticalSpeed: 0,
+    surfaceSpeed: 0,
+    orbitalSpeed: 0,
+  });
 }
 
 describe("ContractManager: nothing has arrived at all", () => {
@@ -265,7 +252,7 @@ describe("ContractManager: the altitude-band meter before an altitude arrives", 
     expect(visibleText()).not.toContain("+");
   });
 
-  it("renders the band label once vessel.state carries an altitude", async () => {
+  it("renders the band label once vessel.flight carries an altitude", async () => {
     const fixture = newFixture();
     renderManager(fixture);
 

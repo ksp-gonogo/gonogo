@@ -2,22 +2,24 @@
 /**
  * Review renders for where a conic stops being a description of what happens.
  *
- * The real `Graph`, mounted on the real stream, plotting `vessel.state`'s own
- * Kepler model down a descending arc: no `reckoned` prop is fed to anything
- * here. The samples stop at UT 200 and the frame is drawn for UT 1000, so the
- * dashed tail exists only because `TimelineStore.sampleReckonedTail` produced
- * it and `useDataSeries` joined it on.
+ * The real `Graph`, mounted on the real stream, plotting `vessel.flight`'s
+ * altitude down a descending arc: no `reckoned` prop is fed to anything here.
+ * The samples stop at UT 200, the link drops, and the frame is drawn for
+ * UT 1000, so any dashed tail exists only because
+ * `TimelineStore.sampleReckonedTail` asked `vessel.flight`'s reckoner across
+ * the silence and `useDataSeries` joined it on.
  *
  * Two scenes ONE field apart, and the field is the reference body's
  * `atmosphere`. Without it the wire says airless, the floor is the surface, and
  * the conic runs the whole window: that is the line a conic wants to draw, and
- * around an airless body it is the honest one. With it the floor is 70 km up
- * and the tail stops there, leaving the rest of the window blank. A controlled
- * comparison rather than two drawings of two datasets.
+ * around an airless body it is the honest one. With it the view time is inside
+ * the air, the conic no longer describes the craft there, and nothing modelled
+ * from those elements is drawn at all, leaving the window blank past the last
+ * observation. A controlled comparison rather than two drawings of two
+ * datasets.
  *
  * Altitude rather than speed, because the atmosphere is an altitude and the
- * eye can put the two together: the interface is a horizontal line the reader
- * can see the tail reach.
+ * eye can put the two together.
  *
  * Deliberately NOT registered in `widgets.ts`, the same reasoning
  * `render-affordability.ts` gives: that file is the visual gate's input, and a
@@ -49,7 +51,7 @@ const CONFIGS: WidgetRenderConfig[] = [
         series: [
           {
             id: "altitude",
-            key: "vessel.state.altitudeAsl",
+            key: "vessel.flight.altitudeAsl",
             label: "Altitude ASL",
             type: "line",
             axis: "primary",

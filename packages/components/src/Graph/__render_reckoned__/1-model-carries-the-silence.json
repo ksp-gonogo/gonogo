@@ -2,21 +2,31 @@
   "_meta": {
     "scenario": "reckoned-tail",
     "synthetic": true,
-    "notes": "SYNTHETIC. A craft coasting an eccentric Kerbin orbit (sma 900 km, ecc 0.4) whose vessel.orbit samples stop at UT 280. The frame is drawn for UT 900, so 620 seconds of the window had no observation in it at all. vessel.state is OnRails, so its elements are a CAUSE valid until superseded and deriveVesselStateReckoning offers kepler-propagation: TimelineStore.sampleReckonedTail replays the channel across the silence and useDataSeries hands the chart a reckoned run. Nothing here feeds LineChart a prop; the dashed tail is produced."
+    "notes": "SYNTHETIC. A craft coasting an eccentric Kerbin orbit (sma 900 km, ecc 0.4) whose vessel.orbit and vessel.flight samples stop at UT 280, when the link drops. The frame is drawn for UT 900, so 620 seconds of the window had no observation in it at all. The vessel.flight samples are solved from the same elements, so the measured trace and the conic meet. The elements are OnRails, a CAUSE valid until superseded, so vessel.flight's reckoner offers kepler-propagation for the orbital speed: TimelineStore.sampleReckonedTail asks it across the silence and useDataSeries hands the chart a reckoned run. Nothing here feeds LineChart a prop; the dashed tail is produced."
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion"
-    ],
+    "carriedChannels": ["vessel.flight", "vessel.orbit", "system.bodies"],
     "pinnedUt": 900,
+    "stopsArriving": true,
     "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        },
+        "meta": {
+          "validAt": 0,
+          "deliveredAt": 0
+        }
+      },
       {
         "channel": "vessel.orbit",
         "value": {
@@ -33,6 +43,19 @@
             "kind": 1,
             "trajectoryKind": 1
           }
+        },
+        "meta": {
+          "validAt": 0,
+          "deliveredAt": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": -60000.0,
+          "verticalSpeed": 0.0,
+          "orbitalSpeed": 3025.89,
+          "gForce": 0
         },
         "meta": {
           "validAt": 0,
@@ -62,6 +85,19 @@
         }
       },
       {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": -56149.7,
+          "verticalSpeed": 191.26,
+          "orbitalSpeed": 3010.55,
+          "gForce": 0
+        },
+        "meta": {
+          "validAt": 40,
+          "deliveredAt": 40
+        }
+      },
+      {
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 1,
@@ -77,6 +113,19 @@
             "kind": 1,
             "trajectoryKind": 1
           }
+        },
+        "meta": {
+          "validAt": 80,
+          "deliveredAt": 80
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": -44890.6,
+          "verticalSpeed": 368.27,
+          "orbitalSpeed": 2966.48,
+          "gForce": 0
         },
         "meta": {
           "validAt": 80,
@@ -106,6 +155,19 @@
         }
       },
       {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": -27022.4,
+          "verticalSpeed": 520.38,
+          "orbitalSpeed": 2898.82,
+          "gForce": 0
+        },
+        "meta": {
+          "validAt": 120,
+          "deliveredAt": 120
+        }
+      },
+      {
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 1,
@@ -121,6 +183,19 @@
             "kind": 1,
             "trajectoryKind": 1
           }
+        },
+        "meta": {
+          "validAt": 160,
+          "deliveredAt": 160
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": -3664.9,
+          "verticalSpeed": 642.3,
+          "orbitalSpeed": 2814.31,
+          "gForce": 0
         },
         "meta": {
           "validAt": 160,
@@ -150,6 +225,19 @@
         }
       },
       {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 23952.3,
+          "verticalSpeed": 733.63,
+          "orbitalSpeed": 2719.58,
+          "gForce": 0
+        },
+        "meta": {
+          "validAt": 200,
+          "deliveredAt": 200
+        }
+      },
+      {
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 1,
@@ -172,6 +260,19 @@
         }
       },
       {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 54654.1,
+          "verticalSpeed": 797.17,
+          "orbitalSpeed": 2620.15,
+          "gForce": 0
+        },
+        "meta": {
+          "validAt": 240,
+          "deliveredAt": 240
+        }
+      },
+      {
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 1,
@@ -187,6 +288,19 @@
             "kind": 1,
             "trajectoryKind": 1
           }
+        },
+        "meta": {
+          "validAt": 280,
+          "deliveredAt": 280
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 87412.3,
+          "verticalSpeed": 837.21,
+          "orbitalSpeed": 2520.13,
+          "gForce": 0
         },
         "meta": {
           "validAt": 280,

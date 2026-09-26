@@ -8,12 +8,11 @@ import kerbinLaunchpad from "./__fixtures__/kerbin-launchpad.json";
 import { MapViewComponent } from "./index";
 
 /**
- * MapView's stream render golden. This began life as a legacy-`DataSource` ↔
- * stream byte-identical dual-run; the kinematics now read off `vessel.flight.*`
- * and the derived `vessel.state` channel (altitude/body/orbit-patches/
- * encounter/impact) with no legacy fallback, so the legacy leg is gone. What
- * remains proves the compact (`!showMap`) Lat/Lon/Alt readout renders the same
- * pre-launch state off the real stream pipeline.
+ * MapView's stream render golden. The kinematics read off `vessel.flight`,
+ * the body off `vessel.identity` and `system.bodies`, and the patch chain,
+ * encounter and impact off `vessel.orbit`, with no legacy fallback. This
+ * proves the compact (`!showMap`) Lat/Lon/Alt readout renders the pre-launch
+ * state off the real stream pipeline.
  *
  * Mode `4x5` selects the compact branch: the one MapView render path whose
  * Lat/Lon/Alt readout is plain DOM text rather than canvas drawing.
@@ -22,14 +21,10 @@ describe("MapView: stream render golden (delay=0)", () => {
   it("renders the compact Lat/Lon/Alt readout off the stream for the launchpad state", async () => {
     const streamFixture = setupStreamFixture({
       carriedChannels: [
-        "vessel.orbit",
         "vessel.flight",
+        "vessel.orbit",
         "vessel.identity",
         "system.bodies",
-        "vessel.control",
-        "vessel.target",
-        "vessel.comms",
-        "vessel.propulsion",
       ],
       pinnedUt: 10,
       suspendFrames: true,
@@ -56,8 +51,8 @@ describe("MapView: stream render golden (delay=0)", () => {
       });
     });
 
-    // altSea lands off the derived vessel.state channel (measured basis),
-    // waiting on the mapped altitude readout proves the stream leg rendered.
+    // altSea lands off vessel.flight.altitudeAsl: waiting on the altitude
+    // readout proves the stream leg rendered.
     await waitFor(() => {
       // 80 m at the pad: see the note in stream.test.tsx on the rung.
       if (!visibleText(container).includes("80.0 m")) {

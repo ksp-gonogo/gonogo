@@ -41,9 +41,9 @@ describe("OrbitView: nothing has arrived at all", () => {
   it("renders the 'No orbital data' sentence, no diagram, no body caption", () => {
     const { container } = renderOrbitViewStream({ w: 9, h: 18 });
 
-    // `basis` is undefined (no `vessel.state` point at all), so the ternary
-    // falls to its else arm: the pending case is rendered with the same
-    // sentence the widget uses for every other non-measured absence.
+    // No `vessel.orbit` point at all means no decline to name, so the pending
+    // case is rendered with the same sentence the widget uses for every other
+    // absence that is not a craft under physics.
     expect(visibleText(container)).toContain("No orbital data");
     expect(visibleText(container)).not.toContain("packed");
     // `hasOrbit` fires: nothing that reads `sma.magnitude` is reached. If the
