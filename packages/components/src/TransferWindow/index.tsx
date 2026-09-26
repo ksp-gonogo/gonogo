@@ -203,10 +203,9 @@ function TransferWindowComponent({
   const nowUt = magnitudeOr(useViewUt(), 0);
 
   /**
-   * The vehicle's Δv budget: a description, so a dated one is captioned, never
+   * The vehicle's Δv budget: a description, so a held one is still drawn, never
    * withheld. An old budget can only OVER-state reach (it falls by burning), so
-   * `budgetNotCurrent` hollows the verdict pips: "GO, six minutes ago" must not
-   * read as "GO".
+   * `budgetNotCurrent` hollows the verdict pips: a held GO must not read as GO.
    */
   const budgetReading = useProcessor(DELTA_V_BUDGET);
   const budget =
@@ -215,13 +214,11 @@ function TransferWindowComponent({
       : undefined;
   const budgetDeltaV = magnitudeOf(budget?.totalVac);
   const budgetNotCurrent = budget?.budget.state === "stale";
+  const budgetHeldSince: HeldSince = budgetNotCurrent
+    ? { asOfUt: budget?.budget.asOfUt }
+    : null;
   /** The stock Δv sim has no figure for this craft, as opposed to none having arrived. */
   const budgetConfirmedAbsent = budget?.budget.confirmedAbsent ?? false;
-  // Stays in the algebra so `Unit` renders the duration.
-  const budgetAge =
-    budget?.budget.ageSec === undefined
-      ? null
-      : value("s", budget.budget.ageSec);
   const createAlarm = useAlarmCreator<TimeTrigger>();
 
   const origin = bodyAtIndex(facts, orbit?.referenceBodyIndex);
@@ -472,7 +469,7 @@ function TransferWindowComponent({
               budgetNotCurrent={budgetNotCurrent}
               selectedIndex={dest.index}
               onSelect={setDestIndex}
-              budgetAge={budgetAge}
+              budgetHeldSince={budgetHeldSince}
               budgetConfirmedAbsent={budgetConfirmedAbsent}
               orbitHeldSince={orbitHeldSince}
             />
@@ -661,7 +658,7 @@ function ReachList({
   budgetNotCurrent,
   selectedIndex,
   onSelect,
-  budgetAge,
+  budgetHeldSince,
   budgetConfirmedAbsent,
   orbitHeldSince,
 }: {
@@ -673,8 +670,7 @@ function ReachList({
   /** Body index of the destination the windows list is currently scoped to. */
   selectedIndex: number;
   onSelect: (bodyIndex: number) => void;
-  /** How long ago the budget was observed, for the dated caption. */
-  budgetAge: Value<"s"> | null;
+  budgetHeldSince: HeldSince;
   /** The stock sim reports no figure for this craft, as opposed to none arriving. */
   budgetConfirmedAbsent: boolean;
   /** Each destination's Δv is costed from the parking orbit, so it holds with it. */
@@ -691,7 +687,11 @@ function ReachList({
         {budgetDeltaV != null && (
           <BudgetReadout>
             <Muted>Budget</Muted>{" "}
-            <Unit value={value("m/s", budgetDeltaV)} decimals={0} /> vac
+            <Unit
+              value={heldFigure(value("m/s", budgetDeltaV), budgetHeldSince)}
+              decimals={0}
+            />{" "}
+            vac
             {reserveDeltaV > 0 && (
               <Muted>
                 {" reserve "}
@@ -701,14 +701,7 @@ function ReachList({
           </BudgetReadout>
         )}
       </ReachHead>
-      {/* Three distinct budget sentences: a dated figure still plans, confirmed-absent means the stock sim has nothing, and silence means not heard. */}
-      {budgetNotCurrent && budgetDeltaV != null && (
-        <Text tone="warn" size="xs" role="status" aria-live="polite">
-          Budget last heard{" "}
-          {budgetAge ? <Unit value={budgetAge} decimals={0} /> : "some time"}{" "}
-          ago. Δv only falls as you burn, so reach here can only be optimistic.
-        </Text>
-      )}
+      {/* Confirmed-absent means the stock sim has nothing, which is not the same as nothing heard. */}
       {budgetConfirmedAbsent && (
         <Text tone="warn" size="xs" role="status" aria-live="polite">
           No Δv figure for this craft: the stock simulation reports none, so

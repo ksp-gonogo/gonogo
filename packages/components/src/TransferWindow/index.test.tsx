@@ -294,6 +294,29 @@ describe("TransferWindow reach list", () => {
     expect(screen.getByText("Window")).toBeInTheDocument();
   });
 
+  it("marks a held budget through its figure, with no written age", async () => {
+    const { fixture, view } = setup(undefined, { budgetDvVac: 6000 });
+    await waitFor(() => expect(screen.getByText("GO")).toBeInTheDocument());
+    const budgetFigure = () =>
+      screen
+        .getByText("Budget")
+        .parentElement?.querySelector("[data-unit-currency]") ?? null;
+    expect(budgetFigure()).toBeNull();
+
+    act(() => {
+      fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
+    });
+
+    await waitFor(() => expect(budgetFigure()).not.toBeNull());
+    expect(
+      screen
+        .getByText("Budget")
+        .parentElement?.querySelector("[data-not-current]"),
+    ).not.toBeNull();
+    expect(visibleText(view.container)).not.toMatch(/last heard|ago\b/i);
+  });
+
   it("names the ISP assumption and the capture convention on screen", async () => {
     setup(undefined, { budgetDvVac: 6000 });
     await waitFor(() =>
