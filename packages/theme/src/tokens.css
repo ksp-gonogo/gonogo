@@ -361,52 +361,15 @@ textarea {
   --color-focus: #00ff88;
 
   /*
-   * SPACING. One ladder for padding, margin AND gap.
+   * SPACING LADDER. One ladder for padding, margin AND gap, on a 2px grid
+   * with a 1px `hair` step below it.
    *
-   * The three are deliberately not split. A container's inset and its
-   * children's gap are a single design decision (a row with 4px of
-   * vertical padding and an 8px child gap spaces its children wider than
-   * the box that holds them, and both shapes exist in this codebase
-   * today). Separate scales would rename that inconsistency instead of
-   * giving anyone the vocabulary to fix it.
-   *
-   * The grid is 2px, not the conventional 4px, because that is what the
-   * code actually is: 1250 of the 1350 hardcoded px values already sit
-   * on an even step, and a 4px grid would have forced 607 declarations
-   * to move. 6px (264 uses) and 10px (73 uses) are real, load-bearing
-   * steps that the previous five-value `theme.space` guess omitted
-   * entirely; at 11px to 14px type, 2px is a visible unit.
-   *
-   * Nine rungs land 1274 declarations exactly and snap 71.
-   *
-   * Which rung to reach for:
-   *   hair  Sub-scale. Hairline separation only: the seam between two
-   *         stacked text lines in one readout, the inset that sits
-   *         against a 1px border on a pill. NOT the smallest inset step.
-   *         It exists so these sites can be tokenised without being
-   *         rounded up to 2px, which visibly inflates every chip.
-   *   2     Tightest real rhythm: row gap in a label-over-value grid,
-   *         segmented-control track inset.
-   *   4     Tight: list-item child gap, icon hit-area padding.
-   *   6     Dense inset: the row and card inset for compact widgets.
-   *   8     THE DEFAULT. Panel body gap, card inset, standard child gap.
-   *         `PanelBody` is `padding: 8px 16px 12px` with `gap: 8px`, so
-   *         8 is simultaneously the body's vertical inset and its child
-   *         gap; that equality is the repo's canonical rhythm. Start
-   *         here and only step away with a reason.
-   *   10    Roomier card and pill inset. Kept because 73 declarations
-   *         depend on it, not because the ladder needed a rung there.
-   *   12    Section inset, nesting-ladder top inside a widget.
-   *   16    Panel horizontal inset. Cross-package locked: PanelTitle,
-   *         PanelBody and EmptyState all align on it, so any widget
-   *         re-inserting a local text inset must use this rung or it
-   *         will not line up with the title above it.
-   *   24    Screen and modal outer inset. Page chrome, not widget
-   *         chrome; do not use it inside a dashboard tile.
-   *
-   * Pair the inset and the gap from this ladder as an ordered pair. The
-   * house rule the code already half-follows: child gap <= container
-   * vertical inset, and horizontal inset >= vertical inset.
+   * The rungs are raw material for the semantic names below and for nothing
+   * else. Only this file reads them, and only to define a name; every other
+   * file in the repo reads the name, which is enforced by the spacing gate in
+   * packages/core/src/styleguide-widget-spacing.test.ts. A rung says how many
+   * pixels. A name says which job, and the job is what a reader needs and
+   * what a container can change.
    */
   --space-hair: 1px;
   --space-2: 2px;
@@ -419,171 +382,486 @@ textarea {
   --space-24: 24px;
 
   /*
-   * SEMANTIC SPACING. Names for the JOB a space does, over the rungs above.
+   * SEMANTIC SPACING. Every gap, inset, offset, indent and spacing-derived
+   * size in the app, named for its job.
    *
-   * The ladder answers "which number", and by itself that is the
-   * complaint: the three commonest gap rungs are 6, 8 and 4 at roughly
-   * 110 declarations each, three numbers doing one job. These names
-   * answer "which job", and they carry a second property the rungs
-   * cannot. They are custom properties, so a container can re-declare
-   * the subset it changes and every descendant inherits the new value:
-   * `Card` says a card is a compact surface once, and a widget written
-   * as `gap: var(--gap-related)` is 8px on a panel and 6px inside a
-   * card without its author writing a conditional or learning either
-   * number.
+   * A site whose job has no name here gets one: add it to the right family,
+   * defined from the rungs or from another name, and read it. Two sites share
+   * a name only when they do the same job at the same size, so a name is safe
+   * to change for everything that reads it.
+   *
+   * Families, by the axis the space sits on:
+   *   --gap-*     between siblings, as a `gap` or as the margin that stands
+   *               in for one in flow layout
+   *   --inset-*   inside an edge, as `padding`. Two- and three-value insets
+   *               are ordered vertical/horizontal and belong in the
+   *               `padding` shorthand, never `padding-inline`
+   *   --outset-*  outside an edge, as `margin`, where the box and not its
+   *               siblings decides the distance
+   *   --gutter-*  one axis of an inset that several boxes share so their
+   *               content lines up down a column
+   *   --indent-*  a leading inset nesting a child under its parent
+   *   --offset-*  the distance an absolutely positioned box keeps from the
+   *               edge it is pinned to
+   *   --size-*    a box dimension that sits on the spacing grid
+   *
+   * The two context names, --gap-related and --gap-section, STEP: a
+   * container re-declares them from its tier (`Card` is compact, `Panel`
+   * and `Notice` comfortable) and everything inside inherits the new value.
+   * The related tiers run comfortable, compact, dense and packed.
+   * Every other name is a constant. A tier constant read directly
+   * (--gap-related-compact) is the related gap of that tier wherever it
+   * sits, which is how a widget spaces blocks in flow without inheriting a
+   * card's step.
    *
    * Every name is declared HERE, at `:root`, and a container only ever
    * overrides. A name that resolves nowhere computes to nothing and the
-   * declaration is dropped, which for a gap is a silently collapsed
-   * layout rather than a visible error.
-   *
-   * A NAME EARNS THIS MECHANISM ONLY IF IT ANSWERS ONE OF TWO
-   * QUESTIONS WITH SOMETHING A RUNG CANNOT SAY.
-   *
-   *   1. Does it RESOLVE DIFFERENTLY BY CONTEXT? A tier steps it, and
-   *      the stepping is a statement about the container. Both gap
-   *      names qualify.
-   *   2. Does it express a SHAPE the ladder cannot? An ordered
-   *      vertical/horizontal pair is not a rung and no rung reference
-   *      can be one. All six insets qualify.
-   *
-   * A name with neither is a number wearing a word, and it costs more
-   * than the rung it replaces: two spellings of one constant, and an
-   * author who has to guess which of two sizes their list is. Eight
-   * names pass that test; three did not, and the record of what went
-   * and why is below, because a deleted name comes back otherwise.
-   *
-   * GAPS, between siblings. Single-valued, and they round UPWARD from
-   * the rungs they absorb:
-   *   related   THE DEFAULT. Items of the same kind. Absorbs 2, 4, 6
-   *             and 8.
-   *   section   Between groups of different kinds. Absorbs 12 and 16.
-   *
-   * INSETS, inside an edge. Two-value shorthands, because 199 of the
-   * padding declarations in the app are asymmetric vertical/horizontal
-   * pairs across 26 distinct combinations and a single value cannot
-   * express `1px 6px`. Write them in the `padding` shorthand and
-   * nowhere else; `padding-inline` would silently transpose the pair.
-   *   chip     A label that sits in the text flow and is sized by its
-   *            text: a badge, a pill, an inline code span. Vertical is
-   *            `hair`, NOT 2: the ladder comment above exists to stop
-   *            exactly that rounding, which visibly inflates every chip.
-   *   control  A box you press or type into, on the `--control-height`
-   *            floor. The other half of that token's own definition: a
-   *            default `Button` is 12 inset + 2 border + a 14px glyph
-   *            = 28. It is the PRESSABLE class, not the value: three
-   *            boxes in the tree share (6,12) and are not controls
-   *            (`BannerPill` says `pointer-events: none` outright),
-   *            and they keep the rungs with that written beside them.
-   *   control-compact
-   *            The same PRESSABLE class in a box that physically cannot
-   *            reach that floor, which is a real population rather than
-   *            a preference: `GridItemContent`'s drag header is 18px and
-   *            its glyphs are sized to fit it, so `control` would draw a
-   *            24px box inside an 18px handle. The arithmetic is
-   *            `control`'s own, a tier down: 2 inset + 2 border + a 14px
-   *            glyph = 18, which is that header exactly. The vertical is
-   *            `hair` and not 2 for the reason the header comment gives
-   *            at length, that a `--font-size-sm` glyph on a coarse
-   *            pointer is 15px of box, so at 2 it leaves half a pixel per
-   *            side on the primary drag affordance.
-   *
-   *            A fourth NAME and not a tier declared on `control`,
-   *            because the two halves of a control are its inset and its
-   *            HEIGHT. A container that stepped the inset alone would
-   *            leave a kit `Button` inside it at `--control-height`'s 28
-   *            with a 1px inset rattling in it, and stepping both means
-   *            every control in that subtree becomes compact whether or
-   *            not it fits. These ten sites are compact because of what
-   *            each one is, so each one says so.
-   *   control-prominent
-   *            The same PRESSABLE class one tier ABOVE that floor, for a
-   *            control that stands on its own rather than sitting in a
-   *            row of form controls: an Uplink's processor picker, enlarged
-   *            after 2026-07-15 feedback that the bare picker read as drab,
-   *            and the banner pill you dismiss, which is a target the
-   *            operator hits at a glance rather than one they have
-   *            already travelled to. Both sites override a kit component
-   *            that already supplies `control`'s (6,12), and in both the
-   *            enlargement IS the override, so writing `control` there
-   *            would undo the line it replaced.
-   *
-   *            Vertical only. The horizontal is `control`'s 12 unchanged,
-   *            because what these boxes want is height to be hit, not
-   *            width to hold more text, and the ladder above requires
-   *            horizontal >= vertical of every inset.
-   *
-   *            A NAME and not a tier on `control`, which is
-   *            `control-compact`'s argument the other way up: `Card.tsx`
-   *            says the insets do not step, and a container that stepped
-   *            this one would enlarge every control in its subtree,
-   *            including kit `Button`s still sized by --control-height.
-   *   surface  A bordered or filled box that holds content: a card, a
-   *            record in a list, a banner, a popover. `Card`'s own
-   *            inset, which is why this is not called `row`.
-   *   surface-standalone
-   *            A card that IS its screen: the serial menu's device cards
-   *            and the input tab's binding cards, whose panels hold
-   *            nothing but cards of that one kind, each holding its own
-   *            select and buttons. `surface` is what a record wears when
-   *            it is one item inside a page that has other content, so
-   *            the difference is the card's ROLE and not the density of
-   *            whatever contains it, which is exactly why a `Card` tier
-   *            cannot say it. Both sites reach this by doing
-   *            `styled(Card)` over the very token the name would be.
-   *
-   * NOT NAMED, and each absence is a decision:
-   *   hair gaps           `gap: var(--space-hair)`. A name for this
-   *                       resolved to 1px in every context that will
-   *                       ever exist (`Card.tsx` says so in writing:
-   *                       the bottom of the ladder does not step), so
-   *                       it failed test 1 and had no shape to plead
-   *                       under test 2. 1px is not a spacing decision,
-   *                       it is the smallest value that stops two
-   *                       glyph boxes touching.
-   *   a 4px gap           There was a `--gap-tight` and it was a size.
-   *                       Nothing separated it from `related`: the
-   *                       same styled-component nouns sat on both, one
-   *                       element used both on adjacent lines to mean
-   *                       AXIS, and both tiers defined it as exactly
-   *                       one rung below `related`, which is a size
-   *                       relation written down. Density belongs on
-   *                       the container, where it composes, not on a
-   *                       second name for each seam.
-   *   hierarchy indent    There was an `--indent-step` at 16px, with
-   *                       zero call sites and the wrong value for 18
-   *                       of its 19 candidates: one real indent, and
-   *                       18 2-to-6px nudges pushing a badge or a unit
-   *                       off the text beside it. A margin standing in
-   *                       for a gap is a layout problem, not a
-   *                       vocabulary one. Both keep their rungs.
-   *   the (10,16) band    There was an `--inset-panel` and `PanelBody`
-   *                       did not use it. Its population was banners,
-   *                       buttons, cards, rows, modal chrome and
-   *                       coarse-pointer touch targets, and
-   *                       `FileInput.tsx` carries a written refusal to
-   *                       write a 44px touch target as one. The 16 is
-   *                       the cross-package gutter lock the ladder
-   *                       above documents, so the sites that want it
-   *                       name that rung and say why.
-   *
-   * What these names do NOT cover, stated because a vocabulary that
-   * claims everything is not usable: uniform, three-value, single-side
-   * and mixed paddings, every `margin`, the asymmetric `gap: A B`
-   * declarations that carry their own written rationale, and the
-   * negative `calc()` bleeds. Measured over the app's ~1,200 rung
-   * references in a spacing property, these names reach a little under
-   * half. The rest stay on the ladder above, on purpose and for good.
+   * declaration is dropped, which for a gap is a silently collapsed layout.
    */
-  --gap-related: var(--space-8);
-  --gap-section: var(--space-16);
 
-  --inset-chip: var(--space-hair) var(--space-6);
-  --inset-control: var(--space-6) var(--space-12);
-  --inset-control-compact: var(--space-hair) var(--space-4);
-  --inset-control-prominent: var(--space-8) var(--space-12);
+  /* Context gaps, and the tiers a container steps them to. */
+  --gap-related-comfortable: var(--space-8);
+  --gap-related-compact: var(--space-6);
+  --gap-related-dense: var(--space-4);
+  --gap-related-packed: var(--space-2);
+  --gap-section-comfortable: var(--space-16);
+  --gap-section-compact: var(--space-12);
+  /* Items of the same kind. THE DEFAULT gap. */
+  --gap-related: var(--gap-related-comfortable);
+  /* Groups of different kinds. */
+  --gap-section: var(--gap-section-comfortable);
+
+  /* Lines and readouts. */
+  /* The seam that stops two stacked lines, rows or glyph boxes touching. */
+  --gap-line: var(--space-hair);
+  /* Stacked rows that each carry their own inset. */
+  --gap-rows: var(--space-2);
+  /* A caption, note, detail or wrapped second line directly under its owner. */
+  --gap-caption: var(--space-2);
+  /* A subordinate readout, chip or line under a figure, one step looser. */
+  --gap-sub-readout: var(--space-4);
+  /* Row seam in a label/value readout grid. */
+  --gap-readout-row: var(--space-2);
+  /* Column gap between a label and its value. */
+  --gap-label-value: var(--space-8);
+  /* The same, in a readout squeezed to fit a narrow tile. */
+  --gap-label-value-tight: var(--space-6);
+  /* A value and the tag, chip, unit or caption running beside it. */
+  --gap-value-tag: var(--space-6);
+  /* A label and the figure, separator or suffix it runs straight into. */
+  --gap-lead-figure: var(--space-2);
+  /* A unit symbol set off the figure it qualifies. */
+  --gap-unit-suffix: var(--space-2);
+  /* The parts of one figure: value and unit, or both ends of a range. */
+  --gap-figure-parts: var(--space-4);
+  /* Text and a trailing count, value or distance. */
+  --gap-trailing-figure: var(--space-4);
+  /* Text and a trailing unit, dot, bullet or pill. */
+  --gap-trailing-mark: var(--space-6);
+  /* The horizontal margin either side of a hairline rule between fields. */
+  --gap-rule: var(--space-4);
+  /* A title and the hairline rule drawn under it. */
+  --gap-title-rule: var(--space-4);
+  /* A title or caption and the block it heads. */
+  --gap-under-title: var(--space-4);
+  /* A row's name and its trailing content. */
+  --gap-row: var(--space-8);
+  /* The lines of a row allowed to wrap. */
+  --gap-row-wrap: var(--space-4);
+  /* A headline name and the figure or meta beside it. */
+  --gap-headline: var(--space-10);
+  /* Consecutive readout groups, each already carrying its own section seam. */
+  --gap-readout-groups: var(--space-10);
+  /* Lines of the centred content a tiny tile shows, and a hero value's caption. */
+  --gap-tiny-content: var(--space-4);
+  /* Cells in a stat strip. */
+  --gap-stat-strip: var(--space-6);
+  /* A row meter group stacked on one MeterStack's columns. */
+  --gap-meter-rows: var(--space-2);
+  /* A meter's label, bar and figure columns. */
+  --gap-meter-columns: var(--space-8);
+  /* The four bars of one signal-strength glyph. */
+  --gap-signal-bars: var(--space-2);
+  /* A data line: wrapped rows, then label to value. */
+  --gap-data-line: var(--space-4) var(--space-6);
+  /* A delay legend: wrapped rows, then entries. */
+  --gap-legend: var(--space-4) var(--space-12);
+  /* A contract's reward chips: wrapped rows, then chips. */
+  --gap-rewards: var(--space-2) var(--space-12);
+  /* The two columns of a tag suggestion. */
+  --gap-suggestion-columns: var(--space-12);
+
+  /* Glyphs and controls. */
+  /* A glyph and its label in a compact control, a legend or a tick. */
+  --gap-glyph: var(--space-4);
+  /* A glyph and its label in a full-size control. */
+  --gap-glyph-control: var(--space-6);
+  /* A glyph and its text inside a bordered status or message box. */
+  --gap-glyph-box: var(--space-8);
+  /* Adjacent glyph buttons in a tile header's tray. */
+  --gap-glyph-tray: var(--space-2);
+  /* A pill's glyph and label, and a FAB's label and button. */
+  --gap-pill: var(--space-10);
+  /* A file or screenshot and the name or caption beside it. */
+  --gap-attachment: var(--space-10);
+  /* Controls side by side in a row: form actions, a toolbar, a modal footer. */
+  --gap-control-row: var(--space-8);
+  /* Buttons packed into a grid. */
+  --gap-chips: var(--space-4);
+  /* A stepper's minus, value and plus. */
+  --gap-stepper: var(--space-4);
+  /* A cluster set apart from the cluster before it on one line. */
+  --gap-inline-cluster: var(--space-6);
+  /* A tab strip's tabs. */
+  --gap-tab: var(--space-2);
+  /* A tab strip and the panel it switches. */
+  --gap-tabs-panel: var(--space-12);
+  /* A disclosure trigger and the panel it opens. */
+  --gap-disclosure: var(--space-2);
+  /* A record's lead-in and its name. */
+  --gap-record-lead: var(--space-6);
+  /* The lines inside a free-standing card on a sheet. */
+  --gap-card-lines: var(--space-4);
+
+  /* Forms. */
+  /* A field's label and its input, stacked. */
+  --gap-field-label: var(--space-6);
+  /* The same in a compact field. */
+  --gap-field-label-compact: var(--space-4);
+  /* A label, input and suffix laid out in a row. */
+  --gap-field-label-inline: var(--space-8);
+  /* A read-only field's term and its value. */
+  --gap-field-term: var(--space-12);
+  /* The fields of a form section. */
+  --gap-form-field: var(--space-16);
+  /* The fields of a boxed form. */
+  --gap-form-field-boxed: var(--space-6);
+  /* An extra row hung under a field: a tag list, a screenshot, a listening state. */
+  --gap-under-field: var(--space-6);
+  /* A unit input's stepped parts. */
+  --gap-unit-parts: var(--space-6);
+  /* A heading and the hint line under it. */
+  --gap-heading-hint: var(--space-6);
+
+  /* Blocks in flow. */
+  /* A row of actions closing the block above it. */
+  --gap-actions: var(--space-4);
+  /* The actions at the foot of a card. */
+  --gap-card-actions: var(--space-6);
+  /* A control row closing a list or an editor. */
+  --gap-list-footer: var(--space-2);
+  /* A heading opening the next group in a list. */
+  --gap-list-heading: var(--space-4);
+  /* The next section of the maneuver planner. */
+  --gap-planner-section: var(--space-4);
+  /* A graph series' configuration group. */
+  --gap-config-group: var(--space-4);
+  /* A crew row's contributed meters and the next row. */
+  --gap-crew-meters: var(--space-4);
+  /* The stage breakdown opening under the resource meters. */
+  --gap-stage-section: var(--space-10);
+  /* A toolbar's rule and the table under it. */
+  --gap-toolbar: var(--space-4);
+  /* A section opening below a rule inside a popover. */
+  --gap-popover-section: var(--space-12);
+  /* A footnote below the list it closes. */
+  --gap-footnote: var(--space-10);
+  /* The mission bar and the screen under it. */
+  --gap-mission-bar: var(--space-8);
+  /* Prose blocks. */
+  --gap-prose: var(--space-10);
+  /* Items of a prose list. */
+  --gap-prose-item: var(--space-4);
+
+  /* Panels. */
+  /* A panel's horizontal gutter, shared by its title, toolbar, body, sidebar
+     and footer so their content lines up down one column. */
+  --gutter-panel: var(--space-16);
+  --inset-panel-top: var(--space-8);
+  --inset-panel-bottom: var(--space-12);
+  --inset-panel-body: var(--inset-panel-top) var(--gutter-panel)
+    var(--inset-panel-bottom);
+  --inset-panel-header: 0 var(--gutter-panel) var(--space-8);
+  /* Above the header row, and above a floating header's title and aside. */
+  --inset-panel-header-top: var(--space-6);
+  --inset-panel-footer: var(--space-6) var(--gutter-panel) var(--space-8);
+  /* A panel header's title and its aside. */
+  --gap-panel-header: var(--space-8);
+  /* Items in a panel header's aside. */
+  --gap-panel-aside: var(--space-4);
+  /* Sections side by side in a panel body. */
+  --gap-panel-columns: var(--space-16);
+  /* Sections stacked in a panel body's grid. */
+  --gap-panel-sections: var(--space-12);
+  /* The band every panel reserves at its top edge for the delay rail. */
+  --panel-rail-band: var(--space-16);
+
+  /* Command delay. */
+  /* The strips around a panel's commands, on the panel gutter. */
+  --outset-command-strip: var(--space-4) var(--gutter-panel);
+  /* The delay stream's legend, on the panel gutter. */
+  --outset-delay-legend: 0 var(--gutter-panel) var(--space-4);
+  --gap-delay-stream: var(--space-4);
+  --gap-delay-rail: var(--space-8);
+  --gap-rail-summaries: var(--space-8);
+  --offset-rail-hint: var(--space-4);
+  --gap-message-stack: var(--space-4);
+  --inset-command-list: var(--space-4) var(--space-8);
+  --gap-command-list-column: var(--space-8);
+  --gap-command-list-row: var(--space-2);
+  --gap-command-row: var(--space-6);
+
+  /* Surfaces. */
+  /* A bordered or filled box that holds content: a card, a record, a popover body. */
   --inset-surface: var(--space-6) var(--space-8);
+  /* A card that IS its screen, holding its own controls. */
   --inset-surface-standalone: var(--space-10) var(--space-12);
+  /* A label sized by its text: a badge, a pill, an inline code span. */
+  --inset-chip: var(--space-hair) var(--space-6);
+  /* The same on a larger badge. */
+  --inset-chip-roomy: var(--space-hair) var(--space-8);
+  /* A chip that carries a live reading. */
+  --inset-chip-readout: var(--space-2) var(--space-8);
+  /* A single-token status pill, and a message pill that shares its shape. */
+  --inset-pill: var(--space-6) var(--space-12);
+  /* A floating or full-width banner on the 16px gutter. */
+  --inset-banner: var(--space-8) var(--space-16);
+  /* An alert band that spans the app or a menu. */
+  --inset-alert-band: var(--space-10) var(--space-16);
+  /* A bordered status box sized to --control-height. */
+  --inset-status-box: var(--space-4) var(--space-8);
+  /* A popover's content. */
+  --inset-popover: var(--space-8);
+  /* The drop between an anchor and the popover it opens. */
+  --offset-popover: var(--space-4);
+  /* A popover shadow's offset and blur. */
+  --shadow-popover-drop: 0 var(--space-4) var(--space-12);
+  /* Visual content held inside a FramedDisplay. */
+  --inset-framed-display: var(--space-4);
+  /* A panel sharing a FramedDisplay slot, whose frame draws the edge. */
+  --inset-frame-panel: var(--space-8) var(--space-10);
+  /* A box pinned into its container's corner. */
+  --offset-corner: var(--space-4);
+  /* A graph notice pinned over the plot's bottom-left corner, and its inset. */
+  --offset-graph-notice-bottom: var(--space-4);
+  --offset-graph-notice-left: var(--space-8);
+  --inset-notice-pill: var(--space-2) var(--space-4);
+
+  /* Controls. */
+  /* A box you press or type into, on the --control-height floor. */
+  --inset-control: var(--space-6) var(--space-12);
+  /* The same class in a box that cannot reach the floor. */
+  --inset-control-compact: var(--space-hair) var(--space-4);
+  /* The same class standing on its own, one tier above the floor. */
+  --inset-control-prominent: var(--space-8) var(--space-12);
+  /* A small button, toggle or chip control. */
+  --inset-control-small: var(--space-2) var(--space-8);
+  /* The coarse-pointer widening of a control. */
+  --inset-control-touch: var(--space-8) var(--space-16);
+  /* The coarse-pointer widening of a small control. */
+  --inset-control-small-touch: var(--space-6) var(--space-10);
+  /* A chromeless glyph button. */
+  --inset-glyph-button: var(--space-2) var(--space-4);
+  /* A glyph button in a row, padded across only. */
+  --inset-glyph: 0 var(--space-4);
+  /* The same, packed tight against the row's text. */
+  --inset-glyph-tight: 0 var(--space-2);
+  /* A square icon-only button. */
+  --inset-icon-button: var(--space-6);
+  --inset-icon-button-compact: var(--space-4);
+  --inset-icon-button-tight: var(--space-2);
+  --inset-icon-button-touch: var(--space-8);
+  /* A command group's commit button. */
+  --inset-commit-button: var(--space-4) var(--space-12);
+  /* A compact button in a form's footer. */
+  --inset-form-footer-button: var(--space-4) var(--space-10);
+  /* A glyph button in a dense grid, taller than wide. */
+  --inset-warp-button: var(--space-6) var(--space-4);
+  /* A text button inside a FAB prompt. */
+  --inset-prompt-button: 0 var(--space-12);
+  /* A file picker's button on a coarse pointer. */
+  --inset-file-button-touch: var(--space-10) var(--space-16);
+  /* A momentary button on the virtual pad. */
+  --inset-pad-button: var(--space-10) 0;
+  /* A stepper's buttons and value. */
+  --inset-stepper: var(--space-4) var(--space-8);
+  --size-stepper-button: var(--space-24);
+  /* A switch label's touch target. */
+  --inset-switch-touch: 0 var(--space-6);
+  /* A segmented control's track. */
+  --inset-segment-track: var(--space-2);
+  /* A tab strip's track, and the selection blob inside it. */
+  --inset-tab-track: var(--space-4);
+  --inset-tab-compact: var(--space-4) var(--space-6);
+  --inset-tab-compact-touch: var(--space-4) var(--space-8);
+  /* A jog wheel's content, and its value label. */
+  --inset-jog-wheel: var(--space-4);
+  --inset-jog-wheel-compact: var(--space-2);
+  --inset-jog-wheel-label: 0 var(--space-2);
+  /* The room a Meter figure keeps for the not-current mark drawn outside it. */
+  --inset-meter-mark: var(--space-6);
+
+  /* Fields. */
+  --inset-field: var(--space-6) var(--space-8);
+  --inset-field-compact: var(--space-4) var(--space-6);
+  --inset-field-touch: var(--space-10) var(--space-12);
+  /* A boxed form's surface. */
+  --inset-form-box: var(--space-8) var(--space-10);
+  /* A search input flush in its band. */
+  --inset-search-input: var(--space-4) 0;
+
+  /* Menus, lists and tables. */
+  --inset-menu-list: var(--space-4) 0;
+  --inset-menu-item: var(--space-6) var(--space-8);
+  /* A group label, hugging the items under it. */
+  --inset-menu-group-label: var(--space-8) var(--space-8) var(--space-4);
+  --inset-empty-menu: var(--space-12) var(--space-8);
+  --inset-row: var(--space-2) 0;
+  --inset-row-pressable: var(--space-4) var(--space-6);
+  /* A row picked from a select-one list. */
+  --inset-selectable-row: var(--space-2) var(--space-4);
+  /* A nested row under its parent. */
+  --indent-row: var(--space-12);
+  /* A line of text flush in its container, given a little vertical room. */
+  --inset-line: var(--space-2) 0;
+  /* A part row in a dense parts list. */
+  --inset-part-row: var(--space-hair) 0;
+  /* A label/value row in an expanded detail. */
+  --inset-detail-row: var(--space-4) 0;
+  /* A section header lined up with the toggles beside it. */
+  --inset-list-heading: var(--space-2) var(--space-4);
+  --gutter-table-cell: var(--space-8);
+  --inset-table-cell: var(--space-4) var(--gutter-table-cell);
+  --inset-table-section: var(--space-6) var(--gutter-table-cell);
+  --inset-table-detail: 0 var(--gutter-table-cell) var(--space-6);
+  --inset-table-empty: var(--space-8);
+  --inset-table-footer: var(--space-10) var(--gutter-table-cell) var(--space-4);
+  /* A narrow column header, taller than wide. */
+  --inset-table-narrow-header: var(--space-6) var(--space-4);
+  /* A reach table's cells. */
+  --inset-reach-cell: var(--space-2) var(--space-4);
+  /* A fleet roster cell, and the contributed lines hung under its row. */
+  --gutter-roster-cell: var(--space-6);
+  --inset-roster-cell: 0 var(--gutter-roster-cell);
+  /* A transfer window row and the expander under it, sharing one gutter. */
+  --gutter-window-row: var(--space-12);
+  --inset-window-row: var(--space-8) var(--gutter-window-row);
+  --inset-window-expander: var(--space-8) var(--gutter-window-row)
+    var(--space-4);
+  /* A tech node's expanded body, under the node row's own inset. */
+  --inset-node-body: var(--space-4) var(--space-10) var(--space-8);
+  /* A tech-graph card, sized against its fixed card height. */
+  --inset-graph-card: var(--space-4) var(--space-8);
+  /* The vessel switch panel. */
+  --inset-switch-panel: var(--space-2);
+  /* The spacing around a reveal toggle at a list header. */
+  --outset-reveal-toggle: var(--space-2) var(--space-2) var(--space-4);
+  /* A compact tile's funds and drain rows. */
+  --inset-tiny-row: 0 var(--space-12) var(--space-6);
+
+  /* Rules. */
+  /* Content opening below a divider rule. */
+  --inset-below-rule: var(--space-6);
+  /* A footnote below its rule. */
+  --inset-footnote-rule: var(--space-8);
+  /* A toolbar above its bottom rule. */
+  --inset-toolbar-bottom: var(--space-10);
+
+  /* Messages and empty states. */
+  /* A message that fills its container. */
+  --inset-empty-state: var(--space-16);
+  /* A message that fills a tile: an error, a placeholder, a no-data note. */
+  --inset-tile-message: var(--space-12);
+  /* A one-line "nothing here" note in a list. */
+  --inset-empty-note: var(--space-8) 0;
+  --inset-empty-roster: var(--space-6) 0;
+  --inset-empty-modal-list: var(--space-12) 0;
+  --inset-empty-popover: var(--space-16) 0;
+  --inset-chart-empty: var(--space-24) 0;
+  /* A widget's refusal to draw. */
+  --inset-refusal: var(--space-8);
+  /* A message standing in for a whole screen. */
+  --inset-screen-message: var(--space-24);
+  /* A stand-in box with no content of its own. */
+  --inset-placeholder: var(--space-8);
+  /* Contributed plots, framed by themselves. */
+  --inset-contributed-plots: var(--space-8) 0;
+  /* The maneuver planner's shortfall banner. */
+  --inset-feasibility-banner: var(--space-6) var(--space-10);
+  /* A bordered inline confirmation bar. */
+  --inset-confirm-bar: var(--space-10);
+
+  /* Screens, overlays and modals. */
+  /* A screen's outer gutter, before any safe-area inset. */
+  --gutter-screen: var(--space-24);
+  /* The gutter of a widget screen whose children draw no edge of their own. */
+  --gutter-screen-body: var(--space-8) var(--space-12);
+  /* The dashboard grid's gutter between tiles. */
+  --gutter-dashboard: var(--space-8);
+  /* A tile's drag header. */
+  --inset-tile-header: 0 var(--space-4);
+  /* A dialog that stands alone over the app. */
+  --inset-dialog: var(--space-24);
+  --inset-modal-bar: var(--space-12) var(--space-16);
+  --inset-modal-body: var(--space-16);
+  /* The bands of a full-surface overlay, on one gutter. */
+  --gutter-overlay: var(--space-16);
+  --inset-overlay-band: var(--space-12) var(--gutter-overlay);
+  --inset-overlay-heading: var(--space-6) var(--gutter-overlay);
+  --inset-overlay-chips: var(--space-10) var(--gutter-overlay);
+  --inset-overlay-empty: var(--space-24) var(--gutter-overlay);
+  /* A reference sheet's header and body. */
+  --inset-reference-sheet: var(--space-10) var(--space-16);
+  /* The mission bar. */
+  --inset-mission-bar: 0 var(--space-2);
+  /* The Go/No-Go board. */
+  --inset-gonogo-board: var(--space-12);
+  /* A QR code's quiet zone. */
+  --inset-qr: var(--space-12);
+  /* A settings row, and a nested settings row. */
+  --inset-settings-row: var(--space-6) 0;
+  --indent-settings: var(--space-16);
+  /* The chapter editor's band. */
+  --inset-chapters-band: var(--space-10) var(--space-12) var(--space-12);
+  /* A device-picker row. */
+  --inset-picker-row: var(--space-6) 0;
+  /* A wizard, and the boxes inside it. */
+  --inset-wizard: var(--space-12);
+  --inset-wizard-box: var(--space-8);
+  /* A virtual device's frame buffer. */
+  --inset-device-display: var(--space-8);
+  /* The virtual pad's centre mark, off its track's ends. */
+  --offset-pad-mark: var(--space-4);
+  /* An inline code run in a banner. */
+  --inset-code-inline: 0 var(--space-2);
+  /* A free-standing sheet of cards, and a card on it. */
+  --inset-sheet: var(--space-12);
+  --inset-sheet-card: var(--space-8) var(--space-12);
+
+  /* Consoles and logs. */
+  /* A scrolling log's inner inset. */
+  --inset-log: var(--space-8);
+  /* A console's foot, and the chips pinned to its edges. */
+  --inset-console-foot: var(--space-8);
+  /* The foot's top when a reading straddles the composer's border. */
+  --inset-console-foot-straddled: var(--space-16);
+  --gap-console-foot: var(--space-6);
+  --gap-console-readings: var(--space-6);
+  --gap-composer: var(--space-6);
+  /* The prompt glyph and the line typed after it. */
+  --gap-prompt-glyph: var(--space-8);
+
+  /* Indents and marks. */
+  /* A contributed aside or detail under the row it belongs to. */
+  --indent-aside: var(--space-8);
+  /* The burn axis, off the row's leading edge. */
+  --indent-burn-axis: var(--space-8);
+  --size-burn-axis: var(--space-12);
+  --size-burn-mark: var(--space-6);
+  /* A short mark rather than a rule: a card's identity tab, a threshold tick. */
+  --size-mark: var(--space-24);
+  /* The height a comms hop keeps with no detail to show. */
+  --size-comms-hop: var(--space-16);
 
   /*
    * RADIUS. Three jobs plus two shape sentinels.
@@ -636,6 +914,8 @@ textarea {
   --radius-regular: 3px;
   --radius-floating: 6px;
   --radius-display-frame: 8px;
+  /* What `Block`'s side asides step --radius-display-frame to. */
+  --radius-display-frame-aside: 4px;
   --radius-pill: 999px;
   --radius-circle: 50%;
 
