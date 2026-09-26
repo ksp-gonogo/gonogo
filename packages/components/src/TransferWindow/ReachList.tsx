@@ -1,6 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Badge, NULL_DISPLAY, Text, Unit } from "@ksp-gonogo/ui-kit";
-import styled from "styled-components";
 import { type HeldSince, heldFigure } from "./heldFigure";
 import {
   bodyLabel,
@@ -9,7 +8,20 @@ import {
   VERDICT_LABEL,
   VERDICT_SEVERITY,
 } from "./labels";
-import { ListTitle, ListWrap, Muted } from "./layout";
+import {
+  BudgetReadout,
+  ListTitle,
+  ListWrap,
+  Muted,
+  ReachFooter,
+  ReachHead,
+  ReachPick,
+  ReachScroll,
+  ReachTable,
+  ReachTd,
+  ReachTdNum,
+  ReachTh,
+} from "./styles";
 import { type ReachEntry, reachVerdict } from "./transferData";
 
 /**
@@ -154,85 +166,3 @@ export function ReachList({
     </ListWrap>
   );
 }
-
-/**
- * The destination cell as a `<button>`, so the row stays a row for a screen
- * reader and picking is keyboard-reachable. `aria-pressed` carries the scope,
- * since the visual cue is a colour.
- */
-const ReachPick = styled.button<{ $selected: boolean }>`
-  appearance: none;
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  cursor: pointer;
-  text-align: left;
-  color: ${(p) => (p.$selected ? "var(--color-accent-fg)" : "inherit")};
-
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
-`;
-
-const ReachHead = styled.div`
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--gap-related);
-  flex-wrap: wrap;
-`;
-
-const BudgetReadout = styled.span`
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--gap-related);
-  font-size: var(--font-size-compact);
-  font-variant-numeric: tabular-nums;
-`;
-
-// Scrolls rather than clipping at narrow placements, so no column is lost silently; `min-width` keeps columns from collapsing.
-const ReachScroll = styled.div`
-  overflow-x: auto;
-  max-width: 100%;
-`;
-
-const ReachTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--font-size-compact);
-`;
-
-const ReachTh = styled.th`
-  text-align: left;
-  /* Shared with ReachTd below, which has to match it. */
-  padding: var(--inset-reach-cell);
-  color: var(--color-text-muted);
-  font-weight: normal;
-  font-size: var(--font-size-caption);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  border-bottom: 1px solid var(--color-border-subtle);
-
-  &:not(:first-child) {
-    text-align: right;
-  }
-`;
-
-const ReachTd = styled.td`
-  /* Matches ReachTh above. */
-  padding: var(--inset-reach-cell);
-  border-bottom: 1px solid var(--color-border-subtle);
-  white-space: nowrap;
-`;
-
-const ReachTdNum = styled(ReachTd)`
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-`;
-
-const ReachFooter = styled.div`
-  color: var(--color-text-dim);
-  font-size: var(--font-size-compact);
-`;

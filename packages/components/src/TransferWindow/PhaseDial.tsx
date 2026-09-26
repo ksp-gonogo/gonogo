@@ -1,6 +1,6 @@
 import type { TransferSolution } from "@ksp-gonogo/core";
-import styled from "styled-components";
 import { STATUS_LABEL } from "./labels";
+import { PhaseDialSvg } from "./styles";
 
 function phaseColor(status: TransferSolution["status"]): string {
   if (status === "go") return "var(--color-accent-fg)";
@@ -55,9 +55,3 @@ export function PhaseDial({ solution }: { solution: TransferSolution }) {
     </PhaseDialSvg>
   );
 }
-
-const PhaseDialSvg = styled.svg`
-  width: 96px;
-  height: 96px;
-  flex-shrink: 0;
-`;

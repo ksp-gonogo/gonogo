@@ -34,6 +34,9 @@ import {
 } from "./config";
 import type { HeldSince } from "./heldFigure";
 import { bodyLabel, STATUS_LABEL, STATUS_SEVERITY } from "./labels";
+import { PhaseDial } from "./PhaseDial";
+import { Porkchop } from "./Porkchop";
+import { ReachList } from "./ReachList";
 import {
   Body,
   ContentGrid,
@@ -45,10 +48,7 @@ import {
   NowRow,
   NowValue,
   RouteSelect,
-} from "./layout";
-import { PhaseDial } from "./PhaseDial";
-import { Porkchop } from "./Porkchop";
-import { ReachList } from "./ReachList";
+} from "./styles";
 import {
   computeTransfer,
   porkchopGridQuantum,

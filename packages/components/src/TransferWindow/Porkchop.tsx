@@ -1,8 +1,13 @@
 import type { PorkchopCell } from "@ksp-gonogo/core";
 import { kspCalendar, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { useId, useState } from "react";
-import styled from "styled-components";
-import { WIDE_AT } from "./layout";
+import {
+  Inspector,
+  MapBox,
+  MapSvg,
+  PorkchopTitle,
+  PorkchopWrap,
+} from "./styles";
 import type { buildTransferPorkchop } from "./transferData";
 
 // Continuous Δv to colour ramp, violet (cheap optimum) through to red (worst), with no discrete banding. `t` is the capped, normalised Δv in [0,1].
@@ -230,45 +235,3 @@ export function Porkchop({
     </PorkchopWrap>
   );
 }
-
-// Grows to fill the tile down to a minimum height; the SVG scales to fit undistorted.
-const MapBox = styled.div`
-  flex: 1 1 auto;
-  min-height: 220px;
-  min-width: 0;
-
-  @container (min-width: ${WIDE_AT}) {
-    min-height: 0;
-  }
-`;
-
-const MapSvg = styled.svg`
-  width: 100%;
-  height: 100%;
-  display: block;
-`;
-
-const PorkchopWrap = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-  min-width: 0;
-  flex: 1 1 auto;
-  min-height: 260px;
-
-  @container (min-width: ${WIDE_AT}) {
-    min-height: 0;
-  }
-`;
-
-const PorkchopTitle = styled.div`
-  color: var(--color-text-muted);
-  font-size: var(--font-size-value);
-`;
-
-const Inspector = styled.div`
-  font-size: var(--font-size-compact);
-  color: var(--color-text-dim);
-  font-variant-numeric: tabular-nums;
-  min-height: 1.2em;
-`;

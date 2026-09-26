@@ -1,10 +1,22 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Button, Unit } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import styled from "styled-components";
 import { type HeldSince, heldFigure } from "./heldFigure";
 import { fmtCountdown, fmtDays } from "./labels";
-import { ListWrap, SectionHead } from "./layout";
+import {
+  ColDv,
+  ColTof,
+  ColWait,
+  Expander,
+  ExpLabel,
+  ExpRow,
+  ExpValue,
+  List,
+  ListItem,
+  ListWrap,
+  SectionHead,
+  WindowRow,
+} from "./styles";
 import type { TransferWindowEntry } from "./transferData";
 
 export function WindowsList({
@@ -96,81 +108,3 @@ export function WindowsList({
     </ListWrap>
   );
 }
-
-const List = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-`;
-
-const ListItem = styled.li`
-  display: flex;
-  flex-direction: column;
-`;
-
-const WindowRow = styled.button<{ $selected: boolean }>`
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: var(--gap-section);
-  align-items: center;
-  width: 100%;
-  text-align: left;
-  padding: var(--inset-window-row);
-  background: ${({ $selected }) =>
-    $selected ? "var(--color-surface-raised)" : "transparent"};
-  border: 1px solid
-    ${({ $selected }) =>
-      $selected ? "var(--color-accent-fg)" : "var(--color-border-subtle)"};
-  border-radius: var(--radius-regular);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-compact);
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-
-  &:hover {
-    border-color: var(--color-border-strong);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
-`;
-
-const ColWait = styled.span`
-  color: var(--color-text-primary);
-`;
-
-const ColDv = styled.span`
-  color: var(--color-text-muted);
-`;
-
-const ColTof = styled.span`
-  color: var(--color-text-dim);
-`;
-
-const Expander = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-  padding: var(--inset-window-expander);
-`;
-
-const ExpRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  gap: var(--gap-section);
-`;
-
-const ExpLabel = styled.span`
-  color: var(--color-text-muted);
-  font-size: var(--font-size-compact);
-`;
-
-const ExpValue = styled.span`
-  color: var(--color-text-primary);
-  font-size: var(--font-size-value);
-  font-variant-numeric: tabular-nums;
-`;
