@@ -176,7 +176,7 @@ export function Section({
  */
 export const SectionTitle = styled.div<{ $rule?: boolean }>`
   margin: 0;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-value);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;

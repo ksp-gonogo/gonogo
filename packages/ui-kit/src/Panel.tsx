@@ -35,6 +35,7 @@ import {
 import { useStatusBreakdown } from "./status/useStatusBreakdown";
 import { useStatusContribution } from "./status/useStatusContribution";
 import { useStatusSummary } from "./status/useStatusSummary";
+import { titleText } from "./titleText";
 import { useElementSize } from "./useElementSize";
 import { useFittedTitle } from "./useFittedTitle";
 import { PanelAsideSizeProvider, useHeaderAsideFit } from "./usePanelAsideSize";
@@ -187,11 +188,7 @@ const PanelTitle__Box = styled.h3`
      header is its first element pays for it once, in the panel, rather than
      once here and again in the aside beside it. */
   padding: 0 var(--space-16, 16px) var(--space-8, 8px);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--color-text-dim);
+  ${titleText}
   /* Flush, not the browser's metrics-based "normal": this is single-line
      chrome text (never wraps, see white-space below), exactly the case
      --line-height-flush documents ("collapses the line box so an icon or a
