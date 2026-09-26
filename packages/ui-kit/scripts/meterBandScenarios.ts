@@ -265,8 +265,9 @@ export const SHEETS: MeterSheet[] = [
     title: "The row layout: a craft's tanks, one line each",
     blurb:
       "Label, bar and figure on one line, the unit written once after the " +
-      "capacity. The bar, the held treatment and the marks are the stacked " +
-      "form's, unchanged.",
+      "capacity. The rows share the stack's columns, so every bar starts and " +
+      "ends at one x. The bar, the held treatment and the marks are the " +
+      "stacked form's, unchanged.",
     width: 420,
     layout: "row",
     cases: [
@@ -304,9 +305,10 @@ export const SHEETS: MeterSheet[] = [
     id: "row-narrow",
     title: "The row layout where the line runs out",
     blurb:
-      "At a narrow width the figure drops to a line of its own at the " +
-      "trailing edge rather than being clipped, so its not-current mark stays " +
-      "visible.",
+      "Where the widest label, a bar and the widest figure no longer fit on " +
+      "a line, every figure moves under its bar at the trailing edge, " +
+      "together, so the bars still start and end at one x and no " +
+      "not-current mark is clipped.",
     width: 220,
     layout: "row",
     cases: [

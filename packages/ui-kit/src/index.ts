@@ -483,6 +483,7 @@ export {
   Meter,
   type MeterLayout,
   type MeterProps,
+  MeterRowGroup,
   MeterStack,
   type MeterTone,
   type MeterValue,
