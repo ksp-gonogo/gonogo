@@ -22,6 +22,7 @@ import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import {
   boundsStandApart,
+  heldNameMarker,
   InstrumentBound,
   InstrumentHeldMark,
   InstrumentNoFigure,
@@ -247,6 +248,7 @@ export function Tape<U extends string = string>({
         ? {
             role: "meter",
             "aria-label": sayHeld(ariaLabel ?? "Tape", caption),
+            ...heldNameMarker(caption),
             "aria-valuenow": clamped,
             "aria-valuemin": axisMin,
             "aria-valuemax": axisMax,
@@ -257,6 +259,7 @@ export function Tape<U extends string = string>({
                announced as a picture of nothing rather than as its foot. */
             role: "img",
             "aria-label": sayHeld(`${ariaLabel ?? "Tape"}: ${spoken}`, caption),
+            ...heldNameMarker(caption),
           })}
       style={fillHeight ? { height: "100%" } : undefined}
     >

@@ -25,6 +25,7 @@ import { bandIn, type Value } from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
 import {
   boundsStandApart,
+  heldNameMarker,
   InstrumentBound,
   InstrumentHeldMark,
   sayHeld,
@@ -217,6 +218,7 @@ export function Dial<U extends string = string>({
         ? {
             role: "meter",
             "aria-label": sayHeld(ariaLabel ?? "Dial", caption),
+            ...heldNameMarker(caption),
             "aria-valuenow": display,
             "aria-valuemin": axisMin,
             "aria-valuemax": axisMax,
@@ -227,6 +229,7 @@ export function Dial<U extends string = string>({
                announced as a picture of nothing rather than as its minimum. */
             role: "img",
             "aria-label": sayHeld(`${ariaLabel ?? "Dial"}: ${spoken}`, caption),
+            ...heldNameMarker(caption),
           })}
     >
       <svg

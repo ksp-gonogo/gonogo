@@ -1076,8 +1076,8 @@ function reportStaleness(
         "held mark(s) with no caption saying so, so the dot is on screen and a " +
         "screen reader is told nothing:\n  " +
         `${verdict.unannounced.slice(0, 6).join("\n  ")}\n` +
-        "Draw the figure through `Unit`, which puts a `data-unit-currency` " +
-        "caption beside its mark, rather than setting `data-not-current` by hand.",
+        "Draw the figure through `Unit` or hand the kit instrument the reading, " +
+        "each of which says its mark, rather than setting `data-not-current` by hand.",
     );
   }
   if (verdict.unchanged) {

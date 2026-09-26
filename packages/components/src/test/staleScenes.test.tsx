@@ -19,7 +19,8 @@ import {
  * through `Unit` ANNOUNCES: its `[data-not-current]` quantity carries a
  * `[data-unit-currency]` caption. An instrument (`Gauge`, `Tape`, `Dial`) has
  * no text node to hold one, so it announces by ending its own accessible name
- * with the caption instead. One marked with neither is SILENT,
+ * with the caption instead, and stamps `data-currency-in-name` when it has.
+ * One marked with neither is SILENT,
  * which only a render can tell apart from the first, since in source the two
  * are the same attribute. A widget can also mark nothing and still change,
  * withdrawing a judgement where it would otherwise hold a figure. And it can
@@ -121,16 +122,14 @@ interface Rendered {
 }
 
 /**
- * The caption an instrument says on the end of its accessible name, or null
- * where the name carries none. The kit writes it as `<name>, <GRADE>` with an
- * optional `, as of <instant>`, and every grade word is a single capitalised
- * token, so a name that merely contains a comma does not pass for one.
+ * The accessible name an instrument says its currency in, or null where the kit
+ * stamped no `data-currency-in-name`, which it sets only on a name it ended
+ * with a caption.
  */
 function instrumentCaption(mark: Element): string | null {
-  const name = mark.getAttribute("aria-label");
-  if (name === null) return null;
-  const said = /, ([A-Z]+(?:, as of .+)?)$/.exec(name);
-  return said ? said[1] : null;
+  return mark.hasAttribute("data-currency-in-name")
+    ? mark.getAttribute("aria-label")
+    : null;
 }
 
 async function rendered(

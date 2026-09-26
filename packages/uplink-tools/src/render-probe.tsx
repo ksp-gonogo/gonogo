@@ -59,6 +59,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
 import { auditMinFit, type MinFitFinding } from "./render/minFit";
 import {
+  announcesHeld,
   HOST_DRAWN_CONTRIBUTION_SEGMENTS,
   PROBE_CHROME_ATTR,
   RENDER_PROBE_GLOBAL,
@@ -1282,9 +1283,9 @@ function measure(host: HTMLElement): {
  * that shifted because a guest mounted before an element would otherwise make
  * the host's own element look changed.</p>
  *
- * <p>A `data-not-current` element with no `data-unit-currency` caption inside it
- * is tagged {@link UNANNOUNCED_MARK}: the dot is drawn, and nothing tells a
- * screen reader the figure is held.</p>
+ * <p>A `data-not-current` element that does not {@link announcesHeld} is tagged
+ * {@link UNANNOUNCED_MARK}: the dot is drawn, and nothing tells a screen reader
+ * the figure is held.</p>
  */
 function describeElements(host: HTMLElement): string[] {
   const lines: string[] = [];
@@ -1304,10 +1305,7 @@ function describeElements(host: HTMLElement): string[] {
       .replace(/\s+/g, " ")
       .trim();
     let line = `<${el.tagName.toLowerCase()} ${attributes.join(" ")}> ${own}`;
-    if (
-      el.hasAttribute("data-not-current") &&
-      el.querySelector("[data-unit-currency]") === null
-    ) {
+    if (el.hasAttribute("data-not-current") && !announcesHeld(el)) {
       line += ` ${UNANNOUNCED_MARK}`;
     }
     lines.push(line);

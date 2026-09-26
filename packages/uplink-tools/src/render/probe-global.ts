@@ -50,7 +50,20 @@ export const HOST_DRAWN_CONTRIBUTION_SEGMENTS = ["badges"] as const;
 
 /**
  * The tag the probe appends to an element drawn as held (`data-not-current`)
- * with no `data-unit-currency` caption inside it: a mark a reader can see and a
+ * that {@link announcesHeld} says is silent: a mark a reader can see and a
  * screen reader is told nothing about.
  */
 export const UNANNOUNCED_MARK = "(held, unannounced)";
+
+/**
+ * Whether an element drawn held says so to a screen reader: through a
+ * `data-unit-currency` caption inside it, the way `Unit` does, or through its
+ * own accessible name, which the kit's instruments end with the caption and
+ * stamp `data-currency-in-name`.
+ */
+export function announcesHeld(el: Element): boolean {
+  return (
+    el.hasAttribute("data-currency-in-name") ||
+    el.querySelector("[data-unit-currency]") !== null
+  );
+}

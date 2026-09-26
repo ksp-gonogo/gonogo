@@ -126,6 +126,17 @@ export function sayHeld(name: string, caption: string | null): string {
 }
 
 /**
+ * The attribute that says the element's accessible name ends with a
+ * {@link sayHeld} caption, which is how a render check tells an instrument that
+ * announces its held mark from one that draws the mark silently.
+ */
+export function heldNameMarker(caption: string | null): {
+  "data-currency-in-name"?: "";
+} {
+  return caption === null ? {} : { "data-currency-in-name": "" };
+}
+
+/**
  * What an instrument shows in place of a needle when the reading carries no
  * number at all.
  *

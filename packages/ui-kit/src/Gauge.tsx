@@ -2,6 +2,7 @@ import { bandIn, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import {
   boundsStandApart,
+  heldNameMarker,
   InstrumentBound,
   InstrumentHeldMark,
   InstrumentNoFigure,
@@ -200,6 +201,7 @@ export function Gauge<U extends string = string>({
         viewBox={`0 0 ${Math.max(0, width)} ${Math.max(0, height)}`}
         role="img"
         aria-label={sayHeld(ariaLabel ?? `Gauge: ${spoken}`, caption)}
+        {...heldNameMarker(caption)}
         style={{ display: "block", maxWidth: "100%", height: "auto" }}
       >
         <title>{ariaLabel ?? "Gauge"}</title>
@@ -227,6 +229,7 @@ export function Gauge<U extends string = string>({
       viewBox={`0 0 ${width} ${height}`}
       role="img"
       aria-label={sayHeld(ariaLabel ?? `Gauge: ${spoken}`, caption)}
+      {...heldNameMarker(caption)}
       data-not-current={notCurrent ? "" : undefined}
       style={{
         display: "block",
