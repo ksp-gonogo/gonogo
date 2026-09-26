@@ -6,8 +6,8 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { OrbitalAscentComponent } from "./index";
 
 /** Proves the parent-body name resolves off the real stream pipeline, with no DataSource registered. */
-describe("OrbitalAscent: v.body genuinely runs off the stream (R6)", () => {
-  it("resolves the streamed parent-body name off the real pipeline, not legacy", async () => {
+describe("OrbitalAscent off the stream", () => {
+  it("resolves the streamed parent-body name off the real pipeline", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.flight", "vessel.identity", "system.bodies"],
       pinnedUt: 10,

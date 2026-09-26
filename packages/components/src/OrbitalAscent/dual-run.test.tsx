@@ -9,7 +9,7 @@ import { OrbitalAscentComponent } from "./index";
 const UNTABLED_BODY = "Gargantua";
 
 describe("OrbitalAscent: stream render golden (delay=0)", () => {
-  it("renders the ascent state off the stream with v.body streamed", async () => {
+  it("renders the ascent state off the stream with the parent body streamed", async () => {
     const streamFixture = setupStreamFixture({
       carriedChannels: ["vessel.flight", "vessel.identity", "system.bodies"],
       pinnedUt: 10,
@@ -45,7 +45,7 @@ describe("OrbitalAscent: stream render golden (delay=0)", () => {
 
     await waitFor(() => {
       if (!visibleText(container).includes("No reference data")) {
-        throw new Error("stream leg has not resolved v.body yet");
+        throw new Error("the parent body has not resolved yet");
       }
     });
     expect(visibleText(container)).toContain("ORBITAL ASCENT");

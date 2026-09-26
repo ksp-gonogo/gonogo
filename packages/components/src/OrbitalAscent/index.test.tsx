@@ -87,7 +87,7 @@ describe("OrbitalAscentComponent", () => {
     });
   }
 
-  it("renders the title and no reference curve before v.body arrives", async () => {
+  it("renders the title and no reference curve before the parent body arrives", async () => {
     const { container } = renderAscent();
     // Waits for the panel so the negative assertion is not vacuous.
     await screen.findByText("ORBITAL ASCENT");
