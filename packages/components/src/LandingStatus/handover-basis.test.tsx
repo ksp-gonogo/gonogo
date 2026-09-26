@@ -11,8 +11,9 @@ import {
   installSizedResizeObserver,
   WidgetContributions,
 } from "../test/widgetDomSnapshot";
+import type { FlightReading } from "./CarriedAltitude";
 import { type HandoverFixture, loadHandoverFixtures } from "./handoverFixture";
-import { type FlightReading, LandingStatusComponent } from "./index";
+import { LandingStatusComponent } from "./index";
 
 /**
  * Which of `vessel.flight`'s two altitude models carried each frame of the handover render set.

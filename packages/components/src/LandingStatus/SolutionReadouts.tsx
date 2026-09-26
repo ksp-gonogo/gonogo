@@ -1,0 +1,124 @@
+import { Sparkline } from "@ksp-gonogo/ui";
+import {
+  Badge,
+  Countdown,
+  Grid,
+  NULL_DISPLAY,
+  ReadoutCaption,
+  Text,
+} from "@ksp-gonogo/ui-kit";
+import { Dv, Metres, Mps, StackedField } from "./readouts";
+import type { LandingModel } from "./useLandingModel";
+
+function Affordable({
+  noLandingVector,
+  affordable,
+}: Readonly<Pick<LandingModel, "noLandingVector" | "affordable">>) {
+  // A green "yes" would contradict the ABORT above, since fuel is not the wall.
+  if (noLandingVector) return <Text tone="muted">n/a · no path</Text>;
+  if (affordable == null) return <Text tone="muted">{NULL_DISPLAY}</Text>;
+  return (
+    <Badge severity={affordable ? "nominal" : "critical"} size="sm">
+      {affordable ? "yes" : "insufficient dV"}
+    </Badge>
+  );
+}
+
+/**
+ * The burn and touchdown readouts: once landed, how soft and how much fuel is left; on a vacuum solve, the burn it needs.
+ * `minColWidth` makes this one column in the narrow stack and a row full-width under the plots.
+ */
+export function SolutionReadouts({
+  model,
+  showTrend,
+}: Readonly<{ model: LandingModel; showTrend: boolean }>) {
+  const {
+    landed,
+    board,
+    flight,
+    solution,
+    availableDv,
+    requiredDv,
+    noLandingVector,
+    affordable,
+    targetRange,
+    descentHistory,
+  } = model;
+
+  if (landed) {
+    return (
+      <Grid minColWidth="130px" gap="related-dense">
+        <StackedField label="Touchdown speed">
+          {<Mps v={flight?.surfaceSpeed ?? solution.horizontalSpeed} />}
+        </StackedField>
+        <StackedField label="Fuel remaining">
+          {<Dv v={availableDv} />}
+        </StackedField>
+      </Grid>
+    );
+  }
+
+  if (board !== "vacuum-solved") return null;
+
+  return (
+    // Under NO LANDING VECTOR every number here is moot, so the grid dims rather than reading as reassurance against the ABORT.
+    <div style={noLandingVector ? { opacity: 0.5 } : undefined}>
+      <Grid minColWidth="130px" gap="related-dense">
+        <StackedField label="Burn dV">{<Dv v={requiredDv} />}</StackedField>
+        <StackedField label="Burn duration">
+          {solution.burnDuration == null ? (
+            NULL_DISPLAY
+          ) : (
+            <Countdown value={solution.burnDuration} precise />
+          )}
+        </StackedField>
+        <StackedField label="Available dV">
+          {<Dv v={availableDv} />}
+        </StackedField>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "start",
+          }}
+        >
+          <ReadoutCaption>Affordable</ReadoutCaption>
+          <Affordable
+            noLandingVector={noLandingVector}
+            affordable={affordable}
+          />
+        </div>
+        <StackedField label="Touchdown (coast)">
+          {<Mps v={solution.speedAtImpact} />}
+        </StackedField>
+        <StackedField label="Touchdown (burn now)">
+          {solution.bestSpeedAtImpact == null ? (
+            NULL_DISPLAY
+          ) : (
+            <Mps v={solution.bestSpeedAtImpact} />
+          )}
+        </StackedField>
+        <StackedField label="Impact in">
+          {solution.timeToImpact == null ? (
+            NULL_DISPLAY
+          ) : (
+            <Countdown value={solution.timeToImpact} precise />
+          )}
+        </StackedField>
+        {targetRange !== undefined && (
+          <StackedField label="Target range">
+            {<Metres m={targetRange} />}
+          </StackedField>
+        )}
+        {showTrend && descentHistory.length >= 2 && (
+          <Sparkline
+            values={descentHistory}
+            width={120}
+            height={24}
+            ariaLabel="Descent-rate trend"
+          />
+        )}
+      </Grid>
+    </div>
+  );
+}

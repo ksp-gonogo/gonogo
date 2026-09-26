@@ -3,7 +3,8 @@ import { Quality, Situation } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { isGroundedSituation, LandingStatusComponent } from "./index";
+import { isGroundedSituation } from "./grounded";
+import { LandingStatusComponent } from "./index";
 
 /** Whether the vessel is on the ground, which voids every descent clock, judged off the `Situation` ordinal so a `PreLaunch` craft on the clamps counts. */
 

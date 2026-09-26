@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deriveActiveBurnParams } from "./index";
+import { deriveActiveBurnParams } from "./burnParams";
 
 /**
  * The suicide-burn solve uses the ACTIVE engine's specific impulse, with the whole-vessel multi-stage total only as a fallback.

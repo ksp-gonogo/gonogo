@@ -202,7 +202,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // host's derivation, because a host with a derivation to share is a host with
   // a privilege an outside author does not have. Three plots reading the same
   // four Topics unwrap them three times, on purpose.
-  "packages/components/src/LandingStatus/index.tsx": 16,
+  "packages/components/src/LandingStatus/useLandingModel.ts": 16,
   // ONE: the altitude rail's top of scale is a 1/2/5 ceiling taken through a
   // log10, which wants the height as a number. The height itself reaches the
   // Tape as its whole reading.

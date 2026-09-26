@@ -54,72 +54,71 @@ export interface CommitLayerProps {
   impactSpeed?: number | null;
 }
 
-export function CommitLayer({
+interface Hero {
+  value: ReactNode;
+  caption: string;
+  tone: ReadoutTone;
+  urgent: boolean;
+}
+
+function resolveHero({
   regime,
   live,
   mayInstruct,
-  suicideBurnCountdown,
+  suicideBurnCountdown: countdown,
   commitInSeconds,
   committed,
   landed = false,
   noLandingVector = false,
-  impactSpeed = null,
-}: Readonly<CommitLayerProps>) {
-  const countdown = suicideBurnCountdown;
+}: Readonly<CommitLayerProps>): Hero {
+  const hero = (
+    value: ReactNode,
+    caption: string,
+    tone: ReadoutTone,
+    urgent = false,
+  ): Hero => ({ value, caption, tone, urgent });
 
-  let heroValue: ReactNode;
-  let heroCaption: string;
-  let heroTone: ReadoutTone;
-  let urgent = false;
-  if (landed) {
-    heroValue = "LANDED";
-    heroCaption = "TOUCHDOWN CONFIRMED";
-    heroTone = "go";
-  } else if (noLandingVector) {
-    // Committed to a hard impact whatever it does now.
-    heroValue = "NO LANDING VECTOR";
-    heroCaption = "";
-    heroTone = "alert";
-  } else if (regime === "no-path") {
-    // Both heroes assume something about the link (a closed loop, a known delay) that nothing has told us.
-    heroValue = NULL_DISPLAY;
-    heroCaption = "BURN TIMING NEEDS A LINK";
-    heroTone = "default";
-  } else if (!mayInstruct) {
-    // The number an operator acts on is withheld while the board describes; after `no-path`, since "needs a link" is the more specific answer.
-    heroValue = NULL_DISPLAY;
-    heroCaption = "BURN TIMING NEEDS CURRENT TELEMETRY";
-    heroTone = "default";
-  } else if (live) {
-    heroCaption = "SUICIDE BURN";
-    if (countdown == null) {
-      heroValue = NULL_DISPLAY;
-      heroTone = "default";
-    } else if (countdown <= 0) {
-      heroValue = "IGNITE";
-      heroTone = "alert";
-      urgent = true;
-    } else {
-      heroValue = <Countdown value={countdown} clock precise />;
-      urgent = countdown <= 5;
-      heroTone = urgent ? "alert" : "warning";
-    }
-  } else {
-    // The last instant a human GO can still reach the vessel to start the burn (T_ignition - N).
-    heroCaption = "BURN GO IN";
-    if (committed) {
-      heroValue = "BURN LOCKED";
-      heroTone = "alert";
-      // Past the deadline a GO cannot arrive in time, so the burn plan is locked.
-      heroCaption = "";
-    } else if (commitInSeconds == null) {
-      heroValue = NULL_DISPLAY;
-      heroTone = "default";
-    } else {
-      heroValue = <Countdown value={commitInSeconds} clock precise />;
-      heroTone = "warning";
-    }
+  if (landed) return hero("LANDED", "TOUCHDOWN CONFIRMED", "go");
+  // Committed to a hard impact whatever it does now.
+  if (noLandingVector) return hero("NO LANDING VECTOR", "", "alert");
+  // Both heroes assume something about the link (a closed loop, a known delay) that nothing has told us.
+  if (regime === "no-path") {
+    return hero(NULL_DISPLAY, "BURN TIMING NEEDS A LINK", "default");
   }
+  // The number an operator acts on is withheld while the board describes; after `no-path`, since "needs a link" is the more specific answer.
+  if (!mayInstruct) {
+    return hero(NULL_DISPLAY, "BURN TIMING NEEDS CURRENT TELEMETRY", "default");
+  }
+  if (live) {
+    if (countdown == null) return hero(NULL_DISPLAY, "SUICIDE BURN", "default");
+    if (countdown <= 0) return hero("IGNITE", "SUICIDE BURN", "alert", true);
+    const urgent = countdown <= 5;
+    return hero(
+      <Countdown value={countdown} clock precise />,
+      "SUICIDE BURN",
+      urgent ? "alert" : "warning",
+      urgent,
+    );
+  }
+  // Past the last instant a human GO can still reach the vessel (T_ignition - N), the burn plan is locked.
+  if (committed) return hero("BURN LOCKED", "", "alert");
+  if (commitInSeconds == null)
+    return hero(NULL_DISPLAY, "BURN GO IN", "default");
+  return hero(
+    <Countdown value={commitInSeconds} clock precise />,
+    "BURN GO IN",
+    "warning",
+  );
+}
+
+export function CommitLayer(props: Readonly<CommitLayerProps>) {
+  const { noLandingVector = false, impactSpeed = null } = props;
+  const {
+    value: heroValue,
+    caption: heroCaption,
+    tone: heroTone,
+    urgent,
+  } = resolveHero(props);
 
   // The ignition cue and a no-landing-vector are ABORT-class, so assertive; every other state is polite.
   const alarmed = urgent || noLandingVector;
@@ -141,8 +140,6 @@ export function CommitLayer({
           <ReadoutCaption>UNAVOIDABLE IMPACT</ReadoutCaption>
         </Readout>
       )}
-
-      {/* No UNCOMMANDABLE or COMMIT POINT banner: the round trip in the panel header already states it. */}
     </Section>
   );
 }

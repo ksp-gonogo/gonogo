@@ -1,0 +1,84 @@
+import type { ReckonableReading } from "@ksp-gonogo/sitrep-client";
+import { bandIn, readingOf, type VesselFlight } from "@ksp-gonogo/sitrep-sdk";
+import {
+  Band,
+  bandClaim,
+  Grid,
+  NULL_DISPLAY,
+  ReadoutCaption,
+  Section,
+  Text,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
+import { altitudeDecimals, GridCellPair } from "./readouts";
+
+/** The reading `vessel.flight` arrives as, spelled once so the readout and the widget body agree on the reckonable fields. */
+export type FlightReading = ReckonableReading<
+  VesselFlight,
+  "altitudeAsl" | "orbitalSpeed"
+>;
+
+/**
+ * Altitude above sea level: the last measurement, where the model puts it now, and how well it claims to know that.
+ *
+ * ASL is the quantity `vessel.flight` has a reckoner for; AGL has none, since a fitted rate says nothing about the terrain ahead. The observation stays the headline and is marked, never replaced, and the carried figure and interval appear only while the reading is not current.
+ */
+export function CarriedAltitude({ reading }: { reading: FlightReading }) {
+  const observed = readingOf(reading, (f) => f.altitudeAsl);
+  const decimals =
+    "value" in observed ? altitudeDecimals(observed.value) : undefined;
+  const carrying = reading.state === "stale";
+  // The field reading, which carries its own band and carried figure.
+  const altitude = reading.altitudeAsl;
+  const modelled =
+    carrying && altitude.reckoning.status === "available"
+      ? altitude.reckoning
+      : undefined;
+  const carried = modelled ? modelled.modelled : null;
+  const band = bandIn(modelled?.band, "m");
+  // Only while the reading is not current; on a live link the observation is now.
+  const declined =
+    carrying && reading.reckoning.status === "declined"
+      ? reading.reckoning.declined
+      : undefined;
+  return (
+    <Section title="Altitude ASL">
+      <Grid cols="auto 1fr" gap="readout-row">
+        {carrying ? (
+          <GridCellPair label="Last observed">
+            <Unit value={observed} decimals={decimals} />
+          </GridCellPair>
+        ) : (
+          <Text style={{ gridColumn: "1 / -1" }}>
+            <Unit value={observed} decimals={decimals} />
+          </Text>
+        )}
+        {carrying && (
+          <GridCellPair label="Carried to now">
+            {carried === null ? (
+              NULL_DISPLAY
+            ) : (
+              <Unit value={carried} decimals={decimals} />
+            )}
+          </GridCellPair>
+        )}
+        {band && (
+          <GridCellPair label="Known to">
+            <Band min={band.lo} max={band.hi} />
+          </GridCellPair>
+        )}
+      </Grid>
+      {band ? (
+        <ReadoutCaption>
+          {bandClaim(band.kind, "the carried altitude is inside that interval")}
+        </ReadoutCaption>
+      ) : declined ? (
+        <ReadoutCaption>{declined.note ?? declined.reason}</ReadoutCaption>
+      ) : carried !== null ? (
+        <ReadoutCaption>
+          carried with no interval: this model bounds nothing
+        </ReadoutCaption>
+      ) : null}
+    </Section>
+  );
+}

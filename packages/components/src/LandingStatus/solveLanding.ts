@@ -167,19 +167,19 @@ function rocketEquationBurn(
   // The powered phase ends at whichever comes first: the vessel stops, or the tank runs dry. `bestSpeedAtImpact` is the speed once it reaches terrain.
   const tPowerEnd = Math.min(tStopIdeal, tFuel);
   const distPowerEnd = dist(tPowerEnd);
-  let bestSpeedAtImpact: number;
-  if (distPowerEnd >= h) {
+  const speedAtTerrain = (): number => {
     // Hits terrain while still under power: the residual at the ground.
-    const tGround = bisect((t) => dist(t) - h, 0, tPowerEnd);
-    bestSpeedAtImpact = Math.max(0, speed(tGround));
-  } else if (tStopIdeal <= tFuel) {
+    if (distPowerEnd >= h) {
+      const tGround = bisect((t) => dist(t) - h, 0, tPowerEnd);
+      return Math.max(0, speed(tGround));
+    }
     // Stopped above terrain with fuel to spare: a safe touchdown.
-    bestSpeedAtImpact = 0;
-  } else {
+    if (tStopIdeal <= tFuel) return 0;
     // Fuel exhausted above terrain, still moving: free-fall the rest.
     const vOut = Math.max(0, speed(tFuel));
-    bestSpeedAtImpact = Math.sqrt(vOut * vOut + 2 * g * (h - distPowerEnd));
-  }
+    return Math.sqrt(vOut * vOut + 2 * g * (h - distPowerEnd));
+  };
+  const bestSpeedAtImpact = speedAtTerrain();
 
   return {
     stopDistance,

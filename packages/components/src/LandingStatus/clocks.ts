@@ -7,6 +7,9 @@
  * The regime turns the round trip into the operator's role (pilot, flight director, mission planner).
  */
 
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import { magnitudeOf } from "@ksp-gonogo/ui-kit";
+
 export type LandingRegime = "live" | "staged" | "autonomous" | "no-path";
 
 /** A round trip at or below this is effectively real time, so the operator can close the loop. */
@@ -97,4 +100,20 @@ export function deriveDelayClocks(inp: DelayClockInputs): DelayClocks {
     blind,
     landed,
   };
+}
+
+/**
+ * The one-way delay off `comms.delay`, or `null` when nothing has established one.
+ *
+ * `null` means NO PATH and zero means a measured zero-distance link, so this never coerces: a coerced zero reads as `live` and shows a burn countdown for a craft nothing can reach. The VALUE decides, never `source`, since `CommsDelaySource.None` carries both a LAN zero and the no-path null. A negative delay is impossible and reads as unknown.
+ */
+export function readOneWaySeconds(
+  delay:
+    | { source?: number; oneWaySeconds?: Value<"s"> | number | null }
+    | undefined,
+): number | null {
+  if (!delay) return null;
+  const s = magnitudeOf(delay.oneWaySeconds);
+  if (s === null || s < 0) return null;
+  return s;
 }
