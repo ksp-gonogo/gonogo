@@ -136,13 +136,18 @@ const toneFg = (tone: OutcomeTone) =>
   tone === "notice"
     ? "var(--color-status-info-fg)"
     : "var(--color-status-warning-fg-muted)";
+/** The box's edge: a tone colour that shows against the panel it sits on. */
+const toneEdge = (tone: OutcomeTone) =>
+  tone === "notice"
+    ? "var(--color-status-info-fg)"
+    : "var(--color-status-warning-bg)";
 
 const CommandOutcomeList__Box = styled.div<{ $tone: OutcomeTone }>`
   display: flex;
   align-items: flex-start;
   gap: var(--space-8, 8px);
   padding: var(--space-6, 6px) var(--space-8, 8px);
-  border: 1px solid ${({ $tone }) => toneBg($tone)};
+  border: 1px solid ${({ $tone }) => toneEdge($tone)};
   border-radius: var(--radius-regular, 4px);
   background: ${({ $tone }) =>
     `color-mix(in srgb, ${toneBg($tone)} 18%, var(--color-surface-raised))`};
@@ -162,7 +167,7 @@ const CommandOutcomeList__Glyph = styled.span<{ $tone: OutcomeTone }>`
   font-size: var(--font-size-xs);
   font-weight: 700;
   color: ${({ $tone }) => toneFg($tone)};
-  border: 1px solid ${({ $tone }) => toneBg($tone)};
+  border: 1px solid ${({ $tone }) => toneEdge($tone)};
   border-radius: var(--radius-regular, 3px);
   background: ${({ $tone }) =>
     `color-mix(in srgb, ${toneBg($tone)} 14%, var(--color-surface-raised))`};
