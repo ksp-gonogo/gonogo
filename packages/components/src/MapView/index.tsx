@@ -202,25 +202,31 @@ function MapViewComponent({
     universalTime: telemetry.universalTime,
   });
 
-  const { baseRef, overlayRef, dataRef, persistentDataRef, predictionRef } =
-    useMapPainting({
-      containerSize,
-      camera,
-      bodyTexture: body?.texture,
-      bodyColor: body?.color,
-      baseLayers,
-      worldCanvasRef,
-      trajectoryCount,
-      vesselOnThisBody,
-      predictionSegments,
-      maneuverSegments,
-      impactLat,
-      impactLon,
-      adjustedMap,
-      encounterKind,
-      lat,
-      lon,
-    });
+  const {
+    baseRef,
+    overlayRef,
+    dataRef,
+    persistentDataRef,
+    predictionRef,
+    vesselMarked,
+  } = useMapPainting({
+    containerSize,
+    camera,
+    bodyTexture: body?.texture,
+    bodyColor: body?.color,
+    baseLayers,
+    worldCanvasRef,
+    trajectoryCount,
+    vesselOnThisBody,
+    predictionSegments,
+    maneuverSegments,
+    impactLat,
+    impactLon,
+    adjustedMap,
+    encounterKind,
+    lat,
+    lon,
+  });
 
   const displayName = body?.name ?? targetBodyId;
 
@@ -394,7 +400,10 @@ function MapViewComponent({
                         impactLat !== undefined ? "" : undefined
                       }
                     />
-                    <DataCanvas ref={dataRef} />
+                    <DataCanvas
+                      ref={dataRef}
+                      data-vessel-marker={vesselMarked ? "" : undefined}
+                    />
                     {positionNotice !== undefined && (
                       <NoSignal>{positionNotice}</NoSignal>
                     )}

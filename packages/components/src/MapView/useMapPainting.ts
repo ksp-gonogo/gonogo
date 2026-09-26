@@ -1,5 +1,6 @@
 import type { TrackSample } from "@ksp-gonogo/core";
 import { getAugmentsForSlot } from "@ksp-gonogo/core";
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import type { EncounterKind } from "../shared/encounterKind";
 import {
@@ -36,14 +37,14 @@ interface MapPaintingInputs {
   impactLon: number | undefined;
   adjustedMap: MapProjection;
   encounterKind: EncounterKind | null;
-  lat: { magnitude: number } | undefined;
-  lon: { magnitude: number } | undefined;
+  lat: Value<"°"> | undefined;
+  lon: Value<"°"> | undefined;
 }
 
 /**
  * Keeps the five stacked map canvases painted: base surface, overlay, the
  * flown trail, the forward tracks and the vessel marker. Returns the refs to
- * mount them on.
+ * mount them on, and whether the vessel marker is drawn.
  */
 export function useMapPainting({
   containerSize,
@@ -178,6 +179,14 @@ export function useMapPainting({
     encounterKind,
   ]);
 
+  // Only on the vessel's own body, and never with a NaN position.
+  const vesselMarked =
+    vesselOnThisBody &&
+    lat !== undefined &&
+    lon !== undefined &&
+    lat.isFinite() &&
+    lon.isFinite();
+
   useEffect(() => {
     const canvas = dataRef.current;
     if (!canvas || !containerSize) return;
@@ -187,16 +196,7 @@ export function useMapPainting({
 
     ctx.clearRect(0, 0, w, h);
 
-    // Only on the vessel's own body, and never with a NaN position.
-    if (
-      !vesselOnThisBody ||
-      lat === undefined ||
-      lon === undefined ||
-      !Number.isFinite(lat) ||
-      !Number.isFinite(lon)
-    ) {
-      return;
-    }
+    if (!vesselMarked || lat === undefined || lon === undefined) return;
     const { x: wx, y: wy } = adjustedMap(
       WORLD_W,
       WORLD_H,
@@ -205,7 +205,14 @@ export function useMapPainting({
     );
     const { x, y } = worldToScreen(wx, wy, camera, w, h);
     paintVesselMarker(canvas, ctx, x, y);
-  }, [containerSize, camera, lat, lon, adjustedMap, vesselOnThisBody]);
+  }, [containerSize, camera, lat, lon, adjustedMap, vesselMarked]);
 
-  return { baseRef, overlayRef, dataRef, persistentDataRef, predictionRef };
+  return {
+    baseRef,
+    overlayRef,
+    dataRef,
+    persistentDataRef,
+    predictionRef,
+    vesselMarked,
+  };
 }

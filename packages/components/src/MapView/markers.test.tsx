@@ -161,3 +161,18 @@ describe("MapView's current-only markers", () => {
     expect(layer()?.hasAttribute("data-impact-marker")).toBe(false);
   });
 });
+
+describe("MapView's vessel marker", () => {
+  it("marks the vessel for a current position on its own body", async () => {
+    const { fixture, container } = mount();
+    emitDescent(fixture);
+    await waitFor(() =>
+      expect(container.querySelector("[data-vessel-marker]")).not.toBeNull(),
+    );
+  });
+
+  it("marks no vessel before a position arrives", () => {
+    const { container } = mount();
+    expect(container.querySelector("[data-vessel-marker]")).toBeNull();
+  });
+});
