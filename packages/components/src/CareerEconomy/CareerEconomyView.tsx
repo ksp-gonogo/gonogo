@@ -1,6 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { getSizeBucket, useTelemetry } from "@ksp-gonogo/core";
-import { combineReadings } from "@ksp-gonogo/sitrep-sdk";
+import { combineReadings, stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
 import { netFundsPerDay, netFundsPerDayReading } from "../shared/FundsDrain";
 import { magnitudeOf } from "../shared/magnitude";
@@ -48,10 +48,7 @@ export function CareerEconomyComponent({
   const careerReading = useTelemetry("career.status");
   // The payload is read on stale too, for structure only: which rows exist.
   const economyReading = careerReading.economy;
-  const economy =
-    careerReading.state === "observed" || careerReading.state === "stale"
-      ? careerReading.value.economy
-      : undefined;
+  const economy = stillTrue(careerReading, undefined)?.economy;
 
   const model = economy?.economyModel;
   const decay = magnitudeOf(economy?.reputationDecayPerDay);

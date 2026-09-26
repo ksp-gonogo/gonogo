@@ -42,10 +42,7 @@ function SemiMajorAxisComponent({
   const smaHeld = orbitReading.state === "stale";
   const frameReading = useStream<ControlFrame>("system.frame");
   // The selected frame is a setting, which a quiet link does not change.
-  const controlFrame =
-    frameReading.state === "observed" || frameReading.state === "stale"
-      ? frameReading.value
-      : undefined;
+  const controlFrame = stillTrue(frameReading, undefined);
   const lengthsPulsate = lengthsAreLengths(controlFrame) === "invalid";
   const referenceBody = useBodyName(
     stillTrue(orbitReading, undefined)?.referenceBodyIndex,

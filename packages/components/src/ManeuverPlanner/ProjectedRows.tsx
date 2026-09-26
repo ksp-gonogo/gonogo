@@ -5,6 +5,7 @@ import {
   type ControlFrame,
   controlFrameLabel,
   frameCaveat,
+  stillTrue,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { Unit } from "@ksp-gonogo/ui-kit";
@@ -24,10 +25,7 @@ export function ProjectedRows({
   // A two-body frame has no centre, so projected apsides are as meaningless in it as current ones.
   const frameReading = useStream<ControlFrame>("system.frame");
   // The selected frame is a setting, which a quiet link does not change.
-  const controlFrame =
-    frameReading.state === "observed" || frameReading.state === "stale"
-      ? frameReading.value
-      : undefined;
+  const controlFrame = stillTrue(frameReading, undefined);
   const apsides = apsidesExist(controlFrame);
 
   if (!projected) {

@@ -92,14 +92,7 @@ export function usePlannerTelemetry() {
   const parentBodyIndex = useParentBodyIndex();
   const bodiesReading = useStream<BodyRadiusTable>("system.bodies");
   // The roster does not decay, and a tombstone is the one null it answers.
-  const roster = (): BodyRadiusTable | null | undefined => {
-    if (bodiesReading.state === "observed" || bodiesReading.state === "stale") {
-      return bodiesReading.value;
-    }
-    if (bodiesReading.state === "absent") return null;
-    return undefined;
-  };
-  const bodies = roster();
+  const bodies = stillTrue(bodiesReading, null);
   const refBody = useBodyName(orbit?.referenceBodyIndex);
   const bodyName = useBodyName(parentBodyIndex);
   const parentBodyRadius = bodyRadiusOf(bodies, parentBodyIndex);
