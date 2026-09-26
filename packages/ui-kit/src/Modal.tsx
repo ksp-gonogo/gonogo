@@ -14,6 +14,7 @@ import styled from "styled-components";
 import { GhostButton, PrimaryButton } from "./Button";
 import { CloseIcon } from "./Icons";
 import { ModalChromeContext, type ModalChromeValue } from "./ModalSaveBar";
+import { titleText } from "./titleText";
 
 interface ModalEntry {
   id: string;
@@ -307,17 +308,9 @@ const DialogHeader = styled.div`
   flex-shrink: 0;
 `;
 
-/**
- * The dialog's own name, not an annotation of something beside it, so it takes
- * the value size and none of the caption treatment. Set as a caption it read as
- * a label for whatever sat above it, and it was indistinguishable from the
- * field labels under it, which genuinely are annotations.
- */
 const DialogTitle = styled.h2`
   margin: 0;
-  font-size: var(--font-size-value);
-  font-weight: 700;
-  color: var(--color-text-primary);
+  ${titleText}
 `;
 
 const CloseButton = styled.button`

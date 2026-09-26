@@ -483,6 +483,7 @@ function FuelStatusComponent({
   return (
     <Panel
       panelTitle="FUEL · ΔV"
+      compactTitle={["FUEL"]}
       sections={[
         /* The readouts above the breakdown span the row: the caption names the
            stage the columns describe, and the totals are the headline they add
