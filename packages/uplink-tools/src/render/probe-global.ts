@@ -47,3 +47,10 @@ export const PROBE_CHROME_ATTR = "data-probe-chrome";
  * kit's browser module from there pulls React and the sdk into the Node bundle.
  */
 export const HOST_DRAWN_CONTRIBUTION_SEGMENTS = ["badges"] as const;
+
+/**
+ * The tag the probe appends to an element drawn as held (`data-not-current`)
+ * with no `data-unit-currency` caption inside it: a mark a reader can see and a
+ * screen reader is told nothing about.
+ */
+export const UNANNOUNCED_MARK = "(held, unannounced)";
