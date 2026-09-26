@@ -104,7 +104,7 @@ describe("OrbitView augment slots", () => {
     ).toMatch(/apo=\d+/);
   });
 
-  it("renders the diagram with both slots empty when no augment is registered", async () => {
+  it("renders the diagram with the overlay slot empty when no augment is registered", async () => {
     const { container, unmount } = renderOrbitViewStream({ w: 9, h: 18 }, LKO);
     trees.push(unmount);
 
@@ -114,6 +114,5 @@ describe("OrbitView augment slots", () => {
       }
     });
     expect(container.querySelector('[data-testid="overlay-probe"]')).toBeNull();
-    expect(container.textContent).not.toContain("badge:");
   });
 });

@@ -1,6 +1,5 @@
-import type { ActionDefinition, ComponentProps } from "@ksp-gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
-  AugmentSlot,
   defineTopicManifest,
   registerComponent,
   useActionInput,
@@ -9,32 +8,29 @@ import {
 } from "@ksp-gonogo/core";
 import {
   type OrbitTrajectory,
-  subscribeTopicRead,
   useOrbitTrajectory,
-  useTelemetryClientOptional,
-  useTelemetryStoreOptional,
 } from "@ksp-gonogo/sitrep-client";
 import type { VesselIdentity } from "@ksp-gonogo/sitrep-sdk";
-import {
-  apsidesExist,
-  type ControlFrame,
-  type ReckoningDecline,
-} from "@ksp-gonogo/sitrep-sdk";
-import { Panel, type ReadoutTone, StatusPill } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY, Section, Text } from "@ksp-gonogo/ui-kit";
-import { useCallback, useSyncExternalStore } from "react";
-import styled from "styled-components";
+import { apsidesExist, type ControlFrame } from "@ksp-gonogo/sitrep-sdk";
 import { useBodyRotation } from "../SystemView/useBodyRotation";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
-import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
-import {
-  trajectoryWithheldCopy,
-  type WithheldTrajectory,
-} from "../shared/trajectoryWithheld";
 import { useBodyName } from "../shared/useBodyName";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 import { usePastTrack } from "../shared/usePastTrack";
 import { useStreamBody } from "../shared/useStreamBody";
+import {
+  type OrbitViewActions,
+  type OrbitViewConfig,
+  orbitViewActions,
+} from "./config";
+import { OrbitViewPanel } from "./OrbitViewPanel";
+import { orbitPill } from "./orbitPill";
+import { overlayContext } from "./overlayContext";
+import type { OrbitOverlayContext } from "./slots";
+import { useStreamOptional } from "./useStreamOptional";
+
+export type { OrbitViewActions } from "./config";
+export type { OrbitOverlayContext } from "./slots";
 
 const topics = defineTopicManifest({
   channels: ["vessel.orbit", "vessel.identity", "system.bodies"],
@@ -46,95 +42,6 @@ const topics = defineTopicManifest({
     "vessel.identity.parentBodyIndex",
   ],
 });
-
-/** `useStream` that returns `undefined` when no `TelemetryProvider` is mounted, so a provider-less render degrades to the empty state. */
-function useStreamOptional<T>(topic: string): T | undefined {
-  const client = useTelemetryClientOptional();
-  const store = useTelemetryStoreOptional();
-  const subscribe = useCallback(
-    (onStoreChange: () => void) => {
-      if (!client || !store) return () => {};
-      const releaseInputs = subscribeTopicRead(client, store, topic);
-      const unsubscribeFrame = store.subscribeFrame(onStoreChange);
-      return () => {
-        unsubscribeFrame();
-        releaseInputs();
-      };
-    },
-    [client, store, topic],
-  );
-  const getSnapshot = useCallback((): T | undefined => {
-    if (!store) return undefined;
-    const point = store.sample<T>(topic, store.currentFrame());
-    return point ? (point.payload as T | undefined) : undefined;
-  }, [store, topic]);
-  return useSyncExternalStore(subscribe, getSnapshot);
-}
-
-interface OrbitViewConfig {
-  /** Show Ap/Pe markers. Default: true. */
-  showMarkers?: boolean;
-}
-
-/**
- * Props for the `orbit-view.overlay` slot, in the diagram's body-centric SVG units: the body at `center`, +x along the apsis line before `argPe` rotation, +y up in the orbital frame.
- * `scale` is the visible half-extent, apoapsis-driven except on a hyperbolic orbit, where it follows periapsis as `OrbitDiagram` does.
- */
-export interface OrbitOverlayContext {
-  /** Semi-major axis, distance units (metres from body centre). */
-  sma: number;
-  /** Eccentricity. */
-  ecc: number;
-  /**
-   * Apoapsis radius from body centre, same units. `undefined` on a
-   * hyperbolic orbit (`ecc >= 1`): there is no apoapsis to report.
-   */
-  apoapsis?: number;
-  /** Periapsis radius from body centre, same units. */
-  periapsis: number;
-  /** Argument of periapsis, degrees (rotates the ellipse in-plane). */
-  argPe: number;
-  /** Current vessel true anomaly, degrees. */
-  trueAnomaly: number;
-  /** Parent body physical radius, same units, when known. */
-  bodyRadius?: number;
-  /** The body's position in the diagram's SVG frame (its origin). */
-  center: { x: number; y: number };
-  /** Visible half-extent of the frame, distance units (apoapsis-driven). */
-  scale: number;
-}
-
-declare module "@ksp-gonogo/core" {
-  interface SlotRegistry {
-    "orbit-view.overlay": OrbitOverlayContext;
-  }
-}
-
-const orbitViewActions = [
-  {
-    id: "toggleMarkers",
-    label: "Toggle Markers",
-    accepts: ["button"],
-    description: "Show or hide the Ap/Pe markers.",
-  },
-] as const satisfies readonly ActionDefinition[];
-
-export type OrbitViewActions = typeof orbitViewActions;
-
-/** The refusal copy comes from the shared table; only the container is local, and it takes over the whole panel body. */
-function TrajectoryWithheld({
-  withheld,
-}: Readonly<{ withheld: WithheldTrajectory }>) {
-  const { heading, detail } = trajectoryWithheldCopy(withheld);
-  return (
-    <NoData role="status">
-      <Text size="xs">{heading}</Text>
-      <Text tone="muted" size="xs">
-        {detail}
-      </Text>
-    </NoData>
-  );
-}
 
 function OrbitViewComponent({
   config,
@@ -164,11 +71,9 @@ function OrbitViewComponent({
       ? orbitReading.value
       : undefined;
   const orbit =
-    orbitObserved === undefined
-      ? undefined
-      : orbitReading.reckoning.status === "available"
-        ? { ...orbitObserved, ...orbitReading.reckoning.value }
-        : orbitObserved;
+    orbitObserved !== undefined && orbitReading.reckoning.status === "available"
+      ? { ...orbitObserved, ...orbitReading.reckoning.value }
+      : orbitObserved;
   // Five minutes reads as a direction of travel on a low orbit and stays within samples this frame can place.
   const trail = usePastTrack(300, orbit);
   const sma = orbit?.sma;
@@ -214,25 +119,11 @@ function OrbitViewComponent({
   const isLandscape = cols >= 8 && rows < 5;
   const showSubtitle = rows >= 4;
 
-  // At 3x3 the multi-word pill labels wrap, so use the mission-control abbreviations.
   const compactPill = cols < 4 || rows < 4;
   // The header reserves a fixed title width, so a narrow panel shortens the title.
   const compactTitle = cols < 4;
-  const panelTitleText = compactTitle ? "OVIEW" : "ORBIT VIEW";
-  let pillLabel = NULL_DISPLAY;
-  let pillTone: ReadoutTone = "default";
-  if (hasOrbit) {
-    if (eccentricity.greaterThanOrEqual(1)) {
-      pillLabel = compactPill ? "ESC" : "Escape";
-      pillTone = "warning";
-    } else if (isOrbiting) {
-      pillLabel = compactPill ? "ORBIT" : "Stable orbit";
-      pillTone = "go";
-    } else {
-      pillLabel = compactPill ? "SUB-O" : "Sub-orbital";
-      pillTone = "alert";
-    }
-  }
+  const escaping = hasOrbit && eccentricity.greaterThanOrEqual(1);
+  const pill = orbitPill(hasOrbit, escaping, isOrbiting, compactPill);
 
   const diagram = hasTrajectory ? (
     <OrbitDiagram
@@ -258,103 +149,33 @@ function OrbitViewComponent({
     />
   ) : null;
 
-  // Mirrors `OrbitDiagram`'s `HYPERBOLIC_SCALE` so the overlay's `scale` matches the diagram's bounds on a hyperbolic orbit.
-  const HYPERBOLIC_OVERLAY_SCALE = 5;
-  const overlayContext: OrbitOverlayContext | null =
-    sma != null && eccentricity != null && periapsisR != null
-      ? {
-          // The overlay slot is a DRAWING contract: an Uplink gets the same plot-space numbers the diagram itself works in.
-          sma: sma.magnitude,
-          ecc: eccentricity.magnitude,
-          apoapsis: apoapsisR ?? undefined,
-          periapsis: periapsisR,
-          argPe: argPe?.magnitude ?? 0,
-          trueAnomaly: trueAnomaly ?? 0,
-          bodyRadius: body?.radius,
-          center: { x: 0, y: 0 },
-          scale: eccentricity.greaterThanOrEqual(1)
-            ? periapsisR * HYPERBOLIC_OVERLAY_SCALE
-            : (apoapsisR ?? periapsisR),
-        }
-      : null;
+  const overlay: OrbitOverlayContext | null = hasOrbit
+    ? overlayContext({
+        sma: sma.magnitude,
+        ecc: eccentricity.magnitude,
+        escaping,
+        apoapsis: apoapsisR,
+        periapsis: periapsisR,
+        argPe: argPe?.magnitude ?? 0,
+        trueAnomaly: trueAnomaly ?? 0,
+        bodyRadius: body?.radius,
+      })
+    : null;
 
-  const diagramWithOverlay =
-    diagram && overlayContext ? (
-      <DiagramOverlayWrap>
-        {diagram}
-        <OverlayLayer>
-          <AugmentSlot name="orbit-view.overlay" props={overlayContext} />
-        </OverlayLayer>
-      </DiagramOverlayWrap>
-    ) : (
-      diagram
-    );
-
-  if (isLandscape && showDiagram && hasTrajectory) {
-    // Wide-short slot: chrome in the sidebar, diagram beside it.
-    return (
-      <Panel
-        panelTitle={panelTitleText}
-        panelSidebar={
-          <LandscapeChrome>
-            {bodyName !== undefined && (
-              <Text tone="muted" size="xs">
-                {bodyName}
-              </Text>
-            )}
-            <StatusPill $tone={pillTone}>{pillLabel}</StatusPill>
-          </LandscapeChrome>
-        }
-        sidebarSide="start"
-        sidebarSize="8rem"
-        sections={<Section fill>{diagramWithOverlay}</Section>}
-      />
-    );
-  }
-
-  // The title floats over the diagram only when there is one; over centred text it would overlap.
-  const drawingFillsPanel = hasTrajectory && showDiagram;
-  const showBodyNameInAside = drawingFillsPanel && bodyName !== undefined;
-  const showBodyNameInBody =
-    !drawingFillsPanel && showSubtitle && bodyName !== undefined;
   return (
-    <Panel
-      panelTitle={panelTitleText}
-      panelAside={
-        showBodyNameInAside ? (
-          <Text tone="muted" size="xs">
-            {bodyName}
-          </Text>
-        ) : undefined
-      }
-      floatingHeader={drawingFillsPanel}
-    >
-      {showBodyNameInBody && (
-        <Text tone="muted" size="xs">
-          {bodyName}
-        </Text>
-      )}
-      {/* An orbit that closes in one frame is a rosette in another, so the drawing needs its frame's name. */}
-      {showDiagram && (
-        <TrajectoryFrameCaption
-          trajectory={trajectory}
-          centreBodyIndex={orbit?.referenceBodyIndex}
-        />
-      )}
-      {/* A refusal outranks the no-data sentence: the elements arrived, and nobody vouches for the path. */}
-      {!hasOrbit && withheld === null ? (
-        <NoData>{noOrbitSentence(declined)}</NoData>
-      ) : !showDiagram ? (
-        // The pill survives a refusal in tiny mode: the craft's state is still true, only the path is in question.
-        <PillFill>
-          <StatusPill $tone={pillTone}>{pillLabel}</StatusPill>
-        </PillFill>
-      ) : withheld ? (
-        <TrajectoryWithheld withheld={withheld} />
-      ) : (
-        diagramWithOverlay
-      )}
-    </Panel>
+    <OrbitViewPanel
+      panelTitle={compactTitle ? "OVIEW" : "ORBIT VIEW"}
+      bodyName={bodyName}
+      pill={pill}
+      layout={{ isLandscape, showDiagram, showSubtitle }}
+      hasOrbit={hasOrbit}
+      trajectory={trajectory}
+      withheld={withheld}
+      declined={declined}
+      centreBodyIndex={orbit?.referenceBodyIndex}
+      diagram={diagram}
+      overlay={overlay}
+    />
   );
 }
 
@@ -378,66 +199,3 @@ registerComponent<OrbitViewConfig>({
 });
 
 export { OrbitViewComponent };
-
-/** The empty-state sentence, from why the conic withdrew; the switch is exhaustive so a new reason is a compile error. */
-function noOrbitSentence(declined: ReckoningDecline | undefined): string {
-  if (declined === undefined) return "No orbital data";
-  const reason = declined.reason;
-  switch (reason) {
-    case "under-physics":
-      // The orbit exists; the craft is loaded, so its elements are osculating and there is no coast to draw.
-      return "No osculating orbit (packed)";
-    case "input-absent":
-    case "beyond-horizon":
-    case "model-inapplicable":
-    case "contested":
-    case "insufficient-history":
-      return "No orbital data";
-    default: {
-      const unnamed: never = reason;
-      return unnamed;
-    }
-  }
-}
-
-const NoData = styled.div`
-  font-size: var(--font-size-compact);
-  color: var(--color-text-faint);
-  padding: var(--inset-empty-note);
-`;
-
-const PillFill = styled.div`
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const DiagramOverlayWrap = styled.div`
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
-  display: flex;
-`;
-
-const OverlayLayer = styled.div`
-  position: absolute;
-  inset: 0;
-  /* An overlay augment re-enables pointer events on its own elements. */
-  pointer-events: none;
-`;
-
-/**
- * The landscape branch's sidebar content: body name and status pill, stacked
- * and vertically centred in the narrow column `panelSidebar` reserves beside
- * the diagram.
- */
-const LandscapeChrome = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-  justify-content: center;
-  min-width: 0;
-  min-height: 0;
-`;
