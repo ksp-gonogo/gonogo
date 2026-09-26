@@ -17,7 +17,9 @@ import {
  *
  * Four outcomes, because two would force a wrong answer. A held figure marked
  * through `Unit` ANNOUNCES: its `[data-not-current]` quantity carries a
- * `[data-unit-currency]` caption. One marked without that caption is SILENT,
+ * `[data-unit-currency]` caption. An instrument (`Gauge`, `Tape`, `Dial`) has
+ * no text node to hold one, so it announces by ending its own accessible name
+ * with the caption instead. One marked with neither is SILENT,
  * which only a render can tell apart from the first, since in source the two
  * are the same attribute. A widget can also mark nothing and still change,
  * withdrawing a judgement where it would otherwise hold a figure. And it can
@@ -118,6 +120,19 @@ interface Rendered {
   noAsOf: number;
 }
 
+/**
+ * The caption an instrument says on the end of its accessible name, or null
+ * where the name carries none. The kit writes it as `<name>, <GRADE>` with an
+ * optional `, as of <instant>`, and every grade word is a single capitalised
+ * token, so a name that merely contains a comma does not pass for one.
+ */
+function instrumentCaption(mark: Element): string | null {
+  const name = mark.getAttribute("aria-label");
+  if (name === null) return null;
+  const said = /, ([A-Z]+(?:, as of .+)?)$/.exec(name);
+  return said ? said[1] : null;
+}
+
 async function rendered(
   Widget: Widget,
   fixture: Record<string, unknown>,
@@ -134,11 +149,13 @@ async function rendered(
     let silent = 0;
     let noAsOf = 0;
     for (const mark of container.querySelectorAll("[data-not-current]")) {
-      const caption = mark.querySelector("[data-unit-currency]");
+      const caption =
+        mark.querySelector("[data-unit-currency]")?.textContent ??
+        instrumentCaption(mark);
       if (caption === null) silent++;
       else {
         announced++;
-        if (!/as of/.test(caption.textContent ?? "")) noAsOf++;
+        if (!/as of/.test(caption)) noAsOf++;
       }
     }
     return {
