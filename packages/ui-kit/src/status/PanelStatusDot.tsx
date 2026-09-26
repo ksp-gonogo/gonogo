@@ -14,8 +14,9 @@ export interface PanelStatusDotProps {
 
 /**
  * One per-severity status dot for a Panel's collapsed header: a small coloured
- * disc (filled via `severityDotColor`) that grows into a counted pill when more
- * than one contributor sits at that severity. Keyed on the canonical `Severity`,
+ * disc (filled via `severityDotColor`) carrying the count when more than one
+ * contributor sits at that severity, and growing sideways into a pill when the
+ * count takes more than one digit. Keyed on the canonical `Severity`,
  * this is the rebuild of the killed 3-tone `Dot` draft on the real vocabulary,
  * NOT a harvest of it.
  *
@@ -35,6 +36,7 @@ export function PanelStatusDot({ severity, count = 1 }: PanelStatusDotProps) {
       role="img"
       aria-label={withCount ? `${count} ${severity}` : severity}
       $color={severityDotColor(severity)}
+      $digits={withCount ? String(count).length : 1}
     >
       {withCount && <PanelStatusDot__Count>{count}</PanelStatusDot__Count>}
     </PanelStatusDot__Root>
@@ -52,6 +54,7 @@ const DOT_DIAMETER = "8px";
 
 const PanelStatusDot__Root = styled.span<{
   $color: string;
+  $digits: number;
 }>`
   position: relative;
   flex: 0 0 auto;
@@ -66,9 +69,17 @@ const PanelStatusDot__Root = styled.span<{
      makes that structurally impossible rather than tuned-around: an
      out-of-flow child cannot affect this box's size no matter what font-size
      or line-height it carries. */
-  width: ${DOT_DIAMETER};
   height: ${DOT_DIAMETER};
-  border-radius: var(--radius-circle);
+  /* The count's own size, set here so the width below can be counted in its
+     digits. The box itself holds no text of its own. */
+  font-size: 7px;
+  /* A single digit fits the round dot. More than one does not, so the dot
+     grows sideways into a pill exactly as wide as the digits plus a rim,
+     keeping its height and its place on the title's line. */
+  width: ${({ $digits }) =>
+    $digits > 1 ? `calc(${$digits}ch + 4px)` : DOT_DIAMETER};
+  border-radius: ${({ $digits }) =>
+    $digits > 1 ? "var(--radius-pill, 999px)" : "var(--radius-circle)"};
   background: ${({ $color }) => $color};
   /* A crisp rim plus a real glow bloom, so the dot reads as a lit indicator
      rather than a flat disc. The previous halo used a negative spread (a rim
@@ -108,10 +119,10 @@ const PanelStatusDot__Count = styled.span`
   /* The count reads OUT of the dot as the panel surface, so it stays legible on
      every saturated severity fill without a per-severity text colour. */
   color: var(--color-surface-panel);
-  /* Off the --font-size-2xs floor (10-11px): the smallest rung would not fit a
-     2-digit count inside an 11px dot. Pinned to the fixed DOT_DIAMETER box
-     above it, not a spacing decision. */
-  font-size: 7px;
+  /* Off the --font-size-2xs floor (10-11px), which would not fit the 8px
+     dot. Set on the dot, whose width is counted in these digits. */
+  font-size: inherit;
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
   line-height: var(--line-height-flush, 1);
 `;

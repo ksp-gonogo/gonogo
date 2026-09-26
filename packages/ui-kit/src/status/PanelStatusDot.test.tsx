@@ -1,5 +1,7 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
+import { emittedRuleFor } from "../test/emittedRule";
 import { PanelStatusDot } from "./PanelStatusDot";
 
 /**
@@ -28,5 +30,31 @@ describe("PanelStatusDot", () => {
     const dot = screen.getByRole("img", { name: "critical" });
     expect(dot).toHaveTextContent("");
     expect(dot).toHaveAttribute("data-severity", "critical");
+  });
+
+  it("grows into a pill sized to its digits when the count takes two", () => {
+    render(<PanelStatusDot severity="warning" count={12} />);
+    const rule = emittedRuleFor(
+      screen.getByRole("img", { name: "12 warning" }),
+    );
+    expect(rule).toContain("width:calc(2ch + 4px)");
+    expect(rule).toContain("border-radius:var(--radius-pill, 999px)");
+  });
+
+  it("stays the round dot for a single digit", () => {
+    render(<PanelStatusDot severity="warning" count={9} />);
+    const rule = emittedRuleFor(screen.getByRole("img", { name: "9 warning" }));
+    expect(rule).toContain("width:8px");
+    expect(rule).toContain("border-radius:var(--radius-circle)");
+  });
+
+  it("has no axe violations with and without a count", async () => {
+    const { container } = render(
+      <>
+        <PanelStatusDot severity="warning" />
+        <PanelStatusDot severity="critical" count={12} />
+      </>,
+    );
+    await expectNoA11yViolations(container);
   });
 });
