@@ -1,23 +1,18 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import {
-  defineTopicManifest,
-  pressureAtAltitude,
-  pressureFromProfile,
-  registerComponent,
-} from "@ksp-gonogo/core";
+import { defineTopicManifest, registerComponent } from "@ksp-gonogo/core";
 import { readingOf, value } from "@ksp-gonogo/sitrep-sdk";
-import { Fill, speakQuantity, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
+import { Fill, speakQuantity, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import {
   type GraphConfig,
   type GraphThresholdConfig,
   GraphView,
-  type ReferenceCurve,
 } from "../Graph";
 import { magnitudeOf } from "../shared/magnitude";
-import type { StreamBody } from "../shared/streamBody";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useStreamBody } from "../shared/useStreamBody";
+import { LiveAirChip } from "./LiveAirChip";
+import { buildPressureCurve, pressureFor } from "./pressureCurve";
 
 export interface AtmosphereProfileConfig {
   /** Override the auto-derived altitude ceiling for the curve (metres). */
@@ -27,62 +22,6 @@ export interface AtmosphereProfileConfig {
 const topics = defineTopicManifest({
   channels: ["vessel.flight", "vessel.identity", "system.bodies"],
 });
-
-const REFERENCE_SAMPLES = 80;
-
-/** The pressure at an altitude, the stream's answer preferred over the model. */
-function pressureFor(body: StreamBody, altitude: number): number | undefined {
-  if (body.pressureProfile) {
-    return pressureFromProfile(body.pressureProfile, altitude);
-  }
-  return pressureAtAltitude(body, altitude);
-}
-
-/**
- * The reference curve. A reported profile is plotted as it arrived: the host
- * already spaced its samples on the curve's own bend. The model fallback is a
- * smooth exponential, so a fixed cadence suits it.
- */
-function buildPressureCurve(
-  body: StreamBody,
-  ceiling: number,
-): ReferenceCurve | null {
-  if (!body.hasAtmosphere) return null;
-  const xs: number[] = [];
-  const ys: number[] = [];
-
-  const profile = body.pressureProfile;
-  if (profile) {
-    for (let i = 0; i < profile.altitudes.length; i++) {
-      const altitude = profile.altitudes[i];
-      if (altitude > ceiling) break;
-      const p = profile.pressures[i];
-      if (!(p > 0)) break;
-      xs.push(altitude);
-      ys.push(p);
-    }
-  } else {
-    if (!body.atmosphere) return null;
-    for (let i = 0; i <= REFERENCE_SAMPLES; i++) {
-      const altitude = (ceiling * i) / REFERENCE_SAMPLES;
-      const p = pressureAtAltitude(body, altitude);
-      if (p === undefined) continue;
-      /* The log axis cannot show zero, and zero pressure is where the atmosphere ends, so the curve stops there. */
-      if (p <= 0) break;
-      xs.push(altitude);
-      ys.push(p);
-    }
-  }
-
-  if (xs.length === 0) return null;
-  return {
-    id: "pressure",
-    label: `Pressure (${body.name})`,
-    xs,
-    ys,
-    color: "var(--color-tag-blue-fg)",
-  };
-}
 
 function AtmosphereProfileComponent({
   config,
@@ -100,12 +39,13 @@ function AtmosphereProfileComponent({
     flightReading.state === "observed" || flightReading.state === "stale"
       ? flightReading.value
       : undefined;
-  const flight =
-    flightObserved && flightReading.reckoning.status === "available"
-      ? { ...flightObserved, ...flightReading.reckoning.value }
-      : flightReading.state === "observed"
-        ? flightReading.value
-        : undefined;
+  const flight = (() => {
+    if (flightObserved && flightReading.reckoning.status === "available") {
+      return { ...flightObserved, ...flightReading.reckoning.value };
+    }
+    if (flightReading.state === "observed") return flightReading.value;
+    return undefined;
+  })();
   const bodyName = useBodyName(useParentBodyIndex());
   /* Resolved against the `system.bodies` roster the name came from, so a planet-pack rename resolves. */
   const body = useStreamBody(bodyName);
@@ -212,38 +152,14 @@ function AtmosphereProfileComponent({
         </div>
       )}
       {showLiveChip && (
-        <div role="status" aria-live="polite" style={LIVE_CHIP_STYLE}>
-          <div style={CHIP_ROW_STYLE}>
-            <span style={CHIP_LABEL_STYLE}>ρ</span>
-            <span style={CHIP_VALUE_STYLE}>
-              <Unit value={flightReading.atmDensity} decimals={3} />
-            </span>
-          </div>
-          {liveAirTemp !== null && (
-            <div style={CHIP_ROW_STYLE}>
-              <span style={CHIP_LABEL_STYLE}>Air</span>
-              <span style={CHIP_VALUE_STYLE}>
-                <TempC k={liveAirTemp} />
-              </span>
-            </div>
-          )}
-          {liveSkinTemp !== null && (
-            <div style={CHIP_ROW_STYLE}>
-              <span style={CHIP_LABEL_STYLE}>Skin</span>
-              <span style={CHIP_VALUE_STYLE}>
-                <TempC k={liveSkinTemp} />
-              </span>
-            </div>
-          )}
-        </div>
+        <LiveAirChip
+          density={flightReading.atmDensity}
+          airTemp={liveAirTemp}
+          skinTemp={liveSkinTemp}
+        />
       )}
     </Fill>
   );
-}
-
-// Kelvin on the wire, Celsius on screen.
-function TempC({ k }: { k: number }) {
-  return <Unit value={value("K", k)} as="°C" />;
 }
 
 // A string, not a node: a chart annotation label is measured as text. `speakQuantity` gives the word rather than the symbol.
@@ -263,43 +179,6 @@ const NOTICE_STYLE = {
   alignSelf: "flex-start",
   maxWidth: "100%",
   marginTop: "var(--gap-sub-readout)",
-} as const;
-
-/* A positioned HUD chip over the chart's tick band; no ui-kit primitive for it. */
-const LIVE_CHIP_STYLE = {
-  position: "absolute",
-  bottom: 32,
-  right: 8,
-  zIndex: 1,
-  display: "flex",
-  flexDirection: "column",
-  gap: "var(--gap-line)",
-  padding: "var(--inset-surface)",
-  background: "rgba(0, 0, 0, 0.75)",
-  border: "1px solid var(--color-surface-raised)",
-  borderRadius: "var(--radius-regular)",
-  fontSize: "var(--font-size-compact)",
-  fontVariantNumeric: "tabular-nums",
-  pointerEvents: "none",
-} as const;
-
-const CHIP_ROW_STYLE = {
-  display: "grid",
-  gridTemplateColumns: "28px auto",
-  gap: "var(--gap-related)",
-  alignItems: "baseline",
-} as const;
-
-const CHIP_LABEL_STYLE = {
-  color: "var(--color-text-faint)",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  fontSize: "var(--font-size-caption)",
-} as const;
-
-const CHIP_VALUE_STYLE = {
-  color: "var(--color-text-primary)",
-  fontSize: "var(--font-size-value)",
 } as const;
 
 registerComponent<AtmosphereProfileConfig>({
