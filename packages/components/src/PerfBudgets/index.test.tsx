@@ -36,3 +36,19 @@ describe("PerfBudgets dot summary", () => {
     await expectNoA11yViolations(container);
   });
 });
+
+describe("PerfBudgets rows", () => {
+  it("draws each budget as a meter of its rate against its threshold", async () => {
+    const half = budget("Half source/sec", 10);
+    for (let i = 0; i < 5; i++) half.record();
+
+    const { container } = render(
+      <PerfBudgetsComponent config={{}} id="perf" w={6} h={6} />,
+    );
+
+    const meter = screen.getByRole("meter", { name: "Half source/sec" });
+    expect(meter).toHaveAttribute("aria-valuenow", "50");
+    expect(meter).toHaveAttribute("aria-valuetext", "5 of 10 ops per 1s");
+    await expectNoA11yViolations(container);
+  });
+});

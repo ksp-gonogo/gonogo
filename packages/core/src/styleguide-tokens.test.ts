@@ -357,7 +357,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/LaunchDirector/index.tsx": 1,
     "packages/components/src/Navball/AttitudeIndicator.tsx": 2,
     "packages/components/src/Navball/index.tsx": 2,
-    "packages/components/src/PerfBudgets/index.tsx": 2,
     "packages/components/src/ShipMap/index.tsx": 2,
     "packages/components/src/SpaceCenterStatus/index.tsx": 1,
     "packages/serial/src/InputMappingTab.tsx": 1,
