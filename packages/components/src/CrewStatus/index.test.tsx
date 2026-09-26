@@ -5,6 +5,7 @@ import {
   registerAugment,
   registerContribution,
 } from "@ksp-gonogo/core";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { ContributionsPanelStore, WidgetMetaContext } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
@@ -672,7 +673,7 @@ describe("CrewStatusComponent, per-row survival meters", () => {
       {
         id: "jeb:dose",
         label: "Radiation dose",
-        value: 0.4,
+        value: value("ratio", 0.4),
         tone: "warn",
         valueLabel: "40%",
         row: "Jebediah Kerman",
@@ -680,7 +681,7 @@ describe("CrewStatusComponent, per-row survival meters", () => {
       {
         id: "bill:stress",
         label: "Stress",
-        value: 0.1,
+        value: value("ratio", 0.1),
         tone: "go",
         valueLabel: "10%",
         row: "Bill Kerman",

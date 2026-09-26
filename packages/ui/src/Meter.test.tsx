@@ -16,7 +16,7 @@ describe("Meter", () => {
     expect(meter).toHaveAttribute("aria-valuemax", "100");
   });
 
-  it("clamps out-of-range and non-finite values", () => {
+  it("clamps out-of-range values and draws a non-finite one as absent", () => {
     const { rerender } = render(
       <Meter label="X" value={value("ratio", 1.7)} />,
     );
@@ -24,7 +24,7 @@ describe("Meter", () => {
     rerender(<Meter label="X" value={value("ratio", -0.4)} />);
     expect(screen.getByRole("meter")).toHaveAttribute("aria-valuenow", "0");
     rerender(<Meter label="X" value={value("ratio", Number.NaN)} />);
-    expect(screen.getByRole("meter")).toHaveAttribute("aria-valuenow", "0");
+    expect(screen.queryByRole("meter")).toBeNull();
   });
 
   it("defaults the displayed text and aria-valuetext to a percentage", () => {

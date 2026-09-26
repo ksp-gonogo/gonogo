@@ -578,3 +578,11 @@ describe("Meter, given a capacity that is itself a reading", () => {
     expect(container.querySelector("[data-track-not-current]")).not.toBeNull();
   });
 });
+
+describe("Meter absence at the edges", () => {
+  it("draws a figure that is not a finite number as absence, not as an empty bar", () => {
+    render(<Meter label="Dose" value={value("ratio", Number.NaN)} />);
+    expect(screen.queryByRole("meter", { name: "Dose" })).toBeNull();
+    expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
+  });
+});
