@@ -101,9 +101,8 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// Every exclusive capability in the tree. Twelve are
-        /// declared; eleven have a provider registered from an Uplink, which this
-        /// file discovers rather than restates.
+        /// Every exclusive capability in the tree. Which of them have a provider
+        /// registered from an Uplink is discovered by the walk rather than restated.
         /// </summary>
         private static readonly Entry[] Census =
         {
@@ -153,33 +152,35 @@ namespace Sitrep.Host.IntegrationTests
                 "science",
                 "Sitrep.Host/Science/ScienceElection.cs",
                 FedByGatedCapture: false,
-                Excuse: Excuse.UplinkProviderWithoutCase,
-                WhyNoBehaviouralCase: "The starvation here was real and is FIXED. "
-                    + "One provider's capture stashes the bundle its five command "
-                    + "verbs read as a pre-filter, so the handler's effect escapes "
-                    + "the publish path and the capture is now registered ungated; "
-                    + "its own Uplink's Tests project guards that. The other "
-                    + "provider's capture stays gated and is correct, because its "
-                    + "handler only publishes. No behavioural case from here: each "
-                    + "Register reads live KSP, and those Tests projects compile a "
-                    + "curated file list that cannot include it. The KSP-linked leg "
-                    + "is separate work."),
+                Excuse: Excuse.NoUplinkProvider,
+                WhyNoBehaviouralCase: "No Uplink in this repo registers a provider, so "
+                    + "StockScienceBackend, the capability's Vanilla, is the only one. "
+                    + "No capture feeds it: ScienceCoreUplink asks the elected backend "
+                    + "to map each tick's shared snapshot from courier channel sources, "
+                    + "so there is no gated path that could starve it. An Uplink "
+                    + "registering a provider makes this line stale and fails."),
             new Entry(
                 "isru",
                 "Sitrep.Host/Isru/IsruElection.cs",
                 FedByGatedCapture: false,
-                Excuse: Excuse.UplinkProviderWithoutCase,
-                WhyNoBehaviouralCase: "Same limit as science: the Register that wires "
-                    + "the provider reads live KSP. The provider constructs fresh and "
-                    + "reads live, and core calls it from ITS OWN capture gated on the "
-                    + "topics that display it, so the gate and the demand are one "
-                    + "subscription."),
+                Excuse: Excuse.NoUplinkProvider,
+                WhyNoBehaviouralCase: "No Uplink in this repo registers a provider, so "
+                    + "the stock backend, the capability's Vanilla, is the only one. It is "
+                    + "constructed fresh per election and reads live, and IsruCoreUplink "
+                    + "calls it from its own capture gated on the two isru topics that "
+                    + "display it, so the gate and the demand are one subscription. An "
+                    + "Uplink registering a provider makes this line stale and fails."),
             new Entry(
                 "reliability",
                 "Sitrep.Host/Reliability/ReliabilityElection.cs",
                 FedByGatedCapture: false,
-                Excuse: Excuse.UplinkProviderWithoutCase,
-                WhyNoBehaviouralCase: "Same limit as isru, for both of its providers."),
+                Excuse: Excuse.NoUplinkProvider,
+                WhyNoBehaviouralCase: "No Uplink in this repo registers a provider, so "
+                    + "NoneReliabilityBackend, the capability's Vanilla, is the only one "
+                    + "and answers Unmodeled. ReliabilityCoreUplink reads the elected "
+                    + "backend from its own capture gated on the two reliability topics "
+                    + "that display it, the same shape as isru. An Uplink registering a "
+                    + "provider makes this line stale and fails."),
             new Entry(
                 "comms",
                 "Sitrep.Host/Comms/CommsElection.cs",
