@@ -406,12 +406,18 @@ jobs:
         with:
           node-version: '24'
 
+      # The two determinism flags below matter only for the fossil check further
+      # down: without them two builds of the identical tree at different commits
+      # are not even byte-comparable after normalisation. Deliberately NOT
+      # `SourceLink=false`: dropping SourceLink for raw determinism would cost
+      # every consumer's debugging for a check that does not need it.
       - name: Pack
         id: pack
         run: |
           set -euo pipefail
           dotnet pack mod/Sitrep.Contract.Package/Sitrep.Contract.Package.csproj \
-            -c Release -o "$RUNNER_TEMP/nuget" --nologo
+            -c Release -o "$RUNNER_TEMP/nuget" --nologo \
+            -p:ContinuousIntegrationBuild=true -p:IncludeSourceRevisionInInformationalVersion=false
           NUPKG="$(ls "$RUNNER_TEMP"/nuget/"$PACKAGE_ID".*.nupkg)"
           VERSION="$(basename "$NUPKG" .nupkg)"
           VERSION="${VERSION#"$PACKAGE_ID".}"
@@ -456,6 +462,27 @@ jobs:
               ;;
             *) echo "::error::nuget.org answered $STATUS for $PACKAGE_ID's version list."; exit 1 ;;
           esac
+
+      # "Already published" and "published this content" are different facts,
+      # and the skip above cannot tell them apart: Sitrep.Contract.Package
+      # also carries Sitrep.Contract.TestSupport and Sitrep.Core, so a change to
+      # either with no PackagePatch bump packs under the same version, and would
+      # otherwise be skipped here as if nothing had changed. Compared with the
+      # five build-identity regions normalised out (see the script's header); a
+      # real difference fails asking for a PackagePatch bump rather than shipping
+      # silently unchanged.
+      - name: Download the published copy
+        if: steps.published.outputs.skip == 'true'
+        run: |
+          set -euo pipefail
+          VERSION='${{ steps.pack.outputs.version }}'
+          ID_LOWER="$(echo "$PACKAGE_ID" | tr '[:upper:]' '[:lower:]')"
+          curl -sf -o "$RUNNER_TEMP/published.nupkg" \
+            "https://api.nuget.org/v3-flatcontainer/$ID_LOWER/$VERSION/$ID_LOWER.$VERSION.nupkg"
+
+      - name: The published copy is not a fossil
+        if: steps.published.outputs.skip == 'true'
+        run: node scripts/nuget-fossil-check.mjs '${{ steps.pack.outputs.nupkg }}' "$RUNNER_TEMP/published.nupkg"
 
       # The login action exchanges the OIDC token as a named nuget.org account,
       # the profile name that owns the policy. It is refused before the exchange
