@@ -5,10 +5,12 @@ import {
   BigReadout,
   Card,
   EmptyState,
+  Meter,
   Panel,
   ReadoutCaption,
   type ReadoutTone,
   Section,
+  speakQuantity,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
@@ -132,30 +134,25 @@ function PerfBudgetsComponent({
               const ratio = ratioOf(s);
               const t = toneOf(s);
               return (
-                <Card
-                  as="li"
-                  key={s.name}
-                  tone={KIT_TONE[t]}
-                  title={s.name}
-                  titleRight={
-                    <span style={{ ...RATE, color: TONE_COLOR[t] }}>
-                      {formatRate(s.rate)} / {formatRate(s.threshold)} {s.unit}/
-                      <Unit
-                        value={value("s", s.windowMs / 1000)}
-                        decimals={0}
-                      />
-                    </span>
-                  }
-                >
-                  <div style={BAR}>
-                    <div
-                      style={{
-                        ...BAR_FILL,
-                        background: TONE_COLOR[t],
-                        width: `${Math.min(100, ratio * 100).toFixed(1)}%`,
-                      }}
-                    />
-                  </div>
+                <Card as="li" key={s.name} tone={KIT_TONE[t]}>
+                  {/* A bare figure rather than a reading: the rate is measured
+                      in this tab, so it is always current. */}
+                  <Meter
+                    label={s.name}
+                    value={value("ratio", ratio)}
+                    fillColor={TONE_COLOR[t]}
+                    valueLabelNode={
+                      <span style={{ color: TONE_COLOR[t] }}>
+                        {formatRate(s.rate)} / {formatRate(s.threshold)}{" "}
+                        {s.unit}/
+                        <Unit
+                          value={value("s", s.windowMs / 1000)}
+                          decimals={0}
+                        />
+                      </span>
+                    }
+                    valueLabel={`${formatRate(s.rate)} of ${formatRate(s.threshold)} ${s.unit} per ${speakQuantity(value("s", s.windowMs / 1000), { decimals: 0 })}`}
+                  />
                   {s.exceedanceCount > 0 && (
                     <div style={FOOTER}>
                       {s.exceedanceCount} exceedance
@@ -216,9 +213,8 @@ const TONE_COLOR: Record<Tone, string> = {
 
 // Structural inline styles (CSS-var tokens): a bespoke budget list + dot
 // summary, no reusable ui-kit primitive fits the layout, so it stays local.
-// The one kit piece it reuses (Card) takes only this widget's column layout
-// inline. Per-tone colour (text + fills) is applied inline at the call site
-// from TONE_COLOR.
+// Each budget is a kit Card holding a kit Meter. Per-tone colour (text + fills)
+// is applied inline at the call site from TONE_COLOR.
 
 const LIST: CSSProperties = {
   listStyle: "none",
@@ -229,34 +225,6 @@ const LIST: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: "var(--gap-related)",
-};
-
-// The card and its accent rule are the kit's; only the column this budget lays
-// its header and bar out in is local.
-// Per-tone `color` is applied inline at the call site.
-const RATE: CSSProperties = {
-  fontSize: "var(--font-size-compact)",
-  flexShrink: 0,
-};
-
-const BAR: CSSProperties = {
-  height: "4px",
-  background: "var(--color-surface-raised)",
-  // A stadium, not a corner: --radius-pill clamps to half the shorter side,
-  // so it keeps tracking this bar's height rather than freezing at one px
-  // value.
-  borderRadius: "var(--radius-pill)",
-  overflow: "hidden",
-};
-
-// Per-tone `background` + `width` are applied inline at the call site. Off the
-// motion scale on purpose: 0.5s is 2.5x the top of the UI band the tokens
-// cover, and at that length ease-out and ease are plainly different curves, so
-// the ease-out -> --ease-standard snap does not reach here. This is a
-// determinate rate meter, the same class as ui-kit ProgressBar's fill.
-const BAR_FILL: CSSProperties = {
-  height: "100%",
-  transition: "width 0.5s ease-out",
 };
 
 const FOOTER: CSSProperties = {

@@ -294,7 +294,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/components/src/OrbitView/stream.test.tsx": 1,
   "packages/components/src/OrbitView/undefined.characterise.test.tsx": 4,
   "packages/components/src/OrbitalAscent/index.test.tsx": 2,
-  "packages/components/src/PerfBudgets/index.tsx": 1,
   "packages/components/src/Plots/PlotBoard.tsx": 1,
   "packages/components/src/Plots/mergePlots.test.ts": 1,
   "packages/components/src/Plots/mergePlots.tsx": 1,
