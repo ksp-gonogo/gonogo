@@ -89,3 +89,22 @@ describe("Tape", () => {
     await expectNoA11yViolations(container);
   });
 });
+
+describe("Tape zones", () => {
+  it("fills a zone with no colour of its own in a tint that shows on a panel", () => {
+    const { container } = render(
+      <Tape
+        value={m(1200)}
+        min={m(0)}
+        max={m(5000)}
+        ariaLabel="Altitude"
+        zones={[{ from: m(0), to: m(500), label: "LOW" }]}
+      />,
+    );
+    const fills = Array.from(container.querySelectorAll("rect")).map((r) =>
+      r.getAttribute("fill"),
+    );
+    expect(fills).toContain("var(--color-status-warning-bg)");
+    expect(fills).not.toContain("var(--color-status-warning-fg)");
+  });
+});

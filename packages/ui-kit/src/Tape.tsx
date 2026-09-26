@@ -24,6 +24,7 @@ import {
   boundsStandApart,
   InstrumentBound,
   InstrumentHeldMark,
+  InstrumentNoFigure,
   sayHeld,
 } from "./instrumentCurrency";
 import { NULL_DISPLAY } from "./NullValue";
@@ -241,13 +242,22 @@ export function Tape<U extends string = string>({
   return (
     <Tape__Meter
       ref={wrapRef}
-      role="meter"
-      aria-label={sayHeld(ariaLabel ?? "Tape", caption)}
       data-not-current={notCurrent ? "" : undefined}
-      aria-valuenow={clamped}
-      aria-valuemin={axisMin}
-      aria-valuemax={axisMax}
-      aria-valuetext={spoken}
+      {...(hasFigure
+        ? {
+            role: "meter",
+            "aria-label": sayHeld(ariaLabel ?? "Tape", caption),
+            "aria-valuenow": clamped,
+            "aria-valuemin": axisMin,
+            "aria-valuemax": axisMax,
+            "aria-valuetext": spoken,
+          }
+        : {
+            /* A meter must state a value, and there is none: the rail is
+               announced as a picture of nothing rather than as its foot. */
+            role: "img",
+            "aria-label": sayHeld(`${ariaLabel ?? "Tape"}: ${spoken}`, caption),
+          })}
       style={fillHeight ? { height: "100%" } : undefined}
     >
       {/* The scale is decorative for a screen reader, the meter value above
@@ -290,7 +300,7 @@ export function Tape<U extends string = string>({
                 y={yHi}
                 width={TRACK_W}
                 height={h}
-                fill={z.color ?? "var(--color-status-warning-fg)"}
+                fill={z.color ?? "var(--color-status-warning-bg)"}
                 opacity={0.55}
               />
               {z.label && (
@@ -421,6 +431,15 @@ export function Tape<U extends string = string>({
               {notCurrent && <InstrumentHeldMark size={5} />}
             </text>
           </>
+        )}
+        {!hasFigure && (
+          <InstrumentNoFigure
+            x={mirrored ? labelX + 8 : labelX - 8}
+            y={trackTop + usable / 2}
+            size={11}
+          >
+            {NULL_DISPLAY}
+          </InstrumentNoFigure>
         )}
 
         {/* The scale's own symbol, shown once, taken from the same rung every

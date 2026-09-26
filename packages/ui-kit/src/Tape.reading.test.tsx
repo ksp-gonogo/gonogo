@@ -7,6 +7,7 @@ import {
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
+import { NULL_DISPLAY } from "./NullValue";
 import { Tape } from "./Tape";
 
 /**
@@ -144,6 +145,24 @@ describe("Tape, handed a Reading", () => {
         ariaLabel="AGL"
       />,
     );
+    await expectNoA11yViolations(container);
+  });
+});
+
+describe("Tape with no figure", () => {
+  it("draws the null token and is not announced as a meter reading the foot of its rail", async () => {
+    const { container } = render(
+      <Tape
+        {...AXIS}
+        value={{ state: "pending", reckoning: { status: "none" } }}
+        ariaLabel="AGL"
+      />,
+    );
+    expect(screen.queryByRole("meter")).toBeNull();
+    expect(
+      screen.getByRole("img", { name: `AGL: ${NULL_DISPLAY}` }),
+    ).toBeInTheDocument();
+    expect(container.textContent).toContain(NULL_DISPLAY);
     await expectNoA11yViolations(container);
   });
 });
