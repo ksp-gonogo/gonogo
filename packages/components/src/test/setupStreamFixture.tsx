@@ -161,7 +161,16 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
     if (omitted.has(channel.topic)) continue;
     store.registerDerivedChannel(channel);
   }
-  if (opts.pinnedUt !== undefined) clock.scrubTo(opts.pinnedUt);
+  if (opts.pinnedUt !== undefined) {
+    clock.scrubTo(opts.pinnedUt);
+    /*
+     * The store minted its first frame at construction, before the pin, so it
+     * is still reading at the unpinned clock's `-Infinity`. A widget mounted on
+     * that frame re-renders on whichever frame arrives next, and under
+     * `suspendFrames` that is a command answer landing after the test is over.
+     */
+    store.beginFrame();
+  }
   /*
    * Before the Provider mounts, so the loop never starts rather than starting
    * and being stopped: a loop that got one tick in has already scheduled the
