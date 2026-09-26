@@ -11,11 +11,9 @@ import {
 } from "./toggles";
 
 /**
- * Fleet/Comms on `SystemView`: the Commlinks and Traffic toggles. It draws
- * NOTHING into the diagram: SystemView's `system-view.entities` contributions
- * draw relay edges, the route home and pending-command pulses off the real
- * graph, and a second answer over them would disagree. `SystemView` reads the
- * toggles' store directly.
+ * The Commlinks and Traffic toggles on `SystemView`. It draws nothing into the
+ * diagram: SystemView reads the toggles' store, and its `system-view.entities`
+ * contributions draw the comms graph.
  */
 function FleetCommsActions() {
   const instanceId = useFleetCommsInstanceId();
