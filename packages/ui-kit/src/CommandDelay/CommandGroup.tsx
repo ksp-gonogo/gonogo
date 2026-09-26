@@ -1,13 +1,13 @@
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useId } from "react";
 import styled, { css } from "styled-components";
 import { focusRing } from "../focusRing";
+import { VisuallyHidden } from "../VisuallyHidden";
 
 interface CommandGroupOwnProps<V extends Record<string, unknown>> {
   value: V;
-  onChange: (v: V) => void;
   /** Fired exactly once, with the group's current `value`, on an explicit commit; never on a child input's own change. */
   onCommit: (v: V) => void;
-  /** `no-path`: disables the commit control and switches it to an error tone. `onCommit` never fires while gated. */
+  /** `no-path`: marks the commit control unavailable and switches it to an error tone. It stays focusable and says why; `onCommit` never fires while gated. */
   gated?: boolean;
   /** The group's own inputs (wheels/sliders/etc.): this component owns none of their rendering. */
   children: ReactNode;
@@ -33,7 +33,7 @@ interface CommandGroupOwnProps<V extends Record<string, unknown>> {
    * query for the control matches.
    */
   commitAriaLabel?: string;
-  /** Reason shown (as the commit button's title) when gated, for a screen reader / hover explanation. */
+  /** Why a gated commit is unavailable: the button's description, and its hover title. */
   gatedReason?: string;
   /**
    * Where the commit control sits relative to the inputs. `"column"` (default)
@@ -75,8 +75,8 @@ export type CommandGroupProps<V extends Record<string, unknown>> =
 
 /**
  * Grouped-confirm / select-then-commit primitive: N child inputs write into
- * a shared, controlled `value` via `onChange` as the operator dials them,
- * and nothing dispatches until the explicit commit action fires `onCommit`
+ * the caller's controlled `value` as the operator dials them, and nothing
+ * dispatches until the explicit commit action fires `onCommit`
  * once with the whole group's value: one delayed dispatch for the whole
  * group, not one per input. Vanilla-safe: no data hooks, no dispatch of its
  * own: the commit callback is the caller's own `useCommand().send`.
@@ -109,13 +109,16 @@ export function CommandGroup<V extends Record<string, unknown>>({
         "naming the action (not the glyph).",
     );
   }, [named, commitAriaLabel]);
+  const reasonId = useId();
 
   return (
     <CommandGroup__Root data-gated={gated} $orientation={orientation}>
       <CommandGroup__Inputs $wrap={wrap}>{children}</CommandGroup__Inputs>
+      {gated && <VisuallyHidden id={reasonId}>{gatedReason}</VisuallyHidden>}
       <CommandGroup__CommitButton
         type="button"
-        disabled={gated}
+        aria-disabled={gated || undefined}
+        aria-describedby={gated ? reasonId : undefined}
         $gated={gated}
         $orientation={orientation}
         $icon={!named}
