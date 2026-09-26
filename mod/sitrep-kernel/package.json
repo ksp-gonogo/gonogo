@@ -8,6 +8,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json && node ../../scripts/prune-dist.mjs",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "gen:golden-fixtures": "tsx ../golden-fixtures/gen/version.gen.ts && tsx ../golden-fixtures/gen/kernel.gen.ts"
   },

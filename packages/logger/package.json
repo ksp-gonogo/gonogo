@@ -17,12 +17,14 @@
     "dev": "tsc -p tsconfig.build.json --watch",
     "lint": "tsc --noEmit",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@axiomhq/js": "^1.6.1"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.4",
     "typescript": "^5.0.0",
     "vitest": "^4.1.4"
   }

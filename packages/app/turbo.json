@@ -15,6 +15,7 @@
         "!$TURBO_ROOT$/mod/**/dist/**",
         "!$TURBO_ROOT$/mod/**/.turbo/**",
         "!$TURBO_ROOT$/mod/**/node_modules/**",
+        "!$TURBO_ROOT$/mod/**/coverage/**",
         "$TURBO_ROOT$/scripts/uplink-matrix.mjs"
       ]
     }
