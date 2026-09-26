@@ -64,11 +64,19 @@ export function AugmentSettingsPanel({
                 value={current === undefined ? "" : String(current)}
                 onChange={(e) => {
                   const raw = e.target.value;
-                  onChange(
-                    block.namespace,
-                    field.key,
-                    field.type === "number" ? Number(raw) : raw,
-                  );
+                  if (field.type !== "number") {
+                    onChange(block.namespace, field.key, raw);
+                    return;
+                  }
+                  // An emptied field stores nothing, so the default applies;
+                  // a partial entry such as a lone "-" stores nothing at all.
+                  if (raw === "") {
+                    onChange(block.namespace, field.key, undefined);
+                    return;
+                  }
+                  const n = Number(raw);
+                  if (Number.isFinite(n))
+                    onChange(block.namespace, field.key, n);
                 }}
               />
             </Field>

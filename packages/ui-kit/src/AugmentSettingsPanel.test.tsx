@@ -136,3 +136,46 @@ describe("AugmentSettingsPanel", () => {
     expect(container).toBeEmptyDOMElement();
   });
 });
+
+describe("AugmentSettingsPanel number fields", () => {
+  const NUMERIC: NamespacedAugmentSettings[] = [
+    {
+      augmentId: "example-augment",
+      namespace: "example-augment",
+      fields: [{ key: "count", type: "number", label: "Count", default: 3 }],
+    },
+  ];
+
+  it("clears a number field to no stored value rather than to zero", () => {
+    const onChange = vi.fn();
+    render(
+      <AugmentSettingsPanel
+        settings={NUMERIC}
+        values={{ "example-augment": { count: 7 } }}
+        onChange={onChange}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Count"), { target: { value: "" } });
+    expect(onChange).toHaveBeenCalledWith(
+      "example-augment",
+      "count",
+      undefined,
+    );
+    expect(onChange).not.toHaveBeenCalledWith("example-augment", "count", 0);
+  });
+
+  it("passes a typed number through as a number", () => {
+    const onChange = vi.fn();
+    render(
+      <AugmentSettingsPanel
+        settings={NUMERIC}
+        values={undefined}
+        onChange={onChange}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Count"), {
+      target: { value: "12" },
+    });
+    expect(onChange).toHaveBeenCalledWith("example-augment", "count", 12);
+  });
+});
