@@ -237,7 +237,7 @@ describe("uplink boundary: the permanent bucket's code-carrying subset only shri
           "mod/sitrep-sdk/src/__generated__/contract.ts",
           "packages/core/src/thing.allowlist.ts",
           "packages/app/src/SomeWidget.test.tsx",
-          "docs/uplink-isolation.md",
+          "docs/KSP-SETUP.md",
           "packages/app/src/ProseOnly.tsx",
         ],
         domainDebt: [],
@@ -249,7 +249,7 @@ describe("uplink boundary: the permanent bucket's code-carrying subset only shri
         "mod/sitrep-sdk/src/__generated__/contract.ts",
         "packages/core/src/thing.allowlist.ts",
         "packages/app/src/SomeWidget.test.tsx",
-        "docs/uplink-isolation.md",
+        "docs/KSP-SETUP.md",
         // ProseOnly deliberately absent: comments only, so it never grades.
       ],
     };

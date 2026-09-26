@@ -420,7 +420,8 @@ cleared the last entry (`GonogoKosUplink.Tests`, for its headless terminal
 harness's real `Courier`/`Archive`). `Sitrep.Core` is still private to a PLUGIN:
 the `net472` and `netstandard2.0` groups a KSP plugin resolves carry
 `Sitrep.Contract` alone, and `scripts/nuget-contract-package-gate.mjs` fails if
-that changes. Full rules and the reasoning: `docs/uplink-isolation.md`.
+that changes. The two gates named above are the full rule; the author-facing
+version is on the Uplink docs site, https://ksp-gonogo.github.io/uplink-dev-docs/.
 
 ---
 

@@ -35,8 +35,8 @@
  * Packages whose `typecheck` script does not yet cover their own test files,
  * keyed by workspace-relative directory.
  *
- * The value is what would let the entry leave, per the escape-hatch rule in
- * `docs/ratchets.md`: an entry with no stated exit is a regression with a hall
- * pass, so the companion test fails on an empty or placeholder reason.
+ * The value is what would let the entry leave: an entry with no stated exit is
+ * a regression with a hall pass, so the companion test fails on an empty or
+ * placeholder reason.
  */
 export const TYPECHECK_COVERAGE_DEBT: Readonly<Record<string, string>> = {};

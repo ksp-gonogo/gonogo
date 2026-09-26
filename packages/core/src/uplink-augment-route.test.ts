@@ -139,7 +139,7 @@ describe("an Uplink reaches the augment registry through the sdk", () => {
         `clearAugments, from @ksp-gonogo/sitrep-sdk/testing). Those are shims onto\n` +
         `the injected host, so your slot ids merge into the registry your\n` +
         `declare-module targets, and a mis-bundled Uplink throws a named error at\n` +
-        `first registration instead of carrying on silently. See docs/uplink-isolation.md.`,
+        `first registration instead of carrying on silently.`,
     ).toEqual([]);
   });
 

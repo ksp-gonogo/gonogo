@@ -37,7 +37,7 @@ import { describe, expect, it } from "vitest";
 /**
  * One lookup across the four entries an Uplink's tests import from, so a name can be
  * asserted present without this file also pinning WHICH entry it came from. Where it
- * lives is `docs/uplink-isolation.md`'s business and moves as things move; that it is
+ * lives is the isolation rule's business and moves as things move; that it is
  * a callable at runtime is this file's.
  *
  * The two `/testing` subpaths are listed before their roots so a testing-only export

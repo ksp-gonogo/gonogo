@@ -15,7 +15,7 @@
  * not replace that. It runs from the Uplink's side: a fixture naming
  * `_scene.hostWidget: "targeting"` plus `gonogo-uplink render --with <this repo's
  * packages/components/src/index.ts>` mounts the genuine `<video>` inside the
- * genuine host (see `docs/uplink-rendering.md`). That is the run to make when
+ * genuine host. That is the run to make when
  * the question is about the picture, because a stub cannot answer what
  * `object-fit: cover` does to a real frame in a frame of this shape. This one
  * stays because it needs no second checkout and no camera at all.

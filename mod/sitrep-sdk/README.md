@@ -6,17 +6,13 @@ TypeScript client SDK for the gonogo-native telemetry mod. The wire contract
 (message envelopes, `Meta`, enums) is defined once in C# and generated into
 this package: the SDK never redefines the shape by hand.
 
-**Writing an Uplink? Start with
-[docs/creating-an-uplink.md](https://github.com/ksp-gonogo/gonogo/blob/main/docs/creating-an-uplink.md).**
+**Writing an Uplink? Start with the [Uplink developer docs](https://ksp-gonogo.github.io/uplink-dev-docs/).**
 This package is the authoring surface an Uplink imports (`defineUplinkClient`,
 `registerComponent`, `useTelemetry`, `useCommand`, the generated contract types,
 the unit model, and the `gonogo-uplink` CLI), but the README below is written for
 a maintainer of this repo: it covers the codegen, the drift gate and the
-hand-owned seams, not how to build anything with the package. The guide covers
-both halves of an Uplink, and every code example in it is compiled against this
-package on every change. [docs/uplink-isolation.md](https://github.com/ksp-gonogo/gonogo/blob/main/docs/uplink-isolation.md)
-is the rule about which subpaths here are author surfaces, because not all of
-them are.
+hand-owned seams, not how to build anything with the package. Not every subpath
+here is an author surface; the docs site names the ones that are.
 
 ## Generated code: do not hand-edit
 

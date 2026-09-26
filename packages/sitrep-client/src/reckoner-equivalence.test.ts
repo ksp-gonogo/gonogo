@@ -37,7 +37,7 @@ import { ViewClock } from "./view-clock";
  *
  * The probe below imports `defineUplinkClient`, `buildElements`, `solve`,
  * `keplerAdmissibility` and `value` from `@ksp-gonogo/sitrep-sdk`, the ROOT
- * barrel, which is the whole of what `docs/uplink-isolation.md` permits. It
+ * barrel, which is the whole of what an Uplink may import. It
  * registers through the client handle, so its model is owner-stamped the way an
  * Uplink's is. Nothing it does reaches `/spine`.
  *

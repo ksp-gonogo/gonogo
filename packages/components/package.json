@@ -18,7 +18,6 @@
     "render-ship-map": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-fixtures.ts",
     "render-navball": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-navball.ts",
     "render-navball-gif": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-navball-gif.ts",
-    "render-promoted-assets": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-promoted-assets.ts",
     "render-navball-scaling": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-navball-scaling.ts",
     "render-widget": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-widget.ts",
     "render-absence": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-absence.ts",

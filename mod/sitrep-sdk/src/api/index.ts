@@ -13,9 +13,7 @@
 // EVERY Uplink goes through this barrel, including the ones bundled with the
 // mod. There is no first-party path: bundling changes how an Uplink ships, not
 // what it may import, and an Uplink that reaches past this barrel stops
-// modelling what an outside author can actually build. An earlier revision of
-// this header exempted in-tree code, and that exemption is what taught
-// docs/creating-an-uplink.md to tell authors to import a private package.
+// modelling what an outside author can actually build.
 
 import type { ReactElement } from "react";
 import {

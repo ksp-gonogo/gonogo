@@ -29,9 +29,7 @@
  * There is NO first-party exemption. Some Uplinks ship bundled with the mod,
  * which changes how they are distributed and not what they may import. Every
  * Uplink here is meant to be a working example of what an outside author can
- * build. An earlier revision of the SDK barrel's header exempted in-tree code,
- * and that exemption is both where this debt came from and what taught
- * `docs/creating-an-uplink.md` to tell authors to depend on `core`.
+ * build.
  *
  * Every entry here is DEBT and the list is SHRINK-ONLY. Fix one by re-pointing the
  * import at a published package, or by moving the export into one, then delete
@@ -44,8 +42,6 @@
  * `StubTransport` rather than a reimplementation of them. It was briefly a
  * separate `@ksp-gonogo/sitrep-testing` package sitting above the spine; that
  * package is DELETED, and the subpath is where the harness lives now.
- *
- * See `docs/uplink-isolation.md`.
  */
 
 /**
@@ -109,10 +105,8 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
  * from the registry gets a module-not-found rather than a working build.
  *
  * Seeded 2026-08-18 alongside the import debt, and SHRINK-ONLY for the same
- * reason. It exists because `docs/uplink-isolation.md` had a "Which package
- * declares what" section that nothing enforced, which is how two Uplinks kept a
- * declared dependency on `components` for weeks after the last import of it
- * died.
+ * reason. Without it two Uplinks kept a declared dependency on `components` for
+ * weeks after the last import of it died.
  *
  * Also EMPTY as of 2026-08-19.
  */
@@ -135,8 +129,7 @@ export const DECLARED_DEPENDENCY_DEBT: Record<
  * That is the whole of the risk. `/spine` is where the read semantics of a topic
  * are implemented and `/registry` is dashboard orchestration; both barrels say in
  * their own headers that publishing them would freeze evolving internals as
- * third-party API, and `docs/uplink-isolation.md` says an Uplink may not import
- * either. Nothing said it to a compiler until this list existed.
+ * third-party API, so an Uplink may not import either.
  *
  * Every published subpath is classified here or in `NON_AUTHOR_SUBPATHS`, so a
  * new one forces the decision rather than defaulting to permitted. Same shape and

@@ -139,8 +139,8 @@ describe("design-document references on the published comment surface", () => {
     }
     // And does not fire on what an author CAN read, or on ordinary prose.
     const shouldNotMatch = [
-      "see docs/creating-an-uplink.md",
-      "see docs/uplink-isolation.md",
+      "see docs/KSP-SETUP.md",
+      "see https://ksp-gonogo.github.io/uplink-dev-docs/guide/",
       "the spec is what the contract says",
       "designed to fail loud",
     ];

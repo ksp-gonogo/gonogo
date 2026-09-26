@@ -329,8 +329,8 @@ export {
 // behind them.
 //
 // Published from the ROOT barrel rather than only from `./spine`, because the
-// root barrel is the whole of what an Uplink may import (docs/uplink-isolation.md)
-// and a Processor nobody outside this repo can name is not shared, whatever
+// root barrel is the whole of what an Uplink may import, and a Processor nobody
+// outside this repo can name is not shared, whatever
 // `registerProcessor`'s owner stamp says. The machinery stays where it was:
 // `defineProcessor`, the evaluator and `TimelineStore` are still spine-only, and
 // `useProcessor` reaches the evaluator through the host shim above.

@@ -9,9 +9,8 @@ import { describe, it } from "vitest";
 import "./index";
 
 /**
- * The generated page, gated without a browser. `docs/uplink-rendering.md` has the
- * argument; the short version is that whether the prose matches the registrations
- * is a registry read, and only the pictures need Chromium.
+ * The generated page, gated without a browser: whether the prose matches the
+ * registrations is a registry read, and only the pictures need Chromium.
  *
  * Every client-bearing Uplink carries this file, and `scripts/uplink-docs-gate.mjs`
  * is what says so. It has to run in the Uplink's own process rather than as one

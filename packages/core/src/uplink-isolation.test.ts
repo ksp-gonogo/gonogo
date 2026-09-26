@@ -351,8 +351,6 @@ describe("uplink isolation", () => {
         "Do NOT add these to the debt list: it is shrink-only and a new entry",
         "means new code just created the violation. Move the export you need into",
         "sitrep-sdk or ui-kit and re-point the import.",
-        "",
-        "See docs/uplink-isolation.md.",
       ].join("\n"),
     ).toEqual([]);
   });
@@ -455,8 +453,6 @@ describe("uplink isolation", () => {
         "",
         "Same rule as the import list: do NOT add an entry here, move the export",
         "you need into a published package instead.",
-        "",
-        "See docs/uplink-isolation.md.",
       ].join("\n"),
     ).toEqual([]);
   });
@@ -626,7 +622,7 @@ describe("uplink isolation", () => {
       if (!baseDebt) return;
       expect(
         additions(INTERNAL_IMPORT_DEBT, baseDebt, gradedPackages(at.lists)),
-        `Debt entries may only be REMOVED, never added, vs ${at.ref}. See docs/uplink-isolation.md.`,
+        `Debt entries may only be REMOVED, never added, vs ${at.ref}.`,
       ).toEqual([]);
     });
 
@@ -639,7 +635,7 @@ describe("uplink isolation", () => {
       if (!baseDebt) return;
       expect(
         additions(DECLARED_DEPENDENCY_DEBT, baseDebt, gradedPackages(at.lists)),
-        `Declared-dependency debt may only be REMOVED, never added, vs ${at.ref}. See docs/uplink-isolation.md.`,
+        `Declared-dependency debt may only be REMOVED, never added, vs ${at.ref}.`,
       ).toEqual([]);
     });
 
@@ -724,8 +720,7 @@ describe("uplink isolation", () => {
  *
  * Measured on 2026-08-26 by planting that import in a production Uplink file:
  * this suite reported 12 of 12 passing and the extraction probe reported zero
- * errors, with `docs/uplink-isolation.md` saying in as many words that `/spine`
- * is not an author surface.
+ * errors, although `/spine` is not an author surface.
  */
 describe("uplink subpath isolation", () => {
   const plantDirs: string[] = [];
@@ -993,8 +988,6 @@ describe("uplink subpath isolation", () => {
         "",
         "Take what you need off the ROOT barrel, or off /frames for the frame",
         "arithmetic. If it is not there, move it there.",
-        "",
-        "See docs/uplink-isolation.md.",
       ].join("\n"),
     ).toEqual([]);
   });
@@ -1154,8 +1147,6 @@ describe("uplink-tools/widgets is a render-time module, not an import", () => {
         "ships the app's whole widget library to its users.",
         "",
         'Move it to devDependencies and name it in "gonogo.renderWith".',
-        "",
-        "See docs/uplink-isolation.md.",
       ].join("\n"),
     ).toEqual([]);
   });
@@ -1176,8 +1167,6 @@ describe("uplink-tools/widgets is a render-time module, not an import", () => {
         "",
         'Name it in "gonogo.renderWith" instead. If you need a component from',
         "it, move that component into @ksp-gonogo/ui-kit.",
-        "",
-        "See docs/uplink-isolation.md.",
       ].join("\n"),
     ).toEqual([]);
   });
