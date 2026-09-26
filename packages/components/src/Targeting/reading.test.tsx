@@ -1,9 +1,10 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { clearReckoners, registerReckoner } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
+import { registerCoreReckoners } from "@ksp-gonogo/sitrep-sdk/spine";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -20,11 +21,17 @@ import { TargetingComponent } from "./index";
  * states are reachable on the real wire, which is what makes this widget the
  * proof rather than a demonstration.
  */
+/*
+ * The reckoner registry is module-level, so each test starts from core's own
+ * models alone rather than inheriting one an earlier test registered.
+ */
+beforeEach(() => {
+  clearReckoners();
+  registerCoreReckoners();
+});
+
 afterEach(() => {
   clearActionHandlers();
-  // The reckoner registry is module-level, so a test that registers one must
-  // clear it or the widget keeps a model in every later test in the file.
-  clearReckoners();
 });
 
 const TARGET = {
@@ -166,6 +173,7 @@ describe("Targeting: stale renders the last observation as an observation", () =
   });
 
   it("shows no reckoned figure while nothing can honestly model one", async () => {
+    clearReckoners();
     const { fixture, legacyAux } = await mount("dtt-noreckon", 10);
 
     act(() => {
@@ -181,9 +189,10 @@ describe("Targeting: stale renders the last observation as an observation", () =
     });
     await waitFor(() => expect(visibleText()).toMatch(/last contact/i));
 
-    // The reckoning is stubbed, so absence of a reckoned row is the honest
-    // rendering. Presence of the row is the statement of trust, so a stub that
-    // rendered one would be the exact dishonesty the type exists to prevent.
+    // No model is registered for the topic, so absence of a reckoned row is
+    // the honest rendering. Presence of the row is the statement of trust, so
+    // one drawn without a model would be the exact dishonesty the type exists
+    // to prevent.
     expect(visibleText()).not.toMatch(/reckoned/i);
 
     teardownMockDataSource(legacyAux);

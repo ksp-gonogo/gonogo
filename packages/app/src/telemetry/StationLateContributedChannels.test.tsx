@@ -1,5 +1,4 @@
 import {
-  clearContributedDerivedChannels,
   contributeDerivedChannel,
   TelemetryClient,
   TelemetryProvider,
@@ -9,7 +8,7 @@ import type { DerivedChannelDefinition } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { type ReactNode, useEffect, useState } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 /**
  * A derived channel is the only mechanism that can join two Topics, so an
@@ -71,14 +70,10 @@ function LateLoader({ children }: { children: ReactNode }) {
 }
 
 describe("a station's Uplink loads after its store is built", () => {
-  afterEach(() => {
-    clearContributedDerivedChannels();
-  });
-
   it("resolves a derived channel contributed after the provider mounted", async () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
-    const view = render(
+    render(
       <TelemetryProvider client={client}>
         <LateLoader>
           <Probe />
@@ -99,8 +94,5 @@ describe("a station's Uplink loads after its store is built", () => {
     await waitFor(() =>
       expect(screen.getByTestId("derived").textContent).toBe("42"),
     );
-
-    view.unmount();
-    await act(async () => {});
   });
 });

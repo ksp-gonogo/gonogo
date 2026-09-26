@@ -1,4 +1,4 @@
-import { clearReckoners, registerReckoner } from "@ksp-gonogo/sitrep-client";
+import { registerReckoner } from "@ksp-gonogo/sitrep-client";
 import { Quality, Staleness, value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
@@ -673,7 +673,6 @@ describe("Graph: the region behind a modelled trace", () => {
   afterEach(() => {
     restoreResizeObserver();
     vi.unstubAllGlobals();
-    clearReckoners();
   });
 
   /** A drift model on the semi-major axis that admits it gets vaguer. */

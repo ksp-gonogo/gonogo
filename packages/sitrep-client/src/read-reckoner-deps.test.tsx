@@ -5,11 +5,7 @@ import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
 import { createFakeWallClock } from "./fake-wall-clock";
-import {
-  clearReckoners,
-  registerCoreReckoners,
-  registerReckoner,
-} from "./reckoners";
+import { registerCoreReckoners, registerReckoner } from "./reckoners";
 import { StubTransport } from "./stub-transport";
 import { TimelineStore } from "./timeline-store";
 import { useStream } from "./use-stream";
@@ -160,18 +156,14 @@ describe("a point read holds up its reckoner's declared inputs", () => {
       }),
     });
 
-    try {
-      render(
-        <fixture.Provider>
-          <StreamProbe topic="test.contact.relativePosition" />
-        </fixture.Provider>,
-      );
+    render(
+      <fixture.Provider>
+        <StreamProbe topic="test.contact.relativePosition" />
+      </fixture.Provider>,
+    );
 
-      expect(fixture.transport.isSubscribed("test.contact")).toBe(true);
-      expect(fixture.transport.isSubscribed("test.temperature")).toBe(true);
-    } finally {
-      clearReckoners();
-    }
+    expect(fixture.transport.isSubscribed("test.contact")).toBe(true);
+    expect(fixture.transport.isSubscribed("test.temperature")).toBe(true);
   });
 
   /**
@@ -247,7 +239,6 @@ describe("a point read holds up its reckoner's declared inputs", () => {
     });
 
     expect(fixture.transport.isSubscribed(`fleet.${SUBJECT}.orbit`)).toBe(true);
-    clearReckoners();
   });
 
   it("subscribes nothing extra where the model declares no deps", () => {
