@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { widestSeparation } from "./ConformancePlot";
+import { widestSeparation } from "./widestSeparation";
 
 // The far apsis is the widest point only for a burn made at an apsis.
 describe("widestSeparation: where two conics are actually furthest apart", () => {

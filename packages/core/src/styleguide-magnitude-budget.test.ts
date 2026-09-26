@@ -233,8 +233,8 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // because a Kepler solve is trigonometry on a number and not an operation the
   // algebra has a term for.
   "packages/components/src/LibrationPoints/index.tsx": 1,
-  "packages/components/src/ManeuverPlanner/index.tsx": 5,
   "packages/components/src/ManeuverPlanner/LocalManeuverTriggerService.ts": 10,
+  "packages/components/src/ManeuverPlanner/usePlannerTelemetry.ts": 4,
   // 18: two `{ ut, lat, lon }` literals each unwrap a latitude
   // and a longitude side by side. One of them is a maneuver node's own
   // UT. It reads the modern vessel.maneuver shape, where the instant is a
