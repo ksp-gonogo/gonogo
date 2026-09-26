@@ -54,8 +54,8 @@ const SwitchTrack = styled.div<{ $checked: boolean; $disabled?: boolean }>`
      stops being a stadium the moment the height moves. --radius-pill clamps to
      the same shape and survives a height change. */
   border-radius: var(--radius-pill, 999px);
-  background: ${({ $checked, $disabled }) => ($disabled ? "var(--color-surface-raised)" : $checked ? "var(--color-status-go-bg)" : "var(--color-surface-raised)")};
-  border: 1px solid ${({ $checked, $disabled }) => ($disabled ? "var(--color-border-strong)" : $checked ? "var(--color-status-go-bg)" : "var(--color-border-strong)")};
+  background: ${({ $checked, $disabled }) => ($disabled ? "var(--color-surface-raised)" : $checked ? "var(--color-status-go-mark)" : "var(--color-surface-raised)")};
+  border: 1px solid ${({ $checked, $disabled }) => ($disabled ? "var(--color-border-strong)" : $checked ? "var(--color-status-go-mark)" : "var(--color-border-strong)")};
   position: relative;
   flex-shrink: 0;
   transition: background var(--duration-base, 150ms), border-color var(--duration-base, 150ms);

@@ -199,6 +199,11 @@ export const EXPLICIT_PAIRINGS: readonly Pairing[] = [
     on: [...SURFACES, "status-alert-muted"],
   },
   { token: "status-info-fg", kind: "text", on: SURFACES },
+  {
+    token: "status-go-mark",
+    kind: "non-text",
+    on: ["surface-panel", "surface-raised"],
+  },
   { token: "status-warning-fg-muted", kind: "text", on: SURFACES },
   { token: "status-warning-bg", kind: "text", on: SURFACES },
   { token: "status-nogo-bg", kind: "text", on: SURFACES },

@@ -207,6 +207,24 @@ textarea {
 
   --color-status-go-fg: #cfe;
   --color-status-go-bg: #2e5a2e;
+  /*
+   * The go tone standing alone, as a fill or an edge with no text of its own:
+   * a selected-option fill, a positive-direction bar, a meter's go segment, a
+   * status pill's only edge, a checked switch track. `go-bg` is a background
+   * MEANT to sit under text (Saga #545's own doc comment says so), and used
+   * as the only mark on the panel or a raised surface it reaches just
+   * 2.2-2.4:1, under the 3:1 a mark needs. This clears 4.07:1 on the panel
+   * and 3.64:1 on raised.
+   *
+   * Also holds 3.56:1 against --color-accent-fg (#00ff88): the checked
+   * Switch's thumb is drawn in accent-fg directly on top of this token, so a
+   * brighter pick that read as more "go" against the panel dropped that pair
+   * under 3:1 the moment it got close to the accent's own luminance. The
+   * value here is the calm middle: distinct from both the muted `go-bg` and
+   * the neon accent, which stays reserved for focus and interaction. Ruled
+   * 2026-09-26, Saga #551.
+   */
+  --color-status-go-mark: #3c8050;
   --color-status-nogo-fg: #ffdede;
   --color-status-nogo-bg: #ff4d4d;
   /* Text sitting ON --color-status-nogo-bg, not beside it. The -fg token is

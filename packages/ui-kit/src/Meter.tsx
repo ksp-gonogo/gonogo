@@ -989,7 +989,7 @@ const TONE_FILL = {
     background: var(--color-text-muted);
   `,
   go: css`
-    background: var(--color-status-go-bg);
+    background: var(--color-status-go-mark);
   `,
   warn: css`
     background: var(--color-status-warning-bg);

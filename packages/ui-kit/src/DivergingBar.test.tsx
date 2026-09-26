@@ -39,7 +39,7 @@ describe("DivergingBar", () => {
     const fill = screen.getByTestId("diverging-bar")
       .lastElementChild as HTMLElement;
     expect(fill).toHaveStyle({ left: "50%" });
-    expect(fill).toHaveStyle({ background: "var(--color-status-go-bg)" });
+    expect(fill).toHaveStyle({ background: "var(--color-status-go-mark)" });
   });
 
   it("fills leftward in the nogo tone for a negative value", () => {
