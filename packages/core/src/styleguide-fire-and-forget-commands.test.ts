@@ -61,7 +61,7 @@ const FIRE_AND_FORGET_BUDGET: Record<string, number> = {
   "packages/components/src/Navball/useFlyByWire.ts": 3,
   "packages/components/src/Navball/useSasControls.ts": 3,
   "packages/components/src/ShipMap/index.tsx": 1,
-  "packages/components/src/TargetPicker/index.tsx": 5,
+  "packages/components/src/TargetPicker/TargetPickerView.tsx": 3,
   "packages/components/src/WarpControl/index.tsx": 2,
 };
 
