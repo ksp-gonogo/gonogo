@@ -8,6 +8,7 @@ import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
+import { emittedRuleFor } from "../test/emittedRule";
 import {
   type CommandHandle,
   createDelayRailStore,
@@ -395,6 +396,14 @@ describe("PanelDelayRail", () => {
       many.register(refusedHandle("three", 3));
       inPanel(<PanelDelayRail />, many);
       expect(screen.getByText("3 commands failed")).toBeTruthy();
+    });
+
+    it("draws the count in the warning colour made for text on the panel, not the one made for text on amber", () => {
+      const store = createDelayRailStore();
+      store.register(refusedHandle("one", 1));
+      inPanel(<PanelDelayRail />, store);
+      const rule = emittedRuleFor(screen.getByText("1 command failed"));
+      expect(rule).toContain("var(--color-status-warning-fg-muted)");
     });
 
     it("keeps the reason out of the collapsed strip and shows it once expanded", async () => {

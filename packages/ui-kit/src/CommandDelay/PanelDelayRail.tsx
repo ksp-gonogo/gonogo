@@ -476,7 +476,7 @@ const PanelDelayRail__Rail = styled.button`
  * telemetry.
  */
 const PanelDelayRail__FailureSummary = styled.span`
-  color: var(--color-status-warning-fg);
+  color: var(--color-status-warning-fg-muted);
 `;
 
 /** The end-aligned run both collapsed-strip counts sit in. */
