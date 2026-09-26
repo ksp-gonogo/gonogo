@@ -16,13 +16,13 @@ import {
   Box,
   Cluster,
   EmptyState,
+  Meter,
   Panel,
   Section,
   Stack,
   StatusIndicator,
   type StatusTone,
   Text,
-  Truncate,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { BREAKING_GROUND } from "../uplink";
@@ -444,6 +444,14 @@ function progressPercentReading(
   return combineReadings([source], () => value("%", fraction * 100));
 }
 
+/** The same completion as the 0..1 fraction a meter's bar is drawn from. */
+function progressRatioReading(
+  source: Reading<unknown>,
+  fraction: number,
+): Reading<Value<"ratio">> {
+  return combineReadings([source], () => value("ratio", fraction));
+}
+
 function DeployedScienceComponent(
   _: Readonly<ComponentProps<DeployedScienceConfig>>,
 ) {
@@ -532,71 +540,49 @@ function DeployedScienceComponent(
 
                 {base.experiments.map((exp) => (
                   <Stack key={`${base.id}-${exp.partId}`}>
-                    <Cluster
-                      align="baseline"
-                      style={{ gap: "var(--gap-related)" }}
-                    >
-                      <Truncate style={XS2_STYLE}>{exp.name}</Truncate>
-                      <Text tone="muted" style={XS2_STYLE}>
-                        {exp.progress === null ? (
-                          "Progress unknown"
-                        ) : (
-                          /* Drawn THROUGH the reading, so a percentage held
-                             over from a link that stopped delivering is marked
-                             rather than stated as current. */
-                          <Unit
-                            value={progressPercentReading(
-                              basesReading,
-                              exp.progress,
+                    {/* The figure is drawn THROUGH the reading, so a percentage
+                        held over from a link that stopped delivering is marked
+                        rather than stated as current. An experiment with no
+                        completion reported draws the absent form: an empty
+                        track would read as 0%. */}
+                    <Meter
+                      label={exp.name}
+                      tone="go"
+                      value={
+                        exp.progress === null
+                          ? null
+                          : progressRatioReading(basesReading, exp.progress)
+                      }
+                      valueLabelNode={
+                        exp.progress === null ? undefined : (
+                          <>
+                            <Unit
+                              value={progressPercentReading(
+                                basesReading,
+                                exp.progress,
+                              )}
+                              decimals={0}
+                            />
+                            {/* The dot is only lit on a verdict there was
+                                something to derive. `collecting` was `pct <
+                                100`, which a substituted zero satisfied, so the
+                                card read "gathered nothing and actively
+                                working" about an experiment nobody had heard
+                                from. */}
+                            {exp.collecting === true && (
+                              <Text
+                                tone="accent"
+                                style={XS2_STYLE}
+                                aria-hidden="true"
+                              >
+                                {" "}
+                                ●
+                              </Text>
                             )}
-                            decimals={0}
-                          />
-                        )}
-                        {/* The dot is only lit on a verdict there was
-                            something to derive. `collecting` was `pct < 100`,
-                            which the substituted zero satisfied, so the card
-                            read "gathered nothing and actively working" about
-                            an experiment nobody had heard from. */}
-                        {exp.collecting === true && (
-                          <Text
-                            tone="accent"
-                            style={XS2_STYLE}
-                            aria-hidden="true"
-                          >
-                            {" "}
-                            ●
-                          </Text>
-                        )}
-                      </Text>
-                    </Cluster>
-                    {/* Plain-div track (4px stadium, surface-raised) + go-toned
-                        fill, preserving the original bar's exact dims/colour
-                        rather than the generic ProgressBar (parity restore). No
-                        bar at all without a reading: an empty track is 0%, and
-                        `aria-valuenow={0}` states it outright. */}
-                    {exp.progress !== null && (
-                      <div
-                        role="progressbar"
-                        aria-label={`${exp.name} progress`}
-                        aria-valuenow={Math.round(exp.progress * 100)}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        style={{
-                          height: 4,
-                          borderRadius: "var(--radius-pill)",
-                          background: "var(--color-surface-raised)",
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            height: "100%",
-                            width: `${Math.min(100, Math.max(0, exp.progress * 100))}%`,
-                            background: "var(--color-status-go-bg)",
-                          }}
-                        />
-                      </div>
-                    )}
+                          </>
+                        )
+                      }
+                    />
                     {/* Per-experiment-card body slot (augment-slot-map:
                         deployed-science.experiment). A Kerbalism Uplink appends a
                         background-transmission progress bar here; because the
