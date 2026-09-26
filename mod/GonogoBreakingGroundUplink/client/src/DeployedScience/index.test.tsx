@@ -166,6 +166,27 @@ describe("DeployedScienceComponent", () => {
     expect(screen.queryByText(/Brownout/i)).toBeNull();
   });
 
+  it("draws no brownout for an entry shaped as a whole base claiming partial power", async () => {
+    const fixture = newFixture();
+    renderDeployed(fixture);
+    act(() => {
+      fixture.emit("game.dlc", { breakingGround: true });
+      fixture.emit("deployed.bases", [
+        {
+          id: 7,
+          body: "Mun",
+          powered: true,
+          partialPower: true,
+          experiments: [{ partId: 1, name: "Seismic Sensor", progress: 0.4 }],
+        },
+      ]);
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("No deployed bases"),
+    );
+    expect(screen.queryByText(/Brownout/i)).toBeNull();
+  });
+
   it("renders the augment slots with no bound augment (empty is fine)", async () => {
     const fixture = newFixture();
     renderDeployed(fixture);
@@ -236,17 +257,20 @@ describe("parseBases", () => {
     expect(parseBases({})).toBeNull();
   });
 
-  it("drops bases with no numeric id and clamps experiment progress", () => {
+  it("groups by vesselName, drops entries without one and clamps experiment progress", () => {
     const parsed = parseBases([
-      {
-        id: 7,
-        experiments: [{ name: "X", progress: 5 }],
-      },
-      { body: "no id" },
+      flatEntry({ scienceCompletedPercentage: 500 }),
+      { body: "no vessel" },
     ]);
     expect(parsed).toHaveLength(1);
     expect(parsed?.[0]?.experiments[0]?.progress).toBe(1);
-    // No `collecting` flag on the wire is no verdict, not idle.
-    expect(parsed?.[0]?.experiments[0]?.collecting).toBeNull();
+  });
+
+  it("reads no base out of an entry shaped as a whole base rather than one experiment", () => {
+    expect(
+      parseBases([
+        { id: 7, powered: true, partialPower: true, experiments: [] },
+      ]),
+    ).toEqual([]);
   });
 });

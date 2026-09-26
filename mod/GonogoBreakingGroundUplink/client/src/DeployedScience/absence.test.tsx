@@ -176,7 +176,6 @@ describe("DeployedScience: an unstated power state is not unpowered", () => {
   it("withholds the powered flag rather than reading it as false", () => {
     const parsed = parseBases([flatEntry({ power: null })]);
     expect(parsed?.[0]?.powered).toBeNull();
-    expect(parsed?.[0]?.partialPower).toBe(false);
   });
 
   it("says the power is unknown rather than painting a red Unpowered pill", async () => {

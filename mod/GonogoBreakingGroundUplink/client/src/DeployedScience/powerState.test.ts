@@ -46,7 +46,6 @@ describe("deployed-science power state", () => {
       powerState: "Alimentado",
     });
     expect(base?.powered).toBe(true);
-    expect(base?.partialPower).toBe(false);
   });
 
   // The four states that mean not powered, each carrying the prose "Powered".
@@ -58,28 +57,12 @@ describe("deployed-science power state", () => {
   ])("reads %s as NOT powered", (_name, power) => {
     const [base] = baseWith({ power, powerState: "Powered" });
     expect(base?.powered).toBe(false);
-    expect(base?.partialPower).toBe(false);
   });
 
   // No derived state is a third answer, not "not powered".
   it("reads an absent power state as neither powered nor unpowered", () => {
     const [base] = baseWith({ power: null, powerState: "Powered" });
     expect(base?.powered).toBeNull();
-    expect(base?.partialPower).toBe(false);
-  });
-
-  // Stock has no partial power state, so nothing may report one.
-  it("never reports partial power, for any state", () => {
-    for (const power of [
-      DeployedPowerState.Powered,
-      DeployedPowerState.Unpowered,
-      DeployedPowerState.ControllerDisabled,
-      DeployedPowerState.Disabled,
-      DeployedPowerState.NotConnected,
-      null,
-    ]) {
-      expect(baseWith({ power })[0]?.partialPower).toBe(false);
-    }
   });
 
   it("reads controller attachment from the derived boolean, not the prose", () => {
