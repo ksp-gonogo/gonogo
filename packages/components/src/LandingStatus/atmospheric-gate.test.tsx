@@ -15,7 +15,7 @@ import {
 } from "../test/widgetDomSnapshot";
 import { LandingStatusComponent } from "./index";
 
-/** An atmospheric descent's site readouts appear exactly when its terrain plots do. */
+/** An atmospheric descent's site readouts appear exactly when its terrain plots do, and its held figures are marked. */
 const CARRIED = [
   "system.bodies",
   "vessel.identity",
@@ -61,7 +61,11 @@ describe("LandingStatus atmospheric site gate", () => {
   }
 
   /** A Kerbin descent at `agl` metres over a predicted site `drift` degrees of longitude east of the first. */
-  function emitDescent(agl: number, drift = 0) {
+  function emitDescent(
+    agl: number,
+    drift = 0,
+    terminalVelocity: number | null = 120,
+  ) {
     stream.emit("system.bodies", {
       bodies: [
         {
@@ -129,7 +133,7 @@ describe("LandingStatus atmospheric site gate", () => {
       terrainPatch: Array.from({ length: PATCH_SIZE * PATCH_SIZE }, () => 70),
       terrainPatchSize: PATCH_SIZE,
       terrainPatchExtentMeters: 400,
-      terminalVelocity: 120,
+      terminalVelocity,
       projectedTouchdownSpeed: 7.5,
       atmosphericTimeToImpact: 90,
       descentRegime: "at-terminal",
@@ -155,6 +159,47 @@ describe("LandingStatus atmospheric site gate", () => {
       expect(screen.getByText("Touchdown site")).toBeInTheDocument(),
     );
     expect(visibleText()).toContain("slope");
+  });
+
+  /** The held-marked figure whose visible text contains `text`, or null. */
+  function heldFigure(text: string): Element | null {
+    return (
+      [...document.querySelectorAll("[data-not-current]")].find((el) =>
+        el.textContent?.includes(text),
+      ) ?? null
+    );
+  }
+
+  function dropLink() {
+    act(() => {
+      stream.store.setTransportConnected(false);
+      stream.store.beginFrame();
+    });
+  }
+
+  it("marks the held slope and time to impact once the link drops", async () => {
+    await settleAt(4_000);
+    await waitFor(() => expect(visibleText()).toContain("slope"));
+    expect(heldFigure("3.2")).toBeNull();
+
+    dropLink();
+
+    await waitFor(() => {
+      expect(heldFigure("3.2")).not.toBeNull();
+      expect(heldFigure("1min 30s")).not.toBeNull();
+    });
+  });
+
+  it("marks the held air density once the link drops", async () => {
+    renderWidget();
+    await flushResizeObservers();
+    act(() => emitDescent(15_000, 0, null));
+    await waitFor(() => expect(visibleText()).toContain("Air density"));
+    expect(heldFigure("500.000")).toBeNull();
+
+    dropLink();
+
+    await waitFor(() => expect(heldFigure("500.000")).not.toBeNull());
   });
 
   it("describes no site above the plots' gate, however settled the prediction", async () => {

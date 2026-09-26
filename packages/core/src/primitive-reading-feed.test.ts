@@ -514,7 +514,6 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
    * beside it as its own `budget.state`.
    */
   "packages/components/src/FuelStatus/index.tsx": 2,
-  "packages/components/src/LandingStatus/index.tsx": 3,
   "packages/components/src/SpaceCenterStatus/index.tsx": 1,
   /*
    * Newly VISIBLE, through `Countdown` taking a reading, and the same shape as

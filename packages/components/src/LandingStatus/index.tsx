@@ -661,7 +661,10 @@ function LandingStatusComponent({
             {landing?.atmosphericTimeToImpact == null ? (
               NULL_DISPLAY
             ) : (
-              <Countdown value={landing.atmosphericTimeToImpact} precise />
+              <Countdown
+                value={landingReading.atmosphericTimeToImpact}
+                precise
+              />
             )}
           </GridCellPair>
           {landing?.descentRegime && (
@@ -690,7 +693,7 @@ function LandingStatusComponent({
             ) : flight.atmDensity.lessThan(NEGLIGIBLE_DENSITY) ? (
               "negligible"
             ) : (
-              <Unit value={flight.atmDensity} decimals={3} />
+              <Unit value={flightReading.atmDensity} decimals={3} />
             )}
           </GridCellPair>
         </Grid>
@@ -830,7 +833,7 @@ function LandingStatusComponent({
       {landing?.predictedBiome ? `${landing.predictedBiome} · ` : ""}
       {landing?.predictedSlopeAngle != null ? (
         <>
-          <Unit value={landing.predictedSlopeAngle} decimals={1} /> slope
+          <Unit value={landingReading.predictedSlopeAngle} decimals={1} /> slope
         </>
       ) : (
         NULL_DISPLAY
