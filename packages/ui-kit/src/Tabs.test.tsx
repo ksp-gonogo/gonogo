@@ -380,3 +380,22 @@ describe("Tabs expandWhenRoomy", () => {
     await expectNoA11yViolations(container);
   });
 });
+
+describe("Tabs attention indicator", () => {
+  it("tells assistive tech which tab needs attention, not only sighted users", () => {
+    render(
+      <Tabs
+        tabs={[
+          { id: "ksp", label: "KSP", content: <p>ksp</p>, indicator: true },
+          { id: "data", label: "Data", content: <p>data</p> },
+        ]}
+      />,
+    );
+    expect(
+      screen.getByRole("tab", { name: "KSP" }),
+    ).toHaveAccessibleDescription(/needs attention/i);
+    expect(
+      screen.getByRole("tab", { name: "Data" }),
+    ).not.toHaveAccessibleDescription(/needs attention/i);
+  });
+});
