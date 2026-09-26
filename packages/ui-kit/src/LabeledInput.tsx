@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import styled from "styled-components";
+import { focusRing } from "./focusRing";
 
 /**
  * A number with a name and a unit beside it, laid out so a column of them lines
@@ -21,16 +23,28 @@ export function LabeledInput({
   onChange,
   suffix = "m/s",
 }: LabeledInputProps) {
+  /*
+   * The text being typed, held apart from `value` so the field can be emptied
+   * and retyped: only an entry that parses reaches `onChange`, and a new
+   * `value` from outside replaces the draft.
+   */
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => {
+    setDraft((current) =>
+      Number.parseFloat(current) === value ? current : String(value),
+    );
+  }, [value]);
   return (
     <InputRow>
       <InputLabel>{label}</InputLabel>
       <InputField
         type="number"
-        value={value}
+        value={draft}
         step={1}
         onChange={(e) => {
+          setDraft(e.target.value);
           const n = Number.parseFloat(e.target.value);
-          onChange(Number.isFinite(n) ? n : 0);
+          if (Number.isFinite(n)) onChange(n);
         }}
       />
       <InputSuffix>{suffix}</InputSuffix>
@@ -60,6 +74,8 @@ const InputField = styled.input`
   padding: var(--space-4) var(--space-6);
   border-radius: var(--radius-regular);
   text-align: right;
+
+  ${focusRing}
 `;
 
 const InputSuffix = styled.span`
