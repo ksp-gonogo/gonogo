@@ -12,13 +12,8 @@ const NULL_SUMMARY = (): StatusSummary | null => null;
  * The panel's merged status summary, or `null` when the store is empty or there
  * is no store in the tree. `useSyncExternalStore` over the nearest
  * `PanelStatusStore`, so a subscriber re-renders only when the winning
- * contribution changes.
- *
- * This is the single interface the title-redesign ghost-dot consumes
- * (`Panel.useStatusSummary()`), and the same value the panel header renders as
- * its winning badge. The summary shape is deliberately just
- * `{ severity, label } | null`: the consumer paints it, this store produces it,
- * and neither grows a second path into the other's concern.
+ * contribution changes. It is the value the panel header renders as its
+ * winning badge.
  */
 export function useStatusSummary(): StatusSummary | null {
   const store = usePanelStatusStore();

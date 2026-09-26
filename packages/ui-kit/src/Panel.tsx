@@ -21,6 +21,7 @@ import { AugmentSlot, useWidgetSegmentBound } from "./AugmentSlot";
 import { Badge } from "./Badge";
 import { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
 import { fitBox, fitMask } from "./fitBox";
+import { focusRing } from "./focusRing";
 import { type BadgeEntry, usePanelBadgesContext } from "./PanelBadges";
 import { SECTION_FILL_ATTR, SECTION_FULL_ATTR, Section } from "./Section";
 import { formatStreamStatus, StreamStatusBadge } from "./StreamStatusBadge";
@@ -161,9 +162,9 @@ export const PanelContainer = styled.div<{ $railTravels?: boolean }>`
      reserving it here as well would stand two bands at the panel's top edge.
      The band itself is unchanged in size and in permanence, only in which box
      holds it open; every other panel shape (headless, floating header,
-     hand-composed) still reserves it right here. Plain concatenation, NOT a
-     nested template literal: a backtick inside a styled template breaks the
-     parse and builds an empty dist. */
+     hand-composed) still reserves it right here. A raw backtick in the CSS
+     text of a styled template, a comment included, ends the template and
+     builds an empty dist. */
   ${({ $railTravels }) => ($railTravels ? "padding-top: 0;" : "")}
   width: 100%;
   height: 100%;
@@ -463,6 +464,9 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
        a colour of its own. */
     color: var(--color-text-dim);
   }
+  & > summary {
+    ${focusRing}
+  }
   & > summary::-webkit-details-marker {
     display: none;
   }
@@ -678,7 +682,15 @@ export function PanelHeader({
               if (collapsed) setOpenWhileCollapsed(e.currentTarget.open);
             }}
           >
-            <summary aria-label="Panel status and controls">
+            <summary
+              aria-label={
+                breakdown.length === 0
+                  ? "Panel status and controls"
+                  : `${breakdown
+                      .map((e) => `${e.count} ${e.severity}`)
+                      .join(", ")}. Panel status and controls`
+              }
+            >
               {breakdown.map((e) => (
                 <PanelStatusDot
                   key={e.severity}
@@ -818,8 +830,6 @@ const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
      The wider lesson, because it cost a build: verifying a CSS FEATURE in
      isolation is not evidence about the LAYOUT built on it. This is verified by
      rendering the widgets on all three engines, not by probing the property. */
-  /* Plain concatenation, NOT a nested template literal: a backtick inside a
-     styled template breaks the parse and builds an empty dist. */
   ${({ $fitToSize }) => ($fitToSize ? "flex: 1; overflow: hidden;" : "")}
   /* Bleed: the content reaches the panel chrome on every side and never
      scrolls.
@@ -989,8 +999,6 @@ const PanelBody__FitOuter = styled.div<{ $fits?: boolean }>`
      24px readout needs and clipped it in half: the local box this replaces had
      no padding, and a tiny tile has no spare room to give away. The body's own
      inset is the inset. */
-  /* Two whole literal strings, NOT an interpolated one: a backtick nested
-     inside a styled template breaks the parse and builds an empty dist. */
   ${({ $fits }) =>
     $fits ? "justify-content: center;" : "justify-content: flex-start;"}
 `;
@@ -1542,14 +1550,8 @@ export function PanelSidebar({
 
 /**
  * Observe the registered scroller and derive a value from it, recomputed on
- * scroll and on any size or child-list change to the scroller. The single
- * implementation of "watch the scroller and compute something", shared by the
- * glow (which wants top/bottom overflow booleans) and the ghost (which wants
- * "is the header scrolled out of view"), so the two decorators of the same
- * scroller cannot drift apart. It reuses the exact scroll + ResizeObserver +
- * MutationObserver pattern the glow already had, and stays drivable in jsdom
- * by dispatching a `scroll` event, which is why the ghost keys off it rather
- * than an IntersectionObserver.
+ * scroll and on any size or child-list change to the scroller. Drivable in
+ * jsdom by dispatching a `scroll` event.
  */
 function useScrollerMetric<T>(
   el: HTMLElement | null,
@@ -1680,13 +1682,9 @@ export function PanelGlow({
 // Every piece below is reachable as `Panel.Container` / `.Title` / `.Glow` /
 // `.Body`.
 //
-// `Panel.Glow` WRAPS the scrolling region rather than sitting beside it, so it
-// owns both the glow's behaviour and the inset compensation it needs. A
-// `--scroll-glow-pad-*` var contract shared between components with no owner is
-// how a unitless `0` ends up in the scrollable shell, making `calc(-1 * 0)`
-// invalid so the glow never renders there at all. Such vars are deliberately
-// absent rather than kept as an escape hatch: one with no publisher is the same
-// failure one step quieter.
+// `Panel.Glow` WRAPS the scrolling region rather than sitting beside it, so the
+// glow's behaviour has one owner and no CSS custom property is shared between
+// components to position it.
 //
 // Title and toolbar sit inside the glow but BESIDE the body rather than in
 // it, and the body is the scroller, so the header stays pinned while the
@@ -1870,7 +1868,7 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
   panelSidebar?: ReactNode;
   /**
    * Which edge the sidebar sits against, logically. See `PanelSidebarSide`.
-   * Defaults to `auto`.
+   * Defaults to `end`.
    */
   sidebarSide?: PanelSidebarSide;
   /**
@@ -1929,19 +1927,23 @@ export function WidgetSections(): ReactElement {
  * is exactly the kind of state transition a screen-reader user benefits from.
  */
 function PanelSummaryBadge({ summary }: { summary: StatusSummary }) {
-  // A remount key that ticks on every severity change restarts the one-shot CSS
-  // animation (the same restart trick a keyed list item uses); the previous
-  // severity is held in a ref so a label-only change does not pulse.
+  /*
+   * Every severity change restarts the one-shot pulse by alternating between
+   * two identical keyframe names, which a browser treats as a new animation.
+   * Nothing is remounted: the badge is a live region, and a region inserted
+   * afresh is often not announced, which would silence the very changes the
+   * pulse marks. A label-only change does not pulse.
+   */
   const prevSeverity = useRef(summary.severity);
-  const [pulseKey, setPulseKey] = useState(0);
+  const [pulseCount, setPulseCount] = useState(0);
   useEffect(() => {
     if (prevSeverity.current !== summary.severity) {
       prevSeverity.current = summary.severity;
-      setPulseKey((k) => k + 1);
+      setPulseCount((k) => k + 1);
     }
   }, [summary.severity]);
   return (
-    <PanelSummaryBadge__Pulse key={pulseKey} $pulse={pulseKey > 0}>
+    <PanelSummaryBadge__Pulse $pulse={pulseCount}>
       <Badge severity={summary.severity} size="sm" live>
         {summary.label}
       </Badge>
@@ -1949,16 +1951,27 @@ function PanelSummaryBadge({ summary }: { summary: StatusSummary }) {
   );
 }
 
-const PanelSummaryBadge__Pulse = styled.span<{ $pulse: boolean }>`
+const PanelSummaryBadge__Pulse = styled.span<{ $pulse: number }>`
   display: inline-flex;
   ${({ $pulse }) =>
-    $pulse &&
+    $pulse > 0 &&
     css`
       @media (prefers-reduced-motion: no-preference) {
-        animation: panel-status-pulse var(--duration-slow, 600ms)
-          var(--ease-emphasis, ease-out);
+        animation: ${$pulse % 2 === 0 ? "panel-status-pulse" : "panel-status-pulse-b"}
+          var(--duration-slow, 600ms) var(--ease-emphasis, ease-out);
       }
     `}
+  @keyframes panel-status-pulse-b {
+    0% {
+      transform: scale(1);
+    }
+    35% {
+      transform: scale(1.14);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
   @keyframes panel-status-pulse {
     0% {
       transform: scale(1);
@@ -2187,9 +2200,8 @@ function PanelRoot({
     summary !== null && badges.some((b) => b.id === summary.id);
 
   // With a store in the tree the header renders the winning contribution; with
-  // none (a standalone panel in the settings modal or the station connect view,
-  // and every unit test that wraps only `Panel.Status`) it falls back to the
-  // legacy stream badge, so that path keeps behaving exactly as before.
+  // none (a standalone panel in the settings modal or the station connect view)
+  // it falls back to the stream badge.
   const statusBadge =
     !hasHeader || summaryDuplicatesABadgePill ? null : summary !== null ? (
       <PanelSummaryBadge summary={summary} />
@@ -2470,7 +2482,5 @@ export const Panel = Object.assign(PanelRoot, {
      rather than in this file, but it is a Panel part like any other and
      `Panel.StatusDot` is the only way to reach it. */
   StatusDot: PanelStatusDot,
-  // The single interface the title-redesign ghost dot consumes. Producing the
-  // summary is this file's concern; painting it (the ghost) is the title spec's.
   useStatusSummary,
 });
