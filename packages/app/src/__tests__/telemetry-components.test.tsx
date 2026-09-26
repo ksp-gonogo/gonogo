@@ -115,9 +115,7 @@ function setupTelemetryStream(carriedChannels: Iterable<string>) {
   }
 
   return {
-    // Forwards the transport's optional 3rd meta arg (e.g. quality) so tests
-    // can emit an OnRails vessel.orbit: the orbit solve behind the apsis
-    // figures declines under physics.
+    // Forwards the transport's optional 3rd meta arg (e.g. quality) so tests can emit an OnRails vessel.orbit: the orbit solve behind the apsis figures declines under physics.
     emit: (...args: Parameters<typeof transport.emit>) =>
       transport.emit(...args),
     Provider,
@@ -140,10 +138,7 @@ describe("CurrentOrbitComponent", () => {
   });
 
   it("shows apoapsis value when data arrives", async () => {
-    // CurrentOrbit solves apoapsis from `vessel.orbit` on rails, measured from
-    // the reference body's radius in `system.bodies`: sma*(1+ecc) - radius.
-    // sma 850k, ecc 0, Kerbin radius 600k -> 250_000 -> formatDistance
-    // '250.0 km'.
+    // CurrentOrbit solves apoapsis from `vessel.orbit` on rails, measured from the reference body's radius in `system.bodies`: sma*(1+ecc) - radius. sma 850k, ecc 0, Kerbin radius 600k -> 250_000 -> formatDistance '250.0 km'.
     const stream = setupTelemetryStream(CURRENT_ORBIT_CHANNELS);
     renderWidget(
       <stream.Provider>
@@ -196,8 +191,7 @@ describe("CurrentOrbitComponent", () => {
   });
 
   it("shows reference body when provided", async () => {
-    // The subtitle names `vessel.orbit.referenceBodyIndex` through
-    // `system.bodies`, so those two are what it is fed.
+    // The subtitle names `vessel.orbit.referenceBodyIndex` through `system.bodies`, so those two are what it is fed.
     const stream = setupTelemetryStream(CURRENT_ORBIT_CHANNELS);
     renderWidget(
       <stream.Provider>
@@ -339,9 +333,7 @@ describe("OrbitViewComponent", () => {
 // MapView
 // ---------------------------------------------------------------------------
 describe("MapViewComponent", () => {
-  // MapView reads position off `vessel.flight.latitude`/`.longitude`, and names
-  // the header body from `vessel.identity.parentBodyIndex` through
-  // `system.bodies`.
+  // MapView reads position off `vessel.flight.latitude`/`.longitude`, and names the header body from `vessel.identity.parentBodyIndex` through `system.bodies`.
   function emitKerbin(stream: ReturnType<typeof setupTelemetryStream>) {
     stream.emit("vessel.identity", { parentBodyIndex: 1, launchUt: null });
     stream.emit("system.bodies", { bodies: [{ index: 1, name: "Kerbin" }] });

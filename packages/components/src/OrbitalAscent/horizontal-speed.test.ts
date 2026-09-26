@@ -9,8 +9,7 @@ describe("horizontalOf", () => {
   });
 
   it("clamps to 0, never NaN, when the vertical speed exceeds the surface speed", () => {
-    // Two independently reported speeds can disagree by rounding on a craft
-    // moving straight up or down.
+    // Two independently reported speeds can disagree by rounding on a craft moving straight up or down.
     expect(horizontalOf(100, 100.000001)).toBe(0);
   });
 });

@@ -118,8 +118,7 @@ describe("keplerAdmissibility along an arc: the atmospheric interface", () => {
   });
 
   it("keeps admitting the same arc around an AIRLESS body", () => {
-    // One field apart from the case above, and the opposite answer: with no
-    // air a 30 km periapsis is just a low periapsis, and the conic is right.
+    // One field apart from the case above, and the opposite answer: with no air a 30 km periapsis is just a low periapsis, and the conic is right.
     expect(admits(ENTRY_ARC, kerbin({ atmosphere: false }), PERIAPSIS_UT)).toBe(
       true,
     );
@@ -168,8 +167,7 @@ describe("keplerAdmissibility along an arc: the producer's own stated reach", ()
       },
     };
 
-    // A backend that states a reach is faithful at the sample instant and
-    // wrong as a path once the view runs past it.
+    // A backend that states a reach is faithful at the sample instant and wrong as a path once the view runs past it.
     expect(admits(bounded, kerbin({ atmosphere: true }), 400)).toBe(true);
     expect(admits(bounded, kerbin({ atmosphere: true }), 600)).toBe(false);
   });

@@ -270,8 +270,7 @@ describe("useDataSeries: the stretch nobody measured", () => {
     });
 
     await waitFor(() => {
-      // The three observations and nothing modelled after them, where the
-      // same elements without the transition draw a run to the view time.
+      // The three observations and nothing modelled after them, where the same elements without the transition draw a run to the view time.
       expect(readProbe()).toBe("n:3|reckoned:");
     });
   });

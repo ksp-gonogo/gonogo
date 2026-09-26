@@ -50,8 +50,7 @@ function gitGrepFiles(
       .split("\n")
       .filter((line) => line !== "");
   } catch (error) {
-    // Exit status 1 is git grep's "no match", which is an answer; anything
-    // else is a search that did not run.
+    // Exit status 1 is git grep's "no match", which is an answer; anything else is a search that did not run.
     if (error instanceof Error && "status" in error && error.status === 1)
       return [];
     throw error;
