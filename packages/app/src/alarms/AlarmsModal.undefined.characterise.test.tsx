@@ -33,26 +33,20 @@ import { DEFAULT_WARP_SAFETY_MARGIN_SECONDS } from "./types";
 const SNAPSHOT_UT = 1000;
 
 // Kerbin's GM and a parking orbit, lifted from `AlarmsModal.test.tsx` so the
-// derived `vessel.state.timeToAp` here is the same hand-checkable half-period.
+// solved `timeToAp` here is the same hand-checkable half-period.
 const ORBIT_MU = 3.5316e12;
 const ORBIT_SMA = 700_000;
 const ORBIT_EPOCH = 10;
 
 /**
- * `vessel.parts` and `vessel.control` for the action-group caption, plus the
- * eight `vesselStateChannel` inputs so the derived `vessel.state` the presets
- * read can actually resolve off the stream.
+ * `vessel.parts` and `vessel.control` for the action-group caption, plus
+ * `vessel.orbit` and `system.bodies` for the orbit solve the presets read.
  */
 const CARRIED = [
   "vessel.parts",
   "vessel.control",
   "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
   "system.bodies",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
 ];
 
 function makeSnapshot(ut: number | null): AlarmSnapshot {
@@ -253,8 +247,8 @@ describe("AlarmsModal: the vessel.parts caption gate", () => {
   });
 });
 
-describe("AlarmsModal: the vessel.state preset gate", () => {
-  it("hides the Recommended disclosure while vessel.state has not arrived, with the modal otherwise live", async () => {
+describe("AlarmsModal: the orbit-solve preset gate", () => {
+  it("hides the Recommended disclosure while vessel.orbit has not arrived, with the modal otherwise live", async () => {
     // A provider IS mounted and other topics ARE flowing here, so this pins the
     // absence of the ONE read the presets depend on, not an unwired fixture.
     const fixture = mount(modalWithUt());

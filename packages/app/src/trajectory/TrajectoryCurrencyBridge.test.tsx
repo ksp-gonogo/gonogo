@@ -198,17 +198,4 @@ describe("widgetReadsTrajectory: which declarations the horizon speaks about", (
     expect(widgetReadsTrajectory([])).toBe(false);
     expect(widgetReadsTrajectory(undefined)).toBe(false);
   });
-
-  /**
-   * Pins the KNOWN GAP rather than the behaviour anyone wants: `vessel.state`
-   * derives from seven inputs and `vessel.orbit` is one of them, so walking up
-   * would light a throttle readout on a trajectory problem. Documented on
-   * `widgetReadsTrajectory` with what closing it needs (per-field provenance on
-   * the derived channel). If that lands, this expectation flips, and it is
-   * here so the flip is a deliberate edit rather than a silent widening.
-   */
-  it("does not walk up from a derived channel to its inputs", () => {
-    expect(widgetReadsTrajectory(["vessel.state"])).toBe(false);
-    expect(widgetReadsTrajectory(["vessel.state.apoapsisAlt"])).toBe(false);
-  });
 });

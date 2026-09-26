@@ -1,19 +1,11 @@
 import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
-import { Quality, registerTopicUnits } from "@ksp-gonogo/sitrep-sdk";
-import type {
-  VesselFlightPayload,
-  VesselOrbitPayload,
-} from "@ksp-gonogo/sitrep-sdk/spine";
+import { registerTopicUnits } from "@ksp-gonogo/sitrep-sdk";
 import {
   DEAD_READ_SETTLE_MS,
   resetDeadReadWarnings,
   resetGatedReadWarnings,
 } from "@ksp-gonogo/sitrep-sdk/spine";
-import {
-  installTestHost,
-  StubTransport,
-  type WireOf,
-} from "@ksp-gonogo/sitrep-sdk/testing";
+import { installTestHost, StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   act,
   render,
@@ -73,31 +65,27 @@ function makeLegacySource(id = "data") {
   return source;
 }
 
-const ORBIT: WireOf<VesselOrbitPayload> = {
-  referenceBodyIndex: 1,
-  sma: 700_000,
-  ecc: 0,
-  inc: 0,
-  lan: null,
-  argPe: null,
-  meanAnomalyAtEpoch: 0,
-  epoch: 0,
-  mu: 3.5316e12,
-};
+/**
+ * A field of `dv.currentStageResource`, the derived channel joining `dv.stages`
+ * and `vessel.structure`: one of the two production derived channels with two
+ * inputs, so one that can show a gate reading EVERY input rather than the
+ * first.
+ */
+const FUEL_KEY = "dv.currentStageResource.LiquidFuel";
+const FUEL_INPUTS = ["dv.stages", "vessel.structure"];
 
-const FLIGHT: WireOf<VesselFlightPayload> = {
-  latitude: -0.05,
-  longitude: 42.3,
-  altitudeAsl: 71_234,
-  altitudeTerrain: 71_234,
-  verticalSpeed: 12.5,
-  surfaceSpeed: 1780.2,
-  orbitalSpeed: 1790.9,
-  gForce: 1.1,
-  dynamicPressureKPa: 3.2,
-  mach: 5.1,
-  atmDensity: 0.01,
-};
+/*
+ * The channel exposes whatever resources the craft carries, so it declares no
+ * field set of its own and the two-arg read has no field to route. Declaring
+ * this one, the way an Uplink declares its own channel's fields, is what makes
+ * the key a known field path.
+ */
+registerTopicUnits("dv.currentStageResource", { LiquidFuel: "units" });
+
+function Fuel() {
+  const fuel = useLegacyTelemetry("data", FUEL_KEY);
+  return <div>fuel:{fuel === undefined ? NULL_DISPLAY : plain(fuel)}</div>;
+}
 
 beforeEach(() => clearRegistry());
 
@@ -119,90 +107,52 @@ function plain(v: unknown): string {
 
 describe("useTelemetry shim: mapped key routes to useStream when a TelemetryProvider is mounted", () => {
   it(
-    "the M2 bridge's key end-to-end proof: 'vessel.state.altitudeAsl' (-> vessel.state.altitudeAsl, a DERIVED " +
-      "channel) resolves through the real client -> TimelineStore -> hooks pipeline once real " +
-      "vessel.orbit/vessel.flight wire frames arrive: RED before the bridge (permanently dead " +
-      "undefined, since nothing fed a TimelineStore in production), GREEN after it",
+    "a DERIVED field key resolves through the real client -> TimelineStore -> hooks pipeline once its " +
+      "inputs' wire frames arrive, subscribing those inputs and never the derived name",
     async () => {
       const transport = new StubTransport();
       const client = new TelemetryClient(transport);
       const legacySource = makeLegacySource();
       registerDataSource(legacySource);
 
-      function Alt() {
-        const alt = useLegacyTelemetry("data", "vessel.state.altitudeAsl");
-        return <div>alt:{alt === undefined ? NULL_DISPLAY : String(alt)}</div>;
-      }
-
       render(
-        // A mapped topic only routes to the stream once its raw inputs are
-        // actually carried. `StubTransport` doesn't declare
-        // `carriedChannels` (it's test-scriptable, not a real serving
-        // guarantee), so this test explicitly promotes the four raw inputs
-        // `vessel.state.altitudeAsl` resolves to: the carried-channels gate
-        // is parent-channel-scoped, so EVERY `vessel.state.*` field,
-        // including this one, needs all four carried, not just the two
-        // it happens to read. This is the "dev-first per-topic opt-in" half of the
-        // gate. Without this, the mapped topic would stay on the legacy path
-        // and the rest of this test (which proves the DERIVED-channel
-        // wiring) would never even exercise the stream. See `useTelemetry
-        // gate: carried-channels allowlist` below for the gate's own
-        // dedicated coverage.
-        <TelemetryProvider
-          client={client}
-          carriedChannels={[
-            "vessel.orbit",
-            "vessel.flight",
-            "vessel.identity",
-            "system.bodies",
-            "vessel.control",
-            "vessel.target",
-            "vessel.comms",
-            "vessel.propulsion",
-          ]}
-        >
-          <Alt />
+        // A derived key only routes to the stream once its raw inputs are
+        // carried. `StubTransport` declares no `carriedChannels` (it is
+        // test-scriptable, not a serving guarantee), so this promotes both
+        // inputs explicitly. Without it the key would stay on the legacy path
+        // and this test would never exercise the stream. The gate has its own
+        // coverage in `useTelemetry gate: carried-channels allowlist` below.
+        <TelemetryProvider client={client} carriedChannels={FUEL_INPUTS}>
+          <Fuel />
         </TelemetryProvider>,
       );
 
       // Undefined-while-loading: the same contract widgets already rely on.
-      expect(screen.getByText(`alt:${NULL_DISPLAY}`)).toBeTruthy();
+      expect(screen.getByText(`fuel:${NULL_DISPLAY}`)).toBeTruthy();
 
-      // Derived-input ref-counting (Fix 1 item 3): subscribing the mapped
-      // DERIVED topic must have subscribed its declared raw INPUTS on the
-      // wire: never the derived topic name itself, which no server channel
-      // ever produces.
-      expect(transport.isSubscribed("vessel.orbit")).toBe(true);
-      expect(transport.isSubscribed("vessel.flight")).toBe(true);
-      expect(transport.isSubscribed("vessel.identity")).toBe(true);
-      expect(transport.isSubscribed("system.bodies")).toBe(true);
-      expect(transport.isSubscribed("vessel.state.altitudeAsl")).toBe(false);
+      // Subscribing the DERIVED key subscribes its declared raw INPUTS on the
+      // wire, never the derived name itself, which no server channel produces.
+      expect(transport.isSubscribed("dv.stages")).toBe(true);
+      expect(transport.isSubscribed("vessel.structure")).toBe(true);
+      expect(transport.isSubscribed("dv.currentStageResource")).toBe(false);
+      expect(transport.isSubscribed(FUEL_KEY)).toBe(false);
 
-      // Feeding the legacy DataSource must NOT surface, the mapped key is
-      // routed to the stream, so the old path is bypassed entirely.
-      act(() => legacySource.emit("vessel.state.altitudeAsl", 999));
-      expect(screen.getByText(`alt:${NULL_DISPLAY}`)).toBeTruthy();
+      // Feeding the legacy DataSource must NOT surface: the key is routed to
+      // the stream, so the old path is bypassed entirely.
+      act(() => legacySource.emit(FUEL_KEY, 999));
+      expect(screen.getByText(`fuel:${NULL_DISPLAY}`)).toBeTruthy();
 
-      // Feed REAL wire frames for the channel's actual inputs, orbit at
-      // Loaded quality (so altitudeAsl comes off the measured vessel.flight
-      // basis) plus the flight measurement itself. This is what the derived
-      // vessel.state channel actually propagates from.
       act(() => {
-        transport.emit("vessel.orbit", ORBIT, {
-          quality: Quality.Loaded,
-          source: "vessel:1",
-        });
-        transport.emit("vessel.flight", FLIGHT, {
-          quality: Quality.Loaded,
-          source: "vessel:1",
-        });
+        transport.emit("vessel.structure", { currentStage: 0 });
+        transport.emit("dv.stages", [
+          { stage: 0, resources: { LiquidFuel: { current: 360, max: 720 } } },
+        ]);
       });
 
       // `TelemetryProvider` coalesces `beginFrame()` to the next animation
-      // frame (sitrep-client M2 finalization Fix 1) rather than minting one
-      // per ingest, so the derived read resolves one frame after the emits,
-      // not synchronously.
-      await waitFor(() => expect(screen.getByText("alt:71234")).toBeTruthy());
+      // frame rather than minting one per ingest, so the derived read resolves
+      // one frame after the emits, not synchronously.
+      await waitFor(() => expect(screen.getByText("fuel:360")).toBeTruthy());
     },
   );
 });
@@ -249,11 +199,11 @@ describe("useTelemetry shim: no TelemetryProvider mounted behaves exactly like t
 
     // No <TelemetryProvider> wrapper at all: this is every screen today.
     const { result } = renderHook(() =>
-      useLegacyTelemetry("data", "vessel.state.altitudeAsl"),
+      useLegacyTelemetry("data", "vessel.flight.altitudeAsl"),
     );
 
     expect(result.current).toBeUndefined();
-    act(() => source.emit("vessel.state.altitudeAsl", 80_000));
+    act(() => source.emit("vessel.flight.altitudeAsl", 80_000));
     expect(result.current).toBe(80_000);
   });
 
@@ -262,9 +212,9 @@ describe("useTelemetry shim: no TelemetryProvider mounted behaves exactly like t
     registerDataSource(source);
 
     const { result } = renderHook(() =>
-      useLegacyTelemetry("data", "vessel.state.altitudeAsl"),
+      useLegacyTelemetry("data", "vessel.flight.altitudeAsl"),
     );
-    act(() => source.emit("vessel.state.altitudeAsl", 80_000));
+    act(() => source.emit("vessel.flight.altitudeAsl", 80_000));
     expect(result.current).toBe(80_000);
 
     act(() => source.setStatus("disconnected"));
@@ -351,27 +301,22 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
       const legacySource = makeLegacySource();
       registerDataSource(legacySource);
 
-      function Alt() {
-        const alt = useLegacyTelemetry("data", "vessel.state.altitudeAsl");
-        return <div>alt:{alt === undefined ? NULL_DISPLAY : String(alt)}</div>;
-      }
-
-      // No `carriedChannels` prop at all: 'vessel.state.altitudeAsl' maps to a DERIVED
-      // topic (`vessel.state.altitudeAsl`) whose inputs are not carried.
+      // No `carriedChannels` prop at all: the key is a field of a DERIVED
+      // topic whose inputs are not carried.
       render(
         <TelemetryProvider client={client}>
-          <Alt />
+          <Fuel />
         </TelemetryProvider>,
       );
 
-      expect(screen.getByText(`alt:${NULL_DISPLAY}`)).toBeTruthy();
+      expect(screen.getByText(`fuel:${NULL_DISPLAY}`)).toBeTruthy();
 
       // Legacy still drives the read, this is the crux of the fix: before
       // the gate, mapping + a mounted provider always won, so this legacy
       // emit would have had NO effect and the widget would render blank
       // forever even though a perfectly good legacy value exists.
-      act(() => legacySource.emit("vessel.state.altitudeAsl", 80_000));
-      expect(screen.getByText("alt:80000")).toBeTruthy();
+      act(() => legacySource.emit(FUEL_KEY, 80_000));
+      expect(screen.getByText("fuel:80000")).toBeTruthy();
     },
   );
 
@@ -422,35 +367,28 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
     const legacySource = makeLegacySource();
     registerDataSource(legacySource);
 
-    function Alt() {
-      const alt = useLegacyTelemetry("data", "vessel.state.altitudeAsl");
-      return <div>alt:{alt === undefined ? NULL_DISPLAY : String(alt)}</div>;
-    }
-
     render(
-      // Only ONE of vessel.state.altitudeAsl's two declared inputs
-      // (vessel.orbit, vessel.flight) is promoted.
-      <TelemetryProvider client={client} carriedChannels={["vessel.orbit"]}>
-        <Alt />
+      // Only ONE of the channel's two declared inputs is promoted.
+      <TelemetryProvider client={client} carriedChannels={["dv.stages"]}>
+        <Fuel />
       </TelemetryProvider>,
     );
 
-    expect(screen.getByText(`alt:${NULL_DISPLAY}`)).toBeTruthy();
+    expect(screen.getByText(`fuel:${NULL_DISPLAY}`)).toBeTruthy();
 
     // Still legacy: the derived channel can never produce a whole record
     // with a missing input, so it must not be treated as carried.
-    act(() => legacySource.emit("vessel.state.altitudeAsl", 12_345));
-    expect(screen.getByText("alt:12345")).toBeTruthy();
+    act(() => legacySource.emit(FUEL_KEY, 12_345));
+    expect(screen.getByText("fuel:12345")).toBeTruthy();
 
     // Feeding the (partially) carried input must not flip it to streamed,
     // the legacy value must keep winning.
     act(() => {
-      transport.emit("vessel.orbit", ORBIT, {
-        quality: Quality.Loaded,
-        source: "vessel:1",
-      });
+      transport.emit("dv.stages", [
+        { stage: 0, resources: { LiquidFuel: { current: 360, max: 720 } } },
+      ]);
     });
-    expect(screen.getByText("alt:12345")).toBeTruthy();
+    expect(screen.getByText("fuel:12345")).toBeTruthy();
   });
 
   it(
@@ -462,70 +400,45 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
       const legacySource = makeLegacySource();
       registerDataSource(legacySource);
 
-      function Alt() {
-        const alt = useLegacyTelemetry("data", "vessel.state.altitudeAsl");
-        return <div>alt:{alt === undefined ? NULL_DISPLAY : String(alt)}</div>;
-      }
-
       const { rerender } = render(
         <TelemetryProvider client={client}>
-          <Alt />
+          <Fuel />
         </TelemetryProvider>,
       );
 
       // Not yet carried: legacy drives it.
-      act(() => legacySource.emit("vessel.state.altitudeAsl", 1));
-      expect(screen.getByText("alt:1")).toBeTruthy();
+      act(() => legacySource.emit(FUEL_KEY, 1));
+      expect(screen.getByText("fuel:1")).toBeTruthy();
 
-      // Promote all four inputs (vessel-state-extend, M3: vessel.state.*'s
-      // carried-channels gate is parent-channel-scoped, so altitudeAsl needs
-      // vessel.identity/system.bodies carried too now, even though it
-      // doesn't itself read them; see vessel-state.ts's vesselStateChannel
-      // doc comment).
+      // Promote both inputs.
       rerender(
-        <TelemetryProvider
-          client={client}
-          carriedChannels={[
-            "vessel.orbit",
-            "vessel.flight",
-            "vessel.identity",
-            "system.bodies",
-            "vessel.control",
-            "vessel.target",
-            "vessel.comms",
-            "vessel.propulsion",
-          ]}
-        >
-          <Alt />
+        <TelemetryProvider client={client} carriedChannels={FUEL_INPUTS}>
+          <Fuel />
         </TelemetryProvider>,
       );
 
       act(() => {
-        transport.emit("vessel.orbit", ORBIT, {
-          quality: Quality.Loaded,
-          source: "vessel:1",
-        });
-        transport.emit("vessel.flight", FLIGHT, {
-          quality: Quality.Loaded,
-          source: "vessel:1",
-        });
+        transport.emit("vessel.structure", { currentStage: 0 });
+        transport.emit("dv.stages", [
+          { stage: 0, resources: { LiquidFuel: { current: 360, max: 720 } } },
+        ]);
       });
-      await waitFor(() => expect(screen.getByText("alt:71234")).toBeTruthy());
+      await waitFor(() => expect(screen.getByText("fuel:360")).toBeTruthy());
 
       // A later render whose `carriedChannels` prop OMITS the promotion
       // entirely must not un-carry it, the allowlist only ever grows for
       // the life of this mounted provider.
       rerender(
         <TelemetryProvider client={client}>
-          <Alt />
+          <Fuel />
         </TelemetryProvider>,
       );
-      expect(screen.getByText("alt:71234")).toBeTruthy();
+      expect(screen.getByText("fuel:360")).toBeTruthy();
 
       // And legacy emits still must not surface, proving it's genuinely
       // still on the stream path, not coincidentally matching.
-      act(() => legacySource.emit("vessel.state.altitudeAsl", 999));
-      expect(screen.getByText("alt:71234")).toBeTruthy();
+      act(() => legacySource.emit(FUEL_KEY, 999));
+      expect(screen.getByText("fuel:360")).toBeTruthy();
     },
   );
 });

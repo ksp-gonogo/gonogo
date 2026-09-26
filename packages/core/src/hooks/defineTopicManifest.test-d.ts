@@ -155,14 +155,14 @@ export const _optionalAssignable: ComponentDefinition["optionalChannels"] =
 
 // ── A DERIVED channel is declarable, a legacy flat key is not ───────────────────────
 // The declaration union is `TopicId | DerivedChannelId`, closed on both arms. The
-// first assignment is the whole point of widening it: `vessel.state` is the
-// most-declared channel in the tree and no widget could name it while `channels`
+// first assignment is the whole point of widening it: a derived channel is
+// something a widget mounts on, and no widget could name one while `channels`
 // was `TopicId[]`. The `@ts-expect-error` lines are the negative controls, and they
 // FAIL THE BUILD IF THEY START COMPILING: a legacy flat key that typechecks again is
 // how the retired vocabulary comes back, so the assertion that it does not is the
 // thing keeping it retired.
 const derivedManifest = defineTopicManifest({
-  channels: ["vessel.state", "vessel.orbit"],
+  channels: ["system.state", "vessel.orbit"],
   optionalChannels: ["spaceCenter.state"],
 } as const);
 
@@ -176,7 +176,7 @@ export const _derivedOptionalAssignable: ComponentDefinition["optionalChannels"]
 // the same manifest still is.
 type _DerivedArg = Parameters<typeof derivedManifest.useTelemetry>[0];
 export type _DerivedNotAcceptedArg = Expect<
-  Equal<"vessel.state" extends _DerivedArg ? true : false, false>
+  Equal<"system.state" extends _DerivedArg ? true : false, false>
 >;
 export type _WireStillAcceptedArg = Expect<
   Equal<"vessel.orbit" extends _DerivedArg ? true : false, true>
@@ -195,7 +195,7 @@ defineTopicManifest({
 
 defineTopicManifest({
   // @ts-expect-error a FIELD PATH is not a WidgetChannelId; it collapses to its root
-  channels: ["vessel.state.altitudeAsl"],
+  channels: ["system.state.bodyCount"],
 });
 
 defineTopicManifest({
@@ -210,8 +210,8 @@ defineTopicManifest({
 // THEY START COMPILING, which is what stops the old vocabulary re-entering through the
 // one array that most resembles it: `fields` IS the old `dataRequirements`, re-typed.
 const narrowedManifest = defineTopicManifest({
-  channels: ["vessel.orbit", "vessel.state"],
-  fields: ["vessel.orbit.sma", "vessel.state.apoapsisRadius", "vessel.orbit"],
+  channels: ["vessel.orbit", "system.state"],
+  fields: ["vessel.orbit.sma", "system.state.bodyCount", "vessel.orbit"],
 } as const);
 
 export const _fieldsAssignable: ComponentDefinition["fields"] =
@@ -235,7 +235,7 @@ defineTopicManifest({
 });
 
 defineTopicManifest({
-  channels: ["vessel.state"],
+  channels: ["vessel.orbit"],
   // @ts-expect-error a field path off a channel that does not exist
   fields: ["notachannel.field"],
 });

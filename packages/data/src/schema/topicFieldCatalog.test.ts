@@ -18,17 +18,17 @@ describe("getTopicFieldCatalog()", () => {
   });
 
   it("includes the client-derived channels, which no generated map describes", () => {
-    const keys = new Set(getTopicFieldCatalog().map((k) => k.key));
-    expect(keys.has("vessel.state.twr")).toBe(true);
-    expect(keys.has("vessel.state.parentBodyName")).toBe(true);
-    // The single largest block of the vocabulary. A regression that stopped
-    // registering the declaration would leave the catalogue looking merely
-    // shorter rather than broken, so the count is asserted rather than a
-    // sample of it.
-    const vesselState = getTopicFieldCatalog().filter(
-      (k) => k.topic === "vessel.state",
-    );
-    expect(vesselState.length).toBeGreaterThan(30);
+    /* The whole of the declaration rather than a sample of it: a regression
+       that dropped one field would leave the catalogue looking merely shorter
+       rather than broken. */
+    const spaceCenter = getTopicFieldCatalog()
+      .filter((k) => k.topic === "spaceCenter.state")
+      .map((k) => k.key)
+      .sort();
+    expect(spaceCenter).toEqual([
+      "spaceCenter.state.padOccupied",
+      "spaceCenter.state.padVesselTitle",
+    ]);
   });
 
   it("keys every entry by the path a read actually samples", () => {
@@ -150,7 +150,7 @@ describe("getUndescribedCarriedTopics()", () => {
         // one cannot have a field declaration, it is not missing one.
         "system.channels",
         // Derived channels still awaiting a field declaration of their own, the
-        // way `vessel.state` and `spaceCenter.state` have one.
+        // way `spaceCenter.state` has one.
         "system.state",
         "system.uplinkHealth",
         "system.uplinks",
@@ -253,9 +253,9 @@ describe("one name per value", () => {
 });
 
 describe("a derived channel is offered only when its inputs are carried", () => {
-  it("offers vessel.state, whose inputs are promoted", () => {
+  it("offers spaceCenter.state, whose input is promoted", () => {
     const topics = new Set(getTopicFieldCatalog().map((entry) => entry.topic));
-    expect(topics.has("vessel.state")).toBe(true);
+    expect(topics.has("spaceCenter.state")).toBe(true);
   });
 
   it("would exclude it if they were not", async () => {
@@ -280,7 +280,7 @@ describe("a derived channel is offered only when its inputs are carried", () => 
     for (const channel of PRODUCTION_DERIVED_CHANNELS) {
       store.registerDerivedChannel(channel);
     }
-    expect(isTopicCarried(store, new Set<string>(), "vessel.state")).toBe(
+    expect(isTopicCarried(store, new Set<string>(), "spaceCenter.state")).toBe(
       false,
     );
   });

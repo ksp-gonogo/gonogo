@@ -47,21 +47,12 @@
  * which imports `startReplayServer` below and layers those topics on top of
  * this same `SNAPSHOT` without mutating it.
  *
- * `vessel.state.*` (the derived, quality-picked kinematics/body-name
- * surface most widgets actually read) only produces ANY field once ALL
- * EIGHT of its declared inputs have delivered at least one sample,
- * `vessel.orbit`, `vessel.flight`, `vessel.identity`, `system.bodies`,
- * `vessel.control`, `vessel.target`, `vessel.comms`, `vessel.propulsion`
- * (`packages/sitrep-client/src/vessel-state.ts`'s `vesselStateChannel.inputs`),
- * so all eight are fed below, even the ones (`vessel.propulsion`,
- * `vessel.target`) no spec reads directly. `vessel.target` is fed as a
- * literal `null` payload (the mod's own "no target" wire convention,
- * mirrored by `vessel.dock`) rather than omitted, that still counts as "a
- * sample delivered" for the derived-channel gate while resolving every
- * `vessel.target.*` field read to `undefined`. A tombstone is what
- * `absenceIsData` makes of a cleared target, so this is the real wire shape;
- * the deleted NO_TARGET_SENTINEL this note used to cite was the legacy
- * fork's string for the same condition and was never producible here.
+ * `vessel.target` is fed as a literal `null` payload (the mod's own "no
+ * target" wire convention, mirrored by `vessel.dock`) rather than omitted, so
+ * the no-target specs read a delivered tombstone rather than a topic that
+ * never arrived, and every `vessel.target.*` field read resolves to
+ * `undefined`. A tombstone is what `absenceIsData` makes of a cleared target,
+ * so this is the real wire shape.
  */
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
@@ -71,16 +62,12 @@ const PORT = Number.parseInt(process.env.SITREP_REPLAY_PORT ?? "8090", 10);
 // Quality: OnRails=0, Loaded=1. Staleness: Fresh=0, HeldStale=1, LastBeforeBlackout=2.
 // PayloadMeta (inner, per-record) is a subset: { source, quality }.
 //
-// Quality is OnRails, not Loaded, this is the branch selector
-// `deriveVesselState` (packages/sitrep-client/src/vessel-state.ts) keys off
-// `vessel.orbit`'s frame `meta.quality` to pick between two mutually
-// exclusive field sets: OnRails propagates the orbital elements (feeds
-// apoapsisAlt/periapsisAlt/period/trueAnomaly: what SemiMajorAxis/
-// CurrentOrbit/EscapeProfile/KeplerPeriod read) and nulls the
-// measured-basis fields (altitudeAsl, landing*); Loaded does the reverse.
-// A stable ~100km Kerbin orbit with nothing else nearby (this fixture's
-// scenario) is exactly when real KSP puts a vessel on rails, so OnRails is
-// also the realistic choice, not just the one that satisfies more specs.
+// Quality is OnRails, not Loaded: the orbit solve behind the apsis, period
+// and anomaly figures SemiMajorAxis/CurrentOrbit/EscapeProfile/KeplerPeriod
+// draw declines under physics. A stable ~100km Kerbin orbit with nothing else
+// nearby (this fixture's scenario) is exactly when real KSP puts a vessel on
+// rails, so OnRails is also the realistic choice, not just the one that
+// satisfies more specs.
 function frameMeta(seq) {
   return {
     source: "sitrep-stream-server",
@@ -206,7 +193,7 @@ export const SNAPSHOT = {
     meta: payloadMeta,
   },
 
-  // Placeholder: no spec reads it directly, but it's a required vessel.state input.
+  // LandingStatus reads it for its burn cue (landing-status.spec).
   "vessel.propulsion": {
     totalMass: 13.8299436569214,
     dryMass: 7.793,
@@ -216,8 +203,7 @@ export const SNAPSHOT = {
   },
 
   // "No target selected": see the module doc comment for why `null` (not
-  // omitted) is what keeps both the derived-channel gate AND the no-target
-  // widget branches correct.
+  // omitted) is what keeps the no-target widget branches correct.
   "vessel.target": null,
 
   // The AVAILABLE target LIST: a DIFFERENT Topic from `vessel.target` (the

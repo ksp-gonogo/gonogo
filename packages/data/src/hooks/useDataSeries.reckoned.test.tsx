@@ -4,7 +4,6 @@ import {
   TelemetryProvider,
   TimelineStore,
   ViewClock,
-  vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -50,7 +49,9 @@ function WindowEndProbe({
 }) {
   const range = useDataSeries("data", dataKey, windowSec);
   return (
-    <div data-testid="window-end">windowEnd:{range.windowEndAt ?? "none"}</div>
+    <div data-testid="window-end">
+      n:{range.t.length}|windowEnd:{range.windowEndAt ?? "none"}
+    </div>
   );
 }
 
@@ -87,25 +88,23 @@ function readValues(): string {
   return screen.getByTestId("values").textContent ?? "";
 }
 
-const VESSEL_STATE_INPUTS = [
-  "vessel.orbit",
+/** What the probes plot, and what `vessel.flight`'s reckoner reads. */
+const CARRIED = [
   "vessel.flight",
-  "vessel.identity",
+  "vessel.orbit",
   "system.bodies",
-  "vessel.control",
   "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
 ];
 
 /**
  * A closed conic around Kerbin, eccentric so the modelled speed genuinely moves
- * across the tail rather than holding flat.
+ * across the tail rather than holding flat, with its periapsis 240 km up so no
+ * instant of it is inside the atmosphere, where the conic withdraws.
  */
 const ECCENTRIC_KERBIN_ORBIT = {
   referenceBodyIndex: 1,
-  sma: 900_000,
-  ecc: 0.4,
+  sma: 1_200_000,
+  ecc: 0.3,
   inc: 0,
   lan: 0,
   argPe: 0,
@@ -151,7 +150,6 @@ function buildStreamFixture(opts: { pinnedUt: number }) {
     delaySeconds: () => 0,
   });
   const store = new TimelineStore(clock);
-  store.registerDerivedChannel(vesselStateChannel);
   clock.scrubTo(opts.pinnedUt);
 
   function Provider({ children }: { children: ReactNode }) {
@@ -159,14 +157,43 @@ function buildStreamFixture(opts: { pinnedUt: number }) {
       <TelemetryProvider
         client={client}
         store={store}
-        carriedChannels={VESSEL_STATE_INPUTS}
+        carriedChannels={CARRIED}
       >
         {children}
       </TelemetryProvider>
     );
   }
 
-  return { transport, client, store, Provider };
+  /**
+   * Kerbin, then a craft on rails 300 km up at each of `uts`, with the orbit
+   * and flight sampled together. Above the atmosphere, so the flight reckoner
+   * takes its conic branch rather than the descent one.
+   */
+  function emitOrbiting(
+    uts: readonly number[],
+    orbit: Record<string, unknown> = ECCENTRIC_KERBIN_ORBIT,
+    quality: Quality = Quality.OnRails,
+  ): void {
+    transport.emit("system.bodies", KERBIN_SYSTEM, {
+      validAt: 0,
+      deliveredAt: 0,
+      quality: Quality.OnRails,
+    });
+    for (const ut of uts) {
+      transport.emit("vessel.orbit", orbit, {
+        validAt: ut,
+        deliveredAt: ut,
+        quality,
+      });
+      transport.emit(
+        "vessel.flight",
+        { altitudeAsl: 300_000, orbitalSpeed: 2200, verticalSpeed: 0 },
+        { validAt: ut, deliveredAt: ut, quality },
+      );
+    }
+  }
+
+  return { transport, client, store, Provider, emitOrbiting };
 }
 
 beforeEach(() => clearRegistry());
@@ -177,17 +204,14 @@ describe("useDataSeries: the stretch nobody measured", () => {
 
     render(
       <fixture.Provider>
-        <Probe dataKey="vessel.state.orbitalSpeed" windowSec={900} />
+        <Probe dataKey="vessel.flight.orbitalSpeed" windowSec={900} />
       </fixture.Provider>,
     );
 
     act(() => {
-      for (const validAt of [0, 100, 200]) {
-        fixture.transport.emit("vessel.orbit", ECCENTRIC_KERBIN_ORBIT, {
-          validAt,
-          quality: Quality.OnRails,
-        });
-      }
+      fixture.emitOrbiting([0, 100, 200]);
+      // A raw topic's tail fills a SILENCE, so the link has to have dropped.
+      fixture.store.setTransportConnected(false);
     });
 
     await waitFor(() => {
@@ -202,114 +226,53 @@ describe("useDataSeries: the stretch nobody measured", () => {
 
     render(
       <fixture.Provider>
-        <Probe dataKey="vessel.state.altitudeAsl" windowSec={900} />
+        <Probe dataKey="vessel.flight.altitudeAsl" windowSec={900} />
       </fixture.Provider>,
     );
 
     act(() => {
       /*
-       * `Quality.Loaded` is the measured basis: altitude comes off
-       * `vessel.flight` by interpolation between real samples, and once contact
-       * stops there is nothing left to interpolate.
-       * `deriveVesselStateReckoning` declines, so the trace honestly stops
-       * where the data does.
+       * `Quality.Loaded` is the craft under physics, where the conic ignores
+       * whatever the physics is doing, so the flight reckoner declines and the
+       * trace honestly stops where the data does, across a silence as much as
+       * while the link is up.
        */
-      fixture.transport.emit(
-        "vessel.orbit",
-        { referenceBodyIndex: 1 },
-        { validAt: 0, quality: Quality.Loaded },
-      );
-      for (const [validAt, altitudeAsl] of [
-        [100, 1000],
-        [200, 2000],
-      ]) {
-        fixture.transport.emit(
-          "vessel.flight",
-          {
-            altitudeAsl,
-            verticalSpeed: 0,
-            surfaceSpeed: 0,
-            orbitalSpeed: 0,
-          },
-          { validAt },
-        );
-      }
+      fixture.emitOrbiting([100, 200], ECCENTRIC_KERBIN_ORBIT, Quality.Loaded);
+      fixture.store.setTransportConnected(false);
     });
 
     await waitFor(() => {
-      /*
-       * Two points, not three: the orbit sample at UT 0 changes an input, but
-       * the record is not whole until a flight sample exists, so `derive`
-       * declines there exactly as it does live.
-       */
       expect(readProbe()).toBe("n:2|reckoned:");
     });
   });
 
-  it("draws no run for a field the model carries rather than moves", async () => {
+  it("draws no run once the view time is past where the conic ends", async () => {
     const fixture = buildStreamFixture({ pinnedUt: 600 });
 
     render(
       <fixture.Provider>
-        <Probe dataKey="vessel.state.twr" windowSec={900} />
+        <Probe dataKey="vessel.flight.orbitalSpeed" windowSec={900} />
       </fixture.Provider>,
     );
 
     act(() => {
-      for (const validAt of [0, 100, 200]) {
-        fixture.transport.emit("vessel.orbit", ECCENTRIC_KERBIN_ORBIT, {
-          validAt,
-          quality: Quality.OnRails,
-        });
-        fixture.transport.emit(
-          "vessel.propulsion",
-          { availableThrust: 200_000, totalMass: 10_000 },
-          { validAt },
-        );
-      }
+      fixture.emitOrbiting([0, 100, 200], {
+        ...ECCENTRIC_KERBIN_ORBIT,
+        // The wire's own next SOI transition. These elements describe the
+        // patch the craft is in and stop being about the craft at all once it
+        // leaves, so the model withdraws there rather than at a cutoff
+        // somebody chose. `vessel.flight`'s conic is bound by `vessel.orbit`'s
+        // horizon at the read's view time, so a view past the transition gets
+        // no tail rather than one clipped short.
+        encounter: { transitionType: 1, transitionUt: 420, bodyIndex: 2 },
+      });
+      fixture.store.setTransportConnected(false);
     });
 
     await waitFor(() => {
-      /*
-       * The record is forward-modelled and TWR is not part of what the conic
-       * moves: it comes off the newest `vessel.propulsion` sample and would
-       * carry forward as a flat line stamped `kepler-propagation`, which
-       * attributes a number to a model that never touched it.
-       */
+      // The three observations and nothing modelled after them, where the
+      // same elements without the transition draw a run to the view time.
       expect(readProbe()).toBe("n:3|reckoned:");
-    });
-  });
-
-  it("stops the run where the conic ends, not where the window does", async () => {
-    const fixture = buildStreamFixture({ pinnedUt: 600 });
-
-    render(
-      <fixture.Provider>
-        <Probe dataKey="vessel.state.orbitalSpeed" windowSec={900} />
-      </fixture.Provider>,
-    );
-
-    act(() => {
-      for (const validAt of [0, 100, 200]) {
-        fixture.transport.emit(
-          "vessel.orbit",
-          {
-            ...ECCENTRIC_KERBIN_ORBIT,
-            // The wire's own next SOI transition. These elements describe the
-            // patch the craft is in and stop being about the craft at all once
-            // it leaves, so the model withdraws there rather than at a cutoff
-            // somebody chose.
-            encounter: { transitionType: 1, transitionUt: 420, bodyIndex: 2 },
-          },
-          { validAt, quality: Quality.OnRails },
-        );
-      }
-    });
-
-    await waitFor(() => {
-      // The stride is 100, so the walk offers 300, 400 and then 500, which is
-      // past the transition. Two modelled points, not four.
-      expect(readProbe()).toMatch(/^n:5\|reckoned:3-4:kepler-propagation$/);
     });
   });
 });
@@ -317,12 +280,9 @@ describe("useDataSeries: the stretch nobody measured", () => {
 describe("useDataSeries: a modelled quantity that arrived with a unit", () => {
   it("plots the tail of a Value-typed topic, magnitudes and all", async () => {
     /*
-     * `vessel.state` is a record of bare magnitudes and every case above reads
-     * one, which is why the tail could go a long time emitting only for a bare
-     * `number` without anything noticing. `vessel.flight.altitudeAsl` is the
-     * same quantity one wrapper out, and it is what the atmosphere-handover
-     * render set draws: a point read described a carried altitude in words
-     * while a plot of it stopped at the last packet.
+     * `vessel.flight.altitudeAsl` arrives wrapped, and it is what the
+     * atmosphere-handover render set draws: a point read described a carried
+     * altitude in words while a plot of it stopped at the last packet.
      *
      * The assertion is a `typeof`, not a figure. What the arithmetic says is
      * pinned next to the model in `@ksp-gonogo/sitrep-client`; what matters
@@ -359,8 +319,7 @@ describe("useDataSeries: a modelled quantity that arrived with a unit", () => {
       /*
        * A RAW topic's tail fills a SILENCE, so the walk withdraws outright
        * while the link is up: there is no gap for a model to have carried
-       * anything across. The `vessel.state` cases above are a derived channel
-       * and are not gated this way, which is the one setup difference here.
+       * anything across.
        */
       fixture.store.setTransportConnected(false);
     });
@@ -441,18 +400,13 @@ describe("useDataSeries: how far the window was asked for", () => {
 
     render(
       <fixture.Provider>
-        <WindowEndProbe dataKey="vessel.state.orbitalSpeed" windowSec={900} />
+        <WindowEndProbe dataKey="vessel.flight.orbitalSpeed" windowSec={900} />
       </fixture.Provider>,
     );
 
     act(() => {
-      for (const ut of [0, 40, 80]) {
-        fixture.transport.emit("vessel.orbit", ECCENTRIC_KERBIN_ORBIT, {
-          validAt: ut,
-          deliveredAt: ut,
-          quality: Quality.OnRails,
-        });
-      }
+      fixture.emitOrbiting([0, 40, 80]);
+      fixture.store.setTransportConnected(false);
     });
 
     /*
@@ -461,7 +415,7 @@ describe("useDataSeries: how far the window was asked for", () => {
      * series shortens, the axis shrinks with it, and the blank that IS the
      * statement is cropped away.
      */
-    await waitFor(() => expect(readWindowEnd()).toBe("windowEnd:600"));
+    await waitFor(() => expect(readWindowEnd()).toMatch(/\|windowEnd:600$/));
   });
 
   it("states nothing where no model answered, so a live chart's axis is untouched", async () => {
@@ -469,25 +423,13 @@ describe("useDataSeries: how far the window was asked for", () => {
 
     render(
       <fixture.Provider>
-        <WindowEndProbe dataKey="vessel.state.altitudeAsl" windowSec={900} />
+        <WindowEndProbe dataKey="vessel.flight.altitudeAsl" windowSec={900} />
       </fixture.Provider>,
     );
 
     act(() => {
-      fixture.transport.emit(
-        "vessel.flight",
-        { altitudeAsl: 1000 },
-        {
-          validAt: 100,
-          deliveredAt: 100,
-          quality: Quality.Loaded,
-        },
-      );
-      fixture.transport.emit("vessel.orbit", ECCENTRIC_KERBIN_ORBIT, {
-        validAt: 100,
-        deliveredAt: 100,
-        quality: Quality.Loaded,
-      });
+      fixture.emitOrbiting([0, 40, 80], ECCENTRIC_KERBIN_ORBIT, Quality.Loaded);
+      fixture.store.setTransportConnected(false);
     });
 
     /*
@@ -495,6 +437,6 @@ describe("useDataSeries: how far the window was asked for", () => {
      * sample, and stating the view time there would put a moving number in
      * every live chart's snapshot for an emptiness that means nothing.
      */
-    await waitFor(() => expect(readWindowEnd()).toBe("windowEnd:none"));
+    await waitFor(() => expect(readWindowEnd()).toBe("n:3|windowEnd:none"));
   });
 });

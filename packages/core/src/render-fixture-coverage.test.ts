@@ -58,7 +58,7 @@ import { COINCIDENTAL, RENDER_GAP } from "./render-fixture-coverage.debt";
  *   `COINCIDENTAL` in the sibling debt module absorbs, 18 of the 65 seeded
  *   findings</li>
  * <li>it is blind to any topic the descriptors do not carry, which today
- *   includes `vessel.state`, `crash.hasRecent` and every `*.available` flag, so
+ *   includes `crash.hasRecent` and every `*.available` flag, so
  *   a widget reading only those is graded against an empty universe</li>
  * <li>it reads only files sitting directly IN the widget's own directory, so a
  *   field dereferenced in a shared helper a level up is invisible</li>

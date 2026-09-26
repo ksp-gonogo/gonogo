@@ -4,15 +4,13 @@
  * matches on host and station: the data-flow tests only prove values
  * reach the data source layer; this one proves they reach the DOM.
  *
- * `o.ApA` (the old flat key) is now the DERIVED `vessel.state.apoapsisAlt`,
- * `sma·(1+ecc) - bodyRadius` off the fixture's `vessel.orbit.{sma,ecc}` and
- * `system.bodies`' Kerbin radius (`sitrep-stream-server.mjs`). With
- * sma=773862.315964763 / ecc=0.0956792487342901 / radius=600000 that comes
- * out to ~247904.9 m; formatDistance renders that as "247.9 km", the exact
- * string the old fixture's raw `o.ApA` produced, chosen deliberately so this
- * assertion needed no rewrite. Loose match: formatDistance is exercised in
- * unit tests; we only need to confirm the same value flowed through both
- * render paths.
+ * Ap is solved from the fixture's `vessel.orbit.{sma,ecc}` over
+ * `system.bodies`' Kerbin radius (`sitrep-stream-server.mjs`):
+ * `sma·(1+ecc) - bodyRadius`. With sma=773862.315964763 /
+ * ecc=0.0956792487342901 / radius=600000 that comes out to ~247904.9 m, which
+ * formatDistance renders as "247.9 km". Loose match: formatDistance is
+ * exercised in unit tests; we only need to confirm the same value flowed
+ * through both render paths.
  */
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 import { PORTS } from "../../playwright.config";
@@ -184,10 +182,9 @@ test.describe("widget DOM mirror", () => {
       timeout: 30_000,
     });
 
-    // Ap is only checked on the host. It's the DERIVED `vessel.state.
-    // apoapsisAlt`, and only the MAIN screen mounts `SitrepTelemetryProvider`
-    // today: station stream forwarding over PeerJS is a documented pending
-    // gap (see that provider's own doc comment). The station side of this
+    // Ap is only checked on the host. It is solved from the stream, and only
+    // the MAIN screen mounts `SitrepTelemetryProvider` today: station stream
+    // forwarding over PeerJS is a documented pending gap (see that provider's own doc comment). The station side of this
     // test still proves real value: the dashboard mounts, the widget
     // renders, and the peer handshake completes, a station-side Ap
     // assertion would fail on the app's current telemetry-forwarding gap,

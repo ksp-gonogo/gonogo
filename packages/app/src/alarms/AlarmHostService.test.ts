@@ -79,7 +79,7 @@ function formatCommand(command: string, args: unknown): string {
  * re-publish the whole `time.warp` record (the wire shape `getWarpState`
  * reads), and every other key routes through `mapTopic` onto its stream
  * topic: emitted as a bare literal topic (no derived-channel machinery
- * needed; `AlarmHostService` never reads `vessel.state`/orbit fields).
+ * needed; `AlarmHostService` never reads orbit fields).
  */
 function fakeTelemetry(): FakeTelemetry {
   const transport = new StubTransport();
@@ -615,7 +615,7 @@ describe("AlarmHostService", () => {
           id: "addressless",
           trigger: {
             kind: "threshold",
-            dataKey: "vessel.state.altitudeAsl",
+            dataKey: "vessel.flight.altitudeAsl",
             op: ">=",
             value: 70_000,
             sustainSeconds: 0,

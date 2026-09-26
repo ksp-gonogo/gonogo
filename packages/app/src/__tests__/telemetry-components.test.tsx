@@ -25,7 +25,6 @@ import {
   TimelineStore,
   TrajectoryKindLike,
   ViewClock,
-  vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -70,18 +69,17 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-// The eight `vesselStateChannel` inputs: carrying all of them makes every
-// derived `vessel.state.*` field (here: `parentBodyName`) resolvable. Mirrors
-// the allowlist in MapView's own `stream.test.tsx`.
-const VESSEL_STATE_INPUTS = [
+// Each widget's declared channels.
+const CURRENT_ORBIT_CHANNELS = [
   "vessel.orbit",
-  "vessel.flight",
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
+];
+const MAP_VIEW_CHANNELS = [
+  "vessel.flight",
+  "vessel.orbit",
+  "vessel.identity",
+  "system.bodies",
 ];
 
 // ---------------------------------------------------------------------------
@@ -103,7 +101,6 @@ function setupTelemetryStream(carriedChannels: Iterable<string>) {
     delaySeconds: () => 0,
   });
   const store = new TimelineStore(clock);
-  store.registerDerivedChannel(vesselStateChannel);
 
   function Provider({ children }: { children: ReactNode }) {
     return (
@@ -119,8 +116,8 @@ function setupTelemetryStream(carriedChannels: Iterable<string>) {
 
   return {
     // Forwards the transport's optional 3rd meta arg (e.g. quality) so tests
-    // can emit an OnRails vessel.orbit, the basis vessel.state's propagated
-    // apoapsis/periapsis fields require.
+    // can emit an OnRails vessel.orbit: the orbit solve behind the apsis
+    // figures declines under physics.
     emit: (...args: Parameters<typeof transport.emit>) =>
       transport.emit(...args),
     Provider,
@@ -143,12 +140,11 @@ describe("CurrentOrbitComponent", () => {
   });
 
   it("shows apoapsis value when data arrives", async () => {
-    // CurrentOrbit reads apoapsis via useOrbitElements -> the native
-    // `vessel.state` derived channel. apoapsisAlt = sma*(1+ecc) - bodyRadius;
-    // the propagated apoapsis fields only populate in the OnRails basis and
-    // need system.bodies for the reference body's radius. sma 850k, ecc 0,
-    // Kerbin radius 600k -> apoapsisAlt 250_000 -> formatDistance = '250.0 km'.
-    const stream = setupTelemetryStream(VESSEL_STATE_INPUTS);
+    // CurrentOrbit solves apoapsis from `vessel.orbit` on rails, measured from
+    // the reference body's radius in `system.bodies`: sma*(1+ecc) - radius.
+    // sma 850k, ecc 0, Kerbin radius 600k -> 250_000 -> formatDistance
+    // '250.0 km'.
+    const stream = setupTelemetryStream(CURRENT_ORBIT_CHANNELS);
     renderWidget(
       <stream.Provider>
         <CurrentOrbitComponent id="t" />
@@ -179,7 +175,7 @@ describe("CurrentOrbitComponent", () => {
           epoch: 0,
           mu: 3.5316e12,
           // The apoapsis figure is read off the mini diagram's apsis marker, so
-          // this needs a drawable trajectory as well as the derived value: the
+          // this needs a drawable trajectory as well as the solved value: the
           // widget asks the propagation seam what shape the orbit is before
           // drawing one, and a sample with no stated shape gets no conic and no
           // markers on it. Same horizon the sibling OrbitView case states, and
@@ -200,12 +196,9 @@ describe("CurrentOrbitComponent", () => {
   });
 
   it("shows reference body when provided", async () => {
-    // P1: the subtitle reads the derived
-    // `vessel.state.referenceBodyName` now (the mapped home of the legacy
-    // `o.referenceBody` scalar), which `deriveVesselState` resolves from
-    // `vessel.orbit.referenceBodyIndex` against `system.bodies`: so feed the
-    // derivation those two inputs rather than the retired flat key.
-    const stream = setupTelemetryStream(VESSEL_STATE_INPUTS);
+    // The subtitle names `vessel.orbit.referenceBodyIndex` through
+    // `system.bodies`, so those two are what it is fed.
+    const stream = setupTelemetryStream(CURRENT_ORBIT_CHANNELS);
     renderWidget(
       <stream.Provider>
         <CurrentOrbitComponent id="t" />
@@ -346,14 +339,10 @@ describe("OrbitViewComponent", () => {
 // MapView
 // ---------------------------------------------------------------------------
 describe("MapViewComponent", () => {
-  // P1: MapView reads position off the canonical stream now,
-  // `vessel.flight.latitude`/`.longitude` for lat/lon, and the derived
-  // `vessel.state.parentBodyName` (index→name resolved against `system.bodies`)
-  // for the header body label: not the old `v.body`/`v.lat`/`v.long` keys.
-  // The body-name derivation gates on `vessel.orbit` (whole-record input) plus
-  // `vessel.identity.parentBodyIndex` + `system.bodies`.
+  // MapView reads position off `vessel.flight.latitude`/`.longitude`, and names
+  // the header body from `vessel.identity.parentBodyIndex` through
+  // `system.bodies`.
   function emitKerbin(stream: ReturnType<typeof setupTelemetryStream>) {
-    stream.emit("vessel.orbit", {});
     stream.emit("vessel.identity", { parentBodyIndex: 1, launchUt: null });
     stream.emit("system.bodies", { bodies: [{ index: 1, name: "Kerbin" }] });
   }
@@ -368,8 +357,8 @@ describe("MapViewComponent", () => {
     expect(screen.getByText("Waiting for telemetry...")).toBeInTheDocument();
   });
 
-  it("shows body name in header once vessel state arrives", async () => {
-    const stream = setupTelemetryStream(VESSEL_STATE_INPUTS);
+  it("shows body name in header once the parent body arrives", async () => {
+    const stream = setupTelemetryStream(MAP_VIEW_CHANNELS);
     renderWidget(
       <stream.Provider>
         <MapViewComponent id="t" />
@@ -380,7 +369,7 @@ describe("MapViewComponent", () => {
   });
 
   it('shows "No position data" when body is known but lat/lon not yet received', async () => {
-    const stream = setupTelemetryStream(VESSEL_STATE_INPUTS);
+    const stream = setupTelemetryStream(MAP_VIEW_CHANNELS);
     renderWidget(
       <stream.Provider>
         <MapViewComponent id="t" />
@@ -392,7 +381,7 @@ describe("MapViewComponent", () => {
   });
 
   it('hides "No position data" overlay once position arrives', async () => {
-    const stream = setupTelemetryStream(VESSEL_STATE_INPUTS);
+    const stream = setupTelemetryStream(MAP_VIEW_CHANNELS);
     renderWidget(
       <stream.Provider>
         <MapViewComponent id="t" />

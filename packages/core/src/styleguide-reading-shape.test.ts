@@ -336,7 +336,7 @@ function pendingOnlyGates(sources: ReadonlyMap<string, string>): Suspect[] {
  * A payload field taken straight off a `useStream(...)` call.
  *
  * A stream read answers with a reading, and a reading answers ANY property it does
- * not own with that field's own reading, so `useStream<VesselState>(t)?.subjectId`
+ * not own with that field's own reading, so `useStream<VesselIdentity>(t)?.vesselId`
  * compiles and hands over a `Reading<string>` where a string was meant. Where the
  * receiver is typed the compiler says so; where it takes `unknown`, compares with
  * `==`, or spreads into JSX it says nothing, and the figure renders as though the
@@ -643,7 +643,7 @@ describe("styleguide: a Reading is never handed on whole", () => {
     const tree = new Map([
       [
         "plain.tsx",
-        'const id = useStream<VesselState>("vessel.state")?.subjectId;',
+        'const id = useStream<VesselIdentity>("vessel.identity")?.vesselId;',
       ],
       [
         "nested.tsx",
@@ -663,7 +663,7 @@ describe("styleguide: a Reading is never handed on whole", () => {
       ],
     ]);
     expect(fieldsOffStreamCall(tree)).toEqual([
-      { at: "plain.tsx:1", variable: "subjectId" },
+      { at: "plain.tsx:1", variable: "vesselId" },
       { at: "nested.tsx:1", variable: "elements" },
       { at: "split.tsx:2", variable: "parentBodyIndex" },
     ]);

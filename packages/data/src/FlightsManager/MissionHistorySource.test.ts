@@ -60,18 +60,24 @@ function flightFrame(altitudeAsl: number, ut: number): string {
 
 /**
  * Frames in the shape a real `StreamRecorder` capture carries: RAW wire
- * topics only. `vessel.state` and `vessel.maneuver.legacy` are client-side
- * derived channels, so no recording ever contains a frame on either, and a
- * fixture that invents one exercises the raw-record path and can never
- * reach the derivation the live graph actually uses. `vessel.orbit` rides
- * at `Quality.Loaded` so `deriveVesselState` takes its measured basis and
- * reads `altitudeAsl` straight off `vessel.flight`.
+ * topics only. A client-side derived channel such as `spaceCenter.state`
+ * never appears in a recording, so a fixture that invents a frame on one
+ * exercises the raw-record path and can never reach the derivation the live
+ * graph actually uses. `spaceCenter.launchSites` is that derivation's input.
  */
 function longFixture(): ReplayFixture {
   return {
-    subscribedTopics: ["vessel.orbit", "vessel.flight", "vessel.maneuver"],
+    subscribedTopics: [
+      "vessel.flight",
+      "vessel.maneuver",
+      "spaceCenter.launchSites",
+    ],
     frames: [
-      frame("vessel.orbit", { referenceBodyIndex: 1 }, 0, Quality.Loaded),
+      frame(
+        "spaceCenter.launchSites",
+        [{ padOccupied: true, padVesselTitle: "Kerbal X" }],
+        0,
+      ),
       flightFrame(100, 0),
       flightFrame(5000, 400), // > 300s past the first point
       flightFrame(70000, 900),
@@ -205,42 +211,44 @@ describe("MissionHistorySource", () => {
       await store.saveMission(mission());
 
       const range = await source.queryRange(
-        "vessel.state.altitudeAsl",
+        "vessel.flight.altitudeAsl",
         0,
         900,
         "m1",
       );
       expect(range.t).toEqual([0, 400, 900]);
-      expect(range.v).toEqual([100, 5000, 70000]);
+      expect(range.v).toEqual([
+        { magnitude: 100, unit: "m" },
+        { magnitude: 5000, unit: "m" },
+        { magnitude: 70000, unit: "m" },
+      ]);
     });
 
     /**
-     * `o.orbitPatches` resolves to `vessel.state.orbitPatches`, a derived
-     * channel over the raw `vessel.orbit` record. Two things had to hold and
-     * neither did: the full-history store must register the production
-     * derived channels, and `queryRange` must read a derived topic through
-     * `sampleDerivedRange` (`sampleRange` returns `undefined` for one by
-     * construction). Both failures collapse onto `{ t: [], v: [] }`, the same
-     * answer as "this recording holds no data for that key", which is why the
-     * graph's "No recorded samples" message was believed.
+     * `spaceCenter.state` is a derived channel over the raw
+     * `spaceCenter.launchSites` record. Two things have to hold: the
+     * full-history store must register the production derived channels, and
+     * `queryRange` must read a derived topic through `sampleDerivedRange`
+     * (`sampleRange` returns `undefined` for one by construction). Either
+     * failure collapses onto `{ t: [], v: [] }`, the same answer as "this
+     * recording holds no data for that key", which is why the graph's "No
+     * recorded samples" message gets believed.
      *
-     * This asserted on `o.maneuverNodes` until that key stopped naming a
-     * derived channel. A key resolving to a raw topic exercises the raw-record
-     * path and reaches none of the above, so the coverage moved to a key that
-     * is still derived rather than staying on a name that no longer tests
-     * anything.
+     * A key resolving to a raw topic exercises the raw-record path and reaches
+     * none of the above.
      */
     it("serves a DERIVED key off the raw topics a real recording actually carries", async () => {
       const { source, store } = freshSource();
       await store.saveMission(mission());
 
       const range = await source.queryRange(
-        "vessel.state.orbitPatches",
+        "spaceCenter.state.padOccupied",
         0,
         900,
         "m1",
       );
-      expect(range.t.length).toBeGreaterThan(0);
+      expect(range.t).toEqual([0]);
+      expect(range.v).toEqual([true]);
     });
 
     it("serves o.maneuverNodes as the plan the recording actually carries", async () => {
@@ -277,7 +285,7 @@ describe("MissionHistorySource", () => {
       const { source, store } = freshSource();
       await store.saveMission(mission());
       expect(
-        await source.queryRange("vessel.state.altitudeAsl", 0, 900),
+        await source.queryRange("vessel.flight.altitudeAsl", 0, 900),
       ).toEqual({
         t: [],
         v: [],
@@ -298,14 +306,14 @@ describe("MissionHistorySource", () => {
       await store.saveMission(mission());
 
       const first = await source.queryRange(
-        "vessel.state.altitudeAsl",
+        "vessel.flight.altitudeAsl",
         0,
         900,
         "m1",
       );
       source.evictFullHistoryStore("m1");
       const second = await source.queryRange(
-        "vessel.state.altitudeAsl",
+        "vessel.flight.altitudeAsl",
         0,
         900,
         "m1",
@@ -376,7 +384,7 @@ describe("MissionHistorySource", () => {
     it("deleteFlight removes the mission and evicts its history cache entry", async () => {
       const { source, store } = freshSource();
       await store.saveMission(mission());
-      await source.queryRange("vessel.state.altitudeAsl", 0, 900, "m1"); // populate cache
+      await source.queryRange("vessel.flight.altitudeAsl", 0, 900, "m1"); // populate cache
       await source.deleteFlight("m1");
       expect(await source.listFlights()).toEqual([]);
     });
