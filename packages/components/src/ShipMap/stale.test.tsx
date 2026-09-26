@@ -13,8 +13,8 @@ import { ShipMapComponent } from "./index";
 /**
  * What ShipMap does when `vessel.thermal` stops being current: the
  * hottest-part ring is withheld, since it tells the operator where to look
- * now. The header tag keeps speaking, so "we no longer know" is not the same
- * silence as "nothing is hot".
+ * now. The header tag keeps the last hottest part with its temperature, which
+ * Unit marks as held.
  */
 
 const TOPOLOGY = fuellinePrelaunch["v.topology"] as VesselTopology;
@@ -39,7 +39,15 @@ const CARRIED = ["vessel.parts", "vessel.thermal", "vessel.flight"];
 
 const HOTTEST_PART = "liquidEngine2.v2";
 const HOTTEST_PART_ID = "965970713";
-const NOT_CURRENT = /hot: no longer current/;
+const CAPTION = /no longer current|last contact/i;
+
+function heldMarks(): NodeListOf<Element> {
+  return document.querySelectorAll("[data-not-current-mark]");
+}
+
+function hotTag(): HTMLElement {
+  return screen.getByText(new RegExp(`hot: ${HOTTEST_PART}`));
+}
 
 function ringCount(container: HTMLElement): number {
   return container.querySelectorAll('[data-role="highlight-ring"]').length;
@@ -68,7 +76,7 @@ describe("ShipMap when the thermal reading is not current", () => {
         hottestPart: {
           name: HOTTEST_PART,
           id: HOTTEST_PART_ID,
-          temperature: 900,
+          internalTemp: 900,
         },
       });
     });
@@ -90,19 +98,22 @@ describe("ShipMap when the thermal reading is not current", () => {
     await emitHotCraft(fixture);
 
     expect(ringCount(container)).toBe(1);
-    expect(screen.queryByText(NOT_CURRENT)).toBeNull();
+    expect(hotTag().textContent).toMatch(/900/);
+    expect(heldMarks()).toHaveLength(0);
   });
 
-  it("drops the ring and SAYS the hottest part is no longer current", async () => {
+  it("drops the ring and marks the held hottest part's temperature", async () => {
     const { fixture, container } = mount();
     await emitHotCraft(fixture);
 
     loseTheLink(fixture);
 
-    await waitFor(() => expect(screen.getByText(NOT_CURRENT)).toBeTruthy());
-    expect(ringCount(container)).toBe(0);
-    // The stale name leaves the header too, not merely the ring.
-    expect(screen.queryByText(new RegExp(`hot: ${HOTTEST_PART}`))).toBeNull();
+    await waitFor(() => expect(ringCount(container)).toBe(0));
+    // The tag keeps the last hottest part; Unit's held mark and spoken caption on its temperature say it is held.
+    expect(hotTag().textContent).toMatch(/900/);
+    expect(hotTag().querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(hotTag().querySelector("[data-unit-currency]")).not.toBeNull();
+    expect(screen.queryByText(CAPTION)).toBeNull();
   });
 
   it("keeps drawing the diagram, so the tag is the only cue", async () => {
@@ -112,13 +123,13 @@ describe("ShipMap when the thermal reading is not current", () => {
 
     loseTheLink(fixture);
 
-    await waitFor(() => expect(screen.getByText(NOT_CURRENT)).toBeTruthy());
+    await waitFor(() => expect(heldMarks().length).toBeGreaterThan(0));
     expect(screen.getByLabelText("Ship diagram")).toBeTruthy();
     expect(screen.getByText(/22 parts/)).toBeTruthy();
   });
 
-  it("does not present a withheld verdict as a craft with nothing hot", async () => {
-    // No hottest part is a real answer with no tag; the withheld case must not land on that silence.
+  it("writes no caption of its own when a craft with nothing hot goes held", async () => {
+    // No hottest part is a real answer with no tag, and holding it adds no widget-written wording.
     const { fixture } = mount();
     act(() => {
       fixture.emit("vessel.parts", VESSEL_PARTS_WIRE);
@@ -131,8 +142,11 @@ describe("ShipMap when the thermal reading is not current", () => {
 
     loseTheLink(fixture);
 
-    // "Nothing stands out" goes out of date too: the tag keys on the reading, not the name.
-    await waitFor(() => expect(screen.getByText(NOT_CURRENT)).toBeTruthy());
+    await waitFor(() =>
+      expect(fixture.store.sampleReading("vessel.thermal").state).toBe("stale"),
+    );
+    expect(screen.queryByText(/hot:/)).toBeNull();
+    expect(screen.queryByText(CAPTION)).toBeNull();
   });
 
   it("says nothing about currency before the thermal channel has spoken", async () => {

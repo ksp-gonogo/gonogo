@@ -1,5 +1,6 @@
 import { AugmentSlot, type VesselTopology } from "@ksp-gonogo/core";
-import type { CSSProperties } from "react";
+import { Unit } from "@ksp-gonogo/ui-kit";
+import type { ComponentProps, CSSProperties } from "react";
 import { ShipDiagram } from "./ShipDiagram";
 import type {
   ShipMapPart,
@@ -21,7 +22,7 @@ export function ShipMapBody({
   parts,
   hottestName,
   hottestPartId,
-  hottestNotCurrent,
+  hottestTemp,
   size,
   setWrapEl,
   ambientTint,
@@ -35,7 +36,8 @@ export function ShipMapBody({
   parts: ShipMapPart[];
   hottestName: string | null;
   hottestPartId: string | null;
-  hottestNotCurrent: boolean;
+  /** The hottest part's internal temperature, as the reading it arrived in. */
+  hottestTemp: ComponentProps<typeof Unit>["value"];
   size: { w: number; h: number };
   setWrapEl: (el: HTMLDivElement | null) => void;
   ambientTint: string | null;
@@ -61,9 +63,10 @@ export function ShipMapBody({
       <div style={META}>
         {parts.length} part{parts.length === 1 ? "" : "s"}
         <span style={META_TAG}>· seq {topology.topologySeq}</span>
-        {hottestName && <span style={META_TAG}>· hot: {hottestName}</span>}
-        {hottestNotCurrent && (
-          <span style={META_TAG}>· hot: no longer current</span>
+        {hottestName && (
+          <span style={META_TAG}>
+            · hot: {hottestName} <Unit value={hottestTemp} decimals={0} />
+          </span>
         )}
       </div>
       <div ref={setWrapEl} style={DIAGRAM_WRAP}>

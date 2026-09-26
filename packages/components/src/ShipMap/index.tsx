@@ -38,6 +38,7 @@ const topics = defineTopicManifest({
     "vessel.parts",
     "vessel.thermal.hottestPart.name",
     "vessel.thermal.hottestPart.id",
+    "vessel.thermal.hottestPart.internalTemp",
     "vessel.flight.externalTemperature",
     "vessel.control.throttle",
   ],
@@ -56,15 +57,15 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   // The mod's channel engine is change-gated, so no seq-driven refetch is needed.
   const topology = useTopology();
   /**
-   * "Hottest part" is a verdict about now, so a held reading draws no ring and
-   * the header tag says why, rather than reading as a craft that cooled down.
+   * "Hottest part" is a verdict about now, so only a current reading rings the
+   * part; the header keeps the last one, its temperature marked held by Unit.
    */
   const thermalReading = topics.useTelemetry("vessel.thermal");
   const hottestPart =
-    thermalReading.state === "observed"
+    thermalReading.state === "observed" || thermalReading.state === "stale"
       ? thermalReading.value.hottestPart
       : undefined;
-  const hottestNotCurrent = thermalReading.state === "stale";
+  const hottestTemp = thermalReading.hottestPart.internalTemp;
   // Ambient skin temperature tints the diagram background; a dated number, so the last observation is used.
   const flightReading = topics.useTelemetry("vessel.flight");
   const externalTemperature = magnitudeOf(
@@ -163,7 +164,9 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   const hottestName =
     typeof hottestPart?.name === "string" ? hottestPart.name : null;
   const hottestPartId =
-    typeof hottestPart?.id === "string" ? hottestPart.id : null;
+    thermalReading.state === "observed" && typeof hottestPart?.id === "string"
+      ? hottestPart.id
+      : null;
 
   const ambientTint = useMemo(
     () => externalTempTint(externalTemperature),
@@ -195,7 +198,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
         parts={parts}
         hottestName={hottestName}
         hottestPartId={hottestPartId}
-        hottestNotCurrent={hottestNotCurrent}
+        hottestTemp={hottestTemp}
         size={size}
         setWrapEl={setWrapEl}
         ambientTint={ambientTint}
