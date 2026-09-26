@@ -47,11 +47,11 @@ export function SignalDelayBadge({
 }: SignalDelayBadgeProps) {
   const oneWay = value("s", oneWaySeconds);
   return (
-    /* `role="status"`, never `alert`: a separation is a standing condition of
-       the link, not an event that should interrupt a screen reader. */
+    /* Not a live region: the delay changes with every sample of the
+       separation, and announcing each one would flood a screen reader. */
     <SignalDelayBadge__Chip
       className={className}
-      role="status"
+      role="group"
       aria-label="Signal delay"
     >
       one-way ~
