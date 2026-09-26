@@ -15,6 +15,7 @@ import {
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import {
+  type Reading,
   stillTrue,
   TargetKind,
   type Value,
@@ -34,6 +35,7 @@ import {
   type Severity,
   Text,
   Unit,
+  type UnitValue,
 } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useId, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -137,6 +139,24 @@ const fmtCountdown = (sec: number): string => {
   return `in ${(d / kspYearDays()).toFixed(1)} y`;
 };
 
+/** When a figure's source was last a reading of now; `null` while it still is. */
+type HeldSince = Pick<Reading<unknown>, "asOfUt" | "grade"> | null;
+
+/** A figure derived from a held source, handed to `Unit` as held so the kit marks it. */
+function heldFigure<U extends string>(
+  figure: Value<U>,
+  heldSince: HeldSince,
+): UnitValue<U> {
+  if (heldSince === null) return figure;
+  return {
+    state: "stale",
+    value: figure,
+    asOfUt: heldSince.asOfUt,
+    grade: heldSince.grade,
+    reckoning: { status: "none" },
+  };
+}
+
 /** The catalogue's own name when the save sent one, its index otherwise, never a fabricated name. */
 function bodyLabel(body: CelestialBody): string {
   return body.name ?? `Body ${body.index}`;
@@ -153,8 +173,8 @@ function TransferWindowComponent({
    * The parking orbit's reference body and elements are facts that only events
    * move, so the last ones received still describe the orbit. Nothing this
    * widget judges rests on them (the dial, badge and countdowns ride the body
-   * catalogue at view time); they set only the ejection Δv, which
-   * `orbitNotCurrent` dates rather than blanking the board.
+   * catalogue at view time); they set only the parking-orbit Δv figures, which
+   * are drawn held rather than blanking the board.
    */
   const orbitReading = topics.useTelemetry("vessel.orbit");
   // The observation overlaid with what the conic moved; a `ReckonableReading` cannot go through `stillTrue`.
@@ -166,7 +186,10 @@ function TransferWindowComponent({
     observedOrbit !== undefined && orbitReading.reckoning.status === "available"
       ? { ...observedOrbit, ...orbitReading.reckoning.value }
       : observedOrbit;
-  const orbitNotCurrent = orbitReading.state === "stale";
+  const orbitHeldSince: HeldSince =
+    orbitReading.state === "stale"
+      ? { asOfUt: orbitReading.asOfUt, grade: orbitReading.grade }
+      : null;
   // "Not in an orbit" and "no orbit has reached us yet" are different sentences.
   const orbitConfirmedAbsent = orbitReading.state === "absent";
   // A catalogue only changes when the game does, so a held one is still the catalogue.
@@ -441,13 +464,6 @@ function TransferWindowComponent({
       sections={
         <Section>
           <Body>
-            {orbitNotCurrent && (
-              // Dated, and says which half of the panel it applies to: the dial and window times are still current.
-              <Text tone="warn" size="xs" role="status" aria-live="polite">
-                Parking orbit no longer current: Δv is from the last known
-                elements. Phase and window times stay live.
-              </Text>
-            )}
             <ReachList
               entries={reach}
               originName={origin.name ?? "here"}
@@ -458,6 +474,7 @@ function TransferWindowComponent({
               onSelect={setDestIndex}
               budgetAge={budgetAge}
               budgetConfirmedAbsent={budgetConfirmedAbsent}
+              orbitHeldSince={orbitHeldSince}
             />
             {/* Container-queried on the body's own width. Renders whether or not a transfer solves, so the destination select stays reachable. */}
             <ContentGrid>
@@ -494,6 +511,7 @@ function TransferWindowComponent({
                   windows={windows}
                   selectedIndex={selIdx}
                   onSelect={setSelectedWindow}
+                  orbitHeldSince={orbitHeldSince}
                   destPicker={
                     // Label and select are direct children of SectionHead so the select's narrow-width rule sizes correctly; the heading IS the control's label.
                     <>
@@ -544,12 +562,15 @@ function WindowsList({
   windows,
   selectedIndex,
   onSelect,
+  orbitHeldSince,
   destPicker,
   createAlarm,
 }: {
   windows: TransferWindowEntry[];
   selectedIndex: number;
   onSelect: (index: number) => void;
+  /** Ejection figures come from the parking orbit, so they hold with it. */
+  orbitHeldSince: HeldSince;
   /** The destination select, on this section's heading line: it scopes THIS list. */
   destPicker: ReactNode;
   createAlarm: ((w: TransferWindowEntry) => void) | null;
@@ -594,7 +615,10 @@ function WindowsList({
                     <ExpLabel>Ejection Δv</ExpLabel>
                     <ExpValue>
                       <Unit
-                        value={value("m/s", w.ejectionDeltaV)}
+                        value={heldFigure(
+                          value("m/s", w.ejectionDeltaV),
+                          orbitHeldSince,
+                        )}
                         decimals={0}
                       />
                     </ExpValue>
@@ -639,6 +663,7 @@ function ReachList({
   onSelect,
   budgetAge,
   budgetConfirmedAbsent,
+  orbitHeldSince,
 }: {
   entries: ReachEntry[];
   originName: string;
@@ -652,6 +677,8 @@ function ReachList({
   budgetAge: Value<"s"> | null;
   /** The stock sim reports no figure for this craft, as opposed to none arriving. */
   budgetConfirmedAbsent: boolean;
+  /** Each destination's Δv is costed from the parking orbit, so it holds with it. */
+  orbitHeldSince: HeldSince;
 }) {
   if (entries.length === 0) return null;
   const haveBudget = budgetDeltaV != null;
@@ -717,7 +744,10 @@ function ReachList({
                   <ReachTdNum>
                     {entry.totalDeltaV != null ? (
                       <Unit
-                        value={value("m/s", entry.totalDeltaV)}
+                        value={heldFigure(
+                          value("m/s", entry.totalDeltaV),
+                          orbitHeldSince,
+                        )}
                         decimals={0}
                       />
                     ) : (
