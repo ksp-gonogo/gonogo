@@ -297,7 +297,7 @@ describe("LandingStatus: what undefined means today", () => {
     // The rail carries the lowest-point datum while live, proving the tombstone below replaced something.
     await waitFor(() =>
       expect(
-        screen.getByRole("meter", { name: /altitude above terrain/i }),
+        screen.getByRole("meter", { name: "Altitude above terrain" }),
       ).toHaveAttribute("aria-valuenow", "4800"),
     );
     expect(
@@ -317,9 +317,11 @@ describe("LandingStatus: what undefined means today", () => {
         ),
       ).toBeInTheDocument(),
     );
-    // The rail swaps to the centre-of-mass altitude off `vessel.flight`, a different measurement at the same scale.
+    // The rail swaps to the centre-of-mass altitude off `vessel.flight`, a different measurement at the same scale, and names it.
     expect(
-      screen.getByRole("meter", { name: /altitude above terrain/i }),
+      screen.getByRole("meter", {
+        name: /centre-of-mass altitude above terrain/i,
+      }),
     ).toHaveAttribute("aria-valuenow", "5000");
   });
 

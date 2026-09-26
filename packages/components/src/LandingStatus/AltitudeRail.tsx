@@ -7,8 +7,10 @@ import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { Tape, Text, writeQuantity } from "@ksp-gonogo/ui-kit";
 
 export interface AltitudeRailProps {
-  /** Height of the vessel's lowest point above terrain. */
+  /** Height above terrain, of the vessel's lowest point unless `centreOfMass`. */
   agl: Reading<Value<"m">>;
+  /** The height is the centre of mass's, the lowest-point datum being unavailable. */
+  centreOfMass?: boolean;
   /** AGL at which the suicide burn must begin, metres. */
   ignitionAltitude: number | null;
   /** Seconds to the latest ignition. */
@@ -26,6 +28,7 @@ function niceCeil(x: number): number {
 
 export function AltitudeRail({
   agl,
+  centreOfMass = false,
   ignitionAltitude,
   suicideBurnCountdown,
 }: Readonly<AltitudeRailProps>) {
@@ -72,7 +75,11 @@ export function AltitudeRail({
           tickStep={value("m", maxScale / 4)}
           groundLine={value("m", 0)}
           zones={zones}
-          ariaLabel="Altitude above terrain"
+          ariaLabel={
+            centreOfMass
+              ? "Centre-of-mass altitude above terrain"
+              : "Altitude above terrain"
+          }
         />
       </div>
       {/* Panel.Body supplies the outer inset. */}

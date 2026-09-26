@@ -34,6 +34,15 @@ describe("AltitudeRail", () => {
     expect(ladder).toHaveAttribute("aria-valuenow", "1200");
   });
 
+  it("names the centre-of-mass datum when the lowest point is unavailable", () => {
+    render(<AltitudeRail {...descending} centreOfMass />);
+    expect(
+      screen.getByRole("meter", {
+        name: "Centre-of-mass altitude above terrain",
+      }),
+    ).toHaveAttribute("aria-valuenow", "1200");
+  });
+
   it("shows the ignition cue when a burn is pending", () => {
     render(<AltitudeRail {...descending} />);
     expect(visibleText()).toMatch(/ignite in 8s/i);

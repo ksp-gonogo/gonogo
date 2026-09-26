@@ -924,6 +924,7 @@ function LandingStatusComponent({
                 >
                   <AltitudeRail
                     agl={aglReading}
+                    centreOfMass={usingComDatum}
                     ignitionAltitude={landed ? null : solution.ignitionAltitude}
                     suicideBurnCountdown={
                       landed ? null : solution.suicideBurnCountdown
