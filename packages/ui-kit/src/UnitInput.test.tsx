@@ -488,6 +488,20 @@ describe("UnitInput", () => {
         "",
       );
     });
+
+    it("shows an unread instant as an empty date, not as the epoch", () => {
+      render(
+        <UnitInput
+          label="Ignition"
+          unit="ut"
+          value={null}
+          onChange={() => {}}
+        />,
+      );
+      const fields = screen.getAllByRole("spinbutton") as HTMLInputElement[];
+      expect(fields.length).toBeGreaterThan(0);
+      for (const field of fields) expect(field.value).toBe("");
+    });
   });
 
   it("adds a slider only when bounds are given", () => {
