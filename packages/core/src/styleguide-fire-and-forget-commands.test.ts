@@ -52,7 +52,7 @@ import { exitStatus } from "./ratchetBaseRef";
 const FIRE_AND_FORGET_BUDGET: Record<string, number> = {
   "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/index.tsx": 3,
   "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 6,
-  "packages/components/src/ActionGroup/index.tsx": 1,
+  "packages/components/src/ActionGroup/ActionGroupView.tsx": 1,
   "packages/components/src/AstronautComplex/index.tsx": 1,
   "packages/components/src/LaunchDirector/index.tsx": 1,
   "packages/components/src/ManeuverPlanner/index.tsx": 1,

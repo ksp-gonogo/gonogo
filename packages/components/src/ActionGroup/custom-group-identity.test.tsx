@@ -1,17 +1,15 @@
 import {
+  buildToggleArgs,
   clearActionHandlers,
   DashboardItemContext,
   getComponent,
+  toggleCommandFor,
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import {
-  ActionGroupComponent,
-  buildToggleArgs,
-  toggleCommandFor,
-} from "./index";
+import { ActionGroupComponent } from "./index";
 
 /**
  * A custom action group is identified by its INDEX, never by the name a player
@@ -49,9 +47,11 @@ describe("custom action group identity", () => {
   let fixture: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(() => {
-    // No `clearRegistry()`: this file READS the registry (it pulls the widget's
-    // real config component out of it to find the id the picker saves), and
-    // vitest isolates the registry per file anyway.
+    /*
+     * No `clearRegistry()`: this file READS the registry (it pulls the widget's
+     * real config component out of it to find the id the picker saves), and
+     * vitest isolates the registry per file anyway.
+     */
     fixture = setupStreamFixture({
       carriedChannels: [
         "vessel.control",

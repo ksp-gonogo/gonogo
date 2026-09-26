@@ -10,10 +10,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ActionGroupComponent } from "./index";
 
-// Rendered trees, tracked so teardown can unmount them BEFORE clearing the
-// action-handler registry: a still-mounted widget re-rendering on that
-// notification is a state update outside act(), the documented anti-pattern
-// in CLAUDE.md.
+/*
+ * Rendered trees, tracked so teardown can unmount them BEFORE clearing the
+ * action-handler registry: a still-mounted widget re-rendering on that
+ * notification is a state update outside act(), the documented anti-pattern
+ * in CLAUDE.md.
+ */
 const renderedTrees: Array<() => void> = [];
 
 function render(ui: ReactElement) {
@@ -99,9 +101,11 @@ describe("ActionGroup (SAS): the toggle -> absolute command dispatch", () => {
       button.click();
     });
 
-    // Fire-and-forget: the underlying command-request/response round trip
-    // resolves on a queued microtask (StubTransport), so the handler call
-    // must be awaited, not asserted synchronously right after the click.
+    /*
+     * Fire-and-forget: the underlying command-request/response round trip
+     * resolves on a queued microtask (StubTransport), so the handler call
+     * must be awaited, not asserted synchronously right after the click.
+     */
     await waitFor(() =>
       expect(commandHandler).toHaveBeenCalledWith("vessel.control.setSas", {
         enabled: false,
