@@ -146,7 +146,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/MapView/MapPoiLayer.tsx": 2,
     "packages/components/src/Navball/index.tsx": 1,
     "packages/components/src/shared/RequiresGuard.tsx": 3,
-    "packages/components/src/StationConnectView/index.tsx": 19,
+    "packages/components/src/StationConnectView/StationConnectView.styles.ts": 19,
     "packages/components/src/Strategies/index.tsx": 1,
     "packages/components/src/ThermalStatus/styles.ts": 2,
     "packages/components/src/Twr/index.tsx": 1,
@@ -162,7 +162,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
    */
   radius: {
     "packages/components/src/CommSignal/index.tsx": 1,
-    "packages/components/src/StationConnectView/index.tsx": 4,
+    "packages/components/src/StationConnectView/StationConnectView.styles.ts": 4,
     "packages/serial/src/InputTester/index.tsx": 2,
   },
   /**
@@ -190,7 +190,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/shared/OrbitalEventChips.tsx": 2,
     "packages/components/src/shared/RequiresGuard.tsx": 2,
     "packages/components/src/SpaceCenterStatus/index.tsx": 3,
-    "packages/components/src/StationConnectView/index.tsx": 7,
+    "packages/components/src/StationConnectView/StationConnectView.styles.ts": 7,
     "packages/components/src/SystemView/index.tsx": 1,
     "packages/components/src/TechTree/index.tsx": 5,
     "packages/components/src/Twr/index.tsx": 1,
