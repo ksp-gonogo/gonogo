@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { focusRing } from "./focusRing";
 
 /**
@@ -60,7 +60,7 @@ export const FormActions = styled.div`
   align-items: center;
 `;
 
-const inputBase = `
+const inputBase = css`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-regular, 3px);
