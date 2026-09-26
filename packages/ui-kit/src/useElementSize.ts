@@ -9,12 +9,11 @@ export interface ElementSize {
 /**
  * Observe an element's content-box and track its `{ w, h }` size.
  *
- * Extracted from the hand-rolled `ResizeObserver` blocks that several
- * widgets repeated verbatim: attach a `ResizeObserver` to a `ref`, ignore
- * zero-size measurements, `Math.floor` the result, and disconnect on
- * unmount. The `typeof ResizeObserver === "undefined"` guard keeps the hook
- * a no-op in jsdom (tests render at the `initial` size, exactly as the
- * inline versions did).
+ * Attach `ref` to the element to measure. Zero-size measurements are ignored
+ * and the result is `Math.floor`-rounded. The element may come and go, or be
+ * swapped for another: whichever one `ref` holds after a render is the one
+ * observed. Where there is no `ResizeObserver` (jsdom) this is a no-op and the
+ * size stays at `initial`.
  *
  * @param initial seed size used until the first non-zero measurement.
  * @returns `{ ref, size }`: attach `ref` to the element to measure.
@@ -24,10 +23,16 @@ export function useElementSize<T extends HTMLElement = HTMLDivElement>(
 ): { ref: RefObject<T>; size: ElementSize } {
   const ref = useRef<T>(null);
   const [size, setSize] = useState<ElementSize>(initial);
+  const [observed, setObserved] = useState<T | null>(null);
+
+  // After every render, so an element that mounts late or is replaced is picked
+  // up. Only a different element causes a re-render.
+  useEffect(() => {
+    if (ref.current !== observed) setObserved(ref.current);
+  });
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
+    if (!observed || typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver((entries) => {
       for (const e of entries) {
         if (e.contentRect.width > 0 && e.contentRect.height > 0) {
@@ -38,9 +43,9 @@ export function useElementSize<T extends HTMLElement = HTMLDivElement>(
         }
       }
     });
-    ro.observe(el);
+    ro.observe(observed);
     return () => ro.disconnect();
-  }, []);
+  }, [observed]);
 
   return { ref, size };
 }
