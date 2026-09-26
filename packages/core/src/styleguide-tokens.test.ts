@@ -181,7 +181,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/app/src/components/StationConnectionFab.tsx": 1,
     "packages/app/src/components/StationLinkFab.tsx": 1,
     "packages/app/src/goNoGo/GoNoGoComponent.tsx": 5,
-    "packages/components/src/CrewStatus/index.tsx": 2,
+    "packages/components/src/CrewStatus/CrewStatusView.tsx": 2,
     "packages/components/src/CurrentOrbit/OrbitCells.tsx": 1,
     "packages/components/src/FuelStatus/index.tsx": 2,
     "packages/components/src/MapView/MapView.styles.ts": 1,

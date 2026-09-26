@@ -182,15 +182,17 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/CommSignal/index.tsx": 1,
   "packages/components/src/ContractManager/index.tsx": 2,
   "packages/components/src/CrewStatus/badge.ts": 2,
+  // 1: the headcount handed to the roster as a plain number, for its zero check and its names-withheld sentence.
+  "packages/components/src/CrewStatus/CrewStatusView.tsx": 1,
   /*
-   * 2. The second is `suitResourceTone`, which bands a
-   * suit tank's remaining fraction against two thresholds. The division is
-   * `amount.dividedBy(capacity)` and therefore dimension-checked; its quotient
-   * is dimensionless by construction, so the unwrap is on a number that has
-   * already stopped being a quantity, and it is never shown. The figures a
-   * READER sees are the two halves of the pair, written by `<Meter>`.
+   * 1: `suitResourceTone`, which bands a suit tank's remaining fraction
+   * against two thresholds. The division is `amount.dividedBy(capacity)` and
+   * therefore dimension-checked; its quotient is dimensionless by
+   * construction, so the unwrap is on a number that has already stopped being
+   * a quantity, and it is never shown. The figures a READER sees are the two
+   * halves of the pair, written by `<Meter>`.
    */
-  "packages/components/src/CrewStatus/index.tsx": 2,
+  "packages/components/src/CrewStatus/suitResources.tsx": 1,
   "packages/components/src/CurrentOrbit/index.tsx": 3,
   "packages/components/src/FleetRoster/FleetContactCell.tsx": 3,
   "packages/components/src/FuelStatus/index.tsx": 1,
