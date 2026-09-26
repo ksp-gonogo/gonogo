@@ -2,6 +2,7 @@ import { currentMode, value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
+import { emittedRuleFor } from "../test/emittedRule";
 import {
   InFlightList,
   type InFlightListItem,
@@ -322,5 +323,42 @@ describe("signalDelayPresentation", () => {
         "strip",
       );
     }
+  });
+});
+
+describe("InFlightList overdue row", () => {
+  it("is drawn in the warning colour made for text on the list's dark ground", () => {
+    render(
+      <InFlightList
+        density="full"
+        items={[{ id: "o", label: "Stage", etaSeconds: -4, phase: "overdue" }]}
+      />,
+    );
+    const row = screen.getByText("Stage").parentElement as HTMLElement;
+    expect(emittedRuleFor(row)).toContain(
+      "var(--color-status-warning-fg-muted)",
+    );
+  });
+});
+
+describe("InFlightList structure for assistive tech", () => {
+  for (const density of ["full", "compact"] as const) {
+    it(`is a named list of one item per command at ${density} density`, async () => {
+      const { container } = render(
+        <InFlightList items={ITEMS} density={density} />,
+      );
+      const list = screen.getByRole("list", { name: "In-flight commands" });
+      expect(list.querySelectorAll('[role="listitem"]')).toHaveLength(
+        ITEMS.length,
+      );
+      await expectNoA11yViolations(container);
+    });
+  }
+
+  it("names the badge on an element allowed to carry a name", () => {
+    render(<InFlightList items={ITEMS} density="badge" />);
+    expect(
+      screen.getByRole("group", { name: /^In-flight commands: 3 in flight/ }),
+    ).toBeInTheDocument();
   });
 });
