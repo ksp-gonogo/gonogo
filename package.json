@@ -58,6 +58,7 @@
     "peer": "^1.0.2",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "ts-morph": "28.0.0",
     "turbo": "latest",
     "typescript": "^5.0.0",
     "vitest": "^4.1.4",
