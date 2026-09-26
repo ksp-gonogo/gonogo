@@ -171,7 +171,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/maneuverTriggers/ManeuverTriggerHostService.ts": 3,
   "packages/app/src/missionProfiles/MissionProfilesModal.tsx": 1,
   "packages/app/src/missionProfiles/MissionProfilesService.ts": 1,
-  "packages/app/src/notes/NotesComponent.tsx": 1,
   "packages/app/src/notes/TagAutocomplete.tsx": 2,
   "packages/app/src/notes/templating.ts": 1,
   "packages/app/src/peer/PeerBroadcastingDataSource.ts": 1,

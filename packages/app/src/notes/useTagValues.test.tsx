@@ -3,19 +3,9 @@ import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
-import { useTagValues } from "./NotesComponent";
+import { useTagValues } from "./useTagValues";
 
-/**
- * A note body's `{{tag}}` placeholders read straight off the stream: there is
- * no `DataSource` behind the `"data"` id this resolves through, and has not
- * been since that source was deleted.
- *
- * That is the CANONICAL read shape, so the carried-channels gate had nothing to
- * arbitrate here and could only suppress. A tag whose topic was absent from the
- * allowlist never subscribed, so it rendered nothing for ever, silently, and
- * the unowned-topic warning could not name it because that warning only hears
- * about topics something subscribed to.
- */
+// A note body's tags read straight off the stream, so no carried-channels gate stands between a tag and its topic.
 function withProvider(client: TelemetryClient) {
   return ({ children }: { children: ReactNode }) => (
     <TelemetryProvider client={client}>{children}</TelemetryProvider>
