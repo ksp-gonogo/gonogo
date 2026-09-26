@@ -1,5 +1,5 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -119,5 +119,27 @@ describe("ThermalStatus: a thermal record that has stopped arriving", () => {
       expect(visibleText(container).toLowerCase()).not.toContain("nominal"),
     );
     expect(visibleText(container)).not.toContain("no longer current");
+  });
+
+  it("keeps the hottest part's meter, its fill dimmed and its temperature marked", async () => {
+    const { fixture } = mount("therm-stale-meter");
+    const meter = await screen.findByRole("meter", {
+      name: "Heat Shield (2.5m)",
+    });
+    const root = () => meter.parentElement?.parentElement;
+    // The control: while current, nothing on the meter is marked
+    expect(root()?.querySelector("[data-fill-not-current]")).toBeNull();
+    expect(root()?.querySelector("[data-not-current-mark]")).toBeNull();
+
+    act(() => {
+      fixture.store.setTransportConnected(false);
+    });
+
+    await waitFor(() =>
+      expect(root()?.querySelector("[data-fill-not-current]")).not.toBeNull(),
+    );
+    expect(meter).toHaveAttribute("aria-valuenow", "64");
+    // One mark, on the temperature: the rated maximum is not marked a second time
+    expect(root()?.querySelectorAll("[data-not-current-mark]")).toHaveLength(1);
   });
 });

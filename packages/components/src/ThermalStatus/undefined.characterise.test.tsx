@@ -165,7 +165,7 @@ describe("ThermalStatus: what undefined means today", () => {
    */
   it("draws an unknown band, not a nominal one, when the ratio is missing", async () => {
     const fixture = newFixture();
-    const { container } = renderThermal(fixture);
+    renderThermal(fixture);
 
     act(() => {
       fixture.emit("vessel.thermal", {
@@ -181,10 +181,11 @@ describe("ThermalStatus: what undefined means today", () => {
     // band tag, the last of which has no data at all.
     expect(screen.queryAllByText("nominal")).toHaveLength(0);
     expect(screen.getAllByText("unknown")).toHaveLength(3);
-    // The bar still reads zero-width. A missing ratio has no length to draw and
-    // the band tag beside it now carries the "we do not know" part, so this is
-    // left alone: it is the band that was making the false claim, not the bar.
-    expect(container.querySelector('[style*="width: 0%"]')).not.toBeNull();
+    // A missing ratio has no length to draw, so the meter draws its absent
+    // form: no fill and no aria-valuenow asserting one.
+    expect(
+      screen.queryByRole("meter", { name: "LV-T30 'Reliant'" }),
+    ).toBeNull();
   });
 
   it("omits the '/ ... max' tag when the max temperature is missing, keeping the temperature", async () => {

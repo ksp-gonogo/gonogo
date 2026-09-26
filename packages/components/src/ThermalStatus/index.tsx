@@ -1,12 +1,9 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import {
-  clampSafe,
-  defineTopicManifest,
-  registerComponent,
-} from "@ksp-gonogo/core";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { defineTopicManifest, registerComponent } from "@ksp-gonogo/core";
+import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   EmptyState,
+  Meter,
   NULL_DISPLAY,
   Panel,
   type ReadoutTone,
@@ -15,7 +12,6 @@ import {
   StatusPill,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import { magnitudeOr } from "../shared/magnitude";
 
 const topics = defineTopicManifest({
   channels: ["vessel.thermal"],
@@ -142,6 +138,53 @@ function Temp({ kelvin }: { kelvin: number | undefined }) {
   );
 }
 
+/**
+ * A temperature over its rated maximum, the figure a thermal meter carries.
+ *
+ * The temperature is drawn through its reading, so one held over from a record
+ * that stopped arriving is marked as such. The maximum is a rating of the part
+ * and is drawn as a plain figure, so the phrase carries one mark rather than
+ * two. A half the sentinel guard dropped arrives as `undefined` and draws the
+ * null token.
+ */
+function TempOverMax({
+  temp,
+  max,
+}: {
+  temp: Reading<Value<"K">> | undefined;
+  max: Reading<Value<"K">> | undefined;
+}) {
+  return (
+    <>
+      <TempReading reading={temp} />
+      {max?.value != null && (
+        <span style={MAX_TAG_STYLE}>
+          {" / "}
+          <Temp kelvin={max.value.magnitude} /> max
+        </span>
+      )}
+    </>
+  );
+}
+
+/** `Temp`, for a reading rather than a bare number. */
+function TempReading({
+  reading,
+}: {
+  reading: Reading<Value<"K">> | undefined;
+}) {
+  const kelvin = reading?.value?.magnitude;
+  if (reading === undefined || kelvin === undefined || !Number.isFinite(kelvin))
+    return NULL_DISPLAY;
+  return (
+    <Unit
+      value={reading}
+      as="°C"
+      decimals={Math.abs(kelvin - 273.15) >= 1000 ? 0 : 1}
+    />
+  );
+}
+
 // Heat-shield flux arrives in kW and climbs to MW at reentry peak. Both rungs
 // live in the shared `energyRate` ladder.
 function Flux({ kw }: { kw: number | undefined }) {
@@ -216,15 +259,37 @@ function ThermalStatusComponent({
 
   const hottestName = hottestSentinel ? undefined : rawHottestName;
   const hottestTempK = hottestSentinel ? undefined : rawHottestTempK;
-  const hottestMaxK = hottestSentinel ? undefined : rawHottestMaxK;
   const hottestRatio = hottestSentinel ? undefined : rawHottestRatio;
 
   const engineTempK = engineSentinel ? undefined : rawEngineTempK;
-  const engineMaxK = engineSentinel ? undefined : rawEngineMaxK;
   const engineRatio = engineSentinel ? undefined : rawEngineRatio;
   // anyEnginesOverheating is independent telemetry, but it's nonsense if
   // no engine is fitted at all, so honour the same guard.
   const engineOverheat = engineSentinel ? undefined : rawEngineOverheat;
+
+  /*
+   * The same fields as readings, for what the meters draw: each still carries
+   * whether it is current, so a held temperature or fill is marked by the
+   * meter rather than drawn as now. `null` is the sentinel guard's verdict.
+   */
+  const hottestRatioReading = hottestSentinel
+    ? null
+    : thermalReading.maxInternalTempRatio;
+  const hottestTempReading = hottestSentinel
+    ? undefined
+    : thermalReading.hottestPart.skinTemp;
+  const hottestMaxReading = hottestSentinel
+    ? undefined
+    : thermalReading.hottestPart.skinMaxTemp;
+  const engineRatioReading = engineSentinel
+    ? null
+    : thermalReading.hottestEngineTempRatio;
+  const engineTempReading = engineSentinel
+    ? undefined
+    : thermalReading.hottestEngineTemp;
+  const engineMaxReading = engineSentinel
+    ? undefined
+    : thermalReading.hottestEngineMaxTemp;
 
   const shieldTempK = shieldSentinel ? undefined : rawShieldTempK;
   const shieldFluxKw = shieldSentinel ? undefined : rawShieldFluxKw;
@@ -344,30 +409,17 @@ function ThermalStatusComponent({
                         {BAND_LABEL[hottestBand]}
                       </span>
                     </div>
-                    <div style={ROW_BODY_STYLE}>
-                      <div style={PART_NAME_STYLE}>
-                        {hottestName ?? NULL_DISPLAY}
-                      </div>
-                      <div style={TEMP_METER_STYLE}>
-                        <div
-                          style={{
-                            ...TEMP_BAR_STYLE,
-                            width: `${clampPct(magnitudeOr(hottestRatio, 0) * 100)}%`,
-                            background: BAND_COLOR[hottestBand],
-                          }}
+                    <Meter
+                      label={hottestName ?? NULL_DISPLAY}
+                      value={hottestRatioReading}
+                      fillColor={BAND_COLOR[hottestBand]}
+                      valueLabelNode={
+                        <TempOverMax
+                          temp={hottestTempReading}
+                          max={hottestMaxReading}
                         />
-                      </div>
-                      <div style={TEMP_READOUT_STYLE}>
-                        <span style={TEMP_VALUE_STYLE}>
-                          {<Temp kelvin={hottestTempK?.magnitude} />}
-                        </span>
-                        {hottestMaxK !== undefined && (
-                          <span style={MAX_TAG_STYLE}>
-                            / {<Temp kelvin={hottestMaxK.magnitude} />} max
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                      }
+                    />
                   </Section>
                 )}
 
@@ -379,31 +431,17 @@ function ThermalStatusComponent({
                         {BAND_LABEL[engineBand]}
                       </span>
                     </div>
-                    <div style={ROW_BODY_STYLE}>
-                      <div style={TEMP_METER_STYLE}>
-                        <div
-                          style={{
-                            ...TEMP_BAR_STYLE,
-                            width: `${clampPct(magnitudeOr(engineRatio, 0) * 100)}%`,
-                            background: BAND_COLOR[engineBand],
-                          }}
+                    <Meter
+                      label="Temperature"
+                      value={engineRatioReading}
+                      fillColor={BAND_COLOR[engineBand]}
+                      valueLabelNode={
+                        <TempOverMax
+                          temp={engineTempReading}
+                          max={engineMaxReading}
                         />
-                      </div>
-                      <div style={TEMP_READOUT_STYLE}>
-                        <span style={TEMP_VALUE_STYLE}>
-                          {<Temp kelvin={engineTempK?.magnitude} />}
-                        </span>
-                        {/* `!= null`: `maxK` is a `double?` and the wire keeps
-                          the key, so a part with no rated maximum arrives as an
-                          explicit null and the strict form reached
-                          `.magnitude` on it. */}
-                        {engineMaxK != null && (
-                          <span style={MAX_TAG_STYLE}>
-                            / {<Temp kelvin={engineMaxK.magnitude} />} max
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                      }
+                    />
                   </Section>
                 )}
 
@@ -429,10 +467,6 @@ function ThermalStatusComponent({
     />
   );
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const clampPct = (pct: number): number => clampSafe(pct, 0, 100);
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
@@ -512,31 +546,6 @@ const ROW_BODY_STYLE = {
   display: "flex",
   flexDirection: "column",
   gap: "var(--gap-related)",
-} as const;
-
-const PART_NAME_STYLE = {
-  fontSize: "var(--font-size-value)",
-  color: "var(--color-text-primary)",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-} as const;
-
-const TEMP_METER_STYLE = {
-  height: "8px",
-  background: "var(--color-surface-panel)",
-  border: "1px solid var(--color-border-subtle)",
-  overflow: "hidden",
-} as const;
-
-/*
- * `linear` is load-bearing, not stylistic: the bar is driven by telemetry
- * samples and an eased fill reads as the value stalling between them.
- */
-const TEMP_BAR_STYLE = {
-  height: "100%",
-  transition:
-    "width var(--duration-base) var(--ease-linear), background var(--duration-base) var(--ease-linear)",
 } as const;
 
 const TEMP_READOUT_STYLE = {

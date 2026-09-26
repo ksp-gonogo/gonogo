@@ -282,7 +282,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * `Math.max` on an unwrapped magnitude.
    */
   "packages/components/src/Targeting/index.tsx": 3,
-  "packages/components/src/ThermalStatus/index.tsx": 13,
+  "packages/components/src/ThermalStatus/index.tsx": 11,
   // 1: the Δv budget the reach list compares against.
   // `calc/transfer.ts` and the porkchop are deliberately plain-SI ("no React,
   // no side effects", see their own docs), so a `Value<"m/s">` off the wire has
@@ -516,7 +516,7 @@ const FUNNEL_BUDGET: Record<string, number> = {
   "mod/sitrep-sdk": 30,
   // One of these is `GoNoGoHostService` measuring liftoff against `getViewUt()`, which returns a plain number.
   "packages/app": 9,
-  "packages/components": 154,
+  "packages/components": 152,
   "packages/data": 5,
   "packages/ui-kit": 8,
 };
