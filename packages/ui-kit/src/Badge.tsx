@@ -145,10 +145,7 @@ const Badge__Body = styled.span<{
   $size: BadgeSize;
 }>`
   display: inline-block;
-  /* A badge is sized by its own text in every container. As a flex item it
-     would otherwise take the default stretch and grow to the tallest sibling,
-     which on a wrapped caption turns the pill radius into an ellipse several
-     lines tall. */
+  /* Sized by its own text, never stretched to a taller flex sibling. */
   align-self: center;
   ${fitBox("badge")}
   border: 1px solid;
@@ -157,10 +154,7 @@ const Badge__Body = styled.span<{
   text-transform: uppercase;
   white-space: nowrap;
 
-  /* Sausage-shaped ONLY for a real severity: a decorative kind-chip (no
-     severity) keeps the small rounded-rect shape, since it was never the
-     thing that read as a live button and the operator's ask was scoped to
-     the status/severity pill. */
+  /* Pill-shaped only for a real severity; a decorative kind chip keeps the rounded rect. */
   border-radius: ${({ $severity }) =>
     $severity === undefined ? "var(--radius-regular)" : "var(--radius-pill)"};
 

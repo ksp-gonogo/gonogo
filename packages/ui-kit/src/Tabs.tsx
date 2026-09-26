@@ -361,9 +361,7 @@ const Tabs__Root = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-tabs-panel);
-  /* Fill the panel and constrain children so an active tab whose content
-     uses flex:1 can actually scroll. No-op if the parent isn't a flex
-     column. */
+  /* Fills the panel and constrains children, so a flex:1 tab body can scroll. */
   flex: 1;
   min-height: 0;
 `;
@@ -381,12 +379,10 @@ const Tabs__Bar = styled.div`
   background: var(--color-surface-sunken);
   border-radius: var(--radius-pill);
   padding: var(--inset-tab-track);
-  /* Single line: tabs never wrap; the bar scrolls horizontally instead. */
   flex-wrap: nowrap;
   overflow-x: auto;
   overflow-y: hidden;
-  /* Hide the native scrollbar: the edge glows communicate scroll state.
-     Trackpads/wheels still scroll; keyboard arrows move between tabs. */
+  /* Native scrollbar hidden: the edge glows show scroll state. */
   scrollbar-width: none;
   -ms-overflow-style: none;
   &::-webkit-scrollbar {
@@ -413,8 +409,7 @@ const Tabs__OverflowGlow = styled.div<{
     rgba(255, 255, 255, 0.12),
     rgba(255, 255, 255, 0) 100%
   );
-  /* Local sibling ordering inside Tabs__BarShell only. Off the app-global z
-     ladder on purpose. */
+  /* Local sibling ordering inside Tabs__BarShell only, off the app z ladder. */
   z-index: 1;
 
   @media (prefers-reduced-motion: reduce) {
@@ -434,8 +429,7 @@ const Tabs__Blob = styled.span`
     left var(--duration-base) var(--ease-standard),
     width var(--duration-base) var(--ease-standard);
 
-  /* The blob's whole job is to show WHERE selection went; with motion damped
-     it simply appears on the new tab. */
+  /* With motion damped the blob simply appears on the new tab. */
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
@@ -455,23 +449,15 @@ const Tabs__Button = styled.button<{
   $active: boolean;
   $compact?: boolean;
 }>`
-  /* Transparent throughout: the blob behind it is the selected background, so
-     a background here would cover the thing that moves. */
+  /* Transparent: the blob behind it is the selected background. */
   background: transparent;
   border: none;
   /* Lifts the label over the blob by DOM order, no z-index involved. */
   position: relative;
-  /* Keep every tab on one line and let the bar scroll rather than wrap.
-
-     Shrinking them instead was tried and reverted: with two tabs in 158px there
-     is no room for both labels, so proportional shrink took the deficit out of
-     BOTH and rendered the active tab as "P...". A short label losing its word to
-     make room for a long one is worse than the long one continuing offscreen,
-     which the overflow glow already announces. */
+  /* Tabs never shrink: a short label losing its word is worse than a long one continuing offscreen behind the overflow glow. */
   flex: 0 0 auto;
   white-space: nowrap;
-  /* On the green blob the label has to invert: accent-bg is a bright green and
-     primary text on it fails contrast badly. */
+  /* Inverts on the accent blob, where primary text fails contrast. */
   color: ${({ $active }) =>
     $active ? "var(--color-text-inverse)" : "var(--color-text-faint)"};
   cursor: pointer;
@@ -479,21 +465,12 @@ const Tabs__Button = styled.button<{
   font-weight: 700;
   text-transform: uppercase;
   border-radius: var(--radius-pill);
-  /* Compact gives back the inset and the tracking, in that order, because they
-     cost the most per pixel of legibility: at two tabs it recovers ~38px, which
-     is the whole 10px deficit at min-6x9 with room over. The label itself is
-     never touched, no ellipsis and no shrink: a short label losing its word to
-     make room for a long one is worse than the long one continuing offscreen,
-     which the overflow glow already announces.
-
-     Plain concatenation, NOT a nested template literal: a backtick inside a
-     styled template breaks the parse and builds an empty dist. */
+  /* Compact gives back the inset and tracking, never the label. Plain concatenation: a nested template literal breaks the parse. */
   ${({ $compact }) =>
     $compact
       ? "padding: var(--inset-tab-compact);" + "letter-spacing: 0.04em;"
       : "padding: var(--inset-control);" + "letter-spacing: 0.12em;"}
-  /* Pushing: the label gives under the press and springs back, which is the
-     only feedback a tab gets on a touch device where there is no hover. */
+  /* The label gives under the press, the only feedback a tab gets on touch. */
   transition: transform var(--duration-fast) var(--ease-standard);
 
   &:active:not(:disabled) {
@@ -513,8 +490,7 @@ const Tabs__Button = styled.button<{
     }
   }
 
-  /* Reads as present but inert: the label stays legible enough to say what is
-     missing, and the cursor says it will not respond. */
+  /* Present but inert: legible enough to say what is missing, and the cursor says it will not respond. */
   &:disabled {
     cursor: not-allowed;
     opacity: 0.4;
@@ -524,8 +500,7 @@ const Tabs__Button = styled.button<{
 
   @media (pointer: coarse) {
     min-height: 44px;
-    /* Compact still applies on touch: a tab scrolled half out of view is not a
-       bigger target, it is a smaller one. */
+    /* Compact still applies on touch: a tab scrolled half out of view is a smaller target, not a bigger one. */
     ${({ $compact }) =>
       $compact
         ? "padding: var(--inset-tab-compact-touch);"

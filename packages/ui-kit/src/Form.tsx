@@ -64,8 +64,7 @@ const inputBase = css`
   padding: var(--inset-field);
 
   &:focus {
-    /* var(--color-accent-fg) on var(--color-surface-raised) ≈ 11.4:1: well clear of WCAG 1.4.11's 3:1 minimum
-       for non-text UI components. The previous var(--color-text-faint) border was ~1.4:1. */
+    /* The accent border on the raised surface clears WCAG 1.4.11's 3:1. */
     border-color: var(--color-accent-fg);
     outline: none;
   }
@@ -75,10 +74,7 @@ const inputBase = css`
   @media (pointer: coarse) {
     min-height: 44px;
     padding: var(--inset-field-touch);
-    /* 16px prevents iOS Safari from auto-zooming on focus. Deliberately NOT
-       var(--font-size-lg): the threshold is an absolute-px requirement, and
-       reading it from a token silently reintroduces the zoom the moment that
-       token is retuned below 16px. */
+    /* 16px stops iOS Safari zooming on focus; a literal, because the threshold is absolute. */
     font-size: 16px;
   }
 `;

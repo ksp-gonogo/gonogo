@@ -82,10 +82,7 @@ const FixedPill = styled.div<{
   z-index: ${(p) => p.$zIndex};
   display: inline-flex;
   align-items: center;
-  /* --inset-pill, not --inset-control, though the two are one size today:
-     this pill is emphatically not a control (pointer-events is none, four
-     lines down), so it must not follow the control token when that token
-     moves for touch targets. */
+  /* --inset-pill, not --inset-control: this pill is never pressable, so it must not follow the touch-target token. */
   gap: var(--gap-pill);
   padding: var(--inset-pill);
   background: rgba(0, 0, 0, 0.82);
@@ -105,11 +102,7 @@ const InlinePill = styled.div<{
 }>`
   display: inline-flex;
   align-items: center;
-  /* The gap holds for FixedPill's first reason above. The inset is the opposite
-     of its second: this pill IS pressable when a caller passes onClick, which
-     renders it as a button element, and it sits a tier ABOVE --inset-control's
-     (6,12) floor on purpose, so a banner you can dismiss is a bigger target
-     than a button in a form. That tier is --inset-control-prominent. */
+  /* Pressable when given onClick, and a tier above --inset-control so a dismissable banner is a bigger target. */
   gap: var(--gap-pill);
   padding: var(--inset-control-prominent);
   background: rgba(0, 0, 0, 0.88);

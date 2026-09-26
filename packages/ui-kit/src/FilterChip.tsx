@@ -34,16 +34,11 @@ const ChipButton = styled.button<{ $selected: boolean }>`
   align-items: center;
   gap: var(--gap-glyph-control);
   padding: var(--inset-control-small);
-  /* Stadium, not a corner: with 2px vertical padding a 12px radius already
-     exceeds half the rendered height, so --radius-pill renders identically and
-     survives a padding change. */
+  /* --radius-pill keeps the stadium shape through a padding change. */
   border-radius: var(--radius-pill);
   font-size: var(--font-size-compact);
   font-weight: 600;
-  /* Sentence case, as a control rather than a Badge. It is pill-shaped and it
-     sits among badges, but it is a real button carrying aria-pressed: the label
-     is a filter the operator applies, and its own text (a vessel name, a
-     status) is not the kit's to shout. */
+  /* Sentence case: a real toggle button rather than a Badge, and its label is not the kit's to shout. */
   cursor: pointer;
   transition:
     background var(--duration-fast),

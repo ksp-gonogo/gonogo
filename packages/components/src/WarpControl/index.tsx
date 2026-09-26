@@ -556,8 +556,6 @@ const WarpButton = styled.button<{ $active: boolean }>`
     ${({ $active }) =>
       $active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
   border-radius: var(--radius-regular);
-  /* Taller than it is wide: these buttons are a dense grid of warp-rate
-     glyphs. */
   padding: var(--inset-warp-button);
   font-size: var(--font-size-compact);
   font-weight: ${({ $active }) => ($active ? 700 : 500)};

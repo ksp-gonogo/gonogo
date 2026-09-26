@@ -97,9 +97,7 @@ const DivergingBar__Fill = styled.div<{
   top: 0;
   bottom: 0;
   border-radius: var(--radius-pill);
-  /* Faint rather than a second hue: the fill's colour already carries the
-     direction, and a third colour on a four-pixel bar would compete with the
-     two that mean something. */
+  /* Faint rather than a second hue: the fill's colour already carries the direction. */
   ${({ $notCurrent }) => ($notCurrent ? "opacity: 0.45;" : "")}
   ${({ $positive }) =>
     $positive

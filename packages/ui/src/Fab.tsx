@@ -42,16 +42,12 @@ export function Fab({ bottom, children, ...rest }: Readonly<FabProps>) {
 const FabRow = styled.div<{ $visible: boolean; $bottom: number }>`
   position: fixed;
   bottom: calc(${({ $bottom }) => $bottom}px + env(safe-area-inset-bottom, 0px));
-  /* Held literal with the rest of the FAB-geometry chain (see BannerStack):
-     FabPrompt's 72px and BannerStack's 88px/112px are arithmetic on this 24px
-     plus the button widths below, and none of them are visible to a CSS pass. */
+  /* Off the spacing ladder: the FAB geometry chain in FabPrompt and BannerStack is arithmetic on this 24px. */
   right: calc(24px + env(safe-area-inset-right, 0px));
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-end;
-  /* Part of the FAB-geometry chain above, which is arithmetic rather than
-     rhythm, so it moves only with that chain. */
   gap: var(--gap-pill);
   z-index: var(--z-fab);
   pointer-events: ${({ $visible }) => ($visible ? "auto" : "none")};
@@ -71,9 +67,7 @@ const FabLabel = styled.span<{ $visible: boolean }>`
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   transform: translateY(${({ $visible }) => ($visible ? "0" : "16px")});
-  /* 0.18s stays off the duration scale: it is tuned against the 16px travel
-     above and FabCluster's LEAVE_DELAY_MS = 400, and retiming it alone makes
-     the cluster snap shut mid-cursor-move. Only the easing is a style choice. */
+  /* Off the duration scale: tuned against the 16px travel and FabCluster's 400ms leave delay. */
   transition:
     transform 0.18s var(--ease-standard),
     opacity 0.18s var(--ease-standard);
@@ -95,7 +89,7 @@ const StyledFab = styled.button<{ $visible: boolean }>`
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   pointer-events: ${({ $visible }) => ($visible ? "auto" : "none")};
   transform: translateY(${({ $visible }) => ($visible ? "0" : "16px")});
-  /* As above: 0.18s is locked to the 16px travel + LEAVE_DELAY_MS = 400. */
+  /* The same 0.18s as FabLabel. */
   transition:
     background var(--duration-base),
     transform 0.18s var(--ease-standard),

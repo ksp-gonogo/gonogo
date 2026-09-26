@@ -424,8 +424,7 @@ const DiagramOverlayWrap = styled.div`
 const OverlayLayer = styled.div`
   position: absolute;
   inset: 0;
-  /* Keep the diagram beneath interactive; an overlay augment re-enables
-     pointer events on its own elements when it needs them. */
+  /* An overlay augment re-enables pointer events on its own elements. */
   pointer-events: none;
 `;
 

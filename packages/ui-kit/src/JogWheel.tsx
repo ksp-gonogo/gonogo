@@ -340,8 +340,7 @@ const JogWheel__Caret = styled.div<{ $orientation: "horizontal" | "vertical" }>`
 `;
 
 const JogWheel__Label = styled.span`
-  /* Last DOM sibling over the absolute tape/caret: paints on top by source
-     order in the same stacking context, so no z-index is needed. */
+  /* Last DOM sibling, so it paints over the absolute tape and caret without a z-index. */
   position: relative;
   font-family: var(--font-family-mono);
   font-size: var(--font-size-compact);

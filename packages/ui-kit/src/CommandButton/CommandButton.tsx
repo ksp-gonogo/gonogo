@@ -664,9 +664,7 @@ const CommandButton__Body = styled.button<{
 
   ${({ $size }) => SIZE_STYLES[$size]}
 
-  /* Filled when the control is showing a state (active), asking for a commit
-     (armed), or reporting a refusal. At rest it stays the quiet outline: a row
-     of eight filled buttons is a row with no emphasis left to spend. */
+  /* Filled only when active, armed or refused; at rest it stays the quiet outline. */
   ${({ $filled, $tone }) => ($filled ? TONE_FILLED[$tone] : "")}
 
   ${({ $armed }) =>
@@ -691,12 +689,7 @@ const CommandButton__Body = styled.button<{
     cursor: not-allowed;
   }
 
-  /* Dark, and readable while dark. The gate has said no, so the control must
-     not read as available, but it is still the thing carrying the reason: at
-     0.5 opacity the sentence it shows on a press would fail contrast, so this
-     dims toward the muted text token instead of fading the whole control out.
-     The warn border is what separates "the game says no" from "there is nothing
-     here", which a plain grey-out cannot say. */
+  /* Dimmed toward the muted text token rather than faded, so the refusal reason stays readable; the warn border says the game refused. */
   ${({ $blocked }) =>
     $blocked &&
     css`
@@ -713,16 +706,12 @@ const CommandButton__Body = styled.button<{
       }
     `}
 
-  /* The command is IN FLIGHT, not unavailable: it reads at full strength with a
-     spinner rather than as the greyed-out "you cannot do this" that a plain
-     :disabled would say. */
+  /* In flight, not unavailable: full strength with a spinner. */
   &[aria-busy="true"] {
     opacity: 1;
     cursor: progress;
   }
 
-  /* A control whose command went overdue or lost echoes it on itself, so the
-     operator sees which control's command died without leaving the panel rail. */
   &[data-failed="true"] {
     border-color: var(--color-status-warning-bg);
     color: var(--color-status-warning-fg-muted);

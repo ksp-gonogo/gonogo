@@ -195,7 +195,6 @@ const Dropdown = styled.div<{ $placement: "below" | "above" }>`
   border-radius: var(--radius-regular);
   max-height: 280px;
   overflow-y: auto;
-  /* The popover-anchored-to-a-control rung. */
   z-index: var(--z-dropdown);
 `;
 
@@ -225,8 +224,7 @@ const DropdownItem = styled.div<{ $active: boolean; $selected: boolean }>`
       : $selected
         ? "var(--color-status-go-mark)"
         : "transparent"};
-  /* Focus stays on the owning input, so the highlighted option carries the
-     focus colour itself as an inset bar. */
+  /* Focus stays on the input, so the highlighted option carries the focus colour as an inset bar. */
   box-shadow: ${({ $active }) =>
     $active ? "inset 3px 0 0 var(--color-focus)" : "none"};
 

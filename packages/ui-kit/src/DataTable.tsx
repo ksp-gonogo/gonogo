@@ -181,14 +181,9 @@ const DataTable__Caption = styled.caption`
 
 const DataTable__HeaderCell = styled.th<{ $align: "start" | "end" }>`
   text-align: ${({ $align }) => $align};
-  /* Sticks to the top of whatever scroller the table sits in, so the columns
-     stay named on a long list. */
   position: sticky;
   top: 0;
-  /* Local sibling ordering, not a rung on the app ladder: this only has to
-     out-stack the rows of its own table as they scroll under it, and a
-     --z-sticky here would put a table header in the same layer as the app's
-     chrome for no reason. */
+  /* Local sibling ordering over its own rows, not a rung on the app ladder. */
   z-index: 1;
   background: var(--color-surface-panel);
   color: var(--color-text-faint);
@@ -225,8 +220,6 @@ const DataTable__Cell = styled.td<{ $align: "start" | "end" }>`
   text-align: ${({ $align }) => $align};
   color: var(--color-text-primary);
   padding: var(--inset-table-cell);
-  /* Numeric columns line up digit for digit, which is the whole point of
-     putting them in a column. */
   font-variant-numeric: tabular-nums;
   vertical-align: baseline;
 `;

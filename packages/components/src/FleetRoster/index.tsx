@@ -431,14 +431,10 @@ const UpdatesRow = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
-  /* The 21px left inset is computed, not chosen: NameCell's 6px padding-left +
-     LinkDot's 8px width + NameCell's 7px gap, so this block hangs under the
-     vessel name rather than under its status dot. It stays literal; the other
-     three sides are ordinary rhythm and do tokenise. */
+  /* 21px = NameCell padding 6 + LinkDot 8 + NameCell gap 7, so the block hangs under the vessel name. */
   padding: 0 var(--gutter-roster-cell) var(--gutter-roster-cell) 21px;
 
-  /* Nothing contributed to this row: an augment that returns null adds no DOM,
-     so the wrapper is genuinely empty and takes no space at all. */
+  /* Augments that return null add no DOM, so an empty row takes no space. */
   &:empty {
     display: none;
   }

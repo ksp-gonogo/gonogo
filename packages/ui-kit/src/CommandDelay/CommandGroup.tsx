@@ -128,8 +128,7 @@ const CommandGroup__CommitButton = styled.button<{
 }>`
   align-self: ${({ $orientation }) =>
     $orientation === "row" ? "center" : "flex-start"};
-  /* Beside the inputs the button is the thing a narrow strip would squeeze
-     first, and a commit control squeezed to nothing is one nobody can press. */
+  /* A commit control must not be squeezed to nothing by the inputs beside it. */
   ${({ $orientation }) => $orientation === "row" && "flex-shrink: 0;"}
   padding: var(--inset-commit-button);
   font-size: var(--font-size-compact);
@@ -143,10 +142,7 @@ const CommandGroup__CommitButton = styled.button<{
   ${({ $icon }) =>
     $icon &&
     css`
-      /* The glyph is centred in the box rather than sitting on the text
-         baseline it no longer has, and the inset is squared off the vertical
-         one so the button is a square and not a word-shaped gap. Same treatment
-         as ComposerBar's send under sendVariant="icon". */
+      /* The glyph centres in the box, and the inset is squared so the button is a square. */
       display: inline-flex;
       align-items: center;
       justify-content: center;

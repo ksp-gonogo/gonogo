@@ -103,8 +103,7 @@ const FileInputButton = styled.label<{ $disabled: boolean }>`
 
   @media (pointer: coarse) {
     min-height: 44px;
-    /* Wider than --inset-control on both axes, same as ui-kit Button:
-       min-height only covers the vertical target. */
+    /* Wider than --inset-control on both axes, the same as the ui-kit Button. */
     padding: var(--inset-file-button-touch);
   }
 `;

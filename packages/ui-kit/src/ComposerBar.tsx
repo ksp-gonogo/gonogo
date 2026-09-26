@@ -141,15 +141,12 @@ const ComposerBar__Send = styled(Button)<{ $icon: boolean }>`
   ${({ $icon }) =>
     $icon &&
     css`
-      /* The glyph is centred in the box rather than sitting on the text
-         baseline it no longer has, and the inset is squared off the vertical
-         one so the button is a square and not a word-shaped gap. */
+      /* The glyph centres in the box, and the inset is squared so the button is a square. */
       display: inline-flex;
       align-items: center;
       justify-content: center;
       padding: var(--inset-icon-button);
-      /* The tone the row is outlined in, so the one control on the bar reads as
-         belonging to it rather than as chrome dropped on top. */
+      /* The row's own outline tone, so the control reads as belonging to the row. */
       color: var(--console-tone-fg, var(--color-accent-fg));
 
       @media (pointer: coarse) {
@@ -160,27 +157,14 @@ const ComposerBar__Send = styled(Button)<{ $icon: boolean }>`
 
 const ComposerBar__Flag = styled.div<{ $blocked: boolean }>`
   position: absolute;
-  /* Straddles the top border by half its OWN height, whatever that turns out to
-     be. This replaced a hand-computed negative offset that had to be recomputed
-     whenever the flag's font size moved, and did move: the 2xs token grows on a
-     coarse pointer, i.e. on the Steam Deck, while a literal offset stayed put. */
+  /* Straddles the top border by half its own height, which tracks the font size. */
   top: 0;
   transform: translateY(-50%);
-  /* The LEFT end of that border, because the right one is spoken for: a console
-     hangs its standing delay reading over the same edge, right-aligned to the
-     column its queue's countdowns end in, and the two can be up together. A
-     terminal reads its refusal and its separation off two topics that reveal on
-     different clocks, so on a link coming back the separation is measurable
-     again before the refusal clears, and both are drawn. They take opposite
-     ends rather than being stacked, and neither has to know about the other.
-     Over the prompt glyph reads well on its own terms too: a label at the head
-     of the row it is refusing for. */
+  /* The left end of the border: a console's delay reading takes the right end, and the two can show together. */
   left: var(--inset-console-foot);
-  /* Local ordering against the row it is pinned to only; not app-global
-     chrome, so not on the --z-* ladder. */
+  /* Local ordering against its row only, so not on the --z-* ladder. */
   z-index: 1;
-  /* It overlaps the prompt glyph's top corner, and a word saying why the row is
-     refusing input must not eat a press aimed at the control under it. */
+  /* Overlaps the prompt glyph, so it must not eat a press aimed at the control under it. */
   pointer-events: none;
   padding: var(--inset-chip);
   font-family: var(--font-family-mono);

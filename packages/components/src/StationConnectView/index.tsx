@@ -190,10 +190,7 @@ const ConnectLayout = styled.div`
     env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
   background: var(--color-surface-app);
 
-  /* On a small phone the box should hug the viewport edges rather than
-     sit in a centred card with wide outer gutters, combined with the
-     ConnectBox padding reduction below this gives the form room to breathe
-     on a 375px screen. */
+  /* On a small phone the box hugs the viewport edges instead of floating as a centred card. */
   @media (max-width: 480px) {
     align-items: stretch;
     padding: calc(16px + env(safe-area-inset-top, 0px))
@@ -233,8 +230,6 @@ const ConnectRow = styled.div`
   display: flex;
   gap: 8px;
 
-  /* Stack the input above the button on narrow screens so the connect
-     control gets full width and isn't squeezed beside the wide host input. */
   @media (max-width: 480px) {
     flex-direction: column;
   }
@@ -266,16 +261,12 @@ const HostInput = styled.input`
     outline-offset: 2px;
   }
 
-  /* Touch devices: comfortable tap target. */
   @media (pointer: coarse) {
     min-height: 44px;
   }
 `;
 
 const ConnectButton = styled.button`
-  /* Give the button a visible fill + border so its affordance matches the
-     input's visual weight: a transparent treatment reads as a secondary
-     link beside the prominent code field. */
   background: var(--color-status-info-bg);
   border: 1px solid var(--color-status-info-fg);
   border-radius: 4px;
@@ -301,13 +292,7 @@ const ConnectButton = styled.button`
     cursor: default;
   }
 
-  /* Touch devices: comfortable tap target height. The button is already
-     full-width on ≤480px phones via the stacked ConnectRow (flex column +
-     align-items: stretch): we deliberately do NOT force width:100% here
-     because on a wider coarse-pointer device (landscape phone, tablet) the
-     ConnectRow is still horizontal, and a full-width flex child would crush the
-     host input beside it. Height-only keeps the 44px target everywhere
-     without breaking the wide horizontal layout. */
+  /* Height only: on a wide coarse-pointer device the row stays horizontal, and a full-width button would crush the input. */
   @media (pointer: coarse) {
     min-height: 44px;
   }

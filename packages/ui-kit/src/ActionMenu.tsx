@@ -209,8 +209,6 @@ const Menu = styled.div`
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-regular);
   padding: var(--inset-menu-list);
-  /* The popover-anchored-to-a-control rung, the same one ComboboxListbox's
-     Dropdown takes and for the same reason. */
   z-index: var(--z-dropdown);
 `;
 
@@ -241,8 +239,7 @@ const MenuItem = styled.button<{ $disabled?: boolean }>`
   }
 
   ${focusRingInset}
-  /* The background swap makes the focused row legible as a row even where the
-     ring meets the menu border. */
+  /* The background marks the focused row where the ring meets the menu border. */
   &:focus-visible {
     background: var(--color-border-subtle);
   }

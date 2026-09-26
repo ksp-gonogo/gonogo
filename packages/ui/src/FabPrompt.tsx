@@ -58,8 +58,7 @@ const Wrap = styled.div<{ $bottom: number | undefined }>`
       ? css`
           position: fixed;
           bottom: calc(${$bottom}px + env(safe-area-inset-bottom, 0px));
-          /* 72 is 24 (Fab's right inset) + 40 (StyledFab width) + 8. Held
-             literal with the rest of the FAB-geometry chain, see BannerStack. */
+          /* 72 = 24 (the Fab inset) + 40 (its width) + 8, part of the FAB geometry chain. */
           right: calc(72px + env(safe-area-inset-right, 0px));
           z-index: var(--z-fab);
         `
@@ -69,18 +68,12 @@ const Wrap = styled.div<{ $bottom: number | undefined }>`
   align-items: stretch;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-status-info-fg);
-  /* Stadium, not a corner: --radius-pill clamps to half the shorter side, so
-     it holds at this 40px height AND at the coarse block's 48px without that
-     block needing its own radius override. */
+  /* --radius-pill holds at both the 40px height and the coarse-pointer 48px. */
   border-radius: var(--radius-pill);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   font-family: inherit;
-  /* Snapped, not exact: this was 0.18s ease-out. 180ms to 200ms, and
-     ease-out to ease (the scale has no ease-out rung). Both moves are inside
-     the noise of an 8px slide-and-fade. The entrance recipe
-     (--duration-entrance with --ease-entrance) is deliberately NOT used
-     here: that pairing is tuned to the 40px banner slide. */
+  /* Not the entrance recipe: that pairing is tuned to the 40px banner slide. */
   animation: fabPromptIn var(--duration-slow) var(--ease-standard) both;
 
   @keyframes fabPromptIn {
@@ -134,8 +127,7 @@ const Dismiss = styled.button`
   background: transparent;
   color: var(--color-text-dim);
   font-family: inherit;
-  /* Display tier: the type scale stops at lg (16px). This is a glyph size
-     for the × character, not body type, so it stays literal. */
+  /* Off the type scale: a glyph size for the close mark, above --font-size-lg. */
   font-size: 18px;
   line-height: var(--line-height-flush);
   padding: var(--inset-prompt-button);

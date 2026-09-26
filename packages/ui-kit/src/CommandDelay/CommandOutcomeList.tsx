@@ -108,8 +108,7 @@ const outcomeListLayout = css`
   flex: 0 0 auto;
   flex-direction: column;
   gap: var(--gap-message-stack);
-  /* Matches the queue container's inset, so the boxes line up with the tiles
-     above them rather than floating at their own margin. */
+  /* Matches the queue container's inset, so the boxes line up with the tiles above. */
   margin: var(--outset-command-strip);
 `;
 

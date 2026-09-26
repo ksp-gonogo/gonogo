@@ -31,9 +31,7 @@ export const BigReadout = styled.div<{ $tone?: ReadoutTone }>`
   justify-content: center;
   gap: var(--gap-tiny-content);
   text-align: center;
-  /* Both off the type/line-height scales on purpose: the size is fluid rather
-     than a rung, and 1.05 is tuned to it. A body line-height clips descenders
-     at the top of the clamp. */
+  /* A fluid size off the type scale, with a line height tuned to it so descenders do not clip. */
   font-size: clamp(20px, 6vw, 38px);
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -50,8 +48,7 @@ export const Readout = styled.div<{ $tone?: ReadoutTone }>`
   display: inline-flex;
   align-items: baseline;
   gap: var(--gap-value-tag);
-  /* Display tier: the type scale stops at lg (16px) because everything above
-     it in this codebase is a fluid clamp or a JS-computed fit. Stays literal. */
+  /* Display tier: the type scale stops at lg, so this stays literal. */
   font-size: 22px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -76,10 +73,7 @@ export const StatusPill = styled.div<{ $tone: ReadoutTone }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* --inset-control's value, not its class: a status pill is read, never
-     pressed, so it must not follow the control token when that widens for a
-     touch target. --inset-chip would halve it, which is right for a badge in
-     the text flow and wrong for a tiny-mode widget's whole state readout. */
+  /* --inset-control's value, not the token: a status pill is read, never pressed, so it must not widen for touch. */
   padding: var(--inset-pill);
   border-radius: var(--radius-pill);
   font-size: var(--font-size-caption);

@@ -105,15 +105,10 @@ const ToggleButton__Body = styled.button<{
   gap: var(--gap-glyph);
   font-family: inherit;
   font-weight: 600;
-  /* The kit's one control height, shared with Button and StatusIndicator, so a
-     bar of mixed controls is one band rather than a ragged run. The size prop
-     picks the type scale and the inset, never the height. See
-     --control-height. */
+  /* The kit's one control height; the size prop picks type scale and inset, never the height. */
   min-height: var(--control-height);
   line-height: var(--line-height-flush);
-  /* Sentence case, the same as the kit's Button: this label is the thing being
-     chosen, and a row of shouted choices reads as an alarm rather than a
-     picker. */
+  /* Sentence case, like Button: a row of shouted choices reads as an alarm. */
   border-radius: var(--radius-regular);
   cursor: pointer;
   transition: background var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast);
@@ -139,9 +134,6 @@ const ToggleButton__Body = styled.button<{
     cursor: not-allowed;
   }
 
-  /* A control whose command went overdue or lost carries data-failed="true" and
-     wears an amber tint over its neutral and active states, so the operator sees
-     which control's command died. */
   &[data-failed="true"] {
     border-color: var(--color-status-warning-bg);
     color: var(--color-status-warning-fg-muted);
@@ -154,8 +146,7 @@ const ToggleButton__Body = styled.button<{
 
   @media (pointer: coarse) {
     min-height: 44px;
-    /* Wider on both axes, same as ui-kit Button: min-height only covers the
-       vertical target. */
+    /* Wider on both axes: min-height only covers the vertical target. */
     padding: ${({ $size }) =>
       $size === "sm"
         ? "var(--inset-control-small-touch)"

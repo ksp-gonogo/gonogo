@@ -10,11 +10,8 @@ export const FeasibilityChip = styled.span<{ $ok: boolean }>`
   font-size: var(--font-size-caption);
   font-weight: ${({ $ok }) => ($ok ? 400 : 700)};
   padding: var(--inset-chip);
-  /* A stadium, not a corner: --radius-pill rather than a fixed px, so the
-     shape survives a change to this chip's padding or font size. */
   border-radius: var(--radius-pill);
-  /* Failing state shifted brighter: the quiet maroon on dark background
-     was sliding past readers. WCAG 1.4.11 non-text contrast met at 3:1. */
+  /* The failing state meets 3:1 non-text contrast on the dark ground. */
   background: ${({ $ok }) => ($ok ? "var(--color-status-go-bg)" : "var(--color-status-alert-muted)")};
   border: 1px solid ${({ $ok }) => ($ok ? "var(--color-status-go-bg)" : "var(--color-status-nogo-bg)")};
   color: ${({ $ok }) => ($ok ? "var(--color-status-go-fg)" : "var(--color-status-nogo-fg)")};
@@ -31,9 +28,7 @@ export const FeasibilityBanner = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
-  /* Roomier than --inset-surface on purpose: this banner spans the panel and
-     its shortfall text is the widest thing in the widget, so the record inset
-     would crowd it. */
+  /* Roomier than --inset-surface: the shortfall text is the widest thing in the widget. */
   padding: var(--inset-feasibility-banner);
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-nogo-bg);

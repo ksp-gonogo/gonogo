@@ -1,20 +1,13 @@
 /**
  * Generates `packages/ui-kit/src/__generated__/unit-kinds.ts`.
  *
- * ui-kit used to hand-maintain its own symbol -> kind table beside the SDK's,
- * and the two drifted: seven units disagreed on what their kind was CALLED
- * (`kW` was `energyRate` in one and `power` in the other). Nothing caught it,
- * because the gate that existed asked whether every token had SOME kind rather
- * than whether the two agreed on which.
- *
  * A kind is a MODEL fact, so the SDK owns it and this copies it across. It is
  * generated rather than imported because `packages/ui-kit` ships with no
  * runtime dependencies at all: every `sitrep-sdk` import in that package is
  * type-only and says so. A generated data file keeps that property.
  *
- * Reads the SDK's real values by importing the module, rather than parsing it.
- * A regex over the source was the first attempt at the guard this replaces, and
- * it silently matched nothing.
+ * Reads the SDK's real values by importing the module, rather than parsing it,
+ * since a regex over the source can silently match nothing.
  */
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -50,9 +43,8 @@ const lines = [
   "//     Changes to this file may cause incorrect behavior and will be lost if",
   "//     the code is regenerated.",
   "//",
-  "// A unit's KIND is a model fact, owned by mod/sitrep-sdk's UNIT_DEFINITIONS.",
-  "// ui-kit reads it from here rather than keeping its own copy, because the two",
-  "// copies drifted: seven units disagreed on what their kind was called.",
+  "// A unit's KIND is a model fact, owned by mod/sitrep-sdk's UNIT_DEFINITIONS;",
+  "// ui-kit reads it from here rather than keeping a copy of its own.",
   "//",
   "// Generated rather than imported so that packages/ui-kit keeps its zero",
   "// runtime dependencies. A token the contract declares but the model has no",

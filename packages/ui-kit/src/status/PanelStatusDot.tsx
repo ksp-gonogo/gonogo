@@ -50,66 +50,33 @@ const PanelStatusDot__Root = styled.span<{
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* One fixed diameter whether or not a count is shown. A count rendered as a
-     direct text child sits in normal flex-item flow, where it can nudge this
-     box's effective cross-size and, with it, the box's centred position in the
-     row, so a counted dot renders measurably smaller and off-baseline from a
-     bare one. PanelStatusDot__Count is absolutely positioned (see below), which
-     makes that structurally impossible rather than tuned-around: an
-     out-of-flow child cannot affect this box's size no matter what font-size
-     or line-height it carries. */
+  /* One fixed diameter whether or not a count is shown; the count is out of flow, so it cannot affect this box's size. */
   height: ${DOT_DIAMETER};
-  /* The count's own size, set here so the width below can be counted in its
-     digits. The box itself holds no text of its own. */
+  /* The count's own size, so the width below can be counted in its digits. */
   font-size: 7px;
-  /* A single digit fits the round dot. More than one does not, so the dot
-     grows sideways into a pill exactly as wide as the digits plus a rim,
-     keeping its height and its place on the title's line. */
+  /* More than one digit grows the dot sideways into a pill, keeping its height and its place on the title's line. */
   width: ${({ $digits }) =>
     $digits > 1 ? `calc(${$digits}ch + 4px)` : DOT_DIAMETER};
   border-radius: ${({ $digits }) =>
     $digits > 1 ? "var(--radius-pill)" : "var(--radius-circle)"};
   background: ${({ $color }) => $color};
-  /* A crisp rim plus a real glow bloom, so the dot reads as a lit indicator
-     rather than a flat disc. The previous halo used a negative spread (a rim
-     tucked back under the disc's own edge), which is why it was effectively
-     invisible in renders; this one has genuine positive spread.
-
-     The rim is a LIGHTER tint of the dot's own fill, not white: white read as
-     a harsh ring unrelated to the severity underneath it, where a lightened
-     version of the same colour keeps the dot monochromatic-per-severity (a
-     critical dot gets a lighter red rim, a caution dot a lighter amber one)
-     and softens rather than fights the fill. color-mix derives it straight
-     from $color (itself severityDotColor's output) so there is no second
-     per-severity map to keep in step, the same reasoning that put the fill
-     behind one function in the first place.
-
-     78%: operator review round 3 called the previous 55% mix too washed out
-     to read as "lit" against the fill, it just looked like a soft tint. 78%
-     is roughly halfway from 55% back to the fill's own 100%, brighter and
-     closer to the core colour while still visibly lighter than it, so the
-     rim stays a rim rather than becoming indistinguishable from the fill it
-     rings. */
+  /* A rim in a lighter tint of the dot's own fill plus a glow bloom, so the dot reads as a lit indicator. */
   box-shadow:
     0 0 0 1px color-mix(in srgb, ${({ $color }) => $color} 78%, white),
     0 0 4px 1px ${({ $color }) => $color};
 `;
 
 const PanelStatusDot__Count = styled.span`
-  /* Out of flow: see the note on PanelStatusDot__Root. Centred over the fixed
-     parent box via inset:0 + flex centring, with zero say over that box's
-     size. */
+  /* Out of flow, centred over the fixed parent box with no say over its size. */
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  /* The count reads OUT of the dot as the panel surface, so it stays legible on
-     every saturated severity fill without a per-severity text colour. */
+  /* The count reads in the panel surface colour, so it stays legible on every severity fill. */
   color: var(--color-surface-panel);
-  /* Off the --font-size-2xs floor (10-11px), which would not fit the 8px
-     dot. Set on the dot, whose width is counted in these digits. */
+  /* Below the --font-size-2xs floor, which would not fit the 8px dot. */
   font-size: inherit;
   font-variant-numeric: tabular-nums;
   font-weight: 700;

@@ -85,64 +85,15 @@ const SECTION_FILL_RULE = `
 `;
 
 export const PanelContainer = styled.div<{ $railTravels?: boolean }>`
-  /* Chrome only. The inset belongs to Panel.Body and the glow to Panel.Glow;
-     this is the border, the surface and the clip, and nothing else. */
+  /* Chrome only: border, surface and clip. The inset is Panel.Body's and the glow is Panel.Glow's. */
   background: var(--color-surface-panel);
-  /* A size-query container so the popped-open aside expand box (see
-     PanelAsideExpand) can size itself in cqw against the panel's own width
-     rather than the viewport's. The aside's collapse decision itself is no
-     longer an @container condition on this box (see useHeaderAsideFit in
-     usePanelAsideSize.ts): a fixed width threshold here was content-blind,
-     collapsing a short-title widget with room to spare just because the panel
-     itself was narrow. This declaration stays for the cqw unit alone. */
+  /* A size container, so the popped-open aside sizes itself in cqw against the panel's width. */
   container-type: inline-size;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
-  /* TOP ONLY, and it is the delay rail's band. Every widget reserves the same
-     strip at its own top edge so that a command going in flight draws into
-     room that was already standing there, rather than pushing the title down
-     or borrowing the header's space, which is what the two earlier rails did.
-     The band is the widget's top padding whether or not that widget has a
-     command to show, because a consistent place to look is the point.
-
-     The sides and the bottom stay at ZERO, deliberately: that is what lets
-     visual content (charts/maps/gauges/plots) be placed outside the body and
-     reach the chrome, and what lets a hand-composed panel get the same result
-     as Panel without having to cancel a container padding. A uniform inset
-     here would break every full-bleed widget. The remaining inset is
-     Panel.Body's.
-
-     Its 16px is the panel gutter's width, and it clears what the
-     collapsed rail actually has to draw. No design document states a budget for
-     this band (the "7px" and "16px" in the delay-UX docs describe a dot slider
-     and the drag bar respectively, neither of which is this), so the check is:
-
-     - the discrete grazing-glow strip is comfortable: its viewBox is 16 units
-       tall and the blip's centre sits 4 units ABOVE the top edge with radius 9,
-       so only the top ~5 units carry ink at all
-     - the outcome summary ("3 commands failed") is the tallest thing the strip
-       ever renders, at --font-size-xs: 11px normally and 12px on a coarse
-       pointer. At the body line height that is a 16.8px line box on a Steam
-       Deck, which 16px would clip, so the summary takes the flush line box
-       instead (see PanelDelayRail__Summaries). It is single-line chrome text,
-       which is exactly what --line-height-flush is for, and PanelTitle already
-       uses it for the same reason
-     - the stream sparkline would happily take more. Its viewBox is 30 units
-       tall, stretched, so 16px scales it by 0.53 and its 0.8-unit trace lands
-       at 0.43 device px, under one pixel. Rather than tax every widget forever
-       for the one case, the rail variant scales its own stroke widths back up
-       (see ControlDelayStream); below about 12px even that fails, the plot
-       band falling under 10px where a full 0..1 excursion stops being
-       distinguishable from a flat line */
+  /* Top only: the delay rail's band, reserved on every widget so a command in flight never pushes the title down. Sides and bottom stay zero so visual content can reach the chrome. */
   padding: var(--panel-rail-band) 0 0;
-  /* Given back when the rail TRAVELS WITH THE HEADER (see PanelStickyTop): the
-     band is then the first row of the sticky unit inside the body scroller, so
-     reserving it here as well would stand two bands at the panel's top edge.
-     The band itself is unchanged in size and in permanence, only in which box
-     holds it open; every other panel shape (headless, floating header,
-     hand-composed) still reserves it right here. A raw backtick in the CSS
-     text of a styled template, a comment included, ends the template and
-     builds an empty dist. */
+  /* When the rail travels with the header, the band is the sticky unit's first row instead. */
   ${({ $railTravels }) => ($railTravels ? "padding-top: 0;" : "")}
   width: 100%;
   height: 100%;
@@ -150,37 +101,18 @@ export const PanelContainer = styled.div<{ $railTravels?: boolean }>`
   flex-direction: column;
   gap: 0;
   overflow: hidden;
-  /* A headerless panel puts its sections straight in here, so this is the box
-     with the leftover height for them. */
+  /* A headerless panel's sections sit straight in here, so this box owns the leftover height. */
   ${SECTION_FILL_RULE}
 `;
 
 const PanelTitle__Box = styled.h3`
   margin: 0;
-  /* No top inset: PanelHeader__Row carries the header's, so a panel whose
-     header is its first element pays for it once, in the panel, rather than
-     once here and again in the aside beside it. */
+  /* No top inset: PanelHeader__Row carries it, so the header pays for it once. */
   padding: var(--inset-panel-header);
   ${titleText}
-  /* Flush, not the browser's metrics-based "normal": this is single-line
-     chrome text (never wraps, see white-space below), exactly the case
-     --line-height-flush documents ("collapses the line box so an icon or a
-     one-character button centres in a fixed height"). Left at "normal", the
-     line box carries descender headroom this all-caps title never uses, so
-     the glyphs visually ride higher than the box's own geometric centre.
-     PanelHeader__Row's align-items:center centres the dots/chevron summary
-     against that geometric centre, which is math-exact against the box but
-     reads as too LOW against the glyphs sitting above it. Flush shrinks the
-     line box down to the font's own metrics and removes most of that
-     unused headroom, closing the gap between the two centres. */
+  /* Flush, so the all-caps glyphs centre on the box the row aligns the aside against. */
   line-height: var(--line-height-flush);
-  /* One line, always. A long title (a widget name plus context, e.g. a
-     Strategies aside label) allowed to wrap to a second line pushes the
-     chevron/aside down with it and breaks the "aside never drops to its own
-     row" invariant PanelHeader__Row already enforces on the OTHER side of the
-     row. min-width:0 lives on PanelHeader__Titles (the flex item), which is
-     what lets this actually shrink and truncate instead of forcing the row
-     wider. */
+  /* One line always: a wrapped title would push the aside down. */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -232,51 +164,19 @@ export const PanelTitle = forwardRef<HTMLHeadingElement, PanelTitleProps>(
 const EMPTY_COMPACT: readonly string[] = [];
 
 const PanelHeader__Row = styled.div<{ $overlay?: boolean }>`
-  /* The row owns the header's TOP inset, which its two boxes used to carry one
-     each. A hand-composed header still needs it, since nothing guarantees it is
-     the first thing in its panel. PanelStickyHeader takes it away again: inside
-     a Panel the header IS guaranteed to be first, under the delay rail's
-     reserved band, and that band is the panel's top padding.
-
-     NOT in the overlay case, where it goes back on the boxes (see
-     OVERLAY_TITLE_ROW_INSET). A floating header's inset is not spacing, it is
-     the reach of the opaque backing that keeps the drawing underneath from
-     reading through the title, and a row-level inset leaves that top strip
-     transparent: OrbitView's frame caption showed through it. */
+  /* The row owns the header's top inset, except when floating: there it goes on the boxes so their opaque backing reaches above the glyphs. */
   padding-top: ${({ $overlay }) => ($overlay ? "0" : "var(--inset-panel-header-top)")};
   display: flex;
-  /* Centre, not flex-start: the title is single-line and truncates
-     rather than wrapping (see PanelTitle's overflow rules below), so its box
-     height is a fixed one-line measure and there is no second line that
-     could ever push a top-aligned aside out of register. With that settled,
-     centring is what actually levels the collapsed dot row + chevron on the
-     title's own text line; top-aligning them leaves the dots sitting visibly
-     lower, since PanelTitle's line-height gives the glyphs some headroom
-     above the box's top edge that the dots (a fixed box with none) do not
-     share. */
+  /* Centred, which levels the collapsed dots and chevron on the single-line title. */
   align-items: center;
   justify-content: space-between;
   gap: var(--gap-panel-header);
   min-width: 0;
-  /* Wrapping is what gives PanelToolbar its own line: the toolbar asks for a
-     full flex-basis, which only starts a new line in a wrapping row. Under
-     nowrap that request became "100% of the row, BESIDE the title", so the
-     title (min-width:0) was crushed to a few pixels and the toolbar spilled out
-     of the panel. Map View rendered its title as "M." under the Follow toggle.
-
-     The aside still never reaches a second row, and does not need nowrap to
-     stay put: the title column absorbs all the pressure first (min-width:0,
-     while the aside is flex-shrink:0), and useHeaderAsideFit's measured-fit
-     collapse drops the aside to its status dots before it could ever be the
-     item that no longer fits. */
+  /* Wraps so PanelToolbar's full basis starts its own line; the aside never wraps, because the title column absorbs the pressure first. */
   flex-wrap: wrap;
-  /* Never shrink: at very short widget heights the flex column would squeeze
-     the header toward zero and the body would overprint the title. */
+  /* Never shrink, or a short tile's body would overprint the title. */
   flex-shrink: 0;
-  /* Overlay: the header stops reserving a row and floats over the content, so
-     a map/plot/globe fills the whole tile and the title sits on top of its
-     quiet corner. Anchors to PanelGlow__Root, which is already positioned.
-     The row itself goes transparent to hit-testing (see OVERLAY_BOX). */
+  /* Overlay: the header floats over the content, anchored to PanelGlow__Root, and passes pointer events through to it. */
   ${({ $overlay }) =>
     $overlay
       ? `position: absolute;
@@ -284,9 +184,7 @@ const PanelHeader__Row = styled.div<{ $overlay?: boolean }>`
          left: 0;
          right: 0;
          pointer-events: none;
-         /* Local sibling ordering inside the panel's own stacking context,
-            the same rung the scroll glow uses and for the same reason: it is
-            widget-internal, so it stays off the app-global z ladder. */
+         /* Widget-internal stacking, so it stays off the app-global z ladder. */
          z-index: 1;`
       : ""}
 `;
@@ -306,13 +204,7 @@ const OVERLAY_TITLE_ROW_INSET = `padding-top: var(--inset-panel-header-top);`;
 
 const PanelHeader__Titles = styled.div<{ $overlay?: boolean }>`
   min-width: 0;
-  /* Grow into the room the row is not using, as well as shrinking out of the
-     room it does not have. Shrink alone leaves this box hugging its text, and
-     a title box the width of its own text cannot answer "would a longer form
-     fit here": that is the measurement useFittedTitle makes, and the number
-     it needs is the room available rather than the room taken. Nothing moves
-     visually, the title is left-aligned in a box with no background of its
-     own; the aside was already pushed right by the row's space-between. */
+  /* Grows as well as shrinks: useFittedTitle measures the room available, not the room taken. */
   flex: 1 1 auto;
   ${({ $overlay }) => ($overlay ? OVERLAY_BOX + OVERLAY_TITLE_ROW_INSET : "")}
 `;
@@ -321,16 +213,10 @@ const PanelHeader__Aside = styled.div<{ $overlay?: boolean }>`
   display: flex;
   align-items: center;
   gap: var(--gap-panel-aside);
-  /* Shrink to its content and sit right-aligned on the title's row. It never
-     grows to a full row and never wraps: an aside that stops fitting collapses
-     to the dots (the measured-fit collapse on PanelAsideExpand), it does not
-     spill onto a second row. flex-shrink 0 keeps it intact; the title column
-     yields the space (its min-width 0). */
+  /* Never grows or wraps: an aside that stops fitting collapses to the dots. */
   justify-content: flex-end;
   flex-shrink: 0;
-  /* PanelTitle owns the left inset and the bottom rhythm; mirror both here so
-     the badges line up with the title rather than the panel edge. The top is
-     the row's, shared by both boxes. */
+  /* Mirrors PanelTitle's inset so the badges line up with the title. */
   padding: var(--inset-panel-header);
   ${({ $overlay }) => ($overlay ? OVERLAY_BOX + OVERLAY_TITLE_ROW_INSET : "")}
 `;
@@ -347,27 +233,11 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
   margin: 0;
   display: flex;
   align-items: center;
-  /* ::details-content is the browser-native pseudo-element (shipped Chrome
-     131, present in every engine the visual gate now runs) that wraps a
-     details element's non-summary children, added upstream so the
-     open/close transition has a box to animate block-size on. It generates
-     its OWN box with its OWN sizing, which breaks the shrink-to-fit chain
-     this element relies on for BOTH states: confirmed live, this element
-     collapsed to a few px regardless of its [data-panel-aside-full] child's
-     real width, in the WIDE case too (not just collapsed), pushing the
-     (still correctly sized, merely mispositioned) aside almost entirely off
-     the panel to the right. display: contents removes that box from layout,
-     so this element's own intrinsic sizing is computed straight off
-     [data-panel-aside-full] again, the behaviour every comment in this file
-     already assumed. We don't animate the open/close transition, so losing
-     that box costs nothing. */
+  /* Drops the ::details-content box, which otherwise breaks this element's shrink-to-fit sizing. */
   &::details-content {
     display: contents;
   }
-  /* Shrink to its content: the aside sits right-aligned on the title row and
-     never grows to a full row, so
-     the box is exactly its content wide, inline when there is room and the
-     dots + caret summary when the measured-fit collapse fires. */
+  /* Exactly its content wide: the inline aside, or the dots summary once collapsed. */
   flex: 0 0 auto;
 
   & > summary {
@@ -377,21 +247,9 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
     gap: var(--gap-panel-aside);
     list-style: none;
     cursor: pointer;
-    /* Nudge the whole summary up 1px so the dots' circle centre lands on the
-       title's CAP-BAND centre rather than the title line box centre: measured
-       (Playwright, in the collapsed review render) the row's align-items:center
-       leaves the dots ~1px below the caps, since the flush line box still keeps
-       a hair of descender headroom the all-caps title never fills. Fixed chrome
-       (font-size-xs, 16px dots) so this offset is constant across widgets. */
+    /* Lands the dots on the title's cap band rather than its line box centre. */
     transform: translateY(-1px);
-    /* The chevron below is drawn from currentColor borders, and nothing
-       between here and the document root sets one: Panel deliberately
-       carries no default foreground (see the "Color is intentionally not
-       set" note in app/src/styles/global.css, every panel/component owns
-       its own), so an unset currentColor resolved to the UA default black,
-       an invisible chevron on the dark theme. Same dim token PanelTitle
-       uses, so the affordance reads as chrome beside the title rather than
-       a colour of its own. */
+    /* Panel sets no foreground, so the currentColor chevron needs one. */
     color: var(--color-text-dim);
   }
   & > summary {
@@ -401,39 +259,25 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
     display: none;
   }
   & > summary [data-panel-aside-chevron] {
-    /* A CSS caret, not an icon element: keeps the header out of every widget's
-       SVG query surface and keeps the DOM snapshot light. Points down closed. */
+    /* A CSS caret, not an icon, so the header stays out of every widget's SVG queries. Points down closed. */
     flex: 0 0 auto;
     width: 6px;
     height: 6px;
-    /* On top of summary's own gap (the even spacing between dots), an extra
-       margin ONLY here doubles the visual gap between the last dot and the
-       chevron specifically, without opening up the gap BETWEEN dots (a
-       uniform bigger gap would do both). Needed because the layout gap
-       alone reads tighter than its nominal value: the 45deg rotation below
-       turns this 6x6 box into a diamond whose corner points left of its own
-       un-rotated layout edge, so the rendered chevron encroaches on the
-       gap ahead of it by about a fifth of the diameter. */
+    /* Extra space before the chevron only: the rotated box's corner eats into the gap. */
     margin-left: var(--gap-panel-aside);
     border-right: 1.5px solid currentColor;
     border-bottom: 1.5px solid currentColor;
-    /* The visible ink (the two borders forming an L) has its centroid toward
-       the box's bottom-right corner; rotate(45deg) swings that centroid to
-       ~1.4px BELOW the box centre, so the drawn chevron reads low against the
-       dots. Lift it 1.4px (on top of the summary's own -1px) so the chevron's
-       ink centre coincides with the dot circles and the title cap band. */
+    /* The rotation leaves the ink centroid 1.4px low; the lift centres it on the dots. */
     transform: translateY(-1.4px) rotate(45deg);
     transition: transform var(--duration-base) var(--ease-standard);
   }
   &[open] > summary [data-panel-aside-chevron] {
-    /* Points up when open: the rotation swings the ink centroid the other way
-       (above centre), so the compensating lift flips sign to keep it centred. */
+    /* Points up when open; the centroid moves above centre, so the lift flips sign. */
     transform: translateY(1.4px) rotate(225deg);
   }
 
   & > [data-panel-aside-full] {
-    /* Wide default: the full aside shows inline regardless of the [open] state,
-       so a wide panel reads exactly like a plain aside row. */
+    /* Wide default: the full aside shows inline whatever the [open] state. */
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -448,12 +292,7 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
       & > summary {
         display: inline-flex;
       }
-      /* Collapsed + closed: pulled out of the row's visible flow, but kept
-         visibility: hidden rather than display: none, so it stays reachable
-         to useHeaderAsideFit's clone-based re-measurement (see
-         measureNaturalElementWidth in usePanelAsideSize.ts) exactly the same
-         as the wide/inline state, rather than a display:none box being a
-         special case the measurement would need to route around. */
+      /* Hidden rather than display: none, so useHeaderAsideFit's clone measurement sees it as it sees the inline state. */
       &:not([open]) > [data-panel-aside-full] {
         position: absolute;
         top: 0;
@@ -461,24 +300,18 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
         visibility: hidden;
         pointer-events: none;
       }
-      /* Collapsed + open: the full aside floats over the body in a glow-backed
-         box, the same surface + border language as the sticky header, so the
-         controls it holds do not push the panel layout around. */
+      /* Collapsed and open: floats over the body so its controls do not reflow the panel. */
       &[open] > [data-panel-aside-full] {
         position: absolute;
         top: calc(100% + var(--offset-popover));
         right: 0;
-        /* Local sibling ordering inside the panel's own stacking context: lift the
-           popped box over the header's overlay (2) and the body beneath it. Not
-           app-global chrome, so no named z rung. */
+        /* Widget-internal stacking above the header, off the app-global z ladder. */
         z-index: 3;
         flex-direction: column;
         align-items: stretch;
         justify-content: flex-start;
         flex-wrap: nowrap;
-        /* A real floor so a control (e.g. a Select) has room and is not squeezed
-           to its shrink-to-nothing min-content, capped at the panel width so it
-           never overflows a very narrow tile. */
+        /* A real floor so a control has room, capped at the panel width. */
         min-width: min(14rem, 90cqw);
         max-width: 90cqw;
         padding: var(--inset-popover);
@@ -614,18 +447,12 @@ export const PanelToolbar = styled.div<{ $overlay?: boolean }>`
   align-items: center;
   flex-wrap: wrap;
   gap: var(--gap-control-row);
-  /* Mirrors the header's horizontal inset so controls line up with the title
-     above them, and carries only a bottom gap of its own: the header already
-     paid the top inset. */
+  /* Mirrors the header's horizontal inset; the header already paid the top one. */
   padding: var(--inset-panel-header);
   min-width: 0;
-  /* Same reason as the header row: at short tile heights the flex column would
-     otherwise squeeze the controls toward zero. */
+  /* Never shrink, or a short tile squeezes the controls away. */
   flex-shrink: 0;
-  /* A full basis inside the wrapping header row, so the toolbar always takes a
-     line of its own below the title rather than competing with the aside for
-     the first one. Living inside that row (rather than beside it) is what makes
-     it float correctly under an overlay header instead of colliding with it. */
+  /* A full basis, so the toolbar always takes its own line in the wrapping header row. */
   flex-basis: 100%;
   width: 100%;
   ${({ $overlay }) => ($overlay ? OVERLAY_BOX : "")}
@@ -646,12 +473,9 @@ const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
   flex-direction: column;
   gap: var(--gap-related);
   padding: var(--inset-panel-body);
-  /* Body IS the scroller. It owns overflow so that Panel.Glow can own only the
-     glow; the inset therefore sits INSIDE the scrolling box, which is what
-     stops overflow content being clipped by the padding. */
+  /* Body is the scroller, so the inset sits inside the scrolling box and never clips overflow. */
   overflow: auto;
-  /* The glow communicates scroll state, so the native bar is redundant.
-     Wheel, trackpad and keyboard scrolling all still work. */
+  /* The glow shows scroll state, so the native bar is hidden. */
   scrollbar-width: none;
   -ms-overflow-style: none;
   &::-webkit-scrollbar {
@@ -659,53 +483,9 @@ const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
     height: 0;
     display: none;
   }
-  /* Fit-to-size content is sized to the tile and never scrolls. It lives here
-     rather than on Panel so that hand-composing the same arrangement gives the
-     same result: a top-level prop that changed WHICH subcomponents render
-     would not be reproducible.
-
-     It CENTRES, but only once measurement says the content fits, and that
-     decision arrives as a prop rather than from CSS alone. Two routes were
-     tried and rejected first:
-
-       - plain centring is not an option. An overflowing flex column centred the
-         ordinary way overflows at BOTH ends, so its first line sits at a
-         negative offset and cannot be scrolled to
-       - justify-content: safe center is specified to fix exactly that, and all
-         three engines honour it in isolation (measured: plain centring puts the
-         first child at -40px on chromium, firefox and webkit; safe puts it at
-         0). Firefox STILL clipped the real widget at tiny-2x2
-
-     So do not reach for @supports here either. FIREFOX REPORTS SUPPORT AND THEN
-     PRODUCES THE WRONG LAYOUT, which makes a feature query a guard whose failure
-     is indistinguishable from success: it would ship the bug while looking like
-     a safeguard.
-
-     Measuring sidesteps the whole disagreement: content that does not fit is
-     never centred in the first place, so no engine is being asked to do the
-     thing they do differently. The rule it enforces is that a tiny tile is
-     never centred-and-clipped, because an unreachable first line reads as the
-     widget rendering less rather than as content to scroll to.
-
-     The wider lesson, because it cost a build: verifying a CSS FEATURE in
-     isolation is not evidence about the LAYOUT built on it. This is verified by
-     rendering the widgets on all three engines, not by probing the property. */
+  /* Fit-to-size never scrolls, and centres only once measurement says the content fits: Firefox clips safe center while reporting support for it. */
   ${({ $fitToSize }) => ($fitToSize ? "flex: 1; overflow: hidden;" : "")}
-  /* Bleed: the content reaches the panel chrome on every side and never
-     scrolls.
-
-     This is the flag FramedDisplay exists to avoid, and it is deliberately
-     NOT reachable on its own. Cancelling the body inset is wrong for the
-     widget that is a diagram BESIDE readouts, because it unpads the readouts
-     too, and a standalone opt-out is the version a mixed widget reaches for.
-     That is not hypothetical: OrbitView once shipped unpadded data fields
-     next to its chart that way, and a bleedBody prop on Panel reproduced it
-     on MapView within a day of FramedDisplay landing, unpadding the augment
-     sections under the map.
-
-     So the only route here is floatingHeader, which no mixed widget wants:
-     you would not float a title over a list. Visual content in a mixed widget
-     goes in a FramedDisplay inside the ordinary padded body. */
+  /* Bleed reaches the chrome on every side and never scrolls. Only floatingHeader sets it; a mixed widget puts its drawing in a FramedDisplay instead. */
   ${({ $bleed }) =>
     $bleed ? "flex: 1; overflow: hidden; padding: 0; gap: 0;" : ""}
   ${SECTION_FILL_RULE}
@@ -775,14 +555,9 @@ const PanelSections__Grid = styled.div<{ $min: string; $columns: number }>`
       1fr
     )
   );
-  /* Wider between columns than between rows: the column gap is the only thing
-     separating two unrelated sections that now sit side by side, where the row
-     gap has a section title under it doing some of that work. */
+  /* Wider between columns than rows: a column gap has no section title doing the separating. */
   gap: var(--gap-panel-sections) var(--gap-panel-columns);
-  /* Sections keep their natural height rather than stretching to the tallest in
-     the row. A three-row section stretched to match a ten-row neighbour reads as
-     a box with a large empty bottom, which is exactly the wasted space this is
-     meant to reclaim. */
+  /* Natural heights, so a short section beside a tall one does not read as an empty box. */
   align-items: start;
   & > [${SECTION_FULL_ATTR}] {
     grid-column: 1 / -1;
@@ -812,18 +587,7 @@ const PanelBody__FitOuter = styled.div<{ $fits?: boolean }>`
   min-height: 0;
   display: flex;
   flex-direction: column;
-  /* Does NOT clip, and that is measured rather than assumed. At tiny-2x2 this
-     box resolves to 11px while Twr's 24px readout sits in it, overflowing 6.5px
-     into the body's gap above, where nothing paints over it. That overflow is
-     the shipped appearance. Clipping here cut the readout in half; the body
-     above already owns the real boundary, the panel edge.
-
-     No inset of its own either, and both halves of that were measured.
-     Tightening the BODY moved the title 12px left, because the header is the
-     body's child too. Adding 4px HERE instead cost Twr the vertical room its
-     24px readout needs and clipped it in half: the local box this replaces had
-     no padding, and a tiny tile has no spare room to give away. The body's own
-     inset is the inset. */
+  /* Neither clips nor insets: a tiny tile's readout may overflow into the body's gap, and the body owns the real boundary. */
   ${({ $fits }) =>
     $fits ? "justify-content: center;" : "justify-content: flex-start;"}
 `;
@@ -832,19 +596,12 @@ const PanelBody__FitContent = styled.div<{ $fits?: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Aligned the same way as the box around it. Squeezed to the box, this is
-     where content taller than the box overflows, so centring here would push
-     the first line up under the header whatever the box does. */
+  /* Aligned like its box: centring here would push overflowing content up under the header. */
   ${({ $fits }) =>
     $fits ? "justify-content: center;" : "justify-content: flex-start;"}
   gap: var(--gap-tiny-content);
   min-height: 0;
-  /* A query container, so a tiny presentation can size its headline against the
-     tile with cqw units. SpaceCenterStatus already did exactly this from its own
-     local box, and the readout it feeds resolves against the SMALL VIEWPORT when
-     no container ancestor exists, so dropping it does not degrade, it produces a
-     font sized off the screen. Owning it here is the difference between the one
-     widget that thought of it and every widget getting it. */
+  /* A query container, so a tiny presentation sizes its headline in cqw against the tile rather than the viewport. */
   container-type: inline-size;
 `;
 
@@ -954,9 +711,7 @@ const ScrollAreaRoot = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
-  /* Grow to fill the remaining height of a flex-column parent so the inner
-     element's own flex:1 can engage overflow, instead of the outer box sizing
-     to content and spilling past the panel's overflow:hidden edge. */
+  /* Fills the flex-column parent so the inner scroller engages rather than spilling past the panel edge. */
   flex: 1;
   min-height: 0;
 `;
@@ -969,8 +724,7 @@ const ScrollAreaInner = styled.div`
   flex: 1;
   min-height: 0;
   overflow: auto;
-  /* Hide the native scrollbar: the glow indicators communicate scroll state.
-     Trackpads/wheels still scroll; keyboard PageUp/Down/arrows still work. */
+  /* The glow indicators show scroll state, so the native bar is hidden. */
   scrollbar-width: none;
   -ms-overflow-style: none;
   &::-webkit-scrollbar {
@@ -987,43 +741,19 @@ const ScrollOverflowGlow = styled.div<{
   $topOffset?: string;
 }>`
   position: absolute;
-  /* Flush with the scroller's own edges. There is no pad-var escape hatch: the
-     panel needs none because Panel.Body's inset is inside the scroller, and a
-     widget that appeared to need one was really nesting a SECOND scroller as
-     its whole body, whose glow then drew inside the outer body's inset.
-     Deleting that nesting is the fix; four widgets had it. */
+  /* Flush with the scroller's edges: the body's inset is inside the scroller, so nothing pads this. */
   left: 0;
   right: 0;
   ${({ $position, $topOffset }) =>
     $position === "top" ? `top: ${$topOffset ?? "0"};` : "bottom: 0;"}
-  /* 44px is the container both layers fade within; each layer sets its OWN
-     reach through its gradient stops below (mask ~50%, affordance ~40%).
-     Height is outside the ratchet's scanned properties, so it stays a
-     literal. */
+  /* The box both layers fade within; each sets its own reach in its gradient stops. */
   height: 44px;
-  /* The audit reads how deep this actually masks out of the gradient below, so
-     the height staying a literal costs it nothing. See fitMask. */
+  /* The audit reads the mask depth from the gradient, so the literal height costs it nothing. */
   ${fitMask("panel-scroll-glow")}
   pointer-events: none;
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   transition: opacity var(--duration-base) var(--ease-standard);
-  /* TWO stacked layers, uniform on every edge (the first gradient in a
-     comma-separated background paints on TOP of the later one):
-
-     1. Affordance (top): the ~20%-lighter-than-panel tint at partial alpha,
-        fading out fast (by ~40% of the reach). The subtle "there is more,
-        scroll" highlight right at the boundary.
-     2. Mask (bottom): var(--color-surface-panel) at FULL opacity, held solid
-        across the title band (to ~27% of the box) then blurring to transparent
-        by ~50%: short enough that the dark does not bleed far into the body,
-        long enough to cover the title completely. FULL opacity is the
-        load-bearing part. A semi-transparent tint cannot cover scrolled
-        content, it ghosts it; only a fully opaque base masks it, so the sticky
-        title reads over clean panel colour rather than over the content
-        behind it.
-
-     Both keep colour token-derived, so a future light theme inherits them from
-     --color-surface-panel. */
+  /* A light affordance tint over a fully opaque panel-colour mask; only an opaque mask keeps scrolled content from ghosting through the sticky title. */
   background:
     linear-gradient(
       ${({ $position }) => ($position === "top" ? "to bottom" : "to top")},
@@ -1040,9 +770,7 @@ const ScrollOverflowGlow = styled.div<{
       var(--color-surface-panel) 27%,
       transparent 50%
     );
-  /* Local sibling ordering inside the panel's own stacking context (the glow
-     over the scrolling element). Off the app-global z ladder on purpose: any
-     named rung would lift a widget-internal overlay over dashboard chrome. */
+  /* Widget-internal stacking, off the app-global z ladder so it never lifts over dashboard chrome. */
   z-index: 1;
 
   @media (prefers-reduced-motion: reduce) {
@@ -1147,12 +875,7 @@ const PanelSplit__Box = styled.div<{
   min-width: 0;
   display: grid;
   gap: 0;
-  /* Every track is minmax(0, ...), including the flexible one. Without the
-     min-0 a track floors at its content's min-content size, so a sidebar
-     carrying its own ScrollArea sizes to the un-scrolled content, overflows
-     the panel, and gets hard-clipped by the container's overflow:hidden
-     instead of scrolling. SystemView learned this the slow way and left the
-     note that this rule is copied from. */
+  /* Every track is minmax(0, ...), or a sidebar with its own ScrollArea floors at its content and is clipped instead of scrolling. */
   ${({ $axis, $side, $size }) =>
     $axis === "inline"
       ? `grid-template-columns: ${sidebarTracks($side, $size)};
@@ -1160,26 +883,11 @@ const PanelSplit__Box = styled.div<{
       : `grid-template-columns: minmax(0, 1fr);
          grid-template-rows: ${sidebarTracks($side, $size)};`}
 
-  /* Visual placement only. The sidebar is always written AFTER the body, so
-     reading and tab order never depend on which edge it is drawn against, and
-     it moves with the order property rather than by being emitted first. Same
-     principle as the floating header, which is a paint change and not a
-     structural one.
-
-     Owned here rather than by Panel.Sidebar so exactly one place knows the
-     arrangement: a split whose tracks said start beside a sidebar whose order
-     said end would be a silently broken hand-composition. */
+  /* Visual placement only: the sidebar always follows the body in the DOM, so reading and tab order never depend on its side. */
   ${({ $side }) =>
     $side === "start" ? "& > [data-panel-sidebar] { order: -1; }" : ""}
 
-  /* The rail band, given to the sidebar track when the rail travels with the
-     header. The band is the WIDGET's top inset, uniform across every panel, and
-     inside a sticky unit it belongs to the BODY's scroller alone; the sidebar
-     is a sibling track that cannot see it, so without this the one region of a
-     panel with no band would be the sidebar, starting flush against the border
-     while the body beside it kept the strip. Same reasoning, and the same
-     owner, as the order and inset rules above: exactly one place knows the
-     arrangement. */
+  /* The sidebar gets the rail band when the rail travels with the header, since only the body's scroller holds it. */
   ${({ $railBand }) =>
     $railBand
       ? `& > [data-panel-sidebar] {
@@ -1187,20 +895,7 @@ const PanelSplit__Box = styled.div<{
          }`
       : ""}
 
-  /* Give back the sidebar's inset on the edge that faces the BODY, which pays a
-     16px inset of its own there: two of them make the gutter between the two
-     regions twice the one between two sections, and the sidebar pays for it out
-     of a track that is often only 8rem wide.
-
-     Only on the inline axis. Stacked, the sidebar spans the panel's full width
-     and both of its inline edges face the panel's border, so both keep the full
-     inset; the block gutter is the two regions' own 12px and 8px, which is the
-     same pair any two stacked regions of a panel already sit at.
-
-     Here rather than on Panel.Sidebar for the reason the order rule above is:
-     exactly one place knows the arrangement, and a sidebar whose padding
-     assumed an edge the tracks put elsewhere is a silently broken
-     hand-composition. */
+  /* On the inline axis the sidebar gives back its inset on the edge facing the body, which already pays one. */
   ${({ $axis, $side }) =>
     $axis === "inline"
       ? /* Child combinators the whole way down, so a ScrollArea the sidebar's
@@ -1275,10 +970,7 @@ export function PanelSplit({
 
 /** The sidebar's scroller. The inset goes inside it, since padding outside a scroller clips what scrolls under it. */
 const PanelSidebar__Scroll = styled(ScrollArea)`
-  /* Longhands, not the shorthand the body writes. jsdom's CSS parser drops a
-     shorthand whose parts are var() calls, so the shorthand form computes to 0
-     there and the rule cannot be asserted at all; the longhands survive it.
-     Same declaration either way in a real engine. */
+  /* Longhands, because jsdom drops a shorthand made of var() calls. */
   & > [data-scroll-area-inner] {
     padding-top: var(--inset-panel-top);
     padding-right: var(--gutter-panel);
@@ -1290,8 +982,7 @@ const PanelSidebar__Scroll = styled(ScrollArea)`
 const PanelSidebar__Box = styled.div`
   display: flex;
   flex-direction: column;
-  /* Grid items floor at min-content in both axes by default, which would let
-     the ScrollArea below grow the track rather than scroll inside it. */
+  /* Grid items floor at min-content, which would let the ScrollArea grow the track instead of scrolling. */
   min-width: 0;
   min-height: 0;
 `;
@@ -1665,19 +1356,14 @@ const PanelStickyTop = styled.div`
   /* Reach the scroller's true top edge, cancelling the body's own top inset. */
   top: calc(-1 * var(--inset-panel-top));
   z-index: 2;
-  /* Cancel the body's inset so the unit spans the full panel width and lands at
-     the scroller's true top; only the body content below keeps the inset. */
+  /* Cancel the body's inset so the unit spans the full panel width. */
   margin: calc(-1 * var(--inset-panel-top)) calc(-1 * var(--gutter-panel)) 0;
   display: flex;
   flex-direction: column;
-  /* Never squeeze: at very short widget heights the scroller's flex column
-     would otherwise crush the band and the title toward zero. */
+  /* Never shrink, or a short tile crushes the band and the title. */
   flex-shrink: 0;
 
-  /* The rail's own negative margin is how it pulls up into the CONTAINER's
-     reserved padding. There is no padding to pull into here, the band is this
-     unit's own first row, so it is given back. The band's height is unchanged:
-     the rail frame's own min-height is what stands it up either way. */
+  /* The band is this unit's own first row, so the rail frame does not pull up into container padding. */
   & > [data-panel-rail-frame] {
     margin-top: 0;
   }
@@ -1685,28 +1371,10 @@ const PanelStickyTop = styled.div`
 
 /* The standard header inside the sticky unit. The unit's negative margins cancel the body's inset for the header alone. */
 const PanelStickyHeader = styled(PanelHeader)`
-  /* The sticky position, the z lift and the inset cancellation all live on
-     PanelStickyTop, which is the box that carries the rail as well. What stays
-     here is what belongs to the HEADER in that placement.
-
-     It stays TRANSPARENT: the panel glow under it is its backing, so scrolled
-     content reads faintly through/behind it rather than the header being an
-     opaque bar. The rail above it is the opposite, fully opaque, because a
-     reading that content can be read through is a reading that can be misread;
-     that is also why the top glow starts at the header rather than at the unit
-     (see railBandAbove on PanelGlow), so the header keeps exactly the backing
-     it has always had. */
-  /* The panel's top inset is the rail band above this header, so the header
-     does not carry one of its own here. See PanelHeader__Row, which does carry
-     it for every OTHER placement. */
+  /* Transparent: the panel glow under it is its backing. */
+  /* The rail band above is this header's top inset. */
   padding-top: 0;
-  /* The sticky header is transparent, and the scroll glow behind it is a
-     uniform lighter tint that affords scrolling without masking. So the ONE header
-     designed to read over the glow AND over scrolled content gets a brighter
-     title than the standard dim chrome token: a notch up from
-     --color-text-dim, token-derived so a future light theme inherits it. Only
-     here, not on the plain/overlay PanelTitle (the overlay header has its own
-     opaque backing and needs no lift). */
+  /* The one header that reads over scrolled content gets a title a notch brighter than the dim chrome token. */
   & h3 {
     color: color-mix(
       in srgb,

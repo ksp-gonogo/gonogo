@@ -80,8 +80,7 @@ const ReadOnlyField__Term = styled.dt`
   flex-direction: column;
   gap: var(--gap-caption);
   min-width: 0;
-  /* Grows into the space a short value leaves, and yields to a long one rather
-     than collapsing to a two-words-per-line column beside it. */
+  /* Grows into the space a short value leaves and yields to a long one. */
   flex: 1 1 auto;
 `;
 
@@ -100,19 +99,12 @@ const ReadOnlyField__Description = styled.span`
 const ReadOnlyField__Value = styled.dd<{ $prose?: boolean }>`
   margin: 0;
   min-width: 0;
-  /* Values line up down the right edge of a group, which is what makes a
-     column of them scannable. Tabular figures so the digits do too. */
   text-align: right;
   font-size: var(--font-size-value);
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
 
-  /* A quantity must never break between its number and its symbol, so the
-     default is nowrap. A SENTENCE has to break: a read-only row's value is a
-     health reason or a build string as often as it is a number, and nowrap on
-     one of those squeezes the label beside it into a ribbon two words wide,
-     which is a worse readout than the one this component replaced. Text wraps
-     and takes at most half the row, so the label keeps a column to live in. */
+  /* A quantity never breaks from its symbol; a sentence wraps and takes at most half the row. */
   ${({ $prose }) =>
     $prose
       ? `

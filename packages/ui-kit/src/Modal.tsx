@@ -324,7 +324,6 @@ const CloseButton = styled.button`
 const DialogBody = styled.div`
   padding: var(--inset-modal-body);
   overflow-y: auto;
-  /* iOS Safari momentum scrolling inside the dialog. */
   -webkit-overflow-scrolling: touch;
   flex: 1;
 `;

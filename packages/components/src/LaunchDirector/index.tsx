@@ -1545,11 +1545,7 @@ const ShipList = styled.div`
 const ShipRow = styled.button<{ $selected: boolean; $blocked: boolean }>`
   display: flex;
   justify-content: space-between;
-  /* Top-align the cost tag with the ship name. At wide widths the meta
-     column is a single line so this is a no-op; at narrow (5-col)
-     widths the name wraps to several lines and centering would float
-     the cost tag mid-block (beside "VAB · N parts" instead of the
-     name). flex-start keeps it pinned to the first line. */
+  /* Pins the cost tag to the first line of a wrapped ship name. */
   align-items: flex-start;
   gap: var(--gap-related);
   padding: var(--inset-surface);
@@ -1608,10 +1604,7 @@ const CrewDisclosure = styled(Disclosure)`
     padding-left: 0;
     text-align: left;
   }
-  /* The kit's inline panel carries accordion chrome (border, fill, padding),
-     which would draw a box around the crew grid that the section never had.
-     This is a section that folds, not a row that pops open, so the chrome comes
-     off and the expanded grid renders exactly as it did before it could fold. */
+  /* A section that folds, not a row that pops open, so the accordion chrome comes off. */
   > [role="group"] {
     padding: 0;
     background: none;
@@ -1695,9 +1688,7 @@ const FlightStatRow = styled.div`
   justify-content: space-between;
   align-items: baseline;
   gap: var(--gap-row-wrap) var(--gap-label-value);
-  /* When the widget is too narrow to fit label + value side by side,
-     drop the value onto its own line (right-aligned) instead of
-     clipping the digits off the edge. */
+  /* A narrow widget drops the value onto its own line rather than clipping it. */
   flex-wrap: wrap;
   padding: var(--inset-surface);
   border-radius: var(--radius-regular);
@@ -1717,11 +1708,7 @@ const StatValue = styled.dd`
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
   font-weight: 600;
-  /* Don't let a narrow widget split "T+04:23" mid-value; the label
-     column may wrap, the value should stay intact. */
   white-space: nowrap;
-  /* Stay flush-right whether it shares the line with the label or
-     (when wrapped) sits on its own line. */
   margin-left: auto;
 `;
 
@@ -1738,8 +1725,7 @@ const FundsReadout = styled.span`
   color: var(--color-status-go-fg);
   font-variant-numeric: tabular-nums;
   margin-left: var(--gap-lead-figure);
-  /* Keep the separator glued to the amount so a narrow subtitle wraps
-     "· 42,500f" as one unit instead of orphaning the middot. */
+  /* Keeps the middot with the amount when the subtitle wraps. */
   white-space: nowrap;
 `;
 
@@ -1839,10 +1825,7 @@ const VesselSwitchRow = styled.button`
     background: var(--color-surface-panel);
   }
   &:focus-visible {
-    /* Focus-ring geometry, off the spacing scale by rule. The offset is
-       negative on purpose (an inset ring): VesselSwitchPanel above is
-       overflow-y: auto and would clip an outset one, so do not normalise
-       this to the +2px used elsewhere in this file. */
+    /* An inset ring: the overflow-y scroller above would clip an outset one. */
     outline: 2px solid var(--color-accent-fg);
     outline-offset: -2px;
   }
@@ -1921,9 +1904,7 @@ const ConfirmButton = styled.button<{
       ? "var(--color-status-go-fg)"
       : "var(--color-status-nogo-fg)"};
   border-color: transparent;
-  /* The animation property lives inside the same media guard as the
-     keyframes: wrapping only the keyframes leaves the animation
-     active for reduced-motion users (CLAUDE.md a11y rule). */
+  /* The animation lives inside the same reduced-motion guard as its keyframes. */
   @media (prefers-reduced-motion: no-preference) {
     animation: armedPulse 1s var(--ease-emphasis) infinite;
     @keyframes armedPulse {

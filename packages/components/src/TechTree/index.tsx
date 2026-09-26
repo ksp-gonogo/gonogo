@@ -987,10 +987,7 @@ const Controls = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
-  /* No horizontal inset of its own: Panel.Body supplies exactly the 16px the
-     title carries, so the pills line up with the title without one. A local
-     padding here would double the inset and push the "Unlocked" pill back
-     past the panel edge at narrow widths (e.g. portrait-5x18). */
+  /* No horizontal inset: Panel.Body already aligns the pills with the title. */
   padding-bottom: var(--gap-related-compact);
   flex-shrink: 0;
 `;
@@ -1069,16 +1066,11 @@ const NodeRowWrap = styled.li<{
 
 const NodeHeader = styled.button`
   display: flex;
-  /* The cost and badge drop to a line of their own rather than squeezing the
-     title to nothing when the row cannot hold both. */
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: var(--gap-related);
-  /* A record in the node list rather than a control, so --inset-surface and
-     not --inset-control: it is a <button> because the whole row toggles, but
-     it has no --control-height floor to sit on and its height comes from the
-     title it wraps. */
+  /* A record rather than a control, so --inset-surface: it has no --control-height floor. */
   padding: var(--inset-surface);
   background: transparent;
   border: none;
@@ -1360,10 +1352,7 @@ const GraphCard = styled.button<{
   flex-direction: column;
   justify-content: flex-start;
   gap: var(--gap-line);
-  /* Sized against the card's fixed CARD_H of 48: the comment under
-     GraphCardTitle below shows the content budget already flush at 37px, so
-     any taller inset clips the two-line title. Moving this pair means raising
-     CARD_H in the same edit. */
+  /* Sized against CARD_H: a taller inset clips the two-line title. */
   padding: var(--inset-graph-card);
   overflow: hidden;
   text-align: left;
@@ -1412,7 +1401,7 @@ const GraphCardMeta = styled.span`
 `;
 
 const GraphCost = styled.span<{ $ds: DisplayState }>`
-  /* Off the type scale with GraphCardTitle above: same CARD_H budget. */
+  /* Off the type scale: the same CARD_H budget as GraphCardTitle. */
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   color: ${(p) =>
@@ -1422,7 +1411,7 @@ const GraphCost = styled.span<{ $ds: DisplayState }>`
 `;
 
 const GraphOwned = styled.span`
-  /* Off the type scale with GraphCardTitle above: same CARD_H budget. */
+  /* Off the type scale: the same CARD_H budget as GraphCardTitle. */
   font-size: 10px;
   color: var(--color-status-go-fg);
   letter-spacing: 0.04em;
@@ -1499,8 +1488,7 @@ const ParentsInline = styled.span`
 `;
 
 const TinyCount = styled.div`
-  /* Off the type scale: the scale stops at --font-size-lg (16px) and this
-     is a display-tier readout. */
+  /* Off the type scale: a display-tier readout, above --font-size-lg. */
   font-size: 24px;
   font-weight: 600;
   color: var(--color-accent-fg);
@@ -1512,7 +1500,7 @@ const TinyCount = styled.div`
 `;
 
 const TinyLabel = styled.span`
-  /* Off the type scale: 2px below --font-size-2xs, the smallest rung. */
+  /* Off the type scale: below --font-size-2xs, the smallest rung. */
   font-size: 8px;
   letter-spacing: 0.1em;
   color: var(--color-text-faint);

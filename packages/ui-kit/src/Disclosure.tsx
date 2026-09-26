@@ -216,10 +216,7 @@ const Disclosure__Panel = styled.div<{
           position: absolute;
           top: 100%;
           right: 0;
-          /* Local sibling ordering inside this component's own stacking context:
-             lift the popped panel above following content (e.g. later rows). Not
-             app-global chrome, so a named z rung would wrongly outrank the
-             dashboard's. */
+          /* Local sibling ordering: lifts the popped panel above following rows, off the app z ladder. */
           z-index: 1;
           margin-top: var(--gap-disclosure);
         `
@@ -228,11 +225,7 @@ const Disclosure__Panel = styled.div<{
           width: 100%;
           margin-top: var(--gap-disclosure);
         `}
-  /* An accordion body must never overlay or overflow the row below it: it grows
-     in flow up to a cap, then scrolls its own content rather than spilling past
-     the row's edge. Lifted out of the variant block above rather than nested
-     inside it, because an interpolation nested inside an interpolated css block
-     does not carry the outer generic and reads its props as untyped. */
+  /* An accordion body grows in flow up to a cap, then scrolls, never spilling past the row below. */
   ${({ $variant, $panelHeight }) =>
     $variant === "inline" && $panelHeight === "cap"
       ? css`

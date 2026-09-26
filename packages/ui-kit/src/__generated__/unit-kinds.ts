@@ -2,9 +2,8 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-// A unit's KIND is a model fact, owned by mod/sitrep-sdk's UNIT_DEFINITIONS.
-// ui-kit reads it from here rather than keeping its own copy, because the two
-// copies drifted: seven units disagreed on what their kind was called.
+// A unit's KIND is a model fact, owned by mod/sitrep-sdk's UNIT_DEFINITIONS;
+// ui-kit reads it from here rather than keeping a copy of its own.
 //
 // Generated rather than imported so that packages/ui-kit keeps its zero
 // runtime dependencies. A token the contract declares but the model has no

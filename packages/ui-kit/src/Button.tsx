@@ -10,7 +10,6 @@ import { focusRing } from "./focusRing";
  * message</Button>`) centres rather than sitting on the text baseline.
  */
 export const Button = styled.button`
-  /* Centres an icon against the word beside it; see the note above. */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -22,11 +21,7 @@ export const Button = styled.button`
   font-size: var(--font-size-compact);
   font-weight: 600;
   padding: var(--inset-control);
-  /* The kit's one control height, so a button lines up with the toggles and
-     readouts it shares a bar with. Flush line height with it: left at the
-     browser's "normal" the box is sized by descender headroom this chrome text
-     never uses, which is how two buttons a rung apart in type came out
-     different heights. See --control-height in tokens.css. */
+  /* The kit's one control height, with a flush line height so type size cannot change the box height. */
   min-height: var(--control-height);
   line-height: var(--line-height-flush);
   cursor: pointer;
@@ -48,9 +43,7 @@ export const Button = styled.button`
   }
   @media (pointer: coarse) {
     min-height: 44px;
-    /* Wider than the base inset on the horizontal as well as the vertical:
-       min-height only covers the vertical target, so this is what keeps a
-       touch-sized horizontal one. */
+    /* Wider horizontally too: min-height only covers the vertical target. */
     padding: var(--inset-control-touch);
   }
 `;

@@ -12,21 +12,10 @@ export function BannerStack({ children }: BannerStackProps) {
 
 const ToastStack = styled.div`
   position: fixed;
-  /* All four numbers below stay off the spacing ladder deliberately: 88 is
-     24 + 48 + 16 and 112 is 88 + 24, arithmetic on the FAB's geometry rather
-     than chosen insets, and the same chain runs through Fab's right: 24px and
-     FabPrompt's right: 72px. Tokenising only the 24s would leave 72/88/112
-     literal and silently desynchronise the cluster the first time the 24
-     moves, so the whole chain is held literal until it can move as one. */
+  /* Off the spacing ladder: these are arithmetic on the FAB geometry (88 = 24 + 48 + 16, 112 = 88 + 24) and move only with it. */
   right: calc(88px + env(safe-area-inset-right, 0px));
   bottom: calc(24px + env(safe-area-inset-bottom, 0px));
-  /* Off the z-index ladder for now. The ladder's --z-toast (1100) is a
-     deliberate correction (90 renders behind the --z-fab 900 this strip sits
-     beside), but taking it would float interactive BannerPills above a modal
-     dialog while leaving them outside its focus trap: mouse-reachable,
-     keyboard-unreachable, hidden from AT. That is a WCAG 2.1.1 / 2.4.3
-     regression the layer change would introduce. Gate pill interactivity while
-     a modal is open, then move this to --z-toast. */
+  /* Below the modal layer: an interactive pill above a dialog would sit outside its focus trap. */
   z-index: 90;
   display: flex;
   flex-direction: row-reverse;
@@ -38,12 +27,7 @@ const ToastStack = styled.div`
   overflow-y: hidden;
   pointer-events: none;
 
-  /* Make banners individually clickable while keeping the stack itself
-     transparent to interaction (so it doesn't block the dashboard
-     underneath in empty corners of the row). Banners are sized to the
-     stack height, their padding and border counting toward the 48px
-     rather than adding to it. Each banner is rendered as a pill that
-     doesn't shrink. */
+  /* The strip passes clicks through; each banner fills its height and does not shrink. */
   > * {
     pointer-events: auto;
     flex-shrink: 0;
@@ -52,8 +36,6 @@ const ToastStack = styled.div`
     align-items: center;
   }
 
-  /* Subtle scrollbar styling for the overflow case, only visible on hover
-     so the strip stays clean when not interacted with. */
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
   &:hover {

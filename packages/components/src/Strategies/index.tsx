@@ -974,15 +974,7 @@ const StrategyCard = styled(Block).attrs({
     ${({ $active }) =>
       $active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
   border-radius: var(--radius-regular);
-  /* The tint an active card has never actually had: this read
-     var(--color-status-go-muted) against a token nobody declared, so the
-     declaration was invalid and the ground resolved to transparent.
-
-     The token exists now, and it is very dark for a reason tokens.css states
-     at length: the card's own --color-text-dim body text has half a ratio
-     point of headroom over the 4.5:1 floor, so a green readable as green would
-     take the text under it. The border carries the green; this carries the
-     fact that the row is different. */
+  /* Deliberately very dark: the dim body text has almost no contrast headroom, so the border carries the green. */
   background: ${({ $active }) =>
     $active ? "var(--color-status-go-muted)" : "transparent"};
 `;
@@ -992,9 +984,6 @@ const CardDept = styled.span`
   font-size: var(--font-size-caption);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  /* Truncate gracefully at narrow card widths instead of clipping
-     mid-glyph (was reading as "OPERAT" with no ellipsis at
-     compact-5x7). */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1083,9 +1072,7 @@ const Slider = styled.input`
   appearance: none;
   -webkit-appearance: none;
 
-  /* Both tracks: a stadium, not a corner, and the two must stay identical or
-     Chromium and Firefox diverge. --radius-pill tracks the track height
-     rather than freezing at one px value. */
+  /* Both tracks must stay identical or Chromium and Firefox diverge. */
   &::-webkit-slider-runnable-track {
     width: 100%;
     height: 4px;
@@ -1098,10 +1085,7 @@ const Slider = styled.input`
     appearance: none;
     width: 14px;
     height: 14px;
-    /* Off the spacing ladder: (4 - 14) / 2, i.e. half the difference between
-       the track height above and this thumb's own size, so it is locked to
-       two siblings and must track them rather than a rung. The Firefox thumb
-       below carries no offset at all and the two must stay in step. */
+    /* Off the spacing ladder: (track height - thumb size) / 2, which centres the thumb on the track. */
     margin-top: -5px;
     border-radius: var(--radius-circle);
     background: var(--color-accent-fg);

@@ -1070,8 +1070,6 @@ const Body = styled.div`
   min-height: 0;
   display: flex;
   flex-direction: column;
-  /* Reach is its own answer and the dial/windows block is another; without a gap
-     they ran together as one dense column. */
   gap: var(--gap-related);
   container-type: inline-size;
 `;
@@ -1096,22 +1094,17 @@ const LeftCol = styled.div`
   min-width: 0;
 
   @container (min-width: ${WIDE_AT}) {
-    /* fixed-ish left column; the chart takes the rest of the width */
     flex: 0 1 340px;
   }
 `;
 
 const RouteSelect = styled(Select)`
   width: auto;
-  /* Shrinkable: an 8rem floor is most of a 192px panel, which is what pushed the
-     fused heading off the edge at portrait-5x18. It still cannot go below its own
-     content, so the body name stays readable. */
+  /* Shrinkable, so the heading fits a narrow panel; it cannot go below its own content. */
   min-width: 0;
   max-width: 100%;
 
-  /* Below this the label and the select cannot share a line without the select
-     hugging the panel edge, so it takes its own full-width line instead. Reads as
-     deliberate rather than crammed, and the phrase still reads top-to-bottom. */
+  /* Too narrow to share a line with the label, so the select takes its own. */
   @container (max-width: ${NARROW_HEAD_AT}) {
     flex: 1 1 100%;
   }
@@ -1130,7 +1123,6 @@ const MapBox = styled.div`
   min-width: 0;
 
   @container (min-width: ${WIDE_AT}) {
-    /* beside the list it fills the row's full height */
     min-height: 0;
   }
 `;
@@ -1190,8 +1182,7 @@ const SectionHead = styled.div`
   display: flex;
   align-items: center;
   gap: var(--gap-related);
-  /* The heading and its select are one phrase, so they wrap together rather than
-     being pushed to opposite ends, and they wrap onto two lines before they overflow. */
+  /* The heading and its select are one phrase, so they wrap together. */
   flex-wrap: wrap;
   min-width: 0;
 `;
@@ -1262,7 +1253,7 @@ const ReachTh = styled.th`
 `;
 
 const ReachTd = styled.td`
-  /* Matches ReachTh above, and held for the same reason. */
+  /* Matches ReachTh above. */
   padding: var(--inset-reach-cell);
   border-bottom: 1px solid var(--color-border-subtle);
   white-space: nowrap;

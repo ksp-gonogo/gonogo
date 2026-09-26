@@ -26,9 +26,7 @@ const Notice__Root = styled(Block__Root)<{ $tone: ReadoutTone }>`
   background: var(--color-surface-sunken);
   border: 1px solid ${({ $tone }) => TONE_COLOR[$tone]};
   border-radius: var(--radius-regular);
-  /* A banner IS its strip of the screen rather than one record among many, so
-     it takes the roomier inset the two standalone card screens already reach
-     for by name. */
+  /* A banner is its own strip of the screen, so it takes the roomier inset. */
   padding: var(--inset-surface-standalone);
 `;
 

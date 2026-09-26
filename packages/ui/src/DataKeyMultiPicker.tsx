@@ -201,8 +201,7 @@ const ItemLabel = styled.span`
 const ItemUnit = styled.span`
   font-size: var(--font-size-compact);
   color: var(--color-text-faint);
-  /* A gap wearing margin's clothes: this separates a unit from the label it
-     sits BESIDE on one line, and the parent is not a flex box. */
+  /* Margin rather than gap: the parent is not a flex box. */
   margin-left: var(--gap-trailing-mark);
 `;
 

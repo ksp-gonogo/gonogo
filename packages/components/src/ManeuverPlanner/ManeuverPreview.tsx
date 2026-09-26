@@ -506,13 +506,9 @@ const PreviewMain = styled.div`
   flex-direction: column;
   gap: var(--gap-related);
 
-  /* Wide-short: readouts and diagram share a row instead of stacking with a
-     large empty gutter. Narrow widths keep the natural single-column stack. */
   @container (min-width: 460px) {
     flex-direction: row;
     align-items: flex-start;
-    /* Side by side these stop being one stacked reading and become two
-       different kinds of thing, so the gutter steps up a name. */
     gap: var(--gap-section);
   }
 `;

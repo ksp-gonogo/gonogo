@@ -107,10 +107,7 @@ const ConsoleFrame__Box = styled.div<{ $tone: ConsoleTone }>`
   display: flex;
   flex-direction: column;
   background: var(--color-surface-panel);
-  /* SUBTLE, and deliberately not the tone. The accent belongs to the input,
-     which wears it as its own border; a loud outline here would put a second
-     one around something already bordered and seal the two halves into one
-     console instead of a widget with a control in it. */
+  /* Subtle, not the tone: the accent belongs to the input's own border. */
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   overflow: hidden;
@@ -148,9 +145,7 @@ const ConsoleFrame__Standing = styled.div<{ $straddle: boolean }>`
   display: flex;
   align-items: center;
   gap: var(--gap-console-readings);
-  /* It overlaps the composer's top-right corner, the same border the row's own
-     flag straddles at the far end. A readout must not take a press meant for
-     the control underneath it: there is nothing here to click. */
+  /* Overlaps the composer's corner with nothing to click, so it must not take a press. */
   pointer-events: none;
 
   ${({ $straddle }) =>

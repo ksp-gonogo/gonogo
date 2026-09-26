@@ -655,9 +655,7 @@ const SuggestedHeading = styled.div`
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  /* Shared with SectionToggle below, so this heading and the toggle beside it
-     start their text on one left edge. A control inset on the toggle alone
-     would break that. */
+  /* Shared with SectionToggle, so the heading and the toggle start on one left edge. */
   padding: var(--inset-list-heading);
 `;
 
@@ -675,7 +673,7 @@ const SectionToggle = styled.button`
   min-width: 0;
   background: none;
   border: none;
-  /* Shares SuggestedHeading's inset; see the reason there. */
+  /* Shared with SuggestedHeading. */
   padding: var(--inset-list-heading);
   font-size: var(--font-size-compact);
   letter-spacing: 0.1em;
@@ -745,7 +743,6 @@ const RowTag = styled.span`
 const SpaceObjectToggle = styled.button`
   margin-left: auto;
   font-size: var(--font-size-compact);
-  /* The third of the list-header insets held together; see SuggestedHeading. */
   padding: var(--inset-control-small);
   border-radius: var(--radius-pill);
   border: 1px solid var(--color-surface-raised);

@@ -107,9 +107,7 @@ function bothHalves<U extends string>(pair: FillQuantity<U>): string {
 const ProgressBar__Track = styled.div`
   height: 6px;
   background: var(--color-surface-raised);
-  /* Stadium, not a corner: a fixed radius sized to half this 6px height
-     decouples the corner from the track the moment the height changes.
-     --radius-pill clamps to the same shape and survives it. */
+  /* --radius-pill keeps the stadium shape through a height change. */
   border-radius: var(--radius-pill);
   overflow: hidden;
 `;
@@ -118,9 +116,7 @@ const ProgressBar__Fill = styled.div<{ $percent: number; $fillColor?: string }>`
   height: 100%;
   width: ${({ $percent }) => `${$percent}%`};
   background: ${({ $fillColor }) => $fillColor ?? "var(--color-accent-fg)"};
-  /* Off the motion scale on purpose: a determinate fill has to advance at a
-     constant rate, so both the 250ms and the linear timing carry meaning
-     rather than taste. The motion tokens cover UI transitions only. */
+  /* Off the motion scale: a determinate fill advances at a constant rate. */
   transition: width 250ms linear;
 
   @media (prefers-reduced-motion: reduce) {

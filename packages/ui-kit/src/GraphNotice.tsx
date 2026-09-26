@@ -49,10 +49,7 @@ export function GraphNotice({
 const GraphNotice__Root = styled.div<{ $placement: GraphNoticePlacement }>`
   font-size: var(--font-size-compact);
   color: var(--color-text-faint);
-  /* No design-system surface token covers this translucent dark scrim ,
-     every surface tier in tokens.css is opaque. Kept as the one raw
-     value here (flagged in the migration report); promote to a
-     --color-scrim token if a second consumer needs the exact value. */
+  /* No surface token is translucent, so this scrim stays a raw value. */
   background: rgba(0, 0, 0, 0.7);
   padding: var(--inset-notice-pill);
   border-radius: ${RADIUS_VAR.regular};

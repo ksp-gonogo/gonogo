@@ -629,20 +629,9 @@ const FacilityLabel = styled.span`
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  /* Off the line-height scale: 1.3 and the min-height below it are one
-     value written twice (2.6em = 2 x 1.3), a hand-computed two-line
-     reserve. --line-height-body (1.4) would need the reserve at 2.8em, and
-     moving one without the other brings the button-misalignment bug the
-     comment below records straight back. */
+  /* Off the line-height scale: the min-height below is two of these lines, so the two move together. */
   line-height: 1.3;
-  /* Reserve room for a two-line wrap (e.g. "Launch Pad" / "Mission
-     Control" at the narrow default-6x7 3-col grid) on every cell, not
-     just the ones that need it. Without this, a facility with a
-     short one-line label (Runway, VAB) sits higher in its cell than
-     its row-mate with a two-line label (Launch Pad), everything
-     below (tier value, cost, Upgrade button) inherits the offset, so
-     the Upgrade buttons across a row land at visibly different
-     heights even though each button box itself is the same size. */
+  /* Every cell reserves two label lines, so the tier, cost and button line up across a row. */
   display: block;
   min-height: 2.6em;
 `;
@@ -677,22 +666,12 @@ const UpgradeRow = styled.div`
   justify-content: space-between;
   gap: var(--gap-related);
   margin-top: var(--gap-actions);
-  /* Allow the Upgrade button to wrap to a new line when the grid cell
-     is too narrow for cost + button side-by-side (default-6x7 at
-     3-col grid gives ~62 px per cell, not enough for both). The
-     button keeps its full label and stacks below the cost label. */
   flex-wrap: wrap;
 `;
 
 const UpgradeCost = styled.span<{ $afford: boolean }>`
   font-size: var(--font-size-compact);
-  /* Unaffordable cost must read as a nogo signal on the dark panel cell.
-     The nogo *-fg token is the foreground meant to sit on the red *-bg
-     fill: as standalone text on the near-black cell it's a pale pink that
-     reads like ordinary light copy and the warning is lost. Use the
-     saturated nogo *-bg token as the text colour instead, the established
-     "nogo text on a dark surface" treatment (PerfBudgets, Twr, ShipMap)
-     with adequate contrast. */
+  /* The nogo bg token, not fg: fg is meant for the red fill and reads as ordinary copy on the dark cell. */
   color: ${(p) =>
     p.$afford ? "var(--color-accent-fg)" : "var(--color-status-nogo-bg)"};
   font-weight: ${(p) => (p.$afford ? "inherit" : "600")};
@@ -762,18 +741,7 @@ const UpgradeButtonStyled = styled(FitLabelButton)`
   cursor: pointer;
   font-family: inherit;
   text-align: center;
-  /* At the narrow default-6x7 3-col grid the facility cell interior is
-     only ~46px: narrower than "Upgrade" can render on one line. A
-     fixed nowrap width refuses to shrink, so the button keeps its full
-     intrinsic width and overflows the cell (and, for the last column,
-     right past the panel's own padding, reading as a "cut off"
-     button).
-
-     Letting it wrap keeps every character but breaks the word
-     mid-syllable, "Upgra / de". FitLabelButton measures the label
-     against the box and shows an icon when the word does not fit, so
-     nothing is hyphenated and nothing overflows. It still has to
-     shrink for that measurement to mean anything. */
+  /* Must shrink below its label so FitLabelButton can measure it and fall back to the icon. */
   min-width: 0;
 
   &:hover:not(:disabled):not([aria-disabled="true"]) {
@@ -781,9 +749,7 @@ const UpgradeButtonStyled = styled(FitLabelButton)`
     border-color: var(--color-accent-fg);
   }
 
-  /* A blocked control looks the same as a dead one and behaves differently:
-     it keeps its focus ring and answers a press with its reason, which is why
-     it carries aria-disabled rather than disabled. */
+  /* A blocked control keeps its focus ring and answers a press with its reason, hence aria-disabled. */
   &:disabled,
   &[aria-disabled="true"] {
     opacity: 0.4;
@@ -795,11 +761,9 @@ const ConfirmUpgradeButton = styled(UpgradeButtonStyled)`
   background: var(--color-status-go-bg);
   color: var(--color-status-go-fg);
   border-color: transparent;
-  /* The animation property must live inside the same media guard as
-     the keyframes: the bare property outside the guard fires for
-     reduced-motion users (CLAUDE.md a11y rule). */
+  /* The animation lives inside the same reduced-motion guard as its keyframes. */
   @media (prefers-reduced-motion: no-preference) {
-    /* 1s stays literal: an attention pulse, not a UI transition. */
+    /* An attention pulse, not a UI transition, so off the duration scale. */
     animation: upgradePulse 1s var(--ease-emphasis) infinite;
     @keyframes upgradePulse {
       0%,
@@ -823,9 +787,7 @@ const PadStatusLine = styled.span`
 const UpgradesHeld = styled.span`
   font-size: var(--font-size-compact);
   letter-spacing: 0.04em;
-  /* Same "warning text on a dark surface" treatment as UpgradeCost's
-     unaffordable state: the nogo *-fg token is meant to sit on the red fill and
-     reads as ordinary light copy standing alone on the panel. */
+  /* Warning text on a dark surface, the same treatment as UpgradeCost when unaffordable. */
   color: var(--color-status-nogo-bg);
   font-weight: 600;
 `;
@@ -847,10 +809,7 @@ const DrainReadout = styled.span`
 `;
 
 const TinyFunds = styled.div`
-  /* Fluid size: large in a roomy "tiny" box (e.g. compact-4x7) but small
-     enough that the abbreviated value (formatCompactCurrency → "290k") still fits the
-     widget's 2x3 minSize floor (~110px wide) without clipping. Fluid, so
-     off the fixed type scale by construction. */
+  /* Fluid, so off the type scale: the compact value must still fit the 2x3 minimum size. */
   font-size: clamp(12px, 13cqw, 22px);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -861,19 +820,14 @@ const TinyFunds = styled.div`
 `;
 
 const TinyFundsUnit = styled.span`
-  /* Off the type scale: this sits beside TinyFunds' clamp above, which is
-     pinned at its 12px floor at the 2x3 minSize. --font-size-sm is 13px on
-     a coarse pointer, which would render the "f" suffix larger than the
-     number it qualifies and eat the ~110px the value needs. */
+  /* Off the type scale: the suffix must not out-size the balance, which is pinned at 12px at the minimum size. */
   font-size: 12px;
   color: var(--color-text-muted);
   margin-left: var(--gap-unit-suffix);
 `;
 
 const TinyDrain = styled.div`
-  /* Its own line under the balance. The smallest rung on the ladder, because at
-     the 2x3 minSize the balance itself is pinned at its own floor and a
-     qualifier must not out-size what it qualifies. */
+  /* The smallest rung: a qualifier must not out-size the balance it qualifies. */
   font-size: var(--font-size-compact);
   font-weight: 400;
   line-height: var(--line-height-flush);

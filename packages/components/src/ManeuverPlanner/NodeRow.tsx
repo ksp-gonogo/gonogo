@@ -290,9 +290,7 @@ const EditActions = styled.div`
 const CompactPrimaryButton = styled(PrimaryButton)`
   align-self: auto;
   font-size: var(--font-size-compact);
-  /* Shared with SecondaryButton below. A control by class, but not on
-     --inset-control: its 6px vertical would make these two footer buttons
-     taller than the 22px row controls above them. */
+  /* Not --inset-control: its vertical would make these footer buttons taller than the 22px row controls. */
   padding: var(--inset-form-footer-button);
 `;
 

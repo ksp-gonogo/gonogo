@@ -89,16 +89,11 @@ function cut(text: string, limit: number): string | undefined {
 }
 
 const ExpandableText__Root = styled.span`
-  /* Long authored prose is the one thing on a dashboard likelier than a
-     readout to carry a word wider than its column (a part designation, a URL),
-     and a column that scrolls sideways to fit one is worse than a broken
-     word. */
+  /* Long prose may carry a word wider than its column, and a broken word beats a sideways scroll. */
   overflow-wrap: break-word;
 `;
 
 const ExpandableText__Toggle = styled(TextButton)`
-  /* Sits on the text's own baseline as the last word of the paragraph rather
-     than as a block under it: the cut and the way to undo it read as one
-     thing. */
+  /* Sits on the text's baseline as the paragraph's last word, so the cut and its undo read as one. */
   white-space: nowrap;
 `;

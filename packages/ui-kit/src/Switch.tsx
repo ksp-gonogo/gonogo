@@ -50,9 +50,7 @@ const SwitchLabel = styled.label<{ $disabled?: boolean }>`
 const SwitchTrack = styled.div<{ $checked: boolean; $disabled?: boolean }>`
   width: 28px;
   height: 14px;
-  /* Stadium, not a corner: a fixed 7px is exactly half this 14px height and
-     stops being a stadium the moment the height moves. --radius-pill clamps to
-     the same shape and survives a height change. */
+  /* --radius-pill keeps the stadium shape through a height change. */
   border-radius: var(--radius-pill);
   background: ${({ $checked, $disabled }) => ($disabled ? "var(--color-surface-raised)" : $checked ? "var(--color-status-go-mark)" : "var(--color-surface-raised)")};
   border: 1px solid ${({ $checked, $disabled }) => ($disabled ? "var(--color-border-strong)" : $checked ? "var(--color-status-go-mark)" : "var(--color-border-strong)")};
@@ -77,11 +75,7 @@ const SwitchInput = styled.input`
 
 const SwitchThumb = styled.div<{ $checked: boolean; $disabled?: boolean }>`
   position: absolute;
-  /* Off the spacing ladder on purpose: 3px is (14 - 8) / 2, the centring
-     offset for an 8px thumb in a 14px track, and the checked 16px is the
-     travel that pairs with it. Snapping either to a rung decentres the thumb
-     and desynchronises it from the JS ternary below. Recompute both if the
-     track height or thumb size changes. */
+  /* Off the spacing ladder: 3px centres the 8px thumb in the 14px track and 16px is its travel, matching the JS ternary below. */
   top: 3px;
   left: ${({ $checked }) => ($checked ? "16px" : "3px")};
   width: 8px;

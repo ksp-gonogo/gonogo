@@ -35,10 +35,7 @@ export function DimmedOverlay({
 const Wrap = styled.div`
   position: relative;
   width: 100%;
-  /* flex: 1 lets the wrap participate in a flex-column parent (like Panel)
-   * without forcing height: 100%, which would push siblings out of the
-   * column. Falls back gracefully in non-flex contexts because min-height
-   * doesn't bound. */
+  /* Grows in a flex-column parent without height: 100%, which would push siblings out. */
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
@@ -53,11 +50,6 @@ const DimmedLayer = styled.div`
   opacity: 0.35;
   pointer-events: none;
   filter: saturate(0.5);
-  /* Snapped, not exact: this was 200ms ease-out. The duration is unchanged;
-     the curve moves ease-out to ease, because the motion scale has no
-     ease-out rung by design. On a 0.35-opacity dim that is not a read the
-     operator takes anything from, so the snap is accepted rather than
-     carved out. */
   transition: opacity var(--duration-slow) var(--ease-standard);
 `;
 
@@ -69,10 +61,7 @@ const Banner = styled.div`
   background: var(--color-surface-overlay, rgba(20, 22, 26, 0.92));
   border: 1px solid var(--color-surface-raised);
   border-radius: var(--radius-regular);
-  /* Shares --inset-control's value and not its class: this is a message you
-     read, not a box you press, and the token names the pressable family so
-     that its coarse-pointer widening has somewhere to live. Same call as the
-     pills in BannerPill; see the note there. */
+  /* Shares --inset-pill with BannerPill: a message you read, not a control you press. */
   padding: var(--inset-pill);
   display: flex;
   flex-direction: column;
@@ -81,7 +70,7 @@ const Banner = styled.div`
   text-align: center;
   max-width: 80%;
   pointer-events: auto;
-  /* Sit above the dimmed children but not above modals. */
+  /* Above the dimmed children, below modals. */
   z-index: 1;
 `;
 

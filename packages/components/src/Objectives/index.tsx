@@ -261,16 +261,9 @@ const EmptyFallbackWrap = styled.div``;
 const Sections = styled.div`
   display: flex;
   flex-direction: column;
-  /* Each child is a whole contributed section from a different source, which
-     is what --gap-section names; the rhythm inside one is LIST's below. */
   gap: var(--gap-section);
-  /* No inset and no scrolling of its own: Panel.Body owns both now, and
-     keeping this one's padding would inset the sections further than the
-     title above them. */
 
-  /* When any source has rendered content, hide the frame's empty fallback. When
-     every source renders nothing, this wrapper is genuinely empty (augments
-     that return null add no DOM), the rule doesn't apply, and the fallback shows. */
+  /* Augments that return null add no DOM, so an empty wrapper means no source rendered and the fallback shows. */
   &:not(:empty) + ${EmptyFallbackWrap} {
     display: none;
   }

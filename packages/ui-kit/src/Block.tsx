@@ -57,27 +57,10 @@ export interface BlockProps
 const Block__Title = styled.div`
   color: var(--color-text-primary);
   font-weight: 600;
-  /* One rung above the body the arrangement sets, which is the whole of what
-     "the title is bigger than the text underneath it" means. Both sides are
-     the arrangement's, and they have to be: a title alone cannot be bigger
-     than a body it does not know. At this rung with the body left inherited,
-     the name of a part came out SMALLER than the sentence under it in the
-     fleet roster, which is the complaint inverted rather than fixed.
-
-     A relative em step was the other candidate and it is worse: em measures
-     against the INHERITED size, not the sibling body, so a record inside a
-     panel came out at 15px and out-sized the panel's own 11px heading.
-
-     The title is what the record's caption points at and the body under it is
-     scanned, so the two halves of the step are the value size over the compact
-     one. The arrangement declares both, because a relation only one side
-     states is one a site can break by restating the other. */
+  /* One rung above the body the arrangement sets; both halves are declared here, so a site cannot break the step. */
   font-size: var(--font-size-value);
   line-height: var(--line-height-tight);
-  /* A content-sized basis, not a zero one. With a zero basis the title always
-     "fits" its flex line at its pre-grow hypothetical size, so the row never
-     wraps even when there is no room and a long name runs straight into the
-     badge beside it. */
+  /* A content-sized basis, so a long title wraps instead of running into the badge beside it. */
   flex: 1 1 auto;
   min-width: 0;
 `;
@@ -162,11 +145,7 @@ export const Block__Root = styled.div`
   flex-direction: column;
   gap: var(--gap-related);
   min-width: 0;
-  /* The compact body a record is written in, and the other half of the title's
-     relation above. Declared here rather than left inherited so the step holds
-     without every site restating it: a widget whose rows carry no size of
-     their own took the panel's, and a prose sentence under a 12px name is the
-     hierarchy upside down. A row that means to be larger still says so. */
+  /* The compact body size, declared here so the title stays one rung above it. */
   font-size: var(--font-size-compact);
 `;
 

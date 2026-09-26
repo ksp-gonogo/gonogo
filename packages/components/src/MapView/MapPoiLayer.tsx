@@ -104,8 +104,7 @@ const PoiMarkerButton = styled.button<{ $style: PoiKindStyle }>`
   position: absolute;
   width: 10px;
   height: 10px;
-  /* Off the spacing ladder: exactly half the 10px marker above, centring it
-     on its coordinate. It tracks that size, not a rung. */
+  /* Off the spacing ladder: half the marker size, centring it on its coordinate. */
   margin: -5px 0 0 -5px;
   padding: 0;
   border-radius: var(--radius-circle);
@@ -131,9 +130,7 @@ const PoiHoverCard = styled.div`
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
   font-size: var(--font-size-compact);
-  /* Off the app z-index ladder: the only z-index in this file, so its value
-     is meaningless in isolation. Its contract is 1-versus-auto against the
-     markers it covers, not a place on the app ladder. */
+  /* Off the z-index ladder: it only has to sit above the markers. */
   z-index: 1;
 `;
 

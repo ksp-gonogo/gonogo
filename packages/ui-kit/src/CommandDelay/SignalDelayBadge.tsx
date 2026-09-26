@@ -45,9 +45,7 @@ export function SignalDelayBadge({
 }
 
 const SignalDelayBadge__Chip = styled.div`
-  /* Non-growing: it shares the console's corner row with whatever else is
-     standing there, and the text is short by construction (the badge only ever
-     shows a delay the strip has declined to draw). */
+  /* Non-growing: it shares the console's corner row, and its text is short by construction. */
   flex: 0 0 auto;
   padding: var(--inset-chip-readout);
   font-family: var(--font-family-mono);

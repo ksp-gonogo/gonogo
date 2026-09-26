@@ -555,27 +555,11 @@ function InFlightQueueCmd({
 
 const InFlightQueue__Box = styled.div.attrs({ role: "group" })`
   container-type: inline-size;
-  /* Never shrink inside the rail's flex column: a combined (stream + discrete)
-     pinned rail must show the WHOLE tile row, not clip it to the space the
-     stream leaves. Stretches to the rail width minus its own inset margin. */
+  /* Never shrinks in the rail's flex column, so a combined pinned rail shows the whole tile row. */
   flex: 0 0 auto;
-  /* The row CONTAINER, distinct from the per-square tiles inside it: a rounder,
-     slightly-lighter frosted panel the tiles sit in. Left/right match the
-     standard CONTENT horizontal margin (the same margin the stream's legend,
-     the title and the widget body use), so the container is flush with the
-     body content rather than floating at a narrower inset. Top/bottom keep a
-     small even margin, there's no sibling edge to line up with on that axis. */
+  /* The row container the tiles sit in; its horizontal inset matches the standard content margin. */
   margin: var(--outset-command-strip);
-  /* The first tile's rounded corner has to nest CONCENTRICALLY inside the
-     panel's own rounded corner, same arc centre, or the two radii read as a
-     mismatched offset rather than one continuous curve. That only holds when
-     the inset from the panel edge to the tile edge equals (panel radius -
-     tile radius); derived from the two radius tokens rather than a fixed
-     space-* value so a token change can't desync the two again. Padding
-     drives the inset directly and the box height is sized to the tile+bar
-     content plus exactly twice that inset, so the inner row's centring
-     (below) has zero slack to redistribute and can't push the top inset out
-     of step with the left one. */
+  /* The inset equals (panel radius - tile radius), so the first tile's corner nests concentrically in the panel's. */
   --queue-panel-radius: calc(var(--radius-floating) * 2);
   --queue-tile-inset: calc(var(--queue-panel-radius) - var(--radius-regular));
   padding: var(--queue-tile-inset);
@@ -591,12 +575,7 @@ const InFlightQueue__Box = styled.div.attrs({ role: "group" })`
 const InFlightQueue__Inner = styled.div`
   display: flex;
   flex-direction: column;
-  /* Centres the fixed-height tile+bar content on the CROSS axis, so the
-     visible gap on that axis matches the box's equal margin instead of
-     collecting to one side. The main axis is flex-start: the tile row fills
-     from the container's left edge (top edge in column mode) rightward,
-     rather than centring as a block, so a short queue reads as "started",
-     not "floating" mid-container. */
+  /* Centred on the cross axis so both margins match; the main axis fills from the start, so a short queue reads as started. */
   align-items: center;
   justify-content: flex-start;
   gap: ${QUEUE_GAP}px;
@@ -636,9 +615,6 @@ const InFlightQueue__Sq = styled.div`
   font-size: var(--font-size-compact);
   font-weight: 700;
   color: currentColor;
-  /* A RAISED tile, lighter than the panel (a tint of the phase colour over the
-     raised surface), so each square reads as a raised chip rather than a
-     bordered hole punched into the panel. */
   background: color-mix(in srgb, currentColor 10%, var(--color-surface-raised));
   border: 1px solid currentColor;
   border-right: 0;
@@ -678,10 +654,7 @@ const InFlightQueue__Sq = styled.div`
   &:is(button):focus-visible .glyph {
     opacity: 0;
   }
-  /* Not the kit's shared ring: this tile draws its border, its background tint
-     and its text from currentColor, which is the phase colour, so a ring in the
-     focus token would be the one part of it that ignored the phase. The 1px
-     offset keeps it clear of the neighbouring square. */
+  /* Not the kit's shared ring: every other part of the tile follows the phase colour through currentColor. */
   &:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 1px;

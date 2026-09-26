@@ -78,9 +78,7 @@ const FitLabelButton__Content = styled.span`
   display: flex;
   align-items: center;
   justify-content: center;
-  /* min-width lets the button shrink to whatever its parent allows, which is
-     the whole point: a button that refuses to shrink never reports a label that
-     does not fit, it just overflows its cell. */
+  /* Shrinks to what the parent allows, so an overlong label is detected rather than overflowing its cell. */
   min-width: 0;
   width: 100%;
 `;
@@ -96,10 +94,7 @@ const FitLabelButton__Ghost = styled.span`
 `;
 
 const FitLabelButton__Label = styled.span`
-  /* nowrap, so a label that does not fit OVERFLOWS rather than wrapping. The
-     defect this component exists for is a word breaking mid-syllable, and a
-     wrapping label would also make the measurement lie: two short lines fit a
-     width the word does not. */
+  /* nowrap, so a label that does not fit overflows and the measurement stays honest. */
   white-space: nowrap;
 `;
 

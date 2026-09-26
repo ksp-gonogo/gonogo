@@ -735,11 +735,7 @@ const ControlDelayStream__Svg = styled.svg<{
 }>`
   display: block;
   width: 100%;
-  /* The rail height is the band the Panel reserves for it, not a size the graph
-     chose: the strip is permanent, so a stream that wanted 32 would be asking
-     every widget on the dashboard for another 16px of body forever, or asking
-     the title to move the moment a stream went live, which is the bug the
-     reserved band exists to end. */
+  /* The rail height is the band the Panel reserves, not a size the graph chose. */
   height: ${({ $variant }) =>
     $variant === "rail"
       ? "var(--panel-rail-band)"
@@ -747,16 +743,7 @@ const ControlDelayStream__Svg = styled.svg<{
         ? "86px"
         : "40px"};
 
-  /* The viewBox is 30 units tall and stretches (preserveAspectRatio none), so a
-     16px rail scales everything vertically by 0.53 and a 0.8-unit trace lands
-     at 0.43 device px: under one pixel, where a line stops being a line and
-     becomes a grey wash. The strokes are scaled back by 30/16 so the trace is a
-     real pixel wide at the height the band actually gives it. Ratios between
-     them are kept: the divergence line stays the heaviest ink.
-
-     Below about 12px this stops working, the plot band (24 of the 30 units)
-     dropping under 10px, at which point a full 0..1 axis excursion is not
-     distinguishable from a flat line and a stream rail is not honest at all. */
+  /* Strokes are scaled by 30/16 against the stretched 30-unit viewBox, so the trace is a real pixel wide in the band. */
   ${({ $variant }) =>
     $variant === "rail"
       ? `[data-role="commanded"],
@@ -765,9 +752,6 @@ const ControlDelayStream__Svg = styled.svg<{
          [data-role="deviation-actual"] { stroke-width: 1.88; }`
       : ""}
 
-  /* Expanded (pinned) is a full-bleed, taller graph with NO box: the operator
-     rejected the bordered box, the graph spans the full widget width edge to
-     edge, just taller than the collapsed strip. No background / border / radius. */
 
   [data-role="hover-labels"] {
     opacity: ${({ $quiet }) => ($quiet ? 1 : 0)};
@@ -782,10 +766,7 @@ const ControlDelayStream__Svg = styled.svg<{
 const ControlDelayStream__Zones = styled.div`
   display: flex;
   justify-content: space-between;
-  /* The GRAPH and its dividers stay full-bleed, but the zone labels below it
-     ("outgoing 0" / "echo ..." / "confirmed ...") taper inward to the standard
-     content margin, same as the legend, so the outermost labels don't touch
-     the widget edges. */
+  /* The graph stays full-bleed; the zone labels inset to the standard content margin. */
   margin: 0 var(--gutter-panel);
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
@@ -802,9 +783,7 @@ const ControlDelayStream__Legend = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: var(--gap-legend);
-  /* The GRAPH stays full-bleed, but the legend key sits at the standard content
-     horizontal margin (not edge to edge, same as the zone labels above it), and
-     carries a little bottom breathing since the pinned rail is padding-free. */
+  /* The legend sits at the standard content margin, with bottom room since the pinned rail has no padding. */
   margin: var(--outset-delay-legend);
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);

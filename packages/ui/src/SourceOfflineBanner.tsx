@@ -44,9 +44,6 @@ function formatElapsed(ms: number): string {
 const Wrap = styled.div`
   display: flex;
   align-items: center;
-  /* Both context gaps, so the grouping reads without counting pixels: the
-     OFFLINE label and the source list are different kinds of thing (section),
-     and everything below that is siblings of one kind (related). */
   gap: var(--gap-section);
   padding: var(--inset-alert-band);
   background: rgba(120, 30, 30, 0.92);
@@ -87,13 +84,7 @@ const Pulse = styled.span`
   border-radius: var(--radius-circle);
   background: var(--color-status-nogo-bg);
   flex-shrink: 0;
-  /* Left entirely literal, and not because 1.4s is off the duration scale
-     (it is: this is an attention pulse, not a UI transition). The shorthand
-     sits OUTSIDE the prefers-reduced-motion guard below while its keyframes
-     sit inside it, which is a pre-existing accessibility bug. Rewriting half
-     of this declaration onto tokens would make the broken shape read as
-     blessed. Fix the guard first, then tokenise the easing. Readout's
-     pill-pulse and BannerPill's status-pill-pulse show the correct shape. */
+  /* Known fault: this animation sits outside the reduced-motion guard that holds its keyframes. */
   animation: pulse 1.4s ease-in-out infinite;
 
   @media (prefers-reduced-motion: no-preference) {

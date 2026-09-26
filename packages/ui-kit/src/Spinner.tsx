@@ -52,9 +52,7 @@ const SpinnerEl = styled.span<{
   border-top-color: ${({ $color }) => $color};
   flex-shrink: 0;
   @media (prefers-reduced-motion: no-preference) {
-    /* Off the motion scale on purpose: this is continuous physical rotation,
-       not a UI transition, so the period and the linear timing both stay
-       literal. */
+    /* Off the motion scale: continuous rotation, not a UI transition. */
     animation: ${spin} 700ms linear infinite;
   }
 `;

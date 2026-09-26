@@ -731,12 +731,7 @@ const SectionsScroll = styled(ScrollArea)<{ $landscape?: boolean }>`
   flex: 1;
   [data-scroll-area-inner] {
     display: flex;
-    /* Portrait/square: sections stack vertically. Landscape (wide-short):
-       they sit side by side as equal columns, so the producers / consumers /
-       idle breakdown uses the spare width instead of dropping to the compact
-       net-only readout. Either way this element stays the ScrollArea's
-       scroller: clipping it here would put whatever the short height cannot
-       hold out of reach. */
+    /* This element stays the ScrollArea's scroller in both layouts, so nothing a short height cannot hold goes out of reach. */
     flex-direction: ${({ $landscape }) => ($landscape ? "row" : "column")};
     gap: ${({ $landscape }) => ($landscape ? "var(--gap-section-compact)" : "var(--gap-related-comfortable)")};
     ${({ $landscape }) => ($landscape ? "align-items: stretch;" : "")}

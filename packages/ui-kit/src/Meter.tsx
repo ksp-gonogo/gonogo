@@ -762,10 +762,7 @@ const TONE_FILL = {
     background: var(--color-status-nogo-bg);
   `,
   info: css`
-    /* The visible info hue (--color-status-info-fg), NOT --color-status-info-bg:
-       the -bg token is a near-black subtle panel background and vanishes as a
-       filled bar on a dark surface. The other tones' -bg values happen to be
-       saturated; info's is not, its saturated counterpart is -fg. */
+    /* The info -fg token, because info's -bg is a near-black panel background that vanishes as a fill. */
     background: var(--color-status-info-fg);
   `,
 } as const;
@@ -803,10 +800,7 @@ const Meter__Head = styled.div`
   align-items: baseline;
   gap: var(--gap-label-value);
   min-width: 0;
-  /* The value may drop to a line of its own at narrow widths (see
-     Meter__Value): better a second line than the label being crushed to
-     nothing while the value clips through the host's border, which is what
-     a nowrap head did at the narrowest tile placements. */
+  /* The value may drop to its own line at narrow widths rather than crushing the label. */
   flex-wrap: wrap;
 `;
 
@@ -818,11 +812,7 @@ const Meter__Label = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* Never shrink below the name itself: overflow hidden zeroes a flex
-     item's automatic minimum size, so without a floor the LABEL is what
-     gave way (all the way to invisible) when the head ran out of room. The
-     name is the meter's identity; the value wraps below instead. Alone on
-     its line a pathological name still ellipsizes via max-width. */
+  /* Never shrinks below the name: overflow hidden zeroes a flex item's automatic minimum size. */
   flex: 0 0 auto;
   max-width: 100%;
 `;
@@ -835,24 +825,12 @@ const Meter__Value = styled.span<{ $row: boolean }>`
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   flex: 0 0 auto;
-  /* Pins the value to the trailing edge on the shared line AND when it
-     wraps to a line of its own, instead of a wrapped value sitting
-     orphaned at flex-start. */
+  /* Pins the value to the trailing edge on the shared line and when it wraps to its own. */
   margin-left: auto;
-  /* Last resort at widths where even a line of its own is not enough:
-     truncate rather than clip through the host's padding and border. */
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* Room for the not-current mark, which Unit draws OUTSIDE this box at
-     left:100% and the overflow above would otherwise eat whole. Measured
-     rather than chosen: the mark is max(0.3em, 4px) wide plus a 0.14em
-     margin, and a probe of the real clip put its right edge 6px past this
-     box, which is what --inset-meter-mark is. Anything smaller still clips.
-
-     Reserved unconditionally, because a width that appeared only when a
-     channel went quiet is exactly the reflow the mark is absolutely
-     positioned to avoid. */
+  /* Room for the not-current mark Unit draws outside this box, reserved unconditionally so a quiet channel causes no reflow. */
   padding-right: max(0.44em, var(--inset-meter-mark));
 `;
 
@@ -864,9 +842,7 @@ const Meter__Track = styled.div<{ $notCurrent: boolean }>`
   border: 1px ${({ $notCurrent }) => ($notCurrent ? "dashed" : "solid")}
     var(--color-border-subtle);
   overflow: hidden;
-  /* Positioned for the fill, which is its only child. The bound marks are NOT
-     in here: this overflow rounds the fill's ends, and it would take a mark's
-     height with it. */
+  /* Positioned for the fill only: this overflow rounds the fill's ends and would clip the bound marks. */
   position: relative;
   height: ${TRACK_HEIGHT};
 `;
@@ -908,8 +884,7 @@ const Meter__Bound = styled.div`
   bottom: ${MARK_INSET};
   width: 2px;
   background: var(--color-text-primary);
-  /* The separation from a light or saturated fill. Inset as well as outset so
-     the mark keeps an edge whichever side of the bar's end it lands on. */
+  /* Inset and outset, so the mark keeps an edge against a light or saturated fill on either side of its end. */
   box-shadow:
     0 0 0 1px rgb(0 0 0 / 0.55),
     inset 0 0 0 0.5px rgb(0 0 0 / 0.35);
@@ -925,14 +900,9 @@ const Meter__Fill = styled.div<{
   height: 100%;
   border-radius: var(--radius-pill);
   transition: width var(--duration-slow) var(--ease-standard);
-  /* Dimmed rather than recoloured, and the FILL rather than the whole meter.
-     A second hue here would be read as the status the fill's colour already
-     carries, and dimming the root would take the label and the figure with it,
-     which is the one thing a held reading must stay readable as. */
+  /* A held reading dims the fill, not the hue and not the whole meter, so the label and figure stay readable. */
   ${({ $notCurrent }) => ($notCurrent ? "opacity: 0.55;" : "")}
-  /* $fillColor wins outright when set: an identity fill (a resource's own
-     colour) isn't "one of five tones", it's a fully arbitrary CSS colour,
-     so this is a straight override rather than another TONE_FILL entry. */
+  /* $fillColor is an arbitrary CSS colour and wins outright over the tone fill. */
   ${({ $tone, $fillColor }) =>
     $fillColor
       ? css`

@@ -268,22 +268,11 @@ export function PanelDelayRail() {
  * `PanelStickyTop` gives it back inside the sticky unit.
  */
 const PanelDelayRail__Frame = styled.div`
-  /* Never let the container's flex column shrink this below its content: the
-     grown rail takes its full height and the body gives up the difference. */
+  /* Never shrinks below its content: the grown rail keeps its full height and the body gives up the difference. */
   flex: 0 0 auto;
-  /* FULLY OPAQUE, and that is load-bearing rather than decorative. In a headed
-     panel the rail rides inside the body's scroller as the first row of the
-     sticky unit (see PanelStickyTop in Panel.tsx), so the widget's own content
-     passes underneath it on every scroll. The sticky HEADER is transparent on
-     purpose and lets that content read faintly through, which is fine for a
-     title nobody misreads; a delay reading is the opposite case, and a
-     semi-transparent base ghosts rather than masks (the same reason the scroll
-     glow's mask layer is at full opacity). The same token the panel surface
-     already is, so nothing changes where the rail sits in the container band. */
+  /* Fully opaque: content scrolls under the rail, and a translucent base would ghost a delay reading rather than mask it. */
   background: var(--color-surface-panel);
-  /* Up into the container's own top inset, which is the band. The two numbers
-     are one declaration (PanelContainer's --panel-rail-band), so the strip and
-     the room made for it cannot drift apart. */
+  /* Up into the container's top inset, the band; both read --panel-rail-band, so they cannot drift. */
   margin-top: calc(-1 * var(--panel-rail-band));
   min-height: var(--panel-rail-band);
 `;
@@ -298,14 +287,9 @@ const grownRail = css`
   display: flex;
   flex-direction: column;
   gap: var(--gap-delay-rail);
-  /* Generous cap the grown content fits inside; the visible height settles at
-     the content height, the extra headroom is never seen. A stream + discrete
-     combined rail needs the room, so nothing clips. */
+  /* A generous cap the grown content fits inside; the visible height settles at the content height. */
   max-height: 800px;
-  /* Fully full-bleed: no padding at all, so the pinned stream GRAPH spans the
-     true widget width edge to edge and grazes the top. Each child owns its own
-     inset instead: the stream's legend row takes the standard content margin,
-     and the discrete row-container insets itself evenly. */
+  /* Full-bleed, so the stream graph spans the widget edge to edge; each child owns its own inset. */
   padding: 0;
 
   & > * {
@@ -317,11 +301,8 @@ const PanelDelayRail__Rail = styled.button`
   appearance: none;
   border: 0;
   width: 100%;
-  /* The bleed moved to PanelDelayRail__Frame, which is what the panel measures
-     and what both the button and the refusal boxes have to line up inside. */
   margin: 0;
   padding: 0;
-  /* Positioning context for the open-only collapse hint below. */
   position: relative;
   background: transparent;
   color: inherit;
@@ -329,15 +310,10 @@ const PanelDelayRail__Rail = styled.button`
   cursor: pointer;
   text-align: inherit;
 
-  /* Collapsed: the reserved band, children stacked in a single grid cell.
-     Height is capped by max-height so opening can animate (auto is not
-     animatable): the element's height follows min(content, max-height), so
-     growing the cap grows the rail smoothly and shrinking it collapses it. */
+  /* Height follows min(content, max-height), so animating max-height opens and collapses the rail (auto is not animatable). */
   display: grid;
   height: auto;
-  /* The band, and nothing over it. Both a discrete rail's grazing glows and a
-     stream's mini graph draw at this height, so the strip a widget reserves is
-     the strip the rail fills. */
+  /* The band, and nothing over it: the strip a widget reserves is the strip the rail fills. */
   max-height: var(--panel-rail-band);
   overflow: hidden;
   transition: max-height var(--duration-slow) var(--ease-standard);
@@ -352,9 +328,7 @@ const PanelDelayRail__Rail = styled.button`
 
   ${focusRingInset}
 
-  /* Open (pinned or the hover preview) grows past the band. Both arrive as
-     React state now rather than a CSS hover rule, because the published height
-     has to be the grown one only. */
+  /* Open (pinned or hover preview) grows past the band, driven by React state because the published height must be the grown one only. */
   &[data-grown="true"] {
     ${grownRail}
   }
@@ -376,12 +350,7 @@ const PanelDelayRail__Summaries = styled.span`
   gap: var(--gap-rail-summaries);
   padding: 0 var(--gutter-panel);
   font-size: var(--font-size-compact);
-  /* Flush, not the browser's metrics-based "normal": this is single-line chrome
-     text that never wraps, and it has to fit the reserved band. At the body
-     line height an xs glyph carries a 16.8px line box on a coarse pointer,
-     which is taller than the band itself, so the count would clip on the one
-     device most likely to be showing it. Flush shrinks the box to the font's
-     own metrics and the text centres in the strip. */
+  /* Flush, so single-line chrome text fits the reserved band on a coarse pointer too. */
   line-height: var(--line-height-flush);
   font-weight: 700;
   letter-spacing: 0.04em;

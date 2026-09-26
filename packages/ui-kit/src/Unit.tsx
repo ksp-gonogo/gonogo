@@ -37,38 +37,17 @@ const ICON_BY_SYMBOL = {
 } as const;
 
 const Unit__Span = styled.span<{ $attached: boolean; $icon: boolean }>`
-  /* Relative to the parent's font size, with a floor. Attached symbols keep
-     full size: see the header on why shrinking drops them off their line.
-
-     Icons take 0.9em rather than 0.72em. lucide draws on a 24-unit grid at
-     stroke 1.8, so at 0.72 of a 10px readout the effective stroke falls under
-     one device pixel and the microscope in particular stops being legible. */
+  /* Relative to the parent's font size with a floor; attached symbols keep full size, and icons take 0.9em so a thin stroke stays legible. */
   font-size: ${({ $attached, $icon }) =>
     $attached ? "1em" : $icon ? "0.9em" : "max(0.72em, 10px)"};
-  /* Dims whatever colour it inherits, so the symbol keeps the value's tone.
-     Attached symbols are exempt: a plane angle is part of the number's own
-     typography rather than a unit token beside it, so dimming it detaches it
-     from the value it belongs to. Icons are exempt for the same reason a thin
-     stroke needed the size bump: dimming a 1.8-unit stroke erases it. */
+  /* Dims the inherited colour so the symbol keeps the value's tone; attached symbols and icons are exempt. */
   opacity: ${({ $attached, $icon }) => ($attached || $icon ? "1" : "0.72")};
-  /* No margin here on purpose. The gap between a number and its unit is a real
-     THIN SPACE character in the markup instead, because a margin is invisible
-     to the clipboard and copying a readout yielded "12.4km". The character
-     copies as the space a reader expects, and the line-break protection the
-     margin was standing in for comes from nowrap on the wrapper. */
+  /* No margin: the number-unit gap is a thin space character in the markup, so it survives copying. */
   /* "m/s" and "kg/m³" must never wrap mid-symbol. */
   white-space: nowrap;
-  /* A unit is not a word: it must survive a parent that uppercases its text,
-     because m and M are metre and mega. This already bit the Graph header. */
+  /* A unit must survive an uppercasing parent: m and M are metre and mega. */
   text-transform: none;
-  /* A glyph is centred on the DIGITS beside it, not sat on their baseline.
-     An inline-flex box holding a replaced element has no baseline of its own,
-     so the box's bottom edge becomes one and the icon sits from the baseline
-     upwards: its own centre lands half a glyph-box above, where the digits'
-     centre is only half a cap-height above, and the star read as floating.
-     Measured on the Strategies rep chip at 12px: cap height 17 device px,
-     glyph box 21.6, the star's centre 3 px high. That is the offset below, in
-     em so it holds at every readout size. */
+  /* A glyph centres on the digits beside it rather than sitting on their baseline; the offset is in em so it holds at every size. */
   ${({ $icon }) =>
     $icon
       ? "display: inline-flex; align-items: center; vertical-align: -0.12em;"
