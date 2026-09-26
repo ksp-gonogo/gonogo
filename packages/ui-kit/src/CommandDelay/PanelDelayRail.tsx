@@ -95,7 +95,8 @@ function handleHasContent(handle: CommandHandle): boolean {
  * held at the scroller's top: the operator's scroll position is not yanked out
  * from under them to make room.
  *
- * `aria-pressed` / `aria-expanded` carry the state. Activating it AGAIN
+ * `aria-pressed` carries the pin. Hover is a preview and says nothing to
+ * assistive tech. Activating it AGAIN
  * (click / Enter / Space / Esc) un-pins and re-minifies it: pin is a true
  * toggle, not a one-way expand, and the pinned rail shows a small "▲"
  * hint so that's discoverable, not just present in the aria-label (which
@@ -273,7 +274,6 @@ export function PanelDelayRail() {
           data-pinned={pinned}
           data-suppress-hover={suppressHoverPreview}
           aria-pressed={pinned}
-          aria-expanded={grown}
           aria-label={
             pinned
               ? "Signal-delay detail; activate to collapse"

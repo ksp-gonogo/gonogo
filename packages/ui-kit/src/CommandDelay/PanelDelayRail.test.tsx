@@ -112,6 +112,18 @@ describe("PanelDelayRail", () => {
     expect(railAnnouncer()).toBeNull();
   });
 
+  it("does not tell assistive tech the rail expanded when a hover only previews it", async () => {
+    const user = userEvent.setup();
+    const store = createDelayRailStore();
+    store.register(handle("cmd"));
+    inPanel(<PanelDelayRail />, store);
+    const btn = screen.getByRole("button", { name: /signal-delay detail/i });
+    await user.hover(btn);
+    expect(btn).toHaveAttribute("data-grown", "true");
+    expect(btn).not.toHaveAttribute("aria-expanded");
+    expect(btn).toHaveAttribute("aria-pressed", "false");
+  });
+
   it("has no axe violations grown with a command in flight", async () => {
     const user = userEvent.setup();
     const store = createDelayRailStore();
@@ -222,13 +234,12 @@ describe("PanelDelayRail", () => {
       }) as HTMLButtonElement;
     }
 
-    it("is a button, collapsed by default (aria-pressed/expanded false), showing the rail summary not the detail list", () => {
+    it("is a toggle button, unpressed by default, showing the rail summary not the detail list", () => {
       const store = createDelayRailStore();
       store.register(handle("cmd"));
       const { container } = inPanel(<PanelDelayRail />, store);
       const btn = railButton();
       expect(btn).toHaveAttribute("aria-pressed", "false");
-      expect(btn).toHaveAttribute("aria-expanded", "false");
       expect(btn).toHaveAttribute("data-pinned", "false");
       // Collapsed = the grazing-glow summary, not the detail list.
       expect(container.querySelector('[data-role="glow"]')).not.toBeNull();
@@ -244,7 +255,6 @@ describe("PanelDelayRail", () => {
 
       await user.click(btn);
       expect(btn).toHaveAttribute("aria-pressed", "true");
-      expect(btn).toHaveAttribute("aria-expanded", "true");
       // Grown: the fuller detail renders in place (the summary glow is replaced
       // by the square-icon tile), inside the rail button, no separate overlay.
       // The command's label rides the tile's accessible name (visible text is
