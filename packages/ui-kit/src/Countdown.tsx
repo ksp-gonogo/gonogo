@@ -3,6 +3,7 @@ import { formatDuration } from "./formatDuration";
 import { NotCurrentHost, NotCurrentMark } from "./NotCurrentMark";
 import { NULL_DISPLAY } from "./NullValue";
 import { resolveCurrency } from "./readingCurrency";
+import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
  * A duration read as a CLOCK: `1m 20s`, or `T−1m 20s` on a launch clock.
@@ -82,6 +83,9 @@ export function Countdown({
     <NotCurrentHost data-not-current="" title={caption ?? undefined}>
       {text}
       <NotCurrentMark aria-hidden="true" data-not-current-mark="" />
+      {caption !== null && (
+        <VisuallyHidden data-unit-currency="">, {caption}</VisuallyHidden>
+      )}
     </NotCurrentHost>
   );
 }

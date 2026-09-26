@@ -128,3 +128,13 @@ describe("Countdown, handed a Reading", () => {
     await expectNoA11yViolations(container);
   });
 });
+
+describe("Countdown's held caption", () => {
+  it("reaches the accessibility tree, not only the hover", () => {
+    const { container } = render(<Countdown value={frozen(value("s", 90))} />);
+    const host = container.querySelector("[data-not-current]");
+    const caption = host?.getAttribute("title");
+    expect(caption).toBeTruthy();
+    expect(container.textContent).toContain(`, ${caption}`);
+  });
+});
