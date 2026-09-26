@@ -77,6 +77,8 @@ const OUTSIDE_EVERY_PROJECT: Record<string, string> = {
     "a render harness entry: `components/tsconfig.json` includes `src` and `scripts/**/*.test.ts` only.",
   "packages/ui-kit/scripts/render-meter-bands.entry.tsx":
     "a render harness entry: `ui-kit/tsconfig.json` includes `src` only, and its `rootDir`/`outDir` cannot take `scripts`.",
+  "packages/ui-kit/scripts/render-go-mark.entry.tsx":
+    "a render harness entry, the same as render-meter-bands.",
   "packages/ui-kit/scripts/render-unit-currency.entry.tsx":
     "the same. This is the file whose four errors the coverage check found against the in-progress part 2 tree; they are part 2's to fix, the hole is this list's.",
 };
