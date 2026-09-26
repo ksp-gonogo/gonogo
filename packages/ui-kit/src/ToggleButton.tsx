@@ -140,17 +140,12 @@ const ToggleButton__Body = styled.button<{
     cursor: not-allowed;
   }
 
-  /* Ext-1 shared \`data-failed\` styling convention: a control that issued a
-     now-dead command (overdue / lost) echoes the failure ON ITSELF by carrying
-     \`data-failed="true"\`, an amber attention tint that wins over the neutral and
-     active states, so the operator sees WHICH control's command died without
-     leaving the Panel-top queue (still the primary failure surface). Clicking
-     such a control dismisses via the same shared \`dismiss\`, wiring is the
-     control's own job (see useCommandFailures). Any control can adopt the same
-     attribute + tint. */
+  /* A control whose command went overdue or lost carries data-failed="true" and
+     wears an amber tint over its neutral and active states, so the operator sees
+     which control's command died. */
   &[data-failed="true"] {
     border-color: var(--color-status-warning-bg);
-    color: var(--color-status-warning-fg);
+    color: var(--color-status-warning-fg-muted);
     background: color-mix(
       in srgb,
       var(--color-status-warning-bg) 18%,
