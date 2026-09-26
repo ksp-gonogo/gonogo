@@ -273,7 +273,7 @@ describe("within ui-kit, one visual form is one component", () => {
     const planted = [
       "const RivalPill = styled.div`",
       "  display: inline-flex;",
-      "  border-radius: var(--radius-pill, 999px);",
+      "  border-radius: var(--radius-pill);",
       "  letter-spacing: 0.12em;",
       "  text-transform: uppercase;",
       "`;",

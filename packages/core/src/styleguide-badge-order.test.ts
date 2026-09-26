@@ -190,7 +190,7 @@ describe("design-system: a status badge never precedes its subject", () => {
    */
   it("can see a violation, so the empty result above means something", () => {
     const planted = [
-      '        <Cluster gap="xs" wrap>',
+      '        <Cluster gap="related-packed" wrap>',
       '          <Badge severity="info">ACTIVE</Badge>',
       '          <Text weight="semibold">{label(program)}</Text>',
       "        </Cluster>",
