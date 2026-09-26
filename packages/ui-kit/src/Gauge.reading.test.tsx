@@ -47,6 +47,7 @@ function banded<U extends string>(
         : {
             status: "available",
             atUt: value("ut", 0),
+            beyondReceived: false,
             modelled: quantity,
             basis: "linear-dead-reckoning",
             band,
@@ -211,6 +212,7 @@ describe("Gauge, handed a Reading", () => {
           reckoning: {
             status: "available",
             atUt: value("ut", 0),
+            beyondReceived: false,
             modelled: value("1", 1.5),
             basis: "linear-dead-reckoning",
             band: bandOf("1", 1.2, 1.5, 1.8),

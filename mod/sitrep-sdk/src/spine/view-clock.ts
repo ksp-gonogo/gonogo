@@ -298,9 +298,10 @@ export class ViewClock {
    * - `viewUt` itself while scrubbed, since history is observed rather than
    *   modelled
    * - `viewUt` itself when the light-time is under {@link VISIBLE_GAP_SECONDS},
-   *   where the two clocks read the same
+   *   where the two clocks read the same, and before anything has been received
    */
   scetUt(viewUt: number): number {
+    if (!Number.isFinite(viewUt)) return viewUt;
     if (this.scrubTarget !== null) return viewUt;
     if (this.delaySeconds() < VISIBLE_GAP_SECONDS) return viewUt;
     const scet = Math.max(this.lastScetUt, this.utNowEstimate(), viewUt);

@@ -19,8 +19,8 @@ export interface CountdownProps {
    * A DURATION in seconds: how long until, or how long since. A bare number is
    * accepted for client-computed durations.
    *
-   * NOT `Value<"ut">`: an instant is a type error here. Subtract the frame's
-   * view time first (`useViewUt`) to turn an instant into a duration.
+   * NOT `Value<"ut">`: an instant is a type error here. Subtract the craft's
+   * present first (`useScetUt`) to turn an instant at the craft into a duration.
    */
   value: Value<"s"> | Reading<Value<"s">> | number | null | undefined;
   /**
@@ -36,6 +36,9 @@ export interface CountdownProps {
   precise?: boolean;
 }
 
+/** The caption a current reading's mark carries when its figure was modelled to the craft's present. */
+const MODELLED_TO_SCET = "modelled to SCET";
+
 export function Countdown({
   value,
   clock = false,
@@ -43,10 +46,19 @@ export function Countdown({
 }: CountdownProps) {
   // A bare number never carries currency, so it is split off before the resolver.
   const carried = typeof value === "number" ? undefined : value;
-  const { notCurrent, caption } = resolveCurrency(carried);
+  const currency = resolveCurrency(carried);
   const drawn = drawnDuration(value);
   if (drawn === undefined || drawn === null) return NULL_DISPLAY;
   const text = formatDuration(drawn, { ms: precise, sign: clock });
+  const beyondReceived =
+    carried !== null &&
+    carried !== undefined &&
+    "state" in carried &&
+    carried.state === "observed" &&
+    carried.reckoning.status === "available" &&
+    carried.reckoning.beyondReceived;
+  const notCurrent = currency.notCurrent || beyondReceived;
+  const caption = beyondReceived ? MODELLED_TO_SCET : currency.caption;
   if (!notCurrent) return <>{text}</>;
   return (
     <NotCurrentHost data-not-current="" title={caption ?? undefined}>
@@ -61,21 +73,24 @@ export function Countdown({
 
 /**
  * The number this clock draws. A clock ADVANCES only where a model is carrying
- * it (the reckoning's `modelled` value at the frame's view time) and FREEZES on
+ * it (the reckoning's `modelled` value, at the craft's present) and FREEZES on
  * the last observation otherwise. Unlike `<Unit>`, which never substitutes a
  * modelled figure, a countdown is a claim about a future instant and is wrong
- * frozen.
+ * frozen. A reading with no observation draws nothing, modelled or not.
  */
 function drawnDuration(
   value: Value<"s"> | Reading<Value<"s">> | number | null | undefined,
 ): number | null | undefined {
   if (typeof value === "number") return value;
+  return drawnValue(value)?.magnitude;
+}
+
+function drawnValue(
+  value: Value<"s"> | Reading<Value<"s">> | null | undefined,
+): Value<"s"> | undefined {
   if (value == null) return undefined;
-  // Chosen first, unwrapped once at the `formatDuration` boundary.
-  const picked = !("state" in value)
-    ? value
-    : value.reckoning.status === "available"
-      ? value.reckoning.modelled
-      : value.value;
-  return picked?.magnitude;
+  if (!("state" in value)) return value;
+  if (value.state !== "observed" && value.state !== "stale") return undefined;
+  if (value.reckoning.status === "available") return value.reckoning.modelled;
+  return value.value;
 }

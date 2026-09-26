@@ -55,6 +55,7 @@ function figureOf(c: InstrumentCase): Value<string> | Reading<Value<string>> {
       : {
           status: "available",
           atUt: value("ut", 0),
+          beyondReceived: false,
           modelled: drawn,
           basis: "linear-dead-reckoning",
           band,

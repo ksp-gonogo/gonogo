@@ -48,6 +48,7 @@ function readingOfCase<U extends string>(
       : {
           status: "available",
           atUt: value("ut", 0),
+          beyondReceived: false,
           modelled: drawn,
           basis: "linear-dead-reckoning",
           band,

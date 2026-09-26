@@ -144,7 +144,10 @@ class FakeTimelineStore {
    * currency question this store has no way to know.
    */
   sampleReading<T>(topic: string): TopicReading<T> {
-    return readingFrom<T>(this.sample<T>(topic), "live", 0);
+    return readingFrom<T>(this.sample<T>(topic), "live", {
+      reckonUt: 0,
+      receivedUt: 0,
+    });
   }
 
   /** Never inspected: this store's `sample` ignores the frame it is handed. */

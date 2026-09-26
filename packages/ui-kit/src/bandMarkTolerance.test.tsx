@@ -42,6 +42,7 @@ function reading<U extends string>(
   const reckoning = {
     status: "available",
     atUt: value("ut", 0),
+    beyondReceived: false,
     modelled: band.value,
     basis: "rate-integration",
     band,

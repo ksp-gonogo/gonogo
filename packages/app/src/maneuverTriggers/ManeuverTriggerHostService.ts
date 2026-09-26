@@ -17,12 +17,12 @@ import {
   bodyRadiusOf,
   dispatchActiveCommandTopic,
   getOrbitSolve,
+  getScetUt,
   getSystemBodies,
   getValue,
   getVesselIdentity,
   getVesselOrbit,
   getVesselTarget,
-  getViewUt,
   onActiveTimelineFrame,
   solveOrbit,
 } from "@ksp-gonogo/sitrep-client";
@@ -297,11 +297,11 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     const targetOrbit = target?.orbit;
     /*
      * The target's own orbit, solved here: the same `solveOrbit` the craft's
-     * orbit goes through, on the target's elements at the same view time. The altitude
-     * needs the TARGET's reference body, not the craft's, which is why the
-     * radius is resolved from its own `referenceBodyIndex`.
+     * orbit goes through, on the target's elements at the same instant (SCET).
+     * The altitude needs the TARGET's reference body, not the craft's, which is
+     * why the radius is resolved from its own `referenceBodyIndex`.
      */
-    const currentUT = getViewUt();
+    const currentUT = getScetUt();
     const targetSolved =
       targetOrbit == null || currentUT === undefined
         ? undefined
@@ -328,9 +328,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
         timeToAp: solve?.timeToAp ?? undefined,
         timeToPe: solve?.timeToPe ?? undefined,
       }),
-      // Not a data-source key: `t.universalTime` was DROPPED, this is the
-      // SDK's own view time, read via the non-hook `getViewUt` accessor rather
-      // than the legacy telemetry reader.
+      // The instant the orbit above is solved at, so a countdown added to it names an absolute UT.
       currentUT,
       // The parent body's GM as the orbit carries it; 0 is the planner's own "no mu" and plans nothing.
       mu: solverInput(orbit?.mu) ?? 0,

@@ -40,6 +40,7 @@ function banded<U extends string>(
         : {
             status: "available",
             atUt: value("ut", 0),
+            beyondReceived: false,
             modelled: quantity,
             basis: "linear-dead-reckoning",
             band,
@@ -141,6 +142,7 @@ describe("Dial, handed a Reading", () => {
           reckoning: {
             status: "available",
             atUt: value("ut", 0),
+            beyondReceived: false,
             modelled: value("deg", 90),
             basis: "linear-dead-reckoning",
             band: bandOf("deg", 60, 120),

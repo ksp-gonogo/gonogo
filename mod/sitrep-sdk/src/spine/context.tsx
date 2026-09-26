@@ -621,7 +621,12 @@ export function useTelemetryStoreOptional(): TimelineStore | undefined {
  */
 export type ViewClockView = Pick<
   ViewClock,
-  "viewUt" | "confirmedEdgeUt" | "onFrame" | "utNowEstimate" | "delaySeconds"
+  | "viewUt"
+  | "scetUt"
+  | "confirmedEdgeUt"
+  | "onFrame"
+  | "utNowEstimate"
+  | "delaySeconds"
 >;
 
 /**
@@ -641,7 +646,7 @@ export type ViewClockView = Pick<
  * `getViewUt()` below must read the exact same method to match `useViewUt`'s
  * contract, including under a pinned/scrubbed test clock.
  */
-let activeViewClock: Pick<ViewClock, "viewUt"> | undefined;
+let activeViewClock: Pick<ViewClock, "viewUt" | "scetUt"> | undefined;
 
 export function useViewClock(): ViewClockView {
   return useTelemetryStore().clock;
@@ -675,6 +680,34 @@ export function useViewClockOptional(): ViewClockView | undefined {
  * clock object (not a reactive value) should use `useViewClock` instead.
  */
 export function useViewUt(): Value<"ut"> | undefined {
+  return useFrameInstant(receivedEdge);
+}
+
+/**
+ * The craft's present (SCET) as a reactive value: the instant every reading's
+ * reckoning is for. Anything a widget solves or counts down for itself, a conic,
+ * a body's position, the time to an event at the craft, is solved here so it
+ * shares one instant with the readings it is drawn beside. `useViewUt` stays the
+ * received edge, for the age of an observation.
+ *
+ * Equal to `useViewUt` on a LAN session and while scrubbed.
+ */
+export function useScetUt(): Value<"ut"> | undefined {
+  return useFrameInstant(craftPresent);
+}
+
+function receivedEdge(_clock: ViewClockView, viewUt: number): number {
+  return viewUt;
+}
+
+function craftPresent(clock: ViewClockView, viewUt: number): number {
+  return clock.scetUt(viewUt);
+}
+
+/** One of the frame's instants, derived from the view time `onFrame` hands each tick, as a reactive `Value`. */
+function useFrameInstant(
+  instant: (clock: ViewClockView, viewUt: number) => number,
+): Value<"ut"> | undefined {
   const clock = useViewClockOptional();
   // Seed from `viewUt()`: the SAME quantity `onFrame` hands the tick below,
   // not `confirmedEdgeUt()`. The two only agree on a free-running clock:
@@ -684,8 +717,8 @@ export function useViewUt(): Value<"ut"> | undefined {
   // first frame at the live confirmed edge and snap to the scrub target only
   // one frame later: a flash of the wrong view time in a scrub UI, and a
   // guaranteed state transition on every mount.
-  const [viewUt, setViewUt] = useState<number | undefined>(() => {
-    const seed = clock?.viewUt();
+  const [ut, setUt] = useState<number | undefined>(() => {
+    const seed = clock && instant(clock, clock.viewUt());
     return seed !== undefined && Number.isFinite(seed) ? seed : undefined;
   });
   // `onFrame` notifies unconditionally at ~60Hz whether or not the view time
@@ -695,20 +728,21 @@ export function useViewUt(): Value<"ut"> | undefined {
   // applies while the fiber has no other pending work, so an unlucky frame
   // still schedules a full render pass for an unchanged value. Comparing here
   // means an unchanged frame costs no dispatch at all.
-  const lastDelivered = useRef(viewUt);
+  const lastDelivered = useRef(ut);
   useEffect(() => {
     if (!clock) {
       lastDelivered.current = undefined;
-      setViewUt(undefined);
+      setUt(undefined);
       return;
     }
-    return clock.onFrame((ut) => {
-      const next = Number.isFinite(ut) ? ut : undefined;
+    return clock.onFrame((viewUt) => {
+      const at = instant(clock, viewUt);
+      const next = Number.isFinite(at) ? at : undefined;
       if (next === lastDelivered.current) return;
       lastDelivered.current = next;
-      setViewUt(next);
+      setUt(next);
     });
-  }, [clock]);
+  }, [clock, instant]);
   /*
    * Wrapped at the RETURN, not carried as a `Value` through the state above. The
    * frame bailout compares the incoming UT against the last delivered one, and two
@@ -719,10 +753,7 @@ export function useViewUt(): Value<"ut"> | undefined {
    * hand back an unchanged reference, or every `useMemo` downstream that depends on
    * it recomputes each frame.
    */
-  return useMemo(
-    () => (viewUt === undefined ? undefined : value("ut", viewUt)),
-    [viewUt],
-  );
+  return useMemo(() => (ut === undefined ? undefined : value("ut", ut)), [ut]);
 }
 
 /**
@@ -795,19 +826,33 @@ export function getViewUt(): number | undefined {
   return ut !== undefined && Number.isFinite(ut) ? ut : undefined;
 }
 
+/** Non-React `useScetUt()` equivalent, off the same clock `getViewUt` reads. */
+export function getScetUt(): number | undefined {
+  noteUndeclaredRead("getScetUt");
+  const clock = activeViewClock;
+  const ut = clock?.scetUt(clock.viewUt());
+  return ut !== undefined && Number.isFinite(ut) ? ut : undefined;
+}
+
 /**
- * Test-only escape hatch: registers `clock` as `getViewUt()`'s source
- * directly, without mounting a `TelemetryProvider`: for a host-service unit
- * test (`AlarmHostService`, `ManeuverTriggerHostService`) that drives its own
- * fake telemetry reader and has no React tree to render at all. Pass
- * `undefined` to clear; a test's `afterEach` should always do this so a
- * later, unrelated suite's `getViewUt()` call can't see a stale clock left
- * over from this one.
+ * Test-only escape hatch: registers `clock` as `getViewUt()`'s and
+ * `getScetUt()`'s source directly, without mounting a `TelemetryProvider`: for
+ * a host-service unit test (`AlarmHostService`, `ManeuverTriggerHostService`)
+ * that drives its own fake telemetry reader and has no React tree to render at
+ * all. A fake with no `scetUt` answers SCET as its view time, which is what a
+ * clock with no light-time does. Pass `undefined` to clear; a test's
+ * `afterEach` should always do this so a later, unrelated suite's `getViewUt()`
+ * call can't see a stale clock left over from this one.
  */
 export function setActiveViewClockForTests(
-  clock: Pick<ViewClock, "viewUt"> | undefined,
+  clock:
+    | (Pick<ViewClock, "viewUt"> & Partial<Pick<ViewClock, "scetUt">>)
+    | undefined,
 ): void {
-  activeViewClock = clock;
+  activeViewClock = clock && {
+    viewUt: () => clock.viewUt(),
+    scetUt: (viewUt) => clock.scetUt?.(viewUt) ?? viewUt,
+  };
 }
 
 /**
@@ -1099,7 +1144,7 @@ export function getOrbitSolve(): OrbitalSolve | null {
     elements,
     reading.reckoning,
     getSystemBodies(),
-    getViewUt(),
+    getScetUt(),
     reading.state === "observed" ? reading.atUt : undefined,
   );
 }

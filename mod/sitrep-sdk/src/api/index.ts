@@ -544,6 +544,11 @@ export function useViewUt(): Value<"ut"> | undefined {
   return getHost().useViewUt();
 }
 
+/** The craft's present (SCET). See `GonogoHost.useScetUt`. */
+export function useScetUt(): Value<"ut"> | undefined {
+  return getHost().useScetUt();
+}
+
 /**
  * Canonical overload: keyed by `CommandId`, answers a handle whose `send` takes
  * that command's arguments and resolves that command's reply.

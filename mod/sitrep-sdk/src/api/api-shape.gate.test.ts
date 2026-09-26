@@ -152,6 +152,7 @@ const EXPECTED_BARREL_VALUE_EXPORTS = [
   "useProcessor",
   "useReplaySessionActive",
   "useRouteCommands",
+  "useScetUt",
   "useSetting",
   "useSettingsService",
   "useStream",

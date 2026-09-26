@@ -262,6 +262,7 @@ function combineReckonings<
 
   const modelled: unknown[] = [];
   let atUt: Value<"ut"> | undefined;
+  let beyondReceived = false;
   for (const input of inputs) {
     if (input.reckoning.status !== "available") return { status: "none" };
     if (
@@ -272,6 +273,7 @@ function combineReckonings<
     // Figures modelled for two different instants do not combine into one.
     if (atUt && !atUt.equals(input.reckoning.atUt)) return { status: "none" };
     atUt = input.reckoning.atUt;
+    if (input.reckoning.beyondReceived) beyondReceived = true;
     modelled.push(input.reckoning.modelled);
   }
   if (!atUt) return { status: "none" };
@@ -286,6 +288,7 @@ function combineReckonings<
     status: "available",
     modelled: combined,
     atUt,
+    beyondReceived,
     basis: "combination",
   };
 }

@@ -45,3 +45,56 @@ describe("useFleetVesselPosition (through the real store)", () => {
     await waitFor(() => expect(screen.getByText("pos:finite")).toBeTruthy());
   });
 });
+
+describe("useFleetVesselPosition under signal delay", () => {
+  const UT_NOW = 10_000;
+  const ORBIT = {
+    referenceBodyIndex: 1,
+    sma: 700_000,
+    ecc: 0.1,
+    inc: 30,
+    lan: 40,
+    argPe: 50,
+    meanAnomalyAtEpoch: 0.5,
+    epoch: 0,
+    mu: 3.5316e12,
+  };
+
+  /** The fleet vessel's x position when its elements left it `owlt` seconds before the craft's present of `UT_NOW`. */
+  async function positionAtLightTime(owlt: number): Promise<number> {
+    const t = new StubTransport();
+    const client = new TelemetryClient(t);
+    let x = Number.NaN;
+    function Probe() {
+      const p = useFleetVesselPosition("g1");
+      if (p) x = p.position[0];
+      return <div>{p ? "pos" : "none"}</div>;
+    }
+    render(
+      <TelemetryProvider
+        client={client}
+        viewClockOptions={{
+          nowWall: () => 0,
+          warpRate: () => 1,
+          delaySeconds: () => owlt,
+        }}
+      >
+        <Probe />
+      </TelemetryProvider>,
+    );
+    act(() => {
+      t.emit("fleet.g1.orbit", ORBIT, {
+        validAt: UT_NOW - owlt,
+        deliveredAt: UT_NOW,
+      });
+    });
+    await waitFor(() => expect(Number.isFinite(x)).toBe(true));
+    return x;
+  }
+
+  it("places the vessel at the craft's present, not at the received edge", async () => {
+    const atCraft = await positionAtLightTime(0);
+    const delayed = await positionAtLightTime(240);
+    expect(delayed).toBeCloseTo(atCraft, 3);
+  });
+});

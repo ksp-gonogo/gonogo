@@ -177,6 +177,54 @@ describe("TrajectoryCurrencyBridge: the horizon, against the instant on screen",
   });
 });
 
+describe("TrajectoryCurrencyBridge under signal delay", () => {
+  it("asks whether the horizon reaches the craft's present, not the received edge", () => {
+    const owlt = 240;
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const clock = new ViewClock({
+      nowWall: () => 0,
+      warpRate: () => 1,
+      delaySeconds: () => owlt,
+    });
+    const store = new TimelineStore(clock);
+    render(
+      <TelemetryProvider
+        client={client}
+        store={store}
+        carriedChannels={["vessel.orbit"]}
+      >
+        <PanelStatusStoreProvider>
+          <TrajectoryCurrencyBridge declaredTopics={["vessel.orbit"]} />
+          <SummaryProbe />
+        </PanelStatusStoreProvider>
+      </TelemetryProvider>,
+    );
+    act(() => {
+      transport.emit(
+        "vessel.orbit",
+        {
+          referenceBodyIndex: 0,
+          sma: 8_000_000,
+          ecc: 0.1,
+          inc: 0,
+          lan: 0,
+          argPe: 0,
+          meanAnomalyAtEpoch: 0,
+          epoch: VIEW_UT,
+          mu: 3.5316e12,
+          horizon: AHEAD,
+        },
+        { validAt: VIEW_UT, deliveredAt: VIEW_UT + owlt },
+      );
+      store.beginFrame();
+      clock.emitFrame();
+    });
+    // The horizon reaches 100 s past the received observation and the craft is a light-time, 240 s, past it.
+    expect(summary()).toBe("warning:BEYOND INTEGRATION");
+  });
+});
+
 describe("widgetReadsTrajectory: which declarations the horizon speaks about", () => {
   it("matches the payload and the fields beneath it", () => {
     expect(widgetReadsTrajectory(["vessel.orbit"])).toBe(true);

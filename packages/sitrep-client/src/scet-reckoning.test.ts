@@ -117,6 +117,24 @@ describe("a reading under signal delay", () => {
     expect(asked).toEqual([UT_NOW]);
   });
 
+  it("says its reckoning reaches beyond the received edge", () => {
+    registerRamp();
+    const reading = startStore().store.sampleReading<number>(TOPIC);
+    if (reading.reckoning.status !== "available") {
+      throw new Error("expected a reckoning");
+    }
+    expect(reading.reckoning.beyondReceived).toBe(true);
+  });
+
+  it("does not say so when the light-time is under a second", () => {
+    registerRamp();
+    const reading = startStore(0.4).store.sampleReading<number>(TOPIC);
+    if (reading.reckoning.status !== "available") {
+      throw new Error("expected a reckoning");
+    }
+    expect(reading.reckoning.beyondReceived).toBe(false);
+  });
+
   it("keeps its staleness grade on the received edge", () => {
     registerRamp();
     const { store } = startStore();
@@ -174,6 +192,7 @@ describe("a field's reckoning", () => {
     const field = reading.relativePosition.reckoning;
     if (field.status !== "available") throw new Error("expected a reckoning");
     expect(field.atUt).toEqual(value("ut", UT_NOW));
+    expect(field.beyondReceived).toBe(true);
   });
 });
 

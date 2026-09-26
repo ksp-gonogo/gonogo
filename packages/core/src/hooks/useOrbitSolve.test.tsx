@@ -1,7 +1,9 @@
 import {
   TelemetryClient,
   TelemetryProvider,
+  TimelineStore,
   useViewUt,
+  ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import {
   PropagationHorizonKind,
@@ -360,5 +362,45 @@ describe("useOrbitSolve", () => {
     });
 
     await waitFor(() => expect(result.current).toBeNull());
+  });
+});
+
+describe("useOrbitSolve under signal delay", () => {
+  const UT_NOW = 10_000;
+
+  /** The solve a screen reaches when the elements left the craft `owlt` seconds before the craft's present of `UT_NOW`. */
+  async function solvedAtLightTime(owlt: number) {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const clock = new ViewClock({
+      nowWall: () => 0,
+      warpRate: () => 1,
+      delaySeconds: () => owlt,
+    });
+    const store = new TimelineStore(clock);
+    const { result } = renderHook(() => useOrbitSolve(), {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <TelemetryProvider client={client} store={store}>
+          {children}
+        </TelemetryProvider>
+      ),
+    });
+    const meta = {
+      quality: Quality.OnRails,
+      validAt: UT_NOW - owlt,
+      deliveredAt: UT_NOW,
+    };
+    act(() => {
+      transport.emit("vessel.orbit", ORBIT, { ...meta, source: "vessel:1" });
+      transport.emit("system.bodies", BODIES, { ...meta, source: "system:1" });
+    });
+    await waitFor(() => expect(result.current).not.toBeNull());
+    return result.current;
+  }
+
+  it("solves at the craft's present, not at the received edge", async () => {
+    const atCraft = await solvedAtLightTime(0);
+    const delayed = await solvedAtLightTime(240);
+    expect(delayed?.trueAnomaly).toBeCloseTo(atCraft?.trueAnomaly ?? NaN, 6);
   });
 });

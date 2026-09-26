@@ -38,6 +38,7 @@ import {
   useLateTelemetrySubscribe,
   useProcessor,
   useRouteCommands,
+  useScetUt,
   useStream,
   useStreamEvent,
   useTelemetryClientOptional,
@@ -88,6 +89,7 @@ export function buildGonogoHost(): GonogoHost {
         key,
       )) as GonogoHost["useTelemetry"],
     useViewUt: () => useViewUt(),
+    useScetUt: () => useScetUt(),
     /*
      * One implementation behind two overloads, the same shape `useTelemetry`
      * above already has: the typed `CommandId` arm and the untyped escape hatch

@@ -4,7 +4,7 @@ import {
   mapTopic,
   type PropagationRefusal,
   TrajectoryKindLike,
-  useViewUt,
+  useScetUt,
 } from "@ksp-gonogo/sitrep-client";
 import type { Severity } from "@ksp-gonogo/ui-kit";
 import { magnitudeOf, useStatusContribution } from "@ksp-gonogo/ui-kit";
@@ -137,17 +137,17 @@ export function TrajectoryCurrencyBridge({
  * likewise the stream badge's judgement. This bridge speaks only about a
  * trajectory it actually has, and a reading carrying a reckoning counts as
  * having one: a reckoned value is still elements with a horizon attached, and
- * whether that horizon covers the view instant is precisely the question worth
- * asking about it.
+ * whether that horizon covers the craft's present (SCET) is precisely the
+ * question worth asking about it.
  *
- * With no view UT there is no question to ask, so nothing is contributed rather
+ * With no SCET there is no question to ask, so nothing is contributed rather
  * than a guess substituted. That is the case on a screen whose clock has not
  * started, and inventing a wall-clock instant for it would answer a question
  * about the mission with a fact about the browser.
  */
 function TrajectoryCurrencyContribution() {
   const reading = useTelemetry(TRAJECTORY_TOPIC);
-  const viewUt = magnitudeOf(useViewUt());
+  const scetUt = magnitudeOf(useScetUt());
   /*
    * The observation OVERLAID by what the conic moved, which for `vessel.orbit`
    * is the phase. Written here rather than in a helper because the spread IS
@@ -165,10 +165,10 @@ function TrajectoryCurrencyContribution() {
         ? { ...observedOrbit, ...reading.reckoning.value }
         : observedOrbit;
   const contribution =
-    orbit === undefined || viewUt === null
+    orbit === undefined || scetUt === null
       ? null
       : trajectoryCurrencyContribution(
-          canPropagate(orbit.horizon, viewUt, viewUt),
+          canPropagate(orbit.horizon, scetUt, scetUt),
           orbit.horizon?.trajectoryKind,
         );
   useStatusContribution(

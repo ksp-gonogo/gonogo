@@ -182,6 +182,7 @@ describe("combineReadings on an input with no value", () => {
       reckoning: {
         status: "available",
         atUt: at(200),
+        beyondReceived: false,
         modelled: 3,
         basis: "rate-integration",
       },
@@ -193,6 +194,7 @@ describe("combineReadings on an input with no value", () => {
       reckoning: {
         status: "available",
         atUt: at(200),
+        beyondReceived: false,
         modelled: undefined,
         basis: "rate-integration",
       },
@@ -269,6 +271,7 @@ describe("combineReadings when the arithmetic has no answer", () => {
       reckoning: {
         status: "available",
         atUt: at(200),
+        beyondReceived: false,
         modelled: m,
         basis: "rate-integration",
       },
@@ -288,6 +291,7 @@ describe("combineReadings when the arithmetic has no answer", () => {
       reckoning: {
         status: "available",
         atUt: at(200),
+        beyondReceived: false,
         modelled: m,
         basis: "rate-integration",
       },
@@ -311,6 +315,7 @@ describe("combineReadings model", () => {
     reckoning: {
       status: "available",
       atUt: at(200),
+      beyondReceived: false,
       modelled: m,
       basis: "rate-integration",
     },
@@ -354,6 +359,7 @@ describe("combineReadings model", () => {
       reckoning: {
         status: "available",
         atUt: at(260),
+        beyondReceived: false,
         modelled: 6,
         basis: "rate-integration",
       },

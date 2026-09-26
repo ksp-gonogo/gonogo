@@ -57,6 +57,7 @@ function crewReading(
       status: "available",
       value: payload,
       atUt: AT,
+      beyondReceived: false,
       basis: "rate-integration",
       owner: "core",
       modelled: modelledPaths.map((path) => ({

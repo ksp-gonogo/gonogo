@@ -813,8 +813,9 @@ export class TimelineStore {
       point: TimelinePoint<unknown> | undefined;
       status: StreamStatusValue;
       epoch: number;
-      /** The instant the reading was reckoned to. Only a reckoning depends on it. */
+      /** The instants the reading was built for. Only a reckoning depends on them. */
       reckonUt: number;
+      receivedUt: number;
       /** Whether the topic was known unowned. Flips the arm with no other input changing. */
       unowned: boolean;
       /**
@@ -2827,11 +2828,12 @@ export class TimelineStore {
       () => {
         const point = this.sample<T>(topic, effectiveToken);
         const status = this.sampleStatus(topic, effectiveToken);
-        // A true-now lane can sit a fraction of a second past a sub-second SCET, and a model is never asked for an instant behind its own observation.
-        const reckonUt = Math.max(
-          effectiveToken.scetUt,
-          this.viewUtFor(effectiveToken, this.laneForTopic(topic)),
+        const receivedUt = this.viewUtFor(
+          effectiveToken,
+          this.laneForTopic(topic),
         );
+        // A true-now lane can sit a fraction of a second past a sub-second SCET, and a model is never asked for an instant behind its own observation.
+        const reckonUt = Math.max(effectiveToken.scetUt, receivedUt);
         /*
          * The registered model is asked FIRST and its answer is final, decline
          * included. Falling through to the record's model after a registered
@@ -2908,7 +2910,8 @@ export class TimelineStore {
           // on the next frame" untrue.
           ((reckoner === undefined &&
             previous.reading.reckoning.status !== "available") ||
-            previous.reckonUt === reckonUt)
+            (previous.reckonUt === reckonUt &&
+              previous.receivedUt === receivedUt))
         ) {
           return previous.reading as TopicReading<T>;
         }
@@ -2916,7 +2919,7 @@ export class TimelineStore {
           ? readingFrom(
               point,
               status,
-              reckonUt,
+              { reckonUt, receivedUt },
               reckoner,
               unowned,
               declined,
@@ -2925,7 +2928,7 @@ export class TimelineStore {
           : readingFrom(
               point,
               status,
-              reckonUt,
+              { reckonUt, receivedUt },
               reckoner,
               unowned,
               undefined,
@@ -2950,6 +2953,7 @@ export class TimelineStore {
           status,
           epoch,
           reckonUt,
+          receivedUt,
           unowned,
           declineKey,
           reading: reading as TopicReading<unknown>,

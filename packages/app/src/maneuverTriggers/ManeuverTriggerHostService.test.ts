@@ -270,6 +270,34 @@ describe("ManeuverTriggerHostService", () => {
     expect(svc.snapshot().triggers).toHaveLength(0);
   });
 
+  it("plans a node from the craft's present, not from the received edge", async () => {
+    const svc = makeService();
+    const pinnedUt = 1_000_000;
+    const storeFixture = seedKerbinOrbit(pinnedUt);
+    // A light-time of 240 s: the craft is at pinnedUt, the screen has received it up to 240 s earlier.
+    setActiveViewClockForTests({
+      viewUt: () => pinnedUt - 240,
+      scetUt: () => pinnedUt,
+    });
+    svc.arm({
+      dataKey: "vessel.orbit.sma",
+      op: ">=",
+      value: 700_000,
+      inputs: FROZEN,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    const args = storeFixture.calls.find(
+      (c) => c.command === "vessel.maneuver.add",
+    )?.args;
+    const ut =
+      typeof args === "object" && args !== null && "ut" in args
+        ? args.ut
+        : undefined;
+    const halfPeriod = Math.PI * Math.sqrt(700_000 ** 3 / 3.5316e12);
+    // The craft is at periapsis at pinnedUt, so apoapsis is half an orbit on.
+    expect(ut).toBeCloseTo(pinnedUt + halfPeriod, 0);
+  });
+
   it("plans a transfer around a body the stock table has never heard of", async () => {
     const svc = makeService();
     const storeFixture = seedRenamedBodyOrbit();

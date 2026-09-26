@@ -25,6 +25,7 @@ function reckoned(
     reckoning: {
       status: "available",
       atUt: value("ut", 0),
+      beyondReceived: false,
       modelled,
       basis: "linear-dead-reckoning",
     },
@@ -120,6 +121,51 @@ describe("Countdown, handed a Reading", () => {
   it("has no axe violations with the mark drawn", async () => {
     const { container } = render(<Countdown value={frozen(value("s", 90))} />);
     await expectNoA11yViolations(container);
+  });
+});
+
+describe("Countdown under signal delay", () => {
+  /** Current, and carried by a model across the light-time to the craft's present. */
+  function carriedToScet(
+    observed: Value<"s">,
+    modelled: Value<"s">,
+  ): Reading<Value<"s">> {
+    const reading = reckoned(observed, modelled);
+    if (reading.reckoning.status !== "available") return reading;
+    return {
+      ...reading,
+      reckoning: { ...reading.reckoning, beyondReceived: true },
+    };
+  }
+
+  it("marks a current reading whose figure the model carried beyond the received edge", () => {
+    const { container } = render(
+      <Countdown value={carriedToScet(value("s", 90), value("s", 42))} />,
+    );
+    expect(container.textContent).toContain("42s");
+    const host = container.querySelector("[data-not-current]");
+    expect(host).not.toBeNull();
+    expect(host?.querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(host?.getAttribute("title")).toBeTruthy();
+  });
+
+  it.each([
+    "pending",
+    "unowned",
+    "absent",
+  ] as const)("draws nothing modelled for a %s reading", (state) => {
+    const withModel = {
+      state,
+      reckoning: {
+        status: "available",
+        atUt: value("ut", 0),
+        beyondReceived: true,
+        modelled: value("s", 42),
+        basis: "linear-dead-reckoning",
+      },
+    } as const satisfies Reading<Value<"s">>;
+    const { container } = render(<Countdown value={withModel} />);
+    expect(container.textContent).toBe(NULL_DISPLAY);
   });
 });
 

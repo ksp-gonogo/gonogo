@@ -238,8 +238,8 @@ export type SelfOrbitElements = WireOrbitElements &
  * The whole reckoning is taken rather than a boolean, so the condition is
  * written once in the place that documents it.
  *
- * `viewUt` is the instant asked about, and its absence is the third `null`: with
- * no frame there is nothing to solve FOR.
+ * `viewUt` is the instant asked about, the frame's SCET, and its absence is the
+ * third `null`: with no frame there is nothing to solve FOR.
  *
  * ## Under physics, a current reading is answered in full
  *
@@ -251,9 +251,9 @@ export type SelfOrbitElements = WireOrbitElements &
  *
  * The countdowns are properties of that same instantaneous orbit, and KSP
  * computes them every frame whatever is pushing the craft. They come from the
- * sample's own `timeToAp` and `timeToPe`, less the view time elapsed since
- * `observedAtUt`; see {@link countdownAt}. A sample that carries neither leaves
- * both, and the next apsis, `null`.
+ * sample's own `timeToAp` and `timeToPe`, less the time elapsed from
+ * `observedAtUt` to `viewUt`; see {@link countdownAt}. A sample that carries
+ * neither leaves both, and the next apsis, `null`.
  *
  * `observedAtUt` is present only for a CURRENT reading, and is when it was
  * observed. A stale reading answers nothing under physics: under thrust the

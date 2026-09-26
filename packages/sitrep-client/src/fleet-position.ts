@@ -4,7 +4,7 @@ import {
   type VesselOrbitPayload,
 } from "@ksp-gonogo/sitrep-sdk/spine";
 import { useMemo } from "react";
-import { useViewUt } from "./context";
+import { useScetUt } from "./context";
 import type { StateVector } from "./kepler";
 import { useStream } from "./use-stream";
 
@@ -12,12 +12,12 @@ export { propagateVesselOrbit };
 
 /**
  * The dead-reckoned parent-relative position/velocity of fleet vessel `guid`,
- * derived from its streamed `fleet.<guid>.orbit` elements at the current view
- * UT: the same SCADA-report-by-exception + dead-reckoning the active vessel
+ * derived from its streamed `fleet.<guid>.orbit` elements at the craft's
+ * present (SCET): the same SCADA-report-by-exception + dead-reckoning the active vessel
  * uses, applied per subject. Null until elements arrive (or a hyperbolic orbit).
  *
  * The delayed `useStream` subscription means the elements already respect this
- * vessel's own light-time; propagating them to the shared view UT positions the
+ * vessel's own light-time; propagating them to the shared SCET positions the
  * whole fleet on one consistent clock. This is Plan 2c's reusable foundation for
  * a future fleet spatial view, FleetRoster itself renders no position.
  */
@@ -42,15 +42,15 @@ export function useFleetVesselPosition(guid: string): StateVector | null {
     orbitReading.state === "observed" || orbitReading.state === "stale"
       ? orbitReading.value
       : undefined;
-  const viewUt = useViewUt();
+  const scetUt = useScetUt();
   return useMemo(() => {
-    if (!raw || viewUt == null) return null;
+    if (!raw || scetUt == null) return null;
     // Cloned because the wrap mutates in place and the store's retained raw copy must not be touched.
     const orbit = wrapTypePayload<VesselOrbitPayload>(
       "VesselOrbit",
       structuredClone(raw),
     );
     // `.magnitude` at the boundary of the solver: propagation is arithmetic on a bare UT, and threading `Value` through the Kepler code would buy nothing.
-    return propagateVesselOrbit(orbit, viewUt.magnitude);
-  }, [raw, viewUt]);
+    return propagateVesselOrbit(orbit, scetUt.magnitude);
+  }, [raw, scetUt]);
 }

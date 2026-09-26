@@ -80,6 +80,14 @@ export interface TopicReckoningAvailable<T> {
   readonly status: "available";
   value: T;
   atUt: Value<"ut">;
+  /**
+   * Whether `atUt` is past the edge the observation was received at by a gap an
+   * operator could see: true under signal delay, where the model carries a
+   * current reading across the light-time, and false on a LAN session. A figure
+   * drawn from a reckoning that reaches beyond the received edge is modelled
+   * rather than fresh, whatever the reading's state.
+   */
+  beyondReceived: boolean;
   basis: ReckoningBasis;
   /**
    * Which paths inside `value` the model actually MOVED, dotted from the
@@ -765,6 +773,8 @@ export type Reckoning<V> =
       readonly modelled: V;
       /** The instant `modelled` is for: the frame's SCET. */
       readonly atUt: Value<"ut">;
+      /** See {@link TopicReckoningAvailable.beyondReceived}. */
+      readonly beyondReceived: boolean;
       readonly basis: ReckoningBasis;
       /** How far the model would defend `modelled`, where it will say. */
       readonly band?: UncertaintyBand;
@@ -1252,6 +1262,7 @@ export function fieldReckoning(
     status: "available",
     modelled: walkField(reckoning.value, path),
     atUt: reckoning.atUt,
+    beyondReceived: reckoning.beyondReceived,
     basis: covering.basis,
     band: reckoning.bands?.[path],
   };

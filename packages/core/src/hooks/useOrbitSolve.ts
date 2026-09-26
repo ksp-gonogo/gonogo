@@ -2,14 +2,14 @@ import {
   type BodyRadiusTable,
   type OrbitalSolve,
   solveSelfOrbit,
+  useScetUt,
   useStream,
-  useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import { useTelemetry } from "@ksp-gonogo/sitrep-sdk/spine";
 import { useMemo } from "react";
 
 /**
- * The self vessel's orbit solved for the instant being viewed: apsides, their
+ * The self vessel's orbit solved at the craft's present (SCET): apsides, their
  * altitudes, the two apsis countdowns, true anomaly, period, orbital radius and
  * which apsis comes next.
  *
@@ -21,7 +21,7 @@ import { useMemo } from "react";
  *
  * Under physics the model refuses to ADVANCE, and a current observation is
  * still solved at its own epoch, its countdowns taken from the game's own and
- * run down by the view time since; see `solveSelfOrbit`.
+ * run down to SCET; see `solveSelfOrbit`.
  *
  * ## The model's refusal is the gate, and it is wider than "under physics"
  *
@@ -56,7 +56,7 @@ export function useOrbitSolve(): OrbitalSolve | null {
       : bodiesReading.state === "absent"
         ? null
         : undefined;
-  const at = useViewUt()?.magnitude;
+  const at = useScetUt()?.magnitude;
 
   /*
    * A stale reading still carries its elements, and they are constants of the

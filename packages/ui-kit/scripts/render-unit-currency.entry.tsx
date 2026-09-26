@@ -488,9 +488,24 @@ function Countdowns() {
     reckoning: {
       status: "available",
       atUt: value("ut", 0),
+      beyondReceived: false,
       modelled: value("s", 42),
       basis: "linear-dead-reckoning",
     },
+  };
+  const carriedToScet: Reading<Value<"s">> = {
+    ...carried,
+    reckoning: {
+      status: "available",
+      atUt: value("ut", 0),
+      beyondReceived: true,
+      modelled: value("s", 42),
+      basis: "linear-dead-reckoning",
+    },
+  };
+  const pendingWithModel: Reading<Value<"s">> = {
+    state: "pending",
+    reckoning: carriedToScet.reckoning,
   };
   const carriedAndHeld: Reading<Value<"s">> = {
     ...carried,
@@ -508,6 +523,16 @@ function Countdowns() {
       "A reported remaining, carried",
       "a model is advancing it: the clock draws the model's answer",
       <Countdown key="b" value={carried} clock />,
+    ],
+    [
+      "A reported remaining, carried to SCET",
+      "current, but the model carried it across the light-time: marked",
+      <Countdown key="scet" value={carriedToScet} clock />,
+    ],
+    [
+      "No observation, a model on offer",
+      "nothing has been received, so nothing modelled is drawn",
+      <Countdown key="pending" value={pendingWithModel} clock />,
     ],
     [
       "A reported remaining, carried but held",

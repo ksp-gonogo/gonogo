@@ -7,6 +7,7 @@ import type {
 } from "../reading";
 import { topicReading } from "../reading";
 import { value } from "../unit-system/value";
+import { VISIBLE_GAP_SECONDS } from "./view-clock";
 
 /**
  * Minting a reading from the timeline.
@@ -66,6 +67,14 @@ export {
 import type { TimelinePoint } from "./client-timeline";
 import type { StreamStatusValue } from "./stream-status";
 
+/** The two instants a reading is built for. */
+export interface ReadingInstants {
+  /** Where the model is asked to reach: the frame's SCET. */
+  readonly reckonUt: number;
+  /** The received edge the observation was sampled at. */
+  readonly receivedUt: number;
+}
+
 /** The entry in `modelled` covering the whole payload, if the model claims it. */
 function rootCoverage(model: {
   modelled: readonly ModelledField[];
@@ -86,11 +95,10 @@ function rootCoverage(model: {
  * one field of forty-seven has not modelled the payload a whole-topic read asks
  * for.
  *
- * `reckonUt` is the instant the model is asked to reach, the frame's SCET, and
- * is required rather than optional: every reckoning is a function of it, and a
- * default would let a caller build a reading whose modelled value silently
- * answered for the wrong moment. The observation itself is `point`, already
- * sampled at the received edge.
+ * `at` names both instants and is required rather than optional: every
+ * reckoning is a function of them, and a default would let a caller build a
+ * reading whose modelled value silently answered for the wrong moment. The
+ * observation itself is `point`, already sampled at the received edge.
  *
  * `unowned` is the mod's verdict that nothing will ever publish this topic. It
  * only ever redirects the empty case, and it needs no guard against the OTHER
@@ -119,7 +127,7 @@ function rootCoverage(model: {
 export function readingFrom<T>(
   point: TimelinePoint<T> | undefined,
   status: StreamStatusValue,
-  reckonUt: number,
+  at: ReadingInstants,
   reckoner?: ReckonerFor<T>,
   unowned?: boolean,
   declined?: undefined,
@@ -128,7 +136,7 @@ export function readingFrom<T>(
 export function readingFrom<T>(
   point: TimelinePoint<T> | undefined,
   status: StreamStatusValue,
-  reckonUt: number,
+  at: ReadingInstants,
   reckoner: ReckonerFor<T> | undefined,
   unowned: boolean,
   declined: ReckoningDecline,
@@ -137,7 +145,7 @@ export function readingFrom<T>(
 export function readingFrom<T>(
   point: TimelinePoint<T> | undefined,
   status: StreamStatusValue,
-  reckonUt: number,
+  at: ReadingInstants,
   reckoner?: ReckonerFor<T>,
   unowned = false,
   declined?: ReckoningDecline,
@@ -178,6 +186,7 @@ export function readingFrom<T>(
    * Running it once is also what stops one question asked twice inside a frame
    * giving two answers, which a thunk called at two call sites would.
    */
+  const { reckonUt, receivedUt } = at;
   const model = reckoner?.(point, live ? undefined : status, reckonUt);
   const root = model && rootCoverage(model);
   const modelled =
@@ -186,6 +195,7 @@ export function readingFrom<T>(
           status: "available",
           value: model.reckon(reckonUt),
           atUt: value("ut", reckonUt),
+          beyondReceived: reckonUt - receivedUt >= VISIBLE_GAP_SECONDS,
           basis: root.basis,
           modelled: model.modelled,
           owner,

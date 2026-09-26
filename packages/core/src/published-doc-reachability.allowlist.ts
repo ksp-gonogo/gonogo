@@ -507,19 +507,19 @@ export const GLOBAL_IDENTIFIERS: readonly string[] = [
 ];
 
 /**
- * The reconstruction the gate proves itself against. `useViewUt` is exported
+ * The reconstruction the gate proves itself against. `useScetUt` is exported
  * from the sdk barrel today, so the bug cannot be observed live and the
  * instrument has to be validated against a rebuilt instance of it.
  *
- * `Countdown.tsx`'s doc for `CountdownProps.durationS` says to "Subtract the
- * frame's view time first (`useViewUt`)". With `useViewUt` deleted from the
+ * `Countdown.tsx`'s doc for `CountdownProps.value` says to "Subtract the
+ * craft's present first (`useScetUt`)". With `useScetUt` deleted from the
  * computed barrels, that sentence is the T1b violation the whole gate exists to
  * catch, and the check that plants it fails LOUDLY if the scan cannot see it.
  * A scan that finds nothing reports a clean repo, and a broken path, a renamed
  * entry point or a regex that stopped matching all look exactly like success.
  */
 export const RECONSTRUCTION = {
-  symbol: "useViewUt",
+  symbol: "useScetUt",
   declaredIn: "@ksp-gonogo/sitrep-sdk",
   file: "packages/ui-kit/src/Countdown.tsx",
   tier: "T1b",
