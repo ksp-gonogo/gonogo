@@ -2,10 +2,6 @@ import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ContractManagerComponent } from "./index";
 
@@ -14,17 +10,12 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-describe("ContractManager: genuinely runs off the stream (M3b career-detail batch)", () => {
+describe("ContractManager: genuinely runs off the stream", () => {
   it("renders active + offered contracts derived from career.status.contracts", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["career.status"],
       pinnedUt: 10,
       suspendFrames: true,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [{ key: "t.universalTime" }, { key: "v.altitude" }],
-      connectSource: true,
     });
 
     render(
@@ -38,8 +29,6 @@ describe("ContractManager: genuinely runs off the stream (M3b career-detail batc
     expect(fixture.transport.isSubscribed("career.status")).toBe(true);
 
     act(() => {
-      legacyAux.source.emit("t.universalTime", 1500500);
-      legacyAux.source.emit("v.altitude", 85000);
       fixture.emit("career.status", {
         economy: null,
         facilities: null,
@@ -114,7 +103,5 @@ describe("ContractManager: genuinely runs off the stream (M3b career-detail batc
     ).toBeTruthy();
     // The subtitle's recent count proves `completedRecent` routed off the stream too.
     expect(visibleText()).toMatch(/1 active · 1 offered · 1 recent/i);
-
-    teardownMockDataSource(legacyAux);
   });
 });

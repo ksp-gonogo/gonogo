@@ -171,7 +171,7 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
     count: 1,
     why: "delegates to writeQuantity(value('m', ...)) after subtracting the body radius",
   },
-  "packages/components/src/ContractManager/index.tsx": {
+  "packages/components/src/ContractManager/contracts.ts": {
     count: 1,
     why: "converted: formatDeadline now composes writeQuantity, and is exported so its callers pin the string shape",
   },

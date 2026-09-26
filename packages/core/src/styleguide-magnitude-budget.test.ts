@@ -180,7 +180,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    */
   "packages/components/fixtures/primitive-reading-feed-plant.tsx": 2,
   "packages/components/src/CommSignal/CommSignalView.tsx": 1,
-  "packages/components/src/ContractManager/index.tsx": 2,
+  "packages/components/src/ContractManager/ContractManagerView.tsx": 1,
   "packages/components/src/CrewStatus/badge.ts": 2,
   // 1: the headcount handed to the roster as a plain number, for its zero check and its names-withheld sentence.
   "packages/components/src/CrewStatus/CrewStatusView.tsx": 1,

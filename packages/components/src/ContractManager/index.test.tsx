@@ -256,7 +256,7 @@ describe("parseContracts", () => {
     expect(parsed?.[0]?.id).toBe("1");
   });
 
-  it("preserves big-number contract IDs from the new long-as-string fork", () => {
+  it("preserves big-number contract IDs sent as strings", () => {
     const parsed = parseContracts([
       { id: "193244571874398123", title: "big id" },
       { id: 690587659210, title: "legacy numeric id" },
