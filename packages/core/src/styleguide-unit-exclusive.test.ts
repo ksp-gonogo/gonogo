@@ -70,7 +70,6 @@ const UNIT_IMPL = new Set([
   "packages/ui-kit/src/readingCurrency.ts",
   "packages/ui-kit/src/formatDuration.ts",
   "packages/ui-kit/src/formatKspDate.ts",
-  "packages/ui-kit/src/format.ts",
   // The two NODE forms of the ladders above, and the reason this set is not
   // just the five: `<Countdown>` is what a call site reaches for instead of
   // `formatDuration`, and `<MissionDate>` is the only renderer for a UT
