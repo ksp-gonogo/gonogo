@@ -194,7 +194,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/SystemView/index.tsx": 1,
     "packages/components/src/TechTree/index.tsx": 5,
     "packages/components/src/Twr/index.tsx": 1,
-    "packages/components/src/WarpControl/index.tsx": 1,
+    "packages/components/src/WarpControl/styles.ts": 1,
     "packages/serial/src/SerialDevicesMenu/CalibrateWizard.tsx": 1,
     "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 1,
     "packages/serial/src/VirtualDevice/index.tsx": 1,

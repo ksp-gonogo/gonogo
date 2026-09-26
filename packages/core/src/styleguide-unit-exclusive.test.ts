@@ -190,7 +190,7 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
     count: 1,
     why: "not a quantity: builds an entity's accessible name from its metadata",
   },
-  "packages/components/src/WarpControl/index.tsx": {
+  "packages/components/src/WarpControl/warpLevels.ts": {
     count: 1,
     why: "not a quantity: a warp MULTIPLIER (1000x) is a dimensionless ratio, and its x suffix is not a unit symbol",
   },

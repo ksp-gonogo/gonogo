@@ -13,7 +13,7 @@ beforeEach(() => {
   clearActionHandlers();
 });
 
-describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
+describe("WarpControl: genuinely runs off the stream", () => {
   it("reads the recorded time.warp state off the real stream pipeline, not legacy", async () => {
     // With no legacy source registered, a read that fell back would stay NULL_DISPLAY rather than reach "10×".
     const fixture = setupStreamFixture({
