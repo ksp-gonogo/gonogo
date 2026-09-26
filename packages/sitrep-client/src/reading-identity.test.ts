@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { registerCoreReckoners } from "./reckoners";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
@@ -96,5 +97,95 @@ describe("reading identity is keyed on the data, not the frame", () => {
     const first = s.sampleReading("vessel.target");
     for (let i = 0; i < 5; i++) s.beginFrame();
     expect(s.sampleReading("vessel.target")).toBe(first);
+  });
+
+  it("survives frames for a FIELD of a record that did not change", () => {
+    const s = store();
+    s.ingest("test.record", {
+      validAt: 10,
+      payload: { a: 1, b: { c: 2 } },
+      meta: makeMeta({ validAt: 10, deliveredAt: 10 }),
+      epoch: 0,
+    });
+    s.beginFrame();
+    const first = s.sampleReading("test.record.b.c");
+    expect(first.state).toBe("observed");
+
+    for (let i = 0; i < 5; i++) s.beginFrame();
+
+    expect(s.sampleReading("test.record.b.c")).toBe(first);
+  });
+
+  /*
+   * A field of a modelled record, read while view time moves every frame as
+   * it does on a live screen. The model is on offer for the parent, but where
+   * it has nothing to answer (no point yet, or a current observation it
+   * declines to carry), a frame that only moved view time changed nothing a
+   * widget could draw.
+   */
+  describe("a field whose record has a model, while view time moves", () => {
+    const TARGET = {
+      name: "Rendezvous Target",
+      relativePosition: { x: 1, y: 0, z: 0 },
+      relativeVelocity: { x: 1, y: 0, z: 0 },
+    };
+
+    function movingStore() {
+      registerCoreReckoners();
+      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
+      const s = new TimelineStore(clock);
+      let viewUt = 1_000;
+      clock.scrubTo(viewUt);
+      const nextFrame = () => {
+        viewUt += 1;
+        clock.scrubTo(viewUt);
+        s.beginFrame();
+      };
+      const ingestTarget = () =>
+        s.ingest("vessel.target", {
+          validAt: 1_000,
+          payload: TARGET,
+          meta: makeMeta({ validAt: 1_000, deliveredAt: 1_000 }),
+          epoch: 0,
+        });
+      s.beginFrame();
+      return { s, nextFrame, ingestTarget };
+    }
+
+    it("stays pending with one identity before the record reports", () => {
+      const { s, nextFrame } = movingStore();
+      const first = s.sampleReading("vessel.target.relativePosition");
+      expect(first.state).toBe("pending");
+
+      for (let i = 0; i < 5; i++) nextFrame();
+
+      expect(s.sampleReading("vessel.target.relativePosition")).toBe(first);
+    });
+
+    it("keeps one identity while the model declines a live field", () => {
+      const { s, nextFrame, ingestTarget } = movingStore();
+      ingestTarget();
+      s.beginFrame();
+      const first = s.sampleReading("vessel.target.relativePosition");
+      expect(first.state).toBe("observed");
+      expect(first.reckoning.status).not.toBe("available");
+
+      for (let i = 0; i < 5; i++) nextFrame();
+
+      expect(s.sampleReading("vessel.target.relativePosition")).toBe(first);
+    });
+
+    it("still moves with view time for a field the model does move", () => {
+      const { s, nextFrame, ingestTarget } = movingStore();
+      ingestTarget();
+      s.setTransportConnected(false);
+      s.beginFrame();
+      const first = s.sampleReading("vessel.target.relativePosition");
+      expect(first.reckoning.status).toBe("available");
+
+      nextFrame();
+
+      expect(s.sampleReading("vessel.target.relativePosition")).not.toBe(first);
+    });
   });
 });

@@ -778,6 +778,16 @@ export class TimelineStore {
   >();
 
   /**
+   * Each raw field subtopic's point, per parent point, so a field read of a
+   * record that did not change hands back the same object on every frame.
+   * Weak, so a parent that leaves the buffer takes its fields with it.
+   */
+  private readonly rawFieldPoints = new WeakMap<
+    TimelinePoint<unknown>,
+    Map<string, TimelinePoint<unknown>>
+  >();
+
+  /**
    * Last `Reading` per topic, with the inputs it was built from, so a reading's
    * identity tracks its DATA rather than the frame it was read in. Deliberately
    * NOT the frame cache, which is keyed on a token that changes every ingest
@@ -2856,7 +2866,7 @@ export class TimelineStore {
           ? `${declined.reason}\0${declined.input ?? ""}`
           : undefined;
         const previous = this.readings.get(topic);
-        if (
+        const sameInputs =
           previous !== undefined &&
           previous.point === point &&
           previous.status === status &&
@@ -2866,7 +2876,9 @@ export class TimelineStore {
           // when a DIFFERENT topic's data does. Folding it into the identity
           // check is what stops a reading freezing on "no orbit yet" through the
           // frame the orbit lands on.
-          previous.declineKey === declineKey &&
+          previous.declineKey === declineKey;
+        if (
+          sameInputs &&
           // A reading depends on the frame's view time ONLY through a
           // reckoning, so a topic nobody models keeps its identity across a
           // frame exactly as before. Where a model is on offer now, an
@@ -2900,6 +2912,20 @@ export class TimelineStore {
               undefined,
               owner,
             );
+        /*
+         * A model on offer that answered nothing, before or now, leaves the
+         * reading exactly what it was: a pending read has no point to carry,
+         * and a model that declines or does not cover the field reckons
+         * nothing. Only view time moved, and nothing in the reading depends
+         * on it.
+         */
+        if (
+          sameInputs &&
+          previous.reading.reckoning.status !== "available" &&
+          reading.reckoning.status !== "available"
+        ) {
+          return previous.reading as TopicReading<T>;
+        }
         this.readings.set(topic, {
           point,
           status,
@@ -3170,12 +3196,7 @@ export class TimelineStore {
     );
     if (!parentPoint) return undefined; // not whole yet
     if (parentPoint.payload === null) {
-      return {
-        validAt: parentPoint.validAt,
-        payload: null as T,
-        meta: parentPoint.meta,
-        epoch: parentPoint.epoch,
-      };
+      return this.rawFieldPoint<T>(parentPoint, parsed.fieldPath, null);
     }
 
     let cursor: unknown = parentPoint.payload;
@@ -3190,12 +3211,32 @@ export class TimelineStore {
       cursor = (cursor as Record<string, unknown>)[segment];
     }
 
-    return {
+    return this.rawFieldPoint<T>(parentPoint, parsed.fieldPath, cursor);
+  }
+
+  private rawFieldPoint<T>(
+    parentPoint: TimelinePoint<unknown>,
+    fieldPath: string[],
+    payload: unknown,
+  ): TimelinePoint<T> {
+    let fields = this.rawFieldPoints.get(parentPoint);
+    if (!fields) {
+      fields = new Map();
+      this.rawFieldPoints.set(parentPoint, fields);
+    }
+    const key = fieldPath.join("\0");
+    const existing = fields.get(key);
+    if (existing && existing.payload === payload) {
+      return existing as TimelinePoint<T>;
+    }
+    const point: TimelinePoint<T> = {
       validAt: parentPoint.validAt,
-      payload: cursor as T,
+      payload: payload as T,
       meta: parentPoint.meta,
       epoch: parentPoint.epoch,
     };
+    fields.set(key, point as TimelinePoint<unknown>);
+    return point;
   }
 
   /**
