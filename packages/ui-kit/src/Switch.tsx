@@ -47,13 +47,6 @@ const SwitchLabel = styled.label<{ $disabled?: boolean }>`
   }
 `;
 
-const SwitchInput = styled.input`
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-`;
-
 const SwitchTrack = styled.div<{ $checked: boolean; $disabled?: boolean }>`
   width: 28px;
   height: 14px;
@@ -66,6 +59,20 @@ const SwitchTrack = styled.div<{ $checked: boolean; $disabled?: boolean }>`
   position: relative;
   flex-shrink: 0;
   transition: background var(--duration-base, 150ms), border-color var(--duration-base, 150ms);
+`;
+
+/* The input is invisible and sizeless, so its keyboard focus is drawn on the
+   track it sits beside. */
+const SwitchInput = styled.input`
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+
+  &:focus-visible + ${SwitchTrack} {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
 `;
 
 const SwitchThumb = styled.div<{ $checked: boolean; $disabled?: boolean }>`

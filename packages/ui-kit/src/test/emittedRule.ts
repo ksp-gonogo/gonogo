@@ -30,3 +30,31 @@ export function emittedRuleFor(element: HTMLElement): string {
     `no emitted rule for any of [${generated.join(", ")}]; the stylesheet lookup is broken, not the style`,
   );
 }
+
+/**
+ * Every emitted rule for `element`'s own generated class followed by `selector`
+ * (":focus-visible", ":focus-visible+"), joined as text, or `undefined` when
+ * the class has no such rule. Unlike {@link emittedRuleFor} an absence is an
+ * answer here: it is how a test asks whether a state is styled at all.
+ */
+export function emittedStateRuleFor(
+  element: HTMLElement,
+  selector: string,
+): string | undefined {
+  const sheet = Array.from(document.querySelectorAll("style"))
+    .map((style) => style.textContent ?? "")
+    .join("");
+  const rules: string[] = [];
+  for (const name of element.classList) {
+    if (name.startsWith("sc-")) continue;
+    const needle = `.${name}${selector}`;
+    for (
+      let at = sheet.indexOf(needle);
+      at !== -1;
+      at = sheet.indexOf(needle, at + 1)
+    ) {
+      rules.push(sheet.slice(at, sheet.indexOf("}", at) + 1));
+    }
+  }
+  return rules.length === 0 ? undefined : rules.join("");
+}
