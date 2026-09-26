@@ -1,6 +1,17 @@
 import type { OrbitPatch } from "@ksp-gonogo/core";
-import type { VesselOrbit as WireVesselOrbit } from "@ksp-gonogo/sitrep-sdk";
 import type { EncounterDirection } from "./encounter";
+
+/** The orbit's elements as plain numbers, the shape a patch is sampled from. */
+export type ConicElements = Pick<
+  OrbitPatch,
+  | "inclination"
+  | "eccentricity"
+  | "epoch"
+  | "argumentOfPeriapsis"
+  | "sma"
+  | "lan"
+  | "maae"
+>;
 
 function endTransition(
   direction: EncounterDirection | null,
@@ -18,7 +29,7 @@ function endTransition(
  * otherwise.
  */
 export function conicPatches({
-  orbit,
+  elements,
   referenceBody,
   startUt,
   period,
@@ -26,7 +37,7 @@ export function conicPatches({
   encounterTimeUt,
   encounterBody,
 }: {
-  orbit: WireVesselOrbit;
+  elements: ConicElements;
   referenceBody: string;
   startUt: number;
   period: number | null | undefined;
@@ -35,7 +46,7 @@ export function conicPatches({
   encounterBody: string | null;
 }): OrbitPatch[] {
   if (period == null || period <= 0) return [];
-  if (!orbit.ecc.lessThan(1)) return [];
+  if (!(elements.eccentricity < 1)) return [];
   const endsAtTransition =
     encounterDirection !== null &&
     encounterTimeUt != null &&
@@ -48,15 +59,8 @@ export function conicPatches({
       patchEndTransition: endTransition(encounterDirection, endsAtTransition),
       PeA: 0,
       ApA: 0,
-      // Plain numbers: every element is sampled into plot coordinates.
-      inclination: orbit.inc.magnitude,
-      eccentricity: orbit.ecc.magnitude,
-      epoch: orbit.epoch.magnitude,
+      ...elements,
       period,
-      argumentOfPeriapsis: orbit.argPe?.magnitude ?? 0,
-      sma: orbit.sma.magnitude,
-      lan: orbit.lan?.magnitude ?? 0,
-      maae: orbit.meanAnomalyAtEpoch.magnitude,
       referenceBody,
       semiLatusRectum: 0,
       semiMinorAxis: 0,

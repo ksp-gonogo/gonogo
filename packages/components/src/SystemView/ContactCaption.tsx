@@ -1,5 +1,12 @@
-import { FRAME_CAPTION } from "./styles";
+import type { CSSProperties } from "react";
 import type { SystemViewVesselStatusEntry } from "./vesselStatusContribution";
+
+export const FRAME_CAPTION: CSSProperties = {
+  fontSize: "var(--font-size-caption)",
+  color: "var(--color-text-muted)",
+  letterSpacing: "0.05em",
+  flex: "0 0 auto",
+};
 
 /**
  * Renders the contributed `system-view.vessel-status` entry; SystemView only decides which severities are announced.

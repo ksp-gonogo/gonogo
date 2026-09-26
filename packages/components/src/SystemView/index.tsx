@@ -16,11 +16,12 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { Panel, useElementSize } from "@ksp-gonogo/ui";
 import { FramedDisplay, NULL_DISPLAY, Section } from "@ksp-gonogo/ui-kit";
+import type { CSSProperties } from "react";
 import { useMemo, useRef, useState } from "react";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { AlmanacPanel } from "./AlmanacPanel";
-import { ContactCaption } from "./ContactCaption";
+import { ContactCaption, FRAME_CAPTION } from "./ContactCaption";
 import type { SystemViewConfig } from "./config";
 import { type EncounterDirection, encounterDirectionOf } from "./encounter";
 import { resolveFrame } from "./frame";
@@ -47,15 +48,6 @@ import { VesselInfoPanel } from "./VesselInfoPanel";
 import "./vesselStatusContribution";
 import "./slots";
 import { SystemViewConfigForm } from "./SystemViewConfigForm";
-import {
-  COMPACT_BODY,
-  COMPACT_SUB,
-  COMPACT_VALUE,
-  DIAGRAM_FRAME,
-  DIAGRAM_WRAP,
-  FRAME_CAPTION,
-  OVERLAY_LAYER,
-} from "./styles";
 
 // comms.network and system.uplink.pending are also read directly, for the host-side path highlight and traffic.
 const topics = defineTopicManifest({
@@ -264,7 +256,16 @@ function SystemViewComponent({
     if (!orbit || vesselBody == null || utBucket == null) return [];
     if (vesselTrajectory?.shape !== "conic") return [];
     return conicPatches({
-      orbit,
+      // Plain numbers: every element is sampled into plot coordinates.
+      elements: {
+        inclination: orbit.inc.magnitude,
+        eccentricity: orbit.ecc.magnitude,
+        epoch: orbit.epoch.magnitude,
+        argumentOfPeriapsis: orbit.argPe?.magnitude ?? 0,
+        sma: orbit.sma.magnitude,
+        lan: orbit.lan?.magnitude ?? 0,
+        maae: orbit.meanAnomalyAtEpoch.magnitude,
+      },
       referenceBody: vesselBody,
       startUt: utBucket,
       period: derived?.period,
@@ -514,6 +515,53 @@ function SystemViewComponent({
     />
   );
 }
+
+const COMPACT_BODY: CSSProperties = {
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "var(--gap-related)",
+};
+
+const COMPACT_VALUE: CSSProperties = {
+  // Off the type scale: the scale stops at --font-size-lg (16px) and this is a display-tier readout.
+  fontSize: "22px",
+  fontWeight: 700,
+  color: "var(--color-text-primary)",
+  letterSpacing: "0.04em",
+};
+
+const COMPACT_SUB: CSSProperties = {
+  fontSize: "var(--font-size-caption)",
+  color: "var(--color-text-muted)",
+  letterSpacing: "0.05em",
+};
+
+// Flush: SystemDiagram reserves its own padding inside the viewBox, and the frame's edge separates it from the sidebar.
+const DIAGRAM_FRAME: CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  minHeight: 0,
+};
+
+const DIAGRAM_WRAP: CSSProperties = {
+  position: "relative",
+  flex: 1,
+  minWidth: 0,
+  minHeight: 0,
+  display: "flex",
+  alignItems: "stretch",
+  justifyContent: "stretch",
+};
+
+const OVERLAY_LAYER: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  // Keep the diagram beneath interactive (pan/zoom/hover); an overlay augment re-enables pointer events on its own elements when it needs them.
+  pointerEvents: "none",
+};
 
 registerComponent<SystemViewConfig>({
   id: "system-view",
