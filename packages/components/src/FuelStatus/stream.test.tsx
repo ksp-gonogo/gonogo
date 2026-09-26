@@ -8,7 +8,7 @@ import { FuelStatusComponent } from "./index";
 /**
  * FuelStatus off the real stream pipeline, with no legacy `DataSource` registered. MonoPropellant, XenonGas and ElectricCharge read vessel totals off `vessel.resources` (wire shape `{ resources: { <name>: { current, max } }, meta }`); LiquidFuel and Oxidizer read stage-scoped channels this file does not feed, so they drop from the list.
  */
-describe("FuelStatus: genuinely runs off the stream (M3 batch 1 + P4a dv.* migration)", () => {
+describe("FuelStatus: genuinely runs off the stream", () => {
   it("reads current stage + vessel-total resources off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.structure", "vessel.resources"],
