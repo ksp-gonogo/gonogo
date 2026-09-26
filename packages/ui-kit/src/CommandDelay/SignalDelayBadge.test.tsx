@@ -35,14 +35,12 @@ describe("SignalDelayBadge", () => {
     expect(text).toContain("4");
   });
 
-  it("announces politely rather than as an alert", () => {
-    // A separation is a standing condition of the link, not an event worth
-    // interrupting a screen reader mid-sentence for.
+  it("is not a live region, since the delay changes with every sample of the separation", () => {
     render(<SignalDelayBadge oneWaySeconds={0.4} />);
-    expect(screen.getByLabelText("Signal delay")).toHaveAttribute(
-      "role",
-      "status",
-    );
+    const badge = screen.getByLabelText("Signal delay");
+    expect(badge).not.toHaveAttribute("role", "status");
+    expect(badge).not.toHaveAttribute("aria-live");
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("has no a11y violations", async () => {
