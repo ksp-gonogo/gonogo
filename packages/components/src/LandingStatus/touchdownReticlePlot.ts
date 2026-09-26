@@ -8,6 +8,7 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { parentBodyFromTopics } from "../shared/streamBody";
 import { greatCircle } from "./geo";
+import { siteWorthPlotting } from "./siteGate";
 
 /**
  * The touchdown reticle as a contributed plot: the top-down half of the altimetry pair, in metres east and north of the predicted site, with the vessel at its real displacement and the landing zone at its actual radius.
@@ -157,18 +158,6 @@ export function buildTouchdownReticlePlot(
     },
     layers,
   };
-}
-
-/** Metres AGL below which an atmospheric descent is a landing rather than an entry; `compute` is pure, so the altitude gate is the whole test. */
-const ATMO_PLOT_ALT_GATE_M = 10_000;
-
-/** A vacuum descent is always ready; an atmospheric one waits for the gate above. */
-function siteWorthPlotting(
-  hasAtmosphere: boolean,
-  aglMeters: number | null,
-): boolean {
-  if (!hasAtmosphere) return true;
-  return aglMeters != null && aglMeters < ATMO_PLOT_ALT_GATE_M;
 }
 
 /** Slope and biome, each only when known: an absent slope is not a flat site. */

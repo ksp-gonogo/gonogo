@@ -54,6 +54,7 @@ import "./touchdownReticlePlot";
 import { useBodyName } from "../shared/useBodyName";
 import { greatCircle } from "./geo";
 import { deriveHazardVerdict } from "./hazardVerdict";
+import { ATMOSPHERIC_SITE_GATE_M } from "./siteGate";
 import { solveSuicideBurn } from "./solveLanding";
 
 type LandingStatusConfig = Record<string, never>;
@@ -323,10 +324,6 @@ function useScrollerHeight(): [(node: HTMLElement | null) => void, number] {
 
 const DESCENT_HISTORY_MAX = 60;
 
-// Atmospheric terrain plots appear only once the predicted touchdown has settled or the vessel is low: a jumpy high-altitude prediction is drag noise.
-const PREDICTION_STABLE_M = 250; // predicted point moves < this per tick ⇒ settled
-const ATMO_PLOTS_ALT_GATE = 10_000; // metres AGL, the base unit a bare operand takes
-
 /** Air thin enough that the descent is effectively vacuum, so the readout says so rather than quoting zeroes. */
 const NEGLIGIBLE_DENSITY = 0.001; // kg/m³, the base unit a bare operand takes
 
@@ -511,31 +508,6 @@ function LandingStatusComponent({
     });
   }, [currentVs]);
 
-  // How far the predicted touchdown moved since the last tick; settling is what makes an atmospheric site worth drawing.
-  const prevPredictedRef = useRef<{ lat: number; lon: number } | null>(null);
-  const [predictionMovement, setPredictionMovement] = useState<number | null>(
-    null,
-  );
-  // Magnitudes, because a `Value` is a fresh object every frame and would re-run the effect each tick.
-  const predLat = landing?.predictedLatitude?.magnitude;
-  const predLon = landing?.predictedLongitude?.magnitude;
-  const bodyRadius = body?.radius;
-  useEffect(() => {
-    if (predLat == null || predLon == null || bodyRadius == null) {
-      prevPredictedRef.current = null;
-      setPredictionMovement(null);
-      return;
-    }
-    const prev = prevPredictedRef.current;
-    if (prev) {
-      setPredictionMovement(
-        greatCircle(prev.lat, prev.lon, predLat, predLon, bodyRadius)
-          .distanceMeters,
-      );
-    }
-    prevPredictedRef.current = { lat: predLat, lon: predLon };
-  }, [predLat, predLon, bodyRadius]);
-
   // `no-path` is not live: with no comms telemetry at all the hero must not claim the loop is closed.
   const live = clocks.regime === "live";
   const width = w ?? 8;
@@ -545,14 +517,11 @@ function LandingStatusComponent({
   const showPlots = width >= 8;
   // The altitude rail is a gauge, so it is chrome rather than a contributed plot.
   const showRail = showScope;
-  // On an atmospheric board the terrain plots wait for a settled prediction or a low vessel; on a vacuum board a sample is enough.
-  const predictionStable =
-    predictionMovement != null && predictionMovement < PREDICTION_STABLE_M;
-  const lowApproach = heightFromTerrain?.lessThan(ATMO_PLOTS_ALT_GATE);
+  // An atmospheric site is described under the same altitude gate its terrain plots draw under; on a vacuum board a sample is enough.
   const atmosphericPlotsShown =
     atmospheric &&
     landing?.sampleSource != null &&
-    (predictionStable || lowApproach);
+    heightFromTerrain?.lessThan(ATMOSPHERIC_SITE_GATE_M) === true;
   // Whether the site text beside the plots (verdict banner, biome and terrain line) has a site to describe.
   const siteReadoutsShown =
     showPlots &&

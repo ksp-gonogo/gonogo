@@ -8,6 +8,7 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { parentBodyFromTopics } from "../shared/streamBody";
 import { greatCircle } from "./geo";
+import { siteWorthPlotting } from "./siteGate";
 
 /**
  * The terrain cross-section as a contributed plot, in real metres both ways: a side-on slice along the ground track through the predicted touchdown, with the vessel above it and its velocity drawn as where it will be in ten seconds.
@@ -121,18 +122,6 @@ export function sliceTerrain(
     siteElevation: bilinear(patch, patchSize, centre, centre),
     halfSpan,
   };
-}
-
-/** Metres AGL below which an atmospheric descent is a landing rather than an entry; `compute` is pure, so a settling rate between frames has nowhere to live and the altitude gate is the whole test. */
-const ATMO_PLOT_ALT_GATE_M = 10_000;
-
-/** A vacuum descent is always ready; an atmospheric one waits for the gate above. */
-function siteWorthPlotting(
-  hasAtmosphere: boolean,
-  aglMeters: number | null,
-): boolean {
-  if (!hasAtmosphere) return true;
-  return aglMeters != null && aglMeters < ATMO_PLOT_ALT_GATE_M;
 }
 
 function fmtSpeed(v: number): string {
