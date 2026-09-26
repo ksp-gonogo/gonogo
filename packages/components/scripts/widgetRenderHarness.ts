@@ -420,7 +420,7 @@ export async function renderWidgets(
     }
 
     const newlyClipped = findings.clipped.filter(
-      (f) => !CLIPPED_MARK_DEBT.has(f.slice(0, f.indexOf(" @ "))),
+      (f) => !CLIPPED_CONTENT_DEBT.has(f.slice(0, f.indexOf(" @ "))),
     );
     const clippedInDebt = findings.clipped.length - newlyClipped.length;
     if (clippedInDebt > 0) {
@@ -428,20 +428,20 @@ export async function renderWidgets(
         ...new Set(
           findings.clipped
             .map((f) => f.slice(0, f.indexOf(" @ ")))
-            .filter((id) => CLIPPED_MARK_DEBT.has(id)),
+            .filter((id) => CLIPPED_CONTENT_DEBT.has(id)),
         ),
       ];
       console.warn(
-        `\n[warn] ${clippedInDebt} declared mark(s) hidden by a clipping ` +
-          `ancestor in ${inDebt.join(", ")}, which are known and allowed to ` +
+        `\n[warn] ${clippedInDebt} element(s) out of every scroll position's ` +
+          `reach in ${inDebt.join(", ")}, which are known and allowed to ` +
           "fail. Set PROBE_ALLOW_CLIPPED=1 for the full list.",
       );
     }
-    for (const id of CLIPPED_MARK_DEBT) {
+    for (const id of CLIPPED_CONTENT_DEBT) {
       if (!configs.some((c) => c.widgetId === id)) continue;
       if (findings.clipped.some((f) => f.startsWith(`${id} @ `))) continue;
       console.warn(
-        `\n[warn] ${id} is in CLIPPED_MARK_DEBT and reported nothing. ` +
+        `\n[warn] ${id} is in CLIPPED_CONTENT_DEBT and reported nothing. ` +
           "Drop the entry so the next one cannot slip in under it.",
       );
     }
@@ -451,19 +451,20 @@ export async function renderWidgets(
           ? findings.clipped
           : newlyClipped;
       const message =
-        `${listed.length} element(s) drawn but entirely hidden by a ` +
-        "clipping ancestor, so the operator cannot see them at all:\n  " +
+        `${listed.length} element(s) drawn where no scroll position shows ` +
+        "them, so the operator cannot see them at all:\n  " +
         listed.join("\n  ");
       if (process.env.PROBE_ALLOW_CLIPPED === "1") {
         console.warn(`\n[warn] ${message}`);
       } else {
         throw new Error(
-          `${message}\n(Set PROBE_ALLOW_CLIPPED=1 to render anyway. The usual ` +
-            "cause is a box that shrink-wraps its content AND clips it, next to " +
-            "a child positioned outside that box on purpose: the child costs the " +
-            "layout no width, and there is no width left for it to land in. " +
-            "Reserve the child's size on the clipping box rather than moving the " +
-            "child, which is what made it free in the first place.)",
+          `${message}\n(Set PROBE_ALLOW_CLIPPED=1 to render anyway. For a ` +
+            "declared mark the usual cause is a box that shrink-wraps its " +
+            "content AND clips it, next to a child positioned outside it on " +
+            "purpose: reserve the child's size on the clipping box. For content " +
+            "the usual cause is a box that hides rather than scrolls holding " +
+            "more than it can show, or a flexing section squeezed to nothing: " +
+            "let the Panel body scroll it, or give the section a floor.)",
         );
       }
     }
@@ -471,8 +472,10 @@ export async function renderWidgets(
     if (findings.clipSurvey.length > 0) {
       console.warn(
         `\n[clipping] ${findings.clipSurvey.length} box(es) holding more than they show. ` +
-          "HIDES is unreachable; SCROLLS is reachable but the panel body suppresses " +
-          "its scrollbar, so nothing says there is more:\n  " +
+          "SCROLLS is reachable, and Panel.Glow says there is more. HIDES counts " +
+          "a box's overflow, which a positioned or visually-hidden descendant can " +
+          "raise with nothing out of reach; the clip gate is what says whether " +
+          "anything is:\n  " +
           findings.clipSurvey.join("\n  "),
       );
     }
@@ -720,6 +723,7 @@ const OVERLAP_TOLERANCE_PX = 2;
  * those elements, which is what made them look like a stack.
  */
 const HTML_NS = "http://www.w3.org/1999/xhtml";
+const SVG_NS = "http://www.w3.org/2000/svg";
 async function findOverlappingSections(page: Page): Promise<string[]> {
   return page.evaluate(
     ([tolerance, htmlNs]) => {
@@ -949,11 +953,12 @@ export async function surveyClippedContent(page: Page): Promise<string[]> {
           .filter(Boolean)
           .join(" and ");
         /*
-         * Two verdicts, because they are different defects and only a person
-         * can weigh the second. HIDES is unreachable: the box was told to hide
-         * and the reading is gone. SCROLLS is reachable, but this app's panel
-         * body scrolls with its scrollbar suppressed, so a reading below the
-         * fold looks identical to one that does not exist.
+         * Two verdicts, because they are different questions and only a person
+         * can weigh the second. HIDES is a box told to hide that holds more
+         * than it shows. SCROLLS is reachable and has an affordance (the panel
+         * body's scrollbar is suppressed, and Panel.Glow shows there is more),
+         * so it is worth reporting because a reading below the fold is easy to
+         * miss, not because it is a defect.
          */
         const verb =
           (overY > tolerance && hidesY) || (overX > tolerance && hidesX)
@@ -1053,8 +1058,9 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
 }
 
 /**
- * Every element under `#root` whose author declared it must be seen and which
- * paints NOTHING, because a clipping ancestor hides all of it.
+ * Every element under `#root` that an operator reads, or that its author
+ * declared must be seen, and that NO scroll position can show, because a box
+ * that hides its overflow leaves none of it visible.
  *
  * The INVERSE of {@link findOverlappingSections}, and a separate walk rather
  * than a widening of it, because the two rules that make that one correct are
@@ -1088,37 +1094,39 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
  * for, the operator cannot act on it, and there is no reading under which that
  * was intended. If it were meant to be absent it would not be rendered.
  *
- * `auto` and `scroll` are NOT clipping for this purpose. They hide content the
- * operator can still reach, which is a scroll container doing its job; only
- * `hidden` and `clip` put something permanently out of reach.
+ * `auto` and `scroll` do not hide on their own. A scroller brings whatever it
+ * holds into its viewport, so the walk widens the region an element could be
+ * seen in by however far the scroller can move it, narrows that to the
+ * scroller's viewport, and carries on climbing. A scroller whose viewport is
+ * itself clipped by an outer box that hides (a Panel body squeezed taller than
+ * its root) scrolls some of its content only into pixels nobody sees, and a
+ * scroller squeezed to no height shows nothing at any position; both are
+ * reported.
  *
- * ## Scope: DECLARED, out-of-flow elements only, and what that gives up
+ * ## Scope: content and declared marks, and the one thing left to a declaration
  *
- * Geometry alone cannot separate this defect from a design. Asked of every
- * element the walk reports 35,494 over the corpus, nearly all of it content
- * below the fold of a tile shorter than the widget, which is ordinary overflow
- * and is why `fullContent` exists. Restricted to out-of-flow elements it
- * reports 5,657, nearly all of them the `VisuallyHidden` idiom. Restricted
- * again to exclude that idiom it reports 1,399, and 1,259 of those are navball
- * heading labels and tech-tree nodes, which are absolutely positioned, wholly
- * outside a clipping ancestor, and CORRECT, because a tape and a pannable graph
- * are windows onto something larger. They are geometrically identical to the
- * `Meter` dot.
+ * CONTENT is an element holding text of its own, an image, a canvas, a form
+ * control, or the outermost element of a drawing. Asked of all of it, the walk
+ * finds content that overflowed a box that hides: a fit-to-size body whose
+ * content outgrew the tile, a squeezed section, a label crushed to no width.
+ * None of that is marked and none of it can be brought back.
  *
- * So the intent comes from the component rather than from the geometry: the
- * walk asks only about elements carrying `data-not-current-mark`, and the
- * out-of-flow rule narrows within that.
+ * Content that has been positioned or transformed inside the box that hides it
+ * is left alone. A tape's far heading labels and a pannable graph's far nodes
+ * are absolutely positioned, wholly outside a clipping ancestor, and CORRECT,
+ * because a tape and a pannable graph are windows onto something larger. They
+ * are geometrically identical to a defect, so the intent has to come from the
+ * component: an element carrying `data-not-current-mark` is asked about wherever
+ * it is drawn, which is how a `Meter` dot was found.
  *
- * **What that gives up**: an undeclared element is none of this gate's
- * business, and a widget clipping its own TEXT for want of room is in-flow, so
- * this does not see it either. That shape wants a different question, asked
- * per-container against an intended line count rather than per-element against
- * a box, and it is not attempted here. Stated so the gate's green is read as
- * "no declared mark is hidden" and not as "nothing is clipped".
+ * Stated so the gate's green is read as "nothing an operator reads is out of
+ * every scroll position's reach, bar what sits in a positioned window" and not
+ * as "nothing is clipped": text cut short by an ellipsis still shows the
+ * ellipsis, and a phrase half past an edge still shows its other half.
  */
 /**
- * Widgets that already draw a declared mark where the operator cannot see it.
- * Shrink-only: a widget not named here fails the render.
+ * Widgets that already draw content, or a declared mark, where no scroll
+ * position shows it. Shrink-only: a widget not named here fails the render.
  *
  * The key is the widget id and NOT a count, because a count moves with the
  * number of scenes and tile sizes the widget is rendered at, and neither of
@@ -1129,122 +1137,173 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
  * longer exists protects nothing and the gate stays strict for every real id,
  * which is the safe direction to be wrong in.
  */
-const CLIPPED_MARK_DEBT = new Set(["crew-status"]);
+const CLIPPED_CONTENT_DEBT = new Set([
+  "crew-status",
+  "map-view",
+  "power-systems",
+  "strategies",
+  "twr",
+  "warp-control",
+]);
 
 async function findClippedContent(page: Page): Promise<string[]> {
-  return page.evaluate((htmlNs) => {
-    const host = document.getElementById("root");
-    if (!host) return [] as string[];
-    const out: string[] = [];
+  return page.evaluate(
+    ([htmlNs, svgNs]) => {
+      const host = document.getElementById("root");
+      if (!host) return [] as string[];
+      const out: string[] = [];
 
-    /*
-     * DECLARED marks only: the author says an element must be visible where it
-     * is drawn, and the gate never infers it from geometry.
-     *
-     * A widget opts in by adding its own attribute to this selector. There is
-     * deliberately no general-purpose spelling to reach for, so that whoever
-     * needs the second one names it against the real case rather than against
-     * a guess at what the case will be.
-     */
-    for (const el of Array.from(
-      host.querySelectorAll("[data-not-current-mark]"),
-    )) {
-      if (el.namespaceURI !== htmlNs) continue;
-      const s = getComputedStyle(el);
-      /* Not rendered at all is a legitimate way to say "nothing here". This
-         gate is about things that ARE drawn and cannot be seen. */
-      if (s.display === "none" || s.visibility === "hidden") continue;
-      if (s.opacity === "0") continue;
-      /* Viewport-relative, so an ancestor's box says nothing about it. */
-      if (s.position === "fixed") continue;
-      /*
-       * OUT-OF-FLOW ONLY. In-flow content below the fold of a clipping box is
-       * ordinary overflow: a widget taller than the tile it is rendered in,
-       * which this harness expects and has a `fullContent` mode for.
-       *
-       * An absolutely positioned element is different in kind. It has been
-       * placed deliberately, relative to a named container, at a spot chosen by
-       * whoever wrote it. If it lands wholly outside a clipping ancestor, that
-       * placement has been defeated rather than merely scrolled past, and no
-       * resize or scroll brings it back.
-       */
-      if (s.position !== "absolute") continue;
-
-      /*
-       * The visually-hidden idiom: `position: absolute`, 1x1, `clip:
-       * rect(0,0,0,0)`, parked outside the visible area ON PURPOSE so assistive
-       * tech reads it and the eye does not. ui-kit's `VisuallyHidden` is exactly
-       * this, and every spoken unit expansion in the kit ("metres per second",
-       * "funds per day") is one.
-       */
-      if (s.clip !== "auto" && s.clip !== "") continue;
-
-      const box = el.getBoundingClientRect();
-      if (box.width <= 0 || box.height <= 0) continue;
-
-      for (let anc = el.parentElement; anc; anc = anc.parentElement) {
-        const as = getComputedStyle(anc);
+      for (const el of Array.from(host.querySelectorAll("*"))) {
         /*
-         * A scroll container brings whatever it holds into view, so a mark
-         * inside one is reachable, however far past the fold it sits and
-         * whatever clips the scroller from outside. The walk stops there
-         * rather than climbing on to blame an outer box (a Panel's own
-         * `overflow: hidden` root, around its scrolling body) for content that
-         * is only scrolled away.
+         * Two kinds of element are asked about. A DECLARED mark is one whose
+         * author says it must be seen where it is drawn. CONTENT is anything an
+         * operator reads: an element holding text of its own, an image, a
+         * canvas, a form control, or the outermost element of a drawing.
          */
-        const scrolls =
-          /^(auto|scroll)$/.test(as.overflowX) ||
-          /^(auto|scroll)$/.test(as.overflowY);
-        if (
-          !/^(hidden|clip)$/.test(as.overflowX) &&
-          !/^(hidden|clip)$/.test(as.overflowY)
-        ) {
-          if (scrolls || anc === host) break;
-          continue;
+        const declared =
+          el.namespaceURI === htmlNs &&
+          el.hasAttribute("data-not-current-mark");
+        const content =
+          !declared &&
+          (el.namespaceURI === svgNs
+            ? el.localName === "svg" &&
+              el.parentElement?.namespaceURI === htmlNs
+            : el.namespaceURI === htmlNs &&
+              (/^(img|canvas|input|select|textarea)$/.test(el.localName) ||
+                Array.from(el.childNodes).some(
+                  (n) =>
+                    n.nodeType === Node.TEXT_NODE &&
+                    (n.textContent ?? "").trim() !== "",
+                )));
+        if (!declared && !content) continue;
+
+        const s = getComputedStyle(el);
+        /* Not rendered at all is a legitimate way to say "nothing here". This
+           gate is about things that ARE drawn and cannot be seen. */
+        if (s.display === "none" || s.visibility === "hidden") continue;
+        if (s.opacity === "0") continue;
+        /* Viewport-relative, so an ancestor's box says nothing about it. */
+        if (s.position === "fixed") continue;
+        /*
+         * The visually-hidden idiom: `position: absolute`, 1x1, `clip:
+         * rect(0,0,0,0)`, parked outside the visible area ON PURPOSE so
+         * assistive tech reads it and the eye does not. ui-kit's
+         * `VisuallyHidden` is exactly this, and every spoken unit expansion in
+         * the kit ("metres per second", "funds per day") is one.
+         */
+        if (s.clip !== "auto" && s.clip !== "") continue;
+        const box = el.getBoundingClientRect();
+        if (box.width <= 0 || box.height <= 0) continue;
+
+        /*
+         * The region the element COULD be seen in, narrowed at every box that
+         * clips it. A scroll container first widens it by however far the
+         * content can travel inside it, both ways from where it sits now, and
+         * then narrows it to its own viewport, so content anywhere in a scroller
+         * counts as reachable exactly when some scroll position shows it. The
+         * walk does NOT stop at the scroller: a scroller taller than a box that
+         * hides its own overflow has a viewport the operator never sees, and
+         * whatever scrolls only into that part is out of reach.
+         */
+        let left = box.left;
+        let right = box.right;
+        let top = box.top;
+        let bottom = box.bottom;
+        /* Set once the element or an ancestor has been moved out of flow or
+           transformed below the box being asked about. */
+        let moved = s.position === "absolute" || s.transform !== "none";
+        for (let anc = el.parentElement; anc; anc = anc.parentElement) {
+          const as = getComputedStyle(anc);
+          if (as.opacity === "0") break;
+          const hidesX = /^(hidden|clip)$/.test(as.overflowX);
+          const hidesY = /^(hidden|clip)$/.test(as.overflowY);
+          const scrollsX = /^(auto|scroll)$/.test(as.overflowX);
+          const scrollsY = /^(auto|scroll)$/.test(as.overflowY);
+          if (hidesX || hidesY || scrollsX || scrollsY) {
+            /*
+             * Undeclared content that has been positioned or transformed inside
+             * a box that hides is a window onto something larger: a tape's
+             * heading labels, a pannable graph's far nodes. Geometrically those
+             * are identical to a defect, and only a declaration can tell them
+             * apart, so they are left to it.
+             */
+            if (!declared && moved && (hidesX || hidesY)) break;
+            const rect = anc.getBoundingClientRect();
+            const clipLeft = rect.left + anc.clientLeft;
+            const clipTop = rect.top + anc.clientTop;
+            if (scrollsX) {
+              left -= anc.scrollWidth - anc.clientWidth - anc.scrollLeft;
+              right += anc.scrollLeft;
+            }
+            if (scrollsY) {
+              top -= anc.scrollHeight - anc.clientHeight - anc.scrollTop;
+              bottom += anc.scrollTop;
+            }
+            if (hidesX || scrollsX) {
+              left = Math.max(left, clipLeft);
+              right = Math.min(right, clipLeft + anc.clientWidth);
+            }
+            if (hidesY || scrollsY) {
+              top = Math.max(top, clipTop);
+              bottom = Math.min(bottom, clipTop + anc.clientHeight);
+            }
+            const goneX = right - left <= 0.5;
+            const goneY = bottom - top <= 0.5;
+            if (goneX || goneY) {
+              /*
+               * A phrase cut short by an ellipsis on a box with room to draw
+               * the ellipsis: whatever the cut removed, the reader can see that
+               * something was, which is the truncation this codebase asks for
+               * on purpose. A box too narrow for the glyph says nothing, so it
+               * still counts.
+               */
+              if (
+                goneX &&
+                !goneY &&
+                hidesX &&
+                as.textOverflow === "ellipsis" &&
+                anc.clientWidth >= 0.6 * Number.parseFloat(as.fontSize)
+              ) {
+                break;
+              }
+              const text = (el.textContent ?? "").replace(/\s+/g, " ").trim();
+              out.push(
+                /* Both descriptions inlined: a named arrow inside a
+                   page.evaluate is wrapped by tsx keepNames with a __name()
+                   helper that does not exist in the page, and throws. */
+                `<${el.localName}${el.id ? `#${el.id}` : ""}>` +
+                  `${text ? ` "${text.slice(0, 32)}"` : ""}` +
+                  `${declared ? " (declared mark)" : ""}` +
+                  ` is out of reach ${goneX ? "horizontally" : "vertically"} ` +
+                  `inside <${anc.localName}${anc.id ? `#${anc.id}` : ""}` +
+                  `${Array.from(anc.attributes)
+                    .filter((a) => a.name.startsWith("data-"))
+                    .map((a) => ` ${a.name}`)
+                    .join("")}> ` +
+                  `(element ${Math.round(box.left)}..${Math.round(box.right)} x ` +
+                  `${Math.round(box.top)}..${Math.round(box.bottom)}, ` +
+                  `${anc.localName} shows ` +
+                  `${Math.round(clipLeft)}..${Math.round(clipLeft + anc.clientWidth)} x ` +
+                  `${Math.round(clipTop)}..${Math.round(clipTop + anc.clientHeight)}` +
+                  `${scrollsX || scrollsY ? " and scrolls" : ""})`,
+              );
+              break;
+            }
+          }
+          if (
+            as.position === "absolute" ||
+            as.position === "fixed" ||
+            as.transform !== "none"
+          ) {
+            moved = true;
+          }
+          if (anc === host) break;
         }
-        const clip = anc.getBoundingClientRect();
-        const hiddenX =
-          /^(hidden|clip)$/.test(as.overflowX) &&
-          (box.left >= clip.right - 0.5 || box.right <= clip.left + 0.5);
-        const hiddenY =
-          /^(hidden|clip)$/.test(as.overflowY) &&
-          (box.top >= clip.bottom - 0.5 || box.bottom <= clip.top + 0.5);
-        if (hiddenX || hiddenY) {
-          const axis = hiddenX ? "horizontally" : "vertically";
-          out.push(
-            /* Both descriptions inlined: a named arrow inside a
-               page.evaluate is wrapped by tsx keepNames with a __name()
-               helper that does not exist in the page, and throws. */
-            `<${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}` +
-              `${
-                String(el.className ?? "")
-                  .trim()
-                  .split(/\s+/)[0]
-                  ? `.${String(el.className).trim().split(/\s+/)[0]}`
-                  : ""
-              }>` +
-              `${(el.textContent ?? "").trim().slice(0, 24) ? ` "${(el.textContent ?? "").trim().slice(0, 24)}"` : ""}` +
-              ` is entirely hidden ${axis} by ` +
-              `<${anc.tagName.toLowerCase()}${anc.id ? `#${anc.id}` : ""}` +
-              `${
-                String(anc.className ?? "")
-                  .trim()
-                  .split(/\s+/)[0]
-                  ? `.${String(anc.className).trim().split(/\s+/)[0]}`
-                  : ""
-              }> ` +
-              `(element ${Math.round(box.left)}..${Math.round(box.right)} x ` +
-              `${Math.round(box.top)}..${Math.round(box.bottom)}, clipped to ` +
-              `${Math.round(clip.left)}..${Math.round(clip.right)} x ` +
-              `${Math.round(clip.top)}..${Math.round(clip.bottom)})`,
-          );
-          break;
-        }
-        if (scrolls || anc === host) break;
       }
-    }
-    return out;
-  }, HTML_NS);
+      return out;
+    },
+    [HTML_NS, SVG_NS] as const,
+  );
 }
 
 /**
@@ -1256,28 +1315,37 @@ async function findClippedContent(page: Page): Promise<string[]> {
  * because the defect it hunts was invisible to every other instrument for as
  * long as it existed.
  *
- * Two firing cases, because the two known specimens have different shapes and a
- * gate that caught one would look finished:
+ * Four firing cases, because each is a different way for content to leave the
+ * operator's reach and a gate that caught one would look finished:
  *
- * - `fires-absolute`: the `Meter` shape. An absolutely-positioned child at
+ * - `fires-absolute`: the `Meter` shape. An absolutely-positioned mark at
  *   `left: 100%` of a shrink-wrapped, `overflow: hidden` parent, so it lands
  *   wholly outside with no slack to land in
- * - `fires-pushed`: content displaced entirely below a fixed-height clipping
+ * - `fires-below`: a mark displaced entirely below a fixed-height clipping
  *   box, which is the same failure by translation rather than by positioning
+ * - `fires-below-fold`: undeclared, in-flow text below the fold of a box that
+ *   hides rather than scrolls. Nothing marks it and nothing brings it back
+ * - `fires-overhang`: text at the end of a scroller that is taller than the
+ *   box hiding it. Scrolling brings it only into the part of the scroller's
+ *   viewport the operator never sees
  *
- * Three quiet cases, each a thing this codebase does on purpose:
+ * Seven quiet cases, each a thing this codebase does on purpose:
  *
  * - `quiet-scroll`: content past the end of an `overflow: auto` container. The
  *   operator can scroll to it, so it is not out of reach
- * - `quiet-scroll-mark`: the same for a DECLARED, absolutely positioned mark,
- *   inside a scroller that an outer `overflow: hidden` box clips, which is a
- *   Panel's own shape (a clipping root around a scrolling body). `quiet-scroll`
- *   cannot stand in for it: in-flow and undeclared, it is skipped before the
- *   walk ever reaches a scroller
- * - `quiet-ellipsis`: a phrase truncated by `overflow: hidden` +
- *   `text-overflow: ellipsis`, which loses pixels by design and stays readable
+ * - `quiet-scroll-mark` and `quiet-scroll-text`: a declared mark and plain
+ *   text past the end of a scroller that an outer `overflow: hidden` box clips,
+ *   which is a Panel's own shape (a clipping root around a scrolling body)
+ * - `quiet-ellipsis` and `quiet-ellipsis-child`: a phrase truncated by
+ *   `overflow: hidden` + `text-overflow: ellipsis`, the second with the cut
+ *   text in a child element wholly past the edge. The ellipsis says there is
+ *   more, which is the design
  * - `quiet-partial`: a child hanging half outside a clipping box. Still visible,
  *   still actionable, and firing on it would report every badge in the kit
+ * - `quiet-window`: an absolutely positioned label outside a clipping box, the
+ *   shape of a tape's far headings. Only a declaration tells that from a
+ *   defect, so undeclared it is left alone
+ * - `quiet-sr-only`: the visually-hidden idiom, parked out of sight on purpose
  */
 async function proveClipDetectorWorks(page: Page): Promise<void> {
   await page.evaluate(() => {
@@ -1302,13 +1370,15 @@ async function proveClipDetectorWorks(page: Page): Promise<void> {
           id="fires-below" data-not-current-mark=""
           style="position:absolute;top:100%;left:0;width:6px;height:6px;background:#fa0"></span></span>
       </div>
-      <!-- IN-FLOW content below the fold: deliberately NOT caught. A widget
-           taller than its tile is ordinary overflow and the harness has a
-           fullContent mode for it. It is also undeclared, so it is out of
-           scope twice over. -->
       <div style="position:absolute;top:500px;left:0;width:120px;height:20px;overflow:hidden">
         <div style="height:40px"></div>
-        <div id="quiet-below-fold" style="height:20px">below the fold</div>
+        <div id="fires-below-fold" style="height:20px">below the fold</div>
+      </div>
+      <div style="position:absolute;top:700px;left:0;width:120px;height:40px;overflow:hidden">
+        <div style="height:100px;overflow:auto">
+          <div style="height:120px"></div>
+          <div id="fires-overhang" style="height:20px">overhang</div>
+        </div>
       </div>
       <div style="position:absolute;top:200px;left:0;width:120px;height:20px;overflow:auto">
         <div style="height:40px"></div>
@@ -1320,13 +1390,23 @@ async function proveClipDetectorWorks(page: Page): Promise<void> {
           <span style="position:relative;display:inline-block">v<span
             id="quiet-scroll-mark" data-not-current-mark=""
             style="position:absolute;left:100%;top:0;width:6px;height:6px;background:#fa0"></span></span>
+          <div id="quiet-scroll-text" style="height:20px">scrolled to</div>
         </div>
       </div>
       <div style="position:absolute;top:300px;left:0;width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
         <span id="quiet-ellipsis">a phrase far too long for sixty pixels</span>
       </div>
+      <div style="position:absolute;top:340px;left:0;width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+        <span style="display:inline-block;width:60px"></span><span id="quiet-ellipsis-child">cut</span>
+      </div>
       <div style="position:absolute;top:400px;left:0;width:60px;height:20px;overflow:hidden">
         <div id="quiet-partial" style="width:120px;height:20px">half out</div>
+      </div>
+      <div style="position:absolute;top:800px;left:0;width:60px;height:20px;overflow:hidden">
+        <span id="quiet-window" style="position:absolute;left:0;top:40px">far</span>
+      </div>
+      <div style="position:absolute;top:840px;left:0;width:60px;height:20px;overflow:hidden">
+        <span id="quiet-sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">spoken</span>
       </div>`;
     host.appendChild(box);
   });
@@ -1335,17 +1415,22 @@ async function proveClipDetectorWorks(page: Page): Promise<void> {
     document.getElementById("clip-detector-selfcheck")?.remove(),
   );
 
-  const missed = ["fires-absolute", "fires-below"].filter(
-    (id) => !found.some((f) => f.includes(id)),
-  );
-  const misfired = found.filter((f) => f.includes("quiet-"));
+  const missed = [
+    "fires-absolute",
+    "fires-below",
+    "fires-below-fold",
+    "fires-overhang",
+  ].filter((id) => !found.some((f) => f.includes(`#${id}>`)));
+  const misfired = found.filter((f) => f.includes("#quiet-"));
   if (missed.length > 0) {
     throw new Error(
       "The clipping detector is BLIND to " +
-        `${missed.join(" and ")}, so a clean run proves nothing about the ` +
-        "widgets. These are the two shapes it exists to catch: an absolutely " +
-        "positioned mark past the horizontal edge of a shrink-wrapped clipping " +
-        "parent, and one past the vertical edge of a fixed-height one.\n" +
+        `${missed.join(", ")}, so a clean run proves nothing about the ` +
+        "widgets. These are the four shapes it exists to catch: a mark past " +
+        "the horizontal edge of a shrink-wrapped clipping parent, a mark past " +
+        "the vertical edge of a fixed-height one, text below the fold of a box " +
+        "that hides rather than scrolls, and text at the end of a scroller " +
+        "taller than the box that hides it.\n" +
         `What it did report: ${found.length === 0 ? "nothing" : found.join("; ")}`,
     );
   }
@@ -1353,8 +1438,8 @@ async function proveClipDetectorWorks(page: Page): Promise<void> {
     throw new Error(
       "The clipping detector reported clipping that is deliberate, so its " +
         "verdict on a widget cannot be trusted either. A scroll container, an " +
-        "ellipsis truncation and a half-visible child are all designs this " +
-        "codebase uses:\n  " +
+        "ellipsis truncation, a half-visible child, a positioned window and " +
+        "a visually-hidden label are all designs this codebase uses:\n  " +
         misfired.join("\n  "),
     );
   }
