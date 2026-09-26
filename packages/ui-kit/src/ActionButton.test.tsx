@@ -2,6 +2,7 @@ import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ActionButton } from "./ActionButton";
+import { emittedRuleFor, emittedStateRuleFor } from "./test/emittedRule";
 
 describe("ActionButton", () => {
   it("renders its children as a real button", () => {
@@ -57,5 +58,33 @@ describe("ActionButton", () => {
       "type",
       "submit",
     );
+  });
+});
+
+describe("ActionButton chrome", () => {
+  it("draws the kit focus ring under keyboard focus", () => {
+    render(<ActionButton>Deploy</ActionButton>);
+    expect(
+      emittedStateRuleFor(
+        screen.getByRole("button", { name: "Deploy" }),
+        ":focus-visible",
+      ),
+    ).toContain("outline:2px solid var(--color-focus)");
+  });
+
+  it("outlines the ghost tone in a border that shows on a panel", () => {
+    render(<ActionButton>Deploy</ActionButton>);
+    const rule = emittedRuleFor(screen.getByRole("button", { name: "Deploy" }));
+    expect(rule).toContain("border:1px solid var(--color-border-strong)");
+  });
+
+  it("dims when disabled to the same strength as every other kit control", () => {
+    render(<ActionButton disabled>Deploy</ActionButton>);
+    expect(
+      emittedStateRuleFor(
+        screen.getByRole("button", { name: "Deploy" }),
+        ":disabled",
+      ),
+    ).toContain("opacity:0.4");
   });
 });

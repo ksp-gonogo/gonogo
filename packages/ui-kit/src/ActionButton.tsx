@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import styled, { css, keyframes } from "styled-components";
+import { focusRing } from "./focusRing";
 
 export type ActionButtonTone = "ghost" | "go";
 
@@ -15,9 +16,8 @@ export interface ActionButtonProps
 }
 
 /**
- * Compact row-level action button. Extracted from ScienceOfficer's
- * `ActionButton` + `ConfirmTransmitButton`: the `go` tone replaces the
- * latter.
+ * Compact row-level action button, with a pulsing `go` tone for a pending
+ * confirmation.
  */
 export function ActionButton({
   tone = "ghost",
@@ -47,7 +47,7 @@ const ActionButton__Root = styled.button<{ $tone: ActionButtonTone }>`
   letter-spacing: 0.04em;
   padding: var(--space-2, 2px) var(--space-8, 8px);
   border-radius: var(--radius-regular, 2px);
-  border: 1px solid var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
   background: transparent;
   color: var(--color-text-muted);
   cursor: pointer;
@@ -61,9 +61,11 @@ const ActionButton__Root = styled.button<{ $tone: ActionButtonTone }>`
     border-color: var(--color-accent-fg);
   }
 
+  ${focusRing}
+
   &:disabled {
     cursor: not-allowed;
-    opacity: 0.7;
+    opacity: 0.4;
   }
 
   ${({ $tone }) =>
