@@ -31,7 +31,7 @@ import { inertialFrameFor, resolveProjection } from "./projection";
 import { createUtBucketThrottle } from "./utBucketThrottle";
 // The host's own `system-view.projection` entries, so the picker and resolver run on a bare install.
 import "./projectionContribution";
-import { SystemDiagram, vesselPlotStateFromStatus } from "./SystemDiagram";
+import { SystemDiagram } from "./SystemDiagram";
 import { SystemEntitiesLayer } from "./SystemEntitiesLayer";
 // Registers the built-in vessel-orbits contribution.
 import "./vesselOrbitsContribution";
@@ -44,6 +44,7 @@ import { type CelestialBody, useCelestialBodies } from "./useCelestialBodies";
 import { useCommsEntities } from "./useCommsEntities";
 import { usePhaseAngles } from "./usePhaseAngles";
 import { VesselInfoPanel } from "./VesselInfoPanel";
+import { vesselPlotStateFromStatus } from "./VesselMarker";
 // Registers the built-in `system-view.vessel-status` contribution.
 import "./vesselStatusContribution";
 import "./slots";

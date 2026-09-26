@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { MARKER_STATE_COLOURS } from "./SystemDiagram";
+import { MARKER_STATE_COLOURS } from "./VesselMarker";
 
 /** An undefined CSS custom property paints nothing and says nothing, so every token the diagram strokes with must be defined, and foreground `*-fg` tokens must not be used as strokes on a dark panel. */
 describe("SystemView marker colours", () => {

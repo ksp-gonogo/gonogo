@@ -1,8 +1,3 @@
-/** Case and whitespace insensitive, as SystemDiagram's `nameMatches` is. */
-export function frameNameMatches(a: string, b: string): boolean {
-  return a.trim().toLowerCase() === b.trim().toLowerCase();
-}
-
 function rootName(
   bodies: readonly { name: string | null; referenceBody: string | null }[],
 ): string | null {

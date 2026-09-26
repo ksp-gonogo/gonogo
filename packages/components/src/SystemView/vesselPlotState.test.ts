@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { vesselPlotStateFromStatus } from "./SystemDiagram";
+import { vesselPlotStateFromStatus } from "./VesselMarker";
 
 describe("vesselPlotStateFromStatus", () => {
   it("is observed with no contributed status", () => {

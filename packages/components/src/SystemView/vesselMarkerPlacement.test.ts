@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   MARKER_CROWD_THRESHOLD_PX,
   resolveVesselMarkerPlacement,
-} from "./SystemDiagram";
+} from "./VesselMarker";
 
 describe("resolveVesselMarkerPlacement", () => {
   it("renders on the true position when it's well clear of the parent", () => {
