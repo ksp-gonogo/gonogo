@@ -29,9 +29,14 @@ export interface DataKeyPickerProps {
   placeholder?: string;
   /**
    * What to call the thing the picked key names, for the message shown when a
-   * saved key is no longer on offer. Defaults to "value".
+   * saved key is no longer on offer and for the clear control's name. Defaults
+   * to "value".
    */
   subjectNoun?: string;
+  /** Put on the input, so a `<label htmlFor>` elsewhere names it. */
+  id?: string;
+  /** Names the input when no label points at it. */
+  "aria-label"?: string;
 }
 
 /**
@@ -52,6 +57,8 @@ export function DataKeyPicker({
   clearable = false,
   placeholder = "Search...",
   subjectNoun = "value",
+  id,
+  "aria-label": ariaLabel,
 }: DataKeyPickerProps) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -149,6 +156,8 @@ export function DataKeyPicker({
     <Container ref={containerRef}>
       <PickerInput
         ref={inputRef}
+        id={id}
+        aria-label={ariaLabel}
         value={displayValue}
         placeholder={value ? undefined : placeholder}
         $hasValue={!!value && !open}
@@ -156,6 +165,7 @@ export function DataKeyPicker({
         aria-invalid={retired && !open ? true : undefined}
         aria-describedby={retired && !open ? retiredId : undefined}
         onFocus={openPicker}
+        onBlur={closePicker}
         onChange={(e) => {
           setQuery(e.target.value);
           setActiveIndex(-1);
@@ -177,6 +187,7 @@ export function DataKeyPicker({
       {clearable && value && !open && (
         <ClearButton
           type="button"
+          aria-label={`Clear ${subjectNoun}`}
           onClick={() => {
             onChange(null);
             closePicker();
@@ -195,6 +206,7 @@ export function DataKeyPicker({
           getOptionId={optionId}
           onHoverIndex={setActiveIndex}
           onSelectKey={selectOption}
+          ariaLabel={ariaLabel ?? "Data keys"}
           renderItem={(opt) => (
             <>
               <ItemLabel>{opt.label ?? opt.key}</ItemLabel>
@@ -251,6 +263,8 @@ const ClearButton = styled.button`
   &:hover {
     color: var(--color-text-primary);
   }
+
+  ${focusRing}
 `;
 
 /**

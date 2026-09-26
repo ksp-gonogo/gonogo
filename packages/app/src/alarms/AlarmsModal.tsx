@@ -510,6 +510,7 @@ export function AlarmsModal({
             <Field>
               <FieldLabel htmlFor="alarm-data-key">Telemetry key</FieldLabel>
               <DataKeyPicker
+                id="alarm-data-key"
                 subjectNoun="alarm subject"
                 keys={numericKeys}
                 value={dataKey || null}

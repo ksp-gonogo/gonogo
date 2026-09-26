@@ -1,4 +1,6 @@
 import { fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { KeyOption } from "./DataKeyPicker";
 import { DataKeyPicker } from "./DataKeyPicker";
@@ -252,5 +254,90 @@ describe("DataKeyPicker: a saved key that is no longer offered", () => {
       <DataKeyPicker keys={KEYS} value={null} onChange={() => undefined} />,
     );
     expect(screen.queryByText(/no longer available/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("DataKeyPicker accessibility", () => {
+  it("takes its name from a label pointed at it by id", () => {
+    render(
+      <>
+        <label htmlFor="alarm-key">Telemetry key</label>
+        <DataKeyPicker
+          id="alarm-key"
+          keys={KEYS}
+          value={null}
+          onChange={() => undefined}
+        />
+      </>,
+    );
+    expect(
+      screen.getByRole("combobox", { name: "Telemetry key" }),
+    ).toBeInTheDocument();
+  });
+
+  it("can be named directly when there is no visible label to point at it", () => {
+    render(
+      <DataKeyPicker
+        aria-label="X axis"
+        keys={KEYS}
+        value={null}
+        onChange={() => undefined}
+      />,
+    );
+    expect(
+      screen.getByRole("combobox", { name: "X axis" }),
+    ).toBeInTheDocument();
+  });
+
+  it("names its clear control after what it clears", () => {
+    render(
+      <DataKeyPicker
+        aria-label="Series"
+        keys={KEYS}
+        value="v.altitude"
+        onChange={() => undefined}
+        clearable
+        subjectNoun="series"
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Clear series" }),
+    ).toBeInTheDocument();
+  });
+
+  it("closes its list when focus tabs away", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <DataKeyPicker
+          aria-label="Series"
+          keys={KEYS}
+          value={null}
+          onChange={() => undefined}
+        />
+        <button type="button">next</button>
+      </>,
+    );
+    await user.tab();
+    const box = screen.getByRole("combobox", { name: "Series" });
+    expect(box).toHaveAttribute("aria-expanded", "true");
+    await user.tab();
+    expect(box).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("has no axe violations open or closed", async () => {
+    const { container } = render(
+      <DataKeyPicker
+        aria-label="Series"
+        keys={KEYS}
+        value="v.altitude"
+        onChange={() => undefined}
+        clearable
+      />,
+    );
+    await expectNoA11yViolations(container);
+    fireEvent.focus(screen.getByRole("combobox", { name: "Series" }));
+    await expectNoA11yViolations(container);
   });
 });
