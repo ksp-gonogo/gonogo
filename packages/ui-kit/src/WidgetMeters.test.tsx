@@ -75,6 +75,7 @@ const BANDED_DOSE = {
     atUt: value("ut", 9_000),
     reckoning: {
       status: "available",
+      atUt: value("ut", 0),
       modelled: value("ratio", 0.4),
       basis: "linear-dead-reckoning",
       band: {

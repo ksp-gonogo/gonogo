@@ -507,7 +507,7 @@ export type {
   ViewClockMode,
   ViewClockOptions,
 } from "./view-clock";
-export { ViewClock } from "./view-clock";
+export { VISIBLE_GAP_SECONDS, ViewClock } from "./view-clock";
 export type {
   StreamFrameInfo,
   WebSocketCtor,

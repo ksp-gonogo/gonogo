@@ -80,6 +80,12 @@ export interface FrameToken {
    */
   readonly trueNowViewUt: number;
   /**
+   * The craft's present (SCET), the instant every reading in the frame is
+   * reckoned to. Sampling, staleness and certainty stay on {@link viewUt}; see
+   * `ViewClock.scetUt` for how it relates to it.
+   */
+  readonly scetUt: number;
+  /**
    * Internal validity marker, bumped by every `beginFrame()` call. Not
    * meant to be read by callers, it's what lets `sample()` detect a token
    * a caller cached across a frame boundary and fall back to the current
@@ -114,6 +120,7 @@ function mintToken(clock: ViewClock, generation: number): FrameToken {
   return {
     viewUt,
     trueNowViewUt,
+    scetUt: clock.scetUt(viewUt),
     generation,
     certainty: clock.certaintyFor(viewUt, "delayed"),
     trueNowCertainty: clock.certaintyFor(trueNowViewUt, "true-now"),
@@ -806,8 +813,8 @@ export class TimelineStore {
       point: TimelinePoint<unknown> | undefined;
       status: StreamStatusValue;
       epoch: number;
-      /** The frame view time the reading was built for. Only a reckoning depends on it. */
-      viewUt: number;
+      /** The instant the reading was reckoned to. Only a reckoning depends on it. */
+      reckonUt: number;
       /** Whether the topic was known unowned. Flips the arm with no other input changing. */
       unowned: boolean;
       /**
@@ -2059,13 +2066,13 @@ export class TimelineStore {
       token,
     );
     if (!parentReckoner) return undefined;
-    return (_point, grade, viewUt) => {
+    return (_point, grade, reckonUt) => {
       const parentPoint = this.sample<unknown>(parsed.rawTopic, token);
       if (!parentPoint || parentPoint.payload === null) return undefined;
       const model = parentReckoner(
         parentPoint as TimelinePoint<unknown>,
         grade,
-        viewUt,
+        reckonUt,
       );
       const covering = model?.modelled.find((entry) =>
         coversPath(entry.path, parsed.fieldPath),
@@ -2228,7 +2235,7 @@ export class TimelineStore {
     token: FrameToken,
     point: TimelinePoint<T> | undefined,
     grade: StaleGrade | undefined,
-    viewUt: number,
+    reckonUt: number,
   ):
     | { readonly owner: string; readonly model: TopicModel<T, unknown> }
     | { readonly declined: ReckoningDecline }
@@ -2310,8 +2317,10 @@ export class TimelineStore {
       }
       resolved[index] = value;
     }
+    const viewUt = this.viewUtFor(token, this.laneForTopic(topic));
     const answer = definition.reckon(point, resolved, {
       grade,
+      reckonUt,
       viewUt,
       history: own.points,
     });
@@ -2338,7 +2347,7 @@ export class TimelineStore {
       topic,
       bounding,
       token,
-      viewUt - this.viewUtFor(token, this.laneForTopic(topic)),
+      reckonUt - viewUt,
     );
     if (outOfReach) return { declined: outOfReach };
     return {
@@ -2688,13 +2697,13 @@ export class TimelineStore {
     token: FrameToken,
   ): ReckonerFor<T> | undefined {
     if (!getReckoner(topic)) return undefined;
-    return (point, grade, viewUt) => {
+    return (point, grade, reckonUt) => {
       const answer = this.registeredReckoning<T>(
         topic,
         token,
         point,
         grade,
-        viewUt,
+        reckonUt,
       );
       return answer && "model" in answer
         ? (answer.model as TopicModel<T>)
@@ -2818,7 +2827,11 @@ export class TimelineStore {
       () => {
         const point = this.sample<T>(topic, effectiveToken);
         const status = this.sampleStatus(topic, effectiveToken);
-        const viewUt = this.viewUtFor(effectiveToken, this.laneForTopic(topic));
+        // A true-now lane can sit a fraction of a second past a sub-second SCET, and a model is never asked for an instant behind its own observation.
+        const reckonUt = Math.max(
+          effectiveToken.scetUt,
+          this.viewUtFor(effectiveToken, this.laneForTopic(topic)),
+        );
         /*
          * The registered model is asked FIRST and its answer is final, decline
          * included. Falling through to the record's model after a registered
@@ -2837,7 +2850,7 @@ export class TimelineStore {
                 effectiveToken,
                 point,
                 status === "live" ? undefined : (status as StaleGrade),
-                viewUt,
+                reckonUt,
               );
         const reckonedModel =
           registered && "model" in registered ? registered.model : undefined;
@@ -2885,17 +2898,17 @@ export class TimelineStore {
           previous.declineKey === declineKey;
         if (
           sameInputs &&
-          // A reading depends on the frame's view time ONLY through a
+          // A reading depends on the frame's instants ONLY through a
           // reckoning, so a topic nobody models keeps its identity across a
           // frame exactly as before. Where a model is on offer now, an
-          // advancing view time is a real input change: the modelled value is
-          // for a different moment. Where one was on offer for the FROZEN
-          // reading and is not now, the withdrawal is itself the change, and
-          // reusing that reading is what made `Reading`'s "it withdraws by not
-          // being offered on the next frame" untrue.
+          // advancing SCET is a real input change: the modelled value is for a
+          // different moment. Where one was on offer for the FROZEN reading and
+          // is not now, the withdrawal is itself the change, and reusing that
+          // reading is what made `Reading`'s "it withdraws by not being offered
+          // on the next frame" untrue.
           ((reckoner === undefined &&
             previous.reading.reckoning.status !== "available") ||
-            previous.viewUt === viewUt)
+            previous.reckonUt === reckonUt)
         ) {
           return previous.reading as TopicReading<T>;
         }
@@ -2903,7 +2916,7 @@ export class TimelineStore {
           ? readingFrom(
               point,
               status,
-              viewUt,
+              reckonUt,
               reckoner,
               unowned,
               declined,
@@ -2912,7 +2925,7 @@ export class TimelineStore {
           : readingFrom(
               point,
               status,
-              viewUt,
+              reckonUt,
               reckoner,
               unowned,
               undefined,
@@ -2936,7 +2949,7 @@ export class TimelineStore {
           point,
           status,
           epoch,
-          viewUt,
+          reckonUt,
           unowned,
           declineKey,
           reading: reading as TopicReading<unknown>,

@@ -181,6 +181,7 @@ describe("combineReadings on an input with no value", () => {
       atUt: at(100),
       reckoning: {
         status: "available",
+        atUt: at(200),
         modelled: 3,
         basis: "rate-integration",
       },
@@ -191,6 +192,7 @@ describe("combineReadings on an input with no value", () => {
       atUt: at(100),
       reckoning: {
         status: "available",
+        atUt: at(200),
         modelled: undefined,
         basis: "rate-integration",
       },
@@ -266,6 +268,7 @@ describe("combineReadings when the arithmetic has no answer", () => {
       atUt: at(100),
       reckoning: {
         status: "available",
+        atUt: at(200),
         modelled: m,
         basis: "rate-integration",
       },
@@ -284,6 +287,7 @@ describe("combineReadings when the arithmetic has no answer", () => {
       atUt: at(100),
       reckoning: {
         status: "available",
+        atUt: at(200),
         modelled: m,
         basis: "rate-integration",
       },
@@ -306,6 +310,7 @@ describe("combineReadings model", () => {
     atUt: at(ut),
     reckoning: {
       status: "available",
+      atUt: at(200),
       modelled: m,
       basis: "rate-integration",
     },
@@ -330,6 +335,31 @@ describe("combineReadings model", () => {
     );
     if (r.reckoning.status !== "available") throw new Error("unreachable");
     expect(r.reckoning.band).toBeUndefined();
+  });
+
+  it("is for the instant its inputs were modelled for", () => {
+    const r = combineReadings(
+      [modelled(3, 5, 100), modelled(4, 6, 100)],
+      (a, b) => a + b,
+    );
+    if (r.reckoning.status !== "available") throw new Error("unreachable");
+    expect(r.reckoning.atUt).toEqual(at(200));
+  });
+
+  it("is none when its inputs were modelled for different instants", () => {
+    const later: Reading<number> = {
+      state: "observed",
+      value: 4,
+      atUt: at(100),
+      reckoning: {
+        status: "available",
+        atUt: at(260),
+        modelled: 6,
+        basis: "rate-integration",
+      },
+    };
+    const r = combineReadings([modelled(3, 5, 100), later], (a, b) => a + b);
+    expect(r.reckoning.status).toBe("none");
   });
 
   it("is none when any input has no model", () => {

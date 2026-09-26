@@ -1,6 +1,11 @@
 import type { TopicPayload } from "../index";
 import { magnitudeOr } from "../magnitude";
-import type { ModelledField, ReckoningDecline, StaleGrade } from "../reading";
+import {
+  currentAtReckonTime,
+  type ModelledField,
+  type ReckonerFrame,
+  type ReckoningDecline,
+} from "../reading";
 import type { TimelinePoint } from "../timeline";
 import type { Vector3 } from "../unit-system";
 import { value } from "../unit-system/value";
@@ -67,29 +72,28 @@ const LINEAR_HORIZON_SECONDS = 30;
 /**
  * How far this reading is being carried, or the reason it should not be.
  *
- * ## Declines on a LIVE reading, unlike the conic
+ * ## Declines on a current reading, unlike the conic
  *
  * `readingFrom` asks every reckoner on a live reading too, and for a conic that
  * is right: orbital elements are a CAUSE, true of a value that arrived on time
  * as much as of one that stopped arriving. A first-order extrapolation is not a
- * cause. It integrates FROM the last observation, so on a live reading it has
- * nothing to add and would replace a measured relative position with an
- * arithmetic guess about the same instant. `ReckonerFor`'s own doc names this
- * case and the answer: a model that integrates from the loss of contact declines
- * on `undefined` and says why.
+ * cause. It integrates FROM the last observation, so on a live reading asked for
+ * the instant it was received it has nothing to add, and would replace a
+ * measured relative position with an arithmetic guess about the same instant.
+ * Under signal delay a live reading is still a light-time behind SCET, and that
+ * gap it does carry. See {@link currentAtReckonTime}.
  */
 function elapsedOrDecline(
   point: TimelinePoint<unknown>,
-  grade: StaleGrade | undefined,
-  viewUt: number,
+  frame: ReckonerFrame,
 ): number | ReckoningDecline {
-  if (grade === undefined) {
+  if (currentAtReckonTime(frame)) {
     return {
       reason: "model-inapplicable",
       note: "the observation is current, so there is no gap to carry it across",
     };
   }
-  const dt = viewUt - point.validAt;
+  const dt = frame.reckonUt - point.validAt;
   if (!Number.isFinite(dt)) {
     return {
       reason: "model-inapplicable",
@@ -154,7 +158,7 @@ function movedFields(
 function registerTargetReckoner(): void {
   registerReckoner("vessel.target", CORE_RECKONER_OWNER, {
     deps: [],
-    reckon(point, _resolved, { grade, viewUt }) {
+    reckon(point, _resolved, frame) {
       const payload = point.payload;
       /*
        * The DECLARED input first, and the anchor second. Both can be absent at
@@ -175,7 +179,7 @@ function registerTargetReckoner(): void {
           },
         };
       }
-      const dt = elapsedOrDecline(point, grade, viewUt);
+      const dt = elapsedOrDecline(point, frame);
       if (typeof dt !== "number") return { declined: dt };
       const p = components(payload.relativePosition);
       const v = components(payload.relativeVelocity);
@@ -205,14 +209,14 @@ function registerTargetReckoner(): void {
 function registerDockReckoner(): void {
   registerReckoner("vessel.dock", CORE_RECKONER_OWNER, {
     deps: [],
-    reckon(point, _resolved, { grade, viewUt }) {
+    reckon(point, _resolved, frame) {
       const payload = point.payload;
       if (payload == null) {
         return {
           declined: { reason: "input-absent", input: "relativePosition" },
         };
       }
-      const dt = elapsedOrDecline(point, grade, viewUt);
+      const dt = elapsedOrDecline(point, frame);
       if (typeof dt !== "number") return { declined: dt };
       const p = components(payload.relativePosition);
       const v = components(payload.relativeVelocity);
@@ -308,7 +312,8 @@ function registerFlightReckoner(): void {
         },
       },
     },
-    reckon(point, [orbitPoint, bodiesPoint], { grade, viewUt, history }) {
+    reckon(point, [orbitPoint, bodiesPoint], frame) {
+      const { reckonUt, history } = frame;
       const bodies = bodiesPoint?.payload ?? undefined;
       /*
        * The conic asks this too, and identically. It is asked here as well
@@ -332,7 +337,7 @@ function registerFlightReckoner(): void {
        * be a second chance for the two halves to disagree about where the craft
        * is.
        */
-      const solvedAtView = propagateVesselOrbit(orbit, viewUt);
+      const solvedAtView = propagateVesselOrbit(orbit, reckonUt);
       const conicRadiusAtView =
         solvedAtView == null ? undefined : magnitude(solvedAtView.position);
       if (
@@ -359,8 +364,7 @@ function registerFlightReckoner(): void {
             orbit.mu,
             seaLevel + magnitudeOr(observed.altitudeAsl, Number.NaN),
           ),
-          grade,
-          viewUt,
+          frame,
           conicRadiusAtView,
         );
         if ("declined" in fit) return fit;
@@ -390,7 +394,7 @@ function registerFlightReckoner(): void {
           }),
         };
       }
-      const admissible = keplerAdmissibility(orbitPoint, bodies, viewUt);
+      const admissible = keplerAdmissibility(orbitPoint, bodies, reckonUt);
       if ("declined" in admissible) return admissible;
       if (!Number.isFinite(seaLevel)) {
         return {
@@ -518,7 +522,7 @@ function registerCommsDelayReckoner(): void {
     reckon(
       point,
       [pathPoint, orbitPoint, bodiesPoint, rosterPoint, relayOrbitPoint],
-      { viewUt },
+      { reckonUt },
     ) {
       const observed = point.payload;
       if (observed == null) {
@@ -536,7 +540,7 @@ function registerCommsDelayReckoner(): void {
       const admissible = keplerAdmissibility(
         orbitPoint,
         bodiesPoint?.payload ?? undefined,
-        viewUt,
+        reckonUt,
       );
       if ("declined" in admissible) return admissible;
       if (orbitPoint?.payload == null) {
@@ -589,7 +593,7 @@ function registerCommsDelayReckoner(): void {
         observed,
         craft: orbitPoint.payload,
         peer: located,
-        facts: deriveCelestialFacts(bodiesPoint?.payload?.bodies, viewUt),
+        facts: deriveCelestialFacts(bodiesPoint?.payload?.bodies, reckonUt),
       });
       if ("declined" in fit) return fit;
       return {
@@ -623,7 +627,7 @@ function registerCommsDelayReckoner(): void {
 function registerOrbitTruthReckoner(): void {
   registerReckoner("vessel.orbit.truth", CORE_RECKONER_OWNER, {
     deps: ["vessel.orbit", "system.bodies"],
-    reckon(point, [orbitPoint, bodiesPoint], { viewUt }) {
+    reckon(point, [orbitPoint, bodiesPoint], { reckonUt }) {
       if (point.payload?.frameRotating === true) {
         return {
           declined: {
@@ -636,7 +640,7 @@ function registerOrbitTruthReckoner(): void {
       const admissible = keplerAdmissibility(
         orbitPoint,
         bodiesPoint?.payload ?? undefined,
-        viewUt,
+        reckonUt,
       );
       if ("declined" in admissible || orbitPoint?.payload == null) {
         return "declined" in admissible
@@ -644,7 +648,7 @@ function registerOrbitTruthReckoner(): void {
           : { declined: { reason: "input-absent", input: "@vessel.orbit" } };
       }
       const orbit = orbitPoint.payload;
-      if (propagateVesselOrbit(orbit, viewUt) == null) {
+      if (propagateVesselOrbit(orbit, reckonUt) == null) {
         return {
           declined: {
             reason: "model-inapplicable",
@@ -742,13 +746,13 @@ function registerOrbitTruthReckoner(): void {
 function registerOrbitReckoner(): void {
   registerReckoner("vessel.orbit", CORE_RECKONER_OWNER, {
     deps: [{ reading: "system.bodies" }],
-    reckon(point, [roster], { viewUt }) {
+    reckon(point, [roster], { reckonUt }) {
       const admissible = keplerAdmissibility(
         point,
         roster.state === "observed" || roster.state === "stale"
           ? roster.value
           : undefined,
-        viewUt,
+        reckonUt,
       );
       if ("declined" in admissible) return admissible;
       const orbit = point.payload;

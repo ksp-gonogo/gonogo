@@ -1029,9 +1029,9 @@ describe("the altitude band through the store's input-rule walk", () => {
       reckon: (
         p: TimelinePoint<unknown>,
         _deps: unknown,
-        frame: { viewUt: number },
+        frame: { reckonUt: number },
       ) =>
-        frame.viewUt > horizonUt
+        frame.reckonUt > horizonUt
           ? {
               declined: {
                 reason: "beyond-horizon" as const,

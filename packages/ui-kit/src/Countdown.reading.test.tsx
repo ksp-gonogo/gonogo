@@ -24,6 +24,7 @@ function reckoned(
     atUt: AT,
     reckoning: {
       status: "available",
+      atUt: value("ut", 0),
       modelled,
       basis: "linear-dead-reckoning",
     },

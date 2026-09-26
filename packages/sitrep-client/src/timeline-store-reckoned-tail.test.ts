@@ -87,7 +87,7 @@ describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
     const HORIZON = 15;
     const reckoner: ReckonerDefinition<number> = {
       deps: [],
-      reckon: (point, _deps, { viewUt: at }) => {
+      reckon: (point, _deps, { reckonUt: at }) => {
         if (at - point.validAt > HORIZON)
           return { declined: { reason: "beyond-horizon" } };
         return {

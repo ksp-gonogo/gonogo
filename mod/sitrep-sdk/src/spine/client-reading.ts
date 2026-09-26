@@ -86,10 +86,11 @@ function rootCoverage(model: {
  * one field of forty-seven has not modelled the payload a whole-topic read asks
  * for.
  *
- * `viewUt` is the frame's frozen view time and is required rather than
- * optional: every reckoning is a function of it, and a default would let a
- * caller build a reading whose modelled value silently answered for the wrong
- * moment.
+ * `reckonUt` is the instant the model is asked to reach, the frame's SCET, and
+ * is required rather than optional: every reckoning is a function of it, and a
+ * default would let a caller build a reading whose modelled value silently
+ * answered for the wrong moment. The observation itself is `point`, already
+ * sampled at the received edge.
  *
  * `unowned` is the mod's verdict that nothing will ever publish this topic. It
  * only ever redirects the empty case, and it needs no guard against the OTHER
@@ -118,7 +119,7 @@ function rootCoverage(model: {
 export function readingFrom<T>(
   point: TimelinePoint<T> | undefined,
   status: StreamStatusValue,
-  viewUt: number,
+  reckonUt: number,
   reckoner?: ReckonerFor<T>,
   unowned?: boolean,
   declined?: undefined,
@@ -127,7 +128,7 @@ export function readingFrom<T>(
 export function readingFrom<T>(
   point: TimelinePoint<T> | undefined,
   status: StreamStatusValue,
-  viewUt: number,
+  reckonUt: number,
   reckoner: ReckonerFor<T> | undefined,
   unowned: boolean,
   declined: ReckoningDecline,
@@ -136,7 +137,7 @@ export function readingFrom<T>(
 export function readingFrom<T>(
   point: TimelinePoint<T> | undefined,
   status: StreamStatusValue,
-  viewUt: number,
+  reckonUt: number,
   reckoner?: ReckonerFor<T>,
   unowned = false,
   declined?: ReckoningDecline,
@@ -167,7 +168,8 @@ export function readingFrom<T>(
    * wire is forward-modelled whether or not the last packet was late, and until
    * the axes split there was no way for the reading to say so: claiming a model
    * meant also claiming we had missed updates. `grade` is `undefined` here, so a
-   * reckoner that integrates from the loss of contact can still decline.
+   * reckoner that integrates from the last observation can still decline where
+   * `currentAtReckonTime` holds.
    *
    * The model RUNS here, once per reading build, which is once per frame per
    * topic actually read. Eager rather than pulled: provider-supplied compute on
@@ -176,23 +178,23 @@ export function readingFrom<T>(
    * Running it once is also what stops one question asked twice inside a frame
    * giving two answers, which a thunk called at two call sites would.
    */
-  const model = reckoner?.(point, live ? undefined : status, viewUt);
+  const model = reckoner?.(point, live ? undefined : status, reckonUt);
   const root = model && rootCoverage(model);
   const modelled =
     model && root
       ? ({
           status: "available",
-          value: model.reckon(viewUt),
-          atUt: value("ut", viewUt),
+          value: model.reckon(reckonUt),
+          atUt: value("ut", reckonUt),
           basis: root.basis,
           modelled: model.modelled,
           owner,
           /*
            * Asked only where the model was actually used, and at the same
-           * `viewUt` it was reckoned for, so a model sharing work between the
+           * `reckonUt` it was reckoned for, so a model sharing work between the
            * two can cache on the argument.
            */
-          bands: model.bandAt?.(viewUt),
+          bands: model.bandAt?.(reckonUt),
         } as const)
       : undefined;
   /*

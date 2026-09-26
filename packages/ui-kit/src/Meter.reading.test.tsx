@@ -49,6 +49,7 @@ function banded<U extends string>(
         ? { status: "none" }
         : {
             status: "available",
+            atUt: value("ut", 0),
             modelled: quantity,
             basis: "linear-dead-reckoning",
             band,
@@ -361,6 +362,7 @@ describe("Meter, given a reading of a fraction", () => {
           state: "stale",
           reckoning: {
             status: "available",
+            atUt: value("ut", 0),
             modelled: value("ratio", 0.39),
             basis: "linear-dead-reckoning",
             band: bandOf("ratio", 0.379, 0.39, 0.401),

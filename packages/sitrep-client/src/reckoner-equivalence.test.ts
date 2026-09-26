@@ -123,10 +123,10 @@ function registerProbeReckoner(): void {
   });
   PROBE.registerReckoner("vessel.flight", {
     deps: ["vessel.orbit", "system.bodies"],
-    reckon(_point, [orbitPoint, bodiesPoint], { viewUt }) {
+    reckon(_point, [orbitPoint, bodiesPoint], { reckonUt }) {
       const orbit = orbitPoint?.payload;
       const bodies = bodiesPoint?.payload ?? undefined;
-      const admissible = keplerAdmissibility(orbitPoint, bodies, viewUt);
+      const admissible = keplerAdmissibility(orbitPoint, bodies, reckonUt);
       if ("declined" in admissible || !orbit) {
         return "declined" in admissible
           ? admissible

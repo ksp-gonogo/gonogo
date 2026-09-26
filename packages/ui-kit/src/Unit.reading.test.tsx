@@ -89,6 +89,7 @@ describe("Unit: a reading that is current", () => {
       atUt: AT,
       reckoning: {
         status: "available",
+        atUt: value("ut", 0),
         modelled: metres(99_900),
         basis: "kepler-propagation",
       },
@@ -337,6 +338,7 @@ function banded(
 ): Reading<Value<"m">> {
   const reckoning = {
     status: "available",
+    atUt: value("ut", 0),
     modelled: metres(band.value),
     basis: "linear-dead-reckoning",
     band: {
@@ -453,6 +455,7 @@ describe("Unit: how well the number is known", () => {
           grade: "held-stale",
           reckoning: {
             status: "available",
+            atUt: value("ut", 0),
             modelled: metres(1000),
             basis: "linear-dead-reckoning",
             band: {

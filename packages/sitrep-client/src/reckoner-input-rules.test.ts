@@ -67,10 +67,10 @@ function storeWithInput(viewUt: number): TimelineStore {
 function inputModel(horizonUt: number): ReckonerDefinition<number> {
   return {
     deps: [],
-    reckon: (point, _resolved, { viewUt }) => {
+    reckon: (point, _resolved, { reckonUt }) => {
       const from = point.payload;
       if (from === null) return { declined: { reason: "input-absent" } };
-      if (viewUt > horizonUt) {
+      if (reckonUt > horizonUt) {
         return {
           declined: {
             reason: "beyond-horizon",

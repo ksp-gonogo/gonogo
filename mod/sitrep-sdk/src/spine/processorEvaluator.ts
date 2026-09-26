@@ -613,13 +613,15 @@ function evaluate(id: string, token: { generation: number }): void {
   const def = getProcessor(id);
   if (!def) return;
   const values = def.deps.map((dep) => resolveDep(dep, token));
-  // The frame's own frozen view time, so a processor deriving a remaining
+  // The frame's own frozen instants, so a processor deriving a remaining
   // duration from an instant on the wire has a clock without reaching for a
   // wall clock. Here `activeStore` is always non-null: every caller checks for
   // one before evaluating.
+  const frame = activeStore?.currentFrame();
   const computed = runOutsideContributionScope(() =>
     def.compute(values as never, {
-      viewUt: activeStore?.currentFrame().viewUt ?? 0,
+      viewUt: frame?.viewUt ?? 0,
+      scetUt: frame?.scetUt ?? 0,
     }),
   );
   /*

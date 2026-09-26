@@ -1,22 +1,11 @@
 import {
   useObservedVantage,
   useViewClockOptional,
+  VISIBLE_GAP_SECONDS,
 } from "@ksp-gonogo/sitrep-client";
 import type { TimeContext } from "@ksp-gonogo/ui-kit";
 import { useCallback, useSyncExternalStore } from "react";
 import { useTelemetry } from "./useTelemetry";
-
-/**
- * The gap at which the two clocks stop rendering as the same string.
- *
- * `<MissionDate>` prints whole seconds, so below one second SCET and the
- * received time ARE the same readout and a qualifier on them says nothing an
- * operator can check. The rule is "show it only when they differ", and the
- * honest reading of "differ" is at the resolution the thing is drawn at: a
- * LAN session reports 0, a craft in low orbit a few milliseconds, and neither
- * should put a label on every instant on the screen.
- */
-const VISIBLE_GAP_SECONDS = 1;
 
 /** The two qualifiers for the current screen, and the gap behind them. */
 export interface TimeContexts {

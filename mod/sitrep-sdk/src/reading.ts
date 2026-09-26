@@ -64,10 +64,11 @@ export type ReckoningBasis =
   | "rate-integration";
 
 /**
- * A forward-modelled value: what a provider's model says the quantity is NOW,
- * given the last real observation and however long ago it was.
+ * A forward-modelled value: what a provider's model says the quantity is at the
+ * craft's present (SCET), given the last real observation and however long ago
+ * it was.
  *
- * `atUt` is the UT the reckoning is FOR, not the UT the observation behind it
+ * `atUt` is the UT the reckoning is FOR, the frame's SCET, not the UT the observation behind it
  * was made at (`Reading`'s `asOfUt` carries that). Both are needed: an operator
  * reads a modelled figure against how far it has been carried.
  */
@@ -415,7 +416,7 @@ export type ReckonerAnswer<T, R = T> =
  *
  * - `reckoning: { status: "none" }`: no model is on offer this frame. The honest majority
  * - `reckoning: "available"`: a model is on offer, and `reckoned` carries what
- *   it says the quantity is at the frame's view time
+ *   it says the quantity is at the frame's SCET
  *
  * Every arm carries the field, `pending`, `unowned` and `absent` included, where
  * it is permanently `"none"`: nothing has been observed (or the subject has said
@@ -760,8 +761,10 @@ export type ReservedReadingKey =
 export type Reckoning<V> =
   | {
       readonly status: "available";
-      /** What the model says the value is at the frame's view time. */
+      /** What the model says the value is at {@link atUt}. */
       readonly modelled: V;
+      /** The instant `modelled` is for: the frame's SCET. */
+      readonly atUt: Value<"ut">;
       readonly basis: ReckoningBasis;
       /** How far the model would defend `modelled`, where it will say. */
       readonly band?: UncertaintyBand;
@@ -1248,6 +1251,7 @@ export function fieldReckoning(
   return {
     status: "available",
     modelled: walkField(reckoning.value, path),
+    atUt: reckoning.atUt,
     basis: covering.basis,
     band: reckoning.bands?.[path],
   };
@@ -1614,10 +1618,10 @@ export function observedAt<T>(
  * live readings deliberately. A model whose basis is a CAUSE (a conic, a rate)
  * is as true of a value that arrived on time as of one that stopped arriving,
  * and the only thing that used to stop it saying so was reckonability riding the
- * staleness discriminant. A reckoner that genuinely integrates FROM the loss of
- * contact declines on `undefined` and says why.
+ * staleness discriminant. A reckoner that genuinely integrates FROM the last
+ * observation declines where {@link currentAtReckonTime} holds, and says why.
  *
- * `viewUt` is the third argument because declining is the ONLY way a model has
+ * `reckonUt` is the third argument because declining is the ONLY way a model has
  * to express a horizon, and a horizon is a statement about how far a value is
  * being carried. Given the point and the grade alone, a reckoner knows when
  * the observation was made and not what it is being asked to reach, so it
@@ -1628,7 +1632,7 @@ export function observedAt<T>(
 export type ReckonerFor<T> = (
   point: TimelinePoint<T>,
   grade: StaleGrade | undefined,
-  viewUt: number,
+  reckonUt: number,
 ) => TopicModel<T> | undefined;
 
 /**
@@ -1798,7 +1802,12 @@ export type ResolvedReckonerDeps<
 export interface ReckonerFrame<T = unknown> {
   /** `undefined` when the reading is LIVE; see {@link ReckonerFor}. */
   readonly grade: StaleGrade | undefined;
-  /** The frame's frozen view time: what the model is being asked to reach. */
+  /** The instant the model is being asked to reach: the frame's SCET. */
+  readonly reckonUt: number;
+  /**
+   * The received edge the observation was sampled at. Behind {@link reckonUt}
+   * by the light-time, and equal to it when the light-time is too short to see.
+   */
   readonly viewUt: number;
   /**
    * The reckoner's own topic across its declared {@link ReckonerWindow},
@@ -1818,6 +1827,16 @@ export interface ReckonerFrame<T = unknown> {
    * trend through an outage it has no readings for.
    */
   readonly history: readonly TimelinePoint<T>[];
+}
+
+/**
+ * Whether the observation is live AND asked for the instant it was received at,
+ * so there is no gap for a model integrating from the last observation to carry
+ * it across. Under signal delay a live observation is still a light-time behind
+ * the craft's present, and that is a gap.
+ */
+export function currentAtReckonTime(frame: ReckonerFrame): boolean {
+  return frame.grade === undefined && frame.reckonUt <= frame.viewUt;
 }
 
 /**

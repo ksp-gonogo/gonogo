@@ -120,8 +120,8 @@ describe("a reckoner can see the UT it is reckoning for", () => {
     const seen: number[] = [];
     const reckoner: ReckonerDefinition<number> = {
       deps: [],
-      reckon: (point, _deps, { viewUt }) => {
-        seen.push(viewUt);
+      reckon: (point, _deps, { reckonUt }) => {
+        seen.push(reckonUt);
         return {
           modelled: [{ path: "", basis: "rate-integration" }],
           reckon: () => observedPayload(point),
@@ -136,7 +136,7 @@ describe("a reckoner can see the UT it is reckoning for", () => {
     store.beginFrame();
     store.sampleReading<number>("test.temperature");
 
-    expect(seen).toEqual([store.currentFrame().viewUt]);
+    expect(seen).toEqual([store.currentFrame().scetUt]);
   });
 
   it("produces a reckoning FOR the frame's view time, not the observation's", () => {
@@ -177,8 +177,8 @@ describe("a reckoning withdraws when its model stops being offered", () => {
     const HORIZON_SECONDS = 120;
     registerReckoner("test.temperature", "test", {
       deps: [],
-      reckon: (point, _deps, { viewUt }) => {
-        if (viewUt - point.validAt > HORIZON_SECONDS)
+      reckon: (point, _deps, { reckonUt }) => {
+        if (reckonUt - point.validAt > HORIZON_SECONDS)
           return { declined: { reason: "beyond-horizon" } };
         return {
           modelled: [{ path: "", basis: "rate-integration" }],

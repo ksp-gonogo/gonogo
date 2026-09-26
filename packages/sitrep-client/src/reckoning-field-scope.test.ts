@@ -83,11 +83,11 @@ function predictedStore(wall: { now: () => number }) {
 function registerPositionOnlyModel() {
   registerReckoner("test.target", "test", {
     deps: [],
-    reckon: (point, _deps, { viewUt }) => ({
+    reckon: (point, _deps, { reckonUt }) => ({
       modelled: [{ path: "relativePosition", basis: "linear-dead-reckoning" }],
       reckon: () => ({
         ...observedPayload(point),
-        relativePosition: { x: 1000 + 10 * (viewUt - point.validAt) },
+        relativePosition: { x: 1000 + 10 * (reckonUt - point.validAt) },
       }),
     }),
   });
@@ -302,7 +302,7 @@ describe("every path to a reckoning shares the one cache", () => {
     let runs = 0;
     registerReckoner("test.target", "test", {
       deps: [],
-      reckon: (point, _deps, { viewUt }) => ({
+      reckon: (point, _deps, { reckonUt }) => ({
         modelled: [
           { path: "relativePosition", basis: "linear-dead-reckoning" },
         ],
@@ -310,7 +310,7 @@ describe("every path to a reckoning shares the one cache", () => {
           runs += 1;
           return {
             ...observedPayload(point),
-            relativePosition: { x: 1000 + 10 * (viewUt - point.validAt) },
+            relativePosition: { x: 1000 + 10 * (reckonUt - point.validAt) },
           };
         },
       }),

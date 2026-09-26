@@ -12,6 +12,12 @@ export type {
   ClockFormulaSnapshot,
 } from "../view-clock-formula";
 
+/**
+ * The light-time below which SCET and the received clock are the same instant as
+ * far as anything on screen can show: instants are printed to the whole second.
+ */
+export const VISIBLE_GAP_SECONDS = 1;
+
 /** Which regime `viewUt()` is currently drawn from, set via `ViewClock.setMode`. */
 export type ViewClockMode = "confirmed" | "predicted";
 
@@ -92,6 +98,8 @@ export class ViewClock {
     delayed: Number.NEGATIVE_INFINITY,
     "true-now": Number.NEGATIVE_INFINITY,
   };
+  /** Monotonic cursor for {@link scetUt}, reset with the others on an epoch bump. */
+  private lastScetUt = Number.NEGATIVE_INFINITY;
   /** Manual history-scrub target, `null` = live. Set via `scrubTo`. */
   private scrubTarget: number | null = null;
 
@@ -132,6 +140,7 @@ export class ViewClock {
       this.maxSampleUt = Number.NEGATIVE_INFINITY;
       this.lastConfirmedViewUt.delayed = Number.NEGATIVE_INFINITY;
       this.lastConfirmedViewUt["true-now"] = Number.NEGATIVE_INFINITY;
+      this.lastScetUt = Number.NEGATIVE_INFINITY;
       this.anchorWall = undefined;
       this.anchorUt = undefined;
       // A scrub target from the dead pre-rewind timeline must not survive, same per-epoch hygiene as every other reset here.
@@ -278,6 +287,25 @@ export class ViewClock {
       this.lastConfirmedViewUt[lane] = live;
     }
     return this.scrubTarget !== null ? this.scrubTarget : live;
+  }
+
+  /**
+   * The craft's present (SCET) for a frame whose delayed view time is `viewUt`:
+   * the instant every reading is reckoned to.
+   *
+   * - Never behind `viewUt`, and monotonic within an epoch, because the estimate
+   *   re-anchors on each delivery and can step back
+   * - `viewUt` itself while scrubbed, since history is observed rather than
+   *   modelled
+   * - `viewUt` itself when the light-time is under {@link VISIBLE_GAP_SECONDS},
+   *   where the two clocks read the same
+   */
+  scetUt(viewUt: number): number {
+    if (this.scrubTarget !== null) return viewUt;
+    if (this.delaySeconds() < VISIBLE_GAP_SECONDS) return viewUt;
+    const scet = Math.max(this.lastScetUt, this.utNowEstimate(), viewUt);
+    this.lastScetUt = scet;
+    return scet;
   }
 
   /** Estimator health: `"locked"` recently observed, `"coasting"` during silence. `"degraded"` (warp-change-during-silence) is a later task. */

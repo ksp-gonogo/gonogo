@@ -204,16 +204,18 @@ export type ResolvedDeps<Deps extends readonly Dep[]> = {
 /**
  * What a `compute` is told about the frame it is running for, beyond its deps.
  *
- * Only the view time, and deliberately only that: a processor that needs to
+ * Only the frame's instants, and deliberately only those: a processor that needs to
  * know WHEN it is deriving for is common (anything turning an instant on the
  * wire into a remaining duration), and a processor that reaches for a wall
  * clock instead is the bug `readingAge` and the wall-clock ratchet exist to
- * stop. Handing it the frame's own frozen view time means there is nothing to
+ * stop. Handing it the frame's own frozen instants means there is nothing to
  * reach for.
  */
 export interface ProcessorFrame {
   /** The frame's frozen view time. Every read in this frame shares it. */
   viewUt: number;
+  /** The craft's present (SCET) for the same frame, the instant its readings are reckoned to. */
+  scetUt: number;
 }
 
 export interface ProcessorDefinition<

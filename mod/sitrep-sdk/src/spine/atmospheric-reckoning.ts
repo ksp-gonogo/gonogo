@@ -1,5 +1,10 @@
 import { magnitudeOr, type Quantityish } from "../magnitude";
-import type { ReckoningDecline, StaleGrade, UncertaintyBand } from "../reading";
+import {
+  currentAtReckonTime,
+  type ReckonerFrame,
+  type ReckoningDecline,
+  type UncertaintyBand,
+} from "../reading";
 import type { TimelinePoint } from "../timeline";
 import { STANDARD_GRAVITY } from "../unit-system/definitions";
 import { value } from "../unit-system/value";
@@ -502,11 +507,10 @@ export function atmosphericAdmissibility(
   bodies: ConicBodiesInput | undefined,
   referenceBodyIndex: number | null | undefined,
   gravity: number | undefined,
-  grade: StaleGrade | undefined,
-  viewUt: number,
+  frame: ReckonerFrame,
   conicRadiusAtViewTime?: number,
 ): AtmosphericDescentFit | { readonly declined: ReckoningDecline } {
-  if (grade === undefined) {
+  if (currentAtReckonTime(frame)) {
     return {
       declined: {
         reason: "model-inapplicable",
@@ -560,7 +564,7 @@ export function atmosphericAdmissibility(
     };
   }
   const horizonSeconds = horizonSecondsFor(sensed);
-  const dt = viewUt - point.validAt;
+  const dt = frame.reckonUt - point.validAt;
   if (!Number.isFinite(dt)) {
     return {
       declined: {

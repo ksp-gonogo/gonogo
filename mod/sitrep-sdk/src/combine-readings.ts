@@ -261,6 +261,7 @@ function combineReckonings<
   }
 
   const modelled: unknown[] = [];
+  let atUt: Value<"ut"> | undefined;
   for (const input of inputs) {
     if (input.reckoning.status !== "available") return { status: "none" };
     if (
@@ -268,8 +269,12 @@ function combineReckonings<
       input.reckoning.modelled === null
     )
       return { status: "none" };
+    // Figures modelled for two different instants do not combine into one.
+    if (atUt && !atUt.equals(input.reckoning.atUt)) return { status: "none" };
+    atUt = input.reckoning.atUt;
     modelled.push(input.reckoning.modelled);
   }
+  if (!atUt) return { status: "none" };
 
   const combined = compute(...(modelled as ReadingValues<Inputs>));
   /* The arithmetic had no answer for the modelled figures, so there is no
@@ -277,5 +282,10 @@ function combineReckonings<
      keeps `modelled` the required value its own type declares. */
   if (combined === undefined || combined === null) return { status: "none" };
 
-  return { status: "available", modelled: combined, basis: "combination" };
+  return {
+    status: "available",
+    modelled: combined,
+    atUt,
+    basis: "combination",
+  };
 }
