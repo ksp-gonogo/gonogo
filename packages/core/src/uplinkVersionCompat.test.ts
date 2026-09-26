@@ -37,7 +37,7 @@ function app(overrides: Partial<AppCompatIdentity> = {}): AppCompatIdentity {
 
 describe("EXTENSION_API_VERSION", () => {
   it("is the hand-managed gate, not core's package.json placeholder", () => {
-    expect(EXTENSION_API_VERSION).toBe("3.0.0");
+    expect(EXTENSION_API_VERSION).toBe("4.0.0");
   });
 });
 
