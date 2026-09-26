@@ -226,7 +226,7 @@ export function Meter<U extends string = string>({
     shown.figure,
     capacity === undefined ? undefined : held.figure,
   );
-  if (fraction === null) {
+  if (fraction === null || !Number.isFinite(fraction)) {
     return (
       <MeterFrame
         layout={layout}
@@ -240,9 +240,7 @@ export function Meter<U extends string = string>({
       </MeterFrame>
     );
   }
-  const clamped = Number.isFinite(fraction)
-    ? Math.min(1, Math.max(0, fraction))
-    : 0;
+  const clamped = Math.min(1, Math.max(0, fraction));
   const bar = {
     label,
     layout,
@@ -312,9 +310,11 @@ export function Meter<U extends string = string>({
       {...bar}
       bounds={bounds}
       endBounds={endBounds}
-      display={valueLabelNode ?? valueLabel ?? <Unit value={value} />}
+      display={
+        valueLabelNode ?? valueLabel ?? <Unit value={value} format={format} />
+      }
       spoken={withBands(
-        valueLabel ?? speakQuantity(shown.figure),
+        valueLabel ?? speakQuantity(shown.figure, { format }),
         bounds,
         endBounds,
       )}
