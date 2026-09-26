@@ -154,3 +154,20 @@ describe("Dial, handed a Reading", () => {
     await expectNoA11yViolations(container);
   });
 });
+
+describe("Dial with no figure", () => {
+  it("is not announced as a meter reading the bottom of its scale", async () => {
+    const { container } = render(
+      <Dial
+        {...AXIS}
+        value={{ state: "pending", reckoning: { status: "none" } }}
+        ariaLabel="Heading"
+      />,
+    );
+    expect(screen.queryByRole("meter")).toBeNull();
+    expect(
+      screen.getByRole("img", { name: `Heading: ${NULL_DISPLAY}` }),
+    ).toBeInTheDocument();
+    await expectNoA11yViolations(container);
+  });
+});
