@@ -299,7 +299,7 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
       role="slider"
       aria-label={ariaLabel}
       aria-orientation={orientation}
-      aria-valuenow={value}
+      aria-valuenow={Number.isFinite(value) ? value : undefined}
       aria-valuemin={min}
       aria-valuemax={max}
       aria-valuetext={label}

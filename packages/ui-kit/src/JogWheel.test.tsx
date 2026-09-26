@@ -394,3 +394,22 @@ describe("JogWheel in rate mode", () => {
     }
   });
 });
+
+describe("JogWheel with no value to show", () => {
+  it("announces no number rather than NaN", () => {
+    render(
+      <JogWheel
+        value={Number.NaN}
+        min={0}
+        max={90}
+        step={1}
+        ariaLabel="Yaw"
+        format={() => "no reading"}
+        onChange={() => {}}
+      />,
+    );
+    const slider = screen.getByRole("slider", { name: "Yaw" });
+    expect(slider).not.toHaveAttribute("aria-valuenow");
+    expect(slider).toHaveAttribute("aria-valuetext", "no reading");
+  });
+});
