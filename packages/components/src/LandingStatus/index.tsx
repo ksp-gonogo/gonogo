@@ -104,6 +104,7 @@ function LandingStatusComponent({
       regime={clocks.regime}
       live={live}
       mayInstruct={mayInstruct}
+      centreOfMass={usingComDatum}
       suicideBurnCountdown={solution.suicideBurnCountdown}
       commitInSeconds={clocks.commitInSeconds}
       committed={clocks.committed}

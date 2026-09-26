@@ -9,7 +9,7 @@ import { Tape, Text, writeQuantity } from "@ksp-gonogo/ui-kit";
 export interface AltitudeRailProps {
   /** Height above terrain, of the vessel's lowest point unless `centreOfMass`. */
   agl: Reading<Value<"m">>;
-  /** The height is the centre of mass's, the lowest-point datum being unavailable. */
+  /** The height is the centre of mass's, the lowest-point datum being unavailable: the rail draws no burn band and names no ignition. */
   centreOfMass?: boolean;
   /** AGL at which the suicide burn must begin, metres. */
   ignitionAltitude: number | null;
@@ -34,7 +34,9 @@ export function AltitudeRail({
 }: Readonly<AltitudeRailProps>) {
   const aglMeters = agl.value?.magnitude ?? 0;
   const ignition =
-    ignitionAltitude != null && ignitionAltitude > 0 ? ignitionAltitude : null;
+    !centreOfMass && ignitionAltitude != null && ignitionAltitude > 0
+      ? ignitionAltitude
+      : null;
   const maxScale = niceCeil(Math.max(aglMeters, ignition ?? 0, 1) * 1.1);
 
   // The hot band: from the ground up to the ignition altitude, the region in which the burn must already have started.
@@ -83,15 +85,17 @@ export function AltitudeRail({
         />
       </div>
       {/* Panel.Body supplies the outer inset. */}
-      <div style={{ alignSelf: "stretch" }}>
-        <Text tone={near ? "accent" : "muted"} size="xs">
-          {suicideBurnCountdown == null
-            ? "no burn"
-            : suicideBurnCountdown <= 0
-              ? "past ignition"
-              : `ignite in ${writeQuantity(value("s", Math.ceil(suicideBurnCountdown)))}`}
-        </Text>
-      </div>
+      {!centreOfMass && (
+        <div style={{ alignSelf: "stretch" }}>
+          <Text tone={near ? "accent" : "muted"} size="xs">
+            {suicideBurnCountdown == null
+              ? "no burn"
+              : suicideBurnCountdown <= 0
+                ? "past ignition"
+                : `ignite in ${writeQuantity(value("s", Math.ceil(suicideBurnCountdown)))}`}
+          </Text>
+        </div>
+      )}
     </div>
   );
 }

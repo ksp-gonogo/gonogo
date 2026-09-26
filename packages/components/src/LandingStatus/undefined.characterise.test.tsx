@@ -282,6 +282,46 @@ describe("LandingStatus: what undefined means today", () => {
     );
   });
 
+  it("withholds the burn cue, countdown and hot band while only the centre-of-mass datum is known", async () => {
+    // A viable descent, so every burn instruction would otherwise be drawn.
+    renderWidget();
+    act(() => {
+      emitMunDescent({
+        altitudeTerrain: 2000,
+        verticalSpeed: 40,
+        surfaceSpeed: 45,
+      });
+      stream.emit("comms.delay", { source: 0, oneWaySeconds: 0 });
+    });
+
+    const rail = () =>
+      screen.getByRole("meter", { name: /altitude above terrain/i });
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          "centre-of-mass altitude (lowest-point datum unavailable)",
+        ),
+      ).toBeInTheDocument(),
+    );
+    const hero = screen.getByRole("status");
+    expect(hero).toHaveTextContent("SUICIDE BURN");
+    expect(hero).toHaveTextContent(NULL_DISPLAY);
+    expect(hero).not.toHaveTextContent("T−");
+    expect(visibleText()).not.toMatch(/ignite in|past ignition/);
+    expect(rail().closest("svg")?.textContent ?? "").not.toContain("burn");
+    // The descent itself stays: the time to impact is a description, not an instruction.
+    expect(visibleText()).toContain("Impact in");
+
+    // The lowest point arriving restores every instruction, so the absences above are the gate's.
+    act(() => {
+      stream.emit("vessel.surface", { heightFromTerrain: 1990 });
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("T−"),
+    );
+    expect(visibleText()).toMatch(/ignite in/);
+  });
+
   it("shows the same centre-of-mass note for a TOMBSTONED vessel.surface as for an absent one", async () => {
     // `== null` catches both, so "no lowest-point datum" and "none arrived yet" are one state here.
     renderWidget();

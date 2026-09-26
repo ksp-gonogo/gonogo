@@ -46,6 +46,8 @@ export interface CommitLayerProps {
   suicideBurnCountdown: number | null;
   commitInSeconds: number | null;
   committed: boolean;
+  /** The height is the centre of mass's: the burn solve is biased by the lowest point's offset, so no burn timing is named. */
+  centreOfMass?: boolean;
   /** True once the vessel has touched down: the descent clocks are void and the hero shows LANDED. */
   landed?: boolean;
   /** True when even an optimal burn cannot arrest the vessel in the remaining altitude; distinct from a nominal committed burn. */
@@ -68,6 +70,7 @@ function resolveHero({
   suicideBurnCountdown: countdown,
   commitInSeconds,
   committed,
+  centreOfMass = false,
   landed = false,
   noLandingVector = false,
 }: Readonly<CommitLayerProps>): Hero {
@@ -88,6 +91,9 @@ function resolveHero({
   // The number an operator acts on is withheld while the board describes; after `no-path`, since "needs a link" is the more specific answer.
   if (!mayInstruct) {
     return hero(NULL_DISPLAY, "BURN TIMING NEEDS CURRENT TELEMETRY", "default");
+  }
+  if (centreOfMass) {
+    return hero(NULL_DISPLAY, live ? "SUICIDE BURN" : "BURN GO IN", "default");
   }
   if (live) {
     if (countdown == null) return hero(NULL_DISPLAY, "SUICIDE BURN", "default");
