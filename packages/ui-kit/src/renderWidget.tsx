@@ -25,8 +25,8 @@ import { WidgetMetaContext } from "./WidgetMetaContext";
  * dashboard, inside a stack of providers it never sets up for itself, and a
  * test that renders it bare is testing something the app never runs.
  *
- * The concrete cost of the bare form: `Panel` reads its stream status off
- * `PanelStatusProvider`, so with none mounted the status badge never appears,
+ * The concrete cost of the bare form: `Panel` reads its header status off
+ * `PanelStatusStoreProvider`, so with none mounted the status badge never appears,
  * and a `waitFor` for that badge returns immediately having proved nothing. The
  * check passes, permanently, whatever the widget does.
  *

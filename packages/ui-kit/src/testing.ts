@@ -22,8 +22,8 @@ import { writeQuantity } from "./units";
  * dashboard puts around one. That belongs here rather than in
  * `@ksp-gonogo/sitrep-sdk/testing` for a structural reason and not a filing one:
  * the stack IS this package's providers (`DelayRailProvider`,
- * `PanelStatusStoreProvider`, `ContributionsProvider`, `PanelBadgesProvider`,
- * `PanelStatusProvider`), and the sdk cannot import them. Putting it there would
+ * `PanelStatusStoreProvider`, `ContributionsProvider`, `PanelBadgesProvider`),
+ * and the sdk cannot import them. Putting it there would
  * have meant handing the sdk seven ui-kit values so it could reassemble a ui-kit
  * stack, which is not an injectable seam, it is the subject matter.
  *

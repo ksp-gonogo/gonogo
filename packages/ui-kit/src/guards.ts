@@ -158,7 +158,7 @@ export interface HandTypedUnitOptions {
   symbols?: readonly string[];
   /**
    * Per-file allowance, keyed by the path as it appears in a finding. A file
-   * at or below its entry passes. Only ever lower one: an entry that stops
+   * at its entry passes and a file below it throws. Only ever lower one: an entry that stops
    * being reachable is itself reported, so a conversion cannot silently leave
    * the door open behind it.
    */
@@ -296,8 +296,8 @@ export function findHandTypedUnits(
  * Throws when a unit symbol is typed next to a number, with the fix in the
  * message rather than in a document somebody has to go and find.
  *
- * Silent when everything renders through `<Unit>`, and silent for a file at or
- * below its `baseline` entry. A file BELOW its entry throws too: leaving a
+ * Silent when everything renders through `<Unit>`, and silent for a file at
+ * its `baseline` entry. A file BELOW its entry throws: leaving a
  * stale allowance in place is how a ratchet stops ratcheting, because the
  * symbol is then free to come back unnoticed.
  */
