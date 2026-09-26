@@ -21,6 +21,9 @@ export interface MapTelemetry {
   lon: Value<"°"> | undefined;
   /** The position is held and nothing models it, so no marker draws. */
   positionStale: boolean;
+  /** The readouts' own readings, which mark a held figure. */
+  latitudeReading: Reading<Value<"°">>;
+  longitudeReading: Reading<Value<"°">>;
   altitudeReading: Reading<Value<"m">>;
   /** The last observed altitude, for the flown trail. */
   altSea: number | undefined;
@@ -166,6 +169,8 @@ export function useMapTelemetry(
     lat,
     lon,
     positionStale,
+    latitudeReading: flightReading.latitude,
+    longitudeReading: flightReading.longitude,
     altitudeReading,
     altSea,
     altSeaReadout,

@@ -254,19 +254,13 @@ function MapViewComponent({
   const showFollowToggle = showMap && cols >= 9;
   const showBodyLabel = cols >= 5;
 
-  /**
-   * What stands in for a position neither branch can draw, shared so the two
-   * branches say the same thing: never reported and held-but-not-current are
-   * different states to an operator.
-   */
+  /** What stands in for a position that was never reported, shared so the two branches say the same thing. A held position is marked by its readouts. */
   const positionNotice =
-    lat !== undefined && lon !== undefined
+    (lat !== undefined && lon !== undefined) || telemetry.positionStale
       ? undefined
-      : telemetry.positionStale
-        ? "Position not current: marker withheld"
-        : targetBodyId === undefined
-          ? "Waiting for telemetry..."
-          : "No position data";
+      : targetBodyId === undefined
+        ? "Waiting for telemetry..."
+        : "No position data";
 
   const scope: MapViewScope = useMemo(
     () => ({ bodyName: displayName }),
@@ -278,10 +272,11 @@ function MapViewComponent({
       <WidgetScopeProvider widget="map-view" scope={scope}>
         <CompactMapView
           bodyLabel={showBodyLabel && displayName ? displayName : undefined}
-          lat={lat}
-          lon={lon}
+          lat={telemetry.latitudeReading}
+          lon={telemetry.longitudeReading}
           altitude={
-            altSeaReadout !== undefined && rows >= 5
+            (altSeaReadout !== undefined || telemetry.altSea !== undefined) &&
+            rows >= 5
               ? telemetry.altitudeReading
               : undefined
           }

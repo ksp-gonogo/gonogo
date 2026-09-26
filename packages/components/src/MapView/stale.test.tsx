@@ -8,10 +8,8 @@ import { MapViewComponent } from "./index";
 
 /**
  * What MapView does when its position is no longer current. A dot on a map is
- * a claim about where the craft is now, so the marker is withheld, and the
- * overlay says why, so a withheld marker is distinguishable from a broken
- * widget. The HUD readouts are the contrast case: a dated number keeps the
- * last observed value.
+ * a claim about where the craft is now, so the marker is withheld; the readouts
+ * keep the last observed figures, each marked held by its own Unit.
  */
 
 const CARRIED = [
@@ -53,74 +51,84 @@ function emitPosition(fixture: ReturnType<typeof mount>["fixture"]) {
   });
 }
 
+/** The held-marked figure whose visible text contains `text`, or null. */
+function heldFigure(container: HTMLElement, text: string): Element | null {
+  const shown = (el: Element) => el.textContent?.replace(/\s+/g, " ") ?? "";
+  return (
+    [...container.querySelectorAll("[data-not-current]")].find((el) =>
+      shown(el).includes(text),
+    ) ?? null
+  );
+}
+
+function dropLink(fixture: ReturnType<typeof mount>["fixture"]) {
+  act(() => {
+    fixture.store.setTransportConnected(false);
+    fixture.store.beginFrame();
+  });
+}
+
 describe("MapView when the position is not current", () => {
-  it("draws the position while it is current", async () => {
+  it("draws the position unmarked while it is current", async () => {
     // The control: without it every assertion below would pass on a widget that never renders a position.
     const { fixture, container } = mount();
     emitPosition(fixture);
     await waitFor(() => {
       expect(visibleText(container)).toContain("-0.10°");
     });
-    expect(visibleText(container)).not.toContain("marker withheld");
+    expect(container.querySelector("[data-not-current]")).toBeNull();
   });
 
-  // The altitude nulls on its own field's currency: the marker's caption cannot speak for it, and a confident figure would sit beside a withheld marker.
-  it("nulls the altitude too, not just the position it has a caption for", async () => {
-    const { fixture, container } = mount();
-    /* `Unit` separates figure and unit with a thin space, so whitespace is normalised. */
-    const shown = () => visibleText(container).replace(/\s+/g, " ");
-    emitPosition(fixture);
-    await waitFor(() => expect(shown()).toContain("80.0 m"));
-
-    act(() => {
-      fixture.store.setTransportConnected(false);
-      fixture.store.beginFrame();
-    });
-
-    // The absence of the figure, not a null-token count, which cannot say which row stopped claiming.
-    await waitFor(() => expect(shown()).not.toContain("80.0 m"));
-    // The marker's own statement is still made.
-    expect(visibleText(container)).toContain("marker withheld");
-  });
-
-  it("withholds the marker once the position stops arriving, and SAYS SO", async () => {
+  it("keeps the held coordinates, each marked with its spoken caption", async () => {
     const { fixture, container } = mount();
     emitPosition(fixture);
     await waitFor(() => expect(visibleText(container)).toContain("-0.10°"));
 
-    act(() => {
-      fixture.store.setTransportConnected(false);
-      fixture.store.beginFrame();
-    });
+    dropLink(fixture);
 
     await waitFor(() => {
-      // Legible from outside: an empty map would satisfy "no marker" while looking broken.
-      expect(visibleText(container)).toContain("Position not current");
-      expect(visibleText(container)).toContain("marker withheld");
+      for (const text of ["-0.10", "-74.56"]) {
+        const figure = heldFigure(container, text);
+        expect(figure).not.toBeNull();
+        expect(
+          figure?.querySelector("[data-unit-currency]")?.textContent,
+        ).toBeTruthy();
+      }
     });
   });
 
-  it("stops rendering the coordinates it can no longer vouch for", async () => {
-    // The lat/lon readout is the same position, so it goes with the marker.
+  it("keeps the held altitude, marked on its own field's currency", async () => {
+    const { fixture, container } = mount();
+    emitPosition(fixture);
+    await waitFor(() =>
+      expect(visibleText(container).replace(/\s+/g, " ")).toContain("80.0 m"),
+    );
+
+    dropLink(fixture);
+
+    await waitFor(() => expect(heldFigure(container, "80.0")).not.toBeNull());
+  });
+
+  it("writes no caption of its own for a held position", async () => {
     const { fixture, container } = mount();
     emitPosition(fixture);
     await waitFor(() => expect(visibleText(container)).toContain("-0.10°"));
 
-    act(() => {
-      fixture.store.setTransportConnected(false);
-      fixture.store.beginFrame();
-    });
+    dropLink(fixture);
 
-    await waitFor(() => {
-      expect(visibleText(container)).not.toContain("-0.10°");
-    });
+    await waitFor(() =>
+      expect(container.querySelector("[data-not-current]")).not.toBeNull(),
+    );
+    expect(visibleText(container)).not.toContain("not current");
+    expect(visibleText(container)).not.toContain("No position data");
   });
 
-  it("says nothing about a withheld marker before anything has ever arrived", async () => {
+  it("marks nothing held before anything has ever arrived", async () => {
     // A cold start is not a stale position, and must not accuse the link on first paint.
     const { container } = mount();
     await waitFor(() => {
-      expect(visibleText(container)).not.toContain("marker withheld");
+      expect(visibleText(container)).toContain("Waiting for telemetry");
     });
+    expect(container.querySelector("[data-not-current]")).toBeNull();
   });
 });

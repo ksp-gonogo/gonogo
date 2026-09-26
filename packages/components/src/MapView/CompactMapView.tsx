@@ -23,8 +23,8 @@ export function CompactMapView({
   positionNotice,
 }: Readonly<{
   bodyLabel: string | undefined;
-  lat: MapTelemetry["lat"];
-  lon: MapTelemetry["lon"];
+  lat: MapTelemetry["latitudeReading"];
+  lon: MapTelemetry["longitudeReading"];
   /** Omitted to leave the altitude row out. */
   altitude: MapTelemetry["altitudeReading"] | undefined;
   positionNotice: string | undefined;
@@ -41,7 +41,7 @@ export function CompactMapView({
             <CompactRow>
               <CompactLabel>Lat</CompactLabel>
               <CompactValue>
-                {lat === undefined ? (
+                {lat.value === undefined ? (
                   NULL_DISPLAY
                 ) : (
                   <Unit value={lat} decimals={2} />
@@ -51,7 +51,7 @@ export function CompactMapView({
             <CompactRow>
               <CompactLabel>Lon</CompactLabel>
               <CompactValue>
-                {lon === undefined ? (
+                {lon.value === undefined ? (
                   NULL_DISPLAY
                 ) : (
                   <Unit value={lon} decimals={2} />
