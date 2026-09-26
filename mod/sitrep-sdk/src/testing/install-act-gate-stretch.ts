@@ -73,8 +73,7 @@ export async function installActGateStretch(): Promise<void> {
           realSetTimeout(resolve, frames * FRAME_MS);
           return;
         }
-        // A test that leaves fake timers installed can stall the frame clock, and a
-        // stalled clock has nothing left to deliver, so the hold ends on a timer.
+        // A test that leaves fake timers installed can stall the frame clock, and a stalled clock has nothing left to deliver, so the hold ends on a timer.
         const cap = realSetTimeout(resolve, frames * FRAME_MS * 10);
         let held = 0;
         const next = () => {

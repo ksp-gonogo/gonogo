@@ -531,8 +531,10 @@ console.log(
     `${Math.round((Date.now() - started) / 1000)} s\n`,
 );
 
-// Checked before --update as well as before the comparison: a count taken without
-// the stretch is the machine-dependent number this gate exists to stop recording.
+/*
+ * Checked before --update as well as before the comparison: a count taken without
+ * the stretch is the machine-dependent number this gate exists to stop recording.
+ */
 if (unprovoked.length > 0) {
   console.error(
     `\nBLIND: the provocation planted in ${unprovoked.join(", ")} updates one frame ` +

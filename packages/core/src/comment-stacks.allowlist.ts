@@ -724,7 +724,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/components/src/TargetPicker/undefined.characterise.test.tsx": 17,
   "packages/components/src/Targeting/index.test.tsx": 1,
   "packages/components/src/Targeting/index.tsx": 10,
-  "packages/components/src/Targeting/reading.test.tsx": 6,
+  "packages/components/src/Targeting/reading.test.tsx": 5,
   "packages/components/src/Targeting/stale.test.tsx": 4,
   "packages/components/src/Targeting/stream.test.tsx": 3,
   "packages/components/src/Targeting/undefined.characterise.test.tsx": 15,

@@ -287,8 +287,7 @@ describe("AlarmsModal: the orbit-solve preset gate", () => {
     );
     emitOrbit(fixture.emit, { mu: 0 });
 
-    // The orbit has landed and been solved, and the solve states both
-    // countdowns as a confirmed null.
+    // The orbit has landed and been solved, and the solve states both countdowns as a confirmed null.
     await screen.findByText("solved: timeToAp null, timeToPe null");
     expect(screen.queryByRole("button", { name: /recommended/i })).toBeNull();
   });

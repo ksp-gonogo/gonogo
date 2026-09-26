@@ -484,8 +484,10 @@ describe("MissionBanner signal delay", () => {
       within(screen.getByRole("listbox")).getByText("Ground Station 1"),
     );
     await fixture.flyAt(187.4, GS1, 1000);
-    // The view clock on Ground Station 1's own frames: its link edge at UT 1000
-    // plus one light-time. The header is judged only once those have landed.
+    /*
+     * The view clock on Ground Station 1's own frames: its link edge at UT 1000
+     * plus one light-time. The header is judged only once those have landed.
+     */
     await screen.findByText("Y1 D1 00:19:47");
 
     // `comms.delay` is the home centre's light-time. Nothing on the wire says
@@ -543,8 +545,7 @@ describe("MissionBanner signal delay", () => {
     await waitFor(() => {
       expect(delayValue()?.innerHTML).toContain(atZero);
     });
-    // And the clock runs at that zero: the store reads the craft's latest
-    // sample, no longer held a light-time behind it.
+    // And the clock runs at that zero: the store reads the craft's latest sample, no longer held a light-time behind it.
     await screen.findByText("subject sample at UT 374.8");
     expect(screen.getByText("Y1 D1 00:06:14")).toBeInTheDocument();
   });
