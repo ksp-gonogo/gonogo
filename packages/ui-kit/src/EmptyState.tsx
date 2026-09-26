@@ -9,12 +9,12 @@ export interface EmptyStateProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * Muted placeholder text shown when a panel has nothing to render. Replaces
- * the many ad-hoc `Empty = styled.div` definitions sprinkled across widgets.
+ * Muted placeholder text shown when a panel has nothing to render.
  *
- * `inline` is the default, small vertical padding, sits where it's mounted
- * inside a panel's stack of children. `fill` centres in the available space
- * and is appropriate as a panel's sole child.
+ * `inline` is the default: it adds no inset of its own and sits where it is
+ * mounted, taking the padding of the body or section around it, so it lines up
+ * with the content it stands in for. `fill` centres in the available space and
+ * is appropriate as a panel's sole child.
  */
 export function EmptyState({
   children,
@@ -29,16 +29,7 @@ export function EmptyState({
 }
 
 const LAYOUT_STYLES = {
-  inline: css`
-    /* Horizontal padding matches PanelBody's 16px. The doc above describes
-       inline as sitting inside a panel's stack of children, which implied an
-       already-padded parent, but Panel is deliberately padding: 0 full-bleed
-       and every one of the 15 call sites renders this as a direct Panel
-       child. So with no horizontal padding the empty-state text sat flush
-       against the panel border everywhere it appeared. Nothing relies on the
-       old zero, so there is no double-padding risk. */
-    padding: var(--space-8, 8px) var(--space-16, 16px);
-  `,
+  inline: css``,
   fill: css`
     width: 100%;
     height: 100%;
