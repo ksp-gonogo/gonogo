@@ -8,6 +8,7 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
+  flushResizeObservers,
   installSizedResizeObserver,
   WidgetContributions,
 } from "../test/widgetDomSnapshot";
@@ -59,7 +60,7 @@ function withScatteredHistory(fixture: HandoverFixture): HandoverFixture {
   return { ...fixture, _stream: { ...fixture._stream, emits } };
 }
 
-function mount(fixture: HandoverFixture): RenderResult {
+async function mount(fixture: HandoverFixture): Promise<RenderResult> {
   const stream = setupStreamFixture({
     carriedChannels: fixture._stream.carriedChannels,
     pinnedUt: fixture._stream.pinnedUt,
@@ -79,6 +80,7 @@ function mount(fixture: HandoverFixture): RenderResult {
       stream.emit(emit.channel, emit.value, emit.meta);
     }
   });
+  await flushResizeObservers();
   return tree;
 }
 
@@ -141,47 +143,47 @@ describe("the carried ASL altitude reaches the operator", () => {
     restoreResizeObserver();
   });
 
-  it("names the quantity it is describing, as a heading", () => {
-    const tree = mount(loadHandoverFixture("05-drag-biting-42km.json"));
+  it("names the quantity it is describing, as a heading", async () => {
+    const tree = await mount(loadHandoverFixture("05-drag-biting-42km.json"));
     expect(
       tree.getByRole("heading", { name: /altitude asl/i }),
     ).toBeInTheDocument();
   });
 
-  it("draws the OBSERVED altitude, which nothing on this widget drew before", () => {
+  it("draws the OBSERVED altitude, which nothing on this widget drew before", async () => {
     // 42 000 m is the anchor sample of the drag-biting frame. Before this
     // readout the widget's only use of `altitudeAsl` was an unwrapped magnitude
     // fed into `solveSuicideBurn`, so the number never reached a pixel.
     expect(
-      readoutText(mount(loadHandoverFixture("05-drag-biting-42km.json"))),
+      readoutText(await mount(loadHandoverFixture("05-drag-biting-42km.json"))),
     ).toMatch(/42\.0/);
   });
 
-  it("draws the CARRIED altitude beside it rather than in place of it", () => {
+  it("draws the CARRIED altitude beside it rather than in place of it", async () => {
     // The rate integration puts the craft at 37 977 m six seconds past the
     // anchor. It must appear as a figure of its own and must not replace the
     // observation: a model quietly overwriting a measurement is the
     // substitution `Reading` exists to prevent.
     const text = readoutText(
-      mount(loadHandoverFixture("05-drag-biting-42km.json")),
+      await mount(loadHandoverFixture("05-drag-biting-42km.json")),
     );
     expect(text).toMatch(/42\.0/);
     expect(text).toMatch(/38\.0/);
   });
 
-  it("draws the descent fit's band as its two ends", () => {
+  it("draws the descent fit's band as its two ends", async () => {
     const interval = requireInterval(
-      mount(
+      await mount(
         withScatteredHistory(loadHandoverFixture("05-drag-biting-42km.json")),
       ),
     );
     expect(interval.lo).not.toBe(interval.hi);
   });
 
-  it("says what the interval claims, rather than leaving it assumed", () => {
+  it("says what the interval claims, rather than leaving it assumed", async () => {
     expect(
       readoutText(
-        mount(
+        await mount(
           withScatteredHistory(loadHandoverFixture("05-drag-biting-42km.json")),
         ),
       ),
@@ -199,27 +201,31 @@ describe("the carried ASL altitude reaches the operator", () => {
    * residual-free window establishes, so the producer offers nothing and the
    * consumer says so in words instead of inventing a hedge.
    */
-  it("draws no band at all through the handover set, and says so", () => {
-    const tree = mount(loadHandoverFixture("05-drag-biting-42km.json"));
+  it("draws no band at all through the handover set, and says so", async () => {
+    const tree = await mount(loadHandoverFixture("05-drag-biting-42km.json"));
     expect(drawnInterval(tree)).toBeNull();
     expect(readoutText(tree)).toMatch(
       /carried with no interval: this model bounds nothing/,
     );
   });
 
-  it("draws no interval where the conic carried the altitude, and invents none", () => {
+  it("draws no interval where the conic carried the altitude, and invents none", async () => {
     // Above the interface `vessel.flight` is carried by Kepler propagation,
     // which offers no `bandAt` at all. The carried figure is still there; an
     // interval must not be.
-    const tree = mount(loadHandoverFixture("01-above-interface-95km.json"));
+    const tree = await mount(
+      loadHandoverFixture("01-above-interface-95km.json"),
+    );
     expect(readoutText(tree)).toMatch(/92\.6/);
     expect(drawnInterval(tree)).toBeNull();
   });
 
-  it("says why the model withdrew, where it withdrew", () => {
+  it("says why the model withdrew, where it withdrew", async () => {
     // Peak deceleration closes the rate integration's horizon, so there is no
     // carried altitude at all. A blank is the one answer that would be wrong.
-    const tree = mount(loadHandoverFixture("06-peak-deceleration-30km.json"));
+    const tree = await mount(
+      loadHandoverFixture("06-peak-deceleration-30km.json"),
+    );
     expect(readoutText(tree)).toMatch(
       /honest for about 2\.5 seconds at the sensed deceleration/,
     );
@@ -227,7 +233,7 @@ describe("the carried ASL altitude reaches the operator", () => {
   });
 
   it("has no a11y violations with the band drawn", async () => {
-    const tree = mount(
+    const tree = await mount(
       withScatteredHistory(loadHandoverFixture("05-drag-biting-42km.json")),
     );
     await expectNoA11yViolations(tree.container);

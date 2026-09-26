@@ -10,6 +10,7 @@ import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
+  flushResizeObservers,
   installSizedResizeObserver,
   WidgetContributions,
 } from "../test/widgetDomSnapshot";
@@ -182,8 +183,9 @@ describe("LandingStatus: what undefined means today", () => {
    * The next line undid it. The hero now has its own arm for a link it cannot
    * vouch for.
    */
-  it("shows the empty state, a NO LINK regime and a hero that asks for a link when nothing has arrived", () => {
+  it("shows the empty state, a NO LINK regime and a hero that asks for a link when nothing has arrived", async () => {
     const { container } = renderWidget();
+    await flushResizeObservers();
 
     // The body: `solveSuicideBurn` returns "not-descending" for an undefined
     // height, so `deriveBoard` suppresses every readout.
