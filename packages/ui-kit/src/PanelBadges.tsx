@@ -2,10 +2,9 @@ import type { BadgeEntry } from "@ksp-gonogo/sitrep-sdk";
 import { createContext, type ReactNode, useContext } from "react";
 
 /**
- * One standard badge Panel can render in its header aside. The fixed,
- * uniform shape every widget's `<id>.badges` contribution slot produces
- * shape: a label and an optional tone, nothing
- * widget-specific, so Panel can render it with zero per-widget code.
+ * One standard badge Panel can render in its header aside: the fixed shape
+ * every widget's `<id>.badges` contribution slot produces, a label and an
+ * optional tone, so Panel can render it with no per-widget code.
  *
  * Declared in `@ksp-gonogo/sitrep-sdk` and re-exported, because it is the entry
  * type of the framework-universal `badges` segment in `ComponentSlotRegistry`: a
@@ -17,10 +16,9 @@ export type { BadgeEntry };
 const PanelBadgesCtx = createContext<readonly BadgeEntry[] | null>(null);
 
 /**
- * Supplies the current widget's badges to the nearest Panel, the same
- * relationship PanelStatusProvider has to `panelStatus`. Mounted by the
- * dashboard orchestrator (Task 2.4), never by a widget itself: that's what
- * makes the slot automatic rather than something each widget wires.
+ * Supplies the current widget's badges to the nearest Panel. Mounted by the
+ * dashboard host, never by a widget itself, which is what makes the slot
+ * automatic rather than something each widget wires.
  */
 export function PanelBadgesProvider({
   badges,

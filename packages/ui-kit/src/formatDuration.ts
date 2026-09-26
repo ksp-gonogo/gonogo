@@ -87,24 +87,23 @@ export interface FormatDurationOptions {
   ms?: boolean;
   /**
    * Prefix a launch-clock sign: `T+` for a negative (already-elapsed/past)
-   * value, `T−` for a positive-or-zero (future) value. Mirrors
-   * `Targeting`'s `formatTca` convention. Off by default.
+   * value, `T−` for a positive-or-zero (future) value. Off by default.
    */
   sign?: boolean;
 }
 
 /**
  * Formats a duration in seconds as the largest two significant KSP-time
- * units, space-separated and suffixed (`45s`, `1m 20s`, `2h 15m`, `3d 4h`,
+ * units, space-separated and suffixed (`45s`, `1min 20s`, `2h 15min`, `3d 4h`,
  * `1y 200d`). The smaller unit is only shown when non-zero at that scale
- * (exactly 2h renders as `2h`, not `2h 0m`).
+ * (exactly 2h renders as `2h`, not `2h 0min`).
  *
  * The smaller unit is *truncated*, not rounded. This is a deliberate choice
  * for the countdown use case this formatter primarily serves (an in-transit
- * command / event countdown): rounding up could display "1m 30s remaining"
+ * command / event countdown): rounding up could display "1min 30s remaining"
  * when only 89.6s have actually elapsed/remain, i.e. show progress that
  * hasn't happened yet. Truncating means the displayed value has always
- * actually been reached. `89.9` -> `1m 29s`, not `1m 30s`.
+ * actually been reached. `89.9` -> `1min 29s`, not `1min 30s`.
  *
  * `undefined`-shaped sentinels aren't handled here (unlike `formatNumber`),
  * callers pass a definite `number`; only non-finite values (`NaN`,
