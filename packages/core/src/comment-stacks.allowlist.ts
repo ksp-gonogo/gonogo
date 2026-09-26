@@ -557,7 +557,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/ui-kit/src/Panel.asideCollapse.test.tsx": 1,
   "packages/ui-kit/src/Panel.delay.test.tsx": 1,
   "packages/ui-kit/src/Panel.sidebar.test.tsx": 2,
-  "packages/ui-kit/src/Panel.tsx": 5,
+  "packages/ui-kit/src/Panel.tsx": 4,
   "packages/ui-kit/src/ReadOnlyField.test.tsx": 1,
   "packages/ui-kit/src/Tabs.tsx": 1,
   "packages/ui-kit/src/Text.test.tsx": 1,

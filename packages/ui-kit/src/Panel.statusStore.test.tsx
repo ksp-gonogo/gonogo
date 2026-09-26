@@ -105,6 +105,22 @@ describe("Panel header summary (store-backed)", () => {
     expect(screen.getByRole("status")).toHaveTextContent("offline");
   });
 
+  it("keeps the same live region across a severity change, so the change is announced", () => {
+    function Harness({ severity }: { severity: "caution" | "offline" }) {
+      return inStore(
+        <Panel panelTitle="LINK">
+          <Badge severity={severity} report={{ id: "link", label: severity }}>
+            L
+          </Badge>
+        </Panel>,
+      );
+    }
+    const { rerender } = render(<Harness severity="caution" />);
+    const before = screen.getByRole("status");
+    rerender(<Harness severity="offline" />);
+    expect(screen.getByRole("status")).toBe(before);
+  });
+
   it("a summarised panel has no axe violations", async () => {
     const { container } = render(
       inStore(
