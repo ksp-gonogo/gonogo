@@ -215,7 +215,7 @@ export function UnitInput<U extends string>({
         <Stack gap="sm">
           <MissionDateField
             label={label}
-            value={Number.isFinite(magnitude) ? magnitude : 0}
+            value={Number.isFinite(magnitude) ? magnitude : null}
             disabled={disabled}
             // The wheel IS the nudge where there is one, so the coarse steps go.
             // Two rows of nudge controls one above the other is one gesture
