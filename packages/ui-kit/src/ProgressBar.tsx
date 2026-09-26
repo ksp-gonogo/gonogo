@@ -5,8 +5,11 @@ import { speakQuantity } from "./units";
 
 interface ProgressBarCommonProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
-  /** Accessible label for screen readers (e.g. "Biome coverage, Kerbin"). */
-  ariaLabel?: string;
+  /**
+   * The bar's accessible name (e.g. "Biome coverage, Kerbin"). Required: a
+   * progress bar with no name is announced as a bare percentage of nothing.
+   */
+  ariaLabel: string;
   /**
    * CSS colour for the fill, overriding the default `--color-accent-fg`.
    * For a bar whose progress is itself a threat (a CME closing in, not a
