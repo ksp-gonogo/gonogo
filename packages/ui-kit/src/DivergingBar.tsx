@@ -70,7 +70,7 @@ export function DivergingBar<U extends string = string>({
    */
   const pct =
     shown != null && maxAbs.isPositive()
-      ? shown.abs().dividedBy(maxAbs).magnitude * 50
+      ? Math.min(50, shown.abs().dividedBy(maxAbs).magnitude * 50)
       : 0;
   return (
     <DivergingBar__Track
