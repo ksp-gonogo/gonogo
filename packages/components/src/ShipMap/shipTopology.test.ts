@@ -1,7 +1,8 @@
 import type { TopologyPart } from "@ksp-gonogo/core";
 import { KspPartCategory } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { buildShipMapPart, classifyPart } from "./shipTopology";
+import { classifyPart } from "./classifyPart";
+import { buildShipMapPart } from "./shipTopology";
 
 function part(overrides: Partial<TopologyPart>): TopologyPart {
   return {

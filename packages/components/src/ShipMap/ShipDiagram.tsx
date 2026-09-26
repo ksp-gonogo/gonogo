@@ -1,12 +1,13 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Meter, resourceColor, TextButton, Unit } from "@ksp-gonogo/ui-kit";
+import { TextButton } from "@ksp-gonogo/ui-kit";
 import type React from "react";
 import type { CSSProperties } from "react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useZoomPan } from "../shared/useZoomPan";
 import { anchoredMenuPosition } from "./anchoredMenuPosition";
-import { PartActionCount, PartActionMenu } from "./PartActionMenu";
+import { PartActionMenu } from "./PartActionMenu";
+import { PartTooltip } from "./PartTooltip";
+import { NO_METERS } from "./partMeters";
 import { ShipDiagramSvg } from "./ShipDiagramSvg";
 import type {
   ShipMapPart,
@@ -14,14 +15,7 @@ import type {
   ShipMapPartMeterEntry,
 } from "./shipTopology";
 
-const NO_METERS: readonly ShipMapPartMeterEntry[] = [];
 const NO_META: readonly ShipMapPartMetaEntry[] = [];
-
-/** Status as an outline around the compact meter, never the fill hue: the same split as `ShipDiagramSvg`'s `STATUS_BORDER`. */
-const STATUS_OUTLINE: Record<"low" | "critical", string> = {
-  low: "var(--color-status-warning-bg)",
-  critical: "var(--color-status-nogo-bg)",
-};
 
 interface Props {
   parts: readonly ShipMapPart[];
@@ -141,10 +135,6 @@ export function ShipDiagram({
   const hoveredMeta = hovered
     ? (partMeta?.get(String(hovered.flightId)) ?? NO_META)
     : NO_META;
-  // Resources with no contributed meter still get a plain raw row.
-  const meteredResourceNames = new Set(hoveredMeters.map((m) => m.resource));
-  const otherResources =
-    hovered?.resources?.filter((r) => !meteredResourceNames.has(r.n)) ?? [];
 
   return (
     // Mouse-only pan/zoom enhancement; keyboard access is via the focusable SVG parts, and no semantic role fits a bare pan canvas.
@@ -198,86 +188,15 @@ export function ShipDiagram({
       />
 
       {hovered && (
-        <div
-          style={{
-            ...TOOLTIP,
-            left: Math.min(mouse.x + 12, Math.max(0, width - 180)),
-            top: Math.min(mouse.y + 12, Math.max(0, height - 80)),
-          }}
-        >
-          <div style={TOOLTIP_TITLE}>{hovered.title || hovered.name}</div>
-          <div style={TOOLTIP_ROW}>
-            <span>type</span>
-            <span style={TOOLTIP_ROW_VALUE}>{hovered.type}</span>
-          </div>
-          <div style={TOOLTIP_ROW}>
-            <span>mass</span>
-            <span style={TOOLTIP_ROW_VALUE}>
-              <Unit value={value("t", hovered.dryMass)} decimals={3} />
-            </span>
-          </div>
-          {hovered.temperatureK !== undefined &&
-          (hovered.maxTemperatureK ?? hovered.maxTemp) > 0 ? (
-            <div style={TOOLTIP_ROW}>
-              <span>temp</span>
-              <span style={TOOLTIP_ROW_VALUE}>
-                {Math.round(hovered.temperatureK)} /{" "}
-                {Math.round(hovered.maxTemperatureK ?? hovered.maxTemp)} K
-              </span>
-            </div>
-          ) : null}
-          <div style={TOOLTIP_ROW}>
-            <span>stage</span>
-            <span style={TOOLTIP_ROW_VALUE}>{hovered.stage}</span>
-          </div>
-          {/* Mounting is the subscription that makes the mod enumerate the part's PAW, so only for the hovered part. */}
-          {onInvokePartAction ? (
-            <PartActionCount flightId={hovered.flightId} />
-          ) : null}
-          {hoveredMeters.map((m) => (
-            <Meter
-              key={`meter-${m.resource}`}
-              label={m.displayName}
-              /* Handed over as they arrived: `Meter` marks a held figure and places a band, which a bare quantity would strip. */
-              value={m.amount}
-              capacity={m.capacity}
-              fillColor={resourceColor(m.resource)}
-              style={
-                m.status
-                  ? {
-                      outline: `1px solid ${STATUS_OUTLINE[m.status]}`,
-                      outlineOffset: "2px",
-                    }
-                  : undefined
-              }
-            />
-          ))}
-          {otherResources.map((r) => (
-            <div style={TOOLTIP_ROW} key={r.n}>
-              <span>{r.n}</span>
-              <span style={TOOLTIP_ROW_VALUE}>
-                <Unit value={value("units", r.a)} decimals={0} />
-                {" / "}
-                <Unit value={value("units", r.c)} decimals={0} />
-              </span>
-            </div>
-          ))}
-          {hoveredMeta.map((m) =>
-            m.kind === "ratio" ? (
-              <Meter
-                key={`meta-${m.label}`}
-                label={m.label}
-                value={m.value == null ? null : value("ratio", m.value)}
-                tone={m.tone}
-              />
-            ) : (
-              <div style={TOOLTIP_ROW} key={`meta-${m.label}`}>
-                <span>{m.label}</span>
-                <span style={TOOLTIP_ROW_VALUE}>{m.text}</span>
-              </div>
-            ),
-          )}
-        </div>
+        <PartTooltip
+          hovered={hovered}
+          meters={hoveredMeters}
+          meta={hoveredMeta}
+          mouse={mouse}
+          width={width}
+          height={height}
+          showActionCount={Boolean(onInvokePartAction)}
+        />
       )}
 
       {openPart && onInvokePartAction
@@ -348,33 +267,3 @@ const MENU_HOST: CSSProperties = {
 
 // Static, not the menu's own absolute, so it stays in the host's flow and the host can be measured.
 const MENU_IN_HOST: CSSProperties = { position: "static" };
-
-const TOOLTIP: CSSProperties = {
-  position: "absolute",
-  background: "var(--color-surface-sunken)",
-  color: "var(--color-text-primary)",
-  fontSize: "var(--font-size-compact)",
-  padding: "var(--inset-surface)",
-  border: "1px solid var(--color-border-strong)",
-  borderRadius: "var(--radius-regular)",
-  pointerEvents: "none",
-  minWidth: "140px",
-  // Local pair with ResetButton, both inside Root.
-  zIndex: 20,
-};
-
-const TOOLTIP_TITLE: CSSProperties = {
-  fontWeight: 600,
-  color: "var(--color-status-go-fg)",
-  marginBottom: "var(--gap-under-title)",
-  wordBreak: "break-word",
-};
-
-const TOOLTIP_ROW: CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: "var(--gap-section)",
-  color: "var(--color-text-muted)",
-};
-
-const TOOLTIP_ROW_VALUE: CSSProperties = { color: "var(--color-text-primary)" };
