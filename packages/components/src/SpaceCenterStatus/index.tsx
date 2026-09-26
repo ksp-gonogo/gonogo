@@ -75,7 +75,6 @@ function SpaceCenterStatusComponent({
   const launchSite = stillTrue(sceneReading, undefined)?.launchSite;
   const scene =
     sceneReading.state === "observed" ? sceneReading.value.scene : undefined;
-  const lastScene = stillTrue(sceneReading, undefined)?.scene;
   // The pad changes when a vessel rolls out or launches, so it holds like the site.
   const spaceCenterState = stillTrue(
     useStream<SpaceCenterState>("spaceCenter.state"),
@@ -111,13 +110,6 @@ function SpaceCenterStatusComponent({
 
   // Upgrades work in the Space Center scene only; an unknown or held scene grants no permission to spend, since the player may have walked out since.
   const upgradesEnabled = scene === "SpaceCenter";
-  // Cite the held scene only when withholding it actually disabled something.
-  const heldScene =
-    sceneReading.state === "stale" && lastScene === "SpaceCenter";
-  const heldUpgradeInputs = [
-    heldScene ? "scene" : undefined,
-    heldFunds ? "funds balance" : undefined,
-  ].filter((held): held is string => held !== undefined);
 
   // Announced through aria-live, so "No vehicle on pad" must never be reached from two absences.
   const padLine = describePad(padOccupied, padVesselTitle, launchSite);
@@ -133,7 +125,6 @@ function SpaceCenterStatusComponent({
       chargesFunds={chargesFunds}
       padOccupied={padOccupied}
       padLine={padLine}
-      heldUpgradeInputs={heldUpgradeInputs}
       tiersHeldFor={tiersHeldFor}
       facilities={facilities}
       upgradesEnabled={upgradesEnabled}

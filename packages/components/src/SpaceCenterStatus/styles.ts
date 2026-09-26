@@ -14,14 +14,6 @@ export const PadStatusLine = styled.span`
   font-variant-numeric: tabular-nums;
 `;
 
-export const UpgradesHeld = styled.span`
-  font-size: var(--font-size-compact);
-  letter-spacing: 0.04em;
-  /* Warning text on a dark surface, the same treatment as UpgradeCost when unaffordable. */
-  color: var(--color-status-nogo-bg);
-  font-weight: 600;
-`;
-
 export const AbsenceLine = styled.span`
   font-size: var(--font-size-caption);
   letter-spacing: 0.04em;

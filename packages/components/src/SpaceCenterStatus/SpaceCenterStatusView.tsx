@@ -22,7 +22,6 @@ import {
   FacilityGrid,
   FundsReadout,
   PadStatusLine,
-  UpgradesHeld,
 } from "./styles";
 
 export interface SpaceCenterStatusViewProps {
@@ -35,7 +34,6 @@ export interface SpaceCenterStatusViewProps {
   chargesFunds: boolean;
   padOccupied: boolean | null | undefined;
   padLine: string;
-  heldUpgradeInputs: readonly string[];
   tiersHeldFor: Value<"s"> | undefined;
   facilities: FacilityLevels;
   upgradesEnabled: boolean;
@@ -53,7 +51,6 @@ export function SpaceCenterStatusView({
   chargesFunds,
   padOccupied,
   padLine,
-  heldUpgradeInputs,
   tiersHeldFor,
   facilities,
   upgradesEnabled,
@@ -124,12 +121,6 @@ export function SpaceCenterStatusView({
                     </FundsReadout>
                   )}
               </PadStatusLine>
-            )}
-            {heldUpgradeInputs.length > 0 && (
-              /* Not a live region: the funds half already announces through the pad line. */
-              <UpgradesHeld>
-                {`Upgrades held: ${heldUpgradeInputs.join(" and ")} no longer current`}
-              </UpgradesHeld>
             )}
             {tierSpecsFit && answeredFacilities.length > 0 && !anyTierText && (
               /* Said once for the grid, and not at all when no facility answered. */

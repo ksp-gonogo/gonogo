@@ -101,7 +101,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
       (screen.getByRole("button", { name: "Upgrade" }) as HTMLButtonElement)
         .disabled,
     ).toBe(false);
-    expect(visibleText(container)).not.toContain("Upgrades held");
+    expect(container.querySelector("[data-not-current]")).toBeNull();
   });
 
   it("keeps the held balance on screen, marked by Unit, and disarms the upgrade", async () => {
@@ -140,7 +140,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     expect(visibleText(container)).not.toContain("funds no longer current");
   });
 
-  it("names both withheld inputs, so dead buttons do not read as a KSC with nothing to upgrade", async () => {
+  it("disarms every upgrade without writing a held caption beside them", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
@@ -155,13 +155,16 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     goStale(fixture);
 
     await waitFor(() =>
-      expect(visibleText(container)).toContain("Upgrades held"),
+      expect(
+        (screen.getByRole("button", { name: "Upgrade" }) as HTMLButtonElement)
+          .disabled,
+      ).toBe(true),
     );
-    const text = visibleText(container);
-    // Withholding a permission leaves nothing behind, so the scene half has to be said out loud.
-    expect(text).toContain("scene");
-    expect(text).toContain("funds balance");
-    expect(text).toContain("no longer current");
+    // The held balance carries the mark; nothing else on the panel dates the link.
+    expect(
+      screen.getByTitle("Available funds").querySelector("[data-not-current]"),
+    ).not.toBeNull();
+    expect(visibleText(container)).not.toMatch(/not current|no longer current/);
     // MAX is a claim about the facility, not about the link.
     expect(screen.queryByText("MAX")).toBeNull();
   });
@@ -180,7 +183,11 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
 
     goStale(fixture);
     await waitFor(() =>
-      expect(visibleText(container)).toContain("Upgrades held"),
+      expect(
+        screen
+          .getByTitle("Available funds")
+          .querySelector("[data-not-current]"),
+      ).not.toBeNull(),
     );
 
     // Each moves only when the player does something, which cannot happen down a dead link.
@@ -193,7 +200,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     );
   });
 
-  it("says nothing about held upgrades before anything has ever arrived", async () => {
+  it("marks nothing held before anything has ever arrived", async () => {
     // A cold start is not a withholding.
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
@@ -203,7 +210,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     const container = mount(fixture, "scs-stale-cold", 6, 7);
 
     await waitFor(() => expect(screen.getByText("SPACE CENTER")).toBeTruthy());
-    expect(visibleText(container)).not.toContain("Upgrades held");
+    expect(container.querySelector("[data-not-current]")).toBeNull();
     expect(visibleText(container)).toContain("funds unknown");
     expect(screen.queryByTitle("Funds balance no longer current")).toBeNull();
   });
