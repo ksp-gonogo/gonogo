@@ -10,6 +10,8 @@ import {
 import type { PendingAlarmSummary } from "../shared/AlarmsLauncher";
 import { ALARM_NAME_STYLE, FOOT_ROW_STYLE } from "./styles";
 
+const BELL_STYLE = { flexShrink: 0 } as const;
+
 /** The soonest alarm yet to fire, the thing that ends a warp without anyone touching it. */
 export function NextAlarm({ alarm }: Readonly<{ alarm: PendingAlarmSummary }>) {
   const viewUt = useViewUt();
@@ -25,7 +27,7 @@ export function NextAlarm({ alarm }: Readonly<{ alarm: PendingAlarmSummary }>) {
       aria-label="Next alarm"
     >
       <Cluster justify="center">
-        <BellIcon size={12} aria-hidden="true" />
+        <BellIcon size={12} aria-hidden="true" style={BELL_STYLE} />
         <Truncate style={ALARM_NAME_STYLE}>{alarm.name}</Truncate>
       </Cluster>
       {remaining !== null && (

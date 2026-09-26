@@ -78,7 +78,6 @@ export function WarpControlView({
   return (
     <Panel
       panelTitle="WARP"
-      fitToSize
       sections={
         <Section full>
           <DimmedOverlay

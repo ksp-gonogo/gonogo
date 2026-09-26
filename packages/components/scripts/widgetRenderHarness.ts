@@ -1172,7 +1172,6 @@ const CLIPPED_CONTENT_DEBT = new Set([
   "power-systems",
   "strategies",
   "twr",
-  "warp-control",
 ]);
 
 async function findClippedContent(page: Page): Promise<string[]> {
