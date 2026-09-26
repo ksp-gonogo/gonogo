@@ -1,0 +1,296 @@
+import type { ComponentProps } from "@ksp-gonogo/core";
+import { useActionInput } from "@ksp-gonogo/core";
+import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
+import { canBeSacked, stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  Badge,
+  NULL_DISPLAY,
+  Panel,
+  ReadoutCaption,
+  Section,
+  Stat,
+  StatContributions,
+  StatStrip,
+  speakQuantity,
+  Tabs,
+  Unit,
+  usePanelDelay,
+  useSlotBound,
+} from "@ksp-gonogo/ui-kit";
+import type { ReactNode } from "react";
+import { useMemo, useState } from "react";
+import {
+  FundsDrain,
+  netFundsPerDay,
+  reportsFundsDrain,
+} from "../shared/FundsDrain";
+import { magnitudeOf } from "../shared/magnitude";
+import { ActivePanel } from "./ActivePanel";
+import { ApplicantsPanel } from "./ApplicantsPanel";
+import type { AstronautComplexActions, AstronautComplexConfig } from "./config";
+import { readApplicants, readCrewRoster } from "./roster";
+import {
+  ASTRONAUT_COMPLEX_READOUTS_SLOT,
+  ASTRONAUT_COMPLEX_TRAINING_SLOT,
+} from "./slots";
+import { EMPTY_STYLE } from "./styles";
+import { TrainingTab } from "./TrainingTab";
+import { astronautComplexTopics } from "./topics";
+
+/** KSP's `int.MaxValue`, which `GameVariables.GetActiveCrewLimit` returns for an unlimited roster; every tiered cap sits far below it. */
+const UNLIMITED_CREW_CAP = 2_147_483_647;
+
+/** Shown whenever a stale balance is withheld. Hiring stays available: the game arbitrates the purchase. */
+const FUNDS_STALE_NOTE = "Funds no longer current";
+
+/** The roster cap as written: unlimited, a figure, or nothing known. */
+function capTextOf(
+  crewCapacity: number | null,
+  capUnlimited: boolean,
+  capKnown: boolean,
+): string | null {
+  if (capUnlimited) return "Unlimited";
+  if (capKnown) return String(crewCapacity);
+  return null;
+}
+
+export function AstronautComplexComponent(
+  _props: Readonly<ComponentProps<AstronautComplexConfig>>,
+) {
+  /**
+   * Every field on the complex record is a fact that only an event moves, so
+   * the record takes `stillTrue` whole: a blanked pool would report no
+   * candidates for a save that has four waiting.
+   */
+  const complexReading = astronautComplexTopics.useTelemetry(
+    "spaceCenter.astronautComplex",
+  );
+  const complex = stillTrue(complexReading, undefined);
+  // `absent` is off career; `pending` is a cold start and gets its own sentence.
+  const complexConfirmedEmpty = complexReading.state === "absent";
+  /**
+   * Funds is the one judgement here: it sits beside a spend control and decides
+   * `affordable`, so a held balance is withheld, with `fundsNotCurrent` saying
+   * why it is missing.
+   */
+  const fundsReading = astronautComplexTopics.useTelemetry("career.status");
+  const careerEconomy =
+    fundsReading.state === "observed" ? fundsReading.value.economy : undefined;
+  const careerFunds = magnitudeOf(careerEconomy?.funds);
+  // The note explains a MISSING figure, so it is on exactly when a held figure is withheld.
+  const fundsNotCurrent = fundsReading.state === "stale";
+  // Crew are a standing cost: the rate from whichever money model won `economy`; stock reports none.
+  const netFunds = netFundsPerDay(careerEconomy);
+  // A kerbal is on the books until an event takes them off, so the last roster received stands.
+  const crewRosterRaw = stillTrue(
+    astronautComplexTopics.useTelemetry("spaceCenter.crewRoster"),
+    undefined,
+  );
+  const crewRoster = useMemo(
+    () => readCrewRoster(crewRosterRaw),
+    [crewRosterRaw],
+  );
+  // The training tab exists only while something claims its slot.
+  const trainingBound = useSlotBound(ASTRONAUT_COMPLEX_TRAINING_SLOT);
+
+  // A KSC ground action, dispatched at the meta-vantage; the handle still has to reach the delay rail.
+  const hireCmd = useCommand("career.crew.hire", { vantage: META_VANTAGE });
+  usePanelDelay(hireCmd);
+
+  // Firing is the same kind of KSC ground action: instant and free.
+  const fireCmd = useCommand("career.crew.fire", { vantage: META_VANTAGE });
+  usePanelDelay(fireCmd);
+
+  const sackableCrew = useMemo(
+    () => crewRoster.filter((c) => !c.isApplicant && canBeSacked(c.standing)),
+    [crewRoster],
+  );
+  const [highlightedName, setHighlightedName] = useState<string | null>(null);
+  const [armedName, setArmedName] = useState<string | null>(null);
+  // By name, so the highlight follows its kerbal through a reorder and falls to the first fireable one when it leaves.
+  const highlighted =
+    sackableCrew.find((c) => c.name === highlightedName) ?? sackableCrew[0];
+
+  useActionInput<AstronautComplexActions>({
+    highlightNextAvailable: (payload) => {
+      // Fire on the press edge only, so one tap steps one row.
+      if (payload.kind === "button" && payload.value !== true) return undefined;
+      if (sackableCrew.length === 0 || !highlighted) return undefined;
+      const next =
+        sackableCrew[
+          (sackableCrew.indexOf(highlighted) + 1) % sackableCrew.length
+        ];
+      setHighlightedName(next.name);
+      setArmedName(null);
+      return { highlighted: next.name };
+    },
+    fireHighlighted: (payload) => {
+      if (payload.kind === "button" && payload.value !== true) return undefined;
+      if (!highlighted) return undefined;
+      if (armedName !== highlighted.name) {
+        setArmedName(highlighted.name);
+        return { armed: highlighted.name };
+      }
+      setArmedName(null);
+      void fireCmd.send({ kerbalName: highlighted.name });
+      return { fired: highlighted.name };
+    },
+  });
+
+  const applicants = readApplicants(complex?.applicants);
+  const activeCrew = magnitudeOf(complex?.activeCrew);
+  const crewCapacity = magnitudeOf(complex?.crewCapacity);
+  // The recruit price rises with roster size, not per applicant, so it is one header readout.
+  const nextHireCost = magnitudeOf(complex?.nextHireCost);
+
+  const capUnlimited =
+    crewCapacity !== null && crewCapacity >= UNLIMITED_CREW_CAP;
+  const capKnown = crewCapacity !== null && crewCapacity > 0;
+  const rosterFull =
+    capKnown &&
+    !capUnlimited &&
+    activeCrew !== null &&
+    activeCrew >= (crewCapacity as number);
+
+  const affordable =
+    nextHireCost !== null &&
+    (careerFunds === null || careerFunds >= nextHireCost);
+  const canHire = affordable && !rosterFull;
+
+  /**
+   * The lines qualifying the funds figure, composed only when there is one:
+   * an empty detail line would still take its height and lift the figure out of
+   * line with the rest of the strip.
+   */
+  const fundsDetail: ReactNode =
+    reportsFundsDrain(netFunds) || fundsNotCurrent ? (
+      <>
+        <FundsDrain funds={careerFunds} netPerDay={netFunds} />
+        {fundsNotCurrent && <ReadoutCaption>{FUNDS_STALE_NOTE}</ReadoutCaption>}
+      </>
+    ) : undefined;
+
+  const fundsStat = (
+    <Stat label="Funds" detail={fundsDetail}>
+      {careerFunds !== null ? (
+        <span
+          title={speakQuantity(value("funds", careerFunds), { decimals: 0 })}
+        >
+          <Unit value={value("funds", careerFunds)} />
+        </span>
+      ) : (
+        NULL_DISPLAY
+      )}
+    </Stat>
+  );
+
+  // Off career or before telemetry: no applicant pool, still surfacing funds when known.
+  if (complex === undefined) {
+    return (
+      <Panel
+        panelTitle="ASTRONAUT COMPLEX"
+        compactTitle={["ASTRONAUTS", "CREW"]}
+        sections={
+          <Section full gap="section-compact">
+            <StatStrip role="status" aria-live="polite">
+              {fundsStat}
+              <StatContributions slot={ASTRONAUT_COMPLEX_READOUTS_SLOT} />
+            </StatStrip>
+            <div style={EMPTY_STYLE}>
+              {complexConfirmedEmpty
+                ? "No applicant data (career mode only)"
+                : "No applicant data yet (waiting for telemetry)"}
+            </div>
+          </Section>
+        }
+      />
+    );
+  }
+
+  const capText = capTextOf(crewCapacity, capUnlimited, capKnown);
+
+  return (
+    <Panel
+      panelTitle="ASTRONAUT COMPLEX"
+      compactTitle={["ASTRONAUTS", "CREW"]}
+      sections={[
+        /* Both span: a tab strip beside anything reads as two widgets. */
+        <Section key="stats" full>
+          <StatStrip role="status" aria-live="polite">
+            {fundsStat}
+            <Stat
+              label="Next Hire"
+              tone={nextHireCost === null || affordable ? "neutral" : "nogo"}
+            >
+              {nextHireCost !== null ? (
+                <span
+                  title={speakQuantity(value("funds", nextHireCost), {
+                    decimals: 0,
+                  })}
+                >
+                  <Unit value={value("funds", nextHireCost)} />
+                </span>
+              ) : (
+                NULL_DISPLAY
+              )}
+            </Stat>
+            <Stat label="Active Kerbals" tone={rosterFull ? "nogo" : "neutral"}>
+              {activeCrew !== null ? activeCrew : NULL_DISPLAY}
+              {capText !== null ? ` / ${capText}` : ""}
+              {rosterFull && (
+                <Badge severity="critical" size="sm">
+                  FULL
+                </Badge>
+              )}
+            </Stat>
+            {/* Whatever the save's career model considers as core as the three above. */}
+            <StatContributions slot={ASTRONAUT_COMPLEX_READOUTS_SLOT} />
+          </StatStrip>
+        </Section>,
+        <Section key="roster" full>
+          <Tabs
+            tabs={[
+              {
+                id: "applicants",
+                label: "Applicants",
+                content: (
+                  <ApplicantsPanel
+                    applicants={applicants}
+                    affordable={affordable}
+                    canHire={canHire}
+                    rosterFull={rosterFull}
+                    hireCost={nextHireCost}
+                    hireCmd={hireCmd}
+                  />
+                ),
+              },
+              {
+                id: "active",
+                label: "Active",
+                content: (
+                  <ActivePanel
+                    crew={crewRoster}
+                    fireCmd={fireCmd}
+                    highlightedName={highlighted?.name ?? null}
+                    armed={
+                      armedName !== null && armedName === highlighted?.name
+                    }
+                  />
+                ),
+              },
+              ...(trainingBound
+                ? [
+                    {
+                      id: "training",
+                      label: "Training",
+                      content: <TrainingTab />,
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        </Section>,
+      ]}
+    />
+  );
+}
