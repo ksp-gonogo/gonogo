@@ -1,4 +1,5 @@
 import { ScreenProvider } from "@ksp-gonogo/core";
+import { PropagationHorizonKind, TrajectoryKind } from "@ksp-gonogo/sitrep-sdk";
 import {
   harnessTheme,
   type StreamFixture,
@@ -48,6 +49,11 @@ const ORBIT = {
   meanAnomalyAtEpoch: 0,
   epoch: VIEW_UT,
   mu: 3.5316e12,
+  // Without a stated reach and shape nothing vouches for the conic, and no apsis preset appears.
+  horizon: {
+    kind: PropagationHorizonKind.Unbounded,
+    trajectoryKind: TrajectoryKind.Analytic,
+  },
 };
 
 /**
@@ -176,6 +182,9 @@ async function renderScene(scene: Scene): Promise<void> {
   /* The vantage stamp rides the frame meta, which is how the client learns
      which centre its data is delayed from; the roster is what turns that id
      into a name an operator reads. */
+  fixture.emit("system.bodies", {
+    bodies: [{ index: 1, name: "Kerbin", radius: 600_000 }],
+  });
   fixture.emit("commandCentre.roster", [
     {
       id: "ground:Kerbal Space Center",
