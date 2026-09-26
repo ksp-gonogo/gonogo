@@ -29,9 +29,9 @@ export function deriveGlyph(label: string): string {
 }
 
 /** Anchor progress by phase when the eta geometry is missing (nulled on an
- * overdue/lost command, or a zero-delay edge), so the rail glow still sits
- * sensibly on the axis. */
-const PHASE_PROGRESS: Record<InFlightListItem["phase"], number> = {
+ * overdue/lost command, a zero-delay edge, or a hand-built item carrying no
+ * `progress`), so the rail glow still sits sensibly on the axis. */
+export const PHASE_PROGRESS: Record<InFlightListItem["phase"], number> = {
   "in-transit": 0.18,
   "awaiting-reply": 0.5,
   due: 0.62,
