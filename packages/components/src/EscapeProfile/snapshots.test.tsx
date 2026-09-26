@@ -13,17 +13,7 @@ import { EscapeProfileComponent } from "./index";
  * DOM snapshots off the stream pipeline, driven by each fixture's own
  * `_stream` block.
  *
- * This spec used to hand-build that stream, mapping `v.body` onto a one-entry
- * `system.bodies` and inventing a `vessel.orbit` payload to gate the derived
- * `vessel.state` record, and it deliberately emitted no altitude or orbital
- * velocity at all, because "they render nothing under jsdom regardless (no
- * ResizeObserver stub here)". That was true and it was the problem: 42
- * baselines, six scenarios, two distinct bodies between them, and both of those
- * were a title bar over two empty divs.
- *
- * The harness reports a measured size now, so the escape curve renders, and it
- * reads the `_stream` block each of these fixtures already carried, so the
- * hand-built mapping is gone.
+ * The harness reports a measured size, so the escape curve renders.
  */
 
 const FIXTURES: Record<string, Record<string, unknown>> = {

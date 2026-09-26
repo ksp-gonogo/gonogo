@@ -2,20 +2,12 @@
   "_meta": {
     "scenario": "drag-horizon",
     "synthetic": true,
-    "notes": "SYNTHETIC. One craft on rails on a descending arc around Kerbin: apoapsis 800 km from the centre (200 km altitude), periapsis 630 km (30 km altitude), so it passes through the 70 km entry interface on the way down and stays well clear of the surface throughout. vessel.orbit samples stop at UT 200 and the frame is drawn for UT 1000, so 800 seconds of the window had no observation in it. The elements are Quality.OnRails, a CAUSE valid until superseded, and carry the stock producer's own AnalyticHorizon, so deriveVesselStateReckoning is asked at every instant of the tail and TimelineStore.sampleReckonedTail draws whatever it answers. Nothing here feeds LineChart a prop. ONE field apart from the scene beside it: the same body entry gains atmosphere.depth = 70 km. The tail stops the instant the solved radius reaches the interface, near UT 720, and the remaining 280 seconds are blank. That blank is the claim: a conic has no drag term, so what it would have drawn below this line is not a degraded answer but a different trajectory."
+    "notes": "SYNTHETIC. One craft on rails on a descending arc around Kerbin: apoapsis 800 km from the centre (200 km altitude), periapsis 630 km (30 km altitude), so it passes through the 70 km entry interface on the way down and stays well clear of the surface throughout. vessel.orbit and vessel.flight samples stop at UT 200 and the link then drops, and the frame is drawn for UT 1000, so 800 seconds of the window had no observation in it. The vessel.flight samples are solved from the same elements, so the measured trace and the conic meet. The elements are Quality.OnRails, a CAUSE valid until superseded, and carry the stock producer's own AnalyticHorizon; vessel.flight's reckoner moves the altitude along that conic above the air and integrates the observed descent rates inside it, and TimelineStore.sampleReckonedTail draws whatever it answers. Nothing here feeds LineChart a prop. ONE field apart from the scene beside it: the same body entry gains atmosphere.depth = 70 km. The frame's view time is inside the air, where the conic has stopped describing the craft, so the elements cannot be carried to it and nothing modelled from them is drawn, not even the stretch above the interface. Inside the air the descent-rate model answers for seconds past an observation, and the last one here is 800 seconds old. The measured trace ends at UT 200 and the rest of the window is blank: a conic has no drag term, so what it would have drawn below the interface is not a degraded answer but a different trajectory."
   },
   "_stream": {
-    "carriedChannels": [
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion"
-    ],
+    "carriedChannels": ["vessel.flight", "vessel.orbit", "system.bodies"],
     "pinnedUt": 1000,
+    "stopsArriving": true,
     "emits": [
       {
         "channel": "system.bodies",
@@ -63,6 +55,19 @@
         }
       },
       {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 200000.0,
+          "verticalSpeed": 0.0,
+          "orbitalSpeed": 1972.23,
+          "gForce": 0
+        },
+        "meta": {
+          "validAt": 0,
+          "deliveredAt": 0
+        }
+      },
+      {
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 1,
@@ -78,6 +83,19 @@
             "kind": 1,
             "trajectoryKind": 1
           }
+        },
+        "meta": {
+          "validAt": 50,
+          "deliveredAt": 50
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 199180.8,
+          "verticalSpeed": -32.74,
+          "orbitalSpeed": 1974.53,
+          "gForce": 0
         },
         "meta": {
           "validAt": 50,
@@ -107,6 +125,19 @@
         }
       },
       {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 196732.2,
+          "verticalSpeed": -65.11,
+          "orbitalSpeed": 1981.39,
+          "gForce": 0
+        },
+        "meta": {
+          "validAt": 100,
+          "deliveredAt": 100
+        }
+      },
+      {
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 1,
@@ -129,6 +160,19 @@
         }
       },
       {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 192682.0,
+          "verticalSpeed": -96.74,
+          "orbitalSpeed": 1992.79,
+          "gForce": 0
+        },
+        "meta": {
+          "validAt": 150,
+          "deliveredAt": 150
+        }
+      },
+      {
         "channel": "vessel.orbit",
         "value": {
           "referenceBodyIndex": 1,
@@ -144,6 +188,19 @@
             "kind": 1,
             "trajectoryKind": 1
           }
+        },
+        "meta": {
+          "validAt": 200,
+          "deliveredAt": 200
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "altitudeAsl": 187077.4,
+          "verticalSpeed": -127.22,
+          "orbitalSpeed": 2008.65,
+          "gForce": 0
         },
         "meta": {
           "validAt": 200,

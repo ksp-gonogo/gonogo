@@ -12,10 +12,6 @@ import { TwrComponent } from "./index";
 /**
  * DOM snapshots off the stream pipeline, driven by each fixture's own
  * `_stream` block.
- *
- * This spec used to build the stream itself, emitting `vessel.propulsion` and
- * `vessel.orbit` reassembled from the fixtures' flat keys so the derived
- * `vessel.state.twr` would resolve. Both emits are declared by the fixtures.
  */
 
 const FIXTURES: Record<string, Record<string, unknown>> = {

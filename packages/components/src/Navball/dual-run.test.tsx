@@ -1,5 +1,4 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
@@ -9,18 +8,11 @@ import northLevel from "./__fixtures__/north-level.json";
 import { NavballComponent } from "./index";
 
 /**
- * Navball's stream render golden. This began life as a legacy-`DataSource` ↔
- * stream byte-identical dual-run; every read now comes off the stream with no
- * legacy fallback: the attitude trio off `vessel.attitude.*`, SAS/RCS/
- * precision/throttle off `vessel.control`, and `sasMode`/`isControllable` off
- * the client-derived `vessel.state` channel (`sasModeName`/`isControllable`).
- * So the legacy leg is gone; what remains proves the same north-level
- * attitude/control state renders correctly off the real stream pipeline.
- *
- * `vessel.orbit` is emitted (Loaded quality) purely to gate the whole
- * `vessel.state` record so `sasModeName` (derived from `vessel.control.sasMode`)
- * resolves; without it the derived channel stays null and the SAS-mode caption
- * would never appear.
+ * Navball's stream render golden. Every read comes off the stream with no
+ * legacy fallback: the attitude trio off `vessel.attitude.*`, and SAS/RCS/
+ * precision/throttle and the SAS mode off `vessel.control`. This proves the
+ * north-level attitude/control state renders correctly off the real stream
+ * pipeline.
  */
 afterEach(() => {
   clearActionHandlers();
@@ -29,12 +21,7 @@ afterEach(() => {
 describe("Navball: stream render golden (delay=0)", () => {
   it("renders the north-level attitude/control state off the stream", async () => {
     const streamFixture = setupStreamFixture({
-      carriedChannels: [
-        "vessel.attitude",
-        "vessel.control",
-        "vessel.orbit",
-        "vessel.flight",
-      ],
+      carriedChannels: ["vessel.attitude", "vessel.control"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -48,17 +35,6 @@ describe("Navball: stream render golden (delay=0)", () => {
     );
 
     act(() => {
-      // Loaded quality drives deriveVesselState onto the measured basis, which
-      // requires vessel.flight to be present for the record (and thus
-      // sasModeName) to resolve.
-      streamFixture.emit("vessel.orbit", {}, { quality: Quality.Loaded });
-      streamFixture.emit("vessel.flight", {
-        latitude: 0,
-        longitude: 0,
-        altitudeAsl: 0,
-        surfaceSpeed: 0,
-        verticalSpeed: 0,
-      });
       // The default config reads the root-part frame (*RootFrame); the base
       // CoM fields are emitted too so the payload matches the contract shape.
       streamFixture.emit("vessel.attitude", {
@@ -71,8 +47,8 @@ describe("Navball: stream render golden (delay=0)", () => {
       });
       streamFixture.emit("vessel.control", {
         sas: northLevel["f.sasEnabled"],
-        // Numeric SasMode enum (0 = StabilityAssist): deriveVesselState maps
-        // it to the "StabilityAssist" string the widget renders.
+        // Numeric SasMode enum (0 = StabilityAssist), named off
+        // `SAS_MODE_NAMES` for the widget to render.
         sasMode: 0,
         rcs: northLevel["v.rcsValue"],
         precisionControl: northLevel["f.precisionControl"],
@@ -80,9 +56,8 @@ describe("Navball: stream render golden (delay=0)", () => {
       });
     });
 
-    // sasModeName resolves only off the derived vessel.state record, which is
-    // fed purely by the stream here: so its presence proves the stream leg
-    // landed (and the attitude readouts have left their NULL_DISPLAY
+    // The SAS mode name resolves only off vessel.control, which is fed purely
+    // by the stream here: so its presence proves the stream leg landed (and the attitude readouts have left their NULL_DISPLAY
     // placeholder). The caption is the only observable for it at this size,
     // 8x11 being below the control surface's rows>=18 threshold, so there is no
     // lit mode button to read instead.

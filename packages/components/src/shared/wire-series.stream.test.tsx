@@ -1,4 +1,5 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
+import { PRODUCTION_DERIVED_CHANNELS } from "@ksp-gonogo/sitrep-client";
 import { act, render, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,13 +11,15 @@ import { useComputedSeries } from "./useComputedSeries";
 
 /**
  * Three plotted quantities the wire does not carry, each computed at the point
- * of read from fields it does, and each drawn with `vessel.state` ABSENT.
+ * of read from fields it does, and each drawn with NO client-derived channel in
+ * the store.
  *
  * A graph addresses its series by string, so a compiler cannot see one. When a
  * derived channel is deleted, an address on it resolves to a topic nothing
  * publishes and the chart draws an empty series with no error anywhere. Every
- * case here therefore runs with that channel left out of the store, and fails
- * as exactly that empty chart if its series has gone back onto it.
+ * case here therefore runs with every production derived channel left out of
+ * the store, and fails as exactly that empty chart if its series has gone onto
+ * one.
  *
  * The operands VARY across the three samples on purpose. A constant operand
  * would let a series pass while computing nothing from it.
@@ -41,24 +44,24 @@ function stubSizedResizeObserver() {
   );
 }
 
-function fixtureWithoutVesselState(carried: string[]) {
+function fixtureWithoutDerivedChannels(carried: string[]) {
   return setupStreamFixture({
     carriedChannels: carried,
     pinnedUt: 10,
     suspendFrames: true,
-    withoutDerivedChannels: ["vessel.state"],
+    withoutDerivedChannels: PRODUCTION_DERIVED_CHANNELS.map((c) => c.topic),
   });
 }
 
 const PLOTTED_LINE =
   'svg[aria-label="Telemetry line chart"] path[d][fill="none"]';
 
-describe("series computed from the wire, with vessel.state gone", () => {
+describe("series computed from the wire, with no derived channel in the store", () => {
   beforeEach(stubSizedResizeObserver);
   afterEach(() => vi.unstubAllGlobals());
 
   it("KeplerPeriod still marks the current orbit", async () => {
-    const fixture = fixtureWithoutVesselState(["vessel.orbit"]);
+    const fixture = fixtureWithoutDerivedChannels(["vessel.orbit"]);
     const { container } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "kp-wire" }}>
@@ -86,7 +89,7 @@ describe("series computed from the wire, with vessel.state gone", () => {
   });
 
   it("OrbitalAscent still draws the horizontal-speed trace", async () => {
-    const fixture = fixtureWithoutVesselState(["vessel.flight"]);
+    const fixture = fixtureWithoutDerivedChannels(["vessel.flight"]);
     const { container } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "oa-wire" }}>
@@ -117,7 +120,7 @@ describe("series computed from the wire, with vessel.state gone", () => {
   });
 
   it("Twr still draws its sparkline", async () => {
-    const fixture = fixtureWithoutVesselState(["vessel.propulsion"]);
+    const fixture = fixtureWithoutDerivedChannels(["vessel.propulsion"]);
     const { container } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "twr-wire" }}>
@@ -149,7 +152,7 @@ describe("series computed from the wire, with vessel.state gone", () => {
 
 describe("useComputedSeries", () => {
   it("combines each primary sample with the secondary's value at or before it", async () => {
-    const fixture = fixtureWithoutVesselState(["vessel.propulsion"]);
+    const fixture = fixtureWithoutDerivedChannels(["vessel.propulsion"]);
     const wrapper = ({ children }: { children: ReactNode }) => (
       <fixture.Provider>{children}</fixture.Provider>
     );

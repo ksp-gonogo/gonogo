@@ -17,9 +17,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { MapViewComponent } from "./index";
 
 /**
- * The predicted ground track samples `vessel.state.orbitPatches` as CONICS, one
- * Kepler solve per step. Those patches are the provider's own chain, reshaped
- * off `vessel.orbit.patches`, so drawing them is projection rather than
+ * The predicted ground track samples `vessel.orbit.patches` as CONICS, one
+ * Kepler solve per step. Those patches are the provider's own chain, so
+ * drawing them is projection rather than
  * invention, and the sampler already refuses to run past each patch's stated
  * `endUT`.
  *
@@ -53,14 +53,10 @@ async function mountMap(horizon: PropagationHorizonLike) {
   registerStockBodies();
   const fixture = setupStreamFixture({
     carriedChannels: [
-      "vessel.orbit",
       "vessel.flight",
+      "vessel.orbit",
       "vessel.identity",
       "system.bodies",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion",
     ],
     pinnedUt: PINNED_UT,
     suspendFrames: true,

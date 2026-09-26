@@ -47,31 +47,16 @@ beforeEach(() => {
  *   freeze-exempt connectivity MetaTopic: comms-delay-model-consistency spec),
  *   `comm.signalStrength` -> `vessel.comms.signalStrength` (raw field subtopic
  *   of the `vessel.comms` struct).
- * - `comm.controlState` -> `vessel.state.commsControlStateOrdinal`,
- *   `comm.controlStateName` -> `vessel.state.commsControlStateName` (both
- *   SDK-derived off `vessel.comms.controlState`'s rich `ControlState` enum:
- *   so carrying them means carrying every `vesselStateChannel` input).
+ * - `comm.controlState`/`comm.controlStateName` -> `vessel.comms.controlState`,
+ *   the rich `ControlState` enum ordinal collapsed to a level and named.
  * - `comm.signalDelay` -> `comms.delay.oneWaySeconds`.
  *
- * A fixture that carries only `vessel.comms` therefore streams
- * connected/signalStrength but leaves control state + delay unresolved (their
- * derived/other homes aren't carried, and no legacy source exists here), the
- * widget renders the `describeControl`/delay NULL_DISPLAY placeholders. The
- * final test carries the full set to prove control state + delay stream too.
+ * A `vessel.comms` record with no `controlState` and no `comms.delay` emit
+ * streams connected/signalStrength and leaves control state + delay
+ * unresolved, so the widget renders the `describeControl`/delay NULL_DISPLAY
+ * placeholders. A later test emits both to prove they stream too.
  */
-// Every input `vesselStateChannel` declares (vessel-state.ts) plus `comms.delay`,
-// the full allowlist needed for control state + delay to be carried.
-const FULL_CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-  "comms.delay",
-];
+const FULL_CARRIED = ["vessel.comms", "comms.delay"];
 
 describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
   it("reads connected/signalStrength off the real stream pipeline, not legacy", async () => {
@@ -108,10 +93,10 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     // ceil(0.87 * 4) = 4 lit bars; headline reads the percentage.
     await waitFor(() => expect(visibleText()).toContain("87 %"));
     expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
-    // Control state (derived, needs the full vessel.state input set) and delay
-    // (comms.delay) aren't carried in THIS fixture, and there's no legacy
-    // source, so `describeControl` falls through to NULL_DISPLAY and the delay
-    // readout renders its NULL_DISPLAY placeholder, two independent NULL_DISPLAY cells.
+    // No control state rode the comms record and no delay was emitted, and
+    // there's no legacy source, so `describeControl` falls through to
+    // NULL_DISPLAY and the delay readout renders its NULL_DISPLAY placeholder,
+    // two independent NULL_DISPLAY cells.
     expect(screen.getAllByText(NULL_DISPLAY).length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Signal to KSC")).toBeTruthy();
   });
@@ -164,9 +149,9 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     // 2. Every figure NULLS. Not held, not marked, not reckoned.
     expect(visibleText()).not.toContain("87");
     expect(container.querySelectorAll("[data-not-current]").length).toBe(0);
-    /* And the derived control state does not stand in for it either: that rides
-       `vessel.state`, which never goes stale, so the old fallback printed a
-       confident "Full" for a link that had stopped reporting. */
+    /* And no control state stands in for it either: a confident "Full" for a
+       link that has stopped reporting would be a claim the wire no longer
+       backs. */
     expect(visibleText()).not.toContain("Full");
     /* The bars withhold their count, and their aria-label matches the visible
        badge too: a screen-reader message is operator-facing copy. */
@@ -344,7 +329,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     },
   );
 
-  it("streams control state (derived) and signal delay off their clean homes", async () => {
+  it("streams control state and signal delay off their clean homes", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: FULL_CARRIED,
       pinnedUt: 10,
@@ -360,22 +345,9 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     );
 
     act(() => {
-      // The derived `vessel.state.commsControlState*` fields require
-      // `vessel.orbit` present: `deriveVesselState` returns the whole record
-      // only once the vessel has an orbit (vessel-state.ts).
-      fixture.emit("vessel.orbit", {
-        sma: 680000,
-        ecc: 0.0,
-        inc: 0.0,
-        argPe: 0.0,
-        mu: 3.5316e12,
-        meanAnomalyAtEpoch: 0,
-        epoch: 10,
-        referenceBodyIndex: 1,
-      });
       // `controlState` on the wire is the rich `ControlState` enum ordinal
       // (Partial = 3); the SDK collapses it to the widget's level (1) and
-      // resolves the "Partial" name string via `vessel.state.commsControlState*`.
+      // resolves the "Partial" name string.
       fixture.emit("vessel.comms", {
         connected: true,
         signalStrength: 0.4,
@@ -384,8 +356,8 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
       fixture.emit("comms.delay", { oneWaySeconds: 1.2 });
     });
 
-    // Derived control state resolves off vessel.comms via the vessel.state
-    // channel; delay off comms.delay: both streamed, no legacy source.
+    // Control state resolves off vessel.comms, delay off comms.delay: both
+    // streamed, no legacy source.
     await waitFor(() => expect(screen.getByText("Partial")).toBeTruthy());
     expect(fixture.transport.isSubscribed("comms.delay")).toBe(true);
     // ceil(0.4 * 4) = 2 lit bars.

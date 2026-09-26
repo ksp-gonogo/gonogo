@@ -20,17 +20,6 @@ import { CrewStatusComponent } from "./index";
  * the worst possible pair to discard the moment the link goes.
  */
 
-const ORBIT = {
-  eccentricity: 0.001,
-  semiMajorAxis: 700000,
-  inclination: 0,
-  lan: 0,
-  argPe: 12.5,
-  mu: 3.5316e12,
-  meanAnomalyAtEpoch: 0,
-  epoch: 10,
-  referenceBodyIndex: 1,
-};
 const VESSEL_TYPE_EVA = 7;
 
 const renderedTrees: Array<() => void> = [];
@@ -42,13 +31,7 @@ afterEach(() => {
 
 function mountEva() {
   const fixture = setupStreamFixture({
-    carriedChannels: [
-      "vessel.crew",
-      "vessel.state",
-      "vessel.identity",
-      "vessel.orbit",
-      "vessel.resources",
-    ],
+    carriedChannels: ["vessel.crew", "vessel.identity", "vessel.resources"],
     pinnedUt: 10,
   });
   const { unmount } = render(
@@ -70,7 +53,6 @@ function mountEva() {
       capacity: 1,
       crew: [{ name: "Jebediah Kerman" }],
     });
-    fixture.emit("vessel.orbit", ORBIT);
     fixture.emit("vessel.identity", { vesselType: VESSEL_TYPE_EVA });
     fixture.emit("vessel.resources", {
       resources: {

@@ -7,7 +7,6 @@
     "carriedChannels": [
       "system.bodies",
       "vessel.orbit",
-      "vessel.state",
       "vessel.identity",
       "vessel.target",
       "vessel.maneuver",
@@ -59,20 +58,6 @@
             "kind": 1,
             "trajectoryKind": 1
           }
-        }
-      },
-      {
-        "channel": "vessel.state",
-        "value": {
-          "trueAnomaly": 42.0,
-          "orbitalSpeed": 2101.07,
-          "orbitalRadius": 800000,
-          "period": 2392.4,
-          "referenceBodyName": "Kerbin",
-          "parentBodyName": "Kerbin",
-          "targetPeriapsisAlt": 320000,
-          "targetTrueAnomaly": 210.0,
-          "targetPeriod": 2950.4
         }
       },
       {

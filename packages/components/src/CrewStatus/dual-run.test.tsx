@@ -8,19 +8,10 @@ import { CrewStatusComponent } from "./index";
 /**
  * CrewStatus's real recorded-fixture render off the stream.
  *
- * All of CrewStatus's reads are now stream reads, `vessel.crew`
- * (count/capacity/roster, canonical `useTelemetry`) plus the derived
- * `vessel.state.isEVA` (`useStream`). The original version of this test rendered
- * the same crew state once off a legacy `DataSource` (`snapshotWidgetMode`,
- * which mounts no `TelemetryProvider`) and once off the stream and asserted
- * byte-identical DOM; that comparison is no longer possible, the legacy leg
- * now renders nothing but "No crew data" since every read is stream-only. Same
- * cause (full stream migration, not a test bug) as every other widget's
- * `dual-run.test.tsx` dropping its now-impossible legacy leg.
- *
- * What remains, and is still worth its own file: the real `valentina-solo-orbit`
- * fixture (single pilot in a 1-seat Mk1 pod) run genuinely through the stream
- * pipeline.
+ * Every CrewStatus read is a stream read: `vessel.crew` (count/capacity/roster)
+ * plus `vessel.identity.vesselType` for the EVA flag. This file runs the real
+ * `valentina-solo-orbit` fixture (single pilot in a 1-seat Mk1 pod) through
+ * the stream pipeline.
  */
 describe("CrewStatus, real recorded-fixture render off the stream (delay=0)", () => {
   it("renders Valentina's solo-orbit roster and headcount off the stream", async () => {

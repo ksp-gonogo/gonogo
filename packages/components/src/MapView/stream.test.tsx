@@ -1,5 +1,4 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
@@ -13,21 +12,10 @@ import { MapViewComponent } from "./index";
  * `TimelineStore` pipeline via `StubTransport`; no legacy `DataSource` is
  * registered anywhere in this file.
  *
- * MapView's `useDataValue` keys split MAPPED / GAPPED (`map-topic.ts`):
- * - MAPPED: `v.lat`/`v.long` -> raw `vessel.flight.latitude`/`.longitude`,
- *   `v.dynamicPressure`/`v.mach`/`v.surfaceSpeed`/`v.verticalSpeed` -> raw
- *   `vessel.flight.*` fields, `v.altitude` -> the DERIVED
- *   `vessel.state.altitudeAsl` subtopic, `o.orbitPatches` -> the DERIVED
- *   `vessel.state.orbitPatches` subtopic (the mod's patched-conic
- *   chain, reshaped), `o.maneuverNodes` -> the dedicated
- *   `vessel.maneuver.legacy.nodes` channel (see
- *   `maneuver-legacy.ts`; this file doesn't exercise its render path, only
- *   the lat/lon/altitude readout below, so `vessel.maneuver` isn't added to
- *   `carriedChannels`: see `orbit-patches.test.ts`/`maneuver-legacy.test.ts`
- *   for the reshape's own coverage).
- * - GAPPED: `v.body`, `t.universalTime`, `land.slopeAngle`,
- *   `o.encounterExists` (plus `OrbitalEventChips`'s own `o.encounterBody`/
- *   `o.encounterTime`, a separate shared-component read site).
+ * MapView's reads: `v.lat`/`v.long` -> `vessel.flight.latitude`/`.longitude`,
+ * `v.altitude` -> `vessel.flight.altitudeAsl`, the other kinematics ->
+ * `vessel.flight.*` fields, and the patch chain -> `vessel.orbit.patches`.
+ * This file exercises only the lat/lon/altitude readout below.
  *
  * Uses the compact (`!showMap`) mode, a narrow/short widget renders a
  * plain Lat/Lon/Alt text readout instead of the canvas map, so the mapped
@@ -37,19 +25,11 @@ import { MapViewComponent } from "./index";
 describe("MapView: genuinely runs off the stream (M3 mechanical-tail batch)", () => {
   it("reads lat/long/altitude off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
-      // vessel.identity/system.bodies: vessel.state's carried-channels gate
-      // is parent-channel-scoped (vesselStateChannel.inputs grew to four),
-      // altitudeAsl needs all four carried even though it doesn't itself
-      // read the two new ones.
       carriedChannels: [
-        "vessel.orbit",
         "vessel.flight",
+        "vessel.orbit",
         "vessel.identity",
         "system.bodies",
-        "vessel.control",
-        "vessel.target",
-        "vessel.comms",
-        "vessel.propulsion",
       ],
       pinnedUt: 10,
       suspendFrames: true,
@@ -74,10 +54,6 @@ describe("MapView: genuinely runs off the stream (M3 mechanical-tail batch)", ()
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
     act(() => {
-      // Loaded quality drives deriveVesselState onto the "measured" basis,
-      // which reads altitudeAsl off vessel.flight at viewUt, the OnRails
-      // default would leave it permanently null.
-      fixture.emit("vessel.orbit", {}, { quality: Quality.Loaded });
       fixture.emit("vessel.flight", {
         latitude: -0.0972,
         longitude: -74.5577,

@@ -10,9 +10,8 @@ import { CurrentOrbitComponent } from "./index";
 /**
  * Producer↔consumer disagreements O2/O4: the CurrentOrbit half (see
  * `OrbitView/producer-consumer-O2-O3-O4.test.tsx` for the fuller writeup;
- * O3 is OrbitView-only, since CurrentOrbit's apsis radii already came off
- * `useOrbitElements`/`vessel.state`, never a client-side `sma·(1±ecc)`
- * computation).
+ * O3 is OrbitView-only, since CurrentOrbit's apsis radii come off the orbit
+ * solve, never a client-side `sma·(1±ecc)` computation).
  *
  * - **O2**: `hasOrbit` must not require apoapsis (`null`-by-design on a
  *   hyperbolic orbit). This was already true by accident here (`null !==
@@ -24,15 +23,10 @@ import { CurrentOrbitComponent } from "./index";
  *   numeric grid must still render (raw `ecc` + NULL_DISPLAY for the null derived
  *   apsides) rather than some other empty state.
  */
-const VESSEL_STATE_INPUTS = [
+const CURRENT_ORBIT_CHANNELS = [
   "vessel.orbit",
-  "vessel.flight",
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
 ];
 
 const KERBIN_MU = 3.5316e12;
@@ -41,7 +35,7 @@ describe("CurrentOrbit: O2: hyperbolic orbit still counts as hasOrbit", () => {
   it("renders the mini diagram (not suppressed) for a fully hyperbolic orbit", async () => {
     registerStockBodies();
     const stream = setupStreamFixture({
-      carriedChannels: VESSEL_STATE_INPUTS,
+      carriedChannels: CURRENT_ORBIT_CHANNELS,
       pinnedUt: 0,
       suspendFrames: true,
     });
@@ -103,7 +97,7 @@ describe("CurrentOrbit: O4: a craft under physics keeps every figure", () => {
   ) {
     registerStockBodies();
     const stream = setupStreamFixture({
-      carriedChannels: VESSEL_STATE_INPUTS,
+      carriedChannels: CURRENT_ORBIT_CHANNELS,
       pinnedUt: viewUt,
       suspendFrames: true,
     });
@@ -133,21 +127,6 @@ describe("CurrentOrbit: O4: a craft under physics keeps every figure", () => {
         },
         { quality: Quality.Loaded, validAt: sampleUt },
       );
-      // The "measured" basis branch of `deriveVesselState` needs a whole
-      // `vessel.flight` point to resolve at all.
-      stream.emit("vessel.flight", {
-        latitude: 0,
-        longitude: 0,
-        altitudeAsl: 70000,
-        altitudeTerrain: 70000,
-        verticalSpeed: 0,
-        surfaceSpeed: 2200,
-        orbitalSpeed: 2200,
-        gForce: 0,
-        dynamicPressureKPa: 0,
-        mach: 0,
-        atmDensity: 0,
-      });
       stream.emit("vessel.identity", {
         vesselId: "v1",
         name: "Loaded Ship",

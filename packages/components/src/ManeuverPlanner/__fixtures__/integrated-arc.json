@@ -4,7 +4,7 @@
     "vessel": "commsat (250 km LKO, Kerbin)",
     "body": "Kerbin",
     "provider": "principia-nbody",
-    "notes": "The same live Principia capture SystemView's integrated-arc-live carries, pointed at the planner's own preview diagram. Every other ManeuverPlanner fixture leaves vessel.orbit.arc unset, so the current orbit under the plan has always been a conic this client sampled from the elements itself. Here the provider sent its own integrated points, 76 of them over a 655 s window, and ManeuverPreview draws those instead: the orbit the plan is laid over stops where the provider stopped integrating. No node is queued, deliberately, so nothing but the current trajectory is in the diagram. The emit carries no quality override, unlike SystemView's copy of the same capture, because Quality.Loaded puts deriveVesselState on the measured basis and this scene has no vessel.flight to measure from."
+    "notes": "The same live Principia capture SystemView's integrated-arc-live carries, pointed at the planner's own preview diagram. Every other ManeuverPlanner fixture leaves vessel.orbit.arc unset, so the current orbit under the plan has always been a conic this client sampled from the elements itself. Here the provider sent its own integrated points, 76 of them over a 655 s window, and ManeuverPreview draws those instead: the orbit the plan is laid over stops where the provider stopped integrating. No node is queued, deliberately, so nothing but the current trajectory is in the diagram. The emit carries no quality override, unlike SystemView's copy of the same capture, so it reads as a craft on rails."
   },
   "_stream": {
     "carriedChannels": ["vessel.orbit", "vessel.identity", "system.bodies"],

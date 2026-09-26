@@ -26,19 +26,9 @@ import { ScienceDataComponent } from "./index";
  * those two say opposite things about the records listed under the line.
  */
 
-const VESSEL_STATE_INPUTS = [
-  "vessel.orbit",
-  "vessel.flight",
+const CARRIED = [
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-] as const;
-
-const CARRIED = [
-  ...VESSEL_STATE_INPUTS,
   "vessel.surface",
   "science.experiments",
   "science.experimentBreakdown",
@@ -75,16 +65,6 @@ describe("ScienceData when its reads are no longer current", () => {
   /** A landed Mun vessel with one record aboard, an archive, and banked science. */
   function emitLandedWithScience(): void {
     act(() => {
-      stream.emit("vessel.orbit", {
-        sma: 682500,
-        ecc: 0,
-        inc: 0,
-        argPe: 0,
-        mu: 3.5316e12,
-        meanAnomalyAtEpoch: 0,
-        epoch: 10,
-        referenceBodyIndex: 2,
-      });
       stream.emit("system.bodies", {
         bodies: [
           {

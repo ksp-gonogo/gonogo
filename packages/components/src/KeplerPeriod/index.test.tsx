@@ -24,21 +24,15 @@ import { KeplerPeriodComponent } from "./index";
 // the resolved `BodyDefinition`, not from streamed samples).
 const GRAPH_KEYS: DataKey[] = [{ key: "o.sma" }, { key: "o.period" }];
 
-const VESSEL_STATE_INPUTS = [
+const KEPLER_PERIOD_CHANNELS = [
   "vessel.orbit",
-  "vessel.flight",
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
 ];
 
 /**
- * `o.referenceBody`/`v.body` stream off `vessel.state`'s
- * `referenceBodyName`/`parentBodyName` display maps (see `stream.test.tsx`'s
- * doc comment). There's no legacy fallback, so both tests below mount a real
+ * `o.referenceBody`/`v.body` are body indices named against `system.bodies`
+ * (see `stream.test.tsx`'s doc comment). There's no legacy fallback, so both tests below mount a real
  * `TelemetryProvider` and feed `vessel.orbit`/`vessel.identity`/
  * `system.bodies` rather than emitting the old legacy keys directly.
  */
@@ -56,7 +50,7 @@ describe("KeplerPeriodComponent", () => {
     });
     fixture = await setupMockDataSource({ keys: GRAPH_KEYS });
     stream = setupStreamFixture({
-      carriedChannels: VESSEL_STATE_INPUTS,
+      carriedChannels: KEPLER_PERIOD_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });

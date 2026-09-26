@@ -30,12 +30,9 @@ import {
  * `setupMockDataSource` registration survives only because the widget's
  * `useGameContext` reads still resolve against a registered `DataSource`.
  *
- * `vessel.state.met`/`altitudeAsl` are mutually exclusive by design, `met`
- * only derives in the OnRails/"propagated" basis, `altitudeAsl` only in the
- * Loaded/"measured" basis (`vessel-state.ts`'s own doc). The ACTIVE (flying)
- * vessel this widget's in-flight panel describes is always Loaded, so
- * `missionTime` genuinely renders NULL_DISPLAY in every in-flight scenario below,
- * a real, documented gap in the migrated data, not a test omission.
+ * The mission clock counts from `vessel.identity.launchUt`, and every in-flight
+ * scenario below reports it `null`, so `missionTime` renders NULL_DISPLAY in
+ * each of them while the altitude comes straight off `vessel.flight`.
  */
 const CARRIED = [
   "career.status",
@@ -43,14 +40,8 @@ const CARRIED = [
   "spaceCenter.crewRoster",
   "spaceCenter.scene",
   "spaceCenter.launchSites",
-  "vessel.orbit",
   "vessel.flight",
   "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
   "ksp.revertAvailability",
   "crash.hasRecent",
   "crash.lastCrash",
@@ -79,9 +70,8 @@ function emitScene(
 }
 
 /**
- * Feeds `vessel.orbit`/`vessel.flight`/`vessel.identity` in the Loaded/
- * "measured" basis (quality 1) so `vessel.state.altitudeAsl` resolves,
- * `met` stays null, per this file's doc comment.
+ * Feeds `vessel.identity` (with a `null` launchUt, so the mission clock stays
+ * blank, per this file's doc comment) and `vessel.flight` for the altitude.
  */
 function emitInFlightVessel(
   stream: ReturnType<typeof setupStreamFixture>,
@@ -95,21 +85,6 @@ function emitInFlightVessel(
     parentBodyIndex: 1,
     launchUt: null,
   });
-  stream.emit(
-    "vessel.orbit",
-    {
-      referenceBodyIndex: 1,
-      sma: 700000,
-      ecc: 0.01,
-      inc: 0,
-      lan: 0,
-      argPe: 0,
-      meanAnomalyAtEpoch: 0,
-      epoch: 10,
-      mu: 3.5316e12,
-    },
-    { quality: 1 },
-  );
   stream.emit("vessel.flight", {
     latitude: -0.1,
     longitude: -74.6,
@@ -468,8 +443,8 @@ describe("LaunchDirectorComponent", () => {
     expect(
       await screen.findByText(/In flight: Stayputnik X/i),
     ).toBeInTheDocument();
-    // missionTime (`vessel.state.met`) is null in the Loaded/measured basis
-    // (see this file's doc comment): the panel shows its NULL_DISPLAY placeholder.
+    // missionTime is null while launchUt is (see this file's doc comment): the
+    // panel shows its NULL_DISPLAY placeholder.
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
     expect(visibleText(container)).toContain("72.4 km");
     expect(screen.getByText("Revert to launch")).toBeInTheDocument();

@@ -277,8 +277,8 @@ function fixtureFromChannels(
 ): Record<string, unknown> {
   const emits = CARRIED.map((channel) => {
     const value = ch[channel];
-    // vessel.orbit must carry quality:1 (Loaded) so vessel.state derives in the
-    // measured basis (real altitude off vessel.flight): mirrors the tests.
+    // A descending craft is under physics, so its vessel.orbit sample carries
+    // quality:1 (Loaded), as the mod stamps it.
     return channel === "vessel.orbit"
       ? { channel, value, meta: { quality: 1 } }
       : { channel, value };

@@ -22,17 +22,7 @@ import { SemiMajorAxisComponent } from "./index";
  * the page loads.
  */
 
-// `vessel.state.referenceBodyName` is only carried once all eight inputs are.
-const CARRIED = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-];
+const CARRIED = ["vessel.orbit", "system.bodies"];
 
 const renderedTrees: Array<() => void> = [];
 

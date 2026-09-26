@@ -11,7 +11,7 @@ import { renderOrbitViewStream } from "./streamHarness";
  * stream-only render that still exercises the same low-Kerbin-orbit state.
  *
  * A stable LKO is chosen because `hasOrbit` is true and `isOrbiting` resolves
- * true (`vessel.state.periapsisAlt` clears Kerbin's 70 km atmosphere ceiling),
+ * true (the solved periapsis altitude clears Kerbin's 70 km atmosphere ceiling),
  * landing the `StatusPill` "Stable orbit" text. Mode `4×18` keeps
  * `showDiagram` false (`cols < 5`) so the pill text renders directly instead
  * of the SVG diagram, giving a concrete DOM string to assert on.

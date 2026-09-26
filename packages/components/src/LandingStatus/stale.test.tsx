@@ -34,7 +34,6 @@ import { LandingStatusComponent } from "./index";
  */
 
 const CARRIED = [
-  "vessel.state",
   "vessel.orbit",
   "vessel.flight",
   "vessel.identity",

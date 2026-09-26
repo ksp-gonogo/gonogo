@@ -23,16 +23,12 @@ import { ManeuverPlannerComponent } from "./index";
  * Every assertion below pins one of those meanings as it is today.
  */
 
-// `vessel.state` declares eight inputs and gates every field on all eight
-// being carried, so the whole list rides along even when a test emits one.
 const CARRIED = [
   "vessel.orbit",
   "vessel.flight",
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
   "vessel.target",
-  "vessel.comms",
   "vessel.propulsion",
   "vessel.maneuver",
   "dv.stages",
@@ -150,7 +146,7 @@ describe("ManeuverPlanner: nothing has arrived at all", () => {
   it("omits the reference-body caption entirely: the gate is `refBody !== undefined`", async () => {
     const { view } = setup();
     await screen.findByText("Awaiting orbit telemetry.");
-    // With `vessel.state.referenceBodyName` never arrived the caption element
+    // With no reference body ever named the caption element
     // is absent entirely, not present-and-empty.
     expect(refBodyCaption(view.container)).toBeNull();
   });

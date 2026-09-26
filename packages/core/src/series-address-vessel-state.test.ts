@@ -1,5 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { dirname, resolve } from "node:path";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
@@ -17,34 +19,43 @@ const SERIES_ON_VESSEL_STATE =
   '(key|keyHigh|xKey):[[:space:]]*"vessel\\.state\\.|useDataSeries\\([^)]*"vessel\\.state\\.';
 
 /**
- * The render harness seeds the series store by literal key and never reads the
- * channel, so its addresses are allowed. Its files are left IN the search and
- * set aside afterwards, which makes them the proof that the search reached the
- * tree it names.
+ * The same address shape on a wire topic the render harness plots, so a search
+ * with the production pathspecs has something it must find there.
  */
+const SERIES_ON_VESSEL_FLIGHT =
+  '(key|keyHigh|xKey):[[:space:]]*"vessel\\.flight\\.';
+
 const HARNESS = "packages/components/scripts/";
 
-/** Production sources addressing a series on the channel, harness included. */
-function seriesAddressedOnVesselState(): string[] {
+const PRODUCTION_PATHSPECS = [
+  "packages/*.ts",
+  "packages/*.tsx",
+  "mod/*.ts",
+  "mod/*.tsx",
+  ":!*.test.ts",
+  ":!*.test.tsx",
+  ":!*/dist/*",
+];
+
+/** Files matching `pattern` under `pathspecs`, run from `cwd`. */
+function gitGrepFiles(
+  pattern: string,
+  pathspecs: readonly string[],
+  opts: { cwd: string; noIndex?: boolean },
+): string[] {
   try {
     return execFileSync(
       "git",
       [
         "grep",
-        "--untracked",
+        opts.noIndex ? "--no-index" : "--untracked",
         "-l",
         "-E",
-        SERIES_ON_VESSEL_STATE,
+        pattern,
         "--",
-        "packages/*.ts",
-        "packages/*.tsx",
-        "mod/*.ts",
-        "mod/*.tsx",
-        ":!*.test.ts",
-        ":!*.test.tsx",
-        ":!*/dist/*",
+        ...pathspecs,
       ],
-      { cwd: REPO, encoding: "utf8" },
+      { cwd: opts.cwd, encoding: "utf8" },
     )
       .split("\n")
       .filter((line) => line !== "");
@@ -62,13 +73,45 @@ function seriesAddressedOnVesselState(): string[] {
 describe("no production series is addressed on vessel.state", {
   timeout: 60_000,
 }, () => {
-  const found = seriesAddressedOnVesselState();
-
-  it("reaches the harness through the same search, so an empty answer is not a blind one", () => {
-    expect(found).toContain(`${HARNESS}widgets.ts`);
+  it("matches an address on the channel, so an empty answer is not a broken pattern", () => {
+    const dir = mkdtempSync(join(tmpdir(), "series-address-"));
+    try {
+      writeFileSync(
+        join(dir, "planted.ts"),
+        'const s = { key: "vessel.state.altitudeAsl" };\n',
+      );
+      writeFileSync(
+        join(dir, "hooked.ts"),
+        'useDataSeries("data", "vessel.state.orbitalSpeed", 60);\n',
+      );
+      writeFileSync(
+        join(dir, "clean.ts"),
+        'const s = { key: "vessel.flight.altitudeAsl" };\n',
+      );
+      expect(
+        gitGrepFiles(SERIES_ON_VESSEL_STATE, ["."], {
+          cwd: dir,
+          noIndex: true,
+        }).sort(),
+      ).toEqual(["hooked.ts", "planted.ts"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
-  it("finds none in any widget, app or Uplink source", () => {
-    expect(found.filter((file) => !file.startsWith(HARNESS))).toEqual([]);
+  it("reaches the harness through the same pathspecs, so an empty answer is not a blind one", () => {
+    expect(
+      gitGrepFiles(SERIES_ON_VESSEL_FLIGHT, PRODUCTION_PATHSPECS, {
+        cwd: REPO,
+      }),
+    ).toContain(`${HARNESS}widgets.ts`);
+  });
+
+  it("finds none in any widget, app, Uplink or harness source", () => {
+    expect(
+      gitGrepFiles(SERIES_ON_VESSEL_STATE, PRODUCTION_PATHSPECS, {
+        cwd: REPO,
+      }),
+    ).toEqual([]);
   });
 });

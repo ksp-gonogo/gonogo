@@ -37,7 +37,6 @@ import { LandingStatusComponent } from "./index";
  * each has a test here that proves it FIRES today.
  */
 const CARRIED = [
-  "vessel.state",
   "vessel.orbit",
   "vessel.flight",
   "vessel.identity",
@@ -468,10 +467,10 @@ describe("LandingStatus: what undefined means today", () => {
    * The present case, which had no test at all: the absence test above passes
    * whether the range is computed correctly or not computed at all.
    *
-   * The range is now the magnitude of `vessel.target.relativePosition`, taken
-   * with the same `bare`/`vecMagnitude` pair `Targeting` measures with, rather
-   * than the `vessel.state.targetDistance` copy of it. A 3-4-5 triangle scaled
-   * by 1000 makes the expected figure one anybody can check: 5 km.
+   * The range is the magnitude of `vessel.target.relativePosition`, taken with
+   * the same `bare`/`vecMagnitude` pair `Targeting` measures with. A 3-4-5
+   * triangle scaled by 1000 makes the expected figure one anybody can check:
+   * 5 km.
    */
   it("shows the Divert section and the range once a target is on the wire", async () => {
     renderWidget();

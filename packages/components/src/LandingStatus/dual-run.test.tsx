@@ -6,10 +6,8 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LandingStatusComponent } from "./index";
 
 /**
- * LandingStatus's atmospheric-board stream render golden. This began life as a
- * legacy-`DataSource`↔stream byte-identical dual-run; `bodyName` now comes off
- * the real, client-derived `vessel.state` channel and the body's atmosphere
- * flag / radius come from the static stock-body registry (`getBody`), with NO
+ * LandingStatus's atmospheric-board stream render golden. `bodyName` is
+ * `vessel.identity.parentBodyIndex` named against `system.bodies`, with NO
  * legacy fallback at all (see `stream.test.tsx`).
  *
  * The `kerbin-reentry-atmospheric` fixture is a descent on an ATMOSPHERIC body
@@ -21,7 +19,6 @@ import { LandingStatusComponent } from "./index";
  * atmospheric-aware board shows instead, see the render fixtures.)
  */
 const CARRIED = [
-  "vessel.state",
   "vessel.orbit",
   "vessel.flight",
   "vessel.identity",
@@ -105,7 +102,7 @@ describe("LandingStatus: atmospheric stream render golden (delay=0)", () => {
       });
     });
 
-    // Atmospheric body: subtitle resolves off the derived vessel.state channel.
+    // Atmospheric body: the subtitle names the body off vessel.identity.
     expect(
       await screen.findByText(/kerbin · atmospheric/i),
     ).toBeInTheDocument();

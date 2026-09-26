@@ -3,7 +3,6 @@ import {
   DashboardItemContext,
   registerStockBodies,
 } from "@ksp-gonogo/core";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import {
   installFixedSizeResizeObserver,
@@ -13,30 +12,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AtmosphereProfileComponent } from "./index";
 
-const CARRIED_CHANNELS = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-];
+const CARRIED_CHANNELS = ["vessel.flight", "vessel.identity", "system.bodies"];
 
 /**
- * Resolves `vessel.state.parentBodyName` to `name` via a single-entry
- * `system.bodies` table. `vessel.flight` must ALSO be present here, in the
- * "measured" (Loaded) basis `deriveVesselState` gates the WHOLE
- * `vessel.state` record (not just `altitudeAsl`) on `vessel.flight` having
- * arrived at all.
+ * Names the parent body: `vessel.identity.parentBodyIndex` resolved against a
+ * single-entry `system.bodies` table.
  */
 function emitBody(
   fixture: ReturnType<typeof setupStreamFixture>,
   name: string,
 ) {
-  fixture.emit("vessel.orbit", {}, { quality: Quality.Loaded });
-  fixture.emit("vessel.flight", {});
   fixture.emit("vessel.identity", { parentBodyIndex: 1 });
   fixture.emit("system.bodies", {
     bodies: [{ name, index: 1, parentIndex: 0, radius: 600_000, orbit: null }],

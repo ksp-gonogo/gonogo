@@ -14,19 +14,6 @@ import { CommSignalComponent } from "./index";
  * for: an operator reads "healthy link" off a vessel that cannot be commanded.
  */
 
-// `deriveVesselState` yields no record until `vessel.orbit` is whole, and the
-// derived commsControlState fields hang off that record.
-const ORBIT = {
-  sma: 682500,
-  ecc: 0.00367,
-  inc: 0.3,
-  argPe: 12.5,
-  mu: 3.5316e12,
-  meanAnomalyAtEpoch: 0,
-  epoch: 10,
-  referenceBodyIndex: 1,
-};
-
 // Bar fills and text colours per tone, copied from the widget's own tables so a
 // test failure names the tone that was painted rather than a hex string.
 const BAR_FILL = {
@@ -71,12 +58,7 @@ const renderedTrees: Array<() => void> = [];
 
 function newFixture() {
   return setupStreamFixture({
-    carriedChannels: [
-      "comms.link",
-      "vessel.comms",
-      "comms.delay",
-      "vessel.state",
-    ],
+    carriedChannels: ["comms.link", "vessel.comms", "comms.delay"],
     pinnedUt: 10,
     suspendFrames: true,
   });
@@ -136,7 +118,6 @@ describe("CommSignal control tone", () => {
           signalStrength: 0.82,
           controlState: ordinal,
         });
-        fixture.emit("vessel.orbit", ORBIT);
       });
 
       await waitFor(() => expect(controlValueCell()).toHaveTextContent(name));

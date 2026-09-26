@@ -10,42 +10,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { EscapeProfileComponent } from "./index";
 
-// vessel.state's carried-channels gate is parent-channel-scoped, every
-// vessel.state.* field needs ALL of vesselStateChannel.inputs carried.
-const VESSEL_STATE_INPUTS = [
-  "vessel.orbit",
+const ESCAPE_PROFILE_CHANNELS = [
   "vessel.flight",
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
 ];
 
 /**
- * Resolves `vessel.state.parentBodyName` to `name` via a single-entry
- * `system.bodies` roster. `facts` are the physical ones that roster reports;
- * the defaults are Kerbin's radius with no gravitational parameter, which
- * leaves the curve to whatever the static table knows about the name.
+ * Names the parent body: `vessel.identity.parentBodyIndex` resolved against a
+ * single-entry `system.bodies` roster. `facts` are the physical ones that
+ * roster reports; the defaults are Kerbin's radius with no gravitational
+ * parameter, which leaves the curve to whatever the static table knows about
+ * the name.
  */
 function emitBody(
   fixture: ReturnType<typeof setupStreamFixture>,
   name: string,
   facts: { radius?: number; gravParameter?: number } = {},
 ) {
-  fixture.emit("vessel.orbit", {
-    referenceBodyIndex: 1,
-    sma: 700_000,
-    ecc: 0,
-    inc: 0,
-    lan: 0,
-    argPe: 0,
-    mu: 3.5316e12,
-    meanAnomalyAtEpoch: 0,
-    epoch: 10,
-    encounter: null,
-  });
   fixture.emit("system.bodies", {
     bodies: [
       {
@@ -82,7 +64,7 @@ describe("EscapeProfileComponent", () => {
 
   function renderEscape() {
     const fixture = setupStreamFixture({
-      carriedChannels: VESSEL_STATE_INPUTS,
+      carriedChannels: ESCAPE_PROFILE_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });

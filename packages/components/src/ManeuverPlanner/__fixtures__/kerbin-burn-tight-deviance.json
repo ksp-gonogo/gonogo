@@ -64,7 +64,7 @@
   "o.orbitalSpeed": 1527.42,
   "v.body": "Kerbin",
   "_stream": {
-    "carriedChannels": ["vessel.maneuver", "vessel.orbit", "vessel.state"],
+    "carriedChannels": ["vessel.maneuver", "vessel.orbit"],
     "pinnedUt": 43362.21875,
     "emits": [
       {
@@ -218,29 +218,6 @@
             "trajectoryKind": 1
           },
           "patches": []
-        }
-      },
-      {
-        "channel": "vessel.state",
-        "value": {
-          "trueAnomaly": {
-            "magnitude": 150,
-            "unit": "°"
-          },
-          "orbitalSpeed": {
-            "magnitude": 1527.42,
-            "unit": "m/s"
-          },
-          "orbitalRadius": {
-            "magnitude": 1184936.782,
-            "unit": "m"
-          },
-          "period": {
-            "magnitude": 3211.324353,
-            "unit": "s"
-          },
-          "referenceBodyName": "Kerbin",
-          "parentBodyName": "Kerbin"
         }
       },
       {

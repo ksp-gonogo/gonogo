@@ -6,8 +6,7 @@ import { OrbitalEventChips } from "./OrbitalEventChips";
 
 /**
  * The encounter chip counts down to an ABSOLUTE UT, and the wire says so:
- * `vessel.state.encounterTime` is `vessel.orbit.encounter.transitionUt`,
- * carried through unchanged. `SystemView` subtracts the view time before
+ * `vessel.orbit.encounter.transitionUt` is an instant, not a duration. `SystemView` subtracts the view time before
  * rendering it and says why in a comment; this component, which the same
  * field reaches through `TargetPicker` and `MapView`, did not.
  *
@@ -23,19 +22,7 @@ const TRANSITION_UT = VIEW_UT + 1200;
 
 function mountAt(transitionUt: number) {
   const fixture = setupStreamFixture({
-    // vessel.state's carried-channels gate is parent-channel-scoped, so every
-    // one of the channel's declared inputs has to be carried before any
-    // vessel.state.* field is.
-    carriedChannels: [
-      "vessel.orbit",
-      "vessel.flight",
-      "vessel.identity",
-      "system.bodies",
-      "vessel.control",
-      "vessel.target",
-      "vessel.comms",
-      "vessel.propulsion",
-    ],
+    carriedChannels: ["vessel.orbit"],
     pinnedUt: VIEW_UT,
     suspendFrames: true,
   });

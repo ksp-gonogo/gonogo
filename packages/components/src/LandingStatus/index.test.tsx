@@ -27,7 +27,6 @@ import { LandingStatusComponent } from "./index";
  * burn-now touchdown.
  */
 const CARRIED = [
-  "vessel.state",
   "vessel.orbit",
   "vessel.flight",
   "vessel.identity",

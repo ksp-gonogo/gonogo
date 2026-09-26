@@ -5,28 +5,18 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SemiMajorAxisComponent } from "./index";
 
-// `sma` reads the raw `vessel.orbit.sma` element; `referenceBody` reads the
-// derived `vessel.state.referenceBodyName` display map (index → name against
-// `system.bodies`), which is "carried" only once ALL EIGHT `vessel.state`
-// inputs are (see `vessel-state.ts`). Both run off a real `TelemetryProvider`
-// here: no legacy `MockDataSource` is registered anywhere in this file.
-const VESSEL_STATE_INPUTS = [
-  "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
-  "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
-];
+// `sma` reads the raw `vessel.orbit.sma` element; `referenceBody` names
+// `vessel.orbit.referenceBodyIndex` against `system.bodies`. Both run off a
+// real `TelemetryProvider` here: no legacy `MockDataSource` is registered
+// anywhere in this file.
+const SEMI_MAJOR_AXIS_CHANNELS = ["vessel.orbit", "system.bodies"];
 
 describe("SemiMajorAxisComponent", () => {
   let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(() => {
     stream = setupStreamFixture({
-      carriedChannels: VESSEL_STATE_INPUTS,
+      carriedChannels: SEMI_MAJOR_AXIS_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });

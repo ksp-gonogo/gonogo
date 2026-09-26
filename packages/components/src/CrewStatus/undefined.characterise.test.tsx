@@ -5,11 +5,11 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CrewStatusComponent } from "./index";
 
 /**
- * Characterisation, not specification: what CrewStatus DOES today when its
- * `useTelemetry` reads come back `undefined`.
+ * Characterisation, not specification: what CrewStatus does when its
+ * `useTelemetry` reads are absent.
  *
  * The widget has three distinct absence gates over one Topic (`vessel.crew`)
- * plus two more over `vessel.state` and `vessel.resources`:
+ * plus two more over `vessel.identity` and `vessel.resources`:
  *
  *   1. `crew?.count` / `crew?.capacity` / `crew?.crew`, optional-chained off a
  *      possibly-undefined payload
@@ -22,28 +22,10 @@ import { CrewStatusComponent } from "./index";
  * changes meaning when the read starts answering with a `Reading`.
  */
 
-const CARRIED = [
-  "vessel.crew",
-  "vessel.state",
-  "vessel.identity",
-  "vessel.orbit",
-  "vessel.resources",
-];
+const CARRIED = ["vessel.crew", "vessel.identity", "vessel.resources"];
 
-// `vessel.identity.vesselType === 7` is the EVA kerbal type `deriveVesselState`
-// maps onto `vessel.state.isEVA`, and the derived record only exists once
-// `vessel.orbit` is whole, hence the minimal orbit alongside it.
+// `vessel.identity.vesselType === 7` is `VesselType.EVA`, the kerbal on EVA.
 const VESSEL_TYPE_EVA = 7;
-const ORBIT = {
-  sma: 682500,
-  ecc: 0.00367,
-  inc: 0.3,
-  argPe: 12.5,
-  mu: 3.5316e12,
-  meanAnomalyAtEpoch: 0,
-  epoch: 10,
-  referenceBodyIndex: 1,
-};
 
 const renderedTrees: Array<() => void> = [];
 
@@ -222,7 +204,6 @@ describe("CrewStatus, what undefined telemetry renders today", () => {
         capacity: 1,
         crew: [{ name: "Jebediah Kerman" }],
       });
-      fixture.emit("vessel.orbit", ORBIT);
       fixture.emit("vessel.identity", { vesselType: VESSEL_TYPE_EVA });
     });
 
@@ -236,8 +217,8 @@ describe("CrewStatus, what undefined telemetry renders today", () => {
     expect(screen.queryByText("EC")).not.toBeInTheDocument();
   });
 
-  it("omits the EVA caption entirely when vessel.state never arrives", async () => {
-    // `isEVA === true` gate: an undefined derived record is NOT rendered as
+  it("omits the EVA caption entirely when vessel.identity never arrives", async () => {
+    // `isEVA === true` gate: an absent identity record is NOT rendered as
     // "not on EVA", the caption line is dropped, so nothing on screen states
     // the vessel's EVA standing either way.
     const fixture = newFixture();

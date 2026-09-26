@@ -33,28 +33,19 @@ function unmountAll() {
 }
 
 /**
- * KeplerPeriod's stream proof. When this widget was first authored
- * its two `useDataValue` reads (`v.body`, `o.referenceBody`) were declared
- * GAPS, so it stayed 100% legacy and this test only asserted a stream-safe
- * no-op. Both are now un-gapped onto SDK-derived display maps,
- * `v.body` -> `vessel.state.parentBodyName`, `o.referenceBody` ->
- * `vessel.state.referenceBodyName` (index→name resolution against
- * `system.bodies`, see `vessel-state.ts`): so the reads are now migrated to
- * `useTelemetry` and genuinely ride the stream.
+ * KeplerPeriod's stream proof. Its two body reads ride the stream:
+ * `v.body` -> `vessel.identity.parentBodyIndex`, `o.referenceBody` ->
+ * `vessel.orbit.referenceBodyIndex`, each named against `system.bodies`.
  *
  * This test runs the widget OFF THE REAL PIPELINE (`TelemetryProvider` +
  * `TelemetryClient`/`TimelineStore` via `StubTransport`, no legacy
  * `DataSource` registered anywhere) and proves the body-name reads resolve
- * through the derived channel: emitting a body the stock registry doesn't
+ * off the stream: emitting a body the stock registry doesn't
  * know surfaces the widget's "Unknown body" degraded notice, which fires
- * ONLY when `bodyName` (the streamed `parentBodyName`) is defined but
+ * ONLY when `bodyName` (the streamed parent body name) is defined but
  * `getBody` can't resolve it, a positive assertion that the value reached
  * the widget off the stream.
- *
- * `carriedChannels` lists all EIGHT of `vessel.state`'s declared inputs even
- * though only `vessel.orbit`/`vessel.identity`/`system.bodies` are consulted
- * here: the carried-channels gate is parent-channel-scoped, not per-field
- * (see `vessel-state.ts`'s `vesselStateChannel` doc comment).
+
  *
  * The graph's `o.sma`/`o.period` series flow through `GraphView` ->
  * `useDataSeries` (its own stream shim), not `useTelemetry`, so they're out
@@ -70,21 +61,16 @@ afterEach(() => {
   clearBodies();
 });
 
-const VESSEL_STATE_INPUTS = [
+const KEPLER_PERIOD_CHANNELS = [
   "vessel.orbit",
-  "vessel.flight",
   "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
 ];
 
 describe("KeplerPeriod: reads body names off the stream (R6 Wave 1)", () => {
-  it("resolves parentBodyName/referenceBodyName from the derived channel and surfaces the no-reference-data notice", async () => {
+  it("resolves the parent and reference body names off the stream and surfaces the no-reference-data notice", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: VESSEL_STATE_INPUTS,
+      carriedChannels: KEPLER_PERIOD_CHANNELS,
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -103,7 +89,7 @@ describe("KeplerPeriod: reads body names off the stream (R6 Wave 1)", () => {
     expect(screen.queryByText(/No reference data/)).toBeNull();
 
     /*
-     * Emit the derived channel's inputs. `referenceBodyIndex` /
+     * Emit the orbit, identity and roster. `referenceBodyIndex` /
      * `parentBodyIndex` both point at a body no bundled table has ever heard
      * of. The roster reports its radius and no gravitational parameter, so the
      * body resolves and Kepler's third law cannot be drawn for it: the "No

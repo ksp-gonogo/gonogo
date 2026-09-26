@@ -6,7 +6,6 @@ import {
   registerDataSource,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { commandArgs, MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   act,
@@ -33,14 +32,11 @@ import { NavballComponent } from "./index";
 // read is off the stream now.
 const KEYS: DataKey[] = [{ key: "n.heading" }];
 
-// The read topics the widget now consumes off the stream. `vessel.state`
-// (sasMode/isControllable) needs vessel.orbit + vessel.flight present to
-// resolve its record; comms.delay feeds the FBW-delay warning.
+// The read topics the widget consumes off the stream; comms.delay feeds the
+// FBW-delay warning.
 const READ_CHANNELS = [
   "vessel.attitude",
   "vessel.control",
-  "vessel.orbit",
-  "vessel.flight",
   "vessel.comms",
   "comms.delay",
   "vessel.identity",
@@ -60,18 +56,9 @@ interface EmitState {
   vesselId?: string;
 }
 
-/** Emit the read topics. Always seeds the vessel.state record (orbit Loaded +
- * flight) so sasModeName/isControllable resolve when control/comms are given. */
+/** Emit whichever read topics `state` names. */
 function emitReads(fixture: StreamFixture, state: EmitState): void {
   act(() => {
-    fixture.emit("vessel.orbit", {}, { quality: Quality.Loaded });
-    fixture.emit("vessel.flight", {
-      latitude: 0,
-      longitude: 0,
-      altitudeAsl: 0,
-      surfaceSpeed: 0,
-      verticalSpeed: 0,
-    });
     if (state.attitude) fixture.emit("vessel.attitude", state.attitude);
     if (state.control) fixture.emit("vessel.control", state.control);
     if (state.comms) fixture.emit("vessel.comms", state.comms);
@@ -165,8 +152,7 @@ describe("NavballComponent", () => {
 
   it("surfaces SAS mode on the SAS toggle", async () => {
     const { fixture } = renderNavball();
-    // sasMode -> vessel.state.sasModeName, derived from vessel.control.sasMode
-    // (1 = Prograde), rendered as the grid's own three-letter token. On the
+    // vessel.control.sasMode (1 = Prograde), named and rendered as the grid's own three-letter token. On the
     // toggle rather than a header chip, and on a display-sized tile that is
     // still the only place the mode appears.
     emitReads(fixture, { control: { sas: true, sasMode: 1 } });

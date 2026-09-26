@@ -408,33 +408,25 @@ describe("Graph: genuinely runs off the stream", () => {
   });
 
   /**
-   * The one provenance a trace has cause to mark, now that something produces
-   * it: the stretch after the last observation, where the craft said nothing
-   * and `vessel.state`'s own Kepler model answered instead.
+   * The one provenance a trace has cause to mark: the stretch after the last
+   * observation, where the craft said nothing and `vessel.flight`'s own model
+   * answered instead.
    *
-   * Nothing here hands the chart a `reckoned` prop. The orbit samples stop at
-   * UT 200 and the view time is pinned at 600, which is the whole of the
-   * scenario: the tail exists because `TimelineStore.sampleReckonedTail`
-   * replays the channel across the silence and `useDataSeries` joins it on.
+   * Nothing here hands the chart a `reckoned` prop. The flight samples stop at
+   * UT 200, the link then drops, and the view time is pinned at 600, which is
+   * the whole of the scenario: the tail exists because
+   * `TimelineStore.sampleReckonedTail` asks the topic's registered reckoner
+   * across the silence and `useDataSeries` joins it on. A tail fills a silence,
+   * so while the link is up there is nothing to draw.
    *
-   * `Quality.OnRails` is what makes the elements a CAUSE rather than an
-   * osculating snapshot, and it is the only quality
-   * `deriveVesselStateReckoning` offers a basis for; the Loaded branch reads
-   * measurements off `vessel.flight` and honestly has nothing to say about the
-   * gap.
+   * The reckoner moves `orbitalSpeed` along the conic in `vessel.orbit`, sea
+   * level off `system.bodies`. `Quality.OnRails` is what makes those elements a
+   * CAUSE rather than an osculating snapshot, and the roster names no
+   * atmosphere, so the conic answers for the whole gap.
    */
   it("carries a modelled trace across the silence, muted and dashed", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        "vessel.orbit",
-        "vessel.flight",
-        "vessel.identity",
-        "system.bodies",
-        "vessel.control",
-        "vessel.target",
-        "vessel.comms",
-        "vessel.propulsion",
-      ],
+      carriedChannels: ["vessel.flight", "vessel.orbit", "system.bodies"],
       pinnedUt: 600,
       suspendFrames: true,
     });
@@ -443,7 +435,7 @@ describe("Graph: genuinely runs off the stream", () => {
       series: [
         {
           id: "speed",
-          key: "vessel.state.orbitalSpeed",
+          key: "vessel.flight.orbitalSpeed",
           axis: "auto" as const,
         },
       ],
@@ -462,12 +454,16 @@ describe("Graph: genuinely runs off the stream", () => {
     );
 
     act(() => {
-      for (const validAt of [0, 100, 200]) {
+      fixture.emit("system.bodies", { bodies: [AIRLESS_KERBIN] });
+      for (const [validAt, orbitalSpeed] of ECCENTRIC_KERBIN_SPEEDS) {
         fixture.emit("vessel.orbit", ECCENTRIC_KERBIN_ORBIT, {
           validAt,
           quality: Quality.OnRails,
         });
+        fixture.emit("vessel.flight", { orbitalSpeed }, { validAt });
       }
+      fixture.store.setTransportConnected(false);
+      fixture.emitFrame();
     });
 
     await waitFor(() => {
@@ -502,11 +498,13 @@ describe("Graph: genuinely runs off the stream", () => {
   /**
    * Where a model STOPPED, which the trace alone cannot show.
    *
-   * The same arc, around a body whose atmosphere the roster now names, so the
-   * conic withdraws at the entry interface partway through the window. On an
-   * axis fitted to the data that withdrawal is invisible: the series shortens,
-   * the axis shrinks with it, and the picture is identical to one where the
-   * model ran to the view time. The blank stretch IS the statement.
+   * A craft inside the air, sampled once a second on its way down, then the
+   * link drops. Inside the atmosphere `vessel.flight`'s reckoner integrates the
+   * observed descent rates, and that is honest only for a few seconds at the
+   * sensed deceleration, so the model withdraws partway through the window. On
+   * an axis fitted to the data that withdrawal is invisible: the series
+   * shortens, the axis shrinks with it, and the picture is identical to one
+   * where the model ran to the view time. The blank stretch IS the statement.
    *
    * Asserted on the axis rather than on a pixel: the last modelled point sits
    * strictly inside the drawn width, which is the same claim a reader makes by
@@ -514,17 +512,8 @@ describe("Graph: genuinely runs off the stream", () => {
    */
   it("leaves the stretch a declining model would not answer for on the axis", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: [
-        "vessel.orbit",
-        "vessel.flight",
-        "vessel.identity",
-        "system.bodies",
-        "vessel.control",
-        "vessel.target",
-        "vessel.comms",
-        "vessel.propulsion",
-      ],
-      pinnedUt: 1000,
+      carriedChannels: ["vessel.flight", "vessel.orbit", "system.bodies"],
+      pinnedUt: 60,
       suspendFrames: true,
     });
 
@@ -532,11 +521,11 @@ describe("Graph: genuinely runs off the stream", () => {
       series: [
         {
           id: "altitude",
-          key: "vessel.state.altitudeAsl",
+          key: "vessel.flight.altitudeAsl",
           axis: "auto" as const,
         },
       ],
-      windowSec: 1000,
+      windowSec: 60,
     };
 
     const { container } = render(
@@ -552,28 +541,32 @@ describe("Graph: genuinely runs off the stream", () => {
 
     act(() => {
       fixture.emit("system.bodies", {
-        bodies: [
-          {
-            name: "Kerbin",
-            index: 1,
-            parentIndex: 0,
-            radius: 600_000,
-            orbit: null,
-            atmosphere: { depth: 70_000 },
-          },
-        ],
+        bodies: [{ ...AIRLESS_KERBIN, atmosphere: { depth: 70_000 } }],
       });
-      for (const validAt of [0, 100, 200]) {
-        fixture.emit("vessel.orbit", ENTRY_ARC, {
+      for (let validAt = 0; validAt <= 10; validAt++) {
+        fixture.emit("vessel.orbit", DESCENT_ORBIT, {
           validAt,
-          quality: Quality.OnRails,
+          quality: Quality.Loaded,
         });
+        // A steady 4 m/s² steepening of the descent, inside the air.
+        fixture.emit(
+          "vessel.flight",
+          {
+            altitudeAsl: 40_000 - 300 * validAt - 2 * validAt ** 2,
+            verticalSpeed: -300 - 4 * validAt,
+            orbitalSpeed: 2_000,
+            gForce: 2,
+          },
+          { validAt },
+        );
       }
+      fixture.store.setTransportConnected(false);
+      fixture.emitFrame();
     });
 
     await waitFor(() => {
       const reckoned = container.querySelector<SVGPathElement>(
-        'path[data-reckoning-basis="kepler-propagation"]',
+        'path[data-reckoning-basis="rate-integration"]',
       );
       expect(reckoned).not.toBeNull();
       const plot = container.querySelector<SVGRectElement>("svg");
@@ -585,7 +578,7 @@ describe("Graph: genuinely runs off the stream", () => {
           .map((pair) => Number(pair.trim().split(/[ ,]/)[0])),
       );
       const width = Number(plot?.getAttribute("width") ?? 0);
-      // Strictly short of the right edge: the model declined at the interface
+      // Strictly short of the right edge: the model declined at its horizon
       // and the axis still runs to the instant it was asked for.
       expect(width).toBeGreaterThan(0);
       expect(rightmost).toBeLessThan(width * 0.95);
@@ -594,22 +587,34 @@ describe("Graph: genuinely runs off the stream", () => {
 });
 
 /**
- * Apoapsis 800 km from Kerbin's centre, periapsis 630 km, so the arc crosses
- * the 70 km entry interface on the way down and stays clear of the surface.
- * `meanAnomalyAtEpoch: PI` starts it at apoapsis, so the descent is the part
- * inside the window.
+ * Elements for a craft low in Kerbin's atmosphere, stamped `Quality.Loaded`
+ * as the mod stamps a craft under physics: near apoapsis, about 50 km up, so
+ * the radius they solve for agrees with the observed altitude that the craft
+ * is inside the air.
  */
-const ENTRY_ARC = {
+const DESCENT_ORBIT = {
   referenceBodyIndex: 1,
-  sma: 715_000,
-  ecc: 170_000 / 1_430_000,
+  sma: 620_000,
+  ecc: 0.05,
   inc: 0,
   lan: 0,
   argPe: 0,
-  meanAnomalyAtEpoch: Math.PI,
+  meanAnomalyAtEpoch: 3,
   epoch: 0,
   mu: 3_531_600_000_000,
   horizon: { kind: 1, trajectoryKind: 1 },
+};
+
+/**
+ * Kerbin as the roster describes it, with no atmosphere block, which on this
+ * wire means airless rather than unknown: the conic's floor is the surface.
+ */
+const AIRLESS_KERBIN = {
+  name: "Kerbin",
+  index: 1,
+  parentIndex: 0,
+  radius: 600_000,
+  orbit: null,
 };
 
 /**
@@ -638,6 +643,17 @@ const ECCENTRIC_KERBIN_ORBIT = {
    */
   horizon: { kind: 1, trajectoryKind: 1 },
 };
+
+/**
+ * `vessel.flight.orbitalSpeed` along `ECCENTRIC_KERBIN_ORBIT` at the three
+ * sample instants, `[validAt, orbitalSpeed]`, by vis-viva off the same
+ * elements.
+ */
+const ECCENTRIC_KERBIN_SPEEDS: ReadonlyArray<readonly [number, number]> = [
+  [0, 3025.888],
+  [100, 2935.193],
+  [200, 2719.576],
+];
 
 /**
  * The shaded region behind a modelled trace, end to end off the stream.

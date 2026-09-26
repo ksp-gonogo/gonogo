@@ -2,17 +2,18 @@
 /**
  * Review renders for the stretch of a chart nobody measured.
  *
- * The real `Graph`, mounted on the real stream, plotting `vessel.state`'s own
- * Kepler model across a silence: no `reckoned` prop is fed to anything here.
- * The samples stop at UT 280 and the frame is drawn for UT 900, so the dashed
- * tail exists only because `TimelineStore.sampleReckonedTail` produced it and
- * `useDataSeries` joined it on. That is the difference between this and
- * `render-chart-provenance.ts`, which hand-feeds `LineChart` because when it
- * was written there was no producer to drive it.
+ * The real `Graph`, mounted on the real stream, plotting `vessel.flight`'s
+ * orbital speed across a silence: no `reckoned` prop is fed to anything here.
+ * The samples stop at UT 280, the link drops, and the frame is drawn for
+ * UT 900, so the dashed tail exists only because
+ * `TimelineStore.sampleReckonedTail` asked `vessel.flight`'s reckoner across
+ * the silence and `useDataSeries` joined it on. That is the difference between
+ * this and `render-chart-provenance.ts`, which hand-feeds `LineChart`.
  *
- * Two scenes one field apart: the second adds `VesselOrbit.encounter`, so the
- * model withdraws at the patch boundary and the tail stops there. A controlled
- * comparison rather than two drawings of two datasets.
+ * Two scenes one field apart: the second adds `VesselOrbit.encounter`, an SOI
+ * transition before the view time, so the elements cannot be carried to the
+ * frame and no tail is drawn. A controlled comparison rather than two drawings
+ * of two datasets.
  *
  * Deliberately NOT registered in `widgets.ts`, the same reasoning
  * `render-affordability.ts` gives: that file is the visual gate's input, and a
@@ -44,7 +45,7 @@ const CONFIGS: WidgetRenderConfig[] = [
         series: [
           {
             id: "speed",
-            key: "vessel.state.orbitalSpeed",
+            key: "vessel.flight.orbitalSpeed",
             label: "Orbital speed",
             type: "line",
             axis: "primary",

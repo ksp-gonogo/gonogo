@@ -8,23 +8,14 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
 /**
- * A producer-consumer disagreement about a hyperbolic orbit.
- *
- * On a hyperbolic orbit (`ecc >= 1`) the mod's derived `vessel.state.timeToPe`
- * degrades to `null`, because the elliptical kepler solver in `vessel-state.ts`
- * cannot propagate an open trajectory, and the retired legacy path emitted a
- * `0` sentinel instead. The neighbouring `t-Ap`/period/Ap rows all carry an explicit
- * `hyperbolic ? NULL_DISPLAY` guard so the operator doesn't read a hyperbolic flyby as
- * an imminent event; the `t-Pe` row lacked it and its `=== undefined` check
- * missed `null`.
- *
- * `t-Pe` now carries the same guard and handles `null`, and this test pins the
- * guarantee: a hyperbolic orbit renders the `t-Pe` value as the null-display
- * placeholder, never a `0s` countdown.
+ * A hyperbolic orbit (`ecc >= 1`) has no countdown to a periapsis the view
+ * can promise. The neighbouring `t-Ap`/period/Ap rows all carry an explicit
+ * `hyperbolic ? NULL_DISPLAY` guard so the operator doesn't read a hyperbolic
+ * flyby as an imminent event, and `t-Pe` carries the same guard: this test pins
+ * that it renders the null-display placeholder, never a `0s` countdown.
  */
-const VESSEL_STATE_INPUTS = [
+const CURRENT_ORBIT_CHANNELS = [
   "vessel.orbit",
-  "vessel.flight",
   "vessel.identity",
   "system.bodies",
 ];
@@ -33,7 +24,7 @@ describe("CurrentOrbit: O1, t-Pe shows the null-display placeholder on a hyperbo
   it("renders t-Pe as NULL_DISPLAY (never a countdown) when ecc >= 1", async () => {
     registerStockBodies();
     const stream = setupStreamFixture({
-      carriedChannels: VESSEL_STATE_INPUTS,
+      carriedChannels: CURRENT_ORBIT_CHANNELS,
       pinnedUt: 0,
       suspendFrames: true,
     });
