@@ -43,7 +43,7 @@ export interface DivergingBarProps<U extends string = string> {
  *
  * Ports the `.lbar` design from the kerbalism-graph-mock prototype
  * (`kerbalism-graph-mock/water-entity.html`) into the kit's own token/colour
- * vocabulary (`--color-status-go-bg` / `--color-status-nogo-bg`, the same
+ * vocabulary (`--color-status-go-mark` / `--color-status-nogo-bg`, the same
  * pair `Meter`'s "go"/"nogo" tones use) rather than the mock's bespoke
  * `--ok`/`--crit` variables.
  *
@@ -139,7 +139,7 @@ const DivergingBar__Fill = styled.div<{
     $positive
       ? css`
           left: 50%;
-          background: var(--color-status-go-bg);
+          background: var(--color-status-go-mark);
         `
       : css`
           right: 50%;

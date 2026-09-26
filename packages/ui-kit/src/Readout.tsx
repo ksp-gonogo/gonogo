@@ -108,7 +108,7 @@ export const StatusPill = styled.div<{ $tone: ReadoutTone }>`
         case "warning":
           return "var(--color-status-warning-bg)";
         case "go":
-          return "var(--color-status-go-bg)";
+          return "var(--color-status-go-mark)";
         default:
           return "var(--color-border-subtle)";
       }

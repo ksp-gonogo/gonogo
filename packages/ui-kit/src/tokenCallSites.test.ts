@@ -42,18 +42,8 @@ const tokens = parseColorTokens(
  * swap. Each entry is `file site: token property on ground`.
  */
 const AWAITING_RULING: Readonly<Record<string, string>> = {
-  "Combobox.tsx DropdownItem: status-go-bg background on surface-raised":
-    "the selected option is marked only by its fill, 2.17:1 against the list",
   "DataKeyPicker.tsx PickerInput &::placeholder: text-faint color on surface-raised":
     "placeholder text in the faint tier on the raised input, 4.05:1; faint is the placeholder tier and fails on raised",
-  "DivergingBar.tsx DivergingBar__Fill: status-go-bg background on surface-raised":
-    "the positive fill is 2.17:1 against its raised track",
-  "Meter.tsx TONE_FILL.go: status-go-bg background on surface-panel":
-    "the go fill is 2.42:1 against the panel",
-  "Readout.tsx StatusPill: status-go-bg border on surface-panel":
-    "the go status pill's only edge is 2.42:1 against the panel",
-  "Switch.tsx SwitchTrack: status-go-bg background on surface-panel":
-    "the checked track is 2.42:1 against the panel",
 };
 
 /**
@@ -61,7 +51,7 @@ const AWAITING_RULING: Readonly<Record<string, string>> = {
  * the real ground and that the scan cannot see.
  */
 const NOT_DRAWN_TOGETHER: Readonly<Record<string, string>> = {
-  "Switch.tsx SwitchThumb: text-faint background on status-go-bg":
+  "Switch.tsx SwitchThumb: text-faint background on status-go-mark":
     "the thumb is faint only while unchecked, when the track is raised; the scan does not pair two components' $checked",
   "Tabs.tsx Tabs__Button: text-inverse color on surface-sunken":
     "the active label is drawn over Tabs__Blob, a sibling painted in accent-bg; a sibling's paint is not a ground the scan can see",
