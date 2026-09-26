@@ -451,18 +451,6 @@ describe("no primitive is fed a reading's value instead of the reading", () => {
  */
 const DERIVED_FEED_DEBT: Record<string, number> = {
   /*
-   * Newly VISIBLE rather than newly written, and the widening that exposed it
-   * was on the PRIMITIVE: feeding a gauge a minted quantity only counts as a
-   * drop once the gauge can take the reading instead, which it now can.
-   *
-   * The site itself is the element-chosen-by-predicate shape: the rotor is
-   * picked out of a list, and a payload is addressed by path, so the selected
-   * rotor's rpm has no path to be read as a field reading. The widget already
-   * carries the currency by hand, withholding the rpm and naming which half is
-   * dated, so nothing here is drawing a held figure as though it were current.
-   */
-  "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 1,
-  /*
    * SIX, and none of them is migratable, which makes this entry a different
    * kind of thing from the rest of this list.
    *

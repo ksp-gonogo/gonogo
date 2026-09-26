@@ -1,6 +1,7 @@
 import {
   act,
   clearActionHandlers,
+  screen,
   setupStreamFixture,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -10,21 +11,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import "./index";
 
 /**
- * What the Rotor Tachometer does when `robotics.servos` stops arriving.
- *
- * It used to drop the whole list, so a link that simply went quiet emptied the
- * panel down to "Waiting for the rotors list", a never-arrived answer about a
- * list that had arrived and gone stale.
- *
- * What it does now: the NEEDLE is withheld, because a rotor spins on without
- * telling us and the RPM is read as the situation right now. Everything else is
- * a setting (the cap the go-zone arc is drawn from, the torque and brake
- * figures, the motor, lock and direction states), and a setting does not drift
- * down a dead link, so all of it is held.
- *
- * The assertion that earns this file is the one about the CAP. Withholding it
- * would have blanked the scale around a needle already being withheld, which is
- * how the old collapse justified itself.
+ * What the Rotor Tachometer does when `robotics.servos` stops arriving: every
+ * figure is held, and the gauge marks the held rpm rather than blanking it.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -72,11 +60,12 @@ describe("RotorTachometer: a rotor list that has stopped arriving", () => {
     const { container } = mountWithRotor("rt-stale-control");
 
     await waitFor(() => expect(visibleText(container)).toContain("130"));
-    expect(visibleText(container)).not.toContain("RPM unknown");
-    expect(visibleText(container)).not.toContain("no longer current");
+    expect(screen.getByRole("img", { name: /EM-32S/ })).not.toHaveAttribute(
+      "data-not-current",
+    );
   });
 
-  it("holds the rotor and its cap, and withholds only the RPM", async () => {
+  it("holds the rpm on the gauge and marks it, with the cap", async () => {
     const { fixture, container } = mountWithRotor("rt-stale-held");
     await waitFor(() => expect(visibleText(container)).toContain("130"));
 
@@ -84,20 +73,14 @@ describe("RotorTachometer: a rotor list that has stopped arriving", () => {
       fixture.store.setTransportConnected(false);
     });
 
-    /* The needle goes, and says it has gone rather than parking at zero: a
-       dial at 0 is a rotor that is STOPPED, which is a reading an operator
-       acts on. */
-    await waitFor(() =>
-      expect(visibleText(container)).toContain("RPM unknown"),
+    const gauge = await screen.findByRole("img", { name: /EM-32S/ });
+    await waitFor(() => expect(gauge).toHaveAttribute("data-not-current"));
+    expect(gauge).toHaveAccessibleName(
+      /^EM-32S Standard Rotor: 130 rpm, cap 200 rpm, \S/,
     );
-    expect(visibleText(container)).not.toContain("130");
-
-    // The cap survives. It is the figure the gauge's scale is built from, and
-    // dropping it was how the old collapse took the whole instrument with it.
+    expect(visibleText(container)).toContain("130");
     expect(visibleText(container)).toContain("200");
-
-    // And the reason names the half that is still good.
-    expect(visibleText(container)).toContain("RPM no longer current");
+    expect(visibleText(container)).not.toContain("RPM unknown");
   });
 
   it("never calls a dated list a list that has not arrived", async () => {
@@ -109,7 +92,9 @@ describe("RotorTachometer: a rotor list that has stopped arriving", () => {
     });
 
     await waitFor(() =>
-      expect(visibleText(container)).toContain("RPM unknown"),
+      expect(screen.getByRole("img", { name: /EM-32S/ })).toHaveAttribute(
+        "data-not-current",
+      ),
     );
     expect(visibleText(container)).not.toContain("Waiting for the");
     expect(visibleText(container)).not.toContain("No rotors");

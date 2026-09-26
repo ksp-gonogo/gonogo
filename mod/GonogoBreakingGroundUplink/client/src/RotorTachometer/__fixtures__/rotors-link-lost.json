@@ -1,13 +1,13 @@
 {
   "_meta": {
     "scenario": "rotors-link-lost",
-    "notes": "The rotors scene, after the craft stops reporting. The wire is identical to `rotors` and the link then drops, so the rotor list, the RPM cap the gauge's arc is drawn from, the torque and brake settings and the motor/lock/direction states are all HELD, and only the MEASURED rpm is withheld. Before this the whole panel collapsed to \"Waiting for the rotors list\", a never-arrived sentence about a list already received."
+    "notes": "The rotors scene, after the craft stops reporting. The wire is identical to `rotors` and the link then drops, so every figure is HELD: the gauge keeps the last rpm and marks it, and the list, the cap, the torque and brake settings and the motor/lock/direction states stay as last reported."
   },
   "_scene": {
     "widget": "rotor-tachometer",
-    "caption": "The same rotors after the link drops: the needle withheld, the cap and every setting held",
+    "caption": "The same rotors after the link drops: the rpm held and marked, every setting held",
     "modes": ["default"],
-    "paints": ["ROTORS", "RPM no longer current"]
+    "paints": ["ROTORS", "240 rpm"]
   },
   "robotics.available": true,
   "robotics.servos": [

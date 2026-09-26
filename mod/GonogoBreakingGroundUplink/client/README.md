@@ -75,7 +75,7 @@ Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, 
 
 ![Breaking Ground not installed: the dial is withheld entirely rather than drawn at zero RPM](docs/assets/rotors-dlc-absent--default.png)
 
-![The same rotors after the link drops: the needle withheld, the cap and every setting held](docs/assets/rotors-link-lost--default.png)
+![The same rotors after the link drops: the rpm held and marked, every setting held](docs/assets/rotors-link-lost--default.png)
 
 ![Main rotor turning near its commanded cap, tail rotor stopped with the brake full on and the servo locked](docs/assets/rotors--default.png)
 

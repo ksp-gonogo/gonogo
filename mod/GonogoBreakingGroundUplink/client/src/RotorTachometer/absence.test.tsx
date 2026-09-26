@@ -82,16 +82,14 @@ function mount(entry: Record<string, unknown>) {
 }
 
 describe("RotorTachometer: a withheld figure is not a zero", () => {
-  it("draws no needle for an unread RPM, and says so instead", async () => {
+  it("draws no needle for an unread RPM, and the null token instead", async () => {
     const { container } = mount(rotor({ currentRPM: null }));
 
-    await waitFor(() =>
-      expect(visibleText(container)).toContain("RPM unknown"),
-    );
-    // No dial, and no aria-label reporting "0 rpm" to a screen reader.
-    expect(screen.queryByRole("meter")).toBeNull();
-    expect(container.querySelector("svg")).toBeNull();
-    expect(container.innerHTML).not.toContain("0 rpm");
+    const gauge = await screen.findByRole("img", { name: /RPM unknown/ });
+    // No needle, and no aria-label reporting "0 rpm" to a screen reader.
+    expect(gauge.querySelector("line")).toBeNull();
+    expect(gauge.textContent).toContain(NULL_DISPLAY);
+    expect(container.innerHTML).not.toMatch(/\b0 rpm/);
   });
 
   it("says the RPM cap is unknown rather than reading it as 0", async () => {
@@ -259,7 +257,7 @@ describe("RotorTachometer: an unread cap commands nothing", () => {
         brakePercentage: null,
       }),
     );
-    await screen.findByText(/RPM unknown/i);
+    await screen.findByRole("img", { name: /RPM unknown/ });
     await expectNoA11yViolations(container);
   });
 });

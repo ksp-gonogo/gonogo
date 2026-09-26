@@ -73,8 +73,7 @@ export interface RotorInfo {
    * It is here so a DISPLAYED figure can be read back as a field reading and
    * arrive at `Unit` with its currency intact. The numeric fields below stay
    * because the steppers compute the next commanded value from them, and a
-   * command wants a bare number that `dateReadings` has already withheld when
-   * it is not current.
+   * command wants a bare number.
    */
   srcIndex: number;
   partId: string;
@@ -165,26 +164,6 @@ const stepperLabel = (action: string, from: number | null): string =>
 const flagLabel = (action: string, from: boolean | null): string | undefined =>
   from === null ? `${action} (unavailable, not reported)` : undefined;
 
-/**
- * The same rotors, off a list that has stopped arriving: the two MEASURED
- * figures withheld, every setting kept.
- *
- * <p>`rpm` and `output` are what the machine is doing, and a rotor spins on
- * without telling us, so both are the situation NOW and cannot be dated. Nulling
- * them hands the gauge to the vocabulary already in the file: the needle draws
- * "unknown" rather than pointing somewhere.</p>
- *
- * <p>Everything else STAYS, because none of it is a measurement. `rpmLimit`,
- * `torqueLimit`, `maxTorque` and `brakePercentage` are settings, `motorEngaged`,
- * `locked` and `counterClockwise` are states a command puts the rotor in, and
- * none of them drifts while the link is down. The cap in particular is what the
- * gauge's go-zone arc is drawn from, so withholding it would have blanked the
- * scale around a needle we were withholding anyway.</p>
- */
-export function dateReadings(rotors: RotorInfo[]): RotorInfo[] {
-  return rotors.map((r) => ({ ...r, rpm: null, output: null }));
-}
-
 const rotorActions = [
   {
     id: "rpmUp",
@@ -223,18 +202,8 @@ export type RotorTachometerActions = typeof rotorActions;
 function RotorTachometerComponent({
   h,
 }: Readonly<ComponentProps<RotorTachometerConfig>>) {
-  /* An RPM gauge is read as the situation now, so the NEEDLE is withheld rather
-     than held, and nothing could carry it forward anyway: `robotics.servos` is
-     never reckonable.
-
-     That argument reaches the needle and stops there. Which rotors the craft
-     carries, their caps, torque and brake settings, and whether each is engaged,
-     locked or turning counter-clockwise are all things a command set and no
-     event can change down a link that is not delivering. They are held exactly
-     as `available` and `breakingGround` are just below. See `dateReadings`. */
   const roboticsReading = useTelemetry("robotics.servos");
   const roboticsRaw = stillTrue(roboticsReading, undefined);
-  const readingsNotCurrent = roboticsReading.state === "stale";
   // Two DIFFERENT facts, and the empty state needs both. `robotics.available`
   // is "this craft carries a robotic part", a per-vessel reading that rides the
   // delay clock. `game.dlc.breakingGround` is "the install has the expansion",
@@ -270,9 +239,7 @@ function RotorTachometerComponent({
   // fixed 180px that clips in a narrow slot.
   const { ref: gaugeRef, size: gaugeSize } = useElementSize({ w: 180, h: 104 });
 
-  const rotors = readingsNotCurrent
-    ? dateReadings(parseRotors(roboticsRaw))
-    : parseRotors(roboticsRaw);
+  const rotors = parseRotors(roboticsRaw);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected =
     rotors.find((r) => r.partId === selectedId) ?? rotors[0] ?? null;
@@ -377,6 +344,7 @@ function RotorTachometerComponent({
   }
 
   const showGauge = (h ?? 8) >= 6;
+  const rpmReading = roboticsReading[selected.srcIndex].currentRPM;
   // The go-toned "within cap" arc needs a cap to end at. With the cap unread
   // the dial still shows live RPM, it just draws no zones: an arc running to a
   // substituted 1 rpm paints the whole dial as over-cap.
@@ -398,58 +366,41 @@ function RotorTachometerComponent({
     <Panel
       panelTitle="ROTORS"
       sections={[
-        readingsNotCurrent && (
-          <Section key="dated" full>
-            {/* Names which half is dated, because "no longer current" over a
-                panel still showing caps and brake settings would read as the
-                whole instrument being dead. Only the needle is withheld. */}
-            <Text tone="warn" size="xs" role="status" aria-live="polite">
-              RPM no longer current: the rotors, their caps, torque and brake
-              settings are the last reported.
-            </Text>
-          </Section>
-        ),
         showGauge && (
           <Section key="gauge">
             <Cluster justify="center" ref={gaugeRef}>
-              {/* No needle without a reading to put it at. A dial parked at 0
-                  is a rotor that is stopped, which is a reading the operator
-                  acts on, and the aria-label said it out loud too ("0 rpm,
-                  cap n rpm"). */}
-              {selected.rpm === null ? (
-                <Text size="sm" tone="muted" role="status">
-                  RPM unknown
-                </Text>
-              ) : (
-                <Gauge
-                  value={quantity("rpm", clamp(selected.rpm, 0, ROTOR_MAX_RPM))}
-                  min={quantity("rpm", 0)}
-                  max={quantity("rpm", ROTOR_MAX_RPM)}
-                  width={gaugeW}
-                  height={gaugeH}
-                  zones={
-                    cap === null
-                      ? undefined
-                      : [
-                          {
-                            from: quantity("rpm", 0),
-                            to: quantity("rpm", cap),
-                            color: "var(--color-status-go-bg)",
-                          },
-                          {
-                            from: quantity("rpm", cap),
-                            to: quantity("rpm", ROTOR_MAX_RPM),
-                            color: "var(--color-surface-raised)",
-                          },
-                        ]
-                  }
-                  ariaLabel={`${selected.name}: ${writeQuantity(quantity("rpm", selected.rpm))}, ${
-                    selected.rpmLimit === null
-                      ? "cap unknown"
-                      : `cap ${writeQuantity(quantity("rpm", selected.rpmLimit))}`
-                  }`}
-                />
-              )}
+              <Gauge
+                value={rpmReading}
+                min={quantity("rpm", 0)}
+                max={quantity("rpm", ROTOR_MAX_RPM)}
+                width={gaugeW}
+                height={gaugeH}
+                zones={
+                  cap === null
+                    ? undefined
+                    : [
+                        {
+                          from: quantity("rpm", 0),
+                          to: quantity("rpm", cap),
+                          color: "var(--color-status-go-bg)",
+                        },
+                        {
+                          from: quantity("rpm", cap),
+                          to: quantity("rpm", ROTOR_MAX_RPM),
+                          color: "var(--color-surface-raised)",
+                        },
+                      ]
+                }
+                ariaLabel={`${selected.name}: ${
+                  rpmReading.value == null
+                    ? "RPM unknown"
+                    : writeQuantity(rpmReading.value)
+                }, ${
+                  selected.rpmLimit === null
+                    ? "cap unknown"
+                    : `cap ${writeQuantity(quantity("rpm", selected.rpmLimit))}`
+                }`}
+              />
             </Cluster>
           </Section>
         ),
