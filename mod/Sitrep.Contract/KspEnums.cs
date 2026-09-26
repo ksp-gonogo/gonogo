@@ -19,8 +19,8 @@ namespace Sitrep.Contract;
  * instances of: it fails silently, in the "everything is fine" direction, at
  * the moment somebody adds a member, which is the moment nobody re-reads the
  * consumers. For our own enums it is now a compile error, because the client's
- * union is DERIVED from the C# declaration (see vessel-state.ts's SituationName
- * and friends). KSP's enums had no declaration to derive from. Now they do.
+ * union is DERIVED from the C# declaration (see contract-enum-names.ts's
+ * SituationName and friends). KSP's enums had no declaration to derive from. Now they do.
  *
  * These mirrors carry EXPLICIT VALUES, and that is deliberate. The rest of the
  * contract forbids them, because an ordinal is declaration order and writing a

@@ -73,9 +73,8 @@ export function deriveSpaceCenterState(
 /**
  * Ready-to-register definition: `store.registerDerivedChannel(spaceCenterStateChannel)`.
  * `fields: true` exposes `spaceCenter.state.padOccupied` /
- * `spaceCenter.state.padVesselTitle`. `deriveStatus` omitted: the default
- * (worst status across the single `spaceCenter.launchSites` input) is right for
- * a single-input passthrough.
+ * `spaceCenter.state.padVesselTitle`. Its status is its single
+ * `spaceCenter.launchSites` input's.
  */
 export const spaceCenterStateChannel: DerivedChannelDefinition<SpaceCenterState> =
   {

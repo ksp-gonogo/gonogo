@@ -254,7 +254,7 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    *
    * `channels` answers "what must be live for me to render"; this answers "which
    * numbers do I actually put on screen", and they are different questions. A
-   * widget mounts on the whole of `vessel.state` and draws a handful of its
+   * widget mounts on the whole of `vessel.flight` and draws a handful of its
    * fields: declaring only the former makes it claim all of them, and alarm
    * attribution matches by containment, so every other widget's alarm on that
    * channel lights this panel too. Without this field, 20 of the 23

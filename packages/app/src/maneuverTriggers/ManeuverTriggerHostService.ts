@@ -296,9 +296,8 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     const target = getVesselTarget();
     const targetOrbit = target?.orbit;
     /*
-     * The target's own orbit, solved here rather than read off
-     * `vessel.state.target*`: the same `solveOrbit` the craft's orbit goes
-     * through, on the target's elements at the same view time. The altitude
+     * The target's own orbit, solved here: the same `solveOrbit` the craft's
+     * orbit goes through, on the target's elements at the same view time. The altitude
      * needs the TARGET's reference body, not the craft's, which is why the
      * radius is resolved from its own `referenceBodyIndex`.
      */

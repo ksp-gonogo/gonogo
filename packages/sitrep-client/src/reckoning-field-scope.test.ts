@@ -292,11 +292,11 @@ describe("every path to a reckoning shares the one cache", () => {
   beforeEach(clearReckoners);
 
   it("memoises a FIELD-scoped reckoning, not just a whole-topic one", () => {
-    // `fieldScopedReckoner` and `derivedReckoner` build `TopicModel`s, and
-    // `readingFrom` is the single place that wraps one into a `Reckoning`. So
-    // both inherit the cache rather than needing their own, and this asserts
-    // that rather than assuming it: a partial fix here would be
-    // indistinguishable from a complete one at every call site.
+    // `fieldScopedReckoner` builds a `TopicModel`, and `readingFrom` is the
+    // single place that wraps one into a `Reckoning`. So it inherits the cache
+    // rather than needing its own, and this asserts that rather than assuming
+    // it: a partial fix here would be indistinguishable from a complete one at
+    // every call site.
     const wall = fakeWall();
     const store = predictedStore(wall);
 

@@ -236,9 +236,8 @@ function TargetingComponent({
 
   const tarName = target?.name;
   const tarKind = target?.kind;
-  // Closest approach is now MOD-side (the elected IPropagationProvider),
-  // carried on `vessel.target.closestApproach`: replaces the former SDK-side
-  // two-body solve (o.closestTgtApprUT / vessel.state.closestApproachUt).
+  // Closest approach is MOD-side (the elected IPropagationProvider),
+  // carried on `vessel.target.closestApproach`.
   // `t.universalTime` stays dropped: the "current time" IS the SDK view-UT the
   // propagation is evaluated at, read directly via `useViewUt`.
   // `.magnitude`: a UT the widget subtracts the view-UT from, so it wants a

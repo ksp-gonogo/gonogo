@@ -1,7 +1,7 @@
 // `PRODUCTION_DERIVED_CHANNELS` comes through the client barrel rather than the
 // SDK's: importing it here is also what LOADS those channel modules, and loading
-// `vessel.state`'s is what registers its hand-declared field metadata. Without
-// that side effect the largest channel in the vocabulary enumerates as empty.
+// one is what registers its hand-declared field metadata. Without that side
+// effect a derived channel's fields enumerate without units.
 import {
   isTopicCarried,
   PRODUCTION_DERIVED_CHANNELS,
@@ -98,24 +98,6 @@ function readLandsOnTopic(
   const split = splitRawFieldSubtopic(`${topic}.${fieldPath}`);
   return split?.rawTopic === topic;
 }
-
-/**
- * The two altitudes and the two orbital speeds are one quantity each, and the
- * picker offers the wire spelling.
- *
- * `vessel.flight` carries both on the wire with a reckoner apiece, so a key
- * picked there is observed, dated, and banded where the model has an interval
- * to give. `vessel.state`'s copies are the same number with none of that, and
- * the derived channel still enumerates them, so without this the picker shows
- * two names for one altitude: the dual-altitude wart in front of the operator.
- *
- * Named here rather than derived, because the table it used to be derived from
- * described a redirect that no longer exists. It goes when the channel does.
- */
-const SUPERSEDED_DERIVED_KINEMATICS: ReadonlySet<string> = new Set([
-  "vessel.state.altitudeAsl",
-  "vessel.state.orbitalSpeed",
-]);
 
 function entryFor(topic: string, field: TopicField): TopicFieldKey {
   return {
@@ -216,11 +198,7 @@ function buildTopicFieldCatalog(
       undescribed.push(topic);
       continue;
     }
-    for (const field of fields) {
-      const key = `${topic}.${field.path}`;
-      if (SUPERSEDED_DERIVED_KINEMATICS.has(key)) continue;
-      keys.push(entryFor(topic, field));
-    }
+    for (const field of fields) keys.push(entryFor(topic, field));
   }
   return { keys, undescribed, collections };
 }

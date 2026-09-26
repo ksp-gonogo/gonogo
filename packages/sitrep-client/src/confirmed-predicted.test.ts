@@ -1,7 +1,6 @@
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import {
   solveOrbit,
-  type VesselFlightPayload,
   type VesselOrbitPayload,
 } from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
@@ -11,7 +10,6 @@ import { makeMeta, type WireOf, wrapWire } from "./stub-transport";
 import { systemStateChannel } from "./system-state";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
-import { vesselStateChannel } from "./vessel-state";
 import { ViewClock } from "./view-clock";
 
 /**
@@ -61,11 +59,10 @@ function numberPoint(
 }
 
 /**
- * Wire-shaped fixtures, wrapped in the two point-builders below. A test states
+ * A wire-shaped orbit fixture, wrapped in the point-builder below. A test states
  * what the mod sends; `wrapWire` is what the decode does to it.
  */
 type WireOrbit = WireOf<VesselOrbitPayload>;
-type WireFlight = WireOf<VesselFlightPayload>;
 
 const CIRCULAR_ORBIT: WireOrbit = {
   referenceBodyIndex: 1,
@@ -105,27 +102,6 @@ function orbitPoint(
   };
 }
 
-function flightPoint(
-  payload: WireFlight | null,
-  overrides: { validAt?: number; deliveredAt?: number } = {},
-): TimelinePoint<VesselFlightPayload> {
-  const validAt = overrides.validAt ?? 0;
-  return {
-    validAt,
-    payload:
-      payload === null
-        ? null
-        : wrapWire<VesselFlightPayload>("VesselFlight", { ...payload }),
-    meta: makeMeta({
-      validAt,
-      deliveredAt: overrides.deliveredAt ?? validAt,
-      quality: Quality.Loaded,
-      source: "vessel:abc-123",
-    }),
-    epoch: 0,
-  };
-}
-
 describe("confirmed-range interpolation (M2 design §3.3)", () => {
   it("reads at a viewUt strictly between two buffered samples get an INTERPOLATED value, not hold-last", () => {
     const wall = fakeWall();
@@ -156,71 +132,6 @@ describe("confirmed-range interpolation (M2 design §3.3)", () => {
     expect(interpolated?.payload).toBeGreaterThan(10);
     expect(interpolated?.payload).toBeLessThan(20);
     expect(interpolated?.validAt).toBe(175);
-  });
-
-  it("vessel.state's Loaded/measured basis interpolates vessel.flight via getInterpolated", () => {
-    const wall = fakeWall();
-    const clock = new ViewClock({
-      nowWall: wall.now,
-      warpRate: () => 1,
-      delaySeconds: () => 25,
-    });
-    const store = new TimelineStore(clock);
-    store.registerDerivedChannel(vesselStateChannel);
-
-    store.ingest(
-      "vessel.orbit",
-      orbitPoint(CIRCULAR_ORBIT, { validAt: 0, quality: Quality.Loaded }),
-    );
-    store.ingest(
-      "vessel.flight",
-      flightPoint(
-        {
-          latitude: 0,
-          longitude: 0,
-          altitudeAsl: 1000,
-          altitudeTerrain: 1000,
-          verticalSpeed: 5,
-          surfaceSpeed: 100,
-          orbitalSpeed: 100,
-          gForce: 1,
-          dynamicPressureKPa: 1,
-          mach: 0.3,
-          atmDensity: 1,
-        },
-        { validAt: 100, deliveredAt: 100 },
-      ),
-    );
-    store.ingest(
-      "vessel.flight",
-      flightPoint(
-        {
-          latitude: 0,
-          longitude: 0,
-          altitudeAsl: 2000,
-          altitudeTerrain: 2000,
-          verticalSpeed: 5,
-          surfaceSpeed: 100,
-          orbitalSpeed: 100,
-          gForce: 1,
-          dynamicPressureKPa: 1,
-          mach: 0.3,
-          atmDensity: 1,
-        },
-        { validAt: 200, deliveredAt: 200 },
-      ),
-    );
-    store.beginFrame();
-    expect(store.currentFrame().viewUt).toBe(175);
-    expect(store.currentFrame().certainty).toBe("confirmed");
-
-    /* Only the measured path carries an altitude here (the propagated one leaves
-       it null without body geometry), so the interpolated figure is also the
-       proof of which path ran. */
-    const state = store.sample<{
-      altitudeAsl: number | null;
-    }>("vessel.state");
-    expect(state?.payload?.altitudeAsl).toBeCloseTo(1750); // interpolated, not hold-last (1000)
   });
 });
 

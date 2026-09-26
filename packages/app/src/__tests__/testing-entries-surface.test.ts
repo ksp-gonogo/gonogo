@@ -101,7 +101,6 @@ const FUNCTIONS = [
 
 /** Read as data (channel definitions, constants) rather than called. */
 const VALUES = [
-  "vesselStateChannel",
   "spaceCenterStateChannel",
   "dvCurrentStageResourceChannel",
   "dvCurrentStageResourceMaxChannel",

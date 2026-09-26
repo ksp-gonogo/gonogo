@@ -40,10 +40,8 @@ const CANONICAL = "mod/sitrep-sdk/src/magnitude.ts";
 /**
  * One file, and it is a deliberate hold rather than a layering problem now.
  *
- * The canonical pair moved down into `mod/sitrep-sdk/src/magnitude.ts` on
- * 2026-08-25, so the cycle that used to make every sdk file unable to converge
- * is gone and `vessel-state.ts` converged with it. `orbit-trajectory.ts` did
- * not, because its local copy is the only one whose absence answer is THROW,
+ * The canonical pair lives in `mod/sitrep-sdk/src/magnitude.ts`, so every sdk
+ * file can converge on it. `orbit-trajectory.ts` does not, because its local copy is the only one whose absence answer is THROW,
  * and nobody has established what a thrown `TypeError` inside that derive
  * actually does to a render. This project prefers loud to silent, so the throw
  * may well be correct as it stands, and swapping it for a NaN on the way past

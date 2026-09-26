@@ -18,14 +18,13 @@ import { subscribeTopicRead } from "./subscribe-read";
  * vouching for. The reading makes the caller branch first, exactly as
  * `useTelemetry` does for a typed Topic: `observed` is current, `stale` is the
  * last real observation held (with its instant and grade), and `pending`,
- * `unowned` and `absent` carry no value at all. A derived channel
- * (`vessel.state`) computes its own currency from its inputs, so its reading is
- * as honest as a raw one.
+ * `unowned` and `absent` carry no value at all. A derived channel computes its
+ * own currency from its inputs, so its reading is as honest as a raw one.
  *
  * It goes through `store.sampleReading(topic, store.currentFrame())`, never
  * `client.getValue(topic)`. `getValue` only ever sees raw `stream-data` frames
  * whose `topic` matches literally, so it is permanently `undefined` for a
- * derived topic like `vessel.state.altitudeAsl`: no server channel ever sends
+ * derived topic like `system.state.bodyCount`: no server channel ever sends
  * that literal topic string. The store resolves BOTH kinds transparently.
  *
  * `subscribe` does two things, both required for a DERIVED topic to ever

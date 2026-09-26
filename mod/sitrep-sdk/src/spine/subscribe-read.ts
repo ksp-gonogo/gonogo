@@ -44,10 +44,10 @@ export function subscribeTopicRead(
 ): () => void {
   /*
    * Deduplicated because a reckoner dep is very often also an input of the
-   * topic being read (`vessel.state` derives from `vessel.orbit`, whose model
-   * declares it too). `client.subscribe` is ref-counted so a double subscribe
-   * would be symmetric and harmless, but it would also double every label
-   * count, and the labels are what `installUnownedTopicWarning` reports.
+   * topic being read (a model may declare the very topic it reckons, or an
+   * input the read already resolves to). `client.subscribe` is ref-counted so
+   * a double subscribe would be symmetric and harmless, but it would also
+   * double every label count, and the labels are what `installUnownedTopicWarning` reports.
    */
   const wireTopics = new Set([
     ...store.resolveSubscriptionTopics(topic),

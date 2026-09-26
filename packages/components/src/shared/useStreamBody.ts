@@ -5,8 +5,8 @@ import { bodyNamed, type StreamBodies, type StreamBody } from "./streamBody";
 /**
  * The body the stream says the vessel is at, physics off the wire.
  *
- * <p>Takes the name `vessel.state` already resolved by index and matches it
- * against the same `system.bodies` roster it came from, so the pair is always
+ * <p>Takes a body name already resolved by index off `system.bodies` and
+ * matches it against the same roster it came from, so the pair is always
  * the running game's own naming rather than a comparison with a bundled table
  * of stock bodies. A planet pack renames both sides together, which is exactly
  * the case a `getBody(name)` lookup missed: the radius and the gravitational

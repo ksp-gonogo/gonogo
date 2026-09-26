@@ -20,18 +20,11 @@ const TRAJECTORY_TOPIC = "vessel.orbit";
  * Containment walks DOWN from the declaration into the payload's fields, never
  * UP from a derived field to the inputs it was computed from, which is the same
  * direction rule `alarmMatchesWidget` follows and for the same reason. Walking
- * up would light every `vessel.state` widget: that channel has seven inputs and
- * `vessel.orbit` is one of them, so a widget reading `vessel.state.throttle`
- * would badge PAST HORIZON on a trajectory problem that cannot touch a throttle
- * reading. A badge that cries wolf is a badge nobody reads, and this one exists
- * to be believed.
- *
- * The cost of that rule is a real gap, named here rather than left to be
- * discovered: a widget reading an orbit-derived field THROUGH `vessel.state`
- * (`apoapsisAlt` and friends) genuinely is affected and does not light. Closing
- * it needs per-field provenance on the derived channel, so the channel can say
- * which of its fields descend from which input. Nothing here can infer that,
- * and guessing in this direction is the loud-false-positive trade above.
+ * up would light every widget on a derived channel with `vessel.orbit` among
+ * its inputs, whatever field it reads, so a badge would say PAST HORIZON on a
+ * reading a trajectory problem cannot touch. A badge that cries wolf is a badge
+ * nobody reads, and this one exists to be believed. A widget that draws orbit
+ * figures declares `vessel.orbit` itself.
  */
 export function widgetReadsTrajectory(
   declaredTopics: readonly string[] | undefined,

@@ -46,9 +46,9 @@ export function widgetDeclaredTopics(
  * what has to be live for the widget to render at all.
  *
  * The two are different questions and `dataRequirements` was answering both with
- * one array. A widget mounts on the whole of `vessel.state` and draws a handful
- * of its fifty fields. Alarm attribution matches by containment, so answering
- * with the channel makes that widget claim all fifty and lights its panel for
+ * one array. A widget mounts on the whole of `vessel.flight` and draws a handful
+ * of its fields. Alarm attribution matches by containment, so answering
+ * with the channel makes that widget claim all of them and lights its panel for
  * every other widget's alarm on the same channel. Measured before `fields`
  * existed: 20 of the 23 widgets declaring field paths would have falsely claimed
  * a field another widget draws.

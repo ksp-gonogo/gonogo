@@ -20,10 +20,9 @@ import {
  * The same mathematics is wanted for TWO orbits: the craft's
  * (`vessel.orbit`) and its target's (`vessel.target.orbit`, "the SAME
  * `VesselOrbit` shape as the self vessel, propagated to the same frozen
- * `viewUt`", as that derivation's own doc puts it). A solve bound to one topic
- * needs a second copy of itself for the other, which is how
- * `deriveTargetOrbit` came to re-derive period, true anomaly and the periapsis
- * altitude that `deriveVesselState` had already derived a few lines above.
+ * `viewUt`"). A solve bound to one topic needs a second copy of itself for the
+ * other, and two copies of the arithmetic are two chances for the craft's
+ * period and its target's to be computed differently.
  *
  * So the unit is `(orbit, viewUt, referenceBodyRadius)`. A hook that reads a
  * topic is a thin wrapper over this; it is never where the arithmetic lives.
@@ -73,7 +72,19 @@ export interface OrbitalSolve {
   timeToNextApsis: number | null;
 }
 
-/** A wire quantity's magnitude, or `NaN` when the field is absent: see `vessel-state.ts`'s `mag` for why NaN is the right fallback here. */
+/**
+ * A wire quantity's magnitude, or `NaN` when the field is absent.
+ *
+ * A Topic sends a subset of its fields routinely and the wrap leaves an absent
+ * field absent, so NaN is what the arithmetic here produces for it anyway, and
+ * every guard already accounts for it (`finiteOrNull`, `Number.isFinite`).
+ * Threading `null` through the same expressions would buy nothing the guards do
+ * not already do.
+ *
+ * NaN never leaves this module: every field it feeds goes through
+ * `finiteOrNull` before it reaches an {@link OrbitalSolve}, because those fields
+ * declare `number | null` and a consumer's `??` does not catch NaN.
+ */
 function mag(v: Quantityish): number {
   return magnitudeOr(v, Number.NaN);
 }

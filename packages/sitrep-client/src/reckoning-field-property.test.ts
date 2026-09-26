@@ -179,10 +179,9 @@ describe("a field property carries the band its topic's model produced", () => {
   });
 
   /*
-   * The delegating implementation, spelled out. A root-claiming reckoner is
-   * the shape `TimelineStore.derivedReckoner` builds, `{ modelled: [{ path:
-   * "", basis }], reckon }` with no `bandAt`, so the reading comes back
-   * `available` with no band anywhere on it.
+   * The delegating implementation, spelled out. A root-claiming reckoner,
+   * `{ modelled: [{ path: "", basis }], reckon }` with no `bandAt`, brings the
+   * reading back `available` with no band anywhere on it.
    */
   it("loses the band to a root-claiming reckoner, which is what delegating would reach", () => {
     registerReckoner("vessel.flight", "test", {

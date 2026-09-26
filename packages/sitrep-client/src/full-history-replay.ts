@@ -127,7 +127,7 @@ export class InstantClock implements Pick<Clock, "now" | "schedule"> {
  * That "zero divergence" has to cover what the store can RESOLVE, not only
  * what it ingests. A recording carries raw wire topics and nothing else, so
  * without `PRODUCTION_DERIVED_CHANNELS` registered here every derived read
- * off this store (`vessel.state.*`, `spaceCenter.state.*`, and the rest)
+ * off this store (`spaceCenter.state.*`, `system.state.*`, and the rest)
  * answers `undefined`, which is the same answer as "this recording holds
  * nothing for that key".
  */

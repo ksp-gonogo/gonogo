@@ -8,7 +8,7 @@
 // an Uplink calls, this is what the app and an Uplink's test WIRE INTO the host.
 //
 // The largest part of it is the read semantics of a topic. What
-// `useTelemetry("vessel.state.altitudeAsl")` MEANS: the derived-channel path, the
+// `useTelemetry("system.state.bodyCount")` MEANS: the derived-channel path, the
 // raw-field-subtopic fallback the legacy-key table rides on, epoch handling on a
 // quickload rewind, and the frame-coherent memoisation that makes a re-read within
 // one frame hand back the identical object. A widget depends on all of it while it
@@ -122,6 +122,5 @@ export * from "./use-stream";
 export * from "./use-stream-event";
 export * from "./use-telemetry";
 export * from "./use-vantage-trajectory";
-export * from "./vessel-state";
 export * from "./view-clock";
 export * from "./wire-payloads";

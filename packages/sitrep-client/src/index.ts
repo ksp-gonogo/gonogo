@@ -49,8 +49,10 @@ export {
 export * from "@ksp-gonogo/sitrep-sdk/media";
 export type {
   ActionGroupStatePayload,
+  BodyRadiusTable,
   ImpactPoint,
   ImpactPointInput,
+  OrbitalSolve,
   PredictionRef,
   VesselFlightPayload,
   VesselOrbitPayload,
@@ -58,10 +60,13 @@ export type {
   WireOrbitElements,
 } from "@ksp-gonogo/sitrep-sdk/spine";
 export {
+  bodyRadiusOf,
   buildElements,
   findImpactPoint,
   predictImpactPoint,
   ROTATION_PERIOD_SECONDS,
+  solveOrbit,
+  solveSelfOrbit,
 } from "@ksp-gonogo/sitrep-sdk/spine";
 export {
   type AutoCommandOptions,
@@ -110,7 +115,6 @@ export {
   getValue,
   getVesselIdentity,
   getVesselOrbit,
-  getVesselState,
   getVesselTarget,
   getViewUt,
   getWarpState,
@@ -499,19 +503,6 @@ export { useStreamEvent } from "./use-stream-event";
 export { useStreamStatus } from "./use-stream-status";
 export { useTimelineStream } from "./use-timeline-stream";
 export { CLIENT_VERSION } from "./version.generated";
-export type {
-  BodyRadiusTable,
-  OrbitalSolve,
-  VesselState,
-} from "./vessel-state";
-export {
-  bodyRadiusOf,
-  deriveVesselState,
-  deriveVesselStateStatus,
-  solveOrbit,
-  solveSelfOrbit,
-  vesselStateChannel,
-} from "./vessel-state";
 export type {
   Certainty,
   ViewClockConfidence,

@@ -58,11 +58,10 @@ const topics = defineTopicManifest({
 /**
  * Provider-optional read of a raw OR derived stream Topic, mirrors
  * `@ksp-gonogo/sitrep-client`'s `useStream`, but returns `undefined` when no
- * `TelemetryProvider` is mounted instead of throwing. OrbitView reads its
- * derived `vessel.state.*` fields (which are not wire `TopicId`s, so the
- * canonical `useTelemetry` overload can't type them) through this and stays
- * crash-safe in a provider-less render (the widget gallery / probe harness) by
- * degrading to its "No orbital data" empty state.
+ * `TelemetryProvider` is mounted instead of throwing. OrbitView reads
+ * `system.frame` and `vessel.identity` through this and stays crash-safe in a
+ * provider-less render (the widget gallery / probe harness) by degrading to its
+ * "No orbital data" empty state.
  */
 function useStreamOptional<T>(topic: string): T | undefined {
   const client = useTelemetryClientOptional();
@@ -118,8 +117,7 @@ export interface OrbitOverlayContext {
   ecc: number;
   /**
    * Apoapsis radius from body centre, same units. `undefined` on a
-   * hyperbolic orbit (`ecc >= 1`): there is no apoapsis to report (see
-   * `VesselState.apoapsisRadius`'s doc comment).
+   * hyperbolic orbit (`ecc >= 1`): there is no apoapsis to report.
    */
   apoapsis?: number;
   /** Periapsis radius from body centre, same units. */

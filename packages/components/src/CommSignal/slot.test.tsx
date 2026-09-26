@@ -46,9 +46,9 @@ function unmountAll() {
  * So an empty slot rendering nothing is the correct steady state here.
  */
 
-// Mirrors dual-run.test.tsx, every channel `vessel-state.ts` reads plus the
-// delay channel, so the derived control-state/delay fields resolve off the
-// stream and the widget reaches its populated readout.
+// A flying craft's channels plus the delay channel, so the control-state and
+// delay fields resolve off the stream and the widget reaches its populated
+// readout.
 const CARRIED = [
   "vessel.orbit",
   "vessel.flight",

@@ -214,7 +214,7 @@ function plotValue(payload: unknown): unknown {
  * "why" on both; not reproduced here.
  *
  * The one thing genuinely different from `useDataValue`: a DERIVED topic
- * (`vessel.state.*`) has a live per-frame VALUE (`sample()`) but no stored
+ * (`system.state.*`) has a live per-frame VALUE (`sample()`) but no stored
  * HISTORY: nothing ever buffers a range of computed values, only the raw
  * inputs it's computed from. `TimelineStore.sampleRange` returns `undefined`
  * for exactly this case (as opposed to `[]`, "genuinely nothing landed
@@ -411,7 +411,7 @@ export function useDataSeries(
     }
     const toUt = store.currentFrame().viewUt;
     const fromUt = toUt - windowSec;
-    // A DERIVED topic (`vessel.state.*` and friends) has no stored range of
+    // A DERIVED topic (`system.state.*` and friends) has no stored range of
     // its own: `sampleRange` always returns `undefined` for it by design
     // (see that method's own doc). `sampleDerivedRange` is the derived-topic
     // counterpart: it replays the channel's `derive()` off its raw inputs'

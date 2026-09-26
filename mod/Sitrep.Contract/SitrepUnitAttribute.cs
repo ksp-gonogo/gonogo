@@ -83,17 +83,11 @@ namespace Sitrep.Contract
         /// A consumer renders a UT as a date, or subtracts the frame's view
         /// time from it to get a countdown; it never renders it as one.</para>
         ///
-        /// <para>This exists because the repo already shipped the bug it
-        /// prevents. <c>OrbitEncounter.TransitionUt</c> reached
-        /// <c>&lt;Countdown&gt;</c> through <c>vessel.state</c> in two widgets,
-        /// so a Mun encounter twenty minutes away rendered as "46d 2h", and the
-        /// gate in front of it (<c>&gt; 0</c>) passes for every UT there has
-        /// ever been. A third widget reading the same field subtracted the view
-        /// time correctly, with a comment explaining why: one author knew and
-        /// the others could not, because <c>"s"</c> is the same token on both
-        /// meanings and the boundary that exists to catch this had nothing to
-        /// say. The pre-stream vocabulary carried two separate keys for this
-        /// one event and the migration collapsed them.</para>
+        /// <para>An instant fed to a countdown as if it were a duration renders
+        /// a Mun encounter twenty minutes away as "46d 2h", and a <c>&gt; 0</c>
+        /// gate in front of it passes for every UT there has ever been. With
+        /// <c>"s"</c> on both meanings nothing at the boundary can tell the two
+        /// apart; with <c>"ut"</c> on the instant it can.</para>
         /// </remarks>
         public const string UniversalTime = "ut";
 

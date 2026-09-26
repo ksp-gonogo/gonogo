@@ -58,15 +58,15 @@ export function alarmSubjectKey(alarm: Alarm): string | null {
  *
  * The containment clause is what lets a widget declare what it actually reads.
  * A widget consuming a whole payload (`useTelemetry("career.status")`,
- * `useStream("vessel.state")`) declares the channel, while an alarm's subject
+ * `useStream("vessel.orbit")`) declares the channel, while an alarm's subject
  * resolves to one field inside it, and two strings that differ by a suffix are
  * never equal. So a declaration also matches every field BENEATH it.
  *
  * The direction matters and is the whole design. Containment walks DOWN from
  * the declaration into its fields; it must never walk UP from a derived field
- * to that channel's inputs. `vessel.state.apoapsisAlt` resolves to eight input
- * topics including `vessel.comms`, so an upward walk would light the comms
- * widget for an apoapsis alarm: a loud false positive traded for a silent miss.
+ * to that channel's inputs. A derived field resolves to every input of its
+ * channel, so an upward walk would light a widget for an alarm on a quantity it
+ * never draws: a loud false positive traded for a silent miss.
  */
 export function alarmMatchesWidget(
   alarm: Alarm,

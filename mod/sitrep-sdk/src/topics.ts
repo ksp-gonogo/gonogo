@@ -390,10 +390,8 @@ export function isCollectionTopic(id: string): boolean {
  * as it declares and reads a wire Topic, and which are not `TopicId`s.
  *
  * A derived channel is computed in the browser over the `TimelineStore` at the
- * VIEW instant (`vessel.state` runs a Kepler solve per frame against the
- * `ViewClock`), so it is not in-game value and has no `[SitrepTopic]` type for
- * codegen to reflect. It is nonetheless a real thing a widget consumes: more
- * built-in widgets read `vessel.state` than read any single wire Topic.
+ * VIEW instant, so it is not in-game value and has no `[SitrepTopic]` type for
+ * codegen to reflect. It is nonetheless a real thing a widget consumes.
  *
  * Listed here by hand because the literal cannot be recovered from
  * `PRODUCTION_DERIVED_CHANNELS`: that array is typed
@@ -404,7 +402,6 @@ export function isCollectionTopic(id: string): boolean {
  * without being listed here, or listed here without being registered, fails.
  */
 export const DERIVED_CHANNEL_IDS = [
-  "vessel.state",
   "system.state",
   "system.uplinkHealth",
   "spaceCenter.state",
@@ -446,8 +443,8 @@ export function isWidgetChannelId(value: string): value is WidgetChannelId {
  *
  * Distinct from {@link WidgetChannelId}, which says what a widget MOUNTS on,
  * because the two questions have different answers and one array was answering
- * both. A widget mounts on `vessel.state` and draws seven of its fifty fields;
- * saying only the first makes it claim all fifty, which points other widgets'
+ * both. A widget mounts on `vessel.flight` and draws three of its fields;
+ * saying only the first makes it claim all of them, which points other widgets'
  * alarms at a panel that does not render them.
  *
  * A bare channel is a legal entry and means what it says: everything on it.
