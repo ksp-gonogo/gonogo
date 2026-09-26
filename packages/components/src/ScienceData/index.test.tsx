@@ -301,11 +301,11 @@ describe("ScienceDataComponent", () => {
     // more width than the figures they were pushing off the edge.
     await waitFor(() =>
       expect(
-        screen.getByRole("columnheader", { name: "Kerbin · Crew Report" }),
+        screen.getByRole("rowheader", { name: "Kerbin · Crew Report" }),
       ).toBeInTheDocument(),
     );
     expect(
-      screen.getByRole("columnheader", {
+      screen.getByRole("rowheader", {
         name: "Mun · Mystery Goo Observation",
       }),
     ).toBeInTheDocument();
