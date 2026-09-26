@@ -91,15 +91,17 @@ const SHARED_BUTTON = "packages/ui-kit/src/CommandButton/CommandButton.tsx";
  * control either renders the phase or does not.
  */
 const BLOCKED_PHASE_DEBT: Record<string, string> = {
-  // Its two hand-rolled controls are a scene switch and the pad/flight verbs
+  // LaunchDirector's two hand-rolled controls are a scene switch and the pad/flight verbs
   // (launch, recover, revert), so no spend-truth claim rides on either and
   // there is no price beside them to be wrong about. Left alone deliberately
-  // rather than overlooked. What would remove this entry: giving `ArmedButton`
+  // rather than overlooked. What would remove these entries: giving `ArmedButton`
   // and the Tracking Station control the blocked phase, which is worth doing on
   // its own merits (a revert the game will refuse currently looks pressable)
   // and is a UX decision about warning-worded chrome, not a mechanical edit.
-  "packages/components/src/LaunchDirector/index.tsx":
-    "Scene switch and pad verbs, no price beside the control. Wants the phase anyway; the chrome question is unanswered.",
+  "packages/components/src/LaunchDirector/ArmedButton.tsx":
+    "Pad verbs, no price beside the control. Wants the phase anyway; the chrome question is unanswered.",
+  "packages/components/src/LaunchDirector/TrackingStationControl.tsx":
+    "Scene switch, no price beside the control. Wants the phase anyway; the chrome question is unanswered.",
 };
 
 /**

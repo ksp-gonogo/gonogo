@@ -54,7 +54,7 @@ const FIRE_AND_FORGET_BUDGET: Record<string, number> = {
   "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 6,
   "packages/components/src/ActionGroup/ActionGroupView.tsx": 1,
   "packages/components/src/AstronautComplex/index.tsx": 1,
-  "packages/components/src/LaunchDirector/index.tsx": 1,
+  "packages/components/src/LaunchDirector/InFlightPanel.tsx": 1,
   "packages/components/src/ManeuverPlanner/useNodeCommands.ts": 1,
   "packages/components/src/MapView/vanillaPoiProvider.ts": 1,
   "packages/components/src/Navball/index.tsx": 1,

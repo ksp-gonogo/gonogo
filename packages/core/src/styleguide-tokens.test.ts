@@ -298,7 +298,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
    */
   motion: {
     "packages/app/src/styles/global.css": 2,
-    "packages/components/src/LaunchDirector/index.tsx": 1,
+    "packages/components/src/LaunchDirector/styles.ts": 1,
     "packages/components/src/Navball/AttitudeIndicator.tsx": 2,
     "packages/components/src/Navball/ThrottleGauge.tsx": 2,
     "packages/components/src/ShipMap/ShipMapBody.tsx": 2,

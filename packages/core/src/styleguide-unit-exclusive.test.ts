@@ -138,7 +138,7 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
   //    clock NOTATION, so there is currently nothing to convert these to.
   //    This is the finding worth acting on before the rest: four files have
   //    each written the same padded h/m/s split.
-  "packages/components/src/LaunchDirector/index.tsx": {
+  "packages/components/src/LaunchDirector/flightFigures.tsx": {
     count: 1,
     why: "GAP: T+HH:MM:SS mission clock; the kit has no zero-padded clock notation",
   },

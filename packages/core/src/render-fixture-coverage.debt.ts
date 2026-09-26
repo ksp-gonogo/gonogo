@@ -73,6 +73,8 @@ export const COINCIDENTAL: readonly string[] = [
   // `reading.state`
   "packages/components/src/SpaceCenterStatus#state",
   "packages/components/src/LaunchDirector#state",
+  // `flight.missionTime`, the useFlightState hook's own result, not a payload field
+  "packages/components/src/LaunchDirector#missionTime",
   "packages/components/src/Navball#state",
   "packages/components/src/PowerSystems#state",
   "packages/components/src/ScienceData#state",
