@@ -1,8 +1,4 @@
-import type {
-  ComponentProps,
-  ConfigComponentProps,
-  OrbitPatch,
-} from "@ksp-gonogo/core";
+import type { ComponentProps, OrbitPatch } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   defineTopicManifest,
@@ -14,59 +10,52 @@ import {
   CELESTIAL_FACTS,
   type OrbitTrajectory,
   useFleetVesselSilence,
-  useLatestValue,
   useOrbitTrajectory,
   useProcessor,
-  useUtNow,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import type { PendingUplinkQueue } from "@ksp-gonogo/sitrep-sdk";
-import {
-  ConfigForm,
-  Field,
-  FieldHint,
-  FieldLabel,
-  Panel,
-  Select,
-  useElementSize,
-  useModalSaveBar,
-} from "@ksp-gonogo/ui";
+import { Panel, useElementSize } from "@ksp-gonogo/ui";
 import { FramedDisplay, NULL_DISPLAY, Section } from "@ksp-gonogo/ui-kit";
-import type { CSSProperties } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-// FleetComms's toggles gate the graph, highlight and pulse entities drawn here, per instance.
-import { useFleetCommsToggles } from "../FleetComms/toggles";
+import { useMemo, useRef, useState } from "react";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { AlmanacPanel } from "./AlmanacPanel";
-import {
-  COMMS_PATH_COLOUR,
-  commsControlQuality,
-  deriveCommsPath,
-  NO_COMMS_PATH,
-} from "./commsPath";
-import { deriveTraffic, NO_TRAFFIC } from "./commsTraffic";
+import { ContactCaption } from "./ContactCaption";
+import type { SystemViewConfig } from "./config";
+import { type EncounterDirection, encounterDirectionOf } from "./encounter";
+import { resolveFrame } from "./frame";
+import { conicPatches } from "./orbitPatches";
+import { overlayGeometry } from "./overlayGeometry";
 import { inertialFrameFor, resolveProjection } from "./projection";
 import { createUtBucketThrottle } from "./utBucketThrottle";
 // The host's own `system-view.projection` entries, so the picker and resolver run on a bare install.
 import "./projectionContribution";
 import { SystemDiagram, vesselPlotStateFromStatus } from "./SystemDiagram";
 import { SystemEntitiesLayer } from "./SystemEntitiesLayer";
-import type { SystemEntityStyle } from "./systemEntities";
 // Registers the built-in vessel-orbits contribution.
 import "./vesselOrbitsContribution";
 import {
   angleDelta,
   hohmannPhaseAngle,
-  type TransferStatus,
-  transferStatus,
+  transferStatusesFor,
 } from "./transferWindow";
 import { type CelestialBody, useCelestialBodies } from "./useCelestialBodies";
+import { useCommsEntities } from "./useCommsEntities";
 import { usePhaseAngles } from "./usePhaseAngles";
 import { VesselInfoPanel } from "./VesselInfoPanel";
 // Registers the built-in `system-view.vessel-status` contribution.
 import "./vesselStatusContribution";
-import type { SystemViewVesselStatusEntry } from "./vesselStatusContribution";
+import "./slots";
+import { SystemViewConfigForm } from "./SystemViewConfigForm";
+import {
+  COMPACT_BODY,
+  COMPACT_SUB,
+  COMPACT_VALUE,
+  DIAGRAM_FRAME,
+  DIAGRAM_WRAP,
+  FRAME_CAPTION,
+  OVERLAY_LAYER,
+} from "./styles";
 
 // comms.network and system.uplink.pending are also read directly, for the host-side path highlight and traffic.
 const topics = defineTopicManifest({
@@ -80,96 +69,52 @@ const topics = defineTopicManifest({
   ],
 });
 
-interface SystemViewConfig {
-  /** Body the diagram centres on: "auto" follows the vessel's body, "root" walks to the topmost parent, a name pins it. */
-  frame?: "auto" | "root" | string;
-  /** The id of the `system-view.projection` entry the whole picture is drawn in; absent is the inertial entry for the centred body. */
-  projection?: string;
+function frameCaption({
+  haveBodies,
+  parentName,
+  encounterDirection,
+  encounterBody,
+}: {
+  haveBodies: boolean;
+  parentName: string | null;
+  encounterDirection: EncounterDirection | null;
+  encounterBody: string | null;
+}): string {
+  if (!haveBodies) return "Waiting for body data...";
+  if (parentName === null) return "Pick a frame in the widget config.";
+  if (encounterDirection === null || encounterBody == null) {
+    return `Frame: ${parentName}`;
+  }
+  return `Frame: ${parentName} · next ${encounterDirection}: ${encounterBody}`;
 }
 
-// The `.actions` and `.overlay` slots are designed for one augment to drive both through its own context.
-
-/**
- * Props for `system-view.overlay`, a layer over the body diagram. The frame body sits at `center`, and `d` metres projects to `d * plotScale` user units in a `width` by `height` origin-centred viewBox.
- * It describes the auto-fit view only (zoom 1, no pan), like `orbit-view.overlay`.
- */
-export interface SystemOverlayContext {
-  /** Name of the parent body the diagram is centred on. */
-  parentName: string;
-  /** Diagram pixel width (origin-centred SVG frame). */
-  width: number;
-  /** Diagram pixel height. */
-  height: number;
-  /** Metres → SVG-user-unit plot scale at the diagram's auto-fit zoom. */
-  plotScale: number;
-  /** The parent body sits at the SVG origin. */
-  center: { x: number; y: number };
-}
-
-declare module "@ksp-gonogo/core" {
-  interface SlotRegistry {
-    // Rendered by Panel's universal actions segment; declared so a binder types against the propless contract.
-    "system-view.actions": Record<string, never>;
-    "system-view.overlay": SystemOverlayContext;
+/** The Hohmann ideal and the live offset from it for the panel's body, when the frame is the vessel's own parent and every input is finite. */
+function panelHohmannFor({
+  panelBody,
+  vesselBody,
+  parentName,
+  vSma,
+  panelPhaseAngle,
+}: {
+  panelBody: CelestialBody | null;
+  vesselBody: string | null;
+  parentName: string | null;
+  vSma: number | undefined;
+  panelPhaseAngle: number | null;
+}): { ideal: number; delta: number | null } | null {
+  if (panelBody === null || typeof vesselBody !== "string") return null;
+  if (parentName !== vesselBody || panelBody.referenceBody !== vesselBody) {
+    return null;
   }
-
-  /** The plotted vessel's semantic status (never a colour: the host owns the palette), fed by the built-in comms contribution and open to any Uplink. */
-  interface ContributionRegistry {
-    "system-view.vessel-status": {
-      entry: SystemViewVesselStatusEntry;
-      topics: "vessel.identity";
-    };
-  }
-}
-
-/** Auto-fit padding: mirrors `SystemDiagram`'s own `PAD` so the overlay
- * projection matches the diagram's metres → px scale. */
-const DIAGRAM_PAD = 20;
-
-/** Mirrors SystemDiagram's `nameMatches`. */
-function frameNameMatches(a: string, b: string): boolean {
-  return a.trim().toLowerCase() === b.trim().toLowerCase();
-}
-
-/** `Sitrep.Contract.TransitionType` ordinals the encounter chip surfaces. */
-const TRANSITION_TYPE_ENCOUNTER = 2;
-const TRANSITION_TYPE_ESCAPE = 3;
-
-/**
- * Renders the contributed `system-view.vessel-status` entry; SystemView only decides which severities are announced.
- * `critical` is assertive, `warning` polite, and `info` (often a countdown) is announced by neither, since a live region would read a ticking clock aloud forever.
- */
-function ContactCaption({
-  status,
-  vesselName,
-}: Readonly<{
-  status: SystemViewVesselStatusEntry | undefined;
-  vesselName: string;
-}>) {
-  if (!status) return null;
-
-  if (status.severity === "critical") {
-    return (
-      <div style={FRAME_CAPTION} role="alert" aria-live="assertive">
-        <span style={{ textDecoration: "line-through" }}>{vesselName}</span>{" "}
-        {status.label.toLowerCase()}
-      </div>
-    );
-  }
-
-  if (status.severity === "warning") {
-    return (
-      <div style={FRAME_CAPTION} role="status" aria-live="polite">
-        {vesselName} {status.label.toLowerCase()}
-      </div>
-    );
-  }
-
-  return (
-    <div style={FRAME_CAPTION}>
-      {vesselName} {status.label.toLowerCase()}
-    </div>
-  );
+  if (typeof vSma !== "number" || !Number.isFinite(vSma)) return null;
+  const rB = panelBody.semiMajorAxis;
+  if (typeof rB !== "number" || !Number.isFinite(rB)) return null;
+  const ideal = hohmannPhaseAngle(vSma, rB);
+  if (!Number.isFinite(ideal)) return null;
+  return {
+    ideal,
+    delta: panelPhaseAngle === null ? null : angleDelta(panelPhaseAngle, ideal),
+  };
 }
 
 function SystemViewComponent({
@@ -193,11 +138,9 @@ function SystemViewComponent({
       ? orbitReading.value
       : undefined;
   const orbit =
-    orbitObserved === undefined
-      ? undefined
-      : orbitReading.reckoning.status === "available"
-        ? { ...orbitObserved, ...orbitReading.reckoning.value }
-        : orbitObserved;
+    orbitObserved !== undefined && orbitReading.reckoning.status === "available"
+      ? { ...orbitObserved, ...orbitReading.reckoning.value }
+      : orbitObserved;
   // An identity does not decay: a stale SOI index is still which body this craft is around, and it only decides which FRAME the dot belongs in.
   const identityReading = topics.useTelemetry("vessel.identity");
   const identity =
@@ -237,88 +180,19 @@ function SystemViewComponent({
       : undefined;
   // Unwrapped at the read: the finiteness guards below answer no for a wrapped value and would silently stop drawing the arc.
   const universalTime = useViewUt()?.magnitude;
-  // True-now command-centre bookkeeping, as FleetComms reads it: dispatch-time facts, not delayed telemetry.
-  const pendingQueue = useLatestValue<PendingUplinkQueue>(
-    "system.uplink.pending",
-  );
-  const utNow = useUtNow();
-  const { showCommlinks, showCommandTraffic } = useFleetCommsToggles();
-
-  // SystemView owns the one piece of dynamic state a contribution cannot: which entity is selected.
-  const rawEntities = useContributions("system-view.entities");
-  /*
-   * The active vessel's own entry is suppressed only while SystemDiagram draws its dedicated ring from `vessel.orbit`, so identity without an orbit never strands a hop endpoint.
-   * `showCommlinks` off drops every `connection-line` entity, and the selected-path highlight with them.
-   */
-  const entities = useMemo(() => {
-    const withoutActiveVessel =
-      identity?.vesselId != null && orbit != null
-        ? rawEntities.filter((e) => e.vesselId !== identity.vesselId)
-        : rawEntities;
-    return showCommlinks
-      ? withoutActiveVessel
-      : withoutActiveVessel.filter((e) => e.shape.kind !== "connection-line");
-  }, [rawEntities, identity?.vesselId, orbit, showCommlinks]);
-  // Keyed by the activated entity's own id, which the layer reports and `decorate` matches; path derivation reads its `vesselId` instead.
-  const [selectedVesselId, setSelectedVesselId] = useState<string | null>(null);
-  const handleEntityActivate = useCallback((id: string) => {
-    setSelectedVesselId((prev) => (prev === id ? null : id));
-  }, []);
-  const handleDeselect = useCallback(() => setSelectedVesselId(null), []);
-  // Document-level, and live only while something is selected, since the diagram container has no interactive role.
-  useEffect(() => {
-    if (selectedVesselId === null) return;
-    const onKeyDown = (e: globalThis.KeyboardEvent) => {
-      if (e.key === "Escape") handleDeselect();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [selectedVesselId, handleDeselect]);
-  const selectedEntity = useMemo(
-    () => entities.find((e) => e.id === selectedVesselId) ?? null,
-    [entities, selectedVesselId],
-  );
-  // NO_COMMS_PATH when nothing is selected or the selection carries no vesselId.
-  const commsPath = useMemo(
-    () =>
-      selectedEntity?.vesselId != null
-        ? deriveCommsPath(commsNetwork, selectedEntity.vesselId)
-        : NO_COMMS_PATH,
-    [commsNetwork, selectedEntity],
-  );
-  const commsPathEdgeIds = useMemo(
-    () => new Set(commsPath.edgeIds),
-    [commsPath],
-  );
-  // Coloured by the selected vessel's roster control state, not the traversal quality, so the line agrees with the info panel.
-  const commsPathColour = useMemo(
-    () => COMMS_PATH_COLOUR[commsControlQuality(selectedEntity?.meta?.comms)],
-    [selectedEntity],
-  );
-  // Every pending entry is addressed to the active vessel (see commsTraffic.ts), independent of selection.
-  const traffic = useMemo(
-    () =>
-      showCommandTraffic
-        ? deriveTraffic(
-            pendingQueue?.pending ?? [],
-            commsNetwork,
-            identity?.vesselId,
-            utNow,
-          )
-        : NO_TRAFFIC,
-    [pendingQueue, commsNetwork, identity?.vesselId, utNow, showCommandTraffic],
-  );
-  // Brightens the selected entity and colours its path edges; traffic never decorates an edge, since the moving pulse is the only traffic indicator.
-  const decorate = useCallback(
-    (id: string): SystemEntityStyle | undefined => {
-      if (id === selectedVesselId) return { emphasis: "bright" };
-      if (commsPathEdgeIds.has(id)) {
-        return { emphasis: "bright", colour: commsPathColour };
-      }
-      return undefined;
-    },
-    [selectedVesselId, commsPathEdgeIds, commsPathColour],
-  );
+  const {
+    entities,
+    selectedVesselId,
+    selectedEntity,
+    handleEntityActivate,
+    decorate,
+    traffic,
+    utNow,
+  } = useCommsEntities({
+    activeVesselId: identity?.vesselId,
+    activeVesselHasOrbit: orbit != null,
+    commsNetwork,
+  });
 
   // Keyed by `system.bodies`' stable index, never array position.
   const nameByIndex = useMemo(() => {
@@ -338,12 +212,7 @@ function SystemViewComponent({
   const derived = useOrbitSolve();
 
   const encounter = orbit?.encounter ?? null;
-  const encounterExists =
-    encounter?.transitionType === TRANSITION_TYPE_ENCOUNTER
-      ? 1
-      : encounter?.transitionType === TRANSITION_TYPE_ESCAPE
-        ? -1
-        : 0;
+  const encounterDirection = encounterDirectionOf(encounter?.transitionType);
   const encounterBody =
     encounter?.bodyIndex != null
       ? (nameByIndex.get(encounter.bodyIndex) ?? null)
@@ -390,55 +259,26 @@ function SystemViewComponent({
     typeof universalTime === "number" ? universalTime : undefined,
     performance.now(),
   );
-  /*
-   * The only honestly drawable chain is one conic, to the encounter or over one period; the post-encounter elements are not on the wire, so no second patch is fabricated.
-   * Built only on the CONIC answer: an integrating provider must not be handed a conic prediction, so on an arc answer the diagram draws the sampled path instead.
-   */
+  // Built only on the CONIC answer: an integrating provider must not be handed a conic prediction, so on an arc answer the diagram draws the sampled path instead.
   const orbitPatches = useMemo<OrbitPatch[]>(() => {
     if (!orbit || vesselBody == null || utBucket == null) return [];
     if (vesselTrajectory?.shape !== "conic") return [];
-    const period = derived?.period;
-    if (period == null || period <= 0) return [];
-    if (!orbit.ecc.lessThan(1)) return []; // hyperbolic, elliptical only
-    const hasEncounter =
-      encounterExists !== 0 &&
-      encounterTimeUt != null &&
-      encounterTimeUt > utBucket;
-    const endUT = hasEncounter ? encounterTimeUt : utBucket + period;
-    return [
-      {
-        startUT: utBucket,
-        endUT,
-        patchStartTransition: "INITIAL",
-        patchEndTransition: hasEncounter
-          ? encounterExists === -1
-            ? "ESCAPE"
-            : "ENCOUNTER"
-          : "FINAL",
-        PeA: 0,
-        ApA: 0,
-        // Plain numbers: every element is sampled into plot coordinates.
-        inclination: orbit.inc.magnitude,
-        eccentricity: orbit.ecc.magnitude,
-        epoch: orbit.epoch.magnitude,
-        period,
-        argumentOfPeriapsis: orbit.argPe?.magnitude ?? 0,
-        sma: orbit.sma.magnitude,
-        lan: orbit.lan?.magnitude ?? 0,
-        maae: orbit.meanAnomalyAtEpoch.magnitude,
-        referenceBody: vesselBody,
-        semiLatusRectum: 0,
-        semiMinorAxis: 0,
-        closestEncounterBody: encounterBody,
-      },
-    ];
+    return conicPatches({
+      orbit,
+      referenceBody: vesselBody,
+      startUt: utBucket,
+      period: derived?.period,
+      encounterDirection,
+      encounterTimeUt,
+      encounterBody,
+    });
   }, [
     orbit,
     vesselBody,
     utBucket,
     derived,
     vesselTrajectory,
-    encounterExists,
+    encounterDirection,
     encounterTimeUt,
     encounterBody,
   ]);
@@ -460,24 +300,13 @@ function SystemViewComponent({
   const phaseAngles = usePhaseAngles(children);
 
   // Hohmann only applies when the rendered frame is the vessel's own parent.
-  const transferStatuses = useMemo(() => {
-    const out = new Map<number, "go" | "soon">();
-    if (typeof vesselBody !== "string") return out;
-    if (parentName !== vesselBody) return out;
-    if (typeof vSma !== "number" || !Number.isFinite(vSma)) return out;
-    for (const child of children) {
-      const rB = child.semiMajorAxis;
-      if (typeof rB !== "number" || !Number.isFinite(rB)) continue;
-      const live = phaseAngles.get(child.index);
-      if (typeof live !== "number") continue;
-      const ideal = hohmannPhaseAngle(vSma, rB);
-      if (!Number.isFinite(ideal)) continue;
-      const delta = angleDelta(live, ideal);
-      const status: TransferStatus = transferStatus(delta);
-      if (status !== "off") out.set(child.index, status);
-    }
-    return out;
-  }, [children, phaseAngles, vesselBody, parentName, vSma]);
+  const transferStatuses = useMemo(
+    () =>
+      parentName === vesselBody
+        ? transferStatusesFor(children, phaseAngles, vSma)
+        : new Map<number, "go" | "soon">(),
+    [children, phaseAngles, vesselBody, parentName, vSma],
+  );
 
   const [focusedBody, setFocusedBody] = useState<CelestialBody | null>(null);
   // Default focus to the vessel's body when nothing is hovered.
@@ -498,26 +327,13 @@ function SystemViewComponent({
     panelBody !== null &&
     typeof vesselBody === "string" &&
     panelBody.name === vesselBody;
-  // Hohmann ideal + delta for the panel's body, if all the inputs line up.
-  const panelHohmann =
-    panelBody !== null &&
-    typeof vesselBody === "string" &&
-    parentName === vesselBody &&
-    panelBody.referenceBody === vesselBody &&
-    typeof vSma === "number" &&
-    Number.isFinite(vSma) &&
-    typeof panelBody.semiMajorAxis === "number" &&
-    Number.isFinite(panelBody.semiMajorAxis)
-      ? (() => {
-          const ideal = hohmannPhaseAngle(vSma, panelBody.semiMajorAxis);
-          if (!Number.isFinite(ideal)) return null;
-          const delta =
-            panelPhaseAngle !== null
-              ? angleDelta(panelPhaseAngle, ideal)
-              : null;
-          return { ideal, delta };
-        })()
-      : null;
+  const panelHohmann = panelHohmannFor({
+    panelBody,
+    vesselBody,
+    parentName,
+    vSma,
+    panelPhaseAngle,
+  });
 
   // Measures the diagram's own box, which shrinks when the almanac mounts; Panel chooses the almanac's side.
   const { ref: wrapRef, size } = useElementSize({ w: 360, h: 280 });
@@ -554,40 +370,11 @@ function SystemViewComponent({
     [facts, frameBodyIndex, chosenProjectionEntry, utBucket],
   );
 
-  // Reconstructs SystemDiagram's plotScale exactly so an augment draws in the SVG's coordinate space; null until there is a frame and a measured diagram.
-  const overlayContext = useMemo<SystemOverlayContext | null>(() => {
-    if (parentName === null || size.w <= 0 || size.h <= 0) return null;
-    let maxRadius = 0;
-    for (const child of children) {
-      const ecc = Math.min(Math.max(child.eccentricity ?? 0, 0), 0.999);
-      const apo = (child.semiMajorAxis ?? 0) * (1 + ecc);
-      if (apo > maxRadius) maxRadius = apo;
-    }
-    const vesselExtent =
-      vesselOrbit && frameNameMatches(vesselOrbit.parentName, parentName)
-        ? vesselOrbit.sma * (1 + Math.min(vesselOrbit.ecc, 0.999))
-        : 0;
-    const effectiveMax = Math.max(maxRadius, vesselExtent);
-    const baseRadius = Math.min(size.w, size.h) / 2 - DIAGRAM_PAD;
-    const extent = projection?.extent ?? { kind: "auto-fit-metres" };
-    const plotScale =
-      extent.kind === "fixed-units"
-        ? extent.units > 0
-          ? baseRadius / extent.units
-          : 1
-        : effectiveMax > 0
-          ? baseRadius / effectiveMax
-          : 1;
-    return {
-      parentName,
-      width: size.w,
-      height: size.h,
-      plotScale,
-      // A contributed entity's metres are measured from the frame body's drawn position.
-      center: { x: 0, y: 0 },
-      placement: projection ?? undefined,
-    };
-  }, [parentName, children, vesselOrbit, size, projection]);
+  const overlayContext = useMemo(
+    () =>
+      overlayGeometry({ parentName, children, vesselOrbit, size, projection }),
+    [parentName, children, vesselOrbit, size, projection],
+  );
 
   // The selected vessel's roster fields while something is selected, else the frame body's almanac.
   const almanac = (
@@ -598,14 +385,9 @@ function SystemViewComponent({
       hohmannIdealDeg={panelHohmann?.ideal ?? null}
       hohmannDeltaDeg={panelHohmann?.delta ?? null}
       encounterDirection={
-        // The vessel's next SOI transition (client-derived from `vessel.orbit.encounter`), shown on the panel body it targets.
-        encounterExists !== 0 &&
-        encounterBody != null &&
-        panelBody !== null &&
-        panelBody.name === encounterBody
-          ? encounterExists === -1
-            ? "escape"
-            : "encounter"
+        // The vessel's next SOI transition, shown on the panel body it targets.
+        encounterBody != null && panelBody?.name === encounterBody
+          ? encounterDirection
           : null
       }
       encounterTimeSec={
@@ -642,15 +424,12 @@ function SystemViewComponent({
       sections={[
         <Section key="captions" full>
           <div style={FRAME_CAPTION} role="status" aria-live="polite">
-            {bodies.length === 0
-              ? "Waiting for body data..."
-              : parentName === null
-                ? "Pick a frame in the widget config."
-                : encounterExists !== 0 && encounterBody != null
-                  ? `Frame: ${parentName} · next ${
-                      encounterExists === -1 ? "escape" : "encounter"
-                    }: ${encounterBody}`
-                  : `Frame: ${parentName}`}
+            {frameCaption({
+              haveBodies: bodies.length > 0,
+              parentName,
+              encounterDirection,
+              encounterBody,
+            })}
           </div>
           <ContactCaption
             status={vesselStatus}
@@ -736,181 +515,6 @@ function SystemViewComponent({
   );
 }
 
-function resolveFrame(
-  bodies: readonly { name: string | null; referenceBody: string | null }[],
-  setting: string,
-  vesselBody: string | null,
-): string | null {
-  if (setting === "auto") {
-    // Follow the vessel's current body, falling back to the root until it arrives.
-    if (vesselBody) return vesselBody;
-    const root = bodies.find((b) => !b.referenceBody);
-    return root?.name ?? null;
-  }
-  if (setting === "root") {
-    // Walk up to the topmost parent (Kerbol from anywhere in the system).
-    if (!vesselBody) {
-      const root = bodies.find((b) => !b.referenceBody);
-      return root?.name ?? null;
-    }
-    let cursor: string | null = vesselBody;
-    const seen = new Set<string>();
-    while (cursor !== null && !seen.has(cursor)) {
-      seen.add(cursor);
-      const body = bodies.find((b) => b.name === cursor);
-      if (!body) break;
-      if (!body.referenceBody) return body.name;
-      cursor = body.referenceBody;
-    }
-    return cursor;
-  }
-  // "current" is the old name for "auto".
-  if (setting === "current") return vesselBody;
-  return setting; // explicit body name
-}
-
-function SystemViewConfigComponent({
-  config,
-  onSave,
-}: Readonly<ConfigComponentProps<SystemViewConfig>>) {
-  const bodies = useCelestialBodies();
-  // A held catalogue is still the catalogue.
-  const factsReading = useProcessor(CELESTIAL_FACTS);
-  const facts =
-    factsReading?.state === "observed" || factsReading?.state === "stale"
-      ? factsReading.value
-      : undefined;
-  const [frame, setFrame] = useState(config?.frame ?? "auto");
-  const [projection, setProjection] = useState(config?.projection ?? "");
-
-  // "auto" follows the live vessel and cannot be resolved here, so this lists the root body's projections.
-  const frameBodyName =
-    frame === "auto" || frame === "root"
-      ? (bodies.find((b) => b.referenceBody === null)?.name ?? null)
-      : frame;
-  const frameBodyIndex =
-    frameBodyName === null ? undefined : facts?.indexByName[frameBodyName];
-  const allProjections = useContributions("system-view.projection");
-  const projectionOptions = useMemo(
-    () =>
-      frameBodyIndex === undefined
-        ? []
-        : allProjections.filter((p) => p.frameBodyIndex === frameBodyIndex),
-    [allProjections, frameBodyIndex],
-  );
-
-  const candidate = useMemo<SystemViewConfig>(
-    () => (projection === "" ? { frame } : { frame, projection }),
-    [frame, projection],
-  );
-
-  useModalSaveBar({
-    onSave: () => onSave(candidate),
-    value: candidate,
-    saved: config ?? {},
-  });
-
-  return (
-    <ConfigForm>
-      <Field>
-        <FieldLabel htmlFor="system-frame">Frame of reference</FieldLabel>
-        <Select
-          id="system-frame"
-          value={frame}
-          onChange={(e) => setFrame(e.target.value)}
-        >
-          <option value="auto">Auto (current body)</option>
-          <option value="root">Root parent (whole system)</option>
-          {bodies
-            .filter((b) => b.name !== null)
-            .map((b) => (
-              <option key={b.index} value={b.name ?? ""}>
-                {b.name}
-              </option>
-            ))}
-        </Select>
-        <FieldHint>
-          "Auto" follows the vessel's current body: Kerbin-orbit shows
-          Mun/Minmus, Mun-orbit shows Mun. "Root parent" walks up to the star so
-          you see the whole system. Pick a specific body to pin the frame.
-        </FieldHint>
-      </Field>
-      <Field>
-        <FieldLabel htmlFor="system-projection">Draw the picture in</FieldLabel>
-        <Select
-          id="system-projection"
-          value={projection}
-          onChange={(e) => setProjection(e.target.value)}
-        >
-          <option value="">Follow the frame (the ordinary view)</option>
-          {projectionOptions.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
-        </Select>
-        <FieldHint>
-          This changes what the axes do, not which body is in the middle. The
-          bodies, their orbits and the craft all move together: holding the
-          parent still is how a transfer window becomes a shape you can see, and
-          the orbit stops looking closed because it is not. The panel says which
-          one you are looking at.
-        </FieldHint>
-      </Field>
-    </ConfigForm>
-  );
-}
-
-const FRAME_CAPTION: CSSProperties = {
-  fontSize: "var(--font-size-caption)",
-  color: "var(--color-text-muted)",
-  letterSpacing: "0.05em",
-  flex: "0 0 auto",
-};
-
-const COMPACT_BODY: CSSProperties = {
-  flex: 1,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: "var(--gap-related)",
-};
-
-const COMPACT_VALUE: CSSProperties = {
-  // Off the type scale: the scale stops at --font-size-lg (16px) and this is a display-tier readout.
-  fontSize: "22px",
-  fontWeight: 700,
-  color: "var(--color-text-primary)",
-  letterSpacing: "0.04em",
-};
-
-const COMPACT_SUB: CSSProperties = {
-  fontSize: "var(--font-size-caption)",
-  color: "var(--color-text-muted)",
-  letterSpacing: "0.05em",
-};
-
-// Flush: SystemDiagram reserves its own padding inside the viewBox, and the frame's edge separates it from the sidebar.
-const DIAGRAM_FRAME: CSSProperties = { flex: 1, minWidth: 0, minHeight: 0 };
-
-const DIAGRAM_WRAP: CSSProperties = {
-  position: "relative",
-  flex: 1,
-  minWidth: 0,
-  minHeight: 0,
-  display: "flex",
-  alignItems: "stretch",
-  justifyContent: "stretch",
-};
-
-const OVERLAY_LAYER: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  // Keep the diagram beneath interactive (pan/zoom/hover); an overlay augment re-enables pointer events on its own elements when it needs them.
-  pointerEvents: "none",
-};
-
 registerComponent<SystemViewConfig>({
   id: "system-view",
   name: "System View",
@@ -921,7 +525,7 @@ registerComponent<SystemViewConfig>({
   // Below six columns the view pills clip and the labels collide with the values.
   minSize: { w: 6, h: 8 },
   component: SystemViewComponent,
-  configComponent: SystemViewConfigComponent,
+  configComponent: SystemViewConfigForm,
   // One augment can drive an overlay from a header control; `.actions` is Panel's universal segment, listed so authors find it here.
   augmentSlots: ["system-view.actions", "system-view.overlay"],
   contributionSlots: [
@@ -939,6 +543,7 @@ registerComponent<SystemViewConfig>({
 
 export { AlmanacPanel } from "./AlmanacPanel";
 export { SystemEntitiesLayer } from "./SystemEntitiesLayer";
+export type { SystemOverlayContext } from "./slots";
 export type {
   ResolvedSystemEntity,
   SystemEntitiesContext,
