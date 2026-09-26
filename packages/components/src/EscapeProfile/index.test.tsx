@@ -72,7 +72,7 @@ describe("EscapeProfileComponent", () => {
     return { fixture, ...rendered };
   }
 
-  it("renders the title and no curve before v.body arrives", async () => {
+  it("renders the title and no curve before the parent body arrives", async () => {
     const { container } = renderEscape();
     await screen.findByText("ESCAPE PROFILE");
     expect(container.querySelectorAll("path[stroke-dasharray]")).toHaveLength(

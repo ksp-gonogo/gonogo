@@ -4,18 +4,17 @@ import {
   escapeVelocity,
   registerComponent,
 } from "@ksp-gonogo/core";
+import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
+import { useMemo } from "react";
+import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
+import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
+import { useStreamBody } from "../shared/useStreamBody";
 
 const topics = defineTopicManifest({
   // The escape-velocity curve needs the body's own radius and gravitational parameter, both on `system.bodies`.
   channels: ["vessel.flight", "vessel.identity", "system.bodies"],
   fields: ["vessel.flight.altitudeAsl", "vessel.flight.orbitalSpeed"],
 });
-
-import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
-import { useMemo } from "react";
-import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
-import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
-import { useStreamBody } from "../shared/useStreamBody";
 
 export interface EscapeProfileConfig {
   /** Seconds of trace history retained. Default 600. */
