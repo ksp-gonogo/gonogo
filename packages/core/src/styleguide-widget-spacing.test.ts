@@ -77,7 +77,7 @@ function debtKey(file: string): string {
  * in the same commit as whatever removed the sites; the failure names both.
  */
 const DEBT: Record<string, number> = {
-  "mod/": 6,
+  "mod/": 4,
   "packages/components/src/AstronautComplex/index.tsx": 2,
   "packages/components/src/CommSignal/index.tsx": 2,
   "packages/components/src/Experiments/index.tsx": 2,

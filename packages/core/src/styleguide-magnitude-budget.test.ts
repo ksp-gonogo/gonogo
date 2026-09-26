@@ -82,8 +82,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * funds-per-unit Value and has to join those as a number to be summed with them.
    * Every figure a READER sees goes back out through `<Unit>`.
    */
-  "mod/GonogoKerbalismUplink/client/src/processor.ts": 1,
-  "mod/GonogoKerbalismUplink/client/src/SpaceWeather/index.tsx": 1,
   // 1: the contribution entry carries a BARE bits/sec so CommSignal can compare
   // legs to find the bottleneck. A comparison across a slot boundary cannot
   // carry a Value, because the entry crosses the published contract as JSON.
@@ -514,8 +512,6 @@ const WIRE_BUDGET: Record<string, number> = {
  */
 const FUNNEL_BUDGET: Record<string, number> = {
   "mod/GonogoBreakingGroundUplink": 2,
-  // One of these is a held reading's `asOfUt` unwrapped for `ShipSystems`' number-typed `heldAsOfUt` prop.
-  "mod/GonogoKerbalismUplink": 70,
   // One of these is `gapModel` comparing a bare `validAt` span against the wire's `time.warp.sampleIntervalUt`.
   "mod/sitrep-sdk": 30,
   // One of these is `GoNoGoHostService` measuring liftoff against `getViewUt()`, which returns a plain number.

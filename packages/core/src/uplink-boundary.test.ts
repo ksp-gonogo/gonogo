@@ -200,23 +200,19 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
   },
   kerbalism: {
     // "kerbalism" alone is distinctive enough: no unrelated word in this
-    // codebase contains it, and every one of this Uplink's fifteen wire types
-    // and five Topic namespaces is prefixed with it. Deliberately NOT the
-    // shorter "kerbal": THAT is a colliding token in a Kerbal Space Program
-    // codebase (crew members, kerbal names, KerbalX, half the domain
-    // vocabulary), which is the same collision the scansat entry above solves
-    // by naming its types individually. The full mod name needs no such
-    // workaround.
+    // codebase contains it, and every one of this Uplink's wire types and
+    // Topic namespaces is prefixed with it. Deliberately NOT the shorter
+    // "kerbal": THAT is a colliding token in a Kerbal Space Program codebase
+    // (crew members, kerbal names, KerbalX, half the domain vocabulary),
+    // which is the same collision the scansat entry above solves by naming
+    // its types individually. The full mod name needs no such workaround.
     patterns: [/kerbalism/i],
-    ownedDirs: [
-      "mod/GonogoKerbalismUplink",
-      "mod/GonogoKerbalismUplink.Tests",
-      /*
-       * GonogoKerbalismUplink's own contract slice: all fifteen kerbalism
-       * payload types live here, not in Sitrep.Contract.
-       */
-      "mod/GonogoKerbalismUplink.Contract",
-    ],
+    /*
+     * No owning directory: any mention of Kerbalism anywhere in core is a
+     * violation, which is the stronger guard now there is no directory here
+     * to own it.
+     */
+    ownedDirs: [],
   },
   // Excluded on purpose (per task scope):
   //   commnet : stock KSP networking, not a third-party mod.

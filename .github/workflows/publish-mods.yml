@@ -6,10 +6,6 @@ name: Publish mod zips
 # repository carries a .netkan, so Gonogo core is the only leg; the Uplinks
 # published to CKAN build from the gonogo-uplinks repository.
 #
-# The Uplink with no .netkan (Kerbalism) is not omitted for a build reason: it
-# compiles. It has declared no CKAN identity, so there is nothing to publish it
-# AS. Give it a .netkan and it earns a leg here.
-#
 # OUTSTANDING PREREQ: SpaceDock publish needs a repo VARIABLE per mod that does
 # not exist yet (vars.SPACEDOCK_MOD_ID_*, one per matrix entry below). Until
 # each is set, that mod's SpaceDock upload step no-ops with a `::warning::`

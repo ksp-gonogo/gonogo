@@ -26,7 +26,6 @@
     "@ksp-gonogo/components": "workspace:*",
     "@ksp-gonogo/core": "workspace:*",
     "@ksp-gonogo/data": "workspace:*",
-    "@ksp-gonogo/gonogo-kerbalism-uplink": "workspace:*",
     "@ksp-gonogo/logger": "workspace:*",
     "@ksp-gonogo/serial": "workspace:*",
     "@ksp-gonogo/sitrep-client": "workspace:*",

@@ -122,46 +122,6 @@
     "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
     "verdict": "real-but-unmodelled"
   },
-  "KerbalismCrewRule.fatalThreshold": {
-    "rates": ["degenPerSec"],
-    "reason": "A configuration constant from the profile, not a state: a threshold does not move, and a rule's own declared rate is not something a degeneration figure integrates.",
-    "verdict": "coincidence"
-  },
-  "KerbalismCrewRule.problem": {
-    "rates": ["degenPerSec"],
-    "reason": "Claimed, and NOT by integrating the sibling the rule offered. `degenPerSec` is a config constant off `Profile.rules[].degeneration` that applies only once the rule's input resource is gone, so integrating it would advance a supplied kerbal towards their fatal threshold on schedule. GonogoKerbalismUplink's `reckonCrewAccumulators` fits the OBSERVED slope over a declared window instead, against each entry's own `asOfUt`, and a flat pair is positive evidence the rule is not degenerating at all. So the pairing is real, the offered rate is the wrong one, and the window is what made the honest version possible.",
-    "verdict": "modelled"
-  },
-  "KerbalismLifeSupport.asOfKerbalismUt": {
-    "rates": ["ruleEnvModifiers"],
-    "reason": "The stamp saying WHEN the observation was taken. The rule proposes advancing the anchor that every integration measures its elapsed time from, which would make a model that used it drift against itself.",
-    "verdict": "coincidence"
-  },
-  "KerbalismReliabilityExt.worstMtbfSeconds": {
-    "rates": ["criticalChance", "safeModeChance"],
-    "reason": "Dimensional degeneracy again, and the two siblings are save-wide DIFFICULTY SETTINGS: given a failure happened, the chance it is the severe class, and given one fell due on an uncrewed craft, the chance it is absorbed as a safe-mode reset. Neither is a rate of anything, least of all of a mean time between failures, which is a nameplate constant per part rather than a countdown.",
-    "verdict": "coincidence"
-  },
-  "KerbalismResource.amount": {
-    "rates": ["rate"],
-    "reason": "`rate` is the rate of `amount`, and the model now exists. This entry read \"a model for the live pair is cross-topic and belongs in a derived channel, not a per-topic reckoner\" until a reckoner stopped being handed one point, which was the whole reason the split disqualified it: GonogoKerbalismUplink's `reckonResourceLevels` carries a consumable level forward on `vessel.resources` and reaches Kerbalism's rate as a declared dep. It integrates the ledger's own `asOfUt` rather than the sample's `validAt`, because Kerbalism steps one unloaded vessel per physics tick, so a payload can be live on the wire and minutes old as a model.",
-    "verdict": "modelled"
-  },
-  "KerbalismResource.capacity": {
-    "rates": ["rate"],
-    "reason": "A CAPACITY, not a level. The rule proposes draining the tank itself: the flow beside it is the rate of the amount, never of the amount the tank can hold.",
-    "verdict": "coincidence"
-  },
-  "KerbalismRuleDef.fatalThreshold": {
-    "rates": ["degeneration", "ratePerSecond"],
-    "reason": "A configuration constant from the profile, not a state: a threshold does not move, and a rule's own declared rate is not something a degeneration figure integrates.",
-    "verdict": "coincidence"
-  },
-  "KerbalismRuleDef.rate": {
-    "rates": ["degeneration", "ratePerSecond"],
-    "reason": "A configuration constant from the profile, not a state: a threshold does not move, and a rule's own declared rate is not something a degeneration figure integrates.",
-    "verdict": "coincidence"
-  },
   "LabEntry.storedScience": {
     "rates": ["scienceRate"],
     "reason": "`scienceRate` is the rate of `storedScience`. Conditional: a non-stock provider produces no science itself, leaves `scienceRate` null and carries its own rate in `Extensions`, so a model must gate on the value model rather than assume the field is populated.",
@@ -365,11 +325,6 @@
   "dv.stages.burnTime": {
     "rates": ["twrActual", "twrAsl", "twrVac"],
     "reason": "A TWR is not the rate of a burn time. Both fall out of the same stage figures, which is why they sit together.",
-    "verdict": "coincidence"
-  },
-  "kerbalism.lifesupport.asOfKerbalismUt": {
-    "rates": ["ruleEnvModifiers"],
-    "reason": "The stamp saying WHEN the observation was taken. The rule proposes advancing the anchor that every integration measures its elapsed time from, which would make a model that used it drift against itself.",
     "verdict": "coincidence"
   },
   "reliability.parts.survivalHorizonSeconds": {

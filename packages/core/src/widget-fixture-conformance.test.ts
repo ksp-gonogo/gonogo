@@ -80,28 +80,13 @@ import { FIXTURE_CONTRACT_DRIFT } from "./widget-fixture-conformance.debt";
  * alone would grade every fixture an Uplink ships against nothing and report a
  * clean run.</p>
  *
- * <h3>It can fail, demonstrated by replanting one of the five</h3>
+ * <h3>It can fail</h3>
  *
- * <p>The fifth defect put back where it was: renaming `deathClockUt` to
- * `deathClockSec` on line 51 of
- * `mod/GonogoKerbalismUplink/client/src/CrewSurvival/__fixtures__/radiation-dose-critical.json`,
- * which is the C# local name that spelling came from, makes the gate name it,
- * quote the row it sits on, and print what does belong there:</p>
- *
- * <pre>
- *   Widget fixture(s) sending field names the contract does not declare...
- *     mod/GonogoKerbalismUplink/client/src/CrewSurvival#kerbalism.crew.deathClockSec
- *       mod/.../CrewSurvival/__fixtures__/radiation-dose-critical.json
- *         kerbalism.crew[1].deathClockSec
- *         the contract declares here: name, trait, rules, deathClockUt, asOfUt
- * </pre>
- *
- * <p>Restoring the name returns it to green, 14 passed. The planted-defect
- * cases at the bottom of this file re-run the same rule in memory on every run
- * so the demonstration is not a one-off, and two deliberately blind resolvers
- * are run past the same payload and must catch none of it, because a gate
- * proven to fire only means something once the harness has also been shown to
- * notice a gate that does not.</p>
+ * <p>The planted-defect cases at the bottom of this file run the rule in memory
+ * on every run, and two deliberately blind resolvers are run past the same
+ * payload and must catch none of it, because a gate proven to fire only means
+ * something once the harness has also been shown to notice a gate that does
+ * not.</p>
  *
  * <h3>What it cannot see</h3>
  *
@@ -362,8 +347,22 @@ describe("widget fixtures conform to the generated contract", () => {
         "bag, so these payload positions are ungraded and nobody decided that:\n" +
         unexplained.map((p) => `  ${p}`).join("\n"),
     ).toEqual([]);
-    // And the pin is not vacuous: the extension bags ARE being reached.
-    expect(unresolved.length).toBeGreaterThan(0);
+  });
+
+  /*
+   * The tree may hold no fixture carrying a bag at all, so the pattern above is
+   * proved against a planted one: a walk that stopped reporting bags would make
+   * that filter pass over nothing.
+   */
+  it("reports a planted extension bag in exactly the shape it exempts", () => {
+    const report = checkFixturePayloads(contract(), {
+      "isru.drills": [{ extensions: { someprovider: { anything: 1 } } }],
+    });
+    expect(report.topicsChecked).toBe(1);
+    expect(report.unresolvedPositions).toHaveLength(1);
+    expect(report.unresolvedPositions[0]).toMatch(
+      /\.extensions\.[A-Za-z0-9_.-]+ \(object\)$/,
+    );
   });
 
   it("reports how much of the tree it could not grade", () => {

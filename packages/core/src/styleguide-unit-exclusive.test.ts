@@ -131,10 +131,6 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
     count: 1,
     why: "unit renderer: formats a servo position and the call sites append unitFor(type) beside it, i.e. a quantity assembled by hand",
   },
-  "mod/GonogoKerbalismUplink/client/src/ShipSystems/index.tsx": {
-    count: 2,
-    why: "formatTimeToEmpty already delegates to speakQuantity; formatRate hand-assembles a signed per-second rate",
-  },
 
   // ── A real GAP in `Unit`, not laziness. Every one of these renders a
   //    zero-padded colon clock ("T+02:15:30", "04:12"), and `<Unit>` and

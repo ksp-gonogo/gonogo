@@ -45,13 +45,8 @@ describe("generated contract.ts", () => {
     expect(src).toMatch(/export interface VesselOrbit\b/);
     expect(src).toMatch(/export interface VesselComms\b/);
     expect(src).toMatch(/export interface CommsConnectivity\b/);
-    // KosProcessorInfo used to stand here as the "an Uplink's payload type is
-    // emitted too" example. It is not, any more: it relocated into
-    // GonogoKosUplink.Contract with the last of the Uplink slices
-    // (uplink-types-out-of-core plan), so core's generated contract now emits
-    // ONLY core's own types and there is no Uplink example left to name. The
-    // equivalent assertion lives in each Uplink's own client package
-    // (generated-value-import.test.ts).
+    // Core's generated contract emits only core's own types; each Uplink
+    // asserts its own payload types in its own client package.
     expect(src).toMatch(/export interface Vec3\b/);
     // shared value shapes carry data only: no static factory methods leaked
     expect(src).toMatch(/export interface CommandResult\b/);
@@ -238,16 +233,11 @@ describe("generated contract.ts unit types", () => {
     expect(interfaces.VesselLanding?.terrainPatch).toBe('Value<"m">[] | null');
   });
 
-  // No name-keyed-map assertion here any more, and that is a statement about
-  // core's contract rather than a gap. The form (`{ [key: string]:
-  // Value<"units/s"> }`, the unit on each VALUE with the key a resource NAME
-  // nothing may camel-case) existed at exactly four sites, all of them on the
-  // kerbalism payloads, and those relocated into the Uplink that owns them
-  // (uplink-types-out-of-core plan). This assembly's generated output now
-  // contains no example of the form at all, so an assertion here could only be
-  // vacuous. It moved, non-vacuously, to that Uplink's own
-  // generated-value-import.test.ts, which names all four fields. The
-  // sequence-of-readings case above (`Value<"m">[]`) is core's own and stays.
+  // No name-keyed-map assertion here, and that is a statement about core's
+  // contract rather than a gap. The form (`{ [key: string]: Value<"units/s"> }`,
+  // the unit on each VALUE with the key a resource NAME nothing may camel-case)
+  // appears only in Uplink payloads, so core's generated output carries no
+  // example of it and an assertion here could only be vacuous.
   //
   // The general WALK at the top of this file still covers the form: it accepts
   // `{ [key: string]: Value<"<token>"> }` as a correctly-wrapped shape, so if a

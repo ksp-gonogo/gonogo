@@ -37,13 +37,6 @@ export interface UplinkBundleTarget {
  */
 export const UPLINK_BUNDLE_TARGETS: UplinkBundleTarget[] = [
   {
-    id: "kerbalism",
-    name: "Kerbalism",
-    author: "jonpepler",
-    repo: "ksp-gonogo/GonogoKerbalismUplink",
-    clientDir: resolve(modDir, "GonogoKerbalismUplink/client"),
-  },
-  {
     /*
      * Bundled IN the core mod DLL (Gonogo.KSP/BreakingGroundUplink.cs, like
      * PartsUplink/VesselUplink) rather than shipping its own assembly, so the

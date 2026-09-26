@@ -855,51 +855,6 @@ build_gonogoscansatuplink() {
   ls -la "$install_dir"
 }
 
-build_gonogokerbalismuplink() {
-  local proj="$ROOT/mod/GonogoKerbalismUplink/GonogoKerbalismUplink.csproj"
-  local out_dir="$ROOT/mod/GonogoKerbalismUplink/bin/Release"
-  local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/GonogoKerbalismUplink/Plugins"
-  if [ ! -f "$proj" ]; then
-    echo "GonogoKerbalismUplink csproj not found at $proj"
-    return 3
-  fi
-  if [ ! -d "$DATA_ROOT/local_docs/syncthing/kspdata/GameData" ]; then
-    echo "kspdata GameData not found under $DATA_ROOT/local_docs/syncthing/kspdata"
-    return 3
-  fi
-  echo "=== building GonogoKerbalismUplink ==="
-  perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
-    dotnet build "$proj" -c Release --nologo -v minimal
-  if [ ! -f "$out_dir/GonogoKerbalismUplink.dll" ]; then
-    echo "GonogoKerbalismUplink.dll not produced (missing at $out_dir/GonogoKerbalismUplink.dll)"
-    return 4
-  fi
-  mkdir -p "$install_dir"
-  # GonogoKerbalismUplink.dll AND GonogoKerbalismUplink.Contract.dll: the
-  # uplink-types-out-of-core plan split the fifteen kerbalism payload types into
-  # their own contract-slice project (Private="true", the default, so
-  # `dotnet build` DOES copy it into $out_dir, unlike the reference below).
-  # Sitrep.Contract.dll (provided by GonogoCore) is reference-only
-  # (Private="false") and must NOT be copied here, and Kerbalism.dll is never
-  # referenced at all (this uplink reaches Kerbalism entirely by runtime
-  # reflection) - see .superpowers/sdd/uplink-packaging-pattern.md. Both copies
-  # are needed: a single-DLL copy here would silently drop the Contract.dll from
-  # the deployed GameData folder and break the mod at KSP load.
-  cp "$out_dir/GonogoKerbalismUplink.dll" "$install_dir/"
-  if [ ! -f "$out_dir/GonogoKerbalismUplink.Contract.dll" ]; then
-    echo "GonogoKerbalismUplink.Contract.dll not produced (missing at $out_dir/GonogoKerbalismUplink.Contract.dll)"
-    return 4
-  fi
-  cp "$out_dir/GonogoKerbalismUplink.Contract.dll" "$install_dir/"
-  {
-    echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
-    echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
-    echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  } > "$install_dir/build-info.txt"
-  echo "=== deployed to $install_dir ==="
-  ls -la "$install_dir"
-}
-
 # The Deck-only dev tooling mini-mod. Never shipped in a CKAN/SpaceDock
 # release, so it has no build-info stamp and no Contract dll: a single
 # assembly referencing only KSP/Unity (see GonogoDevTools.csproj).
@@ -963,11 +918,10 @@ case "${1:-help}" in
       kerbcast) build_kerbcast ;;
       gonogo) build_gonogo ;;
       gonogoscansatuplink) build_gonogoscansatuplink ;;
-      gonogokerbalismuplink) build_gonogokerbalismuplink ;;
       devtools) build_devtools ;;
       *)
         echo "usage: gonogo_claude_tools.sh build <target>"
-        echo "  targets: ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogokerbalismuplink, devtools"
+        echo "  targets: ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, devtools"
         exit 2
         ;;
     esac

@@ -1,7 +1,0 @@
-[
-  {
-    "name": "summary-with-provider-namespace",
-    "topic": "reliability.summary",
-    "json": "{\"type\":\"stream-data\",\"topic\":\"reliability.summary\",\"payload\":{\"source\":\"kerbalism\",\"coverage\":\"modeled\",\"extensions\":{\"kerbalism\":{\"worstMtbfSeconds\":940.5,\"brokenPartCount\":1,\"serviceDuePartCount\":2,\"criticalChance\":0.25,\"safeModeChance\":0.5,\"requireRepairKits\":true,\"incentiveRedundancy\":true}}},\"meta\":{\"source\":\"vessel-1\",\"validAt\":120.5,\"seq\":7,\"deliveredAt\":122.75,\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":0,\"timelineEpoch\":0}}"
-  }
-]

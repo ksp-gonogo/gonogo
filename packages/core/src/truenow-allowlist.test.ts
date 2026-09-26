@@ -214,7 +214,6 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // telemetry cadence), so it contributes exactly 1 more EXPLICIT match, the
   // `Delay = DelayRole.TrueNow` line inside that helper. Its call site is
   // `Static(ProfileTopic)`, which HELPER_TRUENOW does not match. 4 + 1 = 5.
-  "mod/GonogoKerbalismUplink/KerbalismUplink.cs": 5,
   // rp1.available: whether RP-1 is installed and managing the save, an install
   // fact held nowhere. Declared inline, so this 1 is one channel.
   //
