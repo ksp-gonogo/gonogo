@@ -327,6 +327,7 @@ export function InFlightList({
   return (
     <InFlightList__Root
       ref={ref}
+      role="list"
       aria-label={ariaLabel}
       data-mode={mode}
       data-density={resolved}
@@ -462,6 +463,7 @@ const InFlightBadge = function InFlightBadge({
   return (
     <InFlightList__Root
       ref={ref}
+      role="group"
       aria-label={`${ariaLabel}: ${summary}`}
       data-mode={mode}
       data-density="badge"
@@ -507,9 +509,8 @@ function InFlightRow({
     // name rather than the thing carrying the information.
     <InFlightList__Row
       $phase={item.phase}
-      {...($compact
-        ? { role: "listitem", "aria-label": spoken, title: spoken }
-        : {})}
+      role="listitem"
+      {...($compact ? { "aria-label": spoken, title: spoken } : {})}
     >
       <InFlightList__Arrow aria-hidden="true" $pulse={!isError}>
         {PHASE_ARROW[item.phase]}
@@ -859,7 +860,7 @@ const PHASE_ROW_STYLES: Record<
     color: var(--color-text-muted);
   `,
   overdue: css`
-    color: var(--color-status-warning-fg);
+    color: var(--color-status-warning-fg-muted);
   `,
   lost: css`
     color: var(--color-status-nogo-fg);
