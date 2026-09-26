@@ -256,14 +256,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
 
-      /*
-       * truenow-allowlist.test.ts: the sibling architectural ratchet. It is a
-       * path-keyed allowlist over every Uplink's .cs files, so it necessarily
-       * names them all (Gonogo.KSP's SpaceCenter/Career/System/Comms uplinks are
-       * already listed there the same way). A path string in a ratchet, not a
-       * dependency.
-       */
-      "packages/core/src/truenow-allowlist.test.ts",
       // -- Doc/comment-only mentions --
       "packages/app/src/dataSources/migrateGameHost.ts",
       "packages/app/src/dataSources/seedKspHost.ts",
@@ -455,17 +447,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * Part 2.3 example, which cited "FogMaskStore.ts's SCANType import" (that
        * file's name before the fog-to-coverage rename) as the textbook
        * domain-debt case: the import had already gone, and now the file has too.
-       * G2 TrueNow-allowlist ratchet (task 4) names ScansatUplink.cs in a
-       * justification comment while inventorying every TrueNow declaration
-       * in mod/: doc-mention only, same class as CommsCoreUplink.cs above.
        */
-      "packages/core/src/truenow-allowlist.test.ts",
       // styleguide.test.ts: the raw-hex ratchet, whose scan roots now cover
       // mod/*/client/src. Its ALLOWED_PATHS names the ScanSat Minimap by path,
       // for the same canvas-2D `fillStyle` reason the packages/ copy of that
       // widget is already allowed for (fillStyle takes a colour string, not a
-      // var()). A path string in a ratchet inventory, same class as
-      // truenow-allowlist.test.ts above; nothing is imported.
+      // var()). A path string in a ratchet inventory; nothing is imported.
       "packages/core/src/styleguide.test.ts",
       /*
        * -- Uplink LOADER: the loader's unit test uses
@@ -971,12 +958,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * contribution simply renders no bitrate.
        */
       /*
-       * G2 TrueNow-allowlist ratchet (task 4) names RealAntennasUplink.cs in
-       * a justification comment while inventorying every TrueNow
-       * declaration in mod/: doc-mention only.
-       */
-      "packages/core/src/truenow-allowlist.test.ts",
-      /*
        * -- the occlusion-model seam: three prose mentions --
        * All three name RealAntennas because the seam exists to record that the
        * two comms backends occlude at DIFFERENT radii (stock scales the body
@@ -1022,8 +1003,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        *     and why core no longer needs them, which is the one thing a reader
        *     hitting the gap will want to know.
        *   • UplinkContractOwnershipTests.cs: the mod-side ownership ratchet has
-       *     to NAME the token it registers, so it names this one too. Ratchet
-       *     inventory, same as truenow-allowlist.test.ts below.
+       *     to NAME the token it registers, so it names this one too.
        */
       "mod/Sitrep.Contract/ContractVersion.cs",
       "mod/Sitrep.Contract/RtConfig.cs",
@@ -1710,7 +1690,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/contributionsRuntime.test.tsx",
       "packages/core/src/registry.replacement.test.ts",
-      "packages/core/src/truenow-allowlist.test.ts",
       "packages/components/src/CrewStatus/index.test.tsx",
       "packages/components/src/FleetReliability/index.test.tsx",
       "packages/components/src/FleetRoster/index.test.tsx",
