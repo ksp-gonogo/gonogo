@@ -127,7 +127,7 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
     count: 4,
     why: "two already delegate to writeQuantity; formatCompactNumber and formatCompactCurrency are still k/M ladders",
   },
-  "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/index.tsx": {
+  "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/servos.ts": {
     count: 1,
     why: "unit renderer: formats a servo position and the call sites append unitFor(type) beside it, i.e. a quantity assembled by hand",
   },
