@@ -164,9 +164,9 @@ describe("generated contract types can hold the null the wire sends", () => {
   it("finds the generated contracts to check", () => {
     // A discovery that reaches nothing checks nothing and passes, which is the
     // shape of a gate gone blind rather than of a clean tree. Core's own is
-    // named because it is the published SDK and never leaves.
+    // named because it is the published SDK and never leaves; an Uplink's
+    // generated contract lives in its own repository.
     expect(contracts).toContain("mod/sitrep-sdk/src/__generated__/contract.ts");
-    expect(contracts.length).toBeGreaterThan(1);
   });
 
   it("widens every optional member", () => {

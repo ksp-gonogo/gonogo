@@ -74,15 +74,7 @@
  * Declarations with no client consumer, keyed `<uplink>: <kind> <id>` and
  * grouped by Uplink so a failure names the owner.
  */
-export const UNREACHED_DECLARATION_DEBT: Record<string, readonly string[]> = {
-  GonogoKerbalismUplink: [
-    /*
-     * Kerbalism's feature-flags payload. Nothing branches on it; the widgets
-     * gate on `kerbalism.available` instead, which is coarser.
-     */
-    "topic kerbalism.features",
-  ],
-};
+export const UNREACHED_DECLARATION_DEBT: Record<string, readonly string[]> = {};
 
 /**
  * The floor that makes a silent zero fail instead of pass.

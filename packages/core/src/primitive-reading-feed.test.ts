@@ -460,7 +460,6 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
    * dated, so nothing here is drawing a held figure as though it were current.
    */
   "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 1,
-  "mod/GonogoKerbalismUplink/client/src/CrewSurvival/summary.tsx": 1,
   /*
    * SIX, and none of them is migratable, which makes this entry a different
    * kind of thing from the rest of this list.

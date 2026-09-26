@@ -58,7 +58,7 @@ const required = process.argv.includes("--require")
   : undefined;
 if (process.argv.includes("--require") && !required) {
   console.error(
-    "✖ --require needs an Uplink id, e.g. --require GonogoKerbalismUplink",
+    "✖ --require needs an Uplink id, as in --require Gonogo<Mod>Uplink",
   );
   process.exit(1);
 }
@@ -86,7 +86,7 @@ if (process.argv.includes("--require") && !required) {
  * Delete an entry when its hash is baked. An entry that is armed fails as STALE,
  * because a debt list nobody prunes stops describing anything.
  */
-const UNARMED_DEBT = new Set(["GonogoKerbalismUplink"]);
+const UNARMED_DEBT = new Set([]);
 
 /**
  * Discovered from the same matrix CI uses, never a list here. A hand-kept list of

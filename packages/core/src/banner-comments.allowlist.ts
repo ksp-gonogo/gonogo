@@ -67,9 +67,6 @@ export const MATCHER_REVISION = 2;
  * published package and a third-party author reads it as the example.
  */
 export const BANNER_COMMENT_DEBT: Record<string, number> = {
-  "mod/GonogoKerbalismUplink.Tests/KerbalismWireParityTests.cs": 2,
-  "mod/GonogoKerbalismUplink/client/src/ShipSystems/RadiationSection.test.tsx": 2,
-  "mod/GonogoKerbalismUplink/client/src/ShipSystems/index.tsx": 1,
   "mod/Sitrep.Contract.TestSupport/UnitCoverageAssertion.cs": 1,
   "mod/Sitrep.Core.Tests/JsonWriterFlattenerParityTests.cs": 1,
   "mod/Sitrep.Host.IntegrationTests/DomainWireFixtureGeneratorTests.cs": 1,

@@ -9,37 +9,35 @@ import { dashboardWithWidget } from "./helpers";
  * first-party client, there is no static-bundled fallback left and no flag
  * gating it (main.tsx always runs the loader; see that file's
  * `bootUplinksAndRender`). Proves, in a REAL browser on all three engines,
- * that a loaded Uplink client works end to end. It names two ids
- * (`kerbalism,breakingGround`) rather than sweeping `packages/app/uplink-bundle-targets.ts`:
- * the mechanism is per-Uplink identical, so a second engine-crossing run of the
- * same nine assertions buys nothing. Any two ids in that file do, and one widget
- * id per Uplink is all this looks for. Widget
+ * that a loaded Uplink client works end to end. It names one id
+ * (`breakingGround`) rather than sweeping `packages/app/uplink-bundle-targets.ts`:
+ * the mechanism is per-Uplink identical, so one widget id is all this looks
+ * for. Widget
  * COVERAGE across every Uplink is `scripts/minsize-gate.ts`'s and the visual
  * gate's job. What is proved here is the LOADER, on all three engines:
  *
- *  1. named through `?uplinkLoaderIds=`, neither is statically bundled (as of
- *     2026-08-31 no Uplink is: `main.tsx` has no static import path left), each is
- *     fetched as a standalone ESM bundle (/uplinks/<id>.client.js) and
+ *  1. named through `?uplinkLoaderIds=`, it is not statically bundled
+ *     (`main.tsx` has no static import path), it is fetched as a standalone ESM bundle (/uplinks/<id>.client.js) and
  *     import()ed at runtime, its bare imports resolving through the baked
  *     import map to the app's singleton chunks, so its module-load
- *     registerComponent writes into the app's ONE registry (`ship-systems` +
- *     `robotics-console` both appear);
+ *     registerComponent writes into the app's ONE registry (`robotics-console`
+ *     appears);
  *  2. the injected SDK host is installed on globalThis;
  *  3. a widget from a LOADED (not statically-bundled) Uplink actually RENDERS on
  *     the dashboard: not merely registers. The dashboard is seeded (same
  *     `dashboardWithWidget` mechanism `tests/playwright/helpers.ts`'s
  *     `bootstrapPair` uses for every widget-DOM-mirror spec) with breakingGround's
- *     `robotics-console` widget before navigation (chosen over kerbalism's
- *     `ship-systems` because it declares no `channels`, so `RequiresGuard`
- *     never gates it behind the "No telemetry host" placeholder this preview
- *     build's disconnected Sitrep source would otherwise force); because
+ *     `robotics-console` widget before navigation (it declares no `channels`,
+ *     so `RequiresGuard` never gates it behind the "No telemetry host"
+ *     placeholder this preview build's disconnected Sitrep source would
+ *     otherwise force); because
  *     `main.tsx` only calls `renderApp()` AFTER `loadEnabledUplinks` resolves
  *     (bootUplinksAndRender awaits the whole load sequence before the first
  *     render), by the time React mounts the widget's `registerComponent` has
  *     already run, so waiting for the widget's own panel title is a genuine
  *     post-load-and-mount render proof, not a race against the import();
  *  4. the loader's outcome store (`loaderState.ts`'s `getUplinkOutcomes`/
- *     `subscribeUplinkOutcomes`) reports each id as `loaded`: asserted through the
+ *     `subscribeUplinkOutcomes`) reports the id as `loaded`: asserted through the
  *     real Settings -> Data Sources "Loaded clients" panel
  *     (`SettingsModal.tsx`'s `UplinkLoaderSection`, the one UI surface that reads
  *     that store via `useSyncExternalStore`). The store itself isn't reachable from
@@ -51,10 +49,10 @@ import { dashboardWithWidget } from "./helpers";
  *
  * A second test proves the `?uplinkLoaderIds=` override (`flag.ts`'s
  * `loaderBootIdsOverride`) actually narrows which ids the boot call attempts:
- * restricting the boot set to just `kerbalism` fetches only the kerbalism bundle
- * and leaves breakingGround unloaded. That override is the only way to name ids
- * with no mod talking, so both tests here pass it and the pair differ only in
- * the ids.
+ * an empty override boots the same build without requesting the breakingGround
+ * bundle the first test loads. That override is the only way to name ids with
+ * no mod talking, so both tests here pass it and the pair differ only in the
+ * ids.
  *
  * Consent: the loader gates each first load at a new id@version behind operator
  * consent (design §3.5). Both tests seed a remembered grant in localStorage so
@@ -119,7 +117,7 @@ async function seedRenderAndSettingsState(
 }
 
 test.describe("Uplink loader (default path)", () => {
-  test("kerbalism + breakingGround load via the runtime loader by default (no flag)", async ({
+  test("breakingGround loads via the runtime loader by default (no flag)", async ({
     page,
   }) => {
     // Establish the origin, then seed consent + the dashboard/Settings-UI
@@ -129,10 +127,6 @@ test.describe("Uplink loader (default path)", () => {
     await seedConsent(page);
     await seedRenderAndSettingsState(page);
 
-    const kerbalismFetched = page.waitForResponse(
-      (r) => r.url().includes("/uplinks/kerbalism.client.js") && r.ok(),
-      { timeout: 30_000 },
-    );
     const breakingGroundFetched = page.waitForResponse(
       (r) => r.url().includes("/uplinks/breakingGround.client.js") && r.ok(),
       { timeout: 30_000 },
@@ -141,27 +135,20 @@ test.describe("Uplink loader (default path)", () => {
     // The ids come in through `?uplinkLoaderIds=` because there is no mod
     // talking here and no shipped default to name them, which is how dev and
     // e2e boot; a real boot gets its ids from the live roster.
-    await page.goto(`${PREVIEW}/?uplinkLoaderIds=kerbalism,breakingGround`, {
+    await page.goto(`${PREVIEW}/?uplinkLoaderIds=breakingGround`, {
       waitUntil: "load",
     });
 
-    // Both standalone bundles were fetched by the loader (not statically
+    // The standalone bundle was fetched by the loader (not statically
     // imported).
-    expect((await kerbalismFetched).status()).toBe(200);
     expect((await breakingGroundFetched).status()).toBe(200);
 
-    // Singleton proof: each loaded bundle's registerComponent wrote into the
-    // app's ONE registry: a Kerbalism widget (`ship-systems`) and a Breaking
-    // Ground widget (`robotics-console`) are both present, resolved through
-    // the import map.
+    // Singleton proof: the loaded bundle's registerComponent wrote into the
+    // app's ONE registry, resolved through the import map.
     await expect
       .poll(
-        async () => {
-          const ids = await registeredComponentIds(page);
-          return (
-            ids.includes("ship-systems") && ids.includes("robotics-console")
-          );
-        },
+        async () =>
+          (await registeredComponentIds(page)).includes("robotics-console"),
         { timeout: 15_000 },
       )
       .toBe(true);
@@ -189,8 +176,8 @@ test.describe("Uplink loader (default path)", () => {
     // "Loaded clients" panel (`SettingsModal.tsx`'s `UplinkLoaderSection`),
     // the one UI surface backed by `loaderState.ts`'s `getUplinkOutcomes`/
     // `subscribeUplinkOutcomes`: not reachable via a bare page.evaluate
-    // import (see the module doc comment above for why). Every first-party id
-    // must show `loaded`, never `quarantined`.
+    // import (see the module doc comment above for why). The id must show
+    // `loaded`, never `quarantined`.
     const settingsFab = page.getByRole("button", { name: /^Settings/ });
     await expect(settingsFab).toBeAttached({ timeout: 15_000 });
     await settingsFab.focus();
@@ -201,14 +188,12 @@ test.describe("Uplink loader (default path)", () => {
     await expect(
       dataSourcesPanel.getByText("Loaded clients", { exact: true }),
     ).toBeVisible({ timeout: 15_000 });
-    for (const name of ["Kerbalism", "Breaking Ground"]) {
-      await expect(
-        dataSourcesPanel.getByText(name, { exact: true }),
-      ).toBeVisible();
-    }
+    await expect(
+      dataSourcesPanel.getByText("Breaking Ground", { exact: true }),
+    ).toBeVisible();
     await expect(
       dataSourcesPanel.getByText("loaded", { exact: true }),
-    ).toHaveCount(2);
+    ).toHaveCount(1);
     await expect(
       dataSourcesPanel.getByText("quarantined", { exact: true }),
     ).toHaveCount(0);
@@ -228,26 +213,17 @@ test.describe("Uplink loader (default path)", () => {
         breakingGroundRequested = true;
       }
     });
-    const kerbalismFetched = page.waitForResponse(
-      (r) => r.url().includes("/uplinks/kerbalism.client.js") && r.ok(),
-      { timeout: 30_000 },
-    );
+    // An empty boot-time enabled set, where the test above names
+    // breakingGround: proof the param is read rather than ignored.
+    await page.goto(`${PREVIEW}/?uplinkLoaderIds=`, { waitUntil: "load" });
 
-    // Restrict the boot-time enabled set to just kerbalism, where the test
-    // above names both: proof the param is read rather than ignored.
-    await page.goto(`${PREVIEW}/?uplinkLoaderIds=kerbalism`, {
-      waitUntil: "load",
-    });
-
-    expect((await kerbalismFetched).status()).toBe(200);
-
-    await expect
-      .poll(
-        async () =>
-          (await registeredComponentIds(page)).includes("ship-systems"),
-        { timeout: 15_000 },
-      )
-      .toBe(true);
+    // The app rendered, which happens only once the loader's boot call has
+    // resolved, so the absence below is the override's doing rather than a
+    // page that never got as far as the loader. Nothing is seeded here, so the
+    // first thing it renders is the analytics consent prompt.
+    await expect(
+      page.getByRole("dialog", { name: "Help improve gonogo?" }),
+    ).toBeVisible({ timeout: 15_000 });
 
     const ids = await registeredComponentIds(page);
     expect(ids).not.toContain("robotics-console");

@@ -313,17 +313,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     ],
     permanent: [
       /*
-       * -- CARRIED CONTRACT PROSE: the generated contract now
-       * carries the C# doc comments it is generated from, and a wire type
-       * describes what an ELECTED backend puts in it. Here, Kerbalism's own
-       * science payload says a SCANsat scanner is one of the two things that
-       * produce data continuously, and names the module doing it. Text only,
-       * in a generated file, and naming the backend IS the fact being stated
-       * rather than a dependency on it, so this is the same class as the doc-
-       * mention citations already here.
-       */
-      "mod/GonogoKerbalismUplink/client/src/__generated__/contract.ts",
-      /*
        * The comment-stack ratchet's own inventory: a path-keyed debt list over
        * every hand-written JS/TS file in the repo, so it names this Uplink's paths
        * by construction and there is nowhere else for it to live. Permanent for
@@ -363,29 +352,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * directory. Ratchet-inventory file, the case this bucket documents.
        */
       "packages/core/src/uplink-isolation.allowlist.ts",
-      /*
-       * -- Kerbalism's own SCANsat bridge --
-       * Kerbalism ships a `KerbalismScansat` PartModule and a config patch that
-       * DELETES the part's `SCANexperiment` module to make room for it. So with
-       * both mods installed the scanner is Kerbalism's to report, and the
-       * Kerbalism provider reports it: one `science.instruments` row per module,
-       * with its own half of the extension bag.
-       *
-       * These are not coupling to the SCANsat Uplink, and cannot shrink into it.
-       * Every read goes through Kerbalism's reflection surface for a
-       * Kerbalism-owned type; no SCANsat assembly, API or Topic is touched, and
-       * GonogoScansatUplink is not referenced. What matches the token is the
-       * module's NAME plus the prose explaining why a Kerbalism file talks about
-       * SCANsat at all. Moving any of it into the SCANsat Uplink would be exactly
-       * backwards: that Uplink cannot see Kerbalism's modules.
-       */
-      "mod/GonogoKerbalismUplink/KerbalismReflection.cs",
-      "mod/GonogoKerbalismUplink/KerbalismRawTypes.cs",
-      "mod/GonogoKerbalismUplink/KerbalismScienceMap.cs",
-      "mod/GonogoKerbalismUplink/client/src/science.ts",
-      "mod/GonogoKerbalismUplink/client/src/science.test.ts",
-      "mod/GonogoKerbalismUplink.Contract/KerbalismScienceExt.cs",
-      "mod/GonogoKerbalismUplink.Tests/ScienceExtensionWireTests.cs",
       // -- contract/SDK layer --
       "mod/Sitrep.Contract/ContractVersion.cs",
       "mod/Sitrep.Contract/UplinkContract.cs",
@@ -692,7 +658,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // a contract-level wire test, same class as CommandRequestLabelWireTests.
       "mod/Sitrep.Host.IntegrationTests/KosProcessorsWireTests.cs",
       "mod/Sitrep.Host.Tests/UplinkDiscoveryTests.cs",
-      "mod/sitrep-sdk/src/generated.test.ts",
       /*
        * kos-execute-tunnel.test.ts has zero real kos coupling, it only uses
        * "kos" as a generic Uplink-handle id while exercising app-owned PeerJS
@@ -1345,13 +1310,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Contract/VesselAttitude.cs",
 
       /*
-       * Two GonogoAvionicsUplink files sat here, AvionicsRtConfig.cs and its
-       * client's generated-value-import.test.ts, each naming the pilot as prior
-       * art. Both left with that Uplink when it moved to the gonogo-uplinks
-       * repo. The Kerbcast entry below is the same shape and stays.
-       */
-
-      /*
        * -- The relocation's own provenance record --
        * ContractVersion.cs's Minor-history doc-comment records the original
        * add AND the later relocation of MechJebAscentArgs/MechJebNoArgs out
@@ -1458,90 +1416,26 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   },
 
   /*
-   * === kerbalism: owning dirs mod/GonogoKerbalismUplink/ (incl. its client/),
-   *     mod/GonogoKerbalismUplink.Tests/, mod/GonogoKerbalismUplink.Contract/.
+   * === kerbalism: no owning directory; the Uplink lives in the gonogo-uplinks
+   * repository.
    *
-   * SEEDED LATE, by the types-out-of-core relocation (fifth step) rather than by
-   * the original boundary audit, so it does not carry that audit's HARD/gray
-   * categorisation history. Two things follow from the late seed and are worth
-   * stating rather than leaving to be inferred:
-   *
-   *   (1) The seed is LARGE (fifty-odd files) and overwhelmingly PROSE. Kerbalism
-   *       is this repository's canonical worked example of the augment/slot
-   *       architecture, so a dozen base widgets' doc comments name it while
-   *       describing the slot they expose ("an augment, e.g. a Kerbalism
-   *       Habitat/Radiation badge, binds here"). Those are words about a
-   *       hypothetical contributor, not coupling. Filing them as debt would make
-   *       the shrink-only gate demand that the ARCHITECTURE stop being explained.
-   *   (2) The debt bucket is EMPTY. The SpaceWeather widget, the last Kerbalism
-   *       surface still living in the base library, moved into this Uplink's
-   *       client and took the harness's Kerbalism fixture reshaping with it.
-   *       What remained afterwards was the bundle-time Uplink import, which is
-   *       permanent here for the reason this file's header now states once for
-   *       all six tokens that carry it. It was the only one of the six filed as
-   *       debt, and the justification it carried claimed the opposite of the
-   *       one the other five carried.
+   * The list is LARGE and overwhelmingly PROSE. Kerbalism is this repository's
+   * canonical worked example of the augment/slot architecture, so a dozen base
+   * widgets' doc comments name it while describing the slot they expose ("an
+   * augment, e.g. a Kerbalism Habitat/Radiation badge, binds here"). Those are
+   * words about a hypothetical contributor, not coupling. Filing them as debt
+   * would make the shrink-only gate demand that the ARCHITECTURE stop being
+   * explained.
    */
   kerbalism: {
-    domainDebt: [
-      // The render harness imports this Uplink to photograph its augments (the
-      // Greenhouse section, the crew meters). Moving Ship Systems' and
-      // CrewSurvival's fixtures to the Uplink moves those pictures and leaves this
-      // import standing, because an augment renders only inside the widget it
-      // augments and that widget is core's.
-      "packages/components/scripts/probe/probe-entry.tsx",
-    ],
+    domainDebt: [],
     permanent: [
-      /*
-       * -- UNIT-EXCLUSIVE ratchet inventory: `styleguide-unit-exclusive` holds
-       * a per-file debt map of everything still reaching a kit string formatter
-       * or declaring a `format*` helper, so it names this Uplink's client among
-       * the rest. Text-only, a path in a data literal, and the entry goes when
-       * that Uplink's last line does.
-       */
-      "packages/core/src/styleguide-unit-exclusive.test.ts",
-      /*
-       * -- PRIMITIVE-READING-FEED ratchet inventory: `DERIVED_FEED_DEBT` holds
-       * a per-file count of every primitive still fed a figure a reading's
-       * currency was dropped from, so it names this Uplink's client among the
-       * rest. Text-only, a key in a data literal, and the entry goes when that
-       * Uplink's last derived feed does.
-       */
-      "packages/core/src/primitive-reading-feed.test.ts",
-      /*
-       * -- UNKNOWN-CAST ratchet inventory: `unknown-cast.debt.ts` is a per-file
-       * ceiling map, so it names every file still asserting out of `unknown`,
-       * this Uplink's client among them. Text-only, generated by
-       * `scripts/unknown-cast-debt.mjs`, and the entry goes when that Uplink's
-       * last escape does.
-       */
-      "packages/core/src/unknown-cast.debt.ts",
-      /*
-       * -- RENDER-FIXTURE-COVERAGE ratchet inventory: the mod path as DATA,
-       * one widget-dir#field key per name match that was never a payload
-       * read. The key goes when that read does.
-       */
-      "packages/core/src/render-fixture-coverage.debt.ts",
-      // data: an entry in the bundle registry.
-      "packages/app/uplink-bundle-targets.ts",
+      // prose: the render harness names Kerbalism's augment as its example of a requires-gated one.
+      "packages/components/scripts/probe/probe-entry.tsx",
       // data: an inline FAKE Uplink client id, `defineUplinkClient({ id: "kerbalism" })`, standing in for a real one to exercise the contribution registry. Imports nothing.
       "packages/components/scripts/provenance-card-probe/provenance-card-probe-entry.tsx",
-      // data: the render-set config for the crew-survival augment, keyed by its fixtures path.
+      // data: a render output folder named for the resource palette its renders show.
       "packages/components/scripts/widgets.ts",
-      // The declaration-reachability ratchet's debt list: an inventory of
-      // declared Topics/commands with no client consumer, so it names the wire
-      // ids of every Uplink that has one. Inventory, not coupling: nothing here
-      // imports or renders anything of the Uplink's, and the list shrinks to
-      // zero as each consumer is written.
-      "packages/core/src/declaration-reachability.allowlist.ts",
-      /*
-       * -- BANNER-COMMENT debt list: a ratchet inventory, so it is
-       * a list of PATHS that carry a banner comment, two of which are this
-       * Uplink's. It names the token the way every debt list names one, by
-       * quoting a file it is holding a count against, and it carries no code at
-       * all. Shrinks to nothing when those two banners are cleaned.
-       */
-      "packages/core/src/banner-comments.allowlist.ts",
       /*
        * -- CARRIED CONTRACT PROSE: the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
@@ -1562,13 +1456,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/uplink-permanent-code.test.ts",
       /*
-       * -- WIDGET-FIXTURE CONFORMANCE gate: text-only. Its
-       * planted-failure demonstration replants the defect that shipped in this
-       * Uplink's CrewSurvival fixture, `deathClockSec` for the wire's
-       * `deathClockUt`, and quotes the fixture path and the message the gate
-       * printed. The demonstration is the evidence that the gate can fail at
-       * all, so naming what it caught is what makes it checkable. The check
-       * itself resolves Uplinks by walking `mod/*` and holds no mod name.
+       * -- WIDGET-FIXTURE CONFORMANCE gate: text-only. Its doc comment lists
+       * the defects the gate exists for, one of them this Uplink's CrewSurvival
+       * fixture sending `deathClockSec` for the wire's `deathClockUt`. The
+       * check itself resolves Uplinks by walking `mod/*` and holds no mod name.
        */
       "packages/core/src/widget-fixture-conformance.test.ts",
       /*
@@ -1580,13 +1471,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * and mod-blind.
        */
       "packages/core/src/styleguide-magnitude-canonical.test.ts",
-      /*
-       * The comment-stack ratchet's own inventory: a path-keyed debt list over
-       * every hand-written JS/TS file in the repo names Uplink paths by
-       * construction, and there is nowhere else for it to live. A gate placed
-       * inside an Uplink is one a third-party author could not run.
-       */
-      "packages/core/src/comment-stacks.allowlist.ts",
       /*
        * -- KSP's OWN enums. KspEnums.cs mirrors seven stock KSP
        * enums so their ordinals can cross the wire, and one of them,
@@ -1603,12 +1487,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Contract/KspEnums.cs",
       "mod/sitrep-sdk/src/index.ts",
       "mod/sitrep-sdk/src/ksp-enum-names.ts",
-      /*
-       * -- MAGNITUDE budget ratchet: the per-file `.magnitude`
-       * budget is keyed by file path, so it names every Uplink that unwraps a
-       * Value. Ratchet-inventory file, the case this bucket documents.
-       */
-      "packages/core/src/styleguide-magnitude-budget.test.ts",
       /*
        * -- FIRE-AND-FORGET command budget: the per-file budget
        * for dispatches that discard their outcome is keyed by file path, so it
@@ -1816,12 +1694,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
 
       /*
-       * sitrep-sdk's own tests: both now carry a comment recording what MOVED
-       * OUT of core's generated surface with this relocation (the five Topic ids,
-       * and the name-keyed-map unit assertion). What matches is the explanation
-       * of an absence.
+       * sitrep-sdk's topic test: its comment explains which Topic ids core's
+       * generated surface does not carry. What matches is the explanation of an
+       * absence.
        */
-      "mod/sitrep-sdk/src/generated.test.ts",
       "mod/sitrep-sdk/src/topics.test.ts",
       /*
        * Base-library and core tests using "kerbalism" as a generic EXAMPLE
@@ -1924,8 +1800,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * fills this one, Kerbalism leaves it null" no longer has anything to
        * describe, and three entries left with the sentences.
        */
-      "mod/GonogoKerbalismUplink/KerbalismReliabilityMap.cs",
-      "mod/GonogoKerbalismUplink/KerbalismUplink.cs",
       /*
        * The core uplink that declares the reliability channels names both
        * backends in the same breath, for the same reason.
@@ -2118,32 +1992,8 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
   ],
   kerbalism: [
-    // -- PRIMITIVE-READING-FEED ratchet inventory: the mod name as DATA, one
-    // per-file count key per file still feeding a primitive a figure a
-    // reading's currency was dropped from. The key goes when that file's last
-    // derived feed does.
-    "packages/core/src/primitive-reading-feed.test.ts",
-    // -- UNIT-EXCLUSIVE ratchet inventory: the mod name as DATA, one per-file
-    // debt key per file still reaching a kit string formatter or declaring a
-    // `format*` helper. A path in a data literal, not an import and not a
-    // topic read; the key goes when that file's last line does.
-    "packages/core/src/styleguide-unit-exclusive.test.ts",
-    // -- UNKNOWN-CAST ratchet inventory: the mod name as DATA, one
-    // per-file ceiling key per file still asserting out of `unknown`. Generated
-    // by `scripts/unknown-cast-debt.mjs`; the key goes when that file's last
-    // escape does.
-    "packages/core/src/unknown-cast.debt.ts",
-    // -- RENDER-FIXTURE-COVERAGE ratchet inventory: the mod path as DATA, one
-    // widget-dir#field key per name match that was never a payload read.
-    "packages/core/src/render-fixture-coverage.debt.ts",
-    "packages/app/uplink-bundle-targets.ts",
     "packages/components/scripts/provenance-card-probe/provenance-card-probe-entry.tsx",
     "packages/components/scripts/widgets.ts",
-    // The reachability ratchet's debt list: wire ids as DATA, one line per
-    // declared Topic/command with no consumer. Survives the strip because the
-    // ids are the inventory, not prose about it. Shrinks to zero as consumers
-    // are written.
-    "packages/core/src/declaration-reachability.allowlist.ts",
     "packages/core/src/uplink-permanent-code.test.ts",
     "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
     "mod/GonogoDevTools/GonogoDevKerbalismScience.cs",
@@ -2156,13 +2006,8 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/components/src/FleetReliability/undefined.characterise.test.tsx",
     "packages/components/src/test/installProfile.test.ts",
     "packages/components/src/test/installProfile.ts",
-    // Two debt-list KEYS naming this Uplink's files. Paths, not code.
-    "packages/core/src/banner-comments.allowlist.ts",
-    "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/contributionsRuntime.test.tsx",
     "packages/core/src/registry.replacement.test.ts",
-    "packages/core/src/styleguide-magnitude-budget.test.ts",
-    "packages/core/src/truenow-allowlist.test.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
   ],
   kerbcast: [
@@ -2200,9 +2045,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
   principia: [],
   scansat: [
     "mod/GonogoDevTools/GonogoDevStampScan.cs",
-    "mod/GonogoKerbalismUplink.Tests/ScienceExtensionWireTests.cs",
-    "mod/GonogoKerbalismUplink/KerbalismReflection.cs",
-    "mod/GonogoKerbalismUplink/client/src/science.test.ts",
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
     "mod/sitrep-sdk/src/default-carried-topics.ts",
     "mod/sitrep-sdk/src/spine/map-topic.ts",

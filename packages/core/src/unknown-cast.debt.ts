@@ -131,8 +131,6 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/ui-kit/src/WidgetScope.tsx :: useWidgetScope": 1,
   // packages/uplink-tools: 1 at 1 points in 1 files (0 out of `any`, 0 in tests), walked 26 files
   "packages/uplink-tools/src/render-probe.tsx :: Slot": 1,
-  // mod/GonogoKerbalismUplink/client: 1 at 1 points in 1 files (1 out of `any`, 0 in tests), walked 85 files
-  "mod/GonogoKerbalismUplink/client/src/test/goldenFrame.ts :: goldenFrame": 1,
   // mod/sitrep-kernel: 2 at 2 points in 1 files (0 out of `any`, 0 in tests), walked 15 files
   "mod/sitrep-kernel/src/registry.ts :: Kernel.query": 1,
   "mod/sitrep-kernel/src/registry.ts :: vanilla": 1,
@@ -246,7 +244,6 @@ export const ROOT_FILE_FLOORS: Record<string, number> = {
   "packages/ui-kit": 215,
   "packages/uplink-tools": 20,
   "mod/GonogoBreakingGroundUplink/client": 26,
-  "mod/GonogoKerbalismUplink/client": 67,
   "mod/sitrep-kernel": 12,
   "mod/sitrep-sdk": 256,
   "mod/sitrep-server": 10,

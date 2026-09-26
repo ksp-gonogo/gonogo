@@ -53,7 +53,7 @@ import {
 } from "../packages/ui-kit/dist/render.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const target = process.argv[2] ?? "GonogoKerbalismUplink";
+const target = process.argv[2] ?? "GonogoBreakingGroundUplink";
 const engine = process.argv[3] ?? "chromium";
 
 const pkg = resolveUplinkPackage(join(ROOT, "mod", target, "client"), {});

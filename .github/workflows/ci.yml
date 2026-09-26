@@ -615,7 +615,6 @@ jobs:
             Sitrep.Skeleton.Tests
             Sitrep.Host.Tests
             Sitrep.Host.IntegrationTests
-            GonogoKerbalismUplink.Tests
             Gonogo.KSP.Tests
           )
           # THE OMISSION MODE HERE IS SILENT, so read this before adding a test
