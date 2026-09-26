@@ -63,20 +63,31 @@ export function paintBaseSurface(
     worldH,
   }: BaseSurfaceInput,
 ): void {
-  if (!suppressVanilla) {
-    if (textureImage) {
-      ctx.drawImage(textureImage, 0, 0, worldW, worldH);
-      ctx.fillStyle = "rgba(0,0,0,0.25)";
-      ctx.fillRect(0, 0, worldW, worldH);
-    } else if (bodyColor) {
-      ctx.fillStyle = `${bodyColor}22`;
-      ctx.fillRect(0, 0, worldW, worldH);
-    }
-  }
+  if (!suppressVanilla)
+    paintVanilla(ctx, textureImage, bodyColor, worldW, worldH);
 
   for (const layer of layers) {
     ctx.drawImage(layer.canvas, 0, 0, worldW, worldH);
   }
+}
+
+/** The stock texture under a dimming wash, else a colour wash, else nothing. */
+function paintVanilla(
+  ctx: BaseSurfaceCtx,
+  textureImage: CanvasImageSource | null,
+  bodyColor: string | undefined,
+  worldW: number,
+  worldH: number,
+): void {
+  if (textureImage) {
+    ctx.drawImage(textureImage, 0, 0, worldW, worldH);
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.fillRect(0, 0, worldW, worldH);
+    return;
+  }
+  if (!bodyColor) return;
+  ctx.fillStyle = `${bodyColor}22`;
+  ctx.fillRect(0, 0, worldW, worldH);
 }
 
 /**

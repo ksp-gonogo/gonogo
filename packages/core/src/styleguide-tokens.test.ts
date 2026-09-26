@@ -143,7 +143,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
   spacing: {
     "packages/app/src/styles/global.css": 1,
     "packages/components/src/FleetRoster/index.tsx": 2,
-    "packages/components/src/MapView/MapPoiLayer.tsx": 2,
+    "packages/components/src/MapView/MapPoiLayer.styles.ts": 2,
     "packages/components/src/Navball/index.tsx": 1,
     "packages/components/src/shared/RequiresGuard.tsx": 3,
     "packages/components/src/StationConnectView/StationConnectView.styles.ts": 19,
@@ -234,7 +234,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
   zIndex: {
     "packages/app/src/components/Dashboard/GridItemContent.tsx": 1,
     "packages/components/src/AtmosphereProfile/LiveAirChip.tsx": 1,
-    "packages/components/src/MapView/MapPoiLayer.tsx": 1,
+    "packages/components/src/MapView/MapPoiLayer.styles.ts": 1,
     "packages/components/src/ShipMap/PartTooltip.tsx": 1,
     "packages/components/src/ShipMap/ShipDiagram.tsx": 1,
     "packages/components/src/ShipMap/ShipMapBody.tsx": 2,

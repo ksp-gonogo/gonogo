@@ -78,10 +78,11 @@ export function useCamera(containerSize: { w: number; h: number } | null) {
       lastPanPos.current = null;
       const [a, b] = [...activePointers.current.values()];
       lastPinchDist.current = Math.hypot(a.x - b.x, a.y - b.y);
-    } else if (activePointers.current.size === 1) {
-      lastPanPos.current = { x: e.clientX, y: e.clientY };
-      lastPinchDist.current = null;
+      return;
     }
+    if (activePointers.current.size !== 1) return;
+    lastPanPos.current = { x: e.clientX, y: e.clientY };
+    lastPinchDist.current = null;
   }, []);
 
   const onPointerMove = useCallback(
@@ -145,10 +146,11 @@ export function useCamera(containerSize: { w: number; h: number } | null) {
       const [remaining] = [...activePointers.current.values()];
       lastPanPos.current = { ...remaining };
       lastPinchDist.current = null;
-    } else if (activePointers.current.size === 0) {
-      lastPanPos.current = null;
-      lastPinchDist.current = null;
+      return;
     }
+    if (activePointers.current.size !== 0) return;
+    lastPanPos.current = null;
+    lastPinchDist.current = null;
   }, []);
 
   return {

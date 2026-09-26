@@ -235,13 +235,16 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/LibrationPoints/index.tsx": 1,
   "packages/components/src/ManeuverPlanner/LocalManeuverTriggerService.ts": 10,
   "packages/components/src/ManeuverPlanner/usePlannerTelemetry.ts": 4,
-  // 18: two `{ ut, lat, lon }` literals each unwrap a latitude
+  "packages/components/src/MapView/index.tsx": 6,
+  // 5: two `{ ut, lat, lon }` literals each unwrap a latitude
   // and a longitude side by side. One of them is a maneuver node's own
   // UT. It reads the modern vessel.maneuver shape, where the instant is a
   // Value; the horizon it feeds is plain-number geometry against a plain-number
   // view instant, so the unwrap belongs at that boundary rather than one term
   // deeper.
-  "packages/components/src/MapView/index.tsx": 18,
+  "packages/components/src/MapView/useGroundTrackPrediction.ts": 5,
+  "packages/components/src/MapView/useMapPainting.ts": 2,
+  "packages/components/src/MapView/useMapTelemetry.ts": 5,
   "packages/components/src/MapView/vanillaPoiProvider.ts": 2,
   "packages/components/src/OrbitView/index.tsx": 6,
   /*
