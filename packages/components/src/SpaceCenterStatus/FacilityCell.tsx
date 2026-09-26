@@ -1,5 +1,14 @@
 import { formatCompactCurrency } from "@ksp-gonogo/core";
-import { type CommandButtonHandle, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import type { Reading } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type CommandButtonHandle,
+  NULL_DISPLAY,
+  resolveCurrency,
+  sayHeld,
+  Unit,
+  type UnitValue,
+} from "@ksp-gonogo/ui-kit";
 import {
   type FacilityKey,
   type FacilityLevel,
@@ -21,6 +30,21 @@ import {
 import { buildFacilityTooltip, plainTierSpecs, TierBlock } from "./TierBlock";
 import { UpgradeButton } from "./UpgradeButton";
 
+/** When the tiers on screen were last a reading of now; `null` while they still are. */
+export type HeldSince = Pick<Reading<unknown>, "asOfUt" | "grade"> | null;
+
+function tierFigure(level: number, heldSince: HeldSince): UnitValue<"count"> {
+  const figure = value("count", level);
+  if (heldSince === null) return figure;
+  return {
+    state: "stale",
+    value: figure,
+    asOfUt: heldSince.asOfUt,
+    grade: heldSince.grade,
+    reckoning: { status: "none" },
+  };
+}
+
 export interface FacilityGridItemProps {
   facilityKey: FacilityKey;
   label: string;
@@ -29,6 +53,7 @@ export interface FacilityGridItemProps {
   anyTierText: boolean;
   upgradesEnabled: boolean;
   careerFunds: number | null;
+  tiersHeldSince: HeldSince;
   upgradeBlocked: boolean;
   upgradeCmd: CommandButtonHandle;
 }
@@ -41,6 +66,7 @@ export function FacilityGridItem({
   anyTierText,
   upgradesEnabled,
   careerFunds,
+  tiersHeldSince,
   upgradeBlocked,
   upgradeCmd,
 }: FacilityGridItemProps) {
@@ -63,6 +89,8 @@ export function FacilityGridItem({
   const showTierSpecs = tierSpecsFit && anyTierText && !!f;
   // Only a facility with somewhere left to go owes a NEXT block; `max === 0` is an unknown ceiling.
   const hasNextTier = !!f && f.max > 0 && !atMax;
+  const tier = tierFigure(displayLevel, tiersHeldSince);
+  const { caption: heldCaption } = resolveCurrency(tier);
 
   return (
     <FacilityCell title={tooltip || undefined}>
@@ -72,13 +100,18 @@ export function FacilityGridItem({
         role="img"
         aria-label={
           f && f.max > 0
-            ? `${label} tier ${displayLevel} of ${displayMax}`
+            ? sayHeld(
+                `${label} tier ${displayLevel} of ${displayMax}`,
+                heldCaption,
+              )
             : `${label} tier unknown`
         }
       >
         {f && f.max > 0 ? (
           <>
-            <Tier>{displayLevel}</Tier>
+            <Tier>
+              {tiersHeldSince === null ? displayLevel : <Unit value={tier} />}
+            </Tier>
             <Slash>/</Slash>
             <TierMax>{displayMax}</TierMax>
           </>

@@ -107,11 +107,11 @@ function leaveTheSpaceCentre(fixture: ReturnType<typeof mount>): void {
   }
 }
 
-/** The caption's text is split across elements, so match on composed textContent. */
-function tiersCaption(): HTMLElement | null {
-  return (Array.from(document.querySelectorAll("*")).find((el) =>
-    /Tiers read .* ago/.test(el.textContent ?? ""),
-  ) ?? null) as HTMLElement | null;
+/** Tier figures the kit marks as no longer a reading of now. */
+function heldTiers(): Element[] {
+  return Array.from(
+    document.querySelectorAll('[aria-label*=" tier "] [data-not-current]'),
+  );
 }
 
 describe("SpaceCenterStatus: a ladder read at the space centre", () => {
@@ -127,14 +127,14 @@ describe("SpaceCenterStatus: a ladder read at the space centre", () => {
     leaveTheSpaceCentre(fixture);
 
     await waitFor(() =>
-      expect(screen.getByLabelText("Launch Pad tier 2 of 3")).toBeTruthy(),
+      expect(screen.getByLabelText(/^Launch Pad tier 2 of 3/)).toBeTruthy(),
     );
-    expect(screen.getByLabelText("VAB tier 1 of 3")).toBeTruthy();
+    expect(screen.getByLabelText(/^VAB tier 1 of 3/)).toBeTruthy();
     // `AutoEmptyState` keeps its fallback mounted and hidden, so only visibility says which state this is.
     expect(screen.getByText("No facility tiers")).not.toBeVisible();
   });
 
-  it("dates the tiers it is no longer reading", async () => {
+  it("marks the tiers it is no longer reading through Unit, and says so in each tier's name", async () => {
     const fixture = mount();
 
     emitSession(fixture, 10, "SpaceCenter");
@@ -142,15 +142,21 @@ describe("SpaceCenterStatus: a ladder read at the space centre", () => {
     await waitFor(() =>
       expect(screen.getByLabelText("Launch Pad tier 2 of 3")).toBeTruthy(),
     );
-    expect(tiersCaption()).toBeNull();
+    expect(heldTiers()).toHaveLength(0);
 
     leaveTheSpaceCentre(fixture);
 
-    await waitFor(() => expect(tiersCaption()).toBeTruthy());
+    await waitFor(() => expect(heldTiers()).toHaveLength(2));
+    expect(screen.getByLabelText(/^Launch Pad tier 2 of 3, .+/)).toBeTruthy();
+    expect(
+      Array.from(document.querySelectorAll("*")).some((el) =>
+        /Tiers read .* ago/.test(el.textContent ?? ""),
+      ),
+    ).toBe(false);
   });
 
-  /** A contributor reading live takes the grid, and the stock channel's staleness must not caption it. */
-  it("gives up the grid, and the date with it, to a contributor that reads live", async () => {
+  /** A contributor reading live takes the grid, and the stock channel's staleness must not mark it. */
+  it("gives up the grid, and the held mark with it, to a contributor that reads live", async () => {
     registerContribution({
       id: "test-career-model-facilities",
       contributes: "space-center-status.facilities",
@@ -171,7 +177,7 @@ describe("SpaceCenterStatus: a ladder read at the space centre", () => {
       expect(screen.getByLabelText("Launch Pad tier 3 of 3")).toBeTruthy(),
     );
     expect(screen.queryByLabelText("Launch Pad tier 2 of 3")).toBeNull();
-    expect(tiersCaption()).toBeNull();
+    expect(heldTiers()).toHaveLength(0);
   });
 
   /** The band decides whether the stock reading can be displaced at all. */
@@ -191,6 +197,6 @@ describe("SpaceCenterStatus: a ladder read at the space centre", () => {
     await waitFor(() =>
       expect(visibleText(fixture.container)).toContain("No facility tiers"),
     );
-    expect(tiersCaption()).toBeNull();
+    expect(heldTiers()).toHaveLength(0);
   });
 });

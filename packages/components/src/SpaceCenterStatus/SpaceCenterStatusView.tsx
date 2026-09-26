@@ -1,18 +1,16 @@
 import { getSizeBucket } from "@ksp-gonogo/core";
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   AutoEmptyState,
   type CommandButtonHandle,
   EmptyState,
   Panel,
-  ReadoutCaption,
   Section,
   Unit,
   type UnitValue,
   WidgetSections,
 } from "@ksp-gonogo/ui-kit";
 import { FundsDrain, reportsFundsDrain } from "../shared/FundsDrain";
-import { FacilityGridItem } from "./FacilityCell";
+import { FacilityGridItem, type HeldSince } from "./FacilityCell";
 import { FACILITIES, type FacilityLevels } from "./facilities";
 import { SpaceCenterStatusTiny } from "./SpaceCenterStatusTiny";
 import {
@@ -34,7 +32,7 @@ export interface SpaceCenterStatusViewProps {
   chargesFunds: boolean;
   padOccupied: boolean | null | undefined;
   padLine: string;
-  tiersHeldFor: Value<"s"> | undefined;
+  tiersHeldSince: HeldSince;
   facilities: FacilityLevels;
   upgradesEnabled: boolean;
   upgradeBlocked: boolean;
@@ -51,7 +49,7 @@ export function SpaceCenterStatusView({
   chargesFunds,
   padOccupied,
   padLine,
-  tiersHeldFor,
+  tiersHeldSince,
   facilities,
   upgradesEnabled,
   upgradeBlocked,
@@ -126,12 +124,6 @@ export function SpaceCenterStatusView({
               /* Said once for the grid, and not at all when no facility answered. */
               <AbsenceLine>No tier detail</AbsenceLine>
             )}
-            {tiersHeldFor !== undefined && answeredFacilities.length > 0 && (
-              /* A held reading says when it was taken. Not a live region: the age changes every frame. */
-              <ReadoutCaption>
-                Tiers read <Unit value={tiersHeldFor} /> ago
-              </ReadoutCaption>
-            )}
             {/* ONE absence marker for the grid plus whatever an Uplink appends, so a section that answered takes it off screen. */}
             <AutoEmptyState
               gap="related-comfortable"
@@ -149,6 +141,7 @@ export function SpaceCenterStatusView({
                       anyTierText={anyTierText}
                       upgradesEnabled={upgradesEnabled}
                       careerFunds={careerFunds}
+                      tiersHeldSince={tiersHeldSince}
                       upgradeBlocked={upgradeBlocked}
                       upgradeCmd={upgradeCmd}
                     />

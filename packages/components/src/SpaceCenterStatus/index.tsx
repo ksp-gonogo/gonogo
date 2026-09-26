@@ -8,11 +8,9 @@ import {
 } from "@ksp-gonogo/core";
 import {
   META_VANTAGE,
-  observedAt,
   type SpaceCenterState,
   useCommand,
   useStream,
-  useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import { readingOf, stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import { useContributions, usePanelDelay } from "@ksp-gonogo/ui-kit";
@@ -94,19 +92,14 @@ function SpaceCenterStatusComponent({
   const facilities = facilityLevelsFrom(
     useContributions("space-center-status.facilities"),
   );
-  const viewUt = useViewUt();
   const stockHoldsTheGrid = getContributionsForSlot(
     "space-center-status.facilities",
   ).some((def) => def.id === STOCK_FACILITY_CONTRIBUTION_ID);
-  const tiersObservedUt = observedAt(facilitiesReading);
-  // How old the tiers on screen are, nothing while current, and captioned only while the stock contribution holds the winning band, so a live contributor's grid is never dated by the stock channel's staleness.
-  const tiersHeldFor =
-    stockHoldsTheGrid &&
-    facilitiesReading.state === "stale" &&
-    viewUt &&
-    tiersObservedUt
-      ? viewUt.minus(tiersObservedUt)
-      : undefined;
+  // Marked only while the stock contribution holds the winning band, so a live contributor's grid is never marked by the stock channel's staleness.
+  const tiersHeldSince =
+    stockHoldsTheGrid && facilitiesReading.state === "stale"
+      ? { asOfUt: facilitiesReading.asOfUt, grade: facilitiesReading.grade }
+      : null;
 
   // Upgrades work in the Space Center scene only; an unknown or held scene grants no permission to spend, since the player may have walked out since.
   const upgradesEnabled = scene === "SpaceCenter";
@@ -125,7 +118,7 @@ function SpaceCenterStatusComponent({
       chargesFunds={chargesFunds}
       padOccupied={padOccupied}
       padLine={padLine}
-      tiersHeldFor={tiersHeldFor}
+      tiersHeldSince={tiersHeldSince}
       facilities={facilities}
       upgradesEnabled={upgradesEnabled}
       upgradeBlocked={upgradeBlocked}

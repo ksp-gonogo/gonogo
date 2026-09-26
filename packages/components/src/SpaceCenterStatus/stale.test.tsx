@@ -191,7 +191,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     );
 
     // Each moves only when the player does something, which cannot happen down a dead link.
-    expect(screen.getByLabelText("Launch Pad tier 2 of 3")).toBeTruthy();
+    expect(screen.getByLabelText(/^Launch Pad tier 2 of 3/)).toBeTruthy();
     expect(screen.queryByLabelText("Launch Pad tier unknown")).toBeNull();
     expect(visibleText(container)).toContain("150.0k");
     // Last site is a claim about a launch that already happened.
