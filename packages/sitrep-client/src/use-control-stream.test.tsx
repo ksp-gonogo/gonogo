@@ -15,7 +15,7 @@ import { ViewClock } from "./view-clock";
  * `@ksp-gonogo/components`' `setupStreamFixture`, which sits above it in
  * the dependency graph).
  */
-function setupFixture() {
+function setupFixture({ suspendFrames = false } = {}) {
   const wall = createFakeWallClock();
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
@@ -25,6 +25,7 @@ function setupFixture() {
     delaySeconds: () => 0,
   });
   const store = new TimelineStore(clock);
+  if (suspendFrames) clock.suspendFrames();
 
   function Provider({ children }: { children: React.ReactNode }) {
     return (
@@ -34,7 +35,13 @@ function setupFixture() {
     );
   }
 
-  return { transport, client, store, wall, Provider };
+  /** One frame through the clock and the store both, which is what a live animation frame delivers. */
+  function emitFrame() {
+    clock.emitFrame();
+    store.beginFrame();
+  }
+
+  return { transport, client, store, wall, Provider, emitFrame };
 }
 
 // A probe that renders the hook's return as inspectable text.
@@ -70,7 +77,7 @@ describe("useControlStream", () => {
   });
 
   it("sends nothing and logs no command while the value is null, even with a readback arriving", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.useFakeTimers();
     const { transport, wall } = mountProbe(null);
     act(() => {
       transport.emit("comms.delay", { oneWaySeconds: 1 });
@@ -88,12 +95,18 @@ describe("useControlStream", () => {
   });
 
   it("sends a value it is given, so the null case above is not passing on a stream that never sends", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.useFakeTimers();
     const { transport } = mountProbe(0.5);
+    expect(transport.sentCommands).toEqual([]);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(300);
     });
-    expect(transport.sentCommands.length).toBeGreaterThan(0);
+    expect(transport.sentCommands).toEqual([
+      expect.objectContaining({
+        command: "vessel.control.setThrottle",
+        args: { value: 0.5 },
+      }),
+    ]);
   });
 
   it("surfaces the channel label and the one-way delay from comms.delay", async () => {
@@ -215,7 +228,7 @@ describe("useControlStream at the craft's own vantage", () => {
   const CRAFT = "vessel:abc-123";
 
   function mountAtVantage(vantage: string | undefined) {
-    const fixture = setupFixture();
+    const fixture = setupFixture({ suspendFrames: true });
     render(
       <fixture.Provider>
         <Probe value={0.5} />
@@ -247,7 +260,7 @@ describe("useControlStream at the craft's own vantage", () => {
         );
       }
       if (vantage) fixture.client.setVantage(vantage);
-      fixture.store.beginFrame();
+      fixture.emitFrame();
     });
     return fixture;
   }
