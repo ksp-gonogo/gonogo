@@ -87,8 +87,9 @@ function computeDomain(
   thresholds: readonly LineGraphThreshold[],
 ): [number, number] {
   const ys: number[] = [];
-  for (const s of series) for (const p of s.points) ys.push(p.y);
-  for (const t of thresholds) ys.push(t.value);
+  for (const s of series)
+    for (const p of s.points) if (Number.isFinite(p.y)) ys.push(p.y);
+  for (const t of thresholds) if (Number.isFinite(t.value)) ys.push(t.value);
   if (ys.length === 0) return [0, 1];
   let min = ys[0];
   let max = ys[0];
@@ -116,6 +117,20 @@ function splitAtBreaks(
   points: ReadonlyArray<{ x: number; y: number }>,
   breaks: readonly number[] | undefined,
 ): Array<ReadonlyArray<{ x: number; y: number }>> {
+  /* A sample that is not a finite number is a hole, the same as a stated
+     break: the stroke stops before it and resumes after it. */
+  const holes = points.flatMap((p, i) =>
+    Number.isFinite(p.x) && Number.isFinite(p.y) ? [] : [i],
+  );
+  if (holes.length > 0) {
+    const finite = points.filter(
+      (p) => Number.isFinite(p.x) && Number.isFinite(p.y),
+    );
+    const shifted = [...(breaks ?? []), ...holes]
+      .map((cut) => cut - holes.filter((h) => h < cut).length)
+      .filter((cut, i, all) => all.indexOf(cut) === i);
+    return splitAtBreaks(finite, shifted);
+  }
   if (!breaks || breaks.length === 0) return [points];
   const runs: Array<ReadonlyArray<{ x: number; y: number }>> = [];
   const cuts = [...new Set(breaks)]
@@ -132,7 +147,8 @@ function splitAtBreaks(
 
 function computeXDomain(series: readonly LineGraphSeries[]): [number, number] {
   const xs: number[] = [];
-  for (const s of series) for (const p of s.points) xs.push(p.x);
+  for (const s of series)
+    for (const p of s.points) if (Number.isFinite(p.x)) xs.push(p.x);
   if (xs.length === 0) return [0, 1];
   let min = xs[0];
   let max = xs[0];
