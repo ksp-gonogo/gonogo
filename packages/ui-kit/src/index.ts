@@ -94,7 +94,7 @@ export {
 // `Unit`'s interval twin: a quantity that arrived as a range stays one, because
 // the width of a mean orbital element is the number that says whether the orbit
 // is stable.
-export { Band, type BandProps } from "./Band";
+export { Band, type BandProps, INTERVAL_DASH } from "./Band";
 /**
  * `Block` is the arrangement of a record and `Card` is that same arrangement on
  * a sunken surface. Both are compound, and their parts are ONE set of objects:

@@ -1,7 +1,7 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
-import { Band } from "./Band";
+import { Band, INTERVAL_DASH } from "./Band";
 import { NULL_DISPLAY } from "./NullValue";
 
 describe("Band", () => {
@@ -86,7 +86,7 @@ describe("Band", () => {
     );
 
     expect(container.textContent).toContain("~");
-    expect(container.textContent).not.toContain("–");
+    expect(container.textContent).not.toContain(INTERVAL_DASH);
     // Once, not twice: the whole point is that the second figure said nothing.
     expect(container.textContent?.match(/6\.7/g)).toHaveLength(1);
   });
@@ -110,7 +110,7 @@ describe("Band", () => {
     );
 
     expect(container.textContent).toContain("~");
-    expect(container.textContent).not.toContain("–");
+    expect(container.textContent).not.toContain(INTERVAL_DASH);
     expect(container.textContent).not.toContain("65.286800");
   });
 
@@ -124,7 +124,7 @@ describe("Band", () => {
     );
 
     expect(container.textContent).toContain("~");
-    expect(container.textContent).not.toContain("–");
+    expect(container.textContent).not.toContain(INTERVAL_DASH);
     expect(container.textContent?.match(/65\.3/g)).toHaveLength(1);
   });
 
@@ -179,7 +179,7 @@ describe("Band", () => {
 
   /**
    * A circular quantity spanning half the turn or more has no interval left:
-   * every value is inside it, and `0° – 359°` states the opposite of what is
+   * every value is inside it, and `0° - 359°` states the opposite of what is
    * true. The renderer decides this, not the caller, because three different
    * formatters would otherwise each have to know the rule.
    */

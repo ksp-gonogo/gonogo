@@ -10,6 +10,19 @@ import {
 } from "./UnitSharedFormat";
 import { VisuallyHidden } from "./VisuallyHidden";
 
+/**
+ * The ONE sanctioned en dash in the codebase: the interval separator between a
+ * band's two ends. It is drawn `aria-hidden`, because a screen reader is given
+ * the interval in words rather than as a character.
+ *
+ * `packages/core/src/styleguide-punctuation-dashes.test.ts` fails the build on
+ * any other non-ASCII dash, allowing exactly this definition, the same standing
+ * `NULL_DISPLAY` has in `NullValue.tsx`. A caller asserting on the separator
+ * imports this rather than writing the character again, which is what keeps
+ * the allowance at one.
+ */
+export const INTERVAL_DASH = "–";
+
 export interface BandProps<U extends string = string>
   extends Pick<UnitProps<U>, "decimals" | "format" | "as"> {
   /** The low end of the interval. */
@@ -45,7 +58,7 @@ export interface BandProps<U extends string = string>
  * does for the same reason.</p>
  *
  * <p><b>Both ends are ONE group, and this component does not format either of
- * them.</b> Two independent ladders print `999 m – 1.0 km`, which is one
+ * them.</b> Two independent ladders print `999 m - 1.0 km`, which is one
  * interval written in two units and a width the reader has to convert before
  * they can see it. So the ends are wrapped in a `<UnitSharedFormat>` and
  * nothing else: they report into it, it settles both the rung and the digit
@@ -55,7 +68,7 @@ export interface BandProps<U extends string = string>
  * ends only means something once they are written in the same unit.</p>
  *
  * <p><b>Modular quantities get a state of their own.</b> An angle whose band
- * spans half the turn or more has no interval: printing `0° – 359°` says the
+ * spans half the turn or more has no interval: printing `0° - 359°` says the
  * opposite of what is true. Callers pass `wrapsAt` for a circular quantity, and
  * the renderer decides when the interval has stopped existing rather than each
  * caller knowing the rule.</p>
@@ -98,7 +111,7 @@ export function Band<U extends string = string>({
  * The ends, drawn once the group has settled how both of them are written.
  *
  * <p><b>Two ends that come out as the same text are drawn ONCE, marked
- * approximate.</b> `65.3 km – 65.3 km` offers a width and then prints none:
+ * approximate.</b> `65.3 km - 65.3 km` offers a width and then prints none:
  * the reader is shown two numbers, told they are different, and cannot see any
  * difference. `~65.3 km` says the one thing that is true, which is that the
  * band is about this figure and its width is below what this display can
@@ -156,7 +169,7 @@ function BandEnds<U extends string = string>({
   return (
     <Band__Body className={className}>
       <Unit value={min} />
-      <Band__Dash aria-hidden="true">–</Band__Dash>
+      <Band__Dash aria-hidden="true">{INTERVAL_DASH}</Band__Dash>
       <VisuallyHidden> to </VisuallyHidden>
       <Unit value={max} />
     </Band__Body>
