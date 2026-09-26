@@ -14,8 +14,15 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { build, type Plugin } from "esbuild";
-import { chromium, firefox, type Page, webkit } from "playwright";
+import {
+  type CDPSession,
+  chromium,
+  firefox,
+  type Page,
+  webkit,
+} from "playwright";
 import { fixtureProfiles, getInstallProfile } from "../src/test/installProfile";
+import { jetbrainsMonoFontFace } from "./jetbrainsMonoFontFace";
 import type { ScreenProbePayload } from "./probe/screen-entry";
 
 const require = createRequire(import.meta.url);
@@ -372,6 +379,19 @@ export async function renderWidgets(
     await proveOverlapDetectorWorks(page);
     await proveClipDetectorWorks(page);
 
+    /*
+     * CSS.getPlatformFontsForNode is a DevTools Protocol call, so the
+     * font-fallback check runs under chromium only. firefox/webkit renders
+     * (cross-browser review shots) still get every other check.
+     */
+    const cdp =
+      engine === "chromium" ? await context.newCDPSession(page) : undefined;
+    if (cdp) {
+      await cdp.send("DOM.enable");
+      await cdp.send("CSS.enable");
+      await proveFontDetectorWorks(page, cdp);
+    }
+
     for (const config of configs) {
       // A config can force full-content capture for itself (e.g. LandingStatus,
       // whose composed instrument scrolls in a real cell) even when the caller
@@ -386,6 +406,7 @@ export async function renderWidgets(
         opts.profile,
         opts.fixture,
         opts.gridCell ?? false,
+        cdp,
       );
     }
 
@@ -399,6 +420,18 @@ export async function renderWidgets(
           "\n(A missing click selector is the usual cause: an interaction mode " +
           "whose control has been renamed, moved behind a condition the fixture " +
           "no longer meets, or dropped.)",
+      );
+    }
+
+    if (findings.fontFallbacks.length > 0) {
+      throw new Error(
+        `${findings.fontFallbacks.length} text node(s) drawn in a font other than ` +
+          "JetBrains Mono:\n  " +
+          findings.fontFallbacks.join("\n  ") +
+          "\n(The glyph is outside every face packages/app/src/styles/fonts.css " +
+          "bundles, so Chromium silently drew it in a system font instead. " +
+          "Bundle a face that covers it there, or draw the text in a glyph " +
+          "the bundled faces carry.)",
       );
     }
 
@@ -1445,6 +1478,188 @@ async function proveClipDetectorWorks(page: Page): Promise<void> {
   }
 }
 
+const EXPECTED_FONT_FAMILY = "JetBrains Mono";
+
+/**
+ * True when Chromium resolved a text run to a self-hosted JetBrains Mono
+ * face, of whatever weight.
+ *
+ * `CSS.getPlatformFontsForNode`'s `familyName` is the font file's own
+ * NAME-table family (id 1), not the typographic family (id 16). Legacy
+ * OpenType naming carries only regular/bold/italic/bold-italic under one
+ * family, so the 600 face names itself "JetBrains Mono SemiBold". A prefix
+ * match accepts every weight this font ships and still catches a genuine
+ * fallback (Menlo, DejaVu Sans Mono, Liberation Mono), none of which start
+ * with this string.
+ */
+function isJetBrainsMonoFace(familyName: string): boolean {
+  return familyName.startsWith(EXPECTED_FONT_FAMILY);
+}
+
+/** The CDP DOM tree shape `findFontFallbacks` walks, named off `describeNode`'s
+ *  own return so it never has to duplicate the DevTools Protocol's DOM.Node type. */
+async function describeSubtree(cdp: CDPSession, nodeId: number) {
+  const { node } = await cdp.send("DOM.describeNode", {
+    nodeId,
+    depth: -1,
+    pierce: true,
+  });
+  return node;
+}
+type CdpDomNode = Awaited<ReturnType<typeof describeSubtree>>;
+
+/**
+ * Every text node under `#root` that Chromium actually drew in a font other
+ * than JetBrains Mono, reported as `<tag#id.class> "text" drawn in <family>`.
+ *
+ * `getComputedStyle().fontFamily` only reports what the page ASKED for: a
+ * stack ending `, monospace` reads identically whether every glyph landed in
+ * JetBrains Mono or the engine walked off the end of it for one character and
+ * drew that one in a system font. `CSS.getPlatformFontsForNode` is the one
+ * instrument that reports back the RESOLVED platform font per text run,
+ * which is why this is a DevTools Protocol call rather than a
+ * `page.evaluate`, and why the gate is chromium-only.
+ *
+ * A node returned by `DOM.describeNode` carries a `backendNodeId` even when
+ * it has never been "pushed" to the frontend, but its `nodeId` (what
+ * `CSS.getPlatformFontsForNode` needs) is 0 until it has. So the walk
+ * collects every non-blank text node's backend id first, then pushes them
+ * all to the frontend in one batch and asks about each real nodeId that
+ * comes back, rather than pushing one node at a time.
+ *
+ * `CSS.getPlatformFontsForNode` answers from the node's LAYOUT, not its DOM
+ * state, so a node queried in the same tick as the mutation that created it
+ * comes back with an empty `fonts` array: the text is there, but nothing has
+ * shaped it yet. A double `requestAnimationFrame` first (the idiom
+ * `renderOneWidget` uses to settle a `fullContent` grow) lets a mutation that
+ * just landed reach layout.
+ */
+async function findFontFallbacks(
+  page: Page,
+  cdp: CDPSession,
+): Promise<string[]> {
+  await page.evaluate(
+    () =>
+      new Promise<void>((res) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => res()));
+      }),
+  );
+  const { root: docRoot } = await cdp.send("DOM.getDocument", { depth: 0 });
+  const { nodeId: rootNodeId } = await cdp.send("DOM.querySelector", {
+    nodeId: docRoot.nodeId,
+    selector: "#root",
+  });
+  if (!rootNodeId) return [];
+  const root = await describeSubtree(cdp, rootNodeId);
+
+  const leaves: { backendNodeId: number; text: string; label: string }[] = [];
+  const walk = (node: CdpDomNode, ancestorLabel: string): void => {
+    if (node.nodeType === 3) {
+      const text = (node.nodeValue ?? "").trim();
+      if (text.length > 0 && node.backendNodeId !== undefined) {
+        leaves.push({
+          backendNodeId: node.backendNodeId,
+          text,
+          label: ancestorLabel,
+        });
+      }
+      return;
+    }
+    const label =
+      node.nodeType === 1 ? describeCdpElement(node) : ancestorLabel;
+    for (const child of node.children ?? []) walk(child, label);
+  };
+  walk(root, "#root");
+  if (leaves.length === 0) return [];
+
+  const { nodeIds } = await cdp.send("DOM.pushNodesByBackendIdsToFrontend", {
+    backendNodeIds: leaves.map((l) => l.backendNodeId),
+  });
+
+  const out: string[] = [];
+  for (let i = 0; i < leaves.length; i++) {
+    const nodeId = nodeIds[i];
+    if (!nodeId) continue;
+    let fonts: { familyName: string }[];
+    try {
+      ({ fonts } = await cdp.send("CSS.getPlatformFontsForNode", { nodeId }));
+    } catch {
+      continue; // detached between the walk and the batch push
+    }
+    const bad = fonts.filter((f) => !isJetBrainsMonoFace(f.familyName));
+    if (bad.length > 0) {
+      const families = [...new Set(bad.map((f) => f.familyName))].join(", ");
+      out.push(
+        `${leaves[i].label} "${leaves[i].text.slice(0, 40)}" drawn in ${families}`,
+      );
+    }
+  }
+  return out;
+}
+
+function describeCdpElement(node: CdpDomNode): string {
+  const attrs = node.attributes ?? [];
+  const attr = (name: string) => {
+    const i = attrs.indexOf(name);
+    return i >= 0 ? attrs[i + 1] : undefined;
+  };
+  const id = attr("id");
+  const cls = attr("class")?.trim().split(/\s+/)[0];
+  return `<${node.nodeName.toLowerCase()}${id ? `#${id}` : ""}${cls ? `.${cls}` : ""}>`;
+}
+
+/**
+ * The font-fallback detector is shown a wrong font before its silence is
+ * believed, same contract and same reason as {@link proveOverlapDetectorWorks}
+ * and {@link proveClipDetectorWorks}: a clean run and a blind instrument look
+ * identical from the outside.
+ *
+ * `font-family: "Courier New"` rather than a made-up name: Chromium needs a
+ * face it will actually try to resolve, and whatever it resolves to on the
+ * host (Courier New on macOS, Liberation Mono on most Linux CI images) is
+ * never JetBrains Mono either way, so the fired case is portable across CI
+ * engines without hardcoding a platform's fallback name.
+ */
+async function proveFontDetectorWorks(
+  page: Page,
+  cdp: CDPSession,
+): Promise<void> {
+  await page.evaluate(() => {
+    const host = document.getElementById("root");
+    if (!host) throw new Error("Probe: #root missing before the font check");
+    const box = document.createElement("div");
+    box.id = "font-detector-selfcheck";
+    box.innerHTML = `
+      <div id="fires-wrong-font" style="font-family:'Courier New',monospace">wrong font</div>
+      <div id="quiet-right-font" style="font-family:'JetBrains Mono',monospace">right font</div>`;
+    host.appendChild(box);
+  });
+  const found = await findFontFallbacks(page, cdp);
+  await page.evaluate(() =>
+    document.getElementById("font-detector-selfcheck")?.remove(),
+  );
+
+  const fired = found.some((f) => f.includes("fires-wrong-font"));
+  const misfired = found.filter((f) => f.includes("quiet-right-font"));
+  if (!fired) {
+    throw new Error(
+      "The font-fallback detector is BLIND: a deliberately wrong " +
+        "font-family ('Courier New' on a div the page never gave a JetBrains " +
+        "Mono face) was not reported, so a clean run proves nothing about the " +
+        "widgets.\n" +
+        `What it did report: ${found.length === 0 ? "nothing" : found.join("; ")}`,
+    );
+  }
+  if (misfired.length > 0) {
+    throw new Error(
+      "The font-fallback detector reported a face this codebase self-hosts " +
+        "and asked for by name, so its verdict on a widget cannot be trusted " +
+        "either:\n  " +
+        misfired.join("\n  "),
+    );
+  }
+}
+
 /**
  * Everything a run collects across every widget and reports once at the end.
  *
@@ -1472,6 +1687,8 @@ interface RenderFindings {
    * vocabulary invented before measuring would be.
    */
   clipSurvey: string[];
+  /** Text Chromium actually drew in a font other than JetBrains Mono. */
+  fontFallbacks: string[];
 }
 
 function noFindings(): RenderFindings {
@@ -1480,6 +1697,7 @@ function noFindings(): RenderFindings {
     overlaps: [],
     clipped: [],
     clipSurvey: [],
+    fontFallbacks: [],
     mounts: [],
   };
 }
@@ -1527,6 +1745,8 @@ async function renderOneWidget(
   onlyFixture?: string,
   /** Mount inside the dashboard cell; see `renderWidgets`' `gridCell`. */
   gridCell = false,
+  /** Chromium-only CDP session for the font-fallback gate; see `renderWidgets`. */
+  cdp?: CDPSession,
 ): Promise<void> {
   const fixturesDir = resolve(COMPONENTS_SRC, config.fixturesPath);
   const outDir = resolve(outBase, config.outPath);
@@ -1756,6 +1976,13 @@ async function renderOneWidget(
           `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${hidden}`,
         );
       }
+      if (cdp) {
+        for (const fallback of await findFontFallbacks(page, cdp)) {
+          findings.fontFallbacks.push(
+            `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${fallback}`,
+          );
+        }
+      }
       if (process.env.PROBE_REPORT_CLIPPING === "1") {
         if (fullContent) {
           throw new Error(
@@ -1864,7 +2091,7 @@ const cssSideEffectPlugin: Plugin = {
   setup(pluginBuild) {
     pluginBuild.onResolve({ filter: /\.css$/ }, (args) => {
       // Resolve via NODE's own resolver (the same `require.resolve` approach
-      // `jetbrainsMonoFontFace` below uses for its woff2 files) rather than
+      // `jetbrainsMonoFontFace` uses for its @fontsource CSS) rather than
       // `pluginBuild.resolve()`. The latter re-enters esbuild's onResolve
       // pipeline: including THIS callback, which matches the same `.css`
       // filter: and esbuild does not dedupe that self-recursion; it hung /
@@ -1945,25 +2172,6 @@ export async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
   );
   await writeFile(probeHtmlOut, htmlWithBundle, "utf8");
   return probeHtmlOut;
-}
-
-/** Inline JetBrains Mono as a data-URI @font-face so file:// renders use the
- *  locked font deterministically, matching the app's self-hosted face. */
-async function jetbrainsMonoFontFace(): Promise<string> {
-  // @fontsource ships the woff2 under files/. Resolve via the package.
-  const regular = require.resolve(
-    "@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2",
-  );
-  const bold = require.resolve(
-    "@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff2",
-  );
-  const b64 = async (p: string) => (await readFile(p)).toString("base64");
-  return `
-    @font-face{font-family:"JetBrains Mono";font-weight:400;font-style:normal;
-      src:url(data:font/woff2;base64,${await b64(regular)}) format("woff2");}
-    @font-face{font-family:"JetBrains Mono";font-weight:700;font-style:normal;
-      src:url(data:font/woff2;base64,${await b64(bold)}) format("woff2");}
-  `;
 }
 
 /**

@@ -338,42 +338,61 @@ export interface FontFace {
 }
 
 /**
- * JetBrains Mono inlined as a data URI, matching the app's self-hosted face.
+ * The JetBrains Mono weights the app self-hosts. Each names an @fontsource
+ * `<weight>.css`, which declares one face per subset it ships with that
+ * subset's `unicode-range`, so Greek, Cyrillic and Latin Extended text is drawn
+ * in the locked font too rather than in a system fallback.
+ */
+export const JETBRAINS_MONO_WEIGHTS = [400, 600, 700] as const;
+
+/**
+ * JetBrains Mono inlined as data URIs, matching the app's self-hosted faces.
  *
  * An OPTIONAL peer, and the run reports which mode it is in rather than letting
  * someone find out from a diff: with the face absent a render uses whatever the
  * machine has, which is acceptable for a docs screenshot and disqualifying for a
- * pixel comparison. The four copied harnesses inlined nothing at all, so every
- * Uplink render to date has been in the machine's fallback font silently.
+ * pixel comparison.
  */
 export function jetbrainsMonoFace(): FontFace {
-  const files = [
-    { weight: 400, path: "jetbrains-mono-latin-400-normal.woff2" },
-    { weight: 700, path: "jetbrains-mono-latin-700-normal.woff2" },
-  ];
+  let sheets: { weight: number; css: string }[];
+  try {
+    sheets = JETBRAINS_MONO_WEIGHTS.map((weight) => ({
+      weight,
+      css: readFileSync(
+        require.resolve(`@fontsource/jetbrains-mono/${weight}.css`),
+        "utf8",
+      ),
+    }));
+  } catch {
+    return {
+      mode: "fallback",
+      css: "",
+      advice:
+        "@fontsource/jetbrains-mono is not installed, so this render uses " +
+        "the machine's fallback monospace font. Fine for a docs " +
+        "screenshot, not comparable across machines. Install it with " +
+        "`pnpm add -D @fontsource/jetbrains-mono`.",
+    };
+  }
   const faces: string[] = [];
-  for (const file of files) {
-    let resolved: string;
-    try {
-      resolved = require.resolve(
-        `@fontsource/jetbrains-mono/files/${file.path}`,
+  for (const { weight, css } of sheets) {
+    for (const [, block] of css.matchAll(/@font-face\s*\{([^}]*)\}/g)) {
+      const file = /url\(\.\/files\/([\w.-]+\.woff2)\)/.exec(block)?.[1];
+      if (!file) {
+        throw new Error(
+          `gonogo-uplink: an @font-face in @fontsource/jetbrains-mono/${weight}.css has no woff2 src`,
+        );
+      }
+      const range = /unicode-range:\s*([^;]+);/.exec(block)?.[1];
+      const b64 = readFileSync(
+        require.resolve(`@fontsource/jetbrains-mono/files/${file}`),
+      ).toString("base64");
+      faces.push(
+        `@font-face{font-family:"JetBrains Mono";font-weight:${weight};` +
+          `font-style:normal;src:url(data:font/woff2;base64,${b64}) format("woff2");` +
+          `${range ? `unicode-range:${range.trim()};` : ""}}`,
       );
-    } catch {
-      return {
-        mode: "fallback",
-        css: "",
-        advice:
-          "@fontsource/jetbrains-mono is not installed, so this render uses " +
-          "the machine's fallback monospace font. Fine for a docs " +
-          "screenshot, not comparable across machines. Install it with " +
-          "`pnpm add -D @fontsource/jetbrains-mono`.",
-      };
     }
-    const b64 = readFileSync(resolved).toString("base64");
-    faces.push(
-      `@font-face{font-family:"JetBrains Mono";font-weight:${file.weight};` +
-        `font-style:normal;src:url(data:font/woff2;base64,${b64}) format("woff2");}`,
-    );
   }
   return { mode: "locked", css: faces.join("\n") };
 }

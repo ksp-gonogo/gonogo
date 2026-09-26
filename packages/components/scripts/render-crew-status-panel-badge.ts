@@ -48,6 +48,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { build, type Plugin } from "esbuild";
 import { chromium } from "playwright";
 import type { CrewBadgeProbePayload } from "./crew-badge-probe/crew-badge-probe-entry";
+import { jetbrainsMonoFontFace } from "./jetbrainsMonoFontFace";
 
 const require = createRequire(import.meta.url);
 
@@ -207,28 +208,6 @@ async function main(): Promise<void> {
   } finally {
     await browser.close();
   }
-}
-
-/** Inline JetBrains Mono as a data-URI @font-face so the file:// render uses
- *  the locked font deterministically, matching the app's self-hosted face.
- *  Verbatim copy of `widgetRenderHarness.ts`'s own helper; not exported from
- *  there, and small enough that duplicating it here (as `render-provenance-
- *  card.ts` already does for its own helpers) is simpler than exporting a
- *  new shared surface for one caller. */
-async function jetbrainsMonoFontFace(): Promise<string> {
-  const regular = require.resolve(
-    "@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2",
-  );
-  const bold = require.resolve(
-    "@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff2",
-  );
-  const b64 = async (p: string) => (await readFile(p)).toString("base64");
-  return `
-    @font-face{font-family:"JetBrains Mono";font-weight:400;font-style:normal;
-      src:url(data:font/woff2;base64,${await b64(regular)}) format("woff2");}
-    @font-face{font-family:"JetBrains Mono";font-weight:700;font-style:normal;
-      src:url(data:font/woff2;base64,${await b64(bold)}) format("woff2");}
-  `;
 }
 
 /** The theme sheet whole, checked to be the tokens file. The border-box reset

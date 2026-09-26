@@ -207,6 +207,14 @@ jobs:
       # demonstrated it can fail.
       - run: pnpm --filter @ksp-gonogo/components overlap-gate
 
+      # Font-fallback gate: does any widget draw a glyph in something other
+      # than JetBrains Mono? The detector lives in the harness and runs on
+      # every chromium render; this step is what makes a finding blocking.
+      # Chromium only, same MIN_WIDGETS refusal as the overlap gate, and the
+      # detector plants a deliberately wrong font-family on every run and
+      # throws if it does not catch it.
+      - run: pnpm --filter @ksp-gonogo/components font-gate
+
       # `asyncapi.yaml`, the core contract's wire surface, regenerated and
       # diffed against the committed file. Beside the README because it is the
       # answer to "what does this thing publish and what can I send it", and it

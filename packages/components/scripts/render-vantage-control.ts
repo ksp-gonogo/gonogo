@@ -29,6 +29,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { build, type Plugin } from "esbuild";
 import { chromium } from "playwright";
+import { jetbrainsMonoFontFace } from "./jetbrainsMonoFontFace";
 
 const require = createRequire(import.meta.url);
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -67,24 +68,6 @@ function themeCss(css: string): string {
     throw new Error("tokens.css: no :root block found");
   }
   return css;
-}
-
-/** Inline JetBrains Mono as a data-URI @font-face, matching every other
- *  probe render's deterministic font. */
-async function jetbrainsMonoFontFace(): Promise<string> {
-  const regular = require.resolve(
-    "@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2",
-  );
-  const bold = require.resolve(
-    "@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff2",
-  );
-  const b64 = async (p: string) => (await readFile(p)).toString("base64");
-  return `
-    @font-face{font-family:"JetBrains Mono";font-weight:400;font-style:normal;
-      src:url(data:font/woff2;base64,${await b64(regular)}) format("woff2");}
-    @font-face{font-family:"JetBrains Mono";font-weight:700;font-style:normal;
-      src:url(data:font/woff2;base64,${await b64(bold)}) format("woff2");}
-  `;
 }
 
 interface VantageState {
