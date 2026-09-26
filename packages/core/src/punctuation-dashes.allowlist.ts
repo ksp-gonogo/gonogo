@@ -19,7 +19,6 @@
  * and which two are deliberately not.
  */
 export const PUNCTUATION_DASH_DEBT: Record<string, number> = {
-  ".serena/project.yml": 1,
   "CLAUDE.md": 1,
   "asyncapi.yaml": 14,
   "docs/DEPLOYMENT.md": 2,
