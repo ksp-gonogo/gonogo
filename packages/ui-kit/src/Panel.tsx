@@ -978,7 +978,9 @@ function PanelFitBody({ children }: { children?: ReactNode }) {
   const fits = useContentFits(outerRef, innerRef);
   return (
     <PanelBody__FitOuter ref={outerRef} $fits={fits} data-panel-fit-body="">
-      <PanelBody__FitContent ref={innerRef}>{children}</PanelBody__FitContent>
+      <PanelBody__FitContent ref={innerRef} $fits={fits}>
+        {children}
+      </PanelBody__FitContent>
     </PanelBody__FitOuter>
   );
 }
@@ -1004,11 +1006,15 @@ const PanelBody__FitOuter = styled.div<{ $fits?: boolean }>`
     $fits ? "justify-content: center;" : "justify-content: flex-start;"}
 `;
 
-const PanelBody__FitContent = styled.div`
+const PanelBody__FitContent = styled.div<{ $fits?: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* Aligned the same way as the box around it. Squeezed to the box, this is
+     where content taller than the box overflows, so centring here would push
+     the first line up under the header whatever the box does. */
+  ${({ $fits }) =>
+    $fits ? "justify-content: center;" : "justify-content: flex-start;"}
   gap: var(--space-4, 4px);
   min-height: 0;
   /* A query container, so a tiny presentation can size its headline against the
@@ -1029,9 +1035,16 @@ const PanelBody__FitContent = styled.div`
  * widget on Firefox. Comparing the two heights asks no engine to agree about
  * anything.
  *
+ * Centred content taller than its box overflows it by the same amount above
+ * and below. Below is scrollable. Above, it may spend only the empty room
+ * between the box and whatever sits over it (see `roomAbove`). Past that it
+ * runs under the title, or out of the scroller's top, where no scroll can
+ * reach it. So the content fits while it is no taller than the box plus that
+ * room twice over.
+ *
  * Answers true when there is nothing to measure, which is what a test
- * environment with no ResizeObserver gets: at zero measured height content
- * trivially fits, and no layout is being asserted there anyway.
+ * environment with no layout gets: at zero measured height content trivially
+ * fits, and no layout is being asserted there anyway.
  */
 function useContentFits(
   boxRef: { current: HTMLElement | null },
@@ -1043,32 +1056,86 @@ function useContentFits(
     const content = contentRef.current;
     if (!box || !content) return;
     const measure = () => {
-      // Measured against the space under the HEADER, not against this box's own
-      // height, and the difference is the whole behaviour. `flex: 1` resolves
-      // this box to whatever is left, which at tiny-2x2 is 11px against a 24px
-      // readout, so comparing content to it says "does not fit" for a widget
-      // that visibly does. What the rule actually protects against is centring
-      // pushing the first line somewhere it cannot be read, so the question is
-      // whether the content fits the PANEL's content area.
-      const body = box.parentElement;
-      const header = body?.querySelector("[data-panel-header]");
-      const available =
-        body != null
-          ? body.clientHeight -
-            (header ? header.getBoundingClientRect().height : 0)
-          : box.clientHeight;
-      // scrollHeight, not clientHeight: the content box is what OVERFLOWS, and
-      // its own client height is capped by the parent it is overflowing.
-      setFits(content.scrollHeight <= available);
+      setFits(
+        contentFitsCentred(
+          contentExtent(content),
+          box.clientHeight,
+          roomAbove(box),
+        ),
+      );
     };
     measure();
     if (typeof ResizeObserver === "undefined") return;
+    /* The content box is squeezed to the box, so it stops resizing once its
+       children outgrow it. Each child is observed as well, and a child added
+       later is picked up as it arrives. */
     const observer = new ResizeObserver(measure);
-    observer.observe(box);
-    observer.observe(content);
-    return () => observer.disconnect();
+    const observeAll = () => {
+      observer.observe(box);
+      observer.observe(content);
+      for (const child of Array.from(content.children)) observer.observe(child);
+    };
+    observeAll();
+    const children = new MutationObserver(() => {
+      observeAll();
+      measure();
+    });
+    children.observe(content, { childList: true });
+    return () => {
+      observer.disconnect();
+      children.disconnect();
+    };
   }, [boxRef, contentRef]);
   return fits;
+}
+
+/**
+ * How tall the content is, whatever its box does: from the top of its first
+ * child to the bottom of its last. The box itself is squeezed to the room left
+ * under the header and its children overflow it, so its own height says
+ * nothing once they no longer fit, and its scroll height counts only the half
+ * of a centred overflow that went downwards.
+ */
+function contentExtent(content: HTMLElement): number {
+  const rects = Array.from(content.children, (child) =>
+    child.getBoundingClientRect(),
+  );
+  if (rects.length === 0) return content.scrollHeight;
+  return (
+    Math.max(...rects.map((r) => r.bottom)) -
+    Math.min(...rects.map((r) => r.top))
+  );
+}
+
+/**
+ * The room centred content may overflow into above its box. Under the header,
+ * that is the body's gap plus the empty inset at the foot of the title, which
+ * the transparent header draws nothing in. As the body's first child, it is
+ * the body's top padding.
+ */
+function roomAbove(box: HTMLElement): number {
+  const body = box.parentElement;
+  if (!body) return 0;
+  const style = getComputedStyle(body);
+  const above = box.previousElementSibling;
+  if (above === null) return Number.parseFloat(style.paddingTop) || 0;
+  const title = above.querySelector("[data-panel-header] h3");
+  const titleFoot = title ? getComputedStyle(title).paddingBottom : "0";
+  return (
+    (Number.parseFloat(style.rowGap) || 0) + (Number.parseFloat(titleFoot) || 0)
+  );
+}
+
+/**
+ * Whether content of `content` height, centred in a box `box` tall, keeps its
+ * top edge within `room` of the box's top.
+ */
+export function contentFitsCentred(
+  content: number,
+  box: number,
+  room: number,
+): boolean {
+  return content <= box + 2 * room;
 }
 
 const ScrollAreaRoot = styled.div`
