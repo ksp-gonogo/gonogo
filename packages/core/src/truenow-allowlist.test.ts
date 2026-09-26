@@ -11,8 +11,8 @@ import { describe, expect, it } from "vitest";
  * `DelayRole.TrueNow` means a channel skips gonogo's signal-delay reveal
  * gate entirely: it is read/write "as of now", not "as of ut - delay". That
  * is the right call for facts no place holds and no signal carries (uplink
- * health, DLC ownership, the body catalogue, the RA link-quality numbers
- * ABOUT the link itself). It is not the right call for a record held at the
+ * health, DLC ownership, the body catalogue, what KSC can establish about the
+ * link from its own end). It is not the right call for a record held at the
  * home command (career funds, the launch-site roster), which is
  * `HeldAtHome` and reaches each vantage after its own delay to home, and it
  * is never the right call for vessel
@@ -25,12 +25,11 @@ import { describe, expect, it } from "vitest";
  * Same shape as `uplink-boundary.test.ts`'s ratchet (seeded allowlist,
  * fails on new/removed/stale entries) but per-file COUNT rather than
  * per-file presence, because a single file can legitimately declare
- * several TrueNow channels (SpaceCenterUplink.cs has 7).
+ * several TrueNow channels (SystemUplink.cs has 4).
  *
  * Why a source scan, not runtime enumeration: every production uplink that
- * declares a TrueNow channel lives in a KSP-dependent assembly
- * (Gonogo.KSP, GonogoScansatUplink, GonogoRealAntennasUplink) that no test
- * project references: there is no way to load the real registered
+ * declares a TrueNow channel lives in a KSP-dependent assembly (Gonogo.KSP)
+ * that no test project references: there is no way to load the real registered
  * declarations at test time. This is the same ratchet shape as its sibling
  * uplink-boundary.test.ts, keyed on the TrueNow declaration form instead of
  * a mod token.
@@ -40,10 +39,11 @@ import { describe, expect, it } from "vitest";
  * scaffolding so a change to one can't silently reshape the other's scan.
  */
 
-// Matches the explicit declaration form:
-//   Delay = DelayRole.TrueNow,
-// The single `=` (not `==`) is what keeps this from matching the runtime
-// comparison `decl.Delay == DelayRole.TrueNow` in ChannelEngine.cs.
+/**
+ * Matches the explicit declaration form, `Delay = DelayRole.TrueNow,`. The
+ * single `=` (not `==`) is what keeps this from matching the runtime comparison
+ * `decl.Delay == DelayRole.TrueNow` in ChannelEngine.cs.
+ */
 const EXPLICIT_TRUENOW = /Delay\s*=\s*DelayRole\.TrueNow/g;
 
 /**
@@ -65,13 +65,13 @@ const COMMAND_ATTRIBUTE = /\[\s*SitrepCommand\s*\([^\]]*\)\s*\]/g;
 const channelsOnly = (source: string): string =>
   source.replace(COMMAND_ATTRIBUTE, " ");
 
-// Matches the helper-factory form used by CommsCoreUplink.cs and
-// RealAntennasUplink.cs: both the `private static ChannelDeclaration
-// TrueNow(string topic) => ...` declaration line itself and every
-// `TrueNow(SomeTopic)` call site. Counting call sites is deliberate: it
-// closes the hole where adding a new `TrueNow("comms.foo")` channel
-// through the helper would otherwise add no `Delay =` line for the
-// EXPLICIT_TRUENOW regex to catch.
+/**
+ * Matches the helper-factory form used by CommsCoreUplink.cs: both the
+ * `private static ChannelDeclaration TrueNow(string topic) => ...` declaration
+ * line itself and every `TrueNow(SomeTopic)` call site. Counting call sites is
+ * deliberate: a new `TrueNow("comms.foo")` channel built through the helper adds
+ * no `Delay =` line for EXPLICIT_TRUENOW to catch.
+ */
 const HELPER_TRUENOW = /(?<![.\w])TrueNow\s*\(/g;
 
 /**
@@ -81,10 +81,10 @@ const HELPER_TRUENOW = /(?<![.\w])TrueNow\s*\(/g;
  * match, the line inside its own body, no matter how many channels are built
  * through it.
  *
- * One exists today: `KerbalismUplink.Static(topic)` carries 1 channel and
- * scores 1, which happens to be the right number. The numbers in this file
- * total 37 against 31 real channels; the gap is the helper bodies and helper
- * declaration lines the counts below explain.
+ * One exists today: `VesselUplink.WarpChannel()` carries 1 channel and scores
+ * 1, which happens to be the right number. The numbers in this file total 23
+ * against 21 real channels; the gap is `CommsCoreUplink`'s helper body and
+ * helper declaration line, which its entry below explains.
  *
  * The hole itself is still open: a new helper under any other name hides every
  * channel after its first, so nothing asks whether the next one is ground-side.
@@ -194,33 +194,6 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // declaration line (also matches the call-site regex) = 7 helper matches.
   // 1 explicit + 7 helper = 8.
   "mod/Gonogo.KSP/CommsCoreUplink.cs": 8,
-
-  // kerbalism.available (whether the Kerbalism mod is INSTALLED, same
-  // install-fact class as scansat/kerbcast .available) + kerbalism.features
-  // (the profile's auto-detected feature toggles: a ground-side fact about
-  // the save's Kerbalism configuration, not a live vessel reading). Both via
-  // the `TrueNow(topic)` helper: 1 explicit `Delay =` line inside the helper
-  // body + 2 call sites + the helper's own declaration line = 3 helper
-  // matches. 1 explicit + 3 helper = 4.
-  //
-  // Plus kerbalism.profile, which carries the loaded profile's own rules,
-  // processes and resource definitions so the app can derive the resource
-  // graph without gonogo naming a resource. Same class as kerbalism.features
-  // and reviewed on the same grounds: it is the player's INSTALL talking about
-  // itself, read once at load from static config, and it cannot leak a vessel's
-  // future state because it carries no vessel state and never changes within a
-  // session. It rides its own `Static(topic)` helper rather than `TrueNow`
-  // (a much longer keyframe interval; a static payload should not re-emit at
-  // telemetry cadence), so it contributes exactly 1 more EXPLICIT match, the
-  // `Delay = DelayRole.TrueNow` line inside that helper. Its call site is
-  // `Static(ProfileTopic)`, which HELPER_TRUENOW does not match. 4 + 1 = 5.
-  // rp1.available: whether RP-1 is installed and managing the save, an install
-  // fact held nowhere. Declared inline, so this 1 is one channel.
-  //
-  // The other 25 rp1.* channels are HeldAtHome through the
-  // `AtHome` helper: RP-1's space centre (queues, complexes, payroll, Programs,
-  // Confidence) reaches each vantage after its delay to home. 1 explicit
-  // declaration.
 
   // system.uplinks (registered-uplink health/availability: a fact about
   // the MOD itself) + system.uplink.pending (what the centre dispatched
