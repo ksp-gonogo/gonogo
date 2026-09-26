@@ -35,9 +35,9 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  * Two of those three were found by a human opening a PNG, which is not a
  * gate. This is.
  *
- * A reference WITH a fallback (`var(--space-8, 8px)`) is deliberately not
- * flagged: the fallback is what makes it safe, and ui-kit uses that form on
- * purpose for a host that mounts no stylesheet at all.
+ * A reference WITH a fallback (`var(--example, 8px)`) is deliberately not
+ * flagged: the fallback is what makes it safe. A fallback on a name tokens.css
+ * declares is dead instead, and the spacing gate bans it.
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -242,7 +242,7 @@ describe("design-system: every token reference resolves", () => {
     // into noise, or the walk silently reads nothing and it passes forever.
     const declared = collectDeclared();
     expect(declared.has("--color-surface-panel")).toBe(true);
-    expect(declared.has("--space-8")).toBe(true);
+    expect(declared.has("--gap-related")).toBe(true);
     expect(declared.has("--color-token-that-does-not-exist")).toBe(false);
   });
 
@@ -264,9 +264,11 @@ describe("design-system: every token reference resolves", () => {
     expect(found("color: var(--color-surface-panel);"), "bare").toEqual([
       "--color-surface-panel",
     ]);
-    expect(found("color: var( --space-8 );"), "padded").toEqual(["--space-8"]);
+    expect(found("color: var( --gap-bogus );"), "padded").toEqual([
+      "--gap-bogus",
+    ]);
     expect(
-      found("gap: var(--space-8, 8px);"),
+      found("gap: var(--gap-bogus, 8px);"),
       "a fallback is what makes a reference safe, and must NOT be flagged",
     ).toEqual([]);
     expect(
