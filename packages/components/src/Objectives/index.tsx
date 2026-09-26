@@ -346,10 +346,7 @@ function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
               the frame agnostic of which sources exist; see the sibling rule on
               `Sections`. */}
           <EmptyFallbackWrap>
-            {/* The body already insets this section, so the empty state's own vertical padding would inset it twice, which at the 4x3 minimum pushes the line under the scroll glow. */}
-            <EmptyState role="status" style={{ paddingBlock: 0 }}>
-              No active objectives
-            </EmptyState>
+            <EmptyState role="status">No active objectives</EmptyState>
           </EmptyFallbackWrap>
         </Section>
       }
@@ -359,10 +356,7 @@ function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
 
 // The `:empty` frame-fallback machinery, and the reason these two stay styled-components: the rule below combines an `:empty` pseudo-class with an adjacent-sibling combinator, which an inline style cannot express, and it is what keeps the frame agnostic of which augments rendered.
 
-// Structural only: the sibling selector needs an element to target so the
-// fallback hides once any source has rendered content. No padding of its own:
-// EmptyState pads itself, and doubling up would inset this further than every
-// other widget's empty state.
+// Structural only: the sibling selector needs an element to target so the fallback hides once any source has rendered content.
 const EmptyFallbackWrap = styled.div``;
 
 const Sections = styled.div`
