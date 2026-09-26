@@ -1,6 +1,11 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
-import { STANDARD_GRAVITY, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  combineReadings,
+  STANDARD_GRAVITY,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { Gauge, type GaugeZone, Sparkline } from "@ksp-gonogo/ui";
 import {
   EmptyState,
@@ -59,9 +64,9 @@ const TONE_COLOR: Record<Tone, string> = {
   lost: "var(--color-status-nogo-bg)",
 };
 
-function toneFor(twr: number): Tone {
-  if (twr < 1) return "lost";
-  if (twr < 1.5) return "warn";
+function toneFor(twr: Value<"1">): Tone {
+  if (twr.lessThan(1)) return "lost";
+  if (twr.lessThan(1.5)) return "warn";
   return "ok";
 }
 
@@ -69,28 +74,27 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   // The wire carries thrust and mass, not their ratio, so the headline is the
   // same arithmetic as the sparkline on the latest reading.
   const propulsionReading = useTelemetry("vessel.propulsion");
-  const propulsion =
-    propulsionReading.state === "observed" ||
-    propulsionReading.state === "stale"
-      ? propulsionReading.value
-      : undefined;
-  const thrust = magnitudeOf(propulsion?.currentThrust);
-  const mass = magnitudeOf(propulsion?.totalMass);
-  const twr =
-    thrust === null || mass === null
-      ? undefined
-      : (twrOf(thrust, mass) ?? undefined);
+  const twrReading = combineReadings(
+    [propulsionReading.currentThrust, propulsionReading.totalMass],
+    (currentThrust, totalMass) => {
+      const thrust = magnitudeOf(currentThrust);
+      const mass = magnitudeOf(totalMass);
+      const ratio =
+        thrust === null || mass === null ? null : twrOf(thrust, mass);
+      return ratio === null || !Number.isFinite(ratio)
+        ? undefined
+        : value("1", ratio);
+    },
+  );
+  const twr = twrReading.value;
   /*
-   * The figure is HELD and captioned rather than withheld. This widget's whole
-   * content is the one number, and its empty state says there is no engine, so
-   * nulling a dated TWR would tell the operator something false about the
-   * craft rather than about the link.
-   *
-   * A caption rather than the mark `Gauge` can now draw, because the mark
-   * needs a `Reading` of the figure it draws, and this figure is arithmetic
-   * over one rather than an observation of its own.
+   * The figure is HELD rather than withheld. This widget's whole content is the
+   * one number, and its empty state says there is no engine, so nulling a dated
+   * TWR would tell the operator something false about the craft rather than
+   * about the link. The gauge marks it; the tiny layout, which draws no gauge,
+   * dims it.
    */
-  const twrNotCurrent = propulsionReading.state === "stale";
+  const twrNotCurrent = twrReading.state === "stale";
   // The sparkline history is computed here off `vessel.propulsion`'s own
   // history: the wire carries thrust and mass, not their ratio.
   const series = useComputedSeries(
@@ -153,7 +157,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
     return () => ro.disconnect();
   }, []);
 
-  if (twr === undefined || !Number.isFinite(twr)) {
+  if (twr === undefined) {
     return (
       <Panel
         panelTitle="TWR"
@@ -196,7 +200,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
                 ...(twrNotCurrent ? { opacity: 0.55 } : {}),
               }}
             >
-              {twr.toFixed(1)}
+              {writeQuantity(twr, { decimals: 1 })}
             </span>
           </Section>
         }
@@ -220,27 +224,16 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
             </Text>
           </Section>
         ),
-        twrNotCurrent && (
-          <Section key="dated" full>
-            {/* The fact and nothing else. The robotics console names WHICH
-                half of its panel is dated because it has several; this widget
-                draws one figure, so there is no ambiguity for a second clause
-                to resolve and it would be prose. */}
-            <Text tone="warn" size="xs" role="status" aria-live="polite">
-              TWR no longer current
-            </Text>
-          </Section>
-        ),
         <Section key="gauge" full>
           <div ref={gaugeRef} style={GAUGE_SLOT_STYLE}>
             <Gauge
-              value={value("1", twr)}
+              value={twrReading}
               min={GAUGE_MIN}
               max={GAUGE_MAX}
               zones={ZONES}
               width={gaugeW}
               height={gaugeH}
-              ariaLabel={`TWR ${writeQuantity(value("1", twr))}`}
+              ariaLabel={`TWR ${writeQuantity(twr)}`}
             />
           </div>
         </Section>,

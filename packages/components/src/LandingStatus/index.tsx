@@ -662,6 +662,10 @@ function LandingStatusComponent({
   const surfaceHeight = surface?.heightFromTerrain;
   const heightFromTerrain = surfaceHeight ?? flight?.altitudeTerrain;
   const usingComDatum = surfaceHeight == null && heightFromTerrain != null;
+  const aglReading =
+    surfaceHeight != null
+      ? readingOf(surfaceReading, (s) => s.heightFromTerrain ?? undefined)
+      : readingOf(flightReading, (f) => f.altitudeTerrain);
 
   const solution = solveSuicideBurn({
     heightFromTerrain: heightFromTerrain?.magnitude,
@@ -1301,7 +1305,7 @@ function LandingStatusComponent({
                   }}
                 >
                   <AltitudeRail
-                    aglMeters={heightFromTerrain?.magnitude ?? null}
+                    agl={aglReading}
                     ignitionAltitude={landed ? null : solution.ignitionAltitude}
                     suicideBurnCountdown={
                       landed ? null : solution.suicideBurnCountdown

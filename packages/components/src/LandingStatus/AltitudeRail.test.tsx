@@ -1,4 +1,6 @@
+import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import {
   expectNoA11yViolations,
   visibleText,
@@ -6,9 +8,20 @@ import {
 import { describe, expect, it } from "vitest";
 import { AltitudeRail } from "./AltitudeRail";
 
+const AT = value("ut", 12_000);
+
+function observed(m: number): Reading<Value<"m">> {
+  return {
+    state: "observed",
+    value: value("m", m),
+    atUt: AT,
+    reckoning: { status: "none" },
+  };
+}
+
 describe("AltitudeRail", () => {
   const descending = {
-    aglMeters: 1200,
+    agl: observed(1200),
     ignitionAltitude: 300,
     suicideBurnCountdown: 8,
   };
@@ -31,19 +44,40 @@ describe("AltitudeRail", () => {
     expect(screen.getByText(/past ignition/i)).toBeInTheDocument();
   });
 
-  it("survives a fully-null (pre-data) state without throwing", () => {
+  it("draws the null token rather than a height of zero before data arrives", () => {
     render(
       <AltitudeRail
-        aglMeters={null}
+        agl={{ state: "pending", reckoning: { status: "none" } }}
         ignitionAltitude={null}
         suicideBurnCountdown={null}
       />,
     );
-    // The ladder still renders, reporting 0 with no data.
+    expect(screen.queryByRole("meter")).toBeNull();
     expect(
-      screen.getByRole("meter", { name: /altitude above terrain/i }),
+      screen.getByRole("img", {
+        name: `Altitude above terrain: ${NULL_DISPLAY}`,
+      }),
     ).toBeInTheDocument();
     expect(screen.getByText(/no burn/i)).toBeInTheDocument();
+  });
+
+  it("holds a height that has stopped arriving and says so on the rail", () => {
+    render(
+      <AltitudeRail
+        {...descending}
+        agl={{
+          state: "stale",
+          value: value("m", 1200),
+          asOfUt: AT,
+          grade: "held-stale",
+          reckoning: { status: "none" },
+        }}
+      />,
+    );
+    const ladder = screen.getByRole("meter", {
+      name: /altitude above terrain.*stale/i,
+    });
+    expect(ladder).toHaveAttribute("aria-valuenow", "1200");
   });
 
   it("has no axe violations", async () => {

@@ -205,7 +205,11 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // host's derivation, because a host with a derivation to share is a host with
   // a privilege an outside author does not have. Three plots reading the same
   // four Topics unwrap them three times, on purpose.
-  "packages/components/src/LandingStatus/index.tsx": 19,
+  "packages/components/src/LandingStatus/index.tsx": 18,
+  // ONE: the altitude rail's top of scale is a 1/2/5 ceiling taken through a
+  // log10, which wants the height as a number. The height itself reaches the
+  // Tape as its whole reading.
+  "packages/components/src/LandingStatus/AltitudeRail.tsx": 1,
   // 7: the descent envelope's own layers, in the plot's own axes. The two
   // terminal anchors, the height and the speed set the frame and feed the
   // integration; the drag ratio scales a mark and the Mach number decides
