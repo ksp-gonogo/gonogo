@@ -230,3 +230,21 @@ describe("Gauge, handed a Reading", () => {
     await expectNoA11yViolations(container);
   });
 });
+
+describe("Gauge hover title", () => {
+  it("says what the accessible name says, not a bare magnitude", () => {
+    const { container } = render(
+      <Gauge
+        min={value("1", 0)}
+        max={value("1", 3)}
+        width={120}
+        height={80}
+        value={{ state: "pending", reckoning: { status: "none" } }}
+      />,
+    );
+    const svg = container.querySelector("svg[role='img']");
+    expect(svg?.querySelector("title")?.textContent).toBe(
+      svg?.getAttribute("aria-label"),
+    );
+  });
+});
