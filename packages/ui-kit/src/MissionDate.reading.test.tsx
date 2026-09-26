@@ -45,9 +45,9 @@ describe("MissionDate, handed a Reading", () => {
   it("still draws the date itself when it is no longer current", () => {
     const bare = render(<MissionDate value={AT} />).container.textContent;
     const { container } = render(<MissionDate value={held(AT)} />);
-    // A stale instant stays true, so the date is unchanged; only the mark is
-    // added. This is the whole difference from a figure.
-    expect(container.textContent).toBe(bare);
+    // A stale instant stays true, so the date is unchanged; only the mark and
+    // its spoken caption are added. This is the whole difference from a figure.
+    expect(container.textContent?.startsWith(bare ?? "")).toBe(true);
   });
 
   it("marks a held instant the way a Unit does", () => {
@@ -81,5 +81,16 @@ describe("MissionDate, handed a Reading", () => {
       <MissionDate value={held(AT)} context={{ frame: "scet" }} />,
     );
     await expectNoA11yViolations(container);
+  });
+});
+
+describe("MissionDate's held caption", () => {
+  it("reaches the accessibility tree, not only the hover", () => {
+    const { container } = render(<MissionDate value={held(AT)} />);
+    const caption = container
+      .querySelector("[data-not-current]")
+      ?.getAttribute("title");
+    expect(caption).toBeTruthy();
+    expect(container.textContent).toContain(`, ${caption}`);
   });
 });
