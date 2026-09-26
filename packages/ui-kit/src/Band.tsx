@@ -155,6 +155,7 @@ function BandEnds<U extends string = string>({
     <Band__Body className={className}>
       <Unit value={min} />
       <Band__Dash aria-hidden="true">–</Band__Dash>
+      <VisuallyHidden> to </VisuallyHidden>
       <Unit value={max} />
     </Band__Body>
   );

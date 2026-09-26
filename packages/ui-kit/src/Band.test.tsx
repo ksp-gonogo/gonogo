@@ -173,3 +173,12 @@ describe("Band", () => {
     expect(container.textContent).toContain("46");
   });
 });
+
+describe("Band read aloud", () => {
+  it("joins its two ends with a word, since the dash between them is silent", () => {
+    const { container } = render(
+      <Band min={value("m", 6_700_000)} max={value("m", 6_900_000)} />,
+    );
+    expect(container.textContent).toMatch(/ to /);
+  });
+});
