@@ -2,24 +2,13 @@ import type { Severity } from "./severity";
 
 /**
  * The single saturated accent each `Severity` reads as on a panel surface: a
- * status dot, or (via `Badge`'s `pillColor`) the outline/text/glow colour for
- * every severity except `nominal`, which paints `--color-accent-fg` instead
- * (see `pillColor`'s own comment: this function's `nominal` value is a DARK
- * fill tuned for a small dot, not something a pill can paint its own
- * outline/text in and still clear contrast).
- *
- * What this function removes is the drift risk of TWO hand-typed maps that
- * were supposed to stay "in step" (the title ghost's dot map carried that
- * exact phrase in a comment) with no mechanism enforcing it. One function
- * both read from is how it can't.
- *
- * `nominal` never actually paints a dot in the ghost (a healthy panel
- * summarises to `null`), mapped here for completeness only.
+ * collapsed header's status dot, and (via `Badge`'s `pillColor`) a pill's
+ * outline, text and glow. Every value clears 3:1 against the panel.
  */
 export function severityDotColor(severity: Severity): string {
   switch (severity) {
     case "nominal":
-      return "var(--color-status-go-bg)";
+      return "var(--color-accent-fg)";
     case "info":
       return "var(--color-status-info-fg)";
     case "caution":

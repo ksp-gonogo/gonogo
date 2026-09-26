@@ -9,9 +9,9 @@ import { severityDotColor } from "./severityDotColor";
  * hand-kept-in-step maps that can silently drift apart.
  */
 describe("severityDotColor", () => {
-  it("returns the exact token each severity mapped to before the extraction", () => {
+  it("returns the exact token each severity maps to", () => {
     const expected: Record<Severity, string> = {
-      nominal: "var(--color-status-go-bg)",
+      nominal: "var(--color-accent-fg)",
       info: "var(--color-status-info-fg)",
       caution: "var(--color-status-warning-fg-muted)",
       warning: "var(--color-status-warning-bg)",
