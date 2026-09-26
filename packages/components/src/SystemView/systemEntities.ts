@@ -285,6 +285,104 @@ export type ResolvedSystemEntity =
 
 const DEFAULT_POINT_RADIUS_PX = 4;
 
+/** One entity projected into plot space, or `null` when it has nowhere to draw. */
+function resolveEntity(
+  entity: SystemEntity,
+  ctx: SystemEntitiesContext,
+  colour: string,
+  opacity: number,
+): ResolvedSystemEntity | null {
+  if (entity.shape.kind === "point") {
+    const p = projectEntityPosition(entity.position, ctx);
+    if (!p) return null;
+    return {
+      kind: "point",
+      id: entity.id,
+      x: p.x,
+      y: p.y,
+      radiusPx: entity.shape.radiusPx ?? DEFAULT_POINT_RADIUS_PX,
+      colour,
+      opacity,
+      meta: entity.meta,
+      vesselId: entity.vesselId,
+    };
+  }
+  if (entity.shape.kind === "orbit-path") {
+    if (entity.position.kind !== "orbit") {
+      logger.warn(
+        `System entity "${entity.id}" has shape "orbit-path" but a "${entity.position.kind}" position; skipped`,
+      );
+      return null;
+    }
+    const ring = projectOrbitRing(entity.position, ctx);
+    if (!ring) return null;
+    const dot = projectEntityPosition(entity.position, ctx);
+    return {
+      kind: "orbit-path",
+      id: entity.id,
+      ring,
+      ...(dot ? { dotX: dot.x, dotY: dot.y } : {}),
+      colour,
+      opacity,
+      meta: entity.meta,
+      vesselId: entity.vesselId,
+    };
+  }
+  if (entity.shape.kind === "connection-line") {
+    const from = projectEntityPosition(entity.position, ctx);
+    const to = projectEntityPosition(entity.shape.to, ctx);
+    if (!from || !to) return null;
+    return {
+      kind: "connection-line",
+      id: entity.id,
+      x1: from.x,
+      y1: from.y,
+      x2: to.x,
+      y2: to.y,
+      colour,
+      opacity,
+      meta: entity.meta,
+    };
+  }
+  if (entity.shape.kind === "blob") {
+    const p = projectEntityPosition(entity.position, ctx);
+    if (!p) return null;
+    const radiusPx = entity.shape.radiusMetres * ctx.plotScale;
+    if (!(radiusPx > 0)) return null;
+    return {
+      kind: "blob",
+      id: entity.id,
+      x: p.x,
+      y: p.y,
+      radiusPx,
+      colour,
+      opacity,
+      meta: entity.meta,
+    };
+  }
+  const from = projectEntityPosition(entity.position, ctx);
+  const to = projectEntityPosition(entity.shape.to, ctx);
+  if (!from || !to) return null;
+  // A coincident apex and tip has no bearing to travel along.
+  if (from.x === to.x && from.y === to.y) return null;
+  const segmentLengthPx = entity.shape.segmentLengthMetres * ctx.plotScale;
+  if (!(segmentLengthPx > 0)) return null;
+  return {
+    kind: "travelling-pulse",
+    id: entity.id,
+    x1: from.x,
+    y1: from.y,
+    x2: to.x,
+    y2: to.y,
+    segmentLengthPx,
+    arriveUt: entity.shape.arriveUt,
+    clearUt: entity.shape.clearUt,
+    colour,
+    opacity,
+    meta: entity.meta,
+  };
+}
+
 /**
  * Projects, styles and z-orders every entity for the rendered frame. An entity that fails to project is skipped; a shape and position that cannot combine (an `orbit-path` on a `fixed` position) also logs a dev warning, since that is always a contribution bug.
  *
@@ -306,109 +404,8 @@ export function resolveSystemEntities(
     const opacity = resolveOpacity(style);
     const z = effectiveLayer(entity);
 
-    if (entity.shape.kind === "point") {
-      const p = projectEntityPosition(entity.position, ctx);
-      if (!p) continue;
-      layered.push({
-        z,
-        resolved: {
-          kind: "point",
-          id: entity.id,
-          x: p.x,
-          y: p.y,
-          radiusPx: entity.shape.radiusPx ?? DEFAULT_POINT_RADIUS_PX,
-          colour,
-          opacity,
-          meta: entity.meta,
-          vesselId: entity.vesselId,
-        },
-      });
-    } else if (entity.shape.kind === "orbit-path") {
-      if (entity.position.kind !== "orbit") {
-        logger.warn(
-          `System entity "${entity.id}" has shape "orbit-path" but a "${entity.position.kind}" position; skipped`,
-        );
-        continue;
-      }
-      const ring = projectOrbitRing(entity.position, ctx);
-      if (!ring) continue;
-      const dot = projectEntityPosition(entity.position, ctx);
-      layered.push({
-        z,
-        resolved: {
-          kind: "orbit-path",
-          id: entity.id,
-          ring,
-          ...(dot ? { dotX: dot.x, dotY: dot.y } : {}),
-          colour,
-          opacity,
-          meta: entity.meta,
-          vesselId: entity.vesselId,
-        },
-      });
-    } else if (entity.shape.kind === "connection-line") {
-      const from = projectEntityPosition(entity.position, ctx);
-      const to = projectEntityPosition(entity.shape.to, ctx);
-      if (!from || !to) continue;
-      layered.push({
-        z,
-        resolved: {
-          kind: "connection-line",
-          id: entity.id,
-          x1: from.x,
-          y1: from.y,
-          x2: to.x,
-          y2: to.y,
-          colour,
-          opacity,
-          meta: entity.meta,
-        },
-      });
-    } else if (entity.shape.kind === "blob") {
-      const p = projectEntityPosition(entity.position, ctx);
-      if (!p) continue;
-      const radiusPx = entity.shape.radiusMetres * ctx.plotScale;
-      if (!(radiusPx > 0)) continue;
-      layered.push({
-        z,
-        resolved: {
-          kind: "blob",
-          id: entity.id,
-          x: p.x,
-          y: p.y,
-          radiusPx,
-          colour,
-          opacity,
-          meta: entity.meta,
-        },
-      });
-    } else {
-      // "travelling-pulse"
-      const from = projectEntityPosition(entity.position, ctx);
-      const to = projectEntityPosition(entity.shape.to, ctx);
-      if (!from || !to) continue;
-      // A coincident apex and tip has no bearing to travel along.
-      if (from.x === to.x && from.y === to.y) continue;
-      const segmentLengthPx = entity.shape.segmentLengthMetres * ctx.plotScale;
-      if (!(segmentLengthPx > 0)) continue;
-      layered.push({
-        z,
-        resolved: {
-          kind: "travelling-pulse",
-          id: entity.id,
-          x1: from.x,
-          y1: from.y,
-          x2: to.x,
-          y2: to.y,
-          segmentLengthPx,
-          arriveUt: entity.shape.arriveUt,
-          clearUt: entity.shape.clearUt,
-          colour,
-          opacity,
-          meta: entity.meta,
-        },
-      });
-    }
+    const resolved = resolveEntity(entity, ctx, colour, opacity);
+    if (resolved) layered.push({ z, resolved });
   }
 
   layered.sort((a, b) => a.z - b.z);

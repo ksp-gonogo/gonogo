@@ -46,8 +46,11 @@ function buildAdjacency(
   >();
   const link = (from: string, to: string, edge: CommsNetworkEdge) => {
     const hops = adjacency.get(from);
-    if (hops) hops.push({ to, edge });
-    else adjacency.set(from, [{ to, edge }]);
+    if (!hops) {
+      adjacency.set(from, [{ to, edge }]);
+      return;
+    }
+    hops.push({ to, edge });
   };
   for (const edge of edges) {
     link(edge.a, edge.b, edge);

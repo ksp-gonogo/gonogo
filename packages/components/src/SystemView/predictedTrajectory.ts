@@ -120,6 +120,19 @@ function sameBody(a: string | null, b: string | null): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
+/** Where a patch's reference body sits on this frame, or `null` when the frame does not draw it. */
+function frameOffset(
+  referenceBody: string,
+  parentName: string,
+  childOffsets: ReadonlyMap<string, PatchPoint>,
+): PatchPoint | null {
+  if (sameBody(referenceBody, parentName)) return { x: 0, y: 0, z: 0 };
+  for (const [name, pos] of childOffsets) {
+    if (sameBody(name, referenceBody)) return pos;
+  }
+  return null;
+}
+
 /** Samples every patch around the frame parent or a drawn child; a patch around an off-screen body belongs to another frame and is skipped. */
 export function predictTrajectory({
   patches,
@@ -154,18 +167,8 @@ export function predictTrajectory({
     const patch = patches[i];
     if (!isElliptical(patch)) continue;
 
-    let offset: PatchPoint | null = null;
-    if (sameBody(patch.referenceBody, parentName)) {
-      offset = { x: 0, y: 0, z: 0 };
-    } else {
-      for (const [name, pos] of childOffsets) {
-        if (sameBody(name, patch.referenceBody)) {
-          offset = pos;
-          break;
-        }
-      }
-    }
-    if (offset === null) continue; // Reference body not on this frame.
+    const offset = frameOffset(patch.referenceBody, parentName, childOffsets);
+    if (offset === null) continue;
 
     // The live patch draws from `ut` forward; the live-orbit ellipse already shows the full loop.
     const from =

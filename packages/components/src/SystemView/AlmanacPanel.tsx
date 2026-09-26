@@ -43,6 +43,22 @@ interface AlmanacRow {
   value: ReactNode;
 }
 
+/** The atmosphere row's value, or `null` when the body does not say whether it has one. */
+function atmosphereValue(body: CelestialBody): ReactNode | null {
+  if (body.hasAtmosphere === false) return "None";
+  if (body.hasAtmosphere !== true) return null;
+  if (body.maxAtmosphere !== null) {
+    return (
+      <>
+        <Unit value={value("m", body.maxAtmosphere)} />{" "}
+        {body.hasOxygen === true ? "(O₂)" : "(no O₂)"}
+      </>
+    );
+  }
+  if (body.hasOxygen === true) return "Yes (O₂)";
+  return "Yes";
+}
+
 function buildRows(
   body: CelestialBody,
   phaseAngleDeg: number | null,
@@ -94,24 +110,9 @@ function buildRows(
       value: <Unit value={value("m", body.soi)} />,
     });
   }
-  if (body.hasAtmosphere === true) {
-    rows.push({
-      label: "Atmosphere",
-      value:
-        body.maxAtmosphere !== null ? (
-          <>
-            <Unit value={value("m", body.maxAtmosphere)} />{" "}
-            {body.hasOxygen === true ? "(O₂)" : "(no O₂)"}
-          </>
-        ) : body.hasOxygen === true ? (
-          "Yes (O₂)"
-        ) : (
-          "Yes"
-        ),
-    });
-  } else if (body.hasAtmosphere === false) {
-    rows.push({ label: "Atmosphere", value: "None" });
-  }
+  const atmosphere = atmosphereValue(body);
+  if (atmosphere !== null)
+    rows.push({ label: "Atmosphere", value: atmosphere });
   if (body.hasOcean === true) rows.push({ label: "", value: "Has ocean" });
   if (body.hillSphere !== null) {
     rows.push({
