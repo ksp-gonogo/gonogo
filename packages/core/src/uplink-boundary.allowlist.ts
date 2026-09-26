@@ -1516,6 +1516,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * last escape does.
        */
       "packages/core/src/unknown-cast.debt.ts",
+      /*
+       * -- RENDER-FIXTURE-COVERAGE ratchet inventory: the mod path as DATA,
+       * one widget-dir#field key per name match that was never a payload
+       * read. The key goes when that read does.
+       */
+      "packages/core/src/render-fixture-coverage.debt.ts",
       // data: an entry in the bundle registry.
       "packages/app/uplink-bundle-targets.ts",
       // data: an inline FAKE Uplink client id, `defineUplinkClient({ id: "kerbalism" })`, standing in for a real one to exercise the contribution registry. Imports nothing.
@@ -2127,6 +2133,9 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     // by `scripts/unknown-cast-debt.mjs`; the key goes when that file's last
     // escape does.
     "packages/core/src/unknown-cast.debt.ts",
+    // -- RENDER-FIXTURE-COVERAGE ratchet inventory: the mod path as DATA, one
+    // widget-dir#field key per name match that was never a payload read.
+    "packages/core/src/render-fixture-coverage.debt.ts",
     "packages/app/uplink-bundle-targets.ts",
     "packages/components/scripts/provenance-card-probe/provenance-card-probe-entry.tsx",
     "packages/components/scripts/widgets.ts",

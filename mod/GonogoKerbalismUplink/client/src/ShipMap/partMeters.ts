@@ -1,6 +1,9 @@
 import {
   type ContributionEntry,
   value as quantity,
+  type Reading,
+  type TopicReading,
+  type Value,
   type VesselParts,
 } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf, magnitudeOr, type Quantityish } from "@ksp-gonogo/ui-kit";
@@ -116,14 +119,78 @@ export function computeKerbalismPartMeters(
   return entries;
 }
 
+/**
+ * One tank's amount on the arm the parts reading it came from arrived on, so
+ * ShipMap can mark a held level rather than draw it as the tank now.
+ */
+function amountReading(
+  parts: Reading<VesselParts | undefined>,
+  amount: Value<"units">,
+): Reading<Value<"units">> {
+  if (parts.state === "observed") {
+    return {
+      state: "observed",
+      value: amount,
+      atUt: parts.atUt,
+      reckoning: { status: "none" },
+    };
+  }
+  if (parts.state === "stale") {
+    return {
+      state: "stale",
+      value: amount,
+      asOfUt: parts.asOfUt,
+      grade: parts.grade,
+      reckoning: { status: "none" },
+    };
+  }
+  return { state: parts.state, reckoning: { status: "none" } };
+}
+
+/**
+ * The meters with each amount carrying the currency of the `vessel.parts`
+ * reading it was read from. A level that has stopped arriving is still the
+ * last one there was, so it is drawn, and marked.
+ */
+export function kerbalismPartMeterReadings(
+  parts: Reading<VesselParts | undefined> | undefined,
+  profile: KerbalismProfile | undefined,
+): PartMeterEntry[] {
+  if (parts?.state !== "observed" && parts?.state !== "stale") return [];
+  return computeKerbalismPartMeters(parts.value, profile).map((entry) => ({
+    ...entry,
+    amount:
+      "state" in entry.amount
+        ? entry.amount
+        : amountReading(parts, entry.amount),
+  }));
+}
+
+/**
+ * `kerbalism:vessel-parts-reading`. `vessel.parts` as a reading, since a
+ * contribution is handed a topic's payload and never its currency.
+ */
+const VESSEL_PARTS_READING = KERBALISM.registerProcessor({
+  id: "vessel-parts-reading",
+  deps: [{ reading: "vessel.parts" }] as const,
+  compute: ([parts]: readonly [TopicReading<VesselParts>]):
+    | VesselParts
+    | undefined =>
+    parts.state === "observed" || parts.state === "stale"
+      ? parts.value
+      : undefined,
+});
+
 KERBALISM.registerContribution({
   id: "ship-map-part-meters",
   contributes: "ship-map.part-meters",
-  deps: ["vessel.parts", "kerbalism.profile"],
+  // `vessel.parts` stays a bare dep beside the reading: the bare id is what
+  // subscribes the topic, and the processor only reads what is stored.
+  deps: ["vessel.parts", VESSEL_PARTS_READING, "kerbalism.profile"],
   requires: "kerbalism",
   compute: (topics) =>
-    computeKerbalismPartMeters(
-      topics["vessel.parts"],
+    kerbalismPartMeterReadings(
+      topics[VESSEL_PARTS_READING.id],
       topics["kerbalism.profile"],
     ),
 });

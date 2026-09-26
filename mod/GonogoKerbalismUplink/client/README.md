@@ -141,7 +141,7 @@ Sun vantage plus vessel exposure: a per-star activity diagram for every star thi
 | `kerbalism:space-weather-badge` | `space-weather.badges` | `kerbalism.spaceweather` | only while `kerbalism` |
 | `kerbalism:system-view-cme` | `system-view.entities` | `kerbalism.spaceweather` | only while `kerbalism` |
 | `kerbalism:ship-map-part-meta` | `ship-map.part-meta` | `kerbalism.lifesupport` | only while `kerbalism` |
-| `kerbalism:ship-map-part-meters` | `ship-map.part-meters` | `vessel.parts`, `kerbalism.profile` | only while `kerbalism` |
+| `kerbalism:ship-map-part-meters` | `ship-map.part-meters` | `vessel.parts`, `processor:kerbalism:vessel-parts-reading`, `kerbalism.profile` | only while `kerbalism` |
 | `kerbalism:resource-ops-processes` | `resource-ops.filters` | `isru.converters` | only while `kerbalism` |
 
 ![A reckoned one-sigma band drawn on the meter it is about: one mark per bound, at that bound's own distance from the bar's end](docs/assets/dose-band-from-a-fitted-rate--default.png)
@@ -173,6 +173,7 @@ Sun vantage plus vessel exposure: a per-star activity diagram for every star thi
 | processor | `kerbalism:ship-systems` |
 | processor | `kerbalism:crew-survival` |
 | processor | `kerbalism:crew-rule-readings` |
+| processor | `kerbalism:vessel-parts-reading` |
 | forward model | `kerbalism.crew` |
 | forward model | `vessel.resources` |
 

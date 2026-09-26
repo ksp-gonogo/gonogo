@@ -681,7 +681,7 @@ function ShipSystemsBody({
         <AugmentSlot
           key="life-support"
           name="ship-systems.life-support"
-          props={{ greenhouses, ambientRadiationRadPerSecond }}
+          props={{ greenhouses, ambientRadiationRadPerSecond, held }}
         />,
       ]}
     />

@@ -3,6 +3,7 @@ import {
   render,
   screen,
   setupStreamFixture,
+  stopArriving,
   within,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
@@ -161,6 +162,25 @@ describe("ScienceDataAboardRowAugment", () => {
     });
     expect(sendToggle).toHaveAttribute("aria-pressed", "true");
     expect(sendToggle).toHaveTextContent("Queued");
+  });
+
+  it("marks the drive's figures and transmitting state held once the link drops", async () => {
+    const fixture = newFixture();
+    const { container } = renderAugment(fixture);
+    act(() => {
+      fixture.emit("science.experiments", [FILE_ENTRY]);
+    });
+    await screen.findByLabelText("Kerbalism file manager");
+    expect(container.querySelectorAll("[data-not-current]")).toHaveLength(0);
+    act(() => {
+      stopArriving(fixture);
+    });
+    expect(await screen.findByText("Transmitting · held")).toBeInTheDocument();
+    const marks = [...container.querySelectorAll("[data-not-current]")];
+    expect(marks.length).toBeGreaterThan(0);
+    for (const mark of marks) {
+      expect(mark.querySelector("[data-unit-currency]")).not.toBeNull();
+    }
   });
 
   it("shows Send (not pressed) when sendFlagged is false", async () => {

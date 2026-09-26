@@ -1,7 +1,10 @@
 import { type VesselParts, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import type { KerbalismProfile } from "../__generated__/contract";
-import { computeKerbalismPartMeters } from "./partMeters";
+import {
+  computeKerbalismPartMeters,
+  kerbalismPartMeterReadings,
+} from "./partMeters";
 
 function part(
   id: string,
@@ -157,6 +160,56 @@ describe("computeKerbalismPartMeters", () => {
     expect(computeKerbalismPartMeters(undefined, SUPPLY_PROFILE)).toEqual([]);
     expect(
       computeKerbalismPartMeters(wire([part("1", {})]), undefined),
+    ).toEqual([]);
+  });
+});
+
+describe("kerbalismPartMeterReadings", () => {
+  const tank = wire([part("3", { Water: { amount: 42.3, maxAmount: 180 } })]);
+
+  it("dates each amount by the parts reading, so a held level is marked", () => {
+    const [entry] = kerbalismPartMeterReadings(
+      {
+        state: "stale",
+        value: tank,
+        asOfUt: value("ut", 500),
+        grade: "disconnected",
+        reckoning: { status: "none" },
+      },
+      SUPPLY_PROFILE,
+    );
+    expect(entry?.amount).toEqual({
+      state: "stale",
+      value: value("units", 42.3),
+      asOfUt: value("ut", 500),
+      grade: "disconnected",
+      reckoning: { status: "none" },
+    });
+    expect(entry?.capacity).toEqual(value("units", 180));
+  });
+
+  it("carries a current level as an observation", () => {
+    const [entry] = kerbalismPartMeterReadings(
+      {
+        state: "observed",
+        value: tank,
+        atUt: value("ut", 900),
+        reckoning: { status: "none" },
+      },
+      SUPPLY_PROFILE,
+    );
+    expect(entry?.amount).toMatchObject({
+      state: "observed",
+      atUt: value("ut", 900),
+    });
+  });
+
+  it("draws nothing before the parts have arrived", () => {
+    expect(
+      kerbalismPartMeterReadings(
+        { state: "pending", reckoning: { status: "none" } },
+        SUPPLY_PROFILE,
+      ),
     ).toEqual([]);
   });
 });

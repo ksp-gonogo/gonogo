@@ -85,6 +85,12 @@ export interface LifeSupportSlotContext {
    * trips a threshold check on its own.
    */
   ambientRadiationRadPerSecond: number;
+  /**
+   * Whether the ledger these rows come from is the last one there was rather
+   * than a current one. The rows carry no currency of their own, so this is
+   * the only way the section can say its figures and run state are held.
+   */
+  held: boolean;
 }
 
 // Declaration-merge the slot id → props type into the sdk facade's
@@ -193,11 +199,13 @@ function GreenhouseEntryRow({
   g,
   titlePrefix,
   ambientRadiationRadPerSecond,
+  held,
 }: {
   g: GreenhouseRow;
   /** "Greenhouse" for the single-entry case, or the crop name when there are several. */
   titlePrefix: string;
   ambientRadiationRadPerSecond: number;
+  held: boolean;
 }) {
   const blocked = g.active && g.issue.length > 0;
   const tooHigh = radiationTooHigh(g, ambientRadiationRadPerSecond);
@@ -224,20 +232,29 @@ function GreenhouseEntryRow({
               Radiation too high
             </Badge>
           )}
-          <Badge
-            role="status"
-            aria-live="polite"
-            severity={greenhouseTone(g, tooHigh)}
-            size="sm"
-          >
-            {greenhouseStateLabel(g, tooHigh)}
-          </Badge>
+          {/* A held run state is not a current one, so the badge says held
+              in its place, the way the host's process rows do. */}
+          {held ? (
+            <Badge role="status" aria-live="polite" severity="info" size="sm">
+              held
+            </Badge>
+          ) : (
+            <Badge
+              role="status"
+              aria-live="polite"
+              severity={greenhouseTone(g, tooHigh)}
+              size="sm"
+            >
+              {greenhouseStateLabel(g, tooHigh)}
+            </Badge>
+          )}
         </Cluster>
       </Cluster>
       {/* Wraps rather than truncating at narrow widths, a hidden number is
           worse than an extra line. */}
-      <Text tone="default" size="xs">
-        Natural {fmtWm2(g.natural)} · Artificial {fmtWm2(g.artificial)} · Rate{" "}
+      <Text tone={held ? "muted" : "default"} size="xs">
+        {held ? "At last contact: " : ""}Natural {fmtWm2(g.natural)} ·
+        Artificial {fmtWm2(g.artificial)} · Rate{" "}
         {fmtRatePerDay(g.foodRatePerSec)}
       </Text>
       {blocked && (
@@ -260,6 +277,7 @@ function GreenhouseEntryRow({
 function GreenhouseSection({
   greenhouses,
   ambientRadiationRadPerSecond,
+  held,
 }: LifeSupportSlotContext) {
   // No greenhouse part on the vessel, the common case. Render nothing
   // rather than an empty "Greenhouse" header with no content beneath it.
@@ -276,6 +294,7 @@ function GreenhouseSection({
           g={greenhouses[0]}
           titlePrefix="Greenhouse"
           ambientRadiationRadPerSecond={ambientRadiationRadPerSecond}
+          held={held}
         />
       </Stack>
     );
@@ -292,6 +311,7 @@ function GreenhouseSection({
           g={g}
           titlePrefix={g.cropResource}
           ambientRadiationRadPerSecond={ambientRadiationRadPerSecond}
+          held={held}
         />
       ))}
     </Stack>

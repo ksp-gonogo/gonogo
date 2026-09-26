@@ -1,9 +1,12 @@
 import type {
   ExperimentEntry,
+  Reading,
   SlotProps,
   TopicReading,
+  Value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
+  readingOf,
   registerAugment,
   useCommand,
   useTelemetry,
@@ -70,11 +73,25 @@ function findDriveEntries(
   return out;
 }
 
+/**
+ * A drive figure on the arm of the reading it was read from, so `Unit` marks
+ * one that is held and says when it was read.
+ */
+type Dated = <U extends string>(
+  figure: Value<U> | null | undefined,
+) => Reading<Value<U>> | null;
+
 /** Per-drive capacity/slots readout: the stock model has no concept of
  *  either, so this is enrichment Kerbalism alone can show. Reads off
  *  whichever entry carries the fields (file and sample on the same subject
  *  normally share one drive, so either suffices). */
-function DriveCapacity({ ext }: { ext: KerbalismScienceExperimentExt }) {
+function DriveCapacity({
+  ext,
+  dated,
+}: {
+  ext: KerbalismScienceExperimentExt;
+  dated: Dated;
+}) {
   /* `!= null`, not `!== undefined`: the mod writes an unread figure as JSON
      null and the key stays on the wire, so the strict-undefined form let a null
      through and rendered "Drive  / " with two empty readouts. */
@@ -86,15 +103,15 @@ function DriveCapacity({ ext }: { ext: KerbalismScienceExperimentExt }) {
       Drive{" "}
       {hasStorage && (
         <>
-          <Unit value={ext.storageUsedMB} /> /{" "}
-          <Unit value={ext.storageCapacityMB} />
+          <Unit value={dated(ext.storageUsedMB)} /> /{" "}
+          <Unit value={dated(ext.storageCapacityMB)} />
         </>
       )}
       {hasStorage && hasSlots && " · "}
       {hasSlots && (
         <>
-          <Unit value={ext.sampleSlotsUsed} />/
-          <Unit value={ext.sampleSlotsTotal} /> slots
+          <Unit value={dated(ext.sampleSlotsUsed)} />/
+          <Unit value={dated(ext.sampleSlotsTotal)} /> slots
         </>
       )}
     </Text>
@@ -146,7 +163,14 @@ function ScienceDataAboardRowAugment({
   // moved, and a quiet link cannot have moved one. Before this the raw `Reading`
   // reached `findDriveEntries` and threw "experiments is not iterable", which `tsc`
   // could not see because that helper takes `unknown`.
-  const experiments = stillTrue(useTelemetry("science.experiments"), undefined);
+  const experimentsReading = useTelemetry("science.experiments");
+  const experiments = stillTrue(experimentsReading, undefined);
+  /* The list is a fact, but a size, a rate and whether a file is transmitting
+     are the drive as it was last read, so each is drawn dated and a held one
+     is marked. */
+  const held = experimentsReading.state === "stale";
+  const dated: Dated = (figure) =>
+    figure == null ? null : readingOf(experimentsReading, () => figure);
   const labs = stillTrue(useTelemetry("science.lab"), undefined);
 
   // Every command is dispatched from this row regardless of which verbs it
@@ -187,22 +211,22 @@ function ScienceDataAboardRowAugment({
           <Cluster wrap justify="start">
             {file.dataSizeMB != null && (
               <Text size="xs">
-                <Unit value={file.dataSizeMB} />
+                <Unit value={dated(file.dataSizeMB)} />
               </Text>
             )}
             {file.transmitRateMBps?.isPositive() && (
               <Text size="xs" tone="muted">
-                <Unit value={file.transmitRateMBps} />
+                <Unit value={dated(file.transmitRateMBps)} />
               </Text>
             )}
             {file.transmitting === true && (
               <Badge
-                severity="nominal"
+                severity={held ? "info" : "nominal"}
                 size="sm"
                 role="status"
                 aria-live="polite"
               >
-                Transmitting
+                {held ? "Transmitting · held" : "Transmitting"}
               </Badge>
             )}
             {/* Derived from `transmitRate`, so it is null whenever that read
@@ -253,7 +277,7 @@ function ScienceDataAboardRowAugment({
           <Cluster wrap justify="start">
             {sample.sampleMass != null && (
               <Text size="xs">
-                <Unit value={sample.sampleMass} />
+                <Unit value={dated(sample.sampleMass)} />
               </Text>
             )}
           </Cluster>
@@ -313,7 +337,7 @@ function ScienceDataAboardRowAugment({
           </Cluster>
         </Stack>
       )}
-      {driveExt && <DriveCapacity ext={driveExt} />}
+      {driveExt && <DriveCapacity ext={driveExt} dated={dated} />}
     </Section>
   );
 }
