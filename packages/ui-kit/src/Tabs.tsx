@@ -167,6 +167,12 @@ export function Tabs({
   const naturalWidthRef = useRef<number | null>(null);
   const [compact, setCompact] = useState(false);
   const [overflow, setOverflow] = useState({ left: false, right: false });
+  /**
+   * The last edges handed to `setOverflow`. React's same-value bailout is not
+   * guaranteed once the fiber has other work queued, so an unchanged
+   * measurement still schedules a render unless it is filtered here first.
+   */
+  const overflowRef = useRef(overflow);
   // Where the selection blob sits. Measured rather than derived from flex
   // order: labels are different widths, and the blob has to land exactly on
   // whichever one is active, including after a resize or a font swap.
@@ -187,9 +193,10 @@ export function Tabs({
     const update = () => {
       const left = el.scrollLeft > 1;
       const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
-      setOverflow((prev) =>
-        prev.left === left && prev.right === right ? prev : { left, right },
-      );
+      const prev = overflowRef.current;
+      if (prev.left === left && prev.right === right) return;
+      overflowRef.current = { left, right };
+      setOverflow(overflowRef.current);
     };
 
     update();
