@@ -7,21 +7,29 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { META_VANTAGE, useCommand, useViewUt } from "@ksp-gonogo/sitrep-client";
-import { KspParameterState, stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  combineReadings,
+  KspParameterState,
+  type Reading,
+  stillTrue,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   BellIcon,
   Block,
   CommandButton,
   formatStreamStatus,
+  Meter,
   Panel,
   Section,
   severityFromStreamStatus,
+  speakQuantity,
   Unit,
   usePanelDelay,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
-import type { ReactNode } from "react";
 /*
  * One block left: `ParameterAlarmButton` carries a `:focus-visible` ring, which
  * inline style cannot express and which a control must have.
@@ -326,21 +334,8 @@ function ContractManagerComponent({
    * `vessel.flight`'s own field reading rather than the derived copy, which
    * went `null` the moment the craft went on rails and took the progress bar
    * with it.
-   *
-   * Where the model is on offer it is the number to score against: a parameter
-   * bounded at 70 km is asking where the craft IS, and on rails the modelled
-   * altitude is the only answer there is. `magnitudeOf` collapses an absent
-   * reading to `undefined` for the numeric comparisons below.
    */
   const altitudeReading = topics.useTelemetry("vessel.flight").altitudeAsl;
-  const vAltitude =
-    magnitudeOf(
-      altitudeReading.reckoning.status === "available"
-        ? altitudeReading.reckoning.modelled
-        : altitudeReading.state === "observed"
-          ? altitudeReading.value
-          : undefined,
-    ) ?? undefined;
   // Career actions dispatch at the meta-vantage: accepting/declining/cancelling
   // a contract is a program-desk action with no vessel signal delay, so it
   // stays instant regardless of the selected command centre. The handles are
@@ -504,12 +499,11 @@ function ContractManagerComponent({
                           {p.state === "Incomplete" &&
                             p.parameterType === "ReachAltitudeEnvelope" &&
                             p.minAltitude !== undefined &&
-                            p.maxAltitude !== undefined &&
-                            typeof vAltitude === "number" && (
+                            p.maxAltitude !== undefined && (
                               <AltitudeProgress
                                 min={p.minAltitude}
                                 max={p.maxAltitude}
-                                current={vAltitude}
+                                altitude={altitudeReading}
                               />
                             )}
                         </span>
@@ -874,54 +868,74 @@ function parameterMarkStyle(state: ContractParameterState) {
 
 const PARAMETER_TITLE_STYLE = { flex: 1, minWidth: 0 } as const;
 /**
- * Inline progress indicator for ReachAltitudeEnvelope parameters. Renders
- * a thin bar showing where the current altitude sits between min and max.
- * Below the band: bar empty + "−Xkm". In the band: bar fully green +
- * "in band". Above: bar full + "+Xkm".
+ * Inline progress indicator for ReachAltitudeEnvelope parameters: where the
+ * craft's altitude sits against the band. Below the band the bar fills toward
+ * the floor and the figure is the distance still to climb ("−Xkm"); in the band
+ * it is full and says so; above it is full and the figure is the overshoot.
  *
- * Helps the operator see at a glance how close the vessel is to the
- * target band without parsing the title string and doing the maths.
+ * The bar is the kit's Meter fed the altitude reading, so a held altitude dims
+ * the fill and marks the figure, and an unreported one draws the absent form.
+ *
+ * The band is judged against the modelled altitude where the reading offers
+ * one: a parameter bounded at 70 km is asking where the craft IS, and on rails
+ * the model is the only answer there is.
  */
 function AltitudeProgress({
   min,
   max,
-  current,
+  altitude,
 }: {
   min: number;
   max: number;
-  current: number;
+  altitude: Reading<Value<"m">>;
 }) {
-  const inBand = current >= min && current <= max;
-  let fillFrac: number;
-  let label: ReactNode;
-  if (inBand) {
-    fillFrac = 1;
-    label = "in band";
-  } else if (current < min) {
-    // Below the band: show progress toward min as fraction.
-    fillFrac = Math.max(0, Math.min(1, current / min));
-    const delta = min - current;
-    label = (
-      <>
-        −<AltitudeShort m={delta} />
-      </>
-    );
-  } else {
-    fillFrac = 1;
-    const delta = current - max;
-    label = (
-      <>
-        +<AltitudeShort m={delta} />
-      </>
+  const scored =
+    altitude.reckoning.status === "available"
+      ? altitude.reckoning.modelled
+      : altitude.value;
+  if (scored === undefined) {
+    return (
+      <Meter
+        label="Altitude"
+        value={null}
+        layout="row"
+        style={ALT_METER_STYLE}
+      />
     );
   }
+  const below = scored.lessThan(min);
+  const inBand = !below && scored.lessThanOrEqual(max);
+  const delta = below ? value("m", min).minus(scored) : scored.minus(max);
+  const deltaReading = combineReadings([altitude], () => delta);
+  const sign = below ? "−" : "+";
   return (
-    <span style={ALT_ROW_STYLE}>
-      <span style={ALT_TRACK_STYLE}>
-        <span style={altFillStyle(fillFrac, inBand)} />
-      </span>
-      <span style={altLabelStyle(inBand)}>{label}</span>
-    </span>
+    <Meter
+      label="Altitude"
+      value={altitude}
+      capacity={value("m", min)}
+      layout="row"
+      fillColor={
+        inBand ? "var(--color-status-go-fg)" : "var(--color-accent-fg)"
+      }
+      valueLabelNode={
+        <span style={altLabelStyle(inBand)}>
+          {inBand ? (
+            "in band"
+          ) : (
+            <>
+              {sign}
+              <AltitudeShort m={deltaReading} />
+            </>
+          )}
+        </span>
+      }
+      valueLabel={
+        inBand
+          ? "in band"
+          : `${speakQuantity(delta)} ${below ? "below" : "above"} the band`
+      }
+      style={ALT_METER_STYLE}
+    />
   );
 }
 
@@ -929,40 +943,12 @@ function AltitudeProgress({
 // as five digits of km. Decimals stay tied to the magnitude the way the
 // hand-rolled version had them: this label sits inline in a contract row and
 // its width matters more than its last digit.
-function AltitudeShort({ m }: { m: number }) {
-  return <Unit value={value("m", m)} decimals={Math.abs(m) < 10_000 ? 1 : 0} />;
+function AltitudeShort({ m }: { m: Reading<Value<"m">> }) {
+  const short = m.value?.abs().lessThan(10_000) ?? true;
+  return <Unit value={m} decimals={short ? 1 : 0} />;
 }
 
-const ALT_ROW_STYLE = {
-  display: "flex",
-  alignItems: "center",
-  gap: "var(--gap-related)",
-  marginTop: "var(--space-2)",
-} as const;
-
-/*
- * A stadium, not a corner: --radius-pill clamps to half the shorter side, so it
- * tracks the track height, which --radius-regular (the value this 2px maps to)
- * would not.
- */
-const ALT_TRACK_STYLE = {
-  display: "inline-block",
-  width: "60px",
-  height: "4px",
-  background: "var(--color-border-subtle)",
-  borderRadius: "var(--radius-pill)",
-  overflow: "hidden",
-} as const;
-
-function altFillStyle(frac: number, inBand: boolean) {
-  return {
-    display: "block",
-    height: "100%",
-    width: `${Math.max(0, Math.min(1, frac)) * 100}%`,
-    background: inBand ? "var(--color-status-go-fg)" : "var(--color-accent-fg)",
-    transition: "width var(--duration-slow) var(--ease-standard)",
-  } as const;
-}
+const ALT_METER_STYLE = { marginTop: "var(--space-2)" } as const;
 
 function altLabelStyle(inBand: boolean) {
   return {

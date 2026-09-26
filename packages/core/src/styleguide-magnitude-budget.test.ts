@@ -516,7 +516,7 @@ const FUNNEL_BUDGET: Record<string, number> = {
   "mod/sitrep-sdk": 30,
   // One of these is `GoNoGoHostService` measuring liftoff against `getViewUt()`, which returns a plain number.
   "packages/app": 9,
-  "packages/components": 152,
+  "packages/components": 151,
   "packages/data": 5,
   "packages/ui-kit": 8,
 };

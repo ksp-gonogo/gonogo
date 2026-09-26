@@ -1,6 +1,7 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import {
@@ -17,8 +18,8 @@ import { ContractManagerComponent } from "./index";
  * - `useTelemetry("career.status")?.contracts` feeds `parseContracts`, which
  *   maps `undefined` AND `null` to `null`, and the widget then branches on
  *   `active === null`
- * - `useStream<VesselState>("vessel.state")?.altitudeAsl ?? undefined` gates
- *   the altitude-band progress bar behind `typeof vAltitude === "number"`
+ * - the altitude reading feeds the altitude-band meter, which draws its absent
+ *   form until an altitude arrives
  *
  * Every assertion below is an observation, not an endorsement.
  */
@@ -239,8 +240,8 @@ describe("ContractManager: partial payloads inside an arrived record", () => {
   });
 });
 
-describe("ContractManager: the vessel.state altitude gate", () => {
-  it("omits the altitude-band progress bar entirely while vessel.state has not arrived", async () => {
+describe("ContractManager: the altitude-band meter before an altitude arrives", () => {
+  it("draws the meter's absent form while no altitude has arrived", async () => {
     const fixture = newFixture();
     renderManager(fixture);
 
@@ -253,9 +254,11 @@ describe("ContractManager: the vessel.state altitude gate", () => {
     await waitFor(() =>
       expect(screen.getByText("Altitude band")).toBeInTheDocument(),
     );
-    // `typeof vAltitude === "number"` is the gate. With no vessel.state the
-    // parameter row renders its title and nothing else: no bar, no band label,
-    // no distance-to-band figure.
+    // The meter's absent form: its label and the null token, no fill to
+    // assert a fraction with, no band label and no distance-to-band figure.
+    expect(screen.getByText("Altitude")).toBeInTheDocument();
+    expect(screen.queryByRole("meter", { name: "Altitude" })).toBeNull();
+    expect(visibleText()).toContain(NULL_DISPLAY);
     expect(screen.queryByText("in band")).toBeNull();
     expect(visibleText()).not.toContain("in band");
     expect(visibleText()).not.toContain("−");
@@ -278,5 +281,34 @@ describe("ContractManager: the vessel.state altitude gate", () => {
     await waitFor(() =>
       expect(screen.getByText("in band")).toBeInTheDocument(),
     );
+  });
+
+  it("holds the meter, fill dimmed and distance marked, once the altitude stops arriving", async () => {
+    const fixture = newFixture();
+    renderManager(fixture);
+
+    act(() => {
+      fixture.emit("career.status", {
+        contracts: { active: [ALTITUDE_CONTRACT] },
+      });
+      emitAltitude(fixture, 2000);
+    });
+
+    const meter = await screen.findByRole("meter", { name: "Altitude" });
+    const root = () => meter.parentElement?.parentElement;
+    // The control: a current altitude is not marked
+    expect(root()?.querySelector("[data-fill-not-current]")).toBeNull();
+    expect(root()?.querySelector("[data-not-current-mark]")).toBeNull();
+
+    // Drop the link, then run a frame: nothing else re-derives the readings
+    act(() => {
+      fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
+    });
+
+    await waitFor(() =>
+      expect(root()?.querySelector("[data-fill-not-current]")).not.toBeNull(),
+    );
+    expect(root()?.querySelector("[data-not-current-mark]")).not.toBeNull();
   });
 });
