@@ -278,7 +278,8 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * `Math.max` on an unwrapped magnitude.
    */
   "packages/components/src/Targeting/index.tsx": 3,
-  "packages/components/src/ThermalStatus/index.tsx": 11,
+  "packages/components/src/ThermalStatus/index.tsx": 9,
+  "packages/components/src/ThermalStatus/readouts.tsx": 2,
   // 1: the Δv budget the reach list compares against.
   // `calc/transfer.ts` and the porkchop are deliberately plain-SI ("no React,
   // no side effects", see their own docs), so a `Value<"m/s">` off the wire has
