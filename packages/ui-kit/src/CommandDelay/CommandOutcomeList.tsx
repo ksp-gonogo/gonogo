@@ -99,15 +99,7 @@ export function CommandOutcomeList({
           {onDismiss && (
             <CommandOutcomeList__Dismiss
               type="button"
-              onClick={(e) => {
-                /*
-                 * The rail is itself a button and this sits inside it, so a
-                 * click here would otherwise also toggle the rail shut, taking
-                 * the sentence away at the moment it is read.
-                 */
-                e.stopPropagation();
-                onDismiss(item.id);
-              }}
+              onClick={() => onDismiss(item.id)}
               aria-label={item.dismissLabel}
             >
               ✕
@@ -143,7 +135,7 @@ const toneBg = (tone: OutcomeTone) =>
 const toneFg = (tone: OutcomeTone) =>
   tone === "notice"
     ? "var(--color-status-info-fg)"
-    : "var(--color-status-warning-fg)";
+    : "var(--color-status-warning-fg-muted)";
 
 const CommandOutcomeList__Box = styled.div<{ $tone: OutcomeTone }>`
   display: flex;
