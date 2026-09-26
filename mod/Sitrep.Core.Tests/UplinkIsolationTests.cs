@@ -411,7 +411,7 @@ namespace Sitrep.Core.Tests
             Assert.True(
                 failures.Count == 0,
                 $"Uplink isolation ({kind}): an Uplink may build against Sitrep.Contract and its own " +
-                ".Contract slice only. See docs/uplink-isolation.md.\n  " +
+                ".Contract slice only. See https://ksp-gonogo.github.io/uplink-dev-docs/guide/prerequisites\n  " +
                 string.Join("\n  ", failures));
         }
 

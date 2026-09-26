@@ -334,8 +334,7 @@ describe("typecheck coverage: every package typechecks its own test files", () =
   });
 
   it("every debt entry says what would let it leave", () => {
-    // An unexplained entry is a regression with a hall pass: see the escape
-    // hatch section of docs/ratchets.md.
+    // An unexplained entry is a regression with a hall pass.
     const unexplained = Object.entries(TYPECHECK_COVERAGE_DEBT)
       .filter(([, reason]) => reason.trim().length < 30)
       .map(([dir]) => dir);

@@ -180,7 +180,7 @@ describe("one render process", () => {
         "Rendering is `gonogo-uplink render` from @ksp-gonogo/ui-kit, and " +
         "anything it cannot do gets ADDED to it rather than worked around in " +
         "one Uplink. A scene needing a fake only you can write goes in " +
-        "client/gonogo-render.setup.ts; see docs/uplink-rendering.md.",
+        "client/gonogo-render.setup.ts.",
     ).toEqual([]);
   });
 

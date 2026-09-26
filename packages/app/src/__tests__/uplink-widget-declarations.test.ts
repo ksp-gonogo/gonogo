@@ -39,7 +39,7 @@ import {
  * its own registrations, and that reading is wrong twice.
  *
  * A gate inside an Uplink cannot be run by the third-party authors those
- * Uplinks exist to model: `docs/uplink-isolation.md` forbids reaching for an
+ * Uplinks exist to model: the isolation rule forbids reaching for an
  * app-internal package from `mod/*​/client`, and `classifyRequirement` lives in
  * `@ksp-gonogo/core`, which is private and unpublished. This exact strategy was
  * tried and removed rather than allowlisted, and it is now a NAMED BAN in

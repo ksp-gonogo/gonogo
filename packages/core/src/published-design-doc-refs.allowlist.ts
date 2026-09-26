@@ -35,9 +35,9 @@ export const PUBLISHED_COMMENT_SURFACES = [
  * The reference shapes, as `[source, flags]` rather than `RegExp` literals so a
  * revision of this list can be compared as data.
  *
- * `docs/` on its own is deliberately absent: `docs/creating-an-uplink.md` and
- * `docs/uplink-isolation.md` are committed and are exactly where an author
- * should be sent, so only the gitignored `docs/superpowers/` subtree matches.
+ * `docs/` on its own is deliberately absent: the user docs under it are
+ * committed and are exactly where a reader should be sent, so only the
+ * gitignored `docs/superpowers/` subtree matches.
  *
  * `§` is matched only when a digit follows. A bare section sign appears in
  * ordinary prose and would make this fire on writing rather than on pointers.

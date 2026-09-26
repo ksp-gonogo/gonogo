@@ -919,8 +919,7 @@ function magnitudeOverBudgetMessage(over: readonly string[]): string {
     "up because the method already exists and was not used is a mistake. " +
     "`isFinite()` was added to retire `Number.isFinite(x.magnitude)`, and " +
     "`min`/`max` take a bare operand so `x.max(0)` replaces " +
-    "`Math.max(0, x.magnitude)`. See 'A budget entry is often a missing " +
-    "API' in docs/ratchets.md.\n\n" +
+    "`Math.max(0, x.magnitude)`.\n\n" +
     "RATIOS AND PRODUCTS ARE ALGEBRA TOO, and this is the family most " +
     "often missed: `a.per(b)` / `a.dividedBy(b)` return " +
     "`Value<Quotient<U, W>>` with the dimension checked at TYPE level, " +
@@ -1130,7 +1129,7 @@ describe("the magnitude budget only shrinks", () => {
     expect(message).toContain("writeQuantity");
     expect(message).toContain("speakQuantity");
     expect(message).toContain("a.minus(b)");
-    expect(message).toContain("docs/ratchets.md");
+    expect(message).toContain("API gap");
     expect(message).toContain(
       "packages/components/src/Example/index.tsx: 3, budget 1",
     );

@@ -775,9 +775,8 @@ export function buildDocument({
         ...namespaceTags(topics, commandArgs),
       ],
       externalDocs: {
-        description:
-          "Writing an Uplink: the client half, the mod half, and the codegen between them",
-        url: "https://github.com/ksp-gonogo/gonogo/blob/main/docs/creating-an-uplink.md",
+        description: "Writing an Uplink: the plugin half and the client half",
+        url: "https://ksp-gonogo.github.io/uplink-dev-docs/",
       },
     },
     defaultContentType: "application/json",

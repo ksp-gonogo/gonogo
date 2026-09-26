@@ -36,7 +36,7 @@ import { describe, expect, it } from "vitest";
  *
  * So the kit publishes the check, this file points it at the workspace, and an
  * Uplink points it at its own `src`. One implementation, one message, one set
- * of exemptions. See `docs/creating-an-uplink.md`.
+ * of exemptions.
  */
 
 function repoRoot(startDir: string): string {

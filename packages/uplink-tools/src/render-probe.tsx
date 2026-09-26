@@ -230,7 +230,7 @@ export interface ScenePayload {
    * Feed the scene NOTHING: mount it, then suppress every emission and every
    * legacy key. The driver renders each scene twice and compares, because a
    * render that is identical starved is a render of no data whatever the
-   * fixture is called. See `../../docs/uplink-rendering.md`.
+   * fixture is called.
    */
   starve: boolean;
   /**

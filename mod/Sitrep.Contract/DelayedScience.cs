@@ -15,8 +15,7 @@ namespace Sitrep.Contract;
 //     needs no reference to the implementing assembly, which is the whole
 //     reason this interface exists here rather than staying a static call into
 //     Gonogo.KSP: that reference put five unpublished assemblies on the calling
-//     Uplink's compile surface, and an outside author cannot obtain any of them
-//     (docs/uplink-isolation.md).
+//     Uplink's compile surface, and an outside author cannot obtain any of them.
 //
 // Closure is zero: the one method's parameters are primitives, so nothing new
 // arrives in this assembly alongside it.
