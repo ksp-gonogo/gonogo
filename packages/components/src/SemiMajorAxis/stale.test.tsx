@@ -183,7 +183,12 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
     emitOrbit(fixture);
     await waitFor(() => expect(visibleText(container)).toContain("675.0 km"));
     expect(screen.queryAllByRole("status")).toHaveLength(0);
-    expect(container.querySelector("[aria-live]")).toBeNull();
+    // The panel's own status announcer is the one live region, and it is empty.
+    expect(
+      [...container.querySelectorAll("[aria-live]")].map(
+        (el) => el.textContent,
+      ),
+    ).toEqual([""]);
 
     goStale(fixture);
 

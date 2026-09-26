@@ -68,6 +68,11 @@ export interface CommandUndeliveredListProps {
   /** Clear one undelivered dispatch. Omitted when no handle can dismiss, and the
    *  boxes then carry no clear control rather than an inert one. */
   onDismiss?: (id: string) => void;
+  /**
+   * Announce each entry as it arrives (the default). Off only where something
+   * else already announces these outcomes, as the delay rail does.
+   */
+  live?: boolean;
   ariaLabel?: string;
 }
 
@@ -84,18 +89,20 @@ export interface CommandUndeliveredListProps {
  * appears here on its own, minutes after the press, when a transport gives up
  * on a link. Politely, never assertive: assertive is reserved for ABORT.
  *
- * Renders nothing for an empty set, like every other member of this family.
+ * An empty set draws nothing. A live list keeps its empty region mounted, so
+ * the first entry to arrive is announced.
  */
 export function CommandUndeliveredList({
   undelivered,
   onDismiss,
   ariaLabel = "Commands that were never sent",
+  live = true,
 }: Readonly<CommandUndeliveredListProps>) {
   return (
     <CommandOutcomeList
       ariaLabel={ariaLabel}
       onDismiss={onDismiss}
-      live
+      live={live}
       items={undelivered.map((entry) => {
         const subject = commandRefusalSubject(entry);
         return {

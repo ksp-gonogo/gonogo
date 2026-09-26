@@ -38,4 +38,39 @@ describe("CommandOutcomeList", () => {
     );
     await expectNoA11yViolations(container);
   });
+
+  it("draws nothing for an empty set when it is not live", () => {
+    const { container } = render(
+      <CommandOutcomeList ariaLabel="Refused" items={[]} />,
+    );
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("mounts a live list's region empty, so its first outcome arrives as a change to it", () => {
+    const { rerender } = render(
+      <CommandOutcomeList ariaLabel="Refused" items={[]} live />,
+    );
+    const region = screen.getByRole("status", { name: "Refused" });
+    expect(region).toBeEmptyDOMElement();
+
+    rerender(<CommandOutcomeList ariaLabel="Refused" items={[REFUSED]} live />);
+
+    expect(screen.getByRole("status", { name: "Refused" })).toBe(region);
+    expect(region).toHaveTextContent("Stage refused: no control");
+  });
+
+  it("announces each new outcome on its own rather than re-reading the list", () => {
+    render(<CommandOutcomeList ariaLabel="Refused" items={[REFUSED]} live />);
+    expect(screen.getByRole("status", { name: "Refused" })).toHaveAttribute(
+      "aria-atomic",
+      "false",
+    );
+  });
+
+  it("has no axe violations as an empty live region", async () => {
+    const { container } = render(
+      <CommandOutcomeList ariaLabel="Refused" items={[]} live />,
+    );
+    await expectNoA11yViolations(container);
+  });
 });

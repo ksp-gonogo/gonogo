@@ -1,15 +1,26 @@
 import { useState } from "react";
 import styled, { css } from "styled-components";
 import { focusRingInset } from "../focusRing";
+import { LiveRegion } from "../LiveRegion";
 import { CommandDelay } from "./CommandDelay";
-import { CommandFoundList, type RailFound } from "./CommandFoundList";
-import { CommandLossList, type RailLoss } from "./CommandLossList";
+import {
+  CommandFoundList,
+  commandFoundSentence,
+  type RailFound,
+} from "./CommandFoundList";
+import {
+  CommandLossList,
+  commandLossSentence,
+  type RailLoss,
+} from "./CommandLossList";
 import { CommandRefusalList, type RailRefusal } from "./CommandRefusalList";
 import {
   CommandUndeliveredList,
+  commandUndeliveredSentence,
   type RailUndelivered,
 } from "./CommandUndeliveredList";
 import { STREAM_MIN_DELAY_SECONDS } from "./ControlDelayStream";
+import { commandRefusalSentence } from "./commandRefusalSentence";
 import { type CommandHandle, useActiveHandles } from "./DelayRailContext";
 import { railMark } from "./railTags";
 
@@ -227,6 +238,30 @@ export function PanelDelayRail() {
        or not, so a state flag on an empty strip would be noise on every widget's
        DOM and in every snapshot of one, describing a control that is not there. */
     <PanelDelayRail__Frame data-panel-rail-frame="">
+      {/* The rail's one announcer, outside the toggle button. Mounted from the
+          moment the widget registers a command, which is before any outcome
+          can exist, so the first outcome is a change to a region assistive
+          tech is already watching. Read whether the rail is collapsed, hovered
+          or pinned; each outcome is its own entry, read once as it arrives. A
+          widget that commands nothing gets no region at all. */}
+      {handles.length > 0 && (
+        <LiveRegion visuallyHidden additionsOnly>
+          {refusals.map((r) => (
+            <span key={`refusal:${r.id}`}>{commandRefusalSentence(r)}</span>
+          ))}
+          {losses.map((l) => (
+            <span key={`loss:${l.id}`}>{commandLossSentence(l)}</span>
+          ))}
+          {undelivered.map((u) => (
+            <span key={`undelivered:${u.id}`}>
+              {commandUndeliveredSentence(u)}
+            </span>
+          ))}
+          {founds.map((f) => (
+            <span key={`found:${f.id}`}>{commandFoundSentence(f)}</span>
+          ))}
+        </LiveRegion>
+      )}
       {/* Nothing to draw leaves the band standing EMPTY, which is the whole
           point: the strip is the panel's, not the traffic's, so a widget with
           no command in flight looks the same as one waiting on an ack. */}
@@ -291,14 +326,14 @@ export function PanelDelayRail() {
              other. */
             <PanelDelayRail__Summaries>
               {deadCount > 0 && (
-                <PanelDelayRail__FailureSummary role="status">
+                <PanelDelayRail__FailureSummary>
                   {deadCount === 1
                     ? "1 command failed"
                     : `${deadCount} commands failed`}
                 </PanelDelayRail__FailureSummary>
               )}
               {founds.length > 0 && (
-                <PanelDelayRail__FoundSummary role="status">
+                <PanelDelayRail__FoundSummary>
                   {founds.length === 1
                     ? "1 lost command found"
                     : `${founds.length} lost commands found`}
@@ -313,10 +348,14 @@ export function PanelDelayRail() {
           is a nested interactive: axe fails it, and a real keyboard user gets a
           control they cannot reach past the one wrapping it. */}
       {grown && refusals.length > 0 && (
-        <CommandRefusalList refusals={refusals} onDismiss={dismissRefusal} />
+        <CommandRefusalList
+          refusals={refusals}
+          onDismiss={dismissRefusal}
+          live={false}
+        />
       )}
       {grown && losses.length > 0 && (
-        <CommandLossList losses={losses} onDismiss={dismissLoss} />
+        <CommandLossList losses={losses} onDismiss={dismissLoss} live={false} />
       )}
       {/* Under the losses, because it is one of the two ways a loss ends, and
           the one that keeps its warning colour. */}
@@ -324,13 +363,18 @@ export function PanelDelayRail() {
         <CommandUndeliveredList
           undelivered={undelivered}
           onDismiss={dismissUndelivered}
+          live={false}
         />
       )}
       {/* Last, under the losses, because it is the resolution of one: an
           operator reading down the rail meets the silence and then the answer
           to it. */}
       {grown && founds.length > 0 && (
-        <CommandFoundList founds={founds} onDismiss={dismissFound} />
+        <CommandFoundList
+          founds={founds}
+          onDismiss={dismissFound}
+          live={false}
+        />
       )}
     </PanelDelayRail__Frame>
   );
@@ -471,9 +515,9 @@ const PanelDelayRail__Rail = styled.button`
  * purpose, since a hundred-character sentence cannot live in a 16px band, and
  * opening the rail is what gets the operator the reason.
  *
- * `role="status"` so a refusal arriving while the operator is looking elsewhere
- * is announced, politely: a refusal is a mission-state change, not streaming
- * telemetry.
+ * Not itself a live region: it sits inside the toggle button, whose content is
+ * presentational to assistive tech. The rail's own announcer reads each
+ * outcome's sentence instead.
  */
 const PanelDelayRail__FailureSummary = styled.span`
   color: var(--color-status-warning-fg-muted);
@@ -507,8 +551,7 @@ const PanelDelayRail__Summaries = styled.span`
  * summary because it says the opposite thing, and opening the rail is what gets
  * the operator each command's actual outcome.
  *
- * `role="status"`, so a command turning up executed reaches an operator looking
- * elsewhere. Polite by implication, never assertive: assertive is ABORT's.
+ * Not itself a live region, for the same reason as the failure summary.
  */
 const PanelDelayRail__FoundSummary = styled.span`
   color: var(--color-status-info-fg);

@@ -22,9 +22,10 @@ import { Badge } from "./Badge";
 import { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
 import { fitBox, fitMask } from "./fitBox";
 import { focusRing } from "./focusRing";
+import { LiveRegion } from "./LiveRegion";
 import { type BadgeEntry, usePanelBadgesContext } from "./PanelBadges";
 import { SECTION_FILL_ATTR, SECTION_FULL_ATTR, Section } from "./Section";
-import { formatStreamStatus, StreamStatusBadge } from "./StreamStatusBadge";
+import { formatStreamStatus } from "./StreamStatusBadge";
 import { PanelStatusDot } from "./status/PanelStatusDot";
 import type { StatusSummary } from "./status/PanelStatusStore";
 import {
@@ -1923,16 +1924,14 @@ export function WidgetSections(): ReactElement {
  * a brief transition cue when its severity changes: the summary pulses once on a
  * severity change then settles quiet, so an operator's eye is drawn to a panel
  * that just got worse (or recovered) without a persistent animation nagging.
- * Reduced-motion guarded. The badge announces (`live`), since a summary change
- * is exactly the kind of state transition a screen-reader user benefits from.
+ * Reduced-motion guarded. The change is announced by the panel's own status
+ * region, not by this badge, which comes and goes with the summary.
  */
 function PanelSummaryBadge({ summary }: { summary: StatusSummary }) {
   /*
    * Every severity change restarts the one-shot pulse by alternating between
    * two identical keyframe names, which a browser treats as a new animation.
-   * Nothing is remounted: the badge is a live region, and a region inserted
-   * afresh is often not announced, which would silence the very changes the
-   * pulse marks. A label-only change does not pulse.
+   * A label-only change does not pulse.
    */
   const prevSeverity = useRef(summary.severity);
   const [pulseCount, setPulseCount] = useState(0);
@@ -1944,7 +1943,7 @@ function PanelSummaryBadge({ summary }: { summary: StatusSummary }) {
   }, [summary.severity]);
   return (
     <PanelSummaryBadge__Pulse $pulse={pulseCount}>
-      <Badge severity={summary.severity} size="sm" live>
+      <Badge severity={summary.severity} size="sm">
         {summary.label}
       </Badge>
     </PanelSummaryBadge__Pulse>
@@ -2202,12 +2201,26 @@ function PanelRoot({
   // With a store in the tree the header renders the winning contribution; with
   // none (a standalone panel in the settings modal or the station connect view)
   // it falls back to the stream badge.
+  const streamLabel =
+    streamStatus === null ? null : formatStreamStatus(streamStatus);
   const statusBadge =
     !hasHeader || summaryDuplicatesABadgePill ? null : summary !== null ? (
       <PanelSummaryBadge summary={summary} />
-    ) : streamStatus === null ? null : (
-      <StreamStatusBadge status={streamStatus} />
+    ) : streamStatus === null || streamLabel === null ? null : (
+      <Badge severity={severityFromStreamStatus(streamStatus)} size="sm">
+        {streamLabel}
+      </Badge>
     );
+  /* What the header's status says to assistive tech, prefixed with the title
+     when there is a plain one, so a change is heard as belonging to a widget.
+     Empty while there is nothing to report. */
+  const statusLabel = summary?.label ?? streamLabel;
+  const statusAnnouncement =
+    statusLabel === null || statusLabel === ""
+      ? ""
+      : typeof panelTitle === "string"
+        ? `${panelTitle}: ${statusLabel}`
+        : `Status: ${statusLabel}`;
   // `undefined`, not `null`: PanelHeader treats undefined as "no aside at all"
   // and skips the box, where a null child would still render the padded slot.
   const aside =
@@ -2455,6 +2468,11 @@ function PanelRoot({
         {/* After the glow region, so it sits below the scroller and stays
             pinned while the body scrolls. */}
         {panelFooter !== undefined && <PanelFooter>{panelFooter}</PanelFooter>}
+        {/* The header status, for assistive tech. Mounted with the header and
+            empty while there is nothing to report, so the first status to
+            arrive is a change to a region already being watched. Outside the
+            aside, so a collapsed aside does not take it out of the tree. */}
+        <LiveRegion visuallyHidden>{statusAnnouncement}</LiveRegion>
       </PanelContainer>
     </PanelProviders>
   );

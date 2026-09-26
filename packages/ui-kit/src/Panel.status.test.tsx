@@ -2,6 +2,11 @@ import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { Panel } from "./Panel";
 
+/** The panel's status announcer: an off-screen `aria-live` region, not a `status`. */
+function announcer(): HTMLElement | null {
+  return document.querySelector<HTMLElement>("[data-live-region]");
+}
+
 /**
  * The panel's stream badge is the WIDGET'S to supply, through `panelStatus`.
  *
@@ -26,12 +31,13 @@ describe("Panel stream status", () => {
     // The whole point of the null-for-live design: a badge that is present in
     // the normal case teaches the operator to stop seeing it.
     render(<Panel panelTitle="ORBIT" panelStatus="live" />);
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(announcer()).toBeEmptyDOMElement();
+    expect(document.querySelector("[data-panel-aside-expand]")).toBeNull();
   });
 
   it("badges the panel for a degraded stream", () => {
     render(<Panel panelTitle="ORBIT" panelStatus="resyncing" />);
-    expect(screen.getByRole("status")).toHaveTextContent("SYNCING");
+    expect(announcer()).toHaveTextContent("SYNCING");
   });
 
   it("renders nothing when no status is supplied at all", () => {
@@ -39,7 +45,8 @@ describe("Panel stream status", () => {
     // Those have no widget and no topics, so "unknown" must read as quiet
     // rather than as an alarming NO DATA.
     render(<Panel panelTitle="SOURCES">body</Panel>);
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(announcer()).toBeEmptyDOMElement();
+    expect(document.querySelector("[data-panel-aside-expand]")).toBeNull();
   });
 
   it("lets a widget suppress its own status with `none`", () => {
@@ -48,14 +55,14 @@ describe("Panel stream status", () => {
         body
       </Panel>,
     );
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(announcer()).toBeEmptyDOMElement();
 
     rerender(
       <Panel panelTitle="ORBIT" panelStatus="disconnected">
         body
       </Panel>,
     );
-    expect(screen.getByRole("status")).toHaveTextContent("OFFLINE");
+    expect(announcer()).toHaveTextContent("OFFLINE");
   });
 
   it("puts widget badges beside the status badge, not instead of it", () => {
@@ -69,6 +76,33 @@ describe("Panel stream status", () => {
       </Panel>,
     );
     expect(screen.getByText("LOW")).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("STALE");
+    expect(announcer()).toHaveTextContent("STALE");
+  });
+
+  it("announces the first degradation in a region that was mounted, empty, with the header", () => {
+    const { rerender } = render(
+      <Panel panelTitle="ORBIT" panelStatus="live" />,
+    );
+    const region = announcer();
+    expect(region).toBeEmptyDOMElement();
+
+    rerender(<Panel panelTitle="ORBIT" panelStatus="held-stale" />);
+
+    expect(announcer()).toBe(region);
+    expect(region).toHaveTextContent("ORBIT: STALE");
+    expect(region).toHaveAttribute("aria-live", "polite");
+  });
+
+  it("keeps the announcement outside the aside, so collapsing the aside cannot silence it", () => {
+    render(<Panel panelTitle="ORBIT" panelStatus="disconnected" />);
+    const region = announcer();
+    const aside = document.querySelector("[data-panel-aside-expand]");
+    expect(aside).not.toBeNull();
+    expect(aside?.contains(region)).toBe(false);
+  });
+
+  it("gives a headless panel no status region", () => {
+    render(<Panel>body</Panel>);
+    expect(announcer()).toBeNull();
   });
 });

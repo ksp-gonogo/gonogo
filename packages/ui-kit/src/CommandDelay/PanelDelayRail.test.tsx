@@ -45,6 +45,11 @@ function handle(id: string): CommandHandle {
   };
 }
 
+/** The rail's off-screen announcer, a bare `aria-live` region. */
+function railAnnouncer(): HTMLElement | null {
+  return document.querySelector<HTMLElement>("[data-live-region]");
+}
+
 /** The rail with a store above it, which is all it needs now: the band it draws
  * in is the panel container's own top inset, so there is no measured height to
  * publish and no element to publish it onto. */
@@ -79,6 +84,45 @@ describe("PanelDelayRail", () => {
     const store = createDelayRailStore();
     store.register(handle("cmd"));
     const { container } = inPanel(<PanelDelayRail />, store);
+    await expectNoA11yViolations(container);
+  });
+
+  it("announces an outcome that arrives after the command registered, in a region that was already there", () => {
+    const store = createDelayRailStore();
+    store.register(handle("cmd"));
+    inPanel(<PanelDelayRail />, store);
+    const announcer = railAnnouncer();
+    expect(announcer).toBeEmptyDOMElement();
+
+    act(() => {
+      store.update("cmd", {
+        ...handle("cmd"),
+        inFlight: [],
+        losses: [{ id: "cmd-l0", command: "vessel.control.setRcs", label: "" }],
+      });
+    });
+
+    expect(railAnnouncer()).toBe(announcer);
+    expect(announcer).toHaveTextContent(/no reply\. May have run\./);
+    expect(announcer).toHaveAttribute("aria-atomic", "false");
+  });
+
+  it("gives a widget that commands nothing no announcer", () => {
+    inPanel(<PanelDelayRail />);
+    expect(railAnnouncer()).toBeNull();
+  });
+
+  it("has no axe violations grown with a command in flight", async () => {
+    const user = userEvent.setup();
+    const store = createDelayRailStore();
+    store.register(handle("cmd"));
+    const { container } = inPanel(<PanelDelayRail />, store);
+    await user.click(
+      screen.getByRole("button", { name: /signal-delay detail/i }),
+    );
+    expect(
+      screen.getByRole("button", { name: /signal-delay detail/i }),
+    ).toHaveAttribute("data-grown", "true");
     await expectNoA11yViolations(container);
   });
 
@@ -414,11 +458,14 @@ describe("PanelDelayRail", () => {
 
       const sentence =
         "Upgrade Launch Pad refused: it is already at tier 3 of 3.";
-      // A hundred-character sentence cannot live in a 16px band.
-      expect(screen.queryByText(sentence)).toBeNull();
+      // A hundred-character sentence cannot live in a 16px band. The rail's
+      // announcer carries it for assistive tech, off screen, so it is not
+      // what is being asked about here.
+      const drawn = { ignore: "script, style, [data-live-region] *" };
+      expect(screen.queryByText(sentence, drawn)).toBeNull();
 
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
-      expect(screen.getByText(sentence)).toBeTruthy();
+      expect(screen.getByText(sentence, drawn)).toBeTruthy();
       // And the count line gives way to the reason rather than doubling it.
       expect(screen.queryByText("1 command failed")).toBeNull();
     });
@@ -637,14 +684,14 @@ describe("PanelDelayRail", () => {
       expect(screen.getByText("1 lost command found")).toBeTruthy();
     });
 
-    it("announces the collapsed count politely, never assertively", () => {
+    it("announces a found politely, never assertively", () => {
       const store = createDelayRailStore();
       store.register(foundHandle("cmd", "ran"));
       inPanel(<PanelDelayRail />, store);
-      const summary = screen.getByText("1 lost command found");
-      expect(summary.getAttribute("role")).toBe("status");
+      const announcer = railAnnouncer();
+      expect(announcer).toHaveTextContent(/found executed/i);
       // Assertive is ABORT's, and this is news rather than an interruption.
-      expect(summary.getAttribute("aria-live")).toBeNull();
+      expect(announcer).toHaveAttribute("aria-live", "polite");
     });
 
     it("says it was called lost and that it RAN, and never says confirmed", async () => {
@@ -654,7 +701,7 @@ describe("PanelDelayRail", () => {
       inPanel(<PanelDelayRail />, store);
 
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
-      const list = screen.getByRole("status", { name: /answered/i });
+      const list = screen.getByRole("list", { name: /answered/i });
       expect(list.textContent).toMatch(/found executed/i);
       // Confirmed means it worked as expected. Being told a command was lost
       // and then that it ran is the opposite of expected, and an operator who
@@ -669,7 +716,7 @@ describe("PanelDelayRail", () => {
       inPanel(<PanelDelayRail />, store);
 
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
-      const list = screen.getByRole("status", { name: /answered/i });
+      const list = screen.getByRole("list", { name: /answered/i });
       expect(list.textContent).toMatch(/found refused/i);
       expect(list.textContent).not.toMatch(/found executed/i);
     });
@@ -681,7 +728,7 @@ describe("PanelDelayRail", () => {
       inPanel(<PanelDelayRail />, store);
 
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
-      const list = screen.getByRole("status", { name: /answered/i });
+      const list = screen.getByRole("list", { name: /answered/i });
       expect(list.textContent).toMatch(/found errored/i);
       expect(list.textContent).toMatch(/the handler threw/i);
     });
@@ -762,7 +809,7 @@ describe("PanelDelayRail", () => {
       inPanel(<PanelDelayRail />, store);
 
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
-      const list = screen.getByRole("status", { name: /never sent/i });
+      const list = screen.getByRole("list", { name: /never sent/i });
       expect(list.textContent).toMatch(/never sent/i);
       expect(list.textContent).toMatch(/safe to re-send/i);
       // The one thing it must not repeat is the loss's doubt: this command

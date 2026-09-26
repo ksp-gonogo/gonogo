@@ -1,10 +1,15 @@
-import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { Badge } from "./Badge";
 import { Panel } from "./Panel";
 import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
+
+/** The panel's status announcer: an off-screen `aria-live` region, not a `status`. */
+function announcer(): HTMLElement | null {
+  return document.querySelector<HTMLElement>("[data-live-region]");
+}
 
 /**
  * The panel header now summarises its OWN worst state out of the per-item
@@ -33,7 +38,7 @@ describe("Panel header summary (store-backed)", () => {
         </Panel>,
       ),
     );
-    expect(screen.getByRole("status")).toHaveTextContent("LF CRITICAL");
+    expect(announcer()).toHaveTextContent("LF CRITICAL");
   });
 
   it("drops the summary to the next-worst when the worst badge unmounts", () => {
@@ -55,14 +60,14 @@ describe("Panel header summary (store-backed)", () => {
       );
     }
     const { rerender } = render(<Harness critical />);
-    expect(screen.getByRole("status")).toHaveTextContent("LF CRITICAL");
+    expect(announcer()).toHaveTextContent("LF CRITICAL");
     rerender(<Harness critical={false} />);
-    expect(screen.getByRole("status")).toHaveTextContent("OX LOW");
+    expect(announcer()).toHaveTextContent("OX LOW");
   });
 
   it("folds the widget's own stream status into the same summary", () => {
     render(inStore(<Panel panelTitle="ORBIT" panelStatus="resyncing" />));
-    expect(screen.getByRole("status")).toHaveTextContent("SYNCING");
+    expect(announcer()).toHaveTextContent("SYNCING");
   });
 
   it("lets a firing-style critical report outrank a merely stale stream", () => {
@@ -79,12 +84,12 @@ describe("Panel header summary (store-backed)", () => {
       ),
     );
     // stream held-stale -> warning, the report -> critical, so the alarm wins.
-    expect(screen.getByRole("status")).toHaveTextContent("NO BURN VECTOR");
+    expect(announcer()).toHaveTextContent("NO BURN VECTOR");
   });
 
   it("shows nothing when a store is present but empty and the stream is live", () => {
     render(inStore(<Panel panelTitle="ORBIT" panelStatus="live" />));
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(announcer()).toBeEmptyDOMElement();
   });
 
   it("re-summarises when a contribution's severity transitions (the change cue path)", () => {
@@ -98,11 +103,11 @@ describe("Panel header summary (store-backed)", () => {
       );
     }
     const { rerender } = render(<Harness severity="caution" />);
-    expect(screen.getByRole("status")).toHaveTextContent("caution");
+    expect(announcer()).toHaveTextContent("caution");
     // A severity change updates the summary (and drives the one-shot pulse) with
     // no throw and no stale reading.
     rerender(<Harness severity="offline" />);
-    expect(screen.getByRole("status")).toHaveTextContent("offline");
+    expect(announcer()).toHaveTextContent("offline");
   });
 
   it("keeps the same live region across a severity change, so the change is announced", () => {
@@ -116,9 +121,32 @@ describe("Panel header summary (store-backed)", () => {
       );
     }
     const { rerender } = render(<Harness severity="caution" />);
-    const before = screen.getByRole("status");
+    const before = announcer();
     rerender(<Harness severity="offline" />);
-    expect(screen.getByRole("status")).toBe(before);
+    expect(announcer()).toBe(before);
+  });
+
+  it("announces the first report in a region that was mounted, empty, before it", () => {
+    function Harness({ firing }: { firing: boolean }) {
+      return inStore(
+        <Panel panelTitle="DESCENT">
+          {firing && (
+            <Badge
+              severity="critical"
+              report={{ id: "alarm", label: "NO BURN VECTOR" }}
+            >
+              !
+            </Badge>
+          )}
+        </Panel>,
+      );
+    }
+    const { rerender } = render(<Harness firing={false} />);
+    const region = announcer();
+    expect(region).toBeEmptyDOMElement();
+    rerender(<Harness firing />);
+    expect(announcer()).toBe(region);
+    expect(region).toHaveTextContent("DESCENT: NO BURN VECTOR");
   });
 
   it("a summarised panel has no axe violations", async () => {
