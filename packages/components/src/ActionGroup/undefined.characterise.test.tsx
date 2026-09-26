@@ -101,9 +101,11 @@ describe("ActionGroup: nothing has arrived at all", () => {
   it("renders the configured group, named and enabled, with NULL_DISPLAY for its state", () => {
     mount("SAS");
 
-    // `useActionGroupFrom(undefined, "SAS")` still resolves: SAS is a STOCK
-    // singleton in the static half of the registry, so an absent
-    // `vessel.control` never reaches the `!group` placeholder.
+    /*
+     * `useActionGroupFrom(undefined, "SAS")` still resolves: SAS is a STOCK
+     * singleton in the static half of the registry, so an absent
+     * `vessel.control` never reaches the `!group` placeholder.
+     */
     expect(screen.queryByText("No action group configured")).toBeNull();
 
     const toggle = screen.getByRole("button", { name: "Toggle SAS" });
@@ -121,9 +123,11 @@ describe("ActionGroup: nothing has arrived at all", () => {
   it("shows no unavailable badge: absent pause/comms reads are read as 'nothing to warn about'", () => {
     mount("SAS");
 
-    // `isPaused === true` and `commConnected === false` both need a CONFIRMED
-    // value. `undefined` fires neither, so the widget asserts the action can
-    // fire right now off no evidence at all.
+    /*
+     * `isPaused === true` and `commConnected === false` both need a CONFIRMED
+     * value. `undefined` fires neither, so the widget asserts the action can
+     * fire right now off no evidence at all.
+     */
     expect(screen.queryByText("Paused")).toBeNull();
     expect(screen.queryByText("No signal")).toBeNull();
     expect(
@@ -213,9 +217,11 @@ describe("ActionGroup (Stage): the one group whose absence gate does not block t
       toggle.click();
     });
 
-    // `buildToggleArgs` short-circuits Stage to `null` BEFORE the boolean
-    // check, so Stage is the only group that actuates the vessel off a read
-    // that never arrived.
+    /*
+     * `buildToggleArgs` short-circuits Stage to `null` BEFORE the boolean
+     * check, so Stage is the only group that actuates the vessel off a read
+     * that never arrived.
+     */
     await waitFor(() =>
       expect(commandHandler).toHaveBeenCalledWith("vessel.control.stage", null),
     );
@@ -227,9 +233,11 @@ describe("ActionGroup: a partial payload", () => {
   it("a vessel.control that arrived WITHOUT the group's field reverts to NULL_DISPLAY", async () => {
     const { fixture, commandHandler } = mount("SAS");
 
-    // Land a real value first, so the partial record below is provably
-    // delivered rather than silently dropped: NULL_DISPLAY alone is also the
-    // never-arrived render, and asserting it from a cold mount proves nothing.
+    /*
+     * Land a real value first, so the partial record below is provably
+     * delivered rather than silently dropped: NULL_DISPLAY alone is also the
+     * never-arrived render, and asserting it from a cold mount proves nothing.
+     */
     act(() => {
       fixture.emit("vessel.control", { ...CONTROL_ALL_OFF, sas: true });
     });

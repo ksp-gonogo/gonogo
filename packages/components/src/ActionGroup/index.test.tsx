@@ -303,9 +303,11 @@ describe("ActionGroupComponent", () => {
 
   describe("augment slots", () => {
     beforeEach(() => clearAugments());
-    // Unmount before clearAugments() notifies the augment registry's
-    // subscribers, else a still-mounted AugmentSlot re-renders outside act()
-    // (CLAUDE.md → Testing Philosophy, act() warning pattern).
+    /*
+     * Unmount before clearAugments() notifies the augment registry's
+     * subscribers, else a still-mounted AugmentSlot re-renders outside act()
+     * (CLAUDE.md → Testing Philosophy, act() warning pattern).
+     */
     afterEach(() => {
       unmountAll();
       clearAugments();
