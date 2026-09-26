@@ -13,6 +13,7 @@ import { focusRingInset } from "./focusRing";
 import { Grid } from "./Grid";
 import { Section, SectionTitle } from "./Section";
 import { useElementSize } from "./useElementSize";
+import { VisuallyHidden } from "./VisuallyHidden";
 
 export interface TabDescriptor {
   /**
@@ -319,7 +320,12 @@ export function Tabs({
             <Section key={tab.id}>
               <SectionTitle as="h3" $rule>
                 {tab.label}
-                {tab.indicator && <Tabs__Dot aria-hidden="true" />}
+                {tab.indicator && (
+                  <>
+                    <Tabs__Dot aria-hidden="true" />
+                    <VisuallyHidden>, needs attention</VisuallyHidden>
+                  </>
+                )}
               </SectionTitle>
               {tab.content}
             </Section>
@@ -358,6 +364,9 @@ export function Tabs({
                 id={`${uid}${tab.id}-tab`}
                 aria-selected={isActive}
                 aria-controls={`${uid}${tab.id}-panel`}
+                aria-describedby={
+                  tab.indicator ? `${uid}${tab.id}-attention` : undefined
+                }
                 tabIndex={isActive ? 0 : -1}
                 disabled={tab.disabled}
                 $active={isActive}
@@ -370,7 +379,14 @@ export function Tabs({
                 $compact={compact}
               >
                 {tab.label}
-                {tab.indicator && <Tabs__Dot aria-hidden="true" />}
+                {tab.indicator && (
+                  <>
+                    <Tabs__Dot aria-hidden="true" />
+                    <span id={`${uid}${tab.id}-attention`} hidden>
+                      Needs attention
+                    </span>
+                  </>
+                )}
               </Tabs__Button>
             );
           })}
