@@ -16,7 +16,7 @@ import {
   useStream,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
-import { stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
+import { readingOf, stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   AutoEmptyState,
   CheckIcon,
@@ -112,6 +112,11 @@ function SpaceCenterStatusComponent({
   const heldFunds =
     fundsNotCurrent &&
     magnitudeOf(stillTrue(careerReading, undefined)?.economy?.funds) !== null;
+  // The balance on screen, marked by Unit while held; affordability reads only the current `careerFunds`.
+  const fundsReading = readingOf(
+    careerReading,
+    (c) => c.economy?.funds ?? undefined,
+  );
   const { chargesFunds } = useGameContext();
   const sceneReading = useTelemetry("spaceCenter.scene");
   // The site changes only when a vessel launches from it, so the last one reported is still the answer.
@@ -232,13 +237,12 @@ function SpaceCenterStatusComponent({
                 )}
               </TinyFunds>
             ) : (
-              /* A held balance is titled and a never-arrived one is not, so the two are distinguishable. */
-              <TinyFunds
-                title={
-                  heldFunds ? "Funds balance no longer current" : undefined
-                }
-              >
-                {NULL_DISPLAY}
+              <TinyFunds>
+                {heldFunds ? (
+                  <Unit value={fundsReading} decimals={0} />
+                ) : (
+                  NULL_DISPLAY
+                )}
               </TinyFunds>
             )}
             <TinyPad
@@ -270,9 +274,9 @@ function SpaceCenterStatusComponent({
             {showSubtitle && (
               <PadStatusLine role="status" aria-live="polite">
                 {padLine}
-                {careerFunds !== null ? (
+                {careerFunds !== null || heldFunds ? (
                   <FundsReadout title="Available funds">
-                    · <Unit value={value("funds", careerFunds)} />
+                    · <Unit value={fundsReading} />
                   </FundsReadout>
                 ) : null}
                 {reportsFundsDrain(netFunds) && (
@@ -285,17 +289,13 @@ function SpaceCenterStatusComponent({
                   </DrainReadout>
                 )}
                 {careerFunds === null &&
+                  !heldFunds &&
                   /* The balance is required beside a spend control; sandbox charges nothing. */
-                  chargesFunds &&
-                  (heldFunds ? (
-                    <FundsReadout title="Funds balance no longer current">
-                      · funds no longer current
-                    </FundsReadout>
-                  ) : (
+                  chargesFunds && (
                     <FundsReadout title="No funds balance has arrived">
                       · funds unknown
                     </FundsReadout>
-                  ))}
+                  )}
               </PadStatusLine>
             )}
             {heldUpgradeInputs.length > 0 && (

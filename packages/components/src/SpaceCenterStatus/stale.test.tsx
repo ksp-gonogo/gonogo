@@ -9,9 +9,9 @@ import { SpaceCenterStatusComponent } from "./index";
 
 /**
  * What this widget does when career telemetry stops being current. The tiers
- * stay, since only a paid upgrade moves one. The funds balance and the scene go,
- * with every Upgrade button they authorised, and "held" has to be legible or
- * the refusal reads as a broken widget.
+ * stay, since only a paid upgrade moves one. The funds balance stays on screen
+ * marked held, the scene goes, and every Upgrade button they authorised goes
+ * with them.
  */
 
 const CARRIED = [
@@ -104,7 +104,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     expect(visibleText(container)).not.toContain("Upgrades held");
   });
 
-  it("withholds the balance and disarms the upgrade, and says the balance is no longer current", async () => {
+  it("keeps the held balance on screen, marked by Unit, and disarms the upgrade", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
@@ -115,20 +115,29 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     await waitFor(() =>
       expect(screen.getByTitle("Available funds")).toBeTruthy(),
     );
+    expect(
+      screen.getByTitle("Available funds").querySelector("[data-not-current]"),
+    ).toBeNull();
 
     goStale(fixture);
 
     await waitFor(() =>
-      expect(screen.getByTitle("Funds balance no longer current")).toBeTruthy(),
+      expect(
+        screen
+          .getByTitle("Available funds")
+          .querySelector("[data-not-current]"),
+      ).not.toBeNull(),
     );
+    const balance = screen.getByTitle("Available funds");
+    expect(balance.querySelector("[data-unit-currency]")).not.toBeNull();
+    expect(balance.textContent).toContain("500");
     // Not the cold-start sentence: one reports a warmup, the other accuses the link.
     expect(screen.queryByTitle("No funds balance has arrived")).toBeNull();
-    expect(screen.queryByTitle("Available funds")).toBeNull();
     expect(
       (screen.getByRole("button", { name: "Upgrade" }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
-    expect(visibleText(container)).toContain("funds no longer current");
+    expect(visibleText(container)).not.toContain("funds no longer current");
   });
 
   it("names both withheld inputs, so dead buttons do not read as a KSC with nothing to upgrade", async () => {
@@ -199,7 +208,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     expect(screen.queryByTitle("Funds balance no longer current")).toBeNull();
   });
 
-  it("titles the tiny bucket's withheld balance, the only room it has to give a reason", async () => {
+  it("marks the tiny bucket's held balance rather than blanking it", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
@@ -210,16 +219,18 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     await waitFor(() =>
       expect(visibleText(container)).not.toContain(NULL_DISPLAY),
     );
+    expect(container.querySelector("[data-not-current]")).toBeNull();
 
     goStale(fixture);
 
     await waitFor(() =>
-      expect(screen.getByTitle("Funds balance no longer current")).toBeTruthy(),
+      expect(container.querySelector("[data-not-current]")).not.toBeNull(),
     );
-    expect(visibleText(container)).toContain(NULL_DISPLAY);
+    expect(visibleText(container)).not.toContain(NULL_DISPLAY);
+    expect(screen.queryByTitle("Funds balance no longer current")).toBeNull();
   });
 
-  it("leaves a cold tiny bucket untitled, so a held balance is distinguishable there too", async () => {
+  it("leaves a cold tiny bucket unmarked, so a held balance is distinguishable there too", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
@@ -228,6 +239,6 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     const container = mount(fixture, "scs-stale-tiny-cold", 2, 3);
 
     await waitFor(() => expect(visibleText(container)).toContain(NULL_DISPLAY));
-    expect(screen.queryByTitle("Funds balance no longer current")).toBeNull();
+    expect(container.querySelector("[data-not-current]")).toBeNull();
   });
 });

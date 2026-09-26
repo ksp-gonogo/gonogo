@@ -501,7 +501,6 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
   "packages/components/src/CommSignal/CommSignalView.tsx": 2,
   "packages/components/src/CrewStatus/CrewStatusView.tsx": 2,
   "packages/components/src/CurrentOrbit/index.tsx": 2,
-  "packages/components/src/SpaceCenterStatus/index.tsx": 1,
   /*
    * Newly VISIBLE, through `Countdown` taking a reading, and the same shape as
    * the three clocks above: the SOI countdown is a client-computed
