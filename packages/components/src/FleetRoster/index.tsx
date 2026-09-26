@@ -633,7 +633,7 @@ const UpdatesRow = styled.div`
      LinkDot's 8px width + NameCell's 7px gap, so this block hangs under the
      vessel name rather than under its status dot. It stays literal; the other
      three sides are ordinary rhythm and do tokenise. */
-  padding: 0 var(--space-6) var(--space-6) 21px;
+  padding: 0 var(--gutter-roster-cell) var(--gutter-roster-cell) 21px;
 
   /* Nothing contributed to this row: an augment that returns null adds no DOM,
      so the wrapper is genuinely empty and takes no space at all. */
@@ -724,7 +724,7 @@ function FleetRosterComponent({
             <>
               <Grid
                 cols={gridCols}
-                gap="sm"
+                gap="related-dense"
                 align="center"
                 style={{
                   height: ROW_HEIGHT,
@@ -756,14 +756,17 @@ function FleetRosterComponent({
                   <Fragment key={v.id}>
                     <Grid
                       cols={gridCols}
-                      gap="sm"
+                      gap="related-dense"
                       style={{ height: ROW_HEIGHT }}
                     >
                       <Cluster
                         justify="start"
                         align="center"
                         title={v.name}
-                        style={{ gap: "7px", padding: "0 var(--space-6)" }}
+                        style={{
+                          gap: "7px",
+                          padding: "var(--inset-roster-cell)",
+                        }}
                       >
                         <LinkDot
                           tone={COMMS_TONE[v.comms]}
@@ -785,7 +788,7 @@ function FleetRosterComponent({
                           style={{
                             fontSize: "var(--font-size-compact)",
                             color: "var(--color-text-muted)",
-                            padding: "0 var(--space-6)",
+                            padding: "var(--inset-roster-cell)",
                           }}
                         >
                           {v.body ?? NULL_DISPLAY}
@@ -796,7 +799,7 @@ function FleetRosterComponent({
                         size="sm"
                         style={{
                           textAlign: "right",
-                          padding: "0 var(--space-6)",
+                          padding: "var(--inset-roster-cell)",
                           whiteSpace: "nowrap",
                         }}
                       >
@@ -804,7 +807,7 @@ function FleetRosterComponent({
                       </Text>
                       <div
                         style={{
-                          padding: "0 var(--space-6)",
+                          padding: "var(--inset-roster-cell)",
                           textAlign: "right",
                         }}
                       >
@@ -860,7 +863,7 @@ function ColLabel({
         textTransform: "uppercase",
         letterSpacing: "0.06em",
         fontWeight: 600,
-        padding: "0 var(--space-6)",
+        padding: "var(--inset-roster-cell)",
         textAlign: right ? "right" : "left",
         whiteSpace: "nowrap",
       }}

@@ -307,7 +307,7 @@ const Code = styled.code`
 const QrRow = styled.div`
   display: flex;
   justify-content: center;
-  padding: var(--space-12);
+  padding: var(--inset-qr);
   background: var(--color-text-primary);
   border-radius: var(--radius-regular);
 `;
@@ -328,7 +328,7 @@ const Hint = styled.p`
 `;
 
 const Empty = styled.div`
-  padding: var(--space-16) 0;
+  padding: var(--inset-empty-popover);
   font-size: var(--font-size-compact);
   color: var(--color-text-dim);
   text-align: center;
@@ -339,7 +339,7 @@ const RegenerateWrap = styled.div`
   flex-direction: column;
   gap: var(--gap-related);
   border-top: 1px solid var(--color-border-subtle);
-  padding-top: var(--space-12);
+  padding-top: var(--gap-popover-section);
 `;
 
 const RegenerateHint = styled.p`

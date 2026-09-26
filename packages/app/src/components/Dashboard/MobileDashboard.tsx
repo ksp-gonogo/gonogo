@@ -281,7 +281,7 @@ function HeightToggleButton({
 const MobileList = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: var(--gap-related);
+  gap: var(--gutter-dashboard);
   width: 100%;
   align-content: flex-start;
 `;
@@ -292,12 +292,12 @@ const MobileCell = styled.div<{ $half: boolean; $height: number }>`
   background: transparent;
   overflow: hidden;
   /* Exactly half of MobileList's gap, expressed as arithmetic on the same
-     token rather than a second 4px literal, so a half-width cell keeps
-     tracking the gutter if --space-8 ever moves. The desktop branch's
+     --gutter-dashboard rather than a second 4px literal, so a half-width cell
+     keeps tracking the gutter. The desktop branch's
      GridDashboard margin={[8, 8]} is the third copy of this gutter and is a
      react-grid-layout JS prop no CSS pass can see; keep it equal to this. */
   flex: 0 0
-    ${({ $half }) => ($half ? "calc(50% - var(--space-8) / 2)" : "100%")};
+    ${({ $half }) => ($half ? "calc(50% - var(--gutter-dashboard) / 2)" : "100%")};
   height: ${({ $height }) => $height}px;
   ${highlightStyle}
 `;
@@ -315,7 +315,7 @@ const MobileCellHeader = styled.div`
   flex-shrink: 0;
   background: var(--color-surface-panel);
   border-radius: var(--radius-regular) var(--radius-regular) 0 0;
-  padding: 0 var(--space-4);
+  padding: var(--inset-tile-header);
 `;
 
 const MobileCellHeaderLeft = styled.div`
@@ -326,13 +326,13 @@ const MobileCellHeaderLeft = styled.div`
   flex: 1;
 `;
 
-/* A rung, not --gap-related: five glyph buttons ride this tray, each already
+/* The tray gap, not --gap-related: five glyph buttons ride this tray, each already
    carrying its own 2px margin, and on a half-width cell the widget's name has
    the rest of the row. The default gap would take 32px of that name away. */
 const MobileCellHeaderRight = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--gap-glyph-tray);
   flex-shrink: 0;
 `;
 
@@ -359,7 +359,7 @@ const WidthToggleBtn = styled.button`
   font-size: var(--font-size-compact);
   line-height: var(--line-height-flush);
   padding: var(--inset-control-compact);
-  margin-left: var(--space-2);
+  margin-left: var(--gap-glyph-tray);
   display: inline-flex;
   align-items: center;
   justify-content: center;

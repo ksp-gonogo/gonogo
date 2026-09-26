@@ -67,7 +67,7 @@ export function UplinkSkewOverride({ outcome, reload = defaultReload }: Props) {
 
   if (granted) {
     return (
-      <Cluster justify="start" gap="sm" wrap>
+      <Cluster justify="start" gap="related-dense" wrap>
         <Text tone="warn" size="sm">
           Override recorded for this pair. Reload to apply.
         </Text>
@@ -85,13 +85,13 @@ export function UplinkSkewOverride({ outcome, reload = defaultReload }: Props) {
   }
 
   return (
-    <Stack gap="xs">
+    <Stack gap="caption">
       <Text tone="muted" size="sm">
         Accepting loads the client the index offers. The bundle is still fetched
         and still refused unless it hashes to {integrity.observed}. The decision
         covers this id, this version and this pair of hashes only.
       </Text>
-      <Cluster justify="start" gap="sm" wrap>
+      <Cluster justify="start" gap="related-dense" wrap>
         <GhostButton
           type="button"
           onClick={() => {

@@ -116,7 +116,7 @@ const Block__Title = styled.div`
 const Block__TitleLead = styled.div`
   display: flex;
   align-items: baseline;
-  gap: var(--space-6);
+  gap: var(--gap-record-lead);
   flex: 1 1 auto;
   min-width: 0;
 `;
@@ -196,7 +196,7 @@ const Block__Aside = styled.div<{ $side?: boolean }>`
   ${({ $side }) =>
     $side
       ? `flex: 0 0 auto;
-    --radius-display-frame: var(--space-4, 4px);`
+    --radius-display-frame: var(--radius-display-frame-aside);`
       : ""}
 `;
 

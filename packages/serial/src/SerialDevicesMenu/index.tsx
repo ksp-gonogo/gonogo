@@ -399,8 +399,8 @@ const Wrap = styled.div`
 `;
 
 const Credit = styled.p`
-  margin: var(--space-10) 0 0;
-  padding-top: var(--space-8);
+  margin: var(--gap-footnote) 0 0;
+  padding-top: var(--inset-footnote-rule);
   border-top: 1px solid var(--color-border-subtle);
   font-size: var(--font-size-prose);
   color: var(--color-text-faint);
@@ -442,7 +442,7 @@ const Heading = styled.h3`
 const Empty = styled.div`
   color: var(--color-text-faint);
   font-size: var(--font-size-compact);
-  padding: var(--space-8) 0;
+  padding: var(--inset-empty-note);
 `;
 
 const BannerLabel = styled.strong`
@@ -456,11 +456,7 @@ const WebSerialUnavailableBanner = styled.div`
   color: var(--color-status-warning-bg);
   font-size: var(--font-size-compact);
   line-height: var(--line-height-body);
-  /* The chrome band, in rungs. This banner spans the menu and carries prose
-     with an inline <code> run, so it takes the 16px gutter lock the ladder
-     documents rather than --inset-surface's 8, which is the inset for a record
-     inside a list. No --inset-* names this pair on purpose. */
-  padding: var(--space-10) var(--space-16);
+  padding: var(--inset-alert-band);
 
   code {
     font-family: var(--font-mono, monospace);
@@ -468,7 +464,7 @@ const WebSerialUnavailableBanner = styled.div`
     word-break: break-all;
     background: var(--color-surface-raised);
     border-radius: var(--radius-regular);
-    padding: 0 var(--space-2);
+    padding: var(--inset-code-inline);
   }
 `;
 
@@ -485,14 +481,14 @@ const RowMeta = styled.span`
 const RowActions = styled.div`
   display: flex;
   gap: var(--gap-related);
-  margin-top: var(--space-6);
+  margin-top: var(--gap-card-actions);
 `;
 
 const PendingPicker = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
-  padding: var(--space-8);
+  padding: var(--inset-placeholder);
   background: var(--color-status-warning-bg);
   border-radius: var(--radius-regular);
   color: var(--color-text-primary);

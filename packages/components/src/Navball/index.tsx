@@ -1774,7 +1774,7 @@ const CONTROL_WRAP: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: "var(--gap-related)",
-  paddingTop: "var(--space-6)",
+  paddingTop: "var(--inset-below-rule)",
   borderTop: "1px solid var(--color-surface-raised)",
 };
 

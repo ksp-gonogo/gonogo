@@ -1093,9 +1093,9 @@ export { ManeuverPlannerComponent };
 // passes it down to Stack, which has its own `as` prop for exactly this.
 const PaddedSection = styled(Stack).attrs({
   forwardedAs: "section" as const,
-  gap: "sm" as const,
+  gap: "related-dense" as const,
 })`
-  padding-top: var(--space-4);
+  padding-top: var(--gap-planner-section);
 `;
 
 const RefBodyCaption = styled.div`

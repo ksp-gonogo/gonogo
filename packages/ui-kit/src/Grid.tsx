@@ -1,6 +1,6 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
-import { SPACE_VAR, type SpaceToken } from "./scales";
+import { GAP_VAR, type GapToken } from "./scales";
 
 export type GridAlign = "center" | "start" | "baseline";
 
@@ -24,14 +24,14 @@ export interface GridProps extends HTMLAttributes<HTMLDivElement> {
    * Ignored when `cols` is set.
    */
   minColWidth?: string;
-  /** Gap between cells, snapped to the space scale. Defaults to `sm`. */
-  gap?: SpaceToken;
+  /** Gap between cells, as a gap job. Defaults to `related-dense`. */
+  gap?: GapToken;
   /**
    * Row gap, when it differs from the column gap. A label/value grid usually
    * wants its rows tighter than its columns, and `gap` alone forces one value
    * on both axes; CommSignal was keeping its own grid for exactly that.
    */
-  rowGap?: SpaceToken;
+  rowGap?: GapToken;
   children?: ReactNode;
 }
 
@@ -49,7 +49,7 @@ const ALIGN_ITEMS: Record<GridAlign, string> = {
 export function Grid({
   cols,
   minColWidth,
-  gap = "sm",
+  gap = "related-dense",
   rowGap,
   align = "center",
   children,
@@ -72,14 +72,14 @@ export function Grid({
 const Grid__Root = styled.div<{
   $cols?: string;
   $minColWidth?: string;
-  $gap: SpaceToken;
-  $rowGap?: SpaceToken;
+  $gap: GapToken;
+  $rowGap?: GapToken;
   $align: GridAlign;
 }>`
   display: grid;
   align-items: ${({ $align }) => ALIGN_ITEMS[$align]};
   gap: ${({ $gap, $rowGap }) =>
-    $rowGap ? `${SPACE_VAR[$rowGap]} ${SPACE_VAR[$gap]}` : SPACE_VAR[$gap]};
+    $rowGap ? `${GAP_VAR[$rowGap]} ${GAP_VAR[$gap]}` : GAP_VAR[$gap]};
   grid-template-columns: ${({ $cols, $minColWidth }) => {
     if ($cols) return $cols;
     if ($minColWidth) return `repeat(auto-fill, minmax(${$minColWidth}, 1fr))`;

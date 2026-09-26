@@ -72,7 +72,7 @@ describe("ComposerBar", () => {
       </ComposerBar>,
     );
     const rule = emittedRuleFor(screen.getByRole("status"));
-    expect(rule).toContain("left:var(--space-8)");
+    expect(rule).toContain("left:var(--inset-console-foot)");
     expect(rule).not.toContain("right:");
   });
 

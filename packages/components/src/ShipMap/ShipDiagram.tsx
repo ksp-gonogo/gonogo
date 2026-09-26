@@ -420,7 +420,7 @@ const MENU_HOST: CSSProperties = {
   // rung declared inside it is trapped there, and any widget's own local
   // `z-index` (the ship diagram's svg carries 1) then paints over the menu.
   // Held as the token rather than its value so the ladder stays stated once.
-  zIndex: "var(--z-dropdown, 200)",
+  zIndex: "var(--z-dropdown)",
 };
 
 // Positioning is the host's job now, and so is the rung. Static rather than the
@@ -446,7 +446,7 @@ const TOOLTIP: CSSProperties = {
 const TOOLTIP_TITLE: CSSProperties = {
   fontWeight: 600,
   color: "var(--color-status-go-fg)",
-  marginBottom: "var(--space-4)",
+  marginBottom: "var(--gap-under-title)",
   wordBreak: "break-word",
 };
 

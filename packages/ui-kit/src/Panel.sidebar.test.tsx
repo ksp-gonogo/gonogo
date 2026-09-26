@@ -250,10 +250,10 @@ describe("Panel sidebar, inset", () => {
     const style = getComputedStyle(sidebarScroller());
     // The body's own three values, so the sidebar's first line sits on the
     // body's baseline rather than on the panel's border.
-    expect(style.paddingTop).toBe("var(--space-8, 8px)");
-    expect(style.paddingRight).toBe("var(--space-16, 16px)");
-    expect(style.paddingBottom).toBe("var(--space-12, 12px)");
-    expect(style.paddingLeft).toBe("var(--space-16, 16px)");
+    expect(style.paddingTop).toBe("var(--inset-panel-top)");
+    expect(style.paddingRight).toBe("var(--gutter-panel)");
+    expect(style.paddingBottom).toBe("var(--inset-panel-bottom)");
+    expect(style.paddingLeft).toBe("var(--gutter-panel)");
   });
 
   for (const [side, given] of [

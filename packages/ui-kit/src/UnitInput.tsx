@@ -180,7 +180,7 @@ export function UnitInput<U extends string>({
     setTyping((held) => ({ ...held, [index]: next }));
 
   const wheel = rate ? (
-    <Stack gap="xs">
+    <Stack gap="related-packed">
       <JogWheel
         mode="rate"
         ariaLabel={`${label} rate`}
@@ -212,7 +212,7 @@ export function UnitInput<U extends string>({
     // IS the rungs, and it is the game's rather than the ladder's.
     return (
       <Control>
-        <Stack gap="sm">
+        <Stack gap="related-dense">
           <MissionDateField
             label={label}
             value={Number.isFinite(magnitude) ? magnitude : null}
@@ -422,7 +422,7 @@ function round(n: number): number {
 const Control = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-field-label-compact);
 `;
 
 const nameStyles = `
@@ -444,7 +444,7 @@ const ValueRow = styled.div`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-value-tag);
 `;
 
 const SingleField = styled.input`
@@ -452,7 +452,7 @@ const SingleField = styled.input`
   border: 1px solid var(--color-border-subtle);
   color: var(--color-text-primary);
   font-size: var(--font-size-value);
-  padding: var(--space-4) var(--space-6);
+  padding: var(--inset-field-compact);
   border-radius: var(--radius-regular);
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -468,14 +468,14 @@ const UnitSymbol = styled.span`
 
 const RungRow = styled.div`
   display: flex;
-  gap: var(--space-6);
+  gap: var(--gap-unit-parts);
 `;
 
 const RungCell = styled.div`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--gap-unit-suffix);
 `;
 
 const RungField = styled(SingleField)`

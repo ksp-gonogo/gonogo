@@ -77,23 +77,22 @@ const TONE_BORDER = {
 const StatusIndicator__Row = styled.div<{ "data-tone": StatusTone }>`
   display: flex;
   align-items: center;
-  gap: var(--space-8, 8px);
+  gap: var(--gap-glyph-box);
   font-size: var(--font-size-compact);
   /*
-     One rung in from the old --space-6, because the height is the token's job
-     now and the inset's only remaining one is keeping a WRAPPED sentence off
-     the border. At 6px this box came out 29.4px on a single line of xs text at
+     Small, because the height is the token's job and the inset's only
+     remaining one is keeping a WRAPPED sentence off the border. At 6px this box came out 29.4px on a single line of xs text at
      a 1.4 line height, which is over the control height and therefore back to
      being the one thing in a bar that does not line up.
   */
-  padding: var(--space-4, 4px) var(--space-8, 8px);
+  padding: var(--inset-status-box);
   /* A readout, but a BOXED one, and it sits in bars next to the controls it has
      to line up with (the radio bar puts one between a mute and a talk key). The
      kit's one control height, see --control-height. */
-  min-height: var(--control-height, 28px);
+  min-height: var(--control-height);
   background: var(--color-surface-raised);
   border: 1px solid;
-  border-radius: var(--radius-regular, 3px);
+  border-radius: var(--radius-regular);
 
   ${({ "data-tone": tone }) => TONE_BORDER[tone]}
 `;
@@ -127,7 +126,7 @@ const StatusIndicator__Dot = styled.span<{
 }>`
   width: 8px;
   height: 8px;
-  border-radius: var(--radius-circle, 50%);
+  border-radius: var(--radius-circle);
   flex-shrink: 0;
 
   ${({ "data-tone": tone }) => TONE_DOT[tone]}
@@ -141,7 +140,7 @@ const StatusIndicator__Dot = styled.span<{
       ? css`
           @media (prefers-reduced-motion: no-preference) {
             animation: ${statusPulse} ${$pulse === "fast" ? "1s" : "2s"}
-              var(--ease-emphasis, ease-in-out) infinite;
+              var(--ease-emphasis) infinite;
           }
         `
       : ""}
@@ -149,5 +148,5 @@ const StatusIndicator__Dot = styled.span<{
 
 const StatusIndicator__Text = styled.span`
   color: var(--color-text-primary);
-  line-height: var(--line-height-body, 1.4);
+  line-height: var(--line-height-body);
 `;

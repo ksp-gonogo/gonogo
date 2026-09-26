@@ -287,7 +287,7 @@ function DrillCard({
       }
     >
       <Stack>
-        <Grid cols={RESOURCE_TABLE_COLS} rowGap="xs" align="baseline">
+        <Grid cols={RESOURCE_TABLE_COLS} rowGap="readout-row" align="baseline">
           <ResourceCells
             flow={{ resource: drill.resource, rate: drill.rate }}
             direction="extract"
@@ -390,7 +390,7 @@ function ConverterCard({
             genuinely empty (a scrubber has no output; a hypothetical pure
             generator would have no input), and reads as that fact via a
             "none" row rather than a blank gap in the table. */}
-        <Grid cols={RESOURCE_TABLE_COLS} rowGap="xs" align="baseline">
+        <Grid cols={RESOURCE_TABLE_COLS} rowGap="readout-row" align="baseline">
           {converter.inputs.length > 0 ? (
             converter.inputs.map((flow, index) => (
               <ResourceCells

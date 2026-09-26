@@ -1,15 +1,15 @@
 import type { ElementType, HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
-import { SPACE_VAR, type SpaceToken } from "./scales";
+import { GAP_VAR, type GapToken } from "./scales";
 
 export interface StackProps extends HTMLAttributes<HTMLDivElement> {
   /**
-   * Gap between children, snapped to the space scale. Omit it and the gap is
+   * Gap between children, as a gap job. Omit it and the gap is
    * `--gap-related`, inherited from whichever container the stack lands in, so
-   * the same stack is 8px on a panel and 6px inside a card. Pass a size only
+   * the same stack is 8px on a panel and 6px inside a card. Pass a job only
    * from a container deciding the spacing for what it holds.
    */
-  gap?: SpaceToken;
+  gap?: GapToken;
   /**
    * Rendered tag. Defaults to `div`. Declared for the same reason `Row`
    * declares it: a widget adopting this in place of its own `styled.section`
@@ -40,10 +40,9 @@ export function Stack({ gap, fill = false, children, ...rest }: StackProps) {
   );
 }
 
-const Stack__Root = styled.div<{ $gap?: SpaceToken; $fill: boolean }>`
+const Stack__Root = styled.div<{ $gap?: GapToken; $fill: boolean }>`
   display: flex;
   flex-direction: column;
-  gap: ${({ $gap }) =>
-    $gap ? SPACE_VAR[$gap] : "var(--gap-related, var(--space-8, 8px))"};
+  gap: ${({ $gap }) => ($gap ? GAP_VAR[$gap] : "var(--gap-related)")};
   ${({ $fill }) => ($fill ? "flex: 1; min-height: 0;" : "")}
 `;

@@ -1523,7 +1523,7 @@ const EMPTY: CSSProperties = {
   gap: "var(--gap-related)",
   color: "var(--color-text-dim)",
   fontSize: "var(--font-size-compact)",
-  padding: "var(--space-16)",
+  padding: "var(--inset-empty-state)",
   textAlign: "center",
 };
 
@@ -1553,7 +1553,7 @@ const TOOLTIP: CSSProperties = {
 
 const TOOLTIP_TITLE: CSSProperties = {
   fontWeight: 600,
-  marginBottom: "var(--space-4)",
+  marginBottom: "var(--gap-under-title)",
   color: "var(--color-status-go-fg)",
 };
 

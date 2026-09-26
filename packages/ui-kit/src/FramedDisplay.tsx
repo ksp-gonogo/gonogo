@@ -80,7 +80,7 @@ const FramedDisplay__Box = styled.div<{ $padded?: boolean }>`
      with its container about what "small" is, and the two would drift. */
   border-radius: var(--radius-display-frame);
   overflow: hidden;
-  padding: ${({ $padded }) => ($padded ? "var(--space-4)" : "0")};
+  padding: ${({ $padded }) => ($padded ? "var(--inset-framed-display)" : "0")};
 
   /* A child SVG or canvas fills the frame. Without this an SVG with no
      explicit size renders at its intrinsic 300x150 and floats in the corner,

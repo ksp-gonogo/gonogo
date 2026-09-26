@@ -93,7 +93,7 @@ describe("Card", () => {
     // writes --radius-display-frame and gets the aside's smaller value.
     render(<Card left={<span>avatar</span>}>body</Card>);
     expect(injectedCss()).toContain(
-      "--radius-display-frame:var(--space-4, 4px);",
+      "--radius-display-frame:var(--radius-display-frame-aside);",
     );
   });
 
@@ -118,7 +118,7 @@ describe("Card", () => {
     );
     const css = injectedCss();
     expect(css).toContain("::before{");
-    expect(css).toContain("width:var(--space-24, 24px);");
+    expect(css).toContain("width:var(--size-mark);");
     expect(css).toContain("left:50%;");
     expect(css).toContain("transform:translateX(-50%);");
     expect(css).toContain("background:#654321;");

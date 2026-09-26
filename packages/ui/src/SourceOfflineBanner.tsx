@@ -52,19 +52,11 @@ function formatElapsed(ms: number): string {
 const Wrap = styled.div`
   display: flex;
   align-items: center;
-  /* Both levels of the ladder, so the grouping reads without counting pixels:
-     the OFFLINE label and the source list are different kinds of thing
-     (section), and everything below that is siblings of one kind (related).
-     A source's name and its status used to take a third, tighter level; the
-     vocabulary no longer has one, and the entries carry their own baseline
-     alignment, so they read as entries without it. */
+  /* Both context gaps, so the grouping reads without counting pixels: the
+     OFFLINE label and the source list are different kinds of thing (section),
+     and everything below that is siblings of one kind (related). */
   gap: var(--gap-section);
-  /* The chrome band, in rungs. 16 is the cross-package gutter lock the ladder
-     documents, and this pill floats over the whole app rather than sitting in
-     a widget, so --inset-surface's 8 would set it in tighter than anything it
-     overlaps. No --inset-* names this pair on purpose: the token that once did
-     described banners, buttons, cards and touch targets alike. */
-  padding: var(--space-10) var(--space-16);
+  padding: var(--inset-alert-band);
   background: rgba(120, 30, 30, 0.92);
   border: 1px solid var(--color-status-nogo-bg);
   border-radius: var(--radius-pill);

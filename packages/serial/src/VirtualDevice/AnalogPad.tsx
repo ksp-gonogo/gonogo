@@ -105,8 +105,8 @@ const Track = styled.div`
 const Centre = styled.div`
   position: absolute;
   left: 50%;
-  top: var(--space-4);
-  bottom: var(--space-4);
+  top: var(--offset-pad-mark);
+  bottom: var(--offset-pad-mark);
   width: 1px;
   background: var(--color-border-subtle);
 `;

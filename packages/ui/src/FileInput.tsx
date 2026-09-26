@@ -76,9 +76,7 @@ export const FileInput = forwardRef<HTMLInputElement, FileInputProps>(
 const FileInputRow = styled.div`
   display: flex;
   align-items: center;
-  /* 10 is the one rung with no gap name over it: --gap-related is 8 and
-     --gap-section is 16. */
-  gap: var(--space-10);
+  gap: var(--gap-attachment);
   flex-wrap: wrap;
 `;
 
@@ -110,15 +108,9 @@ const FileInputButton = styled.label<{ $disabled: boolean }>`
 
   @media (pointer: coarse) {
     min-height: 44px;
-    /* One rung wider than --inset-control's horizontal, same as ui-kit Button.
-       A 14px value would snap onto the base rung and erase the horizontal
-       widening this block exists for.
-
-       This pair used to equal a token called --inset-panel and was deliberately
-       not written as one, because a 44px touch target must move when the touch
-       guidance moves and must NOT move when a panel tier does. That refusal is
-       part of why the token was deleted; the pair stays in rungs either way. */
-    padding: var(--space-10) var(--space-16);
+    /* Wider than --inset-control on both axes, same as ui-kit Button:
+       min-height only covers the vertical target. */
+    padding: var(--inset-file-button-touch);
   }
 `;
 

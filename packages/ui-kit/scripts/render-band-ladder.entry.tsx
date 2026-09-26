@@ -17,7 +17,7 @@ function Row({ row }: { row: BandLadderRow }) {
       <div
         style={{
           fontSize: 11,
-          color: "var(--color-text-muted, #999)",
+          color: "var(--color-text-muted)",
           letterSpacing: "0.04em",
           textTransform: "uppercase",
         }}
@@ -31,7 +31,7 @@ function Row({ row }: { row: BandLadderRow }) {
         style={{
           fontSize: 10,
           lineHeight: 1.5,
-          color: "var(--color-text-muted, #999)",
+          color: "var(--color-text-muted)",
         }}
       >
         {row.note}
@@ -50,7 +50,7 @@ function SheetView({ sheet }: { sheet: Sheet }) {
         display: "grid",
         gap: 18,
         background: "var(--color-surface-base, #0d0d0d)",
-        color: "var(--color-text-primary, #ddd)",
+        color: "var(--color-text-primary)",
         fontFamily: "var(--font-family-sans, ui-sans-serif, system-ui)",
       }}
     >
@@ -61,7 +61,7 @@ function SheetView({ sheet }: { sheet: Sheet }) {
             margin: 0,
             fontSize: 11,
             lineHeight: 1.6,
-            color: "var(--color-text-muted, #999)",
+            color: "var(--color-text-muted)",
           }}
         >
           {sheet.blurb}

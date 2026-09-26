@@ -124,10 +124,10 @@ const outcomeListLayout = css`
   display: flex;
   flex: 0 0 auto;
   flex-direction: column;
-  gap: var(--space-4, 4px);
+  gap: var(--gap-message-stack);
   /* Matches the queue container's inset, so the boxes line up with the tiles
      above them rather than floating at their own margin. */
-  margin: var(--space-4, 4px) var(--space-16, 16px);
+  margin: var(--outset-command-strip);
 `;
 
 const CommandOutcomeList__Root = styled.div`
@@ -165,10 +165,10 @@ const toneEdge = (tone: OutcomeTone) =>
 const CommandOutcomeList__Box = styled.div<{ $tone: OutcomeTone }>`
   display: flex;
   align-items: flex-start;
-  gap: var(--space-8, 8px);
-  padding: var(--space-6, 6px) var(--space-8, 8px);
+  gap: var(--gap-glyph-box);
+  padding: var(--inset-surface);
   border: 1px solid ${({ $tone }) => toneEdge($tone)};
-  border-radius: var(--radius-regular, 4px);
+  border-radius: var(--radius-regular);
   background: ${({ $tone }) =>
     `color-mix(in srgb, ${toneBg($tone)} 18%, var(--color-surface-raised))`};
   color: var(--color-text-primary);
@@ -182,13 +182,13 @@ const CommandOutcomeList__Glyph = styled.span<{ $tone: OutcomeTone }>`
   display: grid;
   place-items: center;
   min-width: 34px;
-  padding: 0 var(--space-4, 4px);
+  padding: var(--inset-glyph);
   align-self: stretch;
   font-size: var(--font-size-xs);
   font-weight: 700;
   color: ${({ $tone }) => toneFg($tone)};
   border: 1px solid ${({ $tone }) => toneEdge($tone)};
-  border-radius: var(--radius-regular, 3px);
+  border-radius: var(--radius-regular);
   background: ${({ $tone }) =>
     `color-mix(in srgb, ${toneBg($tone)} 14%, var(--color-surface-raised))`};
 `;
@@ -215,7 +215,7 @@ const CommandOutcomeList__Text = styled.span`
 const CommandOutcomeList__Dismiss = styled.button`
   flex: 0 0 auto;
   appearance: none;
-  padding: 0 var(--space-4, 4px);
+  padding: var(--inset-glyph);
   border: 0;
   background: transparent;
   color: var(--color-text-muted);

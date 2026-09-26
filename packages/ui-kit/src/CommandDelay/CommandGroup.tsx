@@ -139,13 +139,13 @@ const CommandGroup__Root = styled.div<{ $orientation: "column" | "row" }>`
   display: flex;
   flex-direction: ${({ $orientation }) => $orientation};
   ${({ $orientation }) => $orientation === "row" && "align-items: center;"}
-  gap: var(--space-8, 8px);
+  gap: var(--gap-control-row);
 `;
 
 const CommandGroup__Inputs = styled.div<{ $wrap: boolean }>`
   display: flex;
   flex-wrap: ${({ $wrap }) => ($wrap ? "wrap" : "nowrap")};
-  gap: var(--space-8, 8px);
+  gap: var(--gap-control-row);
   align-items: center;
 `;
 
@@ -159,10 +159,10 @@ const CommandGroup__CommitButton = styled.button<{
   /* Beside the inputs the button is the thing a narrow strip would squeeze
      first, and a commit control squeezed to nothing is one nobody can press. */
   ${({ $orientation }) => $orientation === "row" && "flex-shrink: 0;"}
-  padding: var(--space-4, 4px) var(--space-12, 12px);
+  padding: var(--inset-commit-button);
   font-size: var(--font-size-compact);
   font-weight: 600;
-  border-radius: var(--radius-regular, 3px);
+  border-radius: var(--radius-regular);
   border: 1px solid var(--color-border-subtle);
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
@@ -178,10 +178,10 @@ const CommandGroup__CommitButton = styled.button<{
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: var(--space-4, 4px);
+      padding: var(--inset-icon-button-compact);
 
       @media (pointer: coarse) {
-        padding: var(--space-6, 6px);
+        padding: var(--inset-icon-button);
       }
     `}
 

@@ -129,7 +129,7 @@ function Case({ c }: { c: InstrumentCase }) {
           fontWeight: 600,
           letterSpacing: "0.06em",
           textTransform: "uppercase",
-          color: "var(--color-text-muted, #999)",
+          color: "var(--color-text-muted)",
         }}
       >
         {c.label}
@@ -139,7 +139,7 @@ function Case({ c }: { c: InstrumentCase }) {
         style={{
           fontSize: 10,
           lineHeight: 1.4,
-          color: "var(--color-text-faint, #777)",
+          color: "var(--color-text-faint)",
           minHeight: 14,
         }}
       >
@@ -157,7 +157,7 @@ function Sheet({ sheet }: { sheet: InstrumentSheet }) {
         width: sheet.width,
         padding: 20,
         background: "var(--color-surface-base, #0d0d0d)",
-        color: "var(--color-text-primary, #ddd)",
+        color: "var(--color-text-primary)",
         fontFamily: "var(--font-family-sans, ui-sans-serif, system-ui)",
       }}
     >
@@ -177,7 +177,7 @@ function Sheet({ sheet }: { sheet: InstrumentSheet }) {
           margin: "0 0 16px",
           fontSize: 10,
           lineHeight: 1.5,
-          color: "var(--color-text-muted, #999)",
+          color: "var(--color-text-muted)",
         }}
       >
         {sheet.blurb}

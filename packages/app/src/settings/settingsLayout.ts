@@ -14,18 +14,18 @@ export const SectionStack = styled.div`
 // indent for a dependent setting is genuinely this modal's.
 export const SettingLine = styled(Cluster).attrs({
   align: "start" as const,
-  gap: "xl" as const,
+  gap: "section-comfortable" as const,
 })<{ $indented?: boolean }>`
   /* Interpolated, so no CSS token pass reaches it. Migrated by hand onto the
      same 20 -> 16 snap the Empty padding below takes, otherwise this
      dependent-setting indent is the one 20px left in the file. */
-  margin-left: ${({ $indented }) => ($indented ? "var(--space-16)" : "0")};
+  margin-left: ${({ $indented }) => ($indented ? "var(--indent-settings)" : "0")};
 `;
 
 /* A read-only row owns its own label/value pairing (a `<dl>`), so it takes the
    line's indent and width and nothing else of the switch-row furniture. */
 export const SettingReadOnlyLine = styled.div<{ $indented?: boolean }>`
-  margin-left: ${({ $indented }) => ($indented ? "var(--space-16)" : "0")};
+  margin-left: ${({ $indented }) => ($indented ? "var(--indent-settings)" : "0")};
 `;
 /* A named group inside a category: an h4 under the category's h3, so the
    heading order a screen reader walks matches the nesting it is shown. */
@@ -63,6 +63,6 @@ export const RowDesc = styled.span`
 export const Empty = styled.div`
   color: var(--color-text-faint);
   font-size: var(--font-size-compact);
-  padding: var(--space-16);
+  padding: var(--inset-empty-state);
   text-align: center;
 `;

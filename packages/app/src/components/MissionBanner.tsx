@@ -113,8 +113,8 @@ const Banner = styled.div`
   gap: var(--gap-section);
   height: 30px;
   flex-shrink: 0;
-  margin-bottom: var(--space-8);
-  padding: 0 var(--space-2);
+  margin-bottom: var(--gap-mission-bar);
+  padding: var(--inset-mission-bar);
   background: var(--color-surface-app);
   font-variant-numeric: tabular-nums;
 `;

@@ -1202,14 +1202,14 @@ const SERIES_ROW: CSSProperties = {
   display: "flex",
   gap: "var(--gap-related)",
   alignItems: "center",
-  marginBottom: "var(--space-6)",
+  marginBottom: "var(--gap-related-compact)",
 };
 
 const SERIES_GROUP: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: "var(--gap-related)",
-  marginBottom: "var(--space-4)",
+  marginBottom: "var(--gap-config-group)",
 };
 
 const DOMAIN_ROW: CSSProperties = {
@@ -1231,7 +1231,7 @@ const ADD_BUTTON: CSSProperties = {
   letterSpacing: "normal",
   textTransform: "none",
   padding: "var(--inset-control)",
-  marginTop: "var(--space-4)",
+  marginTop: "var(--gap-actions)",
 };
 
 // IconButton override: the "×" remove control. IconButton supplies the hover
@@ -1240,7 +1240,7 @@ const REMOVE_BUTTON: CSSProperties = {
   color: "var(--color-text-dim)",
   fontSize: "var(--font-size-lg)",
   lineHeight: "var(--line-height-flush)",
-  padding: "0 var(--space-4)",
+  padding: "var(--inset-glyph)",
   flexShrink: 0,
 };
 

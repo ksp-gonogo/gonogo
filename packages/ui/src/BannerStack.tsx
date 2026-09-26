@@ -34,7 +34,7 @@ const ToastStack = styled.div`
      24 + 48 + 16 and 112 is 88 + 24, arithmetic on the FAB's geometry rather
      than chosen insets, and the same chain runs through Fab's right: 24px and
      FabPrompt's right: 72px. Tokenising only the 24s would leave 72/88/112
-     literal and silently desynchronise the cluster the first time --space-24
+     literal and silently desynchronise the cluster the first time the 24
      moves, so the whole chain is held literal until it can move as one. */
   right: calc(88px + env(safe-area-inset-right, 0px));
   bottom: calc(24px + env(safe-area-inset-bottom, 0px));

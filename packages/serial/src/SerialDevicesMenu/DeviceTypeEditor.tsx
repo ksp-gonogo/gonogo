@@ -428,7 +428,7 @@ const InputsHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: var(--space-8);
+  margin-top: var(--gap-related-comfortable);
 `;
 
 const InputRow = styled.div`
@@ -456,7 +456,7 @@ const RemoveBtn = styled.button`
   color: var(--color-text-faint);
   cursor: pointer;
   font-size: var(--font-size-base);
-  padding: var(--space-6);
+  padding: var(--inset-icon-button);
   &:hover {
     color: var(--color-status-nogo-fg);
   }

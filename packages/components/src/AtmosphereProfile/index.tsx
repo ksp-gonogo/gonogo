@@ -339,7 +339,7 @@ const NOTICE_STYLE = {
   pointerEvents: "none",
   alignSelf: "flex-start",
   maxWidth: "100%",
-  marginTop: "var(--space-4)",
+  marginTop: "var(--gap-sub-readout)",
 } as const;
 
 /* HUD-style overlay chip: absolute-positioned, off-token bottom/right measured
@@ -353,7 +353,7 @@ const LIVE_CHIP_STYLE = {
   zIndex: 1,
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-hair)",
+  gap: "var(--gap-line)",
   padding: "var(--inset-surface)",
   background: "rgba(0, 0, 0, 0.75)",
   border: "1px solid var(--color-surface-raised)",

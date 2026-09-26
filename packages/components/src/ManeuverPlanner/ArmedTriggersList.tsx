@@ -67,13 +67,10 @@ const ARMED_ROW_STYLE = {
   borderRadius: "var(--radius-regular)",
 } as const;
 
-/* The seam between the two lines of one readout. A rung rather than a semantic
-   name on purpose: 1px is the same 1px in every density tier, so a name for it
-   would be a constant with two spellings. tokens.css says so. */
 const MAIN_STYLE = {
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-hair)",
+  gap: "var(--gap-line)",
   minWidth: 0,
 } as const;
 

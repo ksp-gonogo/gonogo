@@ -1,6 +1,6 @@
 import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
 import styled from "styled-components";
-import { SPACE_VAR, type SpaceToken } from "./scales";
+import { GAP_VAR, type GapToken } from "./scales";
 
 export type ClusterJustify = "between" | "start" | "center" | "end";
 export type ClusterAlign = "center" | "start" | "baseline";
@@ -17,12 +17,12 @@ export interface ClusterProps extends HTMLAttributes<HTMLDivElement> {
    */
   align?: ClusterAlign;
   /**
-   * Gap between children, snapped to the space scale. Omit it and the gap is
+   * Gap between children, as a gap job. Omit it and the gap is
    * `--gap-related`, inherited from whichever container the row lands in, so
-   * the same row is 8px on a panel and 6px inside a card. Pass a size only
+   * the same row is 8px on a panel and 6px inside a card. Pass a job only
    * from a container deciding the spacing for what it holds.
    */
-  gap?: SpaceToken;
+  gap?: GapToken;
   /**
    * Let children wrap onto further lines. Off by default: a cluster that wraps
    * silently is how a row of controls turns into a ragged block at a narrow
@@ -85,14 +85,13 @@ export const Cluster = forwardRef<HTMLDivElement, ClusterProps>(
 const Cluster__Root = styled.div<{
   $justify: ClusterJustify;
   $align: ClusterAlign;
-  $gap?: SpaceToken;
+  $gap?: GapToken;
   $wrap: boolean;
 }>`
   display: flex;
   align-items: ${({ $align }) => ALIGN_ITEMS[$align]};
   justify-content: ${({ $justify }) => JUSTIFY_CONTENT[$justify]};
-  gap: ${({ $gap }) =>
-    $gap ? SPACE_VAR[$gap] : "var(--gap-related, var(--space-8, 8px))"};
+  gap: ${({ $gap }) => ($gap ? GAP_VAR[$gap] : "var(--gap-related)")};
   ${({ $wrap }) => ($wrap ? "flex-wrap: wrap;" : "")}
   min-width: 0;
 `;

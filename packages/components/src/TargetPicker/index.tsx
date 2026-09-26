@@ -682,7 +682,7 @@ const OrbitalEventChipsRow = styled.div`
  *  when no augment is bound (the slot renders no DOM), keeping the stock layout
  *  identical to before the slot existed. */
 const CurrentSummary = styled.div`
-  margin-top: var(--space-6);
+  margin-top: var(--gap-related-compact);
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
@@ -715,17 +715,14 @@ const CurrentSummaryDistance = styled.span`
 const CurrentSummaryMeta = styled.div`
   display: flex;
   align-items: center;
-  /* 10 is the one gap rung with no name over it: --gap-related is 8 and
-     --gap-section is 16, so either alias resizes this meta row rather than
-     renaming what its seam is for. */
-  gap: var(--space-10);
+  gap: var(--gap-headline);
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.04em;
 `;
 
 const FilterInput = styled.input`
-  margin-top: var(--space-6);
+  margin-top: var(--gap-related-compact);
   font-size: var(--font-size-value);
   padding: var(--inset-control);
   background: var(--color-surface-app);
@@ -740,7 +737,7 @@ const FilterInput = styled.input`
 
 const ListScroll = styled(ScrollArea)`
   flex: 1;
-  margin-top: var(--space-6);
+  margin-top: var(--gap-related-compact);
   [data-scroll-area-inner] {
     display: flex;
     flex-direction: column;
@@ -753,17 +750,10 @@ const SuggestedHeading = styled.div`
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  /* One of three insets in this list header that have to agree: this heading,
-     SectionToggle and SpaceObjectToggle below all start their text on the same
-     left edge, and the two toggles are the only pressable things among them.
-     --inset-control is the --control-height floor at (6,12), so naming the
-     toggles would push them out of line with the heading beside them. Neither
-     does --inset-control-compact fit, and the reason is the same one: this
-     heading is a <div> and not the pressable class the name describes, so a
-     control name cannot reach it, and moving only the two toggles to the
-     compact 1px vertical breaks the very agreement that holds all three here.
-     All three stay on the rungs. */
-  padding: var(--space-2) var(--space-4);
+  /* Shared with SectionToggle below, so this heading and the toggle beside it
+     start their text on one left edge. A control inset on the toggle alone
+     would break that. */
+  padding: var(--inset-list-heading);
 `;
 
 const SectionHeaderRow = styled.div`
@@ -780,8 +770,8 @@ const SectionToggle = styled.button`
   min-width: 0;
   background: none;
   border: none;
-  /* Held on the rungs with SuggestedHeading above; see the reason there. */
-  padding: var(--space-2) var(--space-4);
+  /* Shares SuggestedHeading's inset; see the reason there. */
+  padding: var(--inset-list-heading);
   font-size: var(--font-size-compact);
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -808,7 +798,7 @@ const SectionChevron = styled.span<{ $expanded: boolean }>`
 const SectionBody = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-hair);
+  gap: var(--gap-line);
 `;
 
 const RowMain = styled.span`
@@ -836,7 +826,7 @@ const RowDistance = styled.span`
   font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
-  margin-right: var(--space-6);
+  margin-right: var(--gap-trailing-mark);
   flex-shrink: 0;
 `;
 
@@ -851,7 +841,7 @@ const SpaceObjectToggle = styled.button`
   margin-left: auto;
   font-size: var(--font-size-compact);
   /* The third of the list-header insets held together; see SuggestedHeading. */
-  padding: var(--space-2) var(--space-8);
+  padding: var(--inset-control-small);
   border-radius: var(--radius-pill);
   border: 1px solid var(--color-surface-raised);
   background: transparent;
@@ -873,7 +863,7 @@ const SpaceObjectToggle = styled.button`
 `;
 
 const Hint = styled.div`
-  margin-top: var(--space-6);
+  margin-top: var(--gap-related-compact);
   font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   line-height: var(--line-height-body);

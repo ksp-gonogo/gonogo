@@ -29,7 +29,7 @@ export const BigReadout = styled.div<{ $tone?: ReadoutTone }>`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-4, 4px);
+  gap: var(--gap-tiny-content);
   text-align: center;
   /* Both off the type/line-height scales on purpose: the size is fluid rather
      than a rung, and 1.05 is tuned to it. A body line-height clips descenders
@@ -49,7 +49,7 @@ export const BigReadout = styled.div<{ $tone?: ReadoutTone }>`
 export const Readout = styled.div<{ $tone?: ReadoutTone }>`
   display: inline-flex;
   align-items: baseline;
-  gap: var(--space-6, 6px);
+  gap: var(--gap-value-tag);
   /* Display tier: the type scale stops at lg (16px) because everything above
      it in this codebase is a fluid clamp or a JS-computed fit. Stays literal. */
   font-size: 22px;
@@ -81,8 +81,8 @@ export const StatusPill = styled.div<{ $tone: ReadoutTone }>`
      pressed, so it must not follow the control token when that widens for a
      touch target. --inset-chip would halve it, which is right for a badge in
      the text flow and wrong for a tiny-mode widget's whole state readout. */
-  padding: var(--space-6, 6px) var(--space-12, 12px);
-  border-radius: var(--radius-pill, 999px);
+  padding: var(--inset-pill);
+  border-radius: var(--radius-pill);
   font-size: var(--font-size-caption);
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -117,7 +117,7 @@ export const StatusPill = styled.div<{ $tone: ReadoutTone }>`
     $tone === "alert" &&
     css`
       @media (prefers-reduced-motion: no-preference) {
-        animation: pill-pulse 1.4s var(--ease-emphasis, ease-in-out) infinite;
+        animation: pill-pulse 1.4s var(--ease-emphasis) infinite;
       }
       @keyframes pill-pulse {
         0%,

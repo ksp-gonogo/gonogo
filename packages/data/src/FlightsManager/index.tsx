@@ -722,8 +722,8 @@ const RecordingToolbar = styled.div`
   align-items: center;
   justify-content: flex-end;
   gap: var(--gap-section);
-  padding-bottom: var(--space-10);
-  margin-bottom: var(--space-4);
+  padding-bottom: var(--inset-toolbar-bottom);
+  margin-bottom: var(--gap-toolbar);
   border-bottom: 1px solid var(--color-border-subtle);
 `;
 
@@ -771,8 +771,8 @@ const Tr = styled.tr<{ $current: boolean }>`
 const Td = styled.td`
   /* 7px is computed, not chosen: it is the 6px vertical half of the surface
      inset Th carries, plus the 1px that makes a body row taller than the
-     header row. It tracks Th, not a spacing rung. */
-  padding: 7px var(--space-8);
+     header row. It tracks Th, not the spacing grid. */
+  padding: 7px var(--gutter-table-cell);
   color: var(--color-text-primary);
   border-bottom: 1px solid var(--color-surface-raised);
   white-space: nowrap;
@@ -780,7 +780,7 @@ const Td = styled.td`
 
 const OutcomeBadge = styled.span<{ $tone: "go" | "nogo" }>`
   display: inline-block;
-  margin-left: var(--space-6);
+  margin-left: var(--gap-trailing-mark);
   font-size: var(--font-size-caption);
   padding: var(--inset-chip);
   /* A stadium, not a corner: the badge renders about 17px tall (11px x 1.2
@@ -813,7 +813,7 @@ const DeleteButton = styled.button`
   color: var(--color-text-faint);
   cursor: pointer;
   font-size: var(--font-size-lg);
-  padding: 0 var(--space-4);
+  padding: var(--inset-glyph);
   &:hover { color: var(--color-status-nogo-bg); }
 `;
 
@@ -850,7 +850,7 @@ const Footer = styled.div`
   justify-content: space-between;
   align-items: center;
   gap: var(--gap-section);
-  padding: var(--space-10) var(--space-8) var(--space-4);
+  padding: var(--inset-table-footer);
   border-top: 1px solid var(--color-border-subtle);
 `;
 
@@ -881,11 +881,10 @@ const SelectCheckbox = styled.input.attrs({ type: "checkbox" })`
 
 const ThStar = styled.th`
   width: 24px;
-  /* Rungs, and the one cell that cannot take --inset-surface beside Th and
-     ThCheckbox: every inset name puts horizontal at or above vertical, and a
-     24px column carrying a star glyph needs the opposite. At (6,8) the content
-     box is 8px and the glyph clips. */
-  padding: var(--space-6) var(--space-4);
+  /* The one cell that cannot take --inset-surface beside Th and ThCheckbox: a
+     24px column carrying a star glyph needs more vertical than horizontal. At
+     (6,8) the content box is 8px and the glyph clips. */
+  padding: var(--inset-table-narrow-header);
   font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   border-bottom: 1px solid var(--color-border-subtle);
@@ -896,16 +895,16 @@ const StarButton = styled.button<{ $on: boolean }>`
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0 var(--space-2);
+  padding: var(--inset-glyph-tight);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: ${({ $on }) =>
-    $on ? "var(--color-tag-yellow-fg, gold)" : "var(--color-text-faint)"};
+    $on ? "var(--color-tag-yellow-fg)" : "var(--color-text-faint)"};
 
   @media (hover: hover) {
     &:hover {
-      color: var(--color-tag-yellow-fg, gold);
+      color: var(--color-tag-yellow-fg);
     }
   }
 `;

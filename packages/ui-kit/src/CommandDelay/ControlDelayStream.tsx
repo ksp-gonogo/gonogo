@@ -888,7 +888,7 @@ const ControlDelayStream__Root = styled.div<{
   width: 100%;
   ${({ $variant }) =>
     $variant === "expanded" &&
-    "display: flex; flex-direction: column; gap: var(--space-4, 4px);"}
+    "display: flex; flex-direction: column; gap: var(--gap-delay-stream);"}
 `;
 
 const ControlDelayStream__Svg = styled.svg<{
@@ -904,7 +904,7 @@ const ControlDelayStream__Svg = styled.svg<{
      reserved band exists to end. */
   height: ${({ $variant }) =>
     $variant === "rail"
-      ? "var(--panel-rail-band, var(--space-16, 16px))"
+      ? "var(--panel-rail-band)"
       : $variant === "expanded"
         ? "86px"
         : "40px"};
@@ -948,7 +948,7 @@ const ControlDelayStream__Zones = styled.div`
      ("outgoing 0" / "echo ..." / "confirmed ...") taper inward to the standard
      content margin, same as the legend, so the outermost labels don't touch
      the widget edges. */
-  margin: 0 var(--space-16, 16px);
+  margin: 0 var(--gutter-panel);
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.06em;
@@ -963,11 +963,11 @@ const ControlDelayStream__Zones = styled.div`
 const ControlDelayStream__Legend = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-4, 4px) var(--space-12, 12px);
+  gap: var(--gap-legend);
   /* The GRAPH stays full-bleed, but the legend key sits at the standard content
      horizontal margin (not edge to edge, same as the zone labels above it), and
      carries a little bottom breathing since the pinned rail is padding-free. */
-  margin: 0 var(--space-16, 16px) var(--space-4, 4px);
+  margin: var(--outset-delay-legend);
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.06em;
@@ -975,7 +975,7 @@ const ControlDelayStream__Legend = styled.div`
   span {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-4, 4px);
+    gap: var(--gap-glyph);
   }
   i {
     display: inline-block;

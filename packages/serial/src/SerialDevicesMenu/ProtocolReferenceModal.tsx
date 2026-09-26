@@ -226,11 +226,9 @@ const Header = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* The modal chrome band, in rungs, and it has to match Body's below or the
-     title and the prose under it do not line up. 16 is the cross-package
-     gutter lock the ladder documents. No --inset-* names this pair on purpose:
-     the token that once did described banners, buttons, cards and rows alike. */
-  padding: var(--space-10) var(--space-16);
+  /* Has to match Body's below or the title and the prose under it do not
+     line up. */
+  padding: var(--inset-reference-sheet);
   border-bottom: 1px solid var(--color-surface-raised);
   background: var(--color-surface-panel);
 `;
@@ -259,16 +257,16 @@ const Body = styled.div`
   overflow-y: auto;
   /* Matches Header's band above; see the note there. The list gutter below is
      measured against this 16, so the two move together or not at all. */
-  padding: var(--space-10) var(--space-16);
+  padding: var(--inset-reference-sheet);
   color: var(--color-text-primary);
   font-size: var(--font-size-prose);
   line-height: var(--line-height-prose);
 
   p {
-    margin: 0 0 var(--space-10);
+    margin: 0 0 var(--gap-prose);
   }
   ul {
-    margin: 0 0 var(--space-10);
+    margin: 0 0 var(--gap-prose);
     /* Not rhythm: with the default list-style-position: outside this is the
        gutter the disc marker is drawn into, so it stays off the spacing
        ladder. The 20 -> 16 snap would pull every bullet left and narrow the
@@ -276,7 +274,7 @@ const Body = styled.div`
     padding-left: 20px;
   }
   li {
-    margin: var(--space-4) 0;
+    margin: var(--gap-prose-item) 0;
   }
   code {
     background: var(--color-surface-sunken);
@@ -298,6 +296,6 @@ const Body = styled.div`
     border-radius: var(--radius-regular);
     font-size: var(--font-size-prose);
     overflow-x: auto;
-    margin: 0 0 var(--space-10);
+    margin: 0 0 var(--gap-prose);
   }
 `;

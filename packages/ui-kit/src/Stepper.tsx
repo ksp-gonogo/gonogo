@@ -153,20 +153,20 @@ const Stepper__Body = styled.div`
   display: inline-grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: var(--space-4, 4px);
+  gap: var(--gap-stepper);
 `;
 
 const Stepper__Step = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: var(--space-24, 24px);
+  min-width: var(--size-stepper-button);
   font-family: inherit;
   font-size: var(--font-size-compact);
   font-weight: 600;
   line-height: var(--line-height-flush);
-  padding: var(--space-4, 4px) var(--space-8, 8px);
-  border-radius: var(--radius-regular, 3px);
+  padding: var(--inset-stepper);
+  border-radius: var(--radius-regular);
   cursor: pointer;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
@@ -198,8 +198,8 @@ const Stepper__Value = styled.div`
   font-size: var(--font-size-value);
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
-  padding: var(--space-4, 4px) var(--space-8, 8px);
-  border-radius: var(--radius-regular, 3px);
+  padding: var(--inset-stepper);
+  border-radius: var(--radius-regular);
   border: 1px solid var(--color-border-subtle);
   background: var(--color-surface-sunken);
 

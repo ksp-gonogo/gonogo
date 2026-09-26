@@ -94,8 +94,8 @@ function Harness(payload: ConsoleMatrixPayload) {
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: "var(--space-6)",
-              padding: "var(--space-8)",
+              gap: "var(--gap-related-compact)",
+              padding: "var(--inset-log)",
             }}
           >
             {payload.lines.map((line) => (

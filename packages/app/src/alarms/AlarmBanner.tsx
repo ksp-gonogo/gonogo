@@ -502,11 +502,7 @@ const Wrap = styled.div<{ $tone: Tone }>`
   border-radius: var(--radius-pill);
   color: var(--color-text-primary);
   font-size: var(--font-size-compact);
-  /* Rungs, not --inset-surface. This is the floating-chrome band on the 16px
-     gutter lock, and nothing names it: taking a banner that overlays the
-     dashboard to (6,8) would halve its gutter to make a ratchet number
-     smaller. */
-  padding: var(--space-8) var(--space-16);
+  padding: var(--inset-banner);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
   pointer-events: auto;
   max-width: 100%;
@@ -546,13 +542,13 @@ const BannerValue = styled.span`
 `;
 
 const VerticalRule = styled.span`
-  /* A hairline RULE, not --space-hair. 1px does three different jobs in this
+  /* A hairline RULE, not --gap-line. 1px does three different jobs in this
      file (this rule, the 1px borders below, and the focus-ring offset); only
      the margin under it is spacing. */
   width: 1px;
   align-self: stretch;
   background: var(--color-border-strong);
-  margin: 0 var(--space-4);
+  margin: 0 var(--gap-rule);
 `;
 
 const AlarmName = styled.span`

@@ -150,9 +150,11 @@ const Wrap = styled.div`
 `;
 
 // The flex column comes from the kit; only the separator rule is local.
-const SeparatedSection = styled(Stack).attrs({ gap: "md" as const })`
+const SeparatedSection = styled(Stack).attrs({
+  gap: "related-comfortable" as const,
+})`
   border-top: 1px solid var(--color-border-subtle);
-  padding-top: var(--space-12);
+  padding-top: var(--gap-popover-section);
 `;
 
 const SwitchRow = styled.div`

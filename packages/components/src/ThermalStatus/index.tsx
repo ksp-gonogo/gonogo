@@ -486,11 +486,11 @@ const PILL_ROW_STYLE = {
  * `auto` blocks; the tighter padding and letter-spacing buy back room so common
  * labels still render whole, and the ellipsis is a legible fallback.
  *
- * The padding pair is off the spacing ladder: the only meaning those numbers
+ * The padding pair is off the spacing grid: the only meaning those numbers
  * carry is their delta from the base StatusPill, whose own padding is
- * var(--space-6) var(--space-12). The nearest rungs either erase the tightening
- * or erase the delta outright, so the pair stays literal until it is retuned
- * against the base in one edit across both packages.
+ * --inset-pill. The nearest grid steps either erase the tightening or erase
+ * the delta outright, so the pair stays literal until it is retuned against
+ * the base in one edit across both packages.
  */
 const COMPACT_PILL_STYLE = {
   minWidth: 0,
@@ -516,7 +516,7 @@ const CRITICAL_NOTE_STYLE = {
  * `Section` around them contributes its own 2px on top. The two numbers were
  * never added up while the spacing lived on the groups themselves.
  */
-const READOUT_GROUPS_STYLE = { gap: "var(--space-10)" } as const;
+const READOUT_GROUPS_STYLE = { gap: "var(--gap-readout-groups)" } as const;
 
 /*
  * Label and band badge share the row's top line so the band reads as a
@@ -552,7 +552,7 @@ const TEMP_READOUT_STYLE = {
   display: "flex",
   flexWrap: "wrap",
   alignItems: "baseline",
-  gap: "var(--space-2) var(--space-6)",
+  gap: "var(--gap-readout-row) var(--gap-value-tag)",
   fontSize: "var(--font-size-compact)",
   color: "var(--color-text-primary)",
 } as const;

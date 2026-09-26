@@ -133,7 +133,7 @@ export function KspSettings() {
     <SectionStack>
       {byOwner(model.rows, model.modSettings ?? []).map(
         ([owner, rows, shown]) => (
-          <Stack as="section" gap="md" key={owner}>
+          <Stack as="section" gap="related-comfortable" key={owner}>
             <SectionTitle as="h3" $rule>
               {owner === CORE_OWNER ? "Gonogo" : owner}
             </SectionTitle>
@@ -162,7 +162,7 @@ export function KspSettings() {
         ),
       )}
       {model.undeclared.length > 0 && (
-        <Stack as="section" gap="md">
+        <Stack as="section" gap="related-comfortable">
           <SectionTitle as="h3" $rule>
             Not available
           </SectionTitle>
@@ -187,7 +187,7 @@ export function KspSettings() {
                   : ""))}
         </FooterLine>
         {!stationOnly && (
-          <Cluster gap="sm" justify="end">
+          <Cluster gap="related-dense" justify="end">
             <GhostButton
               type="button"
               onClick={() => {
@@ -376,7 +376,7 @@ function ModSettings({
   return (
     <ModSettingsDisclosure>
       <summary>What {owner}'s mod is set to</summary>
-      <Stack gap="sm">
+      <Stack gap="related-dense">
         {shown.map((setting) => (
           <ReadOnlyField
             key={setting.name}
@@ -420,7 +420,9 @@ const ModSettingsDisclosure = styled.details`
   }
 `;
 
-const Footer = styled(Stack).attrs({ gap: "sm" as const })`
+const Footer = styled(Stack).attrs({
+  gap: "related-dense" as const,
+})`
   margin-top: auto;
 `;
 

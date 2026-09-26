@@ -583,7 +583,7 @@ function noOrbitSentence(declined: ReckoningDecline | undefined): string {
 const NoData = styled.div`
   font-size: var(--font-size-compact);
   color: var(--color-text-faint);
-  padding: var(--space-8) 0;
+  padding: var(--inset-empty-note);
 `;
 
 const PillFill = styled.div`

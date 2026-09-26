@@ -38,7 +38,7 @@ describe("PanelStatusDot", () => {
       screen.getByRole("img", { name: "12 warning" }),
     );
     expect(rule).toContain("width:calc(2ch + 4px)");
-    expect(rule).toContain("border-radius:var(--radius-pill, 999px)");
+    expect(rule).toContain("border-radius:var(--radius-pill)");
   });
 
   it("stays the round dot for a single digit", () => {

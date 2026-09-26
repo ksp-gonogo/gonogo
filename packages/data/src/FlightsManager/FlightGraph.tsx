@@ -304,14 +304,14 @@ const ChartWrap = styled.div`
 const Placeholder = styled.div`
   font-size: var(--font-size-compact);
   color: var(--color-text-faint);
-  padding: var(--space-24) 0;
+  padding: var(--inset-chart-empty);
   text-align: center;
 `;
 
 const LoadingBadge = styled.div`
   position: absolute;
-  top: var(--space-4);
-  right: var(--space-4);
+  top: var(--offset-corner);
+  right: var(--offset-corner);
   font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   background: rgba(0, 0, 0, 0.6);

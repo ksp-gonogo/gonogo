@@ -132,14 +132,14 @@ const Row__Root = styled.li<{
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--space-8, 8px);
+  gap: var(--gap-row);
   font-size: var(--font-size-compact);
-  padding: var(--space-2, 2px) 0;
+  padding: var(--inset-row);
   ${({ $wrap }) =>
     $wrap
       ? `
   flex-wrap: wrap;
-  row-gap: var(--space-4, 4px);
+  row-gap: var(--gap-row-wrap);
 
   & > ${RowName} {
     min-width: ${WRAPPED_NAME_FLOOR};
@@ -153,7 +153,7 @@ const Row__Root = styled.li<{
   border: none;
   background: transparent;
   color: var(--color-text-primary);
-  padding: var(--space-4, 4px) var(--space-6, 6px);
+  padding: var(--inset-row-pressable);
   border-radius: var(--radius-regular);
   cursor: pointer;
   text-align: left;
@@ -178,7 +178,7 @@ const Row__Root = styled.li<{
 `
       : ""}
   /* After the interactive block, whose padding shorthand would reset it. */
-  ${({ $nested }) => ($nested ? "padding-left: var(--space-12, 12px);" : "")}
+  ${({ $nested }) => ($nested ? "padding-left: var(--indent-row);" : "")}
 `;
 
 export const Row = Object.assign(RowBase, { Name: RowName });

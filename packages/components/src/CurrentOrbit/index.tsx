@@ -358,7 +358,7 @@ function CurrentOrbitComponent({
               cols={tight ? "2.2em minmax(0, 1fr)" : "3em minmax(0, 1fr)"}
               align="baseline"
               style={{
-                gap: `var(--space-2) ${tight ? "var(--space-6)" : "var(--space-8)"}`,
+                gap: `var(--gap-readout-row) ${tight ? "var(--gap-label-value-tight)" : "var(--gap-label-value)"}`,
                 alignContent: "start",
                 ...(isLandscape ? { flex: "0 0 auto" } : {}),
               }}
@@ -494,7 +494,7 @@ function CurrentOrbitComponent({
                   minHeight: "80px",
                   ...(isLandscape
                     ? { minWidth: 0 }
-                    : { marginTop: "var(--space-4)" }),
+                    : { marginTop: "var(--gap-sub-readout)" }),
                 }}
               >
                 {withheld ? (

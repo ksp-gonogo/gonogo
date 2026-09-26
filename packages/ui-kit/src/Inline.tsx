@@ -1,15 +1,15 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
-import { SPACE_VAR, type SpaceToken } from "./scales";
+import { GAP_VAR, type GapToken } from "./scales";
 
 export interface InlineProps extends HTMLAttributes<HTMLSpanElement> {
   /**
-   * Gap between children, snapped to the space scale. Omit it and the gap is
+   * Gap between children, as a gap job. Omit it and the gap is
    * `--gap-related`, inherited from whichever container the cluster lands in,
-   * so the same cluster is 8px on a panel and 6px inside a card. Pass a size
+   * so the same cluster is 8px on a panel and 6px inside a card. Pass a job
    * only from a container deciding the spacing for what it holds.
    */
-  gap?: SpaceToken;
+  gap?: GapToken;
   /**
    * Adds `margin-left: 6px` so this cluster sits apart from a preceding
    * sibling cluster (e.g. a badge row followed by an action-button row).
@@ -51,14 +51,13 @@ export function Inline({
 }
 
 const Inline__Root = styled.span<{
-  $gap?: SpaceToken;
+  $gap?: GapToken;
   $inset: boolean;
   $wrap: boolean;
 }>`
   display: inline-flex;
-  gap: ${({ $gap }) =>
-    $gap ? SPACE_VAR[$gap] : "var(--gap-related, var(--space-8, 8px))"};
+  gap: ${({ $gap }) => ($gap ? GAP_VAR[$gap] : "var(--gap-related)")};
   flex-shrink: ${({ $wrap }) => ($wrap ? 1 : 0)};
   ${({ $wrap }) => $wrap && `flex-wrap: wrap; min-width: 0;`}
-  ${({ $inset }) => $inset && `margin-left: var(--space-6, 6px);`}
+  ${({ $inset }) => $inset && `margin-left: var(--gap-inline-cluster);`}
 `;

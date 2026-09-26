@@ -179,7 +179,7 @@ function BandEnds<U extends string = string>({
 const Band__Body = styled.span`
   display: inline-flex;
   align-items: baseline;
-  gap: var(--space-4, 4px);
+  gap: var(--gap-figure-parts);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 `;

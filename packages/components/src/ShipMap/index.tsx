@@ -484,7 +484,7 @@ const PLACEHOLDER: CSSProperties = {
   justifyContent: "center",
   color: "var(--color-text-dim)",
   fontSize: "var(--font-size-compact)",
-  padding: "var(--space-12)",
+  padding: "var(--inset-tile-message)",
   textAlign: "center",
 };
 

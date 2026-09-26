@@ -77,7 +77,7 @@ function VirtualDeviceComponent({
           </Text>
         </Section>,
         analogs.length > 0 && (
-          <Section key="axes" gap="md">
+          <Section key="axes" gap="related-comfortable">
             {analogs.map((input) => (
               <AnalogPad
                 key={input.id}
@@ -105,7 +105,7 @@ function VirtualDeviceComponent({
           </Section>
         ),
         frame !== null && (
-          <Section key="output" full title="Output" gap="xs">
+          <Section key="output" full title="Output" gap="rows">
             <Frame>{frame}</Frame>
           </Section>
         ),
@@ -190,7 +190,7 @@ const MomentaryButton = styled.button`
   color: var(--color-text-primary);
   font-size: var(--font-size-compact);
   font-weight: 700;
-  padding: var(--space-10) 0;
+  padding: var(--inset-pad-button);
   cursor: pointer;
   user-select: none;
   touch-action: none;
@@ -224,7 +224,7 @@ const Frame = styled.pre`
      buffer's physical row pitch, not typography. */
   font-size: 11px;
   line-height: 1.15;
-  padding: var(--space-8);
+  padding: var(--inset-device-display);
   margin: 0;
   white-space: pre;
   overflow-x: auto;

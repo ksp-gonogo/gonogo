@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
 import { focusRing } from "./focusRing";
-import { RADIUS_VAR, SPACE_VAR, type SpaceToken } from "./scales";
+import { GAP_VAR, type GapToken, RADIUS_VAR } from "./scales";
 
 export interface SelectableRowProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type"> {
@@ -13,9 +13,9 @@ export interface SelectableRowProps
   selected: boolean;
   /**
    * Gap between the stacked lines of content (a name line over a muted meta
-   * line). Defaults to `xs`.
+   * line). Defaults to `caption`.
    */
-  gap?: SpaceToken;
+  gap?: GapToken;
   children?: ReactNode;
 }
 
@@ -31,7 +31,7 @@ export interface SelectableRowProps
  */
 export function SelectableRow({
   selected,
-  gap = "xs",
+  gap = "caption",
   children,
   ...rest
 }: SelectableRowProps) {
@@ -50,14 +50,14 @@ export function SelectableRow({
 
 const SelectableRow__Root = styled.button<{
   $selected: boolean;
-  $gap: SpaceToken;
+  $gap: GapToken;
 }>`
   display: flex;
   flex-direction: column;
-  gap: ${({ $gap }) => SPACE_VAR[$gap]};
+  gap: ${({ $gap }) => GAP_VAR[$gap]};
   width: 100%;
   text-align: left;
-  padding: ${SPACE_VAR.xs} ${SPACE_VAR.sm};
+  padding: var(--inset-selectable-row);
   border-radius: ${RADIUS_VAR.regular};
   border: 1px solid
     ${({ $selected }) =>

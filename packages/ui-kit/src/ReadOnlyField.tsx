@@ -97,14 +97,14 @@ const ReadOnlyField__List = styled.dl`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-12, 12px);
+  gap: var(--gap-field-term);
   margin: 0;
 `;
 
 const ReadOnlyField__Term = styled.dt`
   display: flex;
   flex-direction: column;
-  gap: var(--space-2, 2px);
+  gap: var(--gap-caption);
   min-width: 0;
   /* Grows into the space a short value leaves, and yields to a long one rather
      than collapsing to a two-words-per-line column beside it. */

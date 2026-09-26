@@ -1157,7 +1157,7 @@ const Commcast__Scroll = styled(ScrollArea)`
   & [data-scroll-area-inner] {
     display: flex;
     flex-direction: column;
-    padding: var(--space-8);
+    padding: var(--inset-log);
   }
 `;
 
@@ -1245,7 +1245,7 @@ const ThreadMarker = styled.div<{ $blocked?: boolean }>`
 const Commcast__Message = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-hair);
+  gap: var(--gap-line);
 `;
 
 const Commcast__Meta = styled.div`
@@ -1296,7 +1296,7 @@ const Commcast__Input = styled.input`
   color: var(--color-text-primary);
   background: transparent;
   border: none;
-  padding: var(--space-2) 0;
+  padding: var(--inset-line);
 
   &:focus-visible {
     outline: 2px solid var(--console-tone-fg, var(--color-accent-fg));

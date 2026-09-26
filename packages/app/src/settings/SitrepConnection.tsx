@@ -187,7 +187,7 @@ const RetryButton = styled(GhostButton)`
 const ConfigButton = styled(IconButton)<{ $active: boolean }>`
   color: ${({ $active }) =>
     $active ? "var(--color-text-primary)" : "var(--color-text-faint)"};
-  padding: 0 var(--space-2);
+  padding: var(--inset-glyph-tight);
 `;
 
 const SetupInstructions = styled.pre`

@@ -631,7 +631,7 @@ const MainLayout = styled.div`
   gap: var(--gap-related);
   width: 100%;
   height: 100%;
-  padding: var(--space-12);
+  padding: var(--inset-gonogo-board);
 `;
 
 const MainHeader = styled.div`
@@ -687,7 +687,7 @@ const AbortBanner = styled.div`
 // packing rows to the top are this board's own.
 const StationBoard = styled(Grid).attrs({
   minColWidth: "140px",
-  gap: "md" as const,
+  gap: "related-comfortable" as const,
 })`
   flex: 1;
   align-content: start;
@@ -768,7 +768,7 @@ const VERSION_CHIP_COLOR: Record<"minor" | "major" | "unknown", string> = {
 };
 
 const VersionChip = styled.span<{ $kind: "minor" | "major" | "unknown" }>`
-  margin-top: var(--space-4);
+  margin-top: var(--gap-sub-readout);
   padding: var(--inset-chip);
   font-size: var(--font-size-compact);
   letter-spacing: 0.1em;
@@ -783,7 +783,7 @@ const Empty = styled.div`
   font-size: var(--font-size-compact);
   letter-spacing: 0.1em;
   text-align: center;
-  padding: var(--space-16);
+  padding: var(--inset-empty-state);
 `;
 
 const ConfigWrap = styled.div`

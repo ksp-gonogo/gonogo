@@ -647,7 +647,7 @@ function renderBody({
 
   const rosterListStyle = {
     listStyle: "none",
-    margin: "var(--space-8) 0 0",
+    margin: "var(--gap-related-comfortable) 0 0",
     padding: 0,
     /*
      * Section rather than related: each row is a `Card`, and a card sets its
@@ -812,8 +812,8 @@ const NAME_FLEX_STYLE = { flex: "1 1 auto" } as const;
  *  before the next roster row. Carried on the stack itself rather than on a
  *  wrapper here, so a kerbal with no meters leaves no padding behind. */
 const CREW_METERS_STYLE = {
-  paddingBottom: "var(--space-4)",
-  paddingLeft: "var(--space-12)",
+  paddingBottom: "var(--gap-crew-meters)",
+  paddingLeft: "var(--indent-row)",
 } as const;
 
 /**

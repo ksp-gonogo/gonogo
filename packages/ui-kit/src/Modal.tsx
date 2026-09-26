@@ -303,7 +303,7 @@ const DialogHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-12) var(--space-16);
+  padding: var(--inset-modal-bar);
   border-bottom: 1px solid var(--color-border-subtle);
   flex-shrink: 0;
 `;
@@ -319,7 +319,7 @@ const CloseButton = styled.button`
   color: var(--color-text-faint);
   cursor: pointer;
   line-height: var(--line-height-flush);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--inset-glyph-button);
 
   @media (hover: hover) {
     &:hover {
@@ -336,7 +336,7 @@ const CloseButton = styled.button`
 `;
 
 const DialogBody = styled.div`
-  padding: var(--space-16);
+  padding: var(--inset-modal-body);
   overflow-y: auto;
   /* iOS Safari momentum scrolling inside the dialog. */
   -webkit-overflow-scrolling: touch;
@@ -348,8 +348,8 @@ const DialogFooter = styled.div`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-8);
-  padding: var(--space-12) var(--space-16);
+  gap: var(--gap-control-row);
+  padding: var(--inset-modal-bar);
   border-top: 1px solid var(--color-border-subtle);
   flex-shrink: 0;
 `;

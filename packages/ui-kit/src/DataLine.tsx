@@ -92,7 +92,7 @@ const LABEL_COLUMN = "7ch";
 const DataLine__Root = styled.div<{ $aligned: boolean }>`
   display: ${({ $aligned }) => ($aligned ? "grid" : "flex")};
   align-items: baseline;
-  gap: var(--space-4, 4px) var(--space-6, 6px);
+  gap: var(--gap-data-line);
   min-width: 0;
   ${({ $aligned }) =>
     $aligned
@@ -115,7 +115,7 @@ const DataLine__Value = styled.span<{ $tone: StatTone }>`
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--space-4, 4px) var(--space-6, 6px);
+  gap: var(--gap-data-line);
   font-size: var(--font-size-value);
   font-variant-numeric: tabular-nums;
   min-width: 0;

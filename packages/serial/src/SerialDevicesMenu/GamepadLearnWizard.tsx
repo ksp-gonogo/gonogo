@@ -272,10 +272,8 @@ const Progress = styled.div`
 const PromptRow = styled.div`
   display: flex;
   align-items: center;
-  /* 10 is the one rung with no gap name over it: --gap-related is 8 and
-     --gap-section is 16. */
-  gap: var(--space-10);
-  padding: var(--space-12);
+  gap: var(--gap-headline);
+  padding: var(--inset-wizard);
   background: var(--color-surface-raised);
   border-radius: var(--radius-regular);
 `;

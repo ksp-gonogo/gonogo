@@ -131,7 +131,7 @@ const Accept = styled.button`
   font-size: var(--font-size-compact);
   font-weight: 600;
   letter-spacing: 0.04em;
-  padding: 0 var(--space-12);
+  padding: var(--inset-prompt-button);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -157,7 +157,7 @@ const Dismiss = styled.button`
      for the × character, not body type, so it stays literal. */
   font-size: 18px;
   line-height: var(--line-height-flush);
-  padding: 0 var(--space-12);
+  padding: var(--inset-prompt-button);
   cursor: pointer;
   display: inline-flex;
   align-items: center;

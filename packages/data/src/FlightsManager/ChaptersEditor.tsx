@@ -256,7 +256,7 @@ export function ChaptersEditor({ flight, onChange }: ChaptersEditorProps) {
 }
 
 const Container = styled.div`
-  padding: var(--space-10) var(--space-12) var(--space-12);
+  padding: var(--inset-chapters-band);
   background: var(--color-surface-app);
   border-bottom: 1px solid var(--color-border-subtle);
 `;
@@ -267,27 +267,25 @@ const Header = styled.div`
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-faint);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--gap-heading-hint);
 `;
 
 const Hint = styled.div`
   font-size: var(--font-size-compact);
   color: var(--color-text-faint);
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--gap-related-comfortable);
 `;
 
 const List = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--gap-related-comfortable);
 `;
 
-// Gap moves 10px to 8px. The scale is 2/4/8/12/16, 10 sits exactly between
-// two rungs, and the convention here is nearest-with-ties-to-the-smaller.
 const ChapterRow = styled(Grid).attrs({
   cols: "minmax(120px, 1fr) auto auto auto",
-  gap: "md" as const,
+  gap: "related-comfortable" as const,
 })`
   font-size: var(--font-size-compact);
 `;
@@ -357,7 +355,7 @@ const RemoveButton = styled.button`
   color: var(--color-text-faint);
   cursor: pointer;
   font-size: var(--font-size-base);
-  padding: 0 var(--space-4);
+  padding: var(--inset-glyph);
   &:hover { color: var(--color-status-nogo-bg); }
 `;
 
@@ -366,7 +364,7 @@ const AddRow = styled.div`
   grid-template-columns: minmax(120px, 1fr) 80px 80px auto;
   gap: var(--gap-related);
   align-items: center;
-  margin-top: var(--space-4);
+  margin-top: var(--gap-actions);
 `;
 
 const AddButton = styled.button`
@@ -382,7 +380,7 @@ const AddButton = styled.button`
 `;
 
 const ErrorText = styled.div`
-  margin-top: var(--space-4);
+  margin-top: var(--gap-sub-readout);
   font-size: var(--font-size-compact);
   color: var(--color-tag-red-fg);
 `;

@@ -88,11 +88,11 @@ export function useRowFilter({
     .map((s) => s.toLowerCase());
 
   const control = (
-    <Stack gap="xs">
+    <Stack gap="related-packed">
       {uniqueTerms.length > 0 && (
         <Cluster
           justify="start"
-          gap="xs"
+          gap="related-packed"
           wrap
           role="group"
           aria-label="Filters"

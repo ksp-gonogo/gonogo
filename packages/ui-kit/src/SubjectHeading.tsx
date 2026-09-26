@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Cluster, type ClusterAlign } from "./Cluster";
-import type { SpaceToken } from "./scales";
+import type { GapToken } from "./scales";
 
 export interface SubjectHeadingProps {
   /** What the line is ABOUT: a Program's title, a course's name, a vessel. */
@@ -12,8 +12,8 @@ export interface SubjectHeadingProps {
    * beside a gap.
    */
   status?: ReactNode;
-  /** Gap between the subject and its state. Defaults to `xs`. */
-  gap?: SpaceToken;
+  /** Gap between the subject and its state. Defaults to `related-packed`. */
+  gap?: GapToken;
   /**
    * `align-items`, for a subject that wraps to two lines beside a one-line
    * badge: `start` keeps the badge level with the first line of the name
@@ -44,7 +44,7 @@ export interface SubjectHeadingProps {
 export function SubjectHeading({
   children,
   status,
-  gap = "xs",
+  gap = "related-packed",
   align = "center",
 }: Readonly<SubjectHeadingProps>) {
   return (

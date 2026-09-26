@@ -214,10 +214,7 @@ const NodeLi = styled.li<{ $completed: boolean }>`
 const NodeMain = styled.div`
   display: flex;
   flex-direction: column;
-  /* The seam between the two lines of one readout, and a rung rather than a
-     semantic name on purpose: 1px is the same 1px in every density tier, so a
-     name for it would be a constant with two spellings. tokens.css says so. */
-  gap: var(--space-hair);
+  gap: var(--gap-line);
   min-width: 0;
 `;
 
@@ -283,8 +280,8 @@ const DeleteButton = styled.button`
 const EditPanel = styled.div`
   grid-column: 1 / -1;
   border-top: 1px dashed var(--color-border-subtle);
-  padding-top: var(--space-6);
-  margin-top: var(--space-2);
+  padding-top: var(--inset-below-rule);
+  margin-top: var(--gap-disclosure);
 `;
 
 const EditGrid = styled.div`
@@ -304,7 +301,7 @@ const EditActions = styled.div`
   display: flex;
   justify-content: flex-end;
   gap: var(--gap-related);
-  padding-top: var(--space-4);
+  padding-top: var(--gap-actions);
 `;
 
 // The accent treatment and hover come from the kit; only the compact sizing
@@ -312,11 +309,10 @@ const EditActions = styled.div`
 const CompactPrimaryButton = styled(PrimaryButton)`
   align-self: auto;
   font-size: var(--font-size-compact);
-  /* The compact-button inset, shared with SecondaryButton below. A control by
-     class, but not on the control inset: --inset-control's 6px vertical would
-     make these two footer buttons taller than the 22px row controls above
-     them, so this is the compact step and it stays in rungs. */
-  padding: var(--space-4) var(--space-10);
+  /* Shared with SecondaryButton below. A control by class, but not on
+     --inset-control: its 6px vertical would make these two footer buttons
+     taller than the 22px row controls above them. */
+  padding: var(--inset-form-footer-button);
 `;
 
 const SecondaryButton = styled.button`
@@ -324,7 +320,7 @@ const SecondaryButton = styled.button`
   color: var(--color-text-muted);
   border: 1px solid var(--color-border-subtle);
   font-size: var(--font-size-compact);
-  padding: var(--space-4) var(--space-10);
+  padding: var(--inset-form-footer-button);
   border-radius: var(--radius-regular);
   cursor: pointer;
   &:disabled {

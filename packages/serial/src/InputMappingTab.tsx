@@ -307,7 +307,7 @@ const Wrap = styled.div`
 const Empty = styled.div`
   color: var(--color-text-dim);
   font-size: var(--font-size-compact);
-  padding: var(--space-8) 0;
+  padding: var(--inset-empty-note);
 `;
 
 const List = styled.div`
@@ -332,7 +332,7 @@ const ListenStatus = styled.div`
   display: flex;
   align-items: center;
   gap: var(--gap-related);
-  margin-top: var(--space-6);
+  margin-top: var(--gap-under-field);
   font-size: var(--font-size-compact);
   color: var(--color-status-info-fg);
 `;
@@ -341,7 +341,7 @@ const BoundReadout = styled.div`
   display: flex;
   align-items: center;
   gap: var(--gap-related);
-  margin-top: var(--space-6);
+  margin-top: var(--gap-under-field);
   font-size: var(--font-size-compact);
   color: var(--color-text-dim);
 `;

@@ -227,13 +227,13 @@ export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
 function DataSourcesPanel() {
   return (
     <SectionStack>
-      <Stack as="section" gap="md">
+      <Stack as="section" gap="related-comfortable">
         <SectionTitle as="h3" $rule>
           Game host
         </SectionTitle>
         <SitrepConnection />
       </Stack>
-      <Stack as="section" gap="md">
+      <Stack as="section" gap="related-comfortable">
         <SectionTitle as="h3" $rule>
           Uplink health
         </SectionTitle>
@@ -261,7 +261,7 @@ function UplinkLoaderSection() {
   );
   if (outcomes.length === 0) return null;
   return (
-    <Stack as="section" gap="md">
+    <Stack as="section" gap="related-comfortable">
       <SectionTitle as="h3" $rule>
         Loaded clients
       </SectionTitle>
@@ -432,7 +432,7 @@ function GeneralSettings({
   return (
     <SectionStack>
       {[...byCategory.entries()].map(([category, items]) => (
-        <Stack as="section" gap="md" key={category}>
+        <Stack as="section" gap="related-comfortable" key={category}>
           <SectionTitle as="h3" $rule>
             {category}
           </SectionTitle>
@@ -440,7 +440,7 @@ function GeneralSettings({
         </Stack>
       ))}
       {showConsent && (
-        <Stack as="section" gap="md">
+        <Stack as="section" gap="related-comfortable">
           <SectionTitle as="h3" $rule>
             Privacy
           </SectionTitle>
@@ -507,7 +507,7 @@ function CategoryRows({ items }: { items: SettingDefinition[] }) {
         <SettingRow key={def.id} def={def} />
       ))}
       {[...grouped.entries()].map(([group, rows]) => (
-        <Stack gap="sm" key={group}>
+        <Stack gap="related-dense" key={group}>
           <GroupTitle>{group}</GroupTitle>
           {rows.map((def) => (
             <SettingRow key={def.id} def={def} />
@@ -820,7 +820,7 @@ const HealthySummaryRow = styled.div`
   display: flex;
   align-items: center;
   gap: var(--gap-related);
-  padding: var(--space-6) 0;
+  padding: var(--inset-settings-row);
 `;
 
 const UplinkItem = styled.li`
@@ -859,7 +859,7 @@ const HealthLabel = styled.span<{ $state: UplinkHealthStateName }>`
 const UplinkDetail = styled.span`
   font-size: var(--font-size-compact);
   color: var(--color-text-dim);
-  margin-left: var(--space-16);
+  margin-left: var(--indent-settings);
   /* A rich self-reported detail can be long or multi-line (an uplink that offers
      more than the trivial floor, e.g. "3 cameras" / "no comms backend elected");
      render the full string, wrapping cleanly and honouring any line breaks it
@@ -873,8 +873,8 @@ const UplinkDetail = styled.span`
 const UplinkFacts = styled.dl`
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--space-2) var(--space-8);
-  margin: 0 0 0 var(--space-16);
+  gap: var(--gap-readout-row) var(--gap-label-value);
+  margin: 0 0 0 var(--indent-settings);
   font-size: var(--font-size-compact);
 `;
 

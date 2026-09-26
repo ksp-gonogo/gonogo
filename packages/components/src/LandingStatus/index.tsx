@@ -341,7 +341,7 @@ function CarriedAltitude({ reading }: { reading: FlightReading }) {
       : undefined;
   return (
     <Section title="Altitude ASL">
-      <Grid cols="auto 1fr" gap="xs">
+      <Grid cols="auto 1fr" gap="readout-row">
         {carrying ? (
           <GridCellPair label="Last observed">
             <Unit value={observed} decimals={decimals} />
@@ -899,7 +899,7 @@ function LandingStatusComponent({
     // Touchdown-confirmed readouts: the outcome-relevant numbers (how soft, how
     // much fuel is left), not the now-void in-flight burn countdowns. The site
     // verdict + biome/slope ride the banner + terrain readout above.
-    <Grid minColWidth="130px" gap="sm">
+    <Grid minColWidth="130px" gap="related-dense">
       <StackedField label="Touchdown speed">
         {<Mps v={flight?.surfaceSpeed ?? solution.horizontalSpeed} />}
       </StackedField>
@@ -912,7 +912,7 @@ function LandingStatusComponent({
     // the tank, coast speed) is moot context, not a positive: dim the whole
     // grid so it can't read as reassurance against the ABORT hero above.
     <div style={noLandingVector ? { opacity: 0.5 } : undefined}>
-      <Grid minColWidth="130px" gap="sm">
+      <Grid minColWidth="130px" gap="related-dense">
         <StackedField label="Burn dV">{<Dv v={requiredDv} />}</StackedField>
         <StackedField label="Burn duration">
           {solution.burnDuration == null ? (
@@ -982,7 +982,7 @@ function LandingStatusComponent({
     board === "atmospheric-aware" ? (
       <Section>
         <SectionTitle>Atmospheric descent (estimate)</SectionTitle>
-        <Grid cols="auto 1fr" gap="xs">
+        <Grid cols="auto 1fr" gap="readout-row">
           <GridCellPair label="Terminal">
             {<Mps v={landing?.terminalVelocity} />}
           </GridCellPair>
@@ -1012,7 +1012,7 @@ function LandingStatusComponent({
       // still above terminal with drag building. An estimate, labelled as one.
       <Section>
         <SectionTitle>Atmospheric descent (estimate)</SectionTitle>
-        <Grid cols="auto 1fr" gap="xs">
+        <Grid cols="auto 1fr" gap="readout-row">
           <GridCellPair label="Vertical">
             {<Mps v={solution.verticalSpeed} />}
           </GridCellPair>
@@ -1061,7 +1061,7 @@ function LandingStatusComponent({
     board !== "atmospheric-estimate" && solution.horizontalSpeed != null ? (
       <Section>
         <SectionTitle>Velocity</SectionTitle>
-        <Grid cols="auto 1fr" gap="xs">
+        <Grid cols="auto 1fr" gap="readout-row">
           <GridCellPair label="Vertical">
             {<Mps v={solution.verticalSpeed} />}
           </GridCellPair>
@@ -1085,7 +1085,7 @@ function LandingStatusComponent({
   const heightEl = !showRail ? (
     <Section>
       <SectionTitle>Height</SectionTitle>
-      <Grid cols="auto 1fr" gap="xs">
+      <Grid cols="auto 1fr" gap="readout-row">
         <GridCellPair label="AGL">
           {<Metres m={heightFromTerrain} />}
         </GridCellPair>
@@ -1099,7 +1099,7 @@ function LandingStatusComponent({
     !landed && !noLandingVector && targetRange !== undefined ? (
       <Section>
         <SectionTitle>Divert</SectionTitle>
-        <Grid cols="auto 1fr" gap="xs">
+        <Grid cols="auto 1fr" gap="readout-row">
           <GridCellPair label="Target range">
             {<Metres m={targetRange} />}
           </GridCellPair>
@@ -1319,7 +1319,7 @@ function LandingStatusComponent({
                     {/* Every plot on this widget, arranged and nothing more. No
                       `FramedDisplay` around it: a contributed plot's chart owns
                       its own frame and a second one reads as a double border. */}
-                    <div style={{ padding: "var(--space-8) 0" }}>
+                    <div style={{ padding: "var(--inset-contributed-plots)" }}>
                       {contributedPlots}
                     </div>
                     {/* Readouts UNDERNEATH the plots (inset text): verdict banner,

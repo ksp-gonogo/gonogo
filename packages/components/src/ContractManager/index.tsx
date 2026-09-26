@@ -712,7 +712,7 @@ function ContractManagerComponent({
 const EMPTY_STYLE = {
   color: "var(--color-text-faint)",
   fontSize: "var(--font-size-compact)",
-  padding: "var(--space-8) 0",
+  padding: "var(--inset-empty-note)",
 } as const;
 
 const SUMMARY_STYLE = {
@@ -758,20 +758,20 @@ const SECTION_LABEL_STYLE = {
   letterSpacing: "0.12em",
   textTransform: "uppercase",
   color: "var(--color-text-faint)",
-  marginTop: "var(--space-4)",
+  marginTop: "var(--gap-list-heading)",
 } as const;
 
 const OFFERED_ACTIONS_STYLE = {
   display: "flex",
   gap: "var(--gap-related)",
-  marginTop: "var(--space-4)",
+  marginTop: "var(--gap-actions)",
 } as const;
 
 const ACTIVE_ACTIONS_STYLE = {
   display: "flex",
   justifyContent: "flex-end",
   gap: "var(--gap-related)",
-  marginTop: "var(--space-4)",
+  marginTop: "var(--gap-actions)",
 } as const;
 
 /**
@@ -803,7 +803,7 @@ const AGENCY_STYLE = {
 const REWARDS_STYLE = {
   display: "flex",
   flexWrap: "wrap",
-  gap: "var(--space-2) var(--space-12)",
+  gap: "var(--gap-rewards)",
 } as const;
 
 const REWARD_STYLE = {
@@ -827,7 +827,7 @@ const REWARD_VALUE_STYLE = {
 
 const PARAMETERS_STYLE = {
   listStyle: "none",
-  margin: "var(--space-4) 0 0",
+  margin: "var(--gap-sub-readout) 0 0",
   padding: 0,
   display: "flex",
   flexDirection: "column",
@@ -948,7 +948,7 @@ function AltitudeShort({ m }: { m: Reading<Value<"m">> }) {
   return <Unit value={m} decimals={short ? 1 : 0} />;
 }
 
-const ALT_METER_STYLE = { marginTop: "var(--space-2)" } as const;
+const ALT_METER_STYLE = { marginTop: "var(--gap-caption)" } as const;
 
 function altLabelStyle(inBand: boolean) {
   return {

@@ -101,5 +101,5 @@ const NODE_LIST_STYLE = {
 const CLEAR_ALL_ROW_STYLE = {
   display: "flex",
   justifyContent: "flex-end",
-  paddingTop: "var(--space-2)",
+  paddingTop: "var(--gap-list-footer)",
 } as const;

@@ -208,7 +208,7 @@ const DataTable__HeaderCell = styled.th<{ $align: "start" | "end" }>`
   letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
-  padding: var(--space-4) var(--space-8);
+  padding: var(--inset-table-cell);
   border-bottom: 1px solid var(--color-border-subtle);
 `;
 
@@ -220,7 +220,7 @@ const DataTable__SectionCell = styled.th`
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: var(--space-6) var(--space-8);
+  padding: var(--inset-table-section);
   border-bottom: 1px solid var(--color-border-subtle);
 `;
 
@@ -237,7 +237,7 @@ const DataTable__Row = styled.tr<{ $hasDetail: boolean }>`
 const DataTable__Cell = styled.td<{ $align: "start" | "end" }>`
   text-align: ${({ $align }) => $align};
   color: var(--color-text-primary);
-  padding: var(--space-4) var(--space-8);
+  padding: var(--inset-table-cell);
   /* Numeric columns line up digit for digit, which is the whole point of
      putting them in a column. */
   font-variant-numeric: tabular-nums;
@@ -245,12 +245,12 @@ const DataTable__Cell = styled.td<{ $align: "start" | "end" }>`
 `;
 
 const DataTable__DetailCell = styled.td`
-  padding: 0 var(--space-8) var(--space-6);
+  padding: var(--inset-table-detail);
   border-bottom: 1px solid var(--color-border-subtle);
 `;
 
 const DataTable__EmptyCell = styled.td`
   color: var(--color-text-faint);
   font-style: italic;
-  padding: var(--space-8);
+  padding: var(--inset-table-empty);
 `;

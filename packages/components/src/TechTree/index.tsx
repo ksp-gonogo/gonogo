@@ -1094,7 +1094,7 @@ const Controls = styled.div`
      title carries, so the pills line up with the title without one. A local
      padding here would double the inset and push the "Unlocked" pill back
      past the panel edge at narrow widths (e.g. portrait-5x18). */
-  padding-bottom: var(--space-6);
+  padding-bottom: var(--gap-related-compact);
   flex-shrink: 0;
 `;
 
@@ -1274,7 +1274,7 @@ const NodeBody = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-section);
-  padding: var(--space-4) var(--space-10) var(--space-8);
+  padding: var(--inset-node-body);
   border-top: 1px dashed var(--color-surface-raised);
 `;
 
@@ -1333,7 +1333,7 @@ const PartsList = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-hair);
+  gap: var(--gap-line);
 `;
 
 const PartRow = styled.li<{ $purchased: boolean }>`
@@ -1342,7 +1342,7 @@ const PartRow = styled.li<{ $purchased: boolean }>`
   align-items: baseline;
   gap: var(--gap-related);
   font-size: var(--font-size-compact);
-  padding: var(--space-hair) 0;
+  padding: var(--inset-part-row);
   opacity: ${(p) => (p.$purchased ? 0.7 : 1)};
 `;
 
@@ -1388,20 +1388,20 @@ const UnlockRow = styled.div`
 const Empty = styled.div`
   color: var(--color-text-faint);
   font-size: var(--font-size-compact);
-  padding: var(--space-12);
+  padding: var(--inset-tile-message);
   text-align: center;
 `;
 
 const SciReadout = styled.span`
   color: var(--color-accent-fg);
   font-variant-numeric: tabular-nums;
-  margin-left: var(--space-2);
+  margin-left: var(--gap-lead-figure);
 `;
 
 const TechMeta = styled.div`
   color: var(--color-text-muted);
   font-size: var(--font-size-compact);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--gap-related-compact);
 `;
 
 // ── Graph styles ────────────────────────────────────────────────────────────
@@ -1473,13 +1473,12 @@ const GraphCard = styled.button<{
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: var(--space-hair);
-  /* Stays on the rungs, and this is a floor conflict rather than a missing
-     name: the card is laid out at a fixed CARD_H of 48 and the comment under
+  gap: var(--gap-line);
+  /* Sized against the card's fixed CARD_H of 48: the comment under
      GraphCardTitle below shows the content budget already flush at 37px, so
-     --inset-control (28px tall) and even --inset-surface would clip the
-     two-line title. Moving this pair means raising CARD_H in the same edit. */
-  padding: var(--space-4) var(--space-8);
+     any taller inset clips the two-line title. Moving this pair means raising
+     CARD_H in the same edit. */
+  padding: var(--inset-graph-card);
   overflow: hidden;
   text-align: left;
   font-family: inherit;
@@ -1562,7 +1561,7 @@ const Detail = styled.div`
   flex-direction: column;
   gap: var(--gap-section);
   padding: var(--inset-surface);
-  margin-top: var(--space-6);
+  margin-top: var(--gap-related-compact);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-regular);
@@ -1645,7 +1644,7 @@ const TinyLabel = styled.span`
   font-size: 8px;
   letter-spacing: 0.1em;
   color: var(--color-text-faint);
-  margin-top: var(--space-2);
+  margin-top: var(--gap-caption);
 `;
 
 const TinySci = styled.span`

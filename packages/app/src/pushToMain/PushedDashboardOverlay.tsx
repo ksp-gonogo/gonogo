@@ -213,7 +213,7 @@ const Backdrop = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-24);
+  padding: var(--gutter-screen);
   pointer-events: none;
 `;
 
@@ -238,10 +238,7 @@ const Header = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* Rungs, not --inset-surface: this bar spans a full-surface overlay that
-     replaces the dashboard, so its horizontal inset is the 16px page gutter
-     rather than a box's own edge, and a surface inset would halve it. */
-  padding: var(--space-12) var(--space-16);
+  padding: var(--inset-overlay-band);
   border-bottom: 1px solid var(--color-surface-raised);
   background: var(--color-surface-panel);
   flex-shrink: 0;
@@ -324,7 +321,7 @@ const ItemBody = styled.div`
 `;
 
 const MissingComponent = styled.div`
-  padding: var(--space-12);
+  padding: var(--inset-tile-message);
   font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   text-align: center;

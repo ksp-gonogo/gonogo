@@ -25,11 +25,11 @@ export interface NoticeProps extends BlockProps {
 }
 
 const Notice__Root = styled(Block__Root)<{ $tone: ReadoutTone }>`
-  --gap-related: var(--space-8, 8px);
+  --gap-related: var(--gap-related-comfortable);
 
   background: var(--color-surface-sunken);
   border: 1px solid ${({ $tone }) => TONE_COLOR[$tone]};
-  border-radius: var(--radius-regular, 3px);
+  border-radius: var(--radius-regular);
   /* A banner IS its strip of the screen rather than one record among many, so
      it takes the roomier inset the two standalone card screens already reach
      for by name. */

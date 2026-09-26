@@ -418,8 +418,8 @@ const PanelDelayRail__Frame = styled.div`
   /* Up into the container's own top inset, which is the band. The two numbers
      are one declaration (PanelContainer's --panel-rail-band), so the strip and
      the room made for it cannot drift apart. */
-  margin-top: calc(-1 * var(--panel-rail-band, var(--space-16, 16px)));
-  min-height: var(--panel-rail-band, var(--space-16, 16px));
+  margin-top: calc(-1 * var(--panel-rail-band));
+  min-height: var(--panel-rail-band);
 `;
 
 /**
@@ -438,7 +438,7 @@ const PanelDelayRail__Frame = styled.div`
 const grownRail = css`
   display: flex;
   flex-direction: column;
-  gap: var(--space-8, 8px);
+  gap: var(--gap-delay-rail);
   /* Generous cap the grown content fits inside; the visible height settles at
      the content height, the extra headroom is never seen. A stream + discrete
      combined rail needs the room, so nothing clips. */
@@ -479,9 +479,9 @@ const PanelDelayRail__Rail = styled.button`
   /* The band, and nothing over it. Both a discrete rail's grazing glows and a
      stream's mini graph draw at this height, so the strip a widget reserves is
      the strip the rail fills. */
-  max-height: var(--panel-rail-band, var(--space-16, 16px));
+  max-height: var(--panel-rail-band);
   overflow: hidden;
-  transition: max-height var(--duration-slow, 200ms) var(--ease-standard, ease);
+  transition: max-height var(--duration-slow) var(--ease-standard);
 
   & > * {
     grid-area: 1 / 1;
@@ -528,8 +528,8 @@ const PanelDelayRail__Summaries = styled.span`
   align-self: center;
   justify-self: end;
   display: flex;
-  gap: var(--space-8, 8px);
-  padding: 0 var(--space-16, 16px);
+  gap: var(--gap-rail-summaries);
+  padding: 0 var(--gutter-panel);
   font-size: var(--font-size-compact);
   /* Flush, not the browser's metrics-based "normal": this is single-line chrome
      text that never wraps, and it has to fit the reserved band. At the body
@@ -537,7 +537,7 @@ const PanelDelayRail__Summaries = styled.span`
      which is taller than the band itself, so the count would clip on the one
      device most likely to be showing it. Flush shrinks the box to the font's
      own metrics and the text centres in the strip. */
-  line-height: var(--line-height-flush, 1);
+  line-height: var(--line-height-flush);
   font-weight: 700;
   letter-spacing: 0.04em;
   white-space: nowrap;
@@ -559,8 +559,8 @@ const PanelDelayRail__FoundSummary = styled.span`
 
 const PanelDelayRail__CollapseHint = styled.span`
   position: absolute;
-  top: var(--space-4, 4px);
-  right: var(--space-16, 16px);
+  top: var(--offset-rail-hint);
+  right: var(--gutter-panel);
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.06em;

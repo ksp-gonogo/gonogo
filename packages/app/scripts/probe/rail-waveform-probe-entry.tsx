@@ -269,7 +269,7 @@ function Harness({
         />
         <div
           style={{
-            padding: "var(--space-8, 8px)",
+            padding: "var(--inset-placeholder)",
             minHeight: 120,
             color: "var(--color-text-muted)",
             fontSize: "var(--font-size-compact)",

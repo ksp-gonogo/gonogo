@@ -41,7 +41,12 @@ export function VesselInfoPanel({ meta }: VesselInfoPanelProps) {
       <div style={TITLE}>{title}</div>
       <div style={ROWS}>
         {rows.map((row) => (
-          <Grid cols="1fr auto" gap="md" align="baseline" key={row.label}>
+          <Grid
+            cols="1fr auto"
+            gap="label-value"
+            align="baseline"
+            key={row.label}
+          >
             <span style={ROW_LABEL}>{row.label}</span>
             <span style={ROW_VALUE}>{row.value}</span>
           </Grid>
@@ -67,7 +72,7 @@ const WRAP: CSSProperties = {
   /* Same gutter as AlmanacPanel's WRAP and held for the same reason: the two
      panels occupy one slot and have to line up, and neither draws a box, so
      neither is a surface. */
-  padding: "var(--space-8) var(--space-10)",
+  padding: "var(--inset-frame-panel)",
   minWidth: 0,
   minHeight: 0,
   maxWidth: "100%",
@@ -86,8 +91,8 @@ const TITLE: CSSProperties = {
 const ROWS: CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-hair)",
-  marginTop: "var(--space-6)",
+  gap: "var(--gap-line)",
+  marginTop: "var(--gap-related-compact)",
 };
 
 const ROW_LABEL: CSSProperties = { color: "var(--color-text-faint)" };

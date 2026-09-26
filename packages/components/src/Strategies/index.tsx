@@ -666,8 +666,13 @@ function ScreenSections({
             one `Section full` as far as Panel is concerned, and a full section
             never columnises. `min(...,100%)` clamps the track to the panel so a
             narrow tile stacks rather than scrolling sideways. */}
-        <Grid cols={SCREEN_COLUMNS} gap="md" align="start">
-          <Section as="section" aria-label="Active" title="Active" gap="md">
+        <Grid cols={SCREEN_COLUMNS} gap="related-comfortable" align="start">
+          <Section
+            as="section"
+            aria-label="Active"
+            title="Active"
+            gap="related-comfortable"
+          >
             {active.length === 0 ? (
               <Empty>No active strategies.</Empty>
             ) : (
@@ -724,7 +729,7 @@ function ScreenSections({
             as="section"
             aria-label="Available"
             title="Available"
-            gap="md"
+            gap="related-comfortable"
           >
             {available.length === 0 && softBlocked.length === 0 ? (
               <Empty>No strategies available right now.</Empty>
@@ -751,7 +756,12 @@ function ScreenSections({
           </Section>
 
           {ineligible.length > 0 && (
-            <Section as="section" aria-label="Locked" title="Locked" gap="md">
+            <Section
+              as="section"
+              aria-label="Locked"
+              title="Locked"
+              gap="related-comfortable"
+            >
               {ineligible.map((s) => (
                 <StrategyCard
                   key={s.id}
@@ -788,7 +798,7 @@ function ScreenSections({
               as="section"
               aria-label="Eligibility unknown"
               title="Eligibility unknown"
-              gap="md"
+              gap="related-comfortable"
             >
               {unknownReason !== null && (
                 <BlockedNote>{unknownReason}</BlockedNote>
@@ -1147,7 +1157,7 @@ const Sep = styled.span`
 const TinyFundsRow = styled.div`
   display: flex;
   gap: var(--gap-related);
-  padding: 0 var(--space-12) var(--space-6);
+  padding: var(--inset-tiny-row);
   font-size: var(--font-size-compact);
   color: var(--color-status-go-fg);
   font-variant-numeric: tabular-nums;
@@ -1167,7 +1177,7 @@ const TinyTally = styled.span`
 `;
 
 const TinyDrainRow = styled.div`
-  padding: 0 var(--space-12) var(--space-6);
+  padding: var(--inset-tiny-row);
   font-size: var(--font-size-compact);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -1185,13 +1195,7 @@ const ScreenInset = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-section);
-  /* The inset stays on the rungs. This is the screen's own gutter, not a
-     surface: nothing is drawn here, no border and no fill, and both halves
-     resolve the same in every density tier, so it fails both limbs of the
-     earning test the same way the (8,16) chrome band does. --inset-surface
-     would be a lie about what the box is and would tighten every screen by
-     4px on each side to make a ratchet number smaller. */
-  padding: var(--space-8) var(--space-12);
+  padding: var(--gutter-screen-body);
 `;
 
 /**
@@ -1272,7 +1276,7 @@ const ExpandToggle = styled.button`
 `;
 
 const Description = styled.p`
-  margin: var(--space-2) 0 var(--space-4);
+  margin: var(--gap-caption) 0 var(--gap-sub-readout);
   color: var(--color-text-dim);
   font-size: var(--font-size-compact);
   line-height: var(--line-height-body);
@@ -1294,7 +1298,7 @@ const EffectLine = styled.li`
   &::before {
     content: "·";
     color: var(--color-text-dim);
-    margin-right: var(--space-6);
+    margin-right: var(--gap-trailing-mark);
   }
 `;
 
@@ -1302,7 +1306,7 @@ const CostRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: var(--gap-related);
-  margin-top: var(--space-2);
+  margin-top: var(--gap-caption);
 `;
 
 const CostChip = styled.span<{ $insufficient?: boolean }>`
@@ -1324,7 +1328,7 @@ const FactorRow = styled.div`
   display: flex;
   align-items: center;
   gap: var(--gap-related);
-  margin-top: var(--space-4);
+  margin-top: var(--gap-actions);
 `;
 
 /**
@@ -1430,7 +1434,7 @@ const FactorValue = styled.span`
  */
 const LockedScreen = styled.p`
   margin: 0;
-  padding: var(--space-16);
+  padding: var(--inset-empty-state);
   color: var(--color-text-dim);
   font-size: var(--font-size-compact);
   text-align: center;

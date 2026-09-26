@@ -861,7 +861,7 @@ export const MeterRowGroup = styled.div.attrs({
   grid-column: 1 / -1;
   display: grid;
   grid-template-columns: subgrid;
-  row-gap: var(--space-2);
+  row-gap: var(--gap-meter-rows);
   min-width: 0;
 
   & > * {
@@ -941,7 +941,7 @@ const Meter__Stack = styled.div`
     minmax(min-content, max-content)
     minmax(${ROW_BAR_FLOOR_PX}px, 1fr)
     max-content;
-  gap: var(--space-8);
+  gap: var(--gap-meter-columns);
   width: 100%;
 
   & > * {
@@ -1039,12 +1039,12 @@ const Meter__Root = styled.div<{ $row: boolean }>`
           flex-direction: row;
           flex-wrap: wrap;
           align-items: center;
-          column-gap: var(--space-8);
-          row-gap: var(--space-2);
+          column-gap: var(--gap-meter-columns);
+          row-gap: var(--gap-caption);
         `
       : css`
           flex-direction: column;
-          gap: var(--space-2);
+          gap: var(--gap-caption);
         `}
 `;
 
@@ -1052,7 +1052,7 @@ const Meter__Head = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: var(--space-8);
+  gap: var(--gap-label-value);
   min-width: 0;
   /* The value may drop to a line of its own at narrow widths (see
      Meter__Value): better a second line than the label being crushed to
@@ -1100,12 +1100,12 @@ const Meter__Value = styled.span<{ $row: boolean }>`
      left:100% and the overflow above would otherwise eat whole. Measured
      rather than chosen: the mark is max(0.3em, 4px) wide plus a 0.14em
      margin, and a probe of the real clip put its right edge 6px past this
-     box, which is the --space-6 rung exactly. Anything smaller still clips.
+     box, which is what --inset-meter-mark is. Anything smaller still clips.
 
      Reserved unconditionally, because a width that appeared only when a
      channel went quiet is exactly the reflow the mark is absolutely
      positioned to avoid. */
-  padding-right: max(0.44em, var(--space-6));
+  padding-right: max(0.44em, var(--inset-meter-mark));
 `;
 
 /* The bar's axis.
