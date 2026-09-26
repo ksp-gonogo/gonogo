@@ -4,18 +4,6 @@ import {
   orbitalPeriod,
   registerComponent,
 } from "@ksp-gonogo/core";
-
-const topics = defineTopicManifest({
-  // The reference curve needs the body's radius and gravitational parameter from `system.bodies`.
-  channels: ["vessel.orbit", "vessel.identity", "system.bodies"],
-  fields: [
-    "vessel.orbit.sma",
-    "vessel.orbit.mu",
-    "vessel.orbit.referenceBodyIndex",
-    "vessel.identity.parentBodyIndex",
-  ],
-});
-
 import { useStream } from "@ksp-gonogo/sitrep-client";
 import type { VesselOrbit } from "@ksp-gonogo/sitrep-sdk";
 import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
@@ -29,6 +17,17 @@ import {
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useComputedSeries } from "../shared/useComputedSeries";
 import { useStreamBody } from "../shared/useStreamBody";
+
+const topics = defineTopicManifest({
+  // The reference curve needs the body's radius and gravitational parameter from `system.bodies`.
+  channels: ["vessel.orbit", "vessel.identity", "system.bodies"],
+  fields: [
+    "vessel.orbit.sma",
+    "vessel.orbit.mu",
+    "vessel.orbit.referenceBodyIndex",
+    "vessel.identity.parentBodyIndex",
+  ],
+});
 
 /** The current orbit's period, computed here: the wire carries no `period`. */
 const CURRENT_PERIOD_KEY = "kepler-period.currentPeriod";

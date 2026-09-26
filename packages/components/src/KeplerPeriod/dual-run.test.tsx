@@ -49,7 +49,7 @@ const KEPLER_PERIOD_CHANNELS = [
   "system.bodies",
 ];
 
-describe("KeplerPeriod: renders the reference curve off the stream (R6 Wave 1)", () => {
+describe("KeplerPeriod: renders the reference curve off the stream", () => {
   it("draws the Kepler curve once a known reference body streams in", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: KEPLER_PERIOD_CHANNELS,

@@ -97,7 +97,7 @@ describe("KeplerPeriodComponent", () => {
     });
   });
 
-  it("falls back to v.body when o.referenceBody is absent", async () => {
+  it("falls back to the parent body when the orbit names no reference body", async () => {
     const { container } = renderKepler();
 
     act(() => {
