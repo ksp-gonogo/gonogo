@@ -517,7 +517,6 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
   "packages/components/src/LandingStatus/index.tsx": 3,
   "packages/components/src/LaunchDirector/index.tsx": 1,
   "packages/components/src/MapView/index.tsx": 2,
-  "packages/components/src/Navball/index.tsx": 2,
   "packages/components/src/SpaceCenterStatus/index.tsx": 1,
   /*
    * Newly VISIBLE, through `Countdown` taking a reading, and the same shape as

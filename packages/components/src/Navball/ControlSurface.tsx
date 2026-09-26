@@ -10,7 +10,7 @@ import {
   ToggleButton,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import type { CSSProperties } from "react";
+import type { ComponentProps, CSSProperties } from "react";
 import { clamp } from "./input";
 import {
   modeShort,
@@ -37,6 +37,8 @@ interface ControlSurfaceProps {
   onDismissSasFailure: (id: string) => void;
   showFbwDelayWarning: boolean;
   delaySeconds: number | null;
+  /** The one-way delay as read, so a held figure is marked. */
+  oneWayDelay: ComponentProps<typeof Countdown>["value"];
 }
 
 export function ControlSurface({
@@ -54,6 +56,7 @@ export function ControlSurface({
   onDismissSasFailure,
   showFbwDelayWarning,
   delaySeconds,
+  oneWayDelay,
 }: ControlSurfaceProps) {
   return (
     <div style={CONTROL_WRAP}>
@@ -171,7 +174,7 @@ export function ControlSurface({
             <span role="status" aria-live="polite">
               High signal delay
             </span>{" "}
-            (<Countdown value={delaySeconds} precise />
+            (<Countdown value={oneWayDelay} precise />
             ): stick input lands one round trip late
           </StatusIndicator>
         )}

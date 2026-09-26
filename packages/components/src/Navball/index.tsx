@@ -125,8 +125,11 @@ function NavballComponent({
    * `oneWaySeconds` is 0 with the delay feature off. Read as last-observed: a
    * craft whose delay reading went quiet has not stopped being far away.
    */
+  const oneWayDelay = useTelemetry("comms.delay").oneWaySeconds;
   const delaySeconds = magnitudeOf(
-    lastObserved(useTelemetry("comms.delay"))?.oneWaySeconds,
+    oneWayDelay.state === "observed" || oneWayDelay.state === "stale"
+      ? oneWayDelay.value
+      : undefined,
   );
   const delayHigh =
     delaySeconds !== null && delaySeconds > FBW_DELAY_WARN_SECONDS;
@@ -229,6 +232,7 @@ function NavballComponent({
               onDismissSasFailure={dismissSasFailure}
               showFbwDelayWarning={showFbwDelayWarning}
               delaySeconds={delaySeconds}
+              oneWayDelay={oneWayDelay}
             />
           </Section>
         ) : null,
@@ -237,7 +241,7 @@ function NavballComponent({
       panelAside={
         showFbwDelayWarning && delaySeconds !== null ? (
           <Badge severity="warning" size="sm">
-            FBW · <Countdown value={delaySeconds} precise /> DELAY
+            FBW · <Countdown value={oneWayDelay} precise /> DELAY
           </Badge>
         ) : undefined
       }
