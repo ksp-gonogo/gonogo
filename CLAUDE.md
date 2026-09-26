@@ -182,8 +182,8 @@ registerComponent({
   name: 'My Custom Gauge',
   description: 'Shows the thing.',
   tags: ['telemetry'],        // free-form; the UI styles known values
-  component: MyCustomGauge,   // reads with useTelemetry('vessel.state')
-  channels: ['vessel.state'], // Topics this widget mounts on
+  component: MyCustomGauge,   // reads with useTelemetry('vessel.flight')
+  channels: ['vessel.flight'], // Topics this widget mounts on
   defaultSize: { w: 4, h: 4 },
   behaviors: [],              // opt-in behavior flags
   defaultConfig: {},

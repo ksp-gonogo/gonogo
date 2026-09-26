@@ -131,8 +131,8 @@ export class MissionHistorySource implements DataSource {
 
     // A DERIVED topic has no buffered range of its own: `sampleRange` returns
     // `undefined` for one by construction. Calling it for every mapped key
-    // landing on `vessel.state.*`, `vessel.maneuver.legacy.*`,
-    // `spaceCenter.state.*` or `system.state.*` answers with an empty series,
+    // landing on `vessel.maneuver.legacy.*`, `spaceCenter.state.*` or
+    // `system.state.*` answers with an empty series,
     // which the graph renders as "No recorded samples": the same words it uses for a
     // recording that genuinely holds nothing. `sampleDerivedRange` replays the
     // channel's `derive()` over its raw inputs' own buffered ranges instead,

@@ -54,8 +54,6 @@ import type { DerivedChannelDefinition } from "./timeline-store";
 import { TimelineStore } from "./timeline-store";
 import { installUnownedTopicWarning } from "./unowned-warning";
 import { systemUplinkHealthChannel } from "./uplink-health";
-import type { VesselState } from "./vessel-state";
-import { vesselStateChannel } from "./vessel-state";
 import { ViewClock, type ViewClockOptions } from "./view-clock";
 
 const TelemetryClientContext = createContext<TelemetryClient | undefined>(
@@ -153,17 +151,13 @@ export interface TelemetryProviderProps {
  * Supplies a `TelemetryClient`: and a `TimelineStore` fed from that
  * client's wire: to the component tree via context.
  *
- * **The bridge:** without this provider, nothing in production ever
- * constructed a `TimelineStore` or registered a derived channel on one, so
- * `vessel.state.*` (and any future derived channel) was permanently
- * unreachable through `useStream` even once a provider was mounted: the
- * derivation machinery in `vessel-state.ts`/`timeline-store.ts` existed but
- * was wired to nothing. This provider is what closes that gap:
+ * **The bridge:** this provider is what constructs a `TimelineStore` and
+ * registers the derived channels on it, so a derived topic is reachable
+ * through `useStream` at all:
  *
  * - Unless `store` is supplied, it builds ONE `TimelineStore` (backed by a
  *   `ViewClock`) per `client` and registers the production derived channels
- *   (`vesselStateChannel` today; extend `PRODUCTION_DERIVED_CHANNELS` below
- *   as more land) on it.
+ *   (`PRODUCTION_DERIVED_CHANNELS` below) on it.
  * - `client.attachStore(store)` feeds every incoming `stream-data` wire
  *   frame into the store's per-topic timelines.
  * - `client.subscribeStore(...)` schedules a `store.beginFrame()` via
@@ -173,8 +167,8 @@ export interface TelemetryProviderProps {
  *   fires are coalesced into the ONE `beginFrame()` call it makes, honoring
  *   `TimelineStore.beginFrame`'s own doc ("call once per animation frame /
  *   read cycle... never once per read") instead of re-minting a fresh
- *   `FrameToken` and re-running `deriveVesselState`'s Kepler solve, on
- *   every single message in a burst. This is what makes `useStream`, and every
+ *   `FrameToken` and re-running every derivation on every single message in a
+ *   burst. This is what makes `useStream`, and every
  *   other `useSyncExternalStore` subscription keyed off
  *   `store.subscribeFrame`, actually re-render.
  *
@@ -329,7 +323,7 @@ export function TelemetryProvider({
   // Registers this provider's clock as the non-React `getViewUt()` accessor's
   // source: see `activeViewClock`'s doc comment above. Also registers the
   // store itself as `getVesselOrbit()`/`getVesselTarget()`/
-  // `getVesselIdentity()`/`getVesselState()`'s source: see
+  // `getVesselIdentity()`'s source: see
   // `activeTimelineStore`'s doc comment.
   useEffect(() => {
     activeViewClock = store.clock;
@@ -493,7 +487,6 @@ export function TelemetryProvider({
  */
 export const PRODUCTION_DERIVED_CHANNELS: DerivedChannelDefinition<unknown>[] =
   [
-    vesselStateChannel as DerivedChannelDefinition<unknown>,
     systemStateChannel as DerivedChannelDefinition<unknown>,
     systemUplinkHealthChannel as DerivedChannelDefinition<unknown>,
     spaceCenterStateChannel as DerivedChannelDefinition<unknown>,
@@ -823,8 +816,7 @@ export function setActiveViewClockForTests(
  * outside React for the same non-hook callers `activeViewClock` serves,
  * plain classes (`LocalManeuverTriggerService`, the maneuver-trigger and
  * alarm host services) that need a point-in-time read of a fixed Topic
- * (`vessel.orbit`, `vessel.target`, `vessel.identity`, the derived
- * `vessel.state`) without subscribing. Narrowed to the methods an on-demand
+ * (`vessel.orbit`, `vessel.target`, `vessel.identity`) without subscribing. Narrowed to the methods an on-demand
  * sample needs, matching `activeViewClock`'s narrowing to just `viewUt`.
  * `sampleReading` is among them because the orbital solve is gated on a model
  * and a payload carries none. Set/cleared by the same registration effect in
@@ -986,11 +978,10 @@ let activeCarriedChannels: ReadonlySet<string> | undefined;
  * of subscribers.
  *
  * Exported (beyond the fixed `getVesselOrbit`/`getVesselTarget`/
- * `getVesselIdentity`/`getVesselState` wrappers below, each just this
- * function bound to one Topic) for plain-class callers that need an
- * ARBITRARY topic decided at call time: `GoNoGoHostService`'s
- * `vessel.state.met` read, the same "dynamic topic" shape `useTelemetry`'s
- * own doc comment already documents for the hook case.
+ * `getVesselIdentity` wrappers below, each just this function bound to one
+ * Topic) for plain-class callers that need an ARBITRARY topic decided at call
+ * time, the same "dynamic topic" shape `useTelemetry`'s own doc comment
+ * documents for the hook case.
  *
  * Answers a DISPLAY value, and a hold-last one: this cannot say how old it is,
  * or whether anything is still feeding the topic. Anything ACTING on the
@@ -1078,26 +1069,10 @@ export function getVesselIdentity(): VesselIdentity | undefined {
  * STABLE index.
  *
  * Wanted by anything turning an orbital radius into an ALTITUDE, which needs
- * the reference body's own radius, and by the body-name display maps. A plain
- * class reaching for those had no route to this channel and read them off
- * `vessel.state` instead, which is the coupling `vessel.state`'s retirement
- * removes.
+ * the reference body's own radius, and by the body-name display maps.
  */
 export function getSystemBodies(): SystemBodies | undefined {
   return sampleActiveTopic<SystemBodies>("system.bodies");
-}
-
-/**
- * Non-React equivalent of `useTelemetry("vessel.state")`: the derived
- * apoapsis/periapsis/time-to-apsis/true-anomaly/orbital-speed/radius/period/
- * body-name fields `vessel-state.ts` computes from `vessel.orbit` +
- * `vessel.target` + `vessel.identity` + `system.bodies`. The replacement for
- * the legacy `o.ApR`/`o.PeR`/`o.timeToAp`/`o.timeToPe`/`o.trueAnomaly`/
- * `o.orbitalSpeed`/`o.radius`/`o.period`/`v.body`/`tar.o.PeA`/`tar.o.period`/
- * `tar.o.trueAnomaly` per-field reads.
- */
-export function getVesselState(): VesselState | undefined {
-  return sampleActiveTopic<VesselState>(vesselStateChannel.topic);
 }
 
 /**
@@ -1366,9 +1341,8 @@ export function dispatchActiveCommandTopic(
 
 /**
  * Test-only escape hatch: registers `store` as
- * `getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()`/
- * `getVesselState()`'s source directly, without mounting a
- * `TelemetryProvider`: mirrors `setActiveViewClockForTests`. Pass
+ * `getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()`'s source
+ * directly, without mounting a `TelemetryProvider`: mirrors `setActiveViewClockForTests`. Pass
  * `undefined` to clear; a test's `afterEach` should always do this so a
  * later, unrelated suite can't see a stale store left over from this one.
  */
@@ -1417,8 +1391,7 @@ export function setActiveCarriedChannelsForTests(
 /**
  * Non-React equivalent of subscribing to `store.subscribeFrame`: for a
  * plain-class caller that needs to re-run its own on-demand reads
- * (`getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()`/
- * `getVesselState()`) whenever the active `TelemetryProvider` ingests a new
+ * (`getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()`) whenever the active `TelemetryProvider` ingests a new
  * frame, the same "vessel/orbit data changed" signal a widget's
  * `useTelemetry` re-render would ride. Unlike `getViewUt()`/the sample
  * accessors above (pure point-in-time reads), this one DOES need a live

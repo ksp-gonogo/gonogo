@@ -118,8 +118,8 @@ export function deriveCurrentStageResourceMax(
  * `...(dvCurrentStageResourceMaxChannel)`. `fields: true` on each exposes
  * `dv.currentStageResource.<name>` / `dv.currentStageResourceMax.<name>`: the
  * targets `map-topic.ts`'s `RESOURCE_STAGE_SCOPED` resolution points at.
- * `deriveStatus` omitted: the default (worst status across `dv.stages` +
- * `vessel.structure`, both genuinely consulted every call) is exactly right.
+ * The channel's status is the worst across `dv.stages` and
+ * `vessel.structure`, both genuinely consulted every call.
  */
 export const dvCurrentStageResourceChannel: DerivedChannelDefinition<ResourceAmountMap> =
   {

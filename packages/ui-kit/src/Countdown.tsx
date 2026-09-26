@@ -32,11 +32,9 @@ export interface CountdownProps {
    *
    * Deliberately NOT `Value<"ut">`. An instant on the universal-time clock is
    * a different thing and this renders it as nonsense: `OrbitEncounter`'s
-   * absolute `transitionUt` reached here through `vessel.state` and put a Mun
-   * encounter twenty minutes away on screen as "46d 2h", in two shipped
-   * widgets, while a third subtracted the view time correctly. `"s"` was the
-   * same token on both meanings, so nothing could tell them apart; now `"ut"`
-   * is its own token and handing one to this is a type error. Subtract the
+   * absolute `transitionUt` would put a Mun encounter twenty minutes away on
+   * screen as "46d 2h". `"ut"` is its own token, so handing one to this is a
+   * type error. Subtract the
    * frame's view time first (`useViewUt`), which is the operation that turns
    * an instant into the duration this wants.
    *

@@ -505,11 +505,11 @@ export type ReckonerAnswer<T, R = T> =
  * widget is most likely to REACH for a modelled figure once its live one has
  * gone stale.
  *
- * Riding the staleness discriminant made two readings of one fact disagree in
- * one frame. `vessel.state` is derived from `vessel.orbit` and forward-solves
- * from the same elements; it read `reckonable` while `vessel.orbit` read `stale`,
- * because the only way to say "a model exists" was to also say "we have missed
- * updates". Splitting the axis lets both say what is true of them.
+ * Riding the staleness discriminant would make two readings of one fact
+ * disagree in one frame: a value forward-solved from `vessel.orbit`'s elements
+ * would read `reckonable` while `vessel.orbit` itself read `stale`, because the
+ * only way to say "a model exists" would also say "we have missed updates".
+ * Splitting the axis lets both say what is true of them.
  *
  * A widget may still legitimately decline to propagate (a scalar readout may
  * only want a number and a staleness caption). That has to be a WRITTEN choice:

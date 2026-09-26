@@ -26,16 +26,13 @@ export type RequirementKind =
    *  contract, so a typo is not a `TopicId`). */
   | "wire-topic"
   /** A derived channel registered in `PRODUCTION_DERIVED_CHANNELS`, named by
-   *  a widget that reads the whole payload (`useStream("vessel.state")`). */
+   *  a widget that reads the whole payload (`useStream("system.state")`). */
   | "derived-channel"
   /** A field path inside one of the above, which `isKnownFieldPath` accepts
    *  only where the contract's own generated field metadata declares it under
    *  a known Topic. The walk reads through `unitsForTopic`/`shapesForTopic`
    *  rather than the generated maps directly, which is what lets it see a
-   *  Topic an Uplink or a derived channel registered at module load. For the
-   *  derived channels, `vessel-state-mapping.coverage.test.ts` invokes the
-   *  real `deriveVesselState` to prove each declared field is one it
-   *  produces. */
+   *  Topic an Uplink or a derived channel registered at module load. */
   | "field-path";
 
 const DERIVED_CHANNEL_TOPICS: ReadonlySet<string> = new Set(

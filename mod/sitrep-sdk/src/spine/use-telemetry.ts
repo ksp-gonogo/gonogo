@@ -87,8 +87,8 @@ import { useDataSourceSubscription } from "./use-data-source-subscription";
  *   is "fall back to silence". That case is logged once, see
  *   `gated-read-warning.ts`.
  *
- * **Derived topics.** `mapTopic` frequently targets a DERIVED topic
- * (`vessel.state.<field>`). A derived topic is never itself a wire topic;
+ * **Derived topics.** `mapTopic` may target a DERIVED topic
+ * (`system.state.<field>`). A derived topic is never itself a wire topic;
  * nothing sends it, so the shim cannot `client.subscribe`/`client.getValue` it
  * directly: doing so reads a mapped derived key as permanently-dead
  * `undefined` even with a provider mounted, because nothing feeds the
@@ -176,13 +176,10 @@ const CANONICAL_PENDING = topicReading<never>({
  * The design said two: `ReckonableReading` where a model exists, plain
  * `Reading` with no `reckoned` member anywhere else. The middle arm is what
  * survives of the second half, and it keeps the whole-payload `reckoned` for the
- * two populations the CONTRACT cannot speak for.
+ * population the CONTRACT cannot speak for.
  *
- * A DERIVED channel is the first: `vessel.state` labels its own reckoning
- * through `deriveReckoning`, client-side, and there is no C# property to mark
- * because there is no C# payload. An UPLINK-registered model is the second:
- * `registerReckoner` is keyed by topic string, and an Uplink's own contract
- * slice has no reckonability emission of its own yet (see
+ * That is an UPLINK-registered model: `registerReckoner` is keyed by topic
+ * string, and an Uplink's own contract slice has no reckonability emission of its own yet (see
  * `RtConfig.EmitReckonability`), so a model it registers on a wire topic has
  * nowhere but this arm to land.
  *
@@ -275,8 +272,8 @@ export function useTelemetry(dataSourceId: string, key?: string): unknown {
   // widget instead of falling back to its working legacy read. `carried`
   // below is the fix: `store.resolveSubscriptionTopics(topic)` resolves
   // `topic` down to its raw wire inputs (identity for an already-raw
-  // topic: a DERIVED topic like `vessel.state.altitudeAsl` resolves to
-  // `["vessel.orbit", "vessel.flight"]`), and `carried` is true only when
+  // topic: a DERIVED topic like `system.state.bodyCount` resolves to
+  // `["system.bodies"]`), and `carried` is true only when
   // EVERY one of those inputs is in the provider's carried-channels
   // allowlist (`useCarriedChannelsOptional`: seeded from the transport's
   // own declared channels, unioned with an explicit dev-first promotion

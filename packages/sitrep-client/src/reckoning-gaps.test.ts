@@ -1,20 +1,13 @@
 import "./reckoner-test-topics";
-import { Quality, type Value, value } from "@ksp-gonogo/sitrep-sdk";
-import type { VesselOrbitPayload } from "@ksp-gonogo/sitrep-sdk/spine";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { ReckonerDefinition } from "./reading";
 import { observedAt } from "./reading";
 import { clearReckoners, registerReckoner } from "./reckoners";
-import {
-  makeMeta,
-  observedPayload,
-  type WireOf,
-  wrapWire,
-} from "./stub-transport";
+import { makeMeta, observedPayload } from "./stub-transport";
 import { systemStateChannel } from "./system-state";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
-import { vesselStateChannel } from "./vessel-state";
 import { ViewClock } from "./view-clock";
 
 /**
@@ -66,40 +59,6 @@ function predictedStore(wall: { now: () => number }) {
   return { clock, store: new TimelineStore(clock) };
 }
 
-const CIRCULAR_ORBIT: WireOf<VesselOrbitPayload> = {
-  referenceBodyIndex: 1,
-  sma: 700_000,
-  ecc: 0,
-  inc: 0,
-  lan: null,
-  argPe: null,
-  meanAnomalyAtEpoch: 0,
-  epoch: 0,
-  mu: 3.5316e12, // Kerbin's GM
-  /*
-   * What the stock producer always fills (`AnalyticHorizon()`), reach AND
-   * shape. Required on the wire, so a fixture without it records a producer
-   * that dropped a required field rather than a neutral scene, and
-   * `deriveVesselStateReckoning` now refuses to propagate one: an absent
-   * horizon is nobody's permission, which is `canPropagate`'s whole argument.
-   */
-  horizon: { kind: 1, trajectoryKind: 1 },
-};
-
-function orbitPoint(validAt: number): TimelinePoint<VesselOrbitPayload> {
-  return {
-    validAt,
-    payload: wrapWire<VesselOrbitPayload>("VesselOrbit", CIRCULAR_ORBIT),
-    meta: makeMeta({
-      validAt,
-      deliveredAt: validAt,
-      quality: Quality.OnRails,
-      source: "vessel:abc-123",
-    }),
-    epoch: 0,
-  };
-}
-
 function bodiesPoint(
   validAt: number,
 ): TimelinePoint<{ bodies: { name: string; index: number }[] }> {
@@ -147,26 +106,6 @@ describe("a derived reading must not claim the frame's own view time as its obse
     expect(
       value("ut", viewUt).minus(observedAt(reading) as Value<"ut">),
     ).toEqual(value("s", 1200));
-  });
-
-  it("does not serve a forward-modelled derived value with no reckoning on offer", () => {
-    // `Reading`'s doc on the stale arm: "The last REAL observation. Never a
-    // modelled value." Under OnRails `vessel.state.position` IS
-    // `kepler.solve(elements, viewUt)`, so serving it with `reckoning: { status: "none" }`
-    // makes the type say the opposite of what it carries. A model that exists
-    // says so on the reckoning axis, and the modelled figure rides `reckoned`.
-    const wall = fakeWall();
-    const { store } = predictedStore(wall);
-    store.registerDerivedChannel(vesselStateChannel);
-
-    store.ingest("vessel.orbit", orbitPoint(100));
-    wall.advanceBy(1200);
-    store.setTransportConnected(false);
-    store.beginFrame();
-
-    expect(store.sampleReading<unknown>("vessel.state").reckoning.status).toBe(
-      "available",
-    );
   });
 });
 

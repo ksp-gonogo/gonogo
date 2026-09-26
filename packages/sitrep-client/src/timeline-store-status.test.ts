@@ -1,12 +1,10 @@
-import { Quality, Staleness, value } from "@ksp-gonogo/sitrep-sdk";
-import type { VesselOrbitPayload } from "@ksp-gonogo/sitrep-sdk/spine";
+import { Staleness, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { dvCurrentStageResourceChannel } from "./dv-stage-resources";
 import { makeMeta } from "./stub-transport";
 import { systemStateChannel } from "./system-state";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
-import { vesselStateChannel } from "./vessel-state";
 import { ViewClock } from "./view-clock";
 
 /** A wall clock a test can advance explicitly, instead of racing real time. */
@@ -360,97 +358,11 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
       expect(store.sampleStatus("vessel.target")).toBe("resyncing");
     });
   });
-
-  describe("vessel.state: worst-of-inputs wired end to end through a real store", () => {
-    const CIRCULAR_ORBIT: VesselOrbitPayload = {
-      referenceBodyIndex: 1,
-      sma: value("m", 700_000),
-      ecc: value("1", 0),
-      inc: value("°", 0),
-      lan: null,
-      argPe: null,
-      meanAnomalyAtEpoch: value("rad", 0),
-      epoch: value("s", 0),
-      mu: value("m³/s²", 3.5316e12),
-    };
-
-    function orbitPoint(
-      validAt: number,
-      overrides: { deliveredAt?: number; staleness?: Staleness } = {},
-    ): TimelinePoint<VesselOrbitPayload> {
-      return {
-        validAt,
-        payload: CIRCULAR_ORBIT,
-        meta: makeMeta({
-          validAt,
-          deliveredAt: overrides.deliveredAt ?? validAt,
-          quality: Quality.OnRails,
-          staleness: overrides.staleness ?? Staleness.Fresh,
-          source: "vessel:abc-123",
-        }),
-        epoch: 0,
-      };
-    }
-
-    it("propagates vessel.orbit's held-stale status onto vessel.state (OnRails basis never touches vessel.flight)", () => {
-      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
-      const store = new TimelineStore(clock);
-      store.registerDerivedChannel(vesselStateChannel);
-
-      store.ingest(
-        "vessel.orbit",
-        orbitPoint(10, { staleness: Staleness.HeldStale }),
-      );
-      store.beginFrame();
-
-      expect(store.sampleStatus("vessel.state")).toBe("held-stale");
-      // The field subtopic shares the parent's status too.
-      expect(store.sampleStatus("vessel.state.altitudeAsl")).toBe("held-stale");
-    });
-
-    it("a tombstoned vessel.orbit makes vessel.state 'absent'", () => {
-      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
-      const store = new TimelineStore(clock);
-      store.registerDerivedChannel(vesselStateChannel);
-
-      store.ingest("vessel.orbit", {
-        validAt: 10,
-        payload: null,
-        meta: makeMeta({ validAt: 10, deliveredAt: 10 }),
-        epoch: 0,
-      });
-      store.beginFrame();
-
-      expect(store.sampleStatus("vessel.state")).toBe("absent");
-    });
-
-    it("vessel.orbit not yet ingested -> vessel.state is 'resyncing'", () => {
-      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
-      const store = new TimelineStore(clock);
-      store.registerDerivedChannel(vesselStateChannel);
-
-      store.beginFrame();
-
-      expect(store.sampleStatus("vessel.state")).toBe("resyncing");
-    });
-
-    it("a fresh, on-time vessel.orbit yields a 'live' vessel.state", () => {
-      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
-      const store = new TimelineStore(clock);
-      store.registerDerivedChannel(vesselStateChannel);
-
-      store.ingest("vessel.orbit", orbitPoint(10));
-      store.beginFrame();
-
-      expect(store.sampleStatus("vessel.state")).toBe("live");
-    });
-  });
 });
 
 /**
- * A derived channel that declares no `deriveStatus` reads the worst status of
- * its declared inputs. system.state and dv.currentStageResource both take this
- * default.
+ * A derived channel reads the worst status of its declared inputs, through a
+ * real store, for system.state and dv.currentStageResource alike.
  */
 describe("a derived channel's default status: worst of its declared inputs, through a real store", () => {
   function recordPoint<T>(

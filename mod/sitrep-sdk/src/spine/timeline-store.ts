@@ -13,7 +13,6 @@ import type {
   AnyReckonerDefinition,
   BandKind,
   DepWindow,
-  ModelledField,
   ReckonerWindow,
   ReckoningBasis,
   ReckoningDecline,
@@ -327,9 +326,8 @@ const GAP_MODEL_SAMPLES = 24;
  * thing this cap must not be able to do.
  *
  * 48 draws a conic smoothly at any chart width this app renders, and bounds the
- * per-frame cost of replaying a channel's `derive` (a Kepler solve, for
- * `vessel.state`) at a few thousand a second across a dashboard's worth of
- * plotted series.
+ * per-frame cost of asking a model for a value at a few thousand a second across
+ * a dashboard's worth of plotted series.
  */
 const MAX_RECKONED_TAIL_SAMPLES = 48;
 
@@ -403,43 +401,6 @@ function bandDescribes(
 }
 
 /**
- * Replays of a derived channel's `derive` for a reckoned tail.
- *
- * Every one is provider-supplied compute on the frame path, the same as a
- * derived channel's own per-frame derivation, and there are up to
- * `MAX_RECKONED_TAIL_SAMPLES` of them per plotted series per frame. The cap
- * bounds one tail; this catches the case the cap cannot see, which is a
- * dashboard that has quietly acquired enough modelled traces to spend the frame
- * budget on arithmetic nobody measured. The tail is memoised per frame, so a
- * healthy dashboard of four modelled series sits near 6k/sec at 60fps.
- */
-/**
- * What a tail walk needs, whichever registry the model came out of: when the
- * observations stop, the cadence they were arriving at, and one question the
- * walk can ask per instant.
- *
- * The two model registries answer that question completely differently (a
- * derived channel re-derives a record; a registered reckoner pulls a thunk),
- * and neither difference survives past here. Sharing the WALK rather than
- * duplicating it is what makes the horizon rule, the resolution cap and the
- * continuity rule one implementation instead of two that agree today.
- */
-/**
- * A channel's reckoning claim as a path list, whichever way it was spelled.
- *
- * A bare basis is the record-wide claim and normalises to a single root entry,
- * which is what it has always meant. `undefined` stays `undefined`: declining is
- * a statement and must not become an empty list, which would read as "modelled,
- * nothing moved".
- */
-function normaliseReckoningClaim(
-  claim: ReckoningBasis | readonly ModelledField[] | undefined,
-): readonly ModelledField[] | undefined {
-  if (claim === undefined) return undefined;
-  return typeof claim === "string" ? [{ path: "", basis: claim }] : claim;
-}
-
-/**
  * The newest run of `points` with no break in the record inside it.
  *
  * A window that spans a blackout must not be handed over whole: a model given
@@ -510,6 +471,10 @@ function thinTo<T>(
   return out;
 }
 
+/**
+ * What a tail walk needs from a topic's model: when the observations stop, the
+ * cadence they were arriving at, and one question the walk can ask per instant.
+ */
 interface ReckonedWalk {
   /** The newest instant an observation behind this topic exists for. */
   lastObservedUt: number;
@@ -533,6 +498,16 @@ interface ReckonedWalk {
     | undefined;
 }
 
+/**
+ * Model answers asked for a reckoned tail.
+ *
+ * Every one is provider-supplied compute on the frame path, and there are up to
+ * `MAX_RECKONED_TAIL_SAMPLES` of them per plotted series per frame. The cap
+ * bounds one tail; this catches the case the cap cannot see, which is a
+ * dashboard that has quietly acquired enough modelled traces to spend the frame
+ * budget on arithmetic nobody measured. The tail is memoised per frame, so a
+ * healthy dashboard of four modelled series sits near 6k/sec at 60fps.
+ */
 const RECKONED_TAIL_BUDGET = new PerfBudget({
   name: "Reckoned tail derives/sec",
   threshold: 20_000,
@@ -1386,8 +1361,8 @@ export class TimelineStore {
    * Windowed series for a DERIVED topic: the counterpart to `sampleRange`
    * (which structurally can't serve one: a derived value is computed fresh
    * per frame, nothing is ever stored). Backs `@ksp-gonogo/data`'s
-   * `useDataSeries` shim so a Graph-style widget plotting a `vessel.state.*`
-   * (or other registered derived-channel) key gets a REAL series off the
+   * `useDataSeries` shim so a Graph-style widget plotting a registered
+   * derived-channel key gets a REAL series off the
    * stream instead of permanently falling back to the legacy
    * `BufferedDataSource`: see that hook's own doc comment for the "why".
    *
@@ -1399,14 +1374,7 @@ export class TimelineStore {
    * (queried from `-Infinity` through `toUt`, so an input that last changed
    * BEFORE `fromUt` still resolves correctly at the first in-window
    * instant; `ClientTimeline`'s own retention window bounds this, not an
-   * unbounded scan). `getInterpolated` is passed the SAME hold-last `get`,
-   * every currently-registered channel's `derive` defaults its own
-   * `getInterpolated` parameter to `get` when omitted
-   * (`deriveVesselState`'s own doc comment), so this matches live-frame
-   * behavior for every channel that doesn't explicitly need lerp precision;
-   * a channel that starts requiring true interpolation for a historical
-   * replay would need this widened, not silently mismatch (tracked, not hit
-   * by anything registered today).
+   * unbounded scan).
    *
    * Declared `inputs` are assumed RAW (not another derived topic), true of
    * every channel in `PRODUCTION_DERIVED_CHANNELS` today, even though `get`
@@ -1463,7 +1431,7 @@ export class TimelineStore {
         return last as TimelinePoint<I> | undefined;
       };
 
-      const value = def.derive(get, ut, get);
+      const value = def.derive(get, ut);
       if (value === undefined) continue; // not whole yet at this instant
 
       let payload: unknown;
@@ -1499,12 +1467,10 @@ export class TimelineStore {
    * model for instants that had no observation behind them, and stamps each one
    * with the basis the model claimed for it.
    *
-   * Both model registries are consulted, in the order `sampleReading` walks
-   * them: the model registered for the topic, then a field read borrowing its
-   * record's model, then a derived channel's `deriveReckoning`. A series
-   * producer that knew about only one would be a chart that draws core's models
-   * and silently drops an author's, which is the asymmetry an extension point is
-   * least able to report.
+   * The model is the one `sampleReading` consults: the one registered for the
+   * topic, else a field read borrowing its record's. Core's models and an
+   * author's are both read through `getReckoner`, so a chart cannot draw one and
+   * silently drop the other.
    *
    * ## Deliberately not a `TimelinePoint`, and deliberately not merged in
    *
@@ -1523,14 +1489,9 @@ export class TimelineStore {
    * absence of an answer IS the statement of trust. The difference a series
    * makes is that the question gets asked once per instant instead of once per
    * frame, so a horizon inside the window is expressible at all. The walk stops
-   * at the first instant `deriveReckoning` declines: a model gets worse with
+   * at the first instant the model declines: a model gets worse with
    * age and never better, so a decline is the end of the tail rather than a
    * hole in it.
-   *
-   * `getStatus` answers for the CURRENT frame, and that is the honest answer
-   * for every instant here rather than an approximation: the whole tail is the
-   * one stretch of silence that follows the last observation, and a stretch of
-   * silence has one status.
    *
    * ## Only a continuous quantity gets a tail, and it keeps its unit
    *
@@ -1541,18 +1502,15 @@ export class TimelineStore {
    * strings, vectors and whole records by construction. A numeric enum would
    * pass this test and is the one shape to keep out of a plotted key by hand.
    *
-   * A `Value` comes back WRAPPED. The bare-number test that used to stand here
-   * was written when `vessel.state`'s bare-magnitude record was the only thing
-   * in the tree that had ever grown a tail, and every `vessel.flight` field is
-   * a `Value`: a carried altitude a point read described in words drew nothing,
-   * on every frame of a descent. The magnitude is taken once, at the boundary
+   * A `Value` comes back WRAPPED, because every `vessel.flight` field is one and
+   * a bare-number test would draw nothing for a carried altitude on every frame
+   * of a descent. The magnitude is taken once, at the boundary
    * that plots it (`@ksp-gonogo/data`'s `useDataSeries`), not here, so nothing
    * between the model and the chart holds a number that has forgotten what it
    * measures.
    *
-   * Returns an empty array for a topic with no derived channel, no
-   * `deriveReckoning`, or nothing yet observed, which are all the same answer
-   * to the caller: there is no tail to draw.
+   * Returns an empty array for a topic with no model, or nothing yet observed,
+   * which are the same answer to the caller: there is no tail to draw.
    */
   sampleReckonedTail<T>(
     topic: string,
@@ -1572,16 +1530,7 @@ export class TimelineStore {
     fromUt: number,
     toUt: number,
   ): ReckonedSample<T>[] {
-    /*
-     * The registered model first, then the derived channel's, which is
-     * `sampleReading`'s order and was not this method's until the two were
-     * reconciled. A Topic carrying both used to serve one model to a point read
-     * and the other to a plotted tail of the same quantity, in one widget, with
-     * nothing anywhere able to report it.
-     */
-    const walk =
-      this.rawReckonedWalk(topic, fromUt, toUt) ??
-      this.derivedReckonedWalk(topic, toUt);
+    const walk = this.rawReckonedWalk(topic, fromUt, toUt);
     // Nothing observed, or the newest observation IS the view time: either way
     // there is no interval for a model to have carried anything across.
     if (!walk || walk.lastObservedUt >= toUt) return [];
@@ -1794,90 +1743,10 @@ export class TimelineStore {
   }
 
   /**
-   * A derived channel's tail: `derive` replayed at an instant nothing arrived
-   * at, labelled by the same `deriveReckoning` the point layer asks.
-   *
-   * The hold-last `get` is `sampleDerivedRange`'s. The input ranges are read
-   * once for the whole walk rather than per instant, because every instant in a
-   * tail resolves to the same last input point by construction.
-   */
-  private derivedReckonedWalk(
-    topic: string,
-    toUt: number,
-  ): ReckonedWalk | undefined {
-    const resolved = this.resolveDerivedTopic(topic);
-    const deriveReckoning = resolved?.def.deriveReckoning;
-    if (!resolved || !deriveReckoning) return undefined;
-    const { def, field } = resolved;
-
-    const inputRanges = new Map<string, TimelinePoint<unknown>[]>();
-    const inWindowUts: number[] = [];
-    let lastObservedUt: number | undefined;
-    for (const inputTopic of def.inputs) {
-      const points =
-        this.sampleRange<unknown>(inputTopic, -Infinity, toUt) ?? [];
-      inputRanges.set(inputTopic, points);
-      for (const point of points) {
-        if (lastObservedUt === undefined || point.validAt > lastObservedUt) {
-          lastObservedUt = point.validAt;
-        }
-        inWindowUts.push(point.validAt);
-      }
-    }
-    if (lastObservedUt === undefined) return undefined;
-
-    const getAt =
-      (at: number): DerivedGet =>
-      <I>(inputTopic: string): TimelinePoint<I> | undefined => {
-        const points = inputRanges.get(inputTopic);
-        if (!points || points.length === 0) return undefined;
-        let last: TimelinePoint<unknown> | undefined;
-        for (const point of points) {
-          if (point.validAt <= at) last = point;
-          else break;
-        }
-        return last as TimelinePoint<I> | undefined;
-      };
-
-    return {
-      lastObservedUt,
-      inWindowUts,
-      answerAt: (at) => {
-        const get = getAt(at);
-        const claim = deriveReckoning(get, at, (inputTopic) =>
-          this.sampleStatus(inputTopic),
-        );
-        if (claim === undefined) return undefined;
-        /*
-         * A bare basis is the record-wide claim and every field borrows it,
-         * which is what it has always meant. A LIST has to name the path, and a
-         * root entry does not name it: `vessel.state` is the case in hand, its
-         * conic moves the position and carries `twr` verbatim off a propulsion
-         * sample nothing propagated, and a dashed TWR trace stamped
-         * `kepler-propagation` would attribute a number to a model that never
-         * touched it.
-         */
-        const basis =
-          typeof claim === "string"
-            ? claim
-            : claim.find((entry) => entry.path === (field ?? ""))?.basis;
-        if (!basis) return undefined;
-        const record = def.derive(get, at, get);
-        if (record == null) return undefined; // not whole, or confirmed absent
-        const value = field
-          ? (record as Record<string, unknown>)[field]
-          : (record as unknown);
-        return { value, basis };
-      },
-    };
-  }
-
-  /**
    * A raw topic's tail, off the model an Uplink registered for it.
    *
-   * The same ladder `sampleReading` walks, minus the derived rung the caller
-   * has already tried: a whole-topic reckoner, or a field read borrowing its
-   * record's model. Wired because a registration seam that reaches the point
+   * The same ladder `sampleReading` walks: a whole-topic reckoner, or a field
+   * read borrowing its record's model. Wired because a registration seam that reaches the point
    * layer and stops there is a half-built extension point, and an author whose
    * model draws a propagated marker on the map but leaves a plot of the same
    * quantity ending mid-window has nothing to tell them that is by design.
@@ -2112,9 +1981,7 @@ export class TimelineStore {
    * intermediate orbits. `sample()` stays hold-last for exactly that
    * reason; this method is for MEASURED/discrete raw values where a
    * straight line between two buffered samples is an honest estimate in
-   * between (the `vessel.flight` case: see
-   * `vessel-state.ts`'s use of `getInterpolated` for the Loaded/measured
-   * basis).
+   * between (`vessel.flight`'s measured kinematics, for one).
    *
    * Falls back to hold-last (`ClientTimeline.at`) whenever there's nothing
    * to straddle (fewer than two points, or `viewUt` is at-or-after the
@@ -2215,53 +2082,6 @@ export class TimelineStore {
           const field = model.bandAt?.(at)?.[parsed.fieldPath.join(".")];
           return field ? { "": field } : undefined;
         },
-      };
-    };
-  }
-
-  /**
-   * A derived channel's `deriveReckoning` as a `ReckonerFor`, so a channel that
-   * forward-models its record says so through the same arm a registered
-   * reckoner does.
-   *
-   * The model here is the IDENTITY, and that is the correct answer rather than
-   * a shortcut: `derive` already ran for this frame's view time, so the value
-   * on the point IS the reckoning. What was missing was never arithmetic, only
-   * the statement that arithmetic had happened. Consulted only when no
-   * reckoner is registered for the topic, so a channel's own label never
-   * silently overrides one an Uplink registered.
-   */
-  private derivedReckoner<T>(
-    topic: string,
-    token: FrameToken,
-  ): ReckonerFor<T> | undefined {
-    const resolved = this.resolveDerivedTopic(topic);
-    const deriveReckoning = resolved?.def.deriveReckoning;
-    if (!deriveReckoning) return undefined;
-    return (point, _grade, viewUt) => {
-      // A tombstoned record never carries a model (`readingFrom` ranks `absent`
-      // above every staleness grade and above the reckoning question), so this
-      // only narrows the payload type. There is no modelled value for a
-      // confirmed absence.
-      const modelledValue = point.payload;
-      if (modelledValue === null) return undefined;
-      const get: DerivedGet = (inputTopic) => this.sample(inputTopic, token);
-      const claim = deriveReckoning(get, viewUt, (inputTopic) =>
-        this.sampleStatus(inputTopic, token),
-      );
-      // A channel naming paths still answers a whole-topic read through its
-      // root entry, and a field read still borrows the record's model exactly
-      // as it borrows a bare basis: `readingFrom` only asks whether the ROOT is
-      // covered, and from a field read's point of view the narrowed value IS
-      // the root. The per-path detail is for a caller that has to know which
-      // fields moved, which is the series producer and nothing else yet.
-      const modelled = normaliseReckoningClaim(claim);
-      if (!modelled) return undefined;
-      const root = modelled.find((entry) => entry.path === "");
-      if (!root) return undefined;
-      return {
-        modelled: [{ path: "", basis: root.basis }],
-        reckon: () => modelledValue,
       };
     };
   }
@@ -2985,10 +2805,9 @@ export class TimelineStore {
         const viewUt = this.viewUtFor(effectiveToken, this.laneForTopic(topic));
         /*
          * The registered model is asked FIRST and its answer is final, decline
-         * included. Falling through to a derived channel's label after a
-         * registered model declined would serve a second model for one topic
-         * and hand two answers to one widget, which is the disagreement keeping
-         * the two ladders in the same order exists to prevent.
+         * included. Falling through to the record's model after a registered
+         * model declined would serve a second model for one topic and hand two
+         * answers to one widget.
          */
         const registered =
           // The arms `readingFrom` builds without ever consulting a model:
@@ -3010,8 +2829,7 @@ export class TimelineStore {
           ? () => reckonedModel as TopicModel<T>
           : registered
             ? undefined
-            : (this.derivedReckoner<T>(topic, effectiveToken) ??
-              this.fieldScopedReckoner<T>(topic, effectiveToken));
+            : this.fieldScopedReckoner<T>(topic, effectiveToken);
         const owner =
           registered && "owner" in registered
             ? registered.owner
@@ -3243,24 +3061,13 @@ export class TimelineStore {
     return Number.isFinite(gap) && gap > 0 ? gap : 0;
   }
 
-  /**
-   * A derived channel's own status: `def.deriveStatus` if it declared one
-   * (quality-picked channels like `vessel.state` need this; see
-   * `vessel-state.ts`), else the generic default of worst-of-every-declared-
-   * input.
-   */
+  /** A derived channel's own status: the worst of every declared input's. */
   private sampleDerivedStatus(
     def: DerivedChannelDefinition<unknown>,
     token: FrameToken,
   ): StreamStatusValue {
-    const lane = derivedLane(def, this.declaredLane);
-    const get: DerivedGet = (inputTopic) =>
-      this.sampleInLane(inputTopic, token, lane);
     const getStatus = (inputTopic: string) =>
       this.sampleStatus(inputTopic, token);
-    if (def.deriveStatus) {
-      return def.deriveStatus(getStatus, get, this.viewUtFor(token, lane));
-    }
     return worstStatus(def.inputs.map(getStatus));
   }
 
@@ -3394,8 +3201,8 @@ export class TimelineStore {
   /**
    * Compute (or reuse the frame-memoized) value for a derived channel, the
    * SAME `memoize` seam raw `sample()` reads use, keyed by the channel's own
-   * topic so N field-subtopic reads (`vessel.state.altitudeAsl`,
-   * `vessel.state.orbitalSpeed`, ...) in one frame still call `derive` exactly
+   * topic so N field-subtopic reads (`system.state.bodyCount`, ...) in one
+   * frame still call `derive` exactly
    * once (memoized to once per `(topic, frame)`). `get`
    * (passed to `derive`) is `sample` bound to this SAME `token`, the
    * structural single-view-time invariant: there is no other way for
@@ -3426,10 +3233,9 @@ export class TimelineStore {
     // DELAYED the moment one is not. Both halves matter. A derived record must
     // not be stamped more current than the most delayed thing it read, and its
     // inputs are pinned to the same lane so one value is never assembled from
-    // two instants a light-time apart. `vessel.state` is the case that makes
-    // this real: it reads seven delayed vessel channels and the true-now
-    // `system.bodies`, so it stays delayed and reads the body catalogue at the
-    // delayed instant, exactly as it did before any of this existed.
+    // two instants a light-time apart. A channel reading a delayed vessel
+    // channel and the true-now `system.bodies` stays delayed, and reads the body
+    // catalogue at the delayed instant.
     const lane = derivedLane(def, this.declaredLane);
 
     const { value, observedAt } = this.memoize(
@@ -3437,18 +3243,13 @@ export class TimelineStore {
       `\0derived\0${def.topic}\0epoch\0${epoch}`,
       () => {
         // The oldest input this record actually CONSUMED, which is how current
-        // it really is. Stamping `token.viewUt` made every derived read report
-        // an age of zero, so `vessel.state` twenty minutes into a blackout
-        // looked exactly as fresh as one reporting now. Tracked here rather
-        // than declared per channel because `get`/`getInterpolated` are the
-        // only way in and the store owns them: a channel cannot forget to say
-        // what it read, and quality-picking channels that consult a subset of
-        // their declared `inputs` come out right without special-casing.
-        //
-        // A hold-last `get` pulls this back to the input's own `validAt`; an
-        // interpolated read is genuinely a value FOR the view time and carries
-        // `validAt: viewUt`, so it never pulls it back. That is the honest
-        // difference between the two, and the min is what expresses it.
+        // it really is. Stamping `token.viewUt` instead would make every derived
+        // read report an age of zero, so a record twenty minutes into a blackout
+        // would look exactly as fresh as one reporting now. Tracked here rather
+        // than declared per channel because `get` is the only way in and the
+        // store owns it: a channel cannot forget to say what it read, and a
+        // channel that consults a subset of its declared `inputs` comes out
+        // right without special-casing.
         let oldest = Number.POSITIVE_INFINITY;
         const note = <V>(
           point: TimelinePoint<V> | undefined,
@@ -3459,9 +3260,7 @@ export class TimelineStore {
         const viewUt = this.viewUtFor(token, lane);
         const get: DerivedGet = (inputTopic) =>
           note(this.sampleInLane(inputTopic, token, lane));
-        const getInterpolated: DerivedGet = (inputTopic) =>
-          note(this.sampleInterpolated(inputTopic, token, lane));
-        const derived = def.derive(get, viewUt, getInterpolated);
+        const derived = def.derive(get, viewUt);
         const carry = this.carryFor(def);
         carry.value = shareEqual(carry.value, derived);
         return {

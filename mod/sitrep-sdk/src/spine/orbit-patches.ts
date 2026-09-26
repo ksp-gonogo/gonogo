@@ -10,7 +10,7 @@
 /**
  * Wire shape of one `OrbitPatch` entry (mirrors `mod/Sitrep.Contract/
  * OrbitPatch.cs`). Hand-mirrored, same convention as `VesselOrbitPayload`
- * in `vessel-state.ts`: not (yet) generated into this package.
+ * in `wire-payloads.ts`: not (yet) generated into this package.
  */
 import { TransitionType } from "../__generated__/contract";
 import { namesOf } from "../enum-names";
@@ -85,7 +85,7 @@ export interface LegacyOrbitPatch {
  * schemas/orbit.ts`'s `OrbitPatch.patchStartTransition` doc comment).
  * Declaration order matches `mod/Sitrep.Contract/VesselEnums.cs`'s
  * `TransitionType` (Initial/Final/Encounter/Escape/Maneuver/Collision/
- * Unknown): same ordinal-table pattern as `vessel-state.ts`'s
+ * Unknown): same ordinal-table pattern as `contract-enum-names.ts`'s
  * `SITUATION_NAMES`/`SAS_MODE_NAMES`. KSP's OWN enum spells the impact case
  * "IMPACT"; `Gonogo.KSP.KspHost.BuildOrbitPatchChain` already translates
  * that to "COLLISION" before it reaches the wire, so this table only ever

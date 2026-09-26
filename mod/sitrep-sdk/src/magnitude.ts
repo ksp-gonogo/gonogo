@@ -31,11 +31,9 @@
  * which reads sensibly (ui-kit is published, so a third-party Uplink can import
  * it) and had one consequence nobody wrote down: **ui-kit depends on this
  * package**, so nothing in `sitrep-sdk` could reach the canonical unwrap
- * without a cycle. Two spine files therefore carried their own, and the two
- * disagreed about absence, one answering `NaN` and one throwing. One of those
- * was a live defect: four `VesselState` fields declared `number | null`
- * answered `NaN` on a partial frame, which no consumer's `??` catches, so every
- * threshold compared against them silently stopped firing.
+ * without a cycle. A second copy of the unwrap is a second answer to absence:
+ * one answering `NaN` where another throws, and a `NaN` in a field declared
+ * `number | null` is one no consumer's `??` catches.
  *
  * `@ksp-gonogo/ui-kit` re-exports all three names, so no call site changed in
  * the move and an Uplink author still reaches them from the package they

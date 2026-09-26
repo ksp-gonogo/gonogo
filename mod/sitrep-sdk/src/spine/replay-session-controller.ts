@@ -56,7 +56,7 @@ function isDataOrEventFrame(message: unknown): message is DataOrEventMessage {
  * schedule at offset zero, arriving together, near-instantly, instead of
  * spread across however many real seconds separated their ORIGINAL arrival
  * times); `validAt` is left untouched, since that's what derived channels
- * (e.g. `vessel.state.met`) reason about, not scheduling.
+ * (e.g. `system.state`) reason about, not scheduling.
  *
  * This is what makes seeking forward correct for slow-changing/keyframed
  * channels: naively truncating to `deliveredAt >= target` would silently

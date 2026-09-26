@@ -246,8 +246,7 @@ export interface Anomalies {
  * Solves for `orbit`'s mean/eccentric/true anomaly at time `ut` -- the exact
  * angular computation `solve()` itself uses, exposed standalone for callers
  * that need an anomaly (or the mean motion) without a full state vector
- * (`vessel-state.ts`'s `trueAnomaly`/`period`/`timeToAp`/`timeToPe` derived
- * fields). Reuses the SAME Newton-Raphson solve `solve()` calls below --
+ * (`orbital-solve.ts`'s true anomaly, period and apsis countdowns). Reuses the SAME Newton-Raphson solve `solve()` calls below --
  * never reimplement Kepler's equation a second time. Same ellipse-only guard
  * as `solve()`.
  */

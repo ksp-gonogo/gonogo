@@ -3,9 +3,8 @@
  * landing widget. Client-side only; every input is already on the wire
  * (`vessel.flight`, `vessel.propulsion`, `vessel.orbit`, `system.bodies`).
  *
- * WHY THIS EXISTS. The predecessor (`vessel-state.ts:deriveLanding`) solves a
- * purely-VERTICAL burn: it kills `vDown` alone and ignores the horizontal
- * velocity a craft arrives with from orbit. On a standard low-Mun descent that
+ * WHY THE FULL VECTOR. A purely-VERTICAL burn solve kills `vDown` alone and
+ * ignores the horizontal velocity a craft arrives with from orbit. On a standard low-Mun descent that
  * under-states the burn by ~2 orders of magnitude and reports "burn now ->
  * touchdown at 0 m/s" while the craft still carries ~540 m/s horizontally,
  * wrong in the fatal (fires-too-late) direction. A vacuum landing is

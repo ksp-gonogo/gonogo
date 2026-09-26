@@ -18,33 +18,22 @@ import {
 } from "./kepler";
 
 /**
- * The conic, in ONE place, for both paths that reach it.
+ * The conic, in ONE place, for every path that reaches it.
  *
- * `vessel.state` has forward-modelled its kinematics through
- * `deriveVesselStateReckoning` since long before a value could DECLARE itself
- * reckonable, and that implementation is the good one: it withdraws off rails,
- * at an SOI transition, past the producer's stated horizon and at the
- * atmosphere interface, and two committed render-fixture sets prove each
- * withdrawal. What it could not do is be reached the way a third-party author
- * reaches anything, because it is a derived channel's callback rather than a
- * registered model.
- *
- * So the guard and the arithmetic live here, and both callers are thin over
- * them: the derived channel asks {@link keplerAdmissibility} and answers with
- * its field list, and the registered reckoners in `core-reckoners.ts` ask the
- * same function and then solve. A second copy of these conditions is exactly
- * how a registered reckoner and a derived channel come to disagree about where
- * the conic ends, which is a disagreement no widget could report.
+ * The guard withdraws off rails, at an SOI transition, past the producer's
+ * stated horizon and at the atmosphere interface. The registered reckoners in
+ * `core-reckoners.ts` ask {@link keplerAdmissibility} and then solve, and so
+ * does the map's impact point. A second copy of these conditions is how two
+ * models come to disagree about where the conic ends, which is a disagreement
+ * no widget could report.
  */
 
 /**
  * The slice of `vessel.orbit` a conic needs.
  *
- * Declared structurally rather than imported from `vessel-state.ts`, because
- * that module imports THIS one: the payload mirrors sit with the channel that
- * publishes them, and the propagator underneath must not depend on the record
- * built on top of it. Every field is the one `VesselOrbitPayload` already
- * carries, so a payload passes without a cast.
+ * Declared structurally rather than as `VesselOrbitPayload`, so the propagator
+ * depends on no record built on top of it. Every field is one
+ * `VesselOrbitPayload` already carries, so a payload passes without a cast.
  */
 export interface ConicOrbitInput {
   referenceBodyIndex: number;

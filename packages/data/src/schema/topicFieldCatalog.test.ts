@@ -66,7 +66,7 @@ describe("getTopicFieldCatalog()", () => {
     // with, so depth alone says nothing: what matters is that the split gives
     // back the Topic the entry was built from. An entry that failed this would
     // subscribe and sample somewhere else, and show the operator nothing.
-    const derived = new Set(["vessel.state", "spaceCenter.state"]);
+    const derived = new Set(["spaceCenter.state"]);
     const offenders = getTopicFieldCatalog().filter(
       (k) =>
         !derived.has(k.topic) &&
@@ -103,12 +103,12 @@ describe("getTopicFieldCatalog()", () => {
   });
 
   it("is far larger than the hand-written catalogue it replaces", () => {
-    // The retired table listed 145 live keys; this enumerates 436, counting
+    // The retired table listed 145 live keys; this enumerates 392, counting
     // only keys a read can fill, so nothing under a collection Topic. A floor
     // on the VOCABULARY, so a walk that quietly stopped resolving fails here
     // rather than reporting a shorter list. Never lower this to make it pass:
     // teach the walk instead.
-    expect(getTopicFieldCatalog().length).toBeGreaterThan(400);
+    expect(getTopicFieldCatalog().length).toBeGreaterThan(380);
   });
 });
 
@@ -227,28 +227,6 @@ describe("every catalogue key is readable", () => {
       (entry) => resolveValueTopic("data", entry.key) === undefined,
     );
     expect(unresolvable.map((entry) => entry.key)).toEqual([]);
-  });
-});
-
-describe("one name per value", () => {
-  it("offers the wire kinematic name and not the derived copy of it", () => {
-    const keys = new Set(getTopicFieldCatalog().map((entry) => entry.key));
-    // The Topic the mod publishes, and the one carrying a reckoner, so a key
-    // picked here is observed, dated and banded.
-    expect(keys.has("vessel.flight.altitudeAsl")).toBe(true);
-    expect(keys.has("vessel.flight.orbitalSpeed")).toBe(true);
-    /* The derived channel still computes both, and offering them beside their
-       wire originals would put two names for one altitude in front of the
-       operator. */
-    expect(keys.has("vessel.state.altitudeAsl")).toBe(false);
-    expect(keys.has("vessel.state.orbitalSpeed")).toBe(false);
-  });
-
-  it("leaves a non-kinematic field of the same Topic alone", () => {
-    // Nothing derives a twin for these, so there is no duplication to collapse
-    // and dropping them would lose real vocabulary.
-    const keys = new Set(getTopicFieldCatalog().map((entry) => entry.key));
-    expect(keys.has("vessel.flight.mach")).toBe(true);
   });
 });
 

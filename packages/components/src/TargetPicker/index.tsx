@@ -186,10 +186,7 @@ function TargetPickerComponent({
   // Canonical native reads: the whole `target.available` list, and the
   // target-detail scalars off the whole `vessel.target` Topic (name, kind,
   // and the Vec3 fields distance/Δv derive from), the same native-shim
-  // reads Targeting uses, not the `vessel.state` derived channel
-  // (which isn't a wire Topic and so can't be declared in
-  // `dataRequirements`: see the ratchet test in
-  // `packages/core/src/hooks/mapTopic.coverage.test.ts`).
+  // reads Targeting uses.
   /**
    * The roster is a fact: bodies and vessels do not stop existing because the link
    * dropped, and a picker with no rows is useless. So the last roster stands.

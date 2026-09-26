@@ -517,7 +517,7 @@ const WIRE_BUDGET: Record<string, number> = {
 const FUNNEL_BUDGET: Record<string, number> = {
   "mod/GonogoBreakingGroundUplink": 2,
   // One of these is `gapModel` comparing a bare `validAt` span against the wire's `time.warp.sampleIntervalUt`.
-  "mod/sitrep-sdk": 30,
+  "mod/sitrep-sdk": 28,
   // One of these is `GoNoGoHostService` measuring liftoff against `getViewUt()`, which returns a plain number.
   "packages/app": 9,
   "packages/components": 151,

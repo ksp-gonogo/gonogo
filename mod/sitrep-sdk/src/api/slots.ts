@@ -480,8 +480,7 @@ export interface OrbitOverlayContext {
   ecc: number;
   /**
    * Apoapsis radius from body centre, same units. `undefined` on a hyperbolic
-   * orbit (`ecc >= 1`): there is no apoapsis to report (see
-   * `VesselState.apoapsisRadius`'s doc comment).
+   * orbit (`ecc >= 1`): there is no apoapsis to report.
    */
   apoapsis?: number;
   /** Periapsis radius from body centre, same units. */

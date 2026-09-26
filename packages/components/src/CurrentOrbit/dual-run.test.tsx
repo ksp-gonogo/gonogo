@@ -115,7 +115,7 @@ describe("CurrentOrbit: full render off the stream (R6 Wave 1)", () => {
     expect(visibleText(container)).toContain("Kerbin");
     // Default mini orbit diagram renders (hasOrbit satisfied off derived ApR/PeR).
     expect(container.querySelector("svg")).not.toBeNull();
-    // Period sanity: matches the vessel-state derivation used above.
+    // Period sanity: the fixture's orbit is a real one.
     expect(PERIOD).toBeGreaterThan(1800);
   });
 });

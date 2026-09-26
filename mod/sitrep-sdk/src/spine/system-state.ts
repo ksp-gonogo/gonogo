@@ -2,17 +2,15 @@ import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
 import type { SystemBodiesPayload } from "./wire-payloads";
 
 /**
- * The `system.state` derived channel: a SYSTEM-scoped sibling of
- * `vessel.state`, for display maps that resolve a `system.*` raw channel to a
- * widget-facing shape but have nothing to do with any one vessel.
+ * The `system.state` derived channel, for display maps that resolve a
+ * `system.*` raw channel to a widget-facing shape but have nothing to do with
+ * any one vessel.
  *
  * Today it carries a single field, `bodyCount`. `system.bodies` on the wire is
  * the raw ARRAY of bodies (`SystemViewProvider.BuildSystemBodies`), whereas
  * SystemView/useCelestialBodies.ts reads a plain `number` (how many bodies
- * exist, so it can fan out per-index subscribes). The count is derived here
- * rather than onto `vessel.state`, which only exists while a vessel is loaded:
- * a body count does not depend on anything flying, so it stays available
- * whenever `system.bodies` is.
+ * exist, so it can fan out per-index subscribes). A body count does not depend
+ * on anything flying, so it stays available whenever `system.bodies` is.
  */
 export interface SystemState {
   /** Number of bodies in `system.bodies`. */
@@ -35,9 +33,8 @@ export function deriveSystemState(
 
 /**
  * Ready-to-register definition: `store.registerDerivedChannel(systemStateChannel)`.
- * `fields: true` exposes `system.state.bodyCount`. `deriveStatus` is omitted:
- * the default (worst status across declared inputs, here just
- * `system.bodies`) is exactly right for a single-input passthrough count.
+ * `fields: true` exposes `system.state.bodyCount`. Its status is its single
+ * `system.bodies` input's.
  */
 export const systemStateChannel: DerivedChannelDefinition<SystemState> = {
   topic: "system.state",

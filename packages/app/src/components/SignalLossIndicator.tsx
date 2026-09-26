@@ -18,9 +18,8 @@ import { useEffect, useRef, useState } from "react";
  *    of ~0 ("0% signal") reads as no-signal even if `connected` was never
  *    observed false, so a link that decays to nothing still shows SIGNAL LOSS.
  *  - `vessel.comms.controlState`: the raw `ControlState` enum, collapsed to
- *    CommSignal's 0/1/2 level via the SharedLib `collapseControlStateLevel`
- *    (the same collapse behind the derived `vessel.state.commsControlStateOrdinal`
- *    channel): 0 no control, 1 partial, 2 full. Stays on the frozen
+ *    CommSignal's 0/1/2 level via the SharedLib `collapseControlStateLevel`:
+ *    0 no control, 1 partial, 2 full. Stays on the frozen
  *    `vessel.comms` struct: control state SHOULD freeze at last-known.
  *
  * Until the stream reports these topics (warmup, no vessel active, or no

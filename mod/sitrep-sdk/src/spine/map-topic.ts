@@ -168,8 +168,7 @@ export function isKnownTopic(topic: string): boolean {
  * indirection is what lets it see a Topic registered at module load: an Uplink's
  * own payload type, and every client-derived channel, which is computed here
  * and appears in no contract type at all. Reading the maps directly is blind to
- * both, and would resolve `vessel.state.*` only for the paths a migration table
- * happens to list.
+ * both.
  */
 export function isKnownFieldPath(path: string): boolean {
   // Topic ids contain dots, so the split point is found rather than assumed:

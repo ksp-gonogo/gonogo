@@ -3,7 +3,6 @@ import {
   TelemetryProvider,
   TimelineStore,
   ViewClock,
-  vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -95,7 +94,6 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
     delaySeconds: () => opts.delaySeconds ?? 0,
   });
   const store = new TimelineStore(clock);
-  store.registerDerivedChannel(vesselStateChannel);
   if (opts.pinnedUt !== undefined) clock.scrubTo(opts.pinnedUt);
 
   const carriedChannels = opts.carriedChannels;

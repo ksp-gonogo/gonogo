@@ -208,9 +208,8 @@ export function deriveSystemUplinkHealth(
 
 /**
  * Ready-to-register definition: `store.registerDerivedChannel(systemUplinkHealthChannel)`.
- * `fields: true` exposes `system.uplinkHealth.uplinks`. `deriveStatus` is
- * omitted: the default (worst status across declared inputs, here just
- * `system.uplinks`) is exactly right for a single-input passthrough.
+ * `fields: true` exposes `system.uplinkHealth.uplinks`. Its status is its
+ * single `system.uplinks` input's.
  */
 export const systemUplinkHealthChannel: DerivedChannelDefinition<SystemUplinkHealth> =
   {

@@ -12,7 +12,7 @@
  * - A raw topic depends only on itself (`store.resolveSubscriptionTopics`'s
  *   identity fallback): carried iff it's directly in the set (or under a
  *   carried namespace prefix, see below).
- * - A DERIVED topic (`vessel.state.*`) depends on its declared `inputs`,
+ * - A DERIVED topic (`system.state.*`) depends on its declared `inputs`,
  *   resolved recursively: carried iff ALL of them are. A derived channel with
  *   even one uncarried input can never produce a whole record, so treating it
  *   as carried would report a live channel that can only ever read blank.

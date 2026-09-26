@@ -35,15 +35,11 @@ import { CORE_RECKONER_OWNER, registerReckoner } from "./reckoners";
  * Core's vanilla forward models, registered through the SAME seam an Uplink
  * registers one through.
  *
- * This is the whole point of the file. Reckoning has worked in this client since
- * `deriveVesselStateReckoning` landed, and it worked down a path a third-party
- * author cannot take: a derived channel's `deriveReckoning` label, which can
- * only say that arithmetic already happened inside a `derive` a wire Topic does
- * not have. So the extensibility surface held one registration, a stub that
- * always declined, and the working implementation was somewhere else.
+ * This is the whole point of the file: core's models take no path a
+ * third-party author cannot take.
  *
- * Everything below uses `registerReckoner` with declared inputs, reads the same
- * conic `vessel.state` reads (`kepler-reckoning.ts`), and could be written
+ * Everything below uses `registerReckoner` with declared inputs, reads the
+ * conic in `kepler-reckoning.ts`, and could be written
  * verbatim by an Uplink against the published SDK. `reckoner-equivalence.test.ts`
  * is the proof rather than the claim: it registers one of these a second time
  * through `defineUplinkClient`, importing only the root barrel, and asserts the
@@ -250,9 +246,7 @@ function registerDockReckoner(): void {
  * The declared inputs are `@vessel.orbit` (the elements and their epoch) and
  * `@system.bodies` (the reference body's radius, which is the only place sea
  * level is published), so the store has both before this runs. Above the
- * atmosphere the arithmetic is `propagateVesselOrbit` and one subtraction, which
- * is what `deriveVesselState` does on its OnRails branch for the same two
- * fields.
+ * atmosphere the arithmetic is `propagateVesselOrbit` and one subtraction.
  *
  * ## Two models, one selector
  *
@@ -723,10 +717,8 @@ function registerOrbitTruthReckoner(): void {
  * the branch that matters here is `meta.quality !== Quality.OnRails`: under
  * physics the elements are osculating, "not a coast a conic can advance". That
  * fact lives on the POINT, so only a model can see it: a `Reading` carries no
- * meta and no consumer in this tree reads one. Before this existed, the
- * OnRails/Loaded split had exactly one home, the `vessel.state` derived
- * channel, which is why deleting that channel could not move the safety rule
- * with everything else.
+ * meta and no consumer in this tree reads one. This is the one home of the
+ * OnRails/Loaded split.
  *
  * ## PropagationCertification (#282) is already answered, not skipped
  *

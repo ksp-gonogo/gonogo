@@ -319,8 +319,7 @@ function CarriedAltitude({ reading }: { reading: FlightReading }) {
    * The FIELD reading, not the topic's model keyed by a path string. The band
    * and the carried figure are both properties of this one altitude, and the
    * field property is where they live: it is projected out of the topic's own
-   * model, so the interval issue 255 fixed survives the `vessel.state` redirect that
-   * a read of `vessel.flight.altitudeAsl` would have gone through.
+   * model.
    */
   const altitude = reading.altitudeAsl;
   const modelled =

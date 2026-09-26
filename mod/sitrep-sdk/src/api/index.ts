@@ -791,7 +791,7 @@ export function useRouteCommands(topic: string): UseRouteCommandsResult {
  *
  * `topic` is a `string` rather than a {@link TopicId} because the ids this
  * resolves are a superset of the generated union in two directions: a derived
- * channel (`"vessel.state"`, `"system.uplinkHealth"`) is computed in the
+ * channel (`"system.state"`, `"system.uplinkHealth"`) is computed in the
  * browser and has no `[SitrepTopic]` type for codegen to reflect, and a
  * third-party Uplink's own topics are declared at runtime and appear in no
  * union at all. {@link WidgetChannelId} is the closed union of the two

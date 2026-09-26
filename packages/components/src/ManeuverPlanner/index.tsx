@@ -153,11 +153,8 @@ function ManeuverPlannerComponent({
   // Magnitudes, because all of it feeds the solver and the finite-number
   // readiness checks below, both of which take plain numbers.
   //
-  // ONE read per record, then fields off it. This was five separate
-  // `useTelemetry("vessel.orbit")` calls and five `useTelemetry("vessel.target")`
-  // calls, scattered down the body between unrelated `vessel.state` reads: ten
-  // reads of two memoized records, and shortly ten branches on two currencies
-  // that cannot possibly differ within a frame. Read once, destructure, and the
+  // ONE read per record, then fields off it: two currencies that cannot differ
+  // within a frame are branched on once each. Read once, destructure, and the
   // orbital elements visibly arrive together, which is what they are.
   /**
    * A maneuver plan is not an instruction for right now. Unlike a suicide-burn
@@ -271,8 +268,8 @@ function ManeuverPlannerComponent({
   const targetSma = target?.orbit?.sma;
   const targetArgPe = target?.orbit?.argPe;
   /*
-   * The target's own orbit, solved from the elements this widget already holds
-   * rather than read back off `vessel.state.target*`. The altitude needs the
+   * The target's own orbit, solved from the elements this widget already
+   * holds. The altitude needs the
    * TARGET's reference body, not the craft's, so the radius comes from its own
    * `referenceBodyIndex`.
    */
@@ -1052,8 +1049,7 @@ registerComponent<ManeuverPlannerConfig>({
   // the frame's view time, so none of them is a field to declare either.
   //
   // The target's quantities are SOLVED the same way, from the elements on
-  // `vessel.target`, so there is no derived `vessel.state.target*` field to
-  // declare any more.
+  // `vessel.target`.
   //
   // The raw target-orbit field subtopics are deliberately not named. Nothing
   // targeted is the common case, and the wire tombstones the whole

@@ -32,43 +32,6 @@ const UPLINKS = {
  * without an entry here fails below rather than going unchecked.
  */
 const INPUTS: Record<string, Record<string, unknown>> = {
-  "vessel.state": {
-    "vessel.orbit": {
-      referenceBodyIndex: 1,
-      sma: 700_000,
-      ecc: 0,
-      inc: 0,
-      lan: null,
-      argPe: null,
-      meanAnomalyAtEpoch: 0,
-      epoch: 0,
-      mu: 3.5316e12,
-    },
-    "vessel.flight": {
-      latitude: -0.05,
-      longitude: 42.3,
-      altitudeAsl: 71_234,
-      altitudeTerrain: 71_234,
-      verticalSpeed: 12.5,
-      surfaceSpeed: 1780.2,
-      orbitalSpeed: 1790.9,
-      gForce: 1.1,
-      dynamicPressureKPa: 3.2,
-      mach: 5.1,
-      atmDensity: 0.01,
-    },
-    "system.bodies": {
-      bodies: [
-        {
-          name: "Kerbin",
-          index: 1,
-          parentIndex: 0,
-          radius: 600_000,
-          orbit: null,
-        },
-      ],
-    },
-  },
   "system.state": {
     "system.bodies": {
       bodies: [

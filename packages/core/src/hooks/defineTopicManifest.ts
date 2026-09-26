@@ -96,8 +96,8 @@ export type WidgetTopicValue<T extends TopicId> = T extends ReckonableTopic
  * through {@link WidgetTopicValue}.
  *
  * The argument is `Extract<..., TopicId>`, narrower than what may be DECLARED. A
- * widget may declare a derived channel and does, `vessel.state` is the most-read
- * channel in the tree, but the derived ones are read with `useStream`, which
+ * widget may declare a derived channel, but the derived ones are read with
+ * `useStream`, which
  * answers with the value rather than a `Reading`. Admitting them here would mean
  * either fabricating a `Reading` for a channel with no reckoning model or
  * silently handing back a different shape from the same call, and the second is

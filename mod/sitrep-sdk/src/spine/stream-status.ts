@@ -46,9 +46,8 @@ const STATUS_SEVERITY: Record<StreamStatusValue, number> = {
 
 /**
  * The worst (highest-severity) status among a set of inputs: derived
- * channels propagate the worst input staleness into their own status
- * (e.g. `vessel.state`, see `vessel-state.ts`'s
- * `deriveVesselStateStatus`). An empty list is vacuously `"live"`, no
+ * channels propagate the worst input staleness into their own status. An
+ * empty list is vacuously `"live"`, no
  * `DerivedChannelDefinition` should actually declare zero inputs and rely on
  * this default in practice.
  */

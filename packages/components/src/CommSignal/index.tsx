@@ -74,10 +74,9 @@ declare module "@ksp-gonogo/core" {
 /**
  * What to call the control state, and how to paint it.
  *
- * The TONE comes off the ordinal, never off the name. `CONTROL_STATE_LEVEL`
- * (vessel-state.ts) has already collapsed all twelve `ControlState` enum
- * members onto this 0/1/2 level scheme by the time the widget reads them, and
- * that collapse is the verdict. Substring-matching the English enum name
+ * The TONE comes off the ordinal, never off the name.
+ * `collapseControlStateLevel` collapses all twelve `ControlState` enum members
+ * onto this 0/1/2 level scheme, and that collapse is the verdict. Substring-matching the English enum name
  * instead would read `ProbeNone` and `KerbalNone` as healthy links, because
  * neither is the literal string "None", and a vessel with no control would
  * paint green in both the Control row and the signal bars. The name is a
@@ -124,11 +123,9 @@ function CommSignalComponent({
   //    channel: vessel.comms freezes at last-known through a blackout, so the
   //    disconnect edge only fires off comms.link; see map-topic.ts)
   //  - `comm.signalStrength`-> `vessel.comms.signalStrength`
-  //  - `comm.controlState`  -> `vessel.state.commsControlStateOrdinal` (the
-  //    SDK-derived collapse of `vessel.comms.controlState`'s rich `ControlState`
-  //    enum onto this widget's 0/1/2 level scheme; see `vessel-state.ts`)
-  //  - `comm.controlStateName` -> `vessel.state.commsControlStateName` (that
-  //    same ordinal resolved to its enum NAME string)
+  //  - `comm.controlState`  -> `vessel.comms.controlState`, collapsed onto this
+  //    widget's 0/1/2 level scheme by `collapseControlStateLevel`, and resolved
+  //    to its enum NAME string by `enumNameOf`
   //  - `comm.signalDelay`   -> `comms.delay.oneWaySeconds` (gonogo's own
   //    SignalDelay authority, live via CommsCoreUplink)
   //  - `comm.commandCentre` -> `comms.commandCentre` (which centre the active
@@ -323,11 +320,10 @@ function CommSignalComponent({
     /*
      * WITHHELD, not zero-as-a-verdict. The bar count is a judgement and the
      * caption below says it cannot be made, so the glyph must not go on
-     * asserting one: `controlState` rides the DERIVED `vessel.state`, which
-     * never goes stale, so without this the bars painted a confident "Full"
-     * directly above the caption saying the verdict was not current. Caught in
-     * the render, not the suite, because the fixture the test uses carries no
-     * `vessel.state` and so drew zero bars for an unrelated reason.
+     * asserting one: `controlState` is read off the held `vessel.comms`, which
+     * keeps its last value through a gap, so without this the bars would paint
+     * a confident "Full" directly above the caption saying the verdict is not
+     * current.
      */
     bars = 0;
   } else if (connected === false) {
@@ -375,9 +371,9 @@ function CommSignalComponent({
   // identical in the min-3x3 mode.
   /*
    * NULLED when the link is not current, and that includes NOT falling back to
-   * `control.label`: the control state rides the DERIVED `vessel.state`, which
-   * never goes stale, so that fallback printed a confident "Full" for a link
-   * that had stopped arriving.
+   * `control.label`: the control state is read off the held `vessel.comms`, so
+   * that fallback would print a confident "Full" for a link that has stopped
+   * arriving.
    *
    * Every line shows its null state: a not-current mark does not withdraw
    * what a number asserts.
@@ -865,11 +861,9 @@ function CommSignalDetailRows({
   control: { label: string; tone: Tone };
   delay: Parameters<typeof Countdown>[0]["value"];
   /*
-   * The CONTROL row is a verdict like the bars, and it rides the DERIVED
-   * `vessel.state`, which never goes stale: left alone it painted a bright
-   * green "Full" directly under the caption saying the verdict was not
-   * current. Same defect as the bars, one row over, and the render is what
-   * showed both.
+   * The CONTROL row is a verdict like the bars, read off the held
+   * `vessel.comms`: left alone it would paint a bright green "Full" directly
+   * under the caption saying the verdict is not current.
    */
   noSignal?: boolean;
 }) {
@@ -928,10 +922,9 @@ registerComponent<CommSignalConfig>({
   // they mount the widget under a hand-written meta that declares the slot
   // itself, so the test supplied the very thing that was absent.
   contributionSlots: ["comm-signal.hop-rates"],
-  // Four Topics, not one: connectivity is the freeze-exempt `comms.link`,
-  // the observation is the frozen `vessel.comms` struct, the two control-state
-  // shapes are derived off `vessel.state`, and the delay is gonogo's own
-  // authority. The `comm.` prefix made them look like one source.
+  // Three Topics, not one: connectivity is the freeze-exempt `comms.link`,
+  // the observation and the control state are the frozen `vessel.comms`
+  // struct, and the delay is gonogo's own authority. The `comm.` prefix made them look like one source.
   channels: topics.channels,
   fields: topics.fields,
   defaultConfig: {},
