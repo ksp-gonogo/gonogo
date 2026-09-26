@@ -423,6 +423,21 @@ public class CareerContractParameter
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public KspParameterState? StateOrdinal { get; set; }
+
+    /// <summary>
+    /// Lower bound of the altitude band this objective requires, from the
+    /// stock <c>ReachAltitudeEnvelope</c> it is or contains (a part test
+    /// nests its envelope under itself). <c>null</c> when it carries none.
+    /// </summary>
+    [SitrepUnit(Units.Metres)]
+    public double? MinAltitude { get; set; }
+
+    /// <summary>
+    /// Upper bound of that same band, <c>null</c> exactly when
+    /// <see cref="MinAltitude"/> is.
+    /// </summary>
+    [SitrepUnit(Units.Metres)]
+    public double? MaxAltitude { get; set; }
 }
 
 /// <summary>

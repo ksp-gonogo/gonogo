@@ -1938,7 +1938,12 @@ namespace Sitrep.Contract
         /// an alarm ended by the player switching to another craft, appended so no
         /// existing ordinal moves. Additive, so an Uplink built against 18.11 is
         /// unaffected.</para>
+        ///
+        /// <para><b>Major-18 line, Bumped 12 -&gt; 13:</b> <see cref="CareerContractParameter.MinAltitude"/>
+        /// and <see cref="CareerContractParameter.MaxAltitude"/>, the altitude band a contract
+        /// objective requires. Additive, nothing removed or retyped, so an Uplink built against
+        /// 18.12 is unaffected.</para>
         /// </remarks>
-        public const int Minor = 12;
+        public const int Minor = 13;
     }
 }

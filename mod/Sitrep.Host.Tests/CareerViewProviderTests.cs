@@ -704,6 +704,55 @@ namespace Sitrep.Host.Tests
         }
 
         [Theory]
+        [InlineData(70000.0, 100000.0, 70000.0, 100000.0)]
+        [InlineData(70000.0, null, null, null)]
+        [InlineData(double.NaN, 100000.0, null, null)]
+        [InlineData(null, null, null, null)]
+        public void BuildCareerCarriesAContractParametersAltitudeBandOnlyWhenBothBoundsAreReal(
+            double? rawMin, double? rawMax, double? expectedMin, double? expectedMax)
+        {
+            var raw = new Dictionary<string, object?>
+            {
+                ["title"] = "Test the barometer at altitude",
+                ["state"] = "Incomplete",
+                ["stateOrdinal"] = 0,
+                ["minAltitude"] = rawMin,
+                ["maxAltitude"] = rawMax,
+            };
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["career"] = new Dictionary<string, object?>
+                    {
+                        ["contracts"] = new Dictionary<string, object?>
+                        {
+                            ["active"] = new List<object?>
+                            {
+                                new Dictionary<string, object?>
+                                {
+                                    ["id"] = "1",
+                                    ["parameters"] = new List<object?> { raw },
+                                },
+                            },
+                            ["offered"] = new List<object?>(),
+                        },
+                    },
+                },
+            };
+
+            var root = Assert.IsType<Dictionary<string, object?>>(CareerViewProvider.BuildCareer(snapshot));
+            var contracts = Assert.IsType<Dictionary<string, object?>>(root["contracts"]);
+            var contract = Assert.IsType<Dictionary<string, object?>>(
+                Assert.Single(Assert.IsType<List<object?>>(contracts["active"])));
+            var parameter = Assert.IsType<Dictionary<string, object?>>(
+                Assert.Single(Assert.IsType<List<object?>>(contract["parameters"])));
+            Assert.Equal(expectedMin, parameter["minAltitude"]);
+            Assert.Equal(expectedMax, parameter["maxAltitude"]);
+        }
+
+        [Theory]
         [InlineData("SANDBOX", GameMode.Sandbox)]
         [InlineData("CAREER", GameMode.Career)]
         [InlineData("SCIENCE_SANDBOX", GameMode.Science)]

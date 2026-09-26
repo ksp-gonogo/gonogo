@@ -396,11 +396,17 @@ namespace Sitrep.Host
                     continue;
                 }
 
+                var minAltitude = GetDouble(parameter, "minAltitude");
+                var maxAltitude = GetDouble(parameter, "maxAltitude");
+                // A band missing either bound is no band.
+                var banded = minAltitude.HasValue && maxAltitude.HasValue;
                 result.Add(new Dictionary<string, object?>
                 {
                     ["title"] = GetString(parameter, "title"),
                     ["state"] = GetString(parameter, "state"),
                     ["stateOrdinal"] = GetInt(parameter, "stateOrdinal"),
+                    ["minAltitude"] = banded ? minAltitude : null,
+                    ["maxAltitude"] = banded ? maxAltitude : null,
                 });
             }
 

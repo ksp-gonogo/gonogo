@@ -157,6 +157,8 @@
       "title": "text"
     },
     "CareerContractParameter": {
+      "maxAltitude": "m",
+      "minAltitude": "m",
       "state": "text",
       "stateOrdinal": "enum",
       "title": "text"

@@ -519,6 +519,17 @@ export interface CareerContractParameter
 	* not be read as either arm.
 	*/
 	stateOrdinal?: KspParameterState | null;
+	/**
+	* Lower bound of the altitude band this objective requires, from the stock
+	* `ReachAltitudeEnvelope` it is or contains (a part test nests its envelope
+	* under itself). `null` when it carries none.
+	*/
+	minAltitude?: Value<"m"> | null;
+	/**
+	* Upper bound of that same band, `null` exactly when
+	* `CareerContractParameter.minAltitude` is.
+	*/
+	maxAltitude?: Value<"m"> | null;
 }
 /**
 * Strategies sub-group of `CareerStatus`. `CareerStrategies.activeCount` is

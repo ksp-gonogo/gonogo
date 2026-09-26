@@ -3995,12 +3995,9 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Flat top-level parameter list (title/state only, per the M3b
-        /// scope) - <c>Contract.GetParameter(int)</c>/<c>ParameterCount</c>
-        /// are the confirmed-via-decompile public <c>IContractParameterHost</c>
-        /// accessors. A <c>ContractParameter</c> can itself host nested
-        /// sub-parameters (same interface), but those aren't walked here -
-        /// the widget's progress UI only needs the top-level list.
+        /// Flat top-level parameter list. Nested sub-parameters are not listed,
+        /// but the altitude band of a <c>ReachAltitudeEnvelope</c> nested under
+        /// a top-level parameter is carried on that parameter.
         /// <c>ParameterState</c>'s three values (Incomplete/Complete/Failed,
         /// decompile-confirmed) map 1:1 onto the widget's own
         /// <c>ContractParameterState</c> union, so <c>.ToString()</c> is a
@@ -4018,6 +4015,7 @@ namespace Gonogo.KSP
                     continue;
                 }
 
+                var envelope = FindAltitudeEnvelope(parameter);
                 result.Add(new Dictionary<string, object?>
                 {
                     ["title"] = parameter.Title,
@@ -4025,10 +4023,32 @@ namespace Gonogo.KSP
                     // The ordinal is what the client branches on; the name is
                     // its display label. See Sitrep.Contract/KspEnums.cs.
                     ["stateOrdinal"] = (int)parameter.State,
+                    ["minAltitude"] = envelope?.minAltitude,
+                    ["maxAltitude"] = envelope?.maxAltitude,
                 });
             }
 
             return result;
+        }
+
+        private static Contracts.Parameters.ReachAltitudeEnvelope? FindAltitudeEnvelope(ContractParameter parameter)
+        {
+            if (parameter is Contracts.Parameters.ReachAltitudeEnvelope envelope)
+            {
+                return envelope;
+            }
+
+            for (var i = 0; i < parameter.ParameterCount; i++)
+            {
+                var child = parameter.GetParameter(i);
+                var found = child == null ? null : FindAltitudeEnvelope(child);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
