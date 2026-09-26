@@ -190,7 +190,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/SemiMajorAxis/index.tsx": 1,
     "packages/components/src/shared/OrbitalEventChips.tsx": 2,
     "packages/components/src/shared/RequiresGuard.tsx": 2,
-    "packages/components/src/SpaceCenterStatus/index.tsx": 3,
+    "packages/components/src/SpaceCenterStatus/styles.ts": 3,
     "packages/components/src/StationConnectView/StationConnectView.styles.ts": 7,
     "packages/components/src/SystemView/index.tsx": 1,
     "packages/components/src/TechTree/styles.ts": 5,
@@ -218,7 +218,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * fixed height or an `em` sibling that would drift if they moved.
    */
   lineHeight: {
-    "packages/components/src/SpaceCenterStatus/index.tsx": 1,
+    "packages/components/src/SpaceCenterStatus/styles.ts": 1,
     "packages/components/src/TechTree/styles.ts": 1,
     "packages/serial/src/VirtualDevice/index.tsx": 1,
     "packages/ui-kit/src/Readout.tsx": 1,
@@ -303,7 +303,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/Navball/AttitudeIndicator.tsx": 2,
     "packages/components/src/Navball/ThrottleGauge.tsx": 2,
     "packages/components/src/ShipMap/ShipMapBody.tsx": 2,
-    "packages/components/src/SpaceCenterStatus/index.tsx": 1,
+    "packages/components/src/SpaceCenterStatus/styles.ts": 1,
     "packages/serial/src/InputMappingTab.tsx": 1,
     "packages/serial/src/InputTester/index.tsx": 1,
     "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.tsx": 1,
