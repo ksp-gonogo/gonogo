@@ -2,10 +2,12 @@ import {
   railTagsForCommand,
   railTagsForControlAxis,
   railTagsForTelemetry,
+  value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { render } from "@ksp-gonogo/sitrep-sdk/testing";
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { writeQuantity } from "../units";
 import {
   ControlDelayStream,
   type ControlRibbonDatum,
@@ -47,6 +49,37 @@ describe("ControlDelayStream", () => {
       <ControlDelayStream streams={[stream({ oneWaySeconds: 0.01 })]} />,
     );
     expect(container.querySelector("svg")).toBeNull();
+  });
+
+  it("writes the stage-boundary delays as plain SVG text, which an HTML span inside would not draw", () => {
+    const { container } = render(
+      <ControlDelayStream streams={[stream({ oneWaySeconds: 1.6 })]} />,
+    );
+    const labels = [
+      ...container.querySelectorAll('[data-role="hover-labels"] text'),
+    ];
+    const delays = labels.slice(0, 2);
+    expect(delays.map((t) => t.textContent)).toEqual([
+      writeQuantity(value("s", 1.6), { decimals: 1 }),
+      writeQuantity(value("s", 3.2), { decimals: 1 }),
+    ]);
+    expect(delays.every((t) => t.textContent !== "")).toBe(true);
+    for (const t of delays) expect(t.children).toHaveLength(0);
+  });
+
+  it("names the graph once, on the image, not again on the box around it", () => {
+    const { container } = render(
+      <ControlDelayStream
+        streams={[stream()]}
+        ariaLabel="Throttle in flight"
+      />,
+    );
+    expect(
+      container.querySelectorAll('[aria-label="Throttle in flight"]'),
+    ).toHaveLength(1);
+    expect(
+      screen.getByRole("img", { name: "Throttle in flight" }),
+    ).toBeTruthy();
   });
 
   it("renders nothing with no streams", () => {
