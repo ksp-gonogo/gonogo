@@ -46,7 +46,7 @@ const SpinnerEl = styled.span<{
   display: inline-block;
   width: ${({ $size }) => `${$size}px`};
   height: ${({ $size }) => `${$size}px`};
-  border-radius: var(--radius-circle, 50%);
+  border-radius: var(--radius-circle);
   border: ${({ $thickness }) => `${$thickness}px`} solid
     var(--color-border-subtle);
   border-top-color: ${({ $color }) => $color};

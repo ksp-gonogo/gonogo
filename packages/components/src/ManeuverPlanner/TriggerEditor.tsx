@@ -126,5 +126,5 @@ const ACTIONS_STYLE = {
   justifyContent: "flex-end",
   alignItems: "center",
   gap: "var(--gap-related)",
-  paddingTop: "var(--space-2)",
+  paddingTop: "var(--gap-list-footer)",
 } as const;

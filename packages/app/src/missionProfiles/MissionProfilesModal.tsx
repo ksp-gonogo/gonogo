@@ -186,7 +186,7 @@ export function MissionProfilesModal({
 
   return (
     <Wrap>
-      <Stack as="section" gap="md">
+      <Stack as="section" gap="related-comfortable">
         <SectionTitle as="h3" $rule>
           Save current dashboard
         </SectionTitle>
@@ -249,7 +249,7 @@ export function MissionProfilesModal({
         </Hint>
       </Stack>
 
-      <Stack as="section" gap="md">
+      <Stack as="section" gap="related-comfortable">
         <SectionTitle as="h3" $rule>
           Saved layouts
         </SectionTitle>
@@ -360,7 +360,7 @@ const Hint = styled.p`
 const Empty = styled.div`
   color: var(--color-text-faint);
   font-size: var(--font-size-compact);
-  padding: var(--space-8) 0;
+  padding: var(--inset-empty-note);
 `;
 
 const List = styled.div`

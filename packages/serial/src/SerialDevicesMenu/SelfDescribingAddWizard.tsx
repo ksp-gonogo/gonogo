@@ -412,7 +412,7 @@ const Wrap = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-section);
-  padding: var(--space-12);
+  padding: var(--inset-wizard);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   background: var(--color-surface-raised);
@@ -464,7 +464,7 @@ const PulseDot = styled.span`
 const ErrorBox = styled.div`
   background: var(--color-status-nogo-fg);
   border-radius: var(--radius-regular);
-  padding: var(--space-8);
+  padding: var(--inset-wizard-box);
   font-size: var(--font-size-compact);
   color: var(--color-status-nogo-bg);
 `;
@@ -472,7 +472,7 @@ const ErrorBox = styled.div`
 const ConflictBox = styled.div`
   background: var(--color-status-warning-bg);
   border-radius: var(--radius-regular);
-  padding: var(--space-8);
+  padding: var(--inset-wizard-box);
   font-size: var(--font-size-compact);
   color: var(--color-text-primary);
 `;

@@ -33,7 +33,7 @@ export function UplinkIntegrityDetail({
 }: Readonly<{ failure: UplinkIntegrityFailure }>) {
   const reading = readIntegrityFailure(failure);
   return (
-    <Stack gap="xs">
+    <Stack gap="caption">
       <Text tone="nogo" size="sm">
         {reading.finding}
       </Text>

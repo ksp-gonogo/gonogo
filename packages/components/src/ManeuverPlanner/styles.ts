@@ -33,9 +33,8 @@ export const FeasibilityBanner = styled.div`
   gap: var(--gap-related);
   /* Roomier than --inset-surface on purpose: this banner spans the panel and
      its shortfall text is the widest thing in the widget, so the record inset
-     would crowd it. Written in rungs because it is a deliberate override of
-     the surface inset rather than a different class of box. */
-  padding: var(--space-6) var(--space-10);
+     would crowd it. */
+  padding: var(--inset-feasibility-banner);
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-nogo-bg);
   border-radius: var(--radius-regular);

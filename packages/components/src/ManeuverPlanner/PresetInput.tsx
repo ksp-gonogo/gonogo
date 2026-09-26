@@ -224,14 +224,14 @@ function PresetTargetDescription({ api, telemetry }: PresetInputProps) {
 const PRESET_DESC_STYLE = {
   fontSize: "var(--font-size-compact)",
   color: "var(--color-text-dim)",
-  paddingTop: "var(--space-2)",
+  paddingTop: "var(--gap-caption)",
 } as const;
 
 /** Stack carries the column; the gap is named rather than sized so the surface
  *  around these inputs can retune it, and the seam above them is set here. */
 const CUSTOM_INPUTS_STYLE = {
   gap: "var(--gap-related)",
-  paddingTop: "var(--space-4)",
+  paddingTop: "var(--gap-planner-section)",
 } as const;
 
 const UT_MODE_ROW_STYLE = {

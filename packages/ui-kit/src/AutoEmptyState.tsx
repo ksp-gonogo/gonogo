@@ -1,6 +1,6 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
-import { SPACE_VAR, type SpaceToken } from "./scales";
+import { GAP_VAR, type GapToken } from "./scales";
 
 export interface AutoEmptyStateProps extends HTMLAttributes<HTMLDivElement> {
   /**
@@ -11,8 +11,8 @@ export interface AutoEmptyStateProps extends HTMLAttributes<HTMLDivElement> {
    * actually rendered.
    */
   fallback: ReactNode;
-  /** Gap between rendered children. Defaults to `sm`. */
-  gap?: SpaceToken;
+  /** Gap between rendered children. Defaults to `related-dense`. */
+  gap?: GapToken;
   children?: ReactNode;
 }
 
@@ -27,7 +27,7 @@ export interface AutoEmptyStateProps extends HTMLAttributes<HTMLDivElement> {
  */
 export function AutoEmptyState({
   fallback,
-  gap = "sm",
+  gap = "related-dense",
   children,
   ...rest
 }: AutoEmptyStateProps) {
@@ -41,10 +41,10 @@ export function AutoEmptyState({
   );
 }
 
-const AutoEmptyState__Content = styled.div<{ $gap: SpaceToken }>`
+const AutoEmptyState__Content = styled.div<{ $gap: GapToken }>`
   display: flex;
   flex-direction: column;
-  gap: ${({ $gap }) => SPACE_VAR[$gap]};
+  gap: ${({ $gap }) => GAP_VAR[$gap]};
   flex: 1;
   min-height: 0;
   overflow: auto;

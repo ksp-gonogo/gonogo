@@ -74,7 +74,7 @@ export function BackupManager() {
 
   return (
     <Container>
-      <Stack as="section" gap="md">
+      <Stack as="section" gap="related-comfortable">
         <SectionTitle as="h3">Export</SectionTitle>
         <Foot>
           Downloads a JSON file of this device's dashboard layouts, data-source
@@ -103,7 +103,7 @@ export function BackupManager() {
         </ActionRow>
       </Stack>
 
-      <Stack as="section" gap="md">
+      <Stack as="section" gap="related-comfortable">
         <SectionTitle as="h3">Restore</SectionTitle>
         <Foot>
           Restoring <strong>replaces</strong> your current layouts and settings
@@ -177,7 +177,7 @@ const ConfirmRow = styled.div`
   align-items: center;
   flex-wrap: wrap;
   gap: var(--gap-related);
-  padding: var(--space-10);
+  padding: var(--inset-confirm-bar);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-regular);
   background: var(--color-surface-raised);

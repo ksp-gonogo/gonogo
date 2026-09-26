@@ -226,13 +226,13 @@ const Container = styled.div`
 const PickerInput = styled.input<{ $hasValue: boolean; $retired?: boolean }>`
   background: var(--color-surface-raised);
   border: 1px solid ${({ $retired }) => ($retired ? "var(--color-status-nogo-fg)" : "var(--color-border-strong)")};
-  border-radius: var(--radius-regular, 3px);
+  border-radius: var(--radius-regular);
   color: ${({ $hasValue, $retired }) => {
     if ($retired) return "var(--color-status-nogo-fg)";
     return $hasValue ? "var(--color-text-primary)" : "var(--color-text-muted)";
   }};
   font-size: var(--font-size-value);
-  padding: var(--space-6, 6px) var(--space-8, 8px);
+  padding: var(--inset-field);
   width: 100%;
 
   &:focus {
@@ -257,8 +257,8 @@ const ClearButton = styled.button`
   color: var(--color-text-dim);
   cursor: pointer;
   font-size: var(--font-size-lg);
-  line-height: var(--line-height-flush, 1);
-  padding: 0 var(--space-2, 2px);
+  line-height: var(--line-height-flush);
+  padding: var(--inset-glyph-tight);
 
   &:hover {
     color: var(--color-text-primary);
@@ -276,7 +276,7 @@ const ClearButton = styled.button`
 const RetiredNote = styled.div`
   color: var(--color-status-nogo-fg);
   font-size: var(--font-size-compact);
-  margin-top: var(--space-2, 2px);
+  margin-top: var(--gap-caption);
 `;
 
 const ItemLabel = styled.span`
@@ -287,5 +287,5 @@ const ItemLabel = styled.span`
 const ItemUnit = styled.span`
   font-size: var(--font-size-compact);
   color: var(--color-text-muted);
-  margin-left: var(--space-6, 6px);
+  margin-left: var(--gap-trailing-mark);
 `;

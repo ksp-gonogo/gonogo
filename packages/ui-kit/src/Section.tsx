@@ -1,7 +1,7 @@
 import type { ElementType, HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
 import { Stack } from "./Stack";
-import type { SpaceToken } from "./scales";
+import type { GapToken } from "./scales";
 
 /**
  * Marks a section that should span every column of a panel's section grid. The
@@ -47,16 +47,16 @@ export interface SectionProps
    */
   as?: ElementType;
   /**
-   * Gap between the section's children. Defaults to the tightest step, which is
-   * right for a section whose children are rows.
+   * Gap between the section's children. Defaults to `rows`, which is right for
+   * a section whose children are rows.
    *
    * A section whose children are themselves GROUPS wants more than that: its
    * title, each group's own heading and each group's rows all sat one step
    * apart, so the title read as a third heading in the same run rather than as
    * the thing the groups belong to. Declared here rather than as a margin at
-   * the call site, so the spacing stays on the kit's scale.
+   * the call site, so the spacing stays a named job.
    */
-  gap?: SpaceToken;
+  gap?: GapToken;
   /**
    * The section's heading, rendered as a `SectionTitle` above its children.
    *
@@ -129,7 +129,7 @@ export interface SectionProps
  */
 export function Section({
   children,
-  gap = "xs",
+  gap = "rows",
   title,
   titleAs = "h4",
   full = false,
@@ -184,7 +184,7 @@ export const SectionTitle = styled.div<{ $rule?: boolean }>`
   ${({ $rule }) =>
     $rule
       ? `
-  padding-bottom: var(--space-4);
+  padding-bottom: var(--gap-title-rule);
   border-bottom: 1px solid var(--color-border-subtle);
 `
       : ""}

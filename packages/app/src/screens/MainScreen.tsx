@@ -199,7 +199,7 @@ const NoActiveVessel__Body = styled.div`
   flex-direction: column;
   align-items: center;
   gap: var(--gap-related);
-  padding: var(--space-12);
+  padding: var(--inset-tile-message);
   color: var(--color-text-muted);
   font-size: var(--font-size-compact);
   text-align: center;
@@ -642,11 +642,11 @@ function MainAlarmsFab() {
 }
 
 const Layout = styled.div`
-  padding: var(--space-24);
-  padding-top: calc(var(--space-24) + env(safe-area-inset-top, 0px));
-  padding-bottom: calc(var(--space-24) + env(safe-area-inset-bottom, 0px));
-  padding-left: calc(var(--space-24) + env(safe-area-inset-left, 0px));
-  padding-right: calc(var(--space-24) + env(safe-area-inset-right, 0px));
+  padding: var(--gutter-screen);
+  padding-top: calc(var(--gutter-screen) + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(var(--gutter-screen) + env(safe-area-inset-bottom, 0px));
+  padding-left: calc(var(--gutter-screen) + env(safe-area-inset-left, 0px));
+  padding-right: calc(var(--gutter-screen) + env(safe-area-inset-right, 0px));
   background: var(--color-surface-app);
   min-height: 100vh;
 `;

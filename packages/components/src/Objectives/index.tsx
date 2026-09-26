@@ -407,7 +407,7 @@ const GLYPH: CSSProperties = { fontSize: "var(--font-size-xs)" };
 const TEXT: CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-hair)",
+  gap: "var(--gap-line)",
   minWidth: 0,
   flex: "1 1 auto",
 };
@@ -417,7 +417,7 @@ const ALARM_BELL: CSSProperties = {
   flex: "0 0 auto",
   alignSelf: "flex-start",
   display: "inline-flex",
-  padding: "var(--space-2)",
+  padding: "var(--inset-icon-button-tight)",
   background: "none",
   border: "none",
   cursor: "pointer",

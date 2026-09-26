@@ -39,7 +39,7 @@ const LAYOUT_STYLES = {
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: var(--space-16, 16px);
+    padding: var(--inset-empty-state);
   `,
 } as const;
 

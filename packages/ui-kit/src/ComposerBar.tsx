@@ -162,8 +162,8 @@ const ComposerBar__Row = styled.div<{ $blocked: boolean }>`
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: var(--space-6);
-  padding: var(--space-6) var(--space-8);
+  gap: var(--gap-composer);
+  padding: var(--inset-field);
   background: var(--color-surface-panel);
   border: 1px solid
     ${({ $blocked }) =>
@@ -182,7 +182,7 @@ const ComposerBar__Prompt = styled.span`
   flex: 0 0 auto;
   color: var(--console-tone-fg, var(--color-accent-fg));
   font-weight: bold;
-  margin-right: var(--space-8);
+  margin-right: var(--gap-prompt-glyph);
 `;
 
 /*
@@ -210,13 +210,13 @@ const ComposerBar__Send = styled(Button)<{ $icon: boolean }>`
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: var(--space-6) var(--space-6);
+      padding: var(--inset-icon-button);
       /* The tone the row is outlined in, so the one control on the bar reads as
          belonging to it rather than as chrome dropped on top. */
       color: var(--console-tone-fg, var(--color-accent-fg));
 
       @media (pointer: coarse) {
-        padding: var(--space-8);
+        padding: var(--inset-icon-button-touch);
       }
     `}
 `;
@@ -238,14 +238,14 @@ const ComposerBar__Flag = styled.div<{ $blocked: boolean }>`
      ends rather than being stacked, and neither has to know about the other.
      Over the prompt glyph reads well on its own terms too: a label at the head
      of the row it is refusing for. */
-  left: var(--space-8);
+  left: var(--inset-console-foot);
   /* Local ordering against the row it is pinned to only; not app-global
      chrome, so not on the --z-* ladder. */
   z-index: 1;
   /* It overlaps the prompt glyph's top corner, and a word saying why the row is
      refusing input must not eat a press aimed at the control under it. */
   pointer-events: none;
-  padding: var(--space-hair) var(--space-6);
+  padding: var(--inset-chip);
   font-family: monospace;
   font-size: var(--font-size-caption);
   font-weight: bold;

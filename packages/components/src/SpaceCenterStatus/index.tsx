@@ -498,7 +498,7 @@ function SpaceCenterStatusComponent({
                 at all, a section that answered takes the marker off screen and
                 the widget stops contradicting its own augment. */}
             <AutoEmptyState
-              gap="md"
+              gap="related-comfortable"
               fallback={<EmptyState>No facility tiers</EmptyState>}
             >
               {answeredFacilities.length > 0 && (
@@ -903,7 +903,7 @@ const Tier = styled.span`
 
 const Slash = styled.span`
   color: var(--color-text-faint);
-  margin: 0 var(--space-2);
+  margin: 0 var(--gap-lead-figure);
 `;
 
 const TierMax = styled.span`
@@ -919,7 +919,7 @@ const UpgradeRow = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: var(--gap-related);
-  margin-top: var(--space-4);
+  margin-top: var(--gap-actions);
   /* Allow the Upgrade button to wrap to a new line when the grid cell
      is too narrow for cost + button side-by-side (default-6x7 at
      3-col grid gives ~62 px per cell, not enough for both). The
@@ -947,15 +947,15 @@ const MaxBadge = styled.span`
   letter-spacing: 0.1em;
   color: var(--color-text-faint);
   text-transform: uppercase;
-  margin-top: var(--space-2);
+  margin-top: var(--gap-caption);
 `;
 
 const TierSpecs = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
-  margin-top: var(--space-6);
-  padding-top: var(--space-6);
+  margin-top: var(--gap-related-compact);
+  padding-top: var(--inset-below-rule);
   border-top: 1px dashed var(--color-surface-raised);
 `;
 
@@ -1088,13 +1088,13 @@ const AbsenceLine = styled.span`
 const FundsReadout = styled.span`
   color: var(--color-status-go-fg);
   font-variant-numeric: tabular-nums;
-  margin-left: var(--space-2);
+  margin-left: var(--gap-lead-figure);
 `;
 
 /* Spacing only. The drain readout carries its own colour and its own break
    opportunities, so it needs no wrapper that decides either for it. */
 const DrainReadout = styled.span`
-  margin-left: var(--space-2);
+  margin-left: var(--gap-lead-figure);
 `;
 
 const TinyFunds = styled.div`
@@ -1118,7 +1118,7 @@ const TinyFundsUnit = styled.span`
      number it qualifies and eat the ~110px the value needs. */
   font-size: 12px;
   color: var(--color-text-muted);
-  margin-left: var(--space-2);
+  margin-left: var(--gap-unit-suffix);
 `;
 
 const TinyDrain = styled.div`

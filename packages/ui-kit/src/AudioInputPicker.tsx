@@ -45,7 +45,7 @@ export function AudioInputPicker({
   const unnamed = unnamedDevicesSentence(input);
 
   return (
-    <Stack gap="sm">
+    <Stack gap="related-dense">
       <StatusIndicator tone={stateTone(input.status)} live>
         {stateSentence(input)}
       </StatusIndicator>

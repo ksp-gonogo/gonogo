@@ -141,7 +141,7 @@ const ProgressBar__Track = styled.div`
   /* Stadium, not a corner: a fixed radius sized to half this 6px height
      decouples the corner from the track the moment the height changes.
      --radius-pill clamps to the same shape and survives it. */
-  border-radius: var(--radius-pill, 999px);
+  border-radius: var(--radius-pill);
   overflow: hidden;
 `;
 

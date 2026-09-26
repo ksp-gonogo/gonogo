@@ -1273,12 +1273,6 @@ registerComponent<TransferWindowConfig>({
 
 export { TransferWindowComponent };
 
-// Internal padding for the two boxes that draw their own edge: the selectable
-// window row (a bordered button) and the expander beneath it. Panel.Body owns
-// the panel-wide inset now, so this is only about the gap between a box's
-// border and its own text. One constant, two call sites, so the pair cannot
-// drift apart.
-const TEXT_PAD = "var(--space-12)";
 // Container-query breakpoint (body inline-size) at which the chart flows from
 // under the list (stacked) to beside it (side-by-side).
 const WIDE_AT = "560px";
@@ -1489,10 +1483,8 @@ const ReachTable = styled.table`
 
 const ReachTh = styled.th`
   text-align: left;
-  /* A table cell, which is none of the three inset classes: it is not a chip,
-     nothing here is pressable, and the box the operator sees is the table, not
-     the cell. Held on the rungs with ReachTd below, which has to match it. */
-  padding: var(--space-2) var(--space-4);
+  /* Shared with ReachTd below, which has to match it. */
+  padding: var(--inset-reach-cell);
   color: var(--color-text-muted);
   font-weight: normal;
   font-size: var(--font-size-caption);
@@ -1507,7 +1499,7 @@ const ReachTh = styled.th`
 
 const ReachTd = styled.td`
   /* Matches ReachTh above, and held for the same reason. */
-  padding: var(--space-2) var(--space-4);
+  padding: var(--inset-reach-cell);
   border-bottom: 1px solid var(--color-border-subtle);
   white-space: nowrap;
 `;
@@ -1543,7 +1535,7 @@ const WindowRow = styled.button<{ $selected: boolean }>`
   align-items: center;
   width: 100%;
   text-align: left;
-  padding: var(--space-8) ${TEXT_PAD};
+  padding: var(--inset-window-row);
   background: ${({ $selected }) =>
     $selected ? "var(--color-surface-raised)" : "transparent"};
   border: 1px solid
@@ -1580,7 +1572,7 @@ const Expander = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
-  padding: var(--space-8) ${TEXT_PAD} var(--space-4);
+  padding: var(--inset-window-expander);
 `;
 
 const ExpRow = styled.div`

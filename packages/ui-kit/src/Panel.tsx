@@ -120,7 +120,7 @@ export const PanelContainer = styled.div<{ $railTravels?: boolean }>`
      itself was narrow. This declaration stays for the cqw unit alone. */
   container-type: inline-size;
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-regular, 4px);
+  border-radius: var(--radius-regular);
   /* TOP ONLY, and it is the delay rail's band. Every widget reserves the same
      strip at its own top edge so that a command going in flight draws into
      room that was already standing there, rather than pushing the title down
@@ -135,7 +135,7 @@ export const PanelContainer = styled.div<{ $railTravels?: boolean }>`
      here would break every full-bleed widget. The remaining inset is
      Panel.Body's.
 
-     --space-16 is the ladder's widget-chrome inset, and it clears what the
+     Its 16px is the panel gutter's width, and it clears what the
      collapsed rail actually has to draw. No design document states a budget for
      this band (the "7px" and "16px" in the delay-UX docs describe a dot slider
      and the drag bar respectively, neither of which is this), so the check is:
@@ -157,7 +157,6 @@ export const PanelContainer = styled.div<{ $railTravels?: boolean }>`
        (see ControlDelayStream); below about 12px even that fails, the plot
        band falling under 10px where a full 0..1 excursion stops being
        distinguishable from a flat line */
-  --panel-rail-band: var(--space-16, 16px);
   padding: var(--panel-rail-band) 0 0;
   /* Given back when the rail TRAVELS WITH THE HEADER (see PanelStickyTop): the
      band is then the first row of the sticky unit inside the body scroller, so
@@ -187,7 +186,7 @@ const PanelTitle__Box = styled.h3`
   /* No top inset: PanelHeader__Row carries the header's, so a panel whose
      header is its first element pays for it once, in the panel, rather than
      once here and again in the aside beside it. */
-  padding: 0 var(--space-16, 16px) var(--space-8, 8px);
+  padding: var(--inset-panel-header);
   ${titleText}
   /* Flush, not the browser's metrics-based "normal": this is single-line
      chrome text (never wraps, see white-space below), exactly the case
@@ -200,7 +199,7 @@ const PanelTitle__Box = styled.h3`
      reads as too LOW against the glyphs sitting above it. Flush shrinks the
      line box down to the font's own metrics and removes most of that
      unused headroom, closing the gap between the two centres. */
-  line-height: var(--line-height-flush, 1);
+  line-height: var(--line-height-flush);
   /* One line, always. A long title (a widget name plus context, e.g. a
      Strategies aside label) allowed to wrap to a second line pushes the
      chevron/aside down with it and breaks the "aside never drops to its own
@@ -290,7 +289,7 @@ const PanelHeader__Row = styled.div<{ $overlay?: boolean }>`
      the reach of the opaque backing that keeps the drawing underneath from
      reading through the title, and a row-level inset leaves that top strip
      transparent: OrbitView's frame caption showed through it. */
-  padding-top: ${({ $overlay }) => ($overlay ? "0" : "var(--space-6, 6px)")};
+  padding-top: ${({ $overlay }) => ($overlay ? "0" : "var(--inset-panel-header-top)")};
   display: flex;
   /* Centre, not flex-start: the title is single-line and truncates
      rather than wrapping (see PanelTitle's overflow rules below), so its box
@@ -303,7 +302,7 @@ const PanelHeader__Row = styled.div<{ $overlay?: boolean }>`
      share. */
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-8, 8px);
+  gap: var(--gap-panel-header);
   min-width: 0;
   /* Wrapping is what gives PanelToolbar its own line: the toolbar asks for a
      full flex-basis, which only starts a new line in a wrapping row. Under
@@ -360,7 +359,7 @@ const OVERLAY_BOX = `
  * leaves that strip transparent for the drawing to read through. Not on the
  * toolbar, which sits on its own line and never had one.
  */
-const OVERLAY_TITLE_ROW_INSET = `padding-top: var(--space-6, 6px);`;
+const OVERLAY_TITLE_ROW_INSET = `padding-top: var(--inset-panel-header-top);`;
 
 const PanelHeader__Titles = styled.div<{ $overlay?: boolean }>`
   min-width: 0;
@@ -378,7 +377,7 @@ const PanelHeader__Titles = styled.div<{ $overlay?: boolean }>`
 const PanelHeader__Aside = styled.div<{ $overlay?: boolean }>`
   display: flex;
   align-items: center;
-  gap: var(--space-4, 4px);
+  gap: var(--gap-panel-aside);
   /* Shrink to its content and sit right-aligned on the title's row. It never
      grows to a full row and never wraps: an aside that stops fitting collapses
      to the dots (the measured-fit collapse on PanelAsideExpand), it does not
@@ -389,7 +388,7 @@ const PanelHeader__Aside = styled.div<{ $overlay?: boolean }>`
   /* PanelTitle owns the left inset and the bottom rhythm; mirror both here so
      the badges line up with the title rather than the panel edge. The top is
      the row's, shared by both boxes. */
-  padding: 0 var(--space-16, 16px) var(--space-8, 8px);
+  padding: var(--inset-panel-header);
   ${({ $overlay }) => ($overlay ? OVERLAY_BOX + OVERLAY_TITLE_ROW_INSET : "")}
 `;
 
@@ -442,7 +441,7 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
     /* Wide default: no collapsed affordance, the aside just shows inline. */
     display: none;
     align-items: center;
-    gap: var(--space-4, 4px);
+    gap: var(--gap-panel-aside);
     list-style: none;
     cursor: pointer;
     /* Nudge the whole summary up 1px so the dots' circle centre lands on the
@@ -482,7 +481,7 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
        turns this 6x6 box into a diamond whose corner points left of its own
        un-rotated layout edge, so the rendered chevron encroaches on the
        gap ahead of it by about a fifth of the diameter. */
-    margin-left: var(--space-4, 4px);
+    margin-left: var(--gap-panel-aside);
     border-right: 1.5px solid currentColor;
     border-bottom: 1.5px solid currentColor;
     /* The visible ink (the two borders forming an L) has its centroid toward
@@ -491,7 +490,7 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
        dots. Lift it 1.4px (on top of the summary's own -1px) so the chevron's
        ink centre coincides with the dot circles and the title cap band. */
     transform: translateY(-1.4px) rotate(45deg);
-    transition: transform var(--duration-base, 150ms) var(--ease-standard, ease);
+    transition: transform var(--duration-base) var(--ease-standard);
   }
   &[open] > summary [data-panel-aside-chevron] {
     /* Points up when open: the rotation swings the ink centroid the other way
@@ -505,7 +504,7 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: var(--space-4, 4px);
+    gap: var(--gap-panel-aside);
     flex-wrap: wrap;
     min-width: 0;
   }
@@ -534,7 +533,7 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
          controls it holds do not push the panel layout around. */
       &[open] > [data-panel-aside-full] {
         position: absolute;
-        top: calc(100% + var(--space-4, 4px));
+        top: calc(100% + var(--offset-popover));
         right: 0;
         /* Local sibling ordering inside the panel's own stacking context: lift the
            popped box over the header's overlay (2) and the body beneath it. Not
@@ -549,11 +548,11 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
            never overflows a very narrow tile. */
         min-width: min(14rem, 90cqw);
         max-width: 90cqw;
-        padding: var(--space-8, 8px);
+        padding: var(--inset-popover);
         background: var(--color-surface-panel);
         border: 1px solid var(--color-border-subtle);
-        border-radius: var(--radius-regular, 4px);
-        box-shadow: 0 var(--space-4, 4px) var(--space-12, 12px)
+        border-radius: var(--radius-regular);
+        box-shadow: var(--shadow-popover-drop)
           rgba(0, 0, 0, 0.35);
       }
     `}
@@ -727,11 +726,11 @@ export const PanelToolbar = styled.div<{ $overlay?: boolean }>`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--space-8, 8px);
+  gap: var(--gap-control-row);
   /* Mirrors the header's horizontal inset so controls line up with the title
      above them, and carries only a bottom gap of its own: the header already
      paid the top inset. */
-  padding: 0 var(--space-16, 16px) var(--space-8, 8px);
+  padding: var(--inset-panel-header);
   min-width: 0;
   /* Same reason as the header row: at short tile heights the flex column would
      otherwise squeeze the controls toward zero. */
@@ -769,15 +768,15 @@ export const PanelToolbar = styled.div<{ $overlay?: boolean }>`
  * which, and why).
  */
 const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
-  --gap-related: var(--space-8, 8px);
-  --gap-section: var(--space-16, 16px);
+  --gap-related: var(--gap-related-comfortable);
+  --gap-section: var(--gap-section-comfortable);
 
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--gap-related, var(--space-8, 8px));
-  padding: var(--space-8, 8px) var(--space-16, 16px) var(--space-12, 12px);
+  gap: var(--gap-related);
+  padding: var(--inset-panel-body);
   /* Body IS the scroller. It owns overflow so that Panel.Glow can own only the
      glow; the inset therefore sits INSIDE the scrolling box, which is what
      stops overflow content being clipped by the padding. */
@@ -935,7 +934,7 @@ const PanelSections__Grid = styled.div<{ $min: string; $columns: number }>`
       max(
         min(${({ $min }) => $min}, 100%),
         ${({ $columns }) =>
-          `calc((100% - ${$columns - 1} * var(--space-16, 16px)) / ${$columns})`}
+          `calc((100% - ${$columns - 1} * var(--gap-panel-columns)) / ${$columns})`}
       ),
       1fr
     )
@@ -943,7 +942,7 @@ const PanelSections__Grid = styled.div<{ $min: string; $columns: number }>`
   /* Wider between columns than between rows: the column gap is the only thing
      separating two unrelated sections that now sit side by side, where the row
      gap has a section title under it doing some of that work. */
-  gap: var(--space-12, 12px) var(--space-16, 16px);
+  gap: var(--gap-panel-sections) var(--gap-panel-columns);
   /* Sections keep their natural height rather than stretching to the tallest in
      the row. A three-row section stretched to match a ten-row neighbour reads as
      a box with a large empty bottom, which is exactly the wasted space this is
@@ -1006,7 +1005,7 @@ const PanelBody__FitContent = styled.div<{ $fits?: boolean }>`
      the first line up under the header whatever the box does. */
   ${({ $fits }) =>
     $fits ? "justify-content: center;" : "justify-content: flex-start;"}
-  gap: var(--space-4, 4px);
+  gap: var(--gap-tiny-content);
   min-height: 0;
   /* A query container, so a tiny presentation can size its headline against the
      tile with cqw units. SpaceCenterStatus already did exactly this from its own
@@ -1195,7 +1194,7 @@ const ScrollOverflowGlow = styled.div<{
   ${fitMask("panel-scroll-glow")}
   pointer-events: none;
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
-  transition: opacity var(--duration-base, 150ms) var(--ease-standard, ease);
+  transition: opacity var(--duration-base) var(--ease-standard);
   /* TWO stacked layers, uniform on every edge (the first gradient in a
      comma-separated background paints on TOP of the later one):
 
@@ -1534,10 +1533,10 @@ const PanelSidebar__Scroll = styled(ScrollArea)`
      there and the rule cannot be asserted at all; the longhands survive it.
      Same declaration either way in a real engine. */
   & > [data-scroll-area-inner] {
-    padding-top: var(--space-8, 8px);
-    padding-right: var(--space-16, 16px);
-    padding-bottom: var(--space-12, 12px);
-    padding-left: var(--space-16, 16px);
+    padding-top: var(--inset-panel-top);
+    padding-right: var(--gutter-panel);
+    padding-bottom: var(--inset-panel-bottom);
+    padding-left: var(--gutter-panel);
   }
 `;
 
@@ -2006,7 +2005,7 @@ const PanelSummaryBadge__Pulse = styled.span<{ $pulse: number }>`
     css`
       @media (prefers-reduced-motion: no-preference) {
         animation: ${$pulse % 2 === 0 ? "panel-status-pulse" : "panel-status-pulse-b"}
-          var(--duration-slow, 600ms) var(--ease-emphasis, ease-out);
+          var(--duration-slow) var(--ease-emphasis);
       }
     `}
   @keyframes panel-status-pulse-b {
@@ -2041,7 +2040,7 @@ const PanelSummaryBadge__Pulse = styled.span<{ $pulse: number }>`
 export const PanelFooter = styled.div`
   flex-shrink: 0;
   border-top: 1px solid var(--color-border-subtle);
-  padding: var(--space-6, 6px) var(--space-16, 16px) var(--space-8, 8px);
+  padding: var(--inset-panel-footer);
   background: var(--color-surface-panel);
 `;
 
@@ -2074,11 +2073,11 @@ export const PanelFooter = styled.div`
 const PanelStickyTop = styled.div`
   position: sticky;
   /* Reach the scroller's true top edge, cancelling the body's own top inset. */
-  top: calc(-1 * var(--space-8, 8px));
+  top: calc(-1 * var(--inset-panel-top));
   z-index: 2;
   /* Cancel the body's inset so the unit spans the full panel width and lands at
      the scroller's true top; only the body content below keeps the inset. */
-  margin: calc(-1 * var(--space-8, 8px)) calc(-1 * var(--space-16, 16px)) 0;
+  margin: calc(-1 * var(--inset-panel-top)) calc(-1 * var(--gutter-panel)) 0;
   display: flex;
   flex-direction: column;
   /* Never squeeze: at very short widget heights the scroller's flex column

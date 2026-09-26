@@ -119,7 +119,7 @@ function NotesView({
       /* ONE section: the notes are one ordered list an operator reorders by
          hand, so columns would fight the order the reorder buttons set. */
       sections={
-        <Section full gap="lg">
+        <Section full gap="section-compact">
           {ordered.length === 0 ? (
             <Empty>No notes yet. Type {"{{"} for live data.</Empty>
           ) : (
@@ -371,7 +371,7 @@ const Item = styled.div`
 const ReorderColumn = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-hair);
+  gap: var(--gap-line);
 `;
 
 /*
@@ -415,7 +415,7 @@ const Body = styled.div`
 const RenderedBody = styled.div`
   cursor: text;
   white-space: pre-wrap;
-  padding: var(--space-2) 0;
+  padding: var(--inset-line);
 `;
 
 const RowActions = styled.div`

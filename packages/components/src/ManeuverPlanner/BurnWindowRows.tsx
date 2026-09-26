@@ -85,7 +85,7 @@ const KIND_CHIP: CSSProperties = {
  * the cutoff mark sat centred on the right-hand end with half its body outside
  * and read on screen as a left-pointing triangle.
  */
-const MARK_HALF_EXTENT = "calc(var(--space-6) * 0.7072)";
+const MARK_HALF_EXTENT = "calc(var(--size-burn-mark) * 0.7072)";
 
 /**
  * Where a mark's CENTRE sits, as a CSS length, inset from both ends by
@@ -206,8 +206,8 @@ function BurnAxisBar({
       aria-label={axisDescription(axis, rows)}
       style={{
         position: "relative",
-        height: "var(--space-12)",
-        marginInlineStart: "var(--space-8)",
+        height: "var(--size-burn-axis)",
+        marginInlineStart: "var(--indent-burn-axis)",
         // No padding here on purpose: see MARK_HALF_EXTENT for why padding
         // cannot do this job.
       }}
@@ -246,8 +246,8 @@ function BurnAxisBar({
           style={{
             position: "absolute",
             top: "50%",
-            width: "var(--space-6)",
-            height: "var(--space-6)",
+            width: "var(--size-burn-mark)",
+            height: "var(--size-burn-mark)",
             background: KIND_COLOUR[mark.kind],
             // --radius-circle, never a hand-computed 50%: the token exists so a
             // circle stays a circle if the mark size ever changes.

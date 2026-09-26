@@ -23,7 +23,7 @@ import {
   useElementSize,
   useModalSaveBar,
 } from "./index";
-import { RADIUS_VAR, SPACE_VAR } from "./scales";
+import { GAP_VAR, INSET_NAME, RADIUS_VAR } from "./scales";
 
 describe("ui-kit foundation", () => {
   it("exports a default-dark theme satisfying the token contract", () => {
@@ -40,11 +40,13 @@ describe("ui-kit foundation", () => {
     expect(defaultDarkTheme.typography.letterSpacing.wide).toBe("0.15em");
   });
 
-  it("resolves a size prop to a token handle rather than a raw length", () => {
+  it("resolves a spacing prop to a job's token rather than a raw length", () => {
     // The scales are the kit's own, off the theme contract, so nothing outside
     // this package can assert them through a public export.
-    expect(SPACE_VAR.md).toBe("var(--space-8)");
-    expect(SPACE_VAR.xs).toBe("var(--space-2)");
+    expect(GAP_VAR["related-comfortable"]).toBe(
+      "var(--gap-related-comfortable)",
+    );
+    expect(INSET_NAME["chip-readout"]).toBe("--inset-chip-readout");
     expect(RADIUS_VAR.regular).toBe("var(--radius-regular)");
     expect(RADIUS_VAR.pill).toBe("var(--radius-pill)");
   });
@@ -66,7 +68,13 @@ describe("ui-kit foundation", () => {
     const declared = new Set(
       [...tokens.matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm)].map((m) => m[1]),
     );
-    const handles = { ...SPACE_VAR, ...RADIUS_VAR };
+    const handles = {
+      ...GAP_VAR,
+      ...RADIUS_VAR,
+      ...Object.fromEntries(
+        Object.entries(INSET_NAME).map(([key, name]) => [key, `var(${name})`]),
+      ),
+    };
     const undeclared = Object.entries(handles).filter(([, handle]) => {
       const name = /^var\((--[a-z0-9-]+)\)$/.exec(handle)?.[1];
       return name === undefined || !declared.has(name);

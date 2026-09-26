@@ -15,14 +15,14 @@ import { focusRing } from "./focusRing";
 export const ConfigForm = styled.div<{ $boxed?: boolean }>`
   display: flex;
   flex-direction: column;
-  gap: ${({ $boxed }) => ($boxed ? "var(--space-6, 6px)" : "var(--space-16, 16px)")};
+  gap: ${({ $boxed }) => ($boxed ? "var(--gap-form-field-boxed)" : "var(--gap-form-field)")};
   ${({ $boxed }) =>
     $boxed
       ? `
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
-  padding: var(--space-8) var(--space-10);
+  padding: var(--inset-form-box);
 `
       : ""}
 `;
@@ -31,14 +31,14 @@ export const ConfigForm = styled.div<{ $boxed?: boolean }>`
 export const Field = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-6, 6px);
+  gap: var(--gap-field-label);
 `;
 
 /** Horizontal: label left, input right */
 export const FieldRow = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-8, 8px);
+  gap: var(--gap-field-label-inline);
 `;
 
 export const FieldLabel = styled.label`
@@ -56,17 +56,17 @@ export const FieldHint = styled.span`
 
 export const FormActions = styled.div`
   display: flex;
-  gap: var(--space-8, 8px);
+  gap: var(--gap-control-row);
   align-items: center;
 `;
 
 const inputBase = css`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-regular, 3px);
+  border-radius: var(--radius-regular);
   color: var(--color-text-primary);
   font-size: var(--font-size-compact);
-  padding: var(--space-6, 6px) var(--space-8, 8px);
+  padding: var(--inset-field);
 
   &:focus {
     /* var(--color-accent-fg) on var(--color-surface-raised) ≈ 11.4:1: well clear of WCAG 1.4.11's 3:1 minimum
@@ -79,7 +79,7 @@ const inputBase = css`
 
   @media (pointer: coarse) {
     min-height: 44px;
-    padding: var(--space-10, 10px) var(--space-12, 12px);
+    padding: var(--inset-field-touch);
     /* 16px prevents iOS Safari from auto-zooming on focus. Deliberately NOT
        var(--font-size-lg): the threshold is an absolute-px requirement, and
        reading it from a token silently reintroduces the zoom the moment that

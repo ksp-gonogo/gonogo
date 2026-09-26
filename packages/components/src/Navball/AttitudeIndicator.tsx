@@ -201,7 +201,7 @@ export function AttitudeIndicator({
           own captions when the ball goes away. A reorder only, so the two
           rendered heights this row contributes to `ATTITUDE_CHROME_PX` are
           unchanged. */}
-      <Grid cols="repeat(3, 1fr)" gap="md">
+      <Grid cols="repeat(3, 1fr)" gap="related-comfortable">
         <div style={CELL}>
           <span style={VAL}>
             {ready ? (
@@ -322,7 +322,7 @@ const HEADING_TICK_LABEL: CSSProperties = {
   // overflow: hidden clips the label at that size.
   fontSize: "9px",
   color: "var(--color-text-muted)",
-  marginTop: "var(--space-hair)",
+  marginTop: "var(--gap-line)",
 };
 
 const HEADING_POINTER: CSSProperties = {
@@ -340,7 +340,7 @@ const CELL: CSSProperties = {
   flexDirection: "column",
   alignItems: "center",
   border: "1px solid var(--color-surface-raised)",
-  padding: "var(--space-2) 0",
+  padding: "var(--inset-line)",
 };
 
 // Lab and Val stay off the type scale: their rendered heights are two of the

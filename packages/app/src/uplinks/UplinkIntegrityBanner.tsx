@@ -44,8 +44,8 @@ function FailedUplink({
 }: Readonly<{ outcome: UplinkLoadOutcome; override?: boolean }>) {
   if (!outcome.integrity) return null;
   return (
-    <Stack gap="xs">
-      <Cluster justify="start" gap="sm" wrap>
+    <Stack gap="caption">
+      <Cluster justify="start" gap="related-dense" wrap>
         <Text weight="semibold">{outcome.name}</Text>
         <Text tone="muted" size="sm">
           {outcome.id}
@@ -88,12 +88,12 @@ export function UplinkIntegrityBanner() {
 
   return (
     <Notice as="section" tone="alert" aria-label="Uplink integrity">
-      <Stack gap="md">
+      <Stack gap="related-comfortable">
         {/* The headline grades on what is actually here. A banner that shouts
             "integrity failure" over nothing but channel skew spends the loud
             channel on the ordinary case, which is the same mistake as firing it
             for a compat gate. */}
-        <Cluster justify="start" gap="sm" wrap>
+        <Cluster justify="start" gap="related-dense" wrap>
           <Badge severity={measured.length > 0 ? "critical" : "warning"}>
             {measured.length > 0 ? "Integrity failure" : "Hash disagreement"}
           </Badge>
@@ -104,7 +104,7 @@ export function UplinkIntegrityBanner() {
           </Text>
         </Cluster>
         {measured.length > 0 && (
-          <Stack gap="md">
+          <Stack gap="related-comfortable">
             <Text tone="muted" size="sm">
               {measured.length === 1
                 ? "Nothing from it is running."
@@ -119,8 +119,8 @@ export function UplinkIntegrityBanner() {
           </Stack>
         )}
         {declared.length > 0 && (
-          <Stack gap="md">
-            <Cluster justify="start" gap="sm" wrap>
+          <Stack gap="related-comfortable">
+            <Cluster justify="start" gap="related-dense" wrap>
               <Badge severity="warning">Version skew</Badge>
               <Text tone="warn" weight="semibold">
                 {declared.length === 1

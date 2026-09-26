@@ -66,11 +66,9 @@ const FabRow = styled.div<{ $visible: boolean; $bottom: number }>`
   flex-direction: row;
   align-items: center;
   justify-content: flex-end;
-  /* 10 is the one rung with no gap name over it: --gap-related is 8 and
-     --gap-section is 16, so aliasing it either tightens the cluster or opens a
-     hole between the label and the button it belongs to. It also sits in the
-     FAB-geometry chain above, which is arithmetic rather than rhythm. */
-  gap: var(--space-10);
+  /* Part of the FAB-geometry chain above, which is arithmetic rather than
+     rhythm, so it moves only with that chain. */
+  gap: var(--gap-pill);
   z-index: var(--z-fab);
   pointer-events: ${({ $visible }) => ($visible ? "auto" : "none")};
 `;

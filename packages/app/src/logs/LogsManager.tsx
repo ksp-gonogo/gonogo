@@ -160,7 +160,7 @@ export function LogsManager() {
 
   return (
     <Container>
-      <Stack as="section" gap="md">
+      <Stack as="section" gap="related-comfortable">
         <SectionTitle as="h3">Active tags</SectionTitle>
         <ModeRow>
           <ModeButton
@@ -203,7 +203,7 @@ export function LogsManager() {
         </Foot>
       </Stack>
 
-      <Stack as="section" gap="md">
+      <Stack as="section" gap="related-comfortable">
         <SectionTitle as="h3">Log buffer</SectionTitle>
         <BufferRow>
           <Count>{bufferSize} entries buffered</Count>
@@ -222,7 +222,7 @@ export function LogsManager() {
         </Foot>
       </Stack>
 
-      <Stack as="section" gap="md">
+      <Stack as="section" gap="related-comfortable">
         <SectionTitle as="h3">Feedback</SectionTitle>
         <ReportBug />
       </Stack>
@@ -541,7 +541,7 @@ const TagList = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
-  padding: var(--space-6) 0 0;
+  padding: var(--gap-under-field) 0 0;
 `;
 
 const TagRow = styled.div`
@@ -606,11 +606,8 @@ const SentNotice = styled.div`
 const ScreenshotPreview = styled.div`
   display: flex;
   align-items: flex-start;
-  /* A rung, because 10 is the one gap rung no name sits over: --gap-related is
-     8 and --gap-section is 16, so either would move a 120px thumbnail off the
-     text it captions. */
-  gap: var(--space-10);
-  padding-top: var(--space-6);
+  gap: var(--gap-attachment);
+  padding-top: var(--gap-under-field);
 `;
 
 const ScreenshotThumb = styled.img`

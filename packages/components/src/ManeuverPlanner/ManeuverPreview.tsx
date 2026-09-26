@@ -483,13 +483,13 @@ const PreviewSection = styled.section`
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
-  padding-top: var(--space-4);
+  padding-top: var(--gap-planner-section);
 `;
 
 const PreviewGrid = styled.dl`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: var(--space-2) var(--space-8);
+  gap: var(--gap-readout-row) var(--gap-label-value);
   align-items: baseline;
   margin: 0;
 `;
@@ -510,7 +510,7 @@ const PreviewValue = styled.dd<{ $accent?: "ap" | "pe" }>`
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2) var(--space-6);
+  gap: var(--gap-readout-row) var(--gap-value-tag);
   font-size: var(--font-size-value);
   color: ${({ $accent }) => ($accent ? accentColor[$accent] : "var(--color-text-primary)")};
   letter-spacing: 0.03em;
@@ -581,5 +581,5 @@ const CommitRow = styled.div`
   justify-content: flex-end;
   align-items: center;
   gap: var(--gap-related);
-  padding-top: var(--space-4);
+  padding-top: var(--gap-actions);
 `;

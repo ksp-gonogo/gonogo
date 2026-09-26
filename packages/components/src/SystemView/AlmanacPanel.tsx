@@ -276,7 +276,7 @@ export function AlmanacPanel({
           rows.map((row) => (
             <Grid
               cols="1fr auto"
-              gap="md"
+              gap="label-value"
               align="baseline"
               key={`${row.label}=${row.value}`}
             >
@@ -324,11 +324,7 @@ const WRAP: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: "var(--gap-related)",
-  /* The inset stays on the rungs: this is the panel's gutter inside the
-     FramedDisplay named above, not a box of its own, and it draws no border and
-     no fill. --inset-surface would be a claim about a box that is not here, and
-     it would tighten the gutter to a card's inset. */
-  padding: "var(--space-8) var(--space-10)",
+  padding: "var(--inset-frame-panel)",
   minWidth: 0,
   // min-height:0 is load-bearing: the panel sidebar this sits in is a grid
   // cell, and grid items default to min-height:auto, which would let this box
@@ -365,8 +361,8 @@ const SUB: CSSProperties = {
 const ROWS: CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-hair)",
-  marginTop: "var(--space-6)",
+  gap: "var(--gap-line)",
+  marginTop: "var(--gap-related-compact)",
 };
 
 const ROW_LABEL: CSSProperties = { color: "var(--color-text-faint)" };
@@ -385,7 +381,7 @@ const HINT: CSSProperties = {
 // KSP's per-body flavour text. Long-form copy lives below the stats grid;
 // the panel scroll handles overflow on shorter widget sizes.
 const DESCRIPTION: CSSProperties = {
-  margin: "var(--space-8) 0 0",
+  margin: "var(--gap-related-comfortable) 0 0",
   color: "var(--color-text-muted)",
   fontSize: "var(--font-size-compact)",
   lineHeight: "var(--line-height-body)",

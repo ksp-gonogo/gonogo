@@ -152,17 +152,17 @@ const PoiHoverCard = styled.div`
 
 const PoiHoverLabel = styled.div`
   font-weight: 600;
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--gap-caption);
 `;
 
 const PoiHoverDetail = styled.div`
   color: var(--color-text-muted);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--gap-sub-readout);
 `;
 
 const PoiHoverCoords = styled.div`
   color: var(--color-text-dim);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--gap-sub-readout);
 `;
 
 const PoiHoverMetaRow = styled.div`
@@ -175,7 +175,7 @@ const PoiHoverActions = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: var(--gap-related);
-  margin-top: var(--space-6);
+  margin-top: var(--gap-card-actions);
 `;
 
 export function MapPoiLayer({

@@ -375,7 +375,7 @@ export function CalibrateWizard({
  * button per column of the raw device line, and a tick only sits over its
  * character because the tick width, the character width and the monospace
  * font-size are all the same number. So all three stay literal and share one
- * constant: --space-12 (which 14px snaps to) would desynchronise the ruler
+ * constant: rounding it onto the spacing grid would desynchronise the ruler
  * from the characters it labels and make the offset/length picker unusable,
  * and --font-size-base is 15px under @media (pointer: coarse), which breaks
  * the same grid on the Steam Deck.
@@ -386,7 +386,7 @@ const Wrap = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-section);
-  padding: var(--space-12);
+  padding: var(--inset-wizard);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   background: var(--color-surface-raised);
@@ -404,7 +404,7 @@ const SampleViewer = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
-  padding: var(--space-8);
+  padding: var(--inset-wizard-box);
   background: var(--color-surface-app);
   border-radius: var(--radius-regular);
   overflow-x: auto;
@@ -470,7 +470,7 @@ const InputRow = styled.div<{ $active: boolean }>`
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
-  padding: var(--space-8);
+  padding: var(--inset-wizard-box);
   border-radius: var(--radius-regular);
   border: 1px solid
     ${({ $active }) =>
@@ -511,7 +511,7 @@ const RangeRow = styled.div`
   display: flex;
   align-items: center;
   gap: var(--gap-related);
-  margin-top: var(--space-4);
+  margin-top: var(--gap-sub-readout);
 `;
 
 const Capturing = styled.div`

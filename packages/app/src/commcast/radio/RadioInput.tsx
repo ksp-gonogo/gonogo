@@ -73,6 +73,6 @@ export function RadioInput({
 }
 
 const Radio__Input = styled.div`
-  padding: var(--space-6) 0;
+  padding: var(--inset-picker-row);
   min-width: 0;
 `;

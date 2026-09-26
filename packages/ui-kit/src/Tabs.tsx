@@ -315,7 +315,11 @@ export function Tabs({
   if (expanded) {
     return (
       <Tabs__Root ref={sizeRef} data-tabs-root="" className={className}>
-        <Grid minColWidth={`${TABS_PANEL_MIN_WIDTH}px`} align="start" gap="md">
+        <Grid
+          minColWidth={`${TABS_PANEL_MIN_WIDTH}px`}
+          align="start"
+          gap="related-comfortable"
+        >
           {selectable.map((tab) => (
             <Section key={tab.id}>
               <SectionTitle as="h3" $rule>
@@ -410,7 +414,7 @@ export function Tabs({
 const Tabs__Root = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: var(--gap-tabs-panel);
   /* Fill the panel and constrain children so an active tab whose content
      uses flex:1 can actually scroll. No-op if the parent isn't a flex
      column. */
@@ -431,10 +435,10 @@ const Tabs__BarShell = styled.div`
 const Tabs__Bar = styled.div`
   position: relative;
   display: flex;
-  gap: var(--space-2);
+  gap: var(--gap-tab);
   background: var(--color-surface-sunken);
   border-radius: var(--radius-pill);
-  padding: var(--space-4);
+  padding: var(--inset-tab-track);
   /* Single line: tabs never wrap; the bar scrolls horizontally instead. */
   flex-wrap: nowrap;
   overflow-x: auto;
@@ -481,8 +485,8 @@ const Tabs__OverflowGlow = styled.div<{
    puts the labels over it and no z-index is needed. */
 const Tabs__Blob = styled.span`
   position: absolute;
-  top: var(--space-4);
-  bottom: var(--space-4);
+  top: var(--inset-tab-track);
+  bottom: var(--inset-tab-track);
   border-radius: var(--radius-pill);
   background: var(--color-accent-bg);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
@@ -501,7 +505,7 @@ const Tabs__Dot = styled.span`
   display: inline-block;
   width: 7px;
   height: 7px;
-  margin-left: var(--space-6);
+  margin-left: var(--gap-trailing-mark);
   vertical-align: middle;
   border-radius: var(--radius-circle);
   background: var(--color-status-warning-bg);
@@ -546,10 +550,8 @@ const Tabs__Button = styled.button<{
      styled template breaks the parse and builds an empty dist. */
   ${({ $compact }) =>
     $compact
-      ? "padding: var(--space-4, 4px) var(--space-6, 6px);" +
-        "letter-spacing: 0.04em;"
-      : "padding: var(--inset-control, var(--space-6, 6px) var(--space-12, 12px));" +
-        "letter-spacing: 0.12em;"}
+      ? "padding: var(--inset-tab-compact);" + "letter-spacing: 0.04em;"
+      : "padding: var(--inset-control);" + "letter-spacing: 0.12em;"}
   /* Pushing: the label gives under the press and springs back, which is the
      only feedback a tab gets on a touch device where there is no hover. */
   transition: transform var(--duration-fast) var(--ease-standard);
@@ -586,8 +588,8 @@ const Tabs__Button = styled.button<{
        bigger target, it is a smaller one. */
     ${({ $compact }) =>
       $compact
-        ? "padding: var(--space-4, 4px) var(--space-8, 8px);"
-        : "padding: var(--space-8, 8px) var(--space-16, 16px);"}
+        ? "padding: var(--inset-tab-compact-touch);"
+        : "padding: var(--inset-control-touch);"}
   }
 `;
 

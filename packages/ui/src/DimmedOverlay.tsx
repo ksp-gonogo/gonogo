@@ -97,7 +97,7 @@ const Banner = styled.div`
      read, not a box you press, and the token names the pressable family so
      that its coarse-pointer widening has somewhere to live. Same call as the
      pills in BannerPill; see the note there. */
-  padding: var(--space-6) var(--space-12);
+  padding: var(--inset-pill);
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);

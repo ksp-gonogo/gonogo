@@ -87,11 +87,11 @@ const TONE_ACTIVE = {
 const SIZE_STYLES = {
   sm: css`
     font-size: var(--font-size-caption);
-    padding: var(--space-2, 2px) var(--space-8, 8px);
+    padding: var(--inset-control-small);
   `,
   md: css`
     font-size: var(--font-size-compact);
-    padding: var(--inset-control, var(--space-6, 6px) var(--space-12, 12px));
+    padding: var(--inset-control);
   `,
 } as const;
 
@@ -103,21 +103,21 @@ const ToggleButton__Body = styled.button<{
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-4, 4px);
+  gap: var(--gap-glyph);
   font-family: inherit;
   font-weight: 600;
   /* The kit's one control height, shared with Button and StatusIndicator, so a
      bar of mixed controls is one band rather than a ragged run. The size prop
      picks the type scale and the inset, never the height. See
      --control-height. */
-  min-height: var(--control-height, 28px);
-  line-height: var(--line-height-flush, 1);
+  min-height: var(--control-height);
+  line-height: var(--line-height-flush);
   /* Sentence case, the same as the kit's Button: this label is the thing being
      chosen, and a row of shouted choices reads as an alarm rather than a
      picker. */
-  border-radius: var(--radius-regular, 3px);
+  border-radius: var(--radius-regular);
   cursor: pointer;
-  transition: background var(--duration-fast, 100ms), border-color var(--duration-fast, 100ms), color var(--duration-fast, 100ms);
+  transition: background var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast);
 
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
@@ -155,12 +155,11 @@ const ToggleButton__Body = styled.button<{
 
   @media (pointer: coarse) {
     min-height: 44px;
-    /* md goes one rung wider than its base inset (--space-12), same as ui-kit
-       Button: a 14px value snaps onto the base rung and erases the horizontal
-       widening this block exists for. sm sits on rungs already. */
+    /* Wider on both axes, same as ui-kit Button: min-height only covers the
+       vertical target. */
     padding: ${({ $size }) =>
       $size === "sm"
-        ? "var(--space-6) var(--space-10)"
-        : "var(--space-8) var(--space-16)"};
+        ? "var(--inset-control-small-touch)"
+        : "var(--inset-control-touch)"};
   }
 `;

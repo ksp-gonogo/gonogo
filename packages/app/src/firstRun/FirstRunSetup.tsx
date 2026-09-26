@@ -59,7 +59,7 @@ export function FirstRunSetup({ onFinish }: Readonly<FirstRunSetupProps> = {}) {
   }
 
   return (
-    <Stack gap="md">
+    <Stack gap="related-comfortable">
       <StepHeading aria-live="polite">
         Step {index + 1} of {ORDER.length}: {HEADING[step]}
       </StepHeading>
@@ -89,7 +89,7 @@ const StepHeading = styled.h3`
   text-transform: uppercase;
   color: var(--color-text-muted);
   border-bottom: 1px solid var(--color-border-subtle);
-  padding-bottom: var(--space-4);
+  padding-bottom: var(--gap-title-rule);
 `;
 
 const Nav = styled.div`

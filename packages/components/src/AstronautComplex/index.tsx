@@ -446,7 +446,7 @@ function AstronautComplexComponent(
         panelTitle="ASTRONAUT COMPLEX"
         compactTitle={["ASTRONAUTS", "CREW"]}
         sections={
-          <Section full gap="lg">
+          <Section full gap="section-compact">
             <StatStrip role="status" aria-live="polite">
               {fundsStat}
               <StatContributions slot={ASTRONAUT_COMPLEX_READOUTS_SLOT} />
@@ -568,7 +568,7 @@ function AstronautComplexComponent(
                           fallback={
                             <div style={EMPTY_STYLE}>No training right now</div>
                           }
-                          gap="lg"
+                          gap="section-compact"
                         >
                           <AugmentSlot
                             name={ASTRONAUT_COMPLEX_TRAINING_SLOT}
@@ -1155,7 +1155,7 @@ const WHO_STYLE = {
 const EMPTY_STYLE = {
   fontSize: "var(--font-size-compact)",
   color: "var(--color-text-faint)",
-  padding: "var(--space-6) 0",
+  padding: "var(--inset-empty-roster)",
 } as const;
 
 registerComponent<AstronautComplexConfig>({

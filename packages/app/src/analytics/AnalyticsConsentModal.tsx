@@ -116,7 +116,7 @@ const Dialog = styled.div`
   border-radius: var(--radius-floating);
   max-width: 460px;
   width: 90vw;
-  padding: var(--space-24);
+  padding: var(--inset-dialog);
   display: flex;
   flex-direction: column;
   gap: var(--gap-section);

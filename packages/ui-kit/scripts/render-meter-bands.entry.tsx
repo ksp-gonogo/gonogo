@@ -121,7 +121,7 @@ function Case({ c, layout }: { c: MeterCase; layout: MeterSheet["layout"] }) {
         style={{
           fontSize: 10,
           lineHeight: 1.4,
-          color: "var(--color-text-faint, #777)",
+          color: "var(--color-text-faint)",
           minHeight: 14,
         }}
       >
@@ -139,7 +139,7 @@ function Sheet({ sheet }: { sheet: MeterSheet }) {
         width: sheet.width,
         padding: 20,
         background: "var(--color-surface-base, #0d0d0d)",
-        color: "var(--color-text-primary, #ddd)",
+        color: "var(--color-text-primary)",
         fontFamily: "var(--font-family-sans, ui-sans-serif, system-ui)",
       }}
     >
@@ -159,7 +159,7 @@ function Sheet({ sheet }: { sheet: MeterSheet }) {
           margin: "0 0 16px",
           fontSize: 10,
           lineHeight: 1.5,
-          color: "var(--color-text-muted, #999)",
+          color: "var(--color-text-muted)",
         }}
       >
         {sheet.blurb}

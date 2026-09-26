@@ -74,7 +74,7 @@ export function UplinkIdentityBlock({
   const selfDeclared = hasSelfDeclaredField(identity);
 
   return (
-    <Stack gap="xs">
+    <Stack gap="caption">
       {identity.name.source === "bundle" && (
         <Text tone="muted" size="sm">
           Calls itself “{identity.name.value}”

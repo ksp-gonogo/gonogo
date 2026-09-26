@@ -1705,7 +1705,7 @@ const SectionLabel = styled.div`
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-faint);
-  margin-top: var(--space-2);
+  margin-top: var(--gap-caption);
 `;
 
 const PadList = styled.div`
@@ -1777,7 +1777,7 @@ const PadOccupancy = styled.span<{ $occupied: boolean | null }>`
 /* What an Uplink adds to a pad, indented under the row it belongs to and one
    step down in size, so a space centre with six pads still reads as a list. */
 const PadAside = styled.div`
-  padding-left: var(--space-8);
+  padding-left: var(--indent-aside);
   font-size: var(--font-size-compact);
   &:empty {
     display: none;
@@ -1788,7 +1788,7 @@ const PadDetail = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
-  padding-left: var(--space-8);
+  padding-left: var(--indent-aside);
   border-left: 2px solid var(--color-surface-raised);
 `;
 
@@ -1936,7 +1936,7 @@ const CrewChip = styled.button<{
   flex-direction: ${(p) => (p.$compact ? "row" : "column")};
   flex-wrap: wrap;
   align-items: ${(p) => (p.$compact ? "baseline" : "flex-start")};
-  gap: ${(p) => (p.$compact ? "var(--space-6)" : "var(--space-hair)")};
+  gap: ${(p) => (p.$compact ? "var(--gap-value-tag)" : "var(--gap-line)")};
   padding: var(--inset-surface);
   background: ${(p) =>
     p.$selected ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};
@@ -1966,7 +1966,7 @@ const CrewTrait = styled.span`
 const LaunchControls = styled.div`
   display: flex;
   gap: var(--gap-related);
-  margin-top: var(--space-4);
+  margin-top: var(--gap-actions);
 `;
 
 const PadActions = styled.div`
@@ -1992,7 +1992,7 @@ const FlightStatRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: var(--space-4) var(--space-8);
+  gap: var(--gap-row-wrap) var(--gap-label-value);
   /* When the widget is too narrow to fit label + value side by side,
      drop the value onto its own line (right-aligned) instead of
      clipping the digits off the edge. */
@@ -2035,7 +2035,7 @@ const CrashChip = styled.div`
 const FundsReadout = styled.span`
   color: var(--color-status-go-fg);
   font-variant-numeric: tabular-nums;
-  margin-left: var(--space-2);
+  margin-left: var(--gap-lead-figure);
   /* Keep the separator glued to the amount so a narrow subtitle wraps
      "· 42,500f" as one unit instead of orphaning the middot. */
   white-space: nowrap;
@@ -2045,7 +2045,7 @@ const FundsReadout = styled.span`
    several phrases long and manages its own break opportunities, so borrowing a
    span that pins white-space would stop it wrapping at all. */
 const DrainReadout = styled.span`
-  margin-left: var(--space-2);
+  margin-left: var(--gap-lead-figure);
 `;
 
 const armButtonBase = `
@@ -2108,16 +2108,16 @@ const TrackingStationConfirm = styled.button`
 `;
 
 const VesselSwitchPanel = styled.div`
-  margin-top: var(--space-6);
+  margin-top: var(--gap-related-compact);
   display: flex;
   flex-direction: column;
-  gap: var(--space-hair);
+  gap: var(--gap-line);
   max-height: 180px;
   overflow-y: auto;
   border: 1px solid var(--color-surface-raised);
   border-radius: var(--radius-regular);
   background: var(--color-surface-app);
-  padding: var(--space-2);
+  padding: var(--inset-switch-panel);
 `;
 
 const VesselSwitchRow = styled.button`
@@ -2172,7 +2172,7 @@ const VesselSwitchDistance = styled.span`
   font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
-  margin-right: var(--space-4);
+  margin-right: var(--gap-trailing-figure);
 `;
 
 const VesselSwitchHint = styled.div`
@@ -2186,7 +2186,7 @@ const VesselSwitchHint = styled.div`
  * hidden by default, the count-carrying label doubles as the reveal button. */
 const SpaceObjectToggle = styled.button`
   align-self: flex-start;
-  margin: var(--space-2) var(--space-2) var(--space-4);
+  margin: var(--outset-reveal-toggle);
   font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-pill);

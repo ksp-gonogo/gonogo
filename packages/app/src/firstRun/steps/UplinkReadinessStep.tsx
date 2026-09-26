@@ -50,7 +50,7 @@ export function UplinkReadinessStep() {
    * reading, and holding it back behind a connection would hide it.
    */
   return (
-    <Stack gap="sm">
+    <Stack gap="related-dense">
       {waitingForMod ? (
         <StatusIndicator tone="neutral" pulse="fast" live>
           Waiting for the mod to report its Uplinks

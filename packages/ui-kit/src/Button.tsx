@@ -26,23 +26,23 @@ export const Button = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-6, 6px);
+  gap: var(--gap-glyph-control);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-regular, 3px);
+  border-radius: var(--radius-regular);
   color: var(--color-text-primary);
   font-size: var(--font-size-compact);
   font-weight: 600;
-  padding: var(--inset-control, var(--space-6, 6px) var(--space-12, 12px));
+  padding: var(--inset-control);
   /* The kit's one control height, so a button lines up with the toggles and
      readouts it shares a bar with. Flush line height with it: left at the
      browser's "normal" the box is sized by descender headroom this chrome text
      never uses, which is how two buttons a rung apart in type came out
      different heights. See --control-height in tokens.css. */
-  min-height: var(--control-height, 28px);
-  line-height: var(--line-height-flush, 1);
+  min-height: var(--control-height);
+  line-height: var(--line-height-flush);
   cursor: pointer;
-  transition: border-color var(--duration-fast, 120ms), color var(--duration-fast, 120ms);
+  transition: border-color var(--duration-fast), color var(--duration-fast);
 
   @media (hover: hover) {
     &:hover {
@@ -60,11 +60,10 @@ export const Button = styled.button`
   }
   @media (pointer: coarse) {
     min-height: 44px;
-    /* One rung WIDER than the base inset, not the same rung. A coarse value of
-       14px against a 12px base snaps both onto --space-12, erasing the
-       widening this block exists for (min-height only covers the vertical
-       target). --space-16 keeps a touch-sized horizontal target. */
-    padding: var(--space-8, 8px) var(--space-16, 16px);
+    /* Wider than the base inset on the horizontal as well as the vertical:
+       min-height only covers the vertical target, so this is what keeps a
+       touch-sized horizontal one. */
+    padding: var(--inset-control-touch);
   }
 `;
 
@@ -111,7 +110,7 @@ export const TextButton = styled.button`
   cursor: pointer;
   padding: 0;
   text-decoration: underline;
-  transition: color var(--duration-fast, 120ms);
+  transition: color var(--duration-fast);
 
   @media (hover: hover) {
     &:hover {
@@ -132,9 +131,9 @@ export const IconButton = styled.button`
   cursor: pointer;
   color: var(--color-text-faint);
   font-size: var(--font-size-base);
-  line-height: var(--line-height-flush, 1);
-  padding: var(--space-2, 2px) var(--space-4, 4px);
-  transition: color var(--duration-fast, 120ms);
+  line-height: var(--line-height-flush);
+  padding: var(--inset-glyph-button);
+  transition: color var(--duration-fast);
 
   @media (hover: hover) {
     &:hover {

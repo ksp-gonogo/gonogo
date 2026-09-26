@@ -465,7 +465,7 @@ function LibrationPointsComponent({
           )}
         </Section>,
         drawn ? (
-          <Section key="readouts" as="ul" gap="xs" style={READOUTS}>
+          <Section key="readouts" as="ul" gap="rows" style={READOUTS}>
             <Row>
               <RowName>Separation</RowName>
               <Text>
@@ -583,7 +583,7 @@ const REFUSAL: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   textAlign: "center",
-  padding: "var(--space-8)",
+  padding: "var(--inset-refusal)",
 };
 
 registerComponent<LibrationPointsConfig>({

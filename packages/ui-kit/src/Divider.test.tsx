@@ -9,7 +9,7 @@ describe("Divider", () => {
   });
 
   it("accepts a space prop and still renders", () => {
-    render(<Divider space="sm" data-testid="d" />);
+    render(<Divider space="related-dense" data-testid="d" />);
     expect(screen.getByTestId("d").tagName).toBe("HR");
   });
 

@@ -116,10 +116,7 @@ const Bar = styled.div`
   display: flex;
   align-items: center;
   gap: var(--gap-section);
-  /* Rungs, not --inset-surface: this is the full-width chrome strip on the
-     16px gutter lock, the band the deleted --inset-panel used to hold and
-     which no name covers now. */
-  padding: var(--space-8) var(--space-16);
+  padding: var(--inset-banner);
   background: var(--color-tag-purple-bg, var(--color-surface-raised));
   border-bottom: 2px solid var(--color-tag-purple-fg);
   color: var(--color-text-primary);
@@ -142,7 +139,7 @@ const Title = styled.span`
 const Strong = styled.span`
   color: var(--color-tag-purple-fg);
   font-weight: 700;
-  margin-left: var(--space-4);
+  margin-left: var(--gap-trailing-figure);
 `;
 
 const PlayButton = styled.button`

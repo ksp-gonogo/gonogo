@@ -453,7 +453,7 @@ function RotorTachometerComponent({
             </Cluster>
           </Section>
         ),
-        <Section key="controls" gap="sm">
+        <Section key="controls" gap="related-dense">
           {/* Both steppers are RELATIVE to the value beside them, so an unread
               figure disables them rather than stepping off a substituted zero.
               The reason rides the accessible NAME rather than a visual-only
@@ -635,7 +635,7 @@ function RotorTachometerComponent({
           </Cluster>
         </Section>,
         rotors.length > 1 && (
-          <Section key="rotors" gap="sm" aria-label="Rotors">
+          <Section key="rotors" gap="related-dense" aria-label="Rotors">
             {rotors.map((r) => (
               <SelectableRow
                 key={r.partId}

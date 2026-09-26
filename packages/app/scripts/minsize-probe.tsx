@@ -147,7 +147,7 @@ const FITS_ID = "minsize-gate-fits";
 function Fits() {
   return (
     <Panel panelTitle="Fits">
-      <Stack gap="sm">
+      <Stack gap="related-dense">
         <Field>
           <FieldLabel htmlFor="fits-text">Name</FieldLabel>
           <Input id="fits-text" readOnly value="Kerbin" />

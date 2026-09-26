@@ -192,7 +192,7 @@ const RemoveBtn = styled.button<{ $confirming: boolean }>`
   font-size: var(--font-size-xs);
   line-height: var(--line-height-flush);
   padding: var(--inset-control-compact);
-  margin-left: var(--space-2);
+  margin-left: var(--gap-glyph-tray);
 
   &:hover {
     color: var(--color-status-nogo-fg);
@@ -207,7 +207,7 @@ const PushBtn = styled.button<{ $pushed: boolean }>`
   cursor: pointer;
   line-height: var(--line-height-flush);
   padding: var(--inset-control-compact);
-  margin-left: var(--space-2);
+  margin-left: var(--gap-glyph-tray);
 
   &:hover {
     color: var(--color-status-info-fg);
@@ -221,7 +221,7 @@ const WidgetErrorPanel = styled.div`
   align-items: center;
   justify-content: center;
   gap: var(--gap-related);
-  padding: var(--space-12);
+  padding: var(--inset-tile-message);
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-alert-muted);
   color: var(--color-status-nogo-fg);
@@ -246,7 +246,7 @@ const WidgetErrorHint = styled.div`
 `;
 
 const WidgetErrorRetry = styled.button`
-  margin-top: var(--space-4);
+  margin-top: var(--gap-actions);
   padding: var(--inset-control);
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-alert-muted);

@@ -159,7 +159,7 @@ function InputTesterComponent({
     }
     if (analogs.length > 0) {
       sections.push(
-        <Section key="axes" title="Axes" gap="md">
+        <Section key="axes" title="Axes" gap="related-comfortable">
           {analogs.map((input) => {
             const raw = values[input.id];
             const v = typeof raw === "number" ? raw : 0;
@@ -202,7 +202,7 @@ function InputTesterComponent({
     }
     if (buttons.length > 0) {
       sections.push(
-        <Section key="buttons" title="Buttons" gap="md">
+        <Section key="buttons" title="Buttons" gap="related-comfortable">
           <ButtonGrid>
             {buttons.map((input) => {
               const pressed = values[input.id] === true;

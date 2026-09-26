@@ -204,11 +204,11 @@ const Dropdown = styled.div<{ $placement: "below" | "above" }>`
   right: 0;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-regular, 3px);
+  border-radius: var(--radius-regular);
   max-height: 280px;
   overflow-y: auto;
   /* The popover-anchored-to-a-control rung. */
-  z-index: var(--z-dropdown, 200);
+  z-index: var(--z-dropdown);
 `;
 
 const DropdownGroup = styled.div``;
@@ -219,7 +219,7 @@ const GroupHeader = styled.div`
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  padding: var(--space-8, 8px) var(--space-8, 8px) var(--space-4, 4px);
+  padding: var(--inset-menu-group-label);
   position: sticky;
   top: 0;
   background: var(--color-surface-raised);
@@ -229,7 +229,7 @@ const DropdownItem = styled.div<{ $active: boolean; $selected: boolean }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-6, 6px) var(--space-8, 8px);
+  padding: var(--inset-menu-item);
   cursor: pointer;
   background: ${({ $active, $selected }) =>
     $active

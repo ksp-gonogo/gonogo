@@ -166,7 +166,7 @@ const LoadingPlaceholder = styled.div`
   align-items: center;
   justify-content: center;
   min-height: 200px;
-  padding: var(--space-24);
+  padding: var(--inset-screen-message);
   color: var(--color-text-muted);
   font-size: var(--font-size-compact);
 `;

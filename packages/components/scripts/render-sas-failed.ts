@@ -32,14 +32,14 @@ const MODES = ["SAS","PRO","RET","NOR","ANT","RIN","ROU","TGT","ATG","MNV"];
 const GRID = {
   display: "grid",
   gridTemplateColumns: "repeat(5, 1fr)",
-  gap: "var(--space-4)",
+  gap: "var(--gap-chips)",
 };
 const LABEL = {
   fontSize: "var(--font-size-caption)",
   letterSpacing: "0.12em",
   textTransform: "uppercase",
   color: "var(--color-text-faint)",
-  marginBottom: "var(--space-4)",
+  marginBottom: "var(--gap-under-title)",
 };
 
 function Grid({ activeIndex, failedIndex }) {
@@ -66,7 +66,7 @@ function Grid({ activeIndex, failedIndex }) {
 
 function App() {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)", padding: "var(--space-12)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-section-compact)", padding: "var(--inset-sheet)" }}>
       <div>
         <div style={LABEL}>SAS Mode</div>
         <Grid activeIndex={1} failedIndex={-1} />

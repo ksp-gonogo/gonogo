@@ -45,8 +45,8 @@ const ActionButton__Root = styled.button<{ $tone: ActionButtonTone }>`
   font-size: var(--font-size-caption);
   font-weight: 600;
   letter-spacing: 0.04em;
-  padding: var(--space-2, 2px) var(--space-8, 8px);
-  border-radius: var(--radius-regular, 2px);
+  padding: var(--inset-control-small);
+  border-radius: var(--radius-regular);
   border: 1px solid var(--color-border-strong);
   background: transparent;
   color: var(--color-text-muted);
@@ -54,7 +54,7 @@ const ActionButton__Root = styled.button<{ $tone: ActionButtonTone }>`
   font-family: inherit;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-4, 4px);
+  gap: var(--gap-glyph);
 
   &:hover:not(:disabled) {
     color: var(--color-text-primary);
@@ -76,7 +76,7 @@ const ActionButton__Root = styled.button<{ $tone: ActionButtonTone }>`
       border-color: transparent;
 
       @media (prefers-reduced-motion: no-preference) {
-        animation: ${transmitPulse} 1s var(--ease-emphasis, ease-in-out) infinite;
+        animation: ${transmitPulse} 1s var(--ease-emphasis) infinite;
       }
     `}
 `;

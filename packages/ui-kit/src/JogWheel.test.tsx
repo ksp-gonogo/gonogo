@@ -129,8 +129,8 @@ describe("JogWheel sizing", () => {
     );
     expect(box("Across")).toEqual({ width: "120px", height: "40px" });
     expect(box("Down")).toEqual({ width: "40px", height: "120px" });
-    expect(declarations("Across")).toContain("padding:var(--space-4, 4px)");
-    expect(declarations("Down")).toContain("padding:var(--space-4, 4px)");
+    expect(declarations("Across")).toContain("padding:var(--inset-jog-wheel)");
+    expect(declarations("Down")).toContain("padding:var(--inset-jog-wheel)");
   });
 
   it("draws the box it is asked for, down to a corner-sized strip", () => {
@@ -148,7 +148,9 @@ describe("JogWheel sizing", () => {
     );
     expect(box("Yaw")).toEqual({ width: "72px", height: "24px" });
     // 2px, not 4: at 24 tall the wider inset clips the caret label.
-    expect(declarations("Yaw")).toContain("padding:var(--space-2, 2px)");
+    expect(declarations("Yaw")).toContain(
+      "padding:var(--inset-jog-wheel-compact)",
+    );
   });
 
   it("refuses an unpressable box, clamping either axis to the target-size floor", () => {

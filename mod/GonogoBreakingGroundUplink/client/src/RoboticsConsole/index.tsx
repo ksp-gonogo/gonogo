@@ -462,7 +462,7 @@ function RoboticsConsoleComponent({
             )}
           </Cluster>
         </Section>,
-        <Section key="target" gap="sm">
+        <Section key="target" gap="related-dense">
           {/* The stepper is RELATIVE to the target beside it, so an unread
               target disables it rather than stepping off a substituted zero.
               The reason rides the accessible NAME rather than a visual-only
@@ -560,7 +560,7 @@ function RoboticsConsoleComponent({
           )}
         </Section>,
         showServoList && (
-          <Section key="joints" gap="sm" aria-label="Robotic joints">
+          <Section key="joints" gap="related-dense" aria-label="Robotic joints">
             {servos.map((s) => (
               <SelectableRow
                 key={s.partId}

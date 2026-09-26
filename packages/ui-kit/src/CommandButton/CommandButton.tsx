@@ -817,11 +817,11 @@ const TONE_FILLED = {
 const SIZE_STYLES = {
   sm: css`
     font-size: var(--font-size-caption);
-    padding: var(--space-2, 2px) var(--space-8, 8px);
+    padding: var(--inset-control-small);
   `,
   md: css`
     font-size: var(--font-size-compact);
-    padding: var(--inset-control, var(--space-6, 6px) var(--space-12, 12px));
+    padding: var(--inset-control);
   `,
 } as const;
 
@@ -835,15 +835,15 @@ const CommandButton__Body = styled.button<{
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-4, 4px);
+  gap: var(--gap-glyph);
   font-family: inherit;
   font-weight: 600;
   letter-spacing: 0.04em;
-  border-radius: var(--radius-regular, 3px);
+  border-radius: var(--radius-regular);
   cursor: pointer;
-  transition: background var(--duration-fast, 100ms),
-    border-color var(--duration-fast, 100ms),
-    color var(--duration-fast, 100ms);
+  transition: background var(--duration-fast),
+    border-color var(--duration-fast),
+    color var(--duration-fast);
 
   background: transparent;
   border: 1px solid var(--color-border-subtle);
@@ -860,7 +860,7 @@ const CommandButton__Body = styled.button<{
     $armed &&
     css`
       @media (prefers-reduced-motion: no-preference) {
-        animation: ${armedPulse} 1s var(--ease-emphasis, ease-in-out) infinite;
+        animation: ${armedPulse} 1s var(--ease-emphasis) infinite;
       }
     `}
 
@@ -924,7 +924,7 @@ const CommandButton__Body = styled.button<{
     min-height: 44px;
     padding: ${({ $size }) =>
       $size === "sm"
-        ? "var(--space-6) var(--space-10)"
-        : "var(--space-8) var(--space-16)"};
+        ? "var(--inset-control-small-touch)"
+        : "var(--inset-control-touch)"};
   }
 `;

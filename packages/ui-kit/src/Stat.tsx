@@ -78,20 +78,20 @@ export const StatStrip = styled.div`
      3x4 minimum it declares. Below 7rem of room the column takes the room there
      is, which is narrower than the floor wants but is at least readable. */
   grid-template-columns: repeat(auto-fit, minmax(min(7rem, 100%), 1fr));
-  gap: var(--space-6, 6px);
+  gap: var(--gap-stat-strip);
   align-items: stretch;
 `;
 
 const Stat__Root = styled.dl`
   display: flex;
   flex-direction: column;
-  gap: var(--space-2, 2px);
+  gap: var(--gap-caption);
   margin: 0;
   min-width: 0;
-  padding: var(--space-6, 6px) var(--space-8, 8px);
+  padding: var(--inset-surface);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-regular, 2px);
+  border-radius: var(--radius-regular);
 `;
 
 const Stat__Label = styled.dt`
@@ -111,10 +111,10 @@ const Stat__Figure = styled.dd<{ $tone: StatTone }>`
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: var(--space-4, 4px);
+  gap: var(--gap-figure-parts);
   font-size: var(--font-size-figure);
   font-weight: 700;
-  line-height: var(--line-height-tight, 1.2);
+  line-height: var(--line-height-tight);
   font-variant-numeric: tabular-nums;
   ${({ $tone }) => STAT_TONE_COLOR[$tone]}
 `;

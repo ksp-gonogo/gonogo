@@ -79,7 +79,7 @@ const PanelStatusDot__Root = styled.span<{
   width: ${({ $digits }) =>
     $digits > 1 ? `calc(${$digits}ch + 4px)` : DOT_DIAMETER};
   border-radius: ${({ $digits }) =>
-    $digits > 1 ? "var(--radius-pill, 999px)" : "var(--radius-circle)"};
+    $digits > 1 ? "var(--radius-pill)" : "var(--radius-circle)"};
   background: ${({ $color }) => $color};
   /* A crisp rim plus a real glow bloom, so the dot reads as a lit indicator
      rather than a flat disc. The previous halo used a negative spread (a rim
@@ -124,5 +124,5 @@ const PanelStatusDot__Count = styled.span`
   font-size: inherit;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  line-height: var(--line-height-flush, 1);
+  line-height: var(--line-height-flush);
 `;

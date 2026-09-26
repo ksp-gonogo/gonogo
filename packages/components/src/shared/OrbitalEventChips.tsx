@@ -122,7 +122,7 @@ function Chip({
   const tone = CHIP_TONE[variant];
   return (
     <Box
-      pad={["xs", "md"]}
+      pad="chip-readout"
       radius="regular"
       style={{
         display: "inline-flex",

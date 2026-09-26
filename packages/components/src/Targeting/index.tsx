@@ -597,7 +597,10 @@ function TargetingComponent({
           <Text
             size="xs"
             tone="muted"
-            style={{ marginTop: "var(--space-4)", letterSpacing: "0.04em" }}
+            style={{
+              marginTop: "var(--gap-sub-readout)",
+              letterSpacing: "0.04em",
+            }}
           >
             Δv <Unit value={closingRateR} decimals={2} />
           </Text>
@@ -780,7 +783,7 @@ function ApproachHud({
            an overflowing readout still starts at the top. */
         fitToSize
         sections={
-          <Section full gap="sm">
+          <Section full gap="related-dense">
             <Text tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
               {name}
             </Text>
@@ -795,7 +798,10 @@ function ApproachHud({
               <Text
                 size="xs"
                 tone="muted"
-                style={{ marginTop: "var(--space-4)", letterSpacing: "0.04em" }}
+                style={{
+                  marginTop: "var(--gap-sub-readout)",
+                  letterSpacing: "0.04em",
+                }}
               >
                 {closing ? "−" : "+"}
                 <Unit value={value("m/s", closingMagnitude)} decimals={1} />
@@ -822,10 +828,10 @@ function ApproachHud({
         <Section key="approach" full>
           <Grid
             cols={stack ? "1fr" : "auto 1fr"}
-            gap="lg"
+            gap="section-compact"
             style={{
-              marginTop: "var(--space-6)",
-              rowGap: stack ? "0" : "var(--space-4)",
+              marginTop: "var(--gap-related-compact)",
+              rowGap: stack ? "0" : "var(--gap-row-wrap)",
             }}
           >
             <ReadoutRow label="Distance">
@@ -1108,7 +1114,7 @@ function DockingHud(props: DockingHudProps) {
         <Section
           full
           fill
-          gap="sm"
+          gap="related-dense"
           style={{ flexDirection: wideShort ? "row" : "column" }}
         >
           {showViewport && (
@@ -1184,7 +1190,7 @@ function DockingHud(props: DockingHudProps) {
             <Cluster
               justify="between"
               align="baseline"
-              style={{ gap: "var(--space-10)" }}
+              style={{ gap: "var(--gap-headline)" }}
             >
               <Truncate
                 style={{
@@ -1209,10 +1215,10 @@ function DockingHud(props: DockingHudProps) {
             </Cluster>
             <Grid
               cols={stackReadouts ? "1fr" : "auto 1fr"}
-              gap="md"
+              gap="label-value"
               style={{
-                rowGap: "var(--space-hair)",
-                marginTop: "var(--space-4)",
+                rowGap: "var(--gap-line)",
+                marginTop: "var(--gap-sub-readout)",
               }}
             >
               <ReadoutCaption

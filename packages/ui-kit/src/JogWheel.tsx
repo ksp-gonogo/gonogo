@@ -346,9 +346,9 @@ const JogWheel__Root = styled.div<{
   width: ${(p) => p.$width}px;
   height: ${(p) => p.$height}px;
   padding: ${(p) =>
-    p.$compact ? "var(--space-2, 2px)" : "var(--space-4, 4px)"};
+    p.$compact ? "var(--inset-jog-wheel-compact)" : "var(--inset-jog-wheel)"};
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-regular, 2px);
+  border-radius: var(--radius-regular);
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
   cursor: ${(p) =>
@@ -390,10 +390,10 @@ const JogWheel__Label = styled.span`
   /* Last DOM sibling over the absolute tape/caret: paints on top by source
      order in the same stacking context, so no z-index is needed. */
   position: relative;
-  font-family: var(--font-family-mono, ui-monospace, monospace);
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-compact);
   color: var(--color-text-primary);
   background: var(--color-surface-raised);
-  padding: 0 var(--space-2, 2px);
+  padding: var(--inset-jog-wheel-label);
   pointer-events: none;
 `;

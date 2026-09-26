@@ -40,7 +40,7 @@ export function StationAlarmBanner({
 
   return (
     <Wrap role="alert">
-      <Stack gap="sm">
+      <Stack gap="related-dense">
         {individuals.map((a) => (
           <Cluster justify="start" align="baseline" wrap key={a.id}>
             <Label>Fired</Label>
@@ -87,10 +87,7 @@ const Wrap = styled.div`
   border-radius: var(--radius-pill);
   color: var(--color-text-primary);
   font-size: var(--font-size-compact);
-  /* Rungs, not --inset-surface, and the same reason AlarmBanner gives: this is
-     the floating-chrome band on the 16px gutter lock, which no name covers
-     since --inset-panel went. */
-  padding: var(--space-8) var(--space-16);
+  padding: var(--inset-banner);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
   pointer-events: auto;
   max-width: 100%;

@@ -45,7 +45,7 @@ export interface CardProps extends BlockProps {
    *
    * Deliberately NOT a full-width border: operator feedback on the first pass
    * called a full-edge strip too busy, it read as a second meter stacked on the
-   * card rather than a quiet identity mark. A `--space-24` tab centred on the
+   * card rather than a quiet identity mark. A `--size-mark` tab centred on the
    * top edge instead, short enough to read as a label, not a gauge.
    *
    * A plain CSS colour, not a resource name: this primitive has no opinion on
@@ -100,11 +100,9 @@ const STRIP_WIDTH = "3px";
  * context reaches the kit's own primitives and nothing else, and most of the
  * app's spacing is declared in a widget's own `styled.div`.
  *
- * This stepping is also the ENTIRE case for a semantic gap name, so it is the
- * shape of the vocabulary rather than a feature of it: a name that resolved to
- * the same number in every tier would be a constant with two spellings. A 1px
- * seam is the worked example, and it is why `gap: var(--space-hair)` stays a
- * rung.
+ * This stepping is what makes --gap-related and --gap-section CONTEXT names.
+ * Every other spacing name, the 1px --gap-line included, is a constant that
+ * resolves the same in every tier.
  *
  * The insets do not step, because a chip inside a card is still a chip; a card
  * that wanted its children's edges tightened would be saying something about
@@ -119,17 +117,17 @@ const Card__Root = styled(Block__Root)<{
   $identityColor?: string;
   $standalone?: boolean;
 }>`
-  --gap-related: var(--space-6, 6px);
-  --gap-section: var(--space-12, 12px);
+  --gap-related: var(--gap-related-compact);
+  --gap-section: var(--gap-section-compact);
 
   position: relative;
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-regular, 3px);
+  border-radius: var(--radius-regular);
   ${({ $standalone }) =>
     $standalone
       ? "padding: var(--inset-surface-standalone);"
-      : "padding: var(--inset-surface, var(--space-6, 6px) var(--space-8, 8px));"}
+      : "padding: var(--inset-surface);"}
   ${({ $tone }) =>
     $tone ? `border-left: 2px solid ${TONE_COLOR[$tone]};` : ""}
   ${({ $identityColor }) =>
@@ -141,10 +139,10 @@ const Card__Root = styled(Block__Root)<{
       top: -1px;
       left: 50%;
       transform: translateX(-50%);
-      width: var(--space-24, 24px);
+      width: var(--size-mark);
       height: ${STRIP_WIDTH};
       background: ${$identityColor};
-      border-radius: var(--radius-regular, 3px) var(--radius-regular, 3px) 0 0;
+      border-radius: var(--radius-regular) var(--radius-regular) 0 0;
     }
   `
       : ""}

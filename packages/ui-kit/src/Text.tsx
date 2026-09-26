@@ -143,5 +143,5 @@ const Text__Root = styled.span<{
   ${({ $tone }) => TONE_STYLES[$tone]}
   ${({ $size }) => $size && SIZE_STYLES[$size]}
   ${({ $weight }) => $weight && WEIGHT_STYLES[$weight]}
-  ${({ $spaced }) => $spaced && `margin-left: var(--space-2, 2px);`}
+  ${({ $spaced }) => $spaced && `margin-left: var(--gap-lead-figure);`}
 `;

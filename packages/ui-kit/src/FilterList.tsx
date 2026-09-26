@@ -59,9 +59,9 @@ export function FilterList({
   const shown = rows.filter((row) => filter.matches(row.searchText));
 
   return (
-    <Stack gap="sm">
+    <Stack gap="related-dense">
       {shown.length > 0 ? (
-        <Stack gap="xs">
+        <Stack gap="rows">
           {shown.map((row) => (
             <div key={row.id}>{row.node}</div>
           ))}

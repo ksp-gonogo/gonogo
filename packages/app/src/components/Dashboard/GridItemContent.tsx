@@ -253,7 +253,7 @@ const CellHeader = styled.div`
      --inset-control-compact is 14px of box on a desktop but 15px on a coarse
      pointer, which is the tier-1 Steam Deck. 15px inside 18px is fine; inside
      16px it leaves 0.5px per side on the primary drag affordance, which is
-     also why that inset's vertical is the hair rung and not 2. Grow this before
+     also why that inset's vertical is 1px and not 2. Grow this before
      shrinking it. */
   height: 18px;
   background: var(--color-surface-panel);
@@ -263,7 +263,7 @@ const CellHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: 0 var(--space-4);
+  padding: var(--inset-tile-header);
 
   @media (hover: hover) {
     &:hover {

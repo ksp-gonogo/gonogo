@@ -414,7 +414,7 @@ const FAB = styled.button`
      FabPrompt's 72px and Fab's own right: 24px are all arithmetic on. Those
      stay literal because a CSS pass cannot see the derived numbers, so
      tokenising only this end would desynchronise the cluster the first time
-     --space-24 moves. Do not add a safe-area wrapper here in isolation
+     the 24 moves. Do not add a safe-area wrapper here in isolation
      either: it shifts this button relative to nothing else. */
   bottom: 24px;
   right: 24px;
@@ -482,11 +482,9 @@ const SearchRow = styled.div`
   display: flex;
   align-items: center;
   gap: var(--gap-related);
-  /* Horizontal inset goes UP to the panel column, not down to --space-12 that
-     14px maps to: ResultsHeader, ChipRow and ListItem below all sit at
-     --space-16, so 14px is already 2px off that edge and snapping down would
-     double the misalignment on the widest edge of the picker. */
-  padding: var(--space-12) var(--space-16);
+  /* On the overlay gutter that ResultsHeader, ChipRow and ListItem below
+     share, so the search text lines up with every band under it. */
+  padding: var(--inset-overlay-band);
   border-bottom: 1px solid var(--color-surface-raised);
   flex-shrink: 0;
 `;
@@ -518,7 +516,7 @@ const SearchInput = styled.input`
      today so a swap would work, but it silently reintroduces the zoom the
      moment lg is retuned. Same exception as ui-kit/Form.tsx. */
   font-size: 16px;
-  padding: var(--space-4) 0;
+  padding: var(--inset-search-input);
 
   &:focus {
     outline: none;
@@ -530,11 +528,7 @@ const SearchInput = styled.input`
 `;
 
 const ResultsHeader = styled.div`
-  /* Rungs, not --inset-surface: every band down this picker (SearchRow above,
-     ChipRow, ListItem and Empty below) hangs off the same 16px gutter, and a
-     name that took this one to 8 would step the header out of that column on
-     its own. */
-  padding: var(--space-6) var(--space-16);
+  padding: var(--inset-overlay-heading);
   font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -547,7 +541,7 @@ const ChipRow = styled.div`
   flex-wrap: wrap;
   gap: var(--gap-related);
   /* Same gutter column as the rows above and below; see ResultsHeader. */
-  padding: var(--space-10) var(--space-16);
+  padding: var(--inset-overlay-chips);
   border-bottom: 1px solid var(--color-surface-raised);
   flex-shrink: 0;
 `;
@@ -569,7 +563,7 @@ const ListItem = styled.button<{ $active?: boolean }>`
   /* A full-width record on the picker's gutter, not a control, whatever the
      element is: --inset-control would pull a row that spans the whole overlay
      in to a button's width and off the column the header above it sits on. */
-  padding: var(--space-12) var(--space-16);
+  padding: var(--inset-overlay-band);
   cursor: pointer;
   /* The roving highlight is the keyboard cursor; mirror it with an inset
      accent rule so it reads as "selected" while DOM focus stays in the
@@ -622,7 +616,7 @@ const Empty = styled.div`
   /* Deliberately taller than it is wide: an empty picker needs the vertical
      room to sit where the first result would have been, and every --inset-*
      name puts horizontal at or above vertical, so none of them can say it. */
-  padding: var(--space-24) var(--space-16);
+  padding: var(--inset-overlay-empty);
   font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   text-align: center;

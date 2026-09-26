@@ -21,10 +21,9 @@ import "./styledComponentsTheme";
 // properties behind without anyone noticing. A consumer that can install this
 // package can import a stylesheet.
 //
-// The inline fallbacks written through this package (`var(--space-8, 8px)`)
-// are the last line of defence for a host that mounts NO sheet: they keep a
-// padding from computing to its initial `0` and collapsing the layout. Colours
-// degrade to inherited text and are left bare, matching what shipped before.
+// Tokens are read bare, with no inline fallback, so the sheet is not optional:
+// a host that mounts none gets every padding and gap at `0` and every corner
+// square.
 export {
   DefaultThemeProvider,
   defaultDarkTheme,

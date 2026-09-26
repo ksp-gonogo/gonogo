@@ -461,7 +461,12 @@ function CommSignalComponent({
         </Section>,
         showDetailGrid && (
           <Section key="detail">
-            <Grid cols="auto 1fr" gap="md" rowGap="xs" align="baseline">
+            <Grid
+              cols="auto 1fr"
+              gap="label-value"
+              rowGap="readout-row"
+              align="baseline"
+            >
               <CommSignalDetailRows
                 control={control}
                 delay={delay}
@@ -629,7 +634,7 @@ function CommsPathLeg({
         display: "flex",
         alignItems: "center",
         gap: "var(--gap-related)",
-        minHeight: hasDetail ? undefined : "var(--space-16)",
+        minHeight: hasDetail ? undefined : "var(--size-comms-hop)",
       }}
     >
       <RailSlot stop={false} />
@@ -800,10 +805,8 @@ function SignalBars({
         display: "flex",
         alignItems: "flex-end",
         /* Glyph geometry, not a seam between siblings: this is the kerf between
-           the four bars of a signal-strength icon inside a 24px box. A gap name
-           would put 8px between them and the icon would stop reading as one
-           glyph, so the rung stays. */
-        gap: "var(--space-2)",
+           the four bars of a signal-strength icon inside a 24px box. */
+        gap: "var(--gap-signal-bars)",
         height: 24,
       }}
     >

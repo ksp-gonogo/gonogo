@@ -384,7 +384,12 @@ function ExperimentsComponent({
    * rows whose buttons had gone missing.
    */
   const contributedNodes = contributedGroups.map(({ ownerLabel, groups }) => (
-    <Section key={`contributed-${ownerLabel}`} full gap="sm" title={ownerLabel}>
+    <Section
+      key={`contributed-${ownerLabel}`}
+      full
+      gap="related-dense"
+      title={ownerLabel}
+    >
       {groups.map(({ expId, items }) => (
         <Stack key={expId}>
           <SectionTitle as="h5">{expId || "(unknown)"}</SectionTitle>
@@ -523,7 +528,7 @@ function LabSection({
           </Stack>
         ))}
       </Stack>
-      <Divider space="sm" />
+      <Divider space="related-dense" />
     </>
   );
 }

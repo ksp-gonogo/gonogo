@@ -207,7 +207,7 @@ describe("ConsoleFrame", () => {
     const rule = ruleFor(
       container.querySelector("[data-console-standing]") as HTMLElement,
     );
-    expect(rule).toContain("top:var(--space-16)");
+    expect(rule).toContain("top:var(--inset-console-foot-straddled)");
     expect(rule).toContain("translateY(-50%)");
     expect(rule).not.toContain("bottom:");
   });
@@ -226,7 +226,9 @@ describe("ConsoleFrame", () => {
     );
     const foot = container.querySelector("[data-console-frame]")
       ?.lastElementChild as HTMLElement;
-    expect(ruleFor(foot)).toContain("padding-top:var(--space-16)");
+    expect(ruleFor(foot)).toContain(
+      "padding-top:var(--inset-console-foot-straddled)",
+    );
   });
 
   it("declares the tone for what is inside it, and wears none of it", () => {

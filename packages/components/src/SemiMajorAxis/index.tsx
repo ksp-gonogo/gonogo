@@ -161,7 +161,7 @@ function SemiMajorAxisComponent({
          so an overflowing readout still starts at the top. */
       fitToSize
       sections={
-        <Section full gap="sm">
+        <Section full gap="related-dense">
           {showSubtitle && (
             <ReadoutCaption style={SMA_CAPTION_STYLE}>
               Semi-major axis{referenceBody ? ` · ${referenceBody}` : ""}

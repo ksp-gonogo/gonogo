@@ -1,13 +1,13 @@
 import type { HTMLAttributes } from "react";
 import styled from "styled-components";
-import { SPACE_VAR, type SpaceToken } from "./scales";
+import { GAP_VAR, type GapToken } from "./scales";
 
 export interface DividerProps extends HTMLAttributes<HTMLHRElement> {
   /**
-   * Vertical space above and below the rule, snapped to the space scale.
+   * Vertical space above and below the rule, as a gap job.
    * Omit for a flush rule (the caller owns the spacing).
    */
-  space?: SpaceToken;
+  space?: GapToken;
 }
 
 /**
@@ -21,9 +21,9 @@ export function Divider({ space, ...rest }: DividerProps) {
   return <Divider__Root $space={space} {...rest} />;
 }
 
-const Divider__Root = styled.hr<{ $space?: SpaceToken }>`
+const Divider__Root = styled.hr<{ $space?: GapToken }>`
   border: 0;
   border-top: 1px solid var(--color-border-subtle);
   width: 100%;
-  margin: ${({ $space }) => ($space ? `${SPACE_VAR[$space]} 0` : "0")};
+  margin: ${({ $space }) => ($space ? `${GAP_VAR[$space]} 0` : "0")};
 `;

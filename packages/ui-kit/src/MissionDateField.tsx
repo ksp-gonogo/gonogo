@@ -215,7 +215,7 @@ export function MissionDateField({
     min: number,
     width: string,
   ) => (
-    <Stack gap="xs" key={key}>
+    <Stack gap="caption" key={key}>
       <FieldLabel htmlFor={`${groupId}-${key}`}>{text}</FieldLabel>
       <Input
         id={`${groupId}-${key}`}
@@ -261,8 +261,8 @@ export function MissionDateField({
   );
 
   return (
-    <Stack gap="sm" role="group" aria-label={label}>
-      <Cluster gap="sm" wrap justify="start">
+    <Stack gap="related-dense" role="group" aria-label={label}>
+      <Cluster gap="related-dense" wrap justify="start">
         {field("year", "YEAR", 1, "5rem")}
         {field("day", "DAY", 1, "5rem")}
         {field("hour", "HR", 0, "4rem")}
@@ -282,7 +282,7 @@ export function MissionDateField({
           passing an empty list has a different nudge control beside this one, and
           the word alone above nothing reads as a row that failed to render. */}
       {coarse.length === 0 ? null : (
-        <Cluster gap="xs" wrap justify="start">
+        <Cluster gap="related-packed" wrap justify="start">
           <Text tone="faint" size="sm">
             NUDGE
           </Text>

@@ -313,7 +313,7 @@ const PopoverItem = styled.button<{ $selected: boolean }>`
   display: grid;
   grid-template-columns: 1fr auto;
   grid-template-rows: auto auto;
-  gap: var(--space-hair) var(--space-12);
+  gap: var(--gap-line) var(--gap-suggestion-columns);
   padding: var(--inset-surface);
   background: ${(p) =>
     p.$selected ? "var(--color-surface-raised)" : "transparent"};

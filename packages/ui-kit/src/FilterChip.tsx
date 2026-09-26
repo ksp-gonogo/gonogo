@@ -32,8 +32,8 @@ const ChipButton = styled.button<{ $selected: boolean }>`
   ${fitBox("chip")}
   display: inline-flex;
   align-items: center;
-  gap: var(--space-6);
-  padding: var(--space-2) var(--space-8);
+  gap: var(--gap-glyph-control);
+  padding: var(--inset-control-small);
   /* Stadium, not a corner: with 2px vertical padding a 12px radius already
      exceeds half the rendered height, so --radius-pill renders identically and
      survives a padding change. */

@@ -652,7 +652,7 @@ const InFlightQueue__Box = styled.div.attrs({ role: "group" })`
      the title and the widget body use), so the container is flush with the
      body content rather than floating at a narrower inset. Top/bottom keep a
      small even margin, there's no sibling edge to line up with on that axis. */
-  margin: var(--space-4, 4px) var(--space-16, 16px);
+  margin: var(--outset-command-strip);
   /* The first tile's rounded corner has to nest CONCENTRICALLY inside the
      panel's own rounded corner, same arc centre, or the two radii read as a
      mismatched offset rather than one continuous curve. That only holds when
@@ -663,8 +663,8 @@ const InFlightQueue__Box = styled.div.attrs({ role: "group" })`
      content plus exactly twice that inset, so the inner row's centring
      (below) has zero slack to redistribute and can't push the top inset out
      of step with the left one. */
-  --queue-panel-radius: calc(var(--radius-floating, 6px) * 2);
-  --queue-tile-inset: calc(var(--queue-panel-radius) - var(--radius-regular, 3px));
+  --queue-panel-radius: calc(var(--radius-floating) * 2);
+  --queue-tile-inset: calc(var(--queue-panel-radius) - var(--radius-regular));
   padding: var(--queue-tile-inset);
   height: calc(
     ${QUEUE_SQUARE}px + ${QUEUE_BAR}px + (var(--queue-tile-inset) * 2)
@@ -729,13 +729,13 @@ const InFlightQueue__Sq = styled.div`
   background: color-mix(in srgb, currentColor 10%, var(--color-surface-raised));
   border: 1px solid currentColor;
   border-right: 0;
-  border-radius: var(--radius-regular, 3px) 0 0 var(--radius-regular, 3px);
+  border-radius: var(--radius-regular) 0 0 var(--radius-regular);
   overflow: hidden;
 
   @container (min-width: ${QUEUE_ROW_MIN}px) {
     border-right: 1px solid currentColor;
     border-bottom: 0;
-    border-radius: var(--radius-regular, 3px) var(--radius-regular, 3px) 0 0;
+    border-radius: var(--radius-regular) var(--radius-regular) 0 0;
   }
 
   .glyph {
@@ -784,12 +784,12 @@ const InFlightQueue__Bar = styled.div`
   overflow: hidden;
   background: var(--color-surface-panel);
   border: 1px solid currentColor;
-  border-radius: 0 var(--radius-regular, 3px) var(--radius-regular, 3px) 0;
+  border-radius: 0 var(--radius-regular) var(--radius-regular) 0;
 
   @container (min-width: ${QUEUE_ROW_MIN}px) {
     width: var(--s);
     height: ${QUEUE_BAR}px;
-    border-radius: 0 0 var(--radius-regular, 3px) var(--radius-regular, 3px);
+    border-radius: 0 0 var(--radius-regular) var(--radius-regular);
   }
 
   .fill {
@@ -826,14 +826,14 @@ const InFlightList__Root = styled.div<{ $row: boolean }>`
   display: flex;
   flex-direction: ${({ $row }) => ($row ? "row" : "column")};
   flex-wrap: ${({ $row }) => ($row ? "wrap" : "nowrap")};
-  column-gap: var(--space-8, 8px);
-  gap: var(--space-2, 2px);
-  padding: var(--space-4, 4px) var(--space-8, 8px);
+  column-gap: var(--gap-command-list-column);
+  gap: var(--gap-command-list-row);
+  padding: var(--inset-command-list);
   font-family: monospace;
   font-size: var(--font-size-compact);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-regular, 4px);
+  border-radius: var(--radius-regular);
 `;
 
 const PHASE_ROW_STYLES: Record<
@@ -860,7 +860,7 @@ const PHASE_ROW_STYLES: Record<
 const InFlightList__Row = styled.div<{ $phase: InFlightListItem["phase"] }>`
   display: flex;
   align-items: baseline;
-  gap: var(--space-6, 6px);
+  gap: var(--gap-command-row);
 
   ${({ $phase }) => PHASE_ROW_STYLES[$phase]}
 `;
@@ -873,7 +873,7 @@ const InFlightList__Arrow = styled.span<{ $pulse: boolean }>`
     $pulse &&
     css`
       @media (prefers-reduced-motion: no-preference) {
-        animation: in-flight-list-pulse 1.6s var(--ease-emphasis, ease-in-out) infinite;
+        animation: in-flight-list-pulse 1.6s var(--ease-emphasis) infinite;
       }
     `}
 

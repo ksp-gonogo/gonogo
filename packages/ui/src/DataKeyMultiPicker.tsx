@@ -146,7 +146,7 @@ const GroupHeader = styled.div`
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-faint);
-  padding: var(--space-8) var(--space-8) var(--space-4);
+  padding: var(--inset-menu-group-label);
   position: sticky;
   top: 0;
   background: var(--color-surface-panel);
@@ -202,19 +202,12 @@ const ItemUnit = styled.span`
   font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   /* A gap wearing margin's clothes: this separates a unit from the label it
-     sits BESIDE on one line, and the parent is not a flex box. The vocabulary
-     has no name for it, deliberately: an --indent-step token existed for a
-     while at 16px and would have pushed this eight times further out, which is
-     what a hierarchy indent means and this is not one. */
-  margin-left: var(--space-6);
+     sits BESIDE on one line, and the parent is not a flex box. */
+  margin-left: var(--gap-trailing-mark);
 `;
 
 const Empty = styled.div`
-  /* Vertical larger than horizontal, which no --inset-* names: all four of
-     chip, control, control-compact and surface put horizontal at or above
-     vertical. The empty state wants the height to read as deliberate space
-     rather than a collapsed list, so it stays a pair of rungs. */
-  padding: var(--space-12) var(--space-8);
+  padding: var(--inset-empty-menu);
   font-size: var(--font-size-compact);
   color: var(--color-text-faint);
   text-align: center;

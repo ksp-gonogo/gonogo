@@ -278,11 +278,11 @@ const ConsoleFrame__Surface = styled.div`
  * A row rather than a single box, so a console with a second standing reading
  * gets them side by side in reading order instead of one on top of the other.
  *
- * `right: var(--space-8)` is the FOOT's own inset, which puts the chip's right
- * edge on the composer's, not `space-8` in from it. That is what lines the
- * figure up with a countdown in the queue: the chip and the queue box carry the
- * same border and the same horizontal padding, so equal outer edges mean equal
- * inner ones.
+ * `right: var(--inset-console-foot)` is the FOOT's own inset, which puts the
+ * chip's right edge on the composer's, not an inset in from it. That is what
+ * lines the figure up with a countdown in the queue: the chip and the queue box
+ * carry the same border and the same horizontal padding, so equal outer edges
+ * mean equal inner ones.
  *
  * `top` is the foot's padding-top, so the chip's own top edge lands on the
  * composer's top border and the translate centres it there. The pair reads the
@@ -303,7 +303,7 @@ const ConsoleFrame__Standing = styled.div<{ $straddle: boolean }>`
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-console-readings);
   /* It overlaps the composer's top-right corner, the same border the row's own
      flag straddles at the far end. A readout must not take a press meant for
      the control underneath it: there is nothing here to click. */
@@ -313,8 +313,8 @@ const ConsoleFrame__Standing = styled.div<{ $straddle: boolean }>`
     $straddle
       ? css`
           position: absolute;
-          right: var(--space-8);
-          top: var(--space-16);
+          right: var(--inset-console-foot);
+          top: var(--inset-console-foot-straddled);
           transform: translateY(-50%);
           z-index: 1;
         `
@@ -347,12 +347,12 @@ const ConsoleFrame__Foot = styled.div<{ $straddled: boolean }>`
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
-  padding: var(--space-8);
+  gap: var(--gap-console-foot);
+  padding: var(--inset-console-foot);
 
   ${({ $straddled }) =>
     $straddled &&
     css`
-      padding-top: var(--space-16);
+      padding-top: var(--inset-console-foot-straddled);
     `}
 `;

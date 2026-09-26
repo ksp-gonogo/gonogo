@@ -507,11 +507,7 @@ const bannerBase = `
   display: inline-flex;
   align-items: center;
   gap: var(--gap-section);
-  /* Rungs, not --inset-surface. The floating-chrome band on the 16px gutter
-     lock, the same one the alarm banners hold: this pill overlays the
-     dashboard, and taking it to (6,8) would halve the gutter its text reads
-     against to make a ratchet number smaller. */
-  padding: var(--space-8) var(--space-16);
+  padding: var(--inset-banner);
   background: rgba(0, 0, 0, 0.88);
   border-radius: var(--radius-pill);
   font-family: inherit;
@@ -708,7 +704,7 @@ const DetailRow = styled.div`
   justify-content: space-between;
   align-items: baseline;
   gap: var(--gap-related);
-  padding: var(--space-4) 0;
+  padding: var(--inset-detail-row);
   font-size: var(--font-size-compact);
 `;
 

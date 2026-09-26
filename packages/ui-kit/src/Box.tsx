@@ -1,16 +1,16 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
-import { RADIUS_VAR, SPACE_VAR, type SpaceToken } from "./scales";
+import { INSET_NAME, type InsetToken, RADIUS_VAR } from "./scales";
 
 export type BoxSurface = "app" | "panel" | "raised" | "sunken";
 /** `displayFrame` is deliberately absent: that corner belongs to `FramedDisplay`. */
 export type BoxRadius = "regular" | "floating" | "pill";
-export type BoxPad = SpaceToken | [SpaceToken, SpaceToken];
+export type BoxPad = InsetToken;
 
 export interface BoxProps extends HTMLAttributes<HTMLDivElement> {
   /** Background surface tier. Omit for a transparent box. */
   surface?: BoxSurface;
-  /** Padding on all sides, or a `[vertical, horizontal]` pair. */
+  /** Padding, as the name of a surface inset. */
   pad?: BoxPad;
   /** Adds a `1px solid` subtle border. Defaults to `false`. */
   bordered?: boolean;
@@ -57,12 +57,5 @@ const Box__Root = styled.div<{
   ${({ $surface }) => $surface && `background: ${SURFACE_VAR[$surface]};`}
   ${({ $bordered }) => $bordered && `border: 1px solid var(--color-border-subtle);`}
   ${({ $radius }) => $radius && `border-radius: ${RADIUS_VAR[$radius]};`}
-  ${({ $pad }) => {
-    if (!$pad) return "";
-    if (Array.isArray($pad)) {
-      const [y, x] = $pad;
-      return `padding: ${SPACE_VAR[y]} ${SPACE_VAR[x]};`;
-    }
-    return `padding: ${SPACE_VAR[$pad]};`;
-  }}
+  ${({ $pad }) => $pad && `padding: var(${INSET_NAME[$pad]});`}
 `;

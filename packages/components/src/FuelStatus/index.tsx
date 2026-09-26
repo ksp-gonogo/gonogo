@@ -227,7 +227,7 @@ interface ResourceRow {
 /** One meter per resource the craft carries: LF/Ox/RCS/Xe/Power. */
 function ResourceListSection({ rows }: { rows: ResourceRow[] }) {
   return (
-    <MeterStack style={{ marginTop: "var(--space-6)" }}>
+    <MeterStack style={{ marginTop: "var(--gap-related-compact)" }}>
       {rows
         .filter(({ capacity }) => carries(capacity))
         .map(({ def, amount, capacity }) => (
@@ -265,8 +265,8 @@ function StageStackSection({
   return (
     <Stack
       style={{
-        marginTop: "var(--space-10)",
-        paddingTop: "var(--space-6)",
+        marginTop: "var(--gap-stage-section)",
+        paddingTop: "var(--inset-below-rule)",
         borderTop: "1px solid var(--color-border-subtle)",
       }}
     >
@@ -274,7 +274,7 @@ function StageStackSection({
         style={{
           color: "var(--color-text-faint)",
           letterSpacing: "0.1em",
-          marginBottom: "var(--space-4)",
+          marginBottom: "var(--gap-under-title)",
         }}
       >
         Stages · ΔV ({DELTA_V_MODE_SHORT[mode]}) · burn · TWR

@@ -345,19 +345,19 @@ const LineGraph__ThresholdMarker = styled.div`
   transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
-  gap: var(--space-4, 4px);
+  gap: var(--gap-glyph);
   pointer-events: none;
-  font-size: var(--font-size-caption, 10px);
+  font-size: var(--font-size-caption);
   font-variant-numeric: tabular-nums;
   /* Single-glyph chrome text centring against a 2px tick: the flush rung. */
-  line-height: var(--line-height-flush, 1);
+  line-height: var(--line-height-flush);
 `;
 
 /** The fixed tick: ~24px, matching the length the identity tab on `Card`
  *  uses for the same "a mark, not a rule" reading. */
 const LineGraph__ThresholdTick = styled.span`
   display: inline-block;
-  width: var(--space-24, 24px);
+  width: var(--size-mark);
   height: 2px;
   border-radius: var(--radius-pill);
   background: currentColor;

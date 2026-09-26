@@ -352,7 +352,7 @@ export function AlarmsModal({
 
   return (
     <Wrap>
-      <Stack as="section" gap="md">
+      <Stack as="section" gap="related-comfortable">
         <SectionTitle as="h3">Add alarm</SectionTitle>
         <KindRow role="radiogroup" aria-label="Trigger kind">
           {KIND_OPTIONS.map((option, index) => (
@@ -594,7 +594,7 @@ export function AlarmsModal({
 
       <RecommendedPresets snapshotRef={snapshotRef} onAdd={onAdd} />
 
-      <Stack as="section" gap="md">
+      <Stack as="section" gap="related-comfortable">
         <SectionTitle as="h3">Scheduled ({sorted.length})</SectionTitle>
         {sorted.length === 0 ? (
           <Empty>No alarms set.</Empty>
@@ -797,7 +797,7 @@ export function AlarmsModal({
       </Stack>
 
       {snapshot.scetForeign && snapshot.scetForeign.length > 0 && (
-        <Stack as="section" gap="md">
+        <Stack as="section" gap="related-comfortable">
           <SectionTitle as="h3">
             Other screens ({snapshot.scetForeign.length})
           </SectionTitle>
@@ -1430,7 +1430,7 @@ const KindRow = styled.div`
   gap: var(--gap-related);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
-  padding: var(--space-2);
+  padding: var(--inset-segment-track);
   background: var(--color-surface-sunken);
   width: fit-content;
 `;
@@ -1558,7 +1558,7 @@ const AddedNote = styled.div`
 const Empty = styled.div`
   color: var(--color-text-dim);
   font-size: var(--font-size-compact);
-  padding: var(--space-12) 0;
+  padding: var(--inset-empty-modal-list);
 `;
 
 const List = styled.ul`
@@ -1655,7 +1655,7 @@ const FireRemoveButton = styled.button`
   color: var(--color-text-dim);
   font-size: var(--font-size-base);
   line-height: var(--line-height-flush);
-  padding: 0 var(--space-2);
+  padding: var(--inset-glyph-tight);
   cursor: pointer;
   &:hover {
     color: var(--color-status-nogo-bg);

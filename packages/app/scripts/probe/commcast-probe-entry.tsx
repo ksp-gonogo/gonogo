@@ -519,9 +519,9 @@ function paneTree(pane: Pane, index: number) {
             own vantage id. */}
         <div
           style={{
-            font: "11px var(--font-family-mono, ui-monospace, monospace)",
+            font: "11px var(--font-family-mono)",
             letterSpacing: "0.08em",
-            color: "var(--color-text-faint, #6a6a6a)",
+            color: "var(--color-text-faint)",
           }}
         >
           {`${pane.seat} · ${pane.vantage ?? "no vantage"}`}
@@ -591,9 +591,9 @@ async function renderSceneOnce(scene: Scene): Promise<boolean> {
         {scene.caption === undefined ? null : (
           <div
             style={{
-              font: "11px var(--font-family-mono, ui-monospace, monospace)",
+              font: "11px var(--font-family-mono)",
               letterSpacing: "0.06em",
-              color: "var(--color-text-muted, #9a9a9a)",
+              color: "var(--color-text-muted)",
             }}
           >
             {scene.caption}

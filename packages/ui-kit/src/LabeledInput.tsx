@@ -56,7 +56,7 @@ const InputRow = styled.label`
   display: grid;
   grid-template-columns: 5em 1fr 2.5em;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-field-label-inline);
 `;
 
 const InputLabel = styled.span`
@@ -71,7 +71,7 @@ const InputField = styled.input`
   border: 1px solid var(--color-border-subtle);
   color: var(--color-text-primary);
   font-size: var(--font-size-value);
-  padding: var(--space-4) var(--space-6);
+  padding: var(--inset-field-compact);
   border-radius: var(--radius-regular);
   text-align: right;
 

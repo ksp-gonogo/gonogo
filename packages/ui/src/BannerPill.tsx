@@ -100,16 +100,12 @@ const FixedPill = styled.div<{
   z-index: ${(p) => p.$zIndex};
   display: inline-flex;
   align-items: center;
-  /* Both rungs stay literal, for two different reasons.
-     10 is the one rung with no gap name over it: --gap-related is 8 and
-     --gap-section is 16.
-     (6,12) is --inset-control's value, and this pill is emphatically not a
-     control: pointer-events is none, four lines down. It borrows the button
-     inset because it reads as a button-sized announcement, so it must not
-     follow the control token when that token moves for touch targets. Nor is
-     it a chip by inset: --inset-chip is (1,6), which would halve this. */
-  gap: var(--space-10);
-  padding: var(--space-6) var(--space-12);
+  /* --inset-pill, not --inset-control, though the two are one size today:
+     this pill is emphatically not a control (pointer-events is none, four
+     lines down), so it must not follow the control token when that token
+     moves for touch targets. */
+  gap: var(--gap-pill);
+  padding: var(--inset-pill);
   background: rgba(0, 0, 0, 0.82);
   border: 1px solid ${(p) => p.$accent};
   border-radius: var(--radius-pill);
@@ -132,7 +128,7 @@ const InlinePill = styled.div<{
      renders it as a button element, and it sits a tier ABOVE --inset-control's
      (6,12) floor on purpose, so a banner you can dismiss is a bigger target
      than a button in a form. That tier is --inset-control-prominent. */
-  gap: var(--space-10);
+  gap: var(--gap-pill);
   padding: var(--inset-control-prominent);
   background: rgba(0, 0, 0, 0.88);
   border: 1px solid ${(p) => p.$accent};

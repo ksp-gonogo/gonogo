@@ -235,11 +235,11 @@ const Menu = styled.div`
   overflow-y: auto;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-regular, 3px);
-  padding: var(--space-4, 4px) 0;
+  border-radius: var(--radius-regular);
+  padding: var(--inset-menu-list);
   /* The popover-anchored-to-a-control rung, the same one ComboboxListbox's
      Dropdown takes and for the same reason. */
-  z-index: var(--z-dropdown, 200);
+  z-index: var(--z-dropdown);
 `;
 
 const GroupHeader = styled.div`
@@ -248,7 +248,7 @@ const GroupHeader = styled.div`
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  padding: var(--space-8, 8px) var(--space-8, 8px) var(--space-4, 4px);
+  padding: var(--inset-menu-group-label);
 `;
 
 const MenuItem = styled.button<{ $disabled?: boolean }>`
@@ -260,7 +260,7 @@ const MenuItem = styled.button<{ $disabled?: boolean }>`
   color: var(--color-text-primary);
   font: inherit;
   font-size: var(--font-size-compact);
-  padding: var(--space-6, 6px) var(--space-8, 8px);
+  padding: var(--inset-menu-item);
   cursor: pointer;
 
   &:hover[aria-disabled="false"],

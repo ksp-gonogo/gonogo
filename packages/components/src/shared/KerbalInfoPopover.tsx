@@ -179,7 +179,7 @@ const INFO_TRIGGER_STYLE = {
   height: "18px",
   padding: 0,
   border: "none",
-  borderRadius: "var(--radius-circle, 50%)",
+  borderRadius: "var(--radius-circle)",
   background: "transparent",
   color: "var(--color-text-faint)",
   cursor: "pointer",
@@ -190,7 +190,7 @@ const INFO_TRIGGER_STYLE = {
    doc comment for why it cannot live on the panel one level in. */
 const POPOVER_HOST_STYLE = {
   position: "fixed",
-  zIndex: "var(--z-dropdown, 200)",
+  zIndex: "var(--z-dropdown)",
 } as const;
 
 /**

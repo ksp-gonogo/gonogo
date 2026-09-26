@@ -172,8 +172,8 @@ const Disclosure__Trigger = styled.button<{
 }>`
   display: inline-flex;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-2) var(--space-4);
+  gap: var(--gap-glyph);
+  padding: var(--inset-glyph-button);
   background: none;
   border: none;
   color: inherit;
@@ -214,7 +214,7 @@ const Disclosure__ButtonTrigger = styled(GhostButton)<{
 }>`
   display: inline-flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--gap-glyph);
   ${({ $variant }) =>
     $variant === "inline" &&
     css`
@@ -225,12 +225,12 @@ const Disclosure__ButtonTrigger = styled(GhostButton)<{
     css`
       font-size: var(--font-size-compact);
       font-weight: 600;
-      padding: var(--space-2, 2px) var(--space-8, 8px);
-      border-radius: var(--radius-regular, 2px);
+      padding: var(--inset-control-small);
+      border-radius: var(--radius-regular);
 
       @media (pointer: coarse) {
         min-height: 44px;
-        padding: var(--space-6, 6px) var(--space-10, 10px);
+        padding: var(--inset-control-small-touch);
       }
     `}
 `;
@@ -239,7 +239,7 @@ const Disclosure__Chevron = styled.span<{ $open: boolean }>`
   display: inline-flex;
   flex-shrink: 0;
   @media (prefers-reduced-motion: no-preference) {
-    transition: transform var(--duration-base, 150ms) var(--ease-standard, ease);
+    transition: transform var(--duration-base) var(--ease-standard);
   }
   transform: rotate(${({ $open }) => ($open ? 90 : 0)}deg);
 `;
@@ -259,12 +259,12 @@ const Disclosure__Panel = styled.div<{
              app-global chrome, so a named z rung would wrongly outrank the
              dashboard's. */
           z-index: 1;
-          margin-top: var(--space-2);
+          margin-top: var(--gap-disclosure);
         `
       : css`
           position: static;
           width: 100%;
-          margin-top: var(--space-2);
+          margin-top: var(--gap-disclosure);
         `}
   /* An accordion body must never overlay or overflow the row below it: it grows
      in flow up to a cap, then scrolls its own content rather than spilling past
@@ -278,7 +278,7 @@ const Disclosure__Panel = styled.div<{
           overflow-y: auto;
         `
       : ""}
-  padding: var(--space-6) var(--space-8);
+  padding: var(--inset-surface);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);

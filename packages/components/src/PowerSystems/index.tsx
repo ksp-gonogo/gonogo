@@ -435,7 +435,7 @@ function PowerSystemsComponent({
            line out of scroll reach. */
         fitToSize
         sections={
-          <Section gap="sm" style={COMPACT_BODY}>
+          <Section gap="related-dense" style={COMPACT_BODY}>
             <div style={COMPACT_RESOURCE}>{splitCamel(resource)}</div>
             <Text
               tone={
@@ -795,8 +795,8 @@ const TOTALS: CSSProperties = {
   // stays on one line.
   gridTemplateColumns: "repeat(auto-fit, minmax(64px, 1fr))",
   gap: "var(--gap-related)",
-  marginTop: "var(--space-8)",
-  marginBottom: "var(--space-8)",
+  marginTop: "var(--gap-related-comfortable)",
+  marginBottom: "var(--gap-related-comfortable)",
 };
 
 const TOTALS_CELL: CSSProperties = {
@@ -874,7 +874,7 @@ const SPARKLINE_ROW: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "var(--gap-related)",
-  marginBottom: "var(--space-8)",
+  marginBottom: "var(--gap-related-comfortable)",
   padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
   border: "1px solid var(--color-surface-raised)",
@@ -915,7 +915,7 @@ const SectionsScroll = styled(ScrollArea)<{ $landscape?: boolean }>`
        scroller: clipping it here would put whatever the short height cannot
        hold out of reach. */
     flex-direction: ${({ $landscape }) => ($landscape ? "row" : "column")};
-    gap: ${({ $landscape }) => ($landscape ? "var(--space-12)" : "var(--space-8)")};
+    gap: ${({ $landscape }) => ($landscape ? "var(--gap-section-compact)" : "var(--gap-related-comfortable)")};
     ${({ $landscape }) => ($landscape ? "align-items: stretch;" : "")}
   }
 `;
@@ -930,20 +930,20 @@ const PANEL_SECTION_LANDSCAPE: CSSProperties = {
 };
 
 const SECTION_COUNT: CSSProperties = {
-  marginLeft: "var(--space-4)",
+  marginLeft: "var(--gap-trailing-figure)",
   color: "var(--color-text-muted)",
 };
 
 const SECTION_EMPTY: CSSProperties = {
   fontSize: "var(--font-size-compact)",
   color: "var(--color-text-faint)",
-  padding: "var(--space-2) 0",
+  padding: "var(--inset-row)",
 };
 
 const CONTRIB_LIST: CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-hair)",
+  gap: "var(--gap-line)",
 };
 
 const IDLE_LIST: CSSProperties = { ...CONTRIB_LIST, opacity: 0.55 };
@@ -970,7 +970,7 @@ const ROW_EFF: CSSProperties = {
 };
 
 const HINT: CSSProperties = {
-  marginTop: "var(--space-6)",
+  marginTop: "var(--gap-related-compact)",
   fontSize: "var(--font-size-compact)",
   color: "var(--color-text-faint)",
   lineHeight: "var(--line-height-body)",

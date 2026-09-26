@@ -129,15 +129,15 @@ window.__renderProvenanceCard = renderProvenanceCard;
 const CardList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
-  padding: var(--space-12);
+  gap: var(--gap-related-comfortable);
+  padding: var(--inset-sheet);
 `;
 
 const ListItem = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-8) var(--space-12);
+  gap: var(--gap-card-lines);
+  padding: var(--inset-sheet-card);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
@@ -163,9 +163,9 @@ const UplinkAddLine = styled.span`
 
 const TagRow = styled.div`
   display: flex;
-  gap: var(--space-4);
+  gap: var(--gap-chips);
   flex-wrap: wrap;
-  margin-top: var(--space-2);
+  margin-top: var(--gap-caption);
 `;
 
 const Tag = styled.span`
@@ -173,5 +173,5 @@ const Tag = styled.span`
   color: var(--color-text-muted);
   background: var(--color-surface-raised);
   border-radius: var(--radius-regular);
-  padding: var(--space-hair) var(--space-6);
+  padding: var(--inset-chip);
 `;
