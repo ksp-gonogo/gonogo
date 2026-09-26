@@ -514,6 +514,7 @@ export {
   type SubjectHeadingProps,
 } from "./SubjectHeading";
 export { Switch } from "./Switch";
+export type { GapToken, InsetToken } from "./scales";
 export type { PanelStatusDotProps } from "./status/PanelStatusDot";
 export {
   type PanelStatusStore,
