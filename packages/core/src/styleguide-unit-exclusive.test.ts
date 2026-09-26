@@ -107,7 +107,7 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
   //    the k threshold, round vs toFixed, trailing zeros kept or stripped. One
   //    ladder in `units.ts` is the answer; each needs its widget's values to
   //    carry declared units first.
-  "packages/components/src/Graph/index.tsx": {
+  "packages/components/src/Graph/ticks.ts": {
     count: 2,
     why: "unit renderer: a k/M readout ladder plus an axis-tick ladder",
   },

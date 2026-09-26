@@ -92,7 +92,7 @@ const ALLOWED_WALL_CLOCK: Record<string, number> = {
   // Pre-dates this ratchet and is its own piece of work (the axis wants the
   // frame's view time, and the samples want their own `validAt`); allowlisted
   // so the ratchet can land without dragging that fix in. 1 read.
-  "packages/components/src/Graph/index.tsx": 1,
+  "packages/components/src/Graph/axes.ts": 1,
 
   // Throttling how often an expensive solve may RUN, which is wall-time by
   // nature: the projection is rebuilt at most once a real second whatever the

@@ -28,6 +28,55 @@ export function GraphSeries({ dataKey, windowSec, onData }: Readonly<Props>) {
   return null;
 }
 
+/** Extends an open status span onto `out`, or starts a new one; closes it when `status` is absent. */
+function advanceStatusSpan(
+  spans: SeriesStatusSpan[] | undefined,
+  open: SeriesStatusSpan | null,
+  out: number,
+  status: StreamStatusValue | undefined,
+): SeriesStatusSpan | null {
+  if (status === undefined) return null;
+  if (open !== null && open.status === status) {
+    open.to = out;
+    return open;
+  }
+  const next: SeriesStatusSpan = { from: out, to: out, status };
+  spans?.push(next);
+  return next;
+}
+
+/** Extends an open reckoned run onto `out`, carrying its band, or starts a new one; closes it when `basis` is absent. */
+function advanceReckonedRun(
+  runs: SeriesReckonedSpan[] | undefined,
+  open: SeriesReckonedSpan | null,
+  out: number,
+  basis: ReckoningBasis | undefined,
+  band: { lo: number; hi: number; kind: BandKind } | undefined,
+): SeriesReckonedSpan | null {
+  if (basis === undefined) return null;
+  if (open !== null && open.basis === basis && open.bandKind === band?.kind) {
+    open.to = out;
+    if (band !== undefined) {
+      open.bandLo?.push(band.lo);
+      open.bandHi?.push(band.hi);
+    }
+    return open;
+  }
+  const next: SeriesReckonedSpan =
+    band !== undefined
+      ? {
+          from: out,
+          to: out,
+          basis,
+          bandLo: [band.lo],
+          bandHi: [band.hi],
+          bandKind: band.kind,
+        }
+      : { from: out, to: out, basis };
+  runs?.push(next);
+  return next;
+}
+
 /** A series reduced to its numeric samples, with every index-bearing annotation (breaks, status spans, reckoned runs and their bands, bridges) moved onto the samples that survive. */
 export function toNumericSeries(
   raw: SeriesRange<unknown>,
@@ -90,42 +139,16 @@ export function toNumericSeries(
     numeric.t.push(raw.t[i]);
     numeric.v.push(n);
     const status = statusAt.get(i);
-    if (status === undefined) {
-      open = null;
-    } else if (open !== null && open.status === status) {
-      open.to = out;
-    } else {
-      open = { from: out, to: out, status };
-      numeric.spans?.push(open);
-    }
+    open = advanceStatusSpan(numeric.spans, open, out, status);
     const basis = basisAt.get(i);
     const band = bandAt.get(i);
-    if (basis === undefined) {
-      openReckoned = null;
-    } else if (
-      openReckoned !== null &&
-      openReckoned.basis === basis &&
-      openReckoned.bandKind === band?.kind
-    ) {
-      openReckoned.to = out;
-      if (band !== undefined) {
-        openReckoned.bandLo?.push(band.lo);
-        openReckoned.bandHi?.push(band.hi);
-      }
-    } else if (band !== undefined) {
-      openReckoned = {
-        from: out,
-        to: out,
-        basis,
-        bandLo: [band.lo],
-        bandHi: [band.hi],
-        bandKind: band.kind,
-      };
-      numeric.reckoned?.push(openReckoned);
-    } else {
-      openReckoned = { from: out, to: out, basis };
-      numeric.reckoned?.push(openReckoned);
-    }
+    openReckoned = advanceReckonedRun(
+      numeric.reckoned,
+      openReckoned,
+      out,
+      basis,
+      band,
+    );
   }
   return numeric;
 }
