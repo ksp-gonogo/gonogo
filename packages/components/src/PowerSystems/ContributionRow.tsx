@@ -1,0 +1,64 @@
+import { readingOf, type TopicReading } from "@ksp-gonogo/sitrep-client";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  NULL_DISPLAY,
+  RowName,
+  speakQuantity,
+  Text,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
+import type { Contribution } from "./flow";
+import { PowerRow, ROW_EFF } from "./styles";
+
+type FlowSign = "pos" | "neg" | "zero";
+
+// A zero flow is neutral, not green: a shadowed panel is idle, not producing.
+function flowSign(flow: number): FlowSign {
+  if (Math.abs(flow) < 1e-9) return "zero";
+  if (flow > 0) return "pos";
+  return "neg";
+}
+
+const FLOW_TONE = { pos: "go", neg: "warn", zero: "faint" } as const;
+
+/** One part's flow of the focused resource, with its efficiency against nominal where both are known. */
+export function ContributionRow({
+  contribution,
+  currency,
+}: {
+  contribution: Contribution;
+  /** The `vessel.parts` read this row's numbers came off. */
+  currency: TopicReading<unknown>;
+}) {
+  const { partTitle, flow, flowKnown, nominalFlow } = contribution;
+  const sign = flowSign(flow);
+  // No efficiency without a measured flow.
+  const eff =
+    flowKnown && typeof nominalFlow === "number" && Math.abs(nominalFlow) > 1e-9
+      ? Math.abs(flow / nominalFlow)
+      : null;
+  return (
+    <PowerRow>
+      <RowName>{partTitle}</RowName>
+      {eff !== null && (
+        <span
+          style={ROW_EFF}
+          title={`${speakQuantity(value("%", eff * 100), { decimals: 0 })} of nominal`}
+        >
+          <Unit
+            value={readingOf(currency, () => value("%", eff * 100))}
+            decimals={0}
+          />
+        </span>
+      )}
+      <Text
+        tone={FLOW_TONE[sign]}
+        title={flowKnown ? undefined : "No flow reading for this part"}
+      >
+        {flowKnown
+          ? `${sign === "pos" ? "+" : ""}${flow.toFixed(2)}`
+          : NULL_DISPLAY}
+      </Text>
+    </PowerRow>
+  );
+}

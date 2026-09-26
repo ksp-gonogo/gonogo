@@ -93,7 +93,7 @@ async function renderFullList() {
   return legacyAux;
 }
 
-describe("PowerSystems: augment slots (spec §4)", () => {
+describe("PowerSystems: augment slots", () => {
   afterEach(() => {
     for (const unmount of renderedTrees) unmount();
     renderedTrees.length = 0;
