@@ -12,7 +12,7 @@ import { SemiMajorAxisComponent } from "./index";
  * only have come from the stream.
  */
 
-describe("SemiMajorAxis: genuinely runs off the stream (M3 batch 2)", () => {
+describe("SemiMajorAxis: genuinely runs off the stream", () => {
   it("reads sma AND the reference-body name off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.orbit", "system.bodies"],

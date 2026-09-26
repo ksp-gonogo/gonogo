@@ -8,7 +8,7 @@ import { SemiMajorAxisComponent } from "./index";
 
 /** SemiMajorAxis renders its full readout, headline and reference-body subtitle, off the stream with no legacy source registered. */
 
-describe("SemiMajorAxis: renders off the stream alone (R6 Wave 1)", () => {
+describe("SemiMajorAxis: renders off the stream alone", () => {
   it("renders sma and the reference-body subtitle purely off the stream", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.orbit", "system.bodies"],

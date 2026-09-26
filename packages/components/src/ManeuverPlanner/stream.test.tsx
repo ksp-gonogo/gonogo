@@ -84,7 +84,7 @@ function emitManeuverNode(fixture: ReturnType<typeof setupStreamFixture>) {
   });
 }
 
-describe("ManeuverPlanner: maneuver-node id round-trip (M3 vessel-gap batch)", () => {
+describe("ManeuverPlanner: maneuver-node id round-trip", () => {
   it("Delete dispatches vessel.maneuver.remove with the REAL node id when vessel.maneuver.remove is carried", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: [
