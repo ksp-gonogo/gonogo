@@ -8,7 +8,10 @@ import { EmptyState, Panel, Section } from "@ksp-gonogo/ui-kit";
 // The `:not(:empty) + sibling` fallback rule below keeps the frame agnostic of which augments rendered, and no inline style can express it.
 // biome-ignore lint/style/noRestrictedImports: :empty frame-fallback rule, no inline equivalent (see above)
 import styled from "styled-components";
-import { ContractsObjectiveSource, topics } from "./ContractsObjectiveSource";
+import {
+  ContractsObjectiveSource,
+  contractsTopics,
+} from "./ContractsObjectiveSource";
 import { ObjectivesSection } from "./ObjectivesSection";
 import type { ObjectiveSourceContext, ObjectivesConfig } from "./types";
 
@@ -70,8 +73,8 @@ registerComponent<ObjectivesConfig>({
   minSize: { w: 4, h: 3 },
   component: ObjectivesComponent,
   augmentSlots: ["objectives.source"],
-  channels: topics.channels,
-  fields: topics.fields,
+  channels: contractsTopics.channels,
+  fields: contractsTopics.fields,
   defaultConfig: {},
   actions: [],
   pushable: true,

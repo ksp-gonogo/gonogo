@@ -16,7 +16,7 @@ import type {
   ObjectiveState,
 } from "./types";
 
-export const topics = defineTopicManifest({
+export const contractsTopics = defineTopicManifest({
   channels: ["career.status"],
   fields: ["career.status.contracts.active"],
 });
@@ -65,7 +65,7 @@ export function contractObjectives(
 export function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
   // Contracts and their parameter states change only on events, so the last board received is still the board.
   const contractsRaw = stillTrue(
-    topics.useTelemetry("career.status"),
+    contractsTopics.useTelemetry("career.status"),
     undefined,
   )?.contracts?.active;
   const createAlarm = useAlarmCreator<ContractParameterAlarmTrigger>();

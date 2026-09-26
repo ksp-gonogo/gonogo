@@ -56,9 +56,8 @@ export type ControlStateName = keyof typeof ControlState;
 export const SITUATION_NAMES = namesOf(Situation);
 
 /**
- * `Sitrep.Contract.SasMode`, behind `vessel.control.sasMode`. Identical to
- * Navball's `SAS_MODES` union (both mirror KSP's `VesselAutopilot.AutopilotMode`),
- * with `Unknown` the graceful fallback not present in `SAS_MODES`.
+ * `Sitrep.Contract.SasMode`, behind `vessel.control.sasMode`. It mirrors KSP's
+ * `VesselAutopilot.AutopilotMode`, plus `Unknown` as the graceful fallback.
  */
 export const SAS_MODE_NAMES = namesOf(SasMode);
 
