@@ -12,7 +12,6 @@ import {
   TelemetryClient,
   TimelineStore,
   ViewClock,
-  vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import {
   PropagationHorizonKind,
@@ -492,10 +491,10 @@ describe("GoNoGoHostService", () => {
 
   it("reports launched for a craft that has lifted off and is under physics, with the abort gate open", async () => {
     /*
-     * Through the REAL derivation rather than a driven `met`: the frames the mod
-     * sends for a craft that has left the pad, every one stamped Loaded, into a
-     * store that runs `vesselStateChannel`. A derivation that nulls `met` under
-     * physics would leave the ascent unlaunched and the abort gate shut.
+     * The frames the mod sends for a craft that has left the pad, every one
+     * stamped Loaded, rather than a driven `met`. Mission time is the view UT
+     * less `vessel.identity.launchUt`, and a read that nulled it under physics
+     * would leave the ascent unlaunched and the abort gate shut.
      */
     const ascentTransport = new StubTransport();
     const ascentClient = new TelemetryClient(ascentTransport);
@@ -506,7 +505,6 @@ describe("GoNoGoHostService", () => {
     });
     clock.scrubTo(1_042);
     const ascentStore = new TimelineStore(clock);
-    ascentStore.registerDerivedChannel(vesselStateChannel);
     ascentClient.attachStore(ascentStore);
     for (const topic of ["vessel.orbit", "vessel.flight", "vessel.identity"]) {
       ascentClient.subscribe(topic, () => {});

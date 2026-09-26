@@ -45,11 +45,14 @@ describe("FlightGraph", () => {
     registerDataSource(historySource);
 
     const fixture: ReplayFixture = {
-      subscribedTopics: ["vessel.state", "vessel.flight"],
-      frames: Array.from({ length: 5 }, (_, i) => [
-        frame("vessel.state", { altitudeAsl: 1000 + i * 100 }, i * 5),
-        frame("vessel.flight", { verticalSpeed: 10 + i }, i * 5),
-      ]).flat(),
+      subscribedTopics: ["vessel.flight"],
+      frames: Array.from({ length: 5 }, (_, i) =>
+        frame(
+          "vessel.flight",
+          { altitudeAsl: 1000 + i * 100, verticalSpeed: 10 + i },
+          i * 5,
+        ),
+      ),
     };
 
     missionId = "m1";

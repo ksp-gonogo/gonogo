@@ -6,7 +6,7 @@
  * documentation.
  *
  * The bug this pins shipped: `OrbitEncounter.transitionUt` is an absolute UT
- * and reached `<Countdown>` through `vessel.state` in two widgets, rendering a
+ * and reached `<Countdown>` through a derived copy in two widgets, rendering a
  * Mun encounter twenty minutes away as "46d 2h". A third widget reading the
  * same field subtracted the view time correctly. Nothing could tell the two
  * call sites apart, because `Units.Seconds` was the token on a duration and on

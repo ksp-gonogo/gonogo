@@ -243,9 +243,9 @@ describe("useOrbitSolve", () => {
   });
 
   /**
-   * The condition `vessel.state`'s quality pick could not express, and the
-   * reason this is a widening rather than a like-for-like move. On rails inside
-   * the air, a conic ignores the drag that is actually deciding the trajectory.
+   * Why the solve asks where the craft is as well as how it is simulated: on
+   * rails inside the air, a conic ignores the drag that is actually deciding
+   * the trajectory.
    */
   it("answers null on rails below the atmosphere interface", async () => {
     const { transport, Provider } = makeHarness();

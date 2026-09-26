@@ -113,11 +113,11 @@ describe("alarm attribution survives the vocabulary migration", () => {
     "firing",
     threshold("system.state.bodyCount"),
   );
-  const apoapsis = makeAlarm(
+  const fuel = makeAlarm(
     "o",
-    "AP",
+    "FUEL",
     "firing",
-    threshold("vessel.state.apoapsisAlt"),
+    threshold("dv.currentStageResource.LiquidFuel"),
   );
 
   it("matches a widget declaring the field subtopic the key maps to", () => {
@@ -125,26 +125,29 @@ describe("alarm attribution survives the vocabulary migration", () => {
       true,
     );
     expect(alarmMatchesWidget(bodies, ["system.state.bodyCount"])).toBe(true);
-    expect(alarmMatchesWidget(apoapsis, ["vessel.state.apoapsisAlt"])).toBe(
-      true,
-    );
+    expect(
+      alarmMatchesWidget(fuel, ["dv.currentStageResource.LiquidFuel"]),
+    ).toBe(true);
   });
 
   it("matches a widget declaring the whole channel that field belongs to", () => {
     // A widget reading an entire payload (`useTelemetry("career.status")`,
-    // `useStream("vessel.state")`) draws the field, so an alarm on it is
-    // about that widget. Containment walks DOWN from the declaration to its
-    // fields, never up from a derived field to its inputs: the latter would
-    // light every widget declaring `vessel.comms` for an apoapsis alarm.
+    // `useStream("dv.currentStageResource")`) draws the field, so an alarm on
+    // it is about that widget. Containment walks DOWN from the declaration to
+    // its fields, never up from a derived field to its inputs: the latter would
+    // light every widget declaring `vessel.structure` for a stage-fuel alarm.
     expect(alarmMatchesWidget(funds, ["career.status"])).toBe(true);
-    expect(alarmMatchesWidget(apoapsis, ["vessel.state"])).toBe(true);
+    expect(alarmMatchesWidget(fuel, ["dv.currentStageResource"])).toBe(true);
     expect(alarmMatchesWidget(bodies, ["system.state"])).toBe(true);
   });
 
   it("does not match a sibling channel or a partial segment", () => {
     expect(alarmMatchesWidget(funds, ["career.statusboard"])).toBe(false);
     expect(alarmMatchesWidget(funds, ["career.status.contracts"])).toBe(false);
-    expect(alarmMatchesWidget(apoapsis, ["vessel.comms"])).toBe(false);
+    expect(alarmMatchesWidget(fuel, ["vessel.structure"])).toBe(false);
+    expect(alarmMatchesWidget(fuel, ["dv.currentStageResourceMax"])).toBe(
+      false,
+    );
   });
 
   it("attributes a contract-parameter alarm without a legacy key", () => {
@@ -164,11 +167,9 @@ describe("alarm attribution survives the vocabulary migration", () => {
     expect(alarmMatchesWidget(contract, ["career.status"])).toBe(true);
   });
 
-  it("attributes an alarm to LandingStatus, which no alarm could reach", () => {
-    // LandingStatus's real declarations, the pattern every migrated widget
-    // was going to copy. It reads `vessel.state` wholesale via `useStream`
-    // and declared only that channel's raw INPUTS, so its own descent alarms
-    // matched nothing at all.
+  it("attributes a descent alarm to LandingStatus through the whole topics it declares", () => {
+    // LandingStatus's real declarations: whole wire topics and no fields, so a
+    // descent alarm on one of their fields meets it by containment alone.
     const landingStatus = [
       "vessel.orbit",
       "vessel.identity",
@@ -182,13 +183,12 @@ describe("alarm attribution survives the vocabulary migration", () => {
       "dv.stages",
       "vessel.structure",
       "comms.delay",
-      "vessel.state",
     ];
     const impact = makeAlarm(
       "i",
-      "IMPACT",
+      "SINK RATE",
       "firing",
-      threshold("vessel.state.landingTimeToImpact"),
+      threshold("vessel.flight.verticalSpeed"),
     );
     expect(alarmMatchesWidget(impact, landingStatus)).toBe(true);
   });

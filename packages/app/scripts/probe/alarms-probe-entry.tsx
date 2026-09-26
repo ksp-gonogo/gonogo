@@ -51,20 +51,16 @@ const ORBIT = {
 };
 
 /**
- * Every raw input `vessel.state` derives from, plus the two channels the time
- * context is read out of. Carried, not emitted: the gate is parent-channel
- * scoped, so `vessel.state.timeToAp` resolves only if all eight are allowed
- * through, whatever has actually arrived.
+ * What the scenes draw from: `vessel.orbit` and `system.bodies` for the orbit
+ * solve the apsis presets anchor to, `vessel.control` for the action-group
+ * caption, `vessel.maneuver` for the node presets, and the two channels the time
+ * context is read out of. No scene opens the threshold key picker, so
+ * `vessel.flight`, which it offers altitude from, is not carried.
  */
 const CARRIED = [
   "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
   "system.bodies",
   "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
   "vessel.maneuver",
   "commandCentre.roster",
   "comms.delay",

@@ -2157,26 +2157,26 @@ describe("SCET alarms", () => {
     });
 
     /**
-     * `vessel.state` is derived on this side, partly reckoned rather than
-     * measured, and the simulation publishes no such Topic. An alarm on it is
-     * refused where it is armed, which is what keeps every alarm off a reckoned
-     * value.
+     * `dv.currentStageResource` is derived on this side, joined from two Topics,
+     * and the simulation publishes no such Topic. An alarm on it is refused
+     * where it is armed, which is what keeps every alarm off a value only this
+     * side computed.
      */
-    it("is refused on a Topic this side derives, so no alarm fires on a reckoned value", async () => {
+    it("is refused on a Topic this side derives, so no alarm fires on a client-computed value", async () => {
       const session = startSession(OWLT);
       session.emitAt(UT_START);
       const svc = host();
       const alarm = svc.addAlarm({
-        name: "Time to apoapsis",
+        name: "Stage fuel low",
         trigger: {
           kind: "threshold",
-          dataKey: "vessel.state.timeToAp",
+          dataKey: "dv.currentStageResource.LiquidFuel",
           op: "<",
           value: 60,
           sustainSeconds: 0,
           vantage: "command",
-          topic: "vessel.state",
-          fieldPath: "timeToAp",
+          topic: "dv.currentStageResource",
+          fieldPath: "LiquidFuel",
         },
       });
       await run(session, UT_START + 8 * DT + OWLT);
@@ -2186,7 +2186,7 @@ describe("SCET alarms", () => {
       expect(session.armed()).not.toContain(alarm.id);
       expect(snap.alarms.find((a) => a.id === alarm.id)?.state).toBe("pending");
       expect(snap.scetArmRefusals?.[alarm.id]).toBe(
-        "no SCET threshold can be read from 'vessel.state'",
+        "no SCET threshold can be read from 'dv.currentStageResource'",
       );
     });
   });

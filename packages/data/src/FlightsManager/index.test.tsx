@@ -45,8 +45,8 @@ function frame(topic: string, payload: unknown, deliveredAt: number): string {
 
 function smallFixture(): ReplayFixture {
   return {
-    subscribedTopics: ["vessel.state"],
-    frames: [frame("vessel.state", { altitudeAsl: 100 }, 0)],
+    subscribedTopics: ["vessel.flight"],
+    frames: [frame("vessel.flight", { altitudeAsl: 100 }, 0)],
   };
 }
 

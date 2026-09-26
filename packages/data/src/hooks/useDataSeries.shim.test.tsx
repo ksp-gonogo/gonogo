@@ -1,18 +1,17 @@
 import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
 import {
   DEAD_READ_SETTLE_MS,
+  dvCurrentStageResourceChannel,
   resetDeadReadWarnings,
   resetGatedReadWarnings,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
   ViewClock,
-  vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import {
   BufferedDataSource,
   MemoryStore,
-  Quality,
   registerTopicUnits,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -90,11 +89,11 @@ function buildStreamFixture(opts: {
     delaySeconds: () => 0,
   });
   const store = new TimelineStore(clock);
-  // A caller-provided `store` (as opposed to `TelemetryProvider`'s
-  // auto-built default) registers NO derived channels on its own, register
-  // `vessel.state` here so the DERIVED-topic test below resolves for real
-  // instead of silently falling through `resolveRawFieldSubtopic`.
-  store.registerDerivedChannel(vesselStateChannel);
+  /* A caller-provided `store` (as opposed to `TelemetryProvider`'s auto-built
+     default) registers NO derived channels on its own, so the DERIVED-topic
+     test below registers the one it reads, or it would silently fall through
+     `resolveRawFieldSubtopic`. */
+  store.registerDerivedChannel(dvCurrentStageResourceChannel);
   if (opts.pinnedUt !== undefined) clock.scrubTo(opts.pinnedUt);
 
   function Provider({ children }: { children: ReactNode }) {
@@ -391,89 +390,60 @@ describe("useDataSeries shim: bridges", () => {
   });
 });
 
-describe("useDataSeries shim: a DERIVED mapped topic streams a REAL series computed from raw stream inputs", () => {
+describe("useDataSeries: a DERIVED field path streams a REAL series computed from raw stream inputs", () => {
   /**
-   * `v.altitude` maps to the DERIVED `vessel.state.altitudeAsl`.
+   * `dv.currentStageResource` joins `dv.stages` to `vessel.structure`.
    * `TimelineStore.sampleRange` still returns `undefined` for a derived
    * topic (by design: nothing is ever stored for one), but
-   * `sampleDerivedRange` replays `deriveVesselState` at every UT its raw
-   * inputs (`vessel.orbit`/`vessel.flight`/...) changed within the window, off
-   * `sampleRange` reads of THOSE raw topics' own buffered ranges. No legacy
-   * `DataSource` is registered anywhere in this test, a value only reaches
-   * the probe if it genuinely streamed.
+   * `sampleDerivedRange` replays the channel's `derive` at every UT either
+   * raw input changed within the window, off `sampleRange` reads of THOSE raw
+   * topics' own buffered ranges. No legacy `DataSource` is registered anywhere
+   * in this test, so a value only reaches the probe if it genuinely streamed.
    *
-   * `vessel.orbit` is emitted at `Quality.Loaded` so `deriveVesselState`
-   * takes the measured basis (reads `altitudeAsl` straight off
-   * `vessel.flight`) rather than the OnRails Kepler-solve branch, no
-   * orbital-elements fixture needed to prove the replay mechanism itself.
+   * The two inputs change at different instants, and a staging event changes
+   * the value with no new `dv.stages` sample at all, so a replay that walked
+   * only one input's instants would miss a point.
    */
-  it("'vessel.state.altitudeAsl': sampleDerivedRange replays deriveVesselState off vessel.orbit + vessel.flight's own buffered ranges", async () => {
+  it("sampleDerivedRange replays derive at every instant either input changed", async () => {
     const fixture = buildStreamFixture({
-      carriedChannels: [
-        "vessel.orbit",
-        "vessel.flight",
-        "vessel.identity",
-        "system.bodies",
-        "vessel.control",
-        "vessel.target",
-        "vessel.comms",
-        "vessel.propulsion",
-      ],
+      carriedChannels: ["dv.stages", "vessel.structure"],
       pinnedUt: 100,
     });
 
     render(
       <fixture.Provider>
-        <Probe dataKey="vessel.state.altitudeAsl" windowSec={200} />
+        <Probe dataKey="dv.currentStageResource.LiquidFuel" windowSec={200} />
       </fixture.Provider>,
     );
 
     expect(readProbe()).toBe("t:|v:|breaks:");
-    // Real subscriptions must have happened for StubTransport (subscription-
-    // gated) to deliver at all.
-    expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
-    expect(fixture.transport.isSubscribed("vessel.flight")).toBe(true);
+    /* Real subscriptions must have happened for StubTransport (subscription-
+       gated) to deliver at all, and the derived channel resolves to its raw
+       inputs, so those are what a subscription must land on. */
+    expect(fixture.transport.isSubscribed("dv.stages")).toBe(true);
+    expect(fixture.transport.isSubscribed("vessel.structure")).toBe(true);
 
+    const stages = (upper: number) => [
+      { stage: 1, resources: { LiquidFuel: { current: upper, max: 400 } } },
+      { stage: 0, resources: { LiquidFuel: { current: 100, max: 100 } } },
+    ];
     act(() => {
       fixture.transport.emit(
-        "vessel.orbit",
-        { referenceBodyIndex: 1 },
-        { validAt: 0, quality: Quality.Loaded },
+        "vessel.structure",
+        { currentStage: 1 },
+        { validAt: 0 },
       );
+      fixture.transport.emit("dv.stages", stages(300), { validAt: 10 });
+      fixture.transport.emit("dv.stages", stages(200), { validAt: 50 });
       fixture.transport.emit(
-        "vessel.flight",
-        {
-          altitudeAsl: 100,
-          verticalSpeed: 0,
-          surfaceSpeed: 0,
-          orbitalSpeed: 0,
-        },
-        { validAt: 10 },
-      );
-      fixture.transport.emit(
-        "vessel.flight",
-        {
-          altitudeAsl: 200,
-          verticalSpeed: 0,
-          surfaceSpeed: 0,
-          orbitalSpeed: 0,
-        },
-        { validAt: 50 },
-      );
-      fixture.transport.emit(
-        "vessel.flight",
-        {
-          altitudeAsl: 300,
-          verticalSpeed: 0,
-          surfaceSpeed: 0,
-          orbitalSpeed: 0,
-        },
+        "vessel.structure",
+        { currentStage: 0 },
         { validAt: 100 },
       );
     });
 
     await waitFor(() =>
-      expect(readProbe()).toBe("t:10,50,100|v:100,200,300|breaks:"),
+      expect(readProbe()).toBe("t:10,50,100|v:300,200,100|breaks:"),
     );
   });
 });
@@ -521,64 +491,6 @@ describe("useDataSeries: a MODERN path streams, so a migrated widget can plot it
       expect(readProbe()).toBe("t:10,100|v:679400,680000|breaks:"),
     );
     expect(readProbe()).not.toContain("999999");
-  });
-
-  it("streams a derived field path, replayed the same way the legacy key was", async () => {
-    // A derived channel is carried by carrying its raw INPUTS, so this is the
-    // same eight-topic set the legacy-key test above uses.
-    const fixture = buildStreamFixture({
-      carriedChannels: [
-        "vessel.orbit",
-        "vessel.flight",
-        "vessel.identity",
-        "system.bodies",
-        "vessel.control",
-        "vessel.target",
-        "vessel.comms",
-        "vessel.propulsion",
-      ],
-      pinnedUt: 100,
-    });
-
-    render(
-      <fixture.Provider>
-        <Probe dataKey="vessel.state.altitudeAsl" windowSec={300} />
-      </fixture.Provider>,
-    );
-
-    // The derived channel resolves to its raw inputs, so those are what a
-    // subscription must land on.
-    expect(fixture.transport.isSubscribed("vessel.flight")).toBe(true);
-
-    act(() => {
-      fixture.transport.emit(
-        "vessel.orbit",
-        { referenceBodyIndex: 1 },
-        { validAt: 0, quality: Quality.Loaded },
-      );
-      for (const [validAt, altitudeAsl] of [
-        [10, 100],
-        [50, 200],
-        [100, 300],
-      ]) {
-        fixture.transport.emit(
-          "vessel.flight",
-          {
-            altitudeAsl,
-            verticalSpeed: 0,
-            surfaceSpeed: 0,
-            orbitalSpeed: 0,
-          },
-          { validAt },
-        );
-      }
-    });
-
-    // The same replayed series the legacy `v.altitude` key produces above:
-    // the spelling changed, the values did not.
-    await waitFor(() =>
-      expect(readProbe()).toBe("t:10,50,100|v:100,200,300|breaks:"),
-    );
   });
 });
 

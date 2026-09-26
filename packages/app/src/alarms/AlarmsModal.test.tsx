@@ -8,7 +8,6 @@ import {
   TelemetryProvider,
   TimelineStore,
   ViewClock,
-  vesselStateChannel,
 } from "@ksp-gonogo/sitrep-client";
 import {
   type ManeuverNode,
@@ -268,26 +267,20 @@ function makeWireNode(id: string, ut: number): ManeuverNode {
   } as Record<string, unknown>) as unknown as ManeuverNode;
 }
 
-// The eight `vesselStateChannel` inputs plus `vessel.maneuver`: carrying all
-// of them makes both the derived `vessel.state.*` fields
-// (`timeToAp`/`timeToPe`) and the maneuver node list resolvable off the
-// stream.
+// What the presets read: the orbit solve over `vessel.orbit` and
+// `system.bodies` for time to apsis, and `vessel.maneuver` for the node list.
+// `vessel.flight` is what the threshold key picker offers altitude from.
 const PRESET_CARRIED = [
   "vessel.orbit",
-  "vessel.flight",
-  "vessel.identity",
   "system.bodies",
-  "vessel.control",
-  "vessel.target",
-  "vessel.comms",
-  "vessel.propulsion",
   "vessel.maneuver",
+  "vessel.flight",
 ];
 
 // Mount AlarmsModal inside a real TelemetryProvider so both `useManeuverNodes`
-// and the apoapsis/periapsis presets (derived
-// `vessel.state.timeToAp`/`timeToPe`) resolve off the stream. `pinnedUt` fixes
-// the view clock so an emitted orbit derives a deterministic time-to-apsis.
+// and the apoapsis/periapsis presets (the orbit solve's `timeToAp`/`timeToPe`)
+// resolve off the stream. `pinnedUt` fixes the view clock so an emitted orbit
+// solves to a deterministic time-to-apsis.
 function renderWithStream(
   modal: ReactElement,
   pinnedUt?: number,
@@ -302,7 +295,6 @@ function renderWithStream(
     delaySeconds: () => delaySeconds,
   });
   const store = new TimelineStore(clock);
-  store.registerDerivedChannel(vesselStateChannel);
   if (pinnedUt !== undefined) clock.scrubTo(pinnedUt);
 
   render(

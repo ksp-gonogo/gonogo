@@ -240,7 +240,7 @@ describe("widget and augment declarations resolve to something real", () => {
     expect(
       classifyRequirement("career.status.economy.notAField"),
     ).toBeUndefined();
-    expect(classifyRequirement("vessel.state.notAField")).toBeUndefined();
+    expect(classifyRequirement("spaceCenter.state.notAField")).toBeUndefined();
     expect(classifyRequirement("career.status")).toBe("wire-topic");
   });
 });

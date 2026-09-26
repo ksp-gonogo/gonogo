@@ -168,9 +168,9 @@ async function main(): Promise<void> {
       );
       /*
        * The presets sit behind a collapsed caret, and they are half of what
-       * this render is for. WAITED FOR rather than probed: the derived
-       * `vessel.state` the apsis preset reads settles a frame or two after the
-       * orbit lands, and a fixed sleep plus a `count() > 0` check silently
+       * this render is for. WAITED FOR rather than probed: the orbit
+       * solve the apsis preset reads settles a frame or two after the orbit
+       * lands, and a fixed sleep plus a `count() > 0` check silently
        * rendered the FIRST scene without a Recommended section at all. The two
        * scenes then differed by something other than the light-time, which is
        * the one thing the pair exists to isolate.

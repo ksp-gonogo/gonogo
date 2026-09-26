@@ -47,7 +47,9 @@ describe("pendingAlarmSummaries", () => {
         alarm("refused", "pending", at(100)),
         alarm("armed", "pending", at(200)),
       ],
-      { refused: "no SCET threshold can be read from 'vessel.state'" },
+      {
+        refused: "no SCET threshold can be read from 'dv.currentStageResource'",
+      },
     );
     expect(list.map((a) => a.id)).toEqual(["armed"]);
   });

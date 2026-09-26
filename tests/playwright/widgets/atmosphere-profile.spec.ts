@@ -4,12 +4,8 @@
  * "waiting for body telemetry" empty state staying absent) on the host.
  *
  * The fixture (`sitrep-stream-server.mjs`) has:
- *   vessel.state.parentBodyName = "Kerbin"  (derived; needs all 8
- *                                  vessel.state inputs: see that
- *                                  channel's own doc comment)
- *   vessel.state.altitudeAsl    = null      (OnRails basis: altitude is a
- *                                  measured-basis-only field, see
- *                                  vessel-state.ts)
+ *   vessel.identity.parentBodyIndex = 1, named "Kerbin" by system.bodies
+ *   vessel.flight.altitudeAsl       = ~101 km (above Kerbin's atmosphere)
  *
  * Kerbin is a known body with an atmospheric model, so on the HOST:
  *   - The reference pressure curve renders (no GraphView empty-state,
