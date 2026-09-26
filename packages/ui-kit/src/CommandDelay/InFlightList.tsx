@@ -11,7 +11,7 @@ import styled, { css } from "styled-components";
 import { Countdown } from "../Countdown";
 import { writeQuantity } from "../units";
 import { useElementSize } from "../useElementSize";
-import { deriveGlyph } from "./toInFlightListItems";
+import { deriveGlyph, PHASE_PROGRESS } from "./toInFlightListItems";
 
 /** Which ONE of the two delay readings a console draws. */
 export type SignalDelayPresentation = "badge" | "strip" | "none";
@@ -360,16 +360,6 @@ const RAIL_VB_H = 16;
 const GLOW_CY = -4;
 const GLOW_R = 9;
 const GLOW_PEAK_ALPHA = 0.22;
-
-/** Anchor by phase when an item carries no true `progress` (a hand-built item
- * from a non-`useCommand` source); mirrors `toInFlightListItems`' fallback. */
-const PHASE_PROGRESS: Record<InFlightListItem["phase"], number> = {
-  "in-transit": 0.18,
-  "awaiting-reply": 0.5,
-  due: 0.62,
-  overdue: 0.82,
-  lost: 0.95,
-};
 
 function InFlightRailStrip({
   items,
