@@ -7,6 +7,7 @@ import {
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
+  useStream,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import {
@@ -65,6 +66,11 @@ function BridgeProbe({
         .join(",")}
     </div>
   );
+}
+
+/** Whether the stream has delivered `vessel.orbit` to a read beside the plot. */
+function StreamedOrbit() {
+  return <div>streamed orbit:{useStream("vessel.orbit").state}</div>;
 }
 
 function readProbe(): string {
@@ -576,6 +582,7 @@ describe("useDataSeries gate: it prefers the legacy series, it does not exclude 
     render(
       <fixture.Provider>
         <Probe dataKey="vessel.orbit.sma" windowSec={60} />
+        <StreamedOrbit />
       </fixture.Provider>,
     );
 
@@ -585,7 +592,9 @@ describe("useDataSeries gate: it prefers the legacy series, it does not exclude 
     act(() => legacySource.emit("vessel.orbit.sma", 680_000));
 
     // The gate's whole point, unchanged: an uncarried topic plots the working
-    // legacy series. The streamed one is the tie-break for when there is none.
+    // legacy series. The streamed one is the tie-break for when there is none,
+    // so it has landed and still loses.
+    await screen.findByText("streamed orbit:observed");
     await waitFor(() => expect(readProbe()).toContain("680000"));
     expect(readProbe()).not.toContain("679400");
   });

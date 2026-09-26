@@ -1,11 +1,16 @@
-import { ScreenProvider } from "@ksp-gonogo/core";
+import { ScreenProvider, useTelemetry } from "@ksp-gonogo/core";
 import {
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
+  useStream,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
-import { CommsDelaySource, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  CommsDelaySource,
+  type VesselOrbit,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   createFakeWallClock,
   StubTransport,
@@ -372,6 +377,22 @@ function unitMarkup(seconds: number): string {
   return html;
 }
 
+/** The UT of the `vessel.orbit` sample the store is reading, once there is one. */
+function SubjectSample() {
+  const reading = useStream<VesselOrbit>("vessel.orbit");
+  return reading.state === "observed" ? (
+    <span>subject sample at UT {reading.atUt.magnitude}</span>
+  ) : null;
+}
+
+/** The link report the header is reading, once there is one. */
+function LinkReport() {
+  const link = useTelemetry("comms.link");
+  return link.state === "observed" ? (
+    <span>link {link.value.connected ? "up" : "down"}</span>
+  ) : null;
+}
+
 describe("MissionBanner signal delay", () => {
   it("shows nothing when there is no active vessel", async () => {
     const fixture = setupDelayedStream();
@@ -462,8 +483,10 @@ describe("MissionBanner signal delay", () => {
     fireEvent.pointerDown(
       within(screen.getByRole("listbox")).getByText("Ground Station 1"),
     );
-    // The frames arriving from the new centre are what moves the readout.
     await fixture.flyAt(187.4, GS1, 1000);
+    // The view clock on Ground Station 1's own frames: its link edge at UT 1000
+    // plus one light-time. The header is judged only once those have landed.
+    await screen.findByText("Y1 D1 00:19:47");
 
     // `comms.delay` is the home centre's light-time. Nothing on the wire says
     // how far Ground Station 1 is, so the header must not quote home's figure
@@ -483,6 +506,7 @@ describe("MissionBanner signal delay", () => {
     render(
       <fixture.Provider>
         <MissionBanner />
+        <SubjectSample />
       </fixture.Provider>,
     );
     await fixture.flyAt(187.4);
@@ -519,6 +543,10 @@ describe("MissionBanner signal delay", () => {
     await waitFor(() => {
       expect(delayValue()?.innerHTML).toContain(atZero);
     });
+    // And the clock runs at that zero: the store reads the craft's latest
+    // sample, no longer held a light-time behind it.
+    await screen.findByText("subject sample at UT 374.8");
+    expect(screen.getByText("Y1 D1 00:06:14")).toBeInTheDocument();
   });
 });
 
@@ -678,6 +706,7 @@ function renderPilot() {
           ]}
         >
           <MissionBanner />
+          <LinkReport />
         </TelemetryProvider>
       </ScreenProvider>
     </PeerClientProvider>,
@@ -712,6 +741,7 @@ function renderPilot() {
     });
     emit("commandCentre.activeVesselDelay", CENTRE_DELAYS);
     emit("comms.link", { connected });
+    await screen.findByText(connected ? "link up" : "link down");
   };
   return { ...view, tell, fly };
 }

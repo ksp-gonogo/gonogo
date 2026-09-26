@@ -505,9 +505,18 @@ describe("useTelemetry gate: it prefers the legacy read, it does not exclude the
 
     function Throttle() {
       const throttle = useLegacyTelemetry("data", "vessel.control.throttle");
+      const canonical = useTelemetry("vessel.control");
+      const streamed =
+        canonical.state === "observed" ? canonical.value.throttle : undefined;
       return (
         <div>
-          throttle:{throttle === undefined ? NULL_DISPLAY : plain(throttle)}
+          <div>
+            throttle:{throttle === undefined ? NULL_DISPLAY : plain(throttle)}
+          </div>
+          <div>
+            canonical:
+            {streamed === undefined ? NULL_DISPLAY : plain(streamed)}
+          </div>
         </div>
       );
     }
@@ -523,8 +532,12 @@ describe("useTelemetry gate: it prefers the legacy read, it does not exclude the
 
     // The gate's whole point, unchanged: an uncarried topic reads the working
     // legacy value. The streamed one is the tie-break for when there is none,
-    // never a replacement for one that exists.
-    await waitFor(() => expect(screen.getByText("throttle:0.4")).toBeTruthy());
+    // never a replacement for one that exists, so it is on screen beside the
+    // legacy read and still loses.
+    await waitFor(() =>
+      expect(screen.getByText("canonical:0.75")).toBeTruthy(),
+    );
+    expect(screen.getByText("throttle:0.4")).toBeTruthy();
   });
 
   /**

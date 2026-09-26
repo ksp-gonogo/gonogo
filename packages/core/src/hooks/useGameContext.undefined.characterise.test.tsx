@@ -211,6 +211,9 @@ describe("useGameContext characterisation: the careerMode gate", () => {
       wrapper: mountedWrapper(transport),
     });
 
+    act(() => transport.emit("career.mode", { mode: 2 }));
+    await waitFor(() => expect(result.current.careerMode).toBe("SCIENCE"));
+
     act(() => transport.emit("career.mode", { mode: 99 }));
     await waitFor(() => expect(result.current.careerMode).toBe("Unknown"));
   });
@@ -268,11 +271,15 @@ describe("useGameContext characterisation: the padOccupied gate", () => {
       wrapper: mountedWrapper(transport),
     });
 
-    act(() => transport.emit("spaceCenter.launchSites", []));
-    await waitFor(() =>
-      expect(transport.isSubscribed("spaceCenter.launchSites")).toBe(true),
+    act(() =>
+      transport.emit("spaceCenter.launchSites", [
+        { name: "LaunchPad", padOccupied: true, padVesselTitle: "Kerbal X" },
+      ]),
     );
-    expect(result.current.padOccupied).toBeUndefined();
+    await waitFor(() => expect(result.current.padOccupied).toBe(true));
+
+    act(() => transport.emit("spaceCenter.launchSites", []));
+    await waitFor(() => expect(result.current.padOccupied).toBeUndefined());
   });
 
   /**

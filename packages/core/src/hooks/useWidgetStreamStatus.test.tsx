@@ -42,11 +42,15 @@ function Host({
  * subscribe, so an unread topic delivers nothing and reads `resyncing`, which
  * is not a blackout grade. A test whose probe only declared would therefore
  * pass by never seeing anything, which is the shape of a fixture that agrees
- * with the bug.
+ * with the bug. It shows the reading's state, so a test can wait for its
+ * sample to land before asserting what the status says about it.
  */
 function Reads({ topic }: { topic: string }) {
-  useStream(topic);
-  return null;
+  return (
+    <div>
+      {topic}:{useStream(topic).state}
+    </div>
+  );
 }
 
 function Probe({ topics }: { topics: readonly string[] }) {
@@ -80,7 +84,8 @@ describe("useWidgetStreamStatus", () => {
     act(() => {
       transport.emit("vessel.orbit", { sma: 680_000 });
     });
-    await waitFor(() => expect(screen.getByText("status:none")).toBeTruthy());
+    await screen.findByText("vessel.orbit:observed");
+    expect(screen.getByText("status:none")).toBeTruthy();
   });
 
   it("reports a replayed channel as recorded", async () => {
@@ -126,7 +131,8 @@ describe("useWidgetStreamStatus", () => {
         { staleness: Staleness.HeldStale },
       );
     });
-    await waitFor(() => expect(screen.getByText("status:none")).toBeTruthy());
+    await screen.findByText("vessel.orbit:stale");
+    expect(screen.getByText("status:none")).toBeTruthy();
   });
 
   it("takes the worse grade when two declared channels disagree", async () => {

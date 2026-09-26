@@ -383,8 +383,7 @@ describe("MapViewComponent", () => {
       emitKerbin(stream);
       stream.emit("vessel.flight", { latitude: -0.1, longitude: 285.4 });
     });
-    await waitFor(() =>
-      expect(screen.queryByText("No position data")).not.toBeInTheDocument(),
-    );
+    await screen.findByText("Kerbin");
+    expect(screen.queryByText("No position data")).not.toBeInTheDocument();
   });
 });

@@ -1,4 +1,8 @@
-import { clearRegistry, registerDataSource } from "@ksp-gonogo/core";
+import {
+  clearRegistry,
+  registerDataSource,
+  useOrbitSolve,
+} from "@ksp-gonogo/core";
 import { PropagationHorizonKind, TrajectoryKind } from "@ksp-gonogo/sitrep-sdk";
 import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
@@ -149,6 +153,17 @@ function emitOrbit(
   });
 }
 
+/** The apsis countdowns the presets are gated on, as the solve states them. */
+function SolveReport() {
+  const solve = useOrbitSolve();
+  return solve ? (
+    <span>
+      solved: timeToAp {String(solve.timeToAp)}, timeToPe{" "}
+      {String(solve.timeToPe)}
+    </span>
+  ) : null;
+}
+
 function ag1Option(): HTMLElement | null {
   return screen.queryByRole("option", { name: /^AG1 \(AG1\)/ });
 }
@@ -264,13 +279,17 @@ describe("AlarmsModal: the orbit-solve preset gate", () => {
     // degenerate mu) into the same `undefined` that means "nothing has
     // arrived". The two render identically, so an orbit that genuinely cannot
     // offer an apsis preset is reported as warmup.
-    const fixture = mount(modalWithUt());
+    const fixture = mount(
+      <>
+        {modalWithUt()}
+        <SolveReport />
+      </>,
+    );
     emitOrbit(fixture.emit, { mu: 0 });
 
-    // Give the frame that WOULD have produced the presets a chance to land.
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Add alarm" })).toBeTruthy();
-    });
+    // The orbit has landed and been solved, and the solve states both
+    // countdowns as a confirmed null.
+    await screen.findByText("solved: timeToAp null, timeToPe null");
     expect(screen.queryByRole("button", { name: /recommended/i })).toBeNull();
   });
 

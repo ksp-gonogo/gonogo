@@ -51,6 +51,13 @@ describe("useManeuverNodes", () => {
 
   it("returns an empty array when no nodes are present", async () => {
     const { transport, renders } = renderProbe();
+    act(() =>
+      transport.emit("vessel.maneuver", {
+        nodes: [fakeWireNode({ id: "a", ut: 10, dvRadial: 1 })],
+      }),
+    );
+    await waitFor(() => expect(renders.at(-1)).toHaveLength(1));
+
     act(() => transport.emit("vessel.maneuver", { nodes: [] }));
     await waitFor(() => expect(renders.at(-1)).toEqual([]));
   });
