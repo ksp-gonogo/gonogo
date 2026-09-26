@@ -26,7 +26,6 @@ function PanTiltHarness({
   return (
     <CommandGroup
       value={value}
-      onChange={setValue}
       onCommit={onCommit}
       gated={gated}
       orientation={orientation}
@@ -72,16 +71,25 @@ describe("CommandGroup", () => {
     expect(onCommit).toHaveBeenCalledWith({ pan: 45, tilt: 12 });
   });
 
-  it("disables and error-styles the commit control when gated, and never fires onCommit", () => {
+  it("marks the commit control unavailable when gated, and never fires onCommit", () => {
     const onCommit = vi.fn();
     render(<PanTiltHarness onCommit={onCommit} gated />);
 
     fireEvent.change(screen.getByLabelText("Pan"), { target: { value: "90" } });
-    const commitButton = screen.getByText("Commit");
-    expect(commitButton).toBeDisabled();
+    const commitButton = screen.getByRole("button", { name: "Commit" });
+    expect(commitButton).toHaveAttribute("aria-disabled", "true");
 
     fireEvent.click(commitButton);
     expect(onCommit).not.toHaveBeenCalled();
+  });
+
+  it("keeps a gated commit reachable by keyboard, with the reason as its description", () => {
+    render(<PanTiltHarness onCommit={vi.fn()} gated />);
+    const commitButton = screen.getByRole("button", { name: "Commit" });
+    expect(commitButton).not.toBeDisabled();
+    expect(commitButton).toHaveAccessibleDescription(
+      "No path: command dispatch is disabled",
+    );
   });
 
   it("has no axe violations, gated or not", async () => {
@@ -180,7 +188,6 @@ describe("CommandGroup icon-only commit", () => {
   }) => (
     <CommandGroup
       value={{ pan: 0 }}
-      onChange={vi.fn()}
       onCommit={onCommit}
       commitLabel={commitLabel}
       // biome-ignore lint/style/noNonNullAssertion: stands in for a caller the types cannot see

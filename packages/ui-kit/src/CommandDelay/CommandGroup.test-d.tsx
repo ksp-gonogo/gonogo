@@ -18,12 +18,12 @@ const value = { pan: 0 };
 const noop = () => {};
 
 // ── A word names itself ─────────────────────────────────────────────────────
-<CommandGroup value={value} onChange={noop} onCommit={noop} commitLabel="Send">
+<CommandGroup value={value} onCommit={noop} commitLabel="Send">
   <input />
 </CommandGroup>;
 
 // So does the default.
-<CommandGroup value={value} onChange={noop} onCommit={noop}>
+<CommandGroup value={value} onCommit={noop}>
   <input />
 </CommandGroup>;
 
@@ -31,7 +31,6 @@ const noop = () => {};
 // @ts-expect-error a non-text commitLabel must be paired with commitAriaLabel
 <CommandGroup
   value={value}
-  onChange={noop}
   onCommit={noop}
   commitLabel={<SendIcon size={16} />}
 >
@@ -41,7 +40,6 @@ const noop = () => {};
 // Which is what the pairing looks like.
 <CommandGroup
   value={value}
-  onChange={noop}
   onCommit={noop}
   commitLabel={<SendIcon size={16} />}
   commitAriaLabel="Commit framing"
