@@ -1,6 +1,6 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { ModalProvider, useModal } from "./Modal";
 import { useModalSaveBar } from "./ModalSaveBar";
@@ -322,5 +322,106 @@ describe("Modal", () => {
       await user.keyboard("{Escape}");
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
+  });
+});
+
+function StackOpener() {
+  const { open } = useModal();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        open(<p>lower body</p>, { title: "Lower" });
+        open(<p>upper body</p>, { title: "Upper" });
+      }}
+    >
+      open both
+    </button>
+  );
+}
+
+function ContentOpener({
+  content,
+  options,
+}: {
+  content: ReactNode;
+  options?: Parameters<ReturnType<typeof useModal>["open"]>[1];
+}) {
+  const { open } = useModal();
+  return (
+    <button type="button" onClick={() => open(content, options)}>
+      open
+    </button>
+  );
+}
+
+describe("Modal keyboard contract", () => {
+  it("returns focus to the control that opened it", async () => {
+    const user = userEvent.setup();
+    render(
+      <ModalProvider>
+        <Opener onOpen={() => {}} />
+      </ModalProvider>,
+    );
+    const opener = screen.getByRole("button", { name: "open" });
+    await user.click(opener);
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(opener).toHaveFocus();
+  });
+
+  it("closes only the topmost of two stacked dialogs on Escape", async () => {
+    const user = userEvent.setup();
+    render(
+      <ModalProvider>
+        <StackOpener />
+      </ModalProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "open both" }));
+    expect(screen.getAllByRole("dialog")).toHaveLength(2);
+    await user.keyboard("{Escape}");
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    expect(screen.getByRole("dialog", { name: "Lower" })).toBeInTheDocument();
+  });
+
+  it("can be named without a visible title", async () => {
+    const user = userEvent.setup();
+    render(
+      <ModalProvider>
+        <ContentOpener
+          content={<p>untitled body</p>}
+          options={{ ariaLabel: "Crash detail" }}
+        />
+      </ModalProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "open" }));
+    expect(
+      screen.getByRole("dialog", { name: "Crash detail" }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps Tab inside the dialog when its last control is disabled", async () => {
+    const user = userEvent.setup();
+    render(
+      <ModalProvider>
+        <ContentOpener
+          content={
+            <>
+              <button type="button">first action</button>
+              <button type="button" disabled>
+                unavailable
+              </button>
+            </>
+          }
+          options={{ title: "Trap" }}
+        />
+      </ModalProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "open" }));
+    const dialog = screen.getByRole("dialog");
+    for (let i = 0; i < 4; i++) {
+      await user.tab();
+      expect(dialog.contains(document.activeElement)).toBe(true);
+    }
   });
 });

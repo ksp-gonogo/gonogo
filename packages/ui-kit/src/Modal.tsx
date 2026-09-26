@@ -18,12 +18,15 @@ import { ModalChromeContext, type ModalChromeValue } from "./ModalSaveBar";
 interface ModalEntry {
   id: string;
   title?: string;
+  ariaLabel?: string;
   width?: string;
   content: ReactNode;
 }
 
 interface ModalOpenOptions {
   title?: string;
+  /** Names a dialog that has no visible `title`. Ignored when `title` is given. */
+  ariaLabel?: string;
   /** CSS length for the dialog max-width. Defaults to 560px. */
   width?: string;
 }
@@ -38,11 +41,7 @@ const ModalContext = createContext<ModalContextValue | null>(null);
 /**
  * The id `open()` hands back is an opaque close-handle: the only thing anyone
  * does with it is pass it to `close()`, which compares it to the ids of the
- * modals in this module's own stack. A counter is sufficient, and it is what a
- * published design system should use, this was `safeRandomUuid` from
- * `@ksp-gonogo/core` (a workaround for `crypto.randomUUID` hard-throwing on an
- * insecure-context LAN dev URL) which is not a dependency the kit should carry
- * to key a local array.
+ * modals in this module's own stack, so a counter is sufficient.
  */
 let modalSeq = 0;
 
@@ -54,7 +53,13 @@ export function ModalProvider({ children }: Readonly<{ children: ReactNode }>) {
       const id = `modal-${++modalSeq}`;
       setModals((prev) => [
         ...prev,
-        { id, title: options?.title, width: options?.width, content },
+        {
+          id,
+          title: options?.title,
+          ariaLabel: options?.ariaLabel,
+          width: options?.width,
+          content,
+        },
       ]);
       return id;
     },
@@ -70,8 +75,13 @@ export function ModalProvider({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <ModalContext.Provider value={value}>
       {children}
-      {modals.map((m) => (
-        <ModalDialog key={m.id} entry={m} onClose={() => close(m.id)} />
+      {modals.map((m, i) => (
+        <ModalDialog
+          key={m.id}
+          entry={m}
+          isTop={i === modals.length - 1}
+          onClose={() => close(m.id)}
+        />
       ))}
     </ModalContext.Provider>
   );
@@ -85,11 +95,29 @@ export function useModal(): ModalContextValue {
 
 interface ModalDialogProps {
   entry: ModalEntry;
+  /** Only the topmost of a stack answers the keyboard. */
+  isTop: boolean;
   onClose: () => void;
 }
 
-function ModalDialog({ entry, onClose }: Readonly<ModalDialogProps>) {
+const FOCUSABLE =
+  'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
+
+function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const isTopRef = useRef(isTop);
+  isTopRef.current = isTop;
+
+  // Focus goes back to whatever opened the dialog once it closes.
+  useEffect(() => {
+    const opener =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    return () => {
+      if (opener?.isConnected) opener.focus();
+    };
+  }, []);
   const titleId = useId();
   // Only dismiss when both the press and the release land on the backdrop
   // itself. A mousedown inside the dialog (e.g. starting a text selection) that
@@ -124,7 +152,7 @@ function ModalDialog({ entry, onClose }: Readonly<ModalDialogProps>) {
   // the confirmation (back to editing) rather than closing the modal.
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key !== "Escape") return;
+      if (e.key !== "Escape" || !isTopRef.current) return;
       if (confirmingRef.current) {
         e.stopPropagation();
         setConfirming(false);
@@ -142,20 +170,22 @@ function ModalDialog({ entry, onClose }: Readonly<ModalDialogProps>) {
     if (confirming) confirmRef.current?.focus();
   }, [confirming]);
 
-  // Trap focus inside dialog. Re-runs when the visible region swaps between the
-  // form view and the confirmation view so the trap covers whatever is shown.
+  /*
+   * Trap focus inside the dialog. The focusable set is read on every Tab, so a
+   * control that renders late or becomes disabled is judged as it is now.
+   * Re-runs when the form and confirmation views swap, to move focus into
+   * whichever is shown.
+   */
   // biome-ignore lint/correctness/useExhaustiveDependencies: `confirming` and `footer` are intentional triggers, they change the set of focusable elements.
   useEffect(() => {
     const el = dialogRef.current;
     if (!el) return;
-    const focusable = el.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-    );
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
 
     function handleTab(e: KeyboardEvent) {
-      if (e.key !== "Tab") return;
+      if (e.key !== "Tab" || !isTopRef.current || !el) return;
+      const focusable = el.querySelectorAll<HTMLElement>(FOCUSABLE);
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
       if (focusable.length === 0) {
         e.preventDefault();
         return;
@@ -171,7 +201,7 @@ function ModalDialog({ entry, onClose }: Readonly<ModalDialogProps>) {
       }
     }
     document.addEventListener("keydown", handleTab);
-    if (!confirming) first?.focus();
+    if (!confirming) el.querySelector<HTMLElement>(FOCUSABLE)?.focus();
     return () => document.removeEventListener("keydown", handleTab);
   }, [confirming, footer]);
 
@@ -199,6 +229,7 @@ function ModalDialog({ entry, onClose }: Readonly<ModalDialogProps>) {
             role="dialog"
             aria-modal="true"
             aria-labelledby={entry.title ? titleId : undefined}
+            aria-label={entry.title ? undefined : entry.ariaLabel}
             $width={entry.width}
           >
             <DialogHeader>
