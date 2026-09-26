@@ -1259,50 +1259,25 @@ export const ScrollArea = forwardRef<
   HTMLDivElement,
   ComponentPropsWithoutRef<"div">
 >(function ScrollArea({ children, ...rest }, ref) {
-  const innerRef = useRef<HTMLDivElement>(null);
-  const [overflow, setOverflow] = useState({ top: false, bottom: false });
+  const innerRef = useRef<HTMLDivElement | null>(null);
+  const [inner, setInner] = useState<HTMLDivElement | null>(null);
+  const attachInner = useCallback((el: HTMLDivElement | null) => {
+    innerRef.current = el;
+    setInner(el);
+  }, []);
 
   useImperativeHandle(ref, () => innerRef.current as HTMLDivElement);
 
-  useEffect(() => {
-    const el = innerRef.current;
-    if (!el) return;
-
-    const update = () => {
-      const top = el.scrollTop > 1;
-      const bottom = el.scrollTop + el.clientHeight < el.scrollHeight - 1;
-      setOverflow((prev) =>
-        prev.top === top && prev.bottom === bottom ? prev : { top, bottom },
-      );
-    };
-
-    update();
-    el.addEventListener("scroll", update, { passive: true });
-
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    for (const child of Array.from(el.children)) {
-      ro.observe(child);
-    }
-
-    const mo = new MutationObserver(() => {
-      for (const child of Array.from(el.children)) {
-        ro.observe(child);
-      }
-      update();
-    });
-    mo.observe(el, { childList: true });
-
-    return () => {
-      el.removeEventListener("scroll", update);
-      ro.disconnect();
-      mo.disconnect();
-    };
-  }, []);
+  const overflow = useScrollerMetric(
+    inner,
+    scrollOverflow,
+    sameOverflow,
+    NO_OVERFLOW,
+  );
 
   return (
     <ScrollAreaRoot {...rest}>
-      <ScrollAreaInner ref={innerRef} data-scroll-area-inner="">
+      <ScrollAreaInner ref={attachInner} data-scroll-area-inner="">
         {children}
       </ScrollAreaInner>
       <ScrollOverflowGlow $position="top" $visible={overflow.top} />
@@ -1610,6 +1585,25 @@ export function PanelSidebar({
   );
 }
 
+interface ScrollOverflow {
+  top: boolean;
+  bottom: boolean;
+}
+
+const NO_OVERFLOW: ScrollOverflow = { top: false, bottom: false };
+
+/** Whether there is more to scroll to above and below the current position. */
+function scrollOverflow(el: HTMLElement): ScrollOverflow {
+  return {
+    top: el.scrollTop > 1,
+    bottom: el.scrollTop + el.clientHeight < el.scrollHeight - 1,
+  };
+}
+
+function sameOverflow(a: ScrollOverflow, b: ScrollOverflow): boolean {
+  return a.top === b.top && a.bottom === b.bottom;
+}
+
 /**
  * Observe the registered scroller and derive a value from it, recomputed on
  * scroll and on any size or child-list change to the scroller. Drivable in
@@ -1714,12 +1708,9 @@ export function PanelGlow({
 
   const overflow = useScrollerMetric(
     el,
-    (e) => ({
-      top: e.scrollTop > 1,
-      bottom: e.scrollTop + e.clientHeight < e.scrollHeight - 1,
-    }),
-    (a, b) => a.top === b.top && a.bottom === b.bottom,
-    { top: false, bottom: false },
+    scrollOverflow,
+    sameOverflow,
+    NO_OVERFLOW,
   );
 
   return (
