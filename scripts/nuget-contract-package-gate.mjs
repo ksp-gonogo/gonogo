@@ -208,9 +208,10 @@ export function auditPackage(pkg, expectedVersion) {
 
   if (pkg.version !== expectedVersion) {
     failures.push(
-      `package version is ${pkg.version}, but ContractVersion.cs says ${expectedVersion}. ` +
-        `The package version IS the contract version; a drift makes a PackageReference ` +
-        `range say something false about the wire.`,
+      `package version is ${pkg.version}, but ContractVersion.cs + PackagePatch say ` +
+        `${expectedVersion}. Major.Minor IS the contract version; a drift there makes a ` +
+        `PackageReference range say something false about the wire. Patch is the ` +
+        `package's own: see PackagePatch in Sitrep.Contract.Package.csproj.`,
     );
   }
 
@@ -376,13 +377,21 @@ function selfCheck(pkg, expectedVersion) {
 
 // ── Driver ───────────────────────────────────────────────────────────────────
 
-/** The one source of truth for the package version, read the way MSBuild reads it. */
+/**
+ * The one source of truth for the package version, read the way MSBuild reads
+ * it: Major.Minor off ContractVersion.cs, Patch off the csproj's own
+ * PackagePatch (the package's own, not a mirror of the contract).
+ *
+ * Also mirrors the csproj's own `_CheckPackagePatchResetForContract` target:
+ * a nonzero PackagePatch left over from an earlier contract line is caught
+ * here too, before a pack is even attempted, rather than only at MSBuild time.
+ */
 function contractVersion() {
-  const src = readFileSync(CONTRACT_VERSION_CS, "utf8");
-  const read = (name) => {
+  const contractSrc = readFileSync(CONTRACT_VERSION_CS, "utf8");
+  const readContract = (name) => {
     const m = new RegExp(
       `public\\s+const\\s+int\\s+${name}\\s*=\\s*(\\d+)\\s*;`,
-    ).exec(src);
+    ).exec(contractSrc);
     if (!m) {
       throw new Error(
         `no "public const int ${name}" in ${CONTRACT_VERSION_CS}: the declaration ` +
@@ -391,7 +400,32 @@ function contractVersion() {
     }
     return m[1];
   };
-  return `${read("Major")}.${read("Minor")}.0`;
+  const major = readContract("Major");
+  const minor = readContract("Minor");
+
+  const packSrc = readFileSync(PACK_PROJECT, "utf8");
+  const readPack = (tag) => {
+    const m = new RegExp(`<${tag}>([^<]+)</${tag}>`).exec(packSrc);
+    if (!m) {
+      throw new Error(
+        `no <${tag}> in ${PACK_PROJECT}: the property moved, and this gate reads it by shape`,
+      );
+    }
+    return m[1];
+  };
+  const patch = readPack("PackagePatch");
+  const patchForContract = readPack("PackagePatchForContract");
+
+  if (patch !== "0" && patchForContract !== `${major}.${minor}`) {
+    throw new Error(
+      `PackagePatch is ${patch}, left over from contract ${patchForContract}, but ` +
+        `ContractVersion.cs now says ${major}.${minor}. Sitrep.Contract.Package.csproj's ` +
+        `own _CheckPackagePatchResetForContract target enforces this at pack time; this ` +
+        `mirror catches it before a pack is even attempted.`,
+    );
+  }
+
+  return `${major}.${minor}.${patch}`;
 }
 
 function pack() {

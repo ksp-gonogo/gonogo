@@ -29,15 +29,13 @@
   </PropertyGroup>
 
   <!--
-    THE VERSION IS THE CONTRACT'S OWN VERSION, read out of the same
-    `public const int` pair every other mirror of it is held to
+    MAJOR.MINOR ARE THE CONTRACT'S OWN, read out of the same `public const int`
+    pair every other mirror of it is held to
     (`packages/core/src/contract-version-parity.test.ts` reads these exact
-    declarations to hold `compat-versions.ts` honest).
-
-    So there is no package number to bump, and a PackageReference range says
-    something true about the wire: `[17.0.0, 18.0.0)` is "any additive contract
-    on the Major 17 line", because that is exactly what a Minor bump means
-    (see ContractVersion.cs). A hand-maintained package version would be a
+    declarations to hold `compat-versions.ts` honest). A PackageReference range
+    says something true about the wire: `[17.0.0, 18.0.0)` is "any additive
+    contract on the Major 17 line", because that is exactly what a Minor bump
+    means (see ContractVersion.cs). A hand-maintained Major or Minor would be a
     fourth mirror of a number that already has three, and the app advertising
     contract 5.0 against a contract at 12.22 is how the last unchecked mirror
     went.
@@ -46,16 +44,45 @@
     120KB of doc comments, and storing it in an MSBuild property would hand
     that text to the property expander. Only the digits ever become a property.
 
-    `scripts/nuget-contract-package-gate.mjs` reads the same two declarations
-    out of the C# and fails if the PACKED version disagrees, so the derivation
-    is checked against the package rather than against itself.
+    `scripts/nuget-contract-package-gate.mjs` reads the same declarations out
+    of the C# and this file and fails if the PACKED version disagrees, so the
+    derivation is checked against the package rather than against itself.
+
+    PATCH IS THE PACKAGE'S OWN, not a mirror of anything. The package
+    also carries Sitrep.Contract.TestSupport and Sitrep.Core (see the
+    ItemGroup below): a change to either, with no Major/Minor move, would otherwise
+    pack under the SAME version, which the release step reads as "already
+    published" and skips silently. PackagePatch gives that case somewhere
+    honest to bump to, without claiming the additive-contract meaning a Minor
+    bump carries: an Uplink author's reading is unchanged, Major.Minor is
+    still the contract, Patch is just this package's own build number for a
+    contract line that did not move.
+
+    PackagePatchForContract records which Major.Minor line PackagePatch was
+    last reset for. Reset PackagePatch to 0 and this to the current
+    ContractMajor.ContractMinor in the SAME commit that moves either; the
+    target below fails the pack otherwise, catching a forgotten reset rather
+    than publishing a patch counter that belongs to a different contract line.
   -->
   <PropertyGroup>
     <_ContractVersionCs>$(MSBuildThisFileDirectory)..\Sitrep.Contract\ContractVersion.cs</_ContractVersionCs>
     <ContractMajor>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText($(_ContractVersionCs))), `(?&lt;=public\s+const\s+int\s+Major\s*=\s*)\d+`).Value)</ContractMajor>
     <ContractMinor>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText($(_ContractVersionCs))), `(?&lt;=public\s+const\s+int\s+Minor\s*=\s*)\d+`).Value)</ContractMinor>
-    <Version>$(ContractMajor).$(ContractMinor).0</Version>
+    <PackagePatch>0</PackagePatch>
+    <PackagePatchForContract>18.12</PackagePatchForContract>
+    <Version>$(ContractMajor).$(ContractMinor).$(PackagePatch)</Version>
   </PropertyGroup>
+
+  <!--
+    Enforces the reset rule above: a nonzero PackagePatch left over from an
+    earlier contract line would let a TestSupport/Core change pack under a
+    version that belongs to a different contract line.
+  -->
+  <Target Name="_CheckPackagePatchResetForContract" BeforeTargets="Pack;Build">
+    <Error
+      Condition="'$(PackagePatch)' != '0' And '$(PackagePatchForContract)' != '$(ContractMajor).$(ContractMinor)'"
+      Text="PackagePatch is $(PackagePatch), left over from contract $(PackagePatchForContract), but the live contract is $(ContractMajor).$(ContractMinor). Reset PackagePatch to 0 and PackagePatchForContract to $(ContractMajor).$(ContractMinor) in the same commit that moved the contract." />
+  </Target>
 
   <PropertyGroup>
     <PackageId>KspGonogo.Sitrep.Contract</PackageId>
