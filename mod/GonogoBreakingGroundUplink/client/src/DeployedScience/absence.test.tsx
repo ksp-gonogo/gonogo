@@ -5,6 +5,7 @@ import {
   setupStreamFixture,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import {
   expectNoA11yViolations,
   renderWidget,
@@ -108,22 +109,21 @@ describe("parseBases: a withheld science figure is not a zero", () => {
 });
 
 describe("DeployedScience: a withheld progress is withheld on screen", () => {
-  it("says the progress is unknown rather than showing 0%", async () => {
+  it("draws the meter's absent form rather than showing 0%", async () => {
     const { container } = mount([
       flatEntry({ scienceCompletedPercentage: null }),
     ]);
 
-    await waitFor(() =>
-      expect(visibleText(container)).toContain("Progress unknown"),
-    );
+    await screen.findByText("Seismometer");
+    expect(visibleText(container)).toContain(NULL_DISPLAY);
     expect(visibleText(container)).not.toContain("0 %");
   });
 
   it("draws no bar, so nothing reports aria-valuenow 0", async () => {
     mount([flatEntry({ scienceCompletedPercentage: null })]);
 
-    await screen.findByText(/Progress unknown/i);
-    expect(screen.queryByRole("progressbar")).toBeNull();
+    await screen.findByText("Seismometer");
+    expect(screen.queryByRole("meter")).toBeNull();
   });
 
   it("does not light the collecting dot for an unread experiment", async () => {
@@ -131,7 +131,7 @@ describe("DeployedScience: a withheld progress is withheld on screen", () => {
       flatEntry({ scienceCompletedPercentage: null }),
     ]);
 
-    await screen.findByText(/Progress unknown/i);
+    await screen.findByText("Seismometer");
     // The dot is aria-hidden, so it is only visible in the markup.
     expect(container.innerHTML).not.toContain("●");
   });
@@ -140,7 +140,7 @@ describe("DeployedScience: a withheld progress is withheld on screen", () => {
     // The control: 0% is a reading, and it keeps its bar and its dot.
     const { container } = mount([flatEntry({ scienceCompletedPercentage: 0 })]);
 
-    const bar = await screen.findByRole("progressbar");
+    const bar = await screen.findByRole("meter", { name: "Seismometer" });
     expect(bar.getAttribute("aria-valuenow")).toBe("0");
     expect(container.innerHTML).toContain("●");
   });
@@ -154,8 +154,30 @@ describe("DeployedScience: a withheld progress is withheld on screen", () => {
         scienceLimit: null,
       }),
     ]);
-    await screen.findByText(/Progress unknown/i);
+    await screen.findByText("Seismometer");
     await expectNoA11yViolations(container);
+  });
+});
+
+describe("DeployedScience: a progress held over a dropped link", () => {
+  it("keeps the experiment's meter, its fill dimmed", async () => {
+    const { fixture } = mount([flatEntry()]);
+    const meter = await screen.findByRole("meter", { name: "Seismometer" });
+    const root = () => meter.parentElement?.parentElement;
+    // The control: a current roster is not marked
+    expect(root()?.querySelector("[data-fill-not-current]")).toBeNull();
+
+    // Drop the link, then run a frame: nothing else re-derives the readings
+    act(() => {
+      fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
+    });
+
+    await waitFor(() =>
+      expect(root()?.querySelector("[data-fill-not-current]")).not.toBeNull(),
+    );
+    expect(meter).toHaveAttribute("aria-valuenow", "50");
+    expect(root()?.querySelector("[data-not-current-mark]")).not.toBeNull();
   });
 });
 
