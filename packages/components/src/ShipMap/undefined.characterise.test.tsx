@@ -175,8 +175,8 @@ function sampled(fixture: ReturnType<typeof mount>["fixture"], topic: string) {
     : undefined;
 }
 
-describe("ShipMap: the throttle coercion to zero", () => {
-  it("draws no engine flame off an absent throttle, and none off a confirmed 0.5 either", async () => {
+describe("ShipMap: the throttle behind the engine flame", () => {
+  it("draws no engine flame off an absent throttle, and flames off a confirmed 0.5", async () => {
     const { fixture, container } = mount();
 
     act(() => {
@@ -201,8 +201,8 @@ describe("ShipMap: the throttle coercion to zero", () => {
       magnitude: 0.5,
     });
 
-    // Still no flame: the wire carries a wrapped `Value<"ratio">`, which `typeof throttleRaw === "number"` rejects, so the absence branch is the only one reachable.
-    expect(flameCount(container)).toBe(0);
+    // The wire carries a wrapped `Value<"ratio">`; its magnitude opens the flame gate on every active engine.
+    await waitFor(() => expect(flameCount(container)).toBeGreaterThan(0));
 
     act(() => {
       fixture.emit("vessel.control", controlWire(0));
@@ -212,7 +212,7 @@ describe("ShipMap: the throttle coercion to zero", () => {
         magnitude: 0,
       }),
     );
-    expect(flameCount(container)).toBe(0);
+    await waitFor(() => expect(flameCount(container)).toBe(0));
   });
 
   it("a partial vessel.control (record present, throttle field absent) coerces to zero too", async () => {
@@ -264,7 +264,7 @@ describe("ShipMap: the silent absence gates", () => {
     await waitFor(() => expect(screen.queryByText(/hot:/)).toBeNull());
   });
 
-  it("an absent externalTemperature paints a transparent tint, and so does a confirmed 1000 K", async () => {
+  it("an absent externalTemperature paints a transparent tint, and a confirmed 1000 K an amber one", async () => {
     const { fixture, container } = mount();
 
     act(() => {
@@ -287,7 +287,9 @@ describe("ShipMap: the silent absence gates", () => {
       sampled(fixture, "vessel.flight")?.externalTemperature,
     ).toMatchObject({ magnitude: 1000 });
 
-    // Reentry heat in the store and still transparent: `externalTempTint` checks for a raw number and the wire carries `Value<"K">`.
-    expect(tintLayer(container)?.style.background).toBe("transparent");
+    // The wire carries `Value<"K">`, and its magnitude drives the tint.
+    await waitFor(() =>
+      expect(tintLayer(container)?.style.background).toMatch(/^rgba\(255, /),
+    );
   });
 });

@@ -16,6 +16,7 @@ import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 // Side-effect import: registers the built-in `ship-map.part-meters` contribution.
 import "./partMetersContribution";
+import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
 import { INVOKE_PART_ACTION_COMMAND } from "./PartActionMenu";
 import { ShipDiagram } from "./ShipDiagram";
 import { computeShipLayout, type ShipBounds } from "./ShipDiagramSvg";
@@ -106,20 +107,19 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   const hottestNotCurrent = thermalReading.state === "stale";
   // Ambient skin temperature tints the diagram background; a dated number, so the last observation is used.
   const flightReading = topics.useTelemetry("vessel.flight");
-  const externalTemperature =
+  const externalTemperature = magnitudeOf(
     flightReading.state === "observed" || flightReading.state === "stale"
       ? flightReading.value.externalTemperature
-      : undefined;
-  // Throttle gates the engine flame. The last confirmed throttle depicts the craft at last contact, dated by the currency chrome; zero on a cold start.
+      : undefined,
+  );
+  // Throttle gates the engine flame: the last confirmed throttle, zero on a cold start.
   const controlReading = topics.useTelemetry("vessel.control");
-  const throttleRaw =
+  const throttle = magnitudeOr(
     controlReading.state === "observed" || controlReading.state === "stale"
       ? controlReading.value.throttle
-      : undefined;
-  const throttle =
-    typeof throttleRaw === "number" && Number.isFinite(throttleRaw)
-      ? throttleRaw
-      : 0;
+      : undefined,
+    0,
+  );
 
   const flightIds = useMemo(
     () => topology?.parts.map((p) => p.flightId) ?? [],
@@ -276,10 +276,8 @@ function groupByPart<E extends { partId: string }>(
  * through clear to amber and red. `null` with no signal. Alpha capped at 0.25
  * so per-part heat tints stay visible.
  */
-function externalTempTint(temperatureK: unknown): string | null {
-  if (typeof temperatureK !== "number" || !Number.isFinite(temperatureK)) {
-    return null;
-  }
+function externalTempTint(temperatureK: number | null): string | null {
+  if (temperatureK === null) return null;
   // Anchor points: 200 K = deep cold (subtle blue), 290 K = ambient (clear), 600 K = warning amber, 1500+ K = reentry red.
   if (temperatureK <= 250) {
     const alpha = Math.min(0.18, (290 - temperatureK) / 600);
