@@ -155,12 +155,15 @@ export function resolveCurrency<U extends string>(
     return {
       shown: input.value,
       notCurrent: input.value !== undefined,
-      caption: sayCurrency(
-        input.grade === undefined
-          ? HELD_WITHOUT_GRADE
-          : formatStreamStatus(input.grade),
-        input.asOfUt,
-      ),
+      caption:
+        input.value === undefined
+          ? null
+          : sayCurrency(
+              input.grade === undefined
+                ? HELD_WITHOUT_GRADE
+                : formatStreamStatus(input.grade),
+              input.asOfUt,
+            ),
       band,
     };
   }
