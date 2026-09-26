@@ -39,7 +39,7 @@ describe("Twr when vessel.propulsion is no longer current", () => {
     const gauge = await screen.findByRole("img", { name: /^TWR \d/ });
     expect(gauge).toHaveAccessibleName(/^TWR [\d.]+$/);
     expect(gauge).not.toHaveAttribute("data-not-current");
-    // The ResizeObserver that picks the variant settles after the body returns.
+    // useElementSize picks up the gauge slot in an effect that settles after the body returns.
     await act(async () => {});
   });
 
