@@ -286,6 +286,6 @@ const ItemLabel = styled.span`
 
 const ItemUnit = styled.span`
   font-size: var(--font-size-compact);
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
   margin-left: var(--space-6, 6px);
 `;
