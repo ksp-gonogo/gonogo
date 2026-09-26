@@ -144,7 +144,7 @@ describe("StationScreen smoke", () => {
     expect(connectButton.getAttribute("disabled")).toBeNull();
   });
 
-  it("consumes ?host=<id> from the URL, persists it, and strips the param", () => {
+  it("consumes ?host=<id> from the URL, persists it, and strips the param", async () => {
     // Land on /station?host=ABC123: the QR-code path. The screen
     // should pre-fill the input from the URL, drop the param, and (for
     // the next load) treat localStorage as authoritative.
@@ -153,6 +153,18 @@ describe("StationScreen smoke", () => {
 
     expect(localStorage.getItem("gonogo-station-host-id")).toBe("ABC123");
     expect(globalThis.location.search).toBe("");
+    expect(screen.getByRole("textbox", { name: "Host ID" })).toHaveValue(
+      "ABC123",
+    );
+
+    /*
+     * The consumed code starts a connect attempt on its own. jsdom has no
+     * WebRTC, so the real peerjs Peer aborts with browser-incompatible and the
+     * station drops into its retry loop, which is the state an operator sees.
+     */
+    expect(
+      await screen.findByText(/^Reconnecting: the host or broker/),
+    ).toBeInTheDocument();
 
     // Reset for subsequent tests in this file.
     globalThis.history.replaceState({}, "", "/");
