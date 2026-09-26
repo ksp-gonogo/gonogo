@@ -229,7 +229,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // arithmetic. Every function that solves a body's position takes a bare UT,
   // because a Kepler solve is trigonometry on a number and not an operation the
   // algebra has a term for.
-  "packages/components/src/LibrationPoints/index.tsx": 1,
+  "packages/components/src/LibrationPoints/LibrationPointsView.tsx": 1,
   "packages/components/src/ManeuverPlanner/LocalManeuverTriggerService.ts": 10,
   "packages/components/src/ManeuverPlanner/usePlannerTelemetry.ts": 4,
   "packages/components/src/MapView/index.tsx": 6,
