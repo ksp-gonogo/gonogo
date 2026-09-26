@@ -111,8 +111,7 @@ describe("availableAtSeat", () => {
   });
 
   it("lets a widget that declares no topic at all aboard", () => {
-    // Notes, Perf Budgets, the serial controls: chrome with no telemetry of
-    // its own has no domain to judge and no reason to be refused.
+    // Notes, Perf Budgets, the serial controls: chrome with no telemetry of its own has no domain to judge and no reason to be refused.
     expect(availableAtSeat({}, "pilot")).toBe(true);
   });
 });

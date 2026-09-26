@@ -35,8 +35,7 @@ describe("useTimelineStream", () => {
     });
     expect(screen.getByText("alt:500")).toBeTruthy();
 
-    // A new sample arrives but the frame hasn't advanced yet, no re-render
-    // to a value the frozen frame token wouldn't itself see.
+    // A new sample arrives but the frame hasn't advanced yet, no re-render to a value the frozen frame token wouldn't itself see.
     act(() => {
       store.ingest("vessel.flight.altitudeAsl", point(20, 600));
     });

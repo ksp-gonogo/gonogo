@@ -48,8 +48,7 @@ function makeBody(
     argumentOfPeriapsis: null,
     meanAnomalyAtEpoch: null,
     epoch: null,
-    // These fixtures are about geometry, not about how far anyone will vouch
-    // for it, so every body here is unbounded and analytic.
+    // These fixtures are about geometry, not about how far anyone will vouch for it, so every body here is unbounded and analytic.
     horizon: ANALYTIC_BODY_HORIZON,
     period: null,
     trueAnomaly: null,
@@ -224,8 +223,7 @@ describe("usePhaseAngles", () => {
         makeBody(1, "Mun", { lan: 90, argumentOfPeriapsis: 0, trueAnomaly: 0 }),
       ]);
       act(() => {
-        // `horizon` absent entirely: a producer predating the field or one that
-        // dropped it, and neither is a licence to extrapolate.
+        // `horizon` absent entirely: a producer predating the field or one that dropped it, and neither is a licence to extrapolate.
         const { horizon: _dropped, ...noHorizon } = vesselAtLongitude(0);
         fixture.emit("vessel.orbit", noHorizon);
       });
@@ -237,8 +235,7 @@ describe("usePhaseAngles", () => {
         makeBody(1, "Mun", { lan: 90, argumentOfPeriapsis: 0, trueAnomaly: 0 }),
       ]);
       act(() => {
-        // The fixture pins the clock at UT 0, so a horizon at -100 is already
-        // behind the instant being asked about.
+        // The fixture pins the clock at UT 0, so a horizon at -100 is already behind the instant being asked about.
         fixture.emit(
           "vessel.orbit",
           vesselAtLongitude(0, integratedHorizon(-100)),

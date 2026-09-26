@@ -65,8 +65,7 @@ describe("counterpartiesOf", () => {
   });
 
   it("leaves this vantage out of a thread it is one end of", () => {
-    // A message naming this screen AND somebody else is a conversation with
-    // that somebody else, not with itself.
+    // A message naming this screen AND somebody else is a conversation with that somebody else, not with itself.
     const heard = msg({ from: ARES, to: [KSC, WOOMERA] });
     expect(counterpartiesOf({ msg: heard }, HERE)).toEqual([ARES, WOOMERA]);
   });
@@ -139,8 +138,7 @@ describe("threadsOf", () => {
   });
 
   it("ranks a conversation with words still crossing above every settled one", () => {
-    // Something is happening there, which is what an operator scanning an
-    // inbox is looking for.
+    // Something is happening there, which is what an operator scanning an inbox is looking for.
     const threads = threadsOf(
       feed({
         log: [{ msg: msg({ id: "a", from: WOOMERA, to: [KSC] }) }],

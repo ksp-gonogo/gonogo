@@ -132,8 +132,7 @@ export const NEVER_RECKONABLE = [
   "vessel.structure",
   "vessel.parts",
 
-  // -- Ground-side bookkeeping about our own commands and links, which is
-  // observed or it is nothing.
+  // -- Ground-side bookkeeping about our own commands and links, which is observed or it is nothing.
   "comms.control",
   "comms.connectivity",
 

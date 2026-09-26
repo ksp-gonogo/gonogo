@@ -250,8 +250,7 @@ describe("suites that cannot run in CI are declared, not merely skipped", () => 
       }
     }
 
-    // The census, so a reader can tell "every fixture is current" from "no
-    // fixture was on disk", which are the same green without it.
+    // The census, so a reader can tell "every fixture is current" from "no fixture was on disk", which are the same green without it.
     console.info(
       checked.length > 0
         ? `[fixture-gated] checked currency of: ${checked.join("; ")}`

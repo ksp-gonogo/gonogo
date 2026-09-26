@@ -59,11 +59,9 @@ describe("WarpControl: stream render golden (delay=0)", () => {
     );
 
     act(() => {
-      // Scene rides the canonical stream (useGameContext reads
-      // spaceCenter.scene): a Flight scene renders the pause toggle.
+      // Scene rides the canonical stream (useGameContext reads spaceCenter.scene): a Flight scene renders the pause toggle.
       streamFixture.emit("spaceCenter.scene", { scene: rails["kc.scene"] });
-      // The full warp state on the new wire: one "time.warp" record.
-      // warpMode 0 = High: see normalizeWarpMode's doc comment in index.tsx.
+      // The full warp state on the new wire: one "time.warp" record. warpMode 0 = High: see normalizeWarpMode's doc comment in index.tsx.
       streamFixture.emit("time.warp", {
         warpRate: rails["t.currentRate"],
         warpRateIndex: rails["t.timeWarp"],

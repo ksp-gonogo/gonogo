@@ -156,8 +156,7 @@ describe("C#-declared Topics stay in exact sync with the full runtime registry",
       missingFromRegistry,
       "C# Topics not known to the runtime registry",
     ).toEqual([]);
-    // staleInRegistry: a registered/SDK Topic with no matching C# declaration, a stale
-    // registration or a renamed/removed C# Topic.
+    // staleInRegistry: a registered/SDK Topic with no matching C# declaration, a stale registration or a renamed/removed C# Topic.
     expect(
       staleInRegistry,
       "runtime-registry Topics no longer declared in C#",

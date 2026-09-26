@@ -108,8 +108,7 @@ describe("cross-section plot", () => {
     const [xLo, xHi] = frameOf(plot).xDomain;
     const [yLo, yHi] = frameOf(plot).yDomain;
     expect(xHi - xLo).toBeCloseTo(yHi - yLo, 6);
-    // 200 m of patch across and a craft 300 m up: past the tallness limit, so
-    // the window stays the ground's and the craft is off the top.
+    // 200 m of patch across and a craft 300 m up: past the tallness limit, so the window stays the ground's and the craft is off the top.
     expect(yHi - yLo).toBe(200);
   });
 
@@ -188,8 +187,7 @@ describe("cross-section plot", () => {
 
 describe("touchdown reticle plot", () => {
   it("puts the site at the origin and the vessel at its real bearing", () => {
-    // Bearing 90 is due east, so the SITE is east of the vessel and the vessel
-    // is therefore west of the site: negative x, zero y.
+    // Bearing 90 is due east, so the SITE is east of the vessel and the vessel is therefore west of the site: negative x, zero y.
     const plot = buildTouchdownReticlePlot(reticle());
     const vessel = plot?.layers.find((l) => l.id === "vessel");
     if (vessel?.kind !== "marker") throw new Error("expected a marker");
@@ -200,8 +198,7 @@ describe("touchdown reticle plot", () => {
   it("draws the landing zone at its stated radius, as a ring in data space", () => {
     const plot = buildTouchdownReticlePlot(reticle({ zoneRadiusMeters: 50 }));
     const zone = plot?.layers.find((l) => l.id === "landing-zone");
-    // An outline, never a filled disc: the zone sits over the terrain relief
-    // and a shaded one hides the bands the ground's shape is read from.
+    // An outline, never a filled disc: the zone sits over the terrain relief and a shaded one hides the bands the ground's shape is read from.
     if (zone?.kind !== "series") throw new Error("expected a series");
     for (const p of zone.points) {
       expect(Math.hypot(p.x, p.y)).toBeCloseTo(50, 6);

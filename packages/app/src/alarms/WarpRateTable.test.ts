@@ -56,8 +56,7 @@ describe("WarpRateTable, with only what it has watched the game do", () => {
     const table = new WarpRateTable();
     table.observe(0, 1);
 
-    // Nothing has said what rung 1 runs at, and one rung is the smallest move
-    // that can find out.
+    // Nothing has said what rung 1 runs at, and one rung is the smallest move that can find out.
     expect(table.chooseIndex(350)).toBe(1);
 
     table.observe(1, INSTALL[1]);

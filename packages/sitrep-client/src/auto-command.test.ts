@@ -15,8 +15,7 @@ describe("decideAutoDispatch", () => {
   });
 
   it("fires within the lead window (armed late, targetUt still future)", () => {
-    // Armed at utNow 95 with delay 20 → dispatch point 80 already passed, but
-    // the event (targetUt 100) is still ahead: fire immediately.
+    // Armed at utNow 95 with delay 20 → dispatch point 80 already passed, but the event (targetUt 100) is still ahead: fire immediately.
     expect(decideAutoDispatch(95, 100, 20)).toBe("fire");
   });
 

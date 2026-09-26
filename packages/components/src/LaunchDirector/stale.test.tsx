@@ -161,8 +161,7 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
     await waitFor(() =>
       expect(screen.getByTitle("Available funds")).toBeTruthy(),
     );
-    // The count belongs to the pad the operator opened, not to the panel: it is
-    // what THIS pad can take.
+    // The count belongs to the pad the operator opened, not to the panel: it is what THIS pad can take.
     expect(screen.getByText(/Craft · 1\/1 ready/)).toBeTruthy();
     expect(
       screen
@@ -180,8 +179,7 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
 
     goStale();
 
-    // Withheld, not merely gone: the readout that held the number is replaced by
-    // a readout that states the number is no longer current.
+    // Withheld, not merely gone: the readout that held the number is replaced by a readout that states the number is no longer current.
     await waitFor(() =>
       expect(screen.queryByTitle("Available funds")).toBeNull(),
     );
@@ -213,8 +211,7 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
   });
 
   it("says the balance is unknown, not out of date, before one has ever arrived", async () => {
-    // A cold start is not a dropped link, and this widget would otherwise accuse
-    // the link of dropping on first paint.
+    // A cold start is not a dropped link, and this widget would otherwise accuse the link of dropping on first paint.
     const { container } = renderWidget();
     act(() => {
       stream.emit("spaceCenter.launchSites", [

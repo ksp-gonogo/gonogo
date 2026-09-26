@@ -374,8 +374,7 @@ function handleRtcTransform(event: RtcTransformEventLike): void {
       : `encoded-${pipelines.size}-${Date.now()}`;
 
   const entry: PipelineEntry = {
-    // Filled in immediately below: same "closes over `entry`, not the
-    // local `pipeline` const" reasoning as `handleCreatePipeline`.
+    // Filled in immediately below: same "closes over `entry`, not the local `pipeline` const" reasoning as `handleCreatePipeline`.
     pipeline: null,
     captureSample: DEFAULT_MS,
     stopPacingTicker: () => {},

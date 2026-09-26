@@ -615,16 +615,14 @@ describe("widget fixtures: FIXTURE_CONTRACT_DRIFT only ever shrinks", () => {
   });
 
   it("the debt list is a real file the gate is actually reading", () => {
-    // The list going missing, or being emptied by accident, would make the
-    // check above pass by comparing nothing against nothing.
+    // The list going missing, or being emptied by accident, would make the check above pass by comparing nothing against nothing.
     expect(
       existsSync(join(HERE, "widget-fixture-conformance.debt.ts")),
       "the debt module is gone",
     ).toBe(true);
     expect(FIXTURE_CONTRACT_DRIFT.length).toBeGreaterThan(0);
     for (const entry of FIXTURE_CONTRACT_DRIFT) {
-      // Every entry names a widget directory that still exists: a renamed or
-      // deleted widget leaves an entry nothing can ever remove.
+      // Every entry names a widget directory that still exists: a renamed or deleted widget leaves an entry nothing can ever remove.
       const dir = entry.split("#")[0];
       expect(existsSync(join(ROOT, dir)), `${entry} names no such dir`).toBe(
         true,

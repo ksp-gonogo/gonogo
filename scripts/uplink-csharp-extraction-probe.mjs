@@ -227,8 +227,7 @@ function repointContractReference(source, contractDll) {
     `      <HintPath>${contractDll}</HintPath>`,
     "    </Reference>",
   ].join("\n");
-  // Both spellings in the tree: an element with a nested <Private>, and a
-  // self-closing tag carrying Private as an attribute.
+  // Both spellings in the tree: an element with a nested <Private>, and a self-closing tag carrying Private as an attribute.
   const elementForm =
     /[ \t]*<ProjectReference Include="[^"]*Sitrep\.Contract\.csproj">[\s\S]*?<\/ProjectReference>/;
   const selfClosingForm =
@@ -270,8 +269,7 @@ function probe(uplink, contractDll, workRoot) {
   // directory looking for one, so an extracted Uplink inherits whatever sits
   // above wherever its author put it, which is nothing.
 
-  // Both csprojs, because the slice references the contract too and an author's
-  // copy of it has the same one line to repoint.
+  // Both csprojs, because the slice references the contract too and an author's copy of it has the same one line to repoint.
   const csprojPath = join(work, uplink.id, `${uplink.id}.csproj`);
   const slicePath = join(work, slice, `${slice}.csproj`);
   const dangling = [];

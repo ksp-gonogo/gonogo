@@ -126,8 +126,7 @@ describe("processorEvaluator", () => {
     store.beginFrame();
     store.beginFrame();
 
-    // Same value on activation and both frames: notified once (the first
-    // evaluation), not three times.
+    // Same value on activation and both frames: notified once (the first evaluation), not three times.
     expect(cb).toHaveBeenCalledTimes(1);
 
     unsubscribe();
@@ -282,8 +281,7 @@ describe("processorEvaluator", () => {
 
     for (let i = 0; i < 10; i++) store.beginFrame();
 
-    // The counterweight to the test above: silencing a processor that is
-    // actually changing would be a worse bug than the one being fixed.
+    // The counterweight to the test above: silencing a processor that is actually changing would be a worse bug than the one being fixed.
     expect(cb).toHaveBeenCalledTimes(10);
 
     unsubscribe();
@@ -500,12 +498,10 @@ describe("the notify guard's answer set", () => {
 
     for (let i = 0; i < 10; i++) store.beginFrame();
 
-    // Activation is a real change (there was no previous value), and the ten
-    // frames after it are the ten the guard could not read.
+    // Activation is a real change (there was no previous value), and the ten frames after it are the ten the guard could not read.
     expect(reported).toHaveLength(10);
     expect(reported[0]).toEqual(["core:uncomparable-map", "[object Map]"]);
-    // Delivered, every time. `uncomparable` behaves exactly like `different`,
-    // so nothing is withheld on a shape this does not understand.
+    // Delivered, every time. `uncomparable` behaves exactly like `different`, so nothing is withheld on a shape this does not understand.
     expect(cb).toHaveBeenCalledTimes(10);
 
     setProcessorUncomparableRecorder(undefined);
@@ -721,8 +717,7 @@ describe("processorEvaluator topic-dep subscription", () => {
       ["comms.signal", pointOf(0, 202)],
     ]);
 
-    // Activate FIRST, before any store or subscriber is wired, exactly as a
-    // child `useProcessor` effect runs before the parent provider's effects.
+    // Activate FIRST, before any store or subscriber is wired, exactly as a child `useProcessor` effect runs before the parent provider's effects.
     const pressure = defineProcessor({
       id: "pressure",
       owner: "test",

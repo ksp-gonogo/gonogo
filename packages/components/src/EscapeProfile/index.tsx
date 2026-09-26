@@ -6,8 +6,7 @@ import {
 } from "@ksp-gonogo/core";
 
 const topics = defineTopicManifest({
-  // `system.bodies` is read directly: the escape-velocity curve needs the
-  // body's own radius and gravitational parameter, both reported there.
+  // `system.bodies` is read directly: the escape-velocity curve needs the body's own radius and gravitational parameter, both reported there.
   channels: ["vessel.flight", "vessel.identity", "system.bodies"],
   fields: ["vessel.flight.altitudeAsl", "vessel.flight.orbitalSpeed"],
 });
@@ -81,8 +80,7 @@ function EscapeProfileComponent({
 
   const windowSec = config?.windowSec ?? 600;
 
-  // At ~6 grid columns or fewer the plot is too narrow for the full
-  // "Escape velocity (Body)" legend to fit: shorten it (see buildEscapeCurve).
+  // At ~6 grid columns or fewer the plot is too narrow for the full "Escape velocity (Body)" legend to fit: shorten it (see buildEscapeCurve).
   const narrow = w !== undefined && w <= 6;
 
   const referenceCurve = useMemo(() => {

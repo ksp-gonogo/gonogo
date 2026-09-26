@@ -145,8 +145,7 @@ export function perifocalToParent(
   const sinO = Math.sin(lan);
   const cosI = Math.cos(inc);
   const sinI = Math.sin(inc);
-  // Rotate by argPe in the orbit plane first, so what follows is the standard
-  // node-line tilt applied to a point measured from the ascending node.
+  // Rotate by argPe in the orbit plane first, so what follows is the standard node-line tilt applied to a point measured from the ascending node.
   const xn = xPerifocal * cosW - yPerifocal * sinW;
   const yn = xPerifocal * sinW + yPerifocal * cosW;
   return [
@@ -300,8 +299,7 @@ export function projectionsForBody(
       frameBodyIndex,
     },
   ];
-  // The root star has no parent to hold still, and offering the option would put
-  // a frame in the picker that cannot be formed.
+  // The root star has no parent to hold still, and offering the option would put a frame in the picker that cannot be formed.
   if (hasParent) {
     entries.push({
       id: parentDirectionProjectionId(frameBodyIndex),

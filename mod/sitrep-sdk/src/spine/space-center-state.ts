@@ -55,15 +55,13 @@ export function deriveSpaceCenterState(
   if (point.payload === null) return null;
 
   const sites = Array.isArray(point.payload) ? point.payload : [];
-  // The stock pad is the only entry that reports occupancy (padOccupied
-  // non-null); every other site carries null there.
+  // The stock pad is the only entry that reports occupancy (padOccupied non-null); every other site carries null there.
   const pad = sites.find(
     (s) => s && typeof s === "object" && typeof s.padOccupied === "boolean",
   );
 
   return {
-    // No entry carried occupancy at all: nothing to report, which is not the
-    // same answer as a pad reported clear and must not collapse into it.
+    // No entry carried occupancy at all: nothing to report, which is not the same answer as a pad reported clear and must not collapse into it.
     padOccupied: pad ? pad.padOccupied === true : null,
     padVesselTitle:
       typeof pad?.padVesselTitle === "string" ? pad.padVesselTitle : null,

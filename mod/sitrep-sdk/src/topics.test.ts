@@ -101,8 +101,7 @@ describe("typed Topic registry", () => {
     const declared = extractDeclaredTopics();
     const staleInSdk = [...TOPIC_IDS].filter((t) => !declared.has(t)).sort();
 
-    // If this fails: an SDK-owned Topic (generated or the engine tail) is no
-    // longer declared in C#: regenerate the codegen map / fix the engine tail.
+    // If this fails: an SDK-owned Topic (generated or the engine tail) is no longer declared in C#: regenerate the codegen map / fix the engine tail.
     expect(staleInSdk, "SDK-owned Topics no longer declared in C#").toEqual([]);
     // The 30s budget is for `extractDeclaredTopics`, which walks and reads every
     // production `.cs` file under `mod/`, not for the assertion. Same measurement

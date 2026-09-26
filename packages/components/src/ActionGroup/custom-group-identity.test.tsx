@@ -86,8 +86,7 @@ describe("custom action group identity", () => {
     });
   }
 
-  // The two pure deciders, asserted directly: they are exported, and a caller
-  // holding a group descriptor must get the same answer the widget does.
+  // The two pure deciders, asserted directly: they are exported, and a caller holding a group descriptor must get the same answer the widget does.
   describe("the pure command deciders", () => {
     const customStage = {
       name: "Stage",
@@ -146,8 +145,7 @@ describe("custom action group identity", () => {
       </fixture.Provider>,
     );
     renderedTrees.push(unmount);
-    // Emitted AFTER the picker mounts: the registry's custom half is derived
-    // from `vessel.control`, so the option does not exist until a sample lands.
+    // Emitted AFTER the picker mounts: the registry's custom half is derived from `vessel.control`, so the option does not exist until a sample lands.
     emitCustomStage(true);
 
     const stageOptions = () =>

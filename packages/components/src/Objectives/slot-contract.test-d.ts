@@ -1,5 +1,4 @@
-// Type-level proof that `objectives.source` is a genuinely TYPED-CONTRACT slot,
-// the dogfood's whole point.
+// Type-level proof that `objectives.source` is a genuinely TYPED-CONTRACT slot, the dogfood's whole point.
 //
 // Checked by `tsc` (the package `typecheck`), NOT the vitest runner: a
 // `*.test-d.ts` file is not matched by the test tsconfig's `*.test.ts` exclude,
@@ -35,12 +34,10 @@ type Equal<A, B> =
     ? true
     : false;
 type Expect<T extends true> = T;
-// Non-distributive: a bare `A extends B` distributes over a union and answers
-// `boolean` rather than a verdict, which reads as a failure that isn't one.
+// Non-distributive: a bare `A extends B` distributes over a union and answers `boolean` rather than a verdict, which reads as a failure that isn't one.
 type Assignable<A, B> = [A] extends [B] ? true : false;
 
-// ── The declaration merge resolved: the slot's props ARE the objective-source
-//    contract the sdk mirror declares, not the loose fallback.
+// ── The declaration merge resolved: the slot's props ARE the objective-source contract the sdk mirror declares, not the loose fallback.
 type _SlotIsTyped = Expect<Assignable<MirroredContext, { Section: unknown }>>;
 
 // ── Negative control. Without this the assertion above would also pass if the
@@ -69,8 +66,7 @@ const _GoodSource: ComponentType<SlotProps<"objectives.source">> = (
   _: ObjectiveSourceContext,
 ) => null;
 
-// ── A component requiring a prop the slot does not provide is REJECTED, proving
-//    the generic actually gates the augment's props against the contract.
+// ── A component requiring a prop the slot does not provide is REJECTED, proving the generic actually gates the augment's props against the contract.
 // @ts-expect-error component props are not satisfied by the slot's props
 const _BadSource: ComponentType<SlotProps<"objectives.source">> = (_: {
   notASlotProp: boolean;

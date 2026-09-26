@@ -81,8 +81,7 @@ describe("a baked ExpectedClientHash is the hash of the bundle this build ships"
     armed,
   )("%s vouches for the bundle the app's build emits today", (uplinkId) => {
     const committed = generatedPath(uplinkId);
-    // Baked into a COPY: a test that rewrites a tracked file leaves the tree
-    // dirty when it fails, which is precisely when someone needs to read it.
+    // Baked into a COPY: a test that rewrites a tracked file leaves the tree dirty when it fails, which is precisely when someone needs to read it.
     const staged = join(
       mkdtempSync(join(tmpdir(), "gonogo-baked-hash-")),
       "ExpectedClientHash.g.cs",

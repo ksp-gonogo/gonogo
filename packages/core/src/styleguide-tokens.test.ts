@@ -816,8 +816,7 @@ describe("design-system: the ratchet can see a violation", () => {
     }
   }
 
-  // A shape that stops being planted is a hole that reopens silently, so the
-  // count is asserted rather than left to whoever edits FAMILIES next.
+  // A shape that stops being planted is a hole that reopens silently, so the count is asserted rather than left to whoever edits FAMILIES next.
   it("plants both shapes for every family", () => {
     for (const [family, spec] of Object.entries(FAMILIES) as [
       Family,

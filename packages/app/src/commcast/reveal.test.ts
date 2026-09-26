@@ -57,8 +57,7 @@ function ack(over: Partial<CommsAck> = {}): CommsAck {
 
 describe("separationBetween", () => {
   it("puts one vantage at no distance from itself", () => {
-    // A station relays its host's frames verbatim, so it reads at the host's
-    // vantage: host and station are genuinely co-located.
+    // A station relays its host's frames verbatim, so it reads at the host's vantage: host and station are genuinely co-located.
     expect(separationBetween(KSC, KSC, 240)).toEqual({
       kind: "co-located",
       seconds: 0,
@@ -143,8 +142,7 @@ describe("revealUtFor", () => {
 
 describe("roundTripFor", () => {
   it("spans the two legs plus the shipped loss margin", () => {
-    // Deliberately `classifyRetained`'s own geometry: reach, reply at twice
-    // the separation, and `LOSS_MARGIN` (3 s) before the wait is given up.
+    // Deliberately `classifyRetained`'s own geometry: reach, reply at twice the separation, and `LOSS_MARGIN` (3 s) before the wait is given up.
     expect(roundTripFor(msg())).toEqual({
       reachUt: 1240,
       replyUt: 1480,
@@ -229,8 +227,7 @@ describe("sentPhaseFor", () => {
   });
 
   it("stays confirmed however late the clock runs on", () => {
-    // The guard on the resend: a late acknowledgement must never flip a
-    // confirmed message back to unconfirmed.
+    // The guard on the resend: a late acknowledgement must never flip a confirmed message back to unconfirmed.
     expect(sentPhaseFor(outbound({ acks: [ack()] }), GROUND, 99_000)).toBe(
       "confirmed",
     );

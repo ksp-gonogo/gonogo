@@ -88,8 +88,7 @@ describe("parseServos: a withheld position is not a zero", () => {
   });
 
   it("withholds a piston's extension when only the angle fields arrived", () => {
-    // `ServoCapture` nulls what does not apply to the kind, so a piston
-    // carries no angle and the extension fields are the ones to read.
+    // `ServoCapture` nulls what does not apply to the kind, so a piston carries no angle and the extension fields are the ones to read.
     const [piston] = parseServos([
       { partId: "12", type: "piston", currentAngle: 30, targetAngle: 30 },
     ]);
@@ -253,8 +252,7 @@ describe("RoboticsConsole: an unread flag is not a false one", () => {
     const [joint] = parseServos([
       { partId: "11", type: "hinge", currentAngle: 22, targetAngle: 60 },
     ]);
-    // Both read `false` off `=== true`, which the panel drew as "Motor off"
-    // and "Unlocked": two definite claims about a joint that reported neither.
+    // Both read `false` off `=== true`, which the panel drew as "Motor off" and "Unlocked": two definite claims about a joint that reported neither.
     expect(joint?.motorEngaged).toBeNull();
     expect(joint?.locked).toBeNull();
   });
@@ -269,8 +267,7 @@ describe("RoboticsConsole: an unread flag is not a false one", () => {
     );
     expect(visibleText(container)).toContain("Lock unknown");
     expect(visibleText(container)).not.toContain("Motor off");
-    // "Unlocked" is the one that matters: it tells an operator the joint will
-    // move when commanded.
+    // "Unlocked" is the one that matters: it tells an operator the joint will move when commanded.
     expect(visibleText(container)).not.toContain("Unlocked");
   });
 
@@ -278,8 +275,7 @@ describe("RoboticsConsole: an unread flag is not a false one", () => {
     const user = userEvent.setup();
     const { fixture } = mount(servo({ servoIsLocked: null }));
 
-    // The click has to be REACHED under the old code, which sent
-    // `{ partId: "11", enabled: true }` computed by inverting a guessed false.
+    // The click has to be REACHED under the old code, which sent `{ partId: "11", enabled: true }` computed by inverting a guessed false.
     await user.click(await screen.findByRole("button", { name: /Lock/i }));
     await act(async () => {});
 

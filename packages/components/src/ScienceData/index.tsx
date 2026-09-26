@@ -70,8 +70,7 @@ function ScienceDataComponent({
     useStream<VesselIdentity>("vessel.identity"),
     undefined,
   );
-  // Collapsed deliberately: the Aboard tab names the body or names nothing,
-  // with no third rendering for a tombstoned catalogue.
+  // Collapsed deliberately: the Aboard tab names the body or names nothing, with no third rendering for a tombstoned catalogue.
   const body = useBodyName(identity?.parentBodyIndex) ?? undefined;
   const situation = enumNameOf<SituationName>(
     SITUATION_NAMES,
@@ -123,8 +122,7 @@ function ScienceDataComponent({
   const experiments = parseExperiments(experimentsRaw);
   const breakdown = parseExperimentBreakdown(breakdownRaw);
   const archive = parseArchive(archiveRaw);
-  // No pre-aggregated fields on the wire, derive both from the same
-  // already-parsed experiments array.
+  // No pre-aggregated fields on the wire, derive both from the same already-parsed experiments array.
   const sciCount = experiments ? experiments.length : undefined;
   // Summed only when at least one entry actually carries a figure. A provider
   // whose model is not mits leaves `dataAmount` null on every entry (a backend
@@ -151,8 +149,7 @@ function ScienceDataComponent({
   const archiveGroups = archive ? groupArchiveByExperiment(archive) : [];
 
   const cols = w ?? 8;
-  // The narrowest tile the widget can be put in, where the record count and
-  // collected total give way to the situation line and the ledger itself.
+  // The narrowest tile the widget can be put in, where the record count and collected total give way to the situation line and the ledger itself.
   const compact = cols < 6;
 
   const tabs: TabDescriptor[] = [

@@ -49,8 +49,7 @@ export function useDataSourceSubscription<TSnapshot>(
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
-      // `registryVersion` is read here so the dep linter is satisfied; the
-      // memo invalidates on every registry mutation regardless.
+      // `registryVersion` is read here so the dep linter is satisfied; the memo invalidates on every registry mutation regardless.
       void registryVersion;
       const source = getDataSource(sourceId);
       if (!source) return () => {};

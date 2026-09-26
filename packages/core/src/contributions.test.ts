@@ -165,8 +165,7 @@ describe("ContributionDefinition.deps accepting a ProcessorHandle", () => {
       compute: () => 1,
     });
 
-    // Compile-time proof: registering must not error at the type level now
-    // that `deps` accepts `Dep`, not just `TopicId`.
+    // Compile-time proof: registering must not error at the type level now that `deps` accepts `Dep`, not just `TopicId`.
     registerContribution({
       id: "mixed-deps",
       contributes: "test.slot",

@@ -21,8 +21,7 @@ describe("loadConfig", () => {
   });
 
   it("falls back to the default rather than handing coturn an unusable port", () => {
-    // coturn's failure on a NaN or out-of-range port is opaque, and the relay
-    // would come up with no TURN at all for what is a typo in a .env file.
+    // coturn's failure on a NaN or out-of-range port is opaque, and the relay would come up with no TURN at all for what is a typo in a .env file.
     const c = loadConfig({ TURN_MIN_PORT: "not-a-port", TURN_PORT: "70000" });
     expect(c.turnMinPort).toBe(49160);
     expect(c.turnPort).toBe(3478);

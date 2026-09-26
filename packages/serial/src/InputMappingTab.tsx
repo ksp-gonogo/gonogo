@@ -136,8 +136,7 @@ export function InputMappingTab({
 
   const [draft, setDraft] = useState<InputMappings>(() => ({ ...mappings }));
   const [listeningFor, setListeningFor] = useState<string | null>(null);
-  // Track the action under capture in a ref so the onInput callback (registered
-  // once per listen session) can read the current value without re-subscribing.
+  // Track the action under capture in a ref so the onInput callback (registered once per listen session) can read the current value without re-subscribing.
   const listeningRef = useRef<{
     actionId: string;
     accepts: readonly ActionDefinition["accepts"][number][];

@@ -46,8 +46,7 @@ export function apsidesExist(frame: ControlFrame | undefined): FrameValidity {
   if (frame === undefined || frame.kind === ControlFrameKind.Unspecified) {
     return "unknown";
   }
-  // Orthogonal to the kind rather than inside it, which is why it is checked
-  // first: a target frame can carry any kind and still have no apsides.
+  // Orthogonal to the kind rather than inside it, which is why it is checked first: a target frame can carry any kind and still have no apsides.
   if (frame.targetFrameSelected) {
     return "invalid";
   }

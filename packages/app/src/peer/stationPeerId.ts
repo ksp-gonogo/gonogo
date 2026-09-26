@@ -44,8 +44,7 @@ export function getStationKey(
   const existing = storage.getItem(STATION_KEY_STORAGE);
   if (existing?.trim()) return existing.trim();
 
-  // Migrate the old persistent peer id forward as the stationKey so a
-  // device that had a long-lived id keeps it after the upgrade.
+  // Migrate the old persistent peer id forward as the stationKey so a device that had a long-lived id keeps it after the upgrade.
   const legacy = storage.getItem(LEGACY_PEER_ID_STORAGE);
   if (legacy?.trim()) {
     const stripped = legacy.trim().replace(/^station-/, "");

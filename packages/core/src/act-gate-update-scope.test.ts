@@ -42,8 +42,7 @@ describe("the act-warning gate refuses an unscoped --update", () => {
     const result = run(["--update"]);
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/Refusing an unscoped --update/);
-    // The remedy, not just the refusal: both spellings, since which one is right
-    // depends on whether you fixed four files or are reseeding the list.
+    // The remedy, not just the refusal: both spellings, since which one is right depends on whether you fixed four files or are reseeding the list.
     expect(result.stderr).toContain("--update --only");
     expect(result.stderr).toContain("--update --all");
   });

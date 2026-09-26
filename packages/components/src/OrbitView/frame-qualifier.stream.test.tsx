@@ -75,8 +75,7 @@ describe("OrbitView: the apsis markers and the view frame", () => {
   });
 
   it("draws neither in a frame defined by a pair of bodies", async () => {
-    // A dot labelled Ap on a point that does not exist, beside a panel saying
-    // it does not exist.
+    // A dot labelled Ap on a point that does not exist, beside a panel saying it does not exist.
     const fixture = setup();
     act(() => {
       fixture.emit("system.frame", {

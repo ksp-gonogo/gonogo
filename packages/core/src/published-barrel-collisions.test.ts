@@ -110,8 +110,7 @@ function collisions(): { name: string; sdk: string; kit: string }[] {
 
 describe("names exported from both published packages", () => {
   it("finds both barrels' exports, so a green result means something", () => {
-    // Without this, a barrel that stopped resolving would empty the comparison
-    // and the check below would report no divergent collisions at all.
+    // Without this, a barrel that stopped resolving would empty the comparison and the check below would report no divergent collisions at all.
     const all = collisions();
     expect(all.length).toBeGreaterThan(20);
     expect(all.map((c) => c.name)).toContain("registerAugment");

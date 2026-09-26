@@ -271,8 +271,7 @@ export class BufferedDataSource extends DataSourceWrapper {
    * sources" loop connects each exactly once.
    */
   async connect(): Promise<void> {
-    // Hydrate detector with any flights that already exist in the store so
-    // we resume rather than duplicate across reloads.
+    // Hydrate detector with any flights that already exist in the store so we resume rather than duplicate across reloads.
     const known = await this.store.listFlights();
     this.detector.hydrate(known);
 
@@ -360,8 +359,7 @@ export class BufferedDataSource extends DataSourceWrapper {
       }
     }
 
-    // Replay the last-known value so late subscribers aren't stuck on
-    // `undefined` until the next sample arrives.
+    // Replay the last-known value so late subscribers aren't stuck on `undefined` until the next sample arrives.
     if (this.lastEmittedValue.has(key)) {
       cb(this.lastEmittedValue.get(key));
     }
@@ -520,8 +518,7 @@ export class BufferedDataSource extends DataSourceWrapper {
     this.keySubscribers.fire(key, value);
     if (current) this.sampleSubscribers.fire(key, { t, v: value });
 
-    // Derived keys can opt in by listing an external key as one of their
-    // inputs: same machinery as derivations driven by the wrapped source.
+    // Derived keys can opt in by listing an external key as one of their inputs: same machinery as derivations driven by the wrapped source.
     this.runDerivedKeys(key, current?.id ?? null);
   }
 
@@ -731,8 +728,7 @@ export class BufferedDataSource extends DataSourceWrapper {
     // readings) and KSC-global state remain trustworthy whether or
     // not the telemetry antenna is up.
     //
-    // Rather than try to enumerate the honest set (a moving target), we
-    // enumerate the broken set.
+    // Rather than try to enumerate the honest set (a moving target), we enumerate the broken set.
     //
     // Special-cases handled outside the blocklist:
     //  - `p.paused` itself: returns the literal `2` here (it IS the
@@ -822,13 +818,11 @@ export class BufferedDataSource extends DataSourceWrapper {
       debugFlight("drop-pre-flight", { key });
     }
 
-    // Fan out to live subscribers regardless of whether we have a flight;
-    // useDataValue callers get live values during warmup.
+    // Fan out to live subscribers regardless of whether we have a flight; useDataValue callers get live values during warmup.
     this.lastEmittedValue.set(key, value);
     this.keySubscribers.fire(key, value);
 
-    // Fan out timestamped samples (only when a flight is established,
-    // useDataSeries consumers don't want pre-flight noise).
+    // Fan out timestamped samples (only when a flight is established, useDataSeries consumers don't want pre-flight noise).
     if (current) {
       this.sampleSubscribers.fire(key, { t, v: value });
     }
@@ -962,8 +956,7 @@ export class BufferedDataSource extends DataSourceWrapper {
     }
     buf.push({ t, v });
     if (buf.length > this.inMemoryLimit) {
-      // Trim from the front in chunks of 1, cheap enough at 4Hz; move
-      // to a circular buffer if this ever shows up in profiling.
+      // Trim from the front in chunks of 1, cheap enough at 4Hz; move to a circular buffer if this ever shows up in profiling.
       buf.shift();
     }
   }
@@ -972,8 +965,7 @@ export class BufferedDataSource extends DataSourceWrapper {
     const next = this.detector.getCurrent();
     if (next === this.lastEmittedCurrent) return;
     this.lastEmittedCurrent = next;
-    // Reset derivation state across flight boundaries so rates don't
-    // straddle two flights.
+    // Reset derivation state across flight boundaries so rates don't straddle two flights.
     this.derivedPrevious.clear();
     this.flightSubscribers.fire(next);
   }

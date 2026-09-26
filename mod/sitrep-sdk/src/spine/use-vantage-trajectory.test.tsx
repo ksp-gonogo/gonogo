@@ -126,8 +126,7 @@ describe("solve is safe to call from an effect", () => {
         <AsksOnMount />
       </stream.Provider>,
     );
-    // The solve's own `setPending` is what drives the next render, so the loop
-    // needs a settled microtask to show itself rather than a second mount.
+    // The solve's own `setPending` is what drives the next render, so the loop needs a settled microtask to show itself rather than a second mount.
     await act(async () => {});
 
     expect(runs).toBe(1);

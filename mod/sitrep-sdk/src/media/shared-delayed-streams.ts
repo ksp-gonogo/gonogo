@@ -138,8 +138,7 @@ export class SharedDelayedStreams<R, C, K = object> {
         },
       };
       const settle = (built: BuiltDelayedStream<R>) => {
-        // The last lease may have released while the build was in flight,
-        // dispose rather than publish a pipeline nobody is watching.
+        // The last lease may have released while the build was in flight, dispose rather than publish a pipeline nobody is watching.
         if (this.entries.get(key) !== e) {
           built.dispose?.();
           return;

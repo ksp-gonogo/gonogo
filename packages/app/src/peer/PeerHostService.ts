@@ -626,8 +626,7 @@ export class PeerHostService {
 
     this.peer.on("open", (id) => {
       this.peerId = id;
-      // A successful open means the broker accepted our (derived) id,
-      // clear any in-flight reclaim and reset its backoff.
+      // A successful open means the broker accepted our (derived) id, clear any in-flight reclaim and reset its backoff.
       if (this.reclaiming || this.reclaimTimer !== null) {
         if (this.reclaimTimer !== null) {
           clearTimeout(this.reclaimTimer);
@@ -695,8 +694,7 @@ export class PeerHostService {
         logger.info(
           `[PeerHost] connection open: peer=${conn.peer}, total=${this.connections.size}`,
         );
-        // Hello first: stations parse it before anything else so a major
-        // mismatch banner can appear without waiting for the schema round.
+        // Hello first: stations parse it before anything else so a major mismatch banner can appear without waiting for the schema round.
         conn.send({
           type: "hello",
           version: VERSION,
@@ -723,8 +721,7 @@ export class PeerHostService {
               this.iceServers.length > 0 ? this.iceServers : undefined,
           } satisfies PeerMessage);
         }
-        // Tell the joining station the host's current analytics consent so
-        // it gates its own Axiom transport from the moment it connects.
+        // Tell the joining station the host's current analytics consent so it gates its own Axiom transport from the moment it connects.
         conn.send({
           type: "analytics-consent",
           enabled: this.analyticsConsent,
@@ -833,8 +830,7 @@ export class PeerHostService {
    */
   private scheduleReclaim(): void {
     this.setReclaiming(true);
-    // Tear the dead Peer down so the next openPeer() starts clean. destroyPeer
-    // is idempotent, so a concurrent pagehide is harmless.
+    // Tear the dead Peer down so the next openPeer() starts clean. destroyPeer is idempotent, so a concurrent pagehide is harmless.
     this.destroyPeer();
     if (this.reclaimTimer !== null) return; // already scheduled
     const attempt = ++this.reclaimAttempt;
@@ -866,8 +862,7 @@ export class PeerHostService {
     logger.warn(
       `[PeerHost] TURN escalation triggered by slow connection from ${fromPeerId}, injecting TURN for future connections`,
     );
-    // Patch the live Peer's config so subsequent peer.connect() calls
-    // (the station's automatic reconnect) include TURN relay candidates.
+    // Patch the live Peer's config so subsequent peer.connect() calls (the station's automatic reconnect) include TURN relay candidates.
     this.applyTurnToLivePeer();
   }
 
@@ -2280,8 +2275,7 @@ export class PeerHostService {
     }
     this.reclaimAttempt = 0;
     this.setReclaiming(false);
-    // Clear any in-flight escalation timers and reset escalation state so a
-    // fresh start() (e.g. after regenerateShareCode) begins STUN-only again.
+    // Clear any in-flight escalation timers and reset escalation state so a fresh start() (e.g. after regenerateShareCode) begins STUN-only again.
     for (const timer of this.turnEscalationTimers.values()) {
       clearTimeout(timer);
     }

@@ -137,8 +137,7 @@ describe("CurrentOrbit: nothing has arrived at all", () => {
     // `=== undefined` arm. An exact count, not `>=`: a gate that stops firing
     // swaps a dash for a rendered value, and only counting notices.
     expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(7);
-    // Labels are unconditional, so the widget is fully laid out and only the
-    // values are missing.
+    // Labels are unconditional, so the widget is fully laid out and only the values are missing.
     expect(visibleText(container)).toBe(
       `ORBITAp${NULL_DISPLAY}Pe${NULL_DISPLAY}Inc${NULL_DISPLAY}t-Ap${NULL_DISPLAY}t-Pe${NULL_DISPLAY}Ecc${NULL_DISPLAY}T${NULL_DISPLAY}`,
     );
@@ -153,8 +152,7 @@ describe("CurrentOrbit: nothing has arrived at all", () => {
     // `eccentricity.magnitude` with no optional chaining, so this gate is the
     // only thing between an absent orbit and a throw.
     expect(container.querySelector("svg")).toBeNull();
-    // `refBody !== undefined` suppresses the caption outright: no dash, no
-    // "unknown body", nothing.
+    // `refBody !== undefined` suppresses the caption outright: no dash, no "unknown body", nothing.
     expect(visibleText(container)).not.toContain("Kerbin");
   });
 
@@ -171,8 +169,7 @@ describe("CurrentOrbit: nothing has arrived at all", () => {
   it("drops the supplementary rows by height, and dashes the two that remain", () => {
     const { container } = renderCurrentOrbit({ w: 3, h: 4 });
 
-    // At the 3x4 minSize only Ap and Pe render at all, so an absent ROW and
-    // an absent VALUE are different things: this pins which is which.
+    // At the 3x4 minSize only Ap and Pe render at all, so an absent ROW and an absent VALUE are different things: this pins which is which.
     expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(2);
     expect(visibleText(container)).toBe(
       `ORBITAp${NULL_DISPLAY}Pe${NULL_DISPLAY}`,
@@ -194,8 +191,7 @@ describe("CurrentOrbit: a partial payload, the body without its radius", () => {
     expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(2);
     expect(valueFor("Ap").textContent).toBe(NULL_DISPLAY);
     expect(valueFor("Pe").textContent).toBe(NULL_DISPLAY);
-    // The diagram DOES mount: `canDrawDiagram` reads the apsis RADII, which
-    // come straight off the elements and need no radius of the body's own.
+    // The diagram DOES mount: `canDrawDiagram` reads the apsis RADII, which come straight off the elements and need no radius of the body's own.
     expect(container.querySelector("svg")).not.toBeNull();
     // The caption DOES render: a body's NAME is an index → name resolution
     // against the roster, which is here, and it is a different question from
@@ -231,8 +227,7 @@ describe("CurrentOrbit: null (inapplicable) versus undefined (nothing yet)", () 
     expect(valueFor("t-Ap").firstElementChild).toBeNull();
     expect(valueFor("t-Pe").firstElementChild).toBeNull();
 
-    // What the widget still cannot distinguish is WHY: "this trajectory has
-    // no period" and "no frame has arrived" dash identically, from one gate.
+    // What the widget still cannot distinguish is WHY: "this trajectory has no period" and "no frame has arrived" dash identically, from one gate.
     expect(valueFor("T").firstElementChild).toBeNull();
 
     // `canDrawDiagram` still passes (periapsisRadius is real), so the diagram

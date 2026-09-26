@@ -58,8 +58,7 @@ describe("descentFrame", () => {
     expect(frame?.yDomain[0]).toBe(0);
     expect(frame?.yDomain[1]).toBeGreaterThan(28_000);
     expect(frame?.xDomain[0]).toBe(0);
-    // The vessel is the fastest thing in play here, so it sets the span, and
-    // it must not end up sat on the frame.
+    // The vessel is the fastest thing in play here, so it sets the span, and it must not end up sat on the frame.
     expect(frame?.xDomain[1]).toBeGreaterThan(2200);
   });
 });
@@ -99,8 +98,7 @@ describe("action urgency", () => {
 
 describe("buildDescentLayers", () => {
   it("contributes NOTHING at all when the plot cannot be drawn", () => {
-    // Not an empty plot with zeroed marks: no layers, so nothing is drawn and
-    // nothing is spoken.
+    // Not an empty plot with zeroed marks: no layers, so nothing is drawn and nothing is spoken.
     expect(buildDescentLayers({ ...ENTRY, terminalVelocity: null })).toEqual(
       [],
     );
@@ -127,8 +125,7 @@ describe("buildDescentLayers", () => {
   it("shades the DECELERATING half-plane to the right of the curve", () => {
     const region = byId(buildDescentLayers(ENTRY), "decelerating");
     expect(region).toMatchObject({ kind: "region", side: "right" });
-    // The wash is named rather than left as an unexplained tone: it is the
-    // boundary the whole plot is built around.
+    // The wash is named rather than left as an unexplained tone: it is the boundary the whole plot is built around.
     expect((region as Extract<PlotLayer, { kind: "region" }>).label).toBe(
       "DECELERATING",
     );
@@ -247,8 +244,7 @@ describe("buildDescentLayers", () => {
   });
 
   it("says so when the descent never settles before the ground", () => {
-    // A vessel that arrives still slowing is the reading the plot exists for,
-    // and an absent tick must not be the only way to learn it.
+    // A vessel that arrives still slowing is the reading the plot exists for, and an absent tick must not be the only way to learn it.
     const layers = buildDescentLayers({
       currentSpeed: 2200,
       currentAltitude: 900,
@@ -283,8 +279,7 @@ describe("buildDescentLayers", () => {
     it("is an OPEN chevron above the mark, never a filled arrow through it", () => {
       const chevron = withRatio(1.6);
       expect(chevron).toMatchObject({ shape: "chevron-up" });
-      // Drag pulls the vessel back, the opposite intuition from a shaft
-      // growing out of the mark, so it sits above rather than trailing.
+      // Drag pulls the vessel back, the opposite intuition from a shaft growing out of the mark, so it sits above rather than trailing.
       expect(chevron?.offsetPx).toBeLessThan(0);
     });
 

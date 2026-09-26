@@ -33,8 +33,7 @@ function memoryStorage(): Storage {
 }
 
 function renderHost(analyticsConsent?: AnalyticsConsentService) {
-  // Answered by default: these cases are about the first-run flag, not the
-  // consent gate, and an unanswered gate deliberately holds the auto-open.
+  // Answered by default: these cases are about the first-run flag, not the consent gate, and an unanswered gate deliberately holds the auto-open.
   const consent = analyticsConsent ?? answeredConsent();
   return render(
     <ModalProvider>
@@ -115,8 +114,7 @@ describe("FirstRunSetupHost", () => {
   it("holds the auto-open while the analytics consent gate is unanswered", async () => {
     const consent = new AnalyticsConsentService(memoryStorage());
     renderHost(consent);
-    // Nothing opens, and crucially the one first-run auto-open is not spent
-    // on a modal the operator never got to see.
+    // Nothing opens, and crucially the one first-run auto-open is not spent on a modal the operator never got to see.
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );

@@ -84,8 +84,7 @@ describe("registerUnit", () => {
       dimension: { snack: 1 },
       ratio: 1,
     });
-    // Both units are declared, so the type layer knows they share a dimension
-    // exactly as it knows `km` and `m` do.
+    // Both units are declared, so the type layer knows they share a dimension exactly as it knows `km` and `m` do.
     expect(value("kSnack", 2).plus(value("snacks", 500)).magnitude).toBeCloseTo(
       2.5,
       10,
@@ -184,8 +183,7 @@ describe("onUnitRegistered", () => {
   });
 
   it("does not forward a registration the model refused", () => {
-    // The kit must never render a symbol as something the model does not
-    // believe it is.
+    // The kit must never render a symbol as something the model does not believe it is.
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const heard: RegisteredUnit[] = [];
     const stop = onUnitRegistered((unit) => heard.push(unit));
@@ -360,8 +358,7 @@ describe("namespaced symbols", () => {
       dimension: { kg: 1 },
       ratio: 0.001,
     });
-    // `grocer:g` is declared against the kg base, so the compiler accepts the
-    // conversion for the reason the runtime performs it
+    // `grocer:g` is declared against the kg base, so the compiler accepts the conversion for the reason the runtime performs it
     expect(value("grocer:g", 1_500).in("kg").magnitude).toBeCloseTo(1.5, 10);
   });
 
@@ -374,8 +371,7 @@ describe("namespaced symbols", () => {
   });
 
   it("is the same mechanism irl: already uses", () => {
-    // Real seconds and game seconds are the first-party instance of exactly
-    // this problem: one glyph, two dimensions, and they must not add.
+    // Real seconds and game seconds are the first-party instance of exactly this problem: one glyph, two dimensions, and they must not add.
     expect(displaySymbol("irl:s")).toBe("s");
     expect(displaySymbol("irl:d")).toBe("d");
     // @ts-expect-error real seconds plus game seconds: refused statically and at runtime
@@ -383,8 +379,7 @@ describe("namespaced symbols", () => {
   });
 
   it("does not let a namespace hijack a reserved symbol", () => {
-    // `m` is metres and cannot be redefined. `grocer:m` hijacks nothing, so an
-    // Uplink is free to mean whatever it likes by it.
+    // `m` is metres and cannot be redefined. `grocer:m` hijacks nothing, so an Uplink is free to mean whatever it likes by it.
     expect(() =>
       registerFromAnotherBundle({
         symbol: "m",

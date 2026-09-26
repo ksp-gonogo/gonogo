@@ -186,8 +186,7 @@ describe("Commcast radio, the microphone the operator chose", () => {
     );
     await screen.findByRole("combobox", { name: "Microphone" });
 
-    // Into a conversation, which is where the key lives: the choice is a
-    // property of this console and outlives whoever it is aimed at.
+    // Into a conversation, which is where the key lives: the choice is a property of this console and outlives whoever it is aimed at.
     await openThread(user);
     await user.click(screen.getByRole("button", { name: "Talk" }));
 

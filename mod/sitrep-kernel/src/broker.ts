@@ -51,8 +51,7 @@ export function topoSortActivationOrder(
   for (const node of nodes) {
     for (const dep of node.deps) {
       if (!knownIds.has(dep)) {
-        // Dep on a capability that isn't part of this graph (never
-        // registered): not an edge; not this broker's problem.
+        // Dep on a capability that isn't part of this graph (never registered): not an edge; not this broker's problem.
         continue;
       }
       dependents.get(dep)?.push(node.id);
@@ -145,7 +144,6 @@ function findCycle(
     }
   }
 
-  // Should be unreachable (Kahn's algorithm only leaves nodes that are part
-  // of some cycle): fall back to naming everything left over.
+  // Should be unreachable (Kahn's algorithm only leaves nodes that are part of some cycle): fall back to naming everything left over.
   return [...remainingIds];
 }

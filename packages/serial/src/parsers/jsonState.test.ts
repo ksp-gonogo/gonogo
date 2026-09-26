@@ -99,8 +99,7 @@ describe("parseJsonState", () => {
   });
 
   it("skips an analog with no usable range (no cached, no declared)", () => {
-    // Short-form value without a prior declaration → no event, no schema
-    // update (we can't classify it correctly yet).
+    // Short-form value without a prior declaration → no event, no schema update (we can't classify it correctly yet).
     const r = parseJsonState(JSON.stringify({ analog: { X: 100 } }), []);
     expect(r.events).toEqual([]);
     expect(r.inputsUpdate).toBeNull();

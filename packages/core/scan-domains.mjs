@@ -8,8 +8,7 @@
 // domain that misses a file makes the local run blind to that file, and only
 // the full run in CI would then see it.
 //
-// `src/scan-scope.test.ts` holds every entry to the scan's own source: a repo
-// path the scan spells out that its domain does not match fails there.
+// `src/scan-scope.test.ts` holds every entry to the scan's own source: a repo path the scan spells out that its domain does not match fails there.
 
 /** A change to any of these runs every scan: the machinery, or the ground under all of them. */
 export const SCANS_RUN_ON_ANY_CHANGE = [

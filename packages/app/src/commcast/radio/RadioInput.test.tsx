@@ -117,8 +117,7 @@ describe("the microphone picker on the radio", () => {
   });
 
   it("opens the remembered device on the first request", async () => {
-    // Otherwise a screen that already knows the operator's headset would open
-    // the room's microphone and then have to be corrected.
+    // Otherwise a screen that already knows the operator's headset would open the room's microphone and then have to be corrected.
     const user = userEvent.setup();
     render(<RadioInput id="mic" deviceId="headset" onChoose={() => {}} />);
     await user.click(

@@ -317,8 +317,7 @@ export function GraphView({
 
   const windowSec = config?.windowSec ?? 300;
   const xKey = config?.xKey ?? TIME_AXIS;
-  // A pinned X domain means the axis is fed by NOTHING: no data key, no wall
-  // clock, just the numbers the curves and layers are stated in.
+  // A pinned X domain means the axis is fed by NOTHING: no data key, no wall clock, just the numbers the curves and layers are stated in.
   const xPinned = config?.xDomain !== undefined;
   const xIsTime = !xPinned && xKey === TIME_AXIS;
 
@@ -445,8 +444,7 @@ export function GraphView({
   );
   const [xData, setXData] = useState<SeriesRange<number>>({ t: [], v: [] });
 
-  // Clear stale X buffer when the X key changes; otherwise the first frame
-  // after reconfigure pairs new Y against the previous key's values.
+  // Clear stale X buffer when the X key changes; otherwise the first frame after reconfigure pairs new Y against the previous key's values.
   // biome-ignore lint/correctness/useExhaustiveDependencies: xKey is a trigger, not a read inside the body
   useEffect(() => {
     setXData({ t: [], v: [] });
@@ -473,8 +471,7 @@ export function GraphView({
   const liveSeries: ChartSeries[] = series.map((cfg, i) => {
     const meta = metaMap.get(cfg.key);
     const raw = seriesData.get(cfg.key) ?? { t: [], v: [] };
-    // On a time X axis the series indices ARE the plot's, so the break indices
-    // carry straight over; alignXY reindexes its own (see its doc).
+    // On a time X axis the series indices ARE the plot's, so the break indices carry straight over; alignXY reindexes its own (see its doc).
     /*
      * On a time X axis the series indices ARE the plot's, so the status spans
      * and the reckoned runs carry over with the break indices; alignXY drops

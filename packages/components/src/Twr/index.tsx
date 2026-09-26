@@ -71,8 +71,7 @@ function toneFor(twr: Value<"1">): Tone {
 }
 
 function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
-  // The wire carries thrust and mass, not their ratio, so the headline is the
-  // same arithmetic as the sparkline on the latest reading.
+  // The wire carries thrust and mass, not their ratio, so the headline is the same arithmetic as the sparkline on the latest reading.
   const propulsionReading = useTelemetry("vessel.propulsion");
   const twrReading = combineReadings(
     [propulsionReading.currentThrust, propulsionReading.totalMass],
@@ -95,8 +94,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
    * dims it.
    */
   const twrNotCurrent = twrReading.state === "stale";
-  // The sparkline history is computed here off `vessel.propulsion`'s own
-  // history: the wire carries thrust and mass, not their ratio.
+  // The sparkline history is computed here off `vessel.propulsion`'s own history: the wire carries thrust and mass, not their ratio.
   const series = useComputedSeries(
     "vessel.propulsion.currentThrust",
     "vessel.propulsion.totalMass",
@@ -142,8 +140,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   );
   const gaugeH = Math.round(gaugeW * 0.55);
 
-  // Sparkline width follows its slot: a fixed-pixel sparkline spills out of
-  // narrow widget columns and overlaps the title row.
+  // Sparkline width follows its slot: a fixed-pixel sparkline spills out of narrow widget columns and overlaps the title row.
   const sparkRef = useRef<HTMLDivElement>(null);
   const [sparkWidth, setSparkWidth] = useState(120);
   useEffect(() => {

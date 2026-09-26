@@ -59,8 +59,7 @@ const EMPTY: readonly ParsedManeuverNode[] = [];
 
 function parse(node: ManeuverNode): ParsedManeuverNode {
   const deltaV: [number, number, number] = [
-    // 0 for an absent component: a node's burn is the vector it declares, and
-    // a component nobody sent contributes nothing to it.
+    // 0 for an absent component: a node's burn is the vector it declares, and a component nobody sent contributes nothing to it.
     magnitudeOr(node.dvRadial, 0),
     magnitudeOr(node.dvNormal, 0),
     magnitudeOr(node.dvPrograde, 0),

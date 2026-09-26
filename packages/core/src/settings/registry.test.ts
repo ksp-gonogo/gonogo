@@ -67,8 +67,7 @@ describe("settings registry: three backings", () => {
     // union is `never`, so the boolean it was registered with will not go in.
     if (def?.backing === "source-backed" && def.type === "boolean") {
       expect(def.sourceId).toBe("some-source");
-      // A writable row HAS a write half: `write` is optional now, because a
-      // read-only source-backed row omits it, so the presence is the assertion.
+      // A writable row HAS a write half: `write` is optional now, because a read-only source-backed row omits it, so the presence is the assertion.
       expect(def.write).toBeDefined();
       def.write?.(null, true);
       expect(def.read(null)).toBe(true);
@@ -130,8 +129,7 @@ describe("settings registry: read-only, typed and grouped rows", () => {
     });
     const def = getSettingDefinition("legacy.implicit");
     expect(def?.type).toBeUndefined();
-    // The renderer never reads `type` raw, so an omitted one is a boolean
-    // everywhere it matters.
+    // The renderer never reads `type` raw, so an omitted one is a boolean everywhere it matters.
     expect(def && settingTypeOf(def)).toBe("boolean");
   });
 

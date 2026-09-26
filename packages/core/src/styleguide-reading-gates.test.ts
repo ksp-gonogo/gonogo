@@ -111,8 +111,7 @@ function findGates(root: string): ReadingGate[] {
     });
     if (assigned.size === 0) continue;
     lines.forEach((line, i) => {
-      // Comments are where this class gets DISCUSSED, so scanning them produces
-      // a violation for every note explaining the violation.
+      // Comments are where this class gets DISCUSSED, so scanning them produces a violation for every note explaining the violation.
       const code = line.split("//")[0];
       for (const [name, declaredAt] of assigned) {
         if (i + 1 === declaredAt) continue;

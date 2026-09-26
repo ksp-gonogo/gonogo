@@ -182,8 +182,7 @@ describe("radio playout, held by the light-time", () => {
   });
 
   it("releases against the reader's OWN present, not a round trip", () => {
-    // The whole point of `utNowEstimate()` over `confirmedEdgeUt()`: a word
-    // spoken at 1000 across a four-minute path is heard at 1240, never 1480.
+    // The whole point of `utNowEstimate()` over `confirmedEdgeUt()`: a word spoken at 1000 across a four-minute path is heard at 1240, never 1480.
     const { clock, sink, session } = scene();
     const t = transmission();
     session.receive(start(t));
@@ -313,8 +312,7 @@ describe("radio playout, in the order it was spoken", () => {
   });
 
   it("decodes in sequence when two chunks share a stamp and the wire swapped them", () => {
-    // A catch-up burst stamps several chunks inside one clock tick, so their
-    // instants tie and only arrival order separates them.
+    // A catch-up burst stamps several chunks inside one clock tick, so their instants tie and only arrival order separates them.
     const { clock, sink, session } = scene();
     const t = transmission();
     session.receive(start(t));
@@ -386,8 +384,7 @@ describe("radio playout, what the operator is told", () => {
       authorStationKey: t.authorStationKey,
       ut: 1000 + 2 * CHUNK,
     });
-    // Key-up crosses at the speed of the internet while the words it ends are
-    // still crossing the light-time, so the name has to survive it.
+    // Key-up crosses at the speed of the internet while the words it ends are still crossing the light-time, so the name has to survive it.
     expect(session.snapshot().live).toEqual([]);
 
     clock.set(1000 + LIGHT_TIME + CHUNK);
@@ -451,8 +448,7 @@ describe("radio playout, what the operator is told", () => {
     session.pump(100);
     expect(sink.decoded).toHaveLength(1);
 
-    // A whole second later with nothing having drained: the pacer gives up on
-    // the backlog and plays the newest chunk it holds.
+    // A whole second later with nothing having drained: the pacer gives up on the backlog and plays the newest chunk it holds.
     session.pump(101);
     expect(sink.decoded).toHaveLength(2);
     expect(sink.decoded.at(-1)?.bytes[0]).toBe(3);
@@ -542,8 +538,7 @@ describe("radio monitoring, a per-conversation mute", () => {
   });
 
   it("mutes and unmutes mid-transmission, on the chunk after the decision", () => {
-    // A persistent operator decision that takes effect where they made it, not
-    // at the next keying: a loop muted mid-sentence goes quiet mid-sentence.
+    // A persistent operator decision that takes effect where they made it, not at the next keying: a loop muted mid-sentence goes quiet mid-sentence.
     const { clock, sink, session } = scene();
     const t = transmission();
     session.receive(start(t));
@@ -561,8 +556,7 @@ describe("radio monitoring, a per-conversation mute", () => {
     session.setMuted(new Set());
     session.pump(100 + 2 * CHUNK);
     expect(sink.decoded).toHaveLength(2);
-    // A fresh stream, because the decoder was not fed the chunk in between and
-    // would otherwise be timing a stream that silently lost its middle.
+    // A fresh stream, because the decoder was not fed the chunk in between and would otherwise be timing a stream that silently lost its middle.
     expect(sink.resets).toBe(2);
   });
 

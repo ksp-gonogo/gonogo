@@ -143,8 +143,7 @@ export async function exportFlightToFixture(
 ): Promise<FlightFixture> {
   const flight = await store.getFlight(flightId);
   if (!flight) throw new Error(`Flight ${flightId} not found in store`);
-  // queryRange takes inclusive timestamps; spanning [0, lastSampleAt] picks
-  // up everything for the flight without us having to track per-key bounds.
+  // queryRange takes inclusive timestamps; spanning [0, lastSampleAt] picks up everything for the flight without us having to track per-key bounds.
   const tEnd = flight.lastSampleAt;
   const samples: Record<string, [number, unknown][]> = {};
   for (const key of opts.keys) {

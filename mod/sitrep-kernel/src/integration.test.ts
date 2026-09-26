@@ -117,8 +117,7 @@ describe("kernel integration: several mechanisms wired together in one resolve()
       expect.arrayContaining([{ name: "sensor-a" }, { name: "sensor-b" }]),
     );
 
-    // Dependency-first activation: the depender's factory actually saw the
-    // winning "comms" instance via ctx.query, not just an empty/placeholder.
+    // Dependency-first activation: the depender's factory actually saw the winning "comms" instance via ctx.query, not just an empty/placeholder.
     expect(kernel.active("telemetry")).toEqual([
       { name: "telemetry", commsName: "comms-default" },
     ]);
@@ -148,8 +147,7 @@ describe("kernel integration: several mechanisms wired together in one resolve()
       }),
     );
 
-    // Exactly these four capabilities produced a notice; sensors/telemetry
-    // resolved cleanly with nothing to report.
+    // Exactly these four capabilities produced a notice; sensors/telemetry resolved cleanly with nothing to report.
     const noticeCapabilities = new Set(notices.map((n) => n.capability));
     expect(noticeCapabilities).toEqual(new Set(["comms", "power"]));
   });

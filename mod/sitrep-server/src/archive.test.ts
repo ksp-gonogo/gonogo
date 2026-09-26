@@ -79,8 +79,7 @@ describe("Archive", () => {
     archive.record("ab", "topic-ab-c", 0);
     archive.record("a", "topic-a-bc", 0);
 
-    // A vantage id "bc" reading topic "a" must not collide with vantage "c"
-    // reading topic "ab" even though "ab"+"c" === "a"+"bc" as naive concat.
+    // A vantage id "bc" reading topic "a" must not collide with vantage "c" reading topic "ab" even though "ab"+"c" === "a"+"bc" as naive concat.
     const r1 = archive.readAtVantage("ab", "c", 0, 0);
     const r2 = archive.readAtVantage("a", "bc", 0, 0);
 

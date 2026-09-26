@@ -36,8 +36,7 @@ const axiomConsent = new AxiomConsentController({
           dataset: process.env.AXIOM_DATASET ?? "gonogo",
           url: process.env.AXIOM_URL,
           orgId: process.env.AXIOM_ORG_ID,
-          // Node has no `pagehide`; the SIGINT/SIGTERM shutdown path
-          // calls `logger.flushTransports()` instead.
+          // Node has no `pagehide`; the SIGINT/SIGTERM shutdown path calls `logger.flushTransports()` instead.
           flushOnPageHide: false,
         })
       : null,
@@ -140,8 +139,7 @@ if (config.skipCoturn) {
       port: config.turnPort,
       minPort: config.turnMinPort,
       maxPort: config.turnMaxPort,
-      // Only attach the private half when it differs, `X/X` is pointless,
-      // and when externalIp is itself local (native runs) coturn binds it fine.
+      // Only attach the private half when it differs, `X/X` is pointless, and when externalIp is itself local (native runs) coturn binds it fine.
       localIp: localIp && localIp !== externalIp ? localIp : undefined,
       logger: {
         info: (msg, ...args) => bridgeInfo(msg, { args }),
@@ -156,8 +154,7 @@ if (config.skipCoturn) {
   }
 }
 
-// Stable id for this relay process's lifetime, used only to tag log
-// entries so a single relay's lines are filterable in Axiom.
+// Stable id for this relay process's lifetime, used only to tag log entries so a single relay's lines are filterable in Axiom.
 const relayId = randomUUID();
 logger.setIdentity({ role: "relay", id: relayId, peerId: relayId });
 

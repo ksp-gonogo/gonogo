@@ -44,8 +44,7 @@ export function StationInfoBroadcaster({
     const unsub = client.onConnectionStatus((status) => {
       if (status === "connected") send();
     });
-    // Fire once immediately in case we're already connected by the time
-    // this effect runs (or the name changes while connected).
+    // Fire once immediately in case we're already connected by the time this effect runs (or the name changes while connected).
     send();
     return () => {
       unsub();

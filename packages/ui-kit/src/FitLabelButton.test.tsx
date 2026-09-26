@@ -20,8 +20,7 @@ describe("FitLabelButton: the accessible name", () => {
   });
 
   it("does not double up the name when the label is also visible", () => {
-    // aria-label carries the name and the visible copy is aria-hidden, so the
-    // accessible name is the label EXACTLY, not "Upgrade Upgrade".
+    // aria-label carries the name and the visible copy is aria-hidden, so the accessible name is the label EXACTLY, not "Upgrade Upgrade".
     render(<FitLabelButton label="Upgrade" icon={<svg />} />);
     expect(screen.getByRole("button").getAttribute("aria-label")).toBe(
       "Upgrade",

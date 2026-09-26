@@ -21,8 +21,7 @@ type Equal<A, B> =
 type Expect<T extends true> = T;
 
 // ── The in-tree declaration-merge an owning package performs ────────────────────
-// (Real packages augment "@ksp-gonogo/core"; augmenting the source module is
-// equivalent for an in-tree proof and keeps this file self-contained.)
+// (Real packages augment "@ksp-gonogo/core"; augmenting the source module is equivalent for an in-tree proof and keeps this file self-contained.)
 declare module "./augments" {
   interface SlotRegistry {
     "test.typed-slot": { instanceId: string; zoom: number };
@@ -47,8 +46,7 @@ registerAugment({
   component: GoodAugment,
 });
 
-// Wrong props (a prop the slot does not provide, required by the component) →
-// compile error, proving the seam actually gates the component's props.
+// Wrong props (a prop the slot does not provide, required by the component) → compile error, proving the seam actually gates the component's props.
 const BadAugment: ComponentType<{ notASlotProp: boolean }> = () => null;
 registerAugment({
   id: "bad",
@@ -57,8 +55,7 @@ registerAugment({
   component: BadAugment,
 });
 
-// An unmerged slot id has no props, so no component can be written against it:
-// the author merges the slot or the build refuses the augment.
+// An unmerged slot id has no props, so no component can be written against it: the author merges the slot or the build refuses the augment.
 const LooseAugment: ComponentType<Record<string, unknown>> = () => null;
 registerAugment({
   id: "loose",

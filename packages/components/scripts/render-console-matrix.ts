@@ -130,8 +130,7 @@ const SCENARIOS: Scenario[] = [
     },
   },
   {
-    // Short enough that `currentMode` says "live": the standing chip, and the
-    // queue stays away even though something is crossing.
+    // Short enough that `currentMode` says "live": the standing chip, and the queue stays away even though something is crossing.
     name: "04-short-delay-badge",
     payload: {
       panelTitle: "CONSOLE",
@@ -164,8 +163,7 @@ const SCENARIOS: Scenario[] = [
     pxH: 400,
   },
   {
-    // Long delay, nothing crossing: `inFlight` is an EMPTY array, so the strip
-    // is asked for and renders null.
+    // Long delay, nothing crossing: `inFlight` is an EMPTY array, so the strip is asked for and renders null.
     name: "07-long-delay-empty-inflight",
     payload: {
       panelTitle: "CONSOLE",
@@ -176,8 +174,7 @@ const SCENARIOS: Scenario[] = [
     },
   },
   {
-    // The same, with NO composer: the foot exists only because the strip asked
-    // for it, and the strip draws nothing.
+    // The same, with NO composer: the foot exists only because the strip asked for it, and the strip draws nothing.
     name: "08-synthetic-long-delay-empty-inflight-no-composer",
     payload: {
       panelTitle: "CONSOLE",
@@ -222,8 +219,7 @@ const SCENARIOS: Scenario[] = [
     payload: { panelTitle: "CONSOLE", composer: "falsy", lines: LOG },
   },
   {
-    // `inFlight` never passed at all, at a long delay: no strip, no foot beyond
-    // the composer.
+    // `inFlight` never passed at all, at a long delay: no strip, no foot beyond the composer.
     name: "13-long-delay-no-inflight-prop",
     payload: {
       panelTitle: "CONSOLE",
@@ -257,8 +253,7 @@ const SCENARIOS: Scenario[] = [
     },
   },
   {
-    // FROZEN, long delay, cannot queue: the presentation is "none" and the
-    // frozen queue draws anyway.
+    // FROZEN, long delay, cannot queue: the presentation is "none" and the frozen queue draws anyway.
     name: "16-frozen-long-delay-cannot-queue",
     payload: {
       panelTitle: "CONSOLE",
@@ -283,8 +278,7 @@ const SCENARIOS: Scenario[] = [
     },
   },
   {
-    // The `info` tone, which is the one thing the two consoles in the app
-    // differ on visually: the composer's border and prompt glyph.
+    // The `info` tone, which is the one thing the two consoles in the app differ on visually: the composer's border and prompt glyph.
     name: "18-tone-info-long-delay-strip",
     payload: {
       panelTitle: "CONSOLE",
@@ -320,8 +314,7 @@ const SCENARIOS: Scenario[] = [
     },
   },
   {
-    // The queue against the same full surface, so the chip state above and this
-    // one can be compared for where each puts its figures.
+    // The queue against the same full surface, so the chip state above and this one can be compared for where each puts its figures.
     name: "21-long-delay-strip-full-scrollback",
     payload: {
       panelTitle: "CONSOLE",
@@ -378,8 +371,7 @@ const SCENARIOS: Scenario[] = [
     },
   },
   {
-    // The flag with the QUEUE rather than the chip, which is the other thing
-    // that can sit immediately above the composer.
+    // The flag with the QUEUE rather than the chip, which is the other thing that can sit immediately above the composer.
     name: "25-strip-with-composer-flag",
     payload: {
       panelTitle: "CONSOLE",

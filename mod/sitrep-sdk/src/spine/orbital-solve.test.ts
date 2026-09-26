@@ -108,8 +108,7 @@ describe("solveOrbit", () => {
   });
 
   it("counts down to periapsis from just past it, and names that apsis next", () => {
-    // A quarter period after periapsis: apoapsis is half a period away, and
-    // periapsis three quarters, so apoapsis is next.
+    // A quarter period after periapsis: apoapsis is half a period away, and periapsis three quarters, so apoapsis is next.
     const s = solveOrbit(circular(), PERIOD / 4, BODY_RADIUS);
     expect(s.timeToAp).toBeCloseTo(PERIOD / 4, 3);
     expect(s.timeToPe).toBeCloseTo((PERIOD * 3) / 4, 3);

@@ -150,8 +150,7 @@ function AtmosphereProfileComponent({
    */
   const altitude =
     magnitudeOf((flight ?? flightObserved)?.altitudeAsl) ?? undefined;
-  // Magnitudes: all three feed threshold checks and the chart's own
-  // number-taking readouts.
+  // Magnitudes: all three feed threshold checks and the chart's own number-taking readouts.
   const liveDensity = magnitudeOf(flight?.atmDensity);
   const liveAirTemp = magnitudeOf(flight?.atmosphericTemperature);
   const liveSkinTemp = magnitudeOf(flight?.externalTemperature);
@@ -200,8 +199,7 @@ function AtmosphereProfileComponent({
   const thresholds: GraphThresholdConfig[] | undefined = useMemo(() => {
     if (currentPressure === undefined || currentPressure <= 0) return undefined;
     if (altitude === undefined) return undefined;
-    // Narrow aspect: drop the " @ N km" suffix so the right-anchored label
-    // stays short and its left edge can't run into the legend / Y-ticks.
+    // Narrow aspect: drop the " @ N km" suffix so the right-anchored label stays short and its left edge can't run into the legend / Y-ticks.
     const label = narrow
       ? formatPressure(currentPressure)
       : `${formatPressure(currentPressure)} @ ${writeQuantity(value("m", altitude), { decimals: 0 })}`;
@@ -223,8 +221,7 @@ function AtmosphereProfileComponent({
 
   const graphConfig: GraphConfig = useMemo(
     () => ({
-      // No live series: the widget is a static body-aware reference plot
-      // with the threshold pulling out the current altitude's pressure.
+      // No live series: the widget is a static body-aware reference plot with the threshold pulling out the current altitude's pressure.
       series: [],
       windowSec: 60,
       xKey: "vessel.flight.altitudeAsl",
@@ -312,8 +309,7 @@ function AtmosphereProfileComponent({
   );
 }
 
-// Kelvin on the wire, Celsius on screen: the conversion is a presentation
-// choice made through the shared unit layer, not something the wire pre-applies.
+// Kelvin on the wire, Celsius on screen: the conversion is a presentation choice made through the shared unit layer, not something the wire pre-applies.
 function TempC({ k }: { k: number }) {
   return <Unit value={value("K", k)} as="°C" />;
 }

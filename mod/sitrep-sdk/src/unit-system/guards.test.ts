@@ -14,8 +14,7 @@ declare module "./declarations" {
 }
 
 afterEach(() => {
-  // Registry is module state; a unit registered here would otherwise be
-  // visible to every later test in the process.
+  // Registry is module state; a unit registered here would otherwise be visible to every later test in the process.
   resetUnitRegistry();
 });
 
@@ -71,8 +70,7 @@ describe("isUnit", () => {
   });
 
   it("takes the unit as an argument, which is what unitGuard cannot do", () => {
-    // The whole reason this exists beside `unitGuard`: the symbol is a
-    // parameter here, so a caller handed a unit at runtime can ask about it.
+    // The whole reason this exists beside `unitGuard`: the symbol is a parameter here, so a caller handed a unit at runtime can ask about it.
     const ask = (unit: string) => isUnit(value("°", 12), unit);
 
     expect(ask("°")).toBe(true);
@@ -80,14 +78,12 @@ describe("isUnit", () => {
   });
 
   it("checks identity, so a compatible unit is still not a match", () => {
-    // Same rule as `unitGuard`, and for the same reason: kilograms and tonnes
-    // go on combining after a narrow, but neither IS the other.
+    // Same rule as `unitGuard`, and for the same reason: kilograms and tonnes go on combining after a narrow, but neither IS the other.
     expect(isUnit(value("t", 2), "kg")).toBe(false);
   });
 
   it("is false for an unregistered symbol rather than throwing", () => {
-    // A guard's typo and a resource the player's profile lacks are the same
-    // observation from here, exactly as for `unitGuard`.
+    // A guard's typo and a resource the player's profile lacks are the same observation from here, exactly as for `unitGuard`.
     expect(isUnit(value("Oxygen:u", 1), "Oxgyen:u")).toBe(false);
   });
 });
@@ -110,8 +106,7 @@ describe("assertGuardsRegistered", () => {
       dimension: { resOxygen: 1 },
       ratio: 1,
     });
-    // The failure this exists to catch: a guard that is always false, behind
-    // which the code simply never runs and nothing errors.
+    // The failure this exists to catch: a guard that is always false, behind which the code simply never runs and nothing errors.
     expect(() => assertGuardsRegistered(["Oxgyen:u"])).toThrow(/Oxgyen:u/);
   });
 

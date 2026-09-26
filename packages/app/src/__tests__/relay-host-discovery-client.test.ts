@@ -90,8 +90,7 @@ describe("PeerClientService: stable host id (derived connect target)", () => {
     const svc = new PeerClientService();
     svc.connect("SHARE");
 
-    // The Peer is constructed up front; the host target is known
-    // synchronously from the code: no resolve hop.
+    // The Peer is constructed up front; the host target is known synchronously from the code: no resolve hop.
     expect(FakePeer.instances).toHaveLength(1);
 
     await driveOpen(FakePeer.instances[0]);
@@ -106,14 +105,12 @@ describe("PeerClientService: stable host id (derived connect target)", () => {
     const svc = new PeerClientService();
     svc.connect("ab3k");
     await driveOpen(FakePeer.instances[0]);
-    // Host codes are uppercase + prefix is lowercase; both ends must derive
-    // the same id, so the code is normalised to uppercase first.
+    // Host codes are uppercase + prefix is lowercase; both ends must derive the same id, so the code is normalised to uppercase first.
     expect(FakePeer.instances[0]._lastConnectTarget).toBe("gonogo-host-AB3K");
   });
 
   it("passes through a value that already carries the prefix (idempotent derive)", async () => {
-    // A ?host= URL minted by an older build (or a test harness) may carry the
-    // full derived id: it must not get double-prefixed.
+    // A ?host= URL minted by an older build (or a test harness) may carry the full derived id: it must not get double-prefixed.
     const svc = new PeerClientService();
     svc.connect("gonogo-host-XK3F");
     await driveOpen(FakePeer.instances[0]);

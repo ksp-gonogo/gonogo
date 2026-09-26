@@ -169,8 +169,7 @@ describe("a keying, spoken and heard", () => {
     const scene = crossing([SHORT_CLIP]);
     await scene.say(0);
 
-    // Past every reveal instant, so the buffer lets the whole utterance
-    // through in one pass and only the pacer is left deciding when.
+    // Past every reveal instant, so the buffer lets the whole utterance through in one pass and only the pacer is left deciding when.
     scene.advance(LIGHT_TIME + 1);
     scene.play(0, SHORT_CLIP.chunks.length);
 
@@ -190,8 +189,7 @@ describe("a keying, spoken and heard", () => {
       SHORT_CLIP.chunks.length,
     );
 
-    // One light-time on from the first chunk, and the first chunk only: the
-    // rest is still crossing, spaced by the 20 ms it was spoken on.
+    // One light-time on from the first chunk, and the first chunk only: the rest is still crossing, spaced by the 20 ms it was spoken on.
     scene.advance(LIGHT_TIME);
     scene.play(0, 1);
     expect(scene.receiver.played).toHaveLength(1);
@@ -276,8 +274,7 @@ describe("a keying across a separation that is changing", () => {
     const scene = crossing([DRIFT_CLIP]);
     await scene.say(0);
 
-    // Up to the first chunk's release instant and no further, so the whole
-    // utterance arrives through the closing crossing rather than in one pass.
+    // Up to the first chunk's release instant and no further, so the whole utterance arrives through the closing crossing rather than in one pass.
     scene.advance(LIGHT_TIME - DRIFT_CLIP.seconds);
 
     /*
@@ -350,8 +347,7 @@ describe("a keying with no path", () => {
   });
 
   it("keeps talking anyway, every chunk on the wire", async () => {
-    // Loss of path stops DELIVERY, never transmission: a listener elsewhere
-    // who does have a path to this vantage is entitled to the words.
+    // Loss of path stops DELIVERY, never transmission: a listener elsewhere who does have a path to this vantage is entitled to the words.
     const scene = crossing([SHORT_CLIP], { separationSeconds: null });
     await scene.say(0);
 
@@ -396,8 +392,7 @@ describe("two keyings a conversational gap apart", () => {
   });
 
   it("starts a fresh decode for the second one", async () => {
-    // A new keying is not a continuation: one decoder fed two utterances back
-    // to back interprets the second against the first's state.
+    // A new keying is not a continuation: one decoder fed two utterances back to back interprets the second against the first's state.
     const scene = crossing([SHORT_CLIP, REPLY_CLIP]);
     await scene.say(0);
     scene.advance(60);
@@ -454,8 +449,7 @@ function twoTalkers(near: RadioClip, far: RadioClip) {
           authorStationKey: `station-${from}`,
           authorName: name,
           authorSeat: "pilot",
-          // Resolved at the listener from the matrix above, which is what a
-          // vantage that can see the published pairs does.
+          // Resolved at the listener from the matrix above, which is what a vantage that can see the published pairs does.
           separationSeconds: null,
         }),
       unkey: () => transmitter.keyUp(),

@@ -93,8 +93,7 @@ function mountWidget(): {
     </TelemetryProvider>,
   );
   mounted.push(unmount);
-  // One `act` per frame: batched into a single one, React would coalesce the
-  // sixty notifications into one render and the aggregation would run once.
+  // One `act` per frame: batched into a single one, React would coalesce the sixty notifications into one render and the aggregation would run once.
   return { frame: () => act(() => store.beginFrame()), transport };
 }
 
@@ -123,8 +122,7 @@ describe("the contribution slot perf budget", () => {
   });
 
   it("still fires on a slot whose entries genuinely change on every frame", () => {
-    // A slot recomputes when a declared input moves, so the spin comes from
-    // one: a reading that changes every frame.
+    // A slot recomputes when a declared input moves, so the spin comes from one: a reading that changes every frame.
     registerContribution({
       id: "spinning",
       contributes: "fixture.perf",

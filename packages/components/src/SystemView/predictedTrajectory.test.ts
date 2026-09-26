@@ -54,8 +54,7 @@ describe("predictTrajectory", () => {
     expect(patches).toHaveLength(1);
     const pts = patches[0].points;
     expect(pts.length).toBeGreaterThan(2);
-    // Metres, not plot units: the diagram places these into the frame in force
-    // and scales them, so a plot scale applied here would be a second one.
+    // Metres, not plot units: the diagram places these into the frame in force and scales them, so a plot scale applied here would be a second one.
     for (const p of pts) {
       expect(Math.hypot(p.x, p.y)).toBeCloseTo(1e6, 1);
       expect(p.z).toBeCloseTo(0, 6);

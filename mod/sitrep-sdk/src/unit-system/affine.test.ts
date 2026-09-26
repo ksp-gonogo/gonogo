@@ -89,8 +89,7 @@ describe("the affine declaration and the runtime lookup agree", () => {
         (UNIT_DEFINITIONS as Record<string, { affineVector?: string }>)[token]
           ?.affineVector,
       );
-      // Base rung only: a computed value is in base units by construction, so
-      // resolving to `min` or `h` would be off by a factor.
+      // Base rung only: a computed value is in base units by construction, so resolving to `min` or `h` would be off by a factor.
       expect(def?.ratio).toBe(1);
     }
   });

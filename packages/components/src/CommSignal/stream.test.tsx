@@ -74,12 +74,10 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
       </fixture.Provider>,
     );
 
-    // Nothing arrived yet: hasData is false (connected/strength/
-    // controlState all undefined), so the empty state renders.
+    // Nothing arrived yet: hasData is false (connected/strength/ controlState all undefined), so the empty state renders.
     expect(screen.getByText("No signal data")).toBeTruthy();
 
-    // A real subscription must have happened for this to deliver at all,
-    // StubTransport.emit is subscription-gated (see its own doc comment).
+    // A real subscription must have happened for this to deliver at all, StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.comms")).toBe(true);
 
     act(() => {
@@ -171,8 +169,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     "reflects a signal-loss transition (connected True->False->True) as LOS, " +
       "never a stuck-stale 'connected' readout",
     async () => {
-      // Connectivity now rides the dedicated comms.link MetaTopic (comm.connected
-      // -> comms.link.connected); signalStrength still rides vessel.comms.
+      // Connectivity now rides the dedicated comms.link MetaTopic (comm.connected -> comms.link.connected); signalStrength still rides vessel.comms.
       const fixture = setupStreamFixture({
         carriedChannels: ["vessel.comms", "comms.link"],
         pinnedUt: 10,
@@ -213,8 +210,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
       expect(visibleText(container)).not.toContain("87 %");
       expect(screen.getByLabelText("Signal 0 of 4")).toBeTruthy();
       expect(screen.getByText("No signal")).toBeTruthy();
-      // The polite live region announces the loss (not a live-regioned
-      // percentage: see the component's own a11y doc comment).
+      // The polite live region announces the loss (not a live-regioned percentage: see the component's own a11y doc comment).
       expect(screen.getByText("Signal lost")).toBeTruthy();
 
       // Signal regained.
@@ -305,8 +301,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
       });
       await waitFor(() => expect(visibleText()).toContain("50 %"));
 
-      // Sample B: a MUCH more current reading arrives (validAt/deliveredAt =
-      // 20), but the delay window means it isn't confirmed yet.
+      // Sample B: a MUCH more current reading arrives (validAt/deliveredAt = 20), but the delay window means it isn't confirmed yet.
       act(() => {
         fixture.emit(
           "vessel.comms",
@@ -356,8 +351,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
       fixture.emit("comms.delay", { oneWaySeconds: 1.2 });
     });
 
-    // Control state resolves off vessel.comms, delay off comms.delay: both
-    // streamed, no legacy source.
+    // Control state resolves off vessel.comms, delay off comms.delay: both streamed, no legacy source.
     await waitFor(() => expect(screen.getByText("Partial")).toBeTruthy());
     expect(fixture.transport.isSubscribed("comms.delay")).toBe(true);
     // ceil(0.4 * 4) = 2 lit bars.
@@ -475,8 +469,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
       });
     });
 
-    // The top stop is the source vessel's own name, never "You": Gonogo is
-    // the experience FROM the command centre.
+    // The top stop is the source vessel's own name, never "You": Gonogo is the experience FROM the command centre.
     await waitFor(() => expect(screen.getByText("Active Vessel")).toBeTruthy());
     expect(screen.getByText("Relay Sat 1")).toBeTruthy();
     expect(screen.getByText("KSC")).toBeTruthy();
@@ -493,8 +486,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     expect(visibleText()).not.toContain("6 ms");
 
     act(() => {
-      // The whole route's light-time at real light speed, which is what a save
-      // at clean realism reports for this geometry.
+      // The whole route's light-time at real light speed, which is what a save at clean realism reports for this geometry.
       fixture.emit("comms.delay", {
         oneWaySeconds: 2_490_000 / 299_792_458,
       });
@@ -507,8 +499,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     await waitFor(() => expect(visibleText()).toContain("6 ms"));
     const visible = visibleText();
     expect(visible).toContain("2 ms");
-    // The whole chain, in order, so a reordered or duplicated stop fails here
-    // rather than passing on four independent substring hits.
+    // The whole chain, in order, so a reordered or duplicated stop fails here rather than passing on four independent substring hits.
     expect(visible).toContain(
       "RouteActive Vessel1.9 Mm6 msRelay Sat 1640.0 km2 msKSC",
     );
@@ -686,8 +677,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     });
 
     await waitFor(() => expect(screen.getByText("Active Vessel")).toBeTruthy());
-    // Both legs' rates render through the canonical Unit formatter, by value:
-    // 96,000 bit/s on the vessel-to-relay leg, 12,000 on the relay-to-home one.
+    // Both legs' rates render through the canonical Unit formatter, by value: 96,000 bit/s on the vessel-to-relay leg, 12,000 on the relay-to-home one.
     const routeText = visibleText();
     expect(routeText).toContain("96.0 kbit/s");
     expect(routeText).toContain("12.0 kbit/s");

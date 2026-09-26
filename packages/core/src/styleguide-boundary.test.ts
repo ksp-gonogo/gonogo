@@ -142,8 +142,7 @@ describe("ui-kit <-> spine import boundary", () => {
   });
 
   it("ui-kit/src does not runtime-import the telemetry spine", () => {
-    // Includes ui-kit tests: ui-kit has no spine dependency at all, so no file
-    // of any kind should reach the spine at runtime.
+    // Includes ui-kit tests: ui-kit has no spine dependency at all, so no file of any kind should reach the spine at runtime.
     const found = violationsUnder(
       REPO_ROOT,
       "packages/ui-kit/src",

@@ -117,8 +117,7 @@ describe("CrewStatus, what undefined telemetry renders today", () => {
       expect(screen.getByText("Waiting for telemetry...")).toBeInTheDocument(),
     );
     expect(screen.queryByText("Jebediah Kerman")).not.toBeInTheDocument();
-    // Not "Unmanned": a confirmed no-crew tombstone is not reported as an
-    // unmanned vessel, it is reported as no telemetry.
+    // Not "Unmanned": a confirmed no-crew tombstone is not reported as an unmanned vessel, it is reported as no telemetry.
     expect(screen.queryByText(/Unmanned/i)).not.toBeInTheDocument();
   });
 

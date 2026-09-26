@@ -92,13 +92,11 @@ describe("AtmosphereProfile: what undefined means today", () => {
     // only honest never-arrived surface, and it comes from the body read alone.
     expect(visibleText(container)).toContain("Waiting for body telemetry...");
 
-    // Named absences rather than an empty container: no unknown-body notice (its
-    // gate needs `bodyName !== undefined`), no no-model notice, and no HUD chip.
+    // Named absences rather than an empty container: no unknown-body notice (its gate needs `bodyName !== undefined`), no no-model notice, and no HUD chip.
     expect(screen.queryByRole("status")).toBeNull();
     expect(visibleText(container)).not.toContain("Unknown body");
     expect(visibleText(container)).not.toContain("ρ");
-    // No current-pressure threshold: its label is the only thing that renders
-    // the word, `speakQuantity` spells the unit out.
+    // No current-pressure threshold: its label is the only thing that renders the word, `speakQuantity` spells the unit out.
     expect(visibleText(container)).not.toMatch(/pascals/);
   });
 
@@ -164,8 +162,7 @@ describe("AtmosphereProfile: what undefined means today", () => {
       emitBody(fixture, "Kerbin", { flight: { atmDensity: 1.217 } });
     });
 
-    // The pressure curve draws, so the chart is fully live and the operator has
-    // no cue that the "you are flying through this pressure" line is missing.
+    // The pressure curve draws, so the chart is fully live and the operator has no cue that the "you are flying through this pressure" line is missing.
     await waitFor(() => {
       expect(
         container.querySelectorAll("path[stroke-dasharray]").length,
@@ -173,8 +170,7 @@ describe("AtmosphereProfile: what undefined means today", () => {
     });
     expect(visibleText(container)).not.toMatch(/pascals/);
 
-    // The same record with an altitude does draw the marker: the omission
-    // above is the missing field and nothing else.
+    // The same record with an altitude does draw the marker: the omission above is the missing field and nothing else.
     act(() => {
       fixture.emit(
         "vessel.flight",

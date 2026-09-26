@@ -201,8 +201,7 @@ export function SitrepTelemetryProvider({
       reportSitrepTransportStatus("disconnected");
       return;
     }
-    // An injected transport is the caller's to dispose (tests own its lifecycle);
-    // a WebSocketTransport we build here is ours.
+    // An injected transport is the caller's to dispose (tests own its lifecycle); a WebSocketTransport we build here is ours.
     const ownsTransport = injectedTransport === undefined;
     const ownedTransport = ownsTransport
       ? new WebSocketTransport({

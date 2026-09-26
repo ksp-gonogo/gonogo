@@ -45,8 +45,7 @@ function findRepoRoot(start: string): string {
 
 const ROOT = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
 
-// git-tracked enumeration rather than a filesystem walk: a live walk races with
-// the dist/ output other packages write during a concurrent `turbo test`.
+// git-tracked enumeration rather than a filesystem walk: a live walk races with the dist/ output other packages write during a concurrent `turbo test`.
 function trackedTypeTests(): string[] {
   return execFileSync("git", ["ls-files", "-z", "--", ...SCAN_ROOTS], {
     cwd: ROOT,

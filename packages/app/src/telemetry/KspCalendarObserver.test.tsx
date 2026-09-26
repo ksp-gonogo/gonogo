@@ -25,8 +25,7 @@ import { KspCalendarObserver } from "./KspCalendarObserver";
  */
 
 afterEach(() => {
-  // Module state in the kit: leak it and the next test in this file, or any
-  // other, formats on somebody else's calendar.
+  // Module state in the kit: leak it and the next test in this file, or any other, formats on somebody else's calendar.
   setKspCalendar();
 });
 
@@ -65,8 +64,7 @@ describe("KspCalendarObserver", () => {
         yearSeconds: 365 * 86_400,
         kerbinTime: false,
       });
-      // Nothing else reveals a sample: the store hands a payload to readers on
-      // a frame, and the view clock has to have reached its validAt.
+      // Nothing else reveals a sample: the store hands a payload to readers on a frame, and the view clock has to have reached its validAt.
       fixture.wall.advanceBy(1);
       fixture.store.beginFrame();
     });
@@ -81,8 +79,7 @@ describe("KspCalendarObserver", () => {
     // glossed, because it IS the limitation: a widget showing a fixed date and
     // nothing else would hold a stale calendar until something re-rendered it.
     rerender(tree());
-    // One real day in reads as D2 on an Earth calendar; on Kerbin's it is D5,
-    // which is what this same assertion sees before the rerender.
+    // One real day in reads as D2 on an Earth calendar; on Kerbin's it is D5, which is what this same assertion sees before the rerender.
     await waitFor(() => expect(visibleText()).toContain("Y1 D2 00:00:00"));
   });
 

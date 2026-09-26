@@ -40,8 +40,7 @@ describe("Card", () => {
     // than a body it does not know.
     expect(injectedCss()).toContain("font-size:var(--font-size-value);");
     expect(injectedCss()).toContain("font-size:var(--font-size-compact);");
-    // The name comes before the figures under it, in the DOM a screen reader
-    // walks as well as on screen.
+    // The name comes before the figures under it, in the DOM a screen reader walks as well as on screen.
     expect(
       title.compareDocumentPosition(screen.getByText("Apoapsis 84km")),
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
@@ -109,8 +108,7 @@ describe("Card", () => {
   });
 
   it("colours a short centred top tab from identityColor", () => {
-    // Not a full-width border: operator feedback called the earlier full-edge
-    // strip too busy, it read as a second meter stacked on the card.
+    // Not a full-width border: operator feedback called the earlier full-edge strip too busy, it read as a second meter stacked on the card.
     render(
       <Card identityColor="#654321" data-testid="card">
         Contents

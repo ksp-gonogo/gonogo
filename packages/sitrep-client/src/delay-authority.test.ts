@@ -99,8 +99,7 @@ describe("DelayAuthority", () => {
   });
 
   it("holds 0 through a no-path frame when no delay was ever established", () => {
-    // Nothing to hold: there is no honest horizon to invent before the first
-    // measurement, and 0 is the documented LAN-identical floor.
+    // Nothing to hold: there is no honest horizon to invent before the first measurement, and 0 is the documented LAN-identical floor.
     const authority = new DelayAuthority();
     authority.observe({ oneWaySeconds: null, source: CommsDelaySource.None });
     expect(authority.delaySeconds()).toBe(0);
@@ -208,8 +207,7 @@ describe("DelayAuthority → ViewClock (predicted-present horizon)", () => {
       delaySeconds: authority.delaySeconds,
     });
 
-    // Observe a sample far ahead so the sample-clamp isn't the binding side of
-    // confirmedEdgeUt's min(): the delay is.
+    // Observe a sample far ahead so the sample-clamp isn't the binding side of confirmedEdgeUt's min(): the delay is.
     clock.observeSample(10_000, 100);
     wall.advanceBy(0); // utNowEstimate == anchorUt == 100
 

@@ -204,8 +204,7 @@ describe("SystemEntitiesLayer", () => {
     expect(group?.tagName).toBe("g");
     // Apex (0,0) -> tip (5,0): a purely horizontal bearing, angle 0.
     expect(group?.getAttribute("transform")).toBe("translate(0 0) rotate(0)");
-    // The segment is a sine-wave polyline (frazzled ejecta texture), never a
-    // plain line or a static path shape.
+    // The segment is a sine-wave polyline (frazzled ejecta texture), never a plain line or a static path shape.
     expect(group?.querySelector("line")).toBeNull();
     expect(
       container.querySelector('path[data-entity-id="cme-pulse-1"]'),
@@ -230,16 +229,14 @@ describe("SystemEntitiesLayer", () => {
         nowUt={96}
       />,
     );
-    // TRAVELLING_PULSE: bodyPx = 5 (500_000m * 1e-5), segmentLengthPx = 1
-    // (100_000m * 1e-5, well under bodyPx so unclamped): exitPx = 5 + 1 = 6.
+    // TRAVELLING_PULSE: bodyPx = 5 (500_000m * 1e-5), segmentLengthPx = 1 (100_000m * 1e-5, well under bodyPx so unclamped): exitPx = 5 + 1 = 6.
     const clipRect = container.querySelector("clipPath rect");
     expect(clipRect).not.toBeNull();
     expect(Number(clipRect?.getAttribute("width"))).toBeCloseTo(6 + 4, 6);
   });
 
   it("positions the travelling-pulse's leading edge from real UT against arriveUt/clearUt, not a decorative loop", () => {
-    // At nowUt=arriveUt (100), the leading edge sits exactly at the tip
-    // (bodyPx=5): departUt=95, ratePxPerS=1, leadingPx=1*(100-95)=5.
+    // At nowUt=arriveUt (100), the leading edge sits exactly at the tip (bodyPx=5): departUt=95, ratePxPerS=1, leadingPx=1*(100-95)=5.
     const { container } = render(
       <SystemEntitiesLayer
         entities={[TRAVELLING_PULSE]}
@@ -267,8 +264,7 @@ describe("SystemEntitiesLayer", () => {
       "linearGradient#system-entities-pulse-fade-cme-pulse-1",
     );
     expect(gradient).not.toBeNull();
-    // bodyPx = 5: the fade band starts exactly at the target, never before
-    // it (the approaching/crossing portion stays full-strength).
+    // bodyPx = 5: the fade band starts exactly at the target, never before it (the approaching/crossing portion stays full-strength).
     expect(Number(gradient?.getAttribute("x1"))).toBeCloseTo(5, 6);
     expect(Number(gradient?.getAttribute("x2"))).toBeGreaterThan(5);
     const stops = gradient ? Array.from(gradient.querySelectorAll("stop")) : [];
@@ -478,8 +474,7 @@ describe("SystemEntitiesLayer", () => {
     );
     expect(dot).not.toBeNull();
     expect(dot).toHaveAttribute("pointer-events", "none");
-    // Not nested inside the button-role marker: a decoration, not a second
-    // hit target riding the same rotated frame as the ring's own geometry.
+    // Not nested inside the button-role marker: a decoration, not a second hit target riding the same rotated frame as the ring's own geometry.
     const button = screen.getByRole("button", { name: /Comsat Relay-1/ });
     expect(button.contains(dot)).toBe(false);
   });
@@ -571,8 +566,7 @@ describe("SystemEntitiesLayer", () => {
           pulses={[{ id: "cmd-1", edgeId: "link-1", t: 0.5, opacity: 0.75 }]}
         />,
       );
-      // LINK projects to x1=0, x2=2 (see the "connection-line" test above):
-      // the pulse rides the SAME endpoints, it never re-derives a position.
+      // LINK projects to x1=0, x2=2 (see the "connection-line" test above): the pulse rides the SAME endpoints, it never re-derives a position.
       const pulse = container.querySelector('[data-pulse-edge-id="link-1"]');
       expect(pulse?.tagName).toBe("line");
       expect(pulse?.getAttribute("x1")).toBe("0");
@@ -595,8 +589,7 @@ describe("SystemEntitiesLayer", () => {
       expect(gradientId).toBeDefined();
       const gradient = container.querySelector(`#${gradientId}`);
       expect(gradient?.tagName).toBe("linearGradient");
-      // Gradient coordinate space matches the edge's own endpoints, so the
-      // bright band travels ALONG the line rather than across it.
+      // Gradient coordinate space matches the edge's own endpoints, so the bright band travels ALONG the line rather than across it.
       expect(gradient?.getAttribute("x1")).toBe("0");
       expect(gradient?.getAttribute("x2")).toBe("2");
       const stops = gradient?.querySelectorAll("stop") ?? [];
@@ -604,8 +597,7 @@ describe("SystemEntitiesLayer", () => {
       const peak = stops[1];
       expect(peak.getAttribute("offset")).toBe("0.5");
       expect(peak.getAttribute("stop-opacity")).toBe("0.75");
-      // The band's two ends fade to transparent: a travelling glow, not a
-      // solid bright line end to end.
+      // The band's two ends fade to transparent: a travelling glow, not a solid bright line end to end.
       expect(stops[0].getAttribute("stop-opacity")).toBe("0");
       expect(stops[2].getAttribute("stop-opacity")).toBe("0");
     });
@@ -699,8 +691,7 @@ describe("travellingPulseWavePoints", () => {
   });
 
   it("degrades to a short two-point segment for a length under one sample step", () => {
-    // Never zero points even for a near-zero length: a degenerate polyline
-    // (a single coordinate pair) is still a valid, harmless <polyline>.
+    // Never zero points even for a near-zero length: a degenerate polyline (a single coordinate pair) is still a valid, harmless <polyline>.
     expect(travellingPulseWavePoints(0.5).split(" ")).toHaveLength(2);
   });
 

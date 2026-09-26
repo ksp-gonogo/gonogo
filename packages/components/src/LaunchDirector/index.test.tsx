@@ -341,8 +341,7 @@ describe("LaunchDirectorComponent", () => {
           missingParts: [],
         },
       ]);
-      // The launch controls are gated on the crew roster having ARRIVED, so an
-      // empty roster is needed even for an unmanned launch.
+      // The launch controls are gated on the crew roster having ARRIVED, so an empty roster is needed even for an unmanned launch.
       stream.emit("spaceCenter.crewRoster", []);
     });
 
@@ -384,8 +383,7 @@ describe("LaunchDirectorComponent", () => {
           missingParts: [],
         },
       ]);
-      // The launch controls are gated on the crew roster having ARRIVED, so an
-      // empty roster is needed even for an unmanned launch.
+      // The launch controls are gated on the crew roster having ARRIVED, so an empty roster is needed even for an unmanned launch.
       stream.emit("spaceCenter.crewRoster", []);
     });
 
@@ -443,8 +441,7 @@ describe("LaunchDirectorComponent", () => {
     expect(
       await screen.findByText(/In flight: Stayputnik X/i),
     ).toBeInTheDocument();
-    // missionTime is null while launchUt is (see this file's doc comment): the
-    // panel shows its NULL_DISPLAY placeholder.
+    // missionTime is null while launchUt is (see this file's doc comment): the panel shows its NULL_DISPLAY placeholder.
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
     expect(visibleText(container)).toContain("72.4 km");
     expect(screen.getByText("Revert to launch")).toBeInTheDocument();
@@ -929,8 +926,7 @@ describe("LaunchDirectorComponent augment slots", () => {
     );
   }
 
-  // Drive the widget into the pre-launch checklist branch so both the header
-  // (badges) and the appended section slot are on screen.
+  // Drive the widget into the pre-launch checklist branch so both the header (badges) and the appended section slot are on screen.
   function primePreLaunch() {
     act(() => {
       emitFunds(stream, 100_000);

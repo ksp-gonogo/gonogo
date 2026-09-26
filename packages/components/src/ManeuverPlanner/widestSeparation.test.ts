@@ -11,8 +11,7 @@ import { widestSeparation } from "./ConformancePlot";
  */
 describe("widestSeparation: where two conics are actually furthest apart", () => {
   it("finds the far apsis when the burn was made at one", () => {
-    // Raised apoapsis, shared periapsis: the textbook case the old rule assumed
-    // was the only one.
+    // Raised apoapsis, shared periapsis: the textbook case the old rule assumed was the only one.
     const found = widestSeparation(
       { sma: 973479.265252, ecc: 0.28093, argPe: 0 },
       {

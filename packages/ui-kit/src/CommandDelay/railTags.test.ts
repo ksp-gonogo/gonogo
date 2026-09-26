@@ -44,8 +44,7 @@ describe("each axis drives exactly one visual property", () => {
           byAxisValue.set(key, answer);
         }
       }
-      // And it must actually DISCRIMINATE on that axis: an accessor returning
-      // one constant would satisfy the loop above while reading nothing.
+      // And it must actually DISCRIMINATE on that axis: an accessor returning one constant would satisfy the loop above while reading nothing.
       expect(new Set(Array.from(byAxisValue.values())).size).toBe(2);
     });
   }

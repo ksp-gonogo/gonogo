@@ -148,8 +148,7 @@ describe("LandingStatus on the launchpad", () => {
     );
     emitOnThePad();
 
-    // The pad is on the ground, so the widget owes the operator the grounded
-    // readout rather than a countdown to an impact that is not coming.
+    // The pad is on the ground, so the widget owes the operator the grounded readout rather than a countdown to an impact that is not coming.
     expect(await screen.findByText("LANDED")).toBeInTheDocument();
   });
 });

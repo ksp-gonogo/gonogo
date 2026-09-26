@@ -59,8 +59,7 @@ import { greatCircle } from "./geo";
 import { deriveHazardVerdict } from "./hazardVerdict";
 import { solveSuicideBurn } from "./solveLanding";
 
-// No config of its own; the empty type names the slot so adding one later
-// doesn't change the registration's shape.
+// No config of its own; the empty type names the slot so adding one later doesn't change the registration's shape.
 type LandingStatusConfig = Record<string, never>;
 
 // Mounted by `Panel`'s universal segments rather than by this widget. The ids
@@ -392,8 +391,7 @@ function StackedField({
   label: string;
   children: React.ReactNode;
 }) {
-  // Column so the caption sits ABOVE the value (both are inline elements, so
-  // without this they flow side-by-side and the value wraps in a narrow col).
+  // Column so the caption sits ABOVE the value (both are inline elements, so without this they flow side-by-side and the value wraps in a narrow col).
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
       <ReadoutCaption>{label}</ReadoutCaption>
@@ -559,8 +557,7 @@ function LandingStatusComponent({
   const describeReckonable = <T, K extends keyof T>(
     r: ReckonableReading<T, K>,
   ): T | undefined => {
-    // The observation first, because `reckoning.status` narrows the reckoning
-    // and not the arm carrying it.
+    // The observation first, because `reckoning.status` narrows the reckoning and not the arm carrying it.
     if (r.state !== "observed" && r.state !== "stale") return undefined;
     return r.reckoning.status === "available"
       ? { ...r.value, ...r.reckoning.value }
@@ -618,8 +615,7 @@ function LandingStatusComponent({
    * there. Drives a caption, never a blank: the numbers below are still the best
    * picture available and stay on screen.
    */
-  // The state alone, so a declared-reckonable topic answers it identically: how
-  // current an observation is has nothing to do with what a model moves.
+  // The state alone, so a declared-reckonable topic answers it identically: how current an observation is has nothing to do with what a model moves.
   const isDated = (r: { state: ReadingState }): boolean => r.state === "stale";
   const datedInputs = [
     isDated(flightReading) ? "flight" : null,
@@ -773,8 +769,7 @@ function LandingStatusComponent({
   // CommitLayer has its own arm for a link it cannot vouch for.
   const live = clocks.regime === "live";
   const width = w ?? 8;
-  // The flight instruments (velocity vector + TWR) and the full-height altitude
-  // rail come in together at a comfortable width; below that, plain readouts.
+  // The flight instruments (velocity vector + TWR) and the full-height altitude rail come in together at a comfortable width; below that, plain readouts.
   const showScope = width >= 6;
   /**
    * Whether this widget lays plots out at all, which is the ONLY plot decision
@@ -857,8 +852,7 @@ function LandingStatusComponent({
 
   // ── Section fragments (composed into the layout below) ─────────────────────
 
-  // Displacement sub-vessel → predicted site: bearing is the ground-track slice
-  // direction for the cross-section; distance is the downrange readout.
+  // Displacement sub-vessel → predicted site: bearing is the ground-track slice direction for the cross-section; distance is the downrange readout.
   const siteDrift =
     flight?.latitude != null &&
     flight?.longitude != null &&
@@ -932,8 +926,7 @@ function LandingStatusComponent({
         >
           <ReadoutCaption>Affordable</ReadoutCaption>
           {noLandingVector ? (
-            // Fuel isn't the wall (there's no path at all): a green "yes" here
-            // would contradict the ABORT above, so mute it.
+            // Fuel isn't the wall (there's no path at all): a green "yes" here would contradict the ABORT above, so mute it.
             <Text tone="muted">n/a · no path</Text>
           ) : affordable == null ? (
             <Text tone="muted">{NULL_DISPLAY}</Text>
@@ -1047,8 +1040,7 @@ function LandingStatusComponent({
     ) : null;
 
   const velocityEl =
-    // The atmospheric-estimate board carries its own velocity split, so don't
-    // repeat it in the standalone Velocity section.
+    // The atmospheric-estimate board carries its own velocity split, so don't repeat it in the standalone Velocity section.
     //
     // It used to be suppressed whenever the spatial plots were up, on the
     // grounds that the cross-section's own label carried the split. That was
@@ -1291,8 +1283,7 @@ function LandingStatusComponent({
                 <div
                   style={{
                     flex: "0 0 auto",
-                    // An instrument dimension, not a spacing rung: the width the
-                    // scale's labels and track need.
+                    // An instrument dimension, not a spacing rung: the width the scale's labels and track need.
                     width: 64,
                     position: "sticky",
                     top: 0,

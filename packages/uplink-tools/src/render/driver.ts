@@ -356,8 +356,7 @@ async function renderOneScene(
   console.log(`\n── ${scene.target.kind} ${scene.target.id} / ${scene.name}`);
   const first = scene.modes[0];
 
-  // The starved run, once per scene rather than once per mode: the question is
-  // about the FIXTURE, and a tile size cannot answer it.
+  // The starved run, once per scene rather than once per mode: the question is about the FIXTURE, and a tile size cannot answer it.
   const starved = await mount(tab, payloadFor(scene, first, true));
   const staleness = await stalenessRenders(tab, scene, first);
   if (staleness) {
@@ -812,8 +811,7 @@ async function growToFullContent(tab: Page): Promise<void> {
       void el.offsetHeight;
     }
   });
-  // ResizeObserver-driven bits (gauges, tapes, scroll glow) settle at the final
-  // height before the shot.
+  // ResizeObserver-driven bits (gauges, tapes, scroll glow) settle at the final height before the shot.
   await tab.evaluate(
     () =>
       new Promise<void>((resolve) => {
@@ -1170,8 +1168,7 @@ async function captureMotion(
   // scroll between two frames would not.
   await growToFullContent(tab);
   await fitViewportToRoot(tab);
-  // The state before the first step is a frame in its own right: the reader has
-  // to see what changed FROM.
+  // The state before the first step is a frame in its own right: the reader has to see what changed FROM.
   frames.push(await shootFrame(tab, opts, framesDir, frames.length));
   // One shape per frame, so the film's shape is the SEQUENCE and a step that
   // stopped firing changes it. A GIF is the asset that most needs this: its
@@ -1195,8 +1192,7 @@ async function captureMotion(
         await tab.mouse.up();
         holding = false;
       }
-      // `waitMs` is divided, not repeated: the probe moves the scene clock that
-      // much per frame, the way `advanceUt` is divided.
+      // `waitMs` is divided, not repeated: the probe moves the scene clock that much per frame, the way `advanceUt` is divided.
       const perFrame: SceneStep =
         i === 0
           ? { ...step, frames: 1, waitMs: wait }
@@ -1275,8 +1271,7 @@ async function holdPointer(
   const y = box.y + box.height / 2;
   await tab.mouse.move(x, y);
   await tab.mouse.down();
-  // Stepped rather than jumped: a drag handler reading movement per event sees
-  // one enormous delta from a teleport and nothing resembling a drag.
+  // Stepped rather than jumped: a drag handler reading movement per event sees one enormous delta from a teleport and nothing resembling a drag.
   await tab.mouse.move(x + (hold.dx ?? 0), y + (hold.dy ?? 0), { steps: 8 });
 }
 

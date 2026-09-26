@@ -227,8 +227,7 @@ describe("PeerHostService.handleUplinkBundleRequest (D6 conduit)", () => {
           };
         }
         callCount++;
-        // Simulate a slow author-host download so both requests are
-        // genuinely in-flight together, not just sequential-and-cached.
+        // Simulate a slow author-host download so both requests are genuinely in-flight together, not just sequential-and-cached.
         await new Promise((r) => setTimeout(r, 10));
         return { ok: true, status: 200, arrayBuffer: async () => bundle };
       }),
@@ -253,8 +252,7 @@ describe("PeerHostService.handleUplinkBundleRequest (D6 conduit)", () => {
     expect(new Uint8Array(resultA)).toEqual(new Uint8Array(bundle));
     expect(new Uint8Array(resultB)).toEqual(new Uint8Array(bundle));
 
-    // A THIRD, later request for the same url reuses the cached verified
-    // bytes too: still exactly one underlying fetch.
+    // A THIRD, later request for the same url reuses the cached verified bytes too: still exactly one underlying fetch.
     const resultC = await clientA.sendBundleFetch(
       "https://example.test/shared.js",
       goodHash,

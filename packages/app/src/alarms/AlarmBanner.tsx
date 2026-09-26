@@ -32,8 +32,7 @@ export function AlarmBanner() {
     (delay.state === "observed" || delay.state === "stale") &&
     delay.value.oneWaySeconds == null;
 
-  // Force a re-render each second so T-minus counts down even without
-  // upstream telemetry ticks.
+  // Force a re-render each second so T-minus counts down even without upstream telemetry ticks.
   const [, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 1000);
@@ -233,8 +232,7 @@ export function FiredAlarmPills() {
   const firedAlarms = snap.alarms.filter((a) => a.state === "fired");
   const cpCollapse = collapseFiredContractParam(firedAlarms);
   const collapsedIds = cpCollapse ? new Set(cpCollapse.ids) : null;
-  // Skip the alarm the headline AlarmBanner is already rendering so
-  // we don't duplicate it as a sibling pill.
+  // Skip the alarm the headline AlarmBanner is already rendering so we don't duplicate it as a sibling pill.
   const headline = pickNext(
     collapsedIds
       ? { ...snap, alarms: snap.alarms.filter((a) => !collapsedIds.has(a.id)) }

@@ -1,6 +1,5 @@
 // ---------------------------------------------------------------------------
-// Drift guard: the @ksp-gonogo/sitrep-sdk author-facing type MIRROR vs core's
-// (and sitrep-client's) real types.
+// Drift guard: the @ksp-gonogo/sitrep-sdk author-facing type MIRROR vs core's (and sitrep-client's) real types.
 //
 // sitrep-sdk is the dependency-graph leaf, so it cannot import core OR
 // sitrep-client (either would form a turbo `^build` cycle, core and
@@ -12,8 +11,7 @@
 // out of structural compatibility with the published facade, this fails
 // core's `tsc` typecheck.
 //
-// Retire this file when the loader work inverts the type source into the leaf
-// (the facade then re-exports the real types and there is nothing to mirror).
+// Retire this file when the loader work inverts the type source into the leaf (the facade then re-exports the real types and there is nothing to mirror).
 // ---------------------------------------------------------------------------
 
 import type {
@@ -151,8 +149,7 @@ type _DataKeyKeys = Expect<SameKeys<SdkDataKey, Core.DataKey>>;
 // itself. That is the direction this whole gate is meant to retire in, one type at
 // a time.
 
-// Screen identity: owned by
-// contexts/ScreenContext.tsx.
+// Screen identity: owned by contexts/ScreenContext.tsx.
 type _Screen = Expect<Assignable<SdkScreen, CoreScreen>>;
 type _ScreenBack = Expect<Assignable<CoreScreen, SdkScreen>>;
 

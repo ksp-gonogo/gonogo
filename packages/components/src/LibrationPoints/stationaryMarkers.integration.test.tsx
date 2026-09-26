@@ -157,8 +157,7 @@ describe("LibrationPoints: the pair reaches the frame", () => {
     expect(svg.getAttribute("data-libration-frame")).toBe("rotating-pulsating");
     expect(svg.getAttribute("data-libration-pair")).toBe("Kerbin-Mun");
     expect(markerPositions(svg).size).toBe(5);
-    // And the widget says which frame it drew in, in the same words every other
-    // trajectory-drawing widget uses.
+    // And the widget says which frame it drew in, in the same words every other trajectory-drawing widget uses.
     expect(view.container.textContent).toContain("Kerbin-Mun Lagrange");
     // The frame's name is what carries that its lengths pulsate: it is the
     // name the operator selected the frame by, and a pulsating frame is
@@ -188,8 +187,7 @@ describe("LibrationPoints: the pair reaches the frame", () => {
     const auto = svg.getAttribute("data-libration-pair");
     expect(auto).not.toBeNull();
     expect(["Kerbol-Kerbin", "Kerbin-Mun"]).toContain(auto);
-    // Whichever it chose, one of the two saved-value cases asks for the other,
-    // so at least one of them fails if the config stops being read.
+    // Whichever it chose, one of the two saved-value cases asks for the other, so at least one of them fails if the config stops being read.
     await act(async () => {});
   });
 
@@ -297,8 +295,7 @@ describe("LibrationPoints: the craft's offset", () => {
     await waitFor(() => {
       expect(view.container.textContent).toContain("Nearest");
     });
-    // A craft 9 Mm out from Kerbin, with Mun 7.2 Mm away, is close to the far
-    // collinear point and not on it.
+    // A craft 9 Mm out from Kerbin, with Mun 7.2 Mm away, is close to the far collinear point and not on it.
     expect(view.container.textContent).toContain("L2 · drifting off station");
     expect(view.container.textContent).toContain("Off station");
     await act(async () => {});

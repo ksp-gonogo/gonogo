@@ -199,8 +199,7 @@ async function main() {
     }
     await gifPage.context().close();
 
-    // Hero at 2x DPR in a fresh context so the graphs' sample history and
-    // the screenshot DPI are both clean.
+    // Hero at 2x DPR in a fresh context so the graphs' sample history and the screenshot DPI are both clean.
     const heroPage = await newDashboardPage(browser, 2);
     await waitForMissionTime(HERO_TIME_S);
     const heroPath = join(OUT_DIR, "hero-dashboard.png");

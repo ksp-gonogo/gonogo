@@ -112,8 +112,7 @@ describe("Console", () => {
     });
 
     it("gives a console that cannot queue neither reading at a long delay", () => {
-      // A read-only viewer dispatches nothing, so there is no queue to draw and
-      // a standing chip would quote a cost it never pays.
+      // A read-only viewer dispatches nothing, so there is no queue to draw and a standing chip would quote a cost it never pays.
       render(<Console oneWaySeconds={240} canQueue={false} inFlight={OUT} />);
       expect(screen.queryByLabelText("Signal delay")).toBeNull();
       expect(screen.queryByLabelText("Uplink queue")).toBeNull();
@@ -128,8 +127,7 @@ describe("Console", () => {
 
   describe("inFlightFrozenAtDispatch", () => {
     it("keeps listing entries after the live reading has gone", () => {
-      // Words put out at four light-minutes are still four light-minutes out
-      // after the path drops, and this queue is the only place they appear.
+      // Words put out at four light-minutes are still four light-minutes out after the path drops, and this queue is the only place they appear.
       render(
         <Console
           oneWaySeconds={null}

@@ -30,8 +30,7 @@ describe("the derived-channel union matches what is registered", () => {
   });
 
   it("found a non-trivial number of channels (scan sanity check)", () => {
-    // An empty array on both sides would satisfy the assertion above while
-    // checking nothing, which is how a set-equality gate passes vacuously.
+    // An empty array on both sides would satisfy the assertion above while checking nothing, which is how a set-equality gate passes vacuously.
     expect(registered.length).toBeGreaterThan(4);
   });
 

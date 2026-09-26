@@ -153,8 +153,7 @@ interface Scene {
 
 const SCENES: Scene[] = [
   {
-    // The headline falsehood: this recovery paid 1,035 funds, 12.5 science and
-    // 7.5 reputation, and the banner reported three zeros.
+    // The headline falsehood: this recovery paid 1,035 funds, 12.5 science and 7.5 reputation, and the banner reported three zeros.
     name: "recovery-banner",
     emit: { "recovery.hasRecent": true, "recovery.lastSummary": RECOVERY },
     pxW: 720,
@@ -174,8 +173,7 @@ const SCENES: Scene[] = [
     pxH: 110,
   },
   {
-    // Every row of the breakdown came off the same substitution, one level
-    // down: the part group of eight rendered as "×1" at 0 funds.
+    // Every row of the breakdown came off the same substitution, one level down: the part group of eight rendered as "×1" at 0 funds.
     name: "recovery-detail",
     emit: { "recovery.hasRecent": true, "recovery.lastSummary": RECOVERY },
     openDetail: true,
@@ -321,8 +319,7 @@ async function main(): Promise<void> {
     await browser.close();
   }
 
-  // A page error means a scene rendered wrong, and a silently wrong render is
-  // worse than no render: it goes to a reviewer looking like the real thing.
+  // A page error means a scene rendered wrong, and a silently wrong render is worse than no render: it goes to a reviewer looking like the real thing.
   if (failures > 0) {
     throw new Error(`${failures} page error(s) during rendering; see above`);
   }

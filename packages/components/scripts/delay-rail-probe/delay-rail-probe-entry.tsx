@@ -99,8 +99,7 @@ async function renderDelayRail(payload: DelayRailProbePayload): Promise<void> {
   activeRoot.render(
     <Harness handles={payload.handles} panelTitle={payload.panelTitle} />,
   );
-  // Settle past a raf or two so the rail measures its height and any
-  // canvas indicators paint before the screenshot.
+  // Settle past a raf or two so the rail measures its height and any canvas indicators paint before the screenshot.
   await new Promise<void>((r) => requestAnimationFrame(() => r()));
   await new Promise<void>((r) => requestAnimationFrame(() => r()));
   await new Promise<void>((r) => setTimeout(r, 400));

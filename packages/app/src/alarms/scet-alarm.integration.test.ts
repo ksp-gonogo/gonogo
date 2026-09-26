@@ -510,8 +510,7 @@ function startSession(owlt: number): ModStandIn {
         { validAt: ut - owlt, deliveredAt: ut, vantage: stampedVantage },
       );
 
-      // The mod's pass, on the game's OWN clock: this is the whole point of the
-      // arm, and it runs whatever the client can currently see.
+      // The mod's pass, on the game's OWN clock: this is the whole point of the arm, and it runs whatever the client can currently see.
       for (const [id, arm] of conditions) {
         if (fired.has(id) || cancelled.has(id)) continue;
         /* An alarm at any vantage but its own subject's is judged against what
@@ -576,8 +575,7 @@ function startSession(owlt: number): ModStandIn {
           warpMode: WarpMode.High,
           paused: false,
         },
-        // `time.warp` is TrueNow on the mod, so the frame is stamped at the
-        // instant it was captured rather than a light-time back.
+        // `time.warp` is TrueNow on the mod, so the frame is stamped at the instant it was captured rather than a light-time back.
         { validAt: ut, deliveredAt: ut, vantage: stampedVantage },
       );
       /* Every tick, where the real channel change-gates and leans on
@@ -661,8 +659,7 @@ describe("SCET alarms", () => {
     await run(session, UT_START + 4 * DT);
     expect(session.armed()).toEqual([alarm.id]);
 
-    // Deleting it here is what a reconnecting client's reconciliation does to a
-    // roster row it no longer recognises: the same disarm, from the same diff.
+    // Deleting it here is what a reconnecting client's reconciliation does to a roster row it no longer recognises: the same disarm, from the same diff.
     svc.deleteAlarm(alarm.id);
     await run(session, UT_START + 8 * DT);
     expect(session.armed()).toEqual([]);
@@ -1030,8 +1027,7 @@ describe("SCET alarms", () => {
     await run(session, UT_START + 4 * DT);
     expect(session.gameIndex()).toBeGreaterThan(0);
 
-    // Two light-times past the fire: long enough for the stop to surface in
-    // `time.warp` and for the controller to have had every chance to argue.
+    // Two light-times past the fire: long enough for the stop to surface in `time.warp` and for the controller to have had every chance to argue.
     await run(session, target + 2 * OWLT);
     svc.dispose();
 
@@ -1046,8 +1042,7 @@ describe("SCET alarms", () => {
     expect(
       session.warpDispatchedAt.filter((at) => at >= (firedAt as number)),
     ).toEqual([]);
-    // The session is over from the moment the notice landed, rather than a
-    // light-time later when the reading finally shows zero.
+    // The session is over from the moment the notice landed, rather than a light-time later when the reading finally shows zero.
     expect(svc.snapshot().warpTo).toBeNull();
   });
 
@@ -1068,8 +1063,7 @@ describe("SCET alarms", () => {
       trigger: { kind: "time", ut: target, leadSeconds: 0 },
     });
     await run(session, UT_START + 4 * DT);
-    // Gone across the fire, the way a browser tab is when it is closed or a
-    // socket drops: nothing on this side is listening when the notice goes out.
+    // Gone across the fire, the way a browser tab is when it is closed or a socket drops: nothing on this side is listening when the notice goes out.
     first.dispose();
     setActiveTelemetryClientForTests(undefined);
 
@@ -1090,8 +1084,7 @@ describe("SCET alarms", () => {
     await vi.advanceTimersByTimeAsync(DT * 1000);
 
     const row = reconnected.snapshot().alarms.find((a) => a.id === alarm.id);
-    // Replayed on the reliable lane rather than lost: the operator comes back
-    // to an alarm that fired, not to a warp that stopped for no stated reason.
+    // Replayed on the reliable lane rather than lost: the operator comes back to an alarm that fired, not to a warp that stopped for no stated reason.
     expect(row?.state).not.toBe("pending");
     expect(row?.eventUT).toBe(target);
     reconnected.dispose();
@@ -1123,8 +1116,7 @@ describe("SCET alarms", () => {
     await run(session, UT_START + 4 * DT);
     svc.dispose();
 
-    // The address the simulation resolves, not the flat key: a Topic and a path
-    // into its payload, because the flat key cannot be split back apart.
+    // The address the simulation resolves, not the flat key: a Topic and a path into its payload, because the flat key cannot be split back apart.
     expect(session.armOf(alarm.id)?.condition).toEqual({
       kind: "threshold",
       topic: "vessel.flight",
@@ -1622,8 +1614,7 @@ describe("SCET alarms", () => {
      * by then. See "AlarmsModal vantage choice" in `AlarmsModal.test.tsx` for
      * the modal's half of this.
      */
-    // The precondition, asserted rather than assumed: this really is the screen
-    // with no qualifier to put on either clock.
+    // The precondition, asserted rather than assumed: this really is the screen with no qualifier to put on either clock.
     expect(deriveTimeContexts(0, "KSC").scet).toBeUndefined();
 
     const session = startSession(0);
@@ -1666,8 +1657,7 @@ describe("SCET alarms", () => {
     };
     await step(UT_START + DT, UT_START + 4 * DT);
 
-    // Armed on the mod, not demoted to the command vantage and not left for
-    // this side to evaluate.
+    // Armed on the mod, not demoted to the command vantage and not left for this side to evaluate.
     expect(session.armed()).toEqual([alarm.id]);
     expect(session.armOf(alarm.id)?.condition).toEqual({
       kind: "threshold",

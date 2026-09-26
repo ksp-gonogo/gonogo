@@ -143,8 +143,7 @@ describe("Strategies when the career balances are no longer current", () => {
     await waitFor(() =>
       expect(visibleText()).toContain("balances not current"),
     );
-    // Withheld, not merely gone: a figure held past its currency is what the
-    // Activate gate would then be computed from.
+    // Withheld, not merely gone: a figure held past its currency is what the Activate gate would then be computed from.
     expect(visibleText()).not.toContain("289,848");
     expect(visibleText()).not.toContain("420");
     expect(visibleText()).not.toContain("145");
@@ -173,8 +172,7 @@ describe("Strategies when the career balances are no longer current", () => {
   });
 
   it("says 'not current' in the tiny bucket, where 'unknown' would blame the wrong thing", async () => {
-    // w=4 is the tiny bucket, whose single funds row is the only place the
-    // balance-visibility rule can be honoured at that size.
+    // w=4 is the tiny bucket, whose single funds row is the only place the balance-visibility rule can be honoured at that size.
     const fixture = newFixture();
     renderStrategies(fixture, { w: 4, h: 4 });
     emitCareer(fixture);
@@ -185,14 +183,12 @@ describe("Strategies when the career balances are no longer current", () => {
     await waitFor(() =>
       expect(visibleText()).toBe("Strategiesfunds not current· 0 active"),
     );
-    // "funds unknown" is the never-arrived wording and it is still reachable;
-    // reaching it from here would deny having ever been told a balance.
+    // "funds unknown" is the never-arrived wording and it is still reachable; reaching it from here would deny having ever been told a balance.
     expect(visibleText()).not.toContain("funds unknown");
   });
 
   it("says nothing about currency before anything has ever arrived", () => {
-    // A cold mount is not a dropped link, and conflating them accuses the link
-    // on every first paint.
+    // A cold mount is not a dropped link, and conflating them accuses the link on every first paint.
     renderStrategies(newFixture());
 
     expect(visibleText()).not.toContain("not current");

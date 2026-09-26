@@ -130,8 +130,7 @@ export function openSceneClock(): void {
       scheduled.set(id, { fn, args, at: now + delay, every: null });
       return id;
     }
-    // Live: real, so an awaiting setup hook still resolves, and recorded, so the
-    // seal can carry it into the film if it has not fired by then.
+    // Live: real, so an awaiting setup hook still resolves, and recorded, so the seal can carry it into the film if it has not fired by then.
     const realId = installed.setTimeout(() => {
       live.delete(id);
       fn(...args);
@@ -191,8 +190,7 @@ export function sealSceneClock(): void {
 /** Give the page its timers back, before the next scene mounts under them. */
 export function closeSceneClock(): void {
   if (!real) return;
-  // A live timer outlives the scene that registered it and would fire into
-  // whatever mounts next, which is a frame nobody can account for.
+  // A live timer outlives the scene that registered it and would fire into whatever mounts next, which is a frame nobody can account for.
   for (const pending of live.values()) {
     real.clearTimeout(pending.realId);
   }
@@ -230,16 +228,14 @@ export function advanceSceneClock(ms: number): void {
     if (!soonest || soonestId === undefined || soonest.at > target) break;
     now = soonest.at;
     if (soonest.every === null) {
-      // Removed BEFORE the call: a one-shot that schedules its successor from
-      // inside its own callback must not be resurrected by this entry.
+      // Removed BEFORE the call: a one-shot that schedules its successor from inside its own callback must not be resurrected by this entry.
       scheduled.delete(soonestId);
     } else {
       soonest.at += soonest.every;
     }
     soonest.fn(...soonest.args);
     fired++;
-    // A handler rescheduling itself faster than the clock moves would spin here
-    // forever, and a render that hangs says nothing about why.
+    // A handler rescheduling itself faster than the clock moves would spin here forever, and a render that hangs says nothing about why.
     if (fired > 10_000) {
       throw new Error(
         `render probe: advancing ${ms}ms of scene time fired ${fired} ` +

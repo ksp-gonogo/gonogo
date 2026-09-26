@@ -56,8 +56,7 @@ describe("plot layers", () => {
       { kind: "marker", id: "corner", at: { x: 0, y: 0 } },
     ]);
     const mark = drawn(container, "corner") as SVGCircleElement;
-    // The domain's origin lands on the plot's bottom-left, wherever the
-    // margins put that: the layer said `{x: 0, y: 0}` and nothing more.
+    // The domain's origin lands on the plot's bottom-left, wherever the margins put that: the layer said `{x: 0, y: 0}` and nothing more.
     expect(Number(mark.getAttribute("cx"))).toBeGreaterThan(0);
     expect(Number(mark.getAttribute("cy"))).toBeLessThan(SIZE.height);
     expect(Number(mark.getAttribute("cy"))).toBeGreaterThan(SIZE.height / 2);
@@ -73,8 +72,7 @@ describe("plot layers", () => {
   });
 
   it("paints context under the readings, whatever order they were contributed", () => {
-    // A guest's wash must never bury another's curve, so the depth stack is by
-    // KIND rather than by who registered first.
+    // A guest's wash must never bury another's curve, so the depth stack is by KIND rather than by who registered first.
     const { container } = chart([
       {
         kind: "series",
@@ -195,8 +193,7 @@ describe("closeHalfPlane", () => {
   } as PlotLayerFrame;
 
   it("returns along the far edge, END corner first, so the ring cannot cross itself", () => {
-    // The other order draws a bow tie: two filled triangles that mean nothing,
-    // and the mistake every hand-rolled version of this makes once.
+    // The other order draws a bow tie: two filled triangles that mean nothing, and the mistake every hand-rolled version of this makes once.
     const ring = closeHalfPlane(
       [
         { x: 100, y: 300 },

@@ -27,8 +27,7 @@ import { severityDotColor } from "./status/severityDotColor";
 export function InstrumentHeldMark({ size }: { size: number }) {
   return (
     <tspan
-      // Raised against the digits rather than sitting on the baseline, which is
-      // what makes it read as a mark on the figure instead of another figure.
+      // Raised against the digits rather than sitting on the baseline, which is what makes it read as a mark on the figure instead of another figure.
       dy={-size * 0.55}
       fontSize={size}
       fill={severityDotColor("warning")}

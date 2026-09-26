@@ -48,8 +48,7 @@ function fakeTransformer(frames: EncodedVideoFrameLike[]): {
   const readable = new ReadableStream<EncodedVideoFrameLike>({
     start(controller) {
       for (const f of frames) controller.enqueue(f);
-      // Deliberately never closes: mirrors a live track that keeps
-      // flowing, matching `frameDelay.test.ts`'s `queuedSource` convention.
+      // Deliberately never closes: mirrors a live track that keeps flowing, matching `frameDelay.test.ts`'s `queuedSource` convention.
     },
   });
   const writable = new WritableStream<EncodedVideoFrameLike>({
@@ -99,8 +98,7 @@ describe("attachEncodedFrameDelayTransform", () => {
       captureUt: () => 100,
     });
 
-    // Frame has definitely been read (queued) by now, but the clock has
-    // never confirmed anything: must NOT have been released, paced or not.
+    // Frame has definitely been read (queued) by now, but the clock has never confirmed anything: must NOT have been released, paced or not.
     await new Promise((r) => setTimeout(r, 10));
     pipeline.tickPacing(0);
     expect(written).toEqual([]);
@@ -115,8 +113,7 @@ describe("attachEncodedFrameDelayTransform", () => {
 
   it("classifies frame.type as the DelayedPlayoutBuffer keyframe field and uses real byteLength for cap accounting, a GOP survives eviction intact", async () => {
     const clock = manualClock(Number.NEGATIVE_INFINITY); // nothing releases, pure eviction test
-    // GOP 1 (k1+d1a+d1b = 60 bytes) then GOP 2's keyframe (k2, 20 bytes)
-    // pushes total to 80: over an intentionally tiny 60-byte cap.
+    // GOP 1 (k1+d1a+d1b = 60 bytes) then GOP 2's keyframe (k2, 20 bytes) pushes total to 80: over an intentionally tiny 60-byte cap.
     const k1 = keyFrame(20);
     const d1a = deltaFrame(20);
     const d1b = deltaFrame(20);
@@ -153,8 +150,7 @@ describe("attachEncodedFrameDelayTransform", () => {
       });
       pipeline.dispose();
     }).not.toThrow();
-    // written may or may not have landed before dispose, the point is no
-    // throw from a stray `.close()` call on a plain data object.
+    // written may or may not have landed before dispose, the point is no throw from a stray `.close()` call on a plain data object.
     void written;
   });
 

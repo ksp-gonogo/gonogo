@@ -194,8 +194,7 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     expect(service.isReclaiming()).toBe(true);
     expect(firstPeer?.destroyed).toBe(true);
 
-    // The backoff timer fires → a fresh Peer is constructed with the SAME
-    // derived id, and once it opens, reclaiming clears.
+    // The backoff timer fires → a fresh Peer is constructed with the SAME derived id, and once it opens, reclaiming clears.
     await vi.advanceTimersByTimeAsync(1_000);
     await vi.advanceTimersByTimeAsync(0);
 
@@ -224,8 +223,7 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     await flush();
     await flush();
 
-    // Exactly one live Peer: the guard stopped the second start from
-    // leaking a duplicate claiming the same derived id.
+    // Exactly one live Peer: the guard stopped the second start from leaking a duplicate claiming the same derived id.
     const live = FakePeer.instances.filter((p) => !p.destroyed);
     expect(live).toHaveLength(1);
     expect(service.peerId).toBe(`gonogo-host-${service.shareCode}`);
@@ -296,8 +294,7 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     // Listeners were notified with the new code (drives the UI re-render).
     expect(observed).toContain(service.shareCode);
 
-    // The old derived-id Peer was destroyed and a fresh one claimed the NEW
-    // derived id.
+    // The old derived-id Peer was destroyed and a fresh one claimed the NEW derived id.
     expect(oldPeer?.destroyed).toBe(true);
     const newPeer = FakePeer.last;
     expect(newPeer).not.toBe(oldPeer);

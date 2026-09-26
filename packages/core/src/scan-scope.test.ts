@@ -107,8 +107,7 @@ describe("the changed set", () => {
       expect(() =>
         changedFiles({ GONOGO_SCANS_BASE: "no-such-ref" }, dir),
       ).toThrow(/cannot be computed: no-such-ref does not resolve/);
-      // Measured from itself, the branch has changed nothing, and a run with
-      // nothing to judge must not report that as a pass.
+      // Measured from itself, the branch has changed nothing, and a run with nothing to judge must not report that as a pass.
       expect(() => changedFiles({ GONOGO_SCANS_BASE: "HEAD" }, dir)).toThrow(
         /nothing differs/,
       );
@@ -257,8 +256,7 @@ describe("each declared domain holds the paths its scan names", () => {
       const text = readFileSync(join(REPO_ROOT, source), "utf8")
         .replace(/\/\*[\s\S]*?\*\//g, "")
         .replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
-      // A workspace package the scan imports is code it runs, so its sources
-      // are part of what the scan's verdict depends on.
+      // A workspace package the scan imports is code it runs, so its sources are part of what the scan's verdict depends on.
       for (const m of text.matchAll(WORKSPACE_IMPORT)) {
         const dir = packageDirs.get(m[1] ?? "");
         if (dir === undefined) out.add(`${m[1]} (imported, no such package)`);

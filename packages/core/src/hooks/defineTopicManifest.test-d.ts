@@ -42,8 +42,7 @@ const asConstManifest = defineTopicManifest({
   optionalChannels: ["comms.delay"],
 } as const);
 
-// `typeof hook<"topic">` is an instantiation expression (no call), its ReturnType is
-// exactly what a real `topics.useTelemetry("topic")` read would yield.
+// `typeof hook<"topic">` is an instantiation expression (no call), its ReturnType is exactly what a real `topics.useTelemetry("topic")` read would yield.
 type _AcRequired = ReturnType<
   typeof asConstManifest.useTelemetry<"vessel.resources">
 >;
@@ -217,8 +216,7 @@ const narrowedManifest = defineTopicManifest({
 export const _fieldsAssignable: ComponentDefinition["fields"] =
   narrowedManifest.fields;
 
-// A manifest with no `fields` still satisfies the surface: absent means "I draw
-// everything I mount on", so the empty array must be assignable too.
+// A manifest with no `fields` still satisfies the surface: absent means "I draw everything I mount on", so the empty array must be assignable too.
 export const _emptyFieldsAssignable: ComponentDefinition["fields"] =
   plainManifest.fields;
 

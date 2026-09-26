@@ -54,8 +54,7 @@ export function AttitudeIndicator({
   const pitchScale = r / 90;
   const horizonOffset = safePitch * pitchScale;
 
-  // Heading band: 1° = 4px gives ~120° of context across a 480px-equivalent
-  // strip; we scale relative to size so smaller widgets compress.
+  // Heading band: 1° = 4px gives ~120° of context across a 480px-equivalent strip; we scale relative to size so smaller widgets compress.
   const headingPxPerDeg = size / 90;
   const headingTickEvery = 10;
 

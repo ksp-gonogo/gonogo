@@ -128,8 +128,7 @@ function setup() {
   const fakeClient = makeFakeClient();
   fakeHost.bridgeTo((msg) => fakeClient.receive(msg));
 
-  // PBDS subscribes to the buffered source during construction, after this
-  // call, any subsequent BufferedDataSource sample fans out as a broadcast.
+  // PBDS subscribes to the buffered source during construction, after this call, any subsequent BufferedDataSource sample fans out as a broadcast.
   new PeerBroadcastingDataSource(buffered, fakeHost as never);
 
   const stationSide = new PeerClientDataSource(
@@ -173,8 +172,7 @@ describe("peer roundtrip: telemetry → buffered → PBDS → relay → PCDS", (
     const received: unknown[] = [];
     ctx.stationSide.subscribe("v.altitude", (v) => received.push(v));
 
-    // Simulate a vessel with no antenna / CommNet off:
-    // comm.connected arrives false before the gate has ever confirmed a link.
+    // Simulate a vessel with no antenna / CommNet off: comm.connected arrives false before the gate has ever confirmed a link.
     primeFlight(ctx.telemetry);
     ctx.telemetry.emit("comm.connected", false);
     ctx.telemetry.emit("v.altitude", 500);
@@ -212,8 +210,7 @@ describe("peer roundtrip: telemetry → buffered → PBDS → relay → PCDS", (
     const received: unknown[] = [];
     ctx.stationSide.subscribe("v.altitude", (v) => received.push(v));
 
-    // PCDS is pinned to id "data"; inject a message tagged with a foreign
-    // sourceId and confirm it's ignored.
+    // PCDS is pinned to id "data"; inject a message tagged with a foreign sourceId and confirm it's ignored.
     ctx.fakeClient.receive({
       type: "data",
       sourceId: "some-other-source",

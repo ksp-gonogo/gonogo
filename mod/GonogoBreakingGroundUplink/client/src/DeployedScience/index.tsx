@@ -394,8 +394,7 @@ const POWER_LABEL: Record<PowerState, string> = {
   powered: "Powered",
   partial: "Brownout",
   unpowered: "Unpowered",
-  // Matches the shape `powerBalance`'s "Power unknown" already uses on the
-  // same card, and reads as an absence rather than as a fourth power state.
+  // Matches the shape `powerBalance`'s "Power unknown" already uses on the same card, and reads as an absence rather than as a fourth power state.
   unknown: "Power unknown",
 };
 

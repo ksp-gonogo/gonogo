@@ -75,8 +75,7 @@ const FIXTURES = [
   },
   {
     file: "tests/playwright/sitrep-stream-server-topology.mjs",
-    // The same base snapshot with the topology/ΔV topics merged over it,
-    // exactly as `startReplayServer({ extraTopics })` merges them.
+    // The same base snapshot with the topology/ΔV topics merged over it, exactly as `startReplayServer({ extraTopics })` merges them.
     payloads: { ...SNAPSHOT, ...EXTRA_TOPICS } as Record<string, unknown>,
     exempt: new Set(Object.keys(TOPOLOGY_EXEMPT)),
   },
@@ -256,8 +255,7 @@ describe("e2e replay fixtures conform to the Sitrep contract", () => {
     const foundPerFile = new Map<string, number>();
     for (const fixture of FIXTURES) {
       const source = readFileSync(join(repoRoot, fixture.file), "utf8");
-      // Quoted keys of the `"a.b": value` shape, which is how every topic entry
-      // in these fixtures is written.
+      // Quoted keys of the `"a.b": value` shape, which is how every topic entry in these fixtures is written.
       let found = 0;
       for (const match of source.matchAll(
         /"([a-z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)+)"\s*:/g,
@@ -352,8 +350,7 @@ describe("the conformance check can fail", () => {
     expect(report.undeclaredFields.map((f) => f.field).sort()).toEqual(
       PLANTED_FIELDS,
     );
-    // The message has to be actionable on its own: which row, and what the
-    // contract does declare in its place.
+    // The message has to be actionable on its own: which row, and what the contract does declare in its place.
     const first = report.undeclaredFields[0];
     expect(first.topic).toBe("dv.stages");
     expect(first.path).toBe("[0]");
@@ -391,8 +388,7 @@ describe("the conformance check can fail", () => {
     // reporting a clean run over the same fixtures. It is handed the SAME
     // defective fixture the real check just caught six fields in.
     const blind = checkShallowOnly(resolver, DEFECTIVE_FIXTURE);
-    // It is not idle: it looked at most of the fixture and simply cannot see
-    // the level the defect lives on.
+    // It is not idle: it looked at most of the fixture and simply cannot see the level the defect lives on.
     expect(blind.topicsChecked).toBeGreaterThan(10);
     expect(blind.undeclaredFields).toEqual([]);
   });

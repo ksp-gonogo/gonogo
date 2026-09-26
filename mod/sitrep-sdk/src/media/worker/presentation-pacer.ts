@@ -189,8 +189,7 @@ export class PresentationPacer<T> {
   tick(nowWall: number): void {
     if (this.queue.length === 0) return;
 
-    // One reading per tick, so every frame drained in this pass is spaced on
-    // the same rate rather than on one that moved underneath the loop.
+    // One reading per tick, so every frame drained in this pass is spaced on the same rate rather than on one that moved underneath the loop.
     const rate = this.playoutRate();
 
     const head = this.queue[0];

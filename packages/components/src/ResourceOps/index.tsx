@@ -415,8 +415,7 @@ function ConverterCard({
               />
             ))
           ) : (
-            // A consume-and-dump process (a scrubber) has no output side by
-            // design: this reads as a fact, not a blank row.
+            // A consume-and-dump process (a scrubber) has no output side by design: this reads as a fact, not a blank row.
             <Text tone="faint" size="sm">
               none
             </Text>
@@ -536,8 +535,7 @@ function ResourceOpsComponent(
   const convertersNotCurrent = convertersReading.state === "stale";
 
   const allDrills = useMemo(
-    // A confirmed no-drills IS an empty list, not a wait, so it is named here
-    // rather than left to the `??` below (which also has to cover pending).
+    // A confirmed no-drills IS an empty list, not a wait, so it is named here rather than left to the `??` below (which also has to cover pending).
     () => stillTrue(drillsReading, EMPTY_LIST) ?? EMPTY_LIST,
     [drillsReading],
   );

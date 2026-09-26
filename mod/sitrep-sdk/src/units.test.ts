@@ -74,8 +74,7 @@ describe("generated units", () => {
   });
 
   it("propagates a Vec3 unit on a NESTED shape no Topic names", () => {
-    // PartBounds hangs off VesselPart.Bounds, so its Vec3 leaves are only
-    // reachable through the type view, the same way ThermalHottestPart is.
+    // PartBounds hangs off VesselPart.Bounds, so its Vec3 leaves are only reachable through the type view, the same way ThermalHottestPart is.
     expect(unitOfTypeField("PartBounds", "size.x")).toBe("m");
     expect(unitOfTypeField("PartBounds", "center.z")).toBe("m");
   });
@@ -88,8 +87,7 @@ describe("generated units", () => {
   });
 
   it("exposes nested payload shapes that are not Topics of their own", () => {
-    // ThermalHottestPart hangs off vessel.thermal, so it is unreachable through the
-    // Topic-keyed view and needs the type-keyed one.
+    // ThermalHottestPart hangs off vessel.thermal, so it is unreachable through the Topic-keyed view and needs the type-keyed one.
     expect(unitOfTypeField("ThermalHottestPart", "skinMaxTemp")).toBe("K");
     expect(unitsForTopic("vessel.thermal").skinMaxTemp).toBeUndefined();
   });
@@ -104,8 +102,7 @@ describe("generated units", () => {
   });
 
   it("only ever emits tokens from the KnownSitrepUnit vocabulary", () => {
-    // The emitter throws on an off-catalogue token, so this asserts the generated
-    // union and the generated values cannot drift apart.
+    // The emitter throws on an off-catalogue token, so this asserts the generated union and the generated values cannot drift apart.
     //
     // `SitrepUnit` itself is open, so that it can carry a unit a third-party
     // Uplink declares, and an open union can assert nothing. The thing worth

@@ -129,8 +129,7 @@ describe("HeartbeatTracker", () => {
         jitterAllowanceUt: 0,
       });
 
-      // Both topics' last arrival lands on UT 100, so "silence since" is
-      // directly comparable: only their learned cadence differs.
+      // Both topics' last arrival lands on UT 100, so "silence since" is directly comparable: only their learned cadence differs.
       for (const t of [85, 90, 95, 100]) tracker.noteArrival("fast.topic", t);
       for (const t of [40, 70, 100]) tracker.noteArrival("slow.topic", t);
 
@@ -186,8 +185,7 @@ describe("HeartbeatTracker", () => {
       tracker.noteArrival("vessel.target", 80);
       tracker.noteArrival("vessel.target", 85);
 
-      // The median-based estimator resists the single 60 UT outlier, the
-      // learned interval stays anchored near the healthy 5 UT cadence.
+      // The median-based estimator resists the single 60 UT outlier, the learned interval stays anchored near the healthy 5 UT cadence.
       expect(tracker.intervalFor("vessel.target")).toBe(5);
     });
 

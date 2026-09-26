@@ -162,8 +162,7 @@ describe("effectiveSearchTags: augment/contribution OWNER provenance", () => {
       owner: MOD_EPSILON,
       compute: () => [],
     });
-    // No contributionSlots declared: the widget still auto-aggregates
-    // `widget.badges`, so an Uplink dropping a badge counts as provenance.
+    // No contributionSlots declared: the widget still auto-aggregates `widget.badges`, so an Uplink dropping a badge counts as provenance.
     const def = baseDef({ tags: ["telemetry"] });
 
     expect(effectiveSearchTags(def)).toContain("mod-epsilon");

@@ -19,8 +19,7 @@ import { useScrollIntoViewOnAdd } from "./useScrollIntoViewOnAdd";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
-// RGL's `ResizeHandle` type isn't a named export, so derive the array element
-// type straight from the component's own prop signature instead.
+// RGL's `ResizeHandle` type isn't a named export, so derive the array element type straight from the component's own prop signature instead.
 type ResizeHandles = NonNullable<
   ComponentProps<typeof Responsive>["resizeHandles"]
 >;
@@ -93,8 +92,7 @@ export function GridDashboard({
         onBreakpointChange={onBreakpointChange}
       >
         {(() => {
-          // Build a single index of layout-by-id once, rather than O(items)
-          // .find() per item: pays off as the dashboard fills up.
+          // Build a single index of layout-by-id once, rather than O(items) .find() per item: pays off as the dashboard fills up.
           const bpLayouts =
             currentLayouts[breakpoint] ?? currentLayouts.lg ?? [];
           const sizeById = new Map<string, Layout>();

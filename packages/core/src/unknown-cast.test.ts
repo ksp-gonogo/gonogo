@@ -188,8 +188,7 @@ describe("the gate can see a planted assertion", () => {
   });
 
   it("caught the ones nested inside another expression", () => {
-    // A walk that stops at statement level finds the top-level plants above and
-    // none of these, and the count it reports is a plausible number.
+    // A walk that stops at statement level finds the top-level plants above and none of these, and the count it reports is a plausible number.
     const nested = {
       "a call argument": "wire as InCall",
       "an explicit generic call": "wire as InGeneric",
@@ -212,8 +211,7 @@ describe("the gate can see a planted assertion", () => {
     expect(doubles).toContain("wire as any as Receipt");
     expect(doubles).toContain("(wire as unknown) as Receipt");
     expect(doubles).toContain("<Receipt>(<unknown>wire)");
-    // And the plain ones are NOT in it: a classifier that answers "double" to
-    // everything would satisfy the three assertions above.
+    // And the plain ones are NOT in it: a classifier that answers "double" to everything would satisfy the three assertions above.
     expect(doubles).not.toContain("wire as Receipt");
   });
 
@@ -328,8 +326,7 @@ describe("the gate does not flag a legitimate narrow", () => {
   });
 
   it("saw the file at all, so the clean result above is not an empty walk", () => {
-    // Without this, a scratch directory that failed to compile reports zero
-    // sites and passes the assertion above for the wrong reason.
+    // Without this, a scratch directory that failed to compile reports zero sites and passes the assertion above for the wrong reason.
     expect(narrowed.files).toBe(1);
     expect(narrowed.assertions).toBeGreaterThanOrEqual(4);
     expect(narrowed.errorTyped).toBe(0);
@@ -433,8 +430,7 @@ describe("the walk covered what it claims to have covered", () => {
   });
 
   it("covers every Uplink client and the sdk", () => {
-    // The mod roots are DISCOVERED, which is right and is not self-checking:
-    // a discovery that stops matching returns a shorter list, never an error.
+    // The mod roots are DISCOVERED, which is right and is not self-checking: a discovery that stops matching returns a shorter list, never an error.
     const roots = unknownCastScanRoots(REPO_ROOT);
     expect(roots).toContain("mod/sitrep-sdk");
     const clients = readdirSync(join(REPO_ROOT, "mod"))
@@ -443,8 +439,7 @@ describe("the walk covered what it claims to have covered", () => {
       )
       .map((name) => `mod/${name}/client`)
       .sort();
-    // Held to git rather than to a floor: this was 7, and every mod Uplink is
-    // leaving for the gonogo-uplinks repo, so the count is heading for one.
+    // Held to git rather than to a floor: this was 7, and every mod Uplink is leaving for the gonogo-uplinks repo, so the count is heading for one.
     expect(
       clients,
       "The Uplink clients on disk disagree with the client tsconfig.json files git tracks.",

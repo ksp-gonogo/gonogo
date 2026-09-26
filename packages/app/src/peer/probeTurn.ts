@@ -51,8 +51,7 @@ export async function probeTurn(opts: ProbeOptions): Promise<TurnProbeResult> {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const pc = new RTCPeerConnection({
     iceServers: opts.iceServers,
-    // Force gathering to happen: without a transceiver or data
-    // channel, ICE never starts.
+    // Force gathering to happen: without a transceiver or data channel, ICE never starts.
     iceTransportPolicy: "all",
   });
   // A throwaway data channel is the cheapest way to force candidate

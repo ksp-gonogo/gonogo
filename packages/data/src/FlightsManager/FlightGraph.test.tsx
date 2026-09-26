@@ -92,8 +92,7 @@ describe("FlightGraph", () => {
       />,
     );
 
-    // v.name is enum, should never appear among the picker's rendered options.
-    // v.altitude carries the "m" unit: should appear.
+    // v.name is enum, should never appear among the picker's rendered options. v.altitude carries the "m" unit: should appear.
     await waitFor(() => {
       expect(screen.queryByText("Vessel name")).toBeNull();
       expect(screen.getByText("Altitude")).toBeTruthy();

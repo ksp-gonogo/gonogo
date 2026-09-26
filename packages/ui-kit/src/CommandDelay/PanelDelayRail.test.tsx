@@ -199,8 +199,7 @@ describe("PanelDelayRail", () => {
 
     it("stands the band up for a widget with nothing in flight at all", () => {
       const { container } = inPanel(<PanelDelayRail />);
-      // The band, with no rail chrome inside it: an empty strip that reads as
-      // the widget's top padding, which is exactly what it is.
+      // The band, with no rail chrome inside it: an empty strip that reads as the widget's top padding, which is exactly what it is.
       expect(container.querySelector("[data-panel-rail-frame]")).not.toBeNull();
       expect(container.querySelector("[data-panel-rail]")).toBeNull();
     });
@@ -211,8 +210,7 @@ describe("PanelDelayRail", () => {
         "[data-panel-rail-frame]",
       ) as HTMLElement;
       const style = getComputedStyle(frame);
-      // The two halves of "reserved, not taken": the box is the band tall, and
-      // it sits in room the container already made, not room it added.
+      // The two halves of "reserved, not taken": the box is the band tall, and it sits in room the container already made, not room it added.
       expect(style.minHeight).toContain("--panel-rail-band");
       expect(style.marginTop).toContain("--panel-rail-band");
     });
@@ -221,8 +219,7 @@ describe("PanelDelayRail", () => {
       const store = createDelayRailStore();
       store.register(handle("cmd"));
       inPanel(<PanelDelayRail />, store);
-      // Not `absolute`: an out-of-flow band is one drawn over the sticky
-      // header, which is how it came to swallow the header's clicks.
+      // Not `absolute`: an out-of-flow band is one drawn over the sticky header, which is how it came to swallow the header's clicks.
       expect(getComputedStyle(railButton()).position).toBe("relative");
     });
   });
@@ -388,8 +385,7 @@ describe("PanelDelayRail", () => {
       });
       const { container } = inPanel(<PanelDelayRail />, store);
       await user.click(railButton());
-      // Both discrete commands render as queue squares (plus the stream graph
-      // above); their labels ride the squares' accessible names.
+      // Both discrete commands render as queue squares (plus the stream graph above); their labels ride the squares' accessible names.
       const labels = Array.from(
         container.querySelectorAll('[role="listitem"][data-phase]'),
       ).map((t) => t.getAttribute("aria-label") ?? "");
@@ -596,8 +592,7 @@ describe("PanelDelayRail", () => {
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
       const list = screen.getByRole("list", { name: /no reply/i });
       expect(list.textContent).toMatch(/no reply/i);
-      // The one thing it must not do is claim the game said no: nothing was
-      // decided, and the command may well have executed.
+      // The one thing it must not do is claim the game said no: nothing was decided, and the command may well have executed.
       expect(list.textContent).not.toMatch(/refused/i);
     });
 
@@ -802,8 +797,7 @@ describe("PanelDelayRail", () => {
     });
 
     it("counts WITH the failures, so promoting a loss does not drop the count", () => {
-      // The opposite call from a found, and for the opposite reason: this one
-      // confirms the failure rather than reversing it.
+      // The opposite call from a found, and for the opposite reason: this one confirms the failure rather than reversing it.
       const store = createDelayRailStore();
       store.register(unsentHandle("unsent", 1));
       store.register(refusedHandle("refused", 1));
@@ -822,8 +816,7 @@ describe("PanelDelayRail", () => {
       const list = screen.getByRole("list", { name: /never sent/i });
       expect(list.textContent).toMatch(/never sent/i);
       expect(list.textContent).toMatch(/safe to re-send/i);
-      // The one thing it must not repeat is the loss's doubt: this command
-      // provably did not run.
+      // The one thing it must not repeat is the loss's doubt: this command provably did not run.
       expect(list.textContent).not.toMatch(/unknown/i);
     });
 

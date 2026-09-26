@@ -16,13 +16,11 @@ import type { ContributionEntry } from "@ksp-gonogo/core";
 
 declare module "@ksp-gonogo/core" {
   interface ContributionRegistry {
-    // Full-id, host-specific slot (branch 1 of ContributionEntry): the entry
-    // shape is read straight off the `{ entry }` wrapper.
+    // Full-id, host-specific slot (branch 1 of ContributionEntry): the entry shape is read straight off the `{ entry }` wrapper.
     "augtest.rows": { entry: { label: string } };
   }
   interface ComponentSlotRegistry {
-    // Host-invariant SEGMENT (branch 2 of ContributionEntry): any completed
-    // `${componentId}.augtest-seg` key resolves to this entry type.
+    // Host-invariant SEGMENT (branch 2 of ContributionEntry): any completed `${componentId}.augtest-seg` key resolves to this entry type.
     "augtest-seg": { magnitude: number };
   }
 }
@@ -33,26 +31,22 @@ type Equal<A, B> =
     : false;
 type Expect<T extends true> = T;
 
-// ── Full-id augmentation merged through the re-export: the entry is the
-//    declared shape, not the loose fallback.
+// ── Full-id augmentation merged through the re-export: the entry is the declared shape, not the loose fallback.
 type _FullIdMerged = Expect<
   Equal<ContributionEntry<"augtest.rows">, { label: string }>
 >;
 
-// ── Segment augmentation merged: a completed `<widget>.augtest-seg` key
-//    resolves via the ComponentSlotRegistry branch to the segment's entry type.
+// ── Segment augmentation merged: a completed `<widget>.augtest-seg` key resolves via the ComponentSlotRegistry branch to the segment's entry type.
 type _SegmentMerged = Expect<
   Equal<ContributionEntry<"any-widget.augtest-seg">, { magnitude: number }>
 >;
 
-// ── Negative control: a NAMED slot id nothing declares carries no entry shape,
-//    proving the two positives above are real merges and not a fallback.
+// ── Negative control: a NAMED slot id nothing declares carries no entry shape, proving the two positives above are real merges and not a fallback.
 type _UndeclaredIsNever = Expect<
   Equal<ContributionEntry<"nope.not-declared">, never>
 >;
 
-// ── An id erased to `string` is what a REGISTRY READ holds, and keeps the open
-//    record: the reader fished the contribution out by key and declared nothing.
+// ── An id erased to `string` is what a REGISTRY READ holds, and keeps the open record: the reader fished the contribution out by key and declared nothing.
 type _ErasedStaysLoose = Expect<
   Equal<ContributionEntry<string>, Record<string, unknown>>
 >;

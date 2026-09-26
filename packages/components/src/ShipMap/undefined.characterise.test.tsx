@@ -115,12 +115,10 @@ describe("ShipMap: nothing has arrived at all", () => {
     // `if (!topology)` fires. This is the widget's honest read of absence, and
     // the only one of its four that the operator can see.
     expect(screen.getByText(PLACEHOLDER_WAITING)).toBeTruthy();
-    // Named-element absence, not an empty container: the diagram is the thing
-    // that must not be there.
+    // Named-element absence, not an empty container: the diagram is the thing that must not be there.
     expect(screen.queryByLabelText("Ship diagram")).toBeNull();
     expect(flameCount(container)).toBe(0);
-    // The header meta row (part count + seq) belongs to the diagram branch, so
-    // it is absent too.
+    // The header meta row (part count + seq) belongs to the diagram branch, so it is absent too.
     expect(screen.queryByText(/part/)).toBeNull();
     expect(screen.queryByText(/seq/)).toBeNull();
   });
@@ -251,8 +249,7 @@ describe("ShipMap: the throttle coercion to zero", () => {
       expect(sampled(fixture, "vessel.control")).toBeTruthy(),
     );
 
-    // A record with no `throttle` at all lands on the same render as a record
-    // with one, and as no record: three states, one picture.
+    // A record with no `throttle` at all lands on the same render as a record with one, and as no record: three states, one picture.
     expect(sampled(fixture, "vessel.control")?.throttle).toBeUndefined();
     expect(flameCount(container)).toBe(0);
   });
@@ -285,8 +282,7 @@ describe("ShipMap: the silent absence gates", () => {
     );
 
     act(() => {
-      // The record arrives without the nested part: the tag goes away again,
-      // indistinguishable from the thermal channel never having spoken.
+      // The record arrives without the nested part: the tag goes away again, indistinguishable from the thermal channel never having spoken.
       fixture.emit("vessel.thermal", {});
     });
 

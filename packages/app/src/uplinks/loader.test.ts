@@ -121,8 +121,7 @@ function ctx(extra: {
     roster: extra.roster,
     fetchBytes: extra.fetchBytes ?? (async () => BUNDLE_BYTES),
     importBundle: extra.importBundle,
-    // Default to granted so the pre-consent tests exercise the load path; the
-    // dedicated consent tests below drive this explicitly.
+    // Default to granted so the pre-consent tests exercise the load path; the dedicated consent tests below drive this explicitly.
     ensureConsent: extra.ensureConsent ?? (async () => true),
   };
 }
@@ -495,8 +494,7 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
     const importBundle = vi.fn<
       (bytes: ArrayBuffer, url: string) => Promise<unknown>
     >(async () => ({}));
-    // The local registry only ships "scansat": "widget-y" is a mod the
-    // roster reports installed with no published client at all.
+    // The local registry only ships "scansat": "widget-y" is a mod the roster reports installed with no published client at all.
     stubRegistryFetch(indexWith(goodHash));
     const roster: RosterEntry[] = [
       { id: "widget-y", version: "1.0.0", available: true, reason: null },
@@ -1031,8 +1029,7 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     expect(seen[0].identity?.repo?.disputed?.value).toBe(
       "https://github.com/impostor/widget-y",
     );
-    // The whole point of "before the pull": the operator saw it while the
-    // bundle was still unfetched.
+    // The whole point of "before the pull": the operator saw it while the bundle was still unfetched.
     expect(fetchBytes).not.toHaveBeenCalled();
   });
 
@@ -1300,8 +1297,7 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
       roster,
       ensureConsent: async () => true,
       fetchBytes,
-      // integrity matches expectedClientHash so the manifest-integrity gate
-      // passes and this test still reaches the compat gate it's asserting.
+      // integrity matches expectedClientHash so the manifest-integrity gate passes and this test still reaches the compat gate it's asserting.
       fetchManifest: async () =>
         manifestFor({ apiVersion: "2.0.0", integrity: "sha256-mod-vouched" }),
       importBundle,
@@ -1338,8 +1334,7 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
       roster,
       ensureConsent: async () => true,
       fetchBytes,
-      // manifest self-declares a DIFFERENT integrity than the mod vouched,
-      // a real fault since mod + client release together.
+      // manifest self-declares a DIFFERENT integrity than the mod vouched, a real fault since mod + client release together.
       fetchManifest: async () =>
         manifestFor({ integrity: "sha256-manifest-disagrees" }),
       importBundle,

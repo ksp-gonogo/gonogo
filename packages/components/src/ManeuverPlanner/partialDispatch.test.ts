@@ -21,8 +21,7 @@ describe("describePartialDispatch", () => {
   });
 
   it("names the burn that failed as the one AFTER those dispatched", () => {
-    // Off-by-one here is a confident lie about which node is missing, so it is worth
-    // pinning at the boundaries rather than only in the middle.
+    // Off-by-one here is a confident lie about which node is missing, so it is worth pinning at the boundaries rather than only in the middle.
     expect(
       describePartialDispatch({ dispatched: 0, total: 4, reason: "x" }),
     ).toContain("Burn 1 failed");

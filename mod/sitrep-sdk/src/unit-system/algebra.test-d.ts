@@ -82,8 +82,7 @@ export const _force: Expect<Product<"kg", "m/s²">, "N"> = "OK";
 export const _bitrate: Expect<Quotient<"bit", "s">, "bit/s"> = "OK";
 export const _distance: Expect<Product<"m/s", "s">, "m"> = "OK";
 
-// Ratios are converted to base before composing, so a non-base numerator and a
-// non-base denominator still land on the base symbol.
+// Ratios are converted to base before composing, so a non-base numerator and a non-base denominator still land on the base symbol.
 export const _scaled: Expect<Quotient<"km", "min">, "m/s"> = "OK";
 
 // Dimensionless, and it resolves to `1` rather than `ratio`: `1` is registered
@@ -144,8 +143,7 @@ declare module "./algebra" {
   }
 }
 
-// The four token shapes each denote a distinct dimension, with the resource's
-// own base symbol keeping it incommensurable with every other resource.
+// The four token shapes each denote a distinct dimension, with the resource's own base symbol keeping it incommensurable with every other resource.
 export const _amountDim: Expect<
   DimOf<"Food:u">,
   { readonly resFood: 1 }
@@ -157,8 +155,7 @@ export const _rateDim: Expect<
 
 // Mass out: the -1 on resFood cancels the +1 on the amount, exactly as m/s × s.
 export const _resourceMass: Expect<Product<"Food:u", "Food:kg/u">, "kg"> = "OK";
-// Duration out, which is what makes time-to-empty a real `Value<"s">` and so
-// renders on the player's live calendar.
+// Duration out, which is what makes time-to-empty a real `Value<"s">` and so renders on the player's live calendar.
 export const _resourceLife: Expect<Quotient<"Food:u", "Food:u/s">, "s"> = "OK";
 export const _resourceCost: Expect<
   Product<"Food:u", "Food:f/u">,
@@ -176,8 +173,7 @@ export const _crossResource: Expect<
   string
 > = "OK";
 
-// A resource nobody declared degrades too, rather than being fabricated from
-// the grammar alone.
+// A resource nobody declared degrades too, rather than being fabricated from the grammar alone.
 export const _undeclaredResource: Expect<
   Product<"Snacks:u", "Snacks:kg/u">,
   string
@@ -200,8 +196,7 @@ const foodRate = value("Food:u/s", 0.0001);
 const speed = metres.per(seconds);
 export const _speedValue: Expect<typeof speed, Value<"m/s">> = "OK";
 
-// Scaling by a plain number keeps the unit, which the old signature lost:
-// this used to be `Value<string>`.
+// Scaling by a plain number keeps the unit, which the old signature lost: this used to be `Value<string>`.
 const doubled = seconds.times(2);
 export const _scaleKeepsUnit: Expect<typeof doubled, Value<"s">> = "OK";
 

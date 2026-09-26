@@ -163,8 +163,7 @@ describe("useControlStream", () => {
     const recordSpy = vi.spyOn(controlStreamModel, "recordSample");
     mountProbe(0.5); // no comms.delay ever emitted -> oneWaySeconds stays null
 
-    // Far more coalesced ticks (100ms cadence) than MAX_SAMPLES (600) would
-    // allow if nothing capped them.
+    // Far more coalesced ticks (100ms cadence) than MAX_SAMPLES (600) would allow if nothing capped them.
     await act(async () => {
       await vi.advanceTimersByTimeAsync(700 * 100);
     });

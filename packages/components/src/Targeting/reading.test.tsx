@@ -91,8 +91,7 @@ describe("Targeting: pending is no longer reported as a confirmed absence", () =
     });
     await waitFor(() => expect(visibleText()).toContain("10.0 km"));
 
-    // Target cleared in KSP: a tombstone for the whole record, which is a
-    // confirmed fact about the subject rather than a gap in the link.
+    // Target cleared in KSP: a tombstone for the whole record, which is a confirmed fact about the subject rather than a gap in the link.
     act(() => {
       fixture.emit("vessel.target", null);
     });
@@ -132,8 +131,7 @@ describe("Targeting: stale renders the last observation as an observation", () =
       fixture.emit("vessel.target", TARGET);
     });
     await waitFor(() => expect(visibleText()).toContain("10.0 km"));
-    // While current, the readout carries no caveat: delay is not staleness, and
-    // a caveat on every value would carry no information.
+    // While current, the readout carries no caveat: delay is not staleness, and a caveat on every value would carry no information.
     expect(visibleText()).not.toMatch(/last contact/i);
 
     act(() => {
@@ -142,8 +140,7 @@ describe("Targeting: stale renders the last observation as an observation", () =
     });
 
     await waitFor(() => expect(visibleText()).toMatch(/last contact/i));
-    // The last REAL value stays reachable: it is the same reading, never a
-    // second channel the operator has to go and find.
+    // The last REAL value stays reachable: it is the same reading, never a second channel the operator has to go and find.
     expect(visibleText()).toContain("10.0 km");
     /*
      * And the MARK is on the figure, not only in the caption beside it. The

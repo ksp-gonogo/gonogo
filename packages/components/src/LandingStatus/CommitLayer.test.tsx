@@ -93,8 +93,7 @@ describe("CommitLayer", () => {
   });
 
   it("interrupts only for the ignition cue", () => {
-    // The one ABORT-class event in this widget, per the a11y rule that reserves
-    // assertive for events that must cut through.
+    // The one ABORT-class event in this widget, per the a11y rule that reserves assertive for events that must cut through.
     render(<CommitLayer {...live} suicideBurnCountdown={0} />);
     const region = screen.getByRole("alert");
     expect(region).toHaveAttribute("aria-live", "assertive");
@@ -116,8 +115,7 @@ describe("CommitLayer", () => {
   });
 
   it("shows a landed state instead of stale descent countdowns once down", () => {
-    // The same props as the descent above, countdown included: only `landed`
-    // differs, so the burn-GO line that test sees is one this must not.
+    // The same props as the descent above, countdown included: only `landed` differs, so the burn-GO line that test sees is one this must not.
     render(<CommitLayer {...delayedDescent} landed />);
     expect(screen.getByText("LANDED")).toBeInTheDocument();
     expect(screen.getByText(/touchdown confirmed/i)).toBeInTheDocument();
@@ -126,8 +124,7 @@ describe("CommitLayer", () => {
 
   it("holds no command controls, Landing is an instrument, not a command surface", () => {
     render(<CommitLayer {...live} />);
-    // Gear/brakes are fired from the operator's own action-group widgets; the
-    // commit layer must expose no toggle buttons of its own.
+    // Gear/brakes are fired from the operator's own action-group widgets; the commit layer must expose no toggle buttons of its own.
     expect(screen.queryByRole("button")).toBeNull();
     expect(screen.queryByText(/configuration/i)).toBeNull();
   });

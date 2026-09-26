@@ -38,8 +38,7 @@ function light(over: Partial<RadioLight> = {}): RadioLight {
 
 describe("the transmission light", () => {
   it("is drawn when nothing is happening, so the operator knows where it is", () => {
-    // A lamp that only appeared when it mattered would move the bar under the
-    // operator's eye at the exact instant they needed to read it.
+    // A lamp that only appeared when it mattered would move the bar under the operator's eye at the exact instant they needed to read it.
     render(<RadioIndicator live={[]} nameFor={nameFor} onOpen={() => {}} />);
     expect(screen.getByRole("status")).toHaveTextContent("Quiet");
   });
@@ -71,8 +70,7 @@ describe("the transmission light", () => {
   });
 
   it("shows a muted loop as busy, and says it is not being heard", () => {
-    // Mute is tuning, not a cut: the operator chose not to hear this loop, they
-    // did not ask to stop knowing that it is talking.
+    // Mute is tuning, not a cut: the operator chose not to hear this loop, they did not ask to stop knowing that it is talking.
     render(
       <RadioIndicator
         live={[light({ muted: true })]}

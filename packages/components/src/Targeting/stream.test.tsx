@@ -181,8 +181,7 @@ describe("Targeting: genuinely runs off the stream (M3 vessel-gap batch)", () =>
     await waitFor(() => expect(visibleText()).toContain("10.0 km"));
     expect(screen.getByText("Rendezvous Target")).toBeTruthy();
 
-    // Target cleared in KSP: the mod publishes a tombstone (payload: null)
-    // for the whole `vessel.target` record, not merely an absent field.
+    // Target cleared in KSP: the mod publishes a tombstone (payload: null) for the whole `vessel.target` record, not merely an absent field.
     act(() => {
       fixture.emit("vessel.target", null);
     });
@@ -204,8 +203,7 @@ describe("Targeting: genuinely runs off the stream (M3 vessel-gap batch)", () =>
   });
 
   it("renders approach-mode TCA from o.closestTgtApprUT and the SDK view-UT", async () => {
-    // pinnedUt fixes the view clock at UT 1000, the value `useViewUt`
-    // returns in place of the dropped `t.universalTime` data key.
+    // pinnedUt fixes the view clock at UT 1000, the value `useViewUt` returns in place of the dropped `t.universalTime` data key.
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.target"],
       pinnedUt: 1000,

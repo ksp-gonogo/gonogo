@@ -61,8 +61,7 @@ describe("deriveCommsPath", () => {
       ],
       [edge("home", "v-relay"), edge("v-relay", "v-far")],
     );
-    // Traversal order runs from the SELECTED VESSEL outward to home (the
-    // walk starts at the vessel), so the vessel's own hop comes first.
+    // Traversal order runs from the SELECTED VESSEL outward to home (the walk starts at the vessel), so the vessel's own hop comes first.
     expect(deriveCommsPath(net, "v-far")).toEqual({
       quality: "full",
       edgeIds: ["comms-edge:v-relay:v-far", "comms-edge:home:v-relay"],

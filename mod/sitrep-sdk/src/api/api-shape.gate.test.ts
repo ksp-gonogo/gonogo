@@ -191,8 +191,7 @@ afterEach(() => {
 
 describe("sitrep-sdk author-facing barrel: shape gate", () => {
   it("exports exactly the recorded value surface (change = deliberate)", () => {
-    // Type-only exports are erased at runtime, so Object.keys already yields
-    // exactly the value surface.
+    // Type-only exports are erased at runtime, so Object.keys already yields exactly the value surface.
     const actual = Object.keys(barrel).sort();
     expect(actual).toEqual(EXPECTED_BARREL_VALUE_EXPORTS);
   });

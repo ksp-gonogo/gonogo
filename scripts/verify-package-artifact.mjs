@@ -221,8 +221,7 @@ const listTarball = () =>
 const members = listTarball();
 const emitted = members.filter((file) => /\.(js|mjs|cjs|d\.ts)$/.test(file));
 
-// The entry points are named explicitly: a build that emitted nothing would
-// otherwise sweep an empty list and pass.
+// The entry points are named explicitly: a build that emitted nothing would otherwise sweep an empty list and pass.
 for (const required of ["dist/index.js", "dist/index.d.ts"]) {
   if (!members.includes(required)) {
     failures.push(
@@ -263,8 +262,7 @@ for (const file of emitted) {
 // `publishConfig` for consumers. **npm ignores that.** It treats `publishConfig`
 // as config, never as manifest overrides, and says so out loud:
 //
-//     npm warn Unknown publishConfig config "main".
-//     npm warn Unknown publishConfig config "exports".
+//     npm warn Unknown publishConfig config "main". npm warn Unknown publishConfig config "exports".
 //
 // `release.yml` publishes with npm, for OIDC provenance. So the tarball it
 // uploads would carry the source-pointing manifest, and `files` ships `src`, so
@@ -323,8 +321,7 @@ for (const field of [
 
 for (const target of declaredTargets()) {
   const relative = target.replace(/^\.\//, "");
-  // A wildcard subpath cannot be resolved to one member; the file sweep in
-  // check 3 already covers whatever it expands to.
+  // A wildcard subpath cannot be resolved to one member; the file sweep in check 3 already covers whatever it expands to.
   if (relative.includes("*")) continue;
   if (!members.includes(relative)) {
     failures.push(

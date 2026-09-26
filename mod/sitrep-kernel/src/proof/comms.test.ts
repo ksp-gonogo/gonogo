@@ -50,8 +50,7 @@ describe("comms capability: courier provider vs vanilla fallback", () => {
     // Not delivered at record time.
     expect(received).toHaveLength(0);
 
-    // Not delivered even on a same-instant flush, this isn't a "needs a
-    // tick" quirk, the courier genuinely schedules delivery in the future.
+    // Not delivered even on a same-instant flush, this isn't a "needs a tick" quirk, the courier genuinely schedules delivery in the future.
     manualClock(comms).advanceTo(recordedAt);
     expect(received).toHaveLength(0);
 
@@ -72,8 +71,7 @@ describe("comms capability: courier provider vs vanilla fallback", () => {
   it("fallback to vanilla: with the courier provider absent, delivery is immediate (delay 0)", () => {
     const kernel = new Kernel();
     kernel.registerCapability(commsCapability);
-    // Deliberately no registerProvider() call: the courier provider is
-    // absent, so resolve() must fall back to the vanilla zero-delay comms.
+    // Deliberately no registerProvider() call: the courier provider is absent, so resolve() must fall back to the vanilla zero-delay comms.
 
     const { notices } = kernel.resolve({ kernelVersion: "1.0.0" });
     expect(notices).toContainEqual(
@@ -124,8 +122,7 @@ describe("comms capability: courier provider vs vanilla fallback", () => {
     realComms.record("vessel.altitude", 42, realComms.clock.now());
     vanillaComms.record("vessel.altitude", 42, vanillaComms.clock.now());
 
-    // Same instant, same topic, same value, no time elapsed on either
-    // clock: yet only the vanilla side has delivered.
+    // Same instant, same topic, same value, no time elapsed on either clock: yet only the vanilla side has delivered.
     manualClock(realComms).advanceTo(realComms.clock.now());
     manualClock(vanillaComms).advanceTo(vanillaComms.clock.now());
 

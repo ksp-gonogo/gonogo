@@ -79,8 +79,7 @@ describe("ComponentOverlay: add → configure → persist", () => {
   });
 
   it("persists the config entered in the on-add modal via updateItemConfig", async () => {
-    // registerComponent before render, ComponentOverlay reads the registry
-    // on every render via getComponents().
+    // registerComponent before render, ComponentOverlay reads the registry on every render via getComponents().
     registerTrivial();
     const user = userEvent.setup();
     const addItem = vi.fn();
@@ -151,8 +150,7 @@ describe("ComponentOverlay: add → configure → persist", () => {
       </ModalProvider>,
     );
 
-    // Open the panel: the search box autofocuses (combobox pattern), so the
-    // whole add flow is reachable from the keyboard with no pointer.
+    // Open the panel: the search box autofocuses (combobox pattern), so the whole add flow is reachable from the keyboard with no pointer.
     await user.click(screen.getByRole("button", { name: "Add component" }));
     // Filter to Trivial, nudge the active option, then commit with Enter.
     await user.keyboard("Trivial");

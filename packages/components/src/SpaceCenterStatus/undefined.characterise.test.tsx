@@ -95,15 +95,13 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
       expect(screen.queryByText(label)).toBeNull();
     }
 
-    // No upgrade affordance at all: the row is gated on `f && f.upgradeFunds >
-    // 0`, so absent facilities hide the button rather than disabling it.
+    // No upgrade affordance at all: the row is gated on `f && f.upgradeFunds > 0`, so absent facilities hide the button rather than disabling it.
     expect(screen.queryAllByRole("button", { name: "Upgrade" })).toHaveLength(
       0,
     );
     expect(screen.queryByText("MAX")).toBeNull();
 
-    // `careerFunds === null` hides the balance readout entirely, so a widget
-    // that spends funds shows no balance while its telemetry is cold.
+    // `careerFunds === null` hides the balance readout entirely, so a widget that spends funds shows no balance while its telemetry is cold.
     expect(screen.queryByTitle("Available funds")).toBeNull();
   });
 
@@ -194,8 +192,7 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     );
     expect((button as HTMLButtonElement).disabled).toBe(true);
 
-    // The scene arriving is what grants permission, and it has to be the right
-    // scene: Flight leaves it disabled for the same reason absence does.
+    // The scene arriving is what grants permission, and it has to be the right scene: Flight leaves it disabled for the same reason absence does.
     act(() => {
       fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
     });
@@ -232,8 +229,7 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
 
     act(() => {
       fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
-      // Partial session: the tiers arrived, `economy` is null, so
-      // `careerStatus?.economy?.funds` is undefined and careerFunds is null.
+      // Partial session: the tiers arrived, `economy` is null, so `careerStatus?.economy?.funds` is undefined and careerFunds is null.
       fixture.emit("career.facilities", {
         facilities: {
           LaunchPad: { currentTier: 1, maxTier: 2, upgradeCost: 150000 },
@@ -252,8 +248,7 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
       screen.getByRole("button", { name: "Upgrade" }),
     );
     expect((button as HTMLButtonElement).disabled).toBe(true);
-    // And the refusal is explained rather than silent: the readout stays,
-    // reporting the balance as the thing that is missing.
+    // And the refusal is explained rather than silent: the readout stays, reporting the balance as the thing that is missing.
     expect(screen.queryByTitle("Available funds")).toBeNull();
     expect(screen.getByTitle("No funds balance has arrived")).toBeTruthy();
 
@@ -293,8 +288,7 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     mount(fixture, "scs-tombstone", 6, 7);
 
     act(() => {
-      // A tombstone: the subject says there IS no career status (sandbox, say).
-      // `useTelemetry` hands back `null` here, not `undefined`.
+      // A tombstone: the subject says there IS no career status (sandbox, say). `useTelemetry` hands back `null` here, not `undefined`.
       fixture.emit("career.status", null);
     });
 

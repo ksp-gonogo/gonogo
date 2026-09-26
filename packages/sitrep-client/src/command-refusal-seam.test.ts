@@ -61,8 +61,7 @@ function waitForStatus(
 
 describe("a refused command, engine frame to operator-visible failure", () => {
   it("surfaces the engine's E_UNAVAILABLE refusal as a failure naming the uplink, and never re-labels it lost", async () => {
-    // The engine refuses on the dispatch it cannot carry, so the fake server
-    // replies with the recorded frame the moment a command-request arrives.
+    // The engine refuses on the dispatch it cannot carry, so the fake server replies with the recorded frame the moment a command-request arrives.
     server.use(
       link.addEventListener("connection", ({ client }) => {
         client.addEventListener("message", (event) => {
@@ -98,8 +97,7 @@ describe("a refused command, engine frame to operator-visible failure", () => {
     expect(error.code).toBe("E_UNAVAILABLE");
     expect(error.code).toBe(refusalFrame.code);
     expect(error.message).toBe(refusalFrame.message);
-    // The whole operational value of the refusal: it names what to go and look
-    // at, which "signal-lost" never could.
+    // The whole operational value of the refusal: it names what to go and look at, which "signal-lost" never could.
     expect(error.message).toContain("uplink");
     expect(error.message).toContain("test harness assembly not loaded");
     // An absent mod has not failed, so the sentence must not say it has.

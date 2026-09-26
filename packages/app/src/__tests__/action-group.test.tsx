@@ -179,8 +179,7 @@ describe("ActionGroup component", () => {
     stream.emitControl({ precisionControl: false });
 
     expect(await screen.findByText("Precision Control")).toBeInTheDocument();
-    // The state pill is now a toggle button at every size, but a read-only
-    // group (no toggle action) renders it disabled so it can't be actioned.
+    // The state pill is now a toggle button at every size, but a read-only group (no toggle action) renders it disabled so it can't be actioned.
     expect(
       screen.getByRole("button", { name: /toggle precision control/i }),
     ).toBeDisabled();
@@ -203,8 +202,7 @@ describe("ActionGroup component", () => {
 
     await user.click(screen.getByRole("button", { name: /toggle sas/i }));
 
-    // SAS is a stock singleton: its toggle resolves to the dedicated
-    // `setSas` command, inverting the current (false) value.
+    // SAS is a stock singleton: its toggle resolves to the dedicated `setSas` command, inverting the current (false) value.
     await waitFor(() => {
       const sent = stream.transport.sentCommands.find(
         (c) => c.command === "vessel.control.setSas",
@@ -271,8 +269,7 @@ describe("ActionGroup component", () => {
     await waitFor(() =>
       expect(screen.getByText("Precision Control")).toBeInTheDocument(),
     );
-    // No bell: without a toggle action there's nothing for the alarm to
-    // dispatch, so the affordance is suppressed.
+    // No bell: without a toggle action there's nothing for the alarm to dispatch, so the affordance is suppressed.
     expect(
       screen.queryByRole("button", { name: /set alarm to fire/i }),
     ).not.toBeInTheDocument();

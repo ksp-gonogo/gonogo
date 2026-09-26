@@ -113,8 +113,7 @@ describe("Objectives: the absence gates around `contracts.active`", () => {
     renderObjectives(fixture, { probe: true });
 
     act(() => {
-      // `parseContracts(null)` returns null, distinct from `[]`, and the `?? []`
-      // erases that distinction before the length check ever sees it.
+      // `parseContracts(null)` returns null, distinct from `[]`, and the `?? []` erases that distinction before the length check ever sees it.
       fixture.emit("career.status", {
         economy: null,
         facilities: null,
@@ -206,8 +205,7 @@ describe("Objectives: partial payloads inside an arrived contract", () => {
       expect(screen.getByText("Unspecified job")).toBeInTheDocument(),
     );
     expect(screen.getByText("Contract")).toBeInTheDocument();
-    // A parameterless contract is stated as `pending`, which is the same glyph
-    // and the same screen-reader word an Incomplete parameter gets.
+    // A parameterless contract is stated as `pending`, which is the same glyph and the same screen-reader word an Incomplete parameter gets.
     expect(screen.getByText("pending")).toBeInTheDocument();
   });
 

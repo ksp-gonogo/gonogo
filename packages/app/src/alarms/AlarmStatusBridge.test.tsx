@@ -158,8 +158,7 @@ describe("alarm attribution survives the vocabulary migration", () => {
       targetState: "Complete",
       sustainSeconds: 0,
     });
-    // The subject is the app's own hardcoded string, not something an
-    // operator ever picked, so it has no business being a legacy key.
+    // The subject is the app's own hardcoded string, not something an operator ever picked, so it has no business being a legacy key.
     expect(alarmSubjectKey(contract)).toBe("career.status.contracts.active");
     expect(
       alarmMatchesWidget(contract, ["career.status.contracts.active"]),

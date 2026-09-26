@@ -453,8 +453,7 @@ describe("a hand-rolled command control renders the blocked phase", () => {
     const barrel = `export {\n  CommandButton,\n  ${HOOK},\n} from "./CommandButton/CommandButton";`;
     expect(verdict(barrel, "index.ts").caller).toBe(false);
 
-    // And a caller that DOES render the phase passes, which is the state the
-    // whole gate is asking for.
+    // And a caller that DOES render the phase passes, which is the state the whole gate is asking for.
     const compliant = `const { isBlocked, refusalText, press } = ${HOOK}({ handle });`;
     expect(verdict(compliant, "w.ts")).toEqual({ caller: true, phase: true });
 
@@ -508,8 +507,7 @@ describe("a hand-rolled command control renders the blocked phase", () => {
      * would be walked past entirely. If this ever needs to be allowed, follow
      * the alias in `isCaller`; do not delete the check.
      */
-    // The check itself, proven able to fire, because the tree has no subject
-    // for it and a check with no subject is one nobody has seen work.
+    // The check itself, proven able to fire, because the tree has no subject for it and a check with no subject is one nobody has seen work.
     expect(
       launderedAliases(`export { ${HOOK} as useCmdBtn } from "./x";`),
     ).toEqual(["useCmdBtn"]);

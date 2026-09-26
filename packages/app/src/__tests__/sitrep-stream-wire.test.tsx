@@ -94,13 +94,11 @@ describe("SitrepTelemetryProvider: live WebSocketTransport over MSW", () => {
     // warning this seam otherwise produces).
     expect(await screen.findByText(`throttle:${NULL_DISPLAY}`)).toBeTruthy();
 
-    // Once the provider's live transport has connected, push a frame; it must
-    // decode through the real client and surface on the mapped read.
+    // Once the provider's live transport has connected, push a frame; it must decode through the real client and surface on the mapped read.
     await waitFor(() => expect(serverClients).toHaveLength(1));
     serverClients[0].send(streamFrame("vessel.control", { throttle: 0.75 }));
 
-    // The frame's re-render is a genuinely-async live-WS update, wait for it
-    // (findBy is act-wrapped) rather than asserting synchronously.
+    // The frame's re-render is a genuinely-async live-WS update, wait for it (findBy is act-wrapped) rather than asserting synchronously.
     expect(await screen.findByText("throttle:0.75")).toBeTruthy();
 
     // Drop the tree before the afterEach runs: `clearRegistry()` notifies every

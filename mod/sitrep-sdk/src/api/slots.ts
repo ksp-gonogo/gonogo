@@ -674,8 +674,7 @@ declare module "./types" {
 
     "fuel-status.sections": Record<string, never>;
 
-    // Mounted by `Panel`'s universal `sections` segment; the resource in focus
-    // reaches an augment through `WidgetScopeRegistry` below instead.
+    // Mounted by `Panel`'s universal `sections` segment; the resource in focus reaches an augment through `WidgetScopeRegistry` below instead.
     "power-systems.sections": Record<string, never>;
 
     "fleet-roster.updates": FleetRosterUpdatesContext;

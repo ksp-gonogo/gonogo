@@ -7,8 +7,7 @@ import {
   readRosterFromTelemetryClient,
 } from "./rosterProbe";
 
-// Generic fixture ids on purpose: the probe is Uplink-agnostic, and this file
-// must reference no mod token so the uplink-boundary ratchet stays clean.
+// Generic fixture ids on purpose: the probe is Uplink-agnostic, and this file must reference no mod token so the uplink-boundary ratchet stays clean.
 function rosterPayload(): unknown {
   return {
     uplinks: [
@@ -17,8 +16,7 @@ function rosterPayload(): unknown {
         version: "1.0.0",
         available: true,
         reason: null,
-        // The provenance the mod vouches for, emitted by
-        // ChannelEngine.BuildSystemUplinksPayload.
+        // The provenance the mod vouches for, emitted by ChannelEngine.BuildSystemUplinksPayload.
         name: "Alpha",
         author: "A Stranger",
         repo: "https://example.invalid/stranger/alpha",
@@ -46,8 +44,7 @@ describe("probeUplinkRoster", () => {
   it("resolves the decoded roster with expectedClientHash + clientSource carried", async () => {
     const stub = new StubTransport();
     const pending = probeUplinkRoster({ transport: stub, timeoutMs: 1000 });
-    // The probe subscribes synchronously in the Promise executor, so the topic
-    // is live before we emit.
+    // The probe subscribes synchronously in the Promise executor, so the topic is live before we emit.
     stub.emit("system.uplinks", rosterPayload());
 
     const roster = await pending;
@@ -69,8 +66,7 @@ describe("probeUplinkRoster", () => {
         version: "0.2.0",
         available: false,
         reason: "not ready",
-        // A mod that predates the provenance fields, or an author who declined
-        // to fill them: absent on the wire, null once decoded.
+        // A mod that predates the provenance fields, or an author who declined to fill them: absent on the wire, null once decoded.
         name: null,
         author: null,
         repo: null,
@@ -86,8 +82,7 @@ describe("probeUplinkRoster", () => {
     const pending = probeUplinkRoster({ transport: stub, timeoutMs: 1000 });
     stub.emit("system.uplinks", rosterPayload());
     await pending;
-    // client.dispose() (finally block) unsubscribes every topic: proves the
-    // one-shot boot read cleaned up after itself.
+    // client.dispose() (finally block) unsubscribes every topic: proves the one-shot boot read cleaned up after itself.
     expect(stub.isSubscribed("system.uplinks")).toBe(false);
   });
 
@@ -248,8 +243,7 @@ describe("readRosterFromTelemetryClient", () => {
     const pending = readRosterFromTelemetryClient(client, 3000);
     await vi.advanceTimersByTimeAsync(3000);
     expect(await pending).toBeUndefined();
-    // The timeout path unsubscribes too: no dangling subscription left on
-    // the shared client after a degraded (no-mod-talking) boot.
+    // The timeout path unsubscribes too: no dangling subscription left on the shared client after a degraded (no-mod-talking) boot.
     expect(stub.isSubscribed("system.uplinks")).toBe(false);
   });
 });

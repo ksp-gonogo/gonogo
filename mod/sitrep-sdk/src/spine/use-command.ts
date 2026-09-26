@@ -669,8 +669,7 @@ export function useCommand(
       });
       return keep.length === prev.length ? prev : keep;
     });
-    // Prune dismissed ids that have left the underlying set (resolved/expired/
-    // gone from the pending queue), so the dismissed set stays bounded.
+    // Prune dismissed ids that have left the underlying set (resolved/expired/ gone from the pending queue), so the dismissed set stays bounded.
     setDismissedIds((prev) => {
       if (prev.length === 0) return prev;
       const keep = prev.filter((id) => {
@@ -755,14 +754,12 @@ export function useCommand(
       if (unsent.length > 0) {
         setUndelivered((prev) => [
           ...prev,
-          // A store notify can arrive more than once for the same status, and
-          // `losses` is only filtered on the render after this one.
+          // A store notify can arrive more than once for the same status, and `losses` is only filtered on the render after this one.
           ...unsent.filter((u) => !prev.some((seen) => seen.id === u.id)),
         ]);
       }
     };
-    // Once up front: a reply can land between the render that read `losses` and
-    // the effect that subscribes, and a store notify for it would then be gone.
+    // Once up front: a reply can land between the render that read `losses` and the effect that subscribes, and a store notify for it would then be gone.
     sweep();
     return client.subscribeStore(sweep);
   }, [client, losses]);
@@ -777,8 +774,7 @@ export function useCommand(
       const keep = prev.filter((r) => r.id !== id);
       return keep.length === prev.length ? prev : keep;
     });
-    // Dropped outright for the same reason a refusal is: a loss is terminal, so
-    // a dismissed one that came back would read as a second silence.
+    // Dropped outright for the same reason a refusal is: a loss is terminal, so a dismissed one that came back would read as a second silence.
     setLosses((prev) => {
       const keep = prev.filter((l) => l.id !== id);
       return keep.length === prev.length ? prev : keep;
@@ -853,8 +849,7 @@ export function useCommand(
       }
       // Mark the dispatch's own rejection as HANDLED without consuming it.
       //
-      // Now that a dropped command rejects, a `void`ed dispatch would raise an
-      // unhandled rejection on every lost command.
+      // Now that a dropped command rejects, a `void`ed dispatch would raise an unhandled rejection on every lost command.
       //
       // Attaching a no-op handler here marks `result` handled while leaving the
       // rejection fully observable to anyone who awaits it: `ManeuverPlanner`'s

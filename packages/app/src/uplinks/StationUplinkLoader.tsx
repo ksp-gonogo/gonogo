@@ -75,8 +75,7 @@ export async function runStationUplinkLoad(
   );
   return loadEnabledUplinks({
     registrySource: localRegistrySource(),
-    // Explicit `?uplinkLoaderIds=` override wins over the roster (same
-    // precedence rule as the main-screen boot call).
+    // Explicit `?uplinkLoaderIds=` override wins over the roster (same precedence rule as the main-screen boot call).
     override: loaderBootIdsOverride(),
     hostCompat,
     appVersion: VERSION,

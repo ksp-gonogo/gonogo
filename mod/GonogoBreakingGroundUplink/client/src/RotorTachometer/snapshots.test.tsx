@@ -9,8 +9,7 @@ import { getWidget } from "../../scripts/widgets";
 import { stripVolatile } from "../test/widgetDomSnapshot";
 import rotors from "./__fixtures__/rotors.json";
 import unavailable from "./__fixtures__/rotors-dlc-absent.json";
-// Side-effect import: the widget self-registers on module load, and
-// `renderWidget` looks it up by id rather than importing the component.
+// Side-effect import: the widget self-registers on module load, and `renderWidget` looks it up by id rather than importing the component.
 import "./index";
 
 /**

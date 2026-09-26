@@ -57,8 +57,7 @@ describe("LaunchDirector: stream render golden (delay=0)", () => {
     });
 
     const scope = within(container);
-    // Every pad the fixture carries is on screen, none of them holding
-    // anything, and the two that report no occupancy say so.
+    // Every pad the fixture carries is on screen, none of them holding anything, and the two that report no occupancy say so.
     expect(scope.getByText("KSC Launch Pad")).toBeTruthy();
     expect(scope.getByText("KSC Runway")).toBeTruthy();
     expect(scope.getByText("Woomerang")).toBeTruthy();
@@ -72,8 +71,7 @@ describe("LaunchDirector: stream render golden (delay=0)", () => {
     expect(scope.getByText("180,000").textContent).toBe("180,000f funds");
     expect(scope.getByText(/Craft · 1\/2 ready/)).toBeTruthy();
 
-    // The spaceplane belongs to the runway, and is offered there rather than on
-    // a pad that could never launch it.
+    // The spaceplane belongs to the runway, and is offered there rather than on a pad that could never launch it.
     expect(scope.queryByText("SSTO Spaceplane")).toBeNull();
     await user.click(screen.getByText("KSC Runway"));
     expect(await screen.findByText("SSTO Spaceplane")).toBeTruthy();

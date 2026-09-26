@@ -101,8 +101,7 @@ describe("a derived reading must not claim the frame's own view time as its obse
 
     const reading = store.sampleReading<unknown>("system.state");
     expect(reading.state).toBe("stale");
-    // The age, as the subtraction it is: twenty minutes since the bodies were
-    // observed, not zero because the derived channel was recomputed this frame.
+    // The age, as the subtraction it is: twenty minutes since the bodies were observed, not zero because the derived channel was recomputed this frame.
     expect(
       value("ut", viewUt).minus(observedAt(reading) as Value<"ut">),
     ).toEqual(value("s", 1200));
@@ -244,8 +243,7 @@ describe("a reckoning says which fields it actually modelled", () => {
     registerReckoner("test.contact", "test", {
       deps: [],
       reckon: (point) => ({
-        // Covers ONE field, never the root: the model has nothing to say about
-        // the whole payload a topic-level read asks for.
+        // Covers ONE field, never the root: the model has nothing to say about the whole payload a topic-level read asks for.
         modelled: [
           { path: "relativePosition", basis: "linear-dead-reckoning" },
         ],

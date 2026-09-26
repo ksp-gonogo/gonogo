@@ -110,8 +110,7 @@ describe("circularizeAtApo", () => {
 
 describe("circularizeAtPeri", () => {
   it("returns a negative prograde burn when peri is below apo", () => {
-    // Circularising at the low point requires braking, the orbit is moving
-    // too fast for a circle at that radius.
+    // Circularising at the low point requires braking, the orbit is moving too fast for a circle at that radius.
     const plan = circularizeAtPeri(KERBIN_ELLIPTIC, KERBIN_MU, 0);
     expect(plan.prograde).toBeLessThan(0);
     expect(plan.requiredDeltaV).toBe(Math.abs(plan.prograde));
@@ -139,8 +138,7 @@ describe("customAtApsis", () => {
   it("retrograde at apoapsis lowers periapsis", () => {
     const plan = customAtApsis(KERBIN_ELLIPTIC, KERBIN_MU, 0, "apo", -50, 0, 0);
     expect(plan.projected?.PeR).toBeLessThan(KERBIN_ELLIPTIC.PeR);
-    // Apoapsis unchanged: the burn happens AT apoapsis, and prograde burns
-    // at apoapsis change only the opposite apsis.
+    // Apoapsis unchanged: the burn happens AT apoapsis, and prograde burns at apoapsis change only the opposite apsis.
     expect(plan.projected?.ApR).toBeCloseTo(KERBIN_ELLIPTIC.ApR, -1);
   });
 
@@ -202,8 +200,7 @@ describe("an unbound trajectory has no plan, and says so with null", () => {
     const plan = customAtUT(ESCAPING, 30, KERBIN_MU, 0, 600, 100, 0, 0);
 
     expect(plan.projected).toBeNull();
-    // The requested burn is still echoed back: what is unknowable is the SHAPE it
-    // would produce, not what the operator asked for.
+    // The requested burn is still echoed back: what is unknowable is the SHAPE it would produce, not what the operator asked for.
     expect(plan.requiredDeltaV).toBeCloseTo(100, 6);
   });
 
@@ -313,8 +310,7 @@ describe("customAtUT", () => {
   });
 
   it("yields a non-zero flight-path-angle projection mid-orbit", () => {
-    // Partway between peri and apo: γ is non-zero, so the in-plane math
-    // exercises the full projectBurn (not just the apsis shortcut).
+    // Partway between peri and apo: γ is non-zero, so the in-plane math exercises the full projectBurn (not just the apsis shortcut).
     const a = KERBIN_ELLIPTIC.sma;
     const quarterPeriod = (Math.PI / 2) * Math.sqrt((a * a * a) / KERBIN_MU);
     const plan = customAtUT(
@@ -450,8 +446,7 @@ describe("matchTargetPlane", () => {
   });
 
   it("reduces to pure inclination change when LAN matches", () => {
-    // Same LAN → the relative-plane intersection is our own AN/DN line,
-    // so matchTargetPlane should produce the same ΔV as matchInclination.
+    // Same LAN → the relative-plane intersection is our own AN/DN line, so matchTargetPlane should produce the same ΔV as matchInclination.
     const targetInc = 30;
     const tp = bound(
       matchTargetPlane(
@@ -603,8 +598,7 @@ describe("hohmannToRadius", () => {
   });
 
   it("both burns are negative when lowering to a smaller radius", () => {
-    // 200 km → 100 km circular: brake at apo to lower opposite peri,
-    // then brake at peri to circularise.
+    // 200 km → 100 km circular: brake at apo to lower opposite peri, then brake at peri to circularise.
     const start: CurrentOrbit = {
       sma: KERBIN_200KM,
       eccentricity: 0,
@@ -642,8 +636,7 @@ describe("hohmannToRadius", () => {
   });
 
   it("respects explicit fromApsis override", () => {
-    // Force apo-first even though we're raising: the burn UT should
-    // match timeToAp, not timeToPe.
+    // Force apo-first even though we're raising: the burn UT should match timeToAp, not timeToPe.
     const seq = hohmannToRadius(
       KERBIN_ELLIPTIC,
       KERBIN_MU,

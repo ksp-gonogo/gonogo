@@ -50,8 +50,7 @@ describe("formatAgeLong", () => {
     expect(formatAgeLong(45_000)).toBe("45s");
   });
 
-  // It is the same ladder as `formatAge`, so what is worth
-  // asserting is that the two agree.
+  // It is the same ladder as `formatAge`, so what is worth asserting is that the two agree.
   it("is the same reading as formatAge", () => {
     for (const ms of [1000, 90_000, 3_600_000, 24 * 3_600_000]) {
       expect(formatAgeLong(ms)).toBe(formatAge(ms));

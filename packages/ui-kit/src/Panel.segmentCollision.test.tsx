@@ -56,8 +56,7 @@ describe("a widget-authored slot must not end in a framework segment", () => {
   });
 
   it("names the segments a widget-authored slot id may not end in", () => {
-    // A widget slot may be called anything EXCEPT these, because these are the
-    // framework's and `Panel` mounts them for every widget.
+    // A widget slot may be called anything EXCEPT these, because these are the framework's and `Panel` mounts them for every widget.
     expect([...FRAMEWORK_AUGMENT_SEGMENTS]).toEqual(["sections", "actions"]);
   });
 });

@@ -70,8 +70,7 @@ describe("sending a plan composed at a command centre", () => {
   });
 
   it("allows a plan built from a state the view could actually have seen", () => {
-    // The ordinary case: the information is older than the moment of deciding,
-    // which is what a delayed link means.
+    // The ordinary case: the information is older than the moment of deciding, which is what a delayed link means.
     expect(whyNotSendable(plan(800), 1000)).toBeUndefined();
   });
 
@@ -82,8 +81,7 @@ describe("sending a plan composed at a command centre", () => {
   });
 
   it("refuses when no view clock is mounted rather than stamping a guess", () => {
-    // An unstamped composition instant would make the divergence measured
-    // against it later meaningless while still producing a number.
+    // An unstamped composition instant would make the divergence measured against it later meaningless while still producing a number.
     expect(whyNotSendable(plan(800), undefined)).toMatch(/no view clock/i);
   });
 

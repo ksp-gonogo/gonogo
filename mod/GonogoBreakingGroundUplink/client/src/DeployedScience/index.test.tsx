@@ -32,8 +32,7 @@ const flatEntry = (
   scienceLimit: 60,
   powerState: "Powered",
   connectionState: "Connected",
-  // The DERIVED fields, which is what the widget reads; the two prose fields
-  // above are display labels only.
+  // The DERIVED fields, which is what the widget reads; the two prose fields above are display labels only.
   power: DeployedPowerState.Powered,
   controllerConnected: true,
   // The cluster's own power-unit balance, off `DeployedScienceCluster`. A
@@ -54,8 +53,7 @@ function newFixture(): StreamFixture {
 }
 
 function renderDeployed(fixture: StreamFixture) {
-  // Through the registry, inside the dashboard's own provider stack, with the
-  // stream fixture above it: what the app actually mounts.
+  // Through the registry, inside the dashboard's own provider stack, with the stream fixture above it: what the app actually mounts.
   const result = renderWidget("deployed-science", {
     instanceId: "db",
     wrapper: fixture.Provider,
@@ -118,8 +116,7 @@ describe("DeployedScienceComponent", () => {
     });
     await waitFor(() => expect(screen.getByText("Mun")).toBeInTheDocument());
     expect(screen.getByText(/Powered/i)).toBeInTheDocument();
-    // The cluster's produced-over-required power units, from
-    // `DeployedScienceCluster.PowerAvailable`/`.PowerRequired`.
+    // The cluster's produced-over-required power units, from `DeployedScienceCluster.PowerAvailable`/`.PowerRequired`.
     expect(visibleText()).toMatch(/Power 3\/2/);
     expect(screen.getByText("Seismometer")).toBeInTheDocument();
     expect(visibleText()).toContain("50 %");
@@ -195,8 +192,7 @@ describe("DeployedScienceComponent", () => {
   });
 
   it("renders the augment slots with no bound augment (empty is fine)", async () => {
-    // No augment registered → both slots compose nothing and the base card
-    // renders exactly as before.
+    // No augment registered → both slots compose nothing and the base card renders exactly as before.
     const fixture = newFixture();
     renderDeployed(fixture);
     act(() => {

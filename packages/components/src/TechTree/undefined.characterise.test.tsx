@@ -115,8 +115,7 @@ describe("TechTree: nothing has arrived at all", () => {
 
     // `parseTechNodes(undefined) === null` reaches the `allNodes === null` gate.
     expect(screen.getByText(/Awaiting tech telemetry/i)).toBeInTheDocument();
-    // The gate returns before the filter bar, the search box and the subtitle
-    // exist, so a cold widget offers nothing to interact with.
+    // The gate returns before the filter bar, the search box and the subtitle exist, so a cold widget offers nothing to interact with.
     expect(
       screen.queryByRole("group", { name: "Filter tech nodes" }),
     ).toBeNull();
@@ -225,8 +224,7 @@ describe("TechTree: the spaceCenter.scene absence gate", () => {
     );
     await user.click(screen.getByText("Pricey Tech"));
 
-    // No scene means no permission, and the button says which scene it wants
-    // rather than being inert without explanation.
+    // No scene means no permission, and the button says which scene it wants rather than being inert without explanation.
     const unlock = screen.getByRole("button", { name: "Unlock" });
     expect(unlock).toBeDisabled();
     expect(unlock).toHaveAttribute(
@@ -257,8 +255,7 @@ describe("TechTree: the spaceCenter.scene absence gate", () => {
     );
     await user.click(screen.getByText("Pricey Tech"));
 
-    // The other side of the same gate, proving the test above records an
-    // absence rather than a control that is always live.
+    // The other side of the same gate, proving the test above records an absence rather than a control that is always live.
     const unlock = screen.getByRole("button", { name: "Unlock" });
     expect(unlock).toBeDisabled();
     expect(unlock).toHaveAttribute(
@@ -290,8 +287,7 @@ describe("TechTree: the economy.science absence gate", () => {
     );
     await user.click(screen.getByText("Pricey Tech"));
 
-    // An unknown balance cannot cover 500 science, and the tooltip names the
-    // absence rather than reporting a balance of "null".
+    // An unknown balance cannot cover 500 science, and the tooltip names the absence rather than reporting a balance of "null".
     const unlock = screen.getByRole("button", { name: "Unlock" });
     expect(unlock).toBeDisabled();
     expect(unlock).toHaveAttribute(
@@ -377,8 +373,7 @@ describe("TechTree: computeResearchable's own science gate", () => {
     await waitFor(() =>
       expect(screen.getByText("Derived Tech")).toBeInTheDocument(),
     );
-    // Counted, and the missing balance is named in the same line, so the count
-    // reads as "reachable" rather than as "affordable".
+    // Counted, and the missing balance is named in the same line, so the count reads as "reachable" rather than as "affordable".
     expect(screen.getByRole("status").textContent).toBe(
       "1/2 unlocked · 1 researchable · science unknown",
     );

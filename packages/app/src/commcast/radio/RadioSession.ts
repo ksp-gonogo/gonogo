@@ -460,8 +460,7 @@ export class RadioSession {
     if (this.disposed) return;
     this.releaseWall = nowWall;
     this.buffer.pump();
-    // A copy, because presenting the last chunk of a finished keying retires
-    // its entry and mutates the map underneath the walk.
+    // A copy, because presenting the last chunk of a finished keying retires its entry and mutates the map underneath the walk.
     for (const held of [...this.heard.values()]) held.pacer.tick(nowWall);
     this.publish();
   }
@@ -582,8 +581,7 @@ export class RadioSession {
     this.settle(chunk);
     const heard = this.heard.get(chunk.transmissionId);
     if (heard === undefined) return;
-    // The words have crossed, whether or not this screen chooses to hear them,
-    // so the light may now honestly say this conversation is talking.
+    // The words have crossed, whether or not this screen chooses to hear them, so the light may now honestly say this conversation is talking.
     heard.presented = true;
     if (this.muted.has(heard.threadKey)) {
       /*
@@ -616,8 +614,7 @@ export class RadioSession {
       chunk.bytes,
       Math.round(chunk.seq * this.chunkSeconds * 1e6),
     );
-    // Retire only AFTER the decode, so the last chunk of a finished
-    // transmission is still attributed to it while it plays.
+    // Retire only AFTER the decode, so the last chunk of a finished transmission is still attributed to it while it plays.
     this.retire(heard);
   }
 

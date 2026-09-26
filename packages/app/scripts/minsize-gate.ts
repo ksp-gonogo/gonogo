@@ -86,8 +86,7 @@ const REGISTRATIONS = [
   ...UPLINK_BUNDLE_TARGETS.map((target) =>
     join(target.clientDir, "src", "index.ts"),
   ),
-  // The app's own two widgets, by path: they are not a package of their own,
-  // and they carry a minSize like every other widget.
+  // The app's own two widgets, by path: they are not a package of their own, and they carry a minSize like every other widget.
   resolve(APP_DIR, "src/goNoGo/GoNoGoComponent.tsx"),
   resolve(APP_DIR, "src/notes/NotesComponent.tsx"),
 ];
@@ -299,8 +298,7 @@ async function main(): Promise<void> {
           `trustworthy.`,
       );
     }
-    // Named as well as counted, so a finding that has lost track of which field
-    // it is about fails here rather than printing "unnamed input" in the field.
+    // Named as well as counted, so a finding that has lost track of which field it is about fails here rather than printing "unnamed input" in the field.
     const cutField = canaryFindings.find((f) => f.kind === "control-cut-off");
     if (!cutField?.text.startsWith("Canary clipped field value ")) {
       throw new Error(
@@ -310,8 +308,7 @@ async function main(): Promise<void> {
       );
     }
 
-    // The planted pass: a check that calls every field cut would still see the
-    // canary's, so it has to be shown fields that fit and say nothing.
+    // The planted pass: a check that calls every field cut would still see the canary's, so it has to be shown fields that fit and say nothing.
     const fits = all.find((w) => w.id === fitsId);
     if (!fits?.minSize) {
       throw new Error(
@@ -463,8 +460,7 @@ async function main(): Promise<void> {
         regressions.push(`  ${id}  ${kinds}  (recorded as "${owed}")`);
       }
     }
-    // Scoping to one widget cannot speak about the rest of the list, so the
-    // stale half is only meaningful on a full run.
+    // Scoping to one widget cannot speak about the rest of the list, so the stale half is only meaningful on a full run.
     const fixed = args.widget
       ? []
       : Object.keys(KNOWN_MISFITS).filter((id) => !found.has(id));

@@ -155,8 +155,7 @@ describe("ResourceOps when an isru channel is not current", () => {
         ),
       ).toBeInTheDocument(),
     );
-    // The rig is a fact and survives: every unit is still on the board, which is
-    // the half of this that a blanket withholding would get wrong.
+    // The rig is a fact and survives: every unit is still on the board, which is the half of this that a blanket withholding would get wrong.
     expect(screen.getByText("Drill-O-Matic")).toBeInTheDocument();
     expect(screen.getByText("Drill-O-Matic Junior")).toBeInTheDocument();
     expect(screen.getByText("Convert-O-Tron 250")).toBeInTheDocument();
@@ -172,16 +171,13 @@ describe("ResourceOps when an isru channel is not current", () => {
     dropTheLink(fixture);
     await waitFor(() => expect(visibleText()).toMatch(/no longer current/i));
 
-    // No claim about what any unit is doing, in either direction: "stopped" is
-    // as much a statement about now as "running" is.
+    // No claim about what any unit is doing, in either direction: "stopped" is as much a statement about now as "running" is.
     expect(screen.queryAllByText("running")).toHaveLength(0);
     expect(screen.queryAllByText("stopped")).toHaveLength(0);
     expect(screen.getAllByText("run state held")).toHaveLength(4);
-    // The stall diagnostic is derived from rates and a run flag, so it goes with
-    // them rather than accusing a converter of starving some seconds ago.
+    // The stall diagnostic is derived from rates and a run flag, so it goes with them rather than accusing a converter of starving some seconds ago.
     expect(screen.queryByText("no output")).not.toBeInTheDocument();
-    // Rates read as held back, not as the "unknown" the backend says when it has
-    // a recipe and no figure for it.
+    // Rates read as held back, not as the "unknown" the backend says when it has a recipe and no figure for it.
     expect(screen.queryAllByText("unknown")).toHaveLength(0);
     expect(screen.queryAllByText(NULL_DISPLAY).length).toBeGreaterThan(0);
     expect(visibleText()).not.toContain("0.0037");
@@ -196,8 +192,7 @@ describe("ResourceOps when an isru channel is not current", () => {
     await waitFor(() => expect(visibleText()).toMatch(/no longer current/i));
 
     const header = statsHeader();
-    // "3 active" summed partly from held run flags is a number with no moment
-    // attached to it.
+    // "3 active" summed partly from held run flags is a number with no moment attached to it.
     expect(within(header).queryByText("3")).not.toBeInTheDocument();
     expect(within(header).getByText("active")).toBeInTheDocument();
     // WHETHER this vessel moves ElectricCharge is a property of the recipes, so

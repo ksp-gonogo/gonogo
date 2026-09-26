@@ -373,8 +373,7 @@ describe("typecheck coverage: every package typechecks its own test files", () =
     it("gains no entry vs the base ref", () => {
       const at = baseDebt();
       if (!at) {
-        // Absent at the base: the list was seeded after it, so there is nothing
-        // to grade and every entry is the seed.
+        // Absent at the base: the list was seeded after it, so there is nothing to grade and every entry is the seed.
         expect(true).toBe(true);
         return;
       }

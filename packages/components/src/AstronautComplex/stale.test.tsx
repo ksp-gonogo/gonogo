@@ -117,8 +117,7 @@ describe("AstronautComplex when its telemetry is no longer current", () => {
     await waitFor(() =>
       expect(visibleText(container)).toContain("Funds no longer current"),
     );
-    // Withheld, not held: the last balance must not still be on screen as the
-    // figure the operator is about to spend from.
+    // Withheld, not held: the last balance must not still be on screen as the figure the operator is about to spend from.
     expect(screen.getByText("Funds").nextElementSibling).toHaveTextContent(
       NULL_DISPLAY,
     );
@@ -126,8 +125,7 @@ describe("AstronautComplex when its telemetry is no longer current", () => {
   });
 
   it("says nothing about a stale balance before one has ever arrived", async () => {
-    // A cold start is not a dropped link, and the empty state must not accuse
-    // the link of dropping on first paint.
+    // A cold start is not a dropped link, and the empty state must not accuse the link of dropping on first paint.
     const { container } = renderWidget();
 
     await waitFor(() =>
@@ -166,8 +164,7 @@ describe("AstronautComplex when its telemetry is no longer current", () => {
   });
 
   it("does not present a stale Complex as a save with no space programme", async () => {
-    // "career mode only" is a statement about the save, and reaching it from a
-    // dropped link would tell the operator their career had gone.
+    // "career mode only" is a statement about the save, and reaching it from a dropped link would tell the operator their career had gone.
     const { container } = renderWidget();
     emitCareer();
     await waitFor(() =>

@@ -372,8 +372,7 @@ export const LADDERS = {
   // `<Unit value={someRadPerSecond} />` render "X rad/h" directly, with no
   // per-call-site conversion.
   doseRate: [{ from: 0, symbol: "rad/h", per: 1 / 3600 }],
-  // Based in kg/m³ with a gram rung beneath it: sea-level air is about one
-  // kilogram per cubic metre, and the upper atmosphere is read in grams.
+  // Based in kg/m³ with a gram rung beneath it: sea-level air is about one kilogram per cubic metre, and the upper atmosphere is read in grams.
   density: [
     { from: 0, symbol: "g/m³", per: 1e-3 },
     { from: 1, symbol: "kg/m³", per: 1 },
@@ -478,8 +477,7 @@ function toScientific(value: number, significant: number): string {
   if (value === 0) return "0";
   const exponent = Math.floor(Math.log10(Math.abs(value)));
   const mantissa = value / 10 ** exponent;
-  // `significant` counts digits, and the mantissa always has exactly one before
-  // the point, so the rest are decimals.
+  // `significant` counts digits, and the mantissa always has exactly one before the point, so the rest are decimals.
   const digits = String(exponent)
     .split("")
     .map((c) => SUPERSCRIPT[c] ?? c)
@@ -547,20 +545,16 @@ const DECIMALS: Record<string, number> = {
   temperature: 0,
   time: 0,
   irlTime: 0,
-  // Integral: the game and every engine chart quote an Isp whole, and the
-  // fractional digit is below what a plan is tuned on.
+  // Integral: the game and every engine chart quote an Isp whole, and the fractional digit is below what a plan is tuned on.
   specificImpulse: 0,
   planeAngle: 2,
   density: 4,
-  // Two decimals: a small RCS burn runs at a fraction of a kilogram a second,
-  // and rounding that to zero reads as an engine that is not consuming anything.
+  // Two decimals: a small RCS burn runs at a fraction of a kilogram a second, and rounding that to zero reads as an engine that is not consuming anything.
   massFlow: 2,
-  // One decimal on the byte ladder: a drive reads "1.4 GB" and a file
-  // "12.5 MB", and the rung changes before the digit count has to.
+  // One decimal on the byte ladder: a drive reads "1.4 GB" and a file "12.5 MB", and the rung changes before the digit count has to.
   data: 1,
   dataRate: 1,
-  // One decimal reads right at the kW rung a flux readout mostly sits at
-  // (`842.3 kW`), and stays legible at MW (`2.4 MW`).
+  // One decimal reads right at the kW rung a flux readout mostly sits at (`842.3 kW`), and stays legible at MW (`2.4 MW`).
   power: 1,
   doseRate: 4,
   irradiance: 1,
@@ -570,8 +564,7 @@ const DECIMALS: Record<string, number> = {
   scienceData: 1,
   scienceRate: 1,
   ratio: 0,
-  // A count is integral: "3.00 crew" is wrong in a way "3.00 Mach" is not,
-  // which is the whole reason `count` is a separate kind from `dimensionless`.
+  // A count is integral: "3.00 crew" is wrong in a way "3.00 Mach" is not, which is the whole reason `count` is a separate kind from `dimensionless`.
   count: 0,
   id: 0,
   resourceUnits: 1,
@@ -696,8 +689,7 @@ function rungLadderOf(symbol: string): string | undefined {
     rungLadders = {};
     for (const [name, rungs] of Object.entries(laddersByName)) {
       for (const rung of rungs) {
-        // First ladder wins, so a base symbol shared with the model keeps the
-        // model's answer rather than a ladder's.
+        // First ladder wins, so a base symbol shared with the model keeps the model's answer rather than a ladder's.
         rungLadders[rung.symbol] ??= name;
       }
     }
@@ -1801,6 +1793,5 @@ export function readsAsOneFigure(
   );
 }
 
-// Last, so every table the registrations write to exists before the replay of
-// the ones an Uplink made before this module loaded.
+// Last, so every table the registrations write to exists before the replay of the ones an Uplink made before this module loaded.
 onUnitRegistered(applyRegisteredUnit);

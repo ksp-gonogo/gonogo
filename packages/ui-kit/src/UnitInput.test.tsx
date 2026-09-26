@@ -108,8 +108,7 @@ describe("UnitInput", () => {
     });
 
     it("commits nothing when a RUNG is emptied", () => {
-      // Same rule on the several-field shape: an emptied hours box is an
-      // unfinished edit, and reading it as zero silently subtracts four hours.
+      // Same rule on the several-field shape: an emptied hours box is an unfinished edit, and reading it as zero silently subtracts four hours.
       const onChange = vi.fn();
       render(
         <UnitInput
@@ -132,8 +131,7 @@ describe("UnitInput", () => {
     });
 
     it("still commits a zero the operator actually types", () => {
-      // The contrast that makes the rule above a rule rather than a hole: zero
-      // is a real Δv and typing it must reach the plan.
+      // The contrast that makes the rule above a rule rather than a hole: zero is a real Δv and typing it must reach the plan.
       const onChange = vi.fn();
       render(
         <UnitInput
@@ -182,8 +180,7 @@ describe("UnitInput", () => {
     const units = Object.keys(UNIT_DEFINITIONS);
 
     it("covers the whole catalogue rather than a chosen few", () => {
-      // Guards the guard: a registry that stopped enumerating would make every
-      // case below pass by having nothing to check.
+      // Guards the guard: a registry that stopped enumerating would make every case below pass by having nothing to check.
       expect(units.length).toBeGreaterThan(20);
     });
 
@@ -259,8 +256,7 @@ describe("UnitInput", () => {
     });
 
     it("keeps the remainder on the smallest rung rather than losing it", () => {
-      // Rounding the last rung too would drop whatever fell below it, and the
-      // value would drift a little every time it was shown and typed back.
+      // Rounding the last rung too would drop whatever fell below it, and the value would drift a little every time it was shown and typed back.
       const onChange = vi.fn();
       render(
         <UnitInput
@@ -349,8 +345,7 @@ describe("UnitInput", () => {
     });
 
     it("steps a Δv in its own unit, because it has no other one to move by", () => {
-      // The contrast that shows the interval above is a PROPERTY of instants
-      // rather than a hard-coded time rule: a speed is moved by a speed.
+      // The contrast that shows the interval above is a PROPERTY of instants rather than a hard-coded time rule: a speed is moved by a speed.
       const onChange = vi.fn();
       render(
         <UnitInput

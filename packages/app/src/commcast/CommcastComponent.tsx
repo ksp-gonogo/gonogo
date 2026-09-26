@@ -965,8 +965,7 @@ function Composer({
         // The sender's own present. NOT `confirmedEdgeUt()`, which is already
         // a light-time behind and would push every arrival out to a round trip.
         sentUt: utNow,
-        // Frozen here and never re-read: a changing separation must not
-        // un-deliver something already promised.
+        // Frozen here and never re-read: a changing separation must not un-deliver something already promised.
         separationSeconds,
       },
     );

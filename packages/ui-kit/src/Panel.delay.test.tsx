@@ -133,8 +133,7 @@ describe("Panel.Delay wiring", () => {
         </Panel>
       </DelayRailProvider>,
     );
-    // v3: the rail renders the discrete handle as the height-graph strip, whose
-    // accessible name starts "In-flight commands" (with an "N in flight" tail).
+    // v3: the rail renders the discrete handle as the height-graph strip, whose accessible name starts "In-flight commands" (with an "N in flight" tail).
     const rail = screen.getByLabelText(/^In-flight commands/);
     const title = screen.getByText("Nav");
     // Rail precedes the header/title in DOM order (first child of the scroller).

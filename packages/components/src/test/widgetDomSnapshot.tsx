@@ -392,8 +392,7 @@ function armStallWatchdog(
  * neither is needed, matching every widget that touches neither key.
  */
 function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
-  // A fixture that declares its own wire wins outright, and the legacy
-  // reshapes below are skipped entirely for it.
+  // A fixture that declares its own wire wins outright, and the legacy reshapes below are skipped entirely for it.
   //
   // This is the one place the two harnesses used to disagree about one file:
   // the playwright probe has honoured `_stream` since it was introduced, while
@@ -517,8 +516,7 @@ function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
       }
     },
     replayStreamBlock: async () => {},
-    // The legacy-reshape path reads no `_stream` block, so there is nothing to
-    // declare the drop on.
+    // The legacy-reshape path reads no `_stream` block, so there is nothing to declare the drop on.
     dropTransport: () => {},
     emitFrame: () => stream.emitFrame(),
   };
@@ -630,8 +628,7 @@ export function installSizedResizeObserver(size: {
   w: number;
   h: number;
 }): () => void {
-  // Asynchronous, like the real one: a synchronous callback would run inside
-  // the observing effect and set state during render.
+  // Asynchronous, like the real one: a synchronous callback would run inside the observing effect and set state during render.
   return installFixedSizeResizeObserver({
     width: size.w,
     height: size.h,
@@ -733,8 +730,7 @@ export async function snapshotWidgetMode<
       emitVesselParts();
       emitVesselControl();
     });
-    // Outside the synchronous block above: each entry waits for its topic's
-    // subscription, which only lands once frames have run.
+    // Outside the synchronous block above: each entry waits for its topic's subscription, which only lands once frames have run.
     beginPhase("replay-stream");
     await act(async () => {
       await replayStreamBlock();
@@ -859,8 +855,7 @@ export async function renderWidgetMode<
     beginPhase("provider-frame");
     await flushProviderFrame(providerMounted, emitFrame);
 
-    // Drain the async useDataSeries backfill the testing-library way (see
-    // snapshotWidgetMode) so a11y assertions run against a settled tree.
+    // Drain the async useDataSeries backfill the testing-library way (see snapshotWidgetMode) so a11y assertions run against a settled tree.
     beginPhase("backfill-wait");
     await waitFor(() => {
       if (fixture.pendingQueries() !== 0) throw new Error("backfill pending");

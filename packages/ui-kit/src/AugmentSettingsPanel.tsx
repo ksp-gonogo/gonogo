@@ -68,8 +68,7 @@ export function AugmentSettingsPanel({
                     onChange(block.namespace, field.key, raw);
                     return;
                   }
-                  // An emptied field stores nothing, so the default applies;
-                  // a partial entry such as a lone "-" stores nothing at all.
+                  // An emptied field stores nothing, so the default applies; a partial entry such as a lone "-" stores nothing at all.
                   if (raw === "") {
                     onChange(block.namespace, field.key, undefined);
                     return;

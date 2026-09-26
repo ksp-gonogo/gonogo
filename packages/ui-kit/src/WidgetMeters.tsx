@@ -4,8 +4,7 @@ import { useContributions } from "./contributionsRead";
 import { Meter, MeterStack } from "./Meter";
 
 // ---------------------------------------------------------------------------
-// The framework-universal `meters` contribution segment, expressed by the
-// component that draws it: the shape `FilterList` established for `filters`.
+// The framework-universal `meters` contribution segment, expressed by the component that draws it: the shape `FilterList` established for `filters`.
 //
 // The test for contribution-vs-augment is whether the host already has chrome
 // for what the extension draws. For a stack of labelled 0..1 bars it plainly

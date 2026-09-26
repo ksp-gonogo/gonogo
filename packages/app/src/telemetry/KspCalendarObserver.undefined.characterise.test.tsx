@@ -64,8 +64,7 @@ function fieldMagnitude(payload: unknown, field: string): number | undefined {
 }
 
 function CalendarProbe() {
-  // Branches on the ARM: `pending`, `unowned` and `absent`, and this probe
-  // reports which one arrived.
+  // Branches on the ARM: `pending`, `unowned` and `absent`, and this probe reports which one arrived.
   const reading = useTelemetry("time.calendar");
   if (reading.state === "pending") return <p>calendar:pending</p>;
   if (reading.state === "unowned") return <p>calendar:unowned</p>;
@@ -102,8 +101,7 @@ function mount() {
 }
 
 afterEach(() => {
-  // Module state in the kit: leak it and the next test formats on somebody
-  // else's calendar.
+  // Module state in the kit: leak it and the next test formats on somebody else's calendar.
   setKspCalendar();
 });
 
@@ -113,8 +111,7 @@ describe("KspCalendarObserver: what undefined means for time.calendar today", ()
     const fixture = mount();
 
     expect(screen.getByText("calendar:pending")).toBeInTheDocument();
-    // The sentinel surviving is the assertion: it proves `setKspCalendar` was
-    // never called, which asserting the stock 21,600 could not.
+    // The sentinel surviving is the assertion: it proves `setKspCalendar` was never called, which asserting the stock 21,600 could not.
     expect(kspCalendar()).toEqual(SENTINEL);
 
     fixture.unmount();
@@ -158,8 +155,7 @@ describe("KspCalendarObserver: what undefined means for time.calendar today", ()
       yearSeconds: null,
     });
 
-    // The key IS present on the wire, and the magnitude still reads undefined:
-    // that pair is the inversion, visible nowhere else.
+    // The key IS present on the wire, and the magnitude still reads undefined: that pair is the inversion, visible nowhere else.
     expect(
       screen.getByText(
         "calendar:keys=minuteSeconds,hourSeconds,daySeconds,yearSeconds minuteSeconds=60 hourSeconds=3600 daySeconds=86400 yearSeconds=undefined",

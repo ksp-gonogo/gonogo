@@ -50,8 +50,7 @@ describe("OrbitView: nothing has arrived at all", () => {
     // gate stopped gating, this render would throw on `.magnitude` of a
     // Reading rather than merely draw a wrong ellipse.
     expect(container.querySelector("svg")).toBeNull();
-    // `bodyName === undefined` suppresses the caption outright: no
-    // placeholder, no dash, no body row.
+    // `bodyName === undefined` suppresses the caption outright: no placeholder, no dash, no body row.
     expect(visibleText(container)).not.toContain("Kerbin");
     expect(visibleText(container)).toBe("ORBIT VIEWNo orbital data");
   });
@@ -97,8 +96,7 @@ describe("OrbitView: absence gates on the augment slots", () => {
 
 describe("OrbitView: null (tombstone) versus undefined (nothing yet)", () => {
   it("draws a loaded craft's orbit and names its body", async () => {
-    // Under physics the conic will not ADVANCE the elements, but the apsides
-    // need no advancing, so a current reading still has an orbit to draw.
+    // Under physics the conic will not ADVANCE the elements, but the apsides need no advancing, so a current reading still has an orbit to draw.
     const { container } = renderOrbitViewStream(
       { w: 9, h: 18 },
       { ...LKO, quality: Quality.Loaded },
@@ -110,8 +108,7 @@ describe("OrbitView: null (tombstone) versus undefined (nothing yet)", () => {
       }
     });
     expect(visibleText(container)).not.toContain("No osculating orbit");
-    // The body name still resolves: the caption is gated on `bodyName`, not
-    // on the orbit, so this branch is not the nothing-arrived render.
+    // The body name still resolves: the caption is gated on `bodyName`, not on the orbit, so this branch is not the nothing-arrived render.
     expect(visibleText(container)).toContain("Kerbin");
   });
 });
@@ -150,8 +147,7 @@ describe("OrbitView: a partial payload, the orbit without its body", () => {
   });
 
   it("reads the same orbit as an orbit once the body telemetry lands", async () => {
-    // The control for the previous case: identical elements, plus the body,
-    // flips the same pill from SUB-O to ORBIT.
+    // The control for the previous case: identical elements, plus the body, flips the same pill from SUB-O to ORBIT.
     const { container } = renderOrbitViewStream({ w: 7, h: 3 }, LKO);
 
     await waitFor(() => {

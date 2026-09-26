@@ -35,8 +35,7 @@ function enumMembersByOrdinal(
     .map(([name]) => name);
 }
 
-// The only allowed divergence between an enum member's bare PascalCase name
-// and its display label: everything else must match verbatim.
+// The only allowed divergence between an enum member's bare PascalCase name and its display label: everything else must match verbatim.
 const SITUATION_DISPLAY_OVERRIDES: Readonly<Record<string, string>> = {
   PreLaunch: "Pre-Launch",
   SubOrbital: "Sub-Orbital",
@@ -129,8 +128,7 @@ describe("T3: label arrays stay index-aligned with the generated SDK enums", () 
 
   it("fails if the label arrays and the enum diverge (self-check on the guard itself)", () => {
     const driftedLabels = [...TARGET_PICKER_VESSEL_TYPE_LABELS];
-    // Simulate a C# enum insertion shifting everything after it by one,
-    // this must NOT still pass the alignment check.
+    // Simulate a C# enum insertion shifting everything after it by one, this must NOT still pass the alignment check.
     driftedLabels.splice(2, 0, "InsertedMember");
     expect(() =>
       expectIndexAligned(

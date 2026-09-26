@@ -30,8 +30,7 @@ export interface Store<T extends { id: string }> {
   getSnapshot(): readonly T[];
 }
 
-// Shared frozen empty snapshot so an empty store returns one stable identity
-// (a fresh `[]` per call would loop `useSyncExternalStore`).
+// Shared frozen empty snapshot so an empty store returns one stable identity (a fresh `[]` per call would loop `useSyncExternalStore`).
 const EMPTY: readonly never[] = Object.freeze([]);
 
 /** Shallow-equal over `next`'s own keys against the current entry (id aside). */
@@ -51,13 +50,11 @@ function unchanged<T extends { id: string }>(
 }
 
 export function createStore<T extends { id: string }>(): Store<T> {
-  // Insertion-ordered by construction (Map), so the snapshot order is stable
-  // and a top-rank tie-break (in a derived view) is deterministic.
+  // Insertion-ordered by construction (Map), so the snapshot order is stable and a top-rank tie-break (in a derived view) is deterministic.
   const entries = new Map<string, T>();
   const listeners = new Set<() => void>();
 
-  // Dirty-flagged cache so `getSnapshot` returns a stable array while the set
-  // is unchanged and rebuilds only after a real change.
+  // Dirty-flagged cache so `getSnapshot` returns a stable array while the set is unchanged and rebuilds only after a real change.
   let cached: readonly T[] = EMPTY;
   let dirty = true;
 
@@ -66,8 +63,7 @@ export function createStore<T extends { id: string }>(): Store<T> {
     for (const listener of listeners) listener();
   }
 
-  // Which registration currently owns each id, so a registrant that has been
-  // replaced cannot deregister its replacement.
+  // Which registration currently owns each id, so a registrant that has been replaced cannot deregister its replacement.
   const owners = new Map<string, object>();
 
   return {

@@ -392,8 +392,7 @@ function ManeuverDiagram({
     <DiagramWrap>
       <OrbitDiagram
         variant="mini"
-        // The seam's answer, drawn as given. `null` on the conic arm, where the
-        // diagram's own conic renderer is what the provider said is right.
+        // The seam's answer, drawn as given. `null` on the conic arm, where the diagram's own conic renderer is what the provider said is right.
         trajectoryPath={
           currentTrajectory?.shape === "arc" ? currentTrajectory.points : null
         }

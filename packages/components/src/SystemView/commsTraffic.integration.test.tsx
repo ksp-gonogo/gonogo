@@ -196,8 +196,7 @@ describe("SystemView command traffic: system.uplink.pending as edge pulses", () 
       expect(el).not.toBeNull();
       return el as SVGLineElement;
     });
-    // A gradient sweep, not a solid-fill marker: the bright colour lives on
-    // the linked gradient's peak stop, not the line's own attributes.
+    // A gradient sweep, not a solid-fill marker: the bright colour lives on the linked gradient's peak stop, not the line's own attributes.
     const gradientId = pulse
       .getAttribute("stroke")
       ?.match(/url\(#([^)]+)\)/)?.[1];

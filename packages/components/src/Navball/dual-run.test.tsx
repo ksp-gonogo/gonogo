@@ -35,8 +35,7 @@ describe("Navball: stream render golden (delay=0)", () => {
     );
 
     act(() => {
-      // The default config reads the root-part frame (*RootFrame); the base
-      // CoM fields are emitted too so the payload matches the contract shape.
+      // The default config reads the root-part frame (*RootFrame); the base CoM fields are emitted too so the payload matches the contract shape.
       streamFixture.emit("vessel.attitude", {
         heading: northLevel["n.heading"],
         pitch: northLevel["n.pitch"],
@@ -47,8 +46,7 @@ describe("Navball: stream render golden (delay=0)", () => {
       });
       streamFixture.emit("vessel.control", {
         sas: northLevel["f.sasEnabled"],
-        // Numeric SasMode enum (0 = StabilityAssist), named off
-        // `SAS_MODE_NAMES` for the widget to render.
+        // Numeric SasMode enum (0 = StabilityAssist), named off `SAS_MODE_NAMES` for the widget to render.
         sasMode: 0,
         rcs: northLevel["v.rcsValue"],
         precisionControl: northLevel["f.precisionControl"],

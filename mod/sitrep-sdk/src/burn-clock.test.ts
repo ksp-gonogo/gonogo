@@ -21,8 +21,7 @@ afterEach(() => {
 
 describe("an instant an operator can type", () => {
   it("reads year and day from ONE, the way the game's clock does", () => {
-    // Counting them from zero puts everything a day out, and does it
-    // invisibly: every field still looks like a plausible date.
+    // Counting them from zero puts everything a day out, and does it invisibly: every field still looks like a plausible date.
     expect(decomposeUt(ut(0))).toEqual({
       year: 1,
       day: 1,
@@ -103,14 +102,12 @@ describe("counting down to a burn", () => {
   });
 
   it("answers an interval, so it cannot be mistaken for an instant", () => {
-    // `s` rather than `ut`: a countdown handed to something expecting a date
-    // would render as one, and the token split is what stops that.
+    // `s` rather than `ut`: a countdown handed to something expecting a date would render as one, and the token split is what stops that.
     expect(timeToIgnition({ ut: ut(1000) }, ut(900)).unit).toBe("s");
   });
 
   it("uses the node instant only when nothing modelled an ignition", () => {
-    // The stock case: an instantaneous burn lights when it happens, so the two
-    // ARE the same instant rather than one standing in for the other.
+    // The stock case: an instantaneous burn lights when it happens, so the two ARE the same instant rather than one standing in for the other.
     expect(timeToIgnition({ ut: ut(1000) }, ut(900)).magnitude).toBe(100);
     expect(
       timeToIgnition({ ut: ut(1000), ignitionUt: null }, ut(900)).magnitude,
@@ -118,8 +115,7 @@ describe("counting down to a burn", () => {
   });
 
   it("goes negative once the burn has started", () => {
-    // A real state worth showing: a burn in progress is exactly when an
-    // operator most wants to know how far into it they are.
+    // A real state worth showing: a burn in progress is exactly when an operator most wants to know how far into it they are.
     expect(
       timeToIgnition({ ut: ut(1030), ignitionUt: ut(1000) }, ut(1020))
         .magnitude,
@@ -136,8 +132,7 @@ describe("counting down to a burn", () => {
   });
 
   it("never calls an instantaneous burn in progress", () => {
-    // There is no interval to be inside, and reporting one would invent a state
-    // the plan does not have.
+    // There is no interval to be inside, and reporting one would invent a state the plan does not have.
     expect(isBurning({ ignitionUt: null, cutoffUt: null }, ut(1000))).toBe(
       false,
     );

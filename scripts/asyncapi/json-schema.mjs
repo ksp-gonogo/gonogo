@@ -1,5 +1,4 @@
-// The contract model as JSON Schema, and the three places the emitted
-// TypeScript is not the whole story.
+// The contract model as JSON Schema, and the three places the emitted TypeScript is not the whole story.
 //
 // ## A unit reaches the client through two channels
 //
@@ -87,8 +86,7 @@ function enumSchema(declaration) {
     return schema;
   }
 
-  // `oneOf` of consts is the only slot JSON Schema has for a per-member
-  // description, and 77 members in this contract carry one.
+  // `oneOf` of consts is the only slot JSON Schema has for a per-member description, and 77 members in this contract carry one.
   schema.oneOf = declaration.members.map((member) => {
     const arm = { const: member.value, title: member.name };
     if (member.description) arm.description = member.description;
@@ -134,8 +132,7 @@ function enumSchema(declaration) {
 function withUnit(schema, unit) {
   if (unit === undefined || schema["x-sitrep-unit"] !== undefined)
     return schema;
-  // On the ITEMS of an array: the unit belongs to each element, and a declared
-  // unit on the array itself would say the list has a magnitude.
+  // On the ITEMS of an array: the unit belongs to each element, and a declared unit on the array itself would say the list has a magnitude.
   if (schema.type === "array" && schema.items) {
     return { ...schema, items: withUnit(schema.items, unit) };
   }
@@ -284,8 +281,7 @@ export class SchemaBuilder {
     if (required.length > 0) schema.required = required;
     schema.properties = properties;
     if (declaration.fields.length === 0) {
-      // `NoCommandArgs` and the Uplink markers modelled on it: the shape IS the
-      // absence of one, and saying so beats an empty `properties` map.
+      // `NoCommandArgs` and the Uplink markers modelled on it: the shape IS the absence of one, and saying so beats an empty `properties` map.
       schema["x-sitrep-empty"] = true;
     }
     return schema;

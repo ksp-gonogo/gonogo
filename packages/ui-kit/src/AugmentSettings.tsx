@@ -18,8 +18,7 @@ import { createContext, type ReactNode, useContext, useMemo } from "react";
 // props of `map-view.actions` different from `system-view.actions`, which is
 // the whole reason the two could not be one universal segment.
 //
-// Here instead: the host provides once, any augment reads with a hook, and a
-// segment slot stays propless.
+// Here instead: the host provides once, any augment reads with a hook, and a segment slot stays propless.
 // ---------------------------------------------------------------------------
 
 export interface AugmentSettingsContextValue {

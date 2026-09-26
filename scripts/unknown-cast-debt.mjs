@@ -70,8 +70,7 @@ if (update && only === null && !all) {
   process.exit(1);
 }
 
-// esbuild and typescript are dependencies of `packages/core`, not of the
-// workspace root, so both resolve from the scan's own directory.
+// esbuild and typescript are dependencies of `packages/core`, not of the workspace root, so both resolve from the scan's own directory.
 const scanRequire = createRequire(scanPath);
 const { transformSync } = scanRequire("esbuild");
 
@@ -233,8 +232,7 @@ function emit(name, counts, note) {
   }
   const dropped = Object.keys(counts).filter((file) => !emitted.has(file));
   if (dropped.length > 0) {
-    // A key under no scanned root is written nowhere, and the list comes out
-    // shorter with nothing saying so, which reads as debt paid off.
+    // A key under no scanned root is written nowhere, and the list comes out shorter with nothing saying so, which reads as debt paid off.
     console.error(
       `${name} holds ${dropped.length} entries under no root the scan walks, ` +
         `so emitting would silently drop them:\n  ${dropped.join("\n  ")}\n\n` +

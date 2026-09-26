@@ -16,8 +16,7 @@ const asValue = (v: unknown): Value => {
   return v;
 };
 
-// A name-keyed map of same-unit readings, registered rather than named out of
-// this assembly's generated map.
+// A name-keyed map of same-unit readings, registered rather than named out of this assembly's generated map.
 //
 // The form used to be exercised through a real core Topic, because the four
 // fields carrying it all lived in Sitrep.Contract. They relocated into the
@@ -59,16 +58,14 @@ describe("wrapTopicPayload", () => {
     expect(isValue(payload.rates.Water)).toBe(true);
     expect(payload.rates.Water.unit).toBe("units/s");
     expect(payload.rates.Water.magnitude).toBe(-0.000054);
-    // The key is a resource name and must survive untouched: it is data, not a
-    // property name, so nothing may camel-case it.
+    // The key is a resource name and must survive untouched: it is data, not a property name, so nothing may camel-case it.
     expect(Object.keys(payload.rates)).toContain("ElectricCharge");
     // A present ZERO is a real reading (in balance), not an absence.
     expect(asValue(payload.rates.Nitrogen).magnitude).toBe(0);
   });
 
   it("wrapping a map twice leaves it alone", () => {
-    // Same idempotence the scalar and list cases have, and for the same
-    // reason: a payload can be re-decoded on reconnect.
+    // Same idempotence the scalar and list cases have, and for the same reason: a payload can be re-decoded on reconnect.
     const once = wrapTopicPayload(MAP_TOPIC, {
       rates: { Water: -0.000054 },
     } as never);
@@ -80,8 +77,7 @@ describe("wrapTopicPayload", () => {
   });
 
   it("leaves a non-quantity alone", () => {
-    // text, flag, enum, id and n/a have no dimension and were never units, so
-    // the registry lookup skips them without needing a list.
+    // text, flag, enum, id and n/a have no dimension and were never units, so the registry lookup skips them without needing a list.
     const payload = wrapTopicPayload("vessel.identity", {
       name: "Kerbal X",
     } as never) as { name: unknown };
@@ -183,8 +179,7 @@ describe("wrapTopicPayload", () => {
   });
 
   it("wraps every element of an array topic", () => {
-    // An array Topic's unit entry describes the ELEMENT's fields, which is
-    // what a consumer indexes into.
+    // An array Topic's unit entry describes the ELEMENT's fields, which is what a consumer indexes into.
     const payload = wrapTypePayload<
       Array<{ current: Value; max: Value; active: boolean }>
     >("ResourceAmount", [

@@ -34,8 +34,7 @@ export function horizontalOf(
 }
 
 const topics = defineTopicManifest({
-  // `system.bodies` is read directly: the reference curve needs the body's own
-  // radius and gravitational parameter, and both are reported there.
+  // `system.bodies` is read directly: the reference curve needs the body's own radius and gravitational parameter, and both are reported there.
   channels: ["vessel.flight", "vessel.identity", "system.bodies"],
   fields: [
     "vessel.flight.altitudeAsl",

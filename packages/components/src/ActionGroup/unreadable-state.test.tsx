@@ -160,8 +160,7 @@ describe("ActionGroup when the backend could not read the group", () => {
       screen.getByRole("button", { name: "Toggle Radiators" });
     await waitFor(() => expect(toggle().textContent).toBe("ON"));
 
-    // Proof the press reaches the wire while the state is readable, so the
-    // refusal below is a refusal and not a broken command path.
+    // Proof the press reaches the wire while the state is readable, so the refusal below is a refusal and not a broken command path.
     act(() => {
       toggle().click();
     });

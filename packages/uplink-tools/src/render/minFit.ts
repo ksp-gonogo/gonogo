@@ -594,8 +594,7 @@ function readGradient(layer: string, height: number): Gradient | undefined {
     const value = parseFloat(position[1]);
     return { at: position[2] === "%" ? (value / 100) * height : value, alpha };
   });
-  // CSS fills in an omitted position: the ends sit on the ends, and a run of
-  // omitted stops spreads evenly between the known ones on either side.
+  // CSS fills in an omitted position: the ends sit on the ends, and a run of omitted stops spreads evenly between the known ones on either side.
   const at: number[] = raw.map((s) => s.at ?? Number.NaN);
   if (Number.isNaN(at[0])) at[0] = 0;
   if (Number.isNaN(at[at.length - 1])) at[at.length - 1] = height;
@@ -693,8 +692,7 @@ function inkBands(el: Element): { top: number; bottom: number }[] {
         out.push({ top: line.top, bottom: line.bottom });
         continue;
       }
-      // Half-leading splits whatever the line box has spare around the font's
-      // own box, which is what puts the baseline where the browser put it.
+      // Half-leading splits whatever the line box has spare around the font's own box, which is what puts the baseline where the browser put it.
       const leading =
         (line.height - (metrics.fontAscent + metrics.fontDescent)) / 2;
       const baseline = line.top + leading + metrics.fontAscent;
@@ -795,8 +793,7 @@ function maskFindings(tile: HTMLElement): MinFitFinding[] {
     if (!scroller) continue;
 
     const view = clientRect(scroller);
-    // Which end of the scroller the mask sits at decides which way the scroll
-    // that would clear it runs.
+    // Which end of the scroller the mask sits at decides which way the scroll that would clear it runs.
     const atBottom = view.bottom - band.bottom <= band.top - view.top;
     const depth = atBottom ? view.bottom - band.top : band.bottom - view.top;
     const remaining = atBottom
@@ -806,14 +803,12 @@ function maskFindings(tile: HTMLElement): MinFitFinding[] {
 
     for (const el of Array.from(scroller.querySelectorAll("*"))) {
       if (!carriesText(el) || !drawn(el) || !painted(el)) continue;
-      // Where the glyphs are inked rather than where the element is, because
-      // what is at stake is whether the paint lands on the words.
+      // Where the glyphs are inked rather than where the element is, because what is at stake is whether the paint lands on the words.
       const covered = Math.max(
         0,
         ...inkBands(el).map(
           (line) =>
-            // Only the part of it that is on screen: what a scroller puts below
-            // its own fold is reachable by scrolling and says nothing here.
+            // Only the part of it that is on screen: what a scroller puts below its own fold is reachable by scrolling and says nothing here.
             Math.min(line.bottom, band.bottom, view.bottom) -
             Math.max(line.top, band.top, view.top),
         ),
@@ -860,8 +855,7 @@ export function auditMinFit(tile: HTMLElement): MinFitFinding[] {
 
   for (const el of Array.from(tile.querySelectorAll("*"))) {
     if (!carriesText(el)) continue;
-    // A title's ellipsis is already reported above, with the reason it is a
-    // harsher rule than the one every other string gets.
+    // A title's ellipsis is already reported above, with the reason it is a harsher rule than the one every other string gets.
     if (el.closest(HEADINGS)) continue;
     if (el.closest(CONTROLS)) continue;
     if (!drawn(el) || !painted(el)) continue;
@@ -898,8 +892,7 @@ export function auditMinFit(tile: HTMLElement): MinFitFinding[] {
     });
   }
 
-  // A field is how an operator states a number, so a value they cannot read back
-  // is an instruction they cannot check before sending it.
+  // A field is how an operator states a number, so a value they cannot read back is an instruction they cannot check before sending it.
   for (const control of Array.from(tile.querySelectorAll<Control>(CONTROLS))) {
     if (!drawn(control) || !painted(control)) continue;
     const shown = shownBy(control);

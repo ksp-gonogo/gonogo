@@ -55,8 +55,7 @@ describe("TimelineStore", () => {
 
     expect(store.sample<number>("a")?.payload).toBe(2);
 
-    // A later sample arrives mid-frame (before the next beginFrame), the
-    // frozen token must not see it.
+    // A later sample arrives mid-frame (before the next beginFrame), the frozen token must not see it.
     store.ingest("a", point(30, 3));
     expect(store.sample<number>("a")?.payload).toBe(2);
 
@@ -86,8 +85,7 @@ describe("TimelineStore", () => {
       expect(token.viewUt).toBe(50); // estimate (100 - 50 delay) well under the sample clamp of 100
 
       const a = store.sample<number>("topic.a", store.currentFrame());
-      // Wall time advances mid-frame (e.g. a slow widget's own work), a
-      // live clock read would now disagree with the frozen token.
+      // Wall time advances mid-frame (e.g. a slow widget's own work), a live clock read would now disagree with the frozen token.
       wall.advanceBy(10);
       const b = store.sample<number>("topic.b", store.currentFrame());
 
@@ -148,8 +146,7 @@ describe("TimelineStore", () => {
       store.beginFrame();
       expect(store.sample<number>("slow.b")?.payload).toBe(2);
 
-      // Quickload rewind confirmed on the fast topic only, the slow topic
-      // never re-samples.
+      // Quickload rewind confirmed on the fast topic only, the slow topic never re-samples.
       store.ingest("fast.a", point(50, 999, { epoch: 1 }));
       const token = store.beginFrame();
 
@@ -158,8 +155,7 @@ describe("TimelineStore", () => {
       // epoch-0 point (nothing told IT to reset) and would happily serve it
       // forever without the store-level guard.
       expect(store.sample<number>("slow.b", token)).toBeUndefined();
-      // Proactive sweep: the dead-epoch point is actually gone, not just
-      // masked at read time.
+      // Proactive sweep: the dead-epoch point is actually gone, not just masked at read time.
       expect(store.getTimeline("slow.b").range(0, 10000)).toEqual([]);
     });
 
@@ -171,8 +167,7 @@ describe("TimelineStore", () => {
       const token = store.beginFrame();
       expect(store.clock.getEpoch()).toBe(1);
 
-      // topic.c's very first-ever sample arrives late, still tagged epoch 0
-      // (queued behind the rewind broadcast): it must not be admitted.
+      // topic.c's very first-ever sample arrives late, still tagged epoch 0 (queued behind the rewind broadcast): it must not be admitted.
       store.ingest("topic.c", point(40, 111, { epoch: 0 }));
 
       expect(store.sample<number>("topic.c", token)).toBeUndefined();
@@ -192,8 +187,7 @@ describe("TimelineStore", () => {
       const firstRead = store.sample<number>("b", token);
       expect(firstRead).toBeUndefined(); // cold: nothing ingested for "b" yet
 
-      // A late out-of-order sample arrives mid-frame, validAt (50) <= viewUt
-      // (100): a fresh, unmemoized `at(100)` read WOULD now find it.
+      // A late out-of-order sample arrives mid-frame, validAt (50) <= viewUt (100): a fresh, unmemoized `at(100)` read WOULD now find it.
       store.ingest("b", point(50, 777));
 
       const secondRead = store.sample<number>("b", token);
@@ -256,8 +250,7 @@ describe("TimelineStore", () => {
           spy?.();
           const a = get<number>("a");
           const b = get<number>("b");
-          // A tombstone on either input is an absent sum, not a sum of nothing:
-          // `payload` is nullable and this used to add straight through it.
+          // A tombstone on either input is an absent sum, not a sum of nothing: `payload` is nullable and this used to add straight through it.
           if (a?.payload == null || b?.payload == null) return null;
           return {
             sum: a.payload + b.payload,
@@ -350,8 +343,7 @@ describe("TimelineStore", () => {
           fields: true,
           derive: (get) => {
             const a = get<number>("a");
-            // Undefined is "not whole yet"; a tombstone is an input that has gone
-            // absent, and neither can produce an `n`.
+            // Undefined is "not whole yet"; a tombstone is an input that has gone absent, and neither can produce an `n`.
             if (a?.payload == null) return undefined;
             return { n: a.payload };
           },
@@ -361,8 +353,7 @@ describe("TimelineStore", () => {
         store.beginFrame();
 
         expect(store.sample<{ n: number }>("derived.notWhole")).toBeUndefined();
-        // A field subtopic of a not-whole-yet parent is undefined too, not
-        // a field read off a fabricated tombstone.
+        // A field subtopic of a not-whole-yet parent is undefined too, not a field read off a fabricated tombstone.
         expect(store.sample<number>("derived.notWhole.n")).toBeUndefined();
       });
 
@@ -410,15 +401,13 @@ describe("TimelineStore", () => {
         expect(first?.payload?.n).toBe(1);
         expect(computeSpy).toHaveBeenCalledTimes(1);
 
-        // Quickload rewind mid-frame: epoch bumps via an unrelated topic's
-        // ingest, no new beginFrame() yet, so `token` is still current.
+        // Quickload rewind mid-frame: epoch bumps via an unrelated topic's ingest, no new beginFrame() yet, so `token` is still current.
         store.ingest("unrelated", point(0, 0, { epoch: 1 }));
         expect(store.clock.getEpoch()).toBe(1);
 
         const second = store.sample<{ n: number }>("derived.counter", token);
 
-        // Not stale: recomputed (spy called again), not the frozen
-        // pre-bump `{ n: 1 }` served for the rest of the frame.
+        // Not stale: recomputed (spy called again), not the frozen pre-bump `{ n: 1 }` served for the rest of the frame.
         expect(computeSpy).toHaveBeenCalledTimes(2);
         expect(second?.payload?.n).toBe(2);
         expect(second).not.toBe(first);
@@ -721,14 +710,12 @@ describe("TimelineStore.isUnresolvableField: RAW-FIELD phantom-mapping diagnosti
 
 describe("lerpPayload: angular wrap + discrete-field safety (M2 T5 close-review Fix 3)", () => {
   it("wraps a longitude field the SHORT way around the antimeridian, instead of lerping straight through the planet", () => {
-    // 179 -> -179 is a 2-degree hop the short way (through 180/-180), not a
-    // ~358-degree hop the naive numeric lerp takes through 0.
+    // 179 -> -179 is a 2-degree hop the short way (through 180/-180), not a ~358-degree hop the naive numeric lerp takes through 0.
     const before = { longitude: 179 };
     const after = { longitude: -179 };
     const result = lerpPayload(before, after, 0.5);
     expect(result).toBeDefined();
-    // Naive lerp would give ~0 here, assert we're nowhere near that and
-    // instead land on the wrapped short-way midpoint (+-180).
+    // Naive lerp would give ~0 here, assert we're nowhere near that and instead land on the wrapped short-way midpoint (+-180).
     expect(Math.abs(result?.longitude ?? 0)).toBeGreaterThan(170);
   });
 

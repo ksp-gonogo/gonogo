@@ -27,8 +27,7 @@ describe("useFleetVesselPosition (through the real store)", () => {
       </TelemetryProvider>,
     );
 
-    // Bare wire numbers, exactly as the dynamic topic delivers them (StubTransport,
-    // like production, can't unit-wrap a per-guid topic).
+    // Bare wire numbers, exactly as the dynamic topic delivers them (StubTransport, like production, can't unit-wrap a per-guid topic).
     act(() => {
       t.emit("fleet.g1.orbit", {
         referenceBodyIndex: 1,

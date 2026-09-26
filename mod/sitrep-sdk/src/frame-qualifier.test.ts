@@ -126,8 +126,7 @@ describe("naming the frame in force", () => {
   });
 
   it("names the target frame as what the operator chose, not its kind", () => {
-    // The flag is orthogonal to the kind, and naming the kind would caption a
-    // frame they did not select.
+    // The flag is orthogonal to the kind, and naming the kind would caption a frame they did not select.
     expect(
       controlFrameLabel({
         kind: ControlFrameKind.BodyCentredInertial,
@@ -138,8 +137,7 @@ describe("naming the frame in force", () => {
   });
 
   it("leaves a missing body's placeholder standing rather than collapsing the name", () => {
-    // "-Centred Inertial" reads like a formatting slip; the placeholder says a
-    // body is missing.
+    // "-Centred Inertial" reads like a formatting slip; the placeholder says a body is missing.
     expect(
       controlFrameLabel({
         kind: ControlFrameKind.BodyCentredInertial,
@@ -148,8 +146,7 @@ describe("naming the frame in force", () => {
   });
 
   it("renders an unnamed kind as the kind rather than the nearest neighbour", () => {
-    // A wrong frame name is a wrong claim about what every coordinate on the
-    // board means, so an unknown one reads as obviously incomplete.
+    // A wrong frame name is a wrong claim about what every coordinate on the board means, so an unknown one reads as obviously incomplete.
     expect(controlFrameLabel(asReportedFrame({ kind: 99 }))).toBe("Frame 99");
   });
 

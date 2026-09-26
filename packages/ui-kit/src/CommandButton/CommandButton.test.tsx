@@ -61,8 +61,7 @@ function deferred<T = CommandReplyLike>() {
     resolve = res;
     reject = rej;
   });
-  // The component attaches its own handlers, so an unhandled rejection is not
-  // possible here; this keeps a test that never settles from warning anyway.
+  // The component attaches its own handlers, so an unhandled rejection is not possible here; this keeps a test that never settles from warning anyway.
   promise.catch(() => undefined);
   return { promise, resolve, reject };
 }
@@ -86,8 +85,7 @@ function useArmClock() {
   return userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 }
 
-// Unconditional, so a test that fails before its own restore cannot leave the
-// clock frozen for the rest of the file.
+// Unconditional, so a test that fails before its own restore cannot leave the clock frozen for the rest of the file.
 afterEach(() => {
   vi.useRealTimers();
 });
@@ -333,8 +331,7 @@ describe("CommandButton: the refused phase", () => {
     const button = await screen.findByRole("button", { name: /refused/i });
     expect(button).toHaveAttribute("data-command-phase", "refused");
     expect(button).toHaveTextContent("Refused");
-    // The reason reaches the operator, rather than being discarded at the
-    // line that refused.
+    // The reason reaches the operator, rather than being discarded at the line that refused.
     expect(button.getAttribute("title")).toMatch(/Upgrade Launch Pad refused/);
   });
 
@@ -530,8 +527,7 @@ describe("CommandButton: the accessible name tracks the phase", () => {
       }),
     );
 
-    // The press meant something; a control still announcing "Hire ..." has told
-    // a screen-reader user nothing happened.
+    // The press meant something; a control still announcing "Hire ..." has told a screen-reader user nothing happened.
     expect(screen.getByRole("button", { name: "Confirm" })).toBeInTheDocument();
   });
 
@@ -709,8 +705,7 @@ describe("CommandButton: the blocked phase", () => {
     );
     const gated = screen.getAllByRole("button")[1];
     expect(gated).toHaveAttribute("aria-disabled", "true");
-    // The load-bearing half: `disabled` would drop it from some screen readers'
-    // walk entirely, leaving nothing where the reason should be.
+    // The load-bearing half: `disabled` would drop it from some screen readers' walk entirely, leaving nothing where the reason should be.
     expect(gated).not.toBeDisabled();
   });
 
@@ -898,8 +893,7 @@ describe("CommandButton: the blocked phase", () => {
     const button = screen.getByRole("button");
     expect(button).not.toHaveAttribute("aria-disabled");
     expect(button).toHaveTextContent("Unlock");
-    // Reports itself for a diagnostic surface without saying anything to the
-    // operator that it cannot back up.
+    // Reports itself for a diagnostic surface without saying anything to the operator that it cannot back up.
     expect(button).toHaveAttribute("data-gate", "undetermined");
 
     await user.click(button);
@@ -979,8 +973,7 @@ describe("CommandButton: a lost command that answered after all", () => {
       "data-command-phase",
       "lost",
     );
-    // The late reply lands: `useCommand` promotes the loss and the handle the
-    // control holds now carries a found.
+    // The late reply lands: `useCommand` promotes the loss and the handle the control holds now carries a found.
     await act(async () => {
       rerender(
         <CommandButton handle={makeHandle(send, { founds })} label="SAS" />,
@@ -1059,8 +1052,7 @@ describe("CommandButton: a lost command that answered after all", () => {
       "data-command-phase",
       "idle",
     );
-    // The press CLEARS rather than dispatching straight back out, same as a
-    // refusal and a loss: the rail holds the found until it is dismissed.
+    // The press CLEARS rather than dispatching straight back out, same as a refusal and a loss: the rail holds the found until it is dismissed.
     expect(send).toHaveBeenCalledTimes(1);
   });
 

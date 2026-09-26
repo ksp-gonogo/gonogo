@@ -162,22 +162,19 @@ describe("TransferWindow: nothing has arrived at all", () => {
       await screen.findByText("Waiting for vessel orbit..."),
     ).toBeInTheDocument();
 
-    // Named absences, not an empty container: the dial, the list and the chart
-    // are each specifically gone.
+    // Named absences, not an empty container: the dial, the list and the chart are each specifically gone.
     expect(screen.queryByText("Current phase")).not.toBeInTheDocument();
     expect(screen.queryByText(/^Windows to /)).not.toBeInTheDocument();
     expect(
       screen.queryByRole("img", { name: /Δv contour/i }),
     ).not.toBeInTheDocument();
-    // The destination picker is part of the panel header, and it goes too, so
-    // there is no control at all in this state.
+    // The destination picker is part of the panel header, and it goes too, so there is no control at all in this state.
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     expect(visibleText(view.container)).toContain("Transfer Window");
   });
 
   it("renders the same placeholder with no TelemetryProvider mounted at all", async () => {
-    // The other half of the current `undefined` contract (see useTelemetry's own
-    // doc): no provider in the tree is indistinguishable from a cold topic.
+    // The other half of the current `undefined` contract (see useTelemetry's own doc): no provider in the tree is indistinguishable from a cold topic.
     const view = renderTracked(
       <DashboardItemContext.Provider value={{ instanceId: "transfer-nop" }}>
         <TransferWindowComponent
@@ -226,8 +223,7 @@ describe("TransferWindow: the absence gates fire today", () => {
       fixture.emit("system.bodies", { bodies: [SUN, EARTH, MARS, VENUS] });
       fixture.emit("vessel.orbit", null);
     });
-    // The tombstone genuinely reached the store: the render below is the
-    // widget's answer to it, not the answer to a dropped emit.
+    // The tombstone genuinely reached the store: the render below is the widget's answer to it, not the answer to a dropped emit.
     expect((await landedOrbitPoint(fixture)).payload).toBeNull();
     expect(screen.getByText(/No parking orbit/)).toBeInTheDocument();
     expect(
@@ -236,8 +232,7 @@ describe("TransferWindow: the absence gates fire today", () => {
   });
 
   it("treats a null referenceBodyIndex the same as an absent one", async () => {
-    // `orbit?.referenceBodyIndex != null` is the one gate here written to catch
-    // both, so a present record with a nulled index also reads as "waiting".
+    // `orbit?.referenceBodyIndex != null` is the one gate here written to catch both, so a present record with a nulled index also reads as "waiting".
     const { fixture } = setup();
     await screen.findByText("Waiting for vessel orbit...");
     act(() => {
@@ -249,8 +244,7 @@ describe("TransferWindow: the absence gates fire today", () => {
   });
 
   it("clears the placeholder once both reads land, proving the gate is what produced it", async () => {
-    // Contrast case: without it the assertions above could pass because the
-    // fixture feeds nothing rather than because the gate fires.
+    // Contrast case: without it the assertions above could pass because the fixture feeds nothing rather than because the gate fires.
     const { fixture } = setup();
     await screen.findByText("Waiting for vessel orbit...");
     act(() => {
@@ -287,8 +281,7 @@ describe("TransferWindow: a partial vessel.orbit payload", () => {
   });
 
   it("shows the same second placeholder when only ecc is missing", async () => {
-    // `sma != null && ecc != null` is a conjunction, so one absent field of the
-    // two reads exactly as both being absent.
+    // `sma != null && ecc != null` is a conjunction, so one absent field of the two reads exactly as both being absent.
     const { fixture } = setup();
     await screen.findByText("Waiting for vessel orbit...");
     act(() => {

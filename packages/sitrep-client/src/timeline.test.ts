@@ -79,8 +79,7 @@ describe("ClientTimeline", () => {
     expect(timeline.at(50)?.payload).toBe(50);
     expect(timeline.range(0, 50).length).toBe(2);
 
-    // Pushes the retention floor to 150 (250 - 100), the two old points
-    // (validAt 0, 50) fall outside the window and are evicted.
+    // Pushes the retention floor to 150 (250 - 100), the two old points (validAt 0, 50) fall outside the window and are evicted.
     timeline.append(point(250, 250));
 
     expect(timeline.range(0, 50)).toEqual([]);
@@ -101,8 +100,7 @@ describe("ClientTimeline", () => {
       const timeline = new ClientTimeline<number | null>();
       timeline.append(point(0, 0));
 
-      // A twenty-minute outage, sampled every two UT seconds: far wider than
-      // the 300s window that used to be the default.
+      // A twenty-minute outage, sampled every two UT seconds: far wider than the 300s window that used to be the default.
       for (let ut = 100; ut <= 1300; ut += 2) timeline.append(point(ut, ut));
 
       expect(timeline.at(100)?.payload).toBe(100);
@@ -163,8 +161,7 @@ describe("ClientTimeline", () => {
       timeline.append(point(50, 999, { epoch: 1 }));
 
       expect(timeline.epoch).toBe(1);
-      // The stale-ghost check: reading anywhere, including at/after the old
-      // epoch-0 validAt, must never resurrect epoch-0's payload.
+      // The stale-ghost check: reading anywhere, including at/after the old epoch-0 validAt, must never resurrect epoch-0's payload.
       expect(timeline.at(100)?.payload).toBe(999);
       expect(timeline.at(1000)?.payload).toBe(999);
       expect(timeline.range(0, 1000).map((p) => p.payload)).toEqual([999]);

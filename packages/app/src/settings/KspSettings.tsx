@@ -72,8 +72,7 @@ export function KspSettings() {
   const [saving, setSaving] = useState(false);
   const [outcome, setOutcome] = useState<string | null>(null);
 
-  // An edit the published model now agrees with has landed; keep only the
-  // ones still waiting on it.
+  // An edit the published model now agrees with has landed; keep only the ones still waiting on it.
   useEffect(() => {
     if (!model) return;
     setDraft((current) => {

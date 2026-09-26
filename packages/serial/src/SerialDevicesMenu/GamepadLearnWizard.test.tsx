@@ -190,8 +190,7 @@ describe("GamepadLearnWizard", () => {
     const baseType = svc.getDeviceType(device.typeId);
     if (!baseType) throw new Error("type missing after connect");
 
-    // Simulate a prior wizard run that already put "face-south" on
-    // button-2.
+    // Simulate a prior wizard run that already put "face-south" on button-2.
     const seeded: DeviceType = {
       ...baseType,
       inputs: baseType.inputs.map((i) =>
@@ -248,8 +247,7 @@ describe("GamepadLearnWizard", () => {
       </SerialDeviceProvider>,
     );
 
-    // Walk past every button-shaped role to reach the first axis-shaped one
-    // ("Stick Left X").
+    // Walk past every button-shaped role to reach the first axis-shaped one ("Stick Left X").
     for (let i = 0; i < 17; i++) {
       await user.click(screen.getByRole("button", { name: /^skip$/i }));
     }

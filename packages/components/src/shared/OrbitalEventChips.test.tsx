@@ -53,8 +53,7 @@ function mountAt(transitionUt: number) {
       meanAnomalyAtEpoch: 0,
       epoch: VIEW_UT,
       mu: 3.5316e12,
-      // TransitionType.Encounter is 2 (VesselEnums.cs), which the client maps
-      // to encounterExists 1: the gate the chip branches on.
+      // TransitionType.Encounter is 2 (VesselEnums.cs), which the client maps to encounterExists 1: the gate the chip branches on.
       encounter: { transitionType: 2, transitionUt, bodyIndex: 2 },
       patches: [],
     });

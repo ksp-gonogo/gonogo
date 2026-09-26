@@ -20,8 +20,7 @@ import { type TermSegment, useRowFilter } from "./useRowFilter";
 // probe / test without meta) the term list is stably empty and every row passes
 // through, so mounting is the whole lifecycle.
 //
-// Filter model lives in `useRowFilter`, shared with hosts that render their own
-// rows (a table cannot hand its rows over without giving up its columns).
+// Filter model lives in `useRowFilter`, shared with hosts that render their own rows (a table cannot hand its rows over without giving up its columns).
 //
 // Lives in `@ksp-gonogo/ui-kit`: the contribution read seam (`useContributions`)
 // moved into the design floor, so a published, third-party-reachable component

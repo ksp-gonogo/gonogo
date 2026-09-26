@@ -120,8 +120,7 @@ export const STOCK_FRAMING: Record<BurnInstantKind, BurnInstantFraming> = {
     label: "Half-Δv",
     question: "when has half the delta-v been delivered",
     basis: "planned",
-    // The reference is the one instant every plan has, so it is never absent
-    // for a burn that exists at all.
+    // The reference is the one instant every plan has, so it is never absent for a burn that exists at all.
     absent: "no burn",
     absentDetail: "There is no burn to place.",
   },

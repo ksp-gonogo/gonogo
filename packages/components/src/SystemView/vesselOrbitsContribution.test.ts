@@ -97,8 +97,7 @@ describe("computeVesselOrbitEntities", () => {
       ecc: 0.1,
       lan: 20,
       argPe: 30,
-      // Carried, not dropped: the diagram's arithmetic is three-dimensional and a
-      // contributed ring with no inclination is a ring it cannot turn.
+      // Carried, not dropped: the diagram's arithmetic is three-dimensional and a contributed ring with no inclination is a ring it cannot turn.
       inclination: 5,
       trueAnomaly: 0,
     });

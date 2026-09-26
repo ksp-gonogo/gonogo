@@ -120,8 +120,7 @@ describe("ActionGroup: nothing has arrived at all", () => {
     expect(toggle.textContent).toBe(NULL_DISPLAY);
     // `isOn` is `value === true`, so an absent read presents as not-pressed.
     expect(toggle.getAttribute("aria-pressed")).toBe("false");
-    // The control is fully live-looking: nothing about the widget says the
-    // number behind it never arrived.
+    // The control is fully live-looking: nothing about the widget says the number behind it never arrived.
     expect(toggle).not.toBeDisabled();
     expect(screen.getByRole("button", { name: "Rename SAS" })).toBeTruthy();
   });
@@ -337,8 +336,7 @@ describe("ActionGroup: null versus undefined", () => {
     // cannot tell "the mod says there is no vessel control" from "waiting".
     const { fixture } = mount("SAS");
 
-    // Observed value first, so the tombstone is provably delivered: it has to
-    // move the render off "ON" for the assertion below to mean anything.
+    // Observed value first, so the tombstone is provably delivered: it has to move the render off "ON" for the assertion below to mean anything.
     act(() => {
       fixture.emit("vessel.control", { ...CONTROL_ALL_OFF, sas: true });
     });

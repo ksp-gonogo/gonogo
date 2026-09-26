@@ -503,8 +503,7 @@ function ManeuverPlannerComponent({
     const burns = isSequence(toDispatch) ? toDispatch.burns : [toDispatch];
     let dispatched = 0;
     for (const b of burns) {
-      // Same RADIAL, NORMAL, PROGRADE wire order as before (see handleCommit's
-      // own comment): only the transport changed, not the arg shape.
+      // Same RADIAL, NORMAL, PROGRADE wire order as before (see handleCommit's own comment): only the transport changed, not the arg shape.
       try {
         await addNodeCmd.send(
           {
@@ -737,8 +736,7 @@ function ManeuverPlannerComponent({
         <Stack>
           {nodes.map((burn) => (
             <BurnWindowRows
-              // UT, the same key the burn tracker uses: stable across KSP
-              // renumbering the list on a removal, which an index is not.
+              // UT, the same key the burn tracker uses: stable across KSP renumbering the list on a removal, which an index is not.
               key={burn.UT}
               burn={{
                 ut: burn.UT,
@@ -831,8 +829,7 @@ function ManeuverPlannerComponent({
                       : null,
                     period,
                   )}
-                  // The CURRENT orbit follows the observation rules; the planned
-                  // conic is authored and never dims.
+                  // The CURRENT orbit follows the observation rules; the planned conic is authored and never dims.
                   currentIsObserved={!elementsNeedDating}
                 />
               </Stack>
@@ -1048,8 +1045,7 @@ registerComponent<ManeuverPlannerConfig>({
   // SOLVED here too, from the `vessel.orbit` elements already named below at
   // the frame's view time, so none of them is a field to declare either.
   //
-  // The target's quantities are SOLVED the same way, from the elements on
-  // `vessel.target`.
+  // The target's quantities are SOLVED the same way, from the elements on `vessel.target`.
   //
   // The raw target-orbit field subtopics are deliberately not named. Nothing
   // targeted is the common case, and the wire tombstones the whole

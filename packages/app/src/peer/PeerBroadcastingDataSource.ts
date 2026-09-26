@@ -172,8 +172,7 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
     if (hasSubscribeCollection(this.real)) {
       return this.real.subscribeCollection(keys, cb);
     }
-    // Fall back to individual subscribes for sources that don't support
-    // batched collection (e.g. a raw wrapper without buffering).
+    // Fall back to individual subscribes for sources that don't support batched collection (e.g. a raw wrapper without buffering).
     const snapshot: unknown[] = new Array<unknown>(keys.length).fill(undefined);
     const unsubs: Array<() => void> = [];
     keys.forEach((key, i) => {

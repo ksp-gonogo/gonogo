@@ -213,8 +213,7 @@ function useFleet(): {
    */
   const systemReading = topics.useTelemetry("system.vessels");
   const system = stillTrue(systemReading, EMPTY_FLEET);
-  // The body catalogue is a fact, and a tombstone for it would mean a save with no
-  // celestial bodies, which cannot happen; `undefined` is the honest answer there.
+  // The body catalogue is a fact, and a tombstone for it would mean a save with no celestial bodies, which cannot happen; `undefined` is the honest answer there.
   const bodiesReading = topics.useTelemetry("system.bodies");
   const bodies = stillTrue(bodiesReading, undefined);
 
@@ -476,8 +475,7 @@ function FleetContactCell({
   }
 
   if (phase === "expected") {
-    // No predicted instant means no interval to count down, not an interval of
-    // zero length that happens to render the same.
+    // No predicted instant means no interval to count down, not an interval of zero length that happens to render the same.
     const due =
       silence.predictedReacquisitionUt == null
         ? 0

@@ -149,8 +149,7 @@ describe("ResourceOps", () => {
     expect(search).toHaveValue("");
     expect(screen.getByText("Convert-O-Tron 250")).toBeInTheDocument();
 
-    // Typing a resource narrows to the units that touch it, drills and
-    // converters alike, matched against the searchText the widget baked.
+    // Typing a resource narrows to the units that touch it, drills and converters alike, matched against the searchText the widget baked.
     act(() => {
       fireEvent.change(search, { target: { value: "Monopropellant" } });
     });
@@ -160,8 +159,7 @@ describe("ResourceOps", () => {
   });
 
   it("renders a contributed term it knows nothing about, and applies it", async () => {
-    // The widget has never heard of this filter: it renders it as a toggle
-    // because it arrived on its slot, and narrows by plain substring.
+    // The widget has never heard of this filter: it renders it as a toggle because it arrived on its slot, and narrows by plain substring.
     uplinkTermOn = true;
     const { fixture } = renderWidget();
     act(() => {
@@ -189,8 +187,7 @@ describe("ResourceOps", () => {
     });
 
     expect(await screen.findByText("deployed")).toBeInTheDocument();
-    // A null deploy state is a harvester with no deploy animation, so it must not
-    // render as "retracted", which would be a claim the backend never made.
+    // A null deploy state is a harvester with no deploy animation, so it must not render as "retracted", which would be a claim the backend never made.
     expect(screen.queryByText("retracted")).not.toBeInTheDocument();
   });
 

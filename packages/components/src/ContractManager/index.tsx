@@ -276,8 +276,7 @@ export function formatDeadline(
   if (!deadlineUt || deadlineUt <= 0) return "no deadline";
   const remaining = deadlineUt - universalTime;
   if (remaining <= 0) return "expired";
-  // Floored at a minute: the ladder's finest rung the operator needs here, and
-  // sub-minute resolution would add noise to a card that is scanned, not read.
+  // Floored at a minute: the ladder's finest rung the operator needs here, and sub-minute resolution would add noise to a card that is scanned, not read.
   return `${writeQuantity(value("s", Math.max(60, remaining)))} left`;
 }
 
@@ -285,8 +284,7 @@ function ContractManagerComponent({
   w,
   h,
 }: Readonly<ComponentProps<ContractManagerConfig>>) {
-  // active/offered/completedRecent all ride the `career.status` Topic's
-  // `contracts` sub-tree (map-topic.ts): read the Topic once and pick them off.
+  // active/offered/completedRecent all ride the `career.status` Topic's `contracts` sub-tree (map-topic.ts): read the Topic once and pick them off.
   //
   // Facts, so they are held through a quiet link. A contract joins the offered
   // board, gets accepted, or completes because the PLAYER or the game did
@@ -314,8 +312,7 @@ function ContractManagerComponent({
   const activeRaw = contracts?.active;
   const offeredRaw = contracts?.offered;
   const recentRaw = contracts?.completedRecent;
-  // t.universalTime is dropped as a data key, it was never a stream, it IS
-  // the SDK view-UT the propagation is evaluated at, so read that directly.
+  // t.universalTime is dropped as a data key, it was never a stream, it IS the SDK view-UT the propagation is evaluated at, so read that directly.
   const universalTime = useViewUt();
   /*
    * The altitude an altitude-bounded parameter is scored against, off

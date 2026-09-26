@@ -375,8 +375,7 @@ export function ComponentOverlay({
                     aria-selected={active}
                     $active={active}
                     ref={active ? activeOptionRef : undefined}
-                    // Pointer focus moves the roving cursor so a subsequent
-                    // keystroke continues from where the mouse last hovered.
+                    // Pointer focus moves the roving cursor so a subsequent keystroke continues from where the mouse last hovered.
                     onMouseEnter={() => setActiveIdx(i)}
                     onClick={() => handleSelect(def)}
                   >

@@ -24,8 +24,7 @@ describe("ComposerBar", () => {
   });
 
   it("announces the flag politely rather than as an alert", () => {
-    // A lost path is an ambient condition. `alert` would interrupt whatever a
-    // screen reader was saying, on a condition that persists for minutes.
+    // A lost path is an ambient condition. `alert` would interrupt whatever a screen reader was saying, on a condition that persists for minutes.
     render(
       <ComposerBar blocked flag="NO PATH">
         <input aria-label="Message" />
@@ -36,8 +35,7 @@ describe("ComposerBar", () => {
   });
 
   it("keeps the flag out of the bar's own layout", () => {
-    // The whole reason the flag is pinned: a composer in a tile at its
-    // declared minSize has no spare height, so the flag must cost none.
+    // The whole reason the flag is pinned: a composer in a tile at its declared minSize has no spare height, so the flag must cost none.
     render(
       <ComposerBar blocked flag="NO PATH">
         <input aria-label="Message" />
@@ -103,8 +101,7 @@ describe("ComposerBar", () => {
   });
 
   it("draws no send button unless one is asked for", () => {
-    // A composer whose only send is a key binding must not grow a control it
-    // never wired.
+    // A composer whose only send is a key binding must not grow a control it never wired.
     render(
       <ComposerBar>
         <input aria-label="Message" />

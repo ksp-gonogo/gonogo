@@ -50,8 +50,7 @@ export function namesOf(members: object): readonly string[] {
 export function namesByValue(members: object): ReadonlyMap<number, string> {
   const byValue = new Map<number, string>();
   for (const [key, value] of Object.entries(members)) {
-    // The reverse map's keys are the numeric values, stringified; the forward
-    // half (name → value) is what the Number() guard drops.
+    // The reverse map's keys are the numeric values, stringified; the forward half (name → value) is what the Number() guard drops.
     const numeric = Number(key);
     if (Number.isInteger(numeric) && typeof value === "string") {
       byValue.set(numeric, value);

@@ -118,8 +118,7 @@ describe("OrbitView augment slots", () => {
     });
     // The diagram still renders beneath the overlay layer.
     expect(container.querySelector("svg")).not.toBeNull();
-    // The overlay received the body-centric projection (apoapsis, in the
-    // diagram's distance units) as slot props.
+    // The overlay received the body-centric projection (apoapsis, in the diagram's distance units) as slot props.
     expect(
       container.querySelector('[data-testid="overlay-probe"]')?.textContent,
     ).toMatch(/apo=\d+/);

@@ -87,8 +87,7 @@ describe("readWireSurface", () => {
     const surface = readWireSurface(
       slice({ "units.json": UNITS, "topic-map.ts": TOPIC_MAP }),
     );
-    // ScanCoverage rides scan.coverage, so the channel row describes it and it
-    // is in neither bucket.
+    // ScanCoverage rides scan.coverage, so the channel row describes it and it is in neither bucket.
     expect(surface.nested.map((p) => p.name)).toEqual(["ScanVessel"]);
     expect(surface.payloads.map((p) => p.name)).toEqual(["ScanArgs"]);
   });
@@ -155,11 +154,9 @@ describe("wireSection", () => {
     ).join("\n");
 
     expect(md).toContain("## Wire");
-    // Delivery and delay come from the C# declaration site, and there is no C#
-    // beside a temp directory, so both read as an en dash rather than as a guess.
+    // Delivery and delay come from the C# declaration site, and there is no C# beside a temp directory, so both read as an en dash rather than as a guess.
     expect(md).toContain("| `scan.coverage` | `ScanCoverage` | – | – |");
-    // ONE payload table, holding the nested shape and the command args alike:
-    // three routes onto the wire, and the generated slice does not say which.
+    // ONE payload table, holding the nested shape and the command args alike: three routes onto the wire, and the generated slice does not say which.
     expect(md).toContain("| `ScanArgs` | `body` id |");
     expect(md).toContain("| `ScanVessel` | `altitude` m |");
     // No prose between the tables, and no headings under `## Wire`.
@@ -179,8 +176,7 @@ describe("wireSection", () => {
       ),
     ).join("\n");
 
-    // A sentence saying the table is empty is the kind of line this page does
-    // not carry: the payload table below is the whole statement.
+    // A sentence saying the table is empty is the kind of line this page does not carry: the payload table below is the whole statement.
     expect(md).toContain("| `OnlyArgs` | `x` id |");
     expect(md).not.toContain("| Topic |");
   });

@@ -39,8 +39,7 @@ describe("CourierTransport", () => {
     clock.advanceTo(1);
     expect(received).toHaveLength(0);
 
-    // Delivered exactly when UT reaches validAt + delay, through the
-    // client's subscribe callback, unchanged by the delay model.
+    // Delivered exactly when UT reaches validAt + delay, through the client's subscribe callback, unchanged by the delay model.
     clock.advanceTo(2);
     expect(received).toEqual([100]);
     expect(client.getValue("alt")).toBe(100);
@@ -74,8 +73,7 @@ describe("CourierTransport", () => {
       etaConfirm: 4,
     });
 
-    // Uplink elapsed (executes on the node) but confirmation still in
-    // flight downlink: the client must still see in-flight.
+    // Uplink elapsed (executes on the node) but confirmation still in flight downlink: the client must still see in-flight.
     clock.advanceTo(2);
     expect(client.getCommand(requestId)).toEqual({
       phase: "in-flight",
@@ -83,8 +81,7 @@ describe("CourierTransport", () => {
       etaConfirm: 4,
     });
 
-    // Downlink elapsed: confirmation arrives back at the vantage, through
-    // the client's dispatch() promise, unchanged by the delay model.
+    // Downlink elapsed: confirmation arrives back at the vantage, through the client's dispatch() promise, unchanged by the delay model.
     clock.advanceTo(4);
     await expect(result).resolves.toEqual({ ok: "deploy" });
     expect(client.getCommand(requestId)).toEqual({
@@ -173,8 +170,7 @@ describe("CourierTransport + TelemetryClient client-side loss inference (Task 8)
       result: { ok: "deploy" },
     });
 
-    // Well past the would-be loss deadline: confirming must have cancelled
-    // the loss timer, so this never flips to lost.
+    // Well past the would-be loss deadline: confirming must have cancelled the loss timer, so this never flips to lost.
     clock.advanceTo(4 + LOSS_MARGIN + 10);
     expect(client.getCommand(requestId)).toEqual({
       phase: "confirmed",

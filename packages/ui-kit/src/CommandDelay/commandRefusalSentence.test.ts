@@ -108,8 +108,7 @@ describe("what an operator reads when the game says no", () => {
   });
 
   it("never renders a limit of zero out of a breach that carries none", () => {
-    // The trap the contract's own doc names: an absent limit written as 0 reads
-    // as a real limit of 0, which is a plausible number and so a silent lie.
+    // The trap the contract's own doc names: an absent limit written as 0 reads as a real limit of 0, which is a plausible number and so a silent lie.
     const sentence = commandRefusalSentence({
       errorCode: CommandErrorCode.InsufficientFunds,
       command: "career.facility.upgrade",

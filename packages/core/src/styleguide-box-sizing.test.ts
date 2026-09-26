@@ -135,8 +135,7 @@ describe("box-sizing is set once, for the whole document", () => {
   });
 
   it("lists the tree it judges, so an empty listing cannot pass for a clean one", () => {
-    // Whole-tree in both scopes: the changed-only run narrows what is READ,
-    // never what is listed.
+    // Whole-tree in both scopes: the changed-only run narrows what is READ, never what is listed.
     const listed = candidates(repoRoot());
     console.info(`[box-sizing] ${SCOPE.label}, listed ${listed.length} files`);
     expect(listed.length).toBeGreaterThan(1000);
@@ -150,8 +149,7 @@ describe("box-sizing is set once, for the whole document", () => {
     );
     expect(planted).toHaveLength(1);
     expect(planted[0].line).toBe(2);
-    // Prose about the reset is not a declaration, and a guard that counted it
-    // would fail on its own documentation.
+    // Prose about the reset is not a declaration, and a guard that counted it would fail on its own documentation.
     expect(
       declarationsIn("/* the border-box reset */\n", "planted.css"),
     ).toEqual([]);

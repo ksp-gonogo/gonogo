@@ -107,8 +107,7 @@ function StationView(_props: { w: number | undefined; h: number | undefined }) {
   // the host on reconnect (e.g. after a main-screen refresh mid-flight).
   const iAbortedRef = useRef(false);
 
-  // A launched station has effectively "left the poll", null = not voting
-  // rather than stale no-go, which would render a confusing red cell on main.
+  // A launched station has effectively "left the poll", null = not voting rather than stale no-go, which would render a confusing red cell on main.
   const effectiveVote = launched ? null : vote;
 
   // Push the current effective vote whenever it changes. Split from the
@@ -128,8 +127,7 @@ function StationView(_props: { w: number | undefined; h: number | undefined }) {
     effectiveVoteRef.current = effectiveVote;
   }, [effectiveVote]);
 
-  // Revert clears local "I aborted" memory: revert means we're back on
-  // the pad and the abort button is a fresh slate.
+  // Revert clears local "I aborted" memory: revert means we're back on the pad and the abort button is a fresh slate.
   useEffect(() => {
     if (!launched) iAbortedRef.current = false;
   }, [launched]);
@@ -310,8 +308,7 @@ export function CountdownTone({
   useEffect(() => {
     const whole = Math.ceil(secondsLeft);
     if (lastWholeRef.current === whole) return;
-    // Skip the very first observed value so mounting mid-countdown (e.g. a
-    // hot reload) doesn't fire a spurious blip for whatever second we land on.
+    // Skip the very first observed value so mounting mid-countdown (e.g. a hot reload) doesn't fire a spurious blip for whatever second we land on.
     const isFirst = lastWholeRef.current === null;
     lastWholeRef.current = whole;
     if (isFirst) return;
@@ -339,8 +336,7 @@ function MainView({
 }>) {
   const host = useGoNoGoHost();
   const snapshot = useGoNoGoSnapshot();
-  // Bumped from the countdown ticker below: useReducer so Sonar's
-  // "unused tuple element" rule (S6754) doesn't flag this.
+  // Bumped from the countdown ticker below: useReducer so Sonar's "unused tuple element" rule (S6754) doesn't flag this.
   const [, setNow] = useReducer((n: number, _action: unknown) => n + 1, 0);
 
   // Push the widget's config into the host service. Main-level settings
@@ -373,8 +369,7 @@ function MainView({
     ? Math.max(0, (countdown.t0Ms - Date.now()) / 1000)
     : null;
 
-  // Selective rendering: chrome (auto-stage warning, per-cell version chip)
-  // drops at small widths so the GO/NO-GO grid stays the focus.
+  // Selective rendering: chrome (auto-stage warning, per-cell version chip) drops at small widths so the GO/NO-GO grid stays the focus.
   const cols = w ?? 4;
   const showWarnChip = cols >= 6;
   const showVersionChips = cols >= 5;
@@ -683,8 +678,7 @@ const AbortBanner = styled.div`
   text-transform: uppercase;
 `;
 
-// The auto-fill track and the gap come from the kit; filling the panel and
-// packing rows to the top are this board's own.
+// The auto-fill track and the gap come from the kit; filling the panel and packing rows to the top are this board's own.
 const StationBoard = styled(Grid).attrs({
   minColWidth: "140px",
   gap: "related-comfortable" as const,

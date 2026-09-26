@@ -41,8 +41,7 @@ describe("ui-kit foundation", () => {
   });
 
   it("resolves a spacing prop to a job's token rather than a raw length", () => {
-    // The scales are the kit's own, off the theme contract, so nothing outside
-    // this package can assert them through a public export.
+    // The scales are the kit's own, off the theme contract, so nothing outside this package can assert them through a public export.
     expect(GAP_VAR["related-comfortable"]).toBe(
       "var(--gap-related-comfortable)",
     );

@@ -309,8 +309,7 @@ export function UnitInput<U extends string>({
           min={bounds.min}
           max={bounds.max}
           step={bounds.step ?? (bounds.max - bounds.min) / 100}
-          // Parked at the low end while nothing has been read, rather than
-          // showing a handle at a position no value put it at.
+          // Parked at the low end while nothing has been read, rather than showing a handle at a position no value put it at.
           value={Number.isFinite(magnitude) ? magnitude : bounds.min}
           // A slider is never mid-edit: the handle is always somewhere, so every
           // position it can be dragged to is a number. It goes straight to the

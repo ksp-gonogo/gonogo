@@ -1,5 +1,4 @@
-// Installs the injected gonogo host as the FIRST thing the app's module graph
-// does, this module MUST be main.tsx's first import.
+// Installs the injected gonogo host as the FIRST thing the app's module graph does, this module MUST be main.tsx's first import.
 //
 // A facade-sealed Uplink client calls the facade's `registerComponent` (and
 // other host-injected surface) at MODULE LOAD, and `registerComponent` calls

@@ -9,8 +9,7 @@ import {
 import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-// Side-effect import: the widget self-registers on module load, and
-// `renderWidget` looks it up by id rather than importing the component.
+// Side-effect import: the widget self-registers on module load, and `renderWidget` looks it up by id rather than importing the component.
 import "./index";
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
@@ -79,8 +78,7 @@ describe("RoboticsConsole: genuinely runs off the stream", () => {
       ]);
     });
 
-    // The hinge's angle renders; the rotor entry is ignored (RoboticsConsole
-    // is hinges/pistons-only, rotors are Rotor Tachometer's domain).
+    // The hinge's angle renders; the rotor entry is ignored (RoboticsConsole is hinges/pistons-only, rotors are Rotor Tachometer's domain).
     await waitFor(() => expect(visibleText(container)).toContain("22°"));
     expect(screen.queryByText(/EM-32S Standard Rotor/)).not.toBeInTheDocument();
 

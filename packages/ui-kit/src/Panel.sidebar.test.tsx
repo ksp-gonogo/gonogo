@@ -53,8 +53,7 @@ function body(): HTMLElement {
 
 describe("Panel sidebar, absent", () => {
   it("renders no grid, so the body is the element it has always been", () => {
-    // The whole compatibility claim: forty widgets that never asked for a
-    // sidebar must not be re-laid-out because one widget did.
+    // The whole compatibility claim: forty widgets that never asked for a sidebar must not be re-laid-out because one widget did.
     render(<Panel panelTitle="SYSTEM">diagram</Panel>);
     expect(split()).toBeNull();
     expect(document.querySelector("[data-panel-sidebar]")).toBeNull();
@@ -65,8 +64,7 @@ describe("Panel sidebar, absent", () => {
 });
 
 describe("Panel sidebar, DOM order", () => {
-  // `undefined` is the unset case, which is the third arrangement the prop has:
-  // there is no "auto" side, and asking for one only ever got the default.
+  // `undefined` is the unset case, which is the third arrangement the prop has: there is no "auto" side, and asking for one only ever got the default.
   for (const side of [undefined, "start", "end"] as const) {
     it(`keeps the sidebar after the body in the DOM for side="${side ?? "unset"}"`, () => {
       // Reading and tab order must not depend on which edge the sidebar is
@@ -85,8 +83,7 @@ describe("Panel sidebar, DOM order", () => {
   }
 
   it('moves the sidebar visually for side="start" without moving it in the DOM', () => {
-    // The other half of the pair above: if the DOM order were the ONLY thing
-    // asserted, doing nothing at all would satisfy it.
+    // The other half of the pair above: if the DOM order were the ONLY thing asserted, doing nothing at all would satisfy it.
     render(
       <Panel panelTitle="SYSTEM" panelSidebar="almanac" sidebarSide="start">
         diagram
@@ -160,8 +157,7 @@ describe("Panel sidebar, auto axis", () => {
     resizeTo(box, 300, 600);
     expect(box.dataset.panelSplit).toBe("block");
     expect(getComputedStyle(box).gridTemplateColumns).toBe("minmax(0, 1fr)");
-    // The block default is a share of the height, not an absolute: the strip
-    // is competing with the body for the tile rather than sitting next to it.
+    // The block default is a share of the height, not an absolute: the strip is competing with the body for the tile rather than sitting next to it.
     expect(getComputedStyle(box).gridTemplateRows).toBe(
       "minmax(0, 1fr) minmax(0, 40%)",
     );
@@ -248,8 +244,7 @@ describe("Panel sidebar, inset", () => {
       </Panel>,
     );
     const style = getComputedStyle(sidebarScroller());
-    // The body's own three values, so the sidebar's first line sits on the
-    // body's baseline rather than on the panel's border.
+    // The body's own three values, so the sidebar's first line sits on the body's baseline rather than on the panel's border.
     expect(style.paddingTop).toBe("var(--inset-panel-top)");
     expect(style.paddingRight).toBe("var(--gutter-panel)");
     expect(style.paddingBottom).toBe("var(--inset-panel-bottom)");
@@ -285,8 +280,7 @@ describe("Panel sidebar, inset", () => {
   }
 
   it("keeps both inline edges once the sidebar stacks under the body", () => {
-    // Stacked it spans the panel's full width, so both of its inline edges
-    // face the panel's border and neither is the body's to pay for.
+    // Stacked it spans the panel's full width, so both of its inline edges face the panel's border and neither is the body's to pay for.
     render(
       <Panel panelTitle="SYSTEM" panelSidebar="almanac">
         diagram
@@ -329,20 +323,17 @@ describe("panelSidebar with floatingHeader", () => {
     const sidebarItem = screen.getByText("Kerbin");
     const body = screen.getByText("diagram");
 
-    // The floating header's positioned ancestor must be the body track, so the
-    // sidebar is outside whatever the header paints over.
+    // The floating header's positioned ancestor must be the body track, so the sidebar is outside whatever the header paints over.
     const host = title.closest("[style], div");
     expect(host).not.toBeNull();
-    // The decisive relationship: the header shares an ancestor with the body
-    // that does NOT contain the sidebar.
+    // The decisive relationship: the header shares an ancestor with the body that does NOT contain the sidebar.
     const bodyTrack = body.parentElement?.parentElement ?? null;
     expect(bodyTrack?.contains(title)).toBe(true);
     expect(bodyTrack?.contains(sidebarItem)).toBe(false);
   });
 
   it("still floats over the whole panel when there is no sidebar", () => {
-    // The no-sidebar case is what every drawing widget already relies on, and
-    // re-hosting must not change it.
+    // The no-sidebar case is what every drawing widget already relies on, and re-hosting must not change it.
     render(
       <Panel panelTitle="MAP VIEW" floatingHeader>
         <span>map</span>

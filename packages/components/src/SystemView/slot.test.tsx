@@ -59,8 +59,7 @@ describe("SystemView: augment slots (spec §4)", () => {
     clearAugments();
   });
 
-  // Drive the widget into its diagram layout (frame = Kerbin, children present)
-  // so both the header slots AND the diagram-overlay slot render.
+  // Drive the widget into its diagram layout (frame = Kerbin, children present) so both the header slots AND the diagram-overlay slot render.
   async function renderDiagram() {
     const { unmount } = render(
       <fixture.Provider>

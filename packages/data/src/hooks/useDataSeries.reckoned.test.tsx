@@ -348,8 +348,7 @@ describe("useDataSeries: the inputs the model was promised", () => {
       </fixture.Provider>,
     );
 
-    // The plotted topic is a field of `vessel.flight`, so the deps come off the
-    // PARENT record's model, the same ladder `rawReckonedWalk` walks.
+    // The plotted topic is a field of `vessel.flight`, so the deps come off the PARENT record's model, the same ladder `rawReckonedWalk` walks.
     expect(fixture.transport.isSubscribed("vessel.flight")).toBe(true);
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
     expect(fixture.transport.isSubscribed("system.bodies")).toBe(true);
@@ -367,8 +366,7 @@ describe("useDataSeries: the inputs the model was promised", () => {
 
     act(() => unmount());
 
-    // A subscription taken for the life of a read and never given back is a
-    // leak nothing else in the tree would ever count.
+    // A subscription taken for the life of a read and never given back is a leak nothing else in the tree would ever count.
     expect(fixture.transport.isSubscribed("vessel.flight")).toBe(false);
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(false);
     expect(fixture.transport.isSubscribed("system.bodies")).toBe(false);
@@ -383,8 +381,7 @@ describe("useDataSeries: the inputs the model was promised", () => {
       </fixture.Provider>,
     );
 
-    // Both core dead-reckoning models declare `deps: []`, and an empty
-    // declaration has to leave the subscription set exactly as it was.
+    // Both core dead-reckoning models declare `deps: []`, and an empty declaration has to leave the subscription set exactly as it was.
     expect(fixture.transport.isSubscribed("vessel.target")).toBe(true);
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(false);
     expect(fixture.transport.isSubscribed("system.bodies")).toBe(false);

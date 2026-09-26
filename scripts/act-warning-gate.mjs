@@ -158,8 +158,7 @@ const STDERR_HEADER = /^stderr \| (\S+)/;
  * shows are the codes themselves: matching them found nothing in CI, where the
  * gate reads a pipe rather than a tty.
  */
-// Built from a char code rather than written as an escape: an ESC in a regex
-// literal is a lint error, and the codes are what has to be matched.
+// Built from a char code rather than written as an escape: an ESC in a regex literal is a lint error, and the codes are what has to be matched.
 const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
 const FAILED_TEST = /^\s*FAIL\s/;
 const SELF_TEST_FILE = "ZzActGateSelfTest.test.tsx";
@@ -551,8 +550,7 @@ if (unprovoked.length > 0) {
 // Both scope refusals fired at argument-parse time, before any of this ran.
 if (update) {
   if (only) {
-    // Every committed entry survives untouched except the ones named, which take what
-    // was just measured, and are dropped when that is now zero.
+    // Every committed entry survives untouched except the ones named, which take what was just measured, and are dropped when that is now zero.
     const merged = { ...KNOWN_ACT_WARNINGS };
     const touched = new Set();
     for (const file of Object.keys(merged)) {
@@ -670,8 +668,7 @@ if (confirmationOnly.length > 0) {
   );
 }
 
-// The debt is a CEILING, not an equality, and that is a measured decision rather than
-// a softer rule.
+// The debt is a CEILING, not an equality, and that is a measured decision rather than a softer rule.
 //
 // Several of these warnings come from cleanup-ordering and handshake races, so whether
 // one fires is genuinely timing-dependent: three consecutive full runs of an unchanged

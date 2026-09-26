@@ -87,8 +87,7 @@ describe("FuelStatus: what undefined means today", () => {
     expect(screen.queryByText("Total burn")).not.toBeInTheDocument();
     // Stage caption is gated on currentStage being present.
     expect(screen.queryByText(/^Stage /)).not.toBeInTheDocument();
-    // Every resource row is dropped by max === 0, which is what an absent
-    // `vessel.resources` coerces to.
+    // Every resource row is dropped by max === 0, which is what an absent `vessel.resources` coerces to.
     expect(screen.queryByText("Liquid Fuel")).not.toBeInTheDocument();
     expect(screen.queryByText("Oxidizer")).not.toBeInTheDocument();
     expect(screen.queryByText("RCS")).not.toBeInTheDocument();
@@ -120,8 +119,7 @@ describe("FuelStatus: what undefined means today", () => {
     const fixture = makeFixture();
     renderFuel(fixture);
 
-    // Xenon is the positive control from the SAME frame: it proves the frame
-    // landed and was read, and RCS proves the missing-max row was dropped.
+    // Xenon is the positive control from the SAME frame: it proves the frame landed and was read, and RCS proves the missing-max row was dropped.
     act(() => {
       fixture.emit("vessel.resources", {
         resources: {
@@ -138,8 +136,7 @@ describe("FuelStatus: what undefined means today", () => {
   });
 
   it("reads a resource with no reported amount as unknown, not as an empty tank", async () => {
-    // The tank is there (its capacity arrived) but its level did not, so the
-    // row stays and says it does not know, rather than drawing a drained tank.
+    // The tank is there (its capacity arrived) but its level did not, so the row stays and says it does not know, rather than drawing a drained tank.
     const fixture = makeFixture();
     const { container } = renderFuel(fixture);
 
@@ -175,8 +172,7 @@ describe("FuelStatus: what undefined means today", () => {
   });
 
   it("writes a bare 'Stage 0' with no stage count when dv.summary has not arrived", async () => {
-    // `stageCount !== undefined` gates only the " / N" suffix, so this half of
-    // the caption degrades in place rather than vanishing.
+    // `stageCount !== undefined` gates only the " / N" suffix, so this half of the caption degrades in place rather than vanishing.
     const fixture = makeFixture();
     renderFuel(fixture);
 

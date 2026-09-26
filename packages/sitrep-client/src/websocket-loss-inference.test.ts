@@ -109,8 +109,7 @@ describe("loss inference over the production WebSocket transport", () => {
     // assertion that fails if anyone sizes the deadline on one leg.
     expect(inFlight(client.getCommand(requestId)).etaConfirm).toBe(8);
 
-    // The negative, and the one that fails if the margin is ever shortened into live
-    // commands: still in flight right up to the deadline.
+    // The negative, and the one that fails if the margin is ever shortened into live commands: still in flight right up to the deadline.
     clock.advanceTo(8 + LOSS_MARGIN - 0.001);
     expect(client.getCommand(requestId)?.phase).toBe("in-flight");
 
@@ -140,8 +139,7 @@ describe("loss inference over the production WebSocket transport", () => {
     await expect(result).resolves.toBeDefined();
     expect(client.getCommand(requestId)?.phase).toBe("confirmed");
 
-    // The timer must be CANCELLED, not merely overtaken: advancing past the old
-    // deadline may not flip an already-settled command.
+    // The timer must be CANCELLED, not merely overtaken: advancing past the old deadline may not flip an already-settled command.
     clock.advanceTo(8 + LOSS_MARGIN + 10);
     expect(client.getCommand(requestId)?.phase).toBe("confirmed");
   });
@@ -151,8 +149,7 @@ describe("loss inference over the production WebSocket transport", () => {
     let oneWay = 1;
     client.setDelaySource(() => oneWay);
 
-    // A craft that moved between dispatches: the accessor is read per dispatch, so the
-    // second command gets its own window rather than the first one's.
+    // A craft that moved between dispatches: the accessor is read per dispatch, so the second command gets its own window rather than the first one's.
     const near = client.dispatch("vessel.control.setThrottle");
     void near.result.catch(() => undefined);
     expect(inFlight(client.getCommand(near.requestId)).etaConfirm).toBe(2);

@@ -146,8 +146,7 @@ describe("TimelineStore.sampleReading", () => {
  */
 describe("TimelineStore.sampleReading, on a declared-reckonable topic", () => {
   it("names the declared input that never arrived", () => {
-    // vessel.target.relativePosition is declared linear-dead-reckoning from
-    // `relativeVelocity`, which this payload does not carry.
+    // vessel.target.relativePosition is declared linear-dead-reckoning from `relativeVelocity`, which this payload does not carry.
     const s = store();
     s.ingest(
       "vessel.target",

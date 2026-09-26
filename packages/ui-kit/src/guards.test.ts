@@ -97,8 +97,7 @@ describe("findHandTypedUnits", () => {
   });
 
   it("still catches a percentage that IS a readout", () => {
-    // The pair to the case above: the CSS filter must not be so broad that a
-    // real percentage readout slips through it.
+    // The pair to the case above: the CSS filter must not be so broad that a real percentage readout slips through it.
     const dir = fixture({ "Coverage.tsx": "<span>{`${pct}%`}</span>\n" });
     expect(findHandTypedUnits({ dir })[0].symbol).toBe("%");
   });
@@ -143,8 +142,7 @@ describe("findHandTypedUnits", () => {
   });
 
   it("takes a symbol the kit has never heard of", () => {
-    // An Uplink can `registerUnit` its own; the guard has to be able to look
-    // for it, or the extension point only goes half way.
+    // An Uplink can `registerUnit` its own; the guard has to be able to look for it, or the extension point only goes half way.
     const dir = fixture({ "Reactor.tsx": "`${flux} Sv`\n" });
     expect(findHandTypedUnits({ dir })).toEqual([]);
     expect(
@@ -171,8 +169,7 @@ describe("expectNoHandTypedUnits", () => {
     const dir = fixture({ "Speed.tsx": "\nconst l = `${v} m/s`;\n" });
     expect(() => expectNoHandTypedUnits({ dir })).toThrow(/Speed\.tsx:2/);
     expect(() => expectNoHandTypedUnits({ dir })).toThrow(/<Unit value=/);
-    // The two sanctioned escapes are named, so the fix does not require
-    // finding a document first.
+    // The two sanctioned escapes are named, so the fix does not require finding a document first.
     expect(() => expectNoHandTypedUnits({ dir })).toThrow(/speakQuantity/);
   });
 

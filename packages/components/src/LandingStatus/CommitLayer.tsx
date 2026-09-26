@@ -99,8 +99,7 @@ export function CommitLayer({
   let heroTone: ReadoutTone;
   let urgent = false;
   if (landed) {
-    // Settled on the surface: the descent is over, so no commit / blind / burn
-    // countdown: a confident touchdown confirmation instead.
+    // Settled on the surface: the descent is over, so no commit / blind / burn countdown: a confident touchdown confirmation instead.
     heroValue = "LANDED";
     heroCaption = "TOUCHDOWN CONFIRMED";
     heroTone = "go";
@@ -153,8 +152,7 @@ export function CommitLayer({
     if (committed) {
       heroValue = "BURN LOCKED";
       heroTone = "alert";
-      // Past the deadline a GO can no longer arrive in time, the burn plan is
-      // locked in (autonomous), so the "BURN GO IN" caption is dropped.
+      // Past the deadline a GO can no longer arrive in time, the burn plan is locked in (autonomous), so the "BURN GO IN" caption is dropped.
       heroCaption = "";
     } else if (commitInSeconds == null) {
       heroValue = NULL_DISPLAY;

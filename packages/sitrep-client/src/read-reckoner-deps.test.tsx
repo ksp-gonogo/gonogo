@@ -105,8 +105,7 @@ describe("a point read holds up its reckoner's declared inputs", () => {
 
     // The read's own wire topic: the field resolves to the parent record.
     expect(fixture.transport.isSubscribed("vessel.flight")).toBe(true);
-    // `vessel.flight`'s reckoner declares both of these, and nothing else on
-    // this screen is reading either.
+    // `vessel.flight`'s reckoner declares both of these, and nothing else on this screen is reading either.
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
     expect(fixture.transport.isSubscribed("system.bodies")).toBe(true);
   });
@@ -144,8 +143,7 @@ describe("a point read holds up its reckoner's declared inputs", () => {
 
   it("subscribes the deps an UPLINK's model declares, on the same terms", () => {
     const fixture = buildFixture();
-    // Registered exactly as an Uplink client registers one at module load: a
-    // non-core owner, against a Topic core's reckoners say nothing about.
+    // Registered exactly as an Uplink client registers one at module load: a non-core owner, against a Topic core's reckoners say nothing about.
     registerReckoner("test.contact", "acme-uplink", {
       deps: ["test.temperature"],
       reckon: (point) => ({
@@ -250,8 +248,7 @@ describe("a point read holds up its reckoner's declared inputs", () => {
       </fixture.Provider>,
     );
 
-    // Both core dead-reckoning models declare `deps: []`, and an empty
-    // declaration has to leave the subscription set exactly as it was.
+    // Both core dead-reckoning models declare `deps: []`, and an empty declaration has to leave the subscription set exactly as it was.
     expect(fixture.transport.isSubscribed("vessel.target")).toBe(true);
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(false);
     expect(fixture.transport.isSubscribed("system.bodies")).toBe(false);

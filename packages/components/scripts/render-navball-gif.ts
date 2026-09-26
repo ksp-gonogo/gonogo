@@ -93,8 +93,7 @@ function buildSweep(): Attitude[] {
     ...ascentLeg(60, 35, 18, 8, 0.95, 0.85, 10),
     ...ascentLeg(35, 25, 8, 0, 0.85, 0.75, 8),
   ];
-  // Ping-pong back to the start so the loop is seamless (drop the shared
-  // endpoint at each join).
+  // Ping-pong back to the start so the loop is seamless (drop the shared endpoint at each join).
   const backward = [...forward].reverse().slice(1, -1);
   return [...forward, ...backward];
 }

@@ -27,8 +27,7 @@ describe("note tag values", () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
 
-    // "vessel.control" deliberately absent from carriedChannels: the list is
-    // seeded from declarations and a promotion list, not from what arrives.
+    // "vessel.control" deliberately absent from carriedChannels: the list is seeded from declarations and a promotion list, not from what arrives.
     const tags = ["vessel.control.throttle"];
     const { result } = renderHook(() => useTagValues(tags), {
       wrapper: withProvider(client),
@@ -36,8 +35,7 @@ describe("note tag values", () => {
 
     act(() => transport.emit("vessel.control", { throttle: 0.75 }));
 
-    // RED before the gate was dropped: the tag never subscribed, so this stayed
-    // empty for the life of the note.
+    // RED before the gate was dropped: the tag never subscribed, so this stayed empty for the life of the note.
     await waitFor(() =>
       expect(result.current.get("vessel.control.throttle")).toBeDefined(),
     );

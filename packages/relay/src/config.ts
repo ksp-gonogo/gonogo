@@ -37,8 +37,7 @@ const DEFAULT_TURN_MAX_PORT = 49170;
 
 function port(raw: string | undefined, fallback: number): number {
   const n = Number(raw);
-  // A typo'd port silently becoming NaN would make coturn refuse to start
-  // with an opaque error, so an unusable value falls back to the default.
+  // A typo'd port silently becoming NaN would make coturn refuse to start with an opaque error, so an unusable value falls back to the default.
   return Number.isInteger(n) && n > 0 && n < 65536 ? n : fallback;
 }
 

@@ -398,8 +398,7 @@ export class SerialDeviceService {
           this.emitPortRecovery(managed.instance.id, managed.instance.name);
         }
       }
-      // First match wins: refusing fan-out keeps two identical controllers
-      // from racing to claim the same physical port.
+      // First match wins: refusing fan-out keeps two identical controllers from racing to claim the same physical port.
       return;
     }
     trace.debug("hot-plug no matching candidate", {

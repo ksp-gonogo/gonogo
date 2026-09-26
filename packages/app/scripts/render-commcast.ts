@@ -632,8 +632,7 @@ const SCENES: Scene[] = [
         key: true,
       },
     ],
-    // Published and EMPTY: nothing measures this pair, and with no path home to
-    // fall back on the separation resolves to no-path rather than to a zero.
+    // Published and EMPTY: nothing measures this pair, and with no path home to fall back on the separation resolves to no-path rather than to a zero.
     separation: [],
     roster: ROSTER,
     settleOn: ["Transmitting", "NO PATH", "Starting the sequence"],
@@ -869,8 +868,7 @@ async function main(): Promise<void> {
     });
     page.on("console", (msg) => {
       if (msg.type() === "error") console.error("  [console]", msg.text());
-      // Warnings too: the probe reports an unsettled scene this way, and a
-      // report nobody prints is the same as no report.
+      // Warnings too: the probe reports an unsettled scene this way, and a report nobody prints is the same as no report.
       if (msg.type() === "warning") console.warn("  [console]", msg.text());
     });
 
@@ -942,8 +940,7 @@ async function main(): Promise<void> {
     await browser.close();
   }
 
-  // A page error means a scene rendered wrong, and a silently wrong render is
-  // worse than no render: it goes to a reviewer looking like the real thing.
+  // A page error means a scene rendered wrong, and a silently wrong render is worse than no render: it goes to a reviewer looking like the real thing.
   if (failures > 0) {
     throw new Error(`${failures} page error(s) during rendering; see above`);
   }

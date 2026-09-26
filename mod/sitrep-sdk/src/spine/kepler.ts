@@ -286,8 +286,7 @@ export function solve(orbit: OrbitElements, ut: number): StateVector {
 
   const radius = orbit.sma * (1.0 - orbit.ecc * Math.cos(eccentricAnomaly));
 
-  // Specific angular momentum magnitude; for ecc=0 this reduces to
-  // sqrt(mu*sma), giving the expected circular speed sqrt(mu/sma) below.
+  // Specific angular momentum magnitude; for ecc=0 this reduces to sqrt(mu*sma), giving the expected circular speed sqrt(mu/sma) below.
   const h = Math.sqrt(orbit.mu * orbit.sma * (1.0 - orbit.ecc * orbit.ecc));
 
   const cosNu = Math.cos(trueAnomaly);

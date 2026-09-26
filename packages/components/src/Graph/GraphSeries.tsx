@@ -51,8 +51,7 @@ export function toNumericSeries(
     spans: [],
     reckoned: [],
     bridges: [],
-    // Carried rather than reindexed: it is an instant on the same clock as
-    // `t`, not a position in it, so the numeric filter below cannot move it.
+    // Carried rather than reindexed: it is an instant on the same clock as `t`, not a position in it, so the numeric filter below cannot move it.
     windowEndAt: raw.windowEndAt,
   };
   // `breaks` is REINDEXED, not copied: this filter drops non-numeric samples,

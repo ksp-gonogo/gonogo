@@ -188,8 +188,7 @@ describe("collection Topics in the generated contract", () => {
   it("reads the SDK's payload map and every Uplink client's", () => {
     expect(derived.maps[0]).toBe("mod/sitrep-sdk/src/topics.ts");
     expect(derived.topicsSeen).toBeGreaterThan(80);
-    // A payload type the program failed to resolve reads as `any`, which is
-    // not array-like, so it would drop out of the count without a sound.
+    // A payload type the program failed to resolve reads as `any`, which is not array-like, so it would drop out of the count without a sound.
     expect(derived.unresolved).toEqual([]);
   });
 
@@ -268,8 +267,7 @@ describe("the catalogue offers no key under a collection Topic", () => {
   });
 
   it("says which carried Topics it left out for being collections", () => {
-    // An Uplink's collection is registered by its client package, which this
-    // package does not load, so only the SDK-owned ones are known here.
+    // An Uplink's collection is registered by its client package, which this package does not load, so only the SDK-owned ones are known here.
     expect(
       [...getCollectionCarriedTopics(ALL_COLLECTIONS_CARRIED)].sort(),
     ).toEqual(derived.sdkOwned);

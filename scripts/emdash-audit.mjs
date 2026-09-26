@@ -156,8 +156,7 @@ function isCommentLine(trimmed, ext) {
   return LINE_COMMENT_PREFIXES.some((p) => trimmed.startsWith(p));
 }
 
-// Matches a quoted (or backtick) span; used to find the smallest quoted
-// region containing a given emdash index.
+// Matches a quoted (or backtick) span; used to find the smallest quoted region containing a given emdash index.
 const QUOTE_SPAN_RE = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/g;
 
 // Bare JSX text-node placeholder: an em dash sitting directly between
@@ -221,8 +220,7 @@ function classifyLine(line, ext, state) {
     if (closeIdx !== -1) {
       state.inBlockComment = false;
       state.blockCloser = null;
-      // Anything after the closer on this line is ordinary code/text;
-      // only re-classify if there's more content there.
+      // Anything after the closer on this line is ordinary code/text; only re-classify if there's more content there.
       const rest = line.slice(closeIdx + closer.length);
       if (rest.includes(EMDASH)) return classifyLine(rest, ext, state);
     }
@@ -330,8 +328,7 @@ function scan({ scanPaths, excludes }) {
     lines.forEach((line, i) => {
       const count = line.split(EMDASH).length - 1;
       if (count === 0) {
-        // Still need to track block-comment state even on emdash-free
-        // lines, so a later line's classification is correct.
+        // Still need to track block-comment state even on emdash-free lines, so a later line's classification is correct.
         if (state.inBlockComment) {
           const closeIdx = line.indexOf(state.blockCloser);
           if (closeIdx !== -1) {

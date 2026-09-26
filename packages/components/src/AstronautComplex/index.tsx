@@ -343,8 +343,7 @@ function AstronautComplexComponent(
   const hireCmd = useCommand("career.crew.hire", { vantage: META_VANTAGE });
   usePanelDelay(hireCmd);
 
-  // Firing is the same kind of KSC ground action as hiring: instant, no
-  // signal delay, no cost.
+  // Firing is the same kind of KSC ground action as hiring: instant, no signal delay, no cost.
   const fireCmd = useCommand("career.crew.fire", { vantage: META_VANTAGE });
   usePanelDelay(fireCmd);
 
@@ -613,8 +612,7 @@ function ApplicantsPanel({
   return (
     <Stack as="ul" style={LIST_STYLE}>
       {applicants.map((a) => (
-        // Kerbal names are unique within the applicant pool, so the name is
-        // a stable key (no array index).
+        // Kerbal names are unique within the applicant pool, so the name is a stable key (no array index).
         <Card as="li" key={a.name}>
           {/* Hand-composed from the title row rather than passed as `title`:
               the subject is a whole KerbalStats block carrying its own type,
@@ -997,8 +995,7 @@ function crewRowStats(c: CrewRosterRow): KerbalStatFields {
 function orderStandings(present: Iterable<number>): number[] {
   const seen = new Set(present);
   const known = CREW_STANDING_ORDER.filter((standing) => seen.has(standing));
-  // A standing this build cannot name is still a bucket of real kerbals, so it
-  // sorts after the known ones rather than being dropped.
+  // A standing this build cannot name is still a bucket of real kerbals, so it sorts after the known ones rather than being dropped.
   const unknown = [...seen]
     .filter((standing) => !CREW_STANDING_ORDER.includes(standing))
     .sort((a, b) => a - b);

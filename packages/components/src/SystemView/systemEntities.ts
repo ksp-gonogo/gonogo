@@ -340,8 +340,7 @@ export const SYSTEM_ENTITY_DEFAULT_LAYER: Readonly<
 > = {
   "orbit-path": 0,
   blob: 1,
-  // Same tier as `blob`: another physical ambient effect, just a
-  // directional one rather than an omnidirectional field.
+  // Same tier as `blob`: another physical ambient effect, just a directional one rather than an omnidirectional field.
   "travelling-pulse": 1,
   "connection-line": 2,
   point: 3,

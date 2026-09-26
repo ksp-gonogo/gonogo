@@ -57,8 +57,7 @@ describe("OrbitalAscent: stream render golden (delay=0)", () => {
       });
     });
 
-    // The notice is produced ONLY by the streamed v.body, so this can't
-    // false-green on an empty stream.
+    // The notice is produced ONLY by the streamed v.body, so this can't false-green on an empty stream.
     await waitFor(() => {
       if (!visibleText(container).includes("No reference data")) {
         throw new Error("stream leg has not resolved v.body yet");

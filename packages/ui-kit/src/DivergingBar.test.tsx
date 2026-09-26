@@ -58,8 +58,7 @@ describe("DivergingBar", () => {
   });
 
   it("scales against a value expressed on another rung of its own kind", () => {
-    // The comparison is dimensional, not textual: the scale arrives in
-    // kilowatts and the term in watts, and the bar still reads half.
+    // The comparison is dimensional, not textual: the scale arrives in kilowatts and the term in watts, and the bar still reads half.
     render(<DivergingBar value={value("W", 500)} maxAbs={value("kW", 1)} />);
     const fill = screen.getByTestId("diverging-bar")
       .lastElementChild as HTMLElement;

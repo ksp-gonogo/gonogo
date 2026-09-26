@@ -413,8 +413,7 @@ function scanWidget(descriptor: UnitsDescriptor, dir: string): WidgetScan {
     try {
       fixture = JSON.parse(readFileSync(join(fixtureDir, name), "utf8"));
     } catch {
-      // A fixture that will not parse is a different gate's problem; skipping
-      // it here loses one fixture's worth of coverage, never the whole scan.
+      // A fixture that will not parse is a different gate's problem; skipping it here loses one fixture's worth of coverage, never the whole scan.
       continue;
     }
     for (const emit of fixture._stream?.emits ?? []) {
@@ -561,8 +560,7 @@ describe("render-fixture coverage: a field the widget reads is a field some fixt
 });
 
 describe("the gap rule itself, on synthetic input", () => {
-  // Pure logic, no filesystem: the rule is checked here before the scan above
-  // is trusted to have wired it up.
+  // Pure logic, no filesystem: the rule is checked here before the scan above is trusted to have wired it up.
   const descriptor: UnitsDescriptor = {
     topics: { "probe.topic": { alpha: "m", beta: "s" } },
     topicShapes: {

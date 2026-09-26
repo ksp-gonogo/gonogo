@@ -55,8 +55,7 @@ if (!packageDir) {
 /** `tsc` reports `file(line,col): error TSxxxx: message`. */
 const DIAGNOSTIC = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/;
 
-// The two the compiler raises for a Value in a ReactNode position: a plain
-// assignment mismatch, and the "no overload matches" form JSX children take.
+// The two the compiler raises for a Value in a ReactNode position: a plain assignment mismatch, and the "no overload matches" form JSX children take.
 const RENDER_ERRORS = new Set(["TS2322", "TS2746", "TS2769"]);
 
 // A lone identifier or property access, optionally optional-chained. Anything
@@ -84,8 +83,7 @@ function diagnostics(dir) {
         .filter(([, , , , code, message]) => {
           return RENDER_ERRORS.has(code) && /\bValue\b/.test(message);
         })
-        // tsc reports paths relative to the process's cwd, not to the project
-        // it was pointed at.
+        // tsc reports paths relative to the process's cwd, not to the project it was pointed at.
         .map(([, file, line, col]) => ({
           file: resolve(process.cwd(), file),
           line: Number(line),
@@ -146,8 +144,7 @@ for (const [file, sites] of byFile) {
       skipped.push(`${file}:${site.line} no JSX expression here`);
       continue;
     }
-    // An attribute (`title={x}`) is not a render position: the value is going
-    // into a string, and `speakQuantity` is the answer there, not `<Unit>`.
+    // An attribute (`title={x}`) is not a render position: the value is going into a string, and `speakQuantity` is the answer there, not `<Unit>`.
     const before = text.slice(0, found.open).trimEnd();
     if (before.endsWith("=")) {
       skipped.push(`${file}:${site.line} attribute, wants speakQuantity`);

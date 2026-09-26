@@ -59,8 +59,7 @@ export class CourierTransport implements Transport {
   private readonly statusListeners = new Set<
     (status: TransportStatus) => void
   >();
-  // topic -> unsubscribe fn returned by courier.subscribeStream, so a later
-  // "unsubscribe" message can tear down the right stream.
+  // topic -> unsubscribe fn returned by courier.subscribeStream, so a later "unsubscribe" message can tear down the right stream.
   private readonly activeSubscriptions = new Map<string, () => void>();
 
   constructor(deps: {

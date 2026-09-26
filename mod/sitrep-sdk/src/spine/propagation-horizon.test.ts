@@ -12,8 +12,7 @@ import {
  */
 describe("canPropagate", () => {
   it("permits any window when a provider states it has no horizon", () => {
-    // The live case today: the only elected provider is the analytic two-body
-    // solver, which genuinely has no limit and says so.
+    // The live case today: the only elected provider is the analytic two-body solver, which genuinely has no limit and says so.
     expect(canPropagate({ kind: Kind.Unbounded }, 0, 1e12)).toEqual({
       propagatable: true,
     });
@@ -72,8 +71,7 @@ describe("canPropagate", () => {
   });
 
   it("reads a wrapped UT as well as a bare one", () => {
-    // The wire delivers `untilUt` as a `Value<"ut">`; a caller holding an
-    // already-unwrapped number should not have to re-wrap it to ask.
+    // The wire delivers `untilUt` as a `Value<"ut">`; a caller holding an already-unwrapped number should not have to re-wrap it to ask.
     expect(
       canPropagate({ kind: Kind.Until, untilUt: { magnitude: 500 } }, 0, 400),
     ).toEqual({ propagatable: true });

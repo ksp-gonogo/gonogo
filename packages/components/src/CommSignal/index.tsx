@@ -53,8 +53,7 @@ type CommSignalConfig = Record<string, never>;
 
 // ── Augment slots (Uplink architecture) ─────────────────────────────────────
 //
-// CommSignal exposes two slots so a comms Uplink can extend the readout WITHOUT
-// this widget ever importing backend-aware code (locked map: comm-signal):
+// CommSignal exposes two slots so a comms Uplink can extend the readout WITHOUT this widget ever importing backend-aware code (locked map: comm-signal):
 //
 //  - `comm-signal.sections` (body, below the signal-bars readout): the primary
 //    HIGH-value seat. A comms Uplink elected via capability contributes a
@@ -341,12 +340,10 @@ function CommSignalComponent({
   }
   const control = describeControl(controlStateName, controlState);
 
-  // Selective rendering: bars + headline value always show; subtitle and
-  // detail grid drop as height shrinks.
+  // Selective rendering: bars + headline value always show; subtitle and detail grid drop as height shrinks.
   const cols = w ?? 6;
   const rows = h ?? 5;
-  // Wide-short: put the bars/headline cluster and the detail grid side-by-side
-  // so the width is used instead of clustering top-left.
+  // Wide-short: put the bars/headline cluster and the detail grid side-by-side so the width is used instead of clustering top-left.
   const isLandscape = getWidgetShape(w, h).shape === "landscape";
   const showSubtitle = rows >= 4;
   const showDetailGrid = rows >= 4 && cols >= 4;

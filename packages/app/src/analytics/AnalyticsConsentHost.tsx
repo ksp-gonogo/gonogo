@@ -32,8 +32,7 @@ export function AnalyticsConsentHost({
     const apply = () => {
       const enabled = service.isEnabled();
       controller.apply(enabled);
-      // Feed the host service so it broadcasts to stations AND keeps the
-      // relay config broker in sync (POST on change + heartbeat re-assert).
+      // Feed the host service so it broadcasts to stations AND keeps the relay config broker in sync (POST on change + heartbeat re-assert).
       peerHost.setAnalyticsConsent(enabled);
     };
 

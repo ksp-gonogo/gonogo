@@ -35,8 +35,7 @@ describe("capabilities", () => {
   });
 
   it("gamepad is deliberately NOT listed as a Chromium-only surface", () => {
-    // Widened off the `as const` list, which otherwise narrows the ids to the
-    // one entry there is and makes the comparison itself a type error.
+    // Widened off the `as const` list, which otherwise narrows the ids to the one entry there is and makes the comparison itself a type error.
     const ids: readonly string[] = CHROMIUM_ONLY_SURFACES.map((s) => s.id);
     expect(ids).not.toContain("gamepad");
   });

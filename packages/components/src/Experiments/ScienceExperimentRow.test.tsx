@@ -158,8 +158,7 @@ describe("ScienceExperimentRow", () => {
     expect(badges).not.toBeNull();
     expect(getComputedStyle(badges as Element).flexWrap).toBe("wrap");
   });
-  // Moved here with the component: this case lived in ui-kit's `axe.smoke.test.tsx`
-  // while the row did, and a11y coverage travels with the thing it covers.
+  // Moved here with the component: this case lived in ui-kit's `axe.smoke.test.tsx` while the row did, and a11y coverage travels with the thing it covers.
   it("has no axe violations across instrument states", async () => {
     const { container } = renderRow(
       <>

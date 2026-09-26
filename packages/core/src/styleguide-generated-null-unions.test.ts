@@ -83,15 +83,12 @@ const OMITTED_WHEN_NULL = new Set([
      a gap is rare by construction, so every frame would otherwise carry 17
      bytes saying nothing happened. */
   "Meta.gapSinceUt",
-  // JsonWriter.AppendPendingUplink guards it on HasValue, because a zero
-  // throttle and an unknown value must never arrive looking the same.
+  // JsonWriter.AppendPendingUplink guards it on HasValue, because a zero throttle and an unknown value must never arrive looking the same.
   "PendingUplink.commandedValue",
-  // JsonWriter.AppendCommandResult writes neither key on a success, rather than
-  // putting an empty refusal shape on every ack.
+  // JsonWriter.AppendCommandResult writes neither key on a success, rather than putting an empty refusal shape on every ack.
   "CommandResult.breach",
   "CommandResult.detail",
-  // EnvelopeCodec.WriteErrorMsg guards both on null: an error that names no
-  // request and no topic carries neither key.
+  // EnvelopeCodec.WriteErrorMsg guards both on null: an error that names no request and no topic carries neither key.
   "ErrorMsg.requestId",
   "ErrorMsg.topic",
   // The vantage a command centre stamps on its own request. Client-written, so
@@ -222,8 +219,7 @@ describe("generated contract types can hold the null the wire sends", () => {
       "utf8",
     );
     expect(sdk).toMatch(/\n\tstate\?: boolean \| null;\n/);
-    // And the rule reaching a quantity, where it composes with the unit wrap
-    // rather than replacing it.
+    // And the rule reaching a quantity, where it composes with the unit wrap rather than replacing it.
     expect(sdk).toMatch(/\n\tlan\?: Value<"°"> \| null;\n/);
     /* And the rule reaching a reference type, which crosses the same wire the
        same way: a refusal's own sentence, and the payload a failed command

@@ -116,8 +116,7 @@ describe("ThermalStatusComponent", () => {
     });
 
     const alert = await screen.findByRole("alert");
-    // Critical band (>= 97% ratio) reads "Part at max temperature";
-    // hot band (90-97%) reads "Part approaching max temperature".
+    // Critical band (>= 97% ratio) reads "Part at max temperature"; hot band (90-97%) reads "Part approaching max temperature".
     expect(visibleText(alert)).toMatch(/at max temperature/i);
   });
 

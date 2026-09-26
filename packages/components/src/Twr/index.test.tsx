@@ -49,8 +49,7 @@ describe("TwrComponent: genuinely runs off the stream (R6 Wave 2)", () => {
     });
     renderTwr(fixture);
     expect(await screen.findByText(/no engine data/i)).toBeInTheDocument();
-    // A real subscription must have happened for a value to ever arrive,
-    // StubTransport.emit is subscription-gated (see its own doc comment).
+    // A real subscription must have happened for a value to ever arrive, StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.propulsion")).toBe(true);
   });
 
@@ -119,8 +118,7 @@ describe("TwrComponent: genuinely runs off the stream (R6 Wave 2)", () => {
     act(() => {
       emitTwr(fixture, 1.5);
     });
-    // Wait for the gauge to render the new value, then count the zone arcs
-    // (1 track + 3 zones = 4 paths inside the gauge svg).
+    // Wait for the gauge to render the new value, then count the zone arcs (1 track + 3 zones = 4 paths inside the gauge svg).
     const gauge = await screen.findByLabelText("TWR 1.50");
     await waitFor(() => expect(gauge.querySelectorAll("path")).toHaveLength(4));
   });

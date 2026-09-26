@@ -69,8 +69,7 @@ describe("Twr when vessel.propulsion is no longer current", () => {
     const gauge = screen.getByRole("img", { name: /^TWR \d/ });
     expect(gauge).toHaveAttribute("data-not-current");
     expect(gauge).toHaveAccessibleName(/^TWR [\d.]+, \S/);
-    // And it must NOT claim the craft has no engine, which is what this
-    // widget's empty state means.
+    // And it must NOT claim the craft has no engine, which is what this widget's empty state means.
     expect(screen.queryByText(/no engine data/i)).toBeNull();
     await act(async () => {});
   });

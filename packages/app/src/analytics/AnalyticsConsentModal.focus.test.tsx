@@ -40,8 +40,7 @@ describe("AnalyticsConsentModal keyboard access", () => {
   });
 
   it("keeps Tab inside the dialog instead of leaking into the dashboard", async () => {
-    // A focusable element in the page behind the gate, exactly what the
-    // reported trail escaped into.
+    // A focusable element in the page behind the gate, exactly what the reported trail escaped into.
     const behind = document.createElement("button");
     behind.textContent = "Toggle SAS";
     document.body.append(behind);

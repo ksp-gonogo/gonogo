@@ -297,13 +297,11 @@ function TargetingComponent({
     dockRelPos && dockRelVelVec
       ? radialSpeed(dockRelPos, dockRelVelVec)
       : undefined;
-  // Docking HUD's Δv row prefers the port-to-port closing rate (more
-  // accurate at close range) over the general vessel-to-vessel figure.
+  // Docking HUD's Δv row prefers the port-to-port closing rate (more accurate at close range) over the general vessel-to-vessel figure.
   const dockingRelVel = derivedDockRelVel ?? relVel;
   const dockingDistance = dockDistanceStream ?? tarDistance;
 
-  // Mode hysteresis: sticky so we don't strobe near a threshold, and the
-  // upgrade direction is asymmetric (smaller window to enter than to exit).
+  // Mode hysteresis: sticky so we don't strobe near a threshold, and the upgrade direction is asymmetric (smaller window to enter than to exit).
   const [mode, setMode] = useState<ViewMode>("tracking");
 
   // "Close-ops eligible" = a real target that isn't a celestial body, drives
@@ -396,8 +394,7 @@ function TargetingComponent({
         setMode("docking-hud");
       else if (tarDistance > APPROACH_EXIT_M) setMode("tracking");
     } else if (mode === "docking-hud") {
-      // Left the docking scenario (port deselected / lost the free port) or
-      // backed out of HUD range: fall back to the approach view.
+      // Left the docking scenario (port deselected / lost the free port) or backed out of HUD range: fall back to the approach view.
       if (!dockingAvailable || tarDistance > HUD_EXIT_M) setMode("approach");
     }
   }, [
@@ -449,8 +446,7 @@ function TargetingComponent({
   // absence: KSP has no "No Target Selected." sentinel, and nothing on this
   // wire produces one.
   //
-  // A confirmed absence can itself go old, which is what the age says: with the
-  // link down, "no target set" stops being a claim about now.
+  // A confirmed absence can itself go old, which is what the age says: with the link down, "no target set" stops being a claim about now.
   if (targetReading.state === "absent" || tarName === undefined) {
     // "Confirmed" only while we are still hearing from the craft. Once we are
     // not, the absence is itself an old observation and saying "confirmed"

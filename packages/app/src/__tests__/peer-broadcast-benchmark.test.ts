@@ -191,8 +191,7 @@ describe("peer broadcast benchmark", () => {
     expect(bytesIn1Sec).toBeGreaterThan(40_000);
     expect(bytesIn1Sec).toBeLessThan(200_000);
 
-    // Both connections should have received roughly the same number of
-    // messages (broadcast-all means every peer gets every key).
+    // Both connections should have received roughly the same number of messages (broadcast-all means every peer gets every key).
     expect(connA.sent.length).toBeGreaterThan(500);
     expect(connB.sent.length).toBeGreaterThan(500);
     expect(Math.abs(connA.sent.length - connB.sent.length)).toBeLessThanOrEqual(
@@ -261,8 +260,7 @@ describe("peer broadcast benchmark", () => {
     // Bytes scale with msg count: should be roughly 1/15 of broadcast-all.
     expect(bytesIn1Sec).toBeLessThan(10_000);
 
-    // Each peer should only see its own key set (40 messages each
-    // across the 1-sec window).
+    // Each peer should only see its own key set (40 messages each across the 1-sec window).
     expect(connA.sent.length).toBeGreaterThanOrEqual(35);
     expect(connA.sent.length).toBeLessThanOrEqual(45);
     expect(connB.sent.length).toBeGreaterThanOrEqual(35);

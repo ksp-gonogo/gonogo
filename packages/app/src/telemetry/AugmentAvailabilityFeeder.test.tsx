@@ -53,8 +53,7 @@ describe("AugmentAvailabilityFeeder end-to-end gating", () => {
     // Domain silent → feeder writes "unavailable" → augment gated out.
     expect(screen.queryByText("scan-layer")).toBeNull();
 
-    // The mod announces over the real stream; the feeder mirrors presence into
-    // the store and the slot composes the augment in.
+    // The mod announces over the real stream; the feeder mirrors presence into the store and the slot composes the augment in.
     act(() => {
       transport.emit(
         "demomod.available",

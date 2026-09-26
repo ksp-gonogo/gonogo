@@ -79,8 +79,7 @@ export class AlarmPeerBridge {
   ) {
     if (!host) return;
     host.onAlarmAdd((peerId, msg) => {
-      // A station's trigger is checked here, where it enters: one the
-      // simulation could never watch is not an alarm, so no row is made.
+      // A station's trigger is checked here, where it enters: one the simulation could never watch is not an alarm, so no row is made.
       const trigger = parseTrigger(msg.trigger);
       if (trigger === null) {
         logger.warn(

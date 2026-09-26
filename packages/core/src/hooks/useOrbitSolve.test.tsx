@@ -159,8 +159,7 @@ describe("useOrbitSolve", () => {
     await waitFor(() => expect(result.current?.apoapsisAlt).toBe(100_000));
     expect(result.current?.periapsisAlt).toBe(100_000);
     expect(typeof result.current?.period).toBe("number");
-    // The view instant is the sample's own, so nothing has elapsed to run them
-    // down by.
+    // The view instant is the sample's own, so nothing has elapsed to run them down by.
     expect(result.current?.timeToAp).toBe(600);
     expect(result.current?.timeToPe).toBe(1500);
     expect(result.current?.nextApsisType).toBe(1);
@@ -330,8 +329,7 @@ describe("useOrbitSolve", () => {
         -2_400_000 * (1 - 1.283),
       ),
     );
-    // A solve that EXISTS and says this quantity does not, which is a different
-    // statement from the whole-solve `null` above.
+    // A solve that EXISTS and says this quantity does not, which is a different statement from the whole-solve `null` above.
     expect(result.current).not.toBeNull();
     expect(result.current?.apoapsisRadius).toBeNull();
   });

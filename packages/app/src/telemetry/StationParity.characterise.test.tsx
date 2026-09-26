@@ -108,8 +108,7 @@ describe("the relay's own subscriptions", () => {
     expect(transport.isSubscribed("vessel.orbit")).toBe(false);
     expect(transport.isSubscribed(UPLINK_TOPIC)).toBe(false);
 
-    // The one exception, and it is core's own channel: a station cannot mount
-    // the widgets that would ask for anything until it has read the roster.
+    // The one exception, and it is core's own channel: a station cannot mount the widgets that would ask for anything until it has read the roster.
     expect(transport.isSubscribed("system.uplinks")).toBe(true);
 
     view.unmount();

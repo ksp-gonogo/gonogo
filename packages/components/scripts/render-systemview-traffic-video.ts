@@ -471,8 +471,7 @@ async function captureTraffic(probeHtmlOut: string): Promise<void> {
     await clickRingTop(page, "vessel-orbit:v-other");
     await page.waitForTimeout(300);
 
-    // Refresh the pending queue partway through so traffic keeps animating
-    // (rather than fading out) for the remainder of the recording.
+    // Refresh the pending queue partway through so traffic keeps animating (rather than fading out) for the remainder of the recording.
     await page.waitForTimeout(3_000);
     const utNow2 = await evalUtNow(page);
     await evalCaptureEmit(page, "system.uplink.pending", {

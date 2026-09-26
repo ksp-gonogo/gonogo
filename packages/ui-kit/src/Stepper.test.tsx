@@ -18,8 +18,7 @@ describe("Stepper", () => {
     );
     const spin = screen.getByRole("spinbutton", { name: "Max steps" });
     expect(spin).toHaveAttribute("aria-valuetext", "256");
-    // The index, not the value: the members are not evenly spaced, so a
-    // position on the set is the only thing a min/max pair can honestly bound.
+    // The index, not the value: the members are not evenly spaced, so a position on the set is the only thing a min/max pair can honestly bound.
     expect(spin).toHaveAttribute("aria-valuenow", "2");
     expect(spin).toHaveAttribute("aria-valuemax", "3");
   });

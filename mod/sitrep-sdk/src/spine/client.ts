@@ -324,8 +324,7 @@ export class TelemetryClient {
         this.ownership.handleConnected(this.subscribers.keys());
         return;
       }
-      // A subscribe whose ack was still in flight when the link dropped must
-      // not mature into a verdict while nothing can answer.
+      // A subscribe whose ack was still in flight when the link dropped must not mature into a verdict while nothing can answer.
       this.ownership.handleDisconnected();
       for (const store of this.stores) store.clearTopicOwnership();
       this.notifyStore();
@@ -492,8 +491,7 @@ export class TelemetryClient {
     this.selectedVantageId = centreId;
     for (const listener of this.vantageListeners) listener();
     this.transport.send({ type: "set-vantage", centreId });
-    // Re-point existing subscriptions at the new vantage: the server reads the
-    // selected vantage at subscribe time, so an active topic must re-subscribe.
+    // Re-point existing subscriptions at the new vantage: the server reads the selected vantage at subscribe time, so an active topic must re-subscribe.
     for (const topic of this.subscribers.keys()) {
       this.transport.send({ type: "unsubscribe", topic });
       this.transport.send({ type: "subscribe", topic });
@@ -745,8 +743,7 @@ export class TelemetryClient {
       command,
       label: label ?? "",
       topic: topic ?? "",
-      // Per-call vantage override (delay-UX): "" ⇒ the server uses the session
-      // vantage; "meta" pins a program-meta command to instant dispatch.
+      // Per-call vantage override (delay-UX): "" ⇒ the server uses the session vantage; "meta" pins a program-meta command to instant dispatch.
       vantage: vantage ?? "",
       args: wireArgs,
       sentAt: 0,

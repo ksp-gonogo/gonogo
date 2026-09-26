@@ -207,8 +207,7 @@ describe("TimelineStore: raw record field-subtopic resolution", () => {
     store.beginFrame();
     expect(store.sampleStatus("time.warp.warpRate")).toBe("live");
 
-    // time.warp goes silent while another topic keeps the clock moving, well
-    // past its last keyframe plus interval plus margin.
+    // time.warp goes silent while another topic keeps the clock moving, well past its last keyframe plus interval plus margin.
     store.ingest("pacer.tick", pacer(160));
     const token = store.beginFrame();
 

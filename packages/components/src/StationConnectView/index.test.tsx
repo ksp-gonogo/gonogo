@@ -107,8 +107,7 @@ describe("StationConnectView", () => {
     expect(
       screen.getByText(/this device needs internet access/i),
     ).not.toBeNull();
-    // The code-is-wrong copy would send the operator to the main screen for a
-    // fault that is entirely on this device's network.
+    // The code-is-wrong copy would send the operator to the main screen for a fault that is entirely on this device's network.
     expect(screen.queryByText(/Couldn't find code/i)).toBeNull();
     expect(screen.queryByText(/Check the host ID/i)).toBeNull();
   });

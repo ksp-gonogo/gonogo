@@ -59,8 +59,7 @@ describe("solveLambert: coplanar sanity", () => {
 
 describe("lambertDeltaV: porkchop cell cost", () => {
   it("sums |v1 − vDep| + |v2 − vArr| (the two hyperbolic-excess magnitudes)", () => {
-    // Straight-line-ish: pick departure/arrival body velocities and confirm the
-    // helper returns the two excess magnitudes summed.
+    // Straight-line-ish: pick departure/arrival body velocities and confirm the helper returns the two excess magnitudes summed.
     const sol = solveLambert([7000, 0, 0], [0, 9000, 0], 3000, MU_EARTH_KM);
     expect(sol).not.toBeNull();
     if (!sol) return;

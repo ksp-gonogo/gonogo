@@ -76,8 +76,7 @@ describe("FlightDetector", () => {
     });
     // Another vessel briefly.
     d.observe({ vesselName: "Other", missionTime: 0, now: 2_000 });
-    // "KX" returns, but mission time is near zero: relaunch of a ship
-    // with the same name.
+    // "KX" returns, but mission time is near zero: relaunch of a ship with the same name.
     const relaunch = d.observe({
       vesselName: "KX",
       missionTime: 0,

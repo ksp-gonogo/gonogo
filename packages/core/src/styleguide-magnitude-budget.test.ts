@@ -258,8 +258,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    */
   "packages/components/src/ShipMap/ShipDiagramSvg.tsx": 1,
   "packages/components/src/SemiMajorAxis/index.tsx": 1,
-  // 1: the view instant, unwrapped to bound a history window. sampleRange
-  // takes plain UT numbers because a store index is not a quantity.
+  // 1: the view instant, unwrapped to bound a history window. sampleRange takes plain UT numbers because a store index is not a quantity.
   "packages/components/src/shared/usePastTrack.ts": 1,
   /*
    * 3, all three in `bare`: the three components come off one line. `bare` is
@@ -1034,8 +1033,7 @@ describe("the magnitude budget only shrinks", () => {
       "  gone: 1 -> 0 (delete the entry)",
       "  over: 4 -> 2",
     ]);
-    // A file at its number is not stale, and a file OVER it is the other arm's
-    // business: this one must stay silent on both or it double-reports.
+    // A file at its number is not stale, and a file OVER it is the other arm's business: this one must stay silent on both or it double-reports.
     expect(
       staleEntries(
         { exact: 2, under: 1 },

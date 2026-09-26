@@ -85,8 +85,7 @@ describe("selectCommandGate", () => {
 
     expect(gate?.blocked).toBe(false);
     expect(gate?.undetermined).toBe(true);
-    // Still says why, for a diagnostic surface: the point is not to lose the
-    // information, it is not to draw it as a refusal.
+    // Still says why, for a diagnostic surface: the point is not to lose the information, it is not to draw it as a refusal.
     expect(gate?.detail).toBe("the facilities scenario is not loaded");
   });
 
@@ -147,8 +146,7 @@ describe("selectCommandGate", () => {
   });
 
   it("reports an empty detail as absent rather than as an empty sentence", () => {
-    // The composer falls through to its own general wording on `undefined`;
-    // an empty string would win the `??` and leave the reason blank.
+    // The composer falls through to its own general wording on `undefined`; an empty string would win the `??` and leave the reason blank.
     const gate = selectCommandGate(
       report({
         command: "flight.launch",

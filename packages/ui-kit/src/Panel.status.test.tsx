@@ -28,8 +28,7 @@ function announcer(): HTMLElement | null {
  */
 describe("Panel stream status", () => {
   it("renders nothing for a healthy stream", () => {
-    // The whole point of the null-for-live design: a badge that is present in
-    // the normal case teaches the operator to stop seeing it.
+    // The whole point of the null-for-live design: a badge that is present in the normal case teaches the operator to stop seeing it.
     render(<Panel panelTitle="ORBIT" panelStatus="live" />);
     expect(announcer()).toBeEmptyDOMElement();
     expect(document.querySelector("[data-panel-aside-expand]")).toBeNull();

@@ -48,8 +48,7 @@ describe("nextAsideCollapsed", () => {
   });
 
   it("holds the previous state when either measurement is unavailable (0)", () => {
-    // 0 means "no real measurement landed yet" (jsdom, pre-layout, an
-    // unfired ResizeObserver), not "no room" or "no content".
+    // 0 means "no real measurement landed yet" (jsdom, pre-layout, an unfired ResizeObserver), not "no room" or "no content".
     expect(nextAsideCollapsed(false, 0, 500)).toBe(false);
     expect(nextAsideCollapsed(false, 300, 0)).toBe(false);
     expect(nextAsideCollapsed(true, 0, 500)).toBe(true);

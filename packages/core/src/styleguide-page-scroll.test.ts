@@ -155,8 +155,7 @@ describe("no page refuses to scroll", () => {
   });
 
   it("sees the locks it plants, so a clean scan means something", () => {
-    // The shape the seven probe pages carried, in the document form they
-    // carry it in: inside a `<style>` block, after a head full of markup.
+    // The shape the seven probe pages carried, in the document form they carry it in: inside a `<style>` block, after a head full of markup.
     const planted = blockingPageRules(
       '<!doctype html><head><title>x</title><style id="probe-theme"></style>' +
         "<style>html,\nbody {\n  margin: 0;\n  overflow: hidden;\n}</style>" +

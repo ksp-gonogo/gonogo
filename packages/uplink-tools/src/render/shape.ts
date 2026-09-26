@@ -220,8 +220,7 @@ export const readShapeText = (args: {
 
   const skip = new Set(["STYLE", "SCRIPT"]);
   const walk = (el: Element, path: string): void => {
-    // xterm injects its own stylesheet into the widget, so a naive walk records
-    // a page of CSS selectors as text.
+    // xterm injects its own stylesheet into the widget, so a naive walk records a page of CSS selectors as text.
     if (
       skip.has(el.tagName) ||
       el.hasAttribute("data-unit-word") ||
@@ -329,8 +328,7 @@ export const settleAnimations = (): { finished: number; endless: string[] } => {
       animation.finish();
       finished++;
     } catch {
-      // An animation can refuse to finish (an unresolved effect end), and one
-      // that refuses is one still moving, so it belongs in the same bucket.
+      // An animation can refuse to finish (an unresolved effect end), and one that refuses is one still moving, so it belongs in the same bucket.
       endless.push(describe(animation));
     }
   }

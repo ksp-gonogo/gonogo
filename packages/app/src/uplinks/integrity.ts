@@ -1,5 +1,4 @@
-// An integrity failure: the loader found an artifact whose hash disagrees with
-// what something else said that hash would be.
+// An integrity failure: the loader found an artifact whose hash disagrees with what something else said that hash would be.
 //
 // Every other refusal in the loader is a disappointment. A compat gate, a
 // missing bundle, a dead network: each says an Uplink will not run here, and
@@ -114,8 +113,7 @@ const PARTY_LABEL: Record<UplinkIntegrityParty, string> = {
 const SUBJECT_LABEL: Record<UplinkIntegritySubject, string> = {
   bundle: "bundle bytes",
   manifest: "bundle manifest",
-  // Only ever a fallback: a declaration finding sets `observedBy`, and the
-  // party name is the whole point of rendering it.
+  // Only ever a fallback: a declaration finding sets `observedBy`, and the party name is the whole point of rendering it.
   declaration: "declared client",
 };
 

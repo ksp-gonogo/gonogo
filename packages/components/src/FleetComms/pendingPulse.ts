@@ -60,8 +60,7 @@ export function computeUplinkPulse(
   entry: PendingPulseEntry,
   utNow: number,
 ): UplinkPulse | null {
-  // The pulse is an ANIMATION: it interpolates a fraction of a round trip
-  // into a position along a drawn line, so it works in raw seconds.
+  // The pulse is an ANIMATION: it interpolates a fraction of a round trip into a position along a drawn line, so it works in raw seconds.
   const dispatchedAt = magnitudeOf(entry.dispatchedAt);
   const oneWaySeconds = magnitudeOf(entry.oneWaySeconds);
   if (oneWaySeconds === null || oneWaySeconds <= 0) return null;

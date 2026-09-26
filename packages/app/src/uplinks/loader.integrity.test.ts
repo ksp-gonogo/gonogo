@@ -233,8 +233,7 @@ describe("an integrity failure is recorded apart from an ordinary load failure",
       expected: WRONG_HASH,
       vouchedBy: ["installed-mod"],
     });
-    // Never `bundle`: no bytes were fetched, and a surface reading this must
-    // not be able to mistake it for a bundle that hashed wrong.
+    // Never `bundle`: no bytes were fetched, and a surface reading this must not be able to mistake it for a bundle that hashed wrong.
     expect(integrityFailures(getUplinkOutcomes())).toHaveLength(1);
   });
 
@@ -263,8 +262,7 @@ describe("who an integrity failure names", () => {
           version: "1.0.0",
           available: true,
           reason: null,
-          // Agrees with the index, which is the only way past `checkCompat`,
-          // so a byte mismatch here disagrees with BOTH parties at once.
+          // Agrees with the index, which is the only way past `checkCompat`, so a byte mismatch here disagrees with BOTH parties at once.
           expectedClientHash: WRONG_HASH,
         },
       ],

@@ -53,8 +53,7 @@ describe("DELTA_V_BUDGET over a live stream", () => {
    * left the commit enabled for a craft with nothing left to burn.
    */
   it("mounts on a pending budget with no totals, which is not a budget of zeros", () => {
-    // Nothing has arrived, so there is nothing to be wrong about: every total
-    // is absent rather than zero, and the budget says it is still waiting.
+    // Nothing has arrived, so there is nothing to be wrong about: every total is absent rather than zero, and the budget says it is still waiting.
     const last = renderProbe().renders.at(-1);
     expect(last?.budget.state).toBe("pending");
     expect(last?.totalVac).toBeNull();

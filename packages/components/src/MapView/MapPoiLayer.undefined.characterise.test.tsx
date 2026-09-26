@@ -21,8 +21,7 @@ import { MapPoiLayer } from "./MapPoiLayer";
  * collapses pending onto empty, so it is pinned here too.
  */
 
-// Unmount each rendered tree BEFORE clearMapPoiProviders(): clearing the
-// registry re-renders a still-mounted layer, a state update outside act().
+// Unmount each rendered tree BEFORE clearMapPoiProviders(): clearing the registry re-renders a still-mounted layer, a state update outside act().
 const renderedTrees: Array<() => void> = [];
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
@@ -125,8 +124,7 @@ describe("MapPoiLayer: what undefined telemetry means today", () => {
     expect(screen.queryByRole("button", { name: "Gated POI" })).toBeNull();
 
     act(() => {
-      // A confirmed tombstone: the subject says there is no availability
-      // record, which is the strongest possible "this domain is not here".
+      // A confirmed tombstone: the subject says there is no availability record, which is the strongest possible "this domain is not here".
       fixture.emit("fake-domain.available", null);
     });
     await flushFrames();

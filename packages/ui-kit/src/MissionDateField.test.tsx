@@ -50,8 +50,7 @@ describe("partsOfUt and utOfParts", () => {
   });
 
   it("carries an out-of-range component instead of refusing it", () => {
-    // Typing 30 into the hour field of a six-hour day should reach the day after
-    // next, not be clamped: the operator should not have to do the carry.
+    // Typing 30 into the hour field of a six-hour day should reach the day after next, not be clamped: the operator should not have to do the carry.
     const rolled = utOfParts({
       year: 1,
       day: 1,
@@ -201,8 +200,7 @@ describe("an instant nobody stated", () => {
 
     await userEvent.type(screen.getByLabelText("DAY"), "3");
 
-    // Day 3 of year 1 is two whole days in, the rest of the instant at the
-    // epoch: the first keystroke is what states it.
+    // Day 3 of year 1 is two whole days in, the rest of the instant at the epoch: the first keystroke is what states it.
     expect(onChange).toHaveBeenCalledWith(2 * STOCK_KERBIN_CALENDAR.day);
   });
 

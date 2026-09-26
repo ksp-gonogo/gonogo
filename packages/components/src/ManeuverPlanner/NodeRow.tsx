@@ -240,8 +240,7 @@ const RowActions = styled.div`
   gap: var(--gap-related);
 `;
 
-// The cursor, hover and colour transition come from the kit's IconButton;
-// the bordered 22x22 box and its $active background are this row's.
+// The cursor, hover and colour transition come from the kit's IconButton; the bordered 22x22 box and its $active background are this row's.
 const StepButton = styled(IconButton)<{ $active: boolean }>`
   background: ${({ $active }) =>
     $active ? "var(--color-surface-raised)" : "transparent"};
@@ -304,8 +303,7 @@ const EditActions = styled.div`
   padding-top: var(--gap-actions);
 `;
 
-// The accent treatment and hover come from the kit; only the compact sizing
-// and the align-self it sets for form footers are overridden here.
+// The accent treatment and hover come from the kit; only the compact sizing and the align-self it sets for form footers are overridden here.
 const CompactPrimaryButton = styled(PrimaryButton)`
   align-self: auto;
   font-size: var(--font-size-compact);

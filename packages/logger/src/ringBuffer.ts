@@ -102,8 +102,7 @@ export class LogRingBuffer {
         storage.setItem(key, JSON.stringify(this.entries));
         this.dirty = false;
       } catch {
-        // Give up; stay marked dirty so the next push triggers another
-        // attempt after natural eviction.
+        // Give up; stay marked dirty so the next push triggers another attempt after natural eviction.
       }
     }
   }
@@ -115,8 +114,7 @@ export class LogRingBuffer {
       if (!raw) return;
       const parsed = JSON.parse(raw) as unknown;
       if (!Array.isArray(parsed)) return;
-      // Trust the shape loosely: restore is best-effort; a malformed entry
-      // still serialises back out fine because we never read fields here.
+      // Trust the shape loosely: restore is best-effort; a malformed entry still serialises back out fine because we never read fields here.
       this.entries = (parsed as LogEntry[]).slice(-this.capacity);
     } catch {
       // Corrupt cache: drop it.

@@ -87,8 +87,7 @@ export class PerfBudget {
           threshold: this.opts.threshold,
           windowMs: this.opts.windowMs,
           unit: this.opts.unit,
-          // Total times we've crossed the threshold since the budget was
-          // created: useful for spotting flapping vs sustained issues.
+          // Total times we've crossed the threshold since the budget was created: useful for spotting flapping vs sustained issues.
           exceedanceCount: this.exceedanceCount,
         };
         // Host-gated, and it has to be. The shim throws a named error when no

@@ -31,8 +31,7 @@ test.describe("Serial devices: graceful degradation", () => {
 
     await context.addInitScript(() => {
       try {
-        // Pre-answer analytics consent so the blocking boot modal doesn't
-        // sit over the screen and intercept the FAB click.
+        // Pre-answer analytics consent so the blocking boot modal doesn't sit over the screen and intercept the FAB click.
         localStorage.setItem("gonogo.analytics.consent", "disabled");
         // The first-run setup host auto-opens the Settings modal on a fresh
         // browser (own component coverage in FirstRunSetupHost.test.tsx):

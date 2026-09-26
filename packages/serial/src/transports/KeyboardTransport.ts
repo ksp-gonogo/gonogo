@@ -95,8 +95,7 @@ const ACTIVATABLE_ROLES = new Set([
 function elementFor(event: KeyboardEvent): Element | null {
   const target = event.target;
   if (target instanceof Element) return target;
-  // A synthetic event dispatched at `window` has no element target; fall back
-  // to whatever actually holds focus, which is what the rules are about.
+  // A synthetic event dispatched at `window` has no element target; fall back to whatever actually holds focus, which is what the rules are about.
   return typeof document === "undefined" ? null : document.activeElement;
 }
 

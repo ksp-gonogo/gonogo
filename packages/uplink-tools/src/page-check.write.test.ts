@@ -63,8 +63,7 @@ function plantClient(): string {
   return dir;
 }
 
-// One client per FILE, not per test: the registry is global and `readInventory`
-// refuses to guess between two declared clients.
+// One client per FILE, not per test: the registry is global and `readInventory` refuses to guess between two declared clients.
 defineUplinkClient({
   id: "planted",
   version: "1.2.3",
@@ -89,8 +88,7 @@ describe("writeUplinkPage", () => {
     const readmePath = join(dir, "README.md");
     const current = readFileSync(readmePath, "utf8");
 
-    // Literally a contract Minor bump: the "Built against" row moves and
-    // nothing else on the page does.
+    // Literally a contract Minor bump: the "Built against" row moves and nothing else on the page does.
     const stale = current.replace(
       /contract (\d+)\.(\d+)/,
       (_, major: string, minor: string) =>

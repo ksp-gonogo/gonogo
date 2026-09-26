@@ -33,8 +33,7 @@ describe("enumerateTopicFields", () => {
     expect(byPath.get("name")?.kind).toBe("text");
     expect(byPath.get("situation")?.kind).toBe("enum");
     expect(byPath.get("launchUt")?.kind).toBe("quantity");
-    // An id is a string a reader gets back, so it classifies as text: the
-    // separate token only records that the string names something.
+    // An id is a string a reader gets back, so it classifies as text: the separate token only records that the string names something.
     expect(byPath.get("vesselId")?.kind).toBe("text");
   });
 
@@ -54,15 +53,13 @@ describe("enumerateTopicFields", () => {
     const paths = enumerateTopicFields("vessel.orbit").map((f) => f.path);
     // `arc` is one TrajectoryArc, so its own fields are reachable.
     expect(paths.some((p) => p.startsWith("arc."))).toBe(true);
-    // `patches` is `OrbitPatch[]`, so the collection itself is the deepest
-    // thing a sample of `vessel.orbit` can reach.
+    // `patches` is `OrbitPatch[]`, so the collection itself is the deepest thing a sample of `vessel.orbit` can reach.
     expect(paths).toContain("patches");
     expect(paths.some((p) => p.startsWith("patches."))).toBe(false);
   });
 
   it("stops at a dictionary rather than guessing the key that follows", () => {
-    // The dictionary moved to its own channel when the facility ladder gained a
-    // staleness of its own; the rule it demonstrates did not move with it.
+    // The dictionary moved to its own channel when the facility ladder gained a staleness of its own; the rule it demonstrates did not move with it.
     const facilities = enumerateTopicFields("career.facilities").filter((f) =>
       f.path.startsWith("facilities"),
     );

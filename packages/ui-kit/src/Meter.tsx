@@ -729,8 +729,7 @@ function MeterPairBar<U extends string = string>({
   const reporting = valueLabel === undefined;
   const fromValue = useSharedFormat(reporting ? shown.figure : undefined);
   const fromCapacity = useSharedFormat(reporting ? held.figure : undefined);
-  // One group, so both halves hear the same answer; either serves, and on the
-  // first pass neither has one yet.
+  // One group, so both halves hear the same answer; either serves, and on the first pass neither has one yet.
   const shared = fromValue ?? fromCapacity ?? {};
   /*
    * A row has one line to spend, so there the symbol is written once, after the

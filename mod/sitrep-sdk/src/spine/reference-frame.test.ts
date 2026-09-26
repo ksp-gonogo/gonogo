@@ -216,8 +216,7 @@ describe("systemInstantAt: the horizon a body's provider stated", () => {
       spec.index === 3 ? { ...spec, horizon: boundedUntil(BOUND_UT) } : spec,
     );
     const system = systemInstantAt(catalogue(bounded), BOUND_UT + 1);
-    // The moon's own elements are unbounded, and are still no use: they are
-    // measured against a planet nobody will say where to put.
+    // The moon's own elements are unbounded, and are still no use: they are measured against a planet nobody will say where to put.
     expect(system.positionByIndex.has(4)).toBe(false);
     expect(system.withdrawnByIndex.get(4)).toEqual({
       bodyIndex: 3,
@@ -245,15 +244,13 @@ describe("pointMassAccelerationAt", () => {
   it("drops exactly the excluded body's term and nothing else", () => {
     const facts = catalogue(SOLAR);
     const system = systemInstantAt(facts, 0);
-    // A point a little off the moon, so the moon's own term is present, large
-    // and computable rather than a division by its own zero separation.
+    // A point a little off the moon, so the moon's own term is present, large and computable rather than a division by its own zero separation.
     const moon = system.positionByIndex.get(4) as Vector3;
     const probe: Vector3 = [moon[0] + 1e6, moon[1], moon[2]];
     const all = pointMassAccelerationAt(system, probe);
     const withoutMoon = pointMassAccelerationAt(system, probe, 4);
     const moonTerm = MOON_MU / 1e12;
-    // The moon pulls back along negative x from the probe, so removing its term
-    // moves the sum by exactly that much in positive x.
+    // The moon pulls back along negative x from the probe, so removing its term moves the sum by exactly that much in positive x.
     expect(withoutMoon[0] - all[0]).toBeCloseTo(moonTerm, 9);
     expect(withoutMoon[1] - all[1]).toBeCloseTo(0, 12);
   });
@@ -356,8 +353,7 @@ describe("frameInstantAt: parent-direction", () => {
       (PLANET_MU + MOON_MU) /
         (LUNAR_DISTANCE * LUNAR_DISTANCE * LUNAR_DISTANCE),
     );
-    // Within a part in a hundred: the third-body terms from the star and the
-    // other planets are real and are not being idealised away here.
+    // Within a part in a hundred: the third-body terms from the star and the other planets are real and are not being idealised away here.
     expect(Math.abs(omega - expected) / expected).toBeLessThan(0.01);
   });
 
@@ -408,8 +404,7 @@ describe("frameInstantAt: rotating-pulsating", () => {
   });
 
   it("holds BOTH bodies at fixed coordinates across an eccentric revolution", () => {
-    // A year for this pair, so the samples span periapsis and apoapsis and the
-    // separation really does change between them.
+    // A year for this pair, so the samples span periapsis and apoapsis and the separation really does change between them.
     const period = 2 * Math.PI * Math.sqrt(AU ** 3 / STAR_MU);
     const separations: number[] = [];
     const starX: number[] = [];
@@ -425,8 +420,7 @@ describe("frameInstantAt: rotating-pulsating", () => {
         toFrame(instant, system.positionByIndex.get(1) as Vector3).position[0],
       );
     }
-    // The separation genuinely varies, so the constancy below is the dilatation
-    // working and not an accident of a circular orbit.
+    // The separation genuinely varies, so the constancy below is the dilatation working and not an accident of a circular orbit.
     expect(Math.max(...separations) / Math.min(...separations)).toBeGreaterThan(
       1.5,
     );
@@ -441,8 +435,7 @@ describe("frameInstantAt: rotating-pulsating", () => {
     const massRatio = PLANET_MU / (STAR_MU + PLANET_MU);
     const { system } = pulsatingAt(0);
     const star = toFrame(instant, system.positionByIndex.get(0) as Vector3);
-    // The heavier body sits a small fraction of the unit from the origin, on
-    // the far side from the lighter one.
+    // The heavier body sits a small fraction of the unit from the origin, on the far side from the lighter one.
     expect(star.position[0]).toBeCloseTo(-massRatio, 9);
   });
 

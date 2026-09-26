@@ -98,15 +98,13 @@ describe("FleetRoster: nothing has arrived at all", () => {
     const fixture = newFixture();
     renderRoster(fixture);
 
-    // `known === false` is the only reason this copy differs from the
-    // confirmed-empty copy below.
+    // `known === false` is the only reason this copy differs from the confirmed-empty copy below.
     expect(
       screen.getByText("Fleet data not available yet."),
     ).toBeInTheDocument();
     expect(screen.queryByText("No vessels tracked.")).toBeNull();
 
-    // `total === 0` sheds the whole table: the column header row goes with it,
-    // so none of these labels exist rather than sitting above an empty list.
+    // `total === 0` sheds the whole table: the column header row goes with it, so none of these labels exist rather than sitting above an empty list.
     expect(screen.queryByText("Vessel")).toBeNull();
     expect(screen.queryByText("Body")).toBeNull();
     expect(screen.queryByText("Crew")).toBeNull();
@@ -164,8 +162,7 @@ describe("FleetRoster: nothing has arrived at all", () => {
       screen.getByText("Fleet data not available yet."),
     ).toBeInTheDocument();
     expect(screen.getByText(/viewing from:\s*unknown/i)).toBeInTheDocument();
-    // Same reassignment as above: no stream is a `pending` coverage reading,
-    // which draws the absent form rather than a confident zero.
+    // Same reassignment as above: no stream is a `pending` coverage reading, which draws the absent form rather than a confident zero.
     expect(screen.queryByRole("meter", { name: "Comms coverage" })).toBeNull();
   });
 });
@@ -187,8 +184,7 @@ describe("FleetRoster: the `system !== undefined` absence gate", () => {
       fixture.emit("system.vessels", { vessels: [] });
     });
 
-    // The gate's whole purpose: an arrived empty roster is a different
-    // sentence from a roster that has never arrived.
+    // The gate's whole purpose: an arrived empty roster is a different sentence from a roster that has never arrived.
     await waitFor(() =>
       expect(screen.getByText("No vessels tracked.")).toBeInTheDocument(),
     );
@@ -213,8 +209,7 @@ describe("FleetRoster: the `system !== undefined` absence gate", () => {
       fixture.emit("system.vessels", null, { validAt: 100 });
     });
 
-    // This is the null-vs-undefined site, and the widget DOES distinguish
-    // them: a tombstone reads as "no vessels tracked", never as pending.
+    // This is the null-vs-undefined site, and the widget DOES distinguish them: a tombstone reads as "no vessels tracked", never as pending.
     await waitFor(() =>
       expect(screen.getByText("No vessels tracked.")).toBeInTheDocument(),
     );
@@ -269,8 +264,7 @@ describe("FleetRoster: the `bodies?.bodies ?? []` absence gate", () => {
     act(() => {
       fixture.emit("system.bodies", BODIES);
     });
-    // The other side of the same gate, so the assertion above is pinning an
-    // absence rather than a permanently-missing feature.
+    // The other side of the same gate, so the assertion above is pinning an absence rather than a permanently-missing feature.
     await waitFor(() => expect(screen.getByText("Mun")).toBeInTheDocument());
   });
 
@@ -280,8 +274,7 @@ describe("FleetRoster: the `bodies?.bodies ?? []` absence gate", () => {
 
     act(() => {
       fixture.emit("system.vessels", ONE_CRAFT);
-      // `b.name != null` skips the entry entirely, so the index stays
-      // unmapped and the row falls into the same placeholder as above.
+      // `b.name != null` skips the entry entirely, so the index stays unmapped and the row falls into the same placeholder as above.
       fixture.emit("system.bodies", { bodies: [{ index: 1 }] });
     });
 
@@ -335,8 +328,7 @@ describe("FleetRoster: partial vessel records", () => {
       fixture.emit("system.vessels", {
         vessels: [
           {
-            // Neither crew field read this tick: `magnitudeOf(undefined)` is
-            // null and `crewLabel` returns the placeholder, never a 0.
+            // Neither crew field read this tick: `magnitudeOf(undefined)` is null and `crewLabel` returns the placeholder, never a 0.
             vesselId: "v-unread",
             name: "Unread Crew",
             vesselType: 3,
@@ -355,8 +347,7 @@ describe("FleetRoster: partial vessel records", () => {
             commsControlSource: RosterCommsControlSource.Full,
           },
           {
-            // The `crewCount === 0 && crewCapacity == null` branch: a real
-            // zero with an unread capacity renders "0", not a zero over a dash.
+            // The `crewCount === 0 && crewCapacity == null` branch: a real zero with an unread capacity renders "0", not a zero over a dash.
             vesselId: "v-zero",
             name: "Zero Crew",
             vesselType: 3,
@@ -460,8 +451,7 @@ describe("FleetRoster: the `contact == null` absence gate", () => {
     // `contact == null ? "unknown"` fires. Note the row's own comms tag still
     // reads DIRECT off `system.vessels`, so the two disagree inside one row.
     expect(visibleText(panel)).toContain("unknown");
-    // `oneWay != null` gates the whole Delay term, so there is no label at
-    // all rather than a delay of zero or a placeholder.
+    // `oneWay != null` gates the whole Delay term, so there is no label at all rather than a delay of zero or a placeholder.
     expect(visibleText(panel)).not.toContain("Delay");
     expect(visibleText(panel)).not.toContain("round-trip");
     expect(screen.getByText("DIRECT")).toBeInTheDocument();
@@ -518,8 +508,7 @@ describe("FleetRoster: the `contact == null` absence gate", () => {
     const panel = await openSignalPanel(/Explorer signal/i);
     await waitFor(() => expect(visibleText(panel)).toContain("no path"));
     expect(visibleText(panel)).not.toContain("unknown");
-    // The light-time from the separate `.delay` record IS present, and reads
-    // as what it is: the last measurement before the path closed.
+    // The light-time from the separate `.delay` record IS present, and reads as what it is: the last measurement before the path closed.
     expect(visibleText(panel)).toContain("Delay (last known)");
     expect(visibleText(panel)).toMatch(/round-trip[\s~]*9\s*s/i);
   });
@@ -537,8 +526,7 @@ describe("FleetRoster: the `contact == null` absence gate", () => {
     });
 
     const panel = await openSignalPanel(/Explorer signal/i);
-    // The Link term resolves off `.contact` while `oneWay != null` still gates
-    // the Delay term away: the two topics are read separately.
+    // The Link term resolves off `.contact` while `oneWay != null` still gates the Delay term away: the two topics are read separately.
     await waitFor(() => expect(visibleText(panel)).toContain("connected"));
     expect(visibleText(panel)).not.toContain("Delay");
   });
@@ -584,8 +572,7 @@ describe("FleetRoster: the `!silence` absence gate", () => {
     act(() => {
       fixture.emit("silence.v-probe.state", SILENT);
     });
-    // The other side of the gate: the cell CAN render, so the absences above
-    // are the gate firing rather than a dead code path.
+    // The other side of the gate: the cell CAN render, so the absences above are the gate firing rather than a dead code path.
     await waitFor(() =>
       expect(screen.getByText(/reacquire in/i)).toBeInTheDocument(),
     );

@@ -97,8 +97,7 @@ describe("ManeuverPlanner: full node render off the stream", () => {
     });
 
     const text = visibleText(container);
-    // The list: one node, its delta-v and its countdown, off the derived
-    // `vessel.maneuver.legacy` reshape of the emitted frame.
+    // The list: one node, its delta-v and its countdown, off the derived `vessel.maneuver.legacy` reshape of the emitted frame.
     expect(text).toContain("Planned nodes");
     expect(text).not.toContain("No maneuver nodes planned.");
     expect(text).toContain("300 m/s");
@@ -107,16 +106,13 @@ describe("ManeuverPlanner: full node render off the stream", () => {
       3,
     );
 
-    // The burn window is the same node, not a second read of it: its half-delta-v
-    // instant IS the node's UT, so it counts down to the same moment the row does.
+    // The burn window is the same node, not a second read of it: its half-delta-v instant IS the node's UT, so it counts down to the same moment the row does.
     expect(text).toContain("Burn windows");
     expect(text).toContain(`in ${SECONDS_TO_BURN}s`);
-    // Nothing on this craft models a burn duration, so ignition and cutoff are
-    // absent rather than substituted from the node's UT.
+    // Nothing on this craft models a burn duration, so ignition and cutoff are absent rather than substituted from the node's UT.
     expect(text).toContain("no burn-time model");
 
-    // Editing and deleting a node are the list's own controls, and they only
-    // exist once a node does.
+    // Editing and deleting a node are the list's own controls, and they only exist once a node does.
     expect(
       container.querySelector('button[aria-label="Edit node"]'),
     ).not.toBeNull();

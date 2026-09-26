@@ -75,8 +75,7 @@ export class TagRegistry {
     if (this.resolved === "none") return this.isLegacyEnabled(tag);
     if (this.resolved === "all") return true;
     if (this.resolved.has(tag)) return true;
-    // Colon-scoped tags like "peer:kos" inherit enablement from their base
-    // ("peer") so `LOG_TAGS=peer` enables all peer sub-tags.
+    // Colon-scoped tags like "peer:kos" inherit enablement from their base ("peer") so `LOG_TAGS=peer` enables all peer sub-tags.
     const base = tag.split(":")[0];
     if (base !== tag && this.resolved.has(base)) return true;
     return this.isLegacyEnabled(tag);

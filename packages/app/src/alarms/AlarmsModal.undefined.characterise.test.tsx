@@ -36,8 +36,7 @@ import { DEFAULT_WARP_SAFETY_MARGIN_SECONDS } from "./types";
 /** The snapshot UT the presets anchor to. Matches the sibling suite's value. */
 const SNAPSHOT_UT = 1000;
 
-// Kerbin's GM and a parking orbit, lifted from `AlarmsModal.test.tsx` so the
-// solved `timeToAp` here is the same hand-checkable half-period.
+// Kerbin's GM and a parking orbit, lifted from `AlarmsModal.test.tsx` so the solved `timeToAp` here is the same hand-checkable half-period.
 const ORBIT_MU = 3.5316e12;
 const ORBIT_SMA = 700_000;
 const ORBIT_EPOCH = 10;
@@ -131,8 +130,7 @@ function emitOrbit(
     inc: 0,
     lan: 0,
     argPe: 0,
-    // Mean anomaly 0 at the view frame = at periapsis, so `timeToAp` is half a
-    // period and both apsis presets are offerable.
+    // Mean anomaly 0 at the view frame = at periapsis, so `timeToAp` is half a period and both apsis presets are offerable.
     meanAnomalyAtEpoch: 0,
     epoch: ORBIT_EPOCH,
     mu: ORBIT_MU,
@@ -199,8 +197,7 @@ describe("AlarmsModal: nothing has arrived at all", () => {
       screen.queryByRole("button", { name: /warp to next maneuver/i }),
     ).toBeNull();
 
-    // The onFire picker exists with its stock half only: the custom AG rows are
-    // telemetry-derived, so absent `vessel.control` means no AG1 row at all.
+    // The onFire picker exists with its stock half only: the custom AG rows are telemetry-derived, so absent `vessel.control` means no AG1 row at all.
     expect(screen.getByLabelText("Action group to fire")).toBeTruthy();
     expect(screen.getByRole("option", { name: /^SAS \(SAS\)/ })).toBeTruthy();
     expect(ag1Option()).toBeNull();
@@ -264,8 +261,7 @@ describe("AlarmsModal: the vessel.parts caption gate", () => {
 
 describe("AlarmsModal: the orbit-solve preset gate", () => {
   it("hides the Recommended disclosure while vessel.orbit has not arrived, with the modal otherwise live", async () => {
-    // A provider IS mounted and other topics ARE flowing here, so this pins the
-    // absence of the ONE read the presets depend on, not an unwired fixture.
+    // A provider IS mounted and other topics ARE flowing here, so this pins the absence of the ONE read the presets depend on, not an unwired fixture.
     const fixture = mount(modalWithUt());
     fixture.emit("vessel.control", STOCK_CONTROL_PAYLOAD);
     await screen.findByRole("option", { name: /^AG1 \(AG1\)/ });
@@ -320,8 +316,7 @@ describe("AlarmsModal: the snapshot UT gate", () => {
       screen.queryByText(/universal-time reading before new alarms/i),
     ).toBeNull();
     expect(screen.getByText(/UT at trigger/i)).toBeTruthy();
-    // Name is still empty, so the button is disabled for a reason that is NOT
-    // the UT: asserting the enable would pin the wrong thing.
+    // Name is still empty, so the button is disabled for a reason that is NOT the UT: asserting the enable would pin the wrong thing.
     expect(screen.getByRole("button", { name: "Add alarm" })).toBeDisabled();
   });
 });

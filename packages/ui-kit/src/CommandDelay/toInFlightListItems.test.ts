@@ -60,8 +60,7 @@ describe("toInFlightListItems", () => {
       expect(
         journeyProgress(cmd({ reachEtaSeconds: 6, replyEtaSeconds: 12 })),
       ).toBeCloseTo(0, 5);
-      // Past the reach point (reach negative): T=6, elapsed = 6 - (-2) = 8,
-      // axis span 3T = 18 -> 8/18.
+      // Past the reach point (reach negative): T=6, elapsed = 6 - (-2) = 8, axis span 3T = 18 -> 8/18.
       expect(
         journeyProgress(cmd({ reachEtaSeconds: -2, replyEtaSeconds: 4 })),
       ).toBeCloseTo(8 / 18, 5);

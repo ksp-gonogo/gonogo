@@ -27,8 +27,7 @@ export const instantRefusesARange = (
   />
 );
 
-// An INTERVAL of the same dimension takes one, which is what makes the rule
-// about point-ness rather than about time.
+// An INTERVAL of the same dimension takes one, which is what makes the rule about point-ness rather than about time.
 export const intervalTakesARange = (
   <UnitInput
     label="Coast"
@@ -39,8 +38,7 @@ export const intervalTakesARange = (
   />
 );
 
-// The value and the emitted value carry the SAME unit: a control for one
-// dimension cannot be handed another's value.
+// The value and the emitted value carry the SAME unit: a control for one dimension cannot be handed another's value.
 export const unitsMustAgree = (
   <UnitInput
     label="Tangent"

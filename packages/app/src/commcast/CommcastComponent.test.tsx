@@ -192,8 +192,7 @@ describe("Commcast, rendered", () => {
       name: /Tracking is locked|do you copy/,
     });
     expect(rows).toHaveLength(2);
-    // Something is still crossing to the craft, so that conversation is first
-    // and says so; the settled one does not.
+    // Something is still crossing to the craft, so that conversation is first and says so; the settled one does not.
     expect(rows[0]).toHaveAccessibleName(/do you copy/);
     expect(rows[0]).toHaveAccessibleName(/1 out/);
     expect(rows[1]).not.toHaveAccessibleName(/out/);
@@ -284,15 +283,13 @@ describe("Commcast, rendered", () => {
      */
     const group = key.parentElement?.parentElement as Element;
     expect(getComputedStyle(group).flexShrink).toBe("0");
-    // The bar's own title, reached from the group so the query cannot wander
-    // into the log, where the same correspondent's name appears on every line.
+    // The bar's own title, reached from the group so the query cannot wander into the log, where the same correspondent's name appears on every line.
     const bar = group.parentElement as Element;
     const title = bar.querySelector(":scope > span");
     // It names the conversation, which is what the mute is named after too.
     expect(mute.getAttribute("aria-label")).toBe(`Mute ${title?.textContent}`);
     expect(getComputedStyle(title as Element).whiteSpace).toBe("nowrap");
-    // A reason, not a dead control: this page is not a secure origin and has no
-    // WebCodecs, and those are different sentences to an operator.
+    // A reason, not a dead control: this page is not a secure origin and has no WebCodecs, and those are different sentences to an operator.
     expect(key).toBeDisabled();
     expect(container).toHaveTextContent(/Not a secure origin|No audio codec/);
   });
@@ -611,8 +608,7 @@ describe("Commcast, rendered", () => {
   });
 
   it("says a message that never left is unconfirmed for a DIFFERENT reason", async () => {
-    // "Nothing came back" and "nothing went out" call for different
-    // judgements, so they must not read the same.
+    // "Nothing came back" and "nothing went out" call for different judgements, so they must not read the same.
     const log = makeLog();
     log.replaceForTesting({
       outbox: [
@@ -642,8 +638,7 @@ describe("Commcast, rendered", () => {
     });
     const { transport } = renderWidget(log);
     await openConversation(/do you copy/);
-    // Silence is NOT a lost link: a screen that has heard nothing about the
-    // route must not accuse its own log of being incomplete.
+    // Silence is NOT a lost link: a screen that has heard nothing about the route must not accuse its own log of being incomplete.
     expect(screen.queryByText("no signal")).toBeNull();
     act(() => transport.emit("comms.link", { connected: false }));
     expect(screen.getByText("no signal")).toBeInTheDocument();
@@ -672,8 +667,7 @@ describe("Commcast, rendered", () => {
       })),
     });
     const { transport } = renderWidget(log);
-    // The vantage arriving is what rebuilds the buffer, so this is the edge
-    // the defect lived on.
+    // The vantage arriving is what rebuilds the buffer, so this is the edge the defect lived on.
     act(() =>
       transport.emit("comms.link", { connected: true }, { vantage: "ksc" }),
     );

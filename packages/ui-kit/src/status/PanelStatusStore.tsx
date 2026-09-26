@@ -79,8 +79,7 @@ function summarise(
   return null; // unreachable: worst is drawn from the set
 }
 
-// Shared frozen empty so an empty store returns one stable identity (a fresh
-// `[]` per call would loop useSyncExternalStore).
+// Shared frozen empty so an empty store returns one stable identity (a fresh `[]` per call would loop useSyncExternalStore).
 const EMPTY_BREAKDOWN: readonly StatusBreakdownEntry[] = Object.freeze([]);
 
 /** Per-severity counts, worst-first. Each distinct severity is its own row with

@@ -118,8 +118,7 @@ describe("useDataSeries", () => {
     const renders: SeriesRange[] = [];
     view = render(<Probe onRender={(r) => renders.push(r)} />);
 
-    // Let the backfill subscription settle before emitting, mirrors the
-    // "appends live samples" test above which does the same.
+    // Let the backfill subscription settle before emitting, mirrors the "appends live samples" test above which does the same.
     await act(async () => {
       await Promise.resolve();
     });
@@ -166,8 +165,7 @@ describe("useDataSeries", () => {
     view = render(<Probe onRender={(r) => renders.push(r)} />);
 
     await act(async () => {
-      // Past the backfill's upper bound (the real Date.now at mount), where
-      // every live sample after mount sits.
+      // Past the backfill's upper bound (the real Date.now at mount), where every live sample after mount sits.
       clock += 20_000;
       mock.emit("v.altitude", 100);
     });

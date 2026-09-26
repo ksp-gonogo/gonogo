@@ -1,6 +1,5 @@
 // ---------------------------------------------------------------------------
-// The `plots` contribution slot: ONE slot, globally, whose contribution type is
-// a WHOLE PLOT.
+// The `plots` contribution slot: ONE slot, globally, whose contribution type is a WHOLE PLOT.
 //
 // A plot states its own coordinate frame, its own marks, and, by the ordinary
 // absence discipline every contribution already has, its own RELEVANCE: a plot

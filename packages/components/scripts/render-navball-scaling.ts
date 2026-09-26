@@ -34,8 +34,7 @@ const LOCAL_DOCS = resolve(HERE, "../../../local_docs");
 const REPO_ROOT = resolve(HERE, "../../..");
 const DOCS_ASSETS = resolve(REPO_ROOT, "docs/assets");
 
-// Single fixture rendered at every size so the only thing that changes across
-// the strip is the footprint-driven layout.
+// Single fixture rendered at every size so the only thing that changes across the strip is the footprint-driven layout.
 const FIXTURE = "gravity-turn-east";
 
 // (mode slug, grid label): the harness writes `<fixture>--<mode>.png`. These
@@ -111,8 +110,7 @@ async function main(): Promise<void> {
     //    navball gif on the README hero line.
     const montaged = join(outAbs, "montage.png");
     await execFileAsync("montage", [
-      // montage resolves a font even when no tile labels are drawn; point it at
-      // the same concrete file so a missing fontconfig alias can't fail it.
+      // montage resolves a font even when no tile labels are drawn; point it at the same concrete file so a missing fontconfig alias can't fail it.
       "-font",
       FONT_PATH,
       ...panels,

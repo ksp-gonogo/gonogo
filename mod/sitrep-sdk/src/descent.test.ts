@@ -80,8 +80,7 @@ describe("projectDescent", () => {
   });
 
   it("reports NO settle height for a vessel already riding the curve", () => {
-    // It did not settle on the way down, it started settled, and a tick at the
-    // vessel's own altitude would point at the mark beside it.
+    // It did not settle on the way down, it started settled, and a tick at the vessel's own altitude would point at the mark beside it.
     const p = projectDescent({
       startSpeed: 121,
       startAltitude: 20_000,
@@ -92,8 +91,7 @@ describe("projectDescent", () => {
   });
 
   it("settles DEEPER the higher the terminal velocity is", () => {
-    // The plot's whole entry read: a high ballistic coefficient means a high
-    // terminal velocity, which drives the deceleration further down.
+    // The plot's whole entry read: a high ballistic coefficient means a high terminal velocity, which drives the deceleration further down.
     const shallow = projectDescent({
       startSpeed: 1400,
       startAltitude: 20_000,
@@ -147,8 +145,7 @@ describe("relativeDensityCurve", () => {
   });
 
   it("agrees with the curve it is derived from, never a second model", () => {
-    // v_t goes as 1/sqrt(rho), so the two are one statement written twice: a
-    // haze drawn from this and a curve drawn from that cannot disagree.
+    // v_t goes as 1/sqrt(rho), so the two are one statement written twice: a haze drawn from this and a curve drawn from that cannot disagree.
     const anchors = { speedNow: 300, altitudeNow: 28_000, groundSpeed: 95 };
     const rho = relativeDensityCurve(anchors);
     const vt = terminalVelocityCurve(anchors);

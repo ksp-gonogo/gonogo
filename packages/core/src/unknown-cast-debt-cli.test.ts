@@ -77,8 +77,7 @@ describe("the unknown-cast debt generator refuses an unscoped --update", () => {
     const result = run(["--update"]);
     expect(result.stderr).toContain("--update --only");
     expect(result.stderr).toContain("--update --all");
-    // A refusal naming a flag the script no longer parses reads as a bug in the
-    // caller, so the spellings are checked against the parser too.
+    // A refusal naming a flag the script no longer parses reads as a bug in the caller, so the spellings are checked against the parser too.
     const source = readFileSync(join(repoRoot, script), "utf8");
     expect(source).toContain('args.indexOf("--only")');
     expect(source).toContain('args.includes("--all")');

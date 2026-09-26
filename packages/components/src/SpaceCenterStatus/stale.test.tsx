@@ -72,8 +72,7 @@ function emitCareer(fixture: ReturnType<typeof setupStreamFixture>): void {
       scene: "SpaceCenter",
       launchSite: "LaunchPad",
     });
-    // Occupancy-only launch-site entry feeding the `spaceCenter.state` derived
-    // channel, the same trick `snapshots.test.tsx` documents.
+    // Occupancy-only launch-site entry feeding the `spaceCenter.state` derived channel, the same trick `snapshots.test.tsx` documents.
     fixture.emit("spaceCenter.launchSites", [
       { name: "__pad_occupancy__", padOccupied: false, padVesselTitle: null },
     ]);
@@ -166,13 +165,11 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
       expect(visibleText(container)).toContain("Upgrades held"),
     );
     const text = visibleText(container);
-    // The scene half is invisible on its own: withholding a permission removes an
-    // affordance and leaves nothing behind, so it has to be said out loud.
+    // The scene half is invisible on its own: withholding a permission removes an affordance and leaves nothing behind, so it has to be said out loud.
     expect(text).toContain("scene");
     expect(text).toContain("funds balance");
     expect(text).toContain("no longer current");
-    // MAX is the other reason a facility offers no upgrade, and it is a claim
-    // about the facility rather than about the link.
+    // MAX is the other reason a facility offers no upgrade, and it is a claim about the facility rather than about the link.
     expect(screen.queryByText("MAX")).toBeNull();
   });
 

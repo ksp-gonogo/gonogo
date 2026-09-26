@@ -1692,8 +1692,7 @@ export function PanelGlow({
 
   useEffect(() => {
     if (!ctx && process.env.NODE_ENV !== "production") {
-      // Loud rather than silent: without a context this renders correctly and
-      // does nothing, which is precisely how the last glow bug survived.
+      // Loud rather than silent: without a context this renders correctly and does nothing, which is precisely how the last glow bug survived.
       console.warn(
         "Panel.Glow rendered outside a Panel.Context, so it has no scroller " +
           "to observe and will never show. Wrap it in Panel.Context (or use " +
@@ -1946,8 +1945,7 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
 // they mount in two different parts of the panel.
 export const FRAMEWORK_AUGMENT_SEGMENTS = ["sections", "actions"] as const;
 
-// Frozen so the empty props object handed to both segment slots is one stable
-// reference rather than a fresh literal per render.
+// Frozen so the empty props object handed to both segment slots is one stable reference rather than a fresh literal per render.
 const NO_SEGMENT_PROPS: Record<string, never> = Object.freeze({});
 
 /**
@@ -2269,8 +2267,7 @@ function PanelRoot({
       : typeof panelTitle === "string"
         ? `${panelTitle}: ${statusLabel}`
         : `Status: ${statusLabel}`;
-  // `undefined`, not `null`: PanelHeader treats undefined as "no aside at all"
-  // and skips the box, where a null child would still render the padded slot.
+  // `undefined`, not `null`: PanelHeader treats undefined as "no aside at all" and skips the box, where a null child would still render the padded slot.
   const aside =
     panelAside === undefined &&
     statusBadge === null &&

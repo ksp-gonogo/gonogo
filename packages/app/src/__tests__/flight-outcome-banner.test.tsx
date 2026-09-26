@@ -368,8 +368,7 @@ describe("FlightOutcomeBanner", () => {
     expect(screen.queryByText(/VESSEL RECOVERED/)).toBeNull();
   });
 
-  // The crash modal's flight statistics come off `flightStats`, wrapped by the
-  // same walk one level down.
+  // The crash modal's flight statistics come off `flightStats`, wrapped by the same walk one level down.
   it("renders the crash flight statistics rather than zeros", async () => {
     const fixture = setupOutcomeStream();
 

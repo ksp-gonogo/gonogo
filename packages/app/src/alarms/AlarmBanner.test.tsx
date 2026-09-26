@@ -57,8 +57,7 @@ function renderBanner(snapshot: AlarmSnapshot) {
 
 describe("AlarmBanner T-minus", () => {
   it("counts down to a future time alarm on the GAME clock", () => {
-    // 8100 game seconds: two hours and a quarter, the same ladder the kit
-    // walks for the `time` kind.
+    // 8100 game seconds: two hours and a quarter, the same ladder the kit walks for the `time` kind.
     const { container } = renderBanner(snapshotOf([timeAlarm(8100)], 0));
     expect(screen.getByText("Node burn")).toBeInTheDocument();
     expect(container.textContent).toContain("T−2h 15m");

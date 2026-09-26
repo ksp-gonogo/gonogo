@@ -1,7 +1,6 @@
 // Runtime accessor for the contract's channel delay roles.
 //
-// A delay role is declared PER CHANNEL, in C# (`ChannelDeclaration.Delay` and
-// `ChannelDeclaration.HeldAtHome`), and reaches the client two ways.
+// A delay role is declared PER CHANNEL, in C# (`ChannelDeclaration.Delay` and `ChannelDeclaration.HeldAtHome`), and reaches the client two ways.
 //
 // The AUTHORITY is the running mod: `system.uplinks` carries a `delayRoles`
 // block the engine builds from every channel it has registered, core and Uplink

@@ -190,8 +190,7 @@ const SCENES: Scene[] = [
     scrollToLabel: "Frame",
   },
   {
-    // Further down: quantity rows (a tolerance in metres, a window in days, a
-    // history in hours) beside the bare counts, and a severity by name.
+    // Further down: quantity rows (a tolerance in metres, a window in days, a history in hours) beside the bare counts, and a severity by name.
     name: "planted-quantities",
     emit: { [TOPIC]: PLANTED_LIVE },
     pxW: 900,
@@ -225,8 +224,7 @@ const SCENES: Scene[] = [
     pxH: 460,
   },
   {
-    // The KSP tab, connected: every row drawn from the wire, grouped by who
-    // declared it, and SAVE waiting for a change.
+    // The KSP tab, connected: every row drawn from the wire, grouped by who declared it, and SAVE waiting for a change.
     name: "ksp-connected",
     tab: "ksp",
     connected: true,
@@ -235,8 +233,7 @@ const SCENES: Scene[] = [
     pxH: 620,
   },
   {
-    // The last save could not write the file: in force for this session only,
-    // and the standing line says so and why.
+    // The last save could not write the file: in force for this session only, and the standing line says so and why.
     name: "ksp-memory-only",
     tab: "ksp",
     connected: true,
@@ -256,8 +253,7 @@ const SCENES: Scene[] = [
     pxH: 620,
   },
   {
-    // KSP is not connected: the last values stay readable, and nothing can be
-    // changed, which the footer says.
+    // KSP is not connected: the last values stay readable, and nothing can be changed, which the footer says.
     name: "ksp-disconnected",
     tab: "ksp",
     connected: false,
@@ -275,8 +271,7 @@ const SCENES: Scene[] = [
     pxH: 620,
   },
   {
-    // RP-1's mod settings as its Uplink reads them, opened to show what the
-    // collapsed section holds: read-only, beside the settings gonogo owns.
+    // RP-1's mod settings as its Uplink reads them, opened to show what the collapsed section holds: read-only, beside the settings gonogo owns.
     name: "ksp-mod-settings",
     tab: "ksp",
     connected: true,
@@ -445,8 +440,7 @@ async function main(): Promise<void> {
     await browser.close();
   }
 
-  // A page error means a scene rendered wrong, and a silently wrong render is
-  // worse than no render: it goes to a reviewer looking like the real thing.
+  // A page error means a scene rendered wrong, and a silently wrong render is worse than no render: it goes to a reviewer looking like the real thing.
   if (failures > 0) {
     throw new Error(`${failures} page error(s) during rendering; see above`);
   }

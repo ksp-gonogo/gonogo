@@ -182,8 +182,7 @@ async function renderCapture(payload: CapturePayload): Promise<void> {
   activeRoot = createRoot(root);
   activeRoot.render(tree);
 
-  // Let React commit + effects run so useTelemetry/useLatestValue actually
-  // subscribe before anything emits.
+  // Let React commit + effects run so useTelemetry/useLatestValue actually subscribe before anything emits.
   await rafTick();
 
   for (const e of payload.streamEmits) {

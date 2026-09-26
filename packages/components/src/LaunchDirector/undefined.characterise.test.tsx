@@ -98,8 +98,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       expect(screen.getByText("Awaiting launch-pad telemetry")).toBeTruthy(),
     );
 
-    // Named absences rather than an empty container: none of the widget's
-    // sections, controls or readouts exist behind that one line.
+    // Named absences rather than an empty container: none of the widget's sections, controls or readouts exist behind that one line.
     expect(screen.queryByText("Pads")).toBeNull();
     expect(screen.queryByText("Crew")).toBeNull();
     expect(screen.queryByTitle("Available funds")).toBeNull();
@@ -160,8 +159,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       fixture.emit("spaceCenter.launchSites", null);
     });
 
-    // Identical render to the cold case above: nothing in this widget can tell
-    // "confirmed no launch sites" from "nothing has arrived yet".
+    // Identical render to the cold case above: nothing in this widget can tell "confirmed no launch sites" from "nothing has arrived yet".
     await waitFor(() =>
       expect(screen.getByText("Awaiting launch-pad telemetry")).toBeTruthy(),
     );
@@ -216,8 +214,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       ]);
     });
 
-    // No career telemetry: the craft is not launchable, and it is tagged with
-    // the same "Insufficient funds" reason a real short balance produces.
+    // No career telemetry: the craft is not launchable, and it is tagged with the same "Insufficient funds" reason a real short balance produces.
     const row = await waitFor(() =>
       screen.getByRole("button", { name: /Kerbal X/ }),
     );
@@ -289,8 +286,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       screen.getByRole("button", { name: "Launch Kerbal X unmanned" }),
     ).toBeTruthy();
 
-    // Contrast: an EMPTY roster is a roster, so the no-reading line goes and
-    // the launch control stays where it was.
+    // Contrast: an EMPTY roster is a roster, so the no-reading line goes and the launch control stays where it was.
     act(() => {
       fixture.emit("spaceCenter.crewRoster", []);
     });
@@ -367,8 +363,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       screen.getByRole("button", { name: "Revert to VAB (n/a)" }),
     ).toBeDisabled();
 
-    // Contrast: the flags arriving flips both labels, so the `?? false` is what
-    // produced the (n/a) text.
+    // Contrast: the flags arriving flips both labels, so the `?? false` is what produced the (n/a) text.
     act(() => {
       fixture.emit("ksp.revertAvailability", {
         canRevertToLaunch: true,
@@ -395,8 +390,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       fixture.emit("spaceCenter.scene", { scene: "Flight" });
     });
 
-    // `vesselName ?? padVesselTitle ?? "(unnamed)"`: both absent, so the
-    // widget asserts a flight is in progress and names it as an unnamed craft.
+    // `vesselName ?? padVesselTitle ?? "(unnamed)"`: both absent, so the widget asserts a flight is in progress and names it as an unnamed craft.
     await waitFor(() =>
       expect(screen.getByRole("status").textContent).toContain(
         "In flight: (unnamed)",

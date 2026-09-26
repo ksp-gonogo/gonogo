@@ -68,8 +68,7 @@ describe("PlotBoard", () => {
 
     render(<Host />);
 
-    // The contributor wrote `plots`, never `host-widget.plots`, and the widget
-    // hosting it is one it has never heard of.
+    // The contributor wrote `plots`, never `host-widget.plots`, and the widget hosting it is one it has never heard of.
     await waitFor(() => expect(screen.getByText("Guest plot")).toBeTruthy());
     await act(async () => {});
   });
@@ -125,8 +124,7 @@ describe("PlotBoard", () => {
     registerContribution({
       id: "irrelevant-plot",
       contributes: "plots",
-      // Relevance, the only route there is: not now, for whatever reason the
-      // plot's own subject gives it.
+      // Relevance, the only route there is: not now, for whatever reason the plot's own subject gives it.
       compute: () => null,
     });
 

@@ -39,8 +39,7 @@ describe("deriveActiveBurnParams", () => {
     // ve from the ACTIVE stage: 200 / ln(5/3) ≈ 391.5 m/s.
     expect(params.exhaustVelocity).toBeCloseTo(200 / Math.log(5 / 3), 3);
     expect(params.burnoutMass).toBe(3);
-    // A whole-vessel derivation off totalDvActual would be far higher, prove
-    // we're nowhere near it (that would grossly over-state the landing engine).
+    // A whole-vessel derivation off totalDvActual would be far higher, prove we're nowhere near it (that would grossly over-state the landing engine).
     expect(params.exhaustVelocity as number).toBeLessThan(1000);
   });
 

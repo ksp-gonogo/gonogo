@@ -93,8 +93,7 @@ describe("ScienceData with nothing on the stream", () => {
   it("renders the Aboard tab with the awaiting line, the no-data state, and no table", () => {
     renderData();
     expect(screen.getByText("SCIENCE DATA")).toBeInTheDocument();
-    // `body && situation` both undefined: the line names the absence rather
-    // than rendering a half-joined "undefined · undefined".
+    // `body && situation` both undefined: the line names the absence rather than rendering a half-joined "undefined · undefined".
     expect(
       screen.getByText("Awaiting situation telemetry"),
     ).toBeInTheDocument();
@@ -105,8 +104,7 @@ describe("ScienceData with nothing on the stream", () => {
     expect(
       screen.queryByRole("columnheader", { name: "Subject" }),
     ).not.toBeInTheDocument();
-    // The filter control is gated on the same two flags, so an operator gets no
-    // search box to type into over an absent list.
+    // The filter control is gated on the same two flags, so an operator gets no search box to type into over an absent list.
     expect(
       screen.queryByPlaceholderText("Filter subjects..."),
     ).not.toBeInTheDocument();
@@ -114,13 +112,11 @@ describe("ScienceData with nothing on the stream", () => {
 
   it("renders no record-count line at all, where an empty list would say 0 records", () => {
     const fixture = renderData();
-    // `sciCount = experiments ? experiments.length : undefined`, and the line is
-    // gated on `typeof sciCount === "number"`: the absent read prints nothing.
+    // `sciCount = experiments ? experiments.length : undefined`, and the line is gated on `typeof sciCount === "number"`: the absent read prints nothing.
     expect(screen.queryByText(/record/)).not.toBeInTheDocument();
 
     feed(fixture, "science.experiments", []);
-    // The contrast that makes the gate visible: a CONFIRMED empty list is a
-    // zero, and gets said out loud.
+    // The contrast that makes the gate visible: a CONFIRMED empty list is a zero, and gets said out loud.
     expect(screen.getByText(/0 records/)).toBeInTheDocument();
     expect(screen.getByText("No science data aboard.")).toBeInTheDocument();
   });
@@ -145,8 +141,7 @@ describe("ScienceData with nothing on the stream", () => {
     expect(screen.queryByText(/1234 SCI/)).not.toBeInTheDocument();
 
     feed(fixture, "career.mode", { mode: 1 });
-    // The mode arriving is the only thing that changed, which is what stops the
-    // assertion above from passing for some unrelated reason.
+    // The mode arriving is the only thing that changed, which is what stops the assertion above from passing for some unrelated reason.
     expect(screen.getByText(/1234 SCI/)).toBeInTheDocument();
   });
 });
@@ -184,8 +179,7 @@ describe("ScienceData's Archive tab reads an absent archive as Sandbox mode", ()
     const fixture = renderData();
     feed(fixture, "science.archive", []);
     await userEvent.click(screen.getByRole("tab", { name: "Archive" }));
-    // The one case the widget reports honestly today, and the reason the two
-    // above are worth pinning: an empty array is a fresh career, not a sandbox.
+    // The one case the widget reports honestly today, and the reason the two above are worth pinning: an empty array is a fresh career, not a sandbox.
     expect(
       screen.getByText("No science collected yet this career."),
     ).toBeInTheDocument();
@@ -217,8 +211,7 @@ describe("ScienceData with a partial payload", () => {
     // no table at all.
     expect(screen.getByText("Crew Report")).toBeInTheDocument();
     expect(visibleText()).toContain(NULL_DISPLAY);
-    // No figure anywhere means the "· N collected" summand is dropped too: only
-    // entries carrying a figure are summed, and none do.
+    // No figure anywhere means the "· N collected" summand is dropped too: only entries carrying a figure are summed, and none do.
     expect(screen.getByText(/1 record/)).toBeInTheDocument();
     expect(visibleText()).not.toContain("collected");
 
@@ -229,8 +222,7 @@ describe("ScienceData with a partial payload", () => {
         dataAmount: 5,
       },
     ]);
-    // With a figure present the summand appears, so the absence above is the
-    // gate firing rather than the line never existing.
+    // With a figure present the summand appears, so the absence above is the gate firing rather than the line never existing.
     expect(visibleText()).toContain("collected");
   });
 
@@ -239,8 +231,7 @@ describe("ScienceData with a partial payload", () => {
     feed(fixture, "science.experiments", [
       { subjectId: "mysteryGoo@MunSrfLandedMidlands", dataAmount: 8 },
     ]);
-    // Same partial-payload family: the absent field is filled with a literal
-    // rather than dropping the row.
+    // Same partial-payload family: the absent field is filled with a literal rather than dropping the row.
     expect(screen.getByText("(unnamed)")).toBeInTheDocument();
   });
 });

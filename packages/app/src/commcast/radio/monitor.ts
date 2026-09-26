@@ -58,7 +58,6 @@ export function saveMutedThreads(
   try {
     store.setItem(STORAGE_PREFIX + screenKey, JSON.stringify([...keys]));
   } catch {
-    // Nothing to do and nothing worth saying: the operator's mute holds for
-    // this page load either way.
+    // Nothing to do and nothing worth saying: the operator's mute holds for this page load either way.
   }
 }

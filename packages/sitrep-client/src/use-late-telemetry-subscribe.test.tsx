@@ -37,8 +37,7 @@ describe("useLateTelemetrySubscribe", () => {
 
     const onValue = vi.fn();
     await act(async () => {
-      // Simulate the scansat "acquire resolves, then subscribe" shape: the
-      // topic is only known after this microtask, well after mount.
+      // Simulate the scansat "acquire resolves, then subscribe" shape: the topic is only known after this microtask, well after mount.
       await Promise.resolve();
       subscribe?.("scansat.mask.Kerbin.2", onValue);
     });

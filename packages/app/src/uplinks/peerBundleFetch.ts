@@ -6,8 +6,7 @@
 // PeerHostService.handleUplinkBundleRequest for the host's verify+dedup
 // side.
 //
-// This is a thin adapter, not wired into any boot path yet; see this
-// file's own header note below and the D6 handoff report for why.
+// This is a thin adapter, not wired into any boot path yet; see this file's own header note below and the D6 handoff report for why.
 
 import type { PeerClientService } from "../peer/PeerClientService";
 

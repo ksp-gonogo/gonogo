@@ -34,8 +34,7 @@ describe("formatKspDate", () => {
   });
 
   it("clamps negative UT to the epoch rather than going negative", () => {
-    // KSP UT is never negative in normal play; clamp to the epoch instead
-    // of surfacing a nonsensical Y0/negative-day reading.
+    // KSP UT is never negative in normal play; clamp to the epoch instead of surfacing a nonsensical Y0/negative-day reading.
     expect(formatKspDate(-1)).toBe("Y1 D1 00:00:00");
     expect(formatKspDate(-9_201_600)).toBe("Y1 D1 00:00:00");
   });

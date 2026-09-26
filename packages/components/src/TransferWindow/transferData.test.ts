@@ -41,8 +41,7 @@ function mkBody(
     argumentOfPeriapsis: null,
     meanAnomalyAtEpoch: null,
     epoch: null,
-    // These fixtures are about geometry, not about how far anyone will vouch
-    // for it, so every body here is unbounded and analytic.
+    // These fixtures are about geometry, not about how far anyone will vouch for it, so every body here is unbounded and analytic.
     horizon: ANALYTIC_BODY_HORIZON,
     period: null,
     trueAnomaly: null,
@@ -249,8 +248,7 @@ describe("transferData bridge", () => {
       origin: [],
       dest: [],
     };
-    // Both bodies frozen, a quarter turn apart: a well-conditioned 90-degree
-    // transfer that the moving conic cannot reproduce at any instant.
+    // Both bodies frozen, a quarter turn apart: a well-conditioned 90-degree transfer that the moving conic cannot reproduce at any instant.
     const injected = buildTransferPorkchop({
       ...base,
       propagateOrigin: (ut) => {
@@ -606,8 +604,7 @@ describe("porkchop grid quantisation: why it scales with the chart", () => {
       ),
     );
 
-    // The scaled quantum still collapses a second of frames into a handful of rebuilds;
-    // the fixed one collapses nothing at all.
+    // The scaled quantum still collapses a second of frames into a handful of rebuilds; the fixed one collapses nothing at all.
     expect(fixed60.size).toBe(60);
     expect(scaled.size).toBeLessThan(5);
   });

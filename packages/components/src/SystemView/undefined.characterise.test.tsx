@@ -163,8 +163,7 @@ describe("SystemView: what undefined means today", () => {
     expect(container.querySelectorAll(VESSEL_DOT)).toHaveLength(0);
     expect(visibleText(container)).not.toMatch(/Frame:/);
 
-    // The almanac renders its own absence copy rather than a table of dashes,
-    // because `panelBody` is null (no focus, and no vessel body to default to).
+    // The almanac renders its own absence copy rather than a table of dashes, because `panelBody` is null (no focus, and no vessel body to default to).
     expect(
       screen.getByText(/Hover or focus a body in the diagram/i),
     ).toBeInTheDocument();
@@ -211,8 +210,7 @@ describe("SystemView: what undefined means today", () => {
 
   it("names a frame confidently off the root star when no vessel telemetry exists", async () => {
     const { container } = mount({ frame: "auto" });
-    // Bodies only: no vessel.identity, so `identity?.parentBodyIndex != null`
-    // fails and `vesselBody` is null.
+    // Bodies only: no vessel.identity, so `identity?.parentBodyIndex != null` fails and `vesselBody` is null.
     act(() => {
       fixture.emit("system.bodies", kerbinSystem());
     });
@@ -254,8 +252,7 @@ describe("SystemView: what undefined means today", () => {
     act(() => {
       fixture.emit("vessel.target", { name: "Mun" });
     });
-    // The contrast is what makes the assertion above load-bearing: the marker
-    // exists, and only the absent read was keeping it off screen.
+    // The contrast is what makes the assertion above load-bearing: the marker exists, and only the absent read was keeping it off screen.
     await waitFor(() =>
       expect(container.querySelectorAll(TARGET_DOT)).toHaveLength(1),
     );

@@ -153,8 +153,7 @@ export function ShipDiagram({
       typeof ResizeObserver === "undefined" ? null : new ResizeObserver(place);
     observer?.observe(menuHost);
     window.addEventListener("resize", place);
-    // Capture phase: the dashboard scrolls an inner container, not the window,
-    // and scroll events from those do not bubble.
+    // Capture phase: the dashboard scrolls an inner container, not the window, and scroll events from those do not bubble.
     window.addEventListener("scroll", place, true);
     return () => {
       observer?.disconnect();
@@ -225,8 +224,7 @@ export function ShipDiagram({
         throttle={throttle}
         onPartHover={setHovered}
         onPartFocus={(_, center) => setMouse(center)}
-        // Only offered when the widget supplied a command surface: a harness /
-        // snapshot render passes none, so parts stay non-activating there.
+        // Only offered when the widget supplied a command surface: a harness / snapshot render passes none, so parts stay non-activating there.
         onPartActivate={
           onInvokePartAction
             ? (part, anchor) => {
@@ -369,8 +367,7 @@ export function ShipDiagram({
                   )
                 }
                 onDismiss={dismissMenu}
-                // Positioning belongs to the host box now: the menu itself goes
-                // back in flow so the host wraps it and can be measured.
+                // Positioning belongs to the host box now: the menu itself goes back in flow so the host wraps it and can be measured.
                 style={MENU_IN_HOST}
               />
             </div>,
@@ -411,8 +408,7 @@ const RESET_BUTTON: CSSProperties = {
   textDecoration: "none",
 };
 
-// The portalled action menu's host box: fixed to the viewport, since its
-// coordinates come from `getBoundingClientRect`, which is viewport-relative.
+// The portalled action menu's host box: fixed to the viewport, since its coordinates come from `getBoundingClientRect`, which is viewport-relative.
 const MENU_HOST: CSSProperties = {
   position: "fixed",
   // The popover rung of the app's ladder, and it has to sit HERE rather than on
@@ -438,8 +434,7 @@ const TOOLTIP: CSSProperties = {
   borderRadius: "var(--radius-regular)",
   pointerEvents: "none",
   minWidth: "140px",
-  // Off the app z-index ladder: the upper half of the local pair with
-  // ResetButton above, both inside Root.
+  // Off the app z-index ladder: the upper half of the local pair with ResetButton above, both inside Root.
   zIndex: 20,
 };
 

@@ -277,8 +277,7 @@ function fixtureFromChannels(
 ): Record<string, unknown> {
   const emits = CARRIED.map((channel) => {
     const value = ch[channel];
-    // A descending craft is under physics, so its vessel.orbit sample carries
-    // quality:1 (Loaded), as the mod stamps it.
+    // A descending craft is under physics, so its vessel.orbit sample carries quality:1 (Loaded), as the mod stamps it.
     return channel === "vessel.orbit"
       ? { channel, value, meta: { quality: 1 } }
       : { channel, value };
@@ -493,8 +492,7 @@ function emitAll(): void {
     frames[frames.length - 2];
   const final =
     frames.find((f) => f.aglMeters <= 40) ?? frames[frames.length - 1];
-  // The settled touched-down frame (last): situation Landed, all motion nulled,
-  // the widget shows the landed state, no stale descent countdown.
+  // The settled touched-down frame (last): situation Landed, all motion nulled, the widget shows the landed state, no stale descent countdown.
   const landedFrame = frames.find((f) => f.landed) ?? frames[frames.length - 1];
 
   const fixDir = resolve(
@@ -523,8 +521,7 @@ function emitAll(): void {
     `${JSON.stringify(streamFixture(landedFrame, 4, "descent-landed", "Touched down: situation Landed, motion nulled -> settled landed state, no stale countdown."), null, 2)}\n`,
   );
 
-  // Terrain-type showcase: one near-touchdown frame per distinct terrain, so the
-  // reticle relief + verdict range is visible across flat/slope/crater/ridge/etc.
+  // Terrain-type showcase: one near-touchdown frame per distinct terrain, so the reticle relief + verdict range is visible across flat/slope/crater/ridge/etc.
   const showcaseDir = resolve(
     import.meta.dirname,
     "../src/LandingStatus/__render_terrains__",
@@ -548,6 +545,5 @@ function emitAll(): void {
   console.log(`terrain showcase (${PRESETS.length}) -> ${showcaseDir}`);
 }
 
-// Run the file-writing only when invoked directly (`tsx synthesize-landing-descent.ts`),
-// so importing `integrate`/`streamFixture` (e.g. from the gif renderer) is side-effect-free.
+// Run the file-writing only when invoked directly (`tsx synthesize-landing-descent.ts`), so importing `integrate`/`streamFixture` (e.g. from the gif renderer) is side-effect-free.
 if (process.argv[1]?.includes("synthesize-landing-descent")) emitAll();

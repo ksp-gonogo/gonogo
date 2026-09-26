@@ -728,8 +728,7 @@ describe("the carried altitude as a plotted tail", () => {
     expect(tail.every((sample) => sample.basis === "rate-integration")).toBe(
       true,
     );
-    // Every instant lands after the newest observation and no later than the
-    // view time, which is the interval a tail is defined over.
+    // Every instant lands after the newest observation and no later than the view time, which is the interval a tail is defined over.
     expect(tail.every((sample) => sample.atUt > 10 && sample.atUt <= 16)).toBe(
       true,
     );
@@ -1004,8 +1003,7 @@ describe("how well the descent fit knows the altitude it carried", () => {
     );
     const last = tail[tail.length - 1];
 
-    // The chart's half of the same claim, through `fieldScopedReckoner`, which
-    // looks the band up at the EXACT field path rather than inheriting one.
+    // The chart's half of the same claim, through `fieldScopedReckoner`, which looks the band up at the EXACT field path rather than inheriting one.
     expect(last.bandKind).toBe("sigma1");
     expect(last.bandLo?.unit).toBe("m");
     expect(last.bandHi?.magnitude).toBeGreaterThan(last.value.magnitude);
@@ -1102,8 +1100,7 @@ describe("the altitude band through the store's input-rule walk", () => {
     registerReckoner("vessel.orbit", "test-uplink", reachingTo(20));
     registerReckoner("system.bodies", "test-uplink", reachingTo(12));
 
-    // The control for the case above: one second earlier, nothing has run out
-    // and the same frame is carried.
+    // The control for the case above: one second earlier, nothing has run out and the same frame is carried.
     expect(s.at(11).reckoning.status).toBe("available");
   });
 
@@ -1143,8 +1140,7 @@ describe("the altitude band through the store's input-rule walk", () => {
       bandedBy("bound", 40, pulls),
     );
 
-    // A model gains no confidence from an input that has more: the rule can
-    // only soften a claim, never strengthen one.
+    // A model gains no confidence from an input that has more: the rule can only soften a claim, never strengthen one.
     expect(altitudeBand(s.at(13))?.kind).toBe("sigma1");
   });
 });

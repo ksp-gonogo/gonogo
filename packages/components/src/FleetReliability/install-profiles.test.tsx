@@ -169,8 +169,7 @@ describe("the reliability election, seen from six installs", () => {
     expect(screen.getByText("AJ10-137")).toBeVisible();
     const ignitions = screen.getByText(/of.*rated ignitions left/);
     expect(ignitions).toBeVisible();
-    // Both numbers, because "of" between two of them is the whole sentence:
-    // the remaining count is derived (limit minus used) and the limit is not.
+    // Both numbers, because "of" between two of them is the whole sentence: the remaining count is derived (limit minus used) and the limit is not.
     expect(ignitions.textContent?.replace(/\s+/g, " ").trim()).toBe(
       "1 of 4 rated ignitions left",
     );
@@ -358,8 +357,7 @@ describe("channel ownership, seen from two installs", () => {
     emits: [{ channel: "comms.linkMargin", value: { db: 12.5 } }],
   };
 
-  // The guard blocks on a missing telemetry host before it looks at any roster,
-  // so the host has to be up for the ownership branch to be the one under test.
+  // The guard blocks on a missing telemetry host before it looks at any roster, so the host has to be up for the ownership branch to be the one under test.
   beforeEach(() => {
     registerDataSource({
       id: "sitrep",

@@ -157,8 +157,7 @@ describe("TransferWindow when the parking orbit is no longer current", () => {
     loseTheLink(fixture);
 
     await waitFor(() => expect(visibleText(view.container)).toMatch(HELD_NOTE));
-    // Held, not withheld: the instruments that ride the body catalogue are still
-    // there, and the caption names the one figure that does not.
+    // Held, not withheld: the instruments that ride the body catalogue are still there, and the caption names the one figure that does not.
     expect(screen.getByText("Current phase")).toBeInTheDocument();
     expect(screen.getByText("IDEAL")).toBeInTheDocument();
     expect(screen.getByText(/^Windows to$/)).toBeInTheDocument();
@@ -192,8 +191,7 @@ describe("TransferWindow when the parking orbit is no longer current", () => {
   });
 
   it("does not caption a confirmed tombstone as a held orbit", async () => {
-    // `absent` is the subject answering, not the link failing: the widget owes the
-    // operator the orbitless wording and none of the currency caption.
+    // `absent` is the subject answering, not the link failing: the widget owes the operator the orbitless wording and none of the currency caption.
     const { fixture, view } = setup();
     act(() => {
       fixture.emit("system.bodies", { bodies: [SUN, EARTH, MARS] });

@@ -321,8 +321,7 @@ function RoboticsConsoleComponent({
   const selected =
     servos.find((s) => s.partId === selectedId) ?? servos[0] ?? null;
 
-  // The dispatched value is type-formatted too: sending Math.round of a
-  // metre extension would command the piston to a whole metre.
+  // The dispatched value is type-formatted too: sending Math.round of a metre extension would command the piston to a whole metre.
   const setTarget = (id: string, type: ServoType, value: number) =>
     void targetCmd.send(
       { partId: id, value: Number(formatPos(type, value)) },
@@ -358,8 +357,7 @@ function RoboticsConsoleComponent({
       setTarget(selected.partId, selected.type, next);
       return { Target: next };
     },
-    // Motor and lock send an ABSOLUTE `enabled`, chosen by inverting the state
-    // read back, so an unread flag would command the inverse of a guess.
+    // Motor and lock send an ABSOLUTE `enabled`, chosen by inverting the state read back, so an unread flag would command the inverse of a guess.
     toggleMotor: (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
       if (!selected || selected.motorEngaged === null) return undefined;

@@ -309,8 +309,7 @@ export function buildCrossSectionPlot(
     });
   }
 
-  // The frame is anchored on the GROUND, and this is the whole difference
-  // between a terrain view and an altitude chart.
+  // The frame is anchored on the GROUND, and this is the whole difference between a terrain view and an altitude chart.
   //
   // It spans the terrain patch across, the same distance up, and sits with the
   // ground near its bottom edge. A vessel three kilometres above a fifty-metre
@@ -319,8 +318,7 @@ export function buildCrossSectionPlot(
   // what turned a terrain profile into an altitude chart with the terrain as a
   // sliver along the bottom, at which point neither reading survived.
   //
-  // Equal spans both ways because the frame is spatial: a slope drawn here is
-  // the slope, at any tile size.
+  // Equal spans both ways because the frame is spatial: a slope drawn here is the slope, at any tile size.
   const across = slice.halfSpan * 2;
   const groundLo = Math.min(...slice.points.map((p) => p.y));
   const floor = groundLo - across * GROUND_INSET;
@@ -334,8 +332,7 @@ export function buildCrossSectionPlot(
   // cap the craft is off the top and the picture is a terrain profile, which is
   // what it is a picture OF.
   //
-  // Equal SCALE survives either branch: the arranger derives the box's shape
-  // from these two spans, so the pixels stay square however tall the window is.
+  // Equal SCALE survives either branch: the arranger derives the box's shape from these two spans, so the pixels stay square however tall the window is.
   const reach = (vesselY - floor) * VESSEL_HEADROOM;
   // ONE span, used both ways, because the plot is drawn in a square and equal
   // scale has to survive that: a window taller than it is wide inside a square

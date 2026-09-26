@@ -54,8 +54,7 @@ export function degradeRatingOf(
     return undefined;
   }
   return {
-    // Clamped in the algebra, then unwrapped ONCE because `DegradeRating.level`
-    // is a plain number on the way out.
+    // Clamped in the algebra, then unwrapped ONCE because `DegradeRating.level` is a plain number on the way out.
     level: level.max(0).min(1).magnitude,
     modelId: payload?.modelId ?? "",
     modelName: payload?.modelName ?? "",

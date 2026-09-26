@@ -198,8 +198,7 @@ function widenToFit(
     y0 === frame.yDomain[0] &&
     y1 === frame.yDomain[1]
   ) {
-    // Referentially unchanged when nothing moved, so a plot that needed no
-    // widening does not hand the chart a fresh object every frame.
+    // Referentially unchanged when nothing moved, so a plot that needed no widening does not hand the chart a fresh object every frame.
     return frame;
   }
   return { ...frame, xDomain: [x0, x1], yDomain: [y0, y1] };

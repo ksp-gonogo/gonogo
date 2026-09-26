@@ -1,5 +1,4 @@
-// Boot-time roster probe (design §5 step 2), the input that turns the loader's
-// already-built three-way mod-hash check from stubbed to live.
+// Boot-time roster probe (design §5 step 2), the input that turns the loader's already-built three-way mod-hash check from stubbed to live.
 //
 // The loader runs pre-render, before `SitrepTelemetryProvider` mounts, so this
 // opens a short-lived `TelemetryClient` + `WebSocketTransport`, awaits the first
@@ -78,8 +77,7 @@ export async function probeUplinkRoster(
 ): Promise<RosterEntry[] | undefined> {
   const timeoutMs = opts.timeoutMs ?? 3000;
   const { host, port } = getSitrepHostConfig();
-  // Own (and dispose) only the transport we built, an injected one is the
-  // caller's, matching SitrepTelemetryProvider's ownership convention.
+  // Own (and dispose) only the transport we built, an injected one is the caller's, matching SitrepTelemetryProvider's ownership convention.
   let ownedTransport: WebSocketTransport | undefined;
   let client: TelemetryClient | undefined;
 
@@ -182,8 +180,7 @@ export async function readRosterFromTelemetryClient(
       const decoded = decodeRosterPayload(value);
       if (decoded === undefined) return;
       if (!subscribeReturned) {
-        // See the doc comment above: `unsub` isn't assigned yet, stash the
-        // result for the code right after `subscribe()` returns to finish.
+        // See the doc comment above: `unsub` isn't assigned yet, stash the result for the code right after `subscribe()` returns to finish.
         gotPendingSync = true;
         pendingSyncResult = decoded;
         return;

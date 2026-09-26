@@ -158,8 +158,7 @@ function NoteRow({
 }>) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(note.body);
-  // Keep the editor draft in sync if a different device edits this note
-  // while we're not currently editing it locally.
+  // Keep the editor draft in sync if a different device edits this note while we're not currently editing it locally.
   useEffect(() => {
     if (!editing) setDraft(note.body);
   }, [note.body, editing]);
@@ -194,8 +193,7 @@ function NoteRow({
           aria-label="Move down"
           disabled={isLast}
           onClick={() => {
-            // Move down = land this note after its current next
-            // neighbour.
+            // Move down = land this note after its current next neighbour.
             if (nextId === null) return;
             actions.reorderNote(note.id, nextId);
           }}
@@ -322,8 +320,7 @@ export function useTagValues(tags: readonly string[]): Map<string, unknown> {
     const scheduleFlush = () => {
       if (scheduled) return;
       scheduled = true;
-      // Microtask coalesce: many tags can update in the same tick; one
-      // re-render per flush is enough.
+      // Microtask coalesce: many tags can update in the same tick; one re-render per flush is enough.
       queueMicrotask(flush);
     };
 
@@ -496,8 +493,7 @@ registerComponent({
      turns on is 44px tall, so it covered whatever the widget had to say. */
   minSize: { w: 6, h: 5 },
   component: NotesComponent,
-  // Tags are dynamic per-note; we subscribe to whatever the body mentions
-  // at render time rather than declaring fixed dataRequirements upfront.
+  // Tags are dynamic per-note; we subscribe to whatever the body mentions at render time rather than declaring fixed dataRequirements upfront.
   dataRequirements: NOTES_DATA_REQUIREMENTS,
   defaultConfig: {},
   actions: [],

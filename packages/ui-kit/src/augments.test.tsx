@@ -214,8 +214,7 @@ describe("AugmentSlot: Domain presence gating (spec §4.2)", () => {
       channels: ["demomod.available"],
     });
 
-    // The gate reads ui-kit's own availability store (fed from telemetry by the
-    // app), never the spine directly, so it is driven here store-first.
+    // The gate reads ui-kit's own availability store (fed from telemetry by the app), never the spine directly, so it is driven here store-first.
     const store = createDomainAvailabilityStore();
 
     render(
@@ -246,8 +245,7 @@ describe("AugmentSlot: Domain presence gating (spec §4.2)", () => {
   });
 
   it("keeps a gated augment hidden when no availability provider is mounted", () => {
-    // Matches the old telemetry gate's answer with no `TelemetryProvider`: a
-    // Domain nothing has announced is not available.
+    // Matches the old telemetry gate's answer with no `TelemetryProvider`: a Domain nothing has announced is not available.
     registerAugment({
       id: "gated-no-provider",
       augments: "power-systems.sections",

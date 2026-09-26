@@ -62,8 +62,7 @@ describe("AtmosphereProfile when the flight reading is not current", () => {
       pinnedUt: 10,
       suspendFrames: true,
     });
-    // The chart measures itself before it draws anything, and the live chip is
-    // gated on the widget being big enough to carry it.
+    // The chart measures itself before it draws anything, and the live chip is gated on the widget being big enough to carry it.
     restoreResizeObserver = installFixedSizeResizeObserver({
       width: 400,
       height: 300,
@@ -147,8 +146,7 @@ describe("AtmosphereProfile when the flight reading is not current", () => {
     expect(visibleText(container)).not.toContain("ρ");
     expect(visibleText(container)).not.toContain("Air");
     expect(visibleText(container)).not.toContain("Skin");
-    // The line stays on the altitude it last knew, and a screen reader hears
-    // that it is held, since the dot is a shape it cannot see.
+    // The line stays on the altitude it last knew, and a screen reader hears that it is held, since the dot is a shape it cannot see.
     expect(visibleText(container)).toMatch(PRESSURE_LINE);
     expect(chartName(container)).toMatch(/pascals @ 6 km, .+/);
   });
@@ -172,8 +170,7 @@ describe("AtmosphereProfile when the flight reading is not current", () => {
     emitInAtmosphere();
     await waitFor(() => expect(visibleText(container)).toContain("ρ"));
 
-    // A confirmed zero: the chip goes, and nothing marks the line, because
-    // nothing is wrong with the link.
+    // A confirmed zero: the chip goes, and nothing marks the line, because nothing is wrong with the link.
     act(() => {
       fixture.emit(
         "vessel.flight",
@@ -203,8 +200,7 @@ describe("AtmosphereProfile when the flight reading is not current", () => {
   });
 
   it("marks nothing before anything has ever arrived", () => {
-    // A cold start is not a dropped link, and conflating them would accuse the
-    // link on every first paint.
+    // A cold start is not a dropped link, and conflating them would accuse the link on every first paint.
     const { container } = renderWidget();
 
     expect(visibleText(container)).toContain("Waiting for body telemetry...");

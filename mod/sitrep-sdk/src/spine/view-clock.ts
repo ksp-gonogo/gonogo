@@ -134,8 +134,7 @@ export class ViewClock {
       this.lastConfirmedViewUt["true-now"] = Number.NEGATIVE_INFINITY;
       this.anchorWall = undefined;
       this.anchorUt = undefined;
-      // A scrub target from the dead pre-rewind timeline must not survive,
-      // same per-epoch hygiene as every other reset here.
+      // A scrub target from the dead pre-rewind timeline must not survive, same per-epoch hygiene as every other reset here.
       this.scrubTarget = null;
     }
 

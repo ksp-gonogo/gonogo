@@ -40,8 +40,7 @@ describe("icon size tokens", () => {
   });
 
   it("the icon family stays off the type scale", () => {
-    // A type name offered for a box dimension gets reached for as text, which
-    // is the whole reason these two are not --font-size-*.
+    // A type name offered for a box dimension gets reached for as text, which is the whole reason these two are not --font-size-*.
     expect(read("./Icons.tsx")).not.toMatch(/size:\s*"var\(--font-size-/);
     expect(read("./MarkerIcons.tsx")).not.toMatch(
       /DEFAULT_SIZE\s*=\s*"var\(--font-size-/,

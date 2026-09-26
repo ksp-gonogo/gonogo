@@ -78,8 +78,7 @@ function flat(level: number, length = QUANTUM): Float32Array {
 
 describe("the mix limiter", () => {
   it("passes a single talker through untouched below the knee", () => {
-    // The overwhelmingly common case, and it must not be reshaped by machinery
-    // that exists for the rare one.
+    // The overwhelmingly common case, and it must not be reshaped by machinery that exists for the rare one.
     for (const level of [0, 0.1, 0.5, MIX_KNEE, -MIX_KNEE, -0.5]) {
       expect(mixSample(level)).toBe(level);
     }
@@ -101,8 +100,7 @@ describe("the mix limiter", () => {
       expect(Math.abs(mixSample(level))).toBeLessThan(1);
       expect(Math.abs(mixSample(level))).toBeGreaterThan(MIX_KNEE);
     }
-    // Odd, so the two halves of a waveform are shaped the same and the sum
-    // does not acquire a DC offset that a speaker would hear as a thump.
+    // Odd, so the two halves of a waveform are shaped the same and the sum does not acquire a DC offset that a speaker would hear as a thump.
     expect(mixSample(-1.7)).toBe(-mixSample(1.7));
   });
 
@@ -140,8 +138,7 @@ describe("the playout worklet", () => {
     write(processor, { lane: 1, samples: flat(0.2) });
 
     expect([...render(processor)]).toEqual([...flat(0.5)]);
-    // And nothing is left over: the second quantum is silence, not lane 1's
-    // audio arriving late.
+    // And nothing is left over: the second quantum is silence, not lane 1's audio arriving late.
     expect([...render(processor)]).toEqual([...flat(0)]);
   });
 
@@ -183,13 +180,11 @@ describe("the playout worklet", () => {
     const processor = loadPlayout();
     write(processor, { lane: 0, samples: flat(0.5) });
     write(processor, { lane: 0, close: true });
-    // The close does not truncate what the lane still holds: the sum has been
-    // handed those samples and cutting them would clip the last word.
+    // The close does not truncate what the lane still holds: the sum has been handed those samples and cutting them would clip the last word.
     expect(render(processor)[0]).toBeCloseTo(0.5, 6);
     expect(render(processor)[0]).toBe(0);
 
-    // A write arriving after the lane is gone must not resurrect a finished
-    // transmission on somebody else's lane number.
+    // A write arriving after the lane is gone must not resurrect a finished transmission on somebody else's lane number.
     write(processor, { lane: 0, samples: flat(0.5) });
     expect(render(processor)[0]).toBe(0);
   });

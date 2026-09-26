@@ -12,8 +12,7 @@ import { NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
 // as "4d". `styleguide-earth-day.test.ts` names this exact file as the place a
 // 24-hour day is correct, which is the note that caught it.
 //
-// "<1s" stays, because it says something the ladder does not: not "zero
-// seconds old" but "too recent to have a useful age".
+// "<1s" stays, because it says something the ladder does not: not "zero seconds old" but "too recent to have a useful age".
 export function formatAge(ms: number): string {
   if (ms < 1000) return "<1s";
   return writeQuantity(value("irl:s", ms / 1000));

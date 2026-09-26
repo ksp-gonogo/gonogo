@@ -15,8 +15,7 @@ export function useScrollIntoViewOnAdd(
     if (!lastAddedId) return;
     const root = gridRef.current;
     if (!root) return;
-    // RGL positions the cell asynchronously after layout reconciliation;
-    // wait one frame so scrollIntoView targets its final coordinates.
+    // RGL positions the cell asynchronously after layout reconciliation; wait one frame so scrollIntoView targets its final coordinates.
     const raf = requestAnimationFrame(() => {
       const cell = root.querySelector<HTMLElement>(
         `[data-i="${cssEscape(lastAddedId)}"]`,
@@ -44,8 +43,7 @@ export function useScrollIntoViewOnAdd(
 }
 
 function cssEscape(value: string): string {
-  // CSS.escape isn't on every test environment's window; UUIDs are safe but
-  // we still wrap so future non-UUID ids don't break the selector.
+  // CSS.escape isn't on every test environment's window; UUIDs are safe but we still wrap so future non-UUID ids don't break the selector.
   return typeof CSS !== "undefined" && typeof CSS.escape === "function"
     ? CSS.escape(value)
     : value.replace(/["\\]/g, "\\$&");

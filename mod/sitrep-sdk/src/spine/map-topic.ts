@@ -171,8 +171,7 @@ export function isKnownTopic(topic: string): boolean {
  * both.
  */
 export function isKnownFieldPath(path: string): boolean {
-  // Topic ids contain dots, so the split point is found rather than assumed:
-  // the longest prefix the contract knows as a topic wins.
+  // Topic ids contain dots, so the split point is found rather than assumed: the longest prefix the contract knows as a topic wins.
   const segments = path.split(".");
   for (let cut = segments.length - 1; cut >= 1; cut--) {
     const topic = segments.slice(0, cut).join(".");

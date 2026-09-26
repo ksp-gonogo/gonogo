@@ -114,8 +114,7 @@ describe("GO/NO-GO sounds", () => {
       vi.advanceTimersByTime(6_000);
     });
 
-    // StationView renders neither CountdownTone nor any host tone, silence
-    // is structural, not just gated.
+    // StationView renders neither CountdownTone nor any host tone, silence is structural, not just gated.
     expect(oscillators).toHaveLength(0);
   });
 });

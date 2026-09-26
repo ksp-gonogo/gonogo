@@ -109,8 +109,7 @@ describe("OrbitView: O4: a craft under physics still has an orbit to draw", () =
       quality: Quality.Loaded,
     });
 
-    // The apsides are algebra on the elements as they stand, so being under
-    // physics withholds nothing this diagram draws.
+    // The apsides are algebra on the elements as they stand, so being under physics withholds nothing this diagram draws.
     await waitFor(() => {
       if (container.querySelector("svg") === null) {
         throw new Error("diagram has not rendered yet");

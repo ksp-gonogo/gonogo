@@ -280,12 +280,10 @@ export function buildUplinkManifest(
 
   return {
     id,
-    // The id is a fallback, not a name: an Uplink that names itself nowhere is
-    // better shown as its id than as a plausible-looking invention.
+    // The id is a fallback, not a name: an Uplink that names itself nowhere is better shown as its id than as a plausible-looking invention.
     name: declared.name ?? registered?.name ?? carried.name ?? id,
     description: registered?.description ?? carried.description,
-    // An Uplink that declares no author IS unknown, and an empty string says so
-    // without claiming anything.
+    // An Uplink that declares no author IS unknown, and an empty string says so without claiming anything.
     author: declared.author ?? "",
     repo: declared.repo ?? "",
     version: pkg.version ?? registered?.version ?? "0.0.0",

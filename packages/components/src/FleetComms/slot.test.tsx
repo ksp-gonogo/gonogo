@@ -186,8 +186,7 @@ describe("FleetComms: actions augment on SystemView, comms drawing on the contri
   // side-effect imports `./badge`). Proves the two halves stay wired together
   // without this file having to import the badge module itself.
   it("registers the badge as a contribution on the same slot id", () => {
-    // `core:`-prefixed: a contribution id is stamped with its owning client,
-    // and the built-in half registers through `CORE_UPLINK_CLIENT`.
+    // `core:`-prefixed: a contribution id is stamped with its owning client, and the built-in half registers through `CORE_UPLINK_CLIENT`.
     expect(
       getContributionsForSlot("system-view.badges").map((c) => c.id),
     ).toContain("core:fleet-comms-badge");
@@ -202,8 +201,7 @@ describe("FleetComms: actions augment on SystemView, comms drawing on the contri
         ),
       ).toHaveLength(1);
     });
-    // No second, FleetComms-drawn line anywhere in the tree: the only
-    // `<line>` element is the one contributed edge.
+    // No second, FleetComms-drawn line anywhere in the tree: the only `<line>` element is the one contributed edge.
     expect(container.querySelectorAll("line")).toHaveLength(1);
   });
 

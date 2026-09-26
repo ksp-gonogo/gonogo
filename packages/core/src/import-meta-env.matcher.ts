@@ -35,11 +35,9 @@ const PATTERNS: Array<{
   kind: ImportMetaEnvViolation["kind"];
   re: RegExp;
 }> = [
-  // Reflect.get(import.meta, ...): a runtime property lookup, invisible to
-  // Vite's static substitution regardless of which key is read.
+  // Reflect.get(import.meta, ...): a runtime property lookup, invisible to Vite's static substitution regardless of which key is read.
   { kind: "reflect-get", re: /Reflect\.get\(\s*import\.meta\b/g },
-  // import.meta["env"] / import.meta['env'] / import.meta[`env`]: the same
-  // property, reached by a computed member instead of the dotted literal.
+  // import.meta["env"] / import.meta['env'] / import.meta[`env`]: the same property, reached by a computed member instead of the dotted literal.
   { kind: "bracket", re: /import\.meta\s*\[\s*(["'`])env\1\s*\]/g },
   // const { env } = import.meta (or a rename, `{ env: alias }`): the
   // destructure reads the property off import.meta before Vite gets a chance

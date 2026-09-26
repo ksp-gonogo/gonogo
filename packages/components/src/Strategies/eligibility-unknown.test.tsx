@@ -133,8 +133,7 @@ describe("parseStrategies carries the third eligibility state", () => {
   });
 
   it("reads an unanswerable eligibility as null, not as a refusal", () => {
-    // Both spellings the wire can carry: an explicit null, and the field simply
-    // not being written because the value behind it was absent.
+    // Both spellings the wire can carry: an explicit null, and the field simply not being written because the value behind it was absent.
     const { canActivate: _omitted, ...withoutTheField } = UNANSWERED;
     const parsed = parseStrategies([UNANSWERED, withoutTheField]);
     expect(parsed?.[0].canActivate).toBeNull();
@@ -173,8 +172,7 @@ describe("Strategies with an eligibility it could not read", () => {
   });
 
   it("keeps an unanswered strategy out of Available too", async () => {
-    // The opposite falsehood, and just as reachable: an unread eligibility is
-    // not permission either.
+    // The opposite falsehood, and just as reachable: an unread eligibility is not permission either.
     const fixture = newFixture();
     renderStrategies(fixture);
     emitCareer(fixture, [UNANSWERED]);
@@ -192,15 +190,13 @@ describe("Strategies with an eligibility it could not read", () => {
       name: "Eligibility unknown",
     });
     expect(within(unknown).getByText("Orbital Logistics")).toBeInTheDocument();
-    // The career model's own wording, on screen rather than in a tooltip: a
-    // title attribute is invisible to a keyboard and to a glance.
+    // The career model's own wording, on screen rather than in a tooltip: a title attribute is invisible to a keyboard and to a glance.
     expect(within(unknown).getByText(UNANSWERED_REASON)).toBeInTheDocument();
     expect(visibleText()).not.toContain("Locked");
   });
 
   it("states one shared reason once rather than on all of them", async () => {
-    // A closed facility makes every strategy unanswerable at once, so the
-    // per-card spelling is the same sentence down the whole screen.
+    // A closed facility makes every strategy unanswerable at once, so the per-card spelling is the same sentence down the whole screen.
     const fixture = newFixture();
     renderStrategies(fixture);
     emitCareer(fixture, [

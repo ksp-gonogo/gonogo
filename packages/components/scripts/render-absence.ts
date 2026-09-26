@@ -40,8 +40,7 @@ async function main(): Promise<void> {
   mkdirSync(outBase, { recursive: true });
   const staging = mkdtempSync(join(tmpdir(), "absence-scenes-"));
   try {
-    // Every scene staged first and rendered in ONE call, so the run launches
-    // one browser rather than one per scene.
+    // Every scene staged first and rendered in ONE call, so the run launches one browser rather than one per scene.
     const configs = [];
     for (const scene of ABSENCE_SCENES) {
       if (only && scene.id !== only) continue;

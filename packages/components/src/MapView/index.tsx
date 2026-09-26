@@ -412,8 +412,7 @@ function MapViewComponent({
   const trajectoryLength = config?.trajectoryLength ?? 2000;
   const showPrediction = config?.showPrediction ?? true;
   const bodyOverride = config?.bodyOverride;
-  // Vanilla POIs (KSC, contract targets) are always-relevant reference
-  // points, not an opt-in extension-shaped feature: default on (T-POI-7).
+  // Vanilla POIs (KSC, contract targets) are always-relevant reference points, not an opt-in extension-shaped feature: default on (T-POI-7).
   const showPois = config?.showPois ?? true;
 
   // Vessel kinematics read straight off the stream: `vessel.flight` for the
@@ -502,8 +501,7 @@ function MapViewComponent({
           ? altitudeReading.value
           : undefined,
     ) ?? undefined;
-  // Collapsed deliberately: MapView draws the name or draws nothing, and has
-  // no third rendering for a catalogue that is a confirmed tombstone.
+  // Collapsed deliberately: MapView draws the name or draws nothing, and has no third rendering for a catalogue that is a confirmed tombstone.
   const bodyName = useBodyName(useParentBodyIndex()) ?? undefined;
   const q = flight?.dynamicPressureKPa;
   const mach = flight?.mach;
@@ -968,8 +966,7 @@ function MapViewComponent({
   }, [containerSize]);
 
   // ── Trajectory layer: blit world canvas through camera ────────────────────
-  // trajectoryCount is needed here even though worldCanvasRef is a ref:
-  // the ref's identity is stable but its canvas content changes on each new point.
+  // trajectoryCount is needed here even though worldCanvasRef is a ref: the ref's identity is stable but its canvas content changes on each new point.
   // biome-ignore lint/correctness/useExhaustiveDependencies: trajectoryCount triggers redraw when world canvas content changes
   useEffect(() => {
     const canvas = persistentDataRef.current;
@@ -1071,8 +1068,7 @@ function MapViewComponent({
     ) {
       return [];
     }
-    // Capture past the outer guard so TS doesn't re-widen inside the map
-    // callback below.
+    // Capture past the outer guard so TS doesn't re-widen inside the map callback below.
     const bodyRadius = body.radius;
     const rotPeriod = body.rotationPeriod;
     const longitudeOffset = body.longitudeOffset ?? 0;
@@ -1080,8 +1076,7 @@ function MapViewComponent({
       const patches = (node.patches ?? []).map(mapOrbitPatch);
       const firstPatch = patches.find((p) => p.referenceBody === targetBodyId);
       if (!firstPatch) return [];
-      // Horizon extends from ref.ut up through the maneuver and 1.5 × its
-      // first post-burn period: enough to see the new orbit close up.
+      // Horizon extends from ref.ut up through the maneuver and 1.5 × its first post-burn period: enough to see the new orbit close up.
       const horizon = Math.min(
         node.ut.magnitude - universalTime + 1.5 * firstPatch.period,
         kspCalendar().day,
@@ -1123,8 +1118,7 @@ function MapViewComponent({
     if (!hasMain && !hasManeuvers) return;
 
     ctx.setTransform(...cameraTransform(camera, w, h));
-    // Compensate stroke + dash for camera zoom so they stay visually
-    // consistent at any scale.
+    // Compensate stroke + dash for camera zoom so they stay visually consistent at any scale.
     const screenLineWidth = 1.5;
     const screenDash = 4;
     ctx.lineWidth = screenLineWidth / camera.zoom;

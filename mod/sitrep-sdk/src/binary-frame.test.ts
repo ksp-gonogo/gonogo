@@ -267,8 +267,7 @@ describe("frameBytes", () => {
     expect(Array.from(frameBytes(source.buffer as ArrayBuffer))).toEqual([
       1, 2, 3, 4, 5,
     ]);
-    // A view with a non-zero offset is the case a naive `new Uint8Array(v.buffer)`
-    // gets wrong, silently reading the whole backing buffer instead of the view.
+    // A view with a non-zero offset is the case a naive `new Uint8Array(v.buffer)` gets wrong, silently reading the whole backing buffer instead of the view.
     expect(Array.from(frameBytes(source.subarray(2)))).toEqual([3, 4, 5]);
   });
 });

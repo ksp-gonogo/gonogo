@@ -70,8 +70,7 @@ const KNOWN_DIVERGENCES: readonly string[] = [
   // "@ksp-gonogo/core"` merge of `SlotRegistry` still lands, so the names have to
   // stay on ui-kit's barrel and the rule has to be about who imports them.
   //
-  // These four stay on this list because two declarations genuinely exist and
-  // the guard cannot collapse them.
+  // These four stay on this list because two declarations genuinely exist and the guard cannot collapse them.
   "AugmentSlot",
   "clearAugments",
   "getAugmentsForSlot",

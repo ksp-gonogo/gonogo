@@ -86,8 +86,7 @@ export const COINCIDENTAL: readonly string[] = [
    * `career.status` can carry the field this widget is looking for.
    */
   "packages/components/src/TechTree#state",
-  // `parts.state === "observed"`, the `vessel.parts` Reading's discriminant in `amountReading`
-  // `ideal.x` / `cur.x`, chart coordinates in the conformance drawing
+  // `parts.state === "observed"`, the `vessel.parts` Reading's discriminant in `amountReading` `ideal.x` / `cur.x`, chart coordinates in the conformance drawing
   "packages/components/src/TransferWindow#x",
   "packages/components/src/TransferWindow#y",
   /*

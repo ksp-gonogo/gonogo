@@ -222,8 +222,7 @@ export const _secondsGreaterThanBare = seconds.greaterThan(90);
 export const _percentLessThanBare = value("%", 50).lessThan(50);
 export const _compareAgainstBare = metres.compare(1000);
 
-// Arithmetic keeps the receiver's unit rather than shedding it to a number,
-// which is what stops the overload reopening the unitless-arithmetic hatch.
+// Arithmetic keeps the receiver's unit rather than shedding it to a number, which is what stops the overload reopening the unitless-arithmetic hatch.
 const metresMinusBare = metres.minus(3);
 const hoursPlusBare = hours.plus(60);
 export const _metresMinusBareKeepsUnit: Expect<
@@ -241,8 +240,7 @@ export const _hoursPlusBareKeepsUnit: Expect<
 export const _countPlusBare = value("count", 3).plus(1);
 
 // ── A point takes no bare operand ───────────────────────────────────────────
-// A bare number cannot say whether it means an instant or a duration, and
-// telling those apart is the whole job of the affine rules.
+// A bare number cannot say whether it means an instant or a duration, and telling those apart is the whole job of the affine rules.
 
 // @ts-expect-error: an instant minus a bare number would have to guess.
 export const _utMinusBare = value("ut", 100).minus(3);

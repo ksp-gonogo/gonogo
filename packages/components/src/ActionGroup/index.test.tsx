@@ -313,8 +313,7 @@ describe("ActionGroupComponent", () => {
       clearAugments();
     });
 
-    // Renders the slot props so the test proves the parent's group context
-    // flows through to the augment, not merely that it mounted.
+    // Renders the slot props so the test proves the parent's group context flows through to the augment, not merely that it mounted.
     function TestSection({ groupId }: ActionGroupSlotContext) {
       return <span>section:{groupId}</span>;
     }

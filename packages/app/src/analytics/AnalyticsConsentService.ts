@@ -57,8 +57,7 @@ export class AnalyticsConsentService {
     try {
       this.storage?.setItem(ANALYTICS_CONSENT_KEY, value);
     } catch {
-      // localStorage unavailable (private mode / SSR): keep the in-memory
-      // notification working so the session still reflects the choice.
+      // localStorage unavailable (private mode / SSR): keep the in-memory notification working so the session still reflects the choice.
     }
     for (const l of this.listeners) l(value);
   }

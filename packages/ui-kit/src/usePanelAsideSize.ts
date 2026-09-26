@@ -210,8 +210,7 @@ export function useHeaderAsideFit(
     observer: MutationObserver | null;
   }>({ title: null, aside: null, observer: null });
 
-  // Runs after every render, and measures only when the elements were swapped
-  // or something inside them changed.
+  // Runs after every render, and measures only when the elements were swapped or something inside them changed.
   useLayoutEffect(() => {
     const title = titleRef.current;
     const aside = asideRef.current;

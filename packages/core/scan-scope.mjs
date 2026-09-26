@@ -1,5 +1,4 @@
-// Which scans a LOCAL run executes: all of them, or only the ones a branch's
-// changes can reach.
+// Which scans a LOCAL run executes: all of them, or only the ones a branch's changes can reach.
 //
 // CI always runs every scan over the whole tree, and that is deliberate: files
 // and changes nobody claimed turn up on occasion, and the whole-tree run is what

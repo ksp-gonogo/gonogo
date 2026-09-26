@@ -194,8 +194,7 @@ function scene() {
       ];
       act(() => {
         for (const frame of frames) log.receiveRadio(frame);
-        // The frame that lets the delay clock release what has crossed, and
-        // the only one this suite ever mints.
+        // The frame that lets the delay clock release what has crossed, and the only one this suite ever mints.
         fixture.store.clock.emitFrame();
       });
     },
@@ -246,8 +245,7 @@ describe("Commcast radio, monitored rather than tuned by the open view", () => {
   });
 
   it("keeps hearing a conversation the operator navigates away from", async () => {
-    // The failure that named the whole design: glancing somewhere else must
-    // never silence somebody mid-sentence.
+    // The failure that named the whole design: glancing somewhere else must never silence somebody mid-sentence.
     const s = scene();
     s.mount();
     s.begin("t1", ARES, "one");
@@ -266,8 +264,7 @@ describe("Commcast radio, monitored rather than tuned by the open view", () => {
     const s = scene();
     s.mount();
     s.begin("t1", ARES, "one");
-    // Reached through the light, which is the only route to a correspondent
-    // this vantage has never exchanged a written word with.
+    // Reached through the light, which is the only route to a correspondent this vantage has never exchanged a written word with.
     await userEvent.click(screen.getByRole("button", { name: "Ares 4" }));
     await userEvent.click(screen.getByRole("button", { name: "Mute Ares 4" }));
     await userEvent.click(screen.getByRole("button", { name: "Inbox" }));

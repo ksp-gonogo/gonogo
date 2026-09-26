@@ -258,8 +258,7 @@ function SystemViewComponent({
 }: Readonly<ComponentProps<SystemViewConfig>>) {
   const frameSetting = config?.frame ?? "auto";
   const bodies = useCelestialBodies();
-  // The same catalogue the list above comes from, kept whole because a read
-  // frame needs the index lookups and the parent links, not just the bodies.
+  // The same catalogue the list above comes from, kept whole because a read frame needs the index lookups and the parent links, not just the bodies.
   /*
    * A catalogue is a FACT: it changes when the game changes, and nothing
    * changes it down a link that is not delivering, so a held one is still the
@@ -297,8 +296,7 @@ function SystemViewComponent({
       : orbitReading.reckoning.status === "available"
         ? { ...orbitObserved, ...orbitReading.reckoning.value }
         : orbitObserved;
-  // An identity does not decay: a stale SOI index is still which body this craft
-  // is around, and it only decides which FRAME the dot belongs in.
+  // An identity does not decay: a stale SOI index is still which body this craft is around, and it only decides which FRAME the dot belongs in.
   const identityReading = topics.useTelemetry("vessel.identity");
   const identity =
     identityReading.state === "observed" || identityReading.state === "stale"
@@ -509,8 +507,7 @@ function SystemViewComponent({
     [selectedVesselId, commsPathEdgeIds, commsPathColour],
   );
 
-  // Stable body-index → NAME map (from `system.bodies`' stable `index`, never
-  // array position): the display-map behind `v.body` / `o.encounterBody`.
+  // Stable body-index → NAME map (from `system.bodies`' stable `index`, never array position): the display-map behind `v.body` / `o.encounterBody`.
   const nameByIndex = useMemo(() => {
     const m = new Map<number, string>();
     for (const b of systemBodies?.bodies ?? []) {
@@ -519,8 +516,7 @@ function SystemViewComponent({
     return m;
   }, [systemBodies]);
 
-  // Vessel's current body NAME: parentBodyIndex resolved against
-  // `system.bodies`.
+  // Vessel's current body NAME: parentBodyIndex resolved against `system.bodies`.
   const vesselBody =
     identity?.parentBodyIndex != null
       ? (nameByIndex.get(identity.parentBodyIndex) ?? null)
@@ -578,8 +574,7 @@ function SystemViewComponent({
       ? vesselTrajectory
       : null;
 
-  // Vessel orbit: feeds the dot drawn on its own orbit when the chosen frame
-  // matches its parent body.
+  // Vessel orbit: feeds the dot drawn on its own orbit when the chosen frame matches its parent body.
   const vSma = orbit?.sma?.magnitude;
   const vesselOrbit =
     vesselBody != null && orbit?.sma.isFinite()
@@ -651,8 +646,7 @@ function SystemViewComponent({
           : "FINAL",
         PeA: 0,
         ApA: 0,
-        // `OrbitPatch` is the diagram's projection input: every element is
-        // sampled into plot coordinates, so it stays plain numbers.
+        // `OrbitPatch` is the diagram's projection input: every element is sampled into plot coordinates, so it stays plain numbers.
         inclination: orbit.inc.magnitude,
         eccentricity: orbit.ecc.magnitude,
         epoch: orbit.epoch.magnitude,
@@ -719,8 +713,7 @@ function SystemViewComponent({
   }, [children, phaseAngles, vesselBody, parentName, vSma]);
 
   const [focusedBody, setFocusedBody] = useState<CelestialBody | null>(null);
-  // Default focus to the vessel's body when nothing is hovered, gives the
-  // panel useful content out of the box.
+  // Default focus to the vessel's body when nothing is hovered, gives the panel useful content out of the box.
   const vesselBodyRecord = useMemo(
     () =>
       typeof vesselBody === "string"
@@ -872,8 +865,7 @@ function SystemViewComponent({
       hohmannIdealDeg={panelHohmann?.ideal ?? null}
       hohmannDeltaDeg={panelHohmann?.delta ?? null}
       encounterDirection={
-        // The vessel's next SOI transition (client-derived from
-        // `vessel.orbit.encounter`), shown on the panel body it targets.
+        // The vessel's next SOI transition (client-derived from `vessel.orbit.encounter`), shown on the panel body it targets.
         encounterExists !== 0 &&
         encounterBody != null &&
         panelBody !== null &&
@@ -884,8 +876,7 @@ function SystemViewComponent({
           : null
       }
       encounterTimeSec={
-        // `encounterTimeUt` is an ABSOLUTE UT (transitionUt); the panel
-        // wants seconds-to-event, so subtract the view-UT.
+        // `encounterTimeUt` is an ABSOLUTE UT (transitionUt); the panel wants seconds-to-event, so subtract the view-UT.
         encounterTimeUt != null && nowUt !== null
           ? encounterTimeUt - nowUt
           : null
@@ -1206,8 +1197,7 @@ const COMPACT_BODY: CSSProperties = {
 };
 
 const COMPACT_VALUE: CSSProperties = {
-  // Off the type scale: the scale stops at --font-size-lg (16px) and this is a
-  // display-tier readout.
+  // Off the type scale: the scale stops at --font-size-lg (16px) and this is a display-tier readout.
   fontSize: "22px",
   fontWeight: 700,
   color: "var(--color-text-primary)",
@@ -1227,8 +1217,7 @@ const COMPACT_SUB: CSSProperties = {
 // viewBox, so an inner gutter here reads as a double border.
 const DIAGRAM_FRAME: CSSProperties = { flex: 1, minWidth: 0, minHeight: 0 };
 
-// The `svg { display:block; flex:1 }` descendant rule (not inline-expressible)
-// moves onto SystemDiagram's own root <svg>.
+// The `svg { display:block; flex:1 }` descendant rule (not inline-expressible) moves onto SystemDiagram's own root <svg>.
 const DIAGRAM_WRAP: CSSProperties = {
   position: "relative",
   flex: 1,
@@ -1242,8 +1231,7 @@ const DIAGRAM_WRAP: CSSProperties = {
 const OVERLAY_LAYER: CSSProperties = {
   position: "absolute",
   inset: 0,
-  // Keep the diagram beneath interactive (pan/zoom/hover); an overlay augment
-  // re-enables pointer events on its own elements when it needs them.
+  // Keep the diagram beneath interactive (pan/zoom/hover); an overlay augment re-enables pointer events on its own elements when it needs them.
   pointerEvents: "none",
 };
 

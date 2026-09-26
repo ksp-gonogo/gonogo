@@ -1311,8 +1311,7 @@ function ControlSurface({
                   const markerId = SAS_MODE_MARKERS[mode];
                   if (!markerId) return null;
                   const Marker = MARKER_ICONS[markerId];
-                  // Decorative: the short label beside it already names the
-                  // mode, and the button carries its own accessible name.
+                  // Decorative: the short label beside it already names the mode, and the button carries its own accessible name.
                   return <Marker size={14} />;
                 })()}
                 {modeShort(mode)}

@@ -99,8 +99,7 @@ describe("WarpControl when time.warp is no longer current", () => {
 
     goStale(fixture);
 
-    // Held deliberately: warp does not tick away between updates, and the dash
-    // below is reserved for a rate nobody has ever sent us.
+    // Held deliberately: warp does not tick away between updates, and the dash below is reserved for a rate nobody has ever sent us.
     expect(
       screen.getByRole("img", { name: "Time warp rate 10×" }),
     ).toBeTruthy();

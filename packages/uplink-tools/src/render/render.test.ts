@@ -282,8 +282,7 @@ describe("the generated browser entry", () => {
     const pkg = resolveUplinkPackage(dir);
     expect(pkg.renderWith).toHaveLength(1);
 
-    // Order is the property: a host has to be registered before the augment
-    // that names it, or `AugmentSlot` mounts against nothing.
+    // Order is the property: a host has to be registered before the augment that names it, or `AugmentSlot` mounts against nothing.
     const entry = generateEntry(pkg, pkg.renderWith);
     expect(entry.indexOf("hosts.ts")).toBeLessThan(
       entry.indexOf("src/index.ts"),
@@ -663,8 +662,7 @@ describe("fixtures become scenes", () => {
     );
     expect(scene.paints).toEqual(["CRITICAL", "80%"]);
 
-    // An empty string matches every element, so accepting one would be a check
-    // that reads as written and asserts nothing.
+    // An empty string matches every element, so accepting one would be a check that reads as written and asserts nothing.
     expect(() =>
       buildScenes(
         resolveUplinkPackage(
@@ -739,8 +737,7 @@ describe("fixtures become scenes", () => {
   });
 
   it("defaults every emission's instant to the pinned clock", () => {
-    // The transport defaults `validAt` to ZERO, so an omitted instant is not
-    // "now": it is a sample from the epoch, which reads as maximally stale.
+    // The transport defaults `validAt` to ZERO, so an omitted instant is not "now": it is a sample from the epoch, which reads as maximally stale.
     const pkg = resolveUplinkPackage(
       fixture({
         _scene: { widget: "reactor" },
@@ -1043,8 +1040,7 @@ describe("naming a whole-page restyle", () => {
   });
 
   it("counts against what was RECORDED, not against every asset rendered", () => {
-    // An unrecorded asset cannot be stale, so a page that is half unrecorded
-    // still reads as wholly restyled when every recorded one moved.
+    // An unrecorded asset cannot be stale, so a page that is half unrecorded still reads as wholly restyled when every recorded one moved.
     expect(
       wholePageRestyle(
         verdict(

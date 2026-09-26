@@ -4,8 +4,7 @@ import type { Layout, Layouts } from "react-grid-layout";
 import type { DashboardConfig, DashboardItem } from "./index";
 import { BREAKPOINTS, migrateDashboardItems } from "./layoutNormalization";
 
-// Derived from the single source of truth in layoutNormalization.ts, RGL
-// warns at runtime if a key here isn't a valid breakpoint.
+// Derived from the single source of truth in layoutNormalization.ts, RGL warns at runtime if a key here isn't a valid breakpoint.
 const COLS_KEYS = Object.keys(BREAKPOINTS);
 
 // Derived from BREAKPOINTS in layoutNormalization.ts as descending

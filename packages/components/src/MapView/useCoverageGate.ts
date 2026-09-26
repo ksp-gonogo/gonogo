@@ -54,8 +54,7 @@ export function compositeCoverage(
   return reveal;
 }
 
-// Stable-reference snapshot cache: getCoverageSources() allocates fresh
-// every call, which would infinite-loop useSyncExternalStore directly.
+// Stable-reference snapshot cache: getCoverageSources() allocates fresh every call, which would infinite-loop useSyncExternalStore directly.
 //
 // Refreshed via an UNCONDITIONAL module-load subscription (mirrors
 // packages/core/src/AugmentSlot.tsx's slotCache/onAugmentsChange pattern),

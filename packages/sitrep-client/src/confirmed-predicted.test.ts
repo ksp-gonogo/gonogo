@@ -123,8 +123,7 @@ describe("confirmed-range interpolation (M2 design §3.3)", () => {
     expect(token.viewUt).toBe(175); // 200 (last deliveredAt) - 25 delay
     expect(token.certainty).toBe("confirmed");
 
-    // Contrast: sample()/get stays hold-last (the "cause" semantics, used
-    // by e.g. orbit elements): it must NOT have started interpolating.
+    // Contrast: sample()/get stays hold-last (the "cause" semantics, used by e.g. orbit elements): it must NOT have started interpolating.
     expect(store.sample<number>("temperature")?.payload).toBe(10);
 
     const interpolated = store.sampleInterpolated<number>("temperature");
@@ -254,8 +253,7 @@ describe("quickload epoch bump (M2 design §7.6)", () => {
     expect(store.sample("vessel.orbit")).toBeDefined();
     expect(store.currentFrame().certainty).toBe("predicted");
 
-    // Quickload rewind: some topic delivers a higher-epoch point (the
-    // engine's reset broadcast, mirrored here as any epoch-bumping ingest).
+    // Quickload rewind: some topic delivers a higher-epoch point (the engine's reset broadcast, mirrored here as any epoch-bumping ingest).
     store.ingest(
       "system.clock",
       numberPoint(4500, 4500, { deliveredAt: 4500, epoch: 1 }),
@@ -294,8 +292,7 @@ describe("raw frame-cache defeats the epoch guard: the LENS-4 ghost (M2 T5 close
       numberPoint(4500, 4500, { deliveredAt: 4500, epoch: 1 }),
     );
 
-    // SAME token, no beginFrame(): a caller's rAF loop reading twice within
-    // one read cycle.
+    // SAME token, no beginFrame(): a caller's rAF loop reading twice within one read cycle.
     const second = store.sample<VesselOrbitPayload>("vessel.orbit", token);
     expect(second).toBeUndefined(); // must NOT be the dead epoch-0 point
   });
@@ -446,13 +443,11 @@ describe("certainty composes with T4 status + T3 undefined/null", () => {
     // racing ahead on its own.
     expect(store.sampleStatus("c")).toBe("live");
 
-    // A genuine arrival gap: other traffic advances the confirmed horizon
-    // (real confirmed UT elapses) while "c" itself stays silent.
+    // A genuine arrival gap: other traffic advances the confirmed horizon (real confirmed UT elapses) while "c" itself stays silent.
     store.ingest("other", numberPoint(500, 1, { deliveredAt: 500 }));
     store.beginFrame();
     expect(store.sampleStatus("c")).toBe("held-stale");
-    // The stale value is still served (hold-last past the horizon), just
-    // labeled by both independent channels.
+    // The stale value is still served (hold-last past the horizon), just labeled by both independent channels.
     expect(store.sample<number>("c")?.payload).toBe(1);
   });
 

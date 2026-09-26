@@ -260,8 +260,7 @@ export function TelemetryProvider({
   // fallback to protect, so withholding promotion buys nothing and costs the
   // whole surface.
   const carriedClientRef = useRef<TelemetryClient | null>(null);
-  // Registration happens when an Uplink's bundle loads, which is after this
-  // provider mounts, so the fold has to be live rather than read once.
+  // Registration happens when an Uplink's bundle loads, which is after this provider mounts, so the fold has to be live rather than read once.
   const registeredTopics = useSyncExternalStore(
     subscribeRuntimeTopicRegistry,
     getRuntimeRegisteredTopicIds,
@@ -860,8 +859,7 @@ function syncTimelineFrameBridge(): void {
   bridgedTimelineStore = target;
   if (!target) return;
   timelineFrameBridge = target.subscribeFrame(() => {
-    // Copied: a listener is free to unsubscribe itself from inside the
-    // callback, which would otherwise mutate the set mid-iteration.
+    // Copied: a listener is free to unsubscribe itself from inside the callback, which would otherwise mutate the set mid-iteration.
     for (const listener of [...timelineFrameListeners]) listener();
   });
 }

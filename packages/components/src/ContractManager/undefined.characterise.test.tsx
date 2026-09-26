@@ -124,8 +124,7 @@ describe("ContractManager: the `active === null` absence gate", () => {
       fixture.emit("career.status", { contracts: { active: [] } });
     });
 
-    // An empty array parses to `[]`, not `null`, so the gate stops firing and
-    // the counts row plus the confident empty-state copy take over.
+    // An empty array parses to `[]`, not `null`, so the gate stops firing and the counts row plus the confident empty-state copy take over.
     await waitFor(() =>
       expect(screen.getByText(/No active contracts/i)).toBeInTheDocument(),
     );
@@ -271,8 +270,7 @@ describe("ContractManager: the altitude-band meter before an altitude arrives", 
     await waitFor(() =>
       expect(screen.getByText("Altitude band")).toBeInTheDocument(),
     );
-    // The meter's absent form: its label and the null token, no fill to
-    // assert a fraction with, no band label and no distance-to-band figure.
+    // The meter's absent form: its label and the null token, no fill to assert a fraction with, no band label and no distance-to-band figure.
     expect(screen.getByText("Altitude")).toBeInTheDocument();
     expect(screen.queryByRole("meter", { name: "Altitude" })).toBeNull();
     expect(visibleText()).toContain(NULL_DISPLAY);
@@ -293,8 +291,7 @@ describe("ContractManager: the altitude-band meter before an altitude arrives", 
       emitAltitude(fixture, 7000);
     });
 
-    // The other side of the same gate, so the test above is proving an
-    // absence rather than a permanently-missing feature.
+    // The other side of the same gate, so the test above is proving an absence rather than a permanently-missing feature.
     await waitFor(() =>
       expect(screen.getByText("in band")).toBeInTheDocument(),
     );

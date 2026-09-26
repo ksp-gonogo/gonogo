@@ -224,8 +224,7 @@ describe("warp at a light-minute", () => {
   for (const shape of Object.keys(WIRE_SHAPES) as WireShape[]) {
     it(`surfaces a stop one light-time after it happened (${shape} wire shape)`, () => {
       const session = startSession(shape);
-      // The game is already warping when the measurement starts, so a read of
-      // 0 can only mean the client has seen the stop.
+      // The game is already warping when the measurement starts, so a read of 0 can only mean the client has seen the stop.
       session.forceIndex(UT_START - OWLT - 1, 5);
       session.emitAt(UT_START);
 
@@ -272,11 +271,9 @@ describe("warp at a light-minute", () => {
         name: "Far",
         trigger: { kind: "time", ut: 1_000_000, leadSeconds: 10 },
       });
-      // Ladders up to 1000x: the alarm is far enough that even a light-time of
-      // safety margin leaves room for it.
+      // Ladders up to 1000x: the alarm is far enough that even a light-time of safety margin leaves room for it.
       svc.beginWarpTo();
-      // The dispatch settles on a microtask; drain it before the loop so the
-      // first command is attributed to UT_START.
+      // The dispatch settles on a microtask; drain it before the loop so the first command is attributed to UT_START.
       await Promise.resolve();
       await Promise.resolve();
       expect(session.gameIndex()).toBe(5);
@@ -298,11 +295,9 @@ describe("warp at a light-minute", () => {
       // is not one the controller asked for, so it ends the session instead of
       // reconciling against it.
       expect(session.commandedAt).toEqual([UT_START]);
-      // And it ends it WITHOUT a second `SetWarp(0)`: the warp is already
-      // stopped, and re-commanding it is a second authority for one state.
+      // And it ends it WITHOUT a second `SetWarp(0)`: the warp is already stopped, and re-commanding it is a second authority for one state.
       expect(session.dispatchedAt).toEqual([UT_START]);
-      // The assertion the operator asked for: warp is still 0 two light-times
-      // after the game stopped it.
+      // The assertion the operator asked for: warp is still 0 two light-times after the game stopped it.
       expect(session.gameIndex()).toBe(0);
     });
   }

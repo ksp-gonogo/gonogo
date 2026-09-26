@@ -13,8 +13,7 @@ describe("ReadOnlyField", () => {
     expect(term.closest("dt")).not.toBeNull();
     const definition = screen.getByText("Kerbin-centred");
     expect(definition.closest("dd")).not.toBeNull();
-    // The pairing is programmatic: both sit inside the same list, so a reader
-    // in browse mode gets one item rather than two adjacent strings.
+    // The pairing is programmatic: both sit inside the same list, so a reader in browse mode gets one item rather than two adjacent strings.
     expect(term.closest("dl")).toBe(definition.closest("dl"));
   });
 
@@ -58,8 +57,7 @@ describe("ReadOnlyField", () => {
       <ReadOnlyField label="Prediction tolerance" value={value("m", 1)} />,
     );
 
-    // `Unit` hides the symbol from the accessibility tree and puts the word
-    // there instead, so the accessible name of the pair says "metres".
+    // `Unit` hides the symbol from the accessibility tree and puts the word there instead, so the accessible name of the pair says "metres".
     expect(screen.getByText("m")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByText(/metres/)).toBeInTheDocument();
   });

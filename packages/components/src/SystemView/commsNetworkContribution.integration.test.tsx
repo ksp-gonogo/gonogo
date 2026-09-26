@@ -171,8 +171,7 @@ describe("SystemView: comms.network relay graph as faint connection lines", () =
         ],
         edges: [
           { a: "home", b: "v-relay", active: true },
-          // "v-ghost" never lands on system.vessels: this edge must be
-          // omitted outright, never drawn from a fabricated position.
+          // "v-ghost" never lands on system.vessels: this edge must be omitted outright, never drawn from a fabricated position.
           { a: "v-relay", b: "v-ghost", active: true },
         ],
       });
@@ -190,14 +189,12 @@ describe("SystemView: comms.network relay graph as faint connection lines", () =
       return el as SVGLineElement;
     });
 
-    // Faint styling: the same emphasis/opacity every other faint contributed
-    // entity (the vessel-orbit rings) resolves to.
+    // Faint styling: the same emphasis/opacity every other faint contributed entity (the vessel-orbit rings) resolves to.
     expect(resolvedLine.tagName.toLowerCase()).toBe("line");
     expect(resolvedLine.getAttribute("stroke")).toBe("var(--color-text-faint)");
     expect(resolvedLine.getAttribute("stroke-opacity")).toBe("0.5");
 
-    // The unresolvable edge never renders, honest omission rather than a
-    // fabricated endpoint.
+    // The unresolvable edge never renders, honest omission rather than a fabricated endpoint.
     expect(
       container.querySelector('[data-entity-id="comms-edge:v-relay:v-ghost"]'),
     ).toBeNull();

@@ -83,8 +83,7 @@ export const _scopePinned = (
   </UnitSharedFormat>
 );
 
-// The directive sits on the ELEMENT rather than on the attribute: the scope
-// resolves an overload, and a failed overload is reported at the call.
+// The directive sits on the ELEMENT rather than on the attribute: the scope resolves an overload, and a failed overload is reported at the call.
 export const _scopeWrongKind = (
   // @ts-expect-error: a scope over lengths cannot be read in kilograms
   <UnitSharedFormat of="m" as="kg">
@@ -151,8 +150,7 @@ export const _mixedScopeUnladdered = (
 // neither can be suppressed without suppressing the other. A positional list
 // could say none of this: `["m", "m"]` reads as two pins and quietly keeps one.
 
-// An entry may be left out entirely, and the group it would have pinned settles
-// for itself.
+// An entry may be left out entirely, and the group it would have pinned settles for itself.
 export const _mixedScopePartial = (
   <UnitSharedFormat pins={{ length: { format: "km" } }}>
     <Unit value={altitude} />
@@ -178,8 +176,7 @@ export const _fuelFlow = dryMass.per(burnTime); // kg/s
 export const _isLong = burnTime.greaterThan(value("min", 1));
 export const _sorted = [burnTime, value("min", 2)].sort((a, b) => a.compare(b));
 
-// Sign needs no operand: zero is zero in every unit of a dimension, and
-// "is this rate a drain" is the most common comparison in the codebase.
+// Sign needs no operand: zero is zero in every unit of a dimension, and "is this rate a drain" is the most common comparison in the codebase.
 export const _draining = value("units/s", -0.32).isNegative();
 export const _drift = value("m", -14.2).abs();
 
@@ -214,8 +211,7 @@ export const _fixedMaths = altitude.plus(value("m", 1));
 export const _fixedCompare = altitude.greaterThan(value("m", 1_000));
 export const _fixedFormat = <Unit value={altitude} decimals={2} />;
 
-// valueOf is still there for the places a number is genuinely wanted: a chart
-// axis, a progress bar, Math.max.
+// valueOf is still there for the places a number is genuinely wanted: a chart axis, a progress bar, Math.max.
 export const _axisMax: number = Math.max(
   altitude.valueOf(),
   value("m", 5_000).valueOf(),
@@ -232,8 +228,7 @@ export const _countdown = <Unit value={timeToApoapsis} />;
 export const _funds = <Unit value={funds} />;
 
 // ── 7. A Vec3 leaf is a value ───────────────────────────────────────────────
-// The unit is declared on the whole vector and reaches x/y/z, so a component
-// of a relative velocity renders like any other quantity.
+// The unit is declared on the whole vector and reaches x/y/z, so a component of a relative velocity renders like any other quantity.
 //
 // This block used to spell the shape out by hand, because `Vec3Of` was built
 // on the transitional `Value = number` alias and its leaves were bare numbers

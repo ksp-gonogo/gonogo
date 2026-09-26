@@ -7,8 +7,7 @@
 // reaches the app, so a packed Uplink never carries a second registry, which is
 // the whole point.
 //
-// The export list is not frozen. `./api-shape.gate.test.ts` records it, so any
-// change to it is a deliberate one.
+// The export list is not frozen. `./api-shape.gate.test.ts` records it, so any change to it is a deliberate one.
 //
 // EVERY Uplink goes through this barrel, including the ones bundled with the
 // mod. There is no first-party path: bundling changes how an Uplink ships, not
@@ -332,8 +331,7 @@ export const registerAugment = <S extends string>(
 // published way to fire or observe it. See `./map-poi.ts` for why their state sits
 // in a `globalThis` slot rather than a module static.
 //
-// `dispatchAction` is the one an Uplink TEST reaches for most: it is how a widget's
-// action is exercised with no serial device attached.
+// `dispatchAction` is the one an Uplink TEST reaches for most: it is how a widget's action is exercised with no serial device attached.
 export {
   type ActionHandler,
   clearActionHandlers,

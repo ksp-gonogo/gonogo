@@ -714,8 +714,7 @@ function ScreenSections({
                   <StrategyDescription of={s} />
                   <EffectList>
                     {parseEffectLines(s.effect).map((line, i) => (
-                      // Effect lines are static, non-reorderable text; index keeps
-                      // otherwise-identical lines from colliding.
+                      // Effect lines are static, non-reorderable text; index keeps otherwise-identical lines from colliding.
                       // biome-ignore lint/suspicious/noArrayIndexKey: static effect text, never reordered
                       <EffectLine key={`${i}:${line}`}>{line}</EffectLine>
                     ))}
@@ -1023,8 +1022,7 @@ function AvailableRow({
       {expanded && (
         <EffectList>
           {parseEffectLines(s.effect).map((line, i) => (
-            // Effect lines are static, non-reorderable text; index keeps
-            // otherwise-identical lines from colliding.
+            // Effect lines are static, non-reorderable text; index keeps otherwise-identical lines from colliding.
             // biome-ignore lint/suspicious/noArrayIndexKey: static effect text, never reordered
             <EffectLine key={`${i}:${line}`}>{line}</EffectLine>
           ))}

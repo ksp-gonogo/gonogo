@@ -241,8 +241,7 @@ describe("the pilot's view clock", () => {
   });
 
   it("does not zero on a vessel vantage that is not the craft being watched", async () => {
-    // The relay a ground operator observes from is a centre like any other and
-    // is still light-minutes from the craft on screen.
+    // The relay a ground operator observes from is a centre like any other and is still light-minutes from the craft on screen.
     const f = mount();
     f.emitGroundDelay();
     f.selectVantage("vessel:relay-777");

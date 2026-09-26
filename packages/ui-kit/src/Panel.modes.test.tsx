@@ -7,14 +7,12 @@ describe("contentFitsCentred", () => {
   it("lets centred content overflow its box by up to the room above it on each side", () => {
     // Twr at tiny-2x2: a 24px readout in an 11px box.
     expect(contentFitsCentred(24, 11, 16)).toBe(true);
-    // Under the header the room is the body's 8px gap plus the title's empty
-    // 8px foot, so 33px of box holds up to 65px of centred content.
+    // Under the header the room is the body's 8px gap plus the title's empty 8px foot, so 33px of box holds up to 65px of centred content.
     expect(contentFitsCentred(65, 33, 16)).toBe(true);
   });
 
   it("says content does not fit once centring would push its top into the title", () => {
-    // Measured in Chromium: 70px centred in a 33px box put the first line
-    // 2.5px into the title's text.
+    // Measured in Chromium: 70px centred in a 33px box put the first line 2.5px into the title's text.
     expect(contentFitsCentred(70, 33, 16)).toBe(false);
     expect(contentFitsCentred(66, 33, 16)).toBe(false);
   });

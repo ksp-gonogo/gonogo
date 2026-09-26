@@ -50,8 +50,7 @@ function crewRosterEmit(): Array<{
 
 const crew = crewRosterEmit();
 
-// Resolved from the package root rather than from `import.meta.url`: the jsdom
-// environment these tests run in does not give the module a file: URL.
+// Resolved from the package root rather than from `import.meta.url`: the jsdom environment these tests run in does not give the module a file: URL.
 const selectors = readFileSync(
   join(process.cwd(), "scripts", "widgets.ts"),
   "utf8",

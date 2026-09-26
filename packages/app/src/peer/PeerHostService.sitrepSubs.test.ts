@@ -205,8 +205,7 @@ describe("the sitrep refcount re-syncs", () => {
     claim(first, TOPIC);
     first.peerConnection?.fail();
 
-    // A reconnecting station arrives under a fresh peer id (`openPeer` re-rolls
-    // the session token), so nothing about the id says it is the same device.
+    // A reconnecting station arrives under a fresh peer id (`openPeer` re-rolls the session token), so nothing about the id says it is the same device.
     const second = await connectStation(host, "station-a-2");
     claim(second, TOPIC);
     expect(sink.live.has(TOPIC)).toBe(true);
@@ -222,21 +221,18 @@ describe("the sitrep refcount re-syncs", () => {
     const sink = makeSink();
     const detach = host.attachSitrepSink(sink);
 
-    // No underlying peer connection, so the liveness detector is blind here:
-    // reconciliation is the only thing that can answer for this station.
+    // No underlying peer connection, so the liveness detector is blind here: reconciliation is the only thing that can answer for this station.
     const conn = await connectStation(host, "station-a", {
       withPeerConnection: false,
     });
     claim(conn, TOPIC);
     expect(sink.live.has(TOPIC)).toBe(true);
 
-    // `stop()` empties the live connection set without any connection closing,
-    // so nothing released what that station was reading.
+    // `stop()` empties the live connection set without any connection closing, so nothing released what that station was reading.
     host.stop();
     expect(sink.live.has(TOPIC)).toBe(false);
 
-    // And the claim must not come back when the host's own stream reconnects
-    // and every upstream subscription is rebuilt from the refcounts.
+    // And the claim must not come back when the host's own stream reconnects and every upstream subscription is rebuilt from the refcounts.
     detach();
     const rebuilt = makeSink();
     host.attachSitrepSink(rebuilt);

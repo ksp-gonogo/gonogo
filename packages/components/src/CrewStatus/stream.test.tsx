@@ -40,8 +40,7 @@ describe("CrewStatus, genuinely runs off the stream (M3 batch 4)", () => {
     // Nothing arrived yet, known is false, so the waiting placeholder shows.
     expect(screen.getByText(/Waiting for telemetry/i)).toBeInTheDocument();
 
-    // A real subscription must have happened for this to deliver at all,
-    // StubTransport.emit is subscription-gated (see its own doc comment).
+    // A real subscription must have happened for this to deliver at all, StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.crew")).toBe(true);
 
     act(() => {

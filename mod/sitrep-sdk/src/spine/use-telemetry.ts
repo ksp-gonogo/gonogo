@@ -301,8 +301,7 @@ export function useTelemetry(dataSourceId: string, key?: string): unknown {
   // behaviour the gate was written for, and the streamed one rather than
   // nothing when it does not.
   //
-  // The canonical Topic read skips the gate entirely, it has no legacy
-  // fallback to protect, so it streams whenever a provider carries the store.
+  // The canonical Topic read skips the gate entirely, it has no legacy fallback to protect, so it streams whenever a provider carries the store.
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
   const carriedChannels = useCarriedChannelsOptional();
@@ -320,8 +319,7 @@ export function useTelemetry(dataSourceId: string, key?: string): unknown {
     client !== undefined && store !== undefined && topic !== undefined;
   const routable = streamable && carried;
 
-  // Diagnostics only: which widget this read belongs to, so a topic nothing
-  // publishes can be reported with the name of the thing that asked for it.
+  // Diagnostics only: which widget this read belongs to, so a topic nothing publishes can be reported with the name of the thing that asked for it.
   const subscriberLabel = useTelemetrySubscriberLabel();
   const subscribeStream = useCallback(
     (onStoreChange: () => void) => {

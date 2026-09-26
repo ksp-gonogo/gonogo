@@ -56,8 +56,7 @@ export default defineConfig([
   },
   {
     ...shared,
-    // The NODE half: esbuild, Playwright, the filesystem, the GIF encoder and
-    // the markdown generator.
+    // The NODE half: esbuild, Playwright, the filesystem, the GIF encoder and the markdown generator.
     //
     // `page-check` is a separate entry because it must NOT pull Playwright: it
     // is the half of the gate an author with no browser can run, and a static

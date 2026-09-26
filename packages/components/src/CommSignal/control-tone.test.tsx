@@ -14,8 +14,7 @@ import { CommSignalComponent } from "./index";
  * for: an operator reads "healthy link" off a vessel that cannot be commanded.
  */
 
-// Bar fills and text colours per tone, copied from the widget's own tables so a
-// test failure names the tone that was painted rather than a hex string.
+// Bar fills and text colours per tone, copied from the widget's own tables so a test failure names the tone that was painted rather than a hex string.
 const BAR_FILL = {
   ok: "var(--color-accent-fg)",
   warn: "var(--color-status-warning-bg)",

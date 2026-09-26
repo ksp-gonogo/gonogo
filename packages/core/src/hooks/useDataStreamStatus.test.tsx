@@ -213,8 +213,7 @@ describe("useDataStreamStatus gate: it prefers the legacy status, it does not ex
 
     act(() => transport.emit("vessel.control", { throttle: 0.75 }));
 
-    // RED before the fix: "disconnected" for ever, because the gate handed the
-    // read to a source that was never registered.
+    // RED before the fix: "disconnected" for ever, because the gate handed the read to a source that was never registered.
     await waitFor(() => expect(screen.getByText("status:live")).toBeTruthy());
   });
 
@@ -235,8 +234,7 @@ describe("useDataStreamStatus gate: it prefers the legacy status, it does not ex
       </TelemetryProvider>,
     );
 
-    // The gate's whole point, unchanged: an uncarried topic reports the legacy
-    // source's own status, which is a real fact about a real source.
+    // The gate's whole point, unchanged: an uncarried topic reports the legacy source's own status, which is a real fact about a real source.
     expect(screen.getByText("status:held-stale")).toBeTruthy();
   });
 });

@@ -168,8 +168,7 @@ const UPLINK_EXTERNALS: {
   file: resolve(externalsDir, `${entryName}.ts`),
 }));
 
-// Build each Uplink client into a standalone ESM bundle with every
-// shared package externalised, hash it, and write the local registry fixture the
+// Build each Uplink client into a standalone ESM bundle with every shared package externalised, hash it, and write the local registry fixture the
 /*
  * loader reads in Phase A. Runs at build only (`apply: "build"`) via buildStart,
  * so `public/uplinks/` is populated before Vite copies publicDir into dist.

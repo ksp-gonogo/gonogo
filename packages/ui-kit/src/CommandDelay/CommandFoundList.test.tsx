@@ -32,8 +32,7 @@ describe("commandFoundSentence", () => {
   });
 
   it("never says confirmed, for any outcome", () => {
-    // Confirmed means it worked as expected, and every one of these is a
-    // command the operator was told to stop waiting for.
+    // Confirmed means it worked as expected, and every one of these is a command the operator was told to stop waiting for.
     for (const found of [
       { outcome: "ran" as const, command: "a.b" },
       {
@@ -86,8 +85,7 @@ describe("commandFoundSentence", () => {
   });
 
   it("keeps the game's own capitals when it quotes them", () => {
-    // KSP's strings are titles and sentences of its own, and folding case would
-    // damage the proper nouns in them.
+    // KSP's strings are titles and sentences of its own, and folding case would damage the proper nouns in them.
     expect(
       commandFoundSentence({
         outcome: "refused",

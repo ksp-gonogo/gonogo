@@ -7,8 +7,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-// Side-effect import: the widget self-registers on module load, and
-// `renderWidget` looks it up by id rather than importing the component.
+// Side-effect import: the widget self-registers on module load, and `renderWidget` looks it up by id rather than importing the component.
 import "./index";
 
 /**

@@ -192,8 +192,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
 
     renderControlNavball("nav-cmd-mode", fixture.Provider);
 
-    // No current-value read needed for this bridge (positional -> named,
-    // not toggle -> absolute): the button is live from first render.
+    // No current-value read needed for this bridge (positional -> named, not toggle -> absolute): the button is live from first render.
     const button = await screen.findByRole("button", { name: "PRO" });
     act(() => {
       button.click();
@@ -231,8 +230,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
 
   it("throttle ZERO button drives vessel.control.setThrottle to 0 via the delayed control-stream (bridge 3: continuous, unconditional)", async () => {
     const fixture = setupStreamFixture({
-      // Deliberately NOT carrying vessel.control.setThrottle: proves the
-      // control-stream's write half is unconditional, same as bridges 1/2.
+      // Deliberately NOT carrying vessel.control.setThrottle: proves the control-stream's write half is unconditional, same as bridges 1/2.
       carriedChannels: ["vessel.control"],
       pinnedUt: 0,
       suspendFrames: true,

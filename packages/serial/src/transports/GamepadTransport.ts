@@ -189,8 +189,7 @@ export class GamepadTransport implements DeviceTransport {
         if (resolved) this.adopt(resolved);
         return;
       }
-      // First pairing: nothing to compare against yet; the press itself
-      // is ground truth.
+      // First pairing: nothing to compare against yet; the press itself is ground truth.
       this.adopt(pad);
     };
     window.addEventListener("gamepadconnected", this.connectedListener);

@@ -55,6 +55,5 @@
 
 /** @type {Record<string, number>} keyed `<package>/<path from package root>`. */
 export const KNOWN_ACT_WARNINGS = {
-  // Empty on purpose, and the empty object is load-bearing: with no entries, any
-  // warning from any file reads as NEW and fails the gate.
+  // Empty on purpose, and the empty object is load-bearing: with no entries, any warning from any file reads as NEW and fails the gate.
 };

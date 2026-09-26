@@ -64,8 +64,7 @@ async function seedContext(
       try {
         localStorage.setItem("gonogo.datasource.sitrep", sitrepCfg);
         localStorage.setItem(dashboardKey, dashboard);
-        // Pre-answer analytics consent so the blocking boot modal doesn't
-        // sit over the dashboard and swallow the note-input click.
+        // Pre-answer analytics consent so the blocking boot modal doesn't sit over the dashboard and swallow the note-input click.
         localStorage.setItem("gonogo.analytics.consent", "disabled");
         // The first-run setup host auto-opens the Settings modal on a fresh
         // browser (own component coverage in FirstRunSetupHost.test.tsx):
@@ -111,8 +110,7 @@ async function addNote(page: Page, body: string): Promise<void> {
   await input.fill(body);
   // Enter submits (no Shift held). Matches the production keybinding.
   await input.press("Enter");
-  // Input is cleared on submit, wait for that to confirm the action
-  // landed locally before asserting the cross-screen propagation.
+  // Input is cleared on submit, wait for that to confirm the action landed locally before asserting the cross-screen propagation.
   await expect(input).toHaveValue("");
 }
 
@@ -152,8 +150,7 @@ test.describe("notes widget round-trip", () => {
     await expect(main.getByText(stationNote, { exact: true })).toBeVisible({
       timeout: 10_000,
     });
-    // The original main note is still rendered on both, neither
-    // mutation should have clobbered the prior snapshot.
+    // The original main note is still rendered on both, neither mutation should have clobbered the prior snapshot.
     await expect(main.getByText(mainNote, { exact: true })).toBeVisible();
     await expect(station.getByText(mainNote, { exact: true })).toBeVisible();
 

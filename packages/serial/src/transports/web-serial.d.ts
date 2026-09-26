@@ -1,5 +1,4 @@
-// Minimal Web Serial ambient types: kept alongside the WebSerialTransport
-// so the transport package ships the type surface it needs.
+// Minimal Web Serial ambient types: kept alongside the WebSerialTransport so the transport package ships the type surface it needs.
 
 interface SerialPortFilter {
   usbVendorId?: number;

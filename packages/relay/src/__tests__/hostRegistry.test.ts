@@ -121,8 +121,7 @@ describe("host-discovery route (fastify.inject)", () => {
       url: "/host",
       payload: { shareCode: "AB3K", peerId: "peer-123" },
     });
-    // Entry is already expired on resolve (TTL 0), proves our registry
-    // instance, not a fresh internal one, is the backing store.
+    // Entry is already expired on resolve (TTL 0), proves our registry instance, not a fresh internal one, is the backing store.
     expect(registry.resolve("AB3K")).toBeNull();
     await app.close();
   });

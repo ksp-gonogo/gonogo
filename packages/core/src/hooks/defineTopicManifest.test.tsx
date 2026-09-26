@@ -90,8 +90,7 @@ describe("defineTopicManifest", () => {
       optionalChannels: ["comms.delay"],
     });
     const { result } = renderHook(() => useTelemetry("comms.delay"));
-    // `pending`, not `undefined`: the bound hook answers with a `Reading` like every
-    // other read, and "no provider" is the same statement as "nothing has arrived".
+    // `pending`, not `undefined`: the bound hook answers with a `Reading` like every other read, and "no provider" is the same statement as "nothing has arrived".
     expect(result.current).toEqual({
       state: "pending",
       reckoning: { status: "none" },

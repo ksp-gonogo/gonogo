@@ -390,8 +390,7 @@ describe("useCommand inFlight", () => {
       );
     });
 
-    // Nothing will ever answer this dispatch: the up-path silence the delay UI
-    // has to be able to express.
+    // Nothing will ever answer this dispatch: the up-path silence the delay UI has to be able to express.
     fixture.transport.holdCommands();
     fireEvent.click(screen.getByText("go1"));
     const [id] = fixture.transport.sentCommands.map((c) => c.requestId);
@@ -454,8 +453,7 @@ describe("useCommand inFlight", () => {
     });
 
     fireEvent.click(screen.getByText("go1"));
-    // No queue entry has arrived yet, nothing classified to show, but the
-    // dispatch is still tracked internally (within the grace window).
+    // No queue entry has arrived yet, nothing classified to show, but the dispatch is still tracked internally (within the grace window).
     expect(screen.getByText("count:0")).toBeTruthy();
 
     // No system.uplink.pending entry ever arrives for this dispatch (a
@@ -651,8 +649,7 @@ describe("useCommand founds", () => {
       });
     });
 
-    // Moved, not duplicated: the two are the same dispatch at different
-    // moments, so a surface never draws both.
+    // Moved, not duplicated: the two are the same dispatch at different moments, so a surface never draws both.
     expect(screen.getByText("losses:0")).toBeTruthy();
     expect(screen.getByText("founds:1")).toBeTruthy();
     expect(screen.getByText("outcomes:ran")).toBeTruthy();
@@ -775,13 +772,11 @@ describe("useCommand undelivered", () => {
       transport.abandon(ONLY_REQUEST, "the link never came back");
     });
 
-    // Moved, not duplicated, exactly as a found is: one dispatch, one box, one
-    // dismiss.
+    // Moved, not duplicated, exactly as a found is: one dispatch, one box, one dismiss.
     expect(screen.getByText("losses:0")).toBeTruthy();
     expect(screen.getByText("undelivered:1")).toBeTruthy();
     expect(screen.getByText("phase:undelivered")).toBeTruthy();
-    // It carries what the loss carried, so a surface can still say WHICH
-    // command, plus the one thing the loss never had: why.
+    // It carries what the loss carried, so a surface can still say WHICH command, plus the one thing the loss never had: why.
     expect(screen.getByText("unsentCommands:deploy")).toBeTruthy();
     expect(
       screen.getByText("unsentReasons:the link never came back"),
@@ -843,8 +838,7 @@ describe("useCommand undelivered", () => {
   });
 });
 
-// ── must-consume invariant (dev): a dispatch needs usePanelDelay (the panel-
-// rail path) or an inline <CommandDelay>, either of which consumes the token ──
+// ── must-consume invariant (dev): a dispatch needs usePanelDelay (the panel- rail path) or an inline <CommandDelay>, either of which consumes the token ──
 
 /**
  * `StubTransport` answers a command on a later microtask, so a test whose only
@@ -891,8 +885,7 @@ describe("useCommand must-consume invariant (dev)", () => {
 
   function UnlockViaPanelDelay() {
     const cmd = useCommand("career.tech.unlock");
-    // The panel-rail path: usePanelDelay consumes the token even with no delay
-    // store in the tree (a headerless / no-Panel test), so a dispatch is allowed.
+    // The panel-rail path: usePanelDelay consumes the token even with no delay store in the tree (a headerless / no-Panel test), so a dispatch is allowed.
     usePanelDelay(cmd);
     return (
       <button
@@ -1008,8 +1001,7 @@ describe("useCommand fire-and-forget refusals", () => {
       <button
         type="button"
         onClick={() => {
-          // Deliberately NO .catch() here: the whole point is the uncaught
-          // fire-and-forget shape that eight Uplink call sites use.
+          // Deliberately NO .catch() here: the whole point is the uncaught fire-and-forget shape that eight Uplink call sites use.
           void cmd.send(9);
         }}
       >
@@ -1115,8 +1107,7 @@ describe("useCommand refusals", () => {
   });
 
   it("keeps every refusal, not just the latest dispatch's", async () => {
-    // `status` tracks one requestId, so a widget fired twice would lose the
-    // first refusal entirely if this were derived from it.
+    // `status` tracks one requestId, so a widget fired twice would lose the first refusal entirely if this were derived from it.
     renderWith(() => ({ success: false, errorCode: 8 }));
     fireEvent.click(screen.getByText("hire"));
     fireEvent.click(screen.getByText("hire"));
@@ -1124,8 +1115,7 @@ describe("useCommand refusals", () => {
   });
 
   it("collects nothing from a command that succeeded", async () => {
-    // The negative: without it this would pass just as well if every dispatch
-    // were recorded as a refusal.
+    // The negative: without it this would pass just as well if every dispatch were recorded as a refusal.
     renderWith(() => ({ success: true, errorCode: 0 }));
     fireEvent.click(screen.getByText("hire"));
     await act(async () => {
@@ -1158,8 +1148,7 @@ describe("useCommand refusals", () => {
     const id = screen.getByText(/^refusal:/).textContent as string;
     expect(id).toBeTruthy();
     act(() => {
-      // The refusal's id is the dispatch's own requestId, the first the stub
-      // client mints.
+      // The refusal's id is the dispatch's own requestId, the first the stub client mints.
       dismiss?.("c0");
     });
     await waitFor(() => expect(screen.getByText("count:0")).toBeTruthy());
@@ -1189,8 +1178,7 @@ describe("useCommand gate", () => {
       </fixture.Provider>,
     );
 
-    // Nothing published yet: the hook knows nothing in advance, which is where
-    // every control was before the channel existed.
+    // Nothing published yet: the hook knows nothing in advance, which is where every control was before the channel existed.
     expect(screen.getByText("blocked:none")).toBeTruthy();
 
     act(() => {

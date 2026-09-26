@@ -83,8 +83,7 @@ describe("Meter, given a capacity to divide by", () => {
   });
 
   it("divides across rungs of one kind, not across raw magnitudes", () => {
-    // 500 W of a 1 kW budget is half, and nothing at the call site had to
-    // know that a kilowatt is a thousand watts.
+    // 500 W of a 1 kW budget is half, and nothing at the call site had to know that a kilowatt is a thousand watts.
     render(
       <Meter label="Power" value={value("W", 500)} capacity={value("kW", 1)} />,
     );

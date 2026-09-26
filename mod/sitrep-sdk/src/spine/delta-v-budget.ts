@@ -7,8 +7,7 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 // ---------------------------------------------------------------------------
 // "How much ΔV have we got?", answered once, in one place.
 //
-// Four widgets asked it and got three different answers, and the answers could
-// disagree about the same craft in flight:
+// Four widgets asked it and got three different answers, and the answers could disagree about the same craft in flight:
 //
 //   FuelStatus        `parseStages` for the rows, `dv.summary.totalDv*` for the
 //                     total, the observed arm only (withholds when stale)
@@ -19,8 +18,7 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 //   LandingStatus     the active `dv.stages` row for the rocket-equation solve,
 //                     `dv.summary` as the whole-vessel fallback
 //
-// Each of the three got a different third of it right, so this takes one third
-// from each:
+// Each of the three got a different third of it right, so this takes one third from each:
 //
 // THE TOTAL COMES OFF THE WIRE, never from summing `dv.stages`. The two are not
 // the same figure. `dv.stages` is built from `VesselDeltaV.OperatingStageInfo`
@@ -276,8 +274,7 @@ export function deriveDeltaVBudget(
     budget: {
       state: summaryReading.state,
       asOfUt: observedAtUt,
-      // Never negative: a sample can sit marginally ahead of the frame's view
-      // time, and a negative age is not a thing to render.
+      // Never negative: a sample can sit marginally ahead of the frame's view time, and a negative age is not a thing to render.
       ageSec:
         observedAtUt === undefined
           ? undefined

@@ -154,8 +154,7 @@ function absExtent<U extends string>(
 ): readonly [Value<U>, Value<U>] {
   const { lo, hi } = band;
   if (!lo.isNegative()) return [lo, hi];
-  // Both ends are at or below zero, so taking the magnitude of each also
-  // swaps which one is nearer zero.
+  // Both ends are at or below zero, so taking the magnitude of each also swaps which one is nearer zero.
   if (!hi.isPositive()) return [hi.abs(), lo.abs()];
   const reach = lo.abs();
   return [value(lo.unit, 0), reach.greaterThan(hi) ? reach : hi];
@@ -306,8 +305,7 @@ export function deriveHazardVerdict(
 
   if (axes.length === 0) return { verdict: null, axes };
 
-  // Report worst-first, which for an unresolved axis means by the question it
-  // raises rather than by the reading behind it.
+  // Report worst-first, which for an unresolved axis means by the question it raises rather than by the reading behind it.
   axes.sort((a, b) => RANK[b.band] - RANK[a.band]);
 
   /*

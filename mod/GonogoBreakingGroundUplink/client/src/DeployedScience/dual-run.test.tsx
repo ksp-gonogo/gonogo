@@ -7,8 +7,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-// Side-effect import: the widget self-registers on module load, and
-// `renderWidget` looks it up by id rather than importing the component.
+// Side-effect import: the widget self-registers on module load, and `renderWidget` looks it up by id rather than importing the component.
 import "./index";
 
 /**
@@ -49,8 +48,7 @@ describe("DeployedScience: stream render golden (delay=0)", () => {
           scienceLimit: 60,
           powerState: "Powered",
           connectionState: "Connected",
-          // The DERIVED ordinal the widget branches on, alongside the prose it
-          // ignores.
+          // The DERIVED ordinal the widget branches on, alongside the prose it ignores.
           power: DeployedPowerState.Powered,
           controllerConnected: true,
           powerAvailable: 5,
@@ -70,8 +68,7 @@ describe("DeployedScience: stream render golden (delay=0)", () => {
           scienceLimit: 12,
           powerState: "Powered",
           connectionState: "Connected",
-          // The DERIVED ordinal the widget branches on, alongside the prose it
-          // ignores.
+          // The DERIVED ordinal the widget branches on, alongside the prose it ignores.
           power: DeployedPowerState.Powered,
           controllerConnected: true,
           powerAvailable: 5,
@@ -96,8 +93,7 @@ describe("DeployedScience: stream render golden (delay=0)", () => {
     expect(scope.getByText(/Powered/i)).toBeInTheDocument();
     // Both experiments render with their derived progress.
     expect(scope.getByText("Seismic Accelerometer")).toBeInTheDocument();
-    // The progress readout renders through `<Unit>`, so it is a number and a
-    // symbol rather than one text node.
+    // The progress readout renders through `<Unit>`, so it is a number and a symbol rather than one text node.
     expect(visibleText(container)).toContain("75 %");
     expect(scope.getByText("Mystery Goo Experiment")).toBeInTheDocument();
     expect(visibleText(container)).toContain("100 %");

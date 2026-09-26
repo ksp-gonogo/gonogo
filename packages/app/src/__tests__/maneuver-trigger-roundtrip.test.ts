@@ -271,8 +271,7 @@ describe("Maneuver trigger peer roundtrip", () => {
 
     // Telemetry crosses the threshold (bump sma so it clears 750_000): host fires + dispatches burn.
     orbitStore.emitOrbit(kerbinOrbitPayload(1_000_000, 800_000));
-    // The command dispatch settles on a microtask, drain it before
-    // asserting (see `ManeuverTriggerHostService.test.ts`'s identical note).
+    // The command dispatch settles on a microtask, drain it before asserting (see `ManeuverTriggerHostService.test.ts`'s identical note).
     await Promise.resolve();
     await Promise.resolve();
     expect(orbitStore.calls.length).toBe(1);

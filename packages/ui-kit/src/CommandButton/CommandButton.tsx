@@ -347,8 +347,7 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
     return () => clearTimeout(id);
   }, [reasonShown]);
 
-  // The gate reopening takes the reason down with it: a control that lit up
-  // again while still explaining why it was dark would be describing the past.
+  // The gate reopening takes the reason down with it: a control that lit up again while still explaining why it was dark would be describing the past.
   useEffect(() => {
     if (!gateBlocks) setReasonShown(false);
   }, [gateBlocks]);
@@ -723,8 +722,7 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
       $armed={isArmed}
       $blocked={isBlocked}
       aria-pressed={active}
-      // Only while it IS busy: a permanent `aria-busy="false"` on every command
-      // button in the tree is noise a screen reader has to step over.
+      // Only while it IS busy: a permanent `aria-busy="false"` on every command button in the tree is noise a screen reader has to step over.
       aria-busy={isPending || undefined}
       /*
        * aria-disabled, NOT disabled, while blocked or pending. A `disabled`
@@ -759,8 +757,7 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
           ? (refusalText ?? undefined)
           : isLost
             ? // The visible words are two and the fact needs a sentence: a
-              // screen-reader user landing on "No reply" learns that something
-              // is up and nothing about what is unknown.
+              // screen-reader user landing on "No reply" learns that something is up and nothing about what is unknown.
               (lossText ?? undefined)
             : isFound
               ? // Same rule again, and the gap is widest here: "Found" is one
@@ -768,8 +765,7 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
                 (foundText ?? ariaLabel)
               : isBlocked
                 ? // Same rule as a refusal: the sentence names the command and
-                  // the numbers behind the no, and the resting name says none
-                  // of that.
+                  // the numbers behind the no, and the resting name says none of that.
                   (blockedAriaLabel ?? refusalText ?? ariaLabel)
                 : isPending
                   ? pendingAriaLabel

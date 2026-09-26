@@ -1,5 +1,4 @@
-// MUST be first: installs the injected gonogo host before anything that can
-// reach for it runs (see the module's own header).
+// MUST be first: installs the injected gonogo host before anything that can reach for it runs (see the module's own header).
 import "./uplinks/install-host-first";
 import {
   ErrorBoundary,
@@ -40,8 +39,7 @@ setAppVersion(VERSION, BUILD_TIME);
 // Console + ring-buffer logging is always on, unaffected by consent.
 logger.info(`gonogo v${VERSION} (build ${BUILD_TIME})`);
 
-// Pass the Vite base URL so texture paths resolve correctly under sub-path
-// deployments (e.g. /gonogo/bodies/ on GitHub Pages).
+// Pass the Vite base URL so texture paths resolve correctly under sub-path deployments (e.g. /gonogo/bodies/ on GitHub Pages).
 registerStockBodies(`${import.meta.env.BASE_URL}bodies`);
 
 const root = document.getElementById("root");
@@ -78,8 +76,7 @@ function renderApp(): void {
 // e2e / offline first boot) nothing is attempted; `?uplinkLoaderIds=` is how
 // you name ids by hand (see `deriveEnabledIds` in loader.ts).
 //
-// Render proceeds either way: a quarantined Uplink degrades to "widget not
-// loaded (reason)" in Settings, never a blank dashboard.
+// Render proceeds either way: a quarantined Uplink degrades to "widget not loaded (reason)" in Settings, never a blank dashboard.
 //
 // The roster probe and the loader run as one sequence because the loader needs
 // the roster. `probeUplinkRoster()`'s read is bounded by its own timeout

@@ -141,8 +141,7 @@ describe("SitrepPeerRelay", () => {
       // core's own channel, so pinning it privileges no mod.
       expect(transport.isSubscribed("system.uplinks")).toBe(true),
     );
-    // Nothing else, however commonplace: a station reads `vessel.orbit`
-    // because a widget on it asked, not because it is a well-known topic.
+    // Nothing else, however commonplace: a station reads `vessel.orbit` because a widget on it asked, not because it is a well-known topic.
     expect(transport.isSubscribed("vessel.orbit")).toBe(false);
     expect(transport.isSubscribed("system.bodies")).toBe(false);
 
@@ -347,8 +346,7 @@ describe("SitrepPeerRelay", () => {
     );
 
     act(() => peerHost.connectPeer("station-b"));
-    // Let the connect-driven backfill effect run; there is nothing async to
-    // await beyond a microtask/render flush since sendToPeer is synchronous.
+    // Let the connect-driven backfill effect run; there is nothing async to await beyond a microtask/render flush since sendToPeer is synchronous.
     await waitFor(() =>
       expect(peerHost.getConnectedPeerIds()).toContain("station-b"),
     );

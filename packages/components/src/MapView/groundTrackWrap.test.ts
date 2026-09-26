@@ -168,8 +168,7 @@ describe("splitOnDrawnLongitudeWrap over a pole", () => {
   });
 
   it("breaks the track at the south pole rather than stroking a bar along the bottom edge", () => {
-    // The Mun's texture is not rotated, so the drawn longitude is the
-    // propagated one and the seam split has nothing of its own to do here.
+    // The Mun's texture is not rotated, so the drawn longitude is the propagated one and the seam split has nothing of its own to do here.
     const segments = splitOnDrawnLongitudeWrap(samples, 0);
     const { before, after } = southPoleStraddle(samples);
     const segmentOf = (p: { lat: number; lon: number }) =>
@@ -182,8 +181,7 @@ describe("splitOnDrawnLongitudeWrap over a pole", () => {
     // Two crossings in 1.5 revolutions of a polar orbit: one north, one south.
     expect(segments.length).toBe(3);
     expect(segments.reduce((n, s) => n + s.length, 0)).toBe(samples.length);
-    // No segment may contain a drawn line long enough to read as a bar: the
-    // craft covers well under a degree of arc in the 10 s between samples.
+    // No segment may contain a drawn line long enough to read as a bar: the craft covers well under a degree of arc in the 10 s between samples.
     const widest = Math.max(
       ...segments.flatMap((s) =>
         s.slice(1).map((p, i) => Math.abs(p.lon - s[i].lon)),
@@ -212,8 +210,7 @@ describe("splitOnDrawnLongitudeWrap over a pole", () => {
     expect(Math.max(...inclined.map((p) => Math.abs(p.lat)))).toBeGreaterThan(
       inclination - 1,
     );
-    // One break, and it is the date line: the same answer as before the pole
-    // rule existed.
+    // One break, and it is the date line: the same answer as before the pole rule existed.
     expect(splitOnDrawnLongitudeWrap(inclined, 0)).toEqual(
       splitOnLongitudeWrap(inclined),
     );

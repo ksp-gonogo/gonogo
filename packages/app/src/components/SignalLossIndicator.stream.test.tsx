@@ -42,8 +42,7 @@ import { SignalLossIndicator } from "./SignalLossIndicator";
  * side-by-side with the banner (the connectivity MetaTopic's edge escaping).
  */
 function CommsProbe() {
-  // A probe, so it reads whatever arrived on ANY arm that carries a value: this
-  // file is about what the stream delivers, not about how a widget presents it.
+  // A probe, so it reads whatever arrived on ANY arm that carries a value: this file is about what the stream delivers, not about how a widget presents it.
   const commsReading = useTelemetry("vessel.comms");
   const linkReading = useTelemetry("comms.link");
   const comms =
@@ -158,15 +157,13 @@ describe("SignalLossIndicator: genuinely runs off a DELAYED, UNPINNED stream", (
         "true",
       );
 
-      // Advance exactly one delay window past the disconnect's UT, the edge
-      // crosses the certainty horizon and must now surface.
+      // Advance exactly one delay window past the disconnect's UT, the edge crosses the certainty horizon and must now surface.
       act(() => {
         fixture.wall.advanceBy(delaySeconds);
         fixture.store.beginFrame();
       });
       await waitFor(() => expect(screen.getByText("SIGNAL LOSS")).toBeTruthy());
-      // The struct topic is genuinely frozen: still the pre-blackout reading,
-      // not cleared, not advanced: this is the "freeze" half of the claim.
+      // The struct topic is genuinely frozen: still the pre-blackout reading, not cleared, not advanced: this is the "freeze" half of the claim.
       expect(screen.getByTestId("probe-strength").textContent).toBe("0.8");
       expect(screen.getByTestId("probe-comms-connected").textContent).toBe(
         "true",
@@ -208,8 +205,7 @@ describe("SignalLossIndicator: genuinely runs off a DELAYED, UNPINNED stream", (
       expect(screen.getByTestId("probe-link-connected").textContent).toBe(
         "true",
       );
-      // connected is still true on both topics, only the strength decayed:
-      // yet the banner must read SIGNAL LOSS.
+      // connected is still true on both topics, only the strength decayed: yet the banner must read SIGNAL LOSS.
       expect(screen.getByText("SIGNAL LOSS")).toBeTruthy();
     },
   );

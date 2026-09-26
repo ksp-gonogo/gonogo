@@ -77,8 +77,7 @@ describe("analytics-consent over peer", () => {
   beforeEach(() => {
     FakePeer.last = null;
     localStorage.clear();
-    // fetch is unused here (postAnalyticsConfig fails harmlessly); stub it
-    // out so jsdom doesn't log an unhandled-rejection warning.
+    // fetch is unused here (postAnalyticsConfig fails harmlessly); stub it out so jsdom doesn't log an unhandled-rejection warning.
     vi.stubGlobal(
       "fetch",
       vi.fn(() => Promise.reject(new Error("no network in test"))),

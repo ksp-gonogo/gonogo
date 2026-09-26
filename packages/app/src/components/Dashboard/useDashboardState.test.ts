@@ -45,8 +45,7 @@ describe("useDashboardState: per-scene keys", () => {
     act(() => result.current.addItem(item("f1"), { w: 2, h: 2 }));
     expect(idsOf(result.current.items)).toContain("f1");
 
-    // Switch to a never-visited scene: seeded from current, and Flight's
-    // edits are persisted under its own key rather than overwritten.
+    // Switch to a never-visited scene: seeded from current, and Flight's edits are persisted under its own key rather than overwritten.
     rerender({ key: "dash:SpaceCenter" });
     expect(idsOf(stored("dash:Flight").items ?? [])).toContain("f1");
 

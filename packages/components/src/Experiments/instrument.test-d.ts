@@ -33,8 +33,7 @@ type _InoperableCompatible = Expect<
 type _RerunnableCompatible = Expect<
   Equal<NonNullable<WireInstrument["rerunnable"]>, Instrument["rerunnable"]>
 >;
-// `hasData` maps onto the wire's `dataIsCollectable` (see the widget's
-// `parseInstruments` doc comment): different name, same boolean shape.
+// `hasData` maps onto the wire's `dataIsCollectable` (see the widget's `parseInstruments` doc comment): different name, same boolean shape.
 type _HasDataCompatible = Expect<
   Equal<NonNullable<WireInstrument["dataIsCollectable"]>, Instrument["hasData"]>
 >;

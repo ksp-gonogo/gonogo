@@ -51,8 +51,7 @@ async function press(page: Page, label: string) {
 test("a plan composed here reaches the vessel", async ({ page }) => {
   await page.goto("/");
 
-  // The composer is an augment inside the maneuver planner, so the planner has
-  // to be on the dashboard before any of it exists.
+  // The composer is an augment inside the maneuver planner, so the planner has to be on the dashboard before any of it exists.
   await page.getByRole("button", { name: "Add component" }).click();
   await page.getByRole("option", { name: /^Maneuver Planner/ }).click();
 
@@ -66,8 +65,7 @@ test("a plan composed here reaches the vessel", async ({ page }) => {
   await page
     .getByRole("spinbutton", { name: "Ignition" })
     .fill(String(ignitionUt));
-  // The TANGENT slot: in a TangentNormalBinormal burn the three positional
-  // slots carry the basis's own components in its own order.
+  // The TANGENT slot: in a TangentNormalBinormal burn the three positional slots carry the basis's own components in its own order.
   await page.getByRole("spinbutton", { name: "Tangent" }).fill("65");
 
   // Two acts, deliberately. Saving ends composing and nothing leaves; the plan

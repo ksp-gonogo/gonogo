@@ -65,8 +65,7 @@ function emitPosition(fixture: ReturnType<typeof mount>["fixture"]) {
 
 describe("MapView when the position is not current", () => {
   it("draws the position while it is current", async () => {
-    // The control: without this, every assertion below would also pass on a
-    // widget that never renders a position at all.
+    // The control: without this, every assertion below would also pass on a widget that never renders a position at all.
     const { fixture, container } = mount();
     emitPosition(fixture);
     await waitFor(() => {

@@ -31,8 +31,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     label: "landing-status/descent-gif",
     fixturesPath: "LandingStatus/__render__",
     outPath: "renders/landing-widget",
-    // Full-content capture at the real 12-col tile width, the whole tile,
-    // uncropped, so the composed instrument can actually be reviewed.
+    // Full-content capture at the real 12-col tile width, the whole tile, uncropped, so the composed instrument can actually be reviewed.
     modes: [
       { name: "full-w12", w: 12, h: 16 },
       // The wide-short extreme at this widget's minSize height, where the shared 18x5 falls below it.
@@ -40,8 +39,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    // CURRENCY showcase: whether an operator can tell, at a glance, which
-    // numbers the board is asserting and which it is merely describing.
+    // CURRENCY showcase: whether an operator can tell, at a glance, which numbers the board is asserting and which it is merely describing.
     //
     // The rule it renders is "describe from what we have, refuse to instruct
     // from what we do not": altitude, velocity and the delta-v margin are
@@ -50,8 +48,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     // contact mid-descent is the expected case rather than an edge, so the
     // interesting render is the stale one, not the live one.
     //
-    // Both a wide and a narrow mode, because the caption competing with the
-    // hero for room is a small-breakpoint problem.
+    // Both a wide and a narrow mode, because the caption competing with the hero for room is a small-breakpoint problem.
     widgetId: "landing-status",
     label: "landing-status/currency",
     fixturesPath: "LandingStatus/__render_currency__",
@@ -142,8 +139,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       // controlMode degrades to dial-only: same display as a wide-mode
       // widget. Useful for catching regressions to the degrade path.
       { name: "degraded-7x12", w: 7, h: 12, config: { controlMode: true } },
-      // Minimum sensible control-mode size; everything above lights up
-      // the SAS / throttle / FBW surface.
+      // Minimum sensible control-mode size; everything above lights up the SAS / throttle / FBW surface.
       { name: "full-7x20", w: 7, h: 20, config: { controlMode: true } },
       // Generous control-mode size that lets every group breathe.
       { name: "xl-9x24", w: 9, h: 24, config: { controlMode: true } },
@@ -439,8 +435,7 @@ const WIDGETS: WidgetRenderConfig[] = [
           },
         ],
       },
-      // Active tab, Assigned sub-tab: a crewed-out kerbal (Jeb), unavailable
-      // with the "On mission" reason badge.
+      // Active tab, Assigned sub-tab: a crewed-out kerbal (Jeb), unavailable with the "On mission" reason badge.
       {
         name: "active-tab-assigned-6x12",
         w: 6,
@@ -537,8 +532,7 @@ const WIDGETS: WidgetRenderConfig[] = [
           },
         ],
       },
-      // Active tab, Missing sub-tab: the max-rank kerbal (L5), whose
-      // experience-toward-next-rank chip reads MAX rather than a redundant 100%.
+      // Active tab, Missing sub-tab: the max-rank kerbal (L5), whose experience-toward-next-rank chip reads MAX rather than a redundant 100%.
       {
         name: "active-tab-missing-max-rank-6x12",
         w: 6,
@@ -592,8 +586,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       // 5×6: engine row added (rows>=6). Just below the cols>=6 threshold
       // for the inline alert note (only 5 cols), so alert is pill-only.
       { name: "two-rows-5x6", w: 5, h: 6 },
-      // Default size: all rows when shield data present (rows>=7).
-      // cols>=6 so inline alert note renders in critical fixtures.
+      // Default size: all rows when shield data present (rows>=7). cols>=6 so inline alert note renders in critical fixtures.
       { name: "default-8x7", w: 8, h: 7 },
       // Larger: generous scroll area for all rows + breathing room.
       { name: "large-10x10", w: 10, h: 10 },
@@ -640,13 +633,11 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "default-6x5", w: 6, h: 5 },
       // Wide short: ladder reflows to 8×1 single row; mode caption visible.
       { name: "wide-10x4", w: 10, h: 4 },
-      // Tall narrow: cols=4, rows=8 → cols*rows=32≥20 → full ladder; auto-fit
-      // wraps buttons; mode caption visible.
+      // Tall narrow: cols=4, rows=8 → cols*rows=32≥20 → full ladder; auto-fit wraps buttons; mode caption visible.
       { name: "tall-4x8", w: 4, h: 8 },
       // Large: generous room for all elements.
       { name: "large-8x7", w: 8, h: 7 },
-      // The alarm requirement switched off: a delayed craft with no alarm set
-      // warps freely, exactly as it did before the requirement existed.
+      // The alarm requirement switched off: a delayed craft with no alarm set warps freely, exactly as it did before the requirement existed.
       {
         name: "alarm-gate-off-6x5",
         w: 6,
@@ -843,8 +834,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         ],
         forFixtures: ["crew-mixed-standings"],
       },
-      // A second pad opened: the runway, whose craft are the spaceplanes the
-      // VAB pad above does not offer.
+      // A second pad opened: the runway, whose craft are the spaceplanes the VAB pad above does not offer.
       {
         name: "runway-opened-7x14",
         w: 7,
@@ -884,11 +874,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ActionGroup/__fixtures__",
     outPath: "renders/action-group-widget",
     modes: [
-      // Minimum size (3×3): tiny bucket (w<5): label + the ON/OFF state pill
-      // (itself the toggle button); no UnavailableNotice, no bell.
+      // Minimum size (3×3): tiny bucket (w<5): label + the ON/OFF state pill (itself the toggle button); no UnavailableNotice, no bell.
       { name: "tiny-3x3", w: 3, h: 3 },
-      // 3×4: still tiny bucket (w<5) so OfficialName and bell are suppressed;
-      // the state-pill toggle is present at every size.
+      // 3×4: still tiny bucket (w<5) so OfficialName and bell are suppressed; the state-pill toggle is present at every size.
       { name: "compact-3x4", w: 3, h: 4, config: { actionGroupId: "RCS" } },
       // 6×4: normal bucket: OfficialName visible (cols>=5), state-pill toggle
       // present. Gear group with custom label exercises the secondary line.
@@ -951,8 +939,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ResourceOps/__fixtures__",
     outPath: "renders/resource-ops-widget",
     modes: [
-      // Registered default size: the converter recipes (inputs → outputs)
-      // must be fully readable here, wrapping rather than clipping.
+      // Registered default size: the converter recipes (inputs → outputs) must be fully readable here, wrapping rather than clipping.
       { name: "default-6x8", w: 6, h: 8 },
       // Generous width: recipes fit on one line, nothing wraps.
       { name: "wide-12x8", w: 12, h: 8 },
@@ -962,23 +949,18 @@ const WIDGETS: WidgetRenderConfig[] = [
     widgetId: "strategies",
     fixturesPath: "Strategies/__fixtures__",
     outPath: "renders/strategies-widget",
-    // Activate spends career funds, so the balance (or the statement standing
-    // in for it) has to be readable at every size the widget is rendered at.
+    // Activate spends career funds, so the balance (or the statement standing in for it) has to be readable at every size the widget is rendered at.
     mustBeVisible: { selector: "[data-balance-row]" },
     modes: [
-      // tiny bucket (w<5 or h<4): header-only showing just the active count
-      // tally; no ScrollArea, no section lists.
+      // tiny bucket (w<5 or h<4): header-only showing just the active count tally; no ScrollArea, no section lists.
       { name: "tiny-3x3", w: 3, h: 3 },
-      // compact normal: full panel with tight vertical room; tests ScrollArea
-      // overflow when Active + Available sections both have entries.
+      // compact normal: full panel with tight vertical room; tests ScrollArea overflow when Active + Available sections both have entries.
       { name: "compact-5x7", w: 5, h: 7 },
       // default registered size: the most common operator view.
       { name: "default-5x9", w: 5, h: 9 },
-      // tall: generous vertical room; long effect lists and all three sections
-      // (Active / Available / Locked) can breathe without scrolling.
+      // tall: generous vertical room; long effect lists and all three sections (Active / Available / Locked) can breathe without scrolling.
       { name: "tall-6x16", w: 6, h: 16 },
-      // wide: exercises the horizontal layout at normal bucket; header meta
-      // bar (funds / rep / sci readouts) has more room to spread.
+      // wide: exercises the horizontal layout at normal bucket; header meta bar (funds / rep / sci readouts) has more room to spread.
       { name: "wide-9x12", w: 9, h: 12 },
       // The RP-1 career is the one whose strategy blurbs run to a thousand
       // marked-up characters, so it is the only fixture where a description
@@ -1294,8 +1276,7 @@ const WIDGETS: WidgetRenderConfig[] = [
             ],
           },
         },
-        // chart forced at the same tiny size, proves the chart still draws
-        // when not allowed to downgrade.
+        // chart forced at the same tiny size, proves the chart still draws when not allowed to downgrade.
         {
           name: "chart-tiny-6x6",
           w: 6,
@@ -1654,8 +1635,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     widgetId: "maneuver-planner",
     fixturesPath: "ManeuverPlanner/__fixtures__",
     outPath: "renders/maneuver-planner-widget",
-    // Scoped to the INSTANT rows, and deliberately NOT the conformance rows,
-    // which do clip at 6x9 now that four sections stack above them.
+    // Scoped to the INSTANT rows, and deliberately NOT the conformance rows, which do clip at 6x9 now that four sections stack above them.
     //
     // The two differ in how cropping harms them, and that is the whole
     // criterion. Three instants share one axis, so losing the third changes what
@@ -1714,8 +1694,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         h: 18,
         clicks: [{ selector: "[id$='conformance-tab']" }],
       },
-      // The same tab at the widget's MINIMUM width, since every widget defect
-      // found in this batch was at a small breakpoint.
+      // The same tab at the widget's MINIMUM width, since every widget defect found in this batch was at a small breakpoint.
       {
         name: "conformance-7x9",
         w: 7,
@@ -1808,8 +1787,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     label: "science-data/blackout",
     fixturesPath: "ScienceData/__render_blackout__",
     outPath: "renders/blackout/status-badge",
-    // Wider than the base set's 8x10 so the aside has room for the badge and
-    // the science figure side by side, which is the whole comparison.
+    // Wider than the base set's 8x10 so the aside has room for the badge and the science figure side by side, which is the whole comparison.
     modes: [{ name: "aboard-10x10", w: 10, h: 10 }],
   },
   {
@@ -1823,11 +1801,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "TargetPicker/__fixtures__",
     outPath: "renders/target-picker-widget",
     modes: [
-      // Below the picker threshold (rows<6 || cols<4): compact current-target
-      // readout (name + distance) or "No target set".
+      // Below the picker threshold (rows<6 || cols<4): compact current-target readout (name + distance) or "No target set".
       { name: "compact-3x4", w: 3, h: 4 },
-      // defaultSize 6×11: the full sectioned picker (Suggested + Bodies +
-      // Vessels + Parts + Other) with the current-target summary when set.
+      // defaultSize 6×11: the full sectioned picker (Suggested + Bodies + Vessels + Parts + Other) with the current-target summary when set.
       { name: "default-6x11", w: 6, h: 11 },
       // wide: the sections have horizontal room.
       { name: "wide-9x12", w: 9, h: 12 },
@@ -1882,8 +1858,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     modes: [
       // Registered default.
       { name: "default-8x10", w: 8, h: 10 },
-      // Wider/taller: the colour-spread fixture stacks four parts with
-      // several meters each, the default size crops it.
+      // Wider/taller: the colour-spread fixture stacks four parts with several meters each, the default size crops it.
       {
         name: "colour-spread-10x16",
         w: 10,
@@ -1966,8 +1941,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "default-8x10", w: 8, h: 10 },
       // Wide: whether a per-vessel update line has room beside the table.
       { name: "wide-11x10", w: 11, h: 10 },
-      // Compact: the size at which the base entry sheds update lines entirely,
-      // so this is where the augment either degrades or is dropped.
+      // Compact: the size at which the base entry sheds update lines entirely, so this is where the augment either degrades or is dropped.
       { name: "compact-5x7", w: 5, h: 7 },
     ],
   },

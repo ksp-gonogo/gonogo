@@ -57,8 +57,7 @@ describe("StreamRecorder", () => {
     expect(transport.isSubscribed("vessel.flight")).toBe(false);
 
     transport.emit("vessel.orbit", { sma: 700_000 }, { validAt: 1 });
-    // Unsubscribed topic: StubTransport.emit gates on subscription, so this
-    // is a no-op, proving the recorder itself never subscribed vessel.flight.
+    // Unsubscribed topic: StubTransport.emit gates on subscription, so this is a no-op, proving the recorder itself never subscribed vessel.flight.
     transport.emit("vessel.flight", { altitudeAsl: 100 }, { validAt: 1 });
 
     const fixture = recorder.stop();

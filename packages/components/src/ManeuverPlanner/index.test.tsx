@@ -38,8 +38,7 @@ function unmountAll() {
   renderedTrees.length = 0;
 }
 
-// Captured at import: before any `clearRegistry` in a beforeEach wipes the
-// module-load `registerComponent`, so the augment-slot metadata is intact.
+// Captured at import: before any `clearRegistry` in a beforeEach wipes the module-load `registerComponent`, so the augment-slot metadata is intact.
 const maneuverPlannerDef = getComponent("maneuver-planner");
 
 /*
@@ -293,8 +292,7 @@ describe("ManeuverPlannerComponent", () => {
     // keys it was waiting on, which named a transport this widget stopped
     // reading at the Sitrep migration.
     expect(screen.queryByText(/o\.sma|t\.universalTime/)).toBeNull();
-    // O5: the plain no-data case must NOT show the hyperbolic notice, only
-    // a hyperbolic `vessel.orbit.ecc` does that (see the dedicated test below).
+    // O5: the plain no-data case must NOT show the hyperbolic notice, only a hyperbolic `vessel.orbit.ecc` does that (see the dedicated test below).
     expect(screen.queryByText(/Hyperbolic trajectory/i)).toBeNull();
   });
 
@@ -472,8 +470,7 @@ describe("ManeuverPlannerComponent", () => {
       spent.emit("system.bodies", {
         bodies: [{ name: "Kerbin", index: 1, radius: 600_000 }],
       });
-      // A real stage list whose ΔV is really zero: a fact about the vessel, not the
-      // absence of one.
+      // A real stage list whose ΔV is really zero: a fact about the vessel, not the absence of one.
       spent.emit("dv.stages", [
         {
           stage: 0,
@@ -493,8 +490,7 @@ describe("ManeuverPlannerComponent", () => {
           thrustActual: 0,
         },
       ]);
-      // A real total that is really zero, which is telemetry about the vessel,
-      // and rather emphatic telemetry.
+      // A real total that is really zero, which is telemetry about the vessel, and rather emphatic telemetry.
       spent.emit("dv.summary", {
         stageCount: 1,
         totalDvVac: 0,
@@ -581,8 +577,7 @@ describe("ManeuverPlannerComponent", () => {
         sma: 900_000,
       });
     });
-    // Let the provider's scheduled `store.beginFrame()` run so the trigger's
-    // frame-tick re-evaluation fires.
+    // Let the provider's scheduled `store.beginFrame()` run so the trigger's frame-tick re-evaluation fires.
     await flushViewUt();
 
     expect(calls.length).toBe(1);
@@ -606,8 +601,7 @@ describe("ManeuverPlannerComponent", () => {
     buffered = new BufferedDataSource({ source, store: new MemoryStore() });
     registerDataSource(buffered);
     await buffered.connect();
-    // See the previous test's identical note: the trigger's fire dispatch
-    // rides `dispatchActiveCommand` now, captured off the stream fixture.
+    // See the previous test's identical note: the trigger's fire dispatch rides `dispatchActiveCommand` now, captured off the stream fixture.
     utFixture.transport.setCommandHandler((command, args) => {
       if (command === "vessel.maneuver.add") {
         calls.push(formatManeuverAddCommand(args));
@@ -904,8 +898,7 @@ describe("ManeuverPlannerComponent", () => {
     const addBtn = await screen.findByRole("button", { name: /^add node$/i });
     await user.click(addBtn);
 
-    // Default preset is circularize-apo: a positive prograde burn,
-    // normal=0, radial=0.
+    // Default preset is circularize-apo: a positive prograde burn, normal=0, radial=0.
     expect(calls).toHaveLength(1);
     const sent = calls[0];
     expect(sent.radialOut).toBe(0);
@@ -928,8 +921,7 @@ describe("ManeuverPlanner: augment slots (Uplink §4)", () => {
 
   afterEach(() => {
     unmountAll();
-    // The widget module registers no augments of its own, but a test may have
-    // bound one into a slot: reset so it never leaks into a later test.
+    // The widget module registers no augments of its own, but a test may have bound one into a slot: reset so it never leaks into a later test.
     clearAugments();
     buffered.disconnect();
   });

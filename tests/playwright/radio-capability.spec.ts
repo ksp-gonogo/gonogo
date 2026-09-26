@@ -67,14 +67,12 @@ test.describe("radio capability: WebCodecs Opus", () => {
   test("an insecure origin is refused, and presence alone would not refuse it", async ({
     page,
   }) => {
-    // A fresh page sits on about:blank, which is an insecure context in
-    // all three engines.
+    // A fresh page sits on about:blank, which is an insecure context in all three engines.
     const facts = await page.evaluate(readContextFacts, [
       ...RADIO_REQUIRED_GLOBALS,
     ]);
 
-    // The fact `radioSupportStatus()` reads first, and the one that makes
-    // its verdict differ from a bare feature detect.
+    // The fact `radioSupportStatus()` reads first, and the one that makes its verdict differ from a bare feature detect.
     expect(facts.isSecureContext).toBe(false);
 
     // The planted failure, standing: a presence-only probe does NOT refuse
@@ -204,8 +202,7 @@ test.describe("radio capability: WebCodecs Opus", () => {
     expect(result.encoderSupported).toBe(true);
     expect(result.decoderSupported).toBe(true);
 
-    // One chunk per 20 ms grid slot, plus at most a few the encoder adds
-    // for Opus pre-skip / lookahead.
+    // One chunk per 20 ms grid slot, plus at most a few the encoder adds for Opus pre-skip / lookahead.
     expect(result.chunkCount).toBeGreaterThanOrEqual(CHUNKS_TO_ENCODE);
     expect(result.chunkCount).toBeLessThanOrEqual(CHUNKS_TO_ENCODE + 5);
 

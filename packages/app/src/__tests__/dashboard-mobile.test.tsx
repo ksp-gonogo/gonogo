@@ -15,8 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Dashboard, type DashboardConfig } from "../components/Dashboard";
 import { useDashboardState } from "../components/Dashboard/useDashboardState";
 
-// matchMedia isn't implemented in jsdom; stub it so useTouchDevice flips
-// to true. vi.unstubAllGlobals() in afterEach restores the original.
+// matchMedia isn't implemented in jsdom; stub it so useTouchDevice flips to true. vi.unstubAllGlobals() in afterEach restores the original.
 function installCoarsePointerMatchMedia() {
   const mql = {
     matches: true,

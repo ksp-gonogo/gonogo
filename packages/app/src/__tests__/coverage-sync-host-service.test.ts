@@ -128,8 +128,7 @@ describe("CoverageSyncHostService", () => {
     expect(sent.msg.type).toBe("fog-snapshot");
     if (sent.msg.type !== "fog-snapshot") throw new Error("type guard");
     expect(sent.msg.masks).toHaveLength(3);
-    // Each (bodyId, layerId) routes to its own payload entry; bytes
-    // round-trip unchanged.
+    // Each (bodyId, layerId) routes to its own payload entry; bytes round-trip unchanged.
     const byKey = new Map(
       sent.msg.masks.map((m) => [
         `${m.bodyId}:${m.layerId}`,
@@ -194,8 +193,7 @@ describe("CoverageSyncHostService", () => {
     await flushMacrotask();
 
     expect(host.sentMessages).toEqual([]);
-    // Still wired up afterwards: a one-off failure shouldn't poison
-    // future connects.
+    // Still wired up afterwards: a one-off failure shouldn't poison future connects.
     coverageStore.loadAllForProfile.mockResolvedValueOnce([
       makeStoredMask("Kerbin", [1]),
     ]);

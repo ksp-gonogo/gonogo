@@ -56,8 +56,7 @@ export const FitLabelButton = forwardRef<
     const ghost = ghostRef.current;
     if (!content || !ghost) return;
     const measure = () => {
-      // clientWidth of the content span IS the button's content box, so the
-      // padding is already excluded without reading computed styles.
+      // clientWidth of the content span IS the button's content box, so the padding is already excluded without reading computed styles.
       setFits(ghost.scrollWidth <= content.clientWidth);
     };
     measure();

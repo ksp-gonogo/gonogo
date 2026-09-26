@@ -150,8 +150,7 @@ for (const file of [...baseShapes.keys()].sort()) {
   }
 }
 
-// A run that compared nothing exits clean, which is the failure mode this repo
-// keeps meeting.
+// A run that compared nothing exits clean, which is the failure mode this repo keeps meeting.
 if (baseShapes.size === 0) {
   console.error(
     `\n✖ ${target} produced no renders, so this compared nothing and would ` +

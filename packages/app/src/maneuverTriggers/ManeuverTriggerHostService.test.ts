@@ -273,8 +273,7 @@ describe("ManeuverTriggerHostService", () => {
   it("plans a transfer around a body the stock table has never heard of", async () => {
     const svc = makeService();
     const storeFixture = seedRenamedBodyOrbit();
-    // sma is 6_771_000, so this is already true and the trigger fires at arm
-    // time, the same path the tests above use.
+    // sma is 6_771_000, so this is already true and the trigger fires at arm time, the same path the tests above use.
     svc.arm({
       dataKey: "vessel.orbit.sma",
       op: ">=",
@@ -306,8 +305,7 @@ describe("ManeuverTriggerHostService", () => {
     expect(storeFixture.calls).toEqual([]);
     // Bump sma so it clears 750_000.
     storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000, 800_000));
-    // The command dispatch settles on a microtask (StubTransport answers
-    // `command-request` via `queueMicrotask`): drain it before asserting.
+    // The command dispatch settles on a microtask (StubTransport answers `command-request` via `queueMicrotask`): drain it before asserting.
     await Promise.resolve();
     await Promise.resolve();
     expect(storeFixture.calls.length).toBe(1);
@@ -319,8 +317,7 @@ describe("ManeuverTriggerHostService", () => {
     const svc = makeService();
     const storeFixture = seedKerbinOrbit();
 
-    // 700_000 stays below 750_000, so this arms pending and reads as armed
-    // against the live vessel.
+    // 700_000 stays below 750_000, so this arms pending and reads as armed against the live vessel.
     svc.arm({
       dataKey: "vessel.orbit.sma",
       op: ">=",
@@ -433,16 +430,14 @@ describe("ManeuverTriggerHostService", () => {
     expect(svc1.snapshot().triggers[0].vesselName).toBe("Test Vessel");
     svc1.dispose();
 
-    // The reload: everything the provider registered is gone before the
-    // service is rebuilt.
+    // The reload: everything the provider registered is gone before the service is rebuilt.
     setActiveTimelineStoreForTests(undefined);
     setActiveViewClockForTests(undefined);
     const svc2 = makeService();
 
     expect(svc2.snapshot().triggers).toHaveLength(1);
     expect(svc2.snapshot().triggers[0].vesselName).toBe("Test Vessel");
-    // Storage keeps it too: a drop here rewrites the list and loses it for
-    // every later reload as well.
+    // Storage keeps it too: a drop here rewrites the list and loses it for every later reload as well.
     expect(
       JSON.parse(storage.getItem("gonogo.maneuverTriggers.list") ?? "[]"),
     ).toHaveLength(1);

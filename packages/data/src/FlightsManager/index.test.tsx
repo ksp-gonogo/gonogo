@@ -178,8 +178,7 @@ describe("FlightsManager", () => {
   it("does not show the eligibility hint when starred flights keep the unstarred count under the cap", async () => {
     const store = freshStore();
     registerDataSource(new MissionHistorySource(store));
-    // 22 total, but 2 are starred (exempt), only 20 unstarred, at the cap,
-    // not over it.
+    // 22 total, but 2 are starred (exempt), only 20 unstarred, at the cap, not over it.
     for (let i = 0; i < DEFAULT_KEEP_COUNT; i++) {
       await seedMission(store);
     }
@@ -211,8 +210,7 @@ describe("FlightsManager", () => {
     await user.click(graphButton);
 
     expect(graphButton.getAttribute("aria-expanded")).toBe("true");
-    // FlightGraph's own placeholder: proves it actually mounted with this
-    // row's missionId/firstFrameUt/lastFrameUt wired through.
+    // FlightGraph's own placeholder: proves it actually mounted with this row's missionId/firstFrameUt/lastFrameUt wired through.
     expect(
       screen.getByText(/pick one or more numeric telemetry keys/i),
     ).toBeTruthy();
@@ -232,15 +230,13 @@ describe("FlightsManager", () => {
     render(<FlightsManager screen="station" />);
     await screen.findByText("Station View");
 
-    // Recording is never a station concern at all now, it's not a button
-    // anywhere, main or station (see AutoRecordStatus's own doc comment).
+    // Recording is never a station concern at all now, it's not a button anywhere, main or station (see AutoRecordStatus's own doc comment).
     expect(screen.queryByText(/mission history is off/i)).toBeNull();
     expect(
       screen.queryByRole("button", { name: /replay station view/i }),
     ).toBeNull();
 
-    // Non-recording, non-replay interactions stay available on a station,
-    // per-mission peer RPCs make them work identically there.
+    // Non-recording, non-replay interactions stay available on a station, per-mission peer RPCs make them work identically there.
     expect(
       screen.getByRole("button", { name: /star station view/i }),
     ).toBeTruthy();
@@ -257,8 +253,7 @@ describe("FlightsManager", () => {
     render(<FlightsManager screen="main" />);
     await screen.findByText("Main View");
 
-    // No AutoRecordController mounted in this test, so the status readout
-    // shows the "armed" idle state rather than an active recording.
+    // No AutoRecordController mounted in this test, so the status readout shows the "armed" idle state rather than an active recording.
     expect(screen.getByText(/auto-record armed: capture starts/i)).toBeTruthy();
     expect(
       screen.getByRole("button", { name: /replay main view/i }),

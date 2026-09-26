@@ -44,8 +44,7 @@ import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
-// Side-effect import: every built-in widget (Targeting included)
-// self-registers on module load, same contract as the shared probe.
+// Side-effect import: every built-in widget (Targeting included) self-registers on module load, same contract as the shared probe.
 import "../../src";
 import {
   type StreamFixture,
@@ -208,8 +207,7 @@ async function renderTargetingHudProbe(
     ),
   );
 
-  // Let React commit + useEffect run (so useTelemetry actually subscribes)
-  // before replaying the fixture.
+  // Let React commit + useEffect run (so useTelemetry actually subscribes) before replaying the fixture.
   await rafTick();
 
   for (const e of payload.emits) {

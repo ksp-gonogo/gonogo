@@ -36,16 +36,14 @@ describe("radioFrameFromWire", () => {
     const bytes = (normalised as Extract<RadioFrame, { kind: "chunk" }>).bytes;
     expect(bytes).toBeInstanceOf(Uint8Array);
     expect([...bytes]).toEqual([...sent]);
-    // The reading a consumer actually wanted, which an ArrayBuffer cannot give:
-    // indexing one returns `undefined` and every byte-level check fails.
+    // The reading a consumer actually wanted, which an ArrayBuffer cannot give: indexing one returns `undefined` and every byte-level check fails.
     expect(readClipChunk(bytes).index).toBe(3);
   });
 
   it("leaves audio that already arrived intact alone, without copying it", () => {
     const frame = chunkFrame(clipBytes(SHORT_CLIP, 0));
 
-    // Identity, not equality: this runs fifty times a second per talker, and a
-    // defensive copy per chunk is a cost paid on the path that was never broken.
+    // Identity, not equality: this runs fifty times a second per talker, and a defensive copy per chunk is a cost paid on the path that was never broken.
     expect(radioFrameFromWire(frame)).toBe(frame);
   });
 

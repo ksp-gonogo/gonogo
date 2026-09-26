@@ -18,8 +18,7 @@ export function hasSeenFirstRunSetup(): boolean {
   try {
     return window.localStorage.getItem(STORAGE_KEY) === "1";
   } catch {
-    // Storage disabled/unavailable: fail closed (never auto-open) rather
-    // than risk re-opening every boot.
+    // Storage disabled/unavailable: fail closed (never auto-open) rather than risk re-opening every boot.
     return true;
   }
 }

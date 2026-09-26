@@ -89,8 +89,7 @@ export function useAutoCommand({
   const cmd = useCommand(command);
   const { send } = cmd;
 
-  // Ref guard for the single dispatch (StrictMode-safe); `phase` mirrors it for
-  // the reactive return.
+  // Ref guard for the single dispatch (StrictMode-safe); `phase` mirrors it for the reactive return.
   const settled = useRef(false);
   const [phase, setPhase] = useState<"armed" | "fired" | "skipped">("armed");
 

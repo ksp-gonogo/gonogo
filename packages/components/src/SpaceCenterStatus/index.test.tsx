@@ -300,8 +300,7 @@ describe("parseFacilityLevels", () => {
     const members = [...KSP_SPACE_CENTER_FACILITY_NAMES.keys()].sort(
       (a, b) => a - b,
     );
-    // Guards this reader: an empty names table would make any short-code table
-    // pass, including an empty one.
+    // Guards this reader: an empty names table would make any short-code table pass, including an empty one.
     expect(members).toHaveLength(9);
     const missing = members.filter((m) => !FACILITY_ORDINAL_KEYS.has(m));
     expect(missing).toEqual([]);
@@ -354,8 +353,7 @@ describe("parseFacilityLevels", () => {
       Cafeteria: tier(1, 3),
       LaunchPad: tier(0, 3),
     });
-    // Tier text has no stock equivalent, so it is empty for every entry off
-    // this channel; a career model that has its own contributes it instead.
+    // Tier text has no stock equivalent, so it is empty for every entry off this channel; a career model that has its own contributes it instead.
     expect(parsed).toEqual({
       vab: {
         level: 1,

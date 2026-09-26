@@ -7,8 +7,7 @@ import { renderWidget } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { stripVolatile } from "../test/widgetDomSnapshot";
-// Side-effect import: the widget self-registers on module load, and
-// `renderWidget` looks it up by id rather than importing the component.
+// Side-effect import: the widget self-registers on module load, and `renderWidget` looks it up by id rather than importing the component.
 import "./index";
 
 /**
@@ -46,8 +45,7 @@ const flatEntry = (
   scienceLimit: 40,
   powerState: "Powered",
   connectionState: "Connected",
-  // The DERIVED fields, which is what the widget reads; the two prose fields
-  // above are display labels only.
+  // The DERIVED fields, which is what the widget reads; the two prose fields above are display labels only.
   power: DeployedPowerState.Powered,
   controllerConnected: true,
   powerAvailable: 4,
@@ -57,8 +55,7 @@ const flatEntry = (
 });
 
 const SCENARIOS: Record<string, Scenario> = {
-  // A powered Mun base climbing on two experiments, and an unpowered Minmus
-  // base at night: same qualitative story as the old `bases` fixture.
+  // A powered Mun base climbing on two experiments, and an unpowered Minmus base at night: same qualitative story as the old `bases` fixture.
   bases: {
     breakingGround: true,
     entries: [
@@ -97,8 +94,7 @@ const SCENARIOS: Record<string, Scenario> = {
          */
         powerState: "Unpowered",
         power: DeployedPowerState.Unpowered,
-        // A genuine shortfall, which is what unpowered looks like on the
-        // cluster's own scale: demand met by nothing at all.
+        // A genuine shortfall, which is what unpowered looks like on the cluster's own scale: demand met by nothing at all.
         powerAvailable: 0,
         powerRequired: 3,
       }),

@@ -54,8 +54,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
   constructor(opts: { sourceId?: string; nowMs?: () => number } = {}) {
     this.sourceId = opts.sourceId ?? "data";
     this.nowMs = opts.nowMs ?? (() => Date.now());
-    // No frame subscription here: a service holding no triggers has nothing
-    // to re-evaluate, so `arm()` takes it out on the first one.
+    // No frame subscription here: a service holding no triggers has nothing to re-evaluate, so `arm()` takes it out on the first one.
   }
 
   dispose(): void {
@@ -77,8 +76,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
   }
 
   arm(input: ArmTriggerInput): void {
-    // Re-evaluates every armed trigger's dataKey threshold, plus the
-    // vessel-swap auto-clear check, on every subsequent stream frame.
+    // Re-evaluates every armed trigger's dataKey threshold, plus the vessel-swap auto-clear check, on every subsequent stream frame.
     this.vesselUnsub ??= onActiveTimelineFrame(() => this.evaluate());
     const id = generateId();
     const trigger: ArmedTrigger = {

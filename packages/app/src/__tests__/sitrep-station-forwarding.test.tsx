@@ -308,8 +308,7 @@ function ChainProbe() {
 }
 
 function DownlinkProbe({ id }: { id: number }) {
-  // `useStreamEvent`, as a downlink widget does: a stream of chunks rather than
-  // a sticky value, and it subscribes the runtime-keyed topic verbatim.
+  // `useStreamEvent`, as a downlink widget does: a stream of chunks rather than a sticky value, and it subscribes the runtime-keyed topic verbatim.
   const [chunk, setChunk] = useState<string>("awaiting");
   useStreamEvent<{ chunk?: string }>(
     `${UPLINK_DOMAIN}.device.${id}`,
@@ -582,8 +581,7 @@ describe("station Sitrep-stream forwarding: two-screen proof", () => {
       args: { enabled: true },
     });
 
-    // Station B's own connection must never have received a reply to a
-    // request it never sent.
+    // Station B's own connection must never have received a reply to a request it never sent.
     expect(stationBResponses).toEqual([]);
     expect(stationBErrors).toEqual([]);
 
@@ -724,8 +722,7 @@ describe("station subscription intent reaches the mod", () => {
     // and the widget resolves no id and renders "no devices", an absence stated
     // as a fact.
     //
-    // The only frame for the first hop is emitted before the station exists, so
-    // this passes on the relay cache rather than on the mod re-emitting.
+    // The only frame for the first hop is emitted before the station exists, so this passes on the relay cache rather than on the mod re-emitting.
     const { peerHost, hostTransport } = setupHost();
     await peerHost.start();
     await waitForHostPeerId(peerHost);
@@ -756,8 +753,7 @@ describe("station subscription intent reaches the mod", () => {
     await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
     stationServices.push(clientSvc);
 
-    // Second hop: the station worked out the id for itself and subscribed the
-    // downlink, with nothing namespace-shaped anywhere between it and the mod.
+    // Second hop: the station worked out the id for itself and subscribed the downlink, with nothing namespace-shaped anywhere between it and the mod.
     await waitFor(() =>
       expect(hostTransport.isSubscribed(`${UPLINK_DOMAIN}.device.7`)).toBe(
         true,
@@ -928,8 +924,7 @@ describe("an Uplink's own methods, called from a station", () => {
     act(() => clientSvc.connect(peerHost.shareCode));
     await waitFor(() => expect(clientSvc.getConnStatus()).toBe("connected"));
 
-    // Once connected the host answers, and its answer is the named refusal
-    // rather than silence: an Uplink whose handle never registered can say so.
+    // Once connected the host answers, and its answer is the named refusal rather than silence: an Uplink whose handle never registered can say so.
     await waitFor(() =>
       expect(String(answers.at(-1))).toContain("no relay handle registered"),
     );

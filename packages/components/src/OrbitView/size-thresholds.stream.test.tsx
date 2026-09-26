@@ -29,8 +29,7 @@ describe("OrbitView: title and frame caption at the tiny-mode threshold", () => 
     const { container } = renderOrbitViewStream({ w: 3, h: 3 }, SCENARIO);
     await waitForSettled(container);
 
-    // The pill fallback state itself: proves the widget actually settled
-    // into tiny mode, not some other empty/loading render.
+    // The pill fallback state itself: proves the widget actually settled into tiny mode, not some other empty/loading render.
     expect(screen.getByText("ORBIT")).toBeInTheDocument();
 
     const heading = screen.getByRole("heading", { level: 3 });

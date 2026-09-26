@@ -165,8 +165,7 @@ describe("a surface point at a view time", () => {
     const unturned = present(surfacePositionAt(atZeroPhase, 0, 0, 0, 0));
     const turned = present(surfacePositionAt(atQuarterPhase, 0, 0, 0, 0));
 
-    // Same body, same station, same instant: the phase is the only difference,
-    // and a quarter turn of it moves the station a quarter of the way round.
+    // Same body, same station, same instant: the phase is the only difference, and a quarter turn of it moves the station a quarter of the way round.
     expect(unturned[0]).toBeCloseTo(PLANET_RADIUS, 3);
     expect(unturned[1]).toBeCloseTo(0, 3);
     expect(turned[0]).toBeCloseTo(0, 3);
@@ -257,8 +256,7 @@ describe("a first-hop peer's position at view time", () => {
         quarterDay,
       ),
     );
-    // The station itself swept a quarter of the equator; the planet also moved
-    // along its own orbit, so this is a floor rather than an equality.
+    // The station itself swept a quarter of the equator; the planet also moved along its own orbit, so this is a floor rather than an equality.
     expect(separation(late, early)).toBeGreaterThan(PLANET_RADIUS);
   });
 
@@ -297,8 +295,7 @@ describe("a first-hop peer's position at view time", () => {
   });
 
   it("refuses a centre the roster gave no coordinates", () => {
-    // The roster's documented null case: a crewed-vessel centre off the ground
-    // reports no latitude, so there is no surface point to turn.
+    // The roster's documented null case: a crewed-vessel centre off the ground reports no latitude, so there is no surface point to turn.
     const airborne = {
       ...STATION,
       latitude: undefined,

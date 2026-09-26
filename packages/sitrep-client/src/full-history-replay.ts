@@ -138,8 +138,7 @@ export function buildFullHistoryStore(fixture: ReplayFixture): TimelineStore {
       retentionSeconds: Number.POSITIVE_INFINITY,
       maxPoints: Number.POSITIVE_INFINITY,
     },
-    // Match the live store: resolve the injected dynamic namespaces as whole
-    // topics so a full-history replay subscribes/samples the same wire strings.
+    // Match the live store: resolve the injected dynamic namespaces as whole topics so a full-history replay subscribes/samples the same wire strings.
     dynamicWholeTopicPrefixes: DYNAMIC_CARRIED_TOPIC_PREFIXES,
   });
   for (const channel of PRODUCTION_DERIVED_CHANNELS) {

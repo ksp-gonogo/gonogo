@@ -150,7 +150,6 @@ export function PlantedBorrowedAccessorName() {
     return reading.value;
   }
 
-  // PLANT: same spelling as the sdk's accessor, different declaration, and it
-  // launders the VALUE.
+  // PLANT: same spelling as the sdk's accessor, different declaration, and it launders the VALUE.
   return <Unit value={observedAt(altitude) ?? null} />;
 }

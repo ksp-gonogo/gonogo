@@ -25,8 +25,7 @@ describe("useFleetVesselLink", () => {
     );
     expect(screen.getByText("link:waiting")).toBeTruthy();
 
-    // A dynamic topic: StubTransport (like production) can't unit-wrap it, so it
-    // arrives raw, oneWaySeconds is the bare number 4.5, not { magnitude: 4.5 }.
+    // A dynamic topic: StubTransport (like production) can't unit-wrap it, so it arrives raw, oneWaySeconds is the bare number 4.5, not { magnitude: 4.5 }.
     act(() => {
       t.emit("fleet.g1.delay", { oneWaySeconds: 4.5, connected: true });
     });

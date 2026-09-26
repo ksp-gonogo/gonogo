@@ -27,8 +27,7 @@
 // nothing for unsurveyed tiles could then only ever REPLACE pixels, never
 // intentionally withhold the whole surface.
 //
-// With no suppression and no layers, the stock texture (or a body-colour
-// wash, or nothing) paints on its own.
+// With no suppression and no layers, the stock texture (or a body-colour wash, or nothing) paints on its own.
 
 /** The subset of the 2D context this module touches. */
 export interface BaseSurfaceCtx {

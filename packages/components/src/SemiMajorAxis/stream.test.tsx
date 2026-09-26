@@ -46,8 +46,7 @@ describe("SemiMajorAxis: genuinely runs off the stream (M3 batch 2)", () => {
     // Nothing arrived yet: sma is undefined, so the empty state renders.
     expect(screen.getByText("No orbit data")).toBeTruthy();
 
-    // A real subscription must have happened for this to deliver at all,
-    // StubTransport.emit is subscription-gated (see its own doc comment).
+    // A real subscription must have happened for this to deliver at all, StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
     act(() => {
@@ -67,8 +66,7 @@ describe("SemiMajorAxis: genuinely runs off the stream (M3 batch 2)", () => {
     });
 
     await waitFor(() => expect(visibleText()).toContain("680.0 km"));
-    // The subtitle body suffix streams off the named reference body, with NO
-    // legacy source present.
+    // The subtitle body suffix streams off the named reference body, with NO legacy source present.
     await waitFor(() =>
       expect(screen.getByText("Semi-major axis · Kerbin")).toBeTruthy(),
     );
@@ -120,8 +118,7 @@ describe("SemiMajorAxis: genuinely runs off the stream (M3 batch 2)", () => {
       );
       expect(path).not.toBeNull();
       const d = path?.getAttribute("d") ?? "";
-      // One "M" (moveto) + 2 "L" (lineto) commands, all 3 streamed points
-      // made it into the plotted path, not just the latest one.
+      // One "M" (moveto) + 2 "L" (lineto) commands, all 3 streamed points made it into the plotted path, not just the latest one.
       expect(d.match(/L/g)?.length).toBe(2);
       // Rising series (679_400 -> 679_800 -> 680_000) draws a
       // monotonically DEscending y (SVG y grows downward), proves the

@@ -79,8 +79,7 @@ test.describe("host disconnect: station banner", () => {
     });
 
     // ...and clears once the retry lands. RetryPolicy default interval
-    // is 2s; allow ~20s for cold WebRTC negotiation against the local
-    // broker.
+    // is 2s; allow ~20s for cold WebRTC negotiation against the local broker.
     await expect(pair.station.getByText(BANNER_PATTERN)).not.toBeVisible({
       timeout: 20_000,
     });

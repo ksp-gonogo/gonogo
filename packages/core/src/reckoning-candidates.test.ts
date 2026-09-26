@@ -190,8 +190,7 @@ describe("rate-integration candidates carry a written verdict", () => {
   });
 
   it("keeps no verdict for a candidate the rule no longer proposes", () => {
-    // The ratchet half: a field renamed or a unit corrected makes its verdict
-    // stale, and the entry has to go in the same commit that caused it.
+    // The ratchet half: a field renamed or a unit corrected makes its verdict stale, and the entry has to go in the same commit that caused it.
     const stale = Object.keys(verdicts)
       .filter((key) => !proposed.has(key))
       .sort();

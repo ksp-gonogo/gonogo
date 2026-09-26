@@ -142,8 +142,7 @@ export function startCoturn(opts: CoturnOptions): CoturnHandle {
   });
 
   proc.stdout?.on("data", (chunk: Buffer) => {
-    // coturn is chatty at default verbosity; surface line-by-line so the
-    // proxy's log timestamps interleave correctly.
+    // coturn is chatty at default verbosity; surface line-by-line so the proxy's log timestamps interleave correctly.
     for (const line of chunk.toString("utf8").split(/\r?\n/)) {
       if (line.length > 0) opts.logger.info(`[coturn] ${line}`);
     }

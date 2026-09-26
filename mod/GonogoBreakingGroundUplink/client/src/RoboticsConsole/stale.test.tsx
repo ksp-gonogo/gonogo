@@ -116,8 +116,7 @@ describe("RoboticsConsole: a servo list that has stopped arriving", () => {
     expect(visibleText(container)).toContain("Bay Piston");
     expect(visibleText(container)).toContain("60°");
 
-    // And the reason is named, with the half that is still good spelled out,
-    // so a live panel does not read as a dead one.
+    // And the reason is named, with the half that is still good spelled out, so a live panel does not read as a dead one.
     expect(visibleText(container)).toContain(
       "Measured positions no longer current",
     );

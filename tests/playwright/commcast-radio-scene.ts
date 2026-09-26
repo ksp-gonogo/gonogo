@@ -210,8 +210,7 @@ export function scene(): SceneFrame[] {
         ],
       },
     },
-    // Published connected rather than left silent: the widget reads silence as
-    // connected anyway, and saying so makes it the recorded state.
+    // Published connected rather than left silent: the widget reads silence as connected anyway, and saying so makes it the recorded state.
     { topic: "comms.link", payload: { connected: true } },
   ];
 }
@@ -723,8 +722,7 @@ export async function installCaption(
       "pointer-events:none",
       "z-index:2147483647",
       "font-family:ui-monospace,SFMono-Regular,Menlo,monospace",
-      // An outline, not a border: it draws over the viewport instead of adding
-      // to it, so the frame needs no box-sizing to stay inside `inset:0`.
+      // An outline, not a border: it draws over the viewport instead of adding to it, so the frame needs no box-sizing to stay inside `inset:0`.
       `outline:3px solid ${o.accent}`,
       "outline-offset:-3px",
     ].join(";");
@@ -1017,8 +1015,7 @@ export async function stackVideos(
       contentType: "audio/wav",
     });
   }
-  // One per pane, always: the pan positions are computed off the pane order, so
-  // a missing track would move every voice after it to the wrong side.
+  // One per pane, always: the pan positions are computed off the pane order, so a missing track would move every voice after it to the wrong side.
   const withAudio = tracks.length === paths.length;
 
   const graph: string[] = [];
@@ -1113,8 +1110,7 @@ export async function closeAll(screens: readonly Screen[]): Promise<void> {
         .__radioWatchStop as (() => void) | undefined;
       stop?.();
     });
-    // Off the page while there still IS one: the tape lives in the page, and a
-    // closed context takes it with it.
+    // Off the page while there still IS one: the tape lives in the page, and a closed context takes it with it.
     screen.audio = await takeAudio(screen.page);
   }
   await Promise.all(screens.map((screen) => screen.page.close()));

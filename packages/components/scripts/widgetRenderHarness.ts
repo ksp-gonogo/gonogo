@@ -410,8 +410,7 @@ export async function renderWidgets(
       );
     }
 
-    // Before the gates, because a gate's verdict only covers what rendered: a
-    // clean overlap report over 16 of 42 widgets is not a clean tree.
+    // Before the gates, because a gate's verdict only covers what rendered: a clean overlap report over 16 of 42 widgets is not a clean tree.
     if (findings.mounts.length > 0) {
       throw new Error(
         `${findings.mounts.length} render(s) never happened, so nothing was ` +
@@ -632,8 +631,7 @@ async function renderOneScreen(
         props: state.props,
       });
       const outName = `${state.name}--${bp.name}.png`;
-      // Full-page screenshot (not `#root`) so the captured frame is exactly
-      // the breakpoint viewport: the whole point of a screen render.
+      // Full-page screenshot (not `#root`) so the captured frame is exactly the breakpoint viewport: the whole point of a screen render.
       await page.screenshot({
         path: join(outDir, outName),
         animations: "disabled",
@@ -861,8 +859,7 @@ async function findOverlappingSections(page: Page): Promise<string[]> {
           for (let j = i + 1; j < kids.length; j++) {
             const a = kids[i];
             const b = kids[j];
-            // Cheap union pre-filter: unions can only over-report, so a miss
-            // here is a real miss and the per-fragment pass below never runs.
+            // Cheap union pre-filter: unions can only over-report, so a miss here is a real miss and the per-fragment pass below never runs.
             if (
               Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0) <= tolerance ||
               Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0) <= tolerance
@@ -956,8 +953,7 @@ export async function surveyClippedContent(page: Page): Promise<string[]> {
         const clipsX = hidesX || scrollsX;
         if (!clipsY && !clipsX) continue;
 
-        // One line cut short with an ellipsis is a truncation the author asked
-        // for and the reader can see happening.
+        // One line cut short with an ellipsis is a truncation the author asked for and the reader can see happening.
         if (cs.textOverflow === "ellipsis" && cs.whiteSpace === "nowrap") {
           continue;
         }
@@ -1838,8 +1834,7 @@ async function renderOneWidget(
         );
         continue;
       }
-      // Full-content capture (review path): grow `#root` until nothing is
-      // clipped, so the PNG shows the WHOLE widget, not a tile-height crop.
+      // Full-content capture (review path): grow `#root` until nothing is clipped, so the PNG shows the WHOLE widget, not a tile-height crop.
       /* Content can hide in three places, and the third was missing for as
          long as this loop existed: behind the Panel's `overflow:hidden` (the
          Panel is `#root`'s first child), inside a ScrollArea's `overflow:auto`
@@ -1894,8 +1889,7 @@ async function renderOneWidget(
             void el.offsetHeight;
           }
         });
-        // Let ResizeObserver-driven bits (ScrollArea glow, Gauge/Tape sizing)
-        // settle at the final height before the shot.
+        // Let ResizeObserver-driven bits (ScrollArea glow, Gauge/Tape sizing) settle at the final height before the shot.
         await page.evaluate(
           () =>
             new Promise<void>((res) => {
@@ -1931,8 +1925,7 @@ async function renderOneWidget(
         !fullContent &&
         !(config.mustBeVisible.mayScroll ?? []).includes(mode.name)
       ) {
-        // Measured in the page, after layout, because that is the only place
-        // this property exists at all.
+        // Measured in the page, after layout, because that is the only place this property exists at all.
         const clipped = await page.evaluate((selector) => {
           const host = document.getElementById("root");
           if (!host) return [] as string[];

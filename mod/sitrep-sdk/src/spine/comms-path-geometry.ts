@@ -101,8 +101,7 @@ export function surfacePositionAt(
   const lat = latitudeDeg * DEG;
   const lon = longitudeDeg * DEG;
   const r = body.radius + altitudeMetres;
-  // KSP's own Planetarium.SphericalVector: z-up, right-handed, the basis an
-  // element set's inclination and ascending node are already measured in.
+  // KSP's own Planetarium.SphericalVector: z-up, right-handed, the basis an element set's inclination and ascending node are already measured in.
   const x = Math.cos(lat) * Math.cos(lon) * r;
   const y = Math.cos(lat) * Math.sin(lon) * r;
   const z = Math.sin(lat) * r;
@@ -182,8 +181,7 @@ export function locateCommsPeer(
       bodyIndex: entry.bodyIndex,
       latitudeDeg: lat,
       longitudeDeg: lon,
-      // The roster carries no altitude for a station, and a station's height
-      // above mean radius is a light-time well under a microsecond.
+      // The roster carries no altitude for a station, and a station's height above mean radius is a light-time well under a microsecond.
       altitudeMetres: 0,
     };
   }

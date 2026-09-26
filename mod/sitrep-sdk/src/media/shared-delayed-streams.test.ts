@@ -42,8 +42,7 @@ describe("SharedDelayedStreams: one pipeline per camera, shared by all consumers
     const b = cache.acquire(camera, build); // second consumer, same camera
     await flushMicrotasks();
 
-    // ONE build: a MediaStreamTrack admits only one processor; this is the
-    // whole point.
+    // ONE build: a MediaStreamTrack admits only one processor; this is the whole point.
     expect(build).toHaveBeenCalledTimes(1);
     expect(cache.size).toBe(1);
     // Both consumers see the SAME delayed output.

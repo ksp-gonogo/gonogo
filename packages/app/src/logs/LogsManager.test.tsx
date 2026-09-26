@@ -171,8 +171,7 @@ describe("LogsManager: Feedback", () => {
       expect(screen.getByText(/bug report sent/i)).toBeInTheDocument();
     });
 
-    // Drain the 5s reset timer inside act() immediately after the notice so
-    // it fires here rather than via the background advancer after the test.
+    // Drain the 5s reset timer inside act() immediately after the notice so it fires here rather than via the background advancer after the test.
     await act(async () => {
       await vi.advanceTimersByTimeAsync(5000);
     });

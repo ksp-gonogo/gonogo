@@ -73,8 +73,7 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
       });
     });
 
-    // The whole readout is now <Unit>, so the number, its glyph and the
-    // spoken word are three elements and no single node holds "· 78,401f".
+    // The whole readout is now <Unit>, so the number, its glyph and the spoken word are three elements and no single node holds "· 78,401f".
     await waitFor(() => expect(visibleText()).toContain("· 78,401f"));
   });
 
@@ -161,8 +160,7 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
       });
     });
 
-    // "tier 2 of 3": displayLevel/displayMax are currentTier/maxTier + 1
-    // (0-based tiers on the wire, 1-based "Lvl N of M" display).
+    // "tier 2 of 3": displayLevel/displayMax are currentTier/maxTier + 1 (0-based tiers on the wire, 1-based "Lvl N of M" display).
     await waitFor(() =>
       expect(screen.getByLabelText("Launch Pad tier 2 of 3")).toBeTruthy(),
     );

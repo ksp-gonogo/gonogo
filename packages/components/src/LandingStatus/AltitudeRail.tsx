@@ -42,8 +42,7 @@ export function AltitudeRail({
     ignitionAltitude != null && ignitionAltitude > 0 ? ignitionAltitude : null;
   const maxScale = niceCeil(Math.max(aglMeters, ignition ?? 0, 1) * 1.1);
 
-  // The hot band: from the ground up to the ignition altitude, the region in
-  // which the burn must already have started.
+  // The hot band: from the ground up to the ignition altitude, the region in which the burn must already have started.
   const zones =
     ignition != null
       ? [

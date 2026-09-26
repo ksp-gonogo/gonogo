@@ -217,8 +217,7 @@ const Backdrop = styled.div`
   pointer-events: none;
 `;
 
-// Same shape as ComponentOverlay's: the kit's Box carries the surface, border
-// and radius; the fill-and-cap geometry is this overlay's.
+// Same shape as ComponentOverlay's: the kit's Box carries the surface, border and radius; the fill-and-cap geometry is this overlay's.
 const OverlaySurface = styled(Box).attrs({
   surface: "sunken" as const,
   bordered: true,

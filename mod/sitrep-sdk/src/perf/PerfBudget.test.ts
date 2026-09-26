@@ -52,8 +52,7 @@ describe("PerfBudget", () => {
     // More overruns within the same window: throttled, no extra warn.
     for (let i = 0; i < 10; i++) b.record(1, 1100 + i);
     expect(warn).toHaveBeenCalledTimes(1);
-    // Past the window: events have aged out, but a fresh burst should
-    // re-trigger the warn.
+    // Past the window: events have aged out, but a fresh burst should re-trigger the warn.
     for (let i = 0; i < 6; i++) b.record(1, 3000 + i);
     expect(warn).toHaveBeenCalledTimes(2);
     warn.mockRestore();
@@ -78,8 +77,7 @@ describe("PerfBudget", () => {
     const warn = vi.spyOn(realLogger, "warn").mockImplementation(() => {});
     for (let i = 0; i < 5; i++) b.record(1, 1000 + i);
     expect(b.getExceedanceCount()).toBeGreaterThan(0);
-    // Even though warns were throttled, every record over threshold
-    // should bump the counter.
+    // Even though warns were throttled, every record over threshold should bump the counter.
     expect(b.getExceedanceCount()).toBe(4);
     warn.mockRestore();
   });

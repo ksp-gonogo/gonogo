@@ -142,8 +142,7 @@ describe("Navball display: what undefined means today", () => {
     mount("nb-undef-throttle");
 
     act(() => {
-      // Attitude only: enough to make the dial (and with it the throttle
-      // column) render, with the control record still absent.
+      // Attitude only: enough to make the dial (and with it the throttle column) render, with the control record still absent.
       fixture.emit("vessel.attitude", ATTITUDE);
     });
 
@@ -163,8 +162,7 @@ describe("Navball display: what undefined means today", () => {
       fixture.emit("vessel.control", { sas: true });
     });
 
-    // Proof the partial record landed, so the glyph below is the missing field
-    // and not a dropped emit.
+    // Proof the partial record landed, so the glyph below is the missing field and not a dropped emit.
     await waitFor(() =>
       expect(fixture.store.sample("vessel.control")?.payload).toEqual({
         sas: true,
@@ -194,8 +192,7 @@ describe("Navball control surface: what undefined means today", () => {
     // dispatch gate below is what still treats absence as "do nothing".
     expect(screen.queryByRole("button", { name: "SAS ON" })).toBeNull();
     expect(screen.queryByRole("button", { name: "SAS OFF" })).toBeNull();
-    // The slider's value is the null glyph, and a step from it is refused
-    // rather than guessed; the absolute commands stay live.
+    // The slider's value is the null glyph, and a step from it is refused rather than guessed; the absolute commands stay live.
     const group = screen.getByRole("slider", {
       name: "Throttle",
     }).parentElement;
@@ -253,23 +250,20 @@ describe("Navball control surface: what undefined means today", () => {
     // answer this question.
     expect(sentNamed("vessel.control.setSas")).toEqual([]);
     expect(sentNamed("vessel.control.setRcs")).toEqual([]);
-    // The button is not disabled, so the refusal is invisible to the operator:
-    // it reads as a control that did nothing.
+    // The button is not disabled, so the refusal is invisible to the operator: it reads as a control that did nothing.
     expect(
       screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` }),
     ).not.toBeDisabled();
   });
 
   it("dispatches that same click once a real boolean has arrived", async () => {
-    // Contrast case: proves the empty dispatch lists above are the gate firing,
-    // not this test setup being unable to dispatch at all.
+    // Contrast case: proves the empty dispatch lists above are the gate firing, not this test setup being unable to dispatch at all.
     mount("nb-undef-toggle-allowed", { w: 10, h: 20, controlMode: true });
 
     act(() => {
       fixture.emit("vessel.control", { sas: true, rcs: false, throttle: 0 });
     });
-    // The label flipping to "SAS ON" is the proof the boolean reached the render,
-    // which the never-arrived case cannot fake.
+    // The label flipping to "SAS ON" is the proof the boolean reached the render, which the never-arrived case cannot fake.
     const sas = await screen.findByRole("button", { name: "SAS ON" });
 
     act(() => {
@@ -302,8 +296,7 @@ describe("Navball control surface: what undefined means today", () => {
     ).toBeInTheDocument();
     act(() => {
       screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` }).click();
-      // Same ungated control as in the never-arrived test: its dispatch proves
-      // the command path is live under a tombstone too.
+      // Same ungated control as in the never-arrived test: its dispatch proves the command path is live under a tombstone too.
       screen.getByRole("button", { name: "PRO" }).click();
     });
     await waitFor(() =>
@@ -380,8 +373,7 @@ describe("Navball control surface: what undefined means today", () => {
       });
     });
 
-    // Back to the live 0.2: the commanded FULL is gone, because the identity
-    // read going from absent to present counts as switching craft.
+    // Back to the live 0.2: the commanded FULL is gone, because the identity read going from absent to present counts as switching craft.
     await waitFor(() => expect(slider).toHaveValue("0.2"));
   });
 });

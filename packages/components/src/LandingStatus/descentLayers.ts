@@ -240,8 +240,7 @@ export function buildDescentLayers(
       ? inputs.atmosphereColor
       : HAZE_DEFAULT_TINT;
 
-  // A flat base wash of this body's sky, under the banded one, so the haze
-  // still carries a colour cue up where the banding has faded toward nothing.
+  // A flat base wash of this body's sky, under the banded one, so the haze still carries a colour cue up where the banding has faded toward nothing.
   layers.push({
     kind: "field",
     id: "atmosphere-base",
@@ -306,8 +305,7 @@ export function buildDescentLayers(
     )}, projected touchdown ${fmtSpeed(vtGround)}`,
   });
 
-  // Surface gravity is the one input the integration cannot do without, so its
-  // absence removes the trace rather than substituting a body.
+  // Surface gravity is the one input the integration cannot do without, so its absence removes the trace rather than substituting a body.
   const gravity =
     inputs.surfaceGravity != null &&
     Number.isFinite(inputs.surfaceGravity) &&
@@ -370,8 +368,7 @@ export function buildDescentLayers(
         weight: TRACE_WEIGHT,
       });
       const settle = projection.points[splitIndex];
-      // A bar sitting UNDER the altitude the vessel has left is a vehicle that
-      // arrives fast, and that is the read the whole plot exists for.
+      // A bar sitting UNDER the altitude the vessel has left is a vehicle that arrives fast, and that is the read the whole plot exists for.
       layers.push({
         kind: "annotation",
         id: "settle",

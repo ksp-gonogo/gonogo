@@ -267,8 +267,7 @@ describe("TechTreeComponent", () => {
   });
 
   it("exposes the per-node badges slot with no bound augment (empty is fine)", async () => {
-    // No augment registered → the slot composes nothing and the list renders
-    // exactly as before, one row per node.
+    // No augment registered → the slot composes nothing and the list renders exactly as before, one row per node.
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,

@@ -124,8 +124,7 @@ export function delayRequiringAlarm(
 // work on other widgets never collides on the same module.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
-    // Footer action row: an Uplink contributes a warp-target action
-    // ("Warp to <mod-event>") alongside the widget's own warp buttons.
+    // Footer action row: an Uplink contributes a warp-target action ("Warp to <mod-event>") alongside the widget's own warp buttons.
     "warp-control.stepper": Record<string, never>;
   }
 }

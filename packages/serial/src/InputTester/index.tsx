@@ -36,8 +36,7 @@ function InputTesterComponent({
 }: Readonly<ComponentProps<InputTesterConfig>>) {
   const svc = useSerialDeviceService();
   const devices = useSerialDevices();
-  // Subscribe to device-type changes so a device that swaps schema
-  // (json-state) re-renders with its new inputs.
+  // Subscribe to device-type changes so a device that swaps schema (json-state) re-renders with its new inputs.
   useSerialDeviceTypes();
 
   const selectedId =
@@ -60,8 +59,7 @@ function InputTesterComponent({
   const [values, setValues] = useState<ValueMap>({});
 
   useEffect(() => {
-    // Drop stale values from the previous device whenever the selection
-    // changes, so released-but-not-zeroed inputs don't bleed across.
+    // Drop stale values from the previous device whenever the selection changes, so released-but-not-zeroed inputs don't bleed across.
     setValues({});
     if (!selectedId) return;
     return svc.onInput((deviceId, event) => {
@@ -108,8 +106,7 @@ function InputTesterComponent({
           )}
           {devices.map((d) => {
             const t = svc.getDeviceType(d.typeId);
-            // A type named the same as its device says nothing the name has not,
-            // and doubles the width of the one field the widget starts with.
+            // A type named the same as its device says nothing the name has not, and doubles the width of the one field the widget starts with.
             return (
               <option key={d.id} value={d.id}>
                 {d.name}

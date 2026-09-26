@@ -101,8 +101,7 @@ export function attachIceDiagnostics(
       iceLog.debug("icecandidate: end-of-candidates", ctx);
       return;
     }
-    // Strip the raw `candidate` SDP string to keep the entry compact,
-    // type, protocol, and address class are the diagnostic-grade fields.
+    // Strip the raw `candidate` SDP string to keep the entry compact, type, protocol, and address class are the diagnostic-grade fields.
     iceLog.debug("icecandidate", {
       ...ctx,
       type: c.type,

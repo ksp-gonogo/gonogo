@@ -170,8 +170,7 @@ describe("Modal", () => {
       await user.click(screen.getByRole("button", { name: "open" }));
       const save = screen.getByRole("button", { name: "Save" });
       expect(save).toBeInTheDocument();
-      // Save button lives outside the scrollable body (the element with the
-      // config text), so it cannot scroll out of view.
+      // Save button lives outside the scrollable body (the element with the config text), so it cannot scroll out of view.
       const body = screen.getByText("config body");
       expect(body.contains(save)).toBe(false);
       await user.click(save);
@@ -272,8 +271,7 @@ describe("Modal", () => {
           <SaveBarOpener onSave={vi.fn()} />
         </ModalProvider>,
       );
-      // Open and immediately Escape: the draft equals the saved value, so the
-      // modal closes without any discard prompt.
+      // Open and immediately Escape: the draft equals the saved value, so the modal closes without any discard prompt.
       await user.click(screen.getByRole("button", { name: "open" }));
       await user.keyboard("{Escape}");
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -287,8 +285,7 @@ describe("Modal", () => {
         </ModalProvider>,
       );
       await user.click(screen.getByRole("button", { name: "open" }));
-      // The draft is denser than the stored {} config, but nothing was edited,
-      // Escape must close silently, no discard prompt.
+      // The draft is denser than the stored {} config, but nothing was edited, Escape must close silently, no discard prompt.
       await user.keyboard("{Escape}");
       expect(
         screen.queryByText("Discard unsaved changes?"),

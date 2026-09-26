@@ -64,8 +64,7 @@ describe("silenceByVessel", () => {
   });
 
   it("drops an entry that cannot say which craft it is about", () => {
-    // Keying it under "" would collide every such entry onto one another and
-    // hand a widget a reckoning belonging to nothing.
+    // Keying it under "" would collide every such entry onto one another and hand a widget a reckoning belonging to nothing.
     const byVessel = silenceByVessel({
       vessels: [
         { vesselId: "", state: "Silent" },
@@ -82,8 +81,7 @@ describe("silenceByVessel", () => {
   });
 
   it("distinguishes a fleet of none from a topic that has not delivered", () => {
-    // Both produce an empty map here, but the caller can tell them apart from
-    // the payload itself, which is why the wire keeps the wrapper object.
+    // Both produce an empty map here, but the caller can tell them apart from the payload itself, which is why the wire keeps the wrapper object.
     expect(silenceByVessel({ vessels: [] }).size).toBe(0);
   });
 });

@@ -88,8 +88,7 @@ describe("SitrepTelemetryProvider: enabled-prop stream mount", () => {
     const legacy = makeLegacySource();
     registerDataSource(legacy);
 
-    // "vessel.control.throttle" maps to the raw-field subtopic "vessel.control.throttle",
-    // which resolves down to the real wire topic "vessel.control".
+    // "vessel.control.throttle" maps to the raw-field subtopic "vessel.control.throttle", which resolves down to the real wire topic "vessel.control".
     render(
       <SitrepTelemetryProvider
         enabled
@@ -102,8 +101,7 @@ describe("SitrepTelemetryProvider: enabled-prop stream mount", () => {
 
     expect(screen.getByText(`throttle:${NULL_DISPLAY}`)).toBeTruthy();
 
-    // A legacy emit must NOT surface, the topic is carried, so it routes to
-    // the stream and bypasses legacy entirely.
+    // A legacy emit must NOT surface, the topic is carried, so it routes to the stream and bypasses legacy entirely.
     act(() => legacy.emit("vessel.control.throttle", 0.4));
     expect(screen.getByText(`throttle:${NULL_DISPLAY}`)).toBeTruthy();
 

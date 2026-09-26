@@ -195,8 +195,7 @@ describe("one seam decides what a read subscribes", () => {
 
   it("routes every read path that subscribes through subscribeTopicRead", () => {
     const sources = trackedSources();
-    // An enumeration that returned nothing would find no offenders, and no
-    // offenders is exactly what success looks like here.
+    // An enumeration that returned nothing would find no offenders, and no offenders is exactly what success looks like here.
     expect(sources.length).toBeGreaterThan(500);
 
     const offenders = sources

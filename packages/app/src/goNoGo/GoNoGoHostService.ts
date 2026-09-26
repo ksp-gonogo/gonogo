@@ -210,8 +210,7 @@ export class GoNoGoHostService {
     if (this.dataSource) {
       this.unsubs.push(
         this.dataSource.subscribe("v.missionTime", (value) => {
-          // Ignore the legacy echo once the stream is already answering: the
-          // read above wins whenever it is live.
+          // Ignore the legacy echo once the stream is already answering: the read above wins whenever it is live.
           if (missionElapsed() != null) return;
           const mt = typeof value === "number" ? value : 0;
           this.handleMissionTime(mt);

@@ -223,8 +223,7 @@ export function scanReachability(repoRoot: string): ReachabilityScan {
     .filter((file) => !isTest(file))
     .filter((file) => !declarationSites.has(relative(repoRoot, file)));
 
-  // Only files that mention a candidate token are worth an AST parse, which
-  // keeps this to a couple of hundred files rather than the whole tree.
+  // Only files that mention a candidate token are worth an AST parse, which keeps this to a couple of hundred files rather than the whole tree.
   const tokens = new Set<string>();
   for (const declaration of declarations) {
     tokens.add(declaration.id);

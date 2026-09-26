@@ -172,8 +172,7 @@ describe("share-code inputs", () => {
         text: "<Input value={hostInput} maxLength={8} />",
       },
       {
-        // No host-code marker, so its narrow cap is none of this scan's
-        // business: a station NAME field is not a code field.
+        // No host-code marker, so its narrow cap is none of this scan's business: a station NAME field is not a code field.
         path: "packages/app/src/components/PlantedUnrelated.tsx",
         text: '<Input aria-label="Station name" maxLength={2} />',
       },

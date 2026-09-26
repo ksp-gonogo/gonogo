@@ -188,8 +188,7 @@ describe("createFrameDelayStream", () => {
       const clock = manualClock();
       const raw: VideoTrackSource = { getVideoTracks: () => [videoTrack()] };
       const onError = vi.fn();
-      // Starts undefined, which is not the null the assertion wants: a callback
-      // that never ran fails the test rather than reading as a pass.
+      // Starts undefined, which is not the null the assertion wants: a callback that never ran fails the test rather than reading as a pass.
       let result: ReturnType<typeof createFrameDelayStream> | undefined;
       expect(() => {
         result = createFrameDelayStream(raw, {

@@ -1,7 +1,6 @@
 // @vitest-environment node
 //
-// Node realm rather than the package's jsdom default: everything here shells out
-// to git.
+// Node realm rather than the package's jsdom default: everything here shells out to git.
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -212,8 +211,7 @@ describe("the shrink-only ratchets can reach a base revision", () => {
       // defines it. Flagging it would be flagging the answer as the offence.
       .filter((path) => !path.endsWith("/ratchet-base-ref.test.ts"));
 
-    // The scan finding nothing is the failure mode this whole file is about, so
-    // it is not allowed to be the reason for a pass.
+    // The scan finding nothing is the failure mode this whole file is about, so it is not allowed to be the reason for a pass.
     expect(
       files.length,
       "The scan for re-introduced base-ref defaults found no test files at all.",

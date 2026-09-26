@@ -59,8 +59,7 @@ export class SettingsService {
   }
 
   set<T>(key: string, value: T): void {
-    // Cheap dedupe: structural compare via JSON since settings are always
-    // JSON-serialisable by contract.
+    // Cheap dedupe: structural compare via JSON since settings are always JSON-serialisable by contract.
     const prev = this.values.get(key);
     if (JSON.stringify(prev) === JSON.stringify(value)) return;
     this.values.set(key, value);

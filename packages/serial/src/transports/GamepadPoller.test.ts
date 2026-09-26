@@ -45,8 +45,7 @@ describe("GamepadPoller", () => {
     const unsubB = poller.subscribe(() => {});
     const unsubC = poller.subscribe(() => {});
 
-    // One loop was scheduled for the first subscriber; the 2nd/3rd
-    // subscribers must not each start their own.
+    // One loop was scheduled for the first subscriber; the 2nd/3rd subscribers must not each start their own.
     expect(raf).toHaveBeenCalledTimes(1);
 
     unsubA();

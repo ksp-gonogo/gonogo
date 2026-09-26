@@ -17,8 +17,7 @@ describe("memoryStorage", () => {
 
   it("coerces non-string values to strings on setItem", () => {
     const s = memoryStorage();
-    // Storage.setItem accepts string, but the spec coerces, match that: the
-    // call below is what a caller with a loose value actually makes.
+    // Storage.setItem accepts string, but the spec coerces, match that: the call below is what a caller with a loose value actually makes.
     Reflect.apply(s.setItem, s, ["n", 42]);
     expect(s.getItem("n")).toBe("42");
   });
@@ -42,8 +41,7 @@ describe("memoryStorage", () => {
   it("reports length as 0 and key() as null (documented limitation)", () => {
     const s = memoryStorage();
     s.setItem("a", "1");
-    // The shim does not implement these, guard the behaviour so any future
-    // change is intentional.
+    // The shim does not implement these, guard the behaviour so any future change is intentional.
     expect(s.length).toBe(0);
     expect(s.key(0)).toBeNull();
   });

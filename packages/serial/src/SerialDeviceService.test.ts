@@ -182,8 +182,7 @@ describe("SerialDeviceService seeding", () => {
       storage,
       renderDebounceMs: 0,
     });
-    // Remove the seeded instance/type and add something else so storage is
-    // non-empty but without the virtual controller.
+    // Remove the seeded instance/type and add something else so storage is non-empty but without the virtual controller.
     for (const d of first.getDevices()) await first.removeDevice(d.id);
     for (const t of first.getDeviceTypes()) await first.removeDeviceType(t.id);
     first.upsertDeviceType({
@@ -425,8 +424,7 @@ describe("SerialDeviceService: gamepad wiring", () => {
     });
 
     await created.connect("gp1");
-    // A Sony vendor id would normally detect "playstation", but a pack is
-    // already set, so it must survive untouched.
+    // A Sony vendor id would normally detect "playstation", but a pack is already set, so it must survive untouched.
     mock.connectPad(0, {
       id: "054c-0ce6-DualSense Wireless Controller",
       buttonCount: 18,
@@ -611,8 +609,7 @@ describe("SerialDeviceService autoReconnect", () => {
       });
 
       await svc.autoReconnect();
-      // Ambiguous match: device stays disconnected and the candidate ports
-      // are parked for the UI to resolve.
+      // Ambiguous match: device stays disconnected and the candidate ports are parked for the UI to resolve.
       expect(svc.getStatus("hw2")).toBe("disconnected");
       const choices = svc.getPendingChoices().get("hw2");
       expect(choices?.length).toBe(2);
@@ -779,8 +776,7 @@ describe("SerialDeviceService hot-plug", () => {
       });
       mock.fireConnect(port);
 
-      // tryAdoptPort awaits transport.connect; vi.waitFor polls past the
-      // microtask chain so this stays robust if the chain length changes.
+      // tryAdoptPort awaits transport.connect; vi.waitFor polls past the microtask chain so this stays robust if the chain length changes.
       await vi.waitFor(() => expect(svc.getStatus("hw1")).toBe("connected"));
 
       await svc.destroy();

@@ -4,8 +4,7 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { NULL_DISPLAY } from "./NullValue";
 import { severityDotColor } from "./status/severityDotColor";
-// `visibleText` from the SOURCE, not from the published subpath: this file
-// changes what counts as visible, and the subpath resolves to the last build.
+// `visibleText` from the SOURCE, not from the published subpath: this file changes what counts as visible, and the subpath resolves to the last build.
 import { visibleText } from "./testing";
 import { Unit } from "./Unit";
 import { UnitSharedFormat } from "./UnitSharedFormat";
@@ -190,23 +189,20 @@ describe("Unit: a reading that is not current", () => {
   });
 
   it("takes the dot's hue from the same token the panel badge paints", () => {
-    // One fact, one colour: the mark on the cell and the pill above it are the
-    // same `warning` severity, and `severityDotColor` is where that is decided.
+    // One fact, one colour: the mark on the cell and the pill above it are the same `warning` severity, and `severityDotColor` is where that is decided.
     render(<Unit value={stale(12_400, "held-stale")} />);
     const css = emittedCss();
     expect(css).toContain(severityDotColor("warning"));
   });
 
   it("paints the dot from a token and never from a literal hue", () => {
-    // A hex typed in here is a hue the theme cannot restyle, and a second place
-    // the staleness colour would have to be kept in step with the badge.
+    // A hex typed in here is a hue the theme cannot restyle, and a second place the staleness colour would have to be kept in step with the badge.
     const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
     expect(markRule(container)).not.toMatch(/#[0-9a-f]{3,8}\b/i);
   });
 
   it("does not change what the readout occupies", () => {
-    // A prefix or suffix glyph would reflow a table column every time a channel
-    // went quiet, which is the loudest possible way to say something quiet.
+    // A prefix or suffix glyph would reflow a table column every time a channel went quiet, which is the loudest possible way to say something quiet.
     const { container: marked } = render(
       <Unit value={stale(12_400, "held-stale")} />,
     );
@@ -293,8 +289,7 @@ describe("Unit: when the reading was last valid", () => {
   });
 
   it("keeps the date off the screen and off the clipboard", () => {
-    // It is a reading of the mark beside it, not extra content, on the same
-    // terms as the spoken unit word.
+    // It is a reading of the mark beside it, not extra content, on the same terms as the spoken unit word.
     const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
     expect(visibleText(container)).toBe("12.4 km");
   });
@@ -338,8 +333,7 @@ describe("Unit: when the reading was last valid", () => {
   });
 
   it("falls back to the grade alone when the instant is unreadable", () => {
-    // A malformed `asOfUt` must not turn the hover into an "as of" followed by
-    // the null token.
+    // A malformed `asOfUt` must not turn the hover into an "as of" followed by the null token.
     const { container } = render(
       <Unit
         value={{
@@ -536,8 +530,7 @@ describe("Unit: how well the number is known", () => {
   });
 
   it("ignores a band the model wrote in some other unit", () => {
-    // `bandIn` refuses to narrow it, and a number with no interval beside it
-    // beats an interval a reader would take for metres.
+    // `bandIn` refuses to narrow it, and a number with no interval beside it beats an interval a reader would take for metres.
     const { container } = render(
       <Unit
         value={{

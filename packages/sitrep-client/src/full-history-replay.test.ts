@@ -117,8 +117,7 @@ describe("buildFullHistoryStore", () => {
       frames: [frame("vessel.orbit", { sma: 1 }, 0)],
     };
 
-    // If buildFullHistoryStore relied on real timers, this would need fake
-    // timers + vi.runAllTimers(); it deliberately doesn't.
+    // If buildFullHistoryStore relied on real timers, this would need fake timers + vi.runAllTimers(); it deliberately doesn't.
     const store = buildFullHistoryStore(fixture);
     expect(store.sampleRange("vessel.orbit", 0, 10)).toEqual([
       expect.objectContaining({ payload: { sma: value("m", 1) } }),

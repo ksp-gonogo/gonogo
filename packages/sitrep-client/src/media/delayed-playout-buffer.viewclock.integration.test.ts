@@ -54,8 +54,7 @@ describe("DelayedPlayoutBuffer driven by the real ViewClock: one delay authority
     buffer.push(frame(100, "frame@100"));
     buffer.pump();
 
-    // Nothing observed yet: telemetry at UT=100 is PREDICTED and the media
-    // frame is held, both off the same not-yet-confirmed edge.
+    // Nothing observed yet: telemetry at UT=100 is PREDICTED and the media frame is held, both off the same not-yet-confirmed edge.
     expect(clock.certaintyFor(100)).toBe("predicted");
     expect(released).toHaveLength(0);
 
@@ -88,8 +87,7 @@ describe("DelayedPlayoutBuffer driven by the real ViewClock: one delay authority
     buffer.push(frame(200, "past-edge"));
     buffer.pump();
 
-    // The at-edge frame releases; the past-edge one is held, and telemetry
-    // agrees: UT=100 confirmed, UT=200 predicted.
+    // The at-edge frame releases; the past-edge one is held, and telemetry agrees: UT=100 confirmed, UT=200 predicted.
     expect(released.map((f) => f.data)).toEqual(["at-edge"]);
     expect(clock.certaintyFor(100)).toBe("confirmed");
     expect(clock.certaintyFor(200)).toBe("predicted");
@@ -124,8 +122,7 @@ describe("DelayedPlayoutBuffer driven by the real ViewClock: one delay authority
     buffer.push(frame(100, "still-in-flight"));
     buffer.pump();
 
-    // The frame at the delayed edge releases; the fresher one is held back by
-    // the SAME 50s the telemetry certainty horizon is held back by.
+    // The frame at the delayed edge releases; the fresher one is held back by the SAME 50s the telemetry certainty horizon is held back by.
     expect(released.map((f) => f.data)).toEqual(["delayed-releasable"]);
     expect(clock.certaintyFor(50)).toBe("confirmed");
     expect(clock.certaintyFor(100)).toBe("predicted");
@@ -152,14 +149,12 @@ describe("DelayedPlayoutBuffer driven by the real ViewClock: one delay authority
     buffer.pump();
     expect(released.map((f) => f.data)).toEqual(["pre-reset"]);
 
-    // A rewind: telemetry bumps the shared clock's epoch and resets its edge;
-    // the media buffer flushes on the same reset signal.
+    // A rewind: telemetry bumps the shared clock's epoch and resets its edge; the media buffer flushes on the same reset signal.
     clock.observeSample(10, 10, 1);
     buffer.flush();
     expect(resyncs).toBe(1);
 
-    // Even as the post-reset edge sweeps forward again, nothing pre-reset that
-    // was discarded can resurface.
+    // Even as the post-reset edge sweeps forward again, nothing pre-reset that was discarded can resurface.
     clock.observeSample(90, 90, 1);
     buffer.pump();
     expect(released.map((f) => f.data)).toEqual(["pre-reset"]);
@@ -211,15 +206,13 @@ describe("DelayedPlayoutBuffer driven by the real ViewClock: one delay authority
     clock.observeSample(SAME_UT, SAME_UT);
     const telemetryConfirmed = () => clock.confirmedEdgeUt() >= SAME_UT;
 
-    // Before the delay elapses: neither the frame nor the telemetry sample
-    // has crossed the confirmed edge.
+    // Before the delay elapses: neither the frame nor the telemetry sample has crossed the confirmed edge.
     wall.advanceBy(29);
     buffer.pump();
     expect(released).toHaveLength(0);
     expect(telemetryConfirmed()).toBe(false);
 
-    // At exactly delaySeconds elapsed, BOTH cross in the same wall-time
-    // step: the one shared clock makes them common-mode.
+    // At exactly delaySeconds elapsed, BOTH cross in the same wall-time step: the one shared clock makes them common-mode.
     wall.advanceBy(1);
     buffer.pump();
     expect(released).toHaveLength(1);

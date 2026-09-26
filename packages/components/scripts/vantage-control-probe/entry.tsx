@@ -88,8 +88,7 @@ async function renderVantage(payload: VantageProbePayload): Promise<void> {
     </TelemetryProvider>,
   );
 
-  // Two frames: commit + let styled-components inject + ResizeObserver
-  // settle, matching screen-entry.tsx's own mount recipe.
+  // Two frames: commit + let styled-components inject + ResizeObserver settle, matching screen-entry.tsx's own mount recipe.
   await rafTick();
   await rafTick();
   await settle(120);

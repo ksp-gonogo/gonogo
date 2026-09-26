@@ -114,8 +114,7 @@ export class ClientTimeline<T = unknown> {
   /** Insert a delivered sample, sorted by `validAt` (tie-break: `meta.seq`). */
   append(point: TimelinePoint<T>): void {
     if (point.epoch < this.currentEpoch) {
-      // Stale-epoch straggler (queued behind a rewind broadcast); never
-      // let pre-rewind data re-enter a post-rewind timeline.
+      // Stale-epoch straggler (queued behind a rewind broadcast); never let pre-rewind data re-enter a post-rewind timeline.
       return;
     }
     if (point.epoch > this.currentEpoch) {
@@ -136,8 +135,7 @@ export class ClientTimeline<T = unknown> {
 
   /** Latest point with `validAt <= ut` (current epoch only, the buffer never holds stale-epoch points). */
   at(ut: number): TimelinePoint<T> | undefined {
-    // points are sorted ascending by validAt; scan back from the end since
-    // reads cluster near the live edge.
+    // points are sorted ascending by validAt; scan back from the end since reads cluster near the live edge.
     for (let i = this.points.length - 1; i >= 0; i--) {
       const point = this.points[i];
       if (point.validAt <= ut) return point;
@@ -208,8 +206,7 @@ export class ClientTimeline<T = unknown> {
     }
     if (this.points.length <= this.maxPoints) return;
     const surplus = this.points.length - this.maxPoints;
-    // Read the drop edge BEFORE splicing: it is the newest point going, which
-    // is the one at the boundary.
+    // Read the drop edge BEFORE splicing: it is the newest point going, which is the one at the boundary.
     this.droppedThrough = this.points[surplus - 1].validAt;
     this.points.splice(0, surplus);
     this.revision++;

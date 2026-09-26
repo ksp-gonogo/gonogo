@@ -127,8 +127,7 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
    * the accompanying sentence moved, for the same reason as the case above.
    */
   it("still shows the funds figure inside the waiting empty state when only funds have arrived", async () => {
-    // Partial: the widget's own funds rule survives the early return, so an
-    // undefined complex does NOT suppress a known balance.
+    // Partial: the widget's own funds rule survives the early return, so an undefined complex does NOT suppress a known balance.
     //
     // The two branches now render the SAME cell: this used to assert a
     // `title="Available funds"` that existed only on the empty state's own

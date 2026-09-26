@@ -102,8 +102,7 @@ describe("CurrentOrbit: what the view frame does to the apsis readouts", () => {
 
 describe("CurrentOrbit: naming the frame that took the numbers away", () => {
   it("names the frame in force when it is why the apsides are gone", async () => {
-    // The caveat alone says a quantity is missing; the name says WHY, and the
-    // why is something the operator can act on by changing their view.
+    // The caveat alone says a quantity is missing; the name says WHY, and the why is something the operator can act on by changing their view.
     const fixture = mount();
     emitOrbit(fixture);
     act(() => {
@@ -120,8 +119,7 @@ describe("CurrentOrbit: naming the frame that took the numbers away", () => {
   });
 
   it("does not caption a frame that takes nothing away", async () => {
-    // A frame caption on a panel whose readouts it does not touch is a line of
-    // text that explains nothing.
+    // A frame caption on a panel whose readouts it does not touch is a line of text that explains nothing.
     const fixture = mount({ probe: true });
     emitOrbit(fixture);
     act(() => {

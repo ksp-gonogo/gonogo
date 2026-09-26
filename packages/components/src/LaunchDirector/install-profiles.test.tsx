@@ -102,8 +102,7 @@ describe("LaunchDirector across declared installs", () => {
       "KSC Runway",
       "Woomerang",
     ]);
-    // Stock answers pad occupancy, so the widget's subject is fully served here:
-    // the KSC pad says it is clear and the sites that report nothing say that.
+    // Stock answers pad occupancy, so the widget's subject is fully served here: the KSC pad says it is clear and the sites that report nothing say that.
     expect(screen.getByText("Clear")).toBeInTheDocument();
     expect(screen.getAllByText("Occupancy unreported")).toHaveLength(2);
     // And the whole launch flow is behind the open pad, not a stripped fallback.

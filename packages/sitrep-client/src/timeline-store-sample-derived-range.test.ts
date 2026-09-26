@@ -106,8 +106,7 @@ describe("TimelineStore.sampleDerivedRange: single-input replay", () => {
   it("omits an instant where derive() returns undefined (input not whole yet at that UT)", () => {
     const store = newStore();
     store.registerDerivedChannel(DOUBLER);
-    // No raw.x point at all before validAt 20, derive() can't resolve
-    // anything before its first point lands.
+    // No raw.x point at all before validAt 20, derive() can't resolve anything before its first point lands.
     ingestPoint(store, "raw.x", 20, 3);
 
     const points = store.sampleDerivedRange<number>("derived.double", 0, 20);
@@ -143,8 +142,7 @@ describe("TimelineStore.sampleDerivedRange: multi-input join + field subtopics",
     ingestPoint(store, "raw.b", 15, 10);
     ingestPoint(store, "raw.a", 25, 2);
 
-    // Union of change instants: 10 (a alone, b not whole yet -> skipped),
-    // 15 (b changes, a holds 1), 25 (a changes, b holds 10).
+    // Union of change instants: 10 (a alone, b not whole yet -> skipped), 15 (b changes, a holds 1), 25 (a changes, b holds 10).
     const points = store.sampleDerivedRange<{ sum: number }>(
       "derived.joined",
       0,

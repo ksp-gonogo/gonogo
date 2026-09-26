@@ -184,8 +184,7 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
       resetTestHost();
       barrel.clearBodies();
       barrel.registerStockBodies("/gonogo/bodies");
-      // The star plus every planet and moon: a count rather than a list, because
-      // the point is that nothing silently dropped out of the data file.
+      // The star plus every planet and moon: a count rather than a list, because the point is that nothing silently dropped out of the data file.
       expect(barrel.getAllBodies().length).toBeGreaterThanOrEqual(16);
       expect(barrel.getBody("Kerbin")?.texture).toBe(
         "/gonogo/bodies/Kerbin_Color.png",
@@ -219,8 +218,7 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
     it("namespaces each source's settings by its own id", () => {
       resetTestHost();
       barrel.clearCoverageSources();
-      // A source with no settings contributes no block at all, so the panel does
-      // not render an empty section for it.
+      // A source with no settings contributes no block at all, so the panel does not render an empty section for it.
       barrel.registerCoverageSource({ id: "a:plain" });
       barrel.registerCoverageSource({
         id: "b:tunable",
@@ -454,8 +452,7 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
         defaults: { enabled: true },
         storage,
       });
-      // Fails loud rather than silently logging to a dead console-only
-      // logger: same reasoning as the `logger` Proxy shim in ./index.ts.
+      // Fails loud rather than silently logging to a dead console-only logger: same reasoning as the `logger` Proxy shim in ./index.ts.
       expect(() => store.get()).toThrow(named);
 
       const warn = vi.fn();

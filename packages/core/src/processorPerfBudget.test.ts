@@ -6,8 +6,7 @@ import {
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-// `subscribeProcessor` is not on sitrep-client's curated barrel; the spine
-// subpath it re-exports from is the same module instance either way.
+// `subscribeProcessor` is not on sitrep-client's curated barrel; the spine subpath it re-exports from is the same module instance either way.
 import { subscribeProcessor } from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 import {
@@ -86,8 +85,7 @@ describe("the processor PerfBudgets", () => {
 
     for (let i = 0; i < 10; i++) store.beginFrame();
 
-    // The two numbers coming apart IS the fix, stated in the instrument the
-    // dashboard reads: ten more evaluations, no more wakeups.
+    // The two numbers coming apart IS the fix, stated in the instrument the dashboard reads: ten more evaluations, no more wakeups.
     expect(PROCESSOR_EVAL_BUDGET.rate() - evalsBefore).toBe(10);
     expect(PROCESSOR_NOTIFY_BUDGET.rate() - notifiesBefore).toBe(0);
 
@@ -142,16 +140,14 @@ describe("the processor PerfBudgets", () => {
     const unsubscribe = subscribeProcessor(handle.id, () => {});
 
     const uncomparableBefore = PROCESSOR_UNCOMPARABLE_BUDGET.rate();
-    // Activation is the genuine change (no previous value); all five frames
-    // after it are ones the guard cannot answer.
+    // Activation is the genuine change (no previous value); all five frames after it are ones the guard cannot answer.
     for (let i = 0; i < 5; i++) store.beginFrame();
 
     expect(PROCESSOR_UNCOMPARABLE_BUDGET.rate() - uncomparableBefore).toBe(5);
 
     unsubscribe();
     deactivate();
-    // Deliberate breach, so the gate's own documented escape: without this the
-    // zero threshold fails THIS test, which is the behaviour being asserted.
+    // Deliberate breach, so the gate's own documented escape: without this the zero threshold fails THIS test, which is the behaviour being asserted.
     PROCESSOR_UNCOMPARABLE_BUDGET.reset();
   });
 });

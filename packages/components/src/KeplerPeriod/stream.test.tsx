@@ -124,13 +124,11 @@ describe("KeplerPeriod: reads body names off the stream (R6 Wave 1)", () => {
       });
     });
 
-    // A real subscription must have happened for StubTransport (which is
-    // subscription-gated) to have delivered at all.
+    // A real subscription must have happened for StubTransport (which is subscription-gated) to have delivered at all.
     expect(fixture.transport.isSubscribed("vessel.identity")).toBe(true);
     expect(fixture.transport.isSubscribed("system.bodies")).toBe(true);
 
-    // The streamed body name reached the widget: the notice renders with the
-    // exact streamed name.
+    // The streamed body name reached the widget: the notice renders with the exact streamed name.
     await waitFor(() =>
       expect(screen.getByText(/No reference data/)).toBeTruthy(),
     );

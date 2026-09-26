@@ -70,8 +70,7 @@ describe("Graph: genuinely runs off the stream", () => {
       ),
     ).toBeNull();
 
-    // The widget genuinely subscribed: `StubTransport.emit` delivers nothing
-    // until something has.
+    // The widget genuinely subscribed: `StubTransport.emit` delivers nothing until something has.
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
     act(() => {
@@ -93,8 +92,7 @@ describe("Graph: genuinely runs off the stream", () => {
         .filter(Boolean)
         .map((pt) => Number(pt.split(",")[1]));
       expect(ys.every((y) => Number.isFinite(y))).toBe(true);
-      // A rising series draws a descending y (SVG y grows downward), so the
-      // point ORDER survived, not just the count.
+      // A rising series draws a descending y (SVG y grows downward), so the point ORDER survived, not just the count.
       expect(ys[0]).toBeGreaterThan(ys[1]);
       expect(ys[1]).toBeGreaterThan(ys[2]);
     });
@@ -292,8 +290,7 @@ describe("Graph: genuinely runs off the stream", () => {
         expect(p.getAttribute("stroke-opacity")).toBeNull();
         expect(p.getAttribute("stroke")).toBe(paths[0].getAttribute("stroke"));
       }
-      // Nor say anything about it to a screen reader, which would hand one
-      // reader a caveat the chart does not put in front of the other.
+      // Nor say anything about it to a screen reader, which would hand one reader a caveat the chart does not put in front of the other.
       const label =
         container
           .querySelector("svg[aria-label]")
@@ -478,8 +475,7 @@ describe("Graph: genuinely runs off the stream", () => {
       const measured = paths.filter(
         (p) => p.getAttribute("data-reckoning-basis") === null,
       );
-      // Both halves are drawn, and they are told apart by stroke rather than by
-      // a caption sitting beside a line that looks like every other line.
+      // Both halves are drawn, and they are told apart by stroke rather than by a caption sitting beside a line that looks like every other line.
       expect(reckoned.length).toBe(1);
       expect(measured.length).toBe(1);
       expect(reckoned[0].getAttribute("stroke-dasharray")).not.toBeNull();
@@ -578,8 +574,7 @@ describe("Graph: genuinely runs off the stream", () => {
           .map((pair) => Number(pair.trim().split(/[ ,]/)[0])),
       );
       const width = Number(plot?.getAttribute("width") ?? 0);
-      // Strictly short of the right edge: the model declined at its horizon
-      // and the axis still runs to the instant it was asked for.
+      // Strictly short of the right edge: the model declined at its horizon and the axis still runs to the instant it was asked for.
       expect(width).toBeGreaterThan(0);
       expect(rightmost).toBeLessThan(width * 0.95);
     });
@@ -757,8 +752,7 @@ describe("Graph: the region behind a modelled trace", () => {
       expect(regions).toHaveLength(1);
       expect(regions[0].getAttribute("data-band-kind")).toBe("bound");
       expect(regions[0].getAttribute("d")).not.toBe("");
-      // The stroke is still there and still marked: a region is a fourth MARK,
-      // never a replacement for the dash that says nobody measured this.
+      // The stroke is still there and still marked: a region is a fourth MARK, never a replacement for the dash that says nobody measured this.
       const reckonedStroke = container.querySelector(
         'path[data-reckoning-basis="kepler-propagation"]',
       );

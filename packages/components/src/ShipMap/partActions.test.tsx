@@ -154,8 +154,7 @@ describe("ShipMap: PAW part actions", () => {
     const sent = fixture.transport.sentCommands;
     expect(sent).toHaveLength(1);
     expect(sent[0].command).toBe(INVOKE_PART_ACTION_COMMAND);
-    // The wire keys by the STRINGIFIED flightID, the same form vessel.parts
-    // stamps: the diagram holding it as a number is its own business.
+    // The wire keys by the STRINGIFIED flightID, the same form vessel.parts stamps: the diagram holding it as a number is its own business.
     expect(sent[0].args).toEqual({
       partId: String(PART_FLIGHT_ID),
       eventName: "ToggleSolarPanel",
@@ -177,8 +176,7 @@ describe("ShipMap: PAW part actions", () => {
     });
 
     const item = await screen.findByRole("menuitem", { name: /Deploy/ });
-    // aria-disabled rather than the native attribute: a natively-disabled button
-    // cannot take focus, so it would drop out of the keyboard walk entirely.
+    // aria-disabled rather than the native attribute: a natively-disabled button cannot take focus, so it would drop out of the keyboard walk entirely.
     expect(item.getAttribute("aria-disabled")).toBe("true");
 
     // And firing it does nothing: a disabled PAW button is inert in-game too.
@@ -191,8 +189,7 @@ describe("ShipMap: PAW part actions", () => {
     const { fixture } = await renderDiagram();
 
     const part = partElement();
-    // Focusing a part is a state change in the diagram (hover/focus highlight),
-    // so the raw DOM call needs the act scope a user-event gesture would bring.
+    // Focusing a part is a state change in the diagram (hover/focus highlight), so the raw DOM call needs the act scope a user-event gesture would bring.
     act(() => {
       part.focus();
     });
@@ -234,8 +231,7 @@ describe("ShipMap: PAW part actions", () => {
   });
 
   it("says a part is still awaiting its list rather than reporting no actions", async () => {
-    // Under signal delay the list arrives a light-time after the popover opens;
-    // an empty menu and an unanswered subscription are different facts.
+    // Under signal delay the list arrives a light-time after the popover opens; an empty menu and an unanswered subscription are different facts.
     const user = userEvent.setup();
     await renderDiagram();
 

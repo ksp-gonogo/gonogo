@@ -72,8 +72,7 @@ describe("Stat", () => {
     expect(container.textContent).toContain("across 3 courses");
 
     rerender(<Stat label="In training">4</Stat>);
-    // One `dd` rather than two: an absent detail leaves no empty line behind,
-    // which is what would otherwise change the height of every cell beside it.
+    // One `dd` rather than two: an absent detail leaves no empty line behind, which is what would otherwise change the height of every cell beside it.
     expect(container.querySelectorAll("dd")).toHaveLength(1);
   });
 

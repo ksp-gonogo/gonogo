@@ -132,8 +132,7 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
       },
       { quality: Quality.Loaded },
     );
-    // h=5km, descending 50 m/s but carrying 540 m/s of (mostly horizontal)
-    // surface speed: the whole point of the full-vector solve.
+    // h=5km, descending 50 m/s but carrying 540 m/s of (mostly horizontal) surface speed: the whole point of the full-vector solve.
     stream.emit("vessel.flight", {
       latitude: 0,
       longitude: 0,
@@ -158,8 +157,7 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
 
     // Nothing arrived yet: the empty state shows.
     expect(visibleText(container)).toContain("No landing in progress");
-    // A real subscription must have happened for StubTransport (which is
-    // subscription-gated) to deliver at all.
+    // A real subscription must have happened for StubTransport (which is subscription-gated) to deliver at all.
     expect(stream.transport.isSubscribed("vessel.flight")).toBe(true);
 
     act(() => {
@@ -191,19 +189,16 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
   // vessel.flight read healthy even when the shown height had silently dropped
   // to the CoM fallback.
   it("badges on the withheld vessel.surface datum, not the live vessel.flight fallback (L2)", async () => {
-    // Small size renders the plain AGL readout (at wide sizes altitude is the
-    // full-height rail, which carries no "AGL" text).
+    // Small size renders the plain AGL readout (at wide sizes altitude is the full-height rail, which carries no "AGL" text).
     const { container } = renderWidget({ w: 4, h: 10 });
 
-    // A full descent WITH flight flowing but vessel.surface WITHHELD: the
-    // widget falls back to the CoM datum (usingComDatum) and keeps rendering.
+    // A full descent WITH flight flowing but vessel.surface WITHHELD: the widget falls back to the CoM datum (usingComDatum) and keeps rendering.
     act(() => {
       emitMunDescent(); // emits vessel.flight, NOT vessel.surface
     });
     await screen.findByText("AGL");
 
-    // The declaration is still asserted, because it still drives alarm
-    // attribution: an alarm on the withheld datum has to reach this widget.
+    // The declaration is still asserted, because it still drives alarm attribution: an alarm on the withheld datum has to reach this widget.
     expect(getComponent("landing-status")?.dataRequirements).toContain(
       "vessel.surface",
     );
@@ -220,8 +215,7 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
     // half this file can prove; showing the operator it happened is the
     // widget's own job now and is not yet built.
 
-    // Once vessel.surface arrives the shown AGL switches to the lowest-point
-    // datum.
+    // Once vessel.surface arrives the shown AGL switches to the lowest-point datum.
     act(() => {
       stream.emit("vessel.surface", { heightFromTerrain: 4800 });
     });

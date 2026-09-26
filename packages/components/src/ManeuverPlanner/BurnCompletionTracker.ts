@@ -92,8 +92,7 @@ export function useBurnCompletionTracker(
     ReadonlyMap<number, CompletedEntry>
   >(() => new Map());
   const maxDvByUt = useRef<Map<number, number>>(new Map());
-  // Latest `nodes` for use inside the auto-removal timeout, without this
-  // ref the timeout would close over a stale list and look up the wrong id.
+  // Latest `nodes` for use inside the auto-removal timeout, without this ref the timeout would close over a stale list and look up the wrong id.
   const nodesRef = useRef(nodes);
   useEffect(() => {
     nodesRef.current = nodes;
@@ -116,8 +115,7 @@ export function useBurnCompletionTracker(
       timers.push(
         setTimeout(() => {
           const live = nodesRef.current.find((n) => n.UT === ut);
-          // Re-read rather than captured, so a node the operator already
-          // removed during the hold is not asked to be removed again.
+          // Re-read rather than captured, so a node the operator already removed during the hold is not asked to be removed again.
           if (live) removeNode(live.id);
           setCompletedNodes((current) => {
             if (!current.has(ut)) return current;

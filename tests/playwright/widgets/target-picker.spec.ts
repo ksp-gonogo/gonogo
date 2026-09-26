@@ -58,16 +58,14 @@ test.describe("widget DOM mirror: TargetPicker", () => {
     ).toBeVisible({ timeout: 15_000 });
     // The waiting placeholder is gone once the list arrives.
     await expect(pair.main.getByText(/Waiting for target list/)).toHaveCount(0);
-    // The two body entries render as rows (each also mirrored into the
-    // "Suggested" section, so it appears more than once, assert at least one).
+    // The two body entries render as rows (each also mirrored into the "Suggested" section, so it appears more than once, assert at least one).
     await expect(
       pair.main.getByText("Mun", { exact: true }).first(),
     ).toBeVisible({ timeout: 15_000 });
     await expect(
       pair.main.getByText("Minmus", { exact: true }).first(),
     ).toBeVisible({ timeout: 15_000 });
-    // No target is SELECTED (vessel.target = null), the selected-target
-    // summary stays on its no-target branch even though the list is populated.
+    // No target is SELECTED (vessel.target = null), the selected-target summary stays on its no-target branch even though the list is populated.
     await expect(
       pair.main.getByText("No target set in KSP.", { exact: true }),
     ).toBeVisible({ timeout: 15_000 });

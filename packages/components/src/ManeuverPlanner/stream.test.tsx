@@ -321,8 +321,7 @@ describe("ManeuverPlanner: the ΔV budget rides the stream", () => {
       </fixture.Provider>,
     );
 
-    // Subscribed by the processor's own dep walk, not by the widget: nothing in
-    // ManeuverPlanner reads either topic directly any more.
+    // Subscribed by the processor's own dep walk, not by the widget: nothing in ManeuverPlanner reads either topic directly any more.
     expect(fixture.transport.isSubscribed("dv.stages")).toBe(true);
     expect(fixture.transport.isSubscribed("dv.summary")).toBe(true);
 

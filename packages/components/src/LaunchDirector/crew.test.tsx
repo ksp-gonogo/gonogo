@@ -335,8 +335,7 @@ describe("LaunchDirector crew render scenes", () => {
     expect(text).toContain("Standing down");
     expect(text).toContain("Retired");
     expect(text).toContain("no reading");
-    // The chips are the interactive surface here: real buttons carrying
-    // aria-pressed for the selection and aria-disabled for the rest.
+    // The chips are the interactive surface here: real buttons carrying aria-pressed for the selection and aria-disabled for the rest.
     await expectNoA11yViolations(rendered.container);
     rendered.teardown();
   });

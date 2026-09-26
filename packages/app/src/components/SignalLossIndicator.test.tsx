@@ -2,8 +2,7 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { deriveState } from "./SignalLossIndicator";
 
-// deriveState(connected, signalStrength, controlState, hasConfirmedConnection)
-// A healthy strength for the cases not exercising the 0%-signal path.
+// deriveState(connected, signalStrength, controlState, hasConfirmedConnection) A healthy strength for the cases not exercising the 0%-signal path.
 const OK = value("ratio", 0.87);
 // A dead link. Distinct from `undefined`, which is "no reading yet".
 const ZERO = value("ratio", 0);
@@ -42,8 +41,7 @@ describe("SignalLossIndicator: deriveState", () => {
   });
 
   it("does NOT report lost on cold-start 0% signal (hasConfirmedConnection = false)", () => {
-    // A 0% reading before any confirmed link (no antenna) must stay quiet,
-    // same gate as a cold-start false.
+    // A 0% reading before any confirmed link (no antenna) must stay quiet, same gate as a cold-start false.
     expect(deriveState(undefined, ZERO, undefined, false)).toBe("connected");
     expect(deriveState(true, ZERO, 2, false)).toBe("connected");
   });
@@ -55,8 +53,7 @@ describe("SignalLossIndicator: deriveState", () => {
   });
 
   it("reports lost on 0% signal even when connected was never observed false", () => {
-    // A link that decayed to nothing (0% strength) reads as SIGNAL LOSS once a
-    // link has been confirmed, regardless of the connected flag's last value.
+    // A link that decayed to nothing (0% strength) reads as SIGNAL LOSS once a link has been confirmed, regardless of the connected flag's last value.
     expect(deriveState(true, ZERO, 2, true)).toBe("lost");
     expect(deriveState(undefined, ZERO, undefined, true)).toBe("lost");
   });

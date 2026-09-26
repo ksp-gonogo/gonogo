@@ -45,8 +45,7 @@ test.describe("widget DOM mirror: PowerSystems", () => {
         await expect(
           page.getByText("POWER SYSTEMS", { exact: true }),
         ).toBeVisible({ timeout: 30_000 });
-        // Full data path reached (topology + live flow resolved), the
-        // NET cell only renders once `resourcesWithFlow` is non-empty.
+        // Full data path reached (topology + live flow resolved), the NET cell only renders once `resourcesWithFlow` is non-empty.
         await expect(page.getByText("NET", { exact: true })).toBeVisible({
           timeout: 15_000,
         });

@@ -202,8 +202,7 @@ export const SNAPSHOT = {
     meta: payloadMeta,
   },
 
-  // "No target selected": see the module doc comment for why `null` (not
-  // omitted) is what keeps the no-target widget branches correct.
+  // "No target selected": see the module doc comment for why `null` (not omitted) is what keeps the no-target widget branches correct.
   "vessel.target": null,
 
   // The AVAILABLE target LIST: a DIFFERENT Topic from `vessel.target` (the
@@ -301,8 +300,7 @@ export const SNAPSHOT = {
       {
         id: "kos",
         version: "1.0.0",
-        // No provenance and no client bundle to load here, which the engine
-        // sends as explicit nulls rather than leaving the keys out.
+        // No provenance and no client bundle to load here, which the engine sends as explicit nulls rather than leaving the keys out.
         name: null,
         author: null,
         repo: null,
@@ -310,8 +308,7 @@ export const SNAPSHOT = {
         clientSource: null,
         available: true,
         reason: null,
-        // `facts` empty rather than absent, matching what the engine emits for
-        // an Uplink with nothing to add: the real wire always carries the key.
+        // `facts` empty rather than absent, matching what the engine emits for an Uplink with nothing to add: the real wire always carries the key.
         health: { state: 0, detail: null, facts: [] },
       },
     ],
@@ -361,8 +358,7 @@ export function startReplayServer({ port = PORT, extraTopics = {} } = {}) {
     res.end();
   });
 
-  // No fixed `path`: the real mod server accepts the WebSocket at its root
-  // (WebSocketTransport builds `ws://host:port` with no path suffix).
+  // No fixed `path`: the real mod server accepts the WebSocket at its root (WebSocketTransport builds `ws://host:port` with no path suffix).
   const wss = new WebSocketServer({ server: http });
 
   let connectCount = 0;
@@ -437,8 +433,7 @@ export function startReplayServer({ port = PORT, extraTopics = {} } = {}) {
   return http;
 }
 
-// Only auto-start when run directly (`node sitrep-stream-server.mjs`), not
-// when imported by the topology variant script below.
+// Only auto-start when run directly (`node sitrep-stream-server.mjs`), not when imported by the topology variant script below.
 const isMain =
   process.argv[1] && import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {

@@ -94,8 +94,7 @@ describe("the keyboard needs no device creating", () => {
     local.onInput((deviceId) => seenLocally.push(deviceId));
     other.onInput((deviceId) => seenElsewhere.push(deviceId));
 
-    // The other screen's own listeners come down with it, as they would on a
-    // station that is simply a different browser.
+    // The other screen's own listeners come down with it, as they would on a station that is simply a different browser.
     await other.destroy();
     press("KeyW");
 
@@ -106,8 +105,7 @@ describe("the keyboard needs no device creating", () => {
 
   it("binds a key from a press, with the keyboard the only device on screen", async () => {
     const svc = freshService();
-    // Everything the operator would otherwise have had to create, removed:
-    // what remains is the keyboard, and it was never asked for.
+    // Everything the operator would otherwise have had to create, removed: what remains is the keyboard, and it was never asked for.
     for (const d of svc.getDevices()) {
       if (d.transport !== "keyboard") await svc.removeDevice(d.id);
     }

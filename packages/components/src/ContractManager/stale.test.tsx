@@ -102,12 +102,10 @@ describe("ContractManager when career telemetry is no longer current", () => {
     expect(screen.getByText("Orbit Kerbin")).toBeInTheDocument();
     expect(screen.getByText("Test a decoupler")).toBeInTheDocument();
     expect(screen.getByText("Reach orbit")).toBeInTheDocument();
-    // The counts are counts of held facts, not a claim about now, and they must
-    // not collapse to zero.
+    // The counts are counts of held facts, not a claim about now, and they must not collapse to zero.
     expect(visibleText(container)).toContain("1 active");
     expect(visibleText(container)).toContain("1 offered");
-    // Emphatically NOT the cold-start sentence: that one says no contract
-    // telemetry has ever arrived, and one has.
+    // Emphatically NOT the cold-start sentence: that one says no contract telemetry has ever arrived, and one has.
     expect(screen.queryByText(/Awaiting contract telemetry/i)).toBeNull();
     // Nor the confirmed-empty one, which would be KSP stating the board is bare.
     expect(screen.queryByText(/No active contracts/i)).toBeNull();
@@ -162,16 +160,14 @@ describe("ContractManager when career telemetry is no longer current", () => {
 
     goStale(fixture);
 
-    // One per card, beside its own deadline: the operator decides about one
-    // contract at a time and the statement has to be where they are looking.
+    // One per card, beside its own deadline: the operator decides about one contract at a time and the statement has to be where they are looking.
     expect(screen.getAllByText("OFFLINE")).toHaveLength(2);
     // The half that matters. A Cancel pressed here forfeits a contract whose
     // current state cannot be read, and the press would look like it worked.
     expect(screen.getByRole("button", { name: /Cancel/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Accept/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Decline/ })).toBeDisabled();
-    // Not by hiding them: a missing control reads as a contract that cannot be
-    // cancelled, which is a different and wrong statement.
+    // Not by hiding them: a missing control reads as a contract that cannot be cancelled, which is a different and wrong statement.
     expect(visibleText(container)).toContain("Cancel");
   });
 

@@ -94,8 +94,7 @@ describe("CurrentOrbit: full render off the stream (R6 Wave 1)", () => {
       });
     });
 
-    // Inclination is raw off vessel.orbit; period is solved from its elements,
-    // waiting on both proves the whole mixed raw+solved surface has landed.
+    // Inclination is raw off vessel.orbit; period is solved from its elements, waiting on both proves the whole mixed raw+solved surface has landed.
     await waitFor(() => {
       if (!visibleText(container).includes("0.3°")) {
         throw new Error("stream leg has not rendered inclination yet");
@@ -107,8 +106,7 @@ describe("CurrentOrbit: full render off the stream (R6 Wave 1)", () => {
       }
     });
 
-    // Apsis altitudes (derived sma·(1±ecc) − bodyRadius) and the reference-body
-    // subtitle all resolve off the stream.
+    // Apsis altitudes (derived sma·(1±ecc) − bodyRadius) and the reference-body subtitle all resolve off the stream.
     expect(SMA * (1 + ECC) - BODY_RADIUS).toBeCloseTo(85004.8, 0);
     expect(visibleText(container)).toMatch(/85\.\d+\s*km/);
     expect(visibleText(container)).toMatch(/80\.\d+\s*km/);

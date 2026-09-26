@@ -116,8 +116,7 @@ describe("TechTree when the career record is no longer current", () => {
 
     goNotCurrent();
 
-    // Not the awaiting placeholder and not an empty tree: both would state
-    // something false about a save whose catalogue we hold.
+    // Not the awaiting placeholder and not an empty tree: both would state something false about a save whose catalogue we hold.
     await waitFor(() =>
       expect(screen.getByRole("status").textContent).toContain("not current"),
     );

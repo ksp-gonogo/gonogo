@@ -87,8 +87,7 @@ describe("burnAxis", () => {
 
     const fractions = axis.marks.map((m) => m.fraction);
     expect(fractions).toEqual([...fractions].sort((a, b) => a - b));
-    // The span is the burn, so the outer two marks pin the ends and the whole
-    // width is spent on the thing being compared.
+    // The span is the burn, so the outer two marks pin the ends and the whole width is spent on the thing being compared.
     expect(fractions[0]).toBe(0);
     expect(fractions[fractions.length - 1]).toBe(1);
   });
@@ -149,8 +148,7 @@ describe("burnAxis", () => {
 });
 
 // ---------------------------------------------------------------------------
-// The invariant that a fixture broke, expressed against the SHAPE rather than
-// checked after the fact.
+// The invariant that a fixture broke, expressed against the SHAPE rather than checked after the fact.
 //
 // A render once showed a burn window for a node the list beside it said did not
 // exist. The cause was two reads of one truth: the window came off
@@ -186,8 +184,7 @@ describe("a burn window and its node are the same node", () => {
     );
 
     expect(windows).toHaveLength(nodes.length);
-    // Every window's reference instant IS its node's UT, which is what makes a
-    // window traceable to the node it describes.
+    // Every window's reference instant IS its node's UT, which is what makes a window traceable to the node it describes.
     expect(windows.map((w) => w[1].atUt)).toEqual(nodes.map((n) => n.UT));
   });
 

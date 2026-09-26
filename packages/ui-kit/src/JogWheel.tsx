@@ -239,8 +239,7 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
         next = applyDelta(value, bounds, -1);
         break;
       case "Home":
-        // Nowhere to go in a mode with no ends, so the key does nothing rather
-        // than jumping to an infinity.
+        // Nowhere to go in a mode with no ends, so the key does nothing rather than jumping to an infinity.
         if (!Number.isFinite(lo)) return;
         next = lo;
         break;
@@ -286,8 +285,7 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
   const endDrag = (e: PointerEvent<HTMLDivElement>): void => {
     if (!drag.current) return;
     drag.current = null;
-    // Springs back to centre: a rate control left displaced would keep moving
-    // the value after the operator let go of it.
+    // Springs back to centre: a rate control left displaced would keep moving the value after the operator let go of it.
     setDisplacement(0);
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);

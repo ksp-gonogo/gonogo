@@ -42,8 +42,7 @@ const MAP_VIEW_CHANNELS = [
 
 describe("MapView: what undefined telemetry means today", () => {
   let restoreResizeObserver: () => void = () => {};
-  // Unmount before the state-mutating teardown (clearBodies / clearAugments),
-  // which would otherwise re-render a still-mounted tree outside act().
+  // Unmount before the state-mutating teardown (clearBodies / clearAugments), which would otherwise re-render a still-mounted tree outside act().
   const trees: Array<() => void> = [];
 
   beforeEach(() => {
@@ -141,8 +140,7 @@ describe("MapView: what undefined telemetry means today", () => {
     // "nothing has arrived" from "arrived without a position".
     expect(screen.getByText("Waiting for telemetry...")).toBeInTheDocument();
     expect(screen.queryByText("No position data")).toBeNull();
-    // `displayName` is undefined, so the body label is absent entirely
-    // rather than rendering a placeholder.
+    // `displayName` is undefined, so the body label is absent entirely rather than rendering a placeholder.
     expect(visibleText(container)).toBe(
       "MAP VIEWFollowWaiting for telemetry...",
     );
@@ -171,8 +169,7 @@ describe("MapView: what undefined telemetry means today", () => {
     expect(visibleText(container)).toBe(
       `MAP VIEWLat${NULL_DISPLAY}Lon${NULL_DISPLAY}Waiting for telemetry...`,
     );
-    // `altSea !== undefined && rows >= 5` gates the whole row away, so an
-    // undefined altitude is NOT a dash here, it is a missing label.
+    // `altSea !== undefined && rows >= 5` gates the whole row away, so an undefined altitude is NOT a dash here, it is a missing label.
     expect(screen.queryByText("Alt")).toBeNull();
     expect(screen.getByText("Lat")).toBeInTheDocument();
   });
@@ -284,8 +281,7 @@ describe("MapView: what undefined telemetry means today", () => {
     const { fixture, container } = renderMap({}, { w: 14, h: 14 });
     emitBodyOnly(fixture);
     act(() => {
-      // A tombstone: the subject says there is no vessel.flight, which is a
-      // strictly stronger statement than "not yet".
+      // A tombstone: the subject says there is no vessel.flight, which is a strictly stronger statement than "not yet".
       fixture.emit("vessel.flight", null);
     });
     await flushFrames();

@@ -193,8 +193,7 @@ export function ShipDiagramSvg({
         height={height}
         role="img"
         aria-label="Ship diagram"
-        // The `svg {}` sizing/layer rule that lived on the parent DiagramWrap
-        // (ShipMap/index) belongs on the element it sizes.
+        // The `svg {}` sizing/layer rule that lived on the parent DiagramWrap (ShipMap/index) belongs on the element it sizes.
         style={ROOT_SVG_STYLE}
       >
         <text
@@ -317,8 +316,7 @@ export function ShipDiagramSvg({
           const showFuel = p.type === "tank" || p.type === "booster";
           const meters = partMeters?.get(String(p.flightId)) ?? NO_METERS;
 
-          // Screen-space centre of this part, the anchor point both the
-          // focus-tooltip and the action popover position against.
+          // Screen-space centre of this part, the anchor point both the focus-tooltip and the action popover position against.
           const anchor = {
             x: center.x * cam.zoom + cam.panX,
             y: center.y * cam.zoom + cam.panY,
@@ -1143,8 +1141,7 @@ function renderResourceFill(
         // the fill below is always the resource's identity colour,
         // regardless of level.
         const statusBorder = m.status ? STATUS_BORDER[m.status] : undefined;
-        // A held level is drawn faded inside a dashed track: still the last
-        // level there was, and visibly not the tank now.
+        // A held level is drawn faded inside a dashed track: still the last level there was, and visibly not the tank now.
         const held = isHeld(m);
         return (
           <g key={m.resource}>

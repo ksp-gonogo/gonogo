@@ -93,12 +93,10 @@ describe("Targeting: nothing has arrived on either topic", () => {
     expect(screen.getByText("Waiting for target telemetry")).toBeTruthy();
     // The confident absence claim is a DIFFERENT branch and must not be here.
     expect(visibleText(container)).not.toContain("No target set in KSP");
-    // Neither specialised view can be entered from nothing: both assert
-    // something about now.
+    // Neither specialised view can be entered from nothing: both assert something about now.
     expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
     expect(screen.queryByText("APPROACH")).toBeNull();
-    // And no age caption: there is no observation for an age to be measured
-    // from, so `readingAge` answers undefined and the caption is skipped.
+    // And no age caption: there is no observation for an age to be measured from, so `readingAge` answers undefined and the caption is skipped.
     expect(visibleText(container)).not.toMatch(/ago/);
   });
 });
@@ -125,8 +123,7 @@ describe("Targeting: the vessel.dock absence gate", () => {
     await waitFor(() => expect(screen.getByText("APPROACH")).toBeTruthy());
     // 60 m is well inside HUD_ENTER_M (100), so distance alone would promote.
     expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
-    // The approach view still renders every row it can: the dock gate costs the
-    // reticle, not the numbers.
+    // The approach view still renders every row it can: the dock gate costs the reticle, not the numbers.
     expect(screen.getByText("Distance")).toBeTruthy();
     expect(screen.getByText("Closing rate")).toBeTruthy();
   });
@@ -190,8 +187,7 @@ describe("Targeting: a partial vessel.dock record", () => {
         relativePosition: atRange(77),
         relativeVelocity: atRange(-0.77),
       });
-      // Dock record present (so the HUD opens) but carrying only the geometry
-      // the reticle needs: no `distance`, no `relativeVelocity`.
+      // Dock record present (so the HUD opens) but carrying only the geometry the reticle needs: no `distance`, no `relativeVelocity`.
       fixture.emit("vessel.dock", {
         relativePosition: { x: 2, y: -1.5, z: 40 },
         forwardDot: 0.9999,
@@ -203,8 +199,7 @@ describe("Targeting: a partial vessel.dock record", () => {
         screen.getByRole("region", { name: /Docking HUD for Port Mk2/ }),
       ).toBeTruthy(),
     );
-    // `dockDistanceStream ?? tarDistance`: the headline is the TARGET's 77 m,
-    // not a placeholder, even though the dock channel said nothing about range.
+    // `dockDistanceStream ?? tarDistance`: the headline is the TARGET's 77 m, not a placeholder, even though the dock channel said nothing about range.
     expect(visibleText(container)).toContain("77.0 m");
     // `derivedDockRelVel ?? relVel`: the Δv row is the target's radial rate.
     expect(visibleText(container)).toContain("-0.77 m/s");
@@ -260,8 +255,7 @@ describe("Targeting: a partial vessel.target record", () => {
     await waitFor(() =>
       expect(screen.getByText("No target set in KSP")).toBeTruthy(),
     );
-    // "confirmed", not "last seen": the arm is `observed`, so the widget states
-    // the absence in the present tense.
+    // "confirmed", not "last seen": the arm is `observed`, so the widget states the absence in the present tense.
     expect(visibleText(container)).toMatch(/confirmed/i);
     // The distance the record DID carry is discarded with it.
     expect(visibleText(container)).not.toContain("1.5 km");
@@ -285,16 +279,13 @@ describe("Targeting: a partial vessel.target record", () => {
     await waitFor(() =>
       expect(screen.getByText("Geometry-Free Station")).toBeTruthy(),
     );
-    // Tracking mode: the headline is the null-display placeholder at the value's
-    // own display tier, NOT a zero and NOT the waiting empty state.
+    // Tracking mode: the headline is the null-display placeholder at the value's own display tier, NOT a zero and NOT the waiting empty state.
     expect(visibleText(container)).toContain(NULL_DISPLAY);
     expect(screen.queryByText("Waiting for target telemetry")).toBeNull();
-    // `tarDistance === undefined` also blocks the mode effect outright, so a
-    // nameable Vessel target never reaches approach or the HUD without geometry.
+    // `tarDistance === undefined` also blocks the mode effect outright, so a nameable Vessel target never reaches approach or the HUD without geometry.
     expect(screen.queryByText("APPROACH")).toBeNull();
     expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
-    // `showSubReadout` gates on relVel, so the Δv sub-readout is absent
-    // entirely rather than rendered as a placeholder.
+    // `showSubReadout` gates on relVel, so the Δv sub-readout is absent entirely rather than rendered as a placeholder.
     expect(visibleText(container)).not.toContain("Δv");
   });
 
@@ -315,12 +306,10 @@ describe("Targeting: a partial vessel.target record", () => {
 
     await waitFor(() => expect(screen.getByText("APPROACH")).toBeTruthy());
     expect(screen.getByText("TCA")).toBeTruthy();
-    // The rows that DO have data still render, so this is the TCA row alone
-    // degrading rather than the view.
+    // The rows that DO have data still render, so this is the TCA row alone degrading rather than the view.
     expect(visibleText(container)).toMatch(/2\.0 km/);
     expect(visibleText(container)).toMatch(/−5\.0 m\/s/);
-    // No countdown anywhere: `Countdown` renders a T± string, and its absence is
-    // what says the placeholder took its place.
+    // No countdown anywhere: `Countdown` renders a T± string, and its absence is what says the placeholder took its place.
     expect(visibleText(container)).not.toMatch(/T[−+]/);
   });
 });

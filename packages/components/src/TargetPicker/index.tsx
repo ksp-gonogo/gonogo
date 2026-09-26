@@ -48,8 +48,7 @@ const topics = defineTopicManifest({
   channels: ["target.available", "vessel.target"],
 });
 
-// Config is empty, bodies/vessels/parts all come off the one
-// `target.available` list now, so there is nothing per-instance to save.
+// Config is empty, bodies/vessels/parts all come off the one `target.available` list now, so there is nothing per-instance to save.
 type TargetPickerConfig = Record<string, never>;
 
 // ── Augment slots (Uplink architecture) ─────────────────────────────
@@ -390,8 +389,7 @@ function TargetPickerComponent({
     [visible],
   );
 
-  // Suggested: 2 closest Bodies + 2 closest Vessels + ALL Parts (already
-  // off-vessel by construction): each source list is already closest-first.
+  // Suggested: 2 closest Bodies + 2 closest Vessels + ALL Parts (already off-vessel by construction): each source list is already closest-first.
   const suggested = useMemo(
     () => [...bodiesList.slice(0, 2), ...vesselsList.slice(0, 2), ...partsList],
     [bodiesList, vesselsList, partsList],
@@ -403,8 +401,7 @@ function TargetPickerComponent({
     partsList.length === 0 &&
     otherList.length === 0;
 
-  // Selective rendering: at very small sizes the picker doesn't have room,
-  // so collapse to a current-target readout (clear button if there's any width).
+  // Selective rendering: at very small sizes the picker doesn't have room, so collapse to a current-target readout (clear button if there's any width).
   const cols = w ?? 6;
   const rows = h ?? 11;
   const showFull = rows >= 6 && cols >= 4;

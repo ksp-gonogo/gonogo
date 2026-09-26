@@ -23,8 +23,7 @@ export function getSizeBucket(
   w: number | undefined,
   h: number | undefined,
 ): SizeBucket {
-  // Missing dims (e.g. before the grid has measured), assume normal so the
-  // first paint isn't a flash of compact UI.
+  // Missing dims (e.g. before the grid has measured), assume normal so the first paint isn't a flash of compact UI.
   if (w === undefined || h === undefined) return "normal";
   if (w < TINY_W || h < TINY_H) return "tiny";
   if (w < SMALL_W || h < SMALL_H) return "small";

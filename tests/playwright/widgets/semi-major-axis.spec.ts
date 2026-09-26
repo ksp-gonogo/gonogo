@@ -39,8 +39,7 @@ test.describe("widget DOM mirror: SemiMajorAxis", () => {
       });
     }
 
-    // A readout is no longer one text node: the number, the symbol and the
-    // hidden screen-reader word are separate elements.
+    // A readout is no longer one text node: the number, the symbol and the hidden screen-reader word are separate elements.
     await expectVisibleText(pair.main, "773.9 km");
 
     await teardownPair(pair);

@@ -208,8 +208,7 @@ describe("an override is bound to the pair the operator read", () => {
   it("does not carry to a different index hash for the same id and version", async () => {
     grantSkewOverride("widget-a", "1.0.0", skewFailure(WRONG_HASH));
 
-    // Same id, same version, same mod hash: the index now offers a DIFFERENT
-    // build from the one the operator accepted, so the refusal comes back.
+    // Same id, same version, same mod hash: the index now offers a DIFFERENT build from the one the operator accepted, so the refusal comes back.
     const outcome = await load(indexWith(goodHash), rosterWith(MOD_HASH));
 
     expect(outcome.status).toBe("quarantined");

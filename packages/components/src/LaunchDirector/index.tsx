@@ -342,8 +342,7 @@ function launchFacilityArg(ship: SavedShip): string {
     ship.facilityOrdinal === null
       ? undefined
       : KSP_EDITOR_FACILITY_NAMES.get(ship.facilityOrdinal);
-  // `None` is a declared member and not an editor, so it is not launchable; let
-  // the mod say so rather than choosing an editor on the player's behalf.
+  // `None` is a declared member and not an editor, so it is not launchable; let the mod say so rather than choosing an editor on the player's behalf.
   if (resolved === undefined || resolved === "None") return ship.facility;
   return resolved;
 }
@@ -401,8 +400,7 @@ export function parseLaunchSites(raw: unknown): LaunchSiteEntry[] | null {
     const e = entry as Record<string, unknown>;
     const name = typeof e.name === "string" ? e.name : null;
     if (!name) continue;
-    // New-shape detection: the mod entry has `editorFacility`/`isStock` and no
-    // legacy `unlocked` field.
+    // New-shape detection: the mod entry has `editorFacility`/`isStock` and no legacy `unlocked` field.
     const isNewShape = !("unlocked" in e) && "editorFacility" in e;
     const facility =
       typeof e.facility === "string"
@@ -657,8 +655,7 @@ function LaunchDirectorComponent({
   // guard tested it with `typeof === "number"`, which answers NO for a wrapped
   // value and would have silently stopped recognising a post-dated snapshot.
   const viewUt = useViewUt();
-  // Elapsed mission time is the view clock measured from liftoff, absent until
-  // the clamps release: `launchUt` is null until then.
+  // Elapsed mission time is the view clock measured from liftoff, absent until the clamps release: `launchUt` is null until then.
   const missionTime =
     identity?.launchUt == null || viewUt === undefined
       ? undefined
@@ -720,8 +717,7 @@ function LaunchDirectorComponent({
   const ships = parseSavedShips(savedShipsRaw);
   const crew = parseCrew(crewRosterRaw);
   const launchSites = parseLaunchSites(launchSitesRaw);
-  // Only sites the save can actually launch from, in the order the operator
-  // should read them: something on it first.
+  // Only sites the save can actually launch from, in the order the operator should read them: something on it first.
   const pads = useMemo(
     () => orderPads((launchSites ?? []).filter((s) => s.unlocked)),
     [launchSites],
@@ -1627,8 +1623,7 @@ function ArmedButton({
     hasFailure,
     press,
   } = useCommandButton({ handle, args, commandLabel });
-  // Mirrors which of the renders below takes a click: the pending one never
-  // does, the refused and lost ones always do, the rest unless disabled.
+  // Mirrors which of the renders below takes a click: the pending one never does, the refused and lost ones always do, the rest unless disabled.
   useBindPress(
     bindAs,
     press,
@@ -1657,8 +1652,7 @@ function ArmedButton({
     );
   }
   if (isLost) {
-    // Never the resting render, which is where a CONFIRMED action goes: a
-    // recover or a revert nobody answered may already have happened.
+    // Never the resting render, which is where a CONFIRMED action goes: a recover or a revert nobody answered may already have happened.
     const sentence = commandLossSentence({ label: commandLabel });
     return (
       <ConfirmButton

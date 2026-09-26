@@ -54,8 +54,7 @@ export default defineConfig({
     environment: "node",
     include: selection ? selection.run : all,
     exclude: ["dist/**", "node_modules/**"],
-    // Repeated under the summary, where a verdict is read, so a fast green
-    // cannot be taken for the whole-tree one.
+    // Repeated under the summary, where a verdict is read, so a fast green cannot be taken for the whole-tree one.
     ...(banner
       ? {
           reporters: [

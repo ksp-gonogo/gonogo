@@ -125,8 +125,7 @@ async function main(): Promise<void> {
         );
         continue;
       }
-      // Replace the widget's baseline dir wholesale so renders that are no
-      // longer produced (renamed fixtures/modes) don't leave orphans behind.
+      // Replace the widget's baseline dir wholesale so renders that are no longer produced (renamed fixtures/modes) don't leave orphans behind.
       await rm(baselineDir, { recursive: true, force: true });
       await mkdir(baselineDir, { recursive: true });
       for (const file of renders) {

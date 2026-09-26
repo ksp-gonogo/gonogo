@@ -120,8 +120,7 @@ describe("CommcastLog, one vantage's own record", () => {
   });
 
   it("acknowledges at the ARRIVAL instant, not at the instant it ran", () => {
-    // A screen closed for the crossing releases late in wall-clock and must
-    // still report the geometry, not its owner's browsing habits.
+    // A screen closed for the crossing releases late in wall-clock and must still report the geometry, not its owner's browsing habits.
     log.receiveTransmission(fromWire({ to: [KSC] }));
     log.release("m1", {
       from: KSC,

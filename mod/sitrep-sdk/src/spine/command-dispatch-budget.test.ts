@@ -114,8 +114,7 @@ describe("command dispatch budget", () => {
     const session = startSession();
     const REDUNDANT_TICKS = 40;
 
-    // One command that moves the warp, then a controller re-asking for the
-    // index it already asked for, once per tick, for as long as it is blind.
+    // One command that moves the warp, then a controller re-asking for the index it already asked for, once per tick, for as long as it is blind.
     session.client.dispatch("time.setWarpIndex", { index: 4 });
     for (let tick = 0; tick < REDUNDANT_TICKS; tick++) {
       session.client.dispatch("time.setWarpIndex", { index: 4 });
@@ -134,8 +133,7 @@ describe("command dispatch budget", () => {
 
   it("trips its soft cap when a loop dispatches faster than an operator can", async () => {
     const session = startSession();
-    // One past the cap, so the assertion is about the threshold and not about
-    // some round number chosen for looking big.
+    // One past the cap, so the assertion is about the threshold and not about some round number chosen for looking big.
     const storm = budget.threshold + 1;
 
     for (let tick = 0; tick < storm; tick++) {

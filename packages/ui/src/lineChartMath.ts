@@ -268,8 +268,7 @@ export function buildSegmentedPath(
   const out: PathSegment[] = [];
   let runStart = 0;
   const flush = (start: number, end: number) => {
-    // Reach back one sample for the joining segment, unless a hole sits at the
-    // run's own first index, where nothing joins into it.
+    // Reach back one sample for the joining segment, unless a hole sits at the run's own first index, where nothing joins into it.
     const from = start > 0 && !breakSet.has(start) ? start - 1 : start;
     const slice = (arr: number[]) => arr.slice(from, end + 1);
     const localBreaks: number[] = [];
@@ -378,8 +377,7 @@ export function makeLogScale(
   rangeMin: number,
   rangeMax: number,
 ): (v: number) => number {
-  // Collapse takes precedence over the log-floor clamp, equal bounds map
-  // every input to the midpoint regardless of sign, matching makeScale().
+  // Collapse takes precedence over the log-floor clamp, equal bounds map every input to the midpoint regardless of sign, matching makeScale().
   if (domainMin === domainMax) {
     const mid = (rangeMin + rangeMax) / 2;
     return () => mid;

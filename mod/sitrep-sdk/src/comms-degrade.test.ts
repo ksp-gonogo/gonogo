@@ -60,13 +60,11 @@ describe("degradeRatingOf: the payload read", () => {
   });
 
   it("clamps a finite rating that arrived outside the scale", () => {
-    // A client can be talking to an older or third-party build, so the 0..1
-    // promise is kept again here rather than trusted.
+    // A client can be talking to an older or third-party build, so the 0..1 promise is kept again here rather than trusted.
     expect(degradeRatingOf(payload(1.4))?.level).toBe(1);
     expect(degradeRatingOf(payload(-0.25))?.level).toBe(0);
 
-    // The boundaries are in range and untouched, which is what makes it a
-    // clamp rather than an exclusion.
+    // The boundaries are in range and untouched, which is what makes it a clamp rather than an exclusion.
     expect(degradeRatingOf(payload(0))?.level).toBe(0);
     expect(degradeRatingOf(payload(1))?.level).toBe(1);
     expect(degradeRatingOf(payload(0.5))?.level).toBe(0.5);
@@ -96,8 +94,7 @@ describe("degradeRating: the reading read", () => {
   const graded = payloadOf(0.7, "some-rule");
 
   it("returns nothing while no rating has arrived", () => {
-    // Three distinct reasons to have no rating, one answer, because a consumer
-    // has the same thing to do about all three: keep doing what it was doing.
+    // Three distinct reasons to have no rating, one answer, because a consumer has the same thing to do about all three: keep doing what it was doing.
     const pending: TopicCurrency<CommsDegrade> = {
       state: "pending",
       reckoning: { status: "none" },

@@ -206,8 +206,7 @@ describe("TelemetryClient.attachStore: feeds the wire into a TimelineStore (M2 b
     t.emit("vessel.orbit", { sma: 700_000 });
     store.beginFrame();
 
-    // `.magnitude`: the transport wraps on the way out, same as the wire
-    // decode does, so a store holds quantities rather than bare numbers.
+    // `.magnitude`: the transport wraps on the way out, same as the wire decode does, so a store holds quantities rather than bare numbers.
     expect(
       store.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload?.sma.magnitude,
     ).toBe(700_000);
@@ -374,8 +373,7 @@ describe("TelemetryClient commands", () => {
 
     client.subscribe("v.alt", () => {});
     client.subscribe("v.speed", () => {});
-    // No command handler installed, so dispatch's transport-side response
-    // never arrives synchronously: dispose() runs before it ever would.
+    // No command handler installed, so dispatch's transport-side response never arrives synchronously: dispose() runs before it ever would.
     const { requestId, result } = client.dispatch("deploy");
     expect(client.getCommand(requestId)).toMatchObject({
       phase: "in-flight",
@@ -565,8 +563,7 @@ describe("TelemetryClient: a loss relayed by the transport", () => {
   }
 
   it("settles a still-waiting dispatch as lost, not failed", async () => {
-    // No prediction, so nothing here arms a deadline of its own: the relay's
-    // verdict is the only thing that can end this wait.
+    // No prediction, so nothing here arms a deadline of its own: the relay's verdict is the only thing that can end this wait.
     const transport = new RelayingTransport(undefined);
     const client = new TelemetryClient(transport, new FakeClock(0));
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -578,8 +575,7 @@ describe("TelemetryClient: a loss relayed by the transport", () => {
     );
     transport.relayLoss(requestId, "no confirmation by ETA");
 
-    // `lost`, which warns that a re-send may double a command the mod may
-    // already have run. `failed` would promise a safe retry instead.
+    // `lost`, which warns that a re-send may double a command the mod may already have run. `failed` would promise a safe retry instead.
     expect(client.getCommand(requestId)).toEqual({
       phase: "lost",
       requestId,
@@ -648,8 +644,7 @@ describe("TelemetryClient: a loss relayed by the transport", () => {
     client.dispose();
     expect(await settled).toMatchObject({ kind: "failed" });
 
-    // Nothing to throw at: `dispose` already emptied the correlation map, and
-    // the listener is detached, so this must not resurrect a status either.
+    // Nothing to throw at: `dispose` already emptied the correlation map, and the listener is detached, so this must not resurrect a status either.
     transport.relayLoss(requestId, "no confirmation by ETA");
     expect(client.getCommand(requestId)).toEqual({ phase: "idle" });
     warn.mockRestore();
@@ -771,8 +766,7 @@ describe("TelemetryClient command refusals", () => {
     );
     await expect(failedResult).rejects.toMatchObject({ code: "E_BOOM" });
 
-    // Same command, both terminal, both unsuccessful, and a UI that wants to
-    // say "the game said no" vs "something broke" can tell them apart.
+    // Same command, both terminal, both unsuccessful, and a UI that wants to say "the game said no" vs "something broke" can tell them apart.
     expect(refused.getCommand(refusedId).phase).toBe("refused");
     expect(malfunction.getCommand(failedId).phase).toBe("failed");
   });
@@ -846,8 +840,7 @@ describe("classifyCommandRejection against the spine that actually throws", () =
     expect(await classify(refusedDispatch.result)).toEqual({
       kind: "refused",
       errorCode: CommandErrorCode.NotFound,
-      // The typed reason reaches the words too, or an operator-facing message
-      // built from this is back to saying nothing useful.
+      // The typed reason reaches the words too, or an operator-facing message built from this is back to saying nothing useful.
       message: expect.stringContaining("NotFound"),
       // And WHICH command was refused, which the reply itself never says.
       command: "a",
@@ -943,8 +936,7 @@ describe("TelemetryClient found: a lost command that answers after all", () => {
     });
 
     expect(notified).toHaveBeenCalledTimes(1);
-    // The promise settled as lost and stays settled as lost: it is a one-shot
-    // await and the caller genuinely did stop waiting.
+    // The promise settled as lost and stays settled as lost: it is a one-shot await and the caller genuinely did stop waiting.
     await expect(result).rejects.toMatchObject({ code: "E_LOST" });
   });
 

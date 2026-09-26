@@ -101,8 +101,7 @@ describe("builtin derived keys: velocity rollups and stage TWR", () => {
   });
 });
 
-// Moved here with `builtinDerivedKeys` when the derive REGISTRY went to the sdk:
-// these assert the shapes this package registers, not the registry that holds them.
+// Moved here with `builtinDerivedKeys` when the derive REGISTRY went to the sdk: these assert the shapes this package registers, not the registry that holds them.
 describe("built-in derived key shapes", () => {
   beforeEach(() => {
     clearDerivedKeys();

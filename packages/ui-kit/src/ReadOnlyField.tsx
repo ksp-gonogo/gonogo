@@ -87,8 +87,7 @@ export function ReadOnlyFieldContent({
 }): ReactNode {
   if (value === null || value === undefined) return <NullValue />;
   if (isValue(value)) return <Unit value={value} />;
-  // A read-only flag is a state, not a checkbox: "On"/"Off" is what the game's
-  // own settings windows say, and "true" is a serialisation.
+  // A read-only flag is a state, not a checkbox: "On"/"Off" is what the game's own settings windows say, and "true" is a serialisation.
   if (typeof value === "boolean") return value ? "On" : "Off";
   return value;
 }

@@ -51,8 +51,7 @@ export function SceneSwitchPrompt({
 
     const profile = svc.findForScene(scene);
     if (!profile) {
-      // No binding: leave any existing prompt alone (it's for the
-      // previous transition, the auto-dismiss will clear it).
+      // No binding: leave any existing prompt alone (it's for the previous transition, the auto-dismiss will clear it).
       return;
     }
 

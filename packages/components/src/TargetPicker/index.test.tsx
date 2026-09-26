@@ -192,13 +192,11 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
       { kind: 3, name: "Flag Marker", distance: 12_000, isCurrent: false },
     ]);
 
-    // The Other category section appears (2 entries), previously an Other/
-    // unknown-kind entry landed in no list and was invisible.
+    // The Other category section appears (2 entries), previously an Other/ unknown-kind entry landed in no list and was invisible.
     await screen.findByRole("button", { name: /^Other/ });
     expect(screen.getByText("Deployed Ground Station")).toBeInTheDocument();
     expect(screen.getByText("Flag Marker")).toBeInTheDocument();
-    // Distance is populated + shown for the Other bucket, same as every other
-    // category.
+    // Distance is populated + shown for the Other bucket, same as every other category.
     expect(visibleText()).toMatch(/340\.0\s*m/);
   });
 
@@ -351,8 +349,7 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     renderPicker(fixture);
     emitAvailable(fixture, FULL_ENTRIES);
 
-    // Kerbin appears both in Suggested and in the Bodies category, either
-    // instance dispatches identically, so the first match is fine.
+    // Kerbin appears both in Suggested and in the Bodies category, either instance dispatches identically, so the first match is fine.
     const rows = await screen.findAllByRole("button", { name: /^Kerbin/ });
     await user.click(rows[0]);
     await waitFor(() => {
@@ -369,8 +366,7 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     renderPicker(fixture);
     emitAvailable(fixture, FULL_ENTRIES);
 
-    // Relay Three only appears in the Vessels category, not Suggested,
-    // proves the category (not just Suggested) rows dispatch correctly.
+    // Relay Three only appears in the Vessels category, not Suggested, proves the category (not just Suggested) rows dispatch correctly.
     const row = await screen.findByRole("button", { name: /Relay Three/ });
     await user.click(row);
     await waitFor(() => {
@@ -387,8 +383,7 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     renderPicker(fixture);
     emitAvailable(fixture, FULL_ENTRIES);
 
-    // Port Alpha appears both in Suggested (parts are always ALL included)
-    // and in the Parts category: either instance dispatches identically.
+    // Port Alpha appears both in Suggested (parts are always ALL included) and in the Parts category: either instance dispatches identically.
     const rows = await screen.findAllByRole("button", { name: /Port Alpha/ });
     await user.click(rows[0]);
     await waitFor(() => {
@@ -407,8 +402,7 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
   it("marks the current target with a TARGET tag", async () => {
     renderPicker(fixture);
     emitAvailable(fixture, [KERBIN, { ...MUN, isCurrent: true }, RELAY_ONE]);
-    // Mun appears in both Suggested and the Bodies category (only 2 bodies
-    // total, both fit in "2 closest"): both instances carry the tag.
+    // Mun appears in both Suggested and the Bodies category (only 2 bodies total, both fit in "2 closest"): both instances carry the tag.
     const rows = await screen.findAllByRole("button", { name: /^Mun/ });
     expect(rows).toHaveLength(2);
     for (const row of rows) {

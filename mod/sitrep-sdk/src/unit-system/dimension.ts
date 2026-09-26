@@ -107,8 +107,7 @@ export function formatDimension(dimension: Dimension): string {
   const denominator = negative
     .map((base) => withExponent(base, -dimension[base]))
     .join("·");
-  // Parenthesise a multi-term denominator: "kg/m·s²" would read as
-  // (kg/m)·s², which is a different dimension.
+  // Parenthesise a multi-term denominator: "kg/m·s²" would read as (kg/m)·s², which is a different dimension.
   return negative.length > 1
     ? `${numerator}/(${denominator})`
     : `${numerator}/${denominator}`;

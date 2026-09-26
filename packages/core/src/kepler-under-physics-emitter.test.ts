@@ -44,8 +44,7 @@ function productionFilesMatching(pattern: string): string[] {
       { cwd: REPO, encoding: "utf8" },
     );
   } catch (error) {
-    // Exit status 1 is git grep's "no match", which is an answer; anything
-    // else is a search that did not run.
+    // Exit status 1 is git grep's "no match", which is an answer; anything else is a search that did not run.
     if (error instanceof Error && "status" in error && error.status === 1)
       return [];
     throw error;
@@ -67,8 +66,7 @@ describe("under-physics has exactly one emitter", { timeout: 60_000 }, () => {
   });
 
   it("can see an emitter, so an empty answer is not a blind scan", () => {
-    // The control: the same search finds the general code's many emitters,
-    // including the one file the rule above names.
+    // The control: the same search finds the general code's many emitters, including the one file the rule above names.
     const general = productionFilesMatching(
       'reason:[[:space:]]*"model-inapplicable"',
     );

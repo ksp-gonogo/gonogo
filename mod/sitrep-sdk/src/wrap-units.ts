@@ -112,8 +112,7 @@ function wrap<T>(
   if (payload === null || typeof payload !== "object") {
     return payload;
   }
-  // An array Topic's entry describes the ELEMENT's fields, which is what a
-  // consumer indexes into.
+  // An array Topic's entry describes the ELEMENT's fields, which is what a consumer indexes into.
   if (Array.isArray(payload)) {
     for (let i = 0; i < payload.length; i++) {
       payload[i] = wrap(owner, units, shapes, payload[i]);
@@ -204,8 +203,7 @@ function wrapScalarOrList(current: unknown, unit: string): unknown {
   if (typeof current === "number") {
     return value(unit, current);
   }
-  // A sequence of same-unit readings: a terrain profile is a list of distances
-  // rather than one distance, so the unit belongs to each element.
+  // A sequence of same-unit readings: a terrain profile is a list of distances rather than one distance, so the unit belongs to each element.
   if (Array.isArray(current)) {
     return current.map((entry) =>
       typeof entry === "number" ? value(unit, entry) : entry,
@@ -225,8 +223,7 @@ function wrapScalarOrList(current: unknown, unit: string): unknown {
   // `{magnitude: Value(1200), unit: "K"}` on the second decode. The existing
   // idempotence test caught exactly that.
   //
-  // Non-numeric entries then pass through untouched, so a map that is already
-  // wrapped is left alone too and this stays idempotent like the cases above.
+  // Non-numeric entries then pass through untouched, so a map that is already wrapped is left alone too and this stays idempotent like the cases above.
   if (current !== null && typeof current === "object" && !isValue(current)) {
     const entries = current as Record<string, unknown>;
     for (const key of Object.keys(entries)) {

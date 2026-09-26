@@ -32,8 +32,7 @@ import { NavballComponent } from "./index";
 // read is off the stream now.
 const KEYS: DataKey[] = [{ key: "n.heading" }];
 
-// The read topics the widget consumes off the stream; comms.delay feeds the
-// FBW-delay warning.
+// The read topics the widget consumes off the stream; comms.delay feeds the FBW-delay warning.
 const READ_CHANNELS = [
   "vessel.attitude",
   "vessel.control",
@@ -75,8 +74,7 @@ describe("NavballComponent", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
   let onExecute: ReturnType<typeof vi.fn<(action: string) => void>>;
-  // Unmount before buffered.disconnect() (a status change that re-renders the
-  // still-mounted connectivity badge): the act() anti-pattern otherwise.
+  // Unmount before buffered.disconnect() (a status change that re-renders the still-mounted connectivity badge): the act() anti-pattern otherwise.
   const trees: Array<() => void> = [];
 
   beforeEach(async () => {
@@ -190,8 +188,7 @@ describe("NavballComponent", () => {
   });
 
   it("arms FBW on click and disarms on unmount", async () => {
-    // FBW arm/disarm (delayed-command-ux migration) rides useCommand
-    // directly against vessel.control.setFlyByWire, unconditionally.
+    // FBW arm/disarm (delayed-command-ux migration) rides useCommand directly against vessel.control.setFlyByWire, unconditionally.
     const user = userEvent.setup();
     const { fixture, unmount } = renderNavball(
       { controlMode: true },
@@ -227,8 +224,7 @@ describe("NavballComponent", () => {
       control: { throttle: 0.25 },
     });
     const slider = await screen.findByRole("slider", { name: "Throttle" });
-    // Range inputs have no userEvent equivalent (type/selectOptions don't apply);
-    // fireEvent.change is the RTL-recommended way to set a slider value.
+    // Range inputs have no userEvent equivalent (type/selectOptions don't apply); fireEvent.change is the RTL-recommended way to set a slider value.
     fireEvent.change(slider, { target: { value: "0.75" } });
     await waitFor(() => {
       const sent = fixture.transport.sentCommands.find(
@@ -255,8 +251,7 @@ describe("NavballComponent", () => {
     const slider = await screen.findByRole("slider", { name: "Throttle" });
     await waitFor(() => expect(slider).toHaveValue("0.25"));
 
-    // Operator touches the throttle: latches `throttleTouchedRef`, so the
-    // seed-from-readback effect would otherwise never fire again.
+    // Operator touches the throttle: latches `throttleTouchedRef`, so the seed-from-readback effect would otherwise never fire again.
     fireEvent.change(slider, { target: { value: "0.75" } });
     await waitFor(() => expect(slider).toHaveValue("0.75"));
 

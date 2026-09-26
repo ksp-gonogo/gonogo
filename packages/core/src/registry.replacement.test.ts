@@ -7,8 +7,7 @@ import {
 } from "./registry";
 import type { ComponentDefinition } from "./types";
 
-// Minimal component definition: only the fields the replacement resolver reads
-// (`id`, `replaces`) matter here; the rest satisfy the type.
+// Minimal component definition: only the fields the replacement resolver reads (`id`, `replaces`) matter here; the rest satisfy the type.
 function def(id: string, replaces?: string): ComponentDefinition {
   return {
     id,
@@ -49,8 +48,7 @@ describe("widget replacement (spec §4.5)", () => {
       "nfe-power-systems",
     ]);
 
-    // Conflict resolution: original kept, both competing replacers withheld
-    // until the user picks: never both rendered (no silent merge).
+    // Conflict resolution: original kept, both competing replacers withheld until the user picks: never both rendered (no silent merge).
     const ids = getResolvedComponents().map((c) => c.id);
     expect(ids).toEqual(["power-systems"]);
   });

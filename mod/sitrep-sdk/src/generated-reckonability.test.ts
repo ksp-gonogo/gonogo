@@ -21,8 +21,7 @@ describe("generated reckonability.ts", () => {
   });
 
   it("splits a cross-topic input into its topic and its path", () => {
-    // @vessel.orbit is a whole payload, @vessel.orbit#mu is one field of it, and
-    // the two halves are what a consumer resolves without parsing.
+    // @vessel.orbit is a whole payload, @vessel.orbit#mu is one field of it, and the two halves are what a consumer resolves without parsing.
     expect(src).toMatch(/\{ topic: "vessel\.orbit", path: "" \}/);
     expect(src).toMatch(/\{ topic: "vessel\.orbit", path: "mu" \}/);
   });

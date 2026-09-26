@@ -27,8 +27,7 @@ describe("OrbitView: genuinely runs off the stream (R6)", () => {
       { bodyName: "Kerbin", sma: 681_500, ecc: 0.003, argPe: 12 },
     );
 
-    // A real subscription must have happened for StubTransport to deliver at
-    // all (its emit is subscription-gated; see its own doc comment).
+    // A real subscription must have happened for StubTransport to deliver at all (its emit is subscription-gated; see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
     await waitFor(() => {
@@ -37,13 +36,11 @@ describe("OrbitView: genuinely runs off the stream (R6)", () => {
       }
     });
 
-    // The diagram is up, the widget left its empty state purely from
-    // stream-derived data.
+    // The diagram is up, the widget left its empty state purely from stream-derived data.
     expect(container.querySelector("svg")).not.toBeNull();
     expect(visibleText(container)).toContain("Kerbin");
 
-    // White-box: the index the body name is resolved from is the one that
-    // streamed into the real TimelineStore, not fabricated.
+    // White-box: the index the body name is resolved from is the one that streamed into the real TimelineStore, not fabricated.
     const identity = fixture.store.sample<{ parentBodyIndex: number }>(
       "vessel.identity",
       fixture.store.currentFrame(),

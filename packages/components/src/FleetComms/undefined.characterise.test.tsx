@@ -128,8 +128,7 @@ describe("FleetComms badge: what undefined means today", () => {
       fixture.emit("comms.link", null);
     });
 
-    // Proof the tombstone landed, so the assertion below is about the widget's
-    // policy and not about a dropped emit.
+    // Proof the tombstone landed, so the assertion below is about the widget's policy and not about a dropped emit.
     await waitFor(() =>
       expect(fixture.store.sample("comms.link")?.payload).toBeNull(),
     );
@@ -152,8 +151,7 @@ describe("FleetComms badge: what undefined means today", () => {
       expect(fixture.store.sample("comms.link")?.payload).toEqual({}),
     );
 
-    // Third meaning collapsed onto the same render: a live comms Uplink that
-    // simply omitted `connected` is indistinguishable from no Uplink at all.
+    // Third meaning collapsed onto the same render: a live comms Uplink that simply omitted `connected` is indistinguishable from no Uplink at all.
     await waitFor(() => expect(badgeText()).toBe(NULL_DISPLAY));
   });
 });

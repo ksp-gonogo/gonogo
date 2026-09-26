@@ -224,8 +224,7 @@ export class PeerClientService {
     this.retryPolicy = new RetryPolicy({
       retryIntervalMs,
       retryTimeoutMs,
-      // Always read the *current* peer id, a closure capture of the
-      // initial value would log a stale id after the first regeneration.
+      // Always read the *current* peer id, a closure capture of the initial value would log a stale id after the first regeneration.
       stationPeerId: () => this.stationPeerId,
       hostPeerId: () => this.hostPeerId,
       tearDown: () => this.tearDownPeer(),
@@ -282,8 +281,7 @@ export class PeerClientService {
     // key is invisible to the host on the broker even if the ids match.
     this.peer = new Peer(this.stationPeerId, peerBrokerOptions());
     this.peer.on("open", () => {
-      // Reaching `open` means the broker answered and holds our id, so any
-      // earlier "can't reach the broker" verdict is stale.
+      // Reaching `open` means the broker answered and holds our id, so any earlier "can't reach the broker" verdict is stale.
       this.setBrokerReachable(true);
       this.connectToHost();
     });
@@ -386,8 +384,7 @@ export class PeerClientService {
     }
     this.peer = null;
     this.conn = null;
-    // Drop the cached hello so a reconnect to a freshly-deployed host on a
-    // different version doesn't briefly report the old version.
+    // Drop the cached hello so a reconnect to a freshly-deployed host on a different version doesn't briefly report the old version.
     this.hostVersion = null;
     this.hostSessionToken = null;
   }
@@ -1232,8 +1229,7 @@ export class PeerClientService {
    * already-negotiated ICE pair and aren't disturbed.
    */
   private applyRelayIceServers(iceServers: RTCIceServer[]): void {
-    // Expose for the brokered camera data source regardless of whether the
-    // Peer is up yet, the camera client reads these for its own connection.
+    // Expose for the brokered camera data source regardless of whether the Peer is up yet, the camera client reads these for its own connection.
     this.relayIceServers = iceServers;
     this.events.emit("relayIceServers", iceServers);
     if (!this.peer) return;

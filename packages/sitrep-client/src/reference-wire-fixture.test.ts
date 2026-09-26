@@ -217,8 +217,7 @@ describe.skipIf(!fixtureExists)(
           definedImmediately: boolean;
         }[] = [];
 
-        // epoch-0 (pre-first-rewind) OnRails vessel.orbit samples, for the
-        // kepler cross-check.
+        // epoch-0 (pre-first-rewind) OnRails vessel.orbit samples, for the kepler cross-check.
         const epoch0OnRailsOrbit: {
           validAt: number;
           payload: VesselOrbitPayload;

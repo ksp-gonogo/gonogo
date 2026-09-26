@@ -20,14 +20,12 @@ describe("BurnWindowRows: no restated heading, no per-row noise subtitle", () =>
       />,
     );
 
-    // The section heading is a sibling this component never renders, so the
-    // absence of "Burn window" here is unambiguous.
+    // The section heading is a sibling this component never renders, so the absence of "Burn window" here is unambiguous.
     expect(screen.queryByText("Burn window")).toBeNull();
     // The duration line survives: it's the one fact the header row adds.
     expect(container.textContent).toMatch(/lasts/i);
 
-    // Every row still says what happens and when, with no "rocket equation" /
-    // "planned" subtitle underneath the label.
+    // Every row still says what happens and when, with no "rocket equation" / "planned" subtitle underneath the label.
     expect(screen.getByText("Ignition")).toBeInTheDocument();
     expect(screen.getByText("Half-Δv")).toBeInTheDocument();
     expect(screen.getByText("Cutoff")).toBeInTheDocument();

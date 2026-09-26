@@ -97,8 +97,7 @@ function walk(
   }
 
   for (const field of Object.keys(shapes).sort()) {
-    // A unit already claimed this field as a leaf, so the shape entry is the
-    // nested-type half of a field the walk has recorded.
+    // A unit already claimed this field as a leaf, so the shape entry is the nested-type half of a field the walk has recorded.
     if (units[field] !== undefined) continue;
 
     const shape = shapes[field];

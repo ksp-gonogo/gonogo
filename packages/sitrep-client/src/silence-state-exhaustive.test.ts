@@ -67,8 +67,7 @@ function asReportedSilence(silence: {
 
 describe("SilenceState stays in step with the mod", () => {
   it("reads the enum members out of the C# source at all", () => {
-    // Guards the reader: an extractor that returned nothing would make any
-    // union pass, and report success for the drift it was asked about.
+    // Guards the reader: an extractor that returned nothing would make any union pass, and report success for the drift it was asked about.
     expect(declaredSilenceStates()).toEqual(["Nominal", "Silent", "Lost"]);
   });
 
@@ -101,8 +100,7 @@ describe("contactPhase and a state it does not recognize", () => {
       state: "Destroyed",
       predictedReacquisitionUt: 50,
     });
-    // With a prediction in the past this used to read "overdue", which is a
-    // statement about a vessel we have no state for.
+    // With a prediction in the past this used to read "overdue", which is a statement about a vessel we have no state for.
     expect(contactPhase(silence, 100)).toBeUndefined();
   });
 

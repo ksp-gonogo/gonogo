@@ -445,8 +445,7 @@ export class Kernel {
       if (preferred !== undefined) {
         return { winner: preferred, reason: "user preference" };
       }
-      // Stale preference (names a provider that isn't registered for this
-      // capability): ignore it and fall through to default/priority.
+      // Stale preference (names a provider that isn't registered for this capability): ignore it and fall through to default/priority.
     }
 
     const defaults = candidates.filter((c) => c.isDefault);

@@ -165,8 +165,7 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [requestClose]);
 
-  // Move focus into the confirmation when it appears so it's immediately
-  // keyboard-operable (and the focus trap stays inside the dialog).
+  // Move focus into the confirmation when it appears so it's immediately keyboard-operable (and the focus trap stays inside the dialog).
   useEffect(() => {
     if (confirming) confirmRef.current?.focus();
   }, [confirming]);
@@ -217,8 +216,7 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
             downOnBackdropRef.current = e.target === e.currentTarget;
           }}
           onMouseUp={(e) => {
-            // Run the existing press+release-on-backdrop detection first, then
-            // route through requestClose so the dirty guard can intercept.
+            // Run the existing press+release-on-backdrop detection first, then route through requestClose so the dirty guard can intercept.
             if (downOnBackdropRef.current && e.target === e.currentTarget) {
               requestClose();
             }

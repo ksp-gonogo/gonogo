@@ -150,8 +150,7 @@ describe("ShipMap: self-contribution unify (spec §13.4)", () => {
   it("renders no bars on a part with no contributed meters (the command pod)", async () => {
     await renderShipMap();
     const pod = screen.getByLabelText(/Mk1 Command Pod/);
-    // `renderResourceFill`'s own wrapper (`<g pointerEvents="none">`) is the
-    // fill-bar marker; a part's unconditional focus-ring `<rect>` is not.
+    // `renderResourceFill`'s own wrapper (`<g pointerEvents="none">`) is the fill-bar marker; a part's unconditional focus-ring `<rect>` is not.
     expect(pod.querySelector('g[pointer-events="none"]')).toBeNull();
   });
 
@@ -173,8 +172,7 @@ describe("ShipMap: self-contribution unify (spec §13.4)", () => {
     expect(
       rects.some((r) => r.getAttribute("fill") === resourceColor("LiquidFuel")),
     ).toBe(true);
-    // The status (5 / 180 = 2.8%, below the critical threshold) shows as a
-    // SEPARATE stroke on the track rect, never as a fill colour swap.
+    // The status (5 / 180 = 2.8%, below the critical threshold) shows as a SEPARATE stroke on the track rect, never as a fill colour swap.
     expect(
       rects.some(
         (r) => r.getAttribute("stroke") === "var(--color-status-nogo-bg)",

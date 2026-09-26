@@ -161,8 +161,7 @@ function buildRows(
   if (body.eccentricity !== null) {
     rows.push({
       label: "Eccentricity",
-      // Dimensionless, so it renders bare; the decimals are the widget's
-      // choice because nothing about "1" implies a precision.
+      // Dimensionless, so it renders bare; the decimals are the widget's choice because nothing about "1" implies a precision.
       value: <Unit value={value("1", body.eccentricity)} decimals={3} />,
     });
   }

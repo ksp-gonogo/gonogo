@@ -187,15 +187,13 @@ describe("LandingStatus: what undefined means today", () => {
     const { container } = renderWidget();
     await flushResizeObservers();
 
-    // The body: `solveSuicideBurn` returns "not-descending" for an undefined
-    // height, so `deriveBoard` suppresses every readout.
+    // The body: `solveSuicideBurn` returns "not-descending" for an undefined height, so `deriveBoard` suppresses every readout.
     expect(visibleText(container)).toContain("No landing in progress");
     // The header is NOT suppressed, and it keeps talking. The regime pill is
     // the one honest reading: `readOneWaySeconds(undefined)` returns null and
     // `classifyRegime` refuses to call an unknown link live.
     expect(screen.getByText("NO LINK")).toBeInTheDocument();
-    // And the hero agrees with it rather than contradicting it: no claim about
-    // burn timing, and it names the link as the missing thing.
+    // And the hero agrees with it rather than contradicting it: no claim about burn timing, and it names the link as the missing thing.
     const hero = screen.getByRole("status");
     expect(hero).toHaveTextContent("BURN TIMING NEEDS A LINK");
     expect(hero).toHaveTextContent(NULL_DISPLAY);
@@ -206,8 +204,7 @@ describe("LandingStatus: what undefined means today", () => {
     expect(hero).not.toHaveTextContent("BURN GO IN");
     // No round-trip readout: `roundTripSeconds` is null, not zero.
     expect(screen.queryByText(/^RT /)).toBeNull();
-    // No body caption at all, the `bodyName !== undefined` gate: the widget
-    // declines to guess between atmospheric and vacuum.
+    // No body caption at all, the `bodyName !== undefined` gate: the widget declines to guess between atmospheric and vacuum.
     expect(visibleText(container)).not.toContain("vacuum");
     expect(visibleText(container)).not.toContain("atmospheric");
   });
@@ -355,8 +352,7 @@ describe("LandingStatus: what undefined means today", () => {
       ).toBeInTheDocument(),
     );
 
-    // And it clears once the lowest-point datum does arrive, which is what
-    // makes the assertion above a gate rather than a constant.
+    // And it clears once the lowest-point datum does arrive, which is what makes the assertion above a gate rather than a constant.
     act(() => {
       stream.emit("vessel.surface", { heightFromTerrain: 4800 });
     });
@@ -384,8 +380,7 @@ describe("LandingStatus: what undefined means today", () => {
         { validAt: 9 },
       );
     });
-    // The rail carries the lowest-point datum while the channel is live, which
-    // is what proves the tombstone below actually replaced something.
+    // The rail carries the lowest-point datum while the channel is live, which is what proves the tombstone below actually replaced something.
     await waitFor(() =>
       expect(
         screen.getByRole("meter", { name: /altitude above terrain/i }),
@@ -408,8 +403,7 @@ describe("LandingStatus: what undefined means today", () => {
         ),
       ).toBeInTheDocument(),
     );
-    // And the rail silently swaps to the centre-of-mass altitude off
-    // `vessel.flight`: a different measurement at the same scale.
+    // And the rail silently swaps to the centre-of-mass altitude off `vessel.flight`: a different measurement at the same scale.
     expect(
       screen.getByRole("meter", { name: /altitude above terrain/i }),
     ).toHaveAttribute("aria-valuenow", "5000");
@@ -456,8 +450,7 @@ describe("LandingStatus: what undefined means today", () => {
       emitMunDescent();
     });
 
-    // The descent board IS up, so this is a real absence and not a suppressed
-    // widget.
+    // The descent board IS up, so this is a real absence and not a suppressed widget.
     await waitFor(() =>
       expect(screen.getByText("Burn dV")).toBeInTheDocument(),
     );
@@ -489,8 +482,7 @@ describe("LandingStatus: what undefined means today", () => {
     await waitFor(() =>
       expect(screen.getAllByText("Target range").length).toBeGreaterThan(0),
     );
-    // 3-4-5 scaled by 1000: 5 km, rendered by `Metres` as "5.00 km" with the
-    // figure and its unit in separate elements, hence the number alone.
+    // 3-4-5 scaled by 1000: 5 km, rendered by `Metres` as "5.00 km" with the figure and its unit in separate elements, hence the number alone.
     expect(screen.getAllByText("5.00").length).toBeGreaterThan(0);
   });
 });

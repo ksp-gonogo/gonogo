@@ -154,8 +154,7 @@ describe("CoverageMaskCache", () => {
     cache.onChange("Kerbin", HI, spy);
     expect(mask.data[0]).toBe(0);
 
-    // External write: bypasses the cache entirely (this models a coverage
-    // snapshot landing on a station).
+    // External write: bypasses the cache entirely (this models a coverage snapshot landing on a station).
     await store.save(
       "profile-1",
       "Kerbin",
@@ -165,8 +164,7 @@ describe("CoverageMaskCache", () => {
       2,
     );
 
-    // Listener fires; the cache's mask buffer reflects the new bytes
-    // (preserving the original reference so canvas paint loops survive).
+    // Listener fires; the cache's mask buffer reflects the new bytes (preserving the original reference so canvas paint loops survive).
     await vi.waitFor(() => {
       expect(mask.data[0]).toBe(7);
     });

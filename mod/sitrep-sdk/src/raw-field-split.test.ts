@@ -14,8 +14,7 @@ describe("splitRawFieldSubtopic", () => {
       rawTopic: "vessel.orbit",
       fieldPath: ["sma"],
     });
-    // Both `alarm.scet` and `alarm.scet.fired` are Topics; the longer one wins,
-    // which is the whole point: `alarm.scet` is an array with no `fired` field.
+    // Both `alarm.scet` and `alarm.scet.fired` are Topics; the longer one wins, which is the whole point: `alarm.scet` is an array with no `fired` field.
     expect(splitRawFieldSubtopic("alarm.scet.fired.firedAtUt")).toEqual({
       rawTopic: "alarm.scet.fired",
       fieldPath: ["firedAtUt"],

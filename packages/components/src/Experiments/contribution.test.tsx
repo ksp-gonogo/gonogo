@@ -116,8 +116,7 @@ describe("Experiments: the experiments.instruments contribution slot", () => {
     const row = screen.getByText("SAR Altimetry Sensor").closest("li");
     expect(row).not.toBeNull();
     expect(within(row as HTMLElement).getByText("DATA")).toBeTruthy();
-    // Attributed to the Uplink, so the operator can see where a row with no
-    // controls came from.
+    // Attributed to the Uplink, so the operator can see where a row with no controls came from.
     expect(screen.getByText("Scanner Mod")).toBeTruthy();
     // The stock instrument is untouched beside it.
     expect(screen.getByText("Mystery Goo")).toBeTruthy();
@@ -241,8 +240,7 @@ describe("Experiments: the experiments.instruments contribution slot", () => {
 
     await waitFor(() => expect(screen.queryByText("Mystery Goo")).toBeNull());
     expect(screen.getByText("SAR Altimetry Sensor")).toBeTruthy();
-    // A filter matching only a contributed row must not report "no match":
-    // the contributed section is still on screen.
+    // A filter matching only a contributed row must not report "no match": the contributed section is still on screen.
     expect(screen.queryByText("No instrument matches the filter.")).toBeNull();
   });
 });

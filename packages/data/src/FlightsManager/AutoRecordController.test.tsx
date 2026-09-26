@@ -321,8 +321,7 @@ describe("AutoRecordController", () => {
       </TelemetryProvider>,
     );
 
-    // flight.started still fires (and is tracked) even while disabled --
-    // only the actual recorder.start() is gated.
+    // flight.started still fires (and is tracked) even while disabled -- only the actual recorder.start() is gated.
     start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
     expect(getAutoRecordStatus().recording).toBe(false);
 

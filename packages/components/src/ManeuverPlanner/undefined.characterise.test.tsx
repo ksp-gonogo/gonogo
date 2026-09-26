@@ -36,8 +36,7 @@ const CARRIED = [
 
 const PINNED_UT = 1_000_000;
 
-// Rendered trees, unmounted before the fixture goes away: disposing a still
-// mounted widget's provider is a state update outside act().
+// Rendered trees, unmounted before the fixture goes away: disposing a still mounted widget's provider is a state update outside act().
 const renderedTrees: Array<() => void> = [];
 
 function renderTracked(ui: ReactElement) {
@@ -82,8 +81,7 @@ function emitOrbitReady(
     meanAnomalyAtEpoch: 0,
     epoch: PINNED_UT,
     mu: 3.5316e12,
-    // The reach and shape a live sample states, and the roster beside it: the
-    // two declared inputs of the conic the apsis figures are solved through.
+    // The reach and shape a live sample states, and the roster beside it: the two declared inputs of the conic the apsis figures are solved through.
     horizon: ANALYTIC_UNBOUNDED_HORIZON,
     ...overrides,
   });
@@ -122,8 +120,7 @@ describe("ManeuverPlanner: nothing has arrived at all", () => {
       await screen.findByText("Awaiting orbit telemetry."),
     ).toBeInTheDocument();
 
-    // Named absences rather than an empty container: a widget that renders
-    // nothing would otherwise pass this whole file.
+    // Named absences rather than an empty container: a widget that renders nothing would otherwise pass this whole file.
     expect(screen.queryByText("Preview")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Add node" }),
@@ -137,8 +134,7 @@ describe("ManeuverPlanner: nothing has arrived at all", () => {
     expect(screen.getByText("New maneuver")).toBeInTheDocument();
     expect(screen.getByText("No maneuver nodes planned.")).toBeInTheDocument();
 
-    // The hyperbolic branch is the other side of the same `waiting` flag, and
-    // an absent ecc does NOT take it.
+    // The hyperbolic branch is the other side of the same `waiting` flag, and an absent ecc does NOT take it.
     expect(screen.queryByText("Hyperbolic trajectory")).not.toBeInTheDocument();
     expect(visibleText(view.container)).toContain("MANEUVER PLANNER");
   });
@@ -146,8 +142,7 @@ describe("ManeuverPlanner: nothing has arrived at all", () => {
   it("omits the reference-body caption entirely: the gate is `refBody !== undefined`", async () => {
     const { view } = setup();
     await screen.findByText("Awaiting orbit telemetry.");
-    // With no reference body ever named the caption element
-    // is absent entirely, not present-and-empty.
+    // With no reference body ever named the caption element is absent entirely, not present-and-empty.
     expect(refBodyCaption(view.container)).toBeNull();
   });
 });
@@ -180,8 +175,7 @@ describe("ManeuverPlanner: the absence gates fire today", () => {
   });
 
   it("drops that sentence once vessel.target actually arrives, proving the gate is what produced it", async () => {
-    // Contrast case: without this, the assertion above could be passing because
-    // the fixture feeds nothing rather than because the gate fires.
+    // Contrast case: without this, the assertion above could be passing because the fixture feeds nothing rather than because the gate fires.
     const { fixture } = setup({ defaultPreset: "match-target-inclination" });
     await screen.findByText("No target selected in-game.");
     act(() => {
@@ -231,8 +225,7 @@ describe("ManeuverPlanner: the absence gates fire today", () => {
 
 describe("ManeuverPlanner: the reference-body caption's three states", () => {
   it("renders the body name once system.bodies resolves the index", async () => {
-    // Contrast case for the two caption assertions above: absent -> no element,
-    // tombstone -> empty element, resolved -> the name.
+    // Contrast case for the two caption assertions above: absent -> no element, tombstone -> empty element, resolved -> the name.
     const { fixture, view } = setup();
     await screen.findByText("Awaiting orbit telemetry.");
     act(() => {
@@ -289,8 +282,7 @@ describe("ManeuverPlanner: a partial vessel.orbit payload", () => {
 
 describe("ManeuverPlanner: an absent node id refuses instead of guessing", () => {
   it("dispatches nothing, and says why, when the node arrived without an id", async () => {
-    // Meaning 4, and a field-level absence inside a PRESENT record: the raw
-    // `vessel.maneuver` read landed, its node just carries no `id`.
+    // Meaning 4, and a field-level absence inside a PRESENT record: the raw `vessel.maneuver` read landed, its node just carries no `id`.
     //
     // This used to substitute the node's array position and send that.
     // `KspVesselActuator.RemoveManeuverNode` resolves only an exact GUID
@@ -321,8 +313,7 @@ describe("ManeuverPlanner: an absent node id refuses instead of guessing", () =>
     const deleteBtn = await screen.findByRole("button", {
       name: "Delete node",
     });
-    // Wait on the raw read specifically, so a pass cannot come from the record
-    // being absent instead of the field.
+    // Wait on the raw read specifically, so a pass cannot come from the record being absent instead of the field.
     await waitFor(() => {
       const point = fixture.store.sample(
         "vessel.maneuver",
@@ -336,8 +327,7 @@ describe("ManeuverPlanner: an absent node id refuses instead of guessing", () =>
     await waitFor(() =>
       expect(screen.getByText(/arrived without an id/i)).toBeInTheDocument(),
     );
-    // The absence of a dispatch is the point, so it is asserted rather than
-    // left to the sentence above to imply.
+    // The absence of a dispatch is the point, so it is asserted rather than left to the sentence above to imply.
     expect(dispatched).toEqual([]);
   });
 });
@@ -357,8 +347,7 @@ describe("ManeuverPlanner: dv.stages absent is coerced to zero", () => {
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
     expect(screen.queryByText("OK")).not.toBeInTheDocument();
     expect(screen.queryByText("SHORT")).not.toBeInTheDocument();
-    // The commit button is NOT disabled by the missing delta-V: only an
-    // explicit `feasible === false` disables it, and null is not false.
+    // The commit button is NOT disabled by the missing delta-V: only an explicit `feasible === false` disables it, and null is not false.
     expect(screen.getByRole("button", { name: "Add node" })).toBeEnabled();
   });
 });

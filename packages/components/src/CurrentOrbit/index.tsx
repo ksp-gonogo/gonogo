@@ -204,8 +204,7 @@ function CurrentOrbitComponent({
    */
   const refBody = useBodyName(observedOrbit?.referenceBodyIndex);
   const bodyName = useBodyName(useParentBodyIndex());
-  // Connectivity indicator: `o.sma` is the representative topic (its resolved
-  // `vessel.orbit.sma` stream drives the badge).
+  // Connectivity indicator: `o.sma` is the representative topic (its resolved `vessel.orbit.sma` stream drives the badge).
 
   // What the mini diagram's curve IS, asked of the propagation seam rather than
   // decided here. `sma`, `ecc` and `inc` go on rendering either way: those were
@@ -684,8 +683,7 @@ function OrbitValue({
     whiteSpace: "nowrap",
     minWidth: 0,
   };
-  // Narrow panels (3-4 cols) shrink long values rather than clip them; the
-  // tiny tier (small on both axes) goes one step smaller still.
+  // Narrow panels (3-4 cols) shrink long values rather than clip them; the tiny tier (small on both axes) goes one step smaller still.
   //
   // The narrow tier stays a literal 12px, paired with the base 13px above:
   // --font-size-sm covers both 13 and 12, so tokenising the pair collapses

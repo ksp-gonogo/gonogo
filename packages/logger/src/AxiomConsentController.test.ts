@@ -119,8 +119,7 @@ describe("AxiomConsentController", () => {
       "before consent B",
     ]);
 
-    // Live entries after install flow through normally and are NOT part of
-    // the backfill batch (snapshot taken before addTransport).
+    // Live entries after install flow through normally and are NOT part of the backfill batch (snapshot taken before addTransport).
     logger.info("after consent");
     expect(transport.sent).toHaveLength(2);
     expect(transport.sent[1].map((e) => e.message)).toEqual(["after consent"]);

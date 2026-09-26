@@ -110,12 +110,10 @@ describe("KeplerPeriod: renders the reference curve off the stream (R6 Wave 1)",
       });
     });
 
-    // A real subscription must have happened for StubTransport (subscription-
-    // gated) to deliver.
+    // A real subscription must have happened for StubTransport (subscription- gated) to deliver.
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
-    // The reference curve renders off the streamed, resolved body, no
-    // "Unknown body"/"No reference data" degraded notice.
+    // The reference curve renders off the streamed, resolved body, no "Unknown body"/"No reference data" degraded notice.
     await waitFor(() => {
       expect(
         container.querySelectorAll("path[stroke-dasharray]").length,

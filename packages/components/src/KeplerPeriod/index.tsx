@@ -6,8 +6,7 @@ import {
 } from "@ksp-gonogo/core";
 
 const topics = defineTopicManifest({
-  // `system.bodies` is read directly: the period curve is Kepler's third law and
-  // needs the body's own radius and gravitational parameter, both reported there.
+  // `system.bodies` is read directly: the period curve is Kepler's third law and needs the body's own radius and gravitational parameter, both reported there.
   channels: ["vessel.orbit", "vessel.identity", "system.bodies"],
   fields: [
     "vessel.orbit.sma",
@@ -71,8 +70,7 @@ function buildPeriodCurve(
 ): ReferenceCurve | null {
   if (body.gm === undefined) return null;
   const floor = body.radius;
-  // Log-spaced X so the low-orbit region (where it's most useful) gets
-  // proper resolution despite the wide SMA range.
+  // Log-spaced X so the low-orbit region (where it's most useful) gets proper resolution despite the wide SMA range.
   const logFloor = Math.log10(floor);
   const logCeil = Math.log10(ceiling);
   const xs: number[] = [];
@@ -155,8 +153,7 @@ function KeplerPeriodComponent({
       ],
       windowSec,
       xKey: "vessel.orbit.sma",
-      // SMA spans many orders of magnitude across the system, log scale
-      // makes both sides of the curve readable.
+      // SMA spans many orders of magnitude across the system, log scale makes both sides of the curve readable.
       yScalePrimary: "log",
     }),
     [windowSec],

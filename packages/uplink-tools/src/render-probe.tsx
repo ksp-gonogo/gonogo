@@ -832,8 +832,7 @@ async function renderScene(scene: ScenePayload): Promise<SceneReport> {
   }
   teardown();
   restoreWithheld();
-  // Before the mount, because a scene whose steps wait needs its widget's own
-  // timers to register on the scene clock rather than on the page's.
+  // Before the mount, because a scene whose steps wait needs its widget's own timers to register on the scene clock rather than on the page's.
   closeSceneClock();
   if (sceneWants(scene)) openSceneClock();
   const el = document.getElementById("root");
@@ -1368,8 +1367,7 @@ async function stepScene(step: SceneStep, deltaUt: number): Promise<void> {
     advanceSceneClock(step.waitMs);
   }
   if (deltaUt !== 0) {
-    // The clock is an INPUT, which is what separates this from a screen
-    // recording: the same fixture produces the same frames on any machine.
+    // The clock is an INPUT, which is what separates this from a screen recording: the same fixture produces the same frames on any machine.
     fixture.store.clock.scrubTo(currentUt + deltaUt);
     currentUt += deltaUt;
     fixture.store.beginFrame();
@@ -1411,8 +1409,7 @@ export async function installRenderProbe(): Promise<RenderProbeApi> {
     getAugmentsForSlot: getAugmentsForSlot as (slot: string) => AnyAugment[],
     registerAugment: registerAugment as never,
   });
-  // Quantities default to the reader's locale, which is right for an operator
-  // and wrong for an image that has to look the same on every machine.
+  // Quantities default to the reader's locale, which is right for an operator and wrong for an image that has to look the same on every machine.
   setQuantityLocale("en-GB");
   registerStockBodies();
   const api: RenderProbeApi = {

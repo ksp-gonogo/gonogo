@@ -322,8 +322,7 @@ function pendingOnlyGates(sources: ReadonlyMap<string, string>): Suspect[] {
         ) {
           continue;
         }
-        // Paired with an explicit unowned test on the same line is a considered
-        // gate rather than the trap, and stays legal.
+        // Paired with an explicit unowned test on the same line is a considered gate rather than the trap, and stays legal.
         if (line.includes('"unowned"')) continue;
         found.push({ at: `${file}:${index + 1}`, variable });
       }

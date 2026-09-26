@@ -32,8 +32,7 @@ describe("Dial", () => {
   });
 
   it("writes the degree sign hard against the number, as SI requires", () => {
-    // No space before the sign, and the precision is the angle kind's own
-    // rather than anything this component chose.
+    // No space before the sign, and the precision is the angle kind's own rather than anything this component chose.
     const { container } = render(
       <Dial value={deg(45)} min={deg(0)} max={deg(360)} ariaLabel="Heading" />,
     );

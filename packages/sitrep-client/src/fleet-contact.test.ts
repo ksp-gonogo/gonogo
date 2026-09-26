@@ -30,8 +30,7 @@ describe("contactPhase", () => {
   });
 
   it("stays overdue rather than lost right up to the deadline", () => {
-    // Overdue is a distinct state, not an early form of lost: the operator is
-    // told the vessel is late while there is still time for it to appear.
+    // Overdue is a distinct state, not an early form of lost: the operator is told the vessel is late while there is still time for it to appear.
     expect(contactPhase(silent(), 3_999)).toBe("overdue");
   });
 

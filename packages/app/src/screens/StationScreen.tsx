@@ -257,8 +257,7 @@ export function StationScreen() {
       listenerCountsBefore: client._listenerCounts(),
     });
 
-    // Drain any prior listeners before (re)registering: otherwise listener
-    // Sets on the client grow on every retry / StrictMode cycle.
+    // Drain any prior listeners before (re)registering: otherwise listener Sets on the client grow on every retry / StrictMode cycle.
     unsubsRef.current.forEach((u) => {
       u();
     });
@@ -269,8 +268,7 @@ export function StationScreen() {
     unsubsRef.current.push(
       client.onConnectionStatus((s) => {
         setConnStatus(s);
-        // A live connection clears the "not found" badge, the most
-        // recent attempt for this host succeeded.
+        // A live connection clears the "not found" badge, the most recent attempt for this host succeeded.
         if (s === "connected") {
           setHostNotFound(false);
           setEverConnected(true);

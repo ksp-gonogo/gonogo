@@ -34,8 +34,7 @@ export function installFakeAudio(): FakeOscillator[] {
     oscillators.push(osc);
     return osc;
   };
-  // Must be a real constructor, getSharedAudioContext does `new Ctor()`,
-  // and an arrow / vi.fn() factory is not newable.
+  // Must be a real constructor, getSharedAudioContext does `new Ctor()`, and an arrow / vi.fn() factory is not newable.
   class FakeAudioContext {
     state = "running" as const;
     currentTime = 0;

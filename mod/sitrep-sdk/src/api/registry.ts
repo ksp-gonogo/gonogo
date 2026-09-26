@@ -231,8 +231,7 @@ export function getResolvedComponents(): AnyDef[] {
     replacersByTarget.set(def.replaces, list);
   }
 
-  // Ids to drop from the output: suppressed originals (single replacement) and
-  // conflicted replacers (held back pending user resolution).
+  // Ids to drop from the output: suppressed originals (single replacement) and conflicted replacers (held back pending user resolution).
   const suppressed = new Set<string>();
   for (const [targetId, replacers] of replacersByTarget) {
     if (replacers.length === 1) {

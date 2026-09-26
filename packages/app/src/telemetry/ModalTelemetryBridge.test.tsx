@@ -71,8 +71,7 @@ describe("ModalTelemetryBridge: recovers once the client connects after the moda
 
     const { rerender } = render(<Harness connected={false} client={client} />);
 
-    // No `TelemetryProvider` mounted anywhere yet: the bridge passes
-    // children through untouched, so the child read is unavailable.
+    // No `TelemetryProvider` mounted anywhere yet: the bridge passes children through untouched, so the child read is unavailable.
     expect(screen.getByTestId("altitude")).toHaveTextContent("no-client");
 
     // The Sitrep client connects a moment later, the app's own provider

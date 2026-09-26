@@ -162,8 +162,7 @@ describe("SignalLossIndicator: absence gates fire", () => {
   });
 
   it("an absent vessel.comms leaves control state unknown, so no PARTIAL CONTROL even on a live link", async () => {
-    // Pins the `comms == null` gate for the WARMUP meaning: control state is
-    // simply unreported, and unknown renders as full control.
+    // Pins the `comms == null` gate for the WARMUP meaning: control state is simply unreported, and unknown renders as full control.
     const fixture = mount();
     fixture.emit("comms.link", { connected: true }, 0);
 
@@ -192,8 +191,7 @@ describe("SignalLossIndicator: absence gates fire", () => {
     );
     expectNoBanner();
 
-    // Same record, strength now present and zero: the field's ABSENCE was
-    // carrying the difference.
+    // Same record, strength now present and zero: the field's ABSENCE was carrying the difference.
     fixture.emit(
       "vessel.comms",
       {

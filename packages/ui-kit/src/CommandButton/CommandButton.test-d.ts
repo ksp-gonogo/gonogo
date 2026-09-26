@@ -1,5 +1,4 @@
-// Type-level proof that this control speaks the handle's OWN types, in both
-// directions: the reply it hands to `onConfirmed` and the args it dispatches.
+// Type-level proof that this control speaks the handle's OWN types, in both directions: the reply it hands to `onConfirmed` and the args it dispatches.
 //
 // `onConfirmed` was `(result: unknown) => void`, which is the one signature that
 // cannot be wrong: every reader typechecks, including a reader that treats the
@@ -79,8 +78,7 @@ async function _theHonestReaderIsWritable() {
   // default this line was TS18046 and a widget had to cast to say anything at
   // all, which is how the wrong cast got written.
   const succeeded: boolean = reply.success;
-  // The command's own value, still `unknown`: the bare handle does not know
-  // which command it is, so reaching a field means narrowing first.
+  // The command's own value, still `unknown`: the bare handle does not know which command it is, so reaching a field means narrowing first.
   const payload: unknown = reply.payload;
   return [succeeded, payload];
 }

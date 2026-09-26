@@ -474,16 +474,14 @@ type Equal<A, B> =
 type AssertTrue<T extends true> = T;
 type AssertNever<T extends never> = T;
 
-// `TOPIC_IDS` must list exactly the SDK-owned keys (generated + engine tail), no missing,
-// no extra.
+// `TOPIC_IDS` must list exactly the SDK-owned keys (generated + engine tail), no missing, no extra.
 type SdkOwnedTopicId = keyof SdkOwnedTopicPayloadMap;
 type _MissingFromRuntime = Exclude<SdkOwnedTopicId, (typeof TOPIC_IDS)[number]>;
 type _ExtraInRuntime = Exclude<(typeof TOPIC_IDS)[number], SdkOwnedTopicId>;
 export type _AssertNoMissingTopics = AssertNever<_MissingFromRuntime>;
 export type _AssertNoExtraTopics = AssertNever<_ExtraInRuntime>;
 
-// `GENERATED_COLLECTION_TOPIC_IDS` must list exactly the SDK-owned Topics whose payload
-// type is an array, so the runtime list and the `[]` in the payload map cannot disagree.
+// `GENERATED_COLLECTION_TOPIC_IDS` must list exactly the SDK-owned Topics whose payload type is an array, so the runtime list and the `[]` in the payload map cannot disagree.
 type SdkOwnedCollectionTopicId = {
   [K in SdkOwnedTopicId]: SdkOwnedTopicPayloadMap[K] extends readonly unknown[]
     ? K

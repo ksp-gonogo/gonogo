@@ -67,8 +67,7 @@ describe("the calendar the game reported", () => {
   });
 
   it("refuses a calendar nobody can divide by, and keeps the last good one", () => {
-    // A zero day-length renders every duration in the app as infinity, which
-    // is a worse answer than the stock fallback already on screen.
+    // A zero day-length renders every duration in the app as infinity, which is a worse answer than the stock fallback already on screen.
     setKspCalendar({ day: 0 });
     expect(kspCalendar().day).toBe(21_600);
     setKspCalendar({ day: Number.NaN });

@@ -154,8 +154,7 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
   // window rendered beside a list denying the burn existed. Two lists describing
   // one truth, and the fixture one was quietly wrong.
   //
-  // Registering the production list means a channel added there is available
-  // here by construction, so this cannot drift again.
+  // Registering the production list means a channel added there is available here by construction, so this cannot drift again.
   const omitted = new Set(opts.withoutDerivedChannels ?? []);
   for (const channel of PRODUCTION_DERIVED_CHANNELS) {
     if (omitted.has(channel.topic)) continue;

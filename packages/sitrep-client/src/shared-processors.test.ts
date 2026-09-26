@@ -264,14 +264,12 @@ describe("CELESTIAL_FACTS", () => {
     expect(kerbin?.geeASL).toBe(1);
     expect(kerbin?.hillSphere).toBe(84_159_286);
 
-    // DERIVED, because the game has no answer: CelestialBody carries no
-    // escape-velocity member at all.
+    // DERIVED, because the game has no answer: CelestialBody carries no escape-velocity member at all.
     expect(kerbin?.escapeVelocity).toBeCloseTo(
       Math.sqrt((2 * KERBIN_MU) / 600_000),
       6,
     );
-    // DERIVED, and this one by choice: Orbit.period exists but is
-    // 2π/√(μ/a³), the same expression, so there is no authority to defer to.
+    // DERIVED, and this one by choice: Orbit.period exists but is 2π/√(μ/a³), the same expression, so there is no authority to defer to.
     expect(kerbin?.period).toBeCloseTo(
       2 * Math.PI * Math.sqrt(13_599_840_256 ** 3 / KERBOL_MU),
       3,
@@ -504,8 +502,7 @@ describe("DELTA_V_BUDGET", () => {
     store.beginFrame();
 
     const budget = derived<DeltaVBudget>(DELTA_V_BUDGET.id);
-    // Carried, never withheld: a number that only falls by burning is still the
-    // number, and blanking it is what re-enabled ManeuverPlanner's commit.
+    // Carried, never withheld: a number that only falls by burning is still the number, and blanking it is what re-enabled ManeuverPlanner's commit.
     expect(budget?.totalVac).toEqual(value("m/s", 3500));
     expect(budget?.budget.state).toBe("stale");
     expect(budget?.budget.asOfUt).toEqual(value("ut", 0));

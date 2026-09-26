@@ -43,8 +43,7 @@ const INSTRUMENT: Instrument = {
 // auto-cleanup runs after this file's afterEach, too late to unmount first.
 const renderedTrees: Array<() => void> = [];
 
-// Drive the widget to its full instrument-list layout, where both the header
-// `badges` slot and the per-instrument `sections` slot render.
+// Drive the widget to its full instrument-list layout, where both the header `badges` slot and the per-instrument `sections` slot render.
 async function renderFullList(): Promise<void> {
   const fixture = setupStreamFixture({
     carriedChannels: ["science.instruments", "science.experiments"],

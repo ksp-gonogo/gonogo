@@ -79,8 +79,7 @@ function findConflict(
       | undefined;
     if (transport?.getPort?.() === port) return d;
   }
-  // VID/PID fallback for the case where the existing device's transport
-  // hasn't been opened yet (e.g. autoReconnect hadn't fired).
+  // VID/PID fallback for the case where the existing device's transport hasn't been opened yet (e.g. autoReconnect hadn't fired).
   if (portInfo.usbVendorId === undefined) return undefined;
   return svc
     .getDevices()
@@ -105,8 +104,7 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
   const [step, setStep] = useState<Step>({ kind: "picking" });
   const [name, setName] = useState("Self-describing controller");
   const [baudRate, setBaudRate] = useState<number>(DEFAULT_BAUD_RATE);
-  // Keep teardown closures pinned across renders so cancel paths can run
-  // even while the active step has changed underneath us.
+  // Keep teardown closures pinned across renders so cancel paths can run even while the active step has changed underneath us.
   const cleanupRef = useRef<(() => Promise<void>) | null>(null);
 
   // If the user closes the menu (or otherwise unmounts the wizard) before

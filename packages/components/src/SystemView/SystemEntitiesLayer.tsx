@@ -344,8 +344,7 @@ function Primitive({
         />
       );
     case "travelling-pulse": {
-      // No live UT: the same "no data, no draw" contract every other entity
-      // follows on a missing input (see this prop's own doc comment).
+      // No live UT: the same "no data, no draw" contract every other entity follows on a missing input (see this prop's own doc comment).
       if (nowUt === undefined) return null;
       const dx = r.x2 - r.x1;
       const dy = r.y2 - r.y1;

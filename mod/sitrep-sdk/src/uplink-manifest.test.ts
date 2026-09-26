@@ -72,8 +72,7 @@ const REGISTERED = {
 
 describe("gonogo-uplink.json", () => {
   it("is the same file whether docs or bundle wrote it", () => {
-    // `docs` first, exactly as an author runs it: it writes the sidecar beside
-    // the client, and that is where `bundle` recovers what it cannot read.
+    // `docs` first, exactly as an author runs it: it writes the sidecar beside the client, and that is where `bundle` recovers what it cannot read.
     const clientDir = anUplink();
     const fromDocs = serialiseUplinkManifest(
       buildUplinkManifest({

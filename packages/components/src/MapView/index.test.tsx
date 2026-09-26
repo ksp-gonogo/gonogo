@@ -73,8 +73,7 @@ function augmentSettingsOf(
 describe("MapViewComponent", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
-  // Unmount before the state-mutating teardown (buffered.disconnect / clearBodies
-  // / clearAugments), which would otherwise re-render a still-mounted tree.
+  // Unmount before the state-mutating teardown (buffered.disconnect / clearBodies / clearAugments), which would otherwise re-render a still-mounted tree.
   const trees: Array<() => void> = [];
   let restoreResizeObserver: () => void = () => {};
 
@@ -388,8 +387,7 @@ describe("MapViewComponent", () => {
       });
       // The map canvases still render beneath the overlay layer.
       expect(container.querySelectorAll("canvas").length).toBeGreaterThan(0);
-      // The overlay received a real pixel width and a working `project`
-      // (numeric screen coordinates) as slot props.
+      // The overlay received a real pixel width and a working `project` (numeric screen coordinates) as slot props.
       expect(visibleText(probe)).toMatch(/w=\d+ px=-?\d+ py=-?\d+/);
     });
 
@@ -680,8 +678,7 @@ describe("MapViewComponent", () => {
       );
       probeTrees.push(result.unmount);
 
-      // The regression: registered + suppressesVanillaBase alone must NOT
-      // report available: the Domain was never announced.
+      // The regression: registered + suppressesVanillaBase alone must NOT report available: the Domain was never announced.
       expect(calls).toEqual([["fake-suppressing-base", false]]);
     });
 

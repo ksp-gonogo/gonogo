@@ -516,8 +516,7 @@ function unknownTarget(
       : target.kind === "augment"
         ? inventory.augments.map((a) => a.id)
         : inventory.contributions.map((c) => c.id);
-  // "Registered <kind> ids" rather than pluralising the interpolation: `${x}s`
-  // reads to the hand-typed-unit guard as a seconds symbol next to a value.
+  // "Registered <kind> ids" rather than pluralising the interpolation: `${x}s` reads to the hand-typed-unit guard as a seconds symbol next to a value.
   return new Error(
     `${where}: "${target.id}" is not a registered ${target.kind} of Uplink ` +
       `"${inventory.id}". Registered ${target.kind} ids: ` +

@@ -72,8 +72,7 @@ export function registerBuiltinDerivedKeys(): void {
     },
   });
 
-  // `dv.stages` is a StageInfo[], great for the FuelStatus widget but unusable
-  // as a Graph series, so the active stage's TWR is projected out of it here.
+  // `dv.stages` is a StageInfo[], great for the FuelStatus widget but unusable as a Graph series, so the active stage's TWR is projected out of it here.
   registerDerivedKey({
     id: "dv.currentTWR",
     inputs: ["dv.stages", "v.currentStage"],

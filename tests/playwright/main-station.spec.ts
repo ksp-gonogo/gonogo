@@ -105,15 +105,13 @@ test.describe("station connects directly via the share code", () => {
 
     const peerId = await getMainPeerId(main);
     const shareCode = await getHostShareCode(main);
-    // The 4-char share code is NOT the host's broker peer id, the station
-    // derives the id from the code, it isn't handed it.
+    // The 4-char share code is NOT the host's broker peer id, the station derives the id from the code, it isn't handed it.
     expect(shareCode).not.toBe(peerId);
 
     const station = await stationContext.newPage();
     await station.goto(`${STATION_URL}?host=${shareCode}&uplinkLoaderIds=`);
 
-    // Reaching the dashboard means the station derived the host's id from the
-    // share code, connected over the broker, and completed the data handshake.
+    // Reaching the dashboard means the station derived the host's id from the share code, connected over the broker, and completed the data handshake.
     await expect(
       station.getByRole("button", { name: /add component/i }),
     ).toBeVisible({ timeout: 30_000 });

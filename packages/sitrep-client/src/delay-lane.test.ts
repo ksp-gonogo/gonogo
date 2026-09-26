@@ -83,8 +83,7 @@ describe("a channel's declared delay role", () => {
 
   it("still holds a Delayed channel back to the delayed view time", () => {
     const { store } = startStore();
-    // The frame carrying a craft's state at the TRUE now, which an operator a
-    // light-minute away has no business seeing yet.
+    // The frame carrying a craft's state at the TRUE now, which an operator a light-minute away has no business seeing yet.
     store.ingest(DELAYED_TOPIC, point(UT_NOW, { altitudeAsl: 80_000 }));
     store.beginFrame();
     expect(store.sample(DELAYED_TOPIC)?.validAt).toBe(UT_NOW - OWLT);

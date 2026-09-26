@@ -154,12 +154,10 @@ function format(
     return `${signPrefix}0s`;
   }
 
-  // Never show a unit finer than seconds outside the opts.ms sub-1s path,
-  // truncate away any fractional second up front.
+  // Never show a unit finer than seconds outside the opts.ms sub-1s path, truncate away any fractional second up front.
   const totalSeconds = Math.floor(abs);
 
-  // Below the finest tier this ladder has, the smallest rung is still the
-  // right answer: `findIndex` returning -1 would index off the end.
+  // Below the finest tier this ladder has, the smallest rung is still the right answer: `findIndex` returning -1 would index off the end.
   const found = tiers.findIndex((tier) => totalSeconds >= tier.size);
   const majorIndex = found === -1 ? tiers.length - 1 : found;
   const major = tiers[majorIndex];

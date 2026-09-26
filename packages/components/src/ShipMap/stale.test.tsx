@@ -92,8 +92,7 @@ describe("ShipMap when the thermal reading is not current", () => {
   }
 
   it("rings the hottest part while the reading is current", async () => {
-    // The control: the ring genuinely draws, so its absence below means
-    // something.
+    // The control: the ring genuinely draws, so its absence below means something.
     const { fixture, container } = mount();
     await emitHotCraft(fixture);
 
@@ -116,8 +115,7 @@ describe("ShipMap when the thermal reading is not current", () => {
   });
 
   it("keeps drawing the diagram, so the tag is the only cue", async () => {
-    // The part tree is a fact and stays on screen, which is the whole reason
-    // the tag has to say something: nothing else about this render changes.
+    // The part tree is a fact and stays on screen, which is the whole reason the tag has to say something: nothing else about this render changes.
     const { fixture } = mount();
     await emitHotCraft(fixture);
 

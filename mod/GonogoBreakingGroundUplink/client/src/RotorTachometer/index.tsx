@@ -124,8 +124,7 @@ export function parseRotors(raw: unknown): RotorInfo[] {
   if (!Array.isArray(raw)) return [];
   const entries: unknown[] = raw;
   const out: RotorInfo[] = [];
-  // Indexed, because `srcIndex` must be the position in the DELIVERED array
-  // and the two `continue`s below make that differ from the output position.
+  // Indexed, because `srcIndex` must be the position in the DELIVERED array and the two `continue`s below make that differ from the output position.
   for (const [srcIndex, entry] of entries.entries()) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
@@ -235,8 +234,7 @@ function RotorTachometerComponent({
   usePanelDelay(lockCmd);
   usePanelDelay(reverseCmd);
 
-  // Measure the gauge slot so the dial follows the column width instead of a
-  // fixed 180px that clips in a narrow slot.
+  // Measure the gauge slot so the dial follows the column width instead of a fixed 180px that clips in a narrow slot.
   const { ref: gaugeRef, size: gaugeSize } = useElementSize({ w: 180, h: 104 });
 
   const rotors = parseRotors(roboticsRaw);
@@ -294,8 +292,7 @@ function RotorTachometerComponent({
       setRpmLimit(selected.partId, next);
       return { RPM: next };
     },
-    // Motor and lock send an ABSOLUTE `enabled`, chosen by inverting the state
-    // read back, so an unread flag would command the inverse of a guess.
+    // Motor and lock send an ABSOLUTE `enabled`, chosen by inverting the state read back, so an unread flag would command the inverse of a guess.
     toggleMotor: (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
       if (!selected || selected.motorEngaged === null) return undefined;

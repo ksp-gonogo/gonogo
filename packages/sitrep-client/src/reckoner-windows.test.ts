@@ -154,8 +154,7 @@ describe("a reckoner's own window", () => {
   });
 
   it("thins a fuller window to the cap and runs anyway, keeping both ends", () => {
-    // `maxSamples` is a COST cap, never a rejection: too many points is not a
-    // reason to refuse to model, it is a reason to look at fewer of them.
+    // `maxSamples` is a COST cap, never a rejection: too many points is not a reason to refuse to model, it is a reason to look at fewer of them.
     const store = predictedStore(fakeWall());
     let seen: readonly TimelinePoint<number>[] = [];
     let ran = false;

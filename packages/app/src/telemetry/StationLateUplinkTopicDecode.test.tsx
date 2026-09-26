@@ -195,8 +195,7 @@ describe("a station's Uplink registers its wire Topic after the store is built",
     await settleFrames();
     expect(screen.getByTestId("decoded").textContent).toBe("bare:number");
 
-    // Only a sample arriving AFTER the registration decodes, which is the
-    // ordering the gate guarantees and the first test asserts directly.
+    // Only a sample arriving AFTER the registration decodes, which is the ordering the gate guarantees and the first test asserts directly.
     emit(transport, EARLY_TOPIC, 43);
     await waitFor(() =>
       expect(screen.getByTestId("decoded").textContent).toBe(`value:${UNIT}`),

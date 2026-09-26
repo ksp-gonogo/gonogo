@@ -197,12 +197,10 @@ describe("TelemetryProvider rebuilds its auto-built store when `client` changes"
     rerender(<Harness client={clientB} />);
     const storeB = seenStores.at(-1) as TimelineStore;
 
-    // A genuinely new store was built for the new client, not the same
-    // instance surviving the swap (the RED behavior).
+    // A genuinely new store was built for the new client, not the same instance surviving the swap (the RED behavior).
     expect(storeB).not.toBe(storeA);
 
-    // Old client is detached from the old store: further data on clientA's
-    // transport must not reach storeA anymore.
+    // Old client is detached from the old store: further data on clientA's transport must not reach storeA anymore.
     act(() => transportA.emit("v.raw", 222));
     storeA.beginFrame();
     expect(storeA.sample<number>("v.raw")?.payload).toBe(111);
@@ -323,8 +321,7 @@ describe("TelemetryProvider wires comms.delay into the auto-built ViewClock (spe
       </TelemetryProvider>,
     );
 
-    // The auto-built store's DelayAuthority attached on mount → the transport
-    // saw a subscribe for comms.delay (the single wiring point).
+    // The auto-built store's DelayAuthority attached on mount → the transport saw a subscribe for comms.delay (the single wiring point).
     expect(transport.isSubscribed(COMMS_DELAY_TOPIC)).toBe(true);
     expect(store?.clock.delaySeconds()).toBe(0); // no value yet
 

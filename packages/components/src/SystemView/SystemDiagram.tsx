@@ -457,8 +457,7 @@ export function SystemDiagram({
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label={`System view around ${parentName}`}
-        // `display:block` + `flex:1` were the `svg {}` descendant rules on the
-        // styled Container / DiagramWrap; they belong on the element they size.
+        // `display:block` + `flex:1` were the `svg {}` descendant rules on the styled Container / DiagramWrap; they belong on the element they size.
         style={SVG_ROOT}
       >
         <title>
@@ -1028,8 +1027,7 @@ function VesselOrbitPath({
   zoom: number;
 }>) {
   if (trajectory === null || trajectory.shape === "withheld") return null;
-  // Screen-constant stroke + dashes (see the child-orbit ring note):
-  // user-unit line metrics would balloon with the viewBox at SOI zoom.
+  // Screen-constant stroke + dashes (see the child-orbit ring note): user-unit line metrics would balloon with the viewBox at SOI zoom.
   const strokeW = ACTIVE_VESSEL_ORBIT_STROKE_WIDTH / zoom;
   const dashes = `${4 / zoom} ${3 / zoom}`;
   const stroke = hasGradient ? `url(#${gradId})` : DEPTH_LEVEL_COLOUR;
@@ -1300,8 +1298,7 @@ function VesselMarker({
         zoom={zoom}
       />
       {leaderFrom && (
-        // Says "the true position is back here": drawn first so the marker
-        // itself sits on top of it.
+        // Says "the true position is back here": drawn first so the marker itself sits on top of it.
         <line
           x1={leaderFrom.x}
           y1={leaderFrom.y}
@@ -1321,8 +1318,7 @@ function VesselMarker({
         fill={filled ? colour : "none"}
         stroke={filled ? "var(--color-text-inverse)" : colour}
         strokeWidth={(filled ? 1 : 1.4) / zoom}
-        // Dashed ring for a reckoned position: the same visual language the
-        // upcoming-patch arcs already use for "computed, not observed".
+        // Dashed ring for a reckoned position: the same visual language the upcoming-patch arcs already use for "computed, not observed".
         strokeDasharray={filled ? undefined : `${3 / zoom} ${2.5 / zoom}`}
       />
       <circle
@@ -1364,8 +1360,7 @@ function PredictedPatchArc({
       d={d}
       fill="none"
       stroke={stroke}
-      // Screen-constant stroke + dashes (see the child-orbit ellipse note):
-      // user-unit line metrics would balloon with the viewBox at SOI zoom.
+      // Screen-constant stroke + dashes (see the child-orbit ellipse note): user-unit line metrics would balloon with the viewBox at SOI zoom.
       strokeWidth={(patch.isCurrent ? 1.6 : 1.2) / zoom}
       strokeDasharray={patch.isCurrent ? undefined : `${5 / zoom} ${4 / zoom}`}
       opacity={patch.isCurrent ? 0.95 : 0.7}
@@ -1557,8 +1552,7 @@ const TOOLTIP_TITLE: CSSProperties = {
   color: "var(--color-status-go-fg)",
 };
 
-// The `span:last-child` highlight moves inline onto the value span at the call
-// site.
+// The `span:last-child` highlight moves inline onto the value span at the call site.
 const TOOLTIP_ROW: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",

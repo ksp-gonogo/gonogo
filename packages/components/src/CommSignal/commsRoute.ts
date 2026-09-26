@@ -28,8 +28,7 @@ export interface CommSignalHopRateEntry {
 // the honest statement: any comms Uplink may fill this, from whatever channel
 // it owns.
 //
-// Declared here rather than in `index.tsx` so the contribution-slot conformance
-// test-d can load the augmentation by importing this module's entry type.
+// Declared here rather than in `index.tsx` so the contribution-slot conformance test-d can load the augmentation by importing this module's entry type.
 declare module "@ksp-gonogo/core" {
   interface ContributionRegistry {
     "comm-signal.hop-rates": {

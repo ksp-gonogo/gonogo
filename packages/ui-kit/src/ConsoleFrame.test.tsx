@@ -45,8 +45,7 @@ describe("ConsoleFrame", () => {
   });
 
   it("draws no foot at all when there is nothing to type", () => {
-    // An inbox is a list of conversations with no composer, and an inset empty
-    // row at the bottom of it would be a control that is not there.
+    // An inbox is a list of conversations with no composer, and an inset empty row at the bottom of it would be a control that is not there.
     const { container } = render(
       <ConsoleFrame>
         <p>scrollback</p>
@@ -148,8 +147,7 @@ describe("ConsoleFrame", () => {
   });
 
   it("draws no standing slot at all when there is no reading", () => {
-    // An empty pinned box at the foot of every console is a slot showing
-    // through, which is what a conditional slot is for.
+    // An empty pinned box at the foot of every console is a slot showing through, which is what a conditional slot is for.
     const { container } = render(
       <ConsoleFrame>
         <p>scrollback</p>

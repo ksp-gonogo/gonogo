@@ -6,8 +6,7 @@ import {
   setupStreamFixture,
 } from "../test/setupStreamFixture";
 import { SystemViewComponent } from "./index";
-// Side-effect import: registers the real `system-view-vessel-orbits`
-// contribution, same as `index.tsx` does for the live app.
+// Side-effect import: registers the real `system-view-vessel-orbits` contribution, same as `index.tsx` does for the live app.
 import "./vesselOrbitsContribution";
 
 /**
@@ -151,8 +150,7 @@ describe("SystemView: active vessel excluded from its own faint orbit contributi
       expect(screen.getAllByText("Kerbin").length).toBeGreaterThan(0),
     );
 
-    // The active vessel's own bright ring (SystemDiagram's own render, not
-    // the contribution) is present exactly once.
+    // The active vessel's own bright ring (SystemDiagram's own render, not the contribution) is present exactly once.
     await waitFor(() =>
       expect(
         container.querySelectorAll('circle[fill="var(--color-accent-fg)"]'),
@@ -166,8 +164,7 @@ describe("SystemView: active vessel excluded from its own faint orbit contributi
       ).not.toBeNull(),
     );
 
-    // The active vessel's own faint contributed entry is suppressed: no
-    // duplicate ring sitting on top of the bright one.
+    // The active vessel's own faint contributed entry is suppressed: no duplicate ring sitting on top of the bright one.
     expect(
       container.querySelector('[data-entity-id="vessel-orbit:v-active"]'),
     ).toBeNull();

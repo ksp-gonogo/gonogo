@@ -71,8 +71,7 @@ export function usePhaseAngles(
 
   return useMemo(() => {
     if (!orbit) return EMPTY;
-    // No instant, no question: `deriveTrueAnomalyDeg` refuses a non-finite `ut`
-    // on its own, but the gate below needs a real one to put a window to.
+    // No instant, no question: `deriveTrueAnomalyDeg` refuses a non-finite `ut` on its own, but the gate below needs a real one to put a window to.
     if (ut === null) return EMPTY;
     // Ask the provider before propagating the vessel's elements to the view
     // instant, the same question and the same window as SystemView's own
@@ -99,8 +98,7 @@ export function usePhaseAngles(
       ut,
     });
     if (nu === null) return EMPTY;
-    // LAN/argPe default to 0 (equatorial / circular), the same coalescing the
-    // widget uses when it draws the vessel's own orbit.
+    // LAN/argPe default to 0 (equatorial / circular), the same coalescing the widget uses when it draws the vessel's own orbit.
     const vesselLon = wrap360(
       magnitudeOr(orbit.lan, 0) + magnitudeOr(orbit.argPe, 0) + nu,
     );
@@ -143,6 +141,5 @@ function wrap360(deg: number): number {
   return wrapped < 0 ? wrapped + 360 : wrapped;
 }
 
-// Stable identity so a consumer memoising on the returned map doesn't churn
-// while there's no live phase angle.
+// Stable identity so a consumer memoising on the returned map doesn't churn while there's no live phase angle.
 const EMPTY: Map<number, number> = new Map();

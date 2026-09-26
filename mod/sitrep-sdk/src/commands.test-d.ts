@@ -45,8 +45,7 @@ export type _ThrottleArgs = AssertTrue<
   Equal<CommandArgs<"vessel.control.setThrottle">, SetThrottleArgs>
 >;
 
-// The three reply shapes: bare, payload-carrying, and the one command that does
-// not answer a CommandResult at all.
+// The three reply shapes: bare, payload-carrying, and the one command that does not answer a CommandResult at all.
 export type _PlainReply = AssertTrue<
   Equal<CommandReply<"vessel.control.setSas">, CommandResult>
 >;

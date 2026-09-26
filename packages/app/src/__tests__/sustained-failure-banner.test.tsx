@@ -23,8 +23,7 @@ describe("SustainedFailureBanner", () => {
 
     expect(container.textContent).toBe("");
 
-    // Brief disconnect that recovers within the threshold, banner must
-    // not appear.
+    // Brief disconnect that recovers within the threshold, banner must not appear.
     act(() => {
       src.setStatus("disconnected");
     });

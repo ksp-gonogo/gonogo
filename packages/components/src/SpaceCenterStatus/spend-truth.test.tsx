@@ -117,8 +117,7 @@ function blockFacilityUpgrade(
         {
           command: "career.facility.upgrade",
           verdict: {
-            // GateOutcome.Fail / CommandErrorCode.ModeUnavailable, which is what
-            // Rp1CareerProjectGate returns on a save RP-1 manages.
+            // GateOutcome.Fail / CommandErrorCode.ModeUnavailable, which is what Rp1CareerProjectGate returns on a save RP-1 manages.
             outcome: 1,
             errorCode: 3,
             detail: RP1_DETAIL,

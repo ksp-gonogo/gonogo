@@ -105,8 +105,7 @@ describe("formatQuantity", () => {
   });
 
   it("holds the higher rung near a boundary, so a hovering value does not flicker", () => {
-    // A vessel sitting at 999.6 m: without hysteresis this alternates between
-    // "1.0 km" and "999.6 m" every frame and reads as a broken instrument.
+    // A vessel sitting at 999.6 m: without hysteresis this alternates between "1.0 km" and "999.6 m" every frame and reads as a broken instrument.
     const held = formatQuantity(999.6, "m", { heldSymbol: "km" });
     expect(held.symbol).toBe("km");
     // Far enough below and it does drop back, so the hold is not permanent.
@@ -160,8 +159,7 @@ describe("formatQuantity", () => {
   });
 
   it("never scales a temperature", () => {
-    // No prefix convention here, and a Celsius display would be an offset
-    // conversion that a multiplicative ladder cannot express.
+    // No prefix convention here, and a Celsius display would be an offset conversion that a multiplicative ladder cannot express.
     expect(formatQuantity(3200, "K")).toMatchObject({
       value: "3200",
       symbol: "K",
@@ -241,8 +239,7 @@ describe("formatQuantity", () => {
       value: "4.1",
       symbol: "GB",
     });
-    // And down below the declared unit, which is where a single science file
-    // lives: 0.002 MB is 2 KB.
+    // And down below the declared unit, which is where a single science file lives: 0.002 MB is 2 KB.
     expect(formatQuantity(0.002, "MB")).toMatchObject({
       value: "2.0",
       symbol: "KB",
@@ -349,8 +346,7 @@ describe("formatQuantity", () => {
   });
 
   it("keeps the bit rate ladder for a bit rate", () => {
-    // The rate ladder the module DOES have is the bit one, untouched by any
-    // of the above.
+    // The rate ladder the module DOES have is the bit one, untouched by any of the above.
     expect(formatQuantity(4.2e6, "bit/s")).toMatchObject({
       value: "4.2",
       symbol: "Mbit/s",
@@ -369,8 +365,7 @@ describe("formatQuantity", () => {
       value: "2000.0",
       symbol: "B",
     });
-    // And the reason to pin sparingly: the same file in bytes is eight digits
-    // wide, which is the readout the ladder exists to prevent.
+    // And the reason to pin sparingly: the same file in bytes is eight digits wide, which is the readout the ladder exists to prevent.
     expect(formatQuantity(12.5, "MB", { format: "B" })).toMatchObject({
       value: "12,500,000.0",
       symbol: "B",
@@ -412,8 +407,7 @@ describe("formatQuantity", () => {
   });
 
   it("has a zero for scientific notation, which has no exponent", () => {
-    // log10(0) is -Infinity, so this is the one input the general path cannot
-    // compute at all.
+    // log10(0) is -Infinity, so this is the one input the general path cannot compute at all.
     expect(formatQuantity(0, "m³/s²").value).toBe("0");
   });
 
@@ -429,8 +423,7 @@ describe("formatQuantity", () => {
   });
 
   it("still gives raw seconds when asked not to scale", () => {
-    // The escape hatch: "never" means the plain base-unit number, which opts out
-    // of the composite presentation as well as of any ladder.
+    // The escape hatch: "never" means the plain base-unit number, which opts out of the composite presentation as well as of any ladder.
     expect(formatQuantity(8100, "s", { scale: "never" })).toMatchObject({
       value: "8100",
       symbol: "s",
@@ -590,8 +583,7 @@ describe("catalog coverage", () => {
     for (const entry of entries) {
       const [, symbol, sdkKind] = entry;
       const uiKind = kindOfUnit(symbol);
-      // A unit the SDK declares and ui-kit has no opinion on is fine: the SDK
-      // carries base units (W, J, N·m, km, min) that never reach a readout.
+      // A unit the SDK declares and ui-kit has no opinion on is fine: the SDK carries base units (W, J, N·m, km, min) that never reach a readout.
       if (uiKind !== undefined && uiKind !== sdkKind) {
         mismatches.push(`${symbol}: ui-kit=${uiKind} sdk=${sdkKind}`);
       }
@@ -633,8 +625,7 @@ describe("non-dimensional units", () => {
   });
 
   it("keeps resource units, because that one IS a readable symbol", () => {
-    // The exception among the placeholders: "35.6 units" is how KSP itself
-    // reads, so this token does not get an empty display.
+    // The exception among the placeholders: "35.6 units" is how KSP itself reads, so this token does not get an empty display.
     expect(formatQuantity(35.6, "units")).toMatchObject({
       value: "35.6",
       symbol: "units",
@@ -642,8 +633,7 @@ describe("non-dimensional units", () => {
   });
 
   it("prints no symbol for the type-shaped tokens", () => {
-    // text / flag / enum reach a numeric formatter only by accident, but if
-    // one does, it must not append the word "flag" to the number.
+    // text / flag / enum reach a numeric formatter only by accident, but if one does, it must not append the word "flag" to the number.
     for (const token of ["text", "flag", "enum", "n/a"]) {
       expect(formatQuantity(1, token).symbol).toBe("");
     }
@@ -812,15 +802,13 @@ describe("the attach rule is one rule", () => {
     // so the same angle read differently in a readout and in the SVG label
     // beside it. Anything in ATTACHED_SYMBOLS goes hard against the number.
     expect(writeQuantity(value("°", 8), { decimals: 1 })).toBe("8.0°");
-    // And everything else keeps SI's space, including the degree-Celsius pair
-    // that looks like it should attach and does not.
+    // And everything else keeps SI's space, including the degree-Celsius pair that looks like it should attach and does not.
     expect(writeQuantity(value("°C", 20), { decimals: 0 })).toBe("20 °C");
     expect(writeQuantity(value("m/s", 5), { decimals: 0 })).toBe("5 m/s");
   });
 
   it("attaches a currency mark, which SI does not govern", () => {
-    // `42,500 f` would be a visible change to every funds readout in the app,
-    // justified by a rule about SI units that a currency mark is not.
+    // `42,500 f` would be a visible change to every funds readout in the app, justified by a rule about SI units that a currency mark is not.
     expect(writeQuantity(value("funds", 42_500))).toBe("42,500f");
     expect(writeQuantity(value("science", 12.5))).toBe("12.5sci");
   });
@@ -837,8 +825,7 @@ describe("the two time kinds", () => {
   });
 
   it("carries no symbol, because the parts are inside the number", () => {
-    // Same reason `s` comes back bare: "2h 15min" cannot be split into a
-    // value and a symbol the way "12.4" and "km" can.
+    // Same reason `s` comes back bare: "2h 15min" cannot be split into a value and a symbol the way "12.4" and "km" can.
     expect(formatQuantity(90, "irl:s").symbol).toBe("");
     expect(writeQuantity(value("irl:s", 90))).toBe("1min 30s");
   });
@@ -879,8 +866,7 @@ describe("thousands", () => {
   });
 
   it("leaves a duration and a scientific reading alone", () => {
-    // Both interleave their own notation into the number, and a comma inside
-    // either one is noise rather than a separator.
+    // Both interleave their own notation into the number, and a comma inside either one is noise rather than a separator.
     expect(formatQuantity(86_400, "s").value).toBe("4d");
     expect(formatQuantity(12_400, "irl:s").value).toBe("3h 26min");
   });
@@ -905,8 +891,7 @@ describe("the locale is named, not ambient", () => {
   });
 
   it("defaults to a locale rather than reading the runtime's", () => {
-    // So a snapshot rendered on one machine matches one rendered on another,
-    // and the visual baselines with them.
+    // So a snapshot rendered on one machine matches one rendered on another, and the visual baselines with them.
     expect(formatQuantity(78_401, "funds").value).toBe("78,401");
   });
 });
@@ -934,15 +919,13 @@ describe("formatQuantity: a format across KINDS is refused, not applied", () => 
     expect(formatQuantity(50, "N·m", { format: "J" }).symbol).toBe("N·m");
   });
 
-  // The contrast that shows the guard is about KIND and not about refusing
-  // every format: within one kind the pin is honoured.
+  // The contrast that shows the guard is about KIND and not about refusing every format: within one kind the pin is honoured.
   it("still honours a format within the same kind", () => {
     expect(formatQuantity(12_400, "m", { format: "km" }).symbol).toBe("km");
   });
 });
 
-// A duration arrives in whatever unit the field declares, and only one of
-// those units is the baseline the composite formatter reads.
+// A duration arrives in whatever unit the field declares, and only one of those units is the baseline the composite formatter reads.
 describe("a duration is converted to seconds before it is laddered", () => {
   it("reads a value declared in days as days", () => {
     // 43 days, not 43 seconds. The dimension reached this branch and the
@@ -969,16 +952,14 @@ describe("a duration is converted to seconds before it is laddered", () => {
   });
 
   it("leaves a value already in seconds exactly as it was", () => {
-    // The baseline IS seconds, so its ratio is 1 and every existing call site
-    // reads the same before and after.
+    // The baseline IS seconds, so its ratio is 1 and every existing call site reads the same before and after.
     expect(formatQuantity(90, "s").value).toBe("1min 30s");
     expect(formatQuantity(928_800, "s").value).toBe("43d");
     expect(formatQuantity(8100, "s").value).toBe("2h 15min");
   });
 
   it("does the same for the wall-clock kind, which has the same rungs", () => {
-    // `irlTime` declares four units of its own and read them all as seconds
-    // for the same reason.
+    // `irlTime` declares four units of its own and read them all as seconds for the same reason.
     expect(formatQuantity(2, "irl:h").value).toBe("2h");
     expect(formatQuantity(1, "irl:d").value).toBe("1d");
     expect(formatQuantity(90, "irl:s").value).toBe("1min 30s");
@@ -1010,8 +991,7 @@ describe("a duration's rungs follow the calendar the game reported", () => {
 
     setKspCalendar(EARTH_CALENDAR);
 
-    // Same 43 days, four times as long, and the top tier moves with it: 365
-    // days to a year rather than 426.
+    // Same 43 days, four times as long, and the top tier moves with it: 365 days to a year rather than 426.
     expect(formatQuantity(43, "d").value).toBe("43d");
     expect(formatQuantity(1, "d", { format: "h" })).toMatchObject({
       value: "24",
@@ -1032,8 +1012,7 @@ describe("a duration's rungs follow the calendar the game reported", () => {
 
 describe("quantityScale", () => {
   it("settles one rung from the reference and holds it for every mark", () => {
-    // The rung comes from the top of the scale, so a mark far below it still
-    // reads in the scale's unit rather than laddering down to its own.
+    // The rung comes from the top of the scale, so a mark far below it still reads in the scale's unit rather than laddering down to its own.
     const scale = quantityScale(value("m", 5000));
     expect(scale.symbol).toBe("km");
     expect(scale.mark(5000)).toBe("5.0");
@@ -1042,8 +1021,7 @@ describe("quantityScale", () => {
 
   it("hands the symbol back APART, so a scale shows it once", () => {
     const scale = quantityScale(value("m", 5000));
-    // No mark carries the symbol: that is what makes it a scale rather than a
-    // column of formatted quantities.
+    // No mark carries the symbol: that is what makes it a scale rather than a column of formatted quantities.
     expect(scale.mark(1200)).not.toContain("km");
     expect(scale.symbol).toBe("km");
   });
@@ -1055,8 +1033,7 @@ describe("quantityScale", () => {
   });
 
   it("reports an empty symbol for a kind that displays none", () => {
-    // A dimensionless scale has no header to draw, and says so rather than
-    // printing a token.
+    // A dimensionless scale has no header to draw, and says so rather than printing a token.
     expect(quantityScale(value("1", 3)).symbol).toBe("");
   });
 
@@ -1087,8 +1064,7 @@ describe("unitScaleKey", () => {
   });
 
   it("separates two kinds of the same dimension", () => {
-    // Metres and metres per second are not interchangeable and must not settle
-    // one rung between them.
+    // Metres and metres per second are not interchangeable and must not settle one rung between them.
     expect(unitScaleKey("m")).not.toBe(unitScaleKey("m/s"));
   });
 
@@ -1166,8 +1142,7 @@ describe("pinGroupKey", () => {
 
 describe("ladderPosition", () => {
   it("normalises a reading that arrived partway up its own ladder", () => {
-    // 5 t is 5000 kg, and comparing it with a kilogram reading as it came would
-    // make it the smaller of the two.
+    // 5 t is 5000 kg, and comparing it with a kilogram reading as it came would make it the smaller of the two.
     expect(ladderPosition(5, "t").base).toBe(5000);
     expect(ladderPosition(12, "km").base).toBe(12_000);
     expect(ladderPosition(340, "m").base).toBe(340);

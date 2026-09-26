@@ -35,8 +35,7 @@ import type { SystemEntity } from "./SystemView";
 type Assignable<A, B> = A extends B ? true : false;
 type Expect<T extends true> = T;
 
-// Every key the sdk mirrors must exist, with an assignable shape, on core's
-// real registry.
+// Every key the sdk mirrors must exist, with an assignable shape, on core's real registry.
 type _SdkKeysAssignableToCore = Expect<
   Assignable<keyof SdkContributionRegistry, keyof CoreContributionRegistry>
 >;

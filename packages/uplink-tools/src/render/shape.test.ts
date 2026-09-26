@@ -120,8 +120,7 @@ describe("settleAnimations", () => {
     Reflect.set(document, "getAnimations", () => animations);
   };
 
-  // jsdom has no such method of its own, so removing it restores the realm
-  // rather than leaving a stub for whatever is added to this file next.
+  // jsdom has no such method of its own, so removing it restores the realm rather than leaving a stub for whatever is added to this file next.
   afterEach(() => {
     Reflect.deleteProperty(document, "getAnimations");
   });

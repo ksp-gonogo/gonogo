@@ -45,14 +45,12 @@ export function useFleetVesselPosition(guid: string): StateVector | null {
   const viewUt = useViewUt();
   return useMemo(() => {
     if (!raw || viewUt == null) return null;
-    // Cloned because the wrap mutates in place and the store's retained raw
-    // copy must not be touched.
+    // Cloned because the wrap mutates in place and the store's retained raw copy must not be touched.
     const orbit = wrapTypePayload<VesselOrbitPayload>(
       "VesselOrbit",
       structuredClone(raw),
     );
-    // `.magnitude` at the boundary of the solver: propagation is arithmetic on a
-    // bare UT, and threading `Value` through the Kepler code would buy nothing.
+    // `.magnitude` at the boundary of the solver: propagation is arithmetic on a bare UT, and threading `Value` through the Kepler code would buy nothing.
     return propagateVesselOrbit(orbit, viewUt.magnitude);
   }, [raw, viewUt]);
 }

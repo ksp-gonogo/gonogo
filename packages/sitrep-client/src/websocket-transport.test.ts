@@ -128,8 +128,7 @@ function makeFakeSocketCtor() {
       this.listeners.set(type, bucket);
     }
     fire(type: "open" | "close" | "error"): void {
-      // Move `readyState` with the event, so a test that opens this socket
-      // reaches the same `readyState === OPEN` gate `sendRaw` checks.
+      // Move `readyState` with the event, so a test that opens this socket reaches the same `readyState === OPEN` gate `sendRaw` checks.
       if (type === "open") this.readyState = 1;
       if (type !== "open") this.readyState = 3;
       for (const l of this.listeners.get(type) ?? []) l();
@@ -213,8 +212,7 @@ describe("WebSocketTransport", () => {
     expect(frame).toMatchObject({
       type: "stream-data",
       topic: "vessel.orbit",
-      // Wrapped: the wire carries a bare number and `parseServerMessage` gives
-      // it its declared unit back, which is what a consumer receives.
+      // Wrapped: the wire carries a bare number and `parseServerMessage` gives it its declared unit back, which is what a consumer receives.
       payload: { sma: value("m", 700000) },
     });
     // carriedChannels + perf-budget seam are both driven off arriving frames.
@@ -326,8 +324,7 @@ describe("WebSocketTransport", () => {
       },
     });
 
-    // Fail the very first connect; the retry loop then opens fresh sockets that
-    // the loop below keeps failing until the budget is exhausted.
+    // Fail the very first connect; the retry loop then opens fresh sockets that the loop below keeps failing until the budget is exhausted.
     const failNext = () => {
       const latest = fakes.instances.at(-1);
       latest?.fire("close");
@@ -355,8 +352,7 @@ describe("WebSocketTransport", () => {
       }),
     );
 
-    // A clock the test advances by hand. retryStart is only sampled inside the
-    // drop path, so driving `now` here fully controls the give-up arithmetic.
+    // A clock the test advances by hand. retryStart is only sampled inside the drop path, so driving `now` here fully controls the give-up arithmetic.
     let clock = 0;
     const transport = new WebSocketTransport({
       url: SITREP_URL,
@@ -377,8 +373,7 @@ describe("WebSocketTransport", () => {
       timeout: WAIT_TIMEOUT_MS,
     });
 
-    // Hours pass while happily connected: wall clock jumps far past
-    // retryTimeoutMs measured from the FIRST-ever drop.
+    // Hours pass while happily connected: wall clock jumps far past retryTimeoutMs measured from the FIRST-ever drop.
     clock = 10_000;
 
     // Second outage. With a session-wide clock this would give up with zero
@@ -424,16 +419,14 @@ describe("WebSocketTransport", () => {
     });
     const first = fakes.instances[0];
 
-    // Two close events on the same socket must trigger only ONE retry, the
-    // second is a no-op, so no leaked timer and no double-open.
+    // Two close events on the same socket must trigger only ONE retry, the second is a no-op, so no leaked timer and no double-open.
     first.fire("close");
     first.fire("close");
 
     await vi.waitFor(() => expect(fakes.instances).toHaveLength(2), {
       timeout: WAIT_TIMEOUT_MS,
     });
-    // Give any erroneously-scheduled second timer a chance to fire; only the
-    // one legitimate reconnect should have opened a socket.
+    // Give any erroneously-scheduled second timer a chance to fire; only the one legitimate reconnect should have opened a socket.
     await new Promise((r) => setTimeout(r, 20));
     expect(fakes.instances).toHaveLength(2);
     transport.dispose();
@@ -528,8 +521,7 @@ describe("WebSocketTransport outbound queue", () => {
     const delivered = deliveredRequestIds(socket);
     const refused = errors.map((error) => error.requestId);
 
-    // The backlog is BOUNDED: an outage cannot make the transport hold
-    // everything an operator (or an automation loop) ever pressed.
+    // The backlog is BOUNDED: an outage cannot make the transport hold everything an operator (or an automation loop) ever pressed.
     expect(delivered.length).toBeLessThan(ids.length);
     // ...and nothing vanished on the way: the two outcomes partition the set.
     expect([...delivered, ...refused].sort()).toEqual([...ids].sort());
@@ -598,8 +590,7 @@ describe("WebSocketTransport outbound queue", () => {
         ),
       ),
     ]);
-    // NOT `lost`: nothing was decided over there because nothing ever left here, and `lost` warns that re-sending could double a command that may already have run.
-    // `failed` is the honest one, and it is the outcome that invites the retry.
+    // NOT `lost`: nothing was decided over there because nothing ever left here, and `lost` warns that re-sending could double a command that may already have run. `failed` is the honest one, and it is the outcome that invites the retry.
     expect(rejection?.kind).toBe("failed");
     expect(client.getCommand(overflow.requestId).phase).toBe("failed");
 
@@ -647,15 +638,13 @@ describe("WebSocketTransport outbound queue", () => {
 
     for (const id of ["r0", "r1", "r2"]) transport.send(commandRequest(id));
     await flush();
-    // Well under the cap: nothing is refused at the press, so the only thing
-    // that can ever account for these three is the give-up below.
+    // Well under the cap: nothing is refused at the press, so the only thing that can ever account for these three is the give-up below.
     expect(errors).toEqual([]);
 
     await giveUp();
     await flush();
 
-    // Every one of them, in the order they were pressed, and none of them on
-    // any wire.
+    // Every one of them, in the order they were pressed, and none of them on any wire.
     expect(undelivered.map((command) => command.requestId)).toEqual([
       "r0",
       "r1",
@@ -681,8 +670,7 @@ describe("WebSocketTransport outbound queue", () => {
     transport.send(commandRequest("r0"));
     await giveUp();
     await flush();
-    // A second give-up (a late `close` on a socket the loop already abandoned)
-    // must not re-report a queue that is already empty.
+    // A second give-up (a late `close` on a socket the loop already abandoned) must not re-report a queue that is already empty.
     await giveUp();
     await flush();
 
@@ -742,8 +730,7 @@ describe("WebSocketTransport outbound queue", () => {
 
   it("settles a command still in flight when the link is abandoned", async () => {
     const { transport, giveUp } = abandonedTransport();
-    // A clock that never advances: the loss timer is armed and never fires, so
-    // nothing but the give-up can end this dispatch's wait.
+    // A clock that never advances: the loss timer is armed and never fires, so nothing but the give-up can end this dispatch's wait.
     const client = new TelemetryClient(transport, new ManualClock(0));
     client.setDelaySource(() => 2);
 
@@ -787,13 +774,11 @@ describe("WebSocketTransport outbound queue", () => {
 
     socket.fire("open");
     const sent = sentMessages(socket);
-    // One selection, the last one: a vantage is state, not a backlog, so the
-    // superseded ones are dropped and nobody needs telling.
+    // One selection, the last one: a vantage is state, not a backlog, so the superseded ones are dropped and nobody needs telling.
     expect(sent.filter((message) => message.type === "set-vantage")).toEqual([
       { type: "set-vantage", centreId: "kourou" },
     ]);
-    // Before the re-subscribes, because the server reads the selected vantage
-    // at subscribe time: replayed after, every topic re-points at the old one.
+    // Before the re-subscribes, because the server reads the selected vantage at subscribe time: replayed after, every topic re-points at the old one.
     expect(sent[0].type).toBe("set-vantage");
     expect(sent[1]).toEqual({ type: "subscribe", topic: "vessel.orbit" });
 

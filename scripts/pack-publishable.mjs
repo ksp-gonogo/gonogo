@@ -108,8 +108,7 @@ try {
       applied.push(field);
     }
   }
-  // Keep a `publishConfig` that still holds real npm config; drop an empty one
-  // rather than shipping `"publishConfig": {}`.
+  // Keep a `publishConfig` that still holds real npm config; drop an empty one rather than shipping `"publishConfig": {}`.
   if (Object.keys(publishConfig).length > 0) {
     manifest.publishConfig = publishConfig;
   } else {

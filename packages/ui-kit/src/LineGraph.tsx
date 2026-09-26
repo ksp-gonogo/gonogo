@@ -98,8 +98,7 @@ function computeDomain(
     if (y > max) max = y;
   }
   if (min === max) {
-    // A flat/single-value read still needs headroom to draw a visible line
-    // rather than one hugging an edge.
+    // A flat/single-value read still needs headroom to draw a visible line rather than one hugging an edge.
     const pad = min === 0 ? 1 : Math.abs(min) * 0.5;
     return [min - pad, max + pad];
   }
@@ -232,8 +231,7 @@ export function LineGraph({
             // below: an area under a single point is not a shape, it is a
             // triangle standing in for data that was never there.
             if (s.points.length < 2) return null;
-            // One polygon per unbroken run, so a hole leaves unshaded ground
-            // rather than a filled block standing in for readings nobody has.
+            // One polygon per unbroken run, so a hole leaves unshaded ground rather than a filled block standing in for readings nobody has.
             return splitAtBreaks(s.points, s.breaks).map((run) => {
               if (run.length < 2) return null;
               const first = run[0];
@@ -317,8 +315,7 @@ export function LineGraph({
       {thresholdStyle === "marker" &&
         thresholds.map((t) => {
           const topPct = ((yMax - t.value) / ySpan) * 100;
-          // A threshold outside the pinned domain has no honest place to
-          // draw; skip it rather than pinning it to an edge it isn't at.
+          // A threshold outside the pinned domain has no honest place to draw; skip it rather than pinning it to an edge it isn't at.
           if (topPct < 0 || topPct > 100) return null;
           return (
             <LineGraph__ThresholdMarker

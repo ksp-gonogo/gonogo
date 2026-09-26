@@ -117,8 +117,7 @@ describe("a unit declared through the SDK", () => {
   });
 
   it("does not borrow the ladder of a kind it happens to share", () => {
-    // Its declaration names no ladder, so it is a group of its own and never
-    // climbs, whatever its kind's first-party units do.
+    // Its declaration names no ladder, so it is a group of its own and never climbs, whatever its kind's first-party units do.
     expect(formatQuantity(12_400, "snax:reach").symbol).toBe("snax:reach");
     expect(formatGroupKey("snax:reach")).not.toBe(formatGroupKey("m"));
   });

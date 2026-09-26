@@ -25,8 +25,7 @@ const KSC = "ground:Kerbal Space Center";
  * tombstone test could pass on a tombstone that never landed.
  */
 function RosterProbe() {
-  // Reads the ARM: `pending` and `absent` distinguish a cold start from a
-  // confirmed tombstone.
+  // Reads the ARM: `pending` and `absent` distinguish a cold start from a confirmed tombstone.
   const reading = useTelemetry("commandCentre.roster");
   const detail =
     reading.state === "observed" || reading.state === "stale"
@@ -77,8 +76,7 @@ describe("VantageControl: what undefined means for commandCentre.roster today", 
     // Nothing is marked home before the roster arrives.
     expect(screen.queryByText("Home")).toBeNull();
 
-    // Opening it makes the same conflation louder: a topic that has simply not
-    // arrived is reported as a confirmed empty roster.
+    // Opening it makes the same conflation louder: a topic that has simply not arrived is reported as a confirmed empty roster.
     fireEvent.click(trigger);
     expect(screen.getByRole("status")).toHaveTextContent(
       "No command centres available",
@@ -110,8 +108,7 @@ describe("VantageControl: what undefined means for commandCentre.roster today", 
     // the never-arrived render, naming the stamped vantage by its raw id: no
     // distinction is implemented here at all.
     fixture.emitRoster(null);
-    // The probe is what proves the tombstone genuinely reached the read: the
-    // control below renders no trace of which of the two it got.
+    // The probe is what proves the tombstone genuinely reached the read: the control below renders no trace of which of the two it got.
     expect(screen.getByText("roster:absent")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: `Command centre vantage: ${KSC}` }),

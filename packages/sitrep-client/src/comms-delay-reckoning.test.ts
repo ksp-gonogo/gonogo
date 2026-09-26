@@ -237,8 +237,7 @@ describe("a direct link to a ground station", () => {
     const s = scene(DIRECT_HOPS);
     const reading = s.at(HALF_ORBIT);
 
-    // Half a craft period on: the craft is at 180° (-X) and the station, on a
-    // body turning four times slower, is at 45°.
+    // Half a craft period on: the craft is at 180° (-X) and the station, on a body turning four times slower, is at 45°.
     const station = PLANET_RADIUS * Math.SQRT1_2;
     const expected = Math.hypot(CRAFT_SMA + station, station) / C;
 

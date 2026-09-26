@@ -285,15 +285,13 @@ describe("buildSegmentedPath", () => {
       undefined,
       "kepler-propagation",
     ]);
-    // Same reach-back as a status run: the joining segment lands in the run it
-    // enters, so the line does not lose a segment at the handover.
+    // Same reach-back as a status run: the joining segment lands in the run it enters, so the line does not lose a segment at the handover.
     expect(segments[0].d).toBe("M0.00,0.00 L1.00,10.00");
     expect(segments[1].d).toBe("M1.00,10.00 L2.00,20.00 L3.00,30.00");
   });
 
   it("cuts on a reckoning change even where the stream status is unchanged", () => {
-    // A run that is recorded throughout and reckoned onward from its midpoint
-    // is two DRAWABLE runs, because only the second is muted and dashed.
+    // A run that is recorded throughout and reckoned onward from its midpoint is two DRAWABLE runs, because only the second is muted and dashed.
     const segments = buildSegmentedPath(
       [0, 1, 2, 3],
       [0, 10, 20, 30],

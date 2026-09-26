@@ -168,8 +168,7 @@ export function widestSeparation(
   }
   if (!(bestGap > 0)) return null;
 
-  // On the flown curve at that bearing, and in the diagram's own frame, whose
-  // rotation is the negative of the angle.
+  // On the flown curve at that bearing, and in the diagram's own frame, whose rotation is the negative of the angle.
   const r = radiusAt(current.sma, current.ecc, current.argPe, bestNu);
   const theta = (-bestNu * Math.PI) / 180;
   return { x: r * Math.cos(theta), y: r * Math.sin(theta), gap: bestGap };

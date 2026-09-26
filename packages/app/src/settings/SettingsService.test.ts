@@ -34,8 +34,7 @@ describe("SettingsService", () => {
   it("persists across instances through the provided storage", () => {
     const a = new SettingsService(storage);
     a.set("flag", false);
-    // Writes are debounced, flush before constructing the second
-    // instance so it sees the persisted value.
+    // Writes are debounced, flush before constructing the second instance so it sees the persisted value.
     a.flush();
     const b = new SettingsService(storage);
     expect(b.get("flag", true)).toBe(false);

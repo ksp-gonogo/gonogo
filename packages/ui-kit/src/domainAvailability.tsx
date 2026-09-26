@@ -38,8 +38,7 @@ export function createDomainAvailabilityStore(): DomainAvailabilityStore {
   const listeners = new Set<() => void>();
   return {
     setAvailable(domain, available) {
-      // No-op when the value did not actually move, so a feeder re-emitting the
-      // same presence does not wake every reader.
+      // No-op when the value did not actually move, so a feeder re-emitting the same presence does not wake every reader.
       if (availability.get(domain) === available) return;
       availability.set(domain, available);
       for (const listener of listeners) listener();
@@ -78,8 +77,7 @@ export const DomainAvailabilityProvider = DomainAvailabilityPanelStore.Provider;
 /** The nearest availability store, or `null` outside a provider. */
 export const useDomainAvailabilityStore = DomainAvailabilityPanelStore.useStore;
 
-// Stable no-store fallbacks so `useSyncExternalStore` sees a referentially
-// stable subscribe and a primitive snapshot with no provider in the tree.
+// Stable no-store fallbacks so `useSyncExternalStore` sees a referentially stable subscribe and a primitive snapshot with no provider in the tree.
 const NO_SUBSCRIBE = (): (() => void) => () => {};
 
 /**

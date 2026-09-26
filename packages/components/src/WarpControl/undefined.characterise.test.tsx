@@ -92,8 +92,7 @@ describe("WarpControl: nothing has arrived at all", () => {
     expect(
       screen.getByRole("img", { name: `Time warp rate ${NULL_DISPLAY}` }),
     ).toBeTruthy();
-    // `normalizeWarpMode(undefined)` -> null, and the caption is gated on
-    // `mode !== null`, so absence renders no caption rather than an unknown one.
+    // `normalizeWarpMode(undefined)` -> null, and the caption is gated on `mode !== null`, so absence renders no caption rather than an unknown one.
     expect(screen.queryByText("High")).toBeNull();
     expect(screen.queryByText("Physics")).toBeNull();
   });
@@ -141,8 +140,7 @@ describe("WarpControl: the `currentIndex ?? 0` coercion", () => {
         .getByRole("button", { name: "Drop to realtime" })
         .getAttribute("aria-pressed"),
     ).toBe("true");
-    // Same coercion, second consequence: the operator is told they cannot warp
-    // down because we are already at the bottom, which we do not know.
+    // Same coercion, second consequence: the operator is told they cannot warp down because we are already at the bottom, which we do not know.
     expect(screen.getByRole("button", { name: "Warp down" })).toBeDisabled();
   });
 
@@ -182,23 +180,20 @@ describe("WarpControl: the absent `paused` read", () => {
   it("reads as not-paused and commands a PAUSE on click", async () => {
     const { fixture, commandHandler } = mount(6, 5);
 
-    // The pause button only renders in the Flight scene, so land that (and
-    // only that): `time.warp` stays cold, which is the case under test.
+    // The pause button only renders in the Flight scene, so land that (and only that): `time.warp` stays cold, which is the case under test.
     act(() => {
       fixture.emit("spaceCenter.scene", { scene: "Flight" });
     });
 
     const button = await screen.findByRole("button", { name: "Pause game" });
-    // `effectivePaused === true` is false for an absent read, so the widget
-    // shows the pause affordance rather than an unknown state.
+    // `effectivePaused === true` is false for an absent read, so the widget shows the pause affordance rather than an unknown state.
     expect(screen.queryByRole("button", { name: "Resume game" })).toBeNull();
 
     act(() => {
       button.click();
     });
 
-    // `next = !effectivePaused` inverts `undefined` to `true`: a command built
-    // out of the absence of a value.
+    // `next = !effectivePaused` inverts `undefined` to `true`: a command built out of the absence of a value.
     await waitFor(() =>
       expect(commandHandler).toHaveBeenCalledWith("time.setPaused", {
         paused: true,
@@ -308,8 +303,7 @@ describe("WarpControl: null versus undefined", () => {
       fixture.emit("time.warp", null);
     });
 
-    // `warp?.warpRate` erases the store's confirmed absence, so the operator
-    // cannot tell "the mod says there is no warp state" from "still waiting".
+    // `warp?.warpRate` erases the store's confirmed absence, so the operator cannot tell "the mod says there is no warp state" from "still waiting".
     await waitFor(() =>
       expect(
         screen.getByRole("img", { name: `Time warp rate ${NULL_DISPLAY}` }),

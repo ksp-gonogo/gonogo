@@ -37,12 +37,10 @@ function WithContributions({ children }: { children: ReactNode }) {
  * `TelemetryProvider` + `TimelineStore` (`setupStreamFixture`).
  */
 
-// Kerbin's GM: makes the client-side period / true-anomaly derivation land on
-// real numbers so the predicted arc actually renders.
+// Kerbin's GM: makes the client-side period / true-anomaly derivation land on real numbers so the predicted arc actually renders.
 const KERBIN_MU = 3.5316e12;
 
-// A Kerbin parking orbit that encounters the Mun (stable body index 1). `epoch`
-// == the pinned view-UT so the derivation reads a clean mean-anomaly-at-epoch.
+// A Kerbin parking orbit that encounters the Mun (stable body index 1). `epoch` == the pinned view-UT so the derivation reads a clean mean-anomaly-at-epoch.
 function encounterOrbit() {
   return {
     referenceBodyIndex: 0,
@@ -71,8 +69,7 @@ function kerbinSystem() {
         parentIndex: null,
         radius: 600_000,
         gravParameter: KERBIN_MU,
-        // On the wire since the contract stopped asking the client to
-        // reconstruct what the game already holds.
+        // On the wire since the contract stopped asking the client to reconstruct what the game already holds.
         mass: 5.2915158e22,
         surfaceGravity: 1,
         sphereOfInfluence: 84_159_286,
@@ -295,8 +292,7 @@ describe("SystemViewComponent", () => {
       </fixture.Provider>,
     );
     primeStream(encounterOrbit());
-    // The single client-reconstructed conic renders as a predicted <path> arc
-    // (the post-encounter conic isn't on the wire, so there is exactly one).
+    // The single client-reconstructed conic renders as a predicted <path> arc (the post-encounter conic isn't on the wire, so there is exactly one).
     await waitFor(() =>
       expect(container.querySelectorAll("path").length).toBeGreaterThanOrEqual(
         1,

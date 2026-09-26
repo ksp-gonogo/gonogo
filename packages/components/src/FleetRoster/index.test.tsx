@@ -283,8 +283,7 @@ describe("FleetRosterComponent", () => {
     expect(visibleText()).toContain("6/6");
     expect(visibleText()).toContain("2/3");
     expect(visibleText()).toContain("1/1");
-    // Em-dashes: the unresolved contact's Body cell, Crew cell, and the Link
-    // column's "unknown" tag - three in total.
+    // Em-dashes: the unresolved contact's Body cell, Crew cell, and the Link column's "unknown" tag - three in total.
     expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(3);
     // Comms link tags: direct / relay / none / unknown.
     expect(screen.getByText("DIRECT")).toBeInTheDocument();
@@ -327,8 +326,7 @@ describe("FleetRosterComponent", () => {
     await waitFor(() => {
       expect(screen.getByText("Craft One")).toBeInTheDocument();
     });
-    // The one truly-unclassified entry still renders (never silently
-    // dropped) alongside the real craft.
+    // The one truly-unclassified entry still renders (never silently dropped) alongside the real craft.
     expect(screen.getByText("New Contact")).toBeInTheDocument();
     // Every confirmed non-craft type is filtered out entirely.
     expect(screen.queryByText("Jebediah on EVA")).not.toBeInTheDocument();
@@ -352,8 +350,7 @@ describe("FleetRosterComponent", () => {
     await waitFor(() => {
       expect(screen.getByText("Kerbin Station Alpha")).toBeInTheDocument();
     });
-    // Two vessels are not linked (1 none + 1 unknown: the orbiter and the
-    // unresolved contact) out of five.
+    // Two vessels are not linked (1 none + 1 unknown: the orbiter and the unresolved contact) out of five.
     expect(visibleText()).toContain("2 Not Linked");
     expect(
       screen.getByRole("meter", { name: "Comms coverage" }),
@@ -622,8 +619,7 @@ describe("FleetRosterComponent", () => {
     const trigger = await screen.findByRole("button", {
       name: /Explorer signal/i,
     });
-    // The frozen pre-blackout .delay frame: what a real client is still
-    // holding, claiming a live link.
+    // The frozen pre-blackout .delay frame: what a real client is still holding, claiming a live link.
     act(() => {
       fixture.emit("fleet.v-probe.delay", {
         oneWaySeconds: 4.5,
@@ -647,8 +643,7 @@ describe("FleetRosterComponent", () => {
   it("does not call a blacked-out link connected, whatever the frozen delay frame says", async () => {
     const { trigger } = await renderBlackout();
 
-    // The row's own chip already reads NONE off live `system.vessels`; the
-    // cell must not contradict it one line below.
+    // The row's own chip already reads NONE off live `system.vessels`; the cell must not contradict it one line below.
     expect(screen.getByText("NONE")).toBeInTheDocument();
     await waitFor(() => {
       expect(definitionFor(openSignalDisclosure(trigger), /^Link$/)).toMatch(
@@ -701,8 +696,7 @@ describe("FleetRosterComponent", () => {
     await waitFor(() => {
       expect(visibleText(openSignalDisclosure(trigger))).toMatch(/round-trip/i);
     });
-    // `.delay`'s own `connected` is the field the freeze makes unreliable, so
-    // it is never the source of the Link row, not even as a fallback.
+    // `.delay`'s own `connected` is the field the freeze makes unreliable, so it is never the source of the Link row, not even as a fallback.
     expect(definitionFor(openSignalDisclosure(trigger), /^Link$/)).toBe(
       "unknown",
     );

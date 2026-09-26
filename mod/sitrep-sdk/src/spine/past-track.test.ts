@@ -55,8 +55,7 @@ describe("where the craft has been", () => {
   });
 
   it("moves the craft between samples rather than repeating a position", () => {
-    // The check that this actually solved anything: two instants a long way
-    // apart on a 700 km orbit are different places.
+    // The check that this actually solved anything: two instants a long way apart on a 700 km orbit are different places.
     const track = pastTrack([sample(0), sample(900)], { frame: frame() });
 
     // A real separation in metres, not a float comparison: `toBeCloseTo` on
@@ -105,8 +104,7 @@ describe("where the craft has been", () => {
   });
 
   it("keeps every sample when no centre is named", () => {
-    // The contrast: the drop above is the CENTRE check firing, not the samples
-    // being unusable.
+    // The contrast: the drop above is the CENTRE check firing, not the samples being unusable.
     const track = pastTrack(
       [
         sample(0, { referenceBodyIndex: 5 }),

@@ -195,8 +195,7 @@ function walkValue(
       continue;
     }
     if (indexType) {
-      // A `Dictionary<string, X>` channel: any key is legal, the VALUE shape
-      // is still the contract's and still gets walked.
+      // A `Dictionary<string, X>` channel: any key is legal, the VALUE shape is still the contract's and still gets walked.
       walkValue(ctx, indexType, child, `${path}.${key}`);
       continue;
     }

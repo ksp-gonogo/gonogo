@@ -83,8 +83,7 @@ export function registerAnalyticsConfigRoutes(
   if (opts.onChange) {
     const onChange = opts.onChange;
     controller.subscribe(onChange);
-    // Apply the initial (default-disabled) state once so the relay's own
-    // gate starts in the right place even before the first POST.
+    // Apply the initial (default-disabled) state once so the relay's own gate starts in the right place even before the first POST.
     onChange(controller.get());
   }
 
@@ -109,21 +108,18 @@ export function registerAnalyticsConfigRoutes(
       "content-type": "text/event-stream",
       "cache-control": "no-cache",
       connection: "keep-alive",
-      // Echo CORS for the SSE response: hijack() bypasses the onSend hooks
-      // @fastify/cors uses, so the header it would normally add is skipped.
+      // Echo CORS for the SSE response: hijack() bypasses the onSend hooks @fastify/cors uses, so the header it would normally add is skipped.
       "access-control-allow-origin": "*",
     });
 
-    // Push the current value immediately so a subscriber gates correctly
-    // without waiting for the next change.
+    // Push the current value immediately so a subscriber gates correctly without waiting for the next change.
     writeSseEvent(reply, controller.get());
 
     const unsub = controller.subscribe((enabled) => {
       writeSseEvent(reply, enabled);
     });
 
-    // Tear down the subscription when the client disconnects, or the
-    // listener Set leaks one entry per dropped connection.
+    // Tear down the subscription when the client disconnects, or the listener Set leaks one entry per dropped connection.
     req.raw.on("close", () => {
       unsub();
     });

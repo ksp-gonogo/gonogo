@@ -140,8 +140,7 @@ describe("OrbitDiagram projected overlay", () => {
     const [, , wStr, hStr] = vb.split(" ");
     const w = Number.parseFloat(wStr ?? "0");
     const h = Number.parseFloat(hStr ?? "0");
-    // After rotation the long axis (apoapsis + periapsis) is vertical;
-    // the bbox should be taller than wide.
+    // After rotation the long axis (apoapsis + periapsis) is vertical; the bbox should be taller than wide.
     expect(h).toBeGreaterThan(w);
   });
 

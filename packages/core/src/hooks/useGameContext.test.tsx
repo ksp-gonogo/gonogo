@@ -118,8 +118,7 @@ describe("useGameContext: career.mode streamed GameMode ordinal (mapped + carrie
     act(() => transport.emit("career.mode", { mode: 3 }));
     await waitFor(() => expect(result.current.careerMode).toBe("Unknown"));
 
-    // A legacy emit must not surface once the key is carried, the stream
-    // value (SCIENCE) keeps winning over it.
+    // A legacy emit must not surface once the key is carried, the stream value (SCIENCE) keeps winning over it.
     act(() => transport.emit("career.mode", { mode: 2 }));
     await waitFor(() => expect(result.current.careerMode).toBe("SCIENCE"));
     act(() => legacySource.emit("career.mode", "SANDBOX"));
@@ -166,8 +165,7 @@ describe("useGameContext: kc.scene streamed (mapped + carried)", () => {
     await waitFor(() => expect(result.current.scene).toBe("TrackingStation"));
     expect(result.current.inFlight).toBe(false);
 
-    // A legacy emit must not surface once the key is carried, the stream
-    // value keeps winning over it (same invariant as the career.mode test).
+    // A legacy emit must not surface once the key is carried, the stream value keeps winning over it (same invariant as the career.mode test).
     act(() => legacySource.emit("kc.scene", "Flight"));
     expect(result.current.scene).toBe("TrackingStation");
   });

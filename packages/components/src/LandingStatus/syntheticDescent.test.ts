@@ -4,8 +4,7 @@ import {
   predictedPoint,
 } from "../../scripts/synthesize-landing-descent";
 
-// Metres per degree of longitude at the equator of the synthetic body (Mun, R =
-// 200 km), used to turn the lat/lon error into a physical distance.
+// Metres per degree of longitude at the equator of the synthetic body (Mun, R = 200 km), used to turn the lat/lon error into a physical distance.
 const M_PER_DEG = 200_000 * (Math.PI / 180);
 
 describe("synthetic descent: predicted site converges on the actual touchdown", () => {

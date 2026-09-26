@@ -39,8 +39,7 @@ describe("StationIdentityService", () => {
   });
 
   it("migrates a legacy save-profile-scoped name into the flat key on first run", () => {
-    // Pre-migration shape: the active-profile id was stored separately and
-    // the station name was suffixed with it.
+    // Pre-migration shape: the active-profile id was stored separately and the station name was suffixed with it.
     storage.setItem("gonogo.saveProfiles.active", "profile-A");
     storage.setItem("gonogo.station.name.profile-A", "Old Capcom");
 

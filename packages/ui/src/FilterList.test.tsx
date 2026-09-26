@@ -23,8 +23,7 @@ const META: WidgetMetaContextValue = {
   contributionSlots: [],
 };
 
-// Row node text is deliberately distinct from the chip labels ("Scrubber",
-// "Water Recycler") so a query can tell a rendered row from its toggle.
+// Row node text is deliberately distinct from the chip labels ("Scrubber", "Water Recycler") so a query can tell a rendered row from its toggle.
 const ROWS: FilterRow[] = [
   {
     id: "co2",
@@ -101,8 +100,7 @@ describe("FilterList", () => {
   });
 
   it("passes rows through with no chips outside a widget context", () => {
-    // No WidgetMetaContext / ContributionsProvider: nothing to complete the
-    // segment against, so the term list is stably empty and every row passes.
+    // No WidgetMetaContext / ContributionsProvider: nothing to complete the segment against, so the term list is stably empty and every row passes.
     render(<FilterList rows={ROWS} />);
 
     expect(

@@ -100,8 +100,7 @@ export class EventTimeline<K extends string = string, P = unknown> {
   /** Insert a delivered occurrence, sorted by `ut` (ties keep arrival order). */
   append(occurrence: EventOccurrence<K, P>): void {
     if (occurrence.epoch < this.currentEpoch) {
-      // Stale-epoch straggler (queued behind a rewind): never let a
-      // pre-rewind occurrence re-enter a post-rewind timeline.
+      // Stale-epoch straggler (queued behind a rewind): never let a pre-rewind occurrence re-enter a post-rewind timeline.
       return;
     }
     if (occurrence.epoch > this.currentEpoch) {

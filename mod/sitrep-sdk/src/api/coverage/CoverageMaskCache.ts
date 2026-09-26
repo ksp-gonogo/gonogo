@@ -199,8 +199,7 @@ export class CoverageMaskCache {
       stored.width === entry.mask.width &&
       stored.height === entry.mask.height
     ) {
-      // Preserve the existing mask reference so any caller holding it
-      // (canvas paint loops, refs) sees the new bytes in place.
+      // Preserve the existing mask reference so any caller holding it (canvas paint loops, refs) sees the new bytes in place.
       entry.mask.data.set(stored.data);
     } else {
       // Dimension mismatch is rare in practice (host + station default
@@ -257,8 +256,7 @@ export class CoverageMaskCache {
       stored.width === this.width &&
       stored.height === this.height
     ) {
-      // Preserve the existing mask reference (callers may already hold it)
-      // by copying bytes in place.
+      // Preserve the existing mask reference (callers may already hold it) by copying bytes in place.
       entry.mask.data.set(stored.data);
     }
     // Mismatched dimensions: treat as a fresh start. The already-zeroed

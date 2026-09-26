@@ -55,8 +55,7 @@ describe("MockGamepadAPI", () => {
   it("restore() removes the patched getGamepads", () => {
     expect(typeof navigator.getGamepads).toBe("function");
     mock.restore();
-    // jsdom doesn't define getGamepads by default, so after restore it
-    // should go back to being absent.
+    // jsdom doesn't define getGamepads by default, so after restore it should go back to being absent.
     expect(
       (navigator as { getGamepads?: unknown }).getGamepads,
     ).toBeUndefined();

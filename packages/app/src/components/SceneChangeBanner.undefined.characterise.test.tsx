@@ -67,8 +67,7 @@ const banner = () => screen.queryByRole("status");
 
 beforeEach(() => {
   vi.useFakeTimers();
-  // `prevSceneRef` seeds from localStorage, so a leaked key from another test
-  // would turn the first arriving sample into a transition.
+  // `prevSceneRef` seeds from localStorage, so a leaked key from another test would turn the first arriving sample into a transition.
   globalThis.localStorage.removeItem(STORAGE_KEY);
 });
 
@@ -137,8 +136,7 @@ describe("SceneChangeBanner: what undefined means for spaceCenter.scene today", 
     expect(banner()).toBeNull();
     expect(globalThis.localStorage.getItem(STORAGE_KEY)).toBe("Flight");
 
-    // Because the previous scene was held rather than cleared, Flight arriving
-    // again after the gap is "no change" and stays silent.
+    // Because the previous scene was held rather than cleared, Flight arriving again after the gap is "no change" and stays silent.
     fixture.emitScene({ scene: "Flight" });
     expect(banner()).toBeNull();
 

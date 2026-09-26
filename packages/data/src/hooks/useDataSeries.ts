@@ -330,8 +330,7 @@ export function useDataSeries(
           buf.t.splice(0, i);
           buf.v.splice(0, i);
         }
-        // Fresh wrapper per update: useSyncExternalStore's identity check
-        // sees the new reference and triggers a render.
+        // Fresh wrapper per update: useSyncExternalStore's identity check sees the new reference and triggers a render.
         snapshotRef.current = { t: buf.t, v: buf.v, basis: "wall-ms" };
         notify();
       });

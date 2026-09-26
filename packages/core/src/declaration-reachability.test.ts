@@ -2,8 +2,7 @@
 // that every other gate reports as finished. This one asks the question none of
 // them ask: is it REACHED.
 //
-// Runs in the node environment: the scan reads the repo off disk and builds
-// TypeScript source files over `ts.sys`.
+// Runs in the node environment: the scan reads the repo off disk and builds TypeScript source files over `ts.sys`.
 // @vitest-environment node
 import { execFileSync } from "node:child_process";
 import {
@@ -101,8 +100,7 @@ describe("the scan can be seen to work", () => {
       konst: "PLANTED_TOPIC_NO_CONSUMER",
       declaredIn: "mod/GonogoPlantedUplink/client/src/topics.ts",
     };
-    // The predicate the gate actually applies, run against a declaration whose
-    // id and constant appear nowhere in the tree.
+    // The predicate the gate actually applies, run against a declaration whose id and constant appear nowhere in the tree.
     const reached =
       hasGenericConsumer(planted.id) ||
       scan.declarations.some((d) => d.id === planted.id);

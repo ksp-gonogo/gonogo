@@ -41,8 +41,7 @@ export function DimmedOverlay({
   children,
 }: DimmedOverlayProps) {
   if (!show) {
-    // Render children directly, no wrapper means no styling drift on
-    // the live path (avoids accidentally affecting layout / focus).
+    // Render children directly, no wrapper means no styling drift on the live path (avoids accidentally affecting layout / focus).
     return <>{children}</>;
   }
   return (

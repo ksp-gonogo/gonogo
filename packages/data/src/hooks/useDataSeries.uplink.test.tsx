@@ -60,8 +60,7 @@ function buildStreamFixture() {
       <TelemetryProvider
         client={client}
         store={store}
-        // The app's own default: every first-party promotion, and no way for
-        // it to mention an Uplink nobody in this repo has heard of.
+        // The app's own default: every first-party promotion, and no way for it to mention an Uplink nobody in this repo has heard of.
         carriedChannels={DEFAULT_SITREP_CARRIED_TOPICS}
       >
         {children}
@@ -84,8 +83,7 @@ describe("plotting an Uplink's own field", () => {
       </fixture.Provider>,
     );
 
-    // `StubTransport.emit` is subscription-gated, so this is the read that
-    // says whether the field is reachable at all rather than merely empty.
+    // `StubTransport.emit` is subscription-gated, so this is the read that says whether the field is reachable at all rather than merely empty.
     expect(fixture.transport.isSubscribed(REACTOR)).toBe(true);
 
     act(() => {

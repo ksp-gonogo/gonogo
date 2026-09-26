@@ -1,5 +1,4 @@
-// The flight-record and series types live in `@ksp-gonogo/sitrep-sdk` with
-// `BufferedDataSource`, whose closure they belong to.
+// The flight-record and series types live in `@ksp-gonogo/sitrep-sdk` with `BufferedDataSource`, whose closure they belong to.
 //
 // Re-exported so this package's importers keep their import site.
 // `Unit` here is the units HINT (a string union: "m" | "km" | ...), not ui-kit's

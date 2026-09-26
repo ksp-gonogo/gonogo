@@ -47,8 +47,7 @@ function body(over: Partial<CelestialBody> & { index: number }): CelestialBody {
     argumentOfPeriapsis: null,
     meanAnomalyAtEpoch: null,
     epoch: null,
-    // Libration points are a statement about a pair's geometry, not about how
-    // far anyone will vouch for it, so these fixtures are unbounded throughout.
+    // Libration points are a statement about a pair's geometry, not about how far anyone will vouch for it, so these fixtures are unbounded throughout.
     horizon: ANALYTIC_BODY_HORIZON,
     period: null,
     trueAnomaly: null,
@@ -127,8 +126,7 @@ function separation(a: Vector3, b: Vector3): number {
 
 describe("librationPositionsFor", () => {
   it("solves collinear roots that satisfy the equilibrium equation they came from", () => {
-    // The residual is the physics; re-evaluating it at the returned roots is an
-    // independent check of the solver rather than a restatement of its output.
+    // The residual is the physics; re-evaluating it at the returned roots is an independent check of the solver rather than a restatement of its output.
     const mu = 0.0121505856; // Earth-Moon, the ratio every textbook quotes
     const points = librationPositionsFor(mu);
     expect(points).not.toBeNull();
@@ -164,8 +162,7 @@ describe("librationPositionsFor", () => {
     expect(x("L1")).toBeLessThan(secondaryX);
     expect(x("L2")).toBeGreaterThan(secondaryX);
     expect(x("L3")).toBeLessThan(primaryX);
-    // Earth-Moon L1 and L2 sit about 15% of the separation either side of the
-    // Moon, and L3 a touch beyond the far side of the Earth.
+    // Earth-Moon L1 and L2 sit about 15% of the separation either side of the Moon, and L3 a touch beyond the far side of the Earth.
     expect(secondaryX - x("L1")).toBeCloseTo(0.1509, 3);
     expect(x("L2") - secondaryX).toBeCloseTo(0.1678, 3);
     expect(x("L3")).toBeCloseTo(-1.00506, 4);
@@ -229,8 +226,7 @@ describe("lagrangePointsAt refusals", () => {
     expect(answer.refusal).toBe(LIBRATION_REFUSALS.NotComputable);
     expect(answer.because).toContain("Kerbin-Mun");
     expect(answer.points).toHaveLength(0);
-    // Distinct from "nothing was attempted", which is the whole point of the
-    // zero value meaning something true.
+    // Distinct from "nothing was attempted", which is the whole point of the zero value meaning something true.
     expect(answer.refusal).not.toBe(LIBRATION_REFUSALS.NotAttempted);
   });
 
@@ -280,8 +276,7 @@ describe("lagrangePointsAt", () => {
       for (const name of ["L4", "L5"] as const) {
         const point = answer.points.find((p) => p.name === name);
         if (point === undefined) throw new Error(name);
-        // Relative to the separation, because the separation is 12 Mm and an
-        // absolute tolerance in metres would say nothing about the fidelity.
+        // Relative to the separation, because the separation is 12 Mm and an absolute tolerance in metres would say nothing about the fidelity.
         expect(separation(point.inertial, kerbin) / pairSeparation).toBeCloseTo(
           1,
           9,
@@ -324,8 +319,7 @@ describe("lagrangePointsAt", () => {
       }
     }
 
-    // The pair really is eccentric over the sweep, else the assertion below
-    // would hold for a metre-scaled frame too and would prove nothing.
+    // The pair really is eccentric over the sweep, else the assertion below would hold for a metre-scaled frame too and would prove nothing.
     const minSeparation = Math.min(...separations);
     const maxSeparation = Math.max(...separations);
     expect(maxSeparation / minSeparation).toBeGreaterThan(2);
@@ -365,16 +359,14 @@ describe("lagrangePointsAt", () => {
       if (instant === null) throw new Error("no frame");
       const l4 = answer.points.find((p) => p.name === "L4");
       if (l4 === undefined) throw new Error("no L4");
-      // The rejected convention: this instant's rotation, the view instant's
-      // length unit.
+      // The rejected convention: this instant's rotation, the view instant's length unit.
       const wrong = toFrame(
         { ...instant, unitLength: viewInstant.unitLength },
         l4.inertial,
       ).position;
       drift.push(separation(wrong, l4.frame));
     }
-    // Not a nudge: at eccentricity 0.4 the separation swings by more than a
-    // factor of two, so the marker walks the better part of a frame unit.
+    // Not a nudge: at eccentricity 0.4 the separation swings by more than a factor of two, so the marker walks the better part of a frame unit.
     expect(Math.max(...drift)).toBeGreaterThan(0.3);
   });
 
@@ -438,8 +430,7 @@ describe("librationOffsetOf", () => {
     expect(drifting?.distanceUnits).toBeCloseTo(0.05, 6);
     expect(drifting?.distanceMetres).toBeCloseTo(nudge, 3);
 
-    // A craft 700 km above Kerbin is nearest to whichever point the arithmetic
-    // says, and is not stationkeeping on any of them.
+    // A craft 700 km above Kerbin is nearest to whichever point the arithmetic says, and is not stationkeeping on any of them.
     const lowOrbit = librationOffsetOf(answer, [
       kerbin[0] + 1_300_000,
       kerbin[1],
@@ -479,8 +470,7 @@ describe("librationPairsOf", () => {
     expect(librationPairsOf(facts).map(librationPairLabel)).toEqual([
       "Kerbol-Kerbin",
     ]);
-    // And the pair the control dropped is the one the answer refuses, so the
-    // control and the arithmetic agree about what is offerable.
+    // And the pair the control dropped is the one the answer refuses, so the control and the arithmetic agree about what is offerable.
     expect(lagrangePointsAt(facts, 2, 0).refusal).toBe(
       LIBRATION_REFUSALS.NotComputable,
     );

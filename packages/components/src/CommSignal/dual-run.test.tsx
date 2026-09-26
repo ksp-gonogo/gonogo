@@ -46,8 +46,7 @@ describe("CommSignal: full readout off the stream (R6 Wave 1)", () => {
       fixture.emit("comms.link", { connected: true });
     });
 
-    // A real subscription must have happened for StubTransport (subscription-
-    // gated) to deliver at all.
+    // A real subscription must have happened for StubTransport (subscription- gated) to deliver at all.
     expect(fixture.transport.isSubscribed("vessel.comms")).toBe(true);
     expect(fixture.transport.isSubscribed("comms.delay")).toBe(true);
 

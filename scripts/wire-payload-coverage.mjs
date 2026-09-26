@@ -520,8 +520,7 @@ export function selfCheck() {
   // same type read as a root is NOT covered. This arm went green while the
   // roster's case was deleted, which is what put it here.
   expect("PlantedNested", true, "uncovered");
-  // The target-typed `T x = new()` form, which is how `CommsDelay` is built and
-  // the only way the scan can see it at all.
+  // The target-typed `T x = new()` form, which is how `CommsDelay` is built and the only way the scan can see it at all.
   expect("PlantedTargetTyped", true, "uncovered");
   expect("PlantedAbsent", true, "never-built");
   // An ARRAY channel's producer returns a collection of dictionaries rather
@@ -725,8 +724,7 @@ export function checkWirePayloadCoverage(repoRoot = REPO_ROOT) {
   const uplinkReached = slices
     .filter((slice) => !slice.core)
     .reduce((total, slice) => total + slice.reached, 0);
-  // Per slice rather than in total: a total of zero is also what no Uplinks at
-  // all looks like, and every mod Uplink is leaving for the gonogo-uplinks repo.
+  // Per slice rather than in total: a total of zero is also what no Uplinks at all looks like, and every mod Uplink is leaving for the gonogo-uplinks repo.
   const silent = slices.filter((slice) => !slice.core && slice.reached === 0);
   if (silent.length > 0) {
     throw new Error(

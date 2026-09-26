@@ -151,8 +151,7 @@ describe("ActionGroup when the group's state is not current", () => {
     const toggle = () => screen.getByRole("button", { name: "Toggle SAS" });
     await waitFor(() => expect(toggle().textContent).toBe("ON"));
 
-    // Prove the press reaches the wire while the state is current, so the
-    // refusal below is a refusal and not a broken command path.
+    // Prove the press reaches the wire while the state is current, so the refusal below is a refusal and not a broken command path.
     act(() => {
       toggle().click();
     });
@@ -170,8 +169,7 @@ describe("ActionGroup when the group's state is not current", () => {
       toggle().click();
     });
     await settle();
-    // Nothing further on the wire: an inverted held boolean is not a stale
-    // command, it is a command to the wrong state.
+    // Nothing further on the wire: an inverted held boolean is not a stale command, it is a command to the wrong state.
     expect(fixture.transport.sentCommands).toHaveLength(1);
   });
 

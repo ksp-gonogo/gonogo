@@ -145,8 +145,7 @@ function SpaceCenterStatusComponent({
     careerReading.state === "observed"
       ? careerReading.value.economy
       : undefined;
-  // Magnitude: compared against an upgrade cost and rendered through this
-  // widget's own compact funds formatting, both of which want a number.
+  // Magnitude: compared against an upgrade cost and rendered through this widget's own compact funds formatting, both of which want a number.
   const careerFunds = magnitudeOf(careerEconomy?.funds);
   const fundsNotCurrent = careerReading.state === "stale";
   /**
@@ -169,8 +168,7 @@ function SpaceCenterStatusComponent({
     magnitudeOf(stillTrue(careerReading, undefined)?.economy?.funds) !== null;
   const { chargesFunds } = useGameContext();
   const sceneReading = useTelemetry("spaceCenter.scene");
-  // "Last site" is a claim about the past by construction: the site changes when
-  // a vessel launches from it, so the last one reported is still the answer.
+  // "Last site" is a claim about the past by construction: the site changes when a vessel launches from it, so the last one reported is still the answer.
   const launchSite = stillTrue(sceneReading, undefined)?.launchSite;
   const scene =
     sceneReading.state === "observed" ? sceneReading.value.scene : undefined;
@@ -741,8 +739,7 @@ function UpgradeButton({
     );
   }
   if (isLost) {
-    // Not the resting render, which is what a CONFIRMED upgrade returns to: an
-    // upgrade nobody answered may or may not be building.
+    // Not the resting render, which is what a CONFIRMED upgrade returns to: an upgrade nobody answered may or may not be building.
     const sentence = commandLossSentence({ label: commandLabel });
     return (
       <ConfirmUpgradeButton

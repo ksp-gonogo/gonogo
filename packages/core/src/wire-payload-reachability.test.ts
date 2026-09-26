@@ -198,8 +198,7 @@ describe("wire payload reachability", () => {
         .map((slice) => slice.id)
         .sort(),
     ).toEqual(twins);
-    // Every discovered slice actually contributed, rather than the total being
-    // carried by one large Uplink while the rest silently walked nothing.
+    // Every discovered slice actually contributed, rather than the total being carried by one large Uplink while the rest silently walked nothing.
     for (const slice of report.slices) {
       expect(slice.roots).toBeGreaterThan(0);
       expect(slice.reached).toBeGreaterThan(0);

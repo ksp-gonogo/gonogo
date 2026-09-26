@@ -73,15 +73,13 @@ function part({
   };
 }
 
-// EC storage split matches `vessel.resources.ElectricCharge` in the shared
-// SNAPSHOT (448.802128027849 / 450) so the two fixtures describe one craft.
+// EC storage split matches `vessel.resources.ElectricCharge` in the shared SNAPSHOT (448.802128027849 / 450) so the two fixtures describe one craft.
 const POD_EC_CURRENT = 48.802128027849;
 const POD_EC_MAX = 50;
 const BATTERY_EC_CURRENT = 400;
 const BATTERY_EC_MAX = 400;
 
-// LiquidFuel/Oxidizer split evenly across the two FL-T800 tanks; totals
-// match `vessel.resources` in the shared SNAPSHOT.
+// LiquidFuel/Oxidizer split evenly across the two FL-T800 tanks; totals match `vessel.resources` in the shared SNAPSHOT.
 const LF_CURRENT_HALF = 539.797302768469 / 2;
 const LF_MAX_HALF = 1980 / 2;
 const OX_CURRENT_HALF = 659.752174156984 / 2;
@@ -277,8 +275,7 @@ const DV_STAGES = [
     thrustAsl: 166.2,
     thrustActual: 195,
     resources: {
-      // `active` is always true on the wire: StageDeltaVViewProvider writes it
-      // for every resource it lists.
+      // `active` is always true on the wire: StageDeltaVViewProvider writes it for every resource it lists.
       LiquidFuel: { current: 539.797302768469, max: 1980, active: true },
       Oxidizer: { current: 659.752174156984, max: 2420, active: true },
     },

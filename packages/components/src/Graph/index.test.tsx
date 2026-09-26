@@ -123,8 +123,7 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
           .map((pt) => Number(pt.split(",")[1]));
         for (const y of ys) {
           expect(Number.isFinite(y)).toBe(true);
-          // Chart height is 300 in this harness; anything wildly outside
-          // means the series was scaled against the [0,1] fallback domain.
+          // Chart height is 300 in this harness; anything wildly outside means the series was scaled against the [0,1] fallback domain.
           expect(Math.abs(y)).toBeLessThan(1_000);
         }
       }
@@ -182,14 +181,12 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
     act(() => {
       source.emit("v.name", "Kerbal X");
       source.emit("v.missionTime", 0);
-      // Emit a value way outside the pinned domain, ticks should stay anchored
-      // to [0, 1000] regardless.
+      // Emit a value way outside the pinned domain, ticks should stay anchored to [0, 1000] regardless.
       source.emit("v.altitude", 500_000);
     });
 
     await waitFor(() => {
-      // The 500_000 sample really reached the plot: without this the pin is
-      // "respected" by a chart that was handed nothing to scale against.
+      // The 500_000 sample really reached the plot: without this the pin is "respected" by a chart that was handed nothing to scale against.
       expect(
         container.querySelector(
           'svg[aria-label="Telemetry line chart"] path[d][fill="none"]',
@@ -198,8 +195,7 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
       const texts = Array.from(container.querySelectorAll("text")).map(
         (t) => t.textContent ?? "",
       );
-      // niceTicks over [0, 1000] with 5 ticks produces 0, 250, 500, 750, 1000;
-      // formatYTick renders 1000 as "1.0k".
+      // niceTicks over [0, 1000] with 5 ticks produces 0, 250, 500, 750, 1000; formatYTick renders 1000 as "1.0k".
       expect(texts).toContain("1.0k");
       // And no tick should be near 500_000 ("500.0k"), the pin is respected.
       expect(texts.some((t) => t === "500.0k")).toBe(false);
@@ -263,8 +259,7 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
       windowSec: 300,
     };
 
-    // small size bucket: 5 <= w < 8 OR 4 <= h < 7, chart axes get squashed,
-    // readout is preferred.
+    // small size bucket: 5 <= w < 8 OR 4 <= h < 7, chart axes get squashed, readout is preferred.
     const { container } = render(
       <GraphComponent config={config} id="graph-test" w={6} h={6} />,
     );

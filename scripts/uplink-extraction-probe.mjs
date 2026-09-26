@@ -559,8 +559,7 @@ function selfTest(tarballs, workRoot) {
     join(work, "index.ts"),
     `${control}import { thisExportCannotExist } from "@ksp-gonogo/sitrep-sdk";\nexport const planted = thisExportCannotExist;\n`,
   );
-  // Planted under BOTH configs: a mode whose compiler never ran reports zero
-  // errors for the control above, which is that mode's own pass condition.
+  // Planted under BOTH configs: a mode whose compiler never ran reports zero errors for the control above, which is that mode's own pass condition.
   const planted = [];
   for (const mode of MODES) {
     const violated = typecheck(mode.config);

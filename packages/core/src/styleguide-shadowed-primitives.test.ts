@@ -241,8 +241,7 @@ to BASELINE is for recording what was already there, not for new work.`,
     // there is and, worse, a NEW shadow at one of those paths would be
     // silently pre-forgiven.
     //
-    // The C# unit-coverage ratchet asserts the same thing, and this one is
-    // where the idea came from, so it should have had it first.
+    // The C# unit-coverage ratchet asserts the same thing, and this one is where the idea came from, so it should have had it first.
     const current = currentShadows();
     const stale = [...BASELINE].filter((e) => !current.has(e)).sort();
 

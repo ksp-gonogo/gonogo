@@ -157,8 +157,7 @@ function projectBurn(
   if (epsilon >= 0) return null;
   const newSma = -mu / (2 * epsilon);
 
-  // Angular momentum per unit mass = r × v; only the horizontal velocity
-  // component contributes.
+  // Angular momentum per unit mass = r × v; only the horizontal velocity component contributes.
   const h = r * vH;
   const e2 = 1 + (2 * epsilon * h * h) / (mu * mu);
   const newEcc = Math.sqrt(Math.max(0, e2));
@@ -360,8 +359,7 @@ export function customAtUT(
     currentUT,
     burnUT,
   );
-  // Unbound: there is no point on this trajectory to plan a burn from, which is
-  // the same "no projection" the past-burn branch above already returns.
+  // Unbound: there is no point on this trajectory to plan a burn from, which is the same "no projection" the past-burn branch above already returns.
   const projected = state
     ? projectBurn(
         state.r,
@@ -557,8 +555,7 @@ export function matchTargetPlane(
       Math.sin(i1) * Math.cos(i2),
   );
   const u1Deg = (radToDeg(u1Rad) + 360) % 360;
-  // argPe is the angle from our AN to periapsis, so true anomaly at the
-  // relative node is u₁ − argPe.
+  // argPe is the angle from our AN to periapsis, so true anomaly at the relative node is u₁ − argPe.
   const nuAN = (((u1Deg - currentArgumentOfPeriapsisDeg) % 360) + 360) % 360;
   const nuDN = (nuAN + 180) % 360;
 

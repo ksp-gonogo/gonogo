@@ -57,8 +57,7 @@ describe("readingFrom", () => {
   });
 
   it("carries the observation time on a confirmed absence", () => {
-    // "Confirmed nothing, as of when": what lets a widget say "no target set
-    // (confirmed 3 s ago)" rather than asserting it for the rest of the mission.
+    // "Confirmed nothing, as of when": what lets a widget say "no target set (confirmed 3 s ago)" rather than asserting it for the rest of the mission.
     expect(readingFrom(point(10, null), "absent", VIEW_UT)).toEqual({
       state: "absent",
       reckoning: { status: "none" },
@@ -269,8 +268,7 @@ describe("withoutReckoning", () => {
       readingFrom(point(10, 5), "live", VIEW_UT),
       readingFrom(point(10, 5), "held-stale", VIEW_UT),
     ]) {
-      // Same object, not merely an equal one: a widget calling this on a live
-      // reading must not pay a new identity for it.
+      // Same object, not merely an equal one: a widget calling this on a live reading must not pay a new identity for it.
       expect(withoutReckoning(reading)).toBe(reading);
     }
   });

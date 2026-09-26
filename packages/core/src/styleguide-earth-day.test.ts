@@ -348,8 +348,7 @@ describe("design-system: the KSP day", () => {
     ]) {
       expect(EARTH_DAY.test(`const day = ${spelling};`)).toBe(true);
     }
-    // Not a substring match: a longer number that merely contains the digits is
-    // not a day.
+    // Not a substring match: a longer number that merely contains the digits is not a day.
     expect(EARTH_DAY.test("const id = 186400123;")).toBe(false);
   });
 

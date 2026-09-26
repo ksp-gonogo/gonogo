@@ -330,8 +330,7 @@ export function registerUnit<S extends DeclaredUnit>(
     );
   }
 
-  // Reserved symbols guard the UNNAMESPACED name only. `snacks:m` hijacks
-  // nothing, so an Uplink is free to mean whatever it likes by it.
+  // Reserved symbols guard the UNNAMESPACED name only. `snacks:m` hijacks nothing, so an Uplink is free to mean whatever it likes by it.
   const reserved = RESERVED.find((entry) => entry.symbol === symbol);
   if (reserved && !Dim.equal(reserved.dimension, dim)) {
     throw new Error(`Cannot register "${symbol}": ${reserved.why}`);

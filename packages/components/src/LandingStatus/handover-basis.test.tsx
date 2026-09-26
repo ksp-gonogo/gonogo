@@ -39,8 +39,7 @@ describe("the handover render set reaches the models it says it does", () => {
 
   beforeEach(() => {
     for (const b of PerfBudget.getAll()) b.reset();
-    // jsdom lays nothing out, and every plot on this widget is a chart that
-    // draws "Chart too small to render" in an unmeasured box.
+    // jsdom lays nothing out, and every plot on this widget is a chart that draws "Chart too small to render" in an unmeasured box.
     restoreResizeObserver = installSizedResizeObserver({ w: 720, h: 640 });
     registerStockBodies();
   });
@@ -149,8 +148,7 @@ describe("the handover render set reaches the models it says it does", () => {
       expect(reading.reckoning.modelled).toEqual(
         expect.arrayContaining([{ path: "altitudeAsl", basis: expectedBasis }]),
       );
-      // And the carried altitude is genuinely a different number from the
-      // observation, or the picture would be showing an identity projection.
+      // And the carried altitude is genuinely a different number from the observation, or the picture would be showing an identity projection.
       expect(reading.reckoning.value.altitudeAsl.toWire()).not.toBe(
         reading.value.altitudeAsl.toWire(),
       );

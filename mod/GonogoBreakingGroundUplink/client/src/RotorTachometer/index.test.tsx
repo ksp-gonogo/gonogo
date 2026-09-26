@@ -250,8 +250,7 @@ describe("parseRotors", () => {
     // report. This read `false`, which claims the motor is off.
     expect(parsed[0]?.motorEngaged).toBeNull();
     expect(parsed[0]?.name).toBe("Rotor 1");
-    // The entry carries `currentRPM` and nothing else, so every other figure
-    // is withheld rather than zero: a cap of 0 is a rotor commanded to stop.
+    // The entry carries `currentRPM` and nothing else, so every other figure is withheld rather than zero: a cap of 0 is a rotor commanded to stop.
     expect(parsed[0]?.rpmLimit).toBeNull();
     expect(parsed[0]?.torqueLimit).toBeNull();
     expect(parsed[0]?.brakePercentage).toBeNull();

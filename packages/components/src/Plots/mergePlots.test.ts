@@ -74,8 +74,7 @@ describe("mergePlots", () => {
   });
 
   it("keeps a lone framed plot untouched, which is the no-atmosphere case", () => {
-    // The constraint the whole design has to hold: a descent with no aero model
-    // is a first-class plot drawn by the host alone, not a degraded merge.
+    // The constraint the whole design has to hold: a descent with no aero model is a first-class plot drawn by the host alone, not a degraded merge.
     const merged = mergePlots([
       entry("core:touchdown-site", {
         subject: "touchdown-site",
@@ -139,8 +138,7 @@ describe("mergePlots", () => {
 
     expect(warn).toHaveBeenCalledTimes(1);
     const message = String(warn.mock.calls[0][0]);
-    // Both owners named, so the collision can be chased to its authors rather
-    // than guessed at from a screenshot.
+    // Both owners named, so the collision can be chased to its authors rather than guessed at from a screenshot.
     expect(message).toContain("core:first");
     expect(message).toContain("guest:second");
     expect(message).toContain("descent-envelope");
@@ -339,8 +337,7 @@ describe("mergePlots", () => {
   });
 
   it("keys the plot by the framing contribution, not by the subject", () => {
-    // A subject is an author's free string; a contribution id is namespaced by
-    // its owner, so it is the half that cannot collide across two boards.
+    // A subject is an author's free string; a contribution id is namespaced by its owner, so it is the half that cannot collide across two boards.
     const merged = mergePlots([
       entry("core:descent-envelope", {
         subject: "descent-envelope",

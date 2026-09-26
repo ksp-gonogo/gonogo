@@ -17,8 +17,7 @@ describe("detectGamepadPack", () => {
   });
 
   it("does not require zero-padding, Firefox omits it", () => {
-    // A real Firefox id shape ("810-3-USB Gamepad"), unrelated vendor,
-    // should resolve to positional, not crash or mis-parse a short hex run.
+    // A real Firefox id shape ("810-3-USB Gamepad"), unrelated vendor, should resolve to positional, not crash or mis-parse a short hex run.
     expect(detectGamepadPack("810-3-USB Gamepad")).toBe("positional");
   });
 

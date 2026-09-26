@@ -69,8 +69,7 @@ describe("useCommandFailures", () => {
       undelivered: [{ id: "u0", command: "vessel.control.setSas", label: "" }],
     };
     expect(useCommandFailures(promoted).hasFailure).toBe(true);
-    // Still no in-flight ROW: an undelivered dispatch has none, the same way a
-    // loss has none.
+    // Still no in-flight ROW: an undelivered dispatch has none, the same way a loss has none.
     expect(useCommandFailures(promoted).failed).toHaveLength(0);
   });
 

@@ -65,8 +65,7 @@ export function KspCalendarObserver() {
   // decides whether a date renders as a real one: the mod sends it only when
   // the game's date formatter models a real calendar.
   const epochIso = calendar?.epoch;
-  // `== null`, not `=== undefined`: an explicit null is the NORMAL answer
-  // here, since stock KSP has no real calendar and so no anchor to send.
+  // `== null`, not `=== undefined`: an explicit null is the NORMAL answer here, since stock KSP has no real calendar and so no anchor to send.
   const epochMs = epochIso == null ? undefined : Date.parse(epochIso);
 
   useEffect(() => {
@@ -87,7 +86,6 @@ export function KspCalendarObserver() {
     setKspCalendar({ minute, hour, day, year, epochMs });
   }, [minute, hour, day, year, epochMs]);
 
-  // Depends on the numbers rather than the payload object so a keyframe that
-  // re-sends an unchanged calendar does not re-set it every tick.
+  // Depends on the numbers rather than the payload object so a keyframe that re-sends an unchanged calendar does not re-set it every tick.
   return null;
 }

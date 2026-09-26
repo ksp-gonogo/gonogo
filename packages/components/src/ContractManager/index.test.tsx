@@ -57,8 +57,7 @@ function emitContracts(
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
-  // The augment registry is intentionally not cleared by the data-source
-  // teardown; reset it so a test-bound augment can't leak into later tests.
+  // The augment registry is intentionally not cleared by the data-source teardown; reset it so a test-bound augment can't leak into later tests.
   clearAugments();
 });
 
@@ -119,14 +118,12 @@ describe("ContractManagerComponent", () => {
     expect(screen.getByText(/Plant flag/)).toBeInTheDocument();
     expect(screen.getByText(/Return safely/)).toBeInTheDocument();
     expect(screen.getByText(/optional/i)).toBeInTheDocument();
-    // The kit's ladder drops a zero smaller unit, so this reads "5d left"
-    // rather than "5d 0h left".
+    // The kit's ladder drops a zero smaller unit, so this reads "5d left" rather than "5d 0h left".
     expect(visibleText()).toMatch(/5d left/i);
   });
 
   it("renders the per-contract badges slot with no bound augment (empty is fine)", async () => {
-    // No augment registered → the slot composes nothing and the cards render
-    // exactly as before, one per contract.
+    // No augment registered → the slot composes nothing and the cards render exactly as before, one per contract.
     const fixture = newFixture();
     renderContract(fixture);
     act(() => {
@@ -148,8 +145,7 @@ describe("ContractManagerComponent", () => {
 
     renderContract(fixture);
     act(() => {
-      // Emit active (empty) so the widget exits the awaiting-telemetry
-      // early-return: without active, offered isn't rendered.
+      // Emit active (empty) so the widget exits the awaiting-telemetry early-return: without active, offered isn't rendered.
       emitContracts(fixture, {
         active: [],
         offered: [{ id: 7, title: "Survey the Mun", parameters: [] }],
@@ -265,8 +261,7 @@ describe("parseContracts", () => {
       { title: "missing id" },
     ]);
     expect(parsed).toHaveLength(1);
-    // IDs are stringified, JS numbers can't represent KSP's full long
-    // range, so the parser normalises to string regardless of input type.
+    // IDs are stringified, JS numbers can't represent KSP's full long range, so the parser normalises to string regardless of input type.
     expect(parsed?.[0]?.id).toBe("1");
   });
 
@@ -298,8 +293,7 @@ describe("parseContracts", () => {
         parameters: [
           // A mod appending to ParameterState: an ordinal outside KSP's three.
           { title: "Modded state", state: "Waived", stateOrdinal: 7 },
-          // No ordinal at all: also unknown, and for the same reason - nothing
-          // here can say whether it is done.
+          // No ordinal at all: also unknown, and for the same reason - nothing here can say whether it is done.
           { title: "No ordinal", state: "Complete" },
           // A renamed member. The ordinal is what it is.
           { title: "Renamed", state: "Achieved", stateOrdinal: 1 },
@@ -311,8 +305,7 @@ describe("parseContracts", () => {
       "Unknown",
       "Complete",
     ]);
-    // The game's own word survives as a label, so an operator sees what KSP
-    // called it rather than only that we could not place it.
+    // The game's own word survives as a label, so an operator sees what KSP called it rather than only that we could not place it.
     expect(parsed?.[0]?.parameters[0]?.stateLabel).toBe("Waived");
   });
 });

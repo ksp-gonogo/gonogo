@@ -23,8 +23,7 @@ function declaredModes(): string[] {
 
 describe("SAS mode dispatch", () => {
   it("can read the SasMode members at all", () => {
-    // Guards the guard: an extractor returning nothing would make every
-    // assertion below vacuous and report success.
+    // Guards the guard: an extractor returning nothing would make every assertion below vacuous and report success.
     expect(declaredModes()).toEqual([
       "StabilityAssist",
       "Prograde",

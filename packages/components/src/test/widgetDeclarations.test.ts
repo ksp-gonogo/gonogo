@@ -91,8 +91,7 @@ describe("widget dataRequirements resolve to something real", () => {
   );
 
   it("found a non-trivial number of declarations (scan sanity check)", () => {
-    // An empty registry would make the assertion below vacuous, which is the
-    // exact way an allowlist-shaped gate passes while checking nothing.
+    // An empty registry would make the assertion below vacuous, which is the exact way an allowlist-shaped gate passes while checking nothing.
     expect(declared.length).toBeGreaterThan(100);
   });
 
@@ -108,8 +107,7 @@ describe("widget dataRequirements resolve to something real", () => {
   });
 
   it("rejects a plausible-looking field that does not exist", () => {
-    // The gate's own positive control: if this ever returns a kind, the
-    // classifier has gone permissive and the suite above is checking nothing.
+    // The gate's own positive control: if this ever returns a kind, the classifier has gone permissive and the suite above is checking nothing.
     expect(
       classifyRequirement("career.status.economy.notAField"),
     ).toBeUndefined();

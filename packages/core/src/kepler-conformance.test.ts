@@ -227,8 +227,7 @@ describe("Kepler's equation: the contract every solver must satisfy", () => {
 
       it("agrees with Kepler's SECOND law, which the residual alone cannot check", () => {
         const failures: string[] = [];
-        // Away from E = 0, where the swept area is zero and a relative tolerance has
-        // nothing to be relative to.
+        // Away from E = 0, where the swept area is zero and a relative tolerance has nothing to be relative to.
         for (const e of [0, 0.5, 0.9, 0.99, 0.999]) {
           for (const M of [0.4, 1.0, 2.0, 3.0, 4.5, 6.0]) {
             const E = impl.solve(M, e);

@@ -110,8 +110,7 @@ const dial = () => screen.queryByRole("img", { name: "Attitude indicator" });
 function readoutShape(): "three-across" | "stacked" | "absent" {
   const hdg = screen.queryByText("HDG");
   if (!hdg) return "absent";
-  // HDG's cell: three-across is a BigReadout carrying the reading with the
-  // label as a caption UNDER it, stacked is a label-beside-value pair.
+  // HDG's cell: three-across is a BigReadout carrying the reading with the label as a caption UNDER it, stacked is a label-beside-value pair.
   const row = hdg.parentElement?.parentElement;
   if (!row) throw new Error("readout row not found above the HDG label");
   return getComputedStyle(row).display === "grid" ? "three-across" : "stacked";

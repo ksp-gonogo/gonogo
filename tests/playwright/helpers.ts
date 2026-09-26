@@ -112,8 +112,7 @@ export async function seedContext(
         // (blocking until answered) doesn't sit over the dashboard and
         // intercept clicks. "disabled" = answered + Axiom off.
         localStorage.setItem("gonogo.analytics.consent", "disabled");
-        // Mark the first-run setup auto-open as seen so it doesn't pop the
-        // Settings modal over the dashboard on a fresh boot.
+        // Mark the first-run setup auto-open as seen so it doesn't pop the Settings modal over the dashboard on a fresh boot.
         localStorage.setItem("gonogo.uplinkHubWizard.firstRunSeen", "1");
       } catch {
         /* private mode / quota: ignore; the seed just won't apply */

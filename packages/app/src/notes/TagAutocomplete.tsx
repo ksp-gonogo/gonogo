@@ -85,8 +85,7 @@ export const TagAutocomplete = forwardRef<
     setSelectedIdx((i) => Math.min(i, Math.max(0, filtered.length - 1)));
   }, [filtered.length]);
 
-  // Detect whether the cursor is inside an open `{{ ... }}` tag and, if so,
-  // extract the partial key the user has typed since `{{`.
+  // Detect whether the cursor is inside an open `{{ ... }}` tag and, if so, extract the partial key the user has typed since `{{`.
   const evaluateCursor = () => {
     const el = localRef.current;
     if (!el) {
@@ -100,16 +99,14 @@ export const TagAutocomplete = forwardRef<
       setOpenAt(null);
       return;
     }
-    // If there's a closing `}}` between the open and the cursor, we're
-    // outside the tag.
+    // If there's a closing `}}` between the open and the cursor, we're outside the tag.
     const closeIdx = upto.indexOf("}}", openIdx);
     if (closeIdx !== -1 && closeIdx < pos) {
       setOpenAt(null);
       return;
     }
     const partial = upto.slice(openIdx + 2);
-    // Bail if the partial spans a whitespace, likely natural text "{{ foo"
-    // with a space inside is fine, but a newline isn't.
+    // Bail if the partial spans a whitespace, likely natural text "{{ foo" with a space inside is fine, but a newline isn't.
     if (/\n/.test(partial)) {
       setOpenAt(null);
       return;
@@ -213,8 +210,7 @@ export const TagAutocomplete = forwardRef<
               $selected={i === selectedIdx}
               aria-selected={i === selectedIdx}
               onMouseDown={(e) => {
-                // mousedown rather than click so the input's blur handler
-                // (which clears openAt) doesn't fire first.
+                // mousedown rather than click so the input's blur handler (which clears openAt) doesn't fire first.
                 e.preventDefault();
                 insertSelection(opt);
               }}
@@ -238,8 +234,7 @@ function useKeyOptions(): KeyOption[] {
   // one is NOT restricted to orderable values: a body name or a situation is
   // exactly the sort of thing a note wants to interpolate.
   //
-  // A collection is excluded: `{{career.status.contracts.active}}` would
-  // interpolate a whole array into a sentence.
+  // A collection is excluded: `{{career.status.contracts.active}}` would interpolate a whole array into a sentence.
   const catalog = useTopicFieldCatalog();
   return useMemo<KeyOption[]>(() => {
     const options: KeyOption[] = catalog

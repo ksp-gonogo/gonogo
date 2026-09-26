@@ -33,8 +33,7 @@ describe("emptyStateText", () => {
   });
 
   it("takes an observed but empty list as the craft answer", () => {
-    // `robotics.available` is true for a craft with hinges and no rotor, so
-    // the Rotor Tachometer needs the observed list to say there are none.
+    // `robotics.available` is true for a craft with hinges and no rotor, so the Rotor Tachometer needs the observed list to say there are none.
     expect(emptyStateText(true, true, true, "rotors")).toBe(
       "No rotors on this vessel",
     );

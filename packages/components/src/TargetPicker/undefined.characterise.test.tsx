@@ -83,8 +83,7 @@ describe("TargetPicker: nothing has arrived on either topic", () => {
     // these two sites apart and only one of them keeps its wording honestly.
     expect(visibleText(container)).toContain("No target set in KSP.");
     expect(visibleText(container)).toContain("Waiting for target list...");
-    // Not the empty-list wording: that is a different branch and this test
-    // would otherwise pass against it.
+    // Not the empty-list wording: that is a different branch and this test would otherwise pass against it.
     expect(visibleText(container)).not.toContain("No targets in range.");
   });
 
@@ -96,16 +95,14 @@ describe("TargetPicker: nothing has arrived on either topic", () => {
     // statement that BOTH gates fired.
     expect(screen.queryAllByRole("button")).toHaveLength(0);
     expect(screen.queryByRole("button", { name: "Clear target" })).toBeNull();
-    // The filter input is NOT gated and is present regardless, which is what
-    // makes the button count above meaningful rather than an empty tree.
+    // The filter input is NOT gated and is present regardless, which is what makes the button count above meaningful rather than an empty tree.
     expect(
       screen.getByRole("searchbox", { name: "Filter targets" }),
     ).toBeTruthy();
   });
 
   it("collapses to the no-target readout in compact mode, with no clear control", () => {
-    // Below the 6 rows / 4 cols threshold the whole picker is replaced by a
-    // current-target readout, and `tarName` falsy is the only gate in it.
+    // Below the 6 rows / 4 cols threshold the whole picker is replaced by a current-target readout, and `tarName` falsy is the only gate in it.
     const { container } = renderPicker(fixture, { w: 3, h: 4 });
 
     expect(visibleText(container)).toContain("No target set");
@@ -162,8 +159,7 @@ describe("TargetPicker: the target.available absence gate", () => {
   });
 
   it("treats a list record with no entries field as an empty list", async () => {
-    // The `?? []` fallback: a record that arrived but carried no `entries` is a
-    // partial payload, and it renders as though the producer had said "none".
+    // The `?? []` fallback: a record that arrived but carried no `entries` is a partial payload, and it renders as though the producer had said "none".
     const { container } = renderPicker(fixture);
     act(() => {
       fixture.emit("target.available", {});
@@ -206,8 +202,7 @@ describe("TargetPicker: the vessel.target absence gate", () => {
     await waitFor(() =>
       expect(visibleText(container)).toContain("No target set in KSP."),
     );
-    // Byte-identical, which is the strongest form of "these two states are
-    // indistinguishable to an operator".
+    // Byte-identical, which is the strongest form of "these two states are indistinguishable to an operator".
     expect(visibleText(container)).toBe(beforeAnything);
   });
 
@@ -260,8 +255,7 @@ describe("TargetPicker: a partial vessel.target record", () => {
     );
     expect(screen.getByRole("button", { name: "Clear target" })).toBeTruthy();
     expect(visibleText(container)).not.toContain("No target set in KSP");
-    // No kind label: `targetKindLabel(undefined)` is undefined and the span is
-    // not rendered at all.
+    // No kind label: `targetKindLabel(undefined)` is undefined and the span is not rendered at all.
     expect(visibleText(container)).not.toContain("Vessel");
     // No distance and no Δv, skipped rather than shown as a placeholder.
     expect(visibleText(container)).not.toContain("Δv");
@@ -269,8 +263,7 @@ describe("TargetPicker: a partial vessel.target record", () => {
   });
 
   it("renders a distance but no Δv when the record carries position without velocity", async () => {
-    // `radialSpeed` needs both Vec3s, so half the geometry gives the distance
-    // and silently drops the closing rate.
+    // `radialSpeed` needs both Vec3s, so half the geometry gives the distance and silently drops the closing rate.
     const { container } = renderPicker(fixture);
     act(() => {
       fixture.emit("vessel.target", {
@@ -294,8 +287,7 @@ describe("TargetPicker: a partial vessel.target record", () => {
     await waitFor(() =>
       expect(visibleText(container)).toContain("Nameless Geom"),
     );
-    // Compact mode renders the distance only when it is a finite number, so an
-    // absent position leaves the name standing alone with no placeholder.
+    // Compact mode renders the distance only when it is a finite number, so an absent position leaves the name standing alone with no placeholder.
     expect(visibleText(container)).toBe("TARGETNameless Geom");
   });
 });
@@ -317,8 +309,7 @@ describe("TargetPicker: a partial target.available entry", () => {
 
   it("renders the null placeholder for an entry with no distance and sorts it last", async () => {
     renderPicker(fixture);
-    // Emitted with the distanceless entry FIRST, so passing this means the sort
-    // moved it rather than the wire order happening to agree.
+    // Emitted with the distanceless entry FIRST, so passing this means the sort moved it rather than the wire order happening to agree.
     emitAvailable(fixture, [
       {
         kind: 0,
@@ -347,8 +338,7 @@ describe("TargetPicker: a partial target.available entry", () => {
       "Ranged VesselRelay · Orbiting800.0 m",
       "No Range Vessel",
     ]);
-    // The row itself still renders, with the placeholder where the range goes:
-    // an unknown distance is not a reason to hide a targetable.
+    // The row itself still renders, with the placeholder where the range goes: an unknown distance is not a reason to hide a targetable.
     expect(within(rows[1]).getByText(NULL_DISPLAY)).toBeTruthy();
   });
 
@@ -367,8 +357,7 @@ describe("TargetPicker: a partial target.available entry", () => {
     const rows = await screen.findAllByRole("button", {
       name: /^No Meta Vessel/,
     });
-    // `entrySubtitle` returns null when neither field resolves, so the row is
-    // one line: the subtitle element is absent, not empty.
+    // `entrySubtitle` returns null when neither field resolves, so the row is one line: the subtitle element is absent, not empty.
     for (const row of rows) {
       expect(visibleText(row)).toBe("No Meta Vessel500.0 m");
     }
@@ -400,8 +389,7 @@ describe("TargetPicker: the dispatch gates on an entry's id fields", () => {
     const rows = await screen.findAllByRole("button", { name: /^Ghost Body/ });
     await user.click(rows[0]);
 
-    // `if (entry.bodyIndex === undefined) return` fires: no command, and no
-    // pending spinner either, so the click leaves no trace at all.
+    // `if (entry.bodyIndex === undefined) return` fires: no command, and no pending spinner either, so the click leaves no trace at all.
     await waitFor(() => expect(fixture.transport.sentCommands).toHaveLength(0));
     expect(screen.queryByLabelText("Setting target")).toBeNull();
   });
@@ -418,8 +406,7 @@ describe("TargetPicker: the dispatch gates on an entry's id fields", () => {
     });
     await user.click(rows[0]);
 
-    // `if (!entry.vesselId) return` is a TRUTHINESS gate here, unlike the Body
-    // branch's `=== undefined`, so it also swallows an empty-string id.
+    // `if (!entry.vesselId) return` is a TRUTHINESS gate here, unlike the Body branch's `=== undefined`, so it also swallows an empty-string id.
     await waitFor(() => expect(fixture.transport.sentCommands).toHaveLength(0));
     expect(screen.queryByLabelText("Setting target")).toBeNull();
   });
@@ -450,8 +437,7 @@ describe("TargetPicker: the dispatch gates on an entry's id fields", () => {
     const rows = await screen.findAllByRole("button", { name: /^Null Body/ });
     await user.click(rows[0]);
 
-    // Nothing on the wire, and no spinner: the click is inert rather than
-    // optimistically pending against a command that could never land.
+    // Nothing on the wire, and no spinner: the click is inert rather than optimistically pending against a command that could never land.
     expect(fixture.transport.sentCommands).toHaveLength(0);
     expect(screen.queryAllByLabelText("Setting target")).toHaveLength(0);
   });

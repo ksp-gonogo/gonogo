@@ -14,8 +14,7 @@ function formatValue(value: unknown): string {
     return value.toFixed(2);
   }
   if (typeof value === "string") return value;
-  // Objects / arrays: explicit JSON rather than Object's default
-  // "[object Object]" stringify (S6551).
+  // Objects / arrays: explicit JSON rather than Object's default "[object Object]" stringify (S6551).
   return JSON.stringify(value);
 }
 

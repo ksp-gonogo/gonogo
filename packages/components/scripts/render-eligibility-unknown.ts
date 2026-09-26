@@ -96,8 +96,7 @@ const CONFIGS: WidgetRenderConfig[] = [
     slug: "strategies-eligibility-buckets",
     fixturesPath: "Strategies/__render_unknown__",
     outPath: "renders/eligibility-unknown/buckets",
-    // Whole content, because the claim here is that the three headings coexist
-    // and one of them below the fold would be the same as it not being there.
+    // Whole content, because the claim here is that the three headings coexist and one of them below the fold would be the same as it not being there.
     fullContent: true,
     modes: [
       { name: "buckets-9x14", w: 9, h: 14, forFixtures: ["2-three-buckets"] },

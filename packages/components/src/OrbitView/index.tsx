@@ -319,8 +319,7 @@ function OrbitViewComponent({
   const cols = w ?? 9;
   const rows = h ?? 18;
   const showDiagram = (rows >= 5 && cols >= 5) || (cols >= 8 && rows >= 3);
-  // Landscape gate: wide-short slots flow the layout horizontally so the
-  // diagram doesn't have to share vertical real estate with the header.
+  // Landscape gate: wide-short slots flow the layout horizontally so the diagram doesn't have to share vertical real estate with the header.
   const isLandscape = cols >= 8 && rows < 5;
   const showSubtitle = rows >= 4;
 
@@ -356,8 +355,7 @@ function OrbitViewComponent({
   const diagram = hasTrajectory ? (
     <OrbitDiagram
       variant="full"
-      // The seam's answer, drawn as given. `null` on the conic arm, where the
-      // diagram's own conic renderer is what the provider said is right.
+      // The seam's answer, drawn as given. `null` on the conic arm, where the diagram's own conic renderer is what the provider said is right.
       trajectoryPath={trajectory.shape === "arc" ? trajectory.points : null}
       trailPath={trail}
       trajectoryFarEnd={trajectory.shape === "arc" ? trajectory.farEnd : null}
@@ -392,8 +390,7 @@ function OrbitViewComponent({
   const overlayContext: OrbitOverlayContext | null =
     sma != null && eccentricity != null && periapsisR != null
       ? {
-          // The overlay slot is a DRAWING contract: an Uplink gets the same
-          // plot-space numbers the diagram itself works in.
+          // The overlay slot is a DRAWING contract: an Uplink gets the same plot-space numbers the diagram itself works in.
           sma: sma.magnitude,
           ecc: eccentricity.magnitude,
           apoapsis: apoapsisR ?? undefined,
@@ -562,8 +559,7 @@ function noOrbitSentence(declined: ReckoningDecline | undefined): string {
   const reason = declined.reason;
   switch (reason) {
     case "under-physics":
-      // The orbit exists; the craft is loaded, so its elements are osculating
-      // and there is no coast to draw.
+      // The orbit exists; the craft is loaded, so its elements are osculating and there is no coast to draw.
       return "No osculating orbit (packed)";
     case "input-absent":
     case "beyond-horizon":

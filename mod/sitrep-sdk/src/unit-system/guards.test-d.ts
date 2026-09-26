@@ -66,8 +66,7 @@ export function refusesTheUnnarrowed<U extends string>(
   return v;
 }
 
-// Each value needs its own proof, as with `unitGuard`: narrowing one and
-// returning another is still refused.
+// Each value needs its own proof, as with `unitGuard`: narrowing one and returning another is still refused.
 export function oneProofIsNotTwo<U extends string>(
   v: Value<UnknownUnit>,
   w: Value<UnknownUnit>,

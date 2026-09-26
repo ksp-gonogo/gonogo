@@ -97,8 +97,7 @@ describe("InFlightList", () => {
       const cxs = grads.map((g) => Number(g.getAttribute("cx")));
       // The lower-progress command sits left of the higher-progress one.
       expect(cxs[0]).toBeLessThan(cxs[1]);
-      // Every glow centres above the strip (cy < 0), so only the blur grazes
-      // the top edge and the disc itself is never visible.
+      // Every glow centres above the strip (cy < 0), so only the blur grazes the top edge and the disc itself is never visible.
       for (const g of grads) {
         expect(Number(g.getAttribute("cy"))).toBeLessThan(0);
       }
@@ -280,16 +279,14 @@ describe("signalDelayPresentation", () => {
   });
 
   it("gives a read-only viewer neither reading at a long delay", () => {
-    // It dispatches nothing, so there is no queue to draw, and a standing badge
-    // would quote a cost it never pays.
+    // It dispatches nothing, so there is no queue to draw, and a standing badge would quote a cost it never pays.
     expect(
       signalDelayPresentation({ oneWaySeconds: 240, canQueue: false }),
     ).toBe("none");
   });
 
   it("badges at any magnitude when the console cannot queue at all", () => {
-    // Character-mode terminal: every keystroke goes on its own, so there is no
-    // composed line for a strip to list however far away the craft is.
+    // Character-mode terminal: every keystroke goes on its own, so there is no composed line for a strip to list however far away the craft is.
     expect(
       signalDelayPresentation({
         oneWaySeconds: 240,

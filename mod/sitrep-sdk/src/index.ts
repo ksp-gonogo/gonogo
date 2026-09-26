@@ -38,8 +38,7 @@ export {
   type SubscriptionTopicResolver,
 } from "./carried-channels";
 export { parseServerMessage } from "./client";
-// The read contract: `useTelemetry` answers with a `Reading`, so the union and
-// its accessors ship on the author surface rather than app-side.
+// The read contract: `useTelemetry` answers with a `Reading`, so the union and its accessors ship on the author surface rather than app-side.
 export * from "./combine-readings";
 // Pure delayed-command derivations. Published because delay is ambient: an
 // Uplink rendering its own command surface needs the same mode/phase vocabulary
@@ -236,8 +235,7 @@ export type {
   UnitHint,
 } from "./flight/types";
 export * from "./ksp-enum-names";
-// The magnitude unwrap, beside `Value` because that is what it unwraps.
-// ui-kit re-exports these three, so no call site moved.
+// The magnitude unwrap, beside `Value` because that is what it unwraps. ui-kit re-exports these three, so no call site moved.
 export {
   asQuantityish,
   magnitudeOf,
@@ -325,8 +323,7 @@ export {
   withinAtmosphere,
 } from "./spine/atmospheric-reckoning";
 // ---------------------------------------------------------------------------
-// SHARED PROCESSORS: the handles, their result types, and the pure derivations
-// behind them.
+// SHARED PROCESSORS: the handles, their result types, and the pure derivations behind them.
 //
 // Published from the ROOT barrel rather than only from `./spine`, because the
 // root barrel is the whole of what an Uplink may import, and a Processor nobody
@@ -368,8 +365,7 @@ export {
   solveAnomalies,
 } from "./spine/kepler";
 // ---------------------------------------------------------------------------
-// THE CONIC: the one two-body propagator in this repo, and the guard that says
-// where it stops holding.
+// THE CONIC: the one two-body propagator in this repo, and the guard that says where it stops holding.
 //
 // Published from the ROOT barrel because a registered reckoner is only a real
 // extension point if an author can reach what core reaches. Every one of these

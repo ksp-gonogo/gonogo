@@ -193,8 +193,7 @@ function parseSheet(
     else if (c === ")") paren = Math.max(0, paren - 1);
     if (paren > 0) continue;
     if (c === "{") {
-      // A fragment slot on its own line ahead of a selector is a declaration
-      // of the enclosing rule, not part of the selector.
+      // A fragment slot on its own line ahead of a selector is a declaration of the enclosing rule, not part of the selector.
       const lead = /^\s*\u27e6\d+\u27e7[ \t]*;?[ \t]*\n(?=\s*\S)/.exec(
         css.slice(start, i),
       );
@@ -754,8 +753,7 @@ export function scanTokenUses(srcRoot: string): TokenScan {
       return null;
     };
 
-    // A styled component with no ground of its own sits on whatever its JSX
-    // parents in this file paint; rendered nowhere here, it sits on the panel.
+    // A styled component with no ground of its own sits on whatever its JSX parents in this file paint; rendered nowhere here, it sits on the panel.
     const rootOf = new Map<Block, Sheet>();
     const byComponent = new Map<string, Sheet>();
     for (const sh of sheets) {
@@ -910,8 +908,7 @@ export function scanTokenUses(srcRoot: string): TokenScan {
             continue;
           }
           if (BACKGROUND_PROPERTIES.has(prop)) {
-            // A fill under the box's own text is its ground; a status fill with
-            // no text of its own is a mark on what is outside the box.
+            // A fill under the box's own text is its ground; a status fill with no text of its own is a mark on what is outside the box.
             const text = boxText(b);
             for (const t of tokens) {
               const ground =

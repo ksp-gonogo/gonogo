@@ -48,8 +48,7 @@ function render(ui: ReactElement) {
 
 const auxSources: MockDataSourceFixture[] = [];
 
-// `useDataSeries("data", ...)` backs the sparkline, so the legacy aux source has
-// to exist for the same reason the sibling stream tests stand it up.
+// `useDataSeries("data", ...)` backs the sparkline, so the legacy aux source has to exist for the same reason the sibling stream tests stand it up.
 async function legacyAux(): Promise<void> {
   auxSources.push(
     await setupMockDataSource({ id: "data", keys: [], connectSource: true }),
@@ -128,8 +127,7 @@ describe("PowerSystems: what undefined means today", () => {
     expect(screen.queryByText("PROD")).toBeNull();
     expect(screen.queryByText("CONS")).toBeNull();
     expect(screen.queryByText("Producers")).toBeNull();
-    // The resource picker is part of the suppressed board, so the operator
-    // cannot even change resource while the topology is missing.
+    // The resource picker is part of the suppressed board, so the operator cannot even change resource while the topology is missing.
     expect(screen.queryByRole("combobox", { name: "Resource" })).toBeNull();
   });
 
@@ -192,8 +190,7 @@ describe("PowerSystems: what undefined means today", () => {
     expect(
       screen.getByText(/Deploy a solar panel, run a generator/),
     ).toBeTruthy();
-    // Storage exists and is still not shown: the STORED cell lives on the
-    // suppressed board.
+    // Storage exists and is still not shown: the STORED cell lives on the suppressed board.
     expect(screen.queryByText("STORED")).toBeNull();
     expect(screen.queryByText("NET")).toBeNull();
   });
@@ -287,8 +284,7 @@ describe("PowerSystems: what undefined means today", () => {
     expect(screen.getByTitle("No flow reading for this part")).toBeTruthy();
     // And no efficiency, because there is no measurement to take a fraction of.
     expect(screen.queryByTitle(/of nominal/)).toBeNull();
-    // The idle row contributes nothing to the totals, so NET still reads the
-    // one real producer.
+    // The idle row contributes nothing to the totals, so NET still reads the one real producer.
     expect(visibleText()).toContain("+5.00/s");
   });
 });

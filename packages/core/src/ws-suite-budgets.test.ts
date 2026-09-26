@@ -59,8 +59,7 @@ const SUGGESTED: Record<string, string> = {
   Timeout: "TestBudgets.Op",
   TickTimeout: "TestBudgets.Op",
   Quiet: "TestBudgets.Quiet",
-  // CommandRefusalTests' window: every refusal exit sets Done before the call
-  // returns, so it bounds a dispatch completing, not a stretch of silence.
+  // CommandRefusalTests' window: every refusal exit sets Done before the call returns, so it bounds a dispatch completing, not a stretch of silence.
   SettleWindow: "TestBudgets.Op",
   ReaderPollTimeout: "TestBudgets.ReaderPoll",
   FinalDrainDelay: "TestBudgets.FinalDrain",
@@ -153,8 +152,7 @@ const sources = suiteSources();
 
 describe("the WS integration suite takes its deadlines from TestBudgets", () => {
   it("reads the suite at all, so an empty walk cannot pass for clean", () => {
-    // Every assertion below is `toEqual([])`, and a walk that matched nothing
-    // satisfies all of them.
+    // Every assertion below is `toEqual([])`, and a walk that matched nothing satisfies all of them.
     expect(sources.length).toBeGreaterThan(30);
     expect(sources.map((s) => s.path)).toContain(DECLARATION);
   });
@@ -263,8 +261,7 @@ describe("the WS integration suite takes its deadlines from TestBudgets", () => 
       ).toEqual([]);
     }
 
-    // A field nobody named, which is the case the first draft's name list
-    // could not have caught.
+    // A field nobody named, which is the case the first draft's name list could not have caught.
     expect(
       literalBudgets(
         "private static readonly TimeSpan SomeNewWindow = TimeSpan.FromMilliseconds(250);",

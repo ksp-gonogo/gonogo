@@ -208,8 +208,7 @@ function BurnAxisBar({
         position: "relative",
         height: "var(--size-burn-axis)",
         marginInlineStart: "var(--indent-burn-axis)",
-        // No padding here on purpose: see MARK_HALF_EXTENT for why padding
-        // cannot do this job.
+        // No padding here on purpose: see MARK_HALF_EXTENT for why padding cannot do this job.
       }}
     >
       <span
@@ -249,12 +248,10 @@ function BurnAxisBar({
             width: "var(--size-burn-mark)",
             height: "var(--size-burn-mark)",
             background: KIND_COLOUR[mark.kind],
-            // --radius-circle, never a hand-computed 50%: the token exists so a
-            // circle stays a circle if the mark size ever changes.
+            // --radius-circle, never a hand-computed 50%: the token exists so a circle stays a circle if the mark size ever changes.
             borderRadius:
               KIND_MARK[mark.kind] === "round" ? "var(--radius-circle)" : 0,
-            // Centred on its own position, so the inset arithmetic below is
-            // about the TRACK and never about which shape is being drawn.
+            // Centred on its own position, so the inset arithmetic below is about the TRACK and never about which shape is being drawn.
             transform:
               KIND_MARK[mark.kind] === "diamond"
                 ? "translate(-50%, -50%) rotate(45deg)"

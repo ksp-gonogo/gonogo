@@ -161,8 +161,7 @@ function parseAnalog(
     if (typeof raw.min === "number") min = raw.min;
     if (typeof raw.max === "number") max = raw.max;
   } else if (typeof raw === "number") {
-    // Short-form: `"X": 100` with no min/max, only works if the analog
-    // has been declared in a previous tick (`known` has them).
+    // Short-form: `"X": 100` with no min/max, only works if the analog has been declared in a previous tick (`known` has them).
     val = raw;
   }
 
@@ -178,8 +177,7 @@ function parseAnalog(
   }
 
   if (val === undefined || !haveRange || max === min) {
-    // Spell out why this analog produced no event so the user can tell
-    // "device sent nothing" from "device sent something but I dropped it".
+    // Spell out why this analog produced no event so the user can tell "device sent nothing" from "device sent something but I dropped it".
     const reason =
       val === undefined
         ? "no-value"

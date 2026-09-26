@@ -39,8 +39,7 @@ describe("InFlightList density", () => {
     render(
       <InFlightList items={ITEMS} density="badge" ariaLabel="Warp queue" />,
     );
-    // 95s is nearer than 160s, and the nearest arrival is the fact that
-    // changes what the operator does next.
+    // 95s is nearer than 160s, and the nearest arrival is the fact that changes what the operator does next.
     expect(
       screen.getByLabelText(/Warp queue: 2 in flight, next in/),
     ).toBeInTheDocument();

@@ -107,8 +107,7 @@ function mount(fixture: Fixture, w = 12, h = 14): StreamFixture {
 
 describe.each(NAMES)("ScienceData probe fixture: %s", (name) => {
   it("emits only channels that are real Topics", () => {
-    // A typo'd channel is silently ignored by the transport, which is exactly
-    // how a fixture ends up feeding nothing at all.
+    // A typo'd channel is silently ignored by the transport, which is exactly how a fixture ends up feeding nothing at all.
     const stream = load(name)._stream;
     expect(stream).toBeDefined();
     // Guard the guard: a mis-parsed list would pass everything.
@@ -122,8 +121,7 @@ describe.each(NAMES)("ScienceData probe fixture: %s", (name) => {
   });
 
   it("carries every channel it emits", () => {
-    // An emit on an uncarried channel is dropped: the fixture would look
-    // complete on disk and still render nothing.
+    // An emit on an uncarried channel is dropped: the fixture would look complete on disk and still render nothing.
     const stream = load(name)._stream;
     const carried = new Set(stream?.carriedChannels ?? []);
     for (const emit of stream?.emits ?? []) {
@@ -134,8 +132,7 @@ describe.each(NAMES)("ScienceData probe fixture: %s", (name) => {
   });
 
   it("keeps its stream half and its legacy half telling the same story", () => {
-    // Both halves are in the file; if they drift, the probe and any
-    // legacy-key consumer disagree about what this fixture depicts.
+    // Both halves are in the file; if they drift, the probe and any legacy-key consumer disagree about what this fixture depicts.
     const d = load(name);
     const byChannel = new Map(
       (d._stream?.emits ?? []).map((e) => [e.channel, e.value]),
@@ -167,8 +164,7 @@ describe.each(NAMES)("ScienceData probe fixture: %s", (name) => {
 
 describe("ScienceData probe fixtures, read against the widget", () => {
   it("shows the flight fixture's situation line from its identity emit", async () => {
-    // Proves the situation line resolves from what the fixture emits, rather
-    // than the widget falling back to its awaiting-telemetry placeholder.
+    // Proves the situation line resolves from what the fixture emits, rather than the widget falling back to its awaiting-telemetry placeholder.
     mount(load("kerbin-flight-partial-science"));
     await waitFor(() =>
       expect(
@@ -179,8 +175,7 @@ describe("ScienceData probe fixtures, read against the widget", () => {
 
   it("groups the archive fixture by body and experiment", async () => {
     mount(load("career-archive-multi-body"));
-    // Same move the render script makes: Archive is the second tab, and this
-    // fixture exists to depict it.
+    // Same move the render script makes: Archive is the second tab, and this fixture exists to depict it.
     await userEvent.click(screen.getByRole("tab", { name: "Archive" }));
     await waitFor(() =>
       expect(

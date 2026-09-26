@@ -121,8 +121,7 @@ export interface PowerSystemsScope {
   resource: string;
 }
 
-// Declaration-merge into core's registries, co-located here so parallel slot
-// work on other widgets never collides on a shared central file.
+// Declaration-merge into core's registries, co-located here so parallel slot work on other widgets never collides on a shared central file.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     // Mounted by `Panel`'s universal `sections` segment rather than by this
@@ -314,8 +313,7 @@ function PowerSystemsComponent({
         ),
     [contributions],
   );
-  // Single source of truth for PROD/NET: the itemized rows below, always,
-  // see the doc comment on `streamPower` above.
+  // Single source of truth for PROD/NET: the itemized rows below, always, see the doc comment on `streamPower` above.
   const totalProduced = producers.reduce((s, c) => s + c.flow, 0);
   const totalConsumed = consumers.reduce((s, c) => s + c.flow, 0);
   const net = totalProduced + totalConsumed;
@@ -685,8 +683,7 @@ function ContributionRow({
   // "actively producing". Neutral colour communicates "idle" honestly.
   const sign: "pos" | "neg" | "zero" =
     Math.abs(flow) < 1e-9 ? "zero" : flow > 0 ? "pos" : "neg";
-  // No efficiency without a measurement: "0% of nominal" computed from a flow
-  // that never arrived states a fraction nobody measured.
+  // No efficiency without a measurement: "0% of nominal" computed from a flow that never arrived states a fraction nobody measured.
   const eff =
     flowKnown && typeof nominalFlow === "number" && Math.abs(nominalFlow) > 1e-9
       ? Math.abs(flow / nominalFlow)

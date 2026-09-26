@@ -29,8 +29,7 @@ const VESSEL_PARTS_WIRE = topologyToVesselPartsWire(TOPOLOGY);
 // to unmount first.
 const renderedTrees: Array<() => void> = [];
 
-// Drive the widget to its diagram layout (topology present with parts), where
-// the `overlay` diagram slot renders.
+// Drive the widget to its diagram layout (topology present with parts), where the `overlay` diagram slot renders.
 async function renderDiagram() {
   const fixture = setupStreamFixture({
     carriedChannels: ["vessel.parts"],
@@ -99,8 +98,7 @@ describe("ShipMap: augment slots (spec §4)", () => {
     });
 
     const overlay = await screen.findByTestId("ship-map-overlay-augment");
-    // The slot passed the diagram's base-frame projection down:
-    // the fixture's part count, the measured canvas size, a positive scale.
+    // The slot passed the diagram's base-frame projection down: the fixture's part count, the measured canvas size, a positive scale.
     expect(visibleText(overlay)).toContain(`${TOPOLOGY.parts.length}|`);
     expect(visibleText(overlay)).toContain("scaled");
   });

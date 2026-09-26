@@ -336,8 +336,7 @@ describe("Tabs expandWhenRoomy", () => {
     const { rerender } = render(
       <Tabs tabs={TABS} activeId="one" onChange={() => undefined} />,
     );
-    // Unnamed is the default and stays that way: a name nobody asked for would
-    // be one more thing read aloud on every screen that has only one strip.
+    // Unnamed is the default and stays that way: a name nobody asked for would be one more thing read aloud on every screen that has only one strip.
     expect(screen.getByRole("tablist")).not.toHaveAttribute("aria-label");
 
     rerender(

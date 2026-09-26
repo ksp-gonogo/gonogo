@@ -109,8 +109,7 @@ const SKIP_DIR_PATTERN = /\.(Tests|IntegrationTests)$/;
 // that's what keeps this a ratchet and not just a snapshot.
 // ---------------------------------------------------------------------
 const ALLOWED_TRUENOW: Record<string, number> = {
-  // spaceCenter.scene: which screen the game is showing, a session fact held
-  // nowhere, same class as time.warp.
+  // spaceCenter.scene: which screen the game is showing, a session fact held nowhere, same class as time.warp.
   //
   // The other six (launch sites, crew roster, saved craft, parts available,
   // POIs, the Astronaut Complex) LEFT this list and are HeldAtHome: the space
@@ -340,7 +339,6 @@ describe("TrueNow allowlist: delay-bypassing channels are a reviewed, ratcheted 
 
     expect(newOrChangedFiles).toEqual([]);
     expect(staleFiles).toEqual([]);
-    // Walks all of mod/; under concurrent core-suite load this can exceed
-    // vitest's 5s default (it runs alongside uplink-boundary's repo walk).
+    // Walks all of mod/; under concurrent core-suite load this can exceed vitest's 5s default (it runs alongside uplink-boundary's repo walk).
   }, 30_000);
 });

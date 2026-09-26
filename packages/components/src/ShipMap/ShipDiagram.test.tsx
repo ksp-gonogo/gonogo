@@ -150,8 +150,7 @@ describe("ShipDiagram", () => {
     // rects = 4 inner rects with the resource-fill role. The engine has no
     // contributed meters, so no extra bars from it.
     //
-    // Test the structural invariant rather than count: at least one
-    // fill-bar group exists, and engine groups have none.
+    // Test the structural invariant rather than count: at least one fill-bar group exists, and engine groups have none.
     const fillGroups = container.querySelectorAll('g[pointer-events="none"]');
     expect(fillGroups.length).toBeGreaterThan(0);
   });
@@ -248,8 +247,7 @@ describe("ShipDiagram", () => {
       />,
     );
 
-    // Focusing a part's group triggers the same hover state a pointer would
-    // (ShipDiagramSvg's onFocus calls onPartHover too).
+    // Focusing a part's group triggers the same hover state a pointer would (ShipDiagramSvg's onFocus calls onPartHover too).
     fireEvent.focus(screen.getByLabelText(/FL-T400 Fuel Tank/));
 
     /*

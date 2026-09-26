@@ -36,8 +36,7 @@ function mount(
   instanceId: string,
   size: { w: number; h: number } = { w: 5, h: 6 },
 ) {
-  // w=5,h=6 clears the subtitle and sparkline size gates, so anything missing
-  // below is missing for a currency reason rather than a layout one.
+  // w=5,h=6 clears the subtitle and sparkline size gates, so anything missing below is missing for a currency reason rather than a layout one.
   const { container, unmount } = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId }}>
@@ -99,15 +98,13 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
     await waitFor(() =>
       expect(visibleText(container)).toContain("at last contact"),
     );
-    // The number survives: this widget dates its readout instead of withholding
-    // it, and losing the figure would be losing the widget.
+    // The number survives: this widget dates its readout instead of withholding it, and losing the figure would be losing the widget.
     expect(visibleText(container)).toContain("675.0 km");
     // The age is what makes the caveat actionable: "at last contact" alone does
     // not say whether the link went quiet a second ago or a minute ago. Emitted
     // at UT 0 against a view clock pinned at 10.
     expect(visibleText(container)).toMatch(/at last contact, .*10s ago/);
-    // Said out loud, not just coloured: the mute on the number is a glance-level
-    // hint and a screen reader cannot see it.
+    // Said out loud, not just coloured: the mute on the number is a glance-level hint and a screen reader cannot see it.
     expect(
       screen
         .getAllByRole("status")
@@ -138,8 +135,7 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
   });
 
   it("leaves the held mark alone to say it at 3x3, where the age has no room", async () => {
-    // A 3x3 body holds the figure and nothing under it, and a caption drawn
-    // there is cut off by the cell rather than read.
+    // A 3x3 body holds the figure and nothing under it, and a caption drawn there is cut off by the cell rather than read.
     const fixture = newFixture();
     const container = mount(fixture, "sma-stale-tiny", { w: 3, h: 3 });
     emitOrbit(fixture);

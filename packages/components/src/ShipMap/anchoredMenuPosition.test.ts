@@ -37,8 +37,7 @@ describe("anchoredMenuPosition", () => {
   });
 
   it("keeps an unmeasured menu at the anchor", () => {
-    // The first render happens before the menu can be measured; a zero box must
-    // resolve to the plain anchor offset rather than to some clamped corner.
+    // The first render happens before the menu can be measured; a zero box must resolve to the plain anchor offset rather than to some clamped corner.
     expect(
       anchoredMenuPosition({ x: 300, y: 300 }, { w: 0, h: 0 }, VIEWPORT),
     ).toEqual({ left: 312, top: 312 });

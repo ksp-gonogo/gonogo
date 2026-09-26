@@ -125,8 +125,7 @@ describe("a per-topic model, expressed per field", () => {
   });
 
   it("still declines the whole-topic read, because the model does not cover the payload", () => {
-    // The guard on the above: a model that reaches one field must not become a
-    // licence to stamp its basis on the record it happens to be part of.
+    // The guard on the above: a model that reaches one field must not become a licence to stamp its basis on the record it happens to be part of.
     const wall = fakeWall();
     const store = predictedStore(wall);
     registerPositionOnlyModel();

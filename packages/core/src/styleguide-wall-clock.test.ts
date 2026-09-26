@@ -51,8 +51,7 @@ const WALL_CLOCK = /(?<![.\w])(?:Date\.now|performance\.now)\s*\(\s*\)/g;
 const BARE_NEW_DATE = /new Date\s*\(\s*\)/g;
 
 const SCAN_EXTENSION = /\.tsx?$/;
-// `__generated__` holds codegen output (an Uplink's `contract.ts`), which no
-// human writes and no reviewer would fix here.
+// `__generated__` holds codegen output (an Uplink's `contract.ts`), which no human writes and no reviewer would fix here.
 const SKIP_DIRS = new Set([
   "node_modules",
   "dist",

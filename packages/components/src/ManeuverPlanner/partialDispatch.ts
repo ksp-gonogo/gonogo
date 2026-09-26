@@ -24,8 +24,7 @@ export function describePartialDispatch(args: {
   reason: string;
 }): string {
   const { dispatched, total, reason } = args;
-  // A single-burn plan needs no arithmetic: nothing landed and nothing was abandoned,
-  // so "0 of 1 burns dispatched" is noise in front of the only fact there is.
+  // A single-burn plan needs no arithmetic: nothing landed and nothing was abandoned, so "0 of 1 burns dispatched" is noise in front of the only fact there is.
   if (total <= 1) return reason;
   return `${dispatched} of ${total} burns dispatched. Burn ${dispatched + 1} failed: ${reason}`;
 }

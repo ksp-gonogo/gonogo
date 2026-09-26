@@ -150,8 +150,7 @@ describe("KeyboardTransport", () => {
     });
 
     it("still emits for the same key pressed outside any text field", () => {
-      // The counterweight to the three above: without it they would pass just
-      // as happily if the transport emitted nothing at all.
+      // The counterweight to the three above: without it they would pass just as happily if the transport emitted nothing at all.
       const div = document.createElement("div");
       document.body.append(div);
 
@@ -199,8 +198,7 @@ describe("KeyboardTransport", () => {
     });
 
     it("emits a bare modifier, which is a key press and not a chord", () => {
-      // The browser reports the modifier's own flag on its own keydown, so
-      // this is exactly the case the rule above must not swallow.
+      // The browser reports the modifier's own flag on its own keydown, so this is exactly the case the rule above must not swallow.
       press(window, "ControlLeft", { ctrlKey: true });
       release(window, "ControlLeft", { ctrlKey: false });
 

@@ -239,8 +239,7 @@ describe("the Uplink CI matrix covers every Uplink", () => {
       return Array.isArray(manifest.gonogo?.renderWith);
     });
 
-    // Which clients declare a render host, read off git's list of manifests
-    // rather than the matrix, so an empty answer is checked rather than trusted.
+    // Which clients declare a render host, read off git's list of manifests rather than the matrix, so an empty answer is checked rather than trusted.
     const declaringByGit = trackedClients().filter((id) =>
       Array.isArray(
         JSON.parse(

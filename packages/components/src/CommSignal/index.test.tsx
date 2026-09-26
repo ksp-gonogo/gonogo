@@ -18,8 +18,7 @@ import { CommSignalComponent } from "./index";
  * `fixture.emit`.
  */
 
-// `Sitrep.Contract.ControlState` ordinals (`CONTROL_STATE_NAMES`):
-// 4 = Full (name "Full", collapsed level 2), 0 = None (name "None", level 0).
+// `Sitrep.Contract.ControlState` ordinals (`CONTROL_STATE_NAMES`): 4 = Full (name "Full", collapsed level 2), 0 = None (name "None", level 0).
 const CONTROL_STATE_FULL = 4;
 const CONTROL_STATE_NONE = 0;
 

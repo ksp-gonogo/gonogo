@@ -127,8 +127,7 @@ describe("a passive read after the last holder lets go", () => {
   it("keeps returning the last payload, however far the view time moves on", async () => {
     const { view, send } = await holdThenRelease();
 
-    // Other traffic keeps arriving and carries the view hours past the
-    // reading, so the store mints fresh frames the whole time.
+    // Other traffic keeps arriving and carries the view hours past the reading, so the store mints fresh frames the whole time.
     for (const validAt of [20, 600, 36_000]) {
       await act(async () => {
         send(

@@ -122,8 +122,7 @@ export function AboardTab({
   // detail row: dead vertical space and a rule under each one. A stock save
   // gets the plain table instead.
   const slotFilled = getAugmentsForSlot("science-data.aboard-row").length > 0;
-  // Searchable text is the subject plus where it was taken, which is what an
-  // operator types when hunting a row: "goo", "grasslands", "flying".
+  // Searchable text is the subject plus where it was taken, which is what an operator types when hunting a row: "goo", "grasslands", "flying".
   const filter = useRowFilter({ placeholder: "Filter subjects..." });
   const shownBreakdown = (breakdown ?? []).filter((b) =>
     filter.matches(`${b.expTitle} ${b.biome} ${b.situation}`),
@@ -177,8 +176,7 @@ export function AboardTab({
             columns={BREAKDOWN_COLUMNS}
             rows={shownBreakdown}
             rowKey={(b) => b.subjectId}
-            // The File Manager's controls land here, full width beneath their
-            // own row, so a bound augment cannot disturb the columns above it.
+            // The File Manager's controls land here, full width beneath their own row, so a bound augment cannot disturb the columns above it.
             rowDetail={
               slotFilled
                 ? (b) => (

@@ -159,8 +159,7 @@ describe("a reading carries the band its model offered", () => {
           return {
             "": {
               value: value("m", v),
-              // Asymmetric on purpose: a model that is wrong in one direction
-              // more than the other is the case the type exists for.
+              // Asymmetric on purpose: a model that is wrong in one direction more than the other is the case the type exists for.
               lo: value("m", v - spread),
               hi: value("m", v + spread * 3),
               kind: "sigma1",

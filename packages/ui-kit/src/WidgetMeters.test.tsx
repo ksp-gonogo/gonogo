@@ -118,8 +118,7 @@ describe("WidgetMeters", () => {
   });
 
   it("keeps a row-addressed meter OUT of a whole-widget stack", () => {
-    // Otherwise a host that forgot to name a row would silently pool every
-    // kerbal's meters into the body, attributed to nobody.
+    // Otherwise a host that forgot to name a row would silently pool every kerbal's meters into the body, attributed to nobody.
     render(
       <WithMeters entries={[DOSE, VESSEL_WIDE]}>
         <WidgetMeters />

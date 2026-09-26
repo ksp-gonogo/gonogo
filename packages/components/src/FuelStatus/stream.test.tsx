@@ -52,13 +52,11 @@ describe("FuelStatus: genuinely runs off the stream (M3 batch 1 + P4a dv.* migra
       </fixture.Provider>,
     );
 
-    // Nothing arrived yet: every mapped/gapped key is undefined, so no
-    // resource row or stage subtitle has anything to render.
+    // Nothing arrived yet: every mapped/gapped key is undefined, so no resource row or stage subtitle has anything to render.
     expect(screen.getByText("FUEL · ΔV")).toBeTruthy();
     expect(screen.queryByText(/^Stage /)).not.toBeInTheDocument();
 
-    // A real subscription must have happened for this to deliver at all,
-    // StubTransport.emit is subscription-gated (see its own doc comment).
+    // A real subscription must have happened for this to deliver at all, StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.structure")).toBe(true);
     expect(fixture.transport.isSubscribed("vessel.resources")).toBe(true);
 

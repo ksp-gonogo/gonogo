@@ -97,8 +97,7 @@ export function FlightGraph({
   const options: KeyOption[] = useMemo(() => {
     return (
       schema
-        // Same magnitude requirement as a live graph axis, and the same shared
-        // predicate: a recorded flag or enum cannot be plotted either.
+        // Same magnitude requirement as a live graph axis, and the same shared predicate: a recorded flag or enum cannot be plotted either.
         .filter(isThresholdSubject)
         .map((k) => ({
           key: k.key,

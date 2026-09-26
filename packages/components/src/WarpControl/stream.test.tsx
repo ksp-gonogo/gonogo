@@ -47,8 +47,7 @@ describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
     // Nothing arrived yet: the rate readout is the loading placeholder.
     expect(screen.getByText(NULL_DISPLAY)).toBeTruthy();
 
-    // A real subscription must have happened for this to deliver at all,
-    // StubTransport.emit is subscription-gated (see its own doc comment).
+    // A real subscription must have happened for this to deliver at all, StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("time.warp")).toBe(true);
 
     act(() => {

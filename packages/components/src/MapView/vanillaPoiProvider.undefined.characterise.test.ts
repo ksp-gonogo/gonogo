@@ -131,8 +131,7 @@ describe("vanillaPoiProvider: what undefined telemetry means today", () => {
   it("a system.bodies entry with no name is dropped from the index, taking its POIs with it", async () => {
     const { result, fixture } = renderPois("Kerbin");
     act(() => {
-      // Body 1 arrived without a name, body 2 named. `if (body.name != null)`
-      // silently skips the first, so its POI can never match any bodyId.
+      // Body 1 arrived without a name, body 2 named. `if (body.name != null)` silently skips the first, so its POI can never match any bodyId.
       fixture.emit("system.bodies", {
         bodies: [{ index: 1 }, { index: 2, name: "Mun" }],
       });
@@ -242,8 +241,7 @@ describe("vanillaPoiProvider: what undefined telemetry means today", () => {
     });
     await flushFrames();
 
-    // `entry.bodyIndex != null` in the filter: an unplaceable POI reads as
-    // "not on this body" rather than as an error or a warning.
+    // `entry.bodyIndex != null` in the filter: an unplaceable POI reads as "not on this body" rather than as an error or a warning.
     expect(result.current).toEqual([]);
   });
 

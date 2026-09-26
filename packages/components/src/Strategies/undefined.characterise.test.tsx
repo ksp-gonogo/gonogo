@@ -26,8 +26,7 @@ import { StrategiesComponent } from "./index";
  * The second one is a fail-open. It is pinned here as observed behaviour.
  */
 
-// Unmount before clearing the action-handler registry: clearing against a live
-// tree is a state update outside act(), and RTL auto-cleanup runs too late.
+// Unmount before clearing the action-handler registry: clearing against a live tree is a state update outside act(), and RTL auto-cleanup runs too late.
 const renderedTrees: Array<() => void> = [];
 
 afterEach(() => {
@@ -105,13 +104,11 @@ describe("Strategies: nothing has arrived at all", () => {
     expect(screen.getByText("Strategies")).toBeInTheDocument();
     expect(screen.getByText(/Awaiting career data\.\.\./)).toBeInTheDocument();
     expect(screen.queryByText("Admin Building")).toBeNull();
-    // None of the loaded chrome exists: no sections, no funds tally, no
-    // Activate control.
+    // None of the loaded chrome exists: no sections, no funds tally, no Activate control.
     expect(screen.queryByLabelText("Active")).toBeNull();
     expect(screen.queryByLabelText("Available")).toBeNull();
     expect(screen.queryByRole("button", { name: "Activate" })).toBeNull();
-    // The loaded header always renders three balance tallies (dashed when the
-    // figures are missing); none of them exist on this branch.
+    // The loaded header always renders three balance tallies (dashed when the figures are missing); none of them exist on this branch.
     expect(screen.queryAllByText(NULL_DISPLAY)).toHaveLength(0);
     expect(visibleText()).toBe("StrategiesAwaiting career data...");
   });
@@ -138,8 +135,7 @@ describe("Strategies: the `strategies === null` absence gate", () => {
       strategies: { active: [], all: [], activeCount: 0 },
     });
 
-    // An empty array parses to `[]`, not `null`: the gate stops firing, the
-    // title changes, and the widget states "none available" with confidence.
+    // An empty array parses to `[]`, not `null`: the gate stops firing, the title changes, and the widget states "none available" with confidence.
     await waitFor(() =>
       expect(screen.getByText("Admin Building")).toBeInTheDocument(),
     );
@@ -162,8 +158,7 @@ describe("Strategies: the `strategies === null` absence gate", () => {
 
     await screen.findByText("career.status: observed");
     expect(screen.getByText(/Awaiting career data/)).toBeInTheDocument();
-    // The funds the payload DID carry are thrown away with the rest, even
-    // though this widget is required to keep a balance on screen.
+    // The funds the payload DID carry are thrown away with the rest, even though this widget is required to keep a balance on screen.
     expect(visibleText()).not.toContain("289,848");
   });
 
@@ -241,8 +236,7 @@ describe("Strategies: an absent balance beside a present strategy list", () => {
     await waitFor(() =>
       expect(screen.getByText("Expensive Gamble")).toBeInTheDocument(),
     );
-    // An unknown balance cannot cover the cost, and it reads through the same
-    // tooltip a genuinely short balance produces.
+    // An unknown balance cannot cover the cost, and it reads through the same tooltip a genuinely short balance produces.
     const activate = screen.getByRole("button", { name: "Activate" });
     expect(activate).toBeDisabled();
     expect(activate).toHaveAttribute(
@@ -260,8 +254,7 @@ describe("Strategies: an absent balance beside a present strategy list", () => {
       strategies: { active: [], all: [EXPENSIVE], activeCount: 0 },
     });
 
-    // The other side of the same gate, proving the test above records an
-    // absence rather than a button that is always enabled.
+    // The other side of the same gate, proving the test above records an absence rather than a button that is always enabled.
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Activate" })).toBeDisabled(),
     );

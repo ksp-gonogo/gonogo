@@ -1,8 +1,7 @@
 import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
 import { stockFacilityEntries } from "./facilities";
 
-// The widget's own reading of `career.facilities`, contributed into the widget's
-// own grid at priority 0.
+// The widget's own reading of `career.facilities`, contributed into the widget's own grid at priority 0.
 //
 // It is here rather than read straight out of the component for one reason: at
 // priority 0 it is the band every ordinary contribution outranks, so a career

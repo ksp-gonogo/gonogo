@@ -132,8 +132,7 @@ describe("sitrep delayed comms end-to-end (M3)", () => {
     expect(screen.getByText("phase:idle")).toBeTruthy();
     fireEvent.click(screen.getByText("deploy"));
 
-    // In-flight immediately after dispatch, carrying the transport's
-    // predicted etaConfirm: now (0) + roundTripEta (2 * delay 2 = 4).
+    // In-flight immediately after dispatch, carrying the transport's predicted etaConfirm: now (0) + roundTripEta (2 * delay 2 = 4).
     expect(screen.getByText("phase:in-flight")).toBeTruthy();
     expect(screen.getByText("eta:4")).toBeTruthy();
 

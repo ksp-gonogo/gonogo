@@ -95,8 +95,7 @@ export type _ResolvesSystemVessels = Expect<
 // place and for the same reason as every other relocated Topic's.
 
 // ── No Topic resolves to `unknown` (the whole point of P0.5) ────────────────────────
-// Same construction as topics.ts's `_AssertNoTopicResolvesToUnknown`, asserted here too
-// so a regression is caught even if the compile-time assert in topics.ts is refactored.
+// Same construction as topics.ts's `_AssertNoTopicResolvesToUnknown`, asserted here too so a regression is caught even if the compile-time assert in topics.ts is refactored.
 type IsAny<T> = 0 extends 1 & T ? true : false;
 type IsUnknown<T> =
   IsAny<T> extends true ? false : unknown extends T ? true : false;

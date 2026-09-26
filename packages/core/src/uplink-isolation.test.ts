@@ -760,8 +760,7 @@ describe("uplink subpath isolation", () => {
             ? join(dir, entry.name)
             : undefined;
         if (!manifest || !existsSync(manifest)) continue;
-        // Narrowed rather than asserted: this reads an arbitrary manifest off
-        // disk, which is exactly the boundary `unknown` is for.
+        // Narrowed rather than asserted: this reads an arbitrary manifest off disk, which is exactly the boundary `unknown` is for.
         const pkg: unknown = JSON.parse(readFileSync(manifest, "utf8"));
         if (typeof pkg !== "object" || pkg === null) continue;
         const name = "name" in pkg ? pkg.name : undefined;
@@ -914,8 +913,7 @@ describe("uplink subpath isolation", () => {
       "@ksp-gonogo/sitrep-sdk/planted-one",
       "@ksp-gonogo/ui-kit/planted-two",
     ]);
-    // And it is the CLASSIFICATION doing the work, not the planting: a subpath
-    // that is listed comes back clean through the same path.
+    // And it is the CLASSIFICATION doing the work, not the planting: a subpath that is listed comes back clean through the same path.
     expect(
       unclassifiedSubpaths({
         "@ksp-gonogo/ui-kit": manifestWith(["./testing"]),

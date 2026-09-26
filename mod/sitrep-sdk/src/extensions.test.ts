@@ -19,8 +19,7 @@ const asValue = (v: unknown): Value => {
   return v;
 };
 
-// A SYNTHETIC provider and payload, registered through the SDK's own public
-// entry points.
+// A SYNTHETIC provider and payload, registered through the SDK's own public entry points.
 //
 // The mechanism belongs to core, so its test belongs here, and it has to be
 // testable without naming any mod: a core file reaching for a real provider's
@@ -94,8 +93,7 @@ describe("provider extension bag", () => {
       Record<string, Record<string, unknown>>
     >;
 
-    // A payload is re-decoded on reconnect; a second wrap must not turn
-    // {magnitude, unit} into a Value holding a Value.
+    // A payload is re-decoded on reconnect; a second wrap must not turn {magnitude, unit} into a Value holding a Value.
     expect(
       asValue(twice[PROVIDER_EXTENSIONS_FIELD][PROVIDER].burnTimeRemaining)
         .magnitude,

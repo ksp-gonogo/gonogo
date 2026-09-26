@@ -95,8 +95,7 @@ const BAND_LABEL: Record<Band, string> = {
 };
 
 const BAND_TONE: Record<Band, ReadoutTone> = {
-  // Neutral, not `go`: a green pill would be the very claim this band exists to
-  // stop the widget making.
+  // Neutral, not `go`: a green pill would be the very claim this band exists to stop the widget making.
   unknown: "default",
   nominal: "go",
   // `warm` keeps `warning` tone for the StatusPill / inline alert layer
@@ -131,8 +130,7 @@ function Temp({ kelvin }: { kelvin: number | undefined }) {
     <Unit
       value={value("K", kelvin)}
       as="°C"
-      // Drop to whole degrees once the number is wide, so the readout's width
-      // stays stable as a part heats through the thousands.
+      // Drop to whole degrees once the number is wide, so the readout's width stays stable as a part heats through the thousands.
       decimals={Math.abs(kelvin - 273.15) >= 1000 ? 0 : 1}
     />
   );
@@ -263,8 +261,7 @@ function ThermalStatusComponent({
 
   const engineTempK = engineSentinel ? undefined : rawEngineTempK;
   const engineRatio = engineSentinel ? undefined : rawEngineRatio;
-  // anyEnginesOverheating is independent telemetry, but it's nonsense if
-  // no engine is fitted at all, so honour the same guard.
+  // anyEnginesOverheating is independent telemetry, but it's nonsense if no engine is fitted at all, so honour the same guard.
   const engineOverheat = engineSentinel ? undefined : rawEngineOverheat;
 
   /*
@@ -310,8 +307,7 @@ function ThermalStatusComponent({
       ? "critical"
       : bandFromRatio(engineRatio?.magnitude);
 
-  // The pill summarises the worst observed band, it's the at-a-glance
-  // affordance the tiny mode lives by.
+  // The pill summarises the worst observed band, it's the at-a-glance affordance the tiny mode lives by.
   const worstBand: Band =
     BAND_RANK[engineBand] > BAND_RANK[hottestBand] ? engineBand : hottestBand;
   const anyCritical = worstBand === "critical";
@@ -335,8 +331,7 @@ function ThermalStatusComponent({
     shieldTempK === undefined &&
     shieldFluxKw === undefined;
 
-  // Selective rendering: pill is always shown; rows drop from the bottom
-  // (heat shield first, then engine, then hottest-part) as height shrinks.
+  // Selective rendering: pill is always shown; rows drop from the bottom (heat shield first, then engine, then hottest-part) as height shrinks.
   const cols = w ?? 8;
   const rows = h ?? 7;
   const showHottestRow = rows >= 5;

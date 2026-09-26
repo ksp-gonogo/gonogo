@@ -155,16 +155,13 @@ describe("useDataSeries shim: mapped + carried key streams from the ClientTimeli
       </fixture.Provider>,
     );
 
-    // Nothing arrived on the stream yet: empty, matching the legacy hook's
-    // pre-backfill empty state.
+    // Nothing arrived on the stream yet: empty, matching the legacy hook's pre-backfill empty state.
     expect(readProbe()).toBe("t:|v:|breaks:");
 
-    // A real subscription must have happened for this to deliver at all,
-    // StubTransport.emit is subscription-gated.
+    // A real subscription must have happened for this to deliver at all, StubTransport.emit is subscription-gated.
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
-    // Feeding the legacy source must have NO effect, the mapped+carried key
-    // bypasses it entirely.
+    // Feeding the legacy source must have NO effect, the mapped+carried key bypasses it entirely.
     act(() => legacySource.emit("vessel.orbit.sma", 999_999));
     expect(readProbe()).toBe("t:|v:|breaks:");
 
@@ -235,8 +232,7 @@ describe("useDataSeries shim: mapped + carried key streams from the ClientTimeli
     act(() => {
       fixture.transport.emit("vessel.orbit", { sma: 1 }, { validAt: 10 });
       fixture.transport.emit("vessel.orbit", { sma: 2 }, { validAt: 20 });
-      // The outage ran from UT 20 to UT 90 and this channel does not record,
-      // so the sample that resumes it names the hole it is on the far side of.
+      // The outage ran from UT 20 to UT 90 and this channel does not record, so the sample that resumes it names the hole it is on the far side of.
       fixture.transport.emit(
         "vessel.orbit",
         { sma: 3 },
@@ -570,8 +566,7 @@ describe("useDataSeries gate: it prefers the legacy series, it does not exclude 
       fixture.transport.emit("vessel.orbit", { sma: 679_800 }, { validAt: 90 });
     });
 
-    // RED before the fix: the gate short-circuited the subscription, so this
-    // plotted an empty range for ever with nothing anywhere saying why.
+    // RED before the fix: the gate short-circuited the subscription, so this plotted an empty range for ever with nothing anywhere saying why.
     await waitFor(() => expect(readProbe()).toContain("679400,679800"));
   });
 
@@ -725,8 +720,7 @@ describe("useDataSeries: a plotted read that resolves to nothing says so", () =>
     expect(message).toContain('useDataSeries("data", "vessel.orbit.smaa")');
     expect(message).toContain("will never resolve");
     expect(message).toContain("No data source is registered");
-    // The nearest-keys hint belongs to the schema arm, and no source is
-    // registered here, so the line has to reach for the field path instead.
+    // The nearest-keys hint belongs to the schema arm, and no source is registered here, so the line has to reach for the field path instead.
     expect(message).toContain("Check the field path");
   });
 

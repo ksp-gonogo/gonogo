@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// vi.mock is hoisted to the top of the file, so FakePeer / FakeDataConnection
-// must be declared via vi.hoisted to be available when the factory runs.
+// vi.mock is hoisted to the top of the file, so FakePeer / FakeDataConnection must be declared via vi.hoisted to be available when the factory runs.
 const { FakePeer } = vi.hoisted(() => {
   class FakeDataConnection {
     private listeners = new Map<string, Array<(...args: unknown[]) => void>>();
@@ -222,8 +221,7 @@ describe("PeerClientService", () => {
     });
     expect(restarts).toEqual([]);
 
-    // Same token again (transient broker reconnect to the same host
-    // process): must NOT fire restart.
+    // Same token again (transient broker reconnect to the same host process): must NOT fire restart.
     inner.handleMessage({
       type: "hello",
       version: "1.0.0",
@@ -241,8 +239,7 @@ describe("PeerClientService", () => {
     });
     expect(restarts).toEqual([1]);
 
-    // Tokenless hello (legacy host): must NOT fire restart, even though
-    // the token "changed" to undefined.
+    // Tokenless hello (legacy host): must NOT fire restart, even though the token "changed" to undefined.
     inner.handleMessage({
       type: "hello",
       version: "1.0.0",
@@ -321,8 +318,7 @@ describe("PeerClientService reconnect loop", () => {
     svc.connect("HOST");
     driveOpen(FakePeer.instances[0]);
 
-    // Simulate repeated failed reconnects by firing close on each new peer's
-    // conn (or peer error) after the retry timer fires.
+    // Simulate repeated failed reconnects by firing close on each new peer's conn (or peer error) after the retry timer fires.
     for (let i = 0; i < 20; i++) {
       FakePeer.instances[FakePeer.instances.length - 1]?.emit(
         "error",
@@ -422,8 +418,7 @@ describe("PeerClientService reconnect loop", () => {
     );
     expect(reachable).toEqual([false]);
 
-    // A missing host is the OTHER fault: the broker answered, so it must not
-    // move the reachability verdict.
+    // A missing host is the OTHER fault: the broker answered, so it must not move the reachability verdict.
     FakePeer.instances[0].emit(
       "error",
       Object.assign(new Error("Could not connect to peer gonogo-host-Z6HK"), {
@@ -928,8 +923,7 @@ describe("PeerClientService.sendFlightRpc", () => {
     svc.connect("HOST");
     const peer = FakePeer.instances[0];
 
-    // Kick off the RPC BEFORE peer.open / conn.open fire: unhandled, this
-    // would surface as an uncaught "not connected" rejection.
+    // Kick off the RPC BEFORE peer.open / conn.open fire: unhandled, this would surface as an uncaught "not connected" rejection.
     const pending = svc.sendFlightRpc({ op: "list" });
 
     // Flush any synchronous resolution paths.
@@ -981,8 +975,7 @@ describe("PeerClientService.sendFlightRpc", () => {
     });
 
     expect(svc.getCurrentFlight()).toEqual(flight);
-    // onFlightChange fires once on subscribe with the cached snapshot, then
-    // again on every push.
+    // onFlightChange fires once on subscribe with the cached snapshot, then again on every push.
     expect(seen).toEqual([null, flight]);
   });
 });
@@ -1090,8 +1083,7 @@ describe("PeerClientService: relay-peer-id iceServers application", () => {
 
       const received: number[] = [];
       svc.onGonogoCountdownStart((t) => received.push(t));
-      // Replay is deferred a microtask so subscribe-then-replay can't
-      // re-enter React render.
+      // Replay is deferred a microtask so subscribe-then-replay can't re-enter React render.
       await Promise.resolve();
       expect(received).toEqual([t0Ms]);
     });

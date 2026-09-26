@@ -176,8 +176,7 @@ export function ComboboxListbox<T extends ComboboxOption>({
                   $active={isActive}
                   $selected={opt.key === selectedKey}
                   onPointerDown={(e) => {
-                    // Prevent the input from losing focus (and triggering an
-                    // outside-click dismiss) before the selection runs.
+                    // Prevent the input from losing focus (and triggering an outside-click dismiss) before the selection runs.
                     e.preventDefault();
                     onSelectKey(opt.key);
                   }}

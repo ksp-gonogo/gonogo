@@ -269,8 +269,7 @@ export function Gauge<U extends string = string>({
         {bounds !== null &&
           (["lo", "hi"] as const).map((end) => {
             const at = pointOnArc(onAxis(bounds[end]), lo, hi, radius);
-            // Radial, so the mark crosses the track rather than lying along it:
-            // a tangential dash at this thickness reads as another zone.
+            // Radial, so the mark crosses the track rather than lying along it: a tangential dash at this thickness reads as another zone.
             const inner = radius - TRACK_THICKNESS / 2;
             const outer = radius + TRACK_THICKNESS / 2;
             return (

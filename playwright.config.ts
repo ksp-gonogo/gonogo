@@ -18,8 +18,7 @@ const BROKER_PORT = 9999;
 // VITE_PEER_HOST override) and the test would silently target the
 // developer's actual host stack instead of the test-launched one.
 const APP_PORT = 15173;
-// Deliberately NOT the production default 8090: same "don't collide with a
-// developer's own dev stack" rationale as APP_PORT/RELAY_PORT above.
+// Deliberately NOT the production default 8090: same "don't collide with a developer's own dev stack" rationale as APP_PORT/RELAY_PORT above.
 const SITREP_REPLAY_PORT = 18090;
 // A SEPARATE fake Sitrep server/port carrying `vessel.parts`/`dv.*`/
 // `vessel.structure` on top of the same base snapshot; see

@@ -45,8 +45,7 @@ describe("generated contract.ts", () => {
     expect(src).toMatch(/export interface VesselOrbit\b/);
     expect(src).toMatch(/export interface VesselComms\b/);
     expect(src).toMatch(/export interface CommsConnectivity\b/);
-    // Core's generated contract emits only core's own types; each Uplink
-    // asserts its own payload types in its own client package.
+    // Core's generated contract emits only core's own types; each Uplink asserts its own payload types in its own client package.
     expect(src).toMatch(/export interface Vec3\b/);
     // shared value shapes carry data only: no static factory methods leaked
     expect(src).toMatch(/export interface CommandResult\b/);
@@ -171,8 +170,7 @@ describe("generated contract.ts unit types", () => {
   const interfaces = parseInterfaces(src);
 
   it("imports the value types once, at the top", () => {
-    // rtcli emits single-quoted module specifiers; match either so a formatter
-    // pass over the generated file would not break this.
+    // rtcli emits single-quoted module specifiers; match either so a formatter pass over the generated file would not break this.
     expect(
       src.match(/^import \{ Value, Vec3Of \} from ['"][^'"]*value['"];?$/gm),
     ).toHaveLength(1);
@@ -211,8 +209,7 @@ describe("generated contract.ts unit types", () => {
           tsType === `Value<"${token}">` ||
           // A sequence of same-unit readings: the unit is on each ELEMENT.
           tsType === `Value<"${token}">[]` ||
-          // A name-keyed map of same-unit readings: the unit is on each VALUE,
-          // and the key is just a name.
+          // A name-keyed map of same-unit readings: the unit is on each VALUE, and the key is just a name.
           tsType === `{ [key: string]: Value<"${token}"> }` ||
           tsType === `Vec3Of<"${token}">`;
         const bare = !tsType.includes("Value<") && !tsType.includes("Vec3Of<");
@@ -294,8 +291,7 @@ describe("generated contract.ts unit types", () => {
     for (const [typeName, fields] of Object.entries(interfaces)) {
       const declared = GENERATED_TYPE_UNITS[typeName] ?? {};
       for (const [field, tsType] of Object.entries(fields)) {
-        // A Vec3 field is declared under its dotted leaves rather than under
-        // its own name, so it counts as declared when any leaf names it.
+        // A Vec3 field is declared under its dotted leaves rather than under its own name, so it counts as declared when any leaf names it.
         const isDeclared =
           field in declared ||
           Object.keys(declared).some((key) => key.startsWith(`${field}.`));

@@ -80,8 +80,7 @@ function emitModelledSummary(fixture: StreamFixture) {
 
 describe("FleetReliability, what an unread channel renders", () => {
   it("renders nothing at all when no channel has emitted", () => {
-    // The cold case, and the ONE that stays blank: without an identity the
-    // augment does not know which row it is on, so it draws on none of them.
+    // The cold case, and the ONE that stays blank: without an identity the augment does not know which row it is on, so it draws on none of them.
     const { container } = renderAugment("v-active");
 
     expect(

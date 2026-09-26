@@ -343,8 +343,7 @@ function FuelStatusComponent({
   h,
 }: Readonly<ComponentProps<FuelStatusConfig>>) {
   const mode: DeltaVMode = config?.deltaVMode ?? "actual";
-  // The staging structure is a fact: staging is an event, so the last reported
-  // stage is still the stage.
+  // The staging structure is a fact: staging is an event, so the last reported stage is still the stage.
   const currentStage = stillTrue(
     useTelemetry("vessel.structure"),
     undefined,

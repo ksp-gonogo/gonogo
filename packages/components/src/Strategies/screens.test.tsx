@@ -263,8 +263,7 @@ describe("Strategies: the screen contribution slot", () => {
     ).toEqual(["Programs", "Other"]);
 
     expect(screen.getByText("Early Sounding Rockets")).toBeTruthy();
-    // Leaders belong to no contributed screen, so they are on the trailing one
-    // and not on this one.
+    // Leaders belong to no contributed screen, so they are on the trailing one and not on this one.
     expect(screen.queryByText("Sergei Korolev")).toBeNull();
   });
 
@@ -446,8 +445,7 @@ describe("Strategies: the screen contribution slot", () => {
     await screen.findByRole("tablist");
     expect(screen.queryByText("Programs", { ignore: "[role=tab]" })).toBeNull();
 
-    // The trailing screen gathers several departments and its label names none
-    // of them, so there the chip is the only thing that says which is which.
+    // The trailing screen gathers several departments and its label names none of them, so there the chip is the only thing that says which is which.
     await user.click(screen.getByRole("tab", { name: "Other" }));
     expect(screen.getByText("Engineering")).toBeTruthy();
     expect(screen.getByText("Administration")).toBeTruthy();

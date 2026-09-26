@@ -247,8 +247,7 @@ describe("sdk subpath runtime resolution", () => {
 
 describe("sdk subpath aliases", () => {
   it("finds the sdk's declared subpaths, so a green result means something", () => {
-    // The probe check: if `exports` is ever restructured so this returns nothing,
-    // the test below would pass vacuously against an empty list.
+    // The probe check: if `exports` is ever restructured so this returns nothing, the test below would pass vacuously against an empty list.
     expect(sdkSubpaths()).toContain("registry");
     expect(sdkSubpaths().length).toBeGreaterThanOrEqual(3);
   });

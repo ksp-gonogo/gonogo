@@ -417,8 +417,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
         : 0;
     activeSource.emit("v.name", seedName);
     activeSource.emit("v.missionTime", seedMissionTime);
-    // Microtask lets the buffered handleSample → detector observe
-    // path land before we read the current flight.
+    // Microtask lets the buffered handleSample → detector observe path land before we read the current flight.
     await Promise.resolve();
     await Promise.resolve();
     const flight = activeBuffered.getCurrentFlight();
@@ -571,8 +570,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   };
 
   if (!payload.gridCell) {
-    // A cell left by an earlier render on this page would still be laying the
-    // widget out.
+    // A cell left by an earlier render on this page would still be laying the widget out.
     root.replaceChildren();
     root.style.display = "";
     root.style.flexDirection = "";
@@ -604,8 +602,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
     ),
   );
 
-  // Let React commit + useEffect run (so useDataValue / useStream actually
-  // subscribe) before we start emitting values.
+  // Let React commit + useEffect run (so useDataValue / useStream actually subscribe) before we start emitting values.
   await rafTick();
 
   for (const key of fixtureKeys) {
@@ -640,8 +637,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
     }
   }
 
-  // Two more frames: the first lets React commit the value-driven re-render,
-  // the second lets the ResizeObserver-driven dialFit land and re-render.
+  // Two more frames: the first lets React commit the value-driven re-render, the second lets the ResizeObserver-driven dialFit land and re-render.
   await rafTick();
   await rafTick();
   // CSS transitions on transform / opacity can keep moving for a few

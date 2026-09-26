@@ -105,8 +105,7 @@ declare const _streamStatusValue: StreamStatusValue;
 declare const _lateTelemetrySubscribe: LateTelemetrySubscribe;
 declare const _uplinkClientHandle: UplinkClientHandle;
 
-// The author-set core of a ComponentDefinition must remain assignable, a probe
-// that the required fields don't silently become optional or retyped.
+// The author-set core of a ComponentDefinition must remain assignable, a probe that the required fields don't silently become optional or retyped.
 const _probe: ComponentDefinition = {
   id: "x",
   name: "X",

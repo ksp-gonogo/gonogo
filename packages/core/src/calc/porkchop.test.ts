@@ -2,8 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Vec3Tuple } from "./lambert";
 import { buildPorkchop, type StateLike } from "./porkchop";
 
-// A circular coplanar orbit propagator (analytic): enough to drive the grid
-// builder end-to-end without the streaming Kepler propagator.
+// A circular coplanar orbit propagator (analytic): enough to drive the grid builder end-to-end without the streaming Kepler propagator.
 function circularBody(radius: number, mu: number, theta0: number) {
   const n = Math.sqrt(mu / radius ** 3); // rad/s
   const v = Math.sqrt(mu / radius);
@@ -24,8 +23,7 @@ const R1 = 1.495978707e11; // Earth
 const R2 = 2.279392e11; // Mars
 
 describe("buildPorkchop", () => {
-  // Departure grid around t=0; arrival grid bracketing the ~259-day Hohmann
-  // transfer time (avoids the exactly-180° degenerate cell by sampling around it).
+  // Departure grid around t=0; arrival grid bracketing the ~259-day Hohmann transfer time (avoids the exactly-180° degenerate cell by sampling around it).
   const day = 86400;
   const departureUts = Array.from({ length: 12 }, (_, i) => i * 20 * day);
   const arrivalUts = Array.from({ length: 12 }, (_, i) => (200 + i * 12) * day);
@@ -44,8 +42,7 @@ describe("buildPorkchop", () => {
   });
 
   it("skips cells where arrival ≤ departure (deltaV null)", () => {
-    // arrival grid starts at 200 d, departure spans 0..220 d, the late
-    // departures / early arrivals with arr ≤ dep must be null.
+    // arrival grid starts at 200 d, departure spans 0..220 d, the late departures / early arrivals with arr ≤ dep must be null.
     const someNull = grid.cells
       .flat()
       .some((c) => c.arrUt <= c.depUt && c.deltaV === null);

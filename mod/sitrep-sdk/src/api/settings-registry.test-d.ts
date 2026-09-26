@@ -84,8 +84,7 @@ registerSetting({
   backing: "stream-backed",
   type: "number",
   topic: "example.settings",
-  // A `Value`, not a bare number, so the row renders "1 m" and announces
-  // "metres" rather than showing a naked 1.
+  // A `Value`, not a bare number, so the row renders "1 m" and announces "metres" rather than showing a naked 1.
   select: (p) => value("m", p.tolerance),
   label: "Prediction tolerance",
   category: "Example",
@@ -237,8 +236,7 @@ for (const def of rows) registerSetting(def);
 
 declare const registered: SettingDefinition;
 
-// Both predicates take the widened union a registry read hands back, which is
-// the only shape a renderer ever has.
+// Both predicates take the widened union a registry read hands back, which is the only shape a renderer ever has.
 const writable: boolean = !isReadOnlySetting(registered);
 const kind: SettingType = settingTypeOf(registered);
 void writable;

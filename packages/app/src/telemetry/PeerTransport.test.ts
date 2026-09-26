@@ -123,8 +123,7 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     sendSitrepSetVantage: (vantage: string | null) => {
       sentVantages.push(vantage);
     },
-    // Test-only helpers to drive the fake from outside, not part of the
-    // real PeerClientService surface PeerTransport reads.
+    // Test-only helpers to drive the fake from outside, not part of the real PeerClientService surface PeerTransport reads.
     emitFrame(message: ServerMessage) {
       for (const cb of frameListeners) cb(message);
     },
@@ -338,8 +337,7 @@ describe("PeerTransport", () => {
     const client = makeFakeClient();
     const transport = new PeerTransport(asService(client));
     const telemetryClient = new TelemetryClient(transport, clock);
-    // What `TelemetryProvider` wires from the relayed `comms.delay`: a station
-    // sizes its own deadline off the mod's delay, never off the PeerJS hop.
+    // What `TelemetryProvider` wires from the relayed `comms.delay`: a station sizes its own deadline off the mod's delay, never off the PeerJS hop.
     telemetryClient.setDelaySource(() => 4);
 
     const { requestId, result } = telemetryClient.dispatch(
@@ -612,8 +610,7 @@ describe("PeerTransport", () => {
       sentAt: 0,
     });
 
-    // Never reaches PeerClientService.sendSitrepCommand (there's no conn to
-    // carry it) and must not settle synchronously within send() itself.
+    // Never reaches PeerClientService.sendSitrepCommand (there's no conn to carry it) and must not settle synchronously within send() itself.
     expect(client.sentCommands).toEqual([]);
     expect(received).toEqual([]);
 

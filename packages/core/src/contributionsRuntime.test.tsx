@@ -177,8 +177,7 @@ describe("useContributions", () => {
       </TelemetryProvider>,
     );
 
-    // Pump one frame so the evaluator runs (it evaluates on the frame
-    // boundary); the processor's value is constant, so one frame is enough.
+    // Pump one frame so the evaluator runs (it evaluates on the frame boundary); the processor's value is constant, so one frame is enough.
     act(() => store.beginFrame());
 
     await waitFor(() => expect(screen.getByText("p:21")).toBeTruthy());

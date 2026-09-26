@@ -331,8 +331,7 @@ describe("LineChart provenance", () => {
     );
     expect(reckoned).toHaveLength(1);
     expect(measured).toHaveLength(1);
-    // Both channels, deliberately: a dash survives greyscale, a mute is
-    // harder to miss on a dark ground, and neither invents a hue.
+    // Both channels, deliberately: a dash survives greyscale, a mute is harder to miss on a dark ground, and neither invents a hue.
     expect(reckoned[0].getAttribute("stroke-dasharray")).not.toBeNull();
     expect(Number(reckoned[0].getAttribute("stroke-opacity"))).toBeLessThan(1);
     expect(reckoned[0].getAttribute("stroke")).toBe("#00ff88");

@@ -432,8 +432,7 @@ describe("MissionBanner signal delay", () => {
       expect(delayValue()?.innerHTML).toContain(atDelay);
     });
     expect(delayValue()?.textContent).toMatch(/^Signal delay/);
-    // The strip stays a single labelled group: a delay moving every frame must
-    // not announce itself.
+    // The strip stays a single labelled group: a delay moving every frame must not announce itself.
     expect(delayValue()?.closest("[aria-live]")).toBeNull();
     expect(delayValue()?.closest('[role="status"]')).toBeNull();
     await expectNoA11yViolations(container);
@@ -519,8 +518,7 @@ describe("MissionBanner signal delay", () => {
     act(() => {
       fixture.client.setVantage(CRAFT);
     });
-    // Two samples, because one is not a timeline: the subject has to be
-    // readable at view time before the session knows it is standing on it.
+    // Two samples, because one is not a timeline: the subject has to be readable at view time before the session knows it is standing on it.
     for (const validAt of [0, 2 * 187.4]) {
       act(() => {
         fixture.transport.emit(

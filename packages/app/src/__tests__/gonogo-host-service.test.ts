@@ -419,8 +419,7 @@ describe("GoNoGoHostService", () => {
     host.fireAbort("peer-1");
     const afterFirst = oscillators.length;
     expect(afterFirst).toBeGreaterThan(0);
-    // A re-notification (station reconnect after host refresh) must not chime
-    // again: mirrors the f.abort no-double-fire guarantee.
+    // A re-notification (station reconnect after host refresh) must not chime again: mirrors the f.abort no-double-fire guarantee.
     host.fireAbort("peer-1");
     expect(oscillators.length).toBe(afterFirst);
   });
@@ -432,8 +431,7 @@ describe("GoNoGoHostService", () => {
     host.fireAbort("peer-1");
     await drainDispatch();
     expect(abortDispatches()).toHaveLength(1);
-    // Second abort (e.g. station reconnecting after host refresh) should
-    // rebroadcast attribution but NOT abort again.
+    // Second abort (e.g. station reconnecting after host refresh) should rebroadcast attribution but NOT abort again.
     host.broadcasts.length = 0;
     host.fireAbort("peer-1");
     await drainDispatch();

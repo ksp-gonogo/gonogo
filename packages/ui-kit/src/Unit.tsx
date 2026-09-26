@@ -400,8 +400,7 @@ function toInterval<U extends string>(
       ...opts,
       format: rung,
     }).value;
-  // Through the algebra, which checks the dimension the same way `bandIn` has
-  // already narrowed all three ends to one unit.
+  // Through the algebra, which checks the dimension the same way `bandIn` has already narrowed all three ends to one unit.
   const width = (from: Value<U>, to: Value<U>): string => write(to.minus(from));
   /*
    * Ends that print as the same text are drawn as one approximate figure, by

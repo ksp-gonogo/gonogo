@@ -57,8 +57,7 @@ export function unregisterActionHandler(
   const bucket = all.get(instanceId);
   if (!bucket) return;
   bucket.delete(actionId);
-  // Drop the empty bucket too, so an unmounted widget leaves nothing behind: the
-  // registry is keyed by instance id and those are generated per dashboard item.
+  // Drop the empty bucket too, so an unmounted widget leaves nothing behind: the registry is keyed by instance id and those are generated per dashboard item.
   if (bucket.size === 0) all.delete(instanceId);
 }
 

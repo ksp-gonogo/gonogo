@@ -258,8 +258,7 @@ describe("widget DOM harness feeds the widget", () => {
         mode: MODE,
       }),
     ).rejects.toThrow();
-    // The next render installs its own observer; one still held by the failed
-    // render would refuse it, and every later scene would fail for that reason.
+    // The next render installs its own observer; one still held by the failed render would refuse it, and every later scene would fail for that reason.
     const { teardown } = await renderWidgetMode({
       Widget: FrameCountProbe,
       fixture: STREAM_ONLY_FIXTURE,
@@ -276,8 +275,7 @@ describe("widget DOM harness feeds the widget", () => {
     });
     try {
       const settled = container.textContent;
-      // Comfortably more than jsdom's 16ms animation frame: a live loop puts
-      // several frames through here, a suspended one puts none.
+      // Comfortably more than jsdom's 16ms animation frame: a live loop puts several frames through here, a suspended one puts none.
       await new Promise<void>((resolve) => setTimeout(resolve, 150));
       expect(container.textContent).toBe(settled);
     } finally {

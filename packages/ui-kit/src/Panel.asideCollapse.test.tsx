@@ -114,8 +114,7 @@ describe("Panel header aside expand box", () => {
     const box = expandBox();
     expect(box.tagName).toBe("DETAILS");
     const full = box.querySelector("[data-panel-aside-full]") as HTMLElement;
-    // Both a badge-like readout and a real control live in the box's full slot,
-    // so a collapsed panel reaches the control by expanding it (Task 9's point).
+    // Both a badge-like readout and a real control live in the box's full slot, so a collapsed panel reaches the control by expanding it (Task 9's point).
     expect(within(full).getByText("LAYER")).toBeInTheDocument();
     expect(
       within(full).getByRole("button", { name: "Toggle grid" }),
@@ -154,8 +153,7 @@ describe("Panel header aside expand box", () => {
     );
     // No store / healthy panel: empty breakdown, so no dots.
     expect(statusDots()).toHaveLength(0);
-    // The chevron is always present so a control-only collapsed box is still
-    // discoverable (the deferred affordance decision: chevron, not a bare dot).
+    // The chevron is always present so a control-only collapsed box is still discoverable (the deferred affordance decision: chevron, not a bare dot).
     expect(header().querySelector("[data-panel-aside-chevron]")).not.toBeNull();
   });
 
@@ -183,8 +181,7 @@ describe("Panel header aside expand box", () => {
       </Panel>,
     );
     const toggles = watchToggles();
-    // Collapsed is the one state where the details is a real disclosure: the
-    // content genuinely sits behind the summary, so it starts closed.
+    // Collapsed is the one state where the details is a real disclosure: the content genuinely sits behind the summary, so it starts closed.
     expect(expandBox().open).toBe(false);
     await waitFor(() => expect(toggles.count).toBe(1));
 
@@ -213,8 +210,7 @@ describe("Panel header aside expand box", () => {
     await waitFor(() => expect(toggles.count).toBe(2));
     expect(expandBox().open).toBe(true);
 
-    // Widening to a fit forces open (the inline state), and must not keep the
-    // operator's choice around to re-open the box the next time it narrows.
+    // Widening to a fit forces open (the inline state), and must not keep the operator's choice around to re-open the box the next time it narrows.
     withHeaderMeasurements(...ROOMY);
     act(() => observers?.resize(header(), { width: ROOMY[0], height: 20 }));
     expect(expandBox().open).toBe(true);
@@ -285,8 +281,7 @@ describe("Panel header aside expand box", () => {
   });
 
   it("stays inline (the wide default) in jsdom, where @container cannot fire", () => {
-    // Every existing widget test that renders a Panel sees the aside content
-    // inline, unchanged: jsdom never evaluates the collapse query.
+    // Every existing widget test that renders a Panel sees the aside content inline, unchanged: jsdom never evaluates the collapse query.
     render(
       <Panel panelTitle="LANDING" panelAside={<span>NO LANDING VECTOR</span>}>
         body

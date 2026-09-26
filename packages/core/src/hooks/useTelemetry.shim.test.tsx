@@ -130,15 +130,13 @@ describe("useTelemetry shim: mapped key routes to useStream when a TelemetryProv
       // Undefined-while-loading: the same contract widgets already rely on.
       expect(screen.getByText(`fuel:${NULL_DISPLAY}`)).toBeTruthy();
 
-      // Subscribing the DERIVED key subscribes its declared raw INPUTS on the
-      // wire, never the derived name itself, which no server channel produces.
+      // Subscribing the DERIVED key subscribes its declared raw INPUTS on the wire, never the derived name itself, which no server channel produces.
       expect(transport.isSubscribed("dv.stages")).toBe(true);
       expect(transport.isSubscribed("vessel.structure")).toBe(true);
       expect(transport.isSubscribed("dv.currentStageResource")).toBe(false);
       expect(transport.isSubscribed(FUEL_KEY)).toBe(false);
 
-      // Feeding the legacy DataSource must NOT surface: the key is routed to
-      // the stream, so the old path is bypassed entirely.
+      // Feeding the legacy DataSource must NOT surface: the key is routed to the stream, so the old path is bypassed entirely.
       act(() => legacySource.emit(FUEL_KEY, 999));
       expect(screen.getByText(`fuel:${NULL_DISPLAY}`)).toBeTruthy();
 
@@ -301,8 +299,7 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
       const legacySource = makeLegacySource();
       registerDataSource(legacySource);
 
-      // No `carriedChannels` prop at all: the key is a field of a DERIVED
-      // topic whose inputs are not carried.
+      // No `carriedChannels` prop at all: the key is a field of a DERIVED topic whose inputs are not carried.
       render(
         <TelemetryProvider client={client}>
           <Fuel />
@@ -350,13 +347,11 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
 
     expect(screen.getByText(`throttle:${NULL_DISPLAY}`)).toBeTruthy();
 
-    // Legacy emits must NOT surface, the carried topic is routed to the
-    // stream, bypassing legacy entirely.
+    // Legacy emits must NOT surface, the carried topic is routed to the stream, bypassing legacy entirely.
     act(() => legacySource.emit("vessel.control.throttle", 0.4));
     expect(screen.getByText(`throttle:${NULL_DISPLAY}`)).toBeTruthy();
 
-    // Emitting to the real raw topic ("vessel.control", a whole record),
-    // never the never-published dotted field string.
+    // Emitting to the real raw topic ("vessel.control", a whole record), never the never-published dotted field string.
     act(() => transport.emit("vessel.control", { throttle: 0.75 }));
     await waitFor(() => expect(screen.getByText("throttle:0.75")).toBeTruthy());
   });
@@ -376,13 +371,11 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
 
     expect(screen.getByText(`fuel:${NULL_DISPLAY}`)).toBeTruthy();
 
-    // Still legacy: the derived channel can never produce a whole record
-    // with a missing input, so it must not be treated as carried.
+    // Still legacy: the derived channel can never produce a whole record with a missing input, so it must not be treated as carried.
     act(() => legacySource.emit(FUEL_KEY, 12_345));
     expect(screen.getByText("fuel:12345")).toBeTruthy();
 
-    // Feeding the (partially) carried input must not flip it to streamed,
-    // the legacy value must keep winning.
+    // Feeding the (partially) carried input must not flip it to streamed, the legacy value must keep winning.
     act(() => {
       transport.emit("dv.stages", [
         { stage: 0, resources: { LiquidFuel: { current: 360, max: 720 } } },
@@ -435,8 +428,7 @@ describe("useTelemetry gate: M3 Wave 0 carried-channels allowlist (the big-bang 
       );
       expect(screen.getByText("fuel:360")).toBeTruthy();
 
-      // And legacy emits still must not surface, proving it's genuinely
-      // still on the stream path, not coincidentally matching.
+      // And legacy emits still must not surface, proving it's genuinely still on the stream path, not coincidentally matching.
       act(() => legacySource.emit(FUEL_KEY, 999));
       expect(screen.getByText("fuel:360")).toBeTruthy();
     },

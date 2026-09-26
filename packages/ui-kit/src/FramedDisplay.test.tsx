@@ -13,8 +13,7 @@ describe("FramedDisplay", () => {
   });
 
   it("forwards div props so it can be laid out by the caller", () => {
-    // The caller decides how much room the visual gets; the frame never
-    // sizes itself.
+    // The caller decides how much room the visual gets; the frame never sizes itself.
     const { container } = render(<FramedDisplay className="probe" />);
     expect(container.querySelector(".probe")).not.toBeNull();
   });

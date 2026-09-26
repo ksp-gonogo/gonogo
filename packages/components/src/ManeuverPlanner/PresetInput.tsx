@@ -130,8 +130,7 @@ function UtModeInputs({ api, currentUT }: UtModeInputsProps) {
           active={inputs.utMode === "absolute"}
           type="button"
           onClick={() => {
-            // Seed the absolute field with "now + 60s" the first time
-            // the user flips modes, so they don't see a 0.
+            // Seed the absolute field with "now + 60s" the first time the user flips modes, so they don't see a 0.
             if (inputs.burnAtUT === 0 && currentUT !== undefined) {
               setBurnAtUT(currentUT + 60);
             }

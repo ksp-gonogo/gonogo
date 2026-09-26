@@ -84,8 +84,7 @@ describe("parseBases: a withheld science figure is not a zero", () => {
     ]);
     const exp = parsed?.[0]?.experiments[0];
     expect(exp?.progress).toBeNull();
-    // Derived as `pct < 100`, which the substituted zero satisfied: the card
-    // claimed the experiment was actively collecting.
+    // Derived as `pct < 100`, which the substituted zero satisfied: the card claimed the experiment was actively collecting.
     expect(exp?.collecting).toBeNull();
   });
 
@@ -239,8 +238,7 @@ describe("DeployedScience: an unread roster is not an empty one", () => {
         screen.getByText(/Waiting for the deployed-base roster/i),
       ).toBeInTheDocument(),
     );
-    // The `?? []` turned that null into an empty array, and the panel then
-    // told an operator with four bases on Duna that they had none.
+    // The `?? []` turned that null into an empty array, and the panel then told an operator with four bases on Duna that they had none.
     expect(screen.queryByText(/No deployed bases/i)).toBeNull();
   });
 

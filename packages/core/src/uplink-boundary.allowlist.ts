@@ -550,8 +550,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * example. Engine test, not engine shipping code, the boundary holds.
        */
       "mod/Sitrep.Host.IntegrationTests/ChannelEngineTests.cs",
-      // pending-uplink contract: its Command field doc-comment gives
-      // `kos.run` as the example wire command name, doc-mention only.
+      // pending-uplink contract: its Command field doc-comment gives `kos.run` as the example wire command name, doc-mention only.
       "mod/Sitrep.Contract/UplinkPending.cs",
       /*
        * The three generated SDK files (contract.ts / topic-map.ts / units.ts)
@@ -641,8 +640,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Core.Tests/CourierReliableOrderedDeliveryTests.cs",
       "mod/Sitrep.Core.Tests/PendingUplinkQueueWireTests.cs",
       "mod/Sitrep.Host.IntegrationTests/CommsGateCommandTests.cs",
-      // KosProcessorsWireTests.cs exercises the kos.processors wire SHAPE:
-      // a contract-level wire test, same class as CommandRequestLabelWireTests.
+      // KosProcessorsWireTests.cs exercises the kos.processors wire SHAPE: a contract-level wire test, same class as CommandRequestLabelWireTests.
       "mod/Sitrep.Host.IntegrationTests/KosProcessorsWireTests.cs",
       "mod/Sitrep.Host.Tests/UplinkDiscoveryTests.cs",
       /*
@@ -1182,8 +1180,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * comment above. Prose only; no AGX type or import.
        */
 
-      // -- TEST-only --
-      // Regression-comment mirrors the VesselCommandProvider rationale above.
+      // -- TEST-only -- Regression-comment mirrors the VesselCommandProvider rationale above.
       "mod/Sitrep.Host.Tests/VesselCommandProviderTests.cs",
       /*
        * map-command.test.ts's new AGX-index test cites "AGX" in a doc-comment
@@ -1896,8 +1893,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   },
 
   // === ferram: owning dirs mod/GonogoFerramAerospaceResearchUplink/ (incl. its
-  // client/), mod/GonogoFerramAerospaceResearchUplink.Tests, and
-  // mod/GonogoFerramAerospaceResearchUplink.Contract.
+  // client/), mod/GonogoFerramAerospaceResearchUplink.Tests, and mod/GonogoFerramAerospaceResearchUplink.Contract.
   //
   // The token is the MOD's name and nothing on the wire carries it: this
   // Uplink's id is "aero" and its Topics are aero.available / aero.state,

@@ -63,8 +63,7 @@ describe("sitrep-client end-to-end spine", () => {
     });
     await waitFor(() => expect(screen.getByText("altitude:1450")).toBeTruthy());
 
-    // Command: idle -> in-flight (observable synchronously right after the
-    // click, before the stub's queued microtask response) -> confirmed.
+    // Command: idle -> in-flight (observable synchronously right after the click, before the stub's queued microtask response) -> confirmed.
     expect(screen.getByText("phase:idle")).toBeTruthy();
     fireEvent.click(screen.getByText("stage"));
     expect(screen.getByText("phase:in-flight")).toBeTruthy();
@@ -72,8 +71,7 @@ describe("sitrep-client end-to-end spine", () => {
       expect(screen.getByText("phase:confirmed")).toBeTruthy(),
     );
 
-    // Unmount releases the ref-counted stream subscription: the transport
-    // should no longer consider "v.alt" subscribed.
+    // Unmount releases the ref-counted stream subscription: the transport should no longer consider "v.alt" subscribed.
     expect(transport.isSubscribed("v.alt")).toBe(true);
     unmount();
     expect(transport.isSubscribed("v.alt")).toBe(false);
@@ -112,13 +110,11 @@ describe("sitrep-client end-to-end spine", () => {
     );
 
     expect(transport.isSubscribed("system.bodies")).toBe(true);
-    // Nothing publishes either of these, so a subscription to one is a
-    // subscription to silence.
+    // Nothing publishes either of these, so a subscription to one is a subscription to silence.
     expect(transport.isSubscribed("system.state")).toBe(false);
     expect(transport.isSubscribed("system.state.bodyCount")).toBe(false);
 
-    // `StubTransport.emit` is subscription-gated, so delivery here is itself
-    // the proof the wire subscription is real rather than bookkeeping.
+    // `StubTransport.emit` is subscription-gated, so delivery here is itself the proof the wire subscription is real rather than bookkeeping.
     act(() => {
       transport.emit("system.bodies", {
         bodies: [

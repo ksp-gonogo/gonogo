@@ -179,8 +179,7 @@ export function contactPhase(
       return nowUt > predicted ? "overdue" : "expected";
     }
     default: {
-      // Compile-time: `never` once every declared state is cased above, so
-      // widening the union without widening this switch stops the build.
+      // Compile-time: `never` once every declared state is cased above, so widening the union without widening this switch stops the build.
       const unruled: never = silence.state;
       void unruled;
       return undefined;

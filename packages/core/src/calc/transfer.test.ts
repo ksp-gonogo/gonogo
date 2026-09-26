@@ -13,8 +13,7 @@ import {
   transferStatus,
 } from "./transfer";
 
-// Real Sun/Earth/Mars values (SI: metres, seconds, m/s), the canonical
-// interplanetary sanity case every transfer tool is checked against.
+// Real Sun/Earth/Mars values (SI: metres, seconds, m/s), the canonical interplanetary sanity case every transfer tool is checked against.
 const MU_SUN = 1.32712440018e20;
 const MU_EARTH = 3.986004418e14;
 const R_EARTH_ORBIT = 1.495978707e11; // Earth semi-major axis around Sun
@@ -177,8 +176,7 @@ describe("captureBurn (hyperbolic arrival, the mirror of ejectionBurn)", () => {
         captureRadius: 1e12,
       }),
     );
-    // Approaches the excess FROM BELOW: at any finite radius there is still some
-    // circular speed the craft keeps, so the burn is always the cheaper of the two.
+    // Approaches the excess FROM BELOW: at any finite radius there is still some circular speed the craft keeps, so the burn is always the cheaper of the two.
     expect(veryHigh.captureDeltaV).toBeLessThan(burn.vInf);
     expect(veryHigh.captureDeltaV / burn.vInf).toBeGreaterThan(0.99);
   });

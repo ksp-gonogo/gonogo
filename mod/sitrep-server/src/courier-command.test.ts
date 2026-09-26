@@ -21,8 +21,7 @@ describe("Courier command round-trip", () => {
     expect(handler).not.toHaveBeenCalled();
     expect(onResponse).not.toHaveBeenCalled();
 
-    // Uplink elapsed: the handler executes on the vessel, but the
-    // confirmation is still in flight downlink.
+    // Uplink elapsed: the handler executes on the vessel, but the confirmation is still in flight downlink.
     clock.advanceTo(2);
     expect(handler).toHaveBeenCalledTimes(1);
     expect(handler).toHaveBeenCalledWith("deploy", null, "vessel");

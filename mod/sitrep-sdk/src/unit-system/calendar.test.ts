@@ -15,8 +15,7 @@ import { value } from "./value";
 const EARTH = { minute: 60, hour: 3600, day: 86_400, year: 365 * 86_400 };
 
 afterEach(() => {
-  // Module state: leak it and the next test formats on someone else's
-  // calendar, which is the exact failure this whole module is about.
+  // Module state: leak it and the next test formats on someone else's calendar, which is the exact failure this whole module is about.
   setKspCalendar();
 });
 
@@ -81,8 +80,7 @@ describe("the calendar the game reported", () => {
 
   it("refuses a calendar nobody can divide by and keeps the last good one", () => {
     setKspCalendar({ day: 0 });
-    // Dividing by it would make every duration in the app infinity, which is
-    // a worse answer than the stock one already on screen.
+    // Dividing by it would make every duration in the app infinity, which is a worse answer than the stock one already on screen.
     expect(kspCalendar().day).toBe(21_600);
     expect(value("s", 86_400).in("d").magnitude).toBe(4);
   });

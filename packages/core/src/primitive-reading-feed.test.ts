@@ -316,8 +316,7 @@ describe("the walk covered what it claims", () => {
         .filter(Boolean)
         .map((p) => dirname(p)),
     );
-    // Against the enumeration, which is whole-tree on every run; the full run
-    // asserts above that the walk is exactly the enumeration.
+    // Against the enumeration, which is whole-tree on every run; the full run asserts above that the walk is exactly the enumeration.
     const walked = new Set(ALL_ROOTS);
     const missed = [...tracked].filter(
       (root) => !walked.has(root) && !walked.has(`${root}/client`),

@@ -13,8 +13,7 @@ const STATUS_TO_LABEL: Record<StreamStatusValue, string | null> = {
   // you to go and look at the producer; the second asks you to wait, and to
   // stop reading the panel as the state of the craft now.
   "last-before-blackout": "BLACKOUT",
-  // Its own word: a replayed recording is exact for the instant it names, so
-  // "STALE" would claim uncertainty the value does not have.
+  // Its own word: a replayed recording is exact for the instant it names, so "STALE" would claim uncertainty the value does not have.
   recorded: "RECORDED",
   disconnected: "OFFLINE",
   resyncing: "SYNCING",
@@ -22,8 +21,7 @@ const STATUS_TO_LABEL: Record<StreamStatusValue, string | null> = {
 };
 
 describe("formatStreamStatus", () => {
-  // The two blackout grades used to share one caption, so a panel could not
-  // say whether data was being WITHHELD or whether the craft had gone dark.
+  // The two blackout grades used to share one caption, so a panel could not say whether data was being WITHHELD or whether the craft had gone dark.
   it("does not collapse the two blackout grades onto one caption", () => {
     expect(formatStreamStatus("held-stale")).not.toBe(
       formatStreamStatus("last-before-blackout"),

@@ -89,11 +89,9 @@ function SeedMeters({
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
-  // Slot augments are registered globally, clear so an avatar/badges augment
-  // bound in one test can't leak into the "empty slot" assertions of the next.
+  // Slot augments are registered globally, clear so an avatar/badges augment bound in one test can't leak into the "empty slot" assertions of the next.
   clearAugments();
-  // Same reasoning for contributions (crew-status.row-tone): a tone
-  // registered in one test must not leak into the next.
+  // Same reasoning for contributions (crew-status.row-tone): a tone registered in one test must not leak into the next.
   clearContributions();
 });
 
@@ -276,8 +274,7 @@ describe("CrewStatusComponent", () => {
       await waitFor(() =>
         expect(screen.getByText(/Jebediah Kerman/)).toBeInTheDocument(),
       );
-      // The name appears exactly once: in the header, not repeated in an
-      // otherwise-empty roster Card below it.
+      // The name appears exactly once: in the header, not repeated in an otherwise-empty roster Card below it.
       expect(screen.getAllByText(/Jebediah Kerman/)).toHaveLength(1);
       expect(screen.queryByRole("listitem")).not.toBeInTheDocument();
     });
@@ -290,12 +287,10 @@ describe("CrewStatusComponent", () => {
       act(() => evaOnSuit(fixture));
 
       await waitFor(() => expect(screen.getByText("Dose")).toBeInTheDocument());
-      // Named once (the header); the Card holding the contributed meter is
-      // still present but no longer repeats the name inside it.
+      // Named once (the header); the Card holding the contributed meter is still present but no longer repeats the name inside it.
       expect(screen.getAllByText(/Jebediah Kerman/)).toHaveLength(1);
       const row = screen.getByRole("listitem");
-      // The identity the visible text no longer carries survives on the
-      // Card itself, for an accessibility tree with no other text naming it.
+      // The identity the visible text no longer carries survives on the Card itself, for an accessibility tree with no other text naming it.
       expect(row).toHaveAccessibleName("Jebediah Kerman");
     });
   });
@@ -327,8 +322,7 @@ describe("CrewStatusComponent", () => {
       });
 
       await waitFor(() => expect(screen.getByText("O2")).toBeInTheDocument());
-      // A real meter with a fraction to assert: the projection carried both
-      // halves through, and the kit divided them.
+      // A real meter with a fraction to assert: the projection carried both halves through, and the kit divided them.
       const o2 = screen.getByRole("meter", { name: "O2" });
       expect(o2).toHaveAttribute("aria-valuenow", "25");
     });
@@ -353,8 +347,7 @@ describe("CrewStatusComponent", () => {
       });
 
       await waitFor(() => expect(screen.getByText("O2")).toBeInTheDocument());
-      // No `role="meter"`: a meter asserts an `aria-valuenow` and there is no
-      // fraction to assert.
+      // No `role="meter"`: a meter asserts an `aria-valuenow` and there is no fraction to assert.
       expect(
         screen.queryByRole("meter", { name: "O2" }),
       ).not.toBeInTheDocument();
@@ -362,8 +355,7 @@ describe("CrewStatusComponent", () => {
   });
 
   it("renders the per-crew badges slot with no bound augment (empty is fine)", async () => {
-    // No augment registered → the slot composes nothing and the roster renders
-    // exactly as before, one row per kerbal.
+    // No augment registered → the slot composes nothing and the roster renders exactly as before, one row per kerbal.
     const fixture = newFixture();
     renderCrew(fixture);
     act(() => {
@@ -451,8 +443,7 @@ describe("CrewStatusComponent, avatar slot", () => {
     await waitFor(() =>
       expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
     );
-    // Roster renders as before; no leading cell is reserved on any row, and
-    // no augment content is present.
+    // Roster renders as before; no leading cell is reserved on any row, and no augment content is present.
     expect(screen.getByText("Bill Kerman")).toBeInTheDocument();
     expect(screen.queryByTestId("crew-avatar-cell")).not.toBeInTheDocument();
     expect(screen.queryByTestId("crew-avatar")).not.toBeInTheDocument();
@@ -580,8 +571,7 @@ describe("CrewStatusComponent, avatar slot", () => {
 describe("CrewStatusComponent, decoupled from the survival backend", () => {
   it("never subscribes to a kerbalism.* topic, even when one is carried", async () => {
     const fixture = setupStreamFixture({
-      // Carry a kerbalism.* topic alongside vessel.crew: if the widget ever
-      // read one, this is where it would show up as a subscription.
+      // Carry a kerbalism.* topic alongside vessel.crew: if the widget ever read one, this is where it would show up as a subscription.
       carriedChannels: ["vessel.crew", "kerbalism.crew"],
       pinnedUt: 10,
       suspendFrames: true,
@@ -604,8 +594,7 @@ describe("CrewStatusComponent, decoupled from the survival backend", () => {
       expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
     );
     expect(fixture.transport.isSubscribed("kerbalism.crew")).toBe(false);
-    // No leftover survival chrome (dose/stress meters, a meters toggle):
-    // that UI moved to the augment slot below, not rendered inline anymore.
+    // No leftover survival chrome (dose/stress meters, a meters toggle): that UI moved to the augment slot below, not rendered inline anymore.
     expect(
       screen.queryByRole("button", { name: /meters/i }),
     ).not.toBeInTheDocument();
@@ -769,8 +758,7 @@ describe("CrewStatusComponent, row tone contribution", () => {
     await waitFor(() =>
       expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
     );
-    // Each row is still a real roster `<li>`, Card's `as="li"` preserves list
-    // semantics (unchanged from the bare `<li>` this replaced).
+    // Each row is still a real roster `<li>`, Card's `as="li"` preserves list semantics (unchanged from the bare `<li>` this replaced).
     expect(screen.getByText("Bill Kerman").closest("li")).not.toBeNull();
     // No contribution registered at all: Card's alert-tone accent rule
     // (jsdom can't validate an unresolved `var()` inside the `border-left`

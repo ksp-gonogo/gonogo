@@ -462,8 +462,7 @@ export class AlarmHostService {
       next.actionsWithheld = undefined;
     }
     this.alarms[idx] = next;
-    // The refusal describes a firing of the alarm as it was configured before
-    // this edit, so it does not survive one.
+    // The refusal describes a firing of the alarm as it was configured before this edit, so it does not survive one.
     this.onFireRefusals.delete(id);
     // An arm refusal describes the condition that was replaced.
     if (patch.trigger) this.scetArmRefusals.delete(id);

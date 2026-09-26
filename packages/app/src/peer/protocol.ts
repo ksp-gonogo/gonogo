@@ -64,8 +64,7 @@ export type PeerMessage =
       sources: PeerSchemaSource[];
     }
   | { type: "status"; sourceId: string; status: DataSourceStatus }
-  // `t` is the host's sample timestamp, optional so partial deploys stay
-  // wire-compatible: the client falls back to Date.now() when absent.
+  // `t` is the host's sample timestamp, optional so partial deploys stay wire-compatible: the client falls back to Date.now() when absent.
   | { type: "data"; sourceId: string; key: string; value: unknown; t?: number }
   // Station → host: fire-and-forget action dispatch. No `requestId` and no
   // reply variant, so nothing on either side correlates a result back.
@@ -210,8 +209,7 @@ export type PeerMessage =
   // wall-clock (`Date.now()`) instant: pre-synchronise to the host so the
   // countdown display matches across devices within a small skew.
   | { type: "gonogo-countdown-start"; t0Ms: number }
-  // Host → stations when a vote flips to NO-GO during an active countdown
-  // or when a station disconnects mid-countdown.
+  // Host → stations when a vote flips to NO-GO during an active countdown or when a station disconnects mid-countdown.
   | { type: "gonogo-countdown-cancel"; reason?: string }
   // Station → host after launch, when the operator hits the big red ABORT
   // button. Host re-sends the action group execution for `f.abort`.
@@ -394,8 +392,7 @@ export type PeerMessage =
       type: "commcast-ack";
       ack: import("../commcast/types").CommsAck;
     }
-  // Commcast RADIO: live push-to-talk, streamed as Opus chunks and played at
-  // the far end one light-time later.
+  // Commcast RADIO: live push-to-talk, streamed as Opus chunks and played at the far end one light-time later.
   //
   // The same relay rule as the two frames above, and for the same topology
   // reason with one extra consequence. A WebRTC media track cannot serve this

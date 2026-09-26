@@ -431,8 +431,7 @@ function derivedFromReading(
   if (seen.has(node)) return false;
   seen.add(node);
 
-  // The base case: this expression IS a reading, so anything taken off it is
-  // reading-derived by construction.
+  // The base case: this expression IS a reading, so anything taken off it is reading-derived by construction.
   if (isReadingShaped(checker, checker.getTypeAtLocation(node))) return true;
 
   const recur = (child: ts.Expression) =>
@@ -516,8 +515,7 @@ export function classifyAttribute(
   const expression = initializer.expression;
   if (!expression) return "not-a-reading-prop";
 
-  // What the PROP declared it takes, asked of the props type rather than of a
-  // list of prop names kept here.
+  // What the PROP declared it takes, asked of the props type rather than of a list of prop names kept here.
   const declared = checker.getContextualType(expression);
   if (!declared || !isReadingShaped(checker, declared)) {
     return "not-a-reading-prop";

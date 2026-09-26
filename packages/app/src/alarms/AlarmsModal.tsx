@@ -190,8 +190,7 @@ export function AlarmsModal({
   const [sustainSeconds, setSustainSeconds] = useState(
     String(DEFAULT_SUSTAIN_SECONDS),
   );
-  // Side-effect attachments. `onFire` order is the dispatch order at fire
-  // time; rely on add-order for v1 (no reorder UI yet).
+  // Side-effect attachments. `onFire` order is the dispatch order at fire time; rely on add-order for v1 (no reorder UI yet).
   const [draftOnFire, setDraftOnFire] = useState<AlarmFireAction[]>(
     () => prefill?.onFire ?? [],
   );
@@ -364,8 +363,7 @@ export function AlarmsModal({
               type="button"
               role="radio"
               aria-checked={kind === option.kind}
-              // Roving tabindex: a chosen-one-of-many control offers the tab
-              // order its selection, and the arrow keys the rest.
+              // Roving tabindex: a chosen-one-of-many control offers the tab order its selection, and the arrow keys the rest.
               tabIndex={kind === option.kind ? 0 : -1}
               $active={kind === option.kind}
               onClick={() => setKind(option.kind)}

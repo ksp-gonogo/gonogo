@@ -442,8 +442,7 @@ function ReliefLayer({
   // Y axis runs, and `sy0 > sy1` is that question asked rather than assumed.
   const flipRows = sy0 < sy1;
 
-  // Resampled once, then banded, so the iso-lines below compare RESAMPLED
-  // neighbours and follow the terrain rather than the data grid's own seams.
+  // Resampled once, then banded, so the iso-lines below compare RESAMPLED neighbours and follow the terrain rather than the data grid's own seams.
   const bandAt = new Int16Array(grid * grid);
   for (let row = 0; row < grid; row++) {
     for (let col = 0; col < grid; col++) {
@@ -487,8 +486,7 @@ function ReliefLayer({
           key={`${row}-${runStart}`}
           x={left + runStart * cellW}
           y={top + screenRow * cellH}
-          // A hairline overlap, so neighbouring runs and rows do not leave
-          // seams the rasteriser paints the background through.
+          // A hairline overlap, so neighbouring runs and rows do not leave seams the rasteriser paints the background through.
           width={(col - runStart) * cellW + 0.5}
           height={cellH + 0.5}
           fill={runFill}
@@ -883,8 +881,7 @@ function CaptionLayer({
 }
 
 const KIND_ORDER: Record<PlotLayer["kind"], number> = {
-  // Under everything, the field included: a relief is the ground the rest of
-  // the plot is drawn over.
+  // Under everything, the field included: a relief is the ground the rest of the plot is drawn over.
   relief: -1,
   field: 0,
   region: 1,
@@ -937,8 +934,7 @@ export function PlotLayers({
     );
 
   const captionRows = new Map<string, number>();
-  // Shared across every label in this pass, so a second contributor's tick
-  // steps clear of the first's rather than overprinting it.
+  // Shared across every label in this pass, so a second contributor's tick steps clear of the first's rather than overprinting it.
   const placedLabels: PlacedLabel[] = [];
   // A rotated word up an edge and a corner readout running into it are two
   // readings printed on top of each other, and the corner one always loses,

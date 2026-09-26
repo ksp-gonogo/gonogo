@@ -157,8 +157,7 @@ describe("ScienceData when its reads are no longer current", () => {
     await waitFor(() =>
       expect(visibleText(container)).toContain("locale no longer current"),
     );
-    // Blanking these would report an empty vessel, which is a statement about
-    // the craft rather than about the link.
+    // Blanking these would report an empty vessel, which is a statement about the craft rather than about the link.
     expect(screen.getByText("Crew Report")).toBeInTheDocument();
     expect(visibleText(container)).not.toContain("No science data aboard");
     expect(visibleText(container)).toContain("1234");

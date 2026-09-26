@@ -53,8 +53,7 @@ function orbitFixtures(): Array<[string, FixtureShape, OrbitEmit[]]> {
 
 describe("vessel.orbit fixtures state their propagation horizon", () => {
   it("finds the fixtures at all, so an empty sweep cannot pass as a clean one", () => {
-    // A glob that matched nothing would report zero omissions and read as
-    // success, which is the failure mode this whole file is about.
+    // A glob that matched nothing would report zero omissions and read as success, which is the failure mode this whole file is about.
     expect(orbitFixtures().length).toBeGreaterThan(90);
   });
 

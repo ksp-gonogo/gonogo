@@ -56,8 +56,7 @@ function setup() {
 
 describe("SemiMajorAxis: what a pulsating frame does to a length", () => {
   it("still shows the number, and names the frame its units move with", async () => {
-    // Labelled, NOT suppressed: the quantity exists, and an operator who knows
-    // the units move can still read it.
+    // Labelled, NOT suppressed: the quantity exists, and an operator who knows the units move can still read it.
     const fixture = setup();
     act(() => {
       fixture.emit("system.frame", {
@@ -70,8 +69,7 @@ describe("SemiMajorAxis: what a pulsating frame does to a length", () => {
     await waitFor(() =>
       expect(screen.getByText(/Kerbol-Kerbin Lagrange/)).toBeTruthy(),
     );
-    // The frame is named, so the caveat points at something the operator can
-    // change rather than reading as an unexplained warning.
+    // The frame is named, so the caveat points at something the operator can change rather than reading as an unexplained warning.
     expect(screen.getByText(/Kerbol-Kerbin Lagrange/)).toBeTruthy();
   });
 

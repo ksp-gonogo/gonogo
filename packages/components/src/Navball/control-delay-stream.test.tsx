@@ -84,8 +84,7 @@ describe("Navball control-delay stream (throttle)", () => {
       fixture.emit("vessel.control", { throttle: 0.4 });
     });
 
-    // Give the coalesce interval a tick to prove this is a genuine
-    // steady-state check, not just "hasn't rendered yet".
+    // Give the coalesce interval a tick to prove this is a genuine steady-state check, not just "hasn't rendered yet".
     //
     // Inside act(), because the interval keeps firing state updates into a
     // mounted component for the whole wait: un-wrapped, this one line produced 24

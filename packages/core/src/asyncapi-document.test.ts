@@ -471,8 +471,7 @@ describe("asyncapi.yaml", () => {
     });
 
     it("can see a planted violation of every family", () => {
-      // The gate's own blindness check, run here as well as in the generator so
-      // a widened-then-broken pattern fails a test rather than only a build.
+      // The gate's own blindness check, run here as well as in the generator so a widened-then-broken pattern fails a test rather than only a build.
       expect(() => hygiene.assertDetectorSees()).not.toThrow();
 
       for (const [family, { plant }] of Object.entries(hygiene.FAMILIES)) {
@@ -511,8 +510,7 @@ describe("asyncapi.yaml", () => {
     });
 
     it("refuses a literal <internal> that reached the emitted TypeScript", () => {
-      // If the marker survives codegen the strip did not run, so every
-      // conversion in the tree is inert while reading as deliberate publication.
+      // If the marker survives codegen the strip did not run, so every conversion in the tree is inert while reading as deliberate publication.
       expect(() => hygiene.assertMarkerWasStripped(contract)).not.toThrow();
 
       const leaked = {

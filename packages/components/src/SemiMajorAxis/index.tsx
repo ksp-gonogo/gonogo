@@ -51,8 +51,7 @@ function SemiMajorAxisComponent({
    */
   const orbitReading = withoutReckoning(topics.useTelemetry("vessel.orbit"));
   const sma = stillTrue(orbitReading, undefined)?.sma;
-  // Held rather than never-seen: only `stale` reads as "the link went quiet",
-  // and a cold start must not accuse it.
+  // Held rather than never-seen: only `stale` reads as "the link went quiet", and a cold start must not accuse it.
   const smaHeld = orbitReading.state === "stale";
   const frameReading = useStream<ControlFrame>("system.frame");
   // The selected frame is a setting, which a quiet link does not change.
@@ -61,8 +60,7 @@ function SemiMajorAxisComponent({
       ? frameReading.value
       : undefined;
   const lengthsPulsate = lengthsAreLengths(controlFrame) === "invalid";
-  // Age of the observation against the FRAME's view time, never a wall clock:
-  // two reads in one frame must not disagree about how old the same sample is.
+  // Age of the observation against the FRAME's view time, never a wall clock: two reads in one frame must not disagree about how old the same sample is.
   const viewUt = useViewUt();
   // The age, spelled out now that `readingAge` is gone: an instant minus an instant
   // is a duration, and the affine rules make that the type. The clamp came with it
@@ -171,8 +169,7 @@ function SemiMajorAxisComponent({
             style={{
               ...SMA_DISPLAY_STYLE,
               fontSize: `${readoutFontPx}px`,
-              // Muted while held: the tone carries the caveat at a glance, the
-              // caption below says it in words.
+              // Muted while held: the tone carries the caveat at a glance, the caption below says it in words.
               ...(smaHeld ? { color: "var(--color-text-muted)" } : {}),
             }}
           >

@@ -79,8 +79,7 @@ function bandOf(
 
 function Case({ c, layout }: { c: MeterCase; layout: MeterSheet["layout"] }) {
   const tank = tankOf(c);
-  // A row case keeps the stack's columns through its caption box, so the
-  // sheet's bars line up the way a widget's do.
+  // A row case keeps the stack's columns through its caption box, so the sheet's bars line up the way a widget's do.
   const Box = layout === "row" ? MeterRowGroup : "figure";
   return (
     <Box

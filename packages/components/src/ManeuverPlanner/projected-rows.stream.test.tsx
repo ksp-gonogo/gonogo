@@ -156,8 +156,7 @@ describe("ManeuverPlanner: the view frame and the projected apsides", () => {
       });
     });
 
-    // Named, so the operator sees WHICH frame took them away and that it is
-    // their own view rather than the plan being wrong.
+    // Named, so the operator sees WHICH frame took them away and that it is their own view rather than the plan being wrong.
     await waitFor(() =>
       expect(screen.getByText(/none in Kerbol-Kerbin Lagrange/i)).toBeTruthy(),
     );
@@ -165,8 +164,7 @@ describe("ManeuverPlanner: the view frame and the projected apsides", () => {
   });
 
   it("still quotes them in a frame that has a centre", async () => {
-    // The contrast: without it, the assertion above could pass because the rows
-    // stopped rendering for an unrelated reason.
+    // The contrast: without it, the assertion above could pass because the rows stopped rendering for an unrelated reason.
     const fixture = setup();
     // Burn first, then frame, for the subscription-gating reason above. Emitted
     // the other way round this test passes whether the frame arrived or not,

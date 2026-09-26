@@ -221,8 +221,7 @@ describe("LandingStatusComponent", () => {
       });
     });
 
-    // The horizontal component the old vertical-only model ignored is surfaced
-    // in the velocity vector's accessible label.
+    // The horizontal component the old vertical-only model ignored is surfaced in the velocity vector's accessible label.
     expect(await screen.findByText("UNAVOIDABLE IMPACT")).toBeInTheDocument();
     // The horizontal component, which used to be read off the cross-section's
     // accessible name. This scenario ships no terrain patch, so there is no
@@ -574,8 +573,7 @@ describe("LandingStatusComponent", () => {
       });
     });
     await screen.findByText(/mun · vacuum/i);
-    // Gear/brakes are fired from the operator's own action-group widgets; the
-    // instrument itself must offer no toggle buttons.
+    // Gear/brakes are fired from the operator's own action-group widgets; the instrument itself must offer no toggle buttons.
     expect(screen.queryByRole("button", { name: /toggle gear/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /toggle brakes/i })).toBeNull();
   });
@@ -683,8 +681,7 @@ describe("LandingStatusComponent", () => {
       });
       stream.emit("vessel.control", { gear: false, brakes: false });
     });
-    // The rail is up on every descent, whatever else is or is not known: a
-    // height above terrain is all it needs.
+    // The rail is up on every descent, whatever else is or is not known: a height above terrain is all it needs.
     await screen.findByRole("meter", { name: /altitude above terrain/i });
     await expectNoA11yViolations(container);
   });

@@ -312,8 +312,7 @@ describe("AlarmHostService", () => {
   });
   afterEach(() => {
     vi.useRealTimers();
-    // A case that fails before its own `mockRestore` would otherwise hand its
-    // recorded calls to the next case that spies on the same method.
+    // A case that fails before its own `mockRestore` would otherwise hand its recorded calls to the next case that spies on the same method.
     vi.restoreAllMocks();
     setActiveViewClockForTests(undefined);
     setActiveTimelineStoreForTests(undefined);
@@ -377,8 +376,7 @@ describe("AlarmHostService", () => {
       name: "Burn",
       trigger: { kind: "time", ut: 1005, leadSeconds: 10 },
     });
-    // Warping at 50x, so a client that still evaluated this would have
-    // something to drop and would be seen dropping it.
+    // Warping at 50x, so a client that still evaluated this would have something to drop and would be seen dropping it.
     telemetry.set("t.currentRateIndex", 4);
     telemetry.set("t.currentRate", 50);
     telemetry.set("t.universalTime", 1006);
@@ -499,8 +497,7 @@ describe("AlarmHostService", () => {
   });
 
   it("loads pre-onFire persisted alarms cleanly with onFire undefined", async () => {
-    // A record with no `onFire` field seeded directly into storage: it loads
-    // with onFire undefined and is a no-side-effect alarm.
+    // A record with no `onFire` field seeded directly into storage: it loads with onFire undefined and is a no-side-effect alarm.
     const storage = memoryStorage();
     storage.setItem(
       "gonogo.alarms.list",
@@ -642,8 +639,7 @@ describe("AlarmHostService", () => {
     it("does nothing when there are no eligible alarms", async () => {
       const { svc, telemetry } = makeService();
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask: drain it before any
-      // `telemetry.calls` assertion that follows.
+      // Command dispatch settles on a microtask: drain it before any `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
       expect(svc.snapshot().warpTo).toBeNull();
@@ -662,15 +658,13 @@ describe("AlarmHostService", () => {
 
     it("targets the highest ladder rate that respects the safety margin", async () => {
       const { svc, telemetry } = makeService();
-      // utNow=1000, alarm at ut=100_000 lead=10
-      // remaining=98_990; default margin=10 → maxRate=9899 → 1000× (idx 5)
+      // utNow=1000, alarm at ut=100_000 lead=10 remaining=98_990; default margin=10 → maxRate=9899 → 1000× (idx 5)
       const a = svc.addAlarm({
         name: "Far",
         trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
       });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask: drain it before any
-      // `telemetry.calls` assertion that follows.
+      // Command dispatch settles on a microtask: drain it before any `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
       expect(svc.snapshot().warpTo).toEqual({
@@ -714,8 +708,7 @@ describe("AlarmHostService", () => {
         trigger: { kind: "time", ut: 11_000, leadSeconds: 10 },
       });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask: drain it before any
-      // `telemetry.calls` assertion that follows.
+      // Command dispatch settles on a microtask: drain it before any `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
       expect(svc.snapshot().warpTo?.targetIndex).toBe(4);
@@ -779,14 +772,12 @@ describe("AlarmHostService", () => {
         trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
       });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask: drain it before any
-      // `telemetry.calls` assertion that follows.
+      // Command dispatch settles on a microtask: drain it before any `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
       expect(svc.snapshot().warpTo?.alarmId).toBe(far.id);
 
-      // Add a sooner alarm: next tick should retarget and pick a lower
-      // safe rate based on its earlier UT.
+      // Add a sooner alarm: next tick should retarget and pick a lower safe rate based on its earlier UT.
       const near = svc.addAlarm({
         name: "Near",
         trigger: { kind: "time", ut: 11_000, leadSeconds: 10 },
@@ -817,8 +808,7 @@ describe("AlarmHostService", () => {
         trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
       });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask: drain it before any
-      // `telemetry.calls` assertion that follows.
+      // Command dispatch settles on a microtask: drain it before any `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
       expect(svc.snapshot().warpTo).not.toBeNull();
@@ -834,8 +824,7 @@ describe("AlarmHostService", () => {
         trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
       });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask: drain it before any
-      // `telemetry.calls` assertion that follows.
+      // Command dispatch settles on a microtask: drain it before any `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
       telemetry.calls.length = 0; // isolate the cancel command
@@ -855,8 +844,7 @@ describe("AlarmHostService", () => {
         trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
       });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask: drain it before any
-      // `telemetry.calls` assertion that follows.
+      // Command dispatch settles on a microtask: drain it before any `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
       expect(svc.snapshot().warpTo?.targetIndex).toBe(4);
@@ -897,8 +885,7 @@ describe("AlarmHostService", () => {
         trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
       });
       svc.beginWarpTo();
-      // Command dispatch settles on a microtask: drain it before any
-      // `telemetry.calls` assertion that follows.
+      // Command dispatch settles on a microtask: drain it before any `telemetry.calls` assertion that follows.
       await Promise.resolve();
       await Promise.resolve();
       // Simulate KSP applying the commanded warp.

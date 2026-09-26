@@ -31,8 +31,7 @@ const scanPath = join(root, "packages/core/src/panel-body.scan.ts");
 const rootsPath = join(root, "packages/core/src/styleguideScanRoots.ts");
 const outPath = join(root, "packages/core/src/panel-body.allowlist.ts");
 
-// esbuild is a dependency of `packages/core`, not of the workspace root, so it
-// resolves from the scan's own directory rather than from this script's.
+// esbuild is a dependency of `packages/core`, not of the workspace root, so it resolves from the scan's own directory rather than from this script's.
 const { transformSync } = createRequire(scanPath)("esbuild");
 
 function load(path, required) {

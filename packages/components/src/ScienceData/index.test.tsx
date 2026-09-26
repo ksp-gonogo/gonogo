@@ -19,8 +19,7 @@ import {
   parseExperiments,
 } from "./parsers";
 
-// Body and situation come off vessel.identity (the parent body index named
-// against system.bodies, and the situation ordinal).
+// Body and situation come off vessel.identity (the parent body index named against system.bodies, and the situation ordinal).
 const CARRIED = [
   "vessel.identity",
   "system.bodies",
@@ -163,8 +162,7 @@ describe("ScienceDataComponent", () => {
     // the number, the symbol and the spoken word as separate elements, so a
     // readout is not one text node.
     expect(visibleText()).toContain("8.0 mits");
-    // The figure sits under a named column now, so the row carries the number
-    // and the header carries what it means, instead of a per-row "left".
+    // The figure sits under a named column now, so the row carries the number and the header carries what it means, instead of a per-row "left".
     expect(
       screen.getByRole("columnheader", { name: "Remaining" }),
     ).toBeInTheDocument();
@@ -276,8 +274,7 @@ describe("ScienceDataComponent", () => {
       ]);
     });
     await userEvent.click(screen.getByRole("tab", { name: "Archive" }));
-    // Body and experiment share one section heading: two levels of indent cost
-    // more width than the figures they were pushing off the edge.
+    // Body and experiment share one section heading: two levels of indent cost more width than the figures they were pushing off the edge.
     await waitFor(() =>
       expect(
         screen.getByRole("rowheader", { name: "Kerbin · Crew Report" }),

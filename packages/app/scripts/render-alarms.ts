@@ -189,8 +189,7 @@ async function main(): Promise<void> {
     await browser.close();
   }
 
-  // A page error means a scene rendered wrong, and a silently wrong render is
-  // worse than no render: it goes to a reviewer looking like the real thing.
+  // A page error means a scene rendered wrong, and a silently wrong render is worse than no render: it goes to a reviewer looking like the real thing.
   if (failures > 0) {
     throw new Error(`${failures} page error(s) during rendering; see above`);
   }

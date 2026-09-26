@@ -87,8 +87,7 @@ export function CalibrateWizard({
     });
   }, [svc, source]);
 
-  // While calibrating an analog input, watch raw lines and accumulate raw
-  // min/max for the currently-selected slice.
+  // While calibrating an analog input, watch raw lines and accumulate raw min/max for the currently-selected slice.
   useEffect(() => {
     if (calibratingIdx === null) return;
     const idx = calibratingIdx;

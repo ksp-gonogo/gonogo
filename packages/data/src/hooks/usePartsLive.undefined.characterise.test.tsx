@@ -124,11 +124,9 @@ describe("usePartsLive: what undefined means today", () => {
       resources: {},
       partState: undefined,
     });
-    // `partState` is the one field with no `??` fallback, so it is the ONLY
-    // channel by which "nothing has arrived" survives into the slice.
+    // `partState` is the one field with no `??` fallback, so it is the ONLY channel by which "nothing has arrived" survives into the slice.
     expect(result.current.get(34)?.partState).toBeUndefined();
-    // A real subscription happened, so the empty answer above is the hook's
-    // reading of an unfed topic and not a missing read path.
+    // A real subscription happened, so the empty answer above is the hook's reading of an unfed topic and not a missing read path.
     expect(fixture.transport.isSubscribed("vessel.parts")).toBe(true);
   });
 
@@ -179,8 +177,7 @@ describe("usePartsLive: what undefined means today", () => {
         partState: undefined,
       }),
     );
-    // Proves the assertion above is about the gates and not about a dropped
-    // emission.
+    // Proves the assertion above is about the gates and not about a dropped emission.
     expect(fixture.store.sample("vessel.parts")?.payload).toBeNull();
   });
 
@@ -228,8 +225,7 @@ describe("usePartsLive: what undefined means today", () => {
 
     await waitFor(() => expect(result.current.get(2)?.thermal).not.toBeNull());
     expect(result.current.get(1)?.thermal).toBeNull();
-    // The rest of the same part's live data is intact, so `thermal: null` here
-    // really is a per-field statement and not a whole-part one.
+    // The rest of the same part's live data is intact, so `thermal: null` here really is a per-field statement and not a whole-part one.
     expect(result.current.get(1)?.resources).not.toEqual({});
     expect(result.current.get(1)?.partState).toBeDefined();
   });
@@ -288,8 +284,7 @@ describe("usePartsLive: a partial per-part payload", () => {
     expect(String(caught[0])).toContain(
       "Cannot convert undefined or null to object",
     );
-    // The whole subtree is gone, not just the one part's resources: nothing
-    // downstream of the hook renders after this.
+    // The whole subtree is gone, not just the one part's resources: nothing downstream of the hook renders after this.
     expect(screen.queryByTestId("parts-live-probe")).toBeNull();
   });
 });

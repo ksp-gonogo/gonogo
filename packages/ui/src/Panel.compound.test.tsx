@@ -10,8 +10,7 @@ import { Panel } from "./Panel";
  */
 describe("Panel (compound)", () => {
   it("exposes every piece it composes", () => {
-    // The governing principle: if Panel renders something not reachable here,
-    // a widget needing a variant cannot reproduce it by hand.
+    // The governing principle: if Panel renders something not reachable here, a widget needing a variant cannot reproduce it by hand.
     expect(Panel.Container).toBeDefined();
     expect(Panel.Title).toBeDefined();
     expect(Panel.Glow).toBeDefined();

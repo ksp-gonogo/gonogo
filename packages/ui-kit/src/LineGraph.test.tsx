@@ -67,8 +67,7 @@ describe("LineGraph", () => {
         ariaLabel="Radiation trend"
       />,
     );
-    // The break leaves a single point before it, which is not a line: only the
-    // two-point run after it draws.
+    // The break leaves a single point before it, which is not a line: only the two-point run after it draws.
     expect(container.querySelectorAll("polyline")).toHaveLength(1);
   });
 
@@ -128,8 +127,7 @@ describe("LineGraph marker threshold style", () => {
 
   it("draws a fixed HTML tick instead of any in-frame threshold line", () => {
     const { container } = withMarker();
-    // No SVG threshold at all: the marker is an HTML overlay so its length
-    // does not stretch with the viewBox.
+    // No SVG threshold at all: the marker is an HTML overlay so its length does not stretch with the viewBox.
     expect(container.querySelector("line")).toBeNull();
     const marker = container.querySelector('[data-threshold-marker="safe"]');
     expect(marker).not.toBeNull();
@@ -217,8 +215,7 @@ describe("LineGraph sparkline variant", () => {
         ]}
       />,
     );
-    // Two shaded runs with unshaded ground between: a fill across the gap
-    // would claim the quantity had a value throughout it.
+    // Two shaded runs with unshaded ground between: a fill across the gap would claim the quantity had a value throughout it.
     expect(container.querySelectorAll("polygon")).toHaveLength(2);
   });
 

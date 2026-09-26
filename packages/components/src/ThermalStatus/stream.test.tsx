@@ -36,12 +36,10 @@ describe("ThermalStatus: genuinely runs off the stream (M3 batch 1)", () => {
       </fixture.Provider>,
     );
 
-    // Nothing arrived yet: noData is true (every mapped key is
-    // still undefined), so the empty state renders.
+    // Nothing arrived yet: noData is true (every mapped key is still undefined), so the empty state renders.
     expect(screen.getByText("No thermal data")).toBeTruthy();
 
-    // A real subscription must have happened for this to deliver at all,
-    // StubTransport.emit is subscription-gated (see its own doc comment).
+    // A real subscription must have happened for this to deliver at all, StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.thermal")).toBe(true);
 
     act(() => {
@@ -61,14 +59,12 @@ describe("ThermalStatus: genuinely runs off the stream (M3 batch 1)", () => {
       });
     });
 
-    // A temperature is a <Quantity>, so the number and symbol are separate
-    // elements; getByText sees only an element's direct text nodes.
+    // A temperature is a <Quantity>, so the number and symbol are separate elements; getByText sees only an element's direct text nodes.
     await waitFor(() => expect(visibleText(container)).toContain("14.4 °C"));
     // Zero decimals once |value| >= 1000, which the widget still chooses.
     expect(visibleText(container)).toContain("2000 °C");
     expect(screen.getByText("OX-STAT Photovoltaic Panels")).toBeTruthy();
-    // No engine data was emitted this tick, the engine row still shows its
-    // "no data" placeholder rather than a fabricated value.
+    // No engine data was emitted this tick, the engine row still shows its "no data" placeholder rather than a fabricated value.
     expect(screen.getAllByText(NULL_DISPLAY).length).toBeGreaterThanOrEqual(1);
   });
 });

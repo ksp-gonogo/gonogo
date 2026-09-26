@@ -149,8 +149,7 @@ function HomeBadge() {
  */
 function VantagePicker() {
   const { active, homeId } = useActiveCentres();
-  // Until this screen chooses, the mod has put it wherever a fresh connection
-  // starts, and only the frames say where that is.
+  // Until this screen chooses, the mod has put it wherever a fresh connection starts, and only the frames say where that is.
   const chosen = useSelectedVantage();
   const observed = useObservedVantage();
   const selected = chosen ?? observed;
@@ -170,8 +169,7 @@ function VantagePicker() {
   }));
 
   const selectedOption = options.find((o) => o.key === selected);
-  // Never empty: for a vantage the roster doesn't carry fall back to the raw
-  // id, and before any frame has said where this screen is, say so.
+  // Never empty: for a vantage the roster doesn't carry fall back to the raw id, and before any frame has said where this screen is, say so.
   const selectedLabel = selectedOption?.label ?? selected ?? "Unknown";
   const selectedIsHome = selected !== undefined && selected === homeId;
 

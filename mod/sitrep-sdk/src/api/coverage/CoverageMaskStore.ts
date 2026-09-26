@@ -261,8 +261,7 @@ export class CoverageMaskStore {
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE, "readwrite");
       const store = tx.objectStore(STORE);
-      // Delete all keys matching `${profileId}:...` by walking the prefix
-      // range. `:` is a safe separator because body ids never contain it.
+      // Delete all keys matching `${profileId}:...` by walking the prefix range. `:` is a safe separator because body ids never contain it.
       const lower = `${profileId}:`;
       const upper = `${profileId}:￿`;
       const cursorReq = store.openCursor(IDBKeyRange.bound(lower, upper));

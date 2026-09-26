@@ -97,8 +97,7 @@ describe("CurrentOrbit names why the figures are dashes", () => {
   });
 
   it("leaves a refused trajectory to its own note rather than saying it twice", () => {
-    // A provider that stated no shape: the trajectory is withheld, and its note
-    // is the account on screen.
+    // A provider that stated no shape: the trajectory is withheld, and its note is the account on screen.
     scene({ horizon: UNBOUNDED_HORIZON });
 
     expect(screen.getByRole("status")).toBeInTheDocument();
@@ -106,8 +105,7 @@ describe("CurrentOrbit names why the figures are dashes", () => {
   });
 
   it("says nothing when the conic advances the orbit", () => {
-    // The control: without it every case above would also pass on a widget
-    // that printed a state word unconditionally.
+    // The control: without it every case above would also pass on a widget that printed a state word unconditionally.
     scene({});
 
     expect(screen.queryByText(/CANNOT MODEL/)).toBeNull();

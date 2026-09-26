@@ -169,8 +169,7 @@ describe("ResourceOps: what undefined means today", () => {
 
     expect(await screen.findByText("Rateless Converter")).toBeInTheDocument();
     expect(screen.queryByText("no output")).not.toBeInTheDocument();
-    // Two rate cells, one per recipe side, both reading as unknown, which is
-    // the reading the starved diagnostic now agrees with rather than overrides.
+    // Two rate cells, one per recipe side, both reading as unknown, which is the reading the starved diagnostic now agrees with rather than overrides.
     expect(screen.getAllByText("unknown")).toHaveLength(2);
   });
 
@@ -292,8 +291,7 @@ describe("ResourceOps: what undefined means today", () => {
     const header = statsHeader();
     expect(within(header).getByText("at")).toBeInTheDocument();
     expect(within(header).getByText("Prospector One")).toBeInTheDocument();
-    // The separator only appears when a body name resolved, so its absence is
-    // how "body unknown" is spelled.
+    // The separator only appears when a body name resolved, so its absence is how "body unknown" is spelled.
     expect(within(header).queryByText(/·/)).not.toBeInTheDocument();
   });
 

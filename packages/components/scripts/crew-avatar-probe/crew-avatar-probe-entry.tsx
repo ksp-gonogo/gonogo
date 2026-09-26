@@ -40,8 +40,7 @@ import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
-// Side-effect import: every built-in widget (CrewStatus included)
-// self-registers on module load, same contract as the shared probe.
+// Side-effect import: every built-in widget (CrewStatus included) self-registers on module load, same contract as the shared probe.
 import "../../src";
 import type { CrewAvatarContext } from "../../src/CrewStatus";
 // Side-effect import: the planted Uplink's per-row crew contributions, gated
@@ -226,8 +225,7 @@ async function renderCrewAvatarProbe(
     ),
   );
 
-  // Let React commit + useEffect run (so useStream/useTelemetry actually
-  // subscribe) before replaying the fixture.
+  // Let React commit + useEffect run (so useStream/useTelemetry actually subscribe) before replaying the fixture.
   await rafTick();
 
   for (const e of payload.emits) {

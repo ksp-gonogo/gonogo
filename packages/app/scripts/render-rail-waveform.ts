@@ -277,8 +277,7 @@ async function main(): Promise<void> {
     const context = await browser.newContext({
       viewport: { width: VIEWPORT_W, height: VIEWPORT_H },
       deviceScaleFactor: 2,
-      // The rail's grow honours prefers-reduced-motion (transition: none), so
-      // the pinned shot is the settled state rather than a mid-transition frame.
+      // The rail's grow honours prefers-reduced-motion (transition: none), so the pinned shot is the settled state rather than a mid-transition frame.
       reducedMotion: "reduce",
     });
     const page = await context.newPage();
@@ -309,8 +308,7 @@ async function main(): Promise<void> {
         (p) => window.__renderRailWaveform(p),
         payload,
       );
-      // Park the cursor clear of the rail so a stationary pointer left from the
-      // previous scene's click cannot hover-open the float in the COLLAPSED shot.
+      // Park the cursor clear of the rail so a stationary pointer left from the previous scene's click cannot hover-open the float in the COLLAPSED shot.
       await page.mouse.move(VIEWPORT_W / 2, VIEWPORT_H - 10);
       await page.waitForTimeout(80);
 

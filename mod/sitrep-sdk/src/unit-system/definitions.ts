@@ -274,8 +274,7 @@ export const UNIT_DEFINITIONS = {
     kind: "power",
     ladder: "power",
   },
-  // Descends below the base unit: the upper atmosphere runs to fractions of a
-  // pascal.
+  // Descends below the base unit: the upper atmosphere runs to fractions of a pascal.
   mPa: {
     dim: { kg: 1, m: -1, s: -2 },
     ratio: 1e-3,
@@ -294,8 +293,7 @@ export const UNIT_DEFINITIONS = {
     kind: "pressure",
     ladder: "pressure",
   },
-  // Descends below the base unit for the same reason mPa does: air density
-  // falls from about a kilogram per cubic metre at sea level to grams and less.
+  // Descends below the base unit for the same reason mPa does: air density falls from about a kilogram per cubic metre at sea level to grams and less.
   "g/m³": {
     dim: { kg: 1, m: -3 },
     ratio: 1e-3,

@@ -33,8 +33,7 @@ import { useMemo } from "react";
  * `DerivedGet` reader, not a plain React-hook call site like this one.
  */
 function useBodyNameByIndex(): Map<number, string> {
-  // A body catalogue: declared unmodellable because it changes when the GAME
-  // changes, never continuously, so a stale one is simply the catalogue.
+  // A body catalogue: declared unmodellable because it changes when the GAME changes, never continuously, so a stale one is simply the catalogue.
   const bodiesReading = useTelemetry("system.bodies");
   const systemBodies =
     bodiesReading.state === "observed" || bodiesReading.state === "stale"
@@ -76,8 +75,7 @@ function toMapPoi(
       ? entry.status
       : "info";
 
-  // Capture the validated position as bare numbers here so the dispatch
-  // closure below carries plain values, not the nullable wire quantities.
+  // Capture the validated position as bare numbers here so the dispatch closure below carries plain values, not the nullable wire quantities.
   const bodyIndex = entry.bodyIndex;
   const latitude = entry.latitude.magnitude;
   const longitude = entry.longitude.magnitude;
@@ -85,8 +83,7 @@ function toMapPoi(
   return {
     id: entry.id,
     bodyId,
-    // Plain degrees: a POI's position is projected into map pixels, never
-    // read as a quantity.
+    // Plain degrees: a POI's position is projected into map pixels, never read as a quantity.
     lat: latitude,
     lon: longitude,
     kind: entry.kind,

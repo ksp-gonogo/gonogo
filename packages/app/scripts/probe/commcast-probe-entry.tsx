@@ -399,8 +399,7 @@ async function settle(predicate: () => boolean): Promise<boolean> {
     await twoFrames();
     await new Promise((r) => setTimeout(r, 16));
     if (predicate()) {
-      // One more pair, so the frame that satisfied the predicate has also been
-      // painted with everything else it released alongside.
+      // One more pair, so the frame that satisfied the predicate has also been painted with everything else it released alongside.
       await twoFrames();
       return true;
     }
@@ -503,8 +502,7 @@ function paneTree(pane: Pane, index: number) {
     node: (
       <div
         key={`${pane.seat}:${pane.vantage ?? ""}:${index}`}
-        // The handle a click is scoped to, so driving one pane's inbox can
-        // never reach the other vantage's widget.
+        // The handle a click is scoped to, so driving one pane's inbox can never reach the other vantage's widget.
         data-pane={index}
         style={{
           display: "flex",
@@ -559,8 +557,7 @@ async function renderSceneOnce(scene: Scene): Promise<boolean> {
     root = undefined;
   }
 
-  // The local participant's stationKey comes off `localStorage`; pin it so two
-  // runs of one scene do not differ in ids that change nothing visible.
+  // The local participant's stationKey comes off `localStorage`; pin it so two runs of one scene do not differ in ids that change nothing visible.
   localStorage.clear();
   localStorage.setItem("gonogo.station.key", "render-probe-local");
 

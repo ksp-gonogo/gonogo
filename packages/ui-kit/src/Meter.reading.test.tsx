@@ -154,8 +154,7 @@ describe("Meter, given a reading of a fraction", () => {
   });
 
   it("finds the band itself, so no call site reads reckoning.band", () => {
-    // The whole of what a caller passes is the reading it already holds: no
-    // path, no unit, no map lookup, and nothing to get wrong per widget.
+    // The whole of what a caller passes is the reading it already holds: no path, no unit, no map lookup, and nothing to get wrong per widget.
     const { container } = render(
       <Meter
         label="Dose"

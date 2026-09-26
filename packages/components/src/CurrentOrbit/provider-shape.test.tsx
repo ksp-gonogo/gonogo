@@ -102,8 +102,7 @@ describe("CurrentOrbit draws the shape the provider states", () => {
   });
 
   it("draws no curve once the view instant runs past the integrator's horizon", async () => {
-    // The fixture pins the view clock at UT 0, so a horizon in the PAST is the
-    // operator looking at an instant the provider has not computed.
+    // The fixture pins the view clock at UT 0, so a horizon in the PAST is the operator looking at an instant the provider has not computed.
     const { container } = render({ ...LKO, horizon: integratedHorizon(-100) });
     await waitForText(container, "BEYOND INTEGRATION");
     expect(closedConics(container)).toBe(0);

@@ -60,8 +60,7 @@ const CARRIED = [
   "career.crew.fire",
 ];
 
-// A generous funds balance so affordability never blocks a hire unless a test
-// deliberately lowers it.
+// A generous funds balance so affordability never blocks a hire unless a test deliberately lowers it.
 function emitFunds(fixture: StreamFixture, funds: number | null) {
   fixture.emit("career.status", { economy: { funds } });
 }
@@ -126,8 +125,7 @@ const APPLICANTS = [
     descriptionEffects: "Level 0: Can analyze Mystery Goo and Materials Bay.",
   },
   {
-    // No roleDescription/descriptionEffects on the wire: the popover's
-    // graceful empty state, exercised by a test below.
+    // No roleDescription/descriptionEffects on the wire: the popover's graceful empty state, exercised by a test below.
     name: "Limmy Kerman",
     trait: "Pilot",
     experienceLevel: 0,
@@ -136,8 +134,7 @@ const APPLICANTS = [
   },
 ];
 const NEXT_HIRE_COST = 24000;
-// KSP's int.MaxValue: the sentinel GetActiveCrewLimit returns at the top
-// Astronaut Complex tier, an unlimited roster.
+// KSP's int.MaxValue: the sentinel GetActiveCrewLimit returns at the top Astronaut Complex tier, an unlimited roster.
 const UNLIMITED_CREW_CAP = 2_147_483_647;
 
 // Spans every stock standing plus a real RP-1 retiree, so tests can assert the
@@ -300,8 +297,7 @@ describe("AstronautComplexComponent", () => {
       });
     });
 
-    // Wait for the applicant pool to land (the only element unique to the
-    // post-emission render) before asserting on the rest of the header.
+    // Wait for the applicant pool to land (the only element unique to the post-emission render) before asserting on the rest of the header.
     await screen.findByText("Desdin Kerman");
     // Funds readout is in-widget (CLAUDE.md funds rule): the "Funds" label.
     expect(screen.getByText("Funds")).toBeInTheDocument();
@@ -687,8 +683,7 @@ describe("AstronautComplexComponent", () => {
     });
     await user.click(await screen.findByRole("tab", { name: "Active" }));
 
-    // The tab labels are the STANDING's own words, not the producer's: a label
-    // taken from a spelling KSP owns is a label KSP can change.
+    // The tab labels are the STANDING's own words, not the producer's: a label taken from a spelling KSP owns is a label KSP can change.
     await user.click(await screen.findByRole("tab", { name: "Available (1)" }));
     await screen.findByText("Ludsy Kerman");
     expect(
@@ -731,8 +726,7 @@ describe("AstronautComplexComponent", () => {
     await user.click(await screen.findByRole("tab", { name: "Missing (1)" }));
     const missingClass = (await screen.findByText("Missing")).className;
 
-    // Being on a mission is expected, not alarming: it must not share the
-    // critical badge's styling, while the two genuinely lost situations do.
+    // Being on a mission is expected, not alarming: it must not share the critical badge's styling, while the two genuinely lost situations do.
     expect(onMissionClass).not.toBe(deadClass);
     expect(deadClass).toBe(missingClass);
   });
@@ -885,8 +879,7 @@ describe("AstronautComplexComponent", () => {
     expect(await screen.findByText("Gus Kerman")).toBeInTheDocument();
     const retiredClass = (await screen.findByText("Retired")).className;
 
-    // Retiring is not dying, and the badge has to say so: the whole content of
-    // the defect was these two rendering identically.
+    // Retiring is not dying, and the badge has to say so: the whole content of the defect was these two rendering identically.
     expect(retiredClass).not.toBe(deadClass);
   });
 
@@ -967,8 +960,7 @@ describe("AstronautComplexComponent", () => {
     ) as HTMLElement;
     // The one badge for every way a kerbal cannot fly, not a per-axis badge.
     expect(within(row).getByText("Standing down")).toBeInTheDocument();
-    // Firing is not flying: the roster accepts a sacking here, so the control
-    // must still be offered.
+    // Firing is not flying: the roster accepts a sacking here, so the control must still be offered.
     expect(
       within(row).getByRole("button", { name: /^Fire Bill Kerman/ }),
     ).toBeInTheDocument();
@@ -1004,8 +996,7 @@ describe("AstronautComplexComponent", () => {
           standing: CrewStanding.Training,
           situation: "Training",
           standingSource: "rp1",
-          // KSP's own ordinal is Available throughout a course: the game field
-          // is not the answer, which is the premise of the whole capability.
+          // KSP's own ordinal is Available throughout a course: the game field is not the answer, which is the premise of the whole capability.
           situationOrdinal: 0,
           available: false,
           unavailableReason: "In training",
@@ -1081,8 +1072,7 @@ describe("AstronautComplexComponent", () => {
       emitCrewRoster(fixture, CREW_ROSTER);
     });
 
-    // Active is the positive signal that the strip rendered at all, so the
-    // absence below is about a tab that was not offered.
+    // Active is the positive signal that the strip rendered at all, so the absence below is about a tab that was not offered.
     expect(await screen.findByRole("tab", { name: "Active" })).toBeVisible();
     expect(
       screen.queryByRole("tab", { name: "Training" }),
@@ -1252,8 +1242,7 @@ describe("AstronautComplexComponent", () => {
       emitCrewRoster(fixture, CREW_ROSTER);
     });
 
-    // The Applicants list gets one too: RP-1 gives an applicant a retirement
-    // date and retires them out of the pool.
+    // The Applicants list gets one too: RP-1 gives an applicant a retirement date and retires them out of the pool.
     expect(
       await screen.findByText(
         `Desdin Kerman:${CrewStanding.Applicant}:applicant`,

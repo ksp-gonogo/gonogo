@@ -19,8 +19,7 @@ describe("SignalDelayBadge", () => {
   });
 
   it("keeps a decimal under a minute rather than truncating to a whole unit", () => {
-    // A delay is a READOUT, not a countdown: the time ladder would show 7.6 s
-    // as "7s" and lose the tenth that distinguishes two links.
+    // A delay is a READOUT, not a countdown: the time ladder would show 7.6 s as "7s" and lose the tenth that distinguishes two links.
     render(<SignalDelayBadge oneWaySeconds={7.6} />);
     expect(visibleText(screen.getByLabelText("Signal delay"))).toContain(
       "~7.6 s",

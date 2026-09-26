@@ -1,7 +1,6 @@
 // @vitest-environment node
 //
-// Node realm rather than the package's jsdom default: this test shells out to
-// esbuild and reads the filesystem, and needs no DOM.
+// Node realm rather than the package's jsdom default: this test shells out to esbuild and reads the filesystem, and needs no DOM.
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
@@ -238,8 +237,7 @@ describe("runtime-loaded Uplink link surface", () => {
         seen.add(specifier);
       }
     }
-    // If the extractor ever stops seeing this, every assertion below passes
-    // against an empty list.
+    // If the extractor ever stops seeing this, every assertion below passes against an empty list.
     expect(seen).toContain("@ksp-gonogo/sitrep-sdk");
     /*
      * No SUBPATH here, and that is a statement about the clients rather than
@@ -298,8 +296,7 @@ describe("runtime-loaded Uplink link surface", () => {
       FRAMES_PROBE_SOURCE,
     );
 
-    // The premise: esbuild leaves the subpath alone rather than inlining it, so
-    // nothing before load can notice a missing key.
+    // The premise: esbuild leaves the subpath alone rather than inlining it, so nothing before load can notice a missing key.
     expect(found).toContain("@ksp-gonogo/sitrep-sdk/frames");
     expect(unresolved).toEqual([]);
   });

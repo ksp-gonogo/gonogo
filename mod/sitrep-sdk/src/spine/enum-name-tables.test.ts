@@ -151,8 +151,7 @@ describe("enum name tables cover their enums", () => {
       "Sitrep.Contract/UplinkContract.cs",
       "UplinkHealthState",
     );
-    // Guards this reader the same way the generated-enum one is guarded above:
-    // an extractor that quietly returned nothing would make any table pass.
+    // Guards this reader the same way the generated-enum one is guarded above: an extractor that quietly returned nothing would make any table pass.
     expect(members).toEqual(["Healthy", "Degraded", "Unavailable"]);
     expect([...HEALTH_STATE_NAMES]).toEqual(
       members.map((n) => n.toLowerCase()),
@@ -201,11 +200,9 @@ describe("enum name tables cover their enums", () => {
       )
       .map(([name]) => name)
       .sort();
-    // Guards this reader: a filter that matched nothing would make an empty
-    // registry pass, so the count is pinned rather than only compared.
+    // Guards this reader: a filter that matched nothing would make an empty registry pass, so the count is pinned rather than only compared.
     expect(exported.length).toBeGreaterThanOrEqual(7);
-    // Compared as sets: the registry reads in declaration order and the scan
-    // reads alphabetically, and which order either is in is not the point.
+    // Compared as sets: the registry reads in declaration order and the scan reads alphabetically, and which order either is in is not the point.
     const registered = new Set(KSP_ENUM_NAME_TABLES.map((t) => t.members));
     const missing = exported.filter(
       (name) => !registered.has((generated as Record<string, object>)[name]),

@@ -16,8 +16,7 @@ describe("deriveBoard", () => {
   });
 
   it("an atmospheric body suppresses the vacuum solve, showing an honest estimate while descending", () => {
-    // Descending in atmosphere with body data but no mod terminal velocity: an
-    // honest partial read (atmospheric-estimate), never a silent "unmodelled".
+    // Descending in atmosphere with body data but no mod terminal velocity: an honest partial read (atmospheric-estimate), never a silent "unmodelled".
     expect(
       deriveBoard({ solutionState: "vacuum-solved", atmospheric: true }),
     ).toBe("atmospheric-estimate");

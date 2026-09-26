@@ -321,8 +321,7 @@ declare module "@ksp-gonogo/core" {
 // on each entry's `row`, which is what lets a once-per-widget segment address a
 // per-row extension at all.
 //
-// This widget still carries no mod-specific reads: the derivation lives in the
-// contributing Uplink's own Processor exactly as it did before.
+// This widget still carries no mod-specific reads: the derivation lives in the contributing Uplink's own Processor exactly as it did before.
 
 // The `crew-status.row-tone` CONTRIBUTION slot (contribution-slots-spec,
 // same "pure data, host renders its own chrome" model as ShipMap's
@@ -429,8 +428,7 @@ function CrewStatusComponent({
   w,
   h,
 }: Readonly<ComponentProps<CrewStatusConfig>>) {
-  // Roster, count, and capacity all ride the single `vessel.crew` Topic,
-  // read it once and pick the three fields off it.
+  // Roster, count, and capacity all ride the single `vessel.crew` Topic, read it once and pick the three fields off it.
   /**
    * The roster is a fact, not a measurement: nobody leaves the capsule because the
    * link dropped, so a held roster is still the crew. The suit resources further
@@ -441,8 +439,7 @@ function CrewStatusComponent({
   const crewRaw = crew?.crew;
   const crewCount = crew?.count;
   const crewCapacity = crew?.capacity;
-  // Whether the crew is outside is a fact about the craft, so it holds while
-  // the link is quiet exactly as the roster beside it does.
+  // Whether the crew is outside is a fact about the craft, so it holds while the link is quiet exactly as the roster beside it does.
   const identity = stillTrue(topics.useTelemetry("vessel.identity"), undefined);
   const isEVA =
     identity === undefined ? undefined : identity.vesselType === VesselType.EVA;
@@ -502,8 +499,7 @@ function CrewStatusComponent({
   const known =
     crewCount !== undefined || crewCapacity !== undefined || names.length > 0;
 
-  // Selective rendering, at very small sizes the roster is dropped in
-  // favour of a single big "n / m" headcount readout.
+  // Selective rendering, at very small sizes the roster is dropped in favour of a single big "n / m" headcount readout.
   const cols = w ?? 6;
   const rows = h ?? 8;
   const showRoster = rows >= 5 && cols >= 4;

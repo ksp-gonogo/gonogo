@@ -57,8 +57,7 @@ const inScans = new Set<string>(scanTestFiles());
 
 describe("scans-project membership", () => {
   it("read core's test files at all", () => {
-    // The instrument, before anything that could pass by finding nothing: a
-    // `git ls-files` that returns nothing makes every check below vacuous.
+    // The instrument, before anything that could pass by finding nothing: a `git ls-files` that returns nothing makes every check below vacuous.
     expect(files.length).toBeGreaterThan(80);
     expect(inScans.size).toBeGreaterThan(40);
   });

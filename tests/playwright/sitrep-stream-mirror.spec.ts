@@ -52,8 +52,7 @@ test.describe("Sitrep stream: recorded flight mirror", () => {
       },
     });
 
-    // String + array shape: vessel.crew.crew[0].name via CrewStatus,
-    // already on the dashboard.
+    // String + array shape: vessel.crew.crew[0].name via CrewStatus, already on the dashboard.
     await expect(
       pair.main.getByText("Bob Kerman", { exact: true }),
     ).toBeVisible({ timeout: 15_000 });

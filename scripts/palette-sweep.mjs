@@ -76,8 +76,7 @@ const NEW_TOKENS = {
 };
 
 // ---------------------------------------------------------------------------
-// Walk + colour math: duplicated from palette-audit.mjs because these are
-// throwaway one-shot scripts and a shared module is overkill.
+// Walk + colour math: duplicated from palette-audit.mjs because these are throwaway one-shot scripts and a shared module is overkill.
 // ---------------------------------------------------------------------------
 
 function* walk(dir) {
@@ -168,12 +167,10 @@ const FIXUPS = {
   "#e4d99e": "--color-tag-yellow-fg",
 };
 
-// Routes for the user's bundled "alert-muted" group: split into
-// alert-muted (dark reds) vs warning-bg-muted (warm browns / olives).
+// Routes for the user's bundled "alert-muted" group: split into alert-muted (dark reds) vs warning-bg-muted (warm browns / olives).
 const WARNING_BG_MUTED = new Set(["#663300", "#2a1a0a", "#3a2a0a"]);
 
-// Routes for the user's flat "--color-tag-purple": split into fg/border
-// based on the actual shade used at each call site.
+// Routes for the user's flat "--color-tag-purple": split into fg/border based on the actual shade used at each call site.
 const TAG_PURPLE_BORDER = new Set(["#6a3a9a"]); // dark purple → border
 // All other "--color-tag-purple" decisions go to fg.
 

@@ -177,8 +177,7 @@ export {
   useScienceCredit,
   useStickyVesselGuids,
 } from "./currency-events";
-// The silence the gate's own diagnostic cannot see: a legacy-shaped read that
-// reaches neither a stream channel nor a registered source.
+// The silence the gate's own diagnostic cannot see: a legacy-shaped read that reaches neither a stream channel nor a registered source.
 export {
   classifyDeadRead,
   DEAD_READ_SETTLE_MS,
@@ -237,8 +236,7 @@ export {
   useFleetVesselResources,
 } from "./fleet-resources";
 export { buildFullHistoryStore, InstantClock } from "./full-history-replay";
-// The carried-channels gate's own diagnostic: the shims that consult the gate
-// report through it when the gate would have hidden a value the stream had.
+// The carried-channels gate's own diagnostic: the shims that consult the gate report through it when the gate would have hidden a value the stream had.
 export {
   type GatedReadHook,
   gatedReadMessage,

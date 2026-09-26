@@ -412,8 +412,7 @@ export class WebSocketTransport implements Transport {
     try {
       ws = new this.WebSocketImpl(this.url);
     } catch {
-      // Constructor threw synchronously (e.g. a malformed URL); treat it the
-      // same as a failed connection so the retry loop still governs.
+      // Constructor threw synchronously (e.g. a malformed URL); treat it the same as a failed connection so the retry loop still governs.
       this.scheduleRetry();
       return;
     }
@@ -469,8 +468,7 @@ export class WebSocketTransport implements Transport {
   private handleDrop(ws: WebSocketLike): void {
     if (this.ws !== ws) return;
     this.ws = null;
-    // Defensive close for the error path (harmless on an already-closed socket)
-    // so a stuck-open socket can't linger while we reconnect.
+    // Defensive close for the error path (harmless on an already-closed socket) so a stuck-open socket can't linger while we reconnect.
     try {
       ws.close();
     } catch {
@@ -531,8 +529,7 @@ export class WebSocketTransport implements Transport {
             reason: UNDELIVERED_REASON,
           });
         } catch (error) {
-          // One throwing listener must not strand the commands behind it, the
-          // same isolation contract `deliver` holds for message fan-out.
+          // One throwing listener must not strand the commands behind it, the same isolation contract `deliver` holds for message fan-out.
           console.error(
             "WebSocketTransport: undelivered listener threw",
             error,
@@ -586,8 +583,7 @@ export class WebSocketTransport implements Transport {
     try {
       message = parseServerMessage(frame.text);
     } catch {
-      // Malformed / unknown envelope: drop it, same posture as the
-      // legacy data source's own JSON guard.
+      // Malformed / unknown envelope: drop it, same posture as the legacy data source's own JSON guard.
       return;
     }
 
@@ -634,8 +630,7 @@ export class WebSocketTransport implements Transport {
       try {
         listener(message);
       } catch (error) {
-        // One throwing listener must not starve the rest of fan-out, same
-        // isolation contract as StubTransport/ReplayTransport.
+        // One throwing listener must not starve the rest of fan-out, same isolation contract as StubTransport/ReplayTransport.
         console.error("WebSocketTransport: message listener threw", error);
       }
     }

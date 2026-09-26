@@ -502,8 +502,7 @@ export function OrbitDiagram({
   const vbPerPx = containerSize
     ? Math.max(vb.w / containerSize.w, vb.h / containerSize.h)
     : 1;
-  // labelOffset is a user-unit value (apsis position lives in user units),
-  // so convert the px target back to user units for the radial nudge.
+  // labelOffset is a user-unit value (apsis position lives in user units), so convert the px target back to user units for the radial nudge.
   const labelOffset = Math.max(dotR * 2.5, labelPxSize * 0.7 * vbPerPx);
   // Offset labels OUTWARD from the body (radial), not just up the y-axis.
   // Earlier code hardcoded `marker.y - labelOffset`, which placed the
@@ -834,8 +833,7 @@ function formatAltitude(
 }
 
 const ApsisMarker = styled.circle.attrs<{ r: number | string }>(({ r }) => ({
-  // role="img" gives the focusable marker a valid role so its descriptive
-  // `aria-label` is permitted (a bare <circle> prohibits aria-label).
+  // role="img" gives the focusable marker a valid role so its descriptive `aria-label` is permitted (a bare <circle> prohibits aria-label).
   role: "img",
   style: { "--apsis-focus-stroke-w": `${Number(r) * 0.5}px` },
 }))`
@@ -1042,8 +1040,7 @@ function buildHyperbolicPath(sma: number, ecc: number, rMax: number): string {
   for (let theta = -180; theta <= 180; theta += 2) {
     const r = trueAnomalyToRadius(a, ecc, theta);
     if (!Number.isFinite(r) || r <= 0 || r > rMax) {
-      // Discontinuity / clipped: emit a path break so we don't draw a
-      // straight line across the missing arc.
+      // Discontinuity / clipped: emit a path break so we don't draw a straight line across the missing arc.
       if (points.length > 0 && !points[points.length - 1].startsWith("__")) {
         points.push("__BREAK__");
       }

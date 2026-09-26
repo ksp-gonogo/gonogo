@@ -343,8 +343,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const careerScience =
     career.state === "observed" ? career.value.economy?.science : undefined;
   const careerNotCurrent = career.state === "stale";
-  // The game scene is a fact as well: it changes when the player walks through
-  // a door, which is an event and not a drift.
+  // The game scene is a fact as well: it changes when the player walks through a door, which is an event and not a drift.
   const scene = stillTrue(
     topics.useTelemetry("spaceCenter.scene"),
     undefined,
@@ -375,8 +374,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const bucket = getSizeBucket(w, h);
   const rows = h ?? 8;
   const showSubtitle = rows >= 4;
-  // The Unlock button compares this against a node's cost, so it needs the
-  // number: left wrapped, every node read as unaffordable.
+  // The Unlock button compares this against a node's cost, so it needs the number: left wrapped, every node read as unaffordable.
   const sciAvailable = magnitudeOf(careerScience);
 
   const researchable = useMemo(
@@ -971,8 +969,7 @@ function NodeRow({
       : display === "researchable"
         ? "Researchable"
         : "Locked";
-  // Researchable but unaffordable: grey the row and recolour the cost so the
-  // scan is immediate (2026-05-17 session feedback).
+  // Researchable but unaffordable: grey the row and recolour the cost so the scan is immediate (2026-05-17 session feedback).
   const unaffordable = display === "researchable" && !canAfford;
 
   return (

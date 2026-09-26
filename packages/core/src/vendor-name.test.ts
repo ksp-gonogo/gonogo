@@ -46,8 +46,7 @@ const EXEMPT_PREFIXES = ["CLAUDE.md", "local_docs/", ".serena/"];
  * lets an exempt path serve as a positive control for the needle itself.
  */
 function countLines(needle: string): Map<string, number> {
-  // `|| true`: git grep exits 1 when nothing matches, which is a legitimate
-  // result here (it is what "finished" looks like) and not an error.
+  // `|| true`: git grep exits 1 when nothing matches, which is a legitimate result here (it is what "finished" looks like) and not an error.
   const out = execFileSync(
     "sh",
     ["-c", `git grep -c -i ${needle} -- . || true`],

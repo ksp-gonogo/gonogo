@@ -25,8 +25,7 @@ import { CommSignalComponent } from "./index";
  * stops gating.
  */
 
-// `Sitrep.Contract.ControlState` ordinals: 4 = Full (collapses to level 2),
-// 11 = Unknown (name resolves, level collapses to `undefined`).
+// `Sitrep.Contract.ControlState` ordinals: 4 = Full (collapses to level 2), 11 = Unknown (name resolves, level collapses to `undefined`).
 const CONTROL_STATE_FULL = 4;
 const CONTROL_STATE_UNKNOWN = 11;
 
@@ -60,11 +59,9 @@ describe("CommSignal: what undefined means today", () => {
   it("renders the no-signal empty state and NO readout when nothing has arrived", () => {
     const { container } = renderComm();
 
-    // The `hasData` absence gate firing: this is the whole widget body being
-    // withheld because three reads are `undefined`.
+    // The `hasData` absence gate firing: this is the whole widget body being withheld because three reads are `undefined`.
     expect(screen.getByText("No signal data")).toBeInTheDocument();
-    // Specifically absent, not merely "an empty container": the bars chart, the
-    // Control/Delay rows and the connection announcement are all suppressed.
+    // Specifically absent, not merely "an empty container": the bars chart, the Control/Delay rows and the connection announcement are all suppressed.
     expect(screen.queryByLabelText(/^Signal \d of 4$/)).toBeNull();
     expect(screen.queryByText("Control")).toBeNull();
     expect(screen.queryByText("Delay")).toBeNull();
@@ -123,8 +120,7 @@ describe("CommSignal: what undefined means today", () => {
     const { fixture } = renderComm();
 
     act(() => {
-      // ControlState.Unknown: the name resolves to "Unknown", the level
-      // collapses to `undefined`.
+      // ControlState.Unknown: the name resolves to "Unknown", the level collapses to `undefined`.
       fixture.emit("vessel.comms", { controlState: CONTROL_STATE_UNKNOWN });
     });
 
@@ -140,8 +136,7 @@ describe("CommSignal: what undefined means today", () => {
   it("collapses a live readout back to the never-arrived empty state on a vessel.comms tombstone", async () => {
     const { fixture } = renderComm();
 
-    // Start from a live readout, so the collapse below is observably caused by
-    // the tombstone rather than by nothing ever having arrived.
+    // Start from a live readout, so the collapse below is observably caused by the tombstone rather than by nothing ever having arrived.
     act(() => {
       fixture.emit("vessel.comms", {
         signalStrength: 0.9,
@@ -190,16 +185,14 @@ describe("CommSignal: what undefined means today", () => {
     const { fixture } = renderComm();
 
     act(() => {
-      // `strengthValid` requires `raw > 0`, so an observed zero is discarded by
-      // the same test that discards an absent field: 0 % is never rendered.
+      // `strengthValid` requires `raw > 0`, so an observed zero is discarded by the same test that discards an absent field: 0 % is never rendered.
       fixture.emit("vessel.comms", {
         signalStrength: 0,
         controlState: CONTROL_STATE_FULL,
       });
     });
 
-    // Four bars from the control-state fallback, not zero bars from the zero
-    // strength: the observed zero is invisible to the readout.
+    // Four bars from the control-state fallback, not zero bars from the zero strength: the observed zero is invisible to the readout.
     await waitFor(() =>
       expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy(),
     );

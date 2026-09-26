@@ -157,8 +157,7 @@ export function buildBodyRotation(
 ): (inertialLon: number, ut: number) => number {
   const refState = patchStateAt(referencePatch, ref.ut);
   const refInertialLon = radToDeg(Math.atan2(refState.y, refState.x));
-  // rotationOffset such that: lon_body = lon_inertial - rotationOffset - omega·(t - ref.ut)
-  // At t = ref.ut, lon_body = ref.lon, so rotationOffset = refInertialLon - ref.lon.
+  // rotationOffset such that: lon_body = lon_inertial - rotationOffset - omega·(t - ref.ut) At t = ref.ut, lon_body = ref.lon, so rotationOffset = refInertialLon - ref.lon.
   const rotationOffsetAtRef = refInertialLon - ref.lon;
   const omega = 360 / rotationPeriod;
   return (inertialLon: number, ut: number): number =>

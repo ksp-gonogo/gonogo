@@ -90,8 +90,7 @@ describe("orbitTrajectory", () => {
     });
     expect(answer.shape).toBe("arc");
     if (answer.shape !== "arc") return;
-    // A second lap would retrace the first, which asserts a closure osculating
-    // elements cannot promise.
+    // A second lap would retrace the first, which asserts a closure osculating elements cannot promise.
     expect(answer.toUt).toBeCloseTo(period, 6);
   });
 
@@ -401,8 +400,7 @@ describe("orbitTrajectory: the two refusals only an integrating provider has", (
   });
 
   it("keeps an unattempted arc distinguishable from a drawn one", () => {
-    // The two were one value, so a client could not tell an install where the
-    // integrated path never runs from one where it runs cleanly.
+    // The two were one value, so a client could not tell an install where the integrated path never runs from one where it runs cleanly.
     expect(Refusal.NotAttempted).not.toBe(Refusal.NotRefused);
     expect(Refusal.NotAttempted).toBe(0);
   });
@@ -572,8 +570,7 @@ describe("orbitTrajectory read frames", () => {
     for (const p of turned.points) {
       expect(Math.hypot(p.x, p.y, p.z) / 2.0e7).toBeCloseTo(1, 1);
     }
-    // And the curve is genuinely somewhere else: a rotating frame is not the
-    // orbit plane, so the same index is a different point.
+    // And the curve is genuinely somewhere else: a rotating frame is not the orbit plane, so the same index is a different point.
     const perifocal = orbitTrajectory({
       orbit: { ...homeOrbit(), horizon: INTEGRATED },
       viewUt: 0,
@@ -641,8 +638,7 @@ describe("orbitTrajectory read frames", () => {
   });
 
   it("draws in the frame the curve came in when the control frame is not being published", () => {
-    // "Follow the control frame" with nothing publishing one is the ordinary
-    // case, and it must draw rather than refuse.
+    // "Follow the control frame" with nothing publishing one is the ordinary case, and it must draw rather than refuse.
     expect(
       orbitTrajectory({
         orbit: homeOrbit(),

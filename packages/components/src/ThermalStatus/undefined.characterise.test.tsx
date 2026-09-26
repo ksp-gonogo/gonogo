@@ -181,8 +181,7 @@ describe("ThermalStatus: what undefined means today", () => {
     // band tag, the last of which has no data at all.
     expect(screen.queryAllByText("nominal")).toHaveLength(0);
     expect(screen.getAllByText("unknown")).toHaveLength(3);
-    // A missing ratio has no length to draw, so the meter draws its absent
-    // form: no fill and no aria-valuenow asserting one.
+    // A missing ratio has no length to draw, so the meter draws its absent form: no fill and no aria-valuenow asserting one.
     expect(
       screen.queryByRole("meter", { name: "LV-T30 'Reliant'" }),
     ).toBeNull();

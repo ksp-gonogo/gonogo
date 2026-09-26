@@ -168,8 +168,7 @@ describe("ManeuverPlanner's conformance plot draws the shape the provider states
     const path = plot(container).querySelector("svg path[data-trajectory]");
     expect(path).not.toBeNull();
     expect(path?.getAttribute("d") ?? "").not.toMatch(/z/i);
-    // The planned conic survives: it came off the wire from the planner, and
-    // the seam was never asked about it.
+    // The planned conic survives: it came off the wire from the planner, and the seam was never asked about it.
     expect(
       plot(container).querySelectorAll("svg [stroke-dasharray]").length,
     ).toBeGreaterThan(0);
@@ -225,8 +224,7 @@ describe("ManeuverPlanner's preview diagram draws the shape the provider states"
         throw new Error("the refusal has not rendered yet");
       }
     });
-    // The projected ellipses go with it: they are patched-conic extrapolations
-    // of the very elements the provider declined to authorise a curve through.
+    // The projected ellipses go with it: they are patched-conic extrapolations of the very elements the provider declined to authorise a curve through.
     expect(container.querySelectorAll("svg ellipse").length).toBe(0);
   });
 
@@ -273,8 +271,7 @@ describe("ManeuverPlanner's preview diagram draws the shape the provider states"
         throw new Error("the preview diagram has not rendered yet");
       }
     });
-    // Under a two-body provider the projection and the trajectory rest on the
-    // same model, so there is no disagreement to declare.
+    // Under a two-body provider the projection and the trajectory rest on the same model, so there is no disagreement to declare.
     expect(visibleText(container)).not.toMatch(/two-body/i);
     await act(async () => {});
   });

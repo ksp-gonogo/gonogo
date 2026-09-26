@@ -60,8 +60,7 @@ describe("PresentationPacer", () => {
     pacer.submit(frame(0.1, "b"));
     pacer.submit(frame(0.2, "c"));
 
-    // First tick lands late (0.05 instead of 0), "a" presents at wall=0.05,
-    // but "b"'s due time is anchored at 0.05 + 0.1 = 0.15, not 0 + 0.1 = 0.1.
+    // First tick lands late (0.05 instead of 0), "a" presents at wall=0.05, but "b"'s due time is anchored at 0.05 + 0.1 = 0.15, not 0 + 0.1 = 0.1.
     pacer.tick(0.05);
     expect(presented).toEqual(["a"]);
 
@@ -162,8 +161,7 @@ describe("PresentationPacer", () => {
       maxRateDeparture: 0.2,
     });
 
-    // Eleven frames on a 20 ms UT grid, arriving 18 ms apart: the shape a
-    // separation closing at a tenth of the speed of light gives a stream.
+    // Eleven frames on a 20 ms UT grid, arriving 18 ms apart: the shape a separation closing at a tenth of the speed of light gives a stream.
     for (let i = 0; i <= 10; i++) {
       pacer.submit(frame(i * 0.02, `f${i}`), i * 0.018);
     }
@@ -200,8 +198,7 @@ describe("PresentationPacer", () => {
       maxRateDeparture: 0.2,
     });
 
-    // Five frames per burst on the 20 ms grid, one burst per 100 ms of source
-    // timeline, arriving 90 ms apart: the same 0.9 as above, in bursts.
+    // Five frames per burst on the 20 ms grid, one burst per 100 ms of source timeline, arriving 90 ms apart: the same 0.9 as above, in bursts.
     for (let burst = 0; burst <= 4; burst++) {
       for (let i = 0; i < 5; i++) {
         pacer.submit(
@@ -236,8 +233,7 @@ describe("PresentationPacer", () => {
       maxRateDeparture: 0.2,
     });
 
-    // Ten frames in the opening burst, five in each of the four that follow,
-    // one burst per 100 ms of source timeline arriving 90 ms apart: 0.9 again.
+    // Ten frames in the opening burst, five in each of the four that follow, one burst per 100 ms of source timeline arriving 90 ms apart: 0.9 again.
     for (let i = 0; i < 10; i++) pacer.submit(frame(i * 0.02, `a${i}`), 0);
     for (let burst = 1; burst <= 4; burst++) {
       for (let i = 0; i < 5; i++) {
@@ -279,8 +275,7 @@ describe("PresentationPacer", () => {
     }
 
     pacer.tick(0);
-    // Held at the fast edge of the band (0.8 x 20 ms = 16 ms), not at the 10 ms
-    // the arrivals would have justified.
+    // Held at the fast edge of the band (0.8 x 20 ms = 16 ms), not at the 10 ms the arrivals would have justified.
     pacer.tick(0.015);
     expect(presented).toEqual(["f0"]);
     pacer.tick(0.017);
@@ -288,8 +283,7 @@ describe("PresentationPacer", () => {
   });
 
   it("spaces on UT deltas exactly as before when no arrival instant is given", () => {
-    // The opt-in half of the contract: the video pipeline submits without one
-    // and must keep the behaviour every other test here pins.
+    // The opt-in half of the contract: the video pipeline submits without one and must keep the behaviour every other test here pins.
     const presented: string[] = [];
     const pacer = new PresentationPacer<string>({
       onPresent: (f) => presented.push(f.data),
@@ -325,8 +319,7 @@ describe("PresentationPacer", () => {
     expect(presented).toEqual(["a"]);
     expect(skipped).toEqual(["b", "c"]);
 
-    // Idempotent-ish: ticking after dispose does nothing further (queue is
-    // empty: nothing left to present or skip).
+    // Idempotent-ish: ticking after dispose does nothing further (queue is empty: nothing left to present or skip).
     pacer.tick(100);
     expect(presented).toEqual(["a"]);
   });

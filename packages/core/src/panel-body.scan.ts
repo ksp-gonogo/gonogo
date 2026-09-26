@@ -133,8 +133,7 @@ export function panelTagsIn(source: string): {
   for (;;) {
     const at = source.indexOf(needle, from);
     if (at === -1) break;
-    // `<PanelBody`, `<PanelSplit`, `<Panel.Header` and friends are the
-    // hand-composed parts, which this gate says nothing about.
+    // `<PanelBody`, `<PanelSplit`, `<Panel.Header` and friends are the hand-composed parts, which this gate says nothing about.
     const after = source[at + needle.length];
     if (after !== undefined && /[A-Za-z0-9_$.]/.test(after)) {
       from = at + needle.length;

@@ -23,8 +23,7 @@ describe("fleetVesselResourceList", () => {
   });
 
   it("sorts by name, so a re-emission cannot reorder the rows mid-read", () => {
-    // The wire map's key order is not a promise, and rows shuffling under an
-    // operator's eyes is worse than any particular order.
+    // The wire map's key order is not a promise, and rows shuffling under an operator's eyes is worse than any particular order.
     const rows = fleetVesselResourceList({
       resources: {
         Oxidizer: { current: 1, max: 2 },

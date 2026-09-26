@@ -115,8 +115,7 @@ describe("Kernel", () => {
   });
 
   it("resolves later capabilities after an earlier factory throws", () => {
-    // The blast radius that made this worth fixing: activation walks a topo
-    // order, so a propagating throw skipped every capability after it.
+    // The blast radius that made this worth fixing: activation walks a topo order, so a propagating throw skipped every capability after it.
     const kernel = new Kernel();
     kernel.registerCapability<Comms>({ id: "comms", exclusive: true });
     kernel.registerProvider<Comms>({
@@ -756,8 +755,7 @@ describe("Kernel", () => {
           detail: expect.stringContaining("A"),
         }),
       );
-      // Only one compatible candidate remains after the version gate, so
-      // exclusive selection's superseded/ambiguity machinery never runs.
+      // Only one compatible candidate remains after the version gate, so exclusive selection's superseded/ambiguity machinery never runs.
       expect(notices.some((n) => n.kind === "superseded")).toBe(false);
     });
 
@@ -912,8 +910,7 @@ describe("Kernel", () => {
           return { name: "dependent" };
         },
       });
-      // No provider registered for "base": it resolves to vanilla, and that
-      // vanilla instance is what a dep on "base" should see.
+      // No provider registered for "base": it resolves to vanilla, and that vanilla instance is what a dep on "base" should see.
 
       kernel.resolve({ kernelVersion: "1.0.0" });
 

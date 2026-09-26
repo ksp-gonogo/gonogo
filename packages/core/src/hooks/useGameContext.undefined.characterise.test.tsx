@@ -56,8 +56,7 @@ describe("useGameContext characterisation: a provider is mounted but nothing has
     expect(result.current).toEqual({
       scene: "Unknown",
       inFlight: false,
-      // No longer `false`: nothing has reported occupancy, and that is not the
-      // affirmative "the pad is clear" a gate would read off a `false`.
+      // No longer `false`: nothing has reported occupancy, and that is not the affirmative "the pad is clear" a gate would read off a `false`.
       padOccupied: undefined,
       careerMode: "Unknown",
       isCareerLike: false,
@@ -100,8 +99,7 @@ describe("useGameContext characterisation: the scene gate", () => {
 
     act(() => transport.emit("spaceCenter.scene", {}));
     await waitFor(() => expect(result.current.scene).toBe("Unknown"));
-    // hasGameSignal drops back to false too: a partial record is treated as
-    // no game signal at all, not as "connected but scene unreported".
+    // hasGameSignal drops back to false too: a partial record is treated as no game signal at all, not as "connected but scene unreported".
     expect(result.current.hasGameSignal).toBe(false);
     expect(result.current.inFlight).toBe(false);
   });
@@ -117,12 +115,10 @@ describe("useGameContext characterisation: the scene gate", () => {
       wrapper: mountedWrapper(transport),
     });
 
-    // "Other" first, so the drop back to Unknown is an observed transition
-    // rather than a vacuously-already-true assertion.
+    // "Other" first, so the drop back to Unknown is an observed transition rather than a vacuously-already-true assertion.
     act(() => transport.emit("spaceCenter.scene", { scene: "Other" }));
     await waitFor(() => expect(result.current.scene).toBe("Other"));
-    // "Other" DOES count as a game signal, so the two mid-load-ish states
-    // are not equivalent.
+    // "Other" DOES count as a game signal, so the two mid-load-ish states are not equivalent.
     expect(result.current.hasGameSignal).toBe(true);
 
     act(() => transport.emit("spaceCenter.scene", { scene: "PSystemSpawn" }));
@@ -165,8 +161,7 @@ describe("useGameContext characterisation: the careerMode gate", () => {
 
     act(() => transport.emit("career.mode", { mode: 3 }));
     await waitFor(() => expect(result.current.careerMode).toBe("Unknown"));
-    // And with a confirmed GameMode.Unknown in hand, hasGameSignal is STILL
-    // false: the widget is told nothing is happening while telemetry flows.
+    // And with a confirmed GameMode.Unknown in hand, hasGameSignal is STILL false: the widget is told nothing is happening while telemetry flows.
     expect(result.current.hasGameSignal).toBe(false);
   });
 
@@ -304,8 +299,7 @@ describe("useGameContext characterisation: the padOccupied gate", () => {
     expect(result.current.inFlight).toBe(false);
     expect(result.current.hasGameSignal).toBe(true);
 
-    // And a pad reported CLEAR is game signal too: hearing "the active vessel
-    // is not in prelaunch" is hearing from the game.
+    // And a pad reported CLEAR is game signal too: hearing "the active vessel is not in prelaunch" is hearing from the game.
     act(() =>
       transport.emit("spaceCenter.launchSites", [
         { name: "LaunchPad", padOccupied: false, padVesselTitle: null },
@@ -337,8 +331,7 @@ describe("useGameContext characterisation: hasGameSignal is an OR over three abs
     act(() => transport.emit("career.mode", { mode: 0 }));
     await waitFor(() => expect(result.current.hasGameSignal).toBe(true));
     expect(result.current.scene).toBe("Unknown");
-    // SANDBOX is a real mode but not career-like: pinned so the migration
-    // does not fold it back into Unknown.
+    // SANDBOX is a real mode but not career-like: pinned so the migration does not fold it back into Unknown.
     expect(result.current.careerMode).toBe("SANDBOX");
     expect(result.current.isCareerLike).toBe(false);
     // And a CONFIRMED sandbox is the one case where nothing is charged, so the
@@ -359,8 +352,7 @@ describe("useGameContext characterisation: hasGameSignal is an OR over three abs
     expect(result.current.chargesFunds).toBe(true);
     expect(result.current.chargesScience).toBe(true);
 
-    // Science mode has science points and no funds, so a funds gate has nothing
-    // to guard while a science gate does.
+    // Science mode has science points and no funds, so a funds gate has nothing to guard while a science gate does.
     act(() => transport.emit("career.mode", { mode: 2 }));
     await waitFor(() => expect(result.current.careerMode).toBe("SCIENCE"));
     expect(result.current.chargesFunds).toBe(false);

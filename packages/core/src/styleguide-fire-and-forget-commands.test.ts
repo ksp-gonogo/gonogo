@@ -334,8 +334,7 @@ describe("the fire-and-forget command budget only shrinks", () => {
       "  answered: 2 -> 0 (delete the entry)",
       "  over: 6 -> 4",
     ]);
-    // A file at its number is not stale, and a file OVER it belongs to the
-    // other arm: this one stays silent on both rather than double-reporting.
+    // A file at its number is not stale, and a file OVER it belongs to the other arm: this one stays silent on both rather than double-reporting.
     expect(
       staleEntries(
         { exact: 1, under: 2 },

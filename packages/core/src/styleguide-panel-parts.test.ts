@@ -176,8 +176,7 @@ describe("Panel is the only door to its parts", () => {
       .sort();
     expect(fromPanelModule).toEqual(["PanelBody"]);
 
-    // `Section` is on the compound and exported bare on purpose: it is a kit
-    // primitive the compound aliases, not a Panel part, and its name says so.
+    // `Section` is on the compound and exported bare on purpose: it is a kit primitive the compound aliases, not a Panel part, and its name says so.
     expect(bareParts).not.toContain("Section");
     // A props type is not a render path.
     expect(fromPanelModule).not.toContain("PanelProps");

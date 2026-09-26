@@ -102,8 +102,7 @@ describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
     store.setTransportConnected(false);
     store.beginFrame();
 
-    // The stride is 10, so the walk offers 30 and 40; 40 is 20 s past the
-    // observation, which is beyond the horizon this model claims.
+    // The stride is 10, so the walk offers 30 and 40; 40 is 20 s past the observation, which is beyond the horizon this model claims.
     expect(
       store
         .sampleReckonedTail<number>("test.temperature", 0, 100)
@@ -155,15 +154,13 @@ describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
     store.setTransportConnected(false);
     store.beginFrame();
 
-    // The numeric field draws, which is what makes the two refusals below
-    // statements about shape rather than a walk that never ran.
+    // The numeric field draws, which is what makes the two refusals below statements about shape rather than a walk that never ran.
     expect(
       store
         .sampleReckonedTail<number>("test.contact.relativePosition", 0, 50)
         .map((s) => s.atUt),
     ).toEqual([30, 40, 50]);
-    // A name is not a quantity: joining two of them draws a slope through
-    // values that do not exist.
+    // A name is not a quantity: joining two of them draws a slope through values that do not exist.
     expect(store.sampleReckonedTail("test.contact.name", 0, 50)).toEqual([]);
     // And a whole record is not a series at all.
     expect(store.sampleReckonedTail("test.contact", 0, 50)).toEqual([]);

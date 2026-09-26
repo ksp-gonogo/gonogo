@@ -65,8 +65,7 @@ export function AugmentSlot<S extends string>(
   );
 }
 
-// Stable empty snapshot for a `segment` slot mounted outside a widget context:
-// `useSyncExternalStore` needs a referentially-stable value between changes.
+// Stable empty snapshot for a `segment` slot mounted outside a widget context: `useSyncExternalStore` needs a referentially-stable value between changes.
 const EMPTY_AUGMENTS: AnyAugment[] = [];
 
 /**
@@ -157,8 +156,7 @@ function getAugmentsForSlotCached(name: string): AnyAugment[] {
  * `AugmentEntry` below is just this hook's original, sole caller.
  */
 export function useAugmentAvailable(augment: AnyAugment): boolean {
-  // Always call the hook (stable order); `useDomainAvailable` reads `false` for
-  // the ungated case (`requires` undefined), which the short-circuit ignores.
+  // Always call the hook (stable order); `useDomainAvailable` reads `false` for the ungated case (`requires` undefined), which the short-circuit ignores.
   const available = useDomainAvailable(augment.requires);
   return !augment.requires || available;
 }

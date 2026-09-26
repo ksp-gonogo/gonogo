@@ -299,8 +299,7 @@ describe("StrategiesComponent", () => {
       });
     });
 
-    // The command travels: nothing answers it until this test says so, which is
-    // the only condition under which a pending state means anything.
+    // The command travels: nothing answers it until this test says so, which is the only condition under which a pending state means anything.
     stream.transport.holdCommands();
 
     await user.click(

@@ -71,8 +71,7 @@ describe("GamepadTransport", () => {
 
   it("prefers a standard-mapped entry over a non-standard duplicate of the same pad id", async () => {
     mock.install();
-    // Two simultaneous live entries sharing an id, rare, but some
-    // platforms can expose the same physical pad this way.
+    // Two simultaneous live entries sharing an id, rare, but some platforms can expose the same physical pad this way.
     mock.connectPad(0, {
       id: "Pad A",
       mapping: "",
@@ -127,8 +126,7 @@ describe("GamepadTransport", () => {
     await t2.connect();
     mock.connectPad(0, { id: "Pad A" });
 
-    // t1 was listening first and wins; t2 stays waiting rather than double
-    // claiming the same physical index.
+    // t1 was listening first and wins; t2 stays waiting rather than double claiming the same physical index.
     expect(t1.status).toBe("connected");
     expect(t2.status).toBe("disconnected");
   });

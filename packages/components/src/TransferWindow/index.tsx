@@ -139,8 +139,7 @@ const STATUS_LABEL: Record<string, string> = {
   off: "FAR",
 };
 
-// off/FAR carries no severity: being far from a window is not an alarm, just
-// "not yet", so it stays a decorative grey chip via an undefined severity.
+// off/FAR carries no severity: being far from a window is not an alarm, just "not yet", so it stays a decorative grey chip via an undefined severity.
 const STATUS_SEVERITY: Record<string, Severity | undefined> = {
   go: "nominal",
   soon: "warning",
@@ -278,8 +277,7 @@ function TransferWindowComponent({
   const budgetNotCurrent = budget?.budget.state === "stale";
   /** The stock Δv sim has no figure for this craft, as opposed to none having arrived. */
   const budgetConfirmedAbsent = budget?.budget.confirmedAbsent ?? false;
-  // Stays in the algebra: `Unit` renders a duration and unwrapping here would type
-  // a unit symbol beside a number, which is what `Unit` exists to prevent.
+  // Stays in the algebra: `Unit` renders a duration and unwrapping here would type a unit symbol beside a number, which is what `Unit` exists to prevent.
   const budgetAge =
     budget?.budget.ageSec === undefined
       ? null
@@ -387,8 +385,7 @@ function TransferWindowComponent({
       ? undefined
       : quantise(solution.departureUt);
 
-  // The base porkchop is windowed on the next window's ideal departure; its
-  // optimum is that window's Δv, which seeds the windows list.
+  // The base porkchop is windowed on the next window's ideal departure; its optimum is that window's Δv, which seeds the windows list.
   //
   // Its time axes are derived first, without solving anything on them, so the
   // body states can be asked of the game before the grid is built. The grid
@@ -1273,8 +1270,7 @@ registerComponent<TransferWindowConfig>({
 
 export { TransferWindowComponent };
 
-// Container-query breakpoint (body inline-size) at which the chart flows from
-// under the list (stacked) to beside it (side-by-side).
+// Container-query breakpoint (body inline-size) at which the chart flows from under the list (stacked) to beside it (side-by-side).
 const WIDE_AT = "560px";
 
 /**
@@ -1592,8 +1588,7 @@ const ExpValue = styled.span`
   font-variant-numeric: tabular-nums;
 `;
 
-// The chart column: grows to fill free space (flex) with a minimum height when
-// stacked; fills the row height when beside the list.
+// The chart column: grows to fill free space (flex) with a minimum height when stacked; fills the row height when beside the list.
 const PorkchopWrap = styled.div`
   display: flex;
   flex-direction: column;

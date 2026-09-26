@@ -6,8 +6,7 @@ import type { DashboardItem } from "./index";
 import { handleMouseDown } from "./mouseHandlers";
 
 // ---------------------------------------------------------------------------
-// Remove button: two-click confirm pattern so a stray click in the drag
-// header doesn't vaporise the widget.
+// Remove button: two-click confirm pattern so a stray click in the drag header doesn't vaporise the widget.
 // ---------------------------------------------------------------------------
 
 const CONFIRM_WINDOW_MS = 3_000;
@@ -101,8 +100,7 @@ export function PushButton({
 }
 
 // ---------------------------------------------------------------------------
-// Widget error fallback: rendered in place of a crashed widget so the rest
-// of the dashboard keeps working and the failure is visible instead of silent.
+// Widget error fallback: rendered in place of a crashed widget so the rest of the dashboard keeps working and the failure is visible instead of silent.
 // ---------------------------------------------------------------------------
 
 export function WidgetError({

@@ -80,8 +80,7 @@ export function parseExperimentBreakdown(
       remainingPotential: magnitudeOr(asQuantityish(e.remainingPotential), 0),
     });
   }
-  // Sort by remaining potential desc: subjects with the most science left
-  // to extract come first; the operator focuses on what's worth recovering.
+  // Sort by remaining potential desc: subjects with the most science left to extract come first; the operator focuses on what's worth recovering.
   out.sort((a, b) => b.remainingPotential - a.remainingPotential);
   return out;
 }

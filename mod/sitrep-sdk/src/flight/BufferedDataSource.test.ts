@@ -150,8 +150,7 @@ describe("BufferedDataSource", () => {
       const spy = vi.fn();
       buffered.subscribeCollection(["v.altitude", "v.surfaceSpeed"], spy);
 
-      // Replay for v.altitude fires during setup; v.surfaceSpeed has no value,
-      // so its snapshot slot stays undefined.
+      // Replay for v.altitude fires during setup; v.surfaceSpeed has no value, so its snapshot slot stays undefined.
       expect(spy).toHaveBeenCalledWith([500, undefined]);
     });
   });
@@ -677,8 +676,7 @@ const GATED_KEYS: DataKey[] = [
   { key: "comm.connected" },
   { key: "p.paused" },
   { key: "career.science" },
-  // Scene-level / KSC-global / outcome keys that must flow through the
-  // CommNet gate.
+  // Scene-level / KSC-global / outcome keys that must flow through the CommNet gate.
   { key: "kc.scene" },
   { key: "kc.padOccupied" },
   { key: "ksp.canRevertToLaunch" },
@@ -777,8 +775,7 @@ describe("BufferedDataSource: affectedBySignalLoss gate", () => {
     expect(spy).toHaveBeenCalledWith(60);
   });
 
-  // None of those prefixes describe vessel telemetry; they're scene /
-  // career / outcome state.
+  // None of those prefixes describe vessel telemetry; they're scene / career / outcome state.
   it.each([
     ["kc.scene", "SpaceCenter"],
     ["kc.padOccupied", true],
@@ -897,8 +894,7 @@ describe("BufferedDataSource: affectedBySignalLoss gate", () => {
   });
 
   it("does not gate sources that leave affectedBySignalLoss false", async () => {
-    // Tear down the default-wrapped buffered source and rebuild with the gate
-    // flag off so we can verify gating is opt-in.
+    // Tear down the default-wrapped buffered source and rebuild with the gate flag off so we can verify gating is opt-in.
     buffered.disconnect();
     source.affectedBySignalLoss = false;
     buffered = new BufferedDataSource({ source, store, now: () => clock });

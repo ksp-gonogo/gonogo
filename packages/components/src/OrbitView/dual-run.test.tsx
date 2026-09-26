@@ -30,8 +30,7 @@ describe("OrbitView: stream render (LKO, delay=0)", () => {
       }
     });
 
-    // Pill mode (no SVG at 4 cols) and the body-name subtitle both resolve
-    // purely off the stream.
+    // Pill mode (no SVG at 4 cols) and the body-name subtitle both resolve purely off the stream.
     expect(container.querySelector("svg")).toBeNull();
     expect(visibleText(container)).toContain("Kerbin");
   });

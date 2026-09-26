@@ -2,8 +2,7 @@ import { getComponent } from "@ksp-gonogo/core";
 import { act } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { listWidgets } from "../../scripts/widgets";
-// Importing the package index self-registers every built-in component,
-// so `getComponent(widgetId)` below resolves to the real component.
+// Importing the package index self-registers every built-in component, so `getComponent(widgetId)` below resolves to the real component.
 import "../index";
 import { axe } from "./axe";
 import { renderWidgetMode } from "./widgetDomSnapshot";
@@ -31,8 +30,7 @@ const FIXTURE_MODULES = import.meta.glob<{ default: Record<string, unknown> }>(
 function fixturesFor(
   fixturesPath: string,
 ): Array<[string, Record<string, unknown>]> {
-  // fixturesPath is repo-relative ("FuelStatus/__fixtures__"); glob keys
-  // are test-file-relative ("../FuelStatus/__fixtures__/foo.json").
+  // fixturesPath is repo-relative ("FuelStatus/__fixtures__"); glob keys are test-file-relative ("../FuelStatus/__fixtures__/foo.json").
   const needle = `../${fixturesPath}/`;
   return Object.entries(FIXTURE_MODULES)
     .filter(([path]) => path.startsWith(needle))

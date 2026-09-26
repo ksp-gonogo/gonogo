@@ -346,8 +346,7 @@ test.describe("commcast radio from a station screen @chromium-only", () => {
         "what the craft decoded of the station",
       ).toBeNull();
       expect(heard.decoderLengths).toEqual([STATION_CHUNKS]);
-      // The lamp went dark once the audio it named had finished, rather than at
-      // the `end` frame that arrived seconds earlier.
+      // The lamp went dark once the audio it named had finished, rather than at the `end` frame that arrived seconds earlier.
       expect(heard.darkAt).not.toBeNull();
       expect(
         (heard.darkAt as number) - (heard.litAt as number),
@@ -560,8 +559,7 @@ test.describe("commcast radio from a station screen @chromium-only", () => {
         HOLD_MS + 2_000,
       );
     } finally {
-      // Before anything is torn down: the film ends here, on the last held
-      // frame, rather than at whatever the last chunk of audio happened to be.
+      // Before anything is torn down: the film ends here, on the last held frame, rather than at whatever the last chunk of audio happened to be.
       const endedAt = Date.now();
       await closeAll(screens);
       const film = await stackVideos(screens, testInfo, {

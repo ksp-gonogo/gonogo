@@ -748,8 +748,7 @@ function readRosterAlarms(payload: unknown): readonly ForeignScetAlarm[] {
     const name: unknown = Reflect.get(row, "name");
     const armedBy: unknown = Reflect.get(row, "armedBy");
     const state: unknown = Reflect.get(row, "state");
-    // Finished rather than held: nothing here can change it, and the list it
-    // belonged to has already dropped it.
+    // Finished rather than held: nothing here can change it, and the list it belonged to has already dropped it.
     if (state === ScetAlarmState.Cancelled) continue;
     rows.push({
       id,

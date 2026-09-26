@@ -33,8 +33,7 @@ describe("PanelStatusStore", () => {
   });
 
   it("second-topic-stale: a worse second contributor wins over a live-ish first", () => {
-    // The exact bug the single-status path could not catch: one topic reads
-    // fine, a second goes stale, and the panel must reflect the worst.
+    // The exact bug the single-status path could not catch: one topic reads fine, a second goes stale, and the panel must reflect the worst.
     const store = createPanelStatusStore();
     store.register({ id: "topic-1", severity: "nominal", label: "" });
     store.register({ id: "topic-2", severity: "warning", label: "STALE" });
@@ -84,8 +83,7 @@ describe("PanelStatusStore", () => {
     const store = createPanelStatusStore();
     store.register({ id: "first", severity: "warning", label: "FIRST" });
     store.register({ id: "second", severity: "warning", label: "SECOND" });
-    // Earliest-registered contribution at the top rank wins, so the winning
-    // label does not flicker between two equal-severity contributors.
+    // Earliest-registered contribution at the top rank wins, so the winning label does not flicker between two equal-severity contributors.
     expect(store.getSummary()).toEqual({
       id: "first",
       severity: "warning",
@@ -94,8 +92,7 @@ describe("PanelStatusStore", () => {
   });
 
   it("getSummary() is referentially stable while the result is unchanged", () => {
-    // The useSyncExternalStore no-loop guard: an identical snapshot must be the
-    // same object, or React tears.
+    // The useSyncExternalStore no-loop guard: an identical snapshot must be the same object, or React tears.
     const store = createPanelStatusStore();
     store.register({ id: "a", severity: "warning", label: "STALE" });
     const first = store.getSummary();

@@ -20,8 +20,7 @@ describe("resolveGamepadLabel", () => {
   });
 
   it("nintendo swaps the face buttons relative to xbox, not a typo", () => {
-    // Same physical position (bottom of the right cluster) is A on Xbox,
-    // B on Nintendo.
+    // Same physical position (bottom of the right cluster) is A on Xbox, B on Nintendo.
     expect(resolveGamepadLabel("face-south", "nintendo")).toBe("B");
     expect(resolveGamepadLabel("face-east", "nintendo")).toBe("A");
     expect(resolveGamepadLabel("face-west", "nintendo")).toBe("Y");

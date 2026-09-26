@@ -130,14 +130,11 @@ function phaseOf(
   thrust: ThrustObservation | null | undefined,
   threshold: number,
 ): BurnConformancePhase {
-  // Without a planned figure the remaining number alone says nothing about
-  // progress, so it reports unknown rather than guessing "not started".
+  // Without a planned figure the remaining number alone says nothing about progress, so it reports unknown rather than guessing "not started".
   if (planned == null || delivered == null) return "unknown";
-  // Delivered first: a burn that met its target was not stopped short of it,
-  // however the engines came to be off afterwards.
+  // Delivered first: a burn that met its target was not stopped short of it, however the engines came to be off afterwards.
   if (remainingDv < threshold) return "delivered";
-  // Then never-started: a burn nothing has gone into cannot have been stopped
-  // short of anything, even if the craft's engines ceased for another burn.
+  // Then never-started: a burn nothing has gone into cannot have been stopped short of anything, even if the craft's engines ceased for another burn.
   if (delivered < threshold) return "not-started";
   // Both halves are required, and `thrusting` is the one easy to forget:
   // ThrustObserver does NOT clear `lastThrustEndUt` when the engines relight,

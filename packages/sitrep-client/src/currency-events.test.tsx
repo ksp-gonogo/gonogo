@@ -50,8 +50,7 @@ describe("useScienceCredit", () => {
     );
     expect(screen.getByText("credit:waiting")).toBeTruthy();
 
-    // A dynamic topic: like production, it cannot be unit-wrapped, so amount is
-    // the bare number 7.8, not { magnitude: 7.8 }.
+    // A dynamic topic: like production, it cannot be unit-wrapped, so amount is the bare number 7.8, not { magnitude: 7.8 }.
     act(() => {
       t.emit("currency.g1.science", credit("g1", 7.8, 120));
     });
@@ -84,8 +83,7 @@ describe("useRevealedScience", () => {
     });
     await waitFor(() => expect(screen.getByText("total:12")).toBeTruthy());
 
-    // Newest-first, each aged by view UT minus the UT it actually happened at, so a
-    // render can say how old the news is (far: 300s ago, near: 20s ago).
+    // Newest-first, each aged by view UT minus the UT it actually happened at, so a render can say how old the news is (far: 300s ago, near: 20s ago).
     expect(screen.getByText("ages:20|300")).toBeTruthy();
   });
 
@@ -203,8 +201,7 @@ describe("useReputationLossEvents", () => {
     // narrative event carrying an absolute could be mistaken for it.
     const t = new StubTransport();
     const client = new TelemetryClient(t);
-    // Left at its own type: `Object.keys` needs no index signature, and the
-    // cast to one was what made the probe unable to see the type it is probing.
+    // Left at its own type: `Object.keys` needs no index signature, and the cast to one was what made the probe unable to see the type it is probing.
     let seen: ReputationLossEvent | undefined;
     function ShapeProbe() {
       seen = useReputationLossEvents(["a"])[0];

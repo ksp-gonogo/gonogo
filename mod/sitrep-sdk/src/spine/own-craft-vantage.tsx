@@ -72,8 +72,7 @@ export function useOwnCraftVantage(): boolean {
   const client = useTelemetryClientOptional();
   const selectedVantage = useSelectedVantage();
   const subjectId = subjectOf(useStream<VesselOrbit>("vessel.orbit"));
-  // No client means no session to be at a vantage at all, which is neither the
-  // pilot case nor a lie about one: fall through to the wire's own delay.
+  // No client means no session to be at a vantage at all, which is neither the pilot case nor a lie about one: fall through to the wire's own delay.
   if (!client) return false;
   return isOwnCraftVantage(selectedVantage, subjectId);
 }

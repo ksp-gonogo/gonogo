@@ -53,8 +53,7 @@ export async function seedKspHostDefaults(
     ? "localhost"
     : kspHost;
 
-  // One shared host for every Uplink (telemetry :8090, kerbcast sidecar
-  // :8088). kOS rides the telemetry stream: no host of its own.
+  // One shared host for every Uplink (telemetry :8090, kerbcast sidecar :8088). kOS rides the telemetry stream: no host of its own.
   seedSetting("gameHost", browserHost);
 
   logger.tag("bootstrap").info("Seeded KSP host defaults from relay", {

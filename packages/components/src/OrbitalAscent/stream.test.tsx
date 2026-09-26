@@ -42,8 +42,7 @@ describe("OrbitalAscent: v.body genuinely runs off the stream (R6)", () => {
     expect(visibleText(container)).toContain("ORBITAL ASCENT");
     expect(container.textContent).not.toContain("No reference data");
 
-    // A real subscription must have happened for StubTransport (which is
-    // subscription-gated) to deliver at all.
+    // A real subscription must have happened for StubTransport (which is subscription-gated) to deliver at all.
     expect(fixture.transport.isSubscribed("system.bodies")).toBe(true);
 
     act(() => {

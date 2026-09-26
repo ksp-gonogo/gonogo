@@ -173,8 +173,7 @@ describe("SpaceCenterStatus: a ladder read at the space centre", () => {
       expect(screen.getByLabelText("Launch Pad tier 2 of 3")).toBeTruthy(),
     );
     expect(screen.getByLabelText("VAB tier 1 of 3")).toBeTruthy();
-    // `AutoEmptyState` keeps its fallback mounted and hides it, so the marker is
-    // in the DOM either way and only its visibility says which state this is.
+    // `AutoEmptyState` keeps its fallback mounted and hides it, so the marker is in the DOM either way and only its visibility says which state this is.
     expect(screen.getByText("No facility tiers")).not.toBeVisible();
   });
 
@@ -219,8 +218,7 @@ describe("SpaceCenterStatus: a ladder read at the space centre", () => {
     emitLadder(fixture, 10);
     leaveTheSpaceCentre(fixture);
 
-    // The rival's tiers, not the stock channel's: the Launch Pad reads 3 of 3
-    // where `emitLadder` sent 2 of 3, so this cannot be the held grid relabelled.
+    // The rival's tiers, not the stock channel's: the Launch Pad reads 3 of 3 where `emitLadder` sent 2 of 3, so this cannot be the held grid relabelled.
     await waitFor(() =>
       expect(screen.getByLabelText("Launch Pad tier 3 of 3")).toBeTruthy(),
     );

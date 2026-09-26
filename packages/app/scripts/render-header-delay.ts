@@ -194,8 +194,7 @@ const SCENES: Scene[] = [
     emit: flight(true),
   },
   {
-    // A centre with no route of its own to the craft: its traffic still
-    // arrives, timed by home's delay.
+    // A centre with no route of its own to the craft: its traffic still arrives, timed by home's delay.
     name: "non-home-centre-unrouted",
     screen: "main",
     vantage: GS2,

@@ -65,8 +65,7 @@ describe("Navball never draws an attitude it does not have", () => {
   it("draws no dial at all before any attitude arrives", () => {
     mount("nb-pending");
 
-    // The defect: this used to paint a level, north-facing horizon, which is a
-    // positive claim about the craft's orientation made from nothing.
+    // The defect: this used to paint a level, north-facing horizon, which is a positive claim about the craft's orientation made from nothing.
     expect(dial()).toBeNull();
     expect(visibleText()).toMatch(/waiting for attitude/i);
   });
@@ -86,8 +85,7 @@ describe("Navball never draws an attitude it does not have", () => {
     });
 
     await waitFor(() => expect(dial()).not.toBeNull());
-    // And no caveat while we are hearing from the craft: under a light-time
-    // delay every value is old, so a caveat on all of them would say nothing.
+    // And no caveat while we are hearing from the craft: under a light-time delay every value is old, so a caveat on all of them would say nothing.
     expect(visibleText()).not.toMatch(/last contact/i);
   });
 

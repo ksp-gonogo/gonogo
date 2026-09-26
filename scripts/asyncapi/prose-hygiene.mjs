@@ -1,5 +1,4 @@
-// The gate behind the `<internal>` convention: maintainer rationale that reached
-// the published surface anyway.
+// The gate behind the `<internal>` convention: maintainer rationale that reached the published surface anyway.
 //
 // ## What the convention is
 //
@@ -20,8 +19,7 @@
 //   /// </internal>
 //   /// </summary>
 //
-// `RtDocText` drops the `<internal>` subtree on the way to TSDoc, so it never
-// reaches `contract.ts`, and therefore never reaches this document either.
+// `RtDocText` drops the `<internal>` subtree on the way to TSDoc, so it never reaches `contract.ts`, and therefore never reaches this document either.
 //
 // ## Why this file exists
 //

@@ -145,8 +145,7 @@ describe("AlarmsModal onFire editor", () => {
         onUpdate={() => {}}
         onDelete={() => {}}
       />,
-      // One part with an action bound to Custom01 (== the AG1 group), the
-      // caption now derives from this, not the retired f.ag.bindings shim.
+      // One part with an action bound to Custom01 (== the AG1 group), the caption now derives from this, not the retired f.ag.bindings shim.
       {
         parts: [
           {
@@ -166,8 +165,7 @@ describe("AlarmsModal onFire editor", () => {
       },
     );
 
-    // The AG1 option's caption is derived from the part's actionBindings
-    // (Custom01 -> "Toggle Solar Panel"), proving the shim replacement works.
+    // The AG1 option's caption is derived from the part's actionBindings (Custom01 -> "Toggle Solar Panel"), proving the shim replacement works.
     await screen.findByLabelText(/action group to fire/i);
     await screen.findByRole("option", {
       name: /AG1 \(AG1\): Toggle Solar Panel/,
@@ -243,8 +241,7 @@ describe("AlarmsModal onFire editor", () => {
 // satisfy the wire shape.
 
 function makeWireNode(id: string, ut: number): ManeuverNode {
-  // Wire-shaped, then wrapped: `emit` does this to a real frame, and these
-  // nodes are handed to the store directly.
+  // Wire-shaped, then wrapped: `emit` does this to a real frame, and these nodes are handed to the store directly.
   return wrapTypePayload("ManeuverNode", {
     id,
     ut,
@@ -378,8 +375,7 @@ describe("AlarmsModal recommended presets", () => {
       ORBIT_EPOCH,
     );
 
-    // At periapsis (mean anomaly 0) → timeToAp is half a period → the apoapsis
-    // preset appears once the section is expanded.
+    // At periapsis (mean anomaly 0) → timeToAp is half a period → the apoapsis preset appears once the section is expanded.
     emitOrbitAtApsis(emit, 0);
     await user.click(
       await screen.findByRole("button", { name: /recommended/i }),
@@ -404,8 +400,7 @@ describe("AlarmsModal recommended presets", () => {
   it("offers and creates an apoapsis time alarm once the orbit is live", async () => {
     const user = userEvent.setup();
     const onAdd = vi.fn();
-    // Snapshot UT is 1000; the derived timeToAp (half period) anchors the
-    // alarm at 1000 + TIME_TO_AP.
+    // Snapshot UT is 1000; the derived timeToAp (half period) anchors the alarm at 1000 + TIME_TO_AP.
     const { emit } = renderWithStream(
       <AlarmsModal
         useSnapshot={() => makeSnapshot()}
@@ -539,8 +534,7 @@ describe("AlarmsModal recommended presets", () => {
       />,
     );
 
-    // Node UT is absolute (2500), so the alarm ut should equal it exactly,
-    // no offset.
+    // Node UT is absolute (2500), so the alarm ut should equal it exactly, no offset.
     emitNodes([2500]);
 
     const toggle = await screen.findByRole("button", { name: /recommended/i });
@@ -615,8 +609,7 @@ describe("AlarmsModal recommended presets", () => {
 });
 
 describe("AlarmsModal threshold trigger key picker", () => {
-  // Deliberately NOT registering a mock "data" `DataSource`: the real app
-  // never has one (it's deleted).
+  // Deliberately NOT registering a mock "data" `DataSource`: the real app never has one (it's deleted).
   beforeEach(clearRegistry);
 
   it("offers real telemetry keys with no 'data' DataSource registered", async () => {
@@ -709,8 +702,7 @@ describe("AlarmsModal threshold trigger key picker", () => {
       // Split straight off the catalogue entry, which carries both halves.
       topic: "vessel.flight",
       fieldPath: "altitudeAsl",
-      // And the flat key beside it, because it is what the row reads out and
-      // what a command-vantage copy of the same alarm would compare.
+      // And the flat key beside it, because it is what the row reads out and what a command-vantage copy of the same alarm would compare.
       dataKey: "vessel.flight.altitudeAsl",
     });
   });
@@ -1046,8 +1038,7 @@ describe("AlarmsModal vantage choice", () => {
   });
 
   it("arms a UT alarm with no vantage at all", async () => {
-    // The precondition, asserted rather than assumed: this is the screen that
-    // has nothing to LABEL.
+    // The precondition, asserted rather than assumed: this is the screen that has nothing to LABEL.
     expect(deriveTimeContexts(0, "KSC").scet).toBeUndefined();
 
     const user = userEvent.setup();
@@ -1084,8 +1075,7 @@ describe("AlarmsModal vantage choice", () => {
   it("moves the vantage selection with arrow keys and keeps one tab stop", async () => {
     const user = userEvent.setup();
     renderModal();
-    // The threshold arm, where the choice means something: a value crosses at
-    // one instant aboard the craft and at a later one wherever the news reaches.
+    // The threshold arm, where the choice means something: a value crosses at one instant aboard the craft and at a later one wherever the news reaches.
     const group = await thresholdVantage(user);
     const [received, scet] = within(group).getAllByRole("radio");
 

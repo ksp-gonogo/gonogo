@@ -32,8 +32,7 @@ const server = PeerServer({
   port: PORT,
   path: PATH,
   key: KEY,
-  // Allow same-tab and cross-tab connections without auth, this is a
-  // throwaway test broker bound to localhost.
+  // Allow same-tab and cross-tab connections without auth, this is a throwaway test broker bound to localhost.
   allow_discovery: true,
 });
 

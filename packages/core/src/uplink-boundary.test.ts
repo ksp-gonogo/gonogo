@@ -214,8 +214,7 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
      */
     ownedDirs: [],
   },
-  // Excluded on purpose (per task scope):
-  //   commnet : stock KSP networking, not a third-party mod.
+  // Excluded on purpose (per task scope): commnet : stock KSP networking, not a third-party mod.
   testflight: {
     // "testflight" is distinctive: no unrelated word in this codebase contains
     // it. The mod models per-engine reliability and registers generically into
@@ -527,8 +526,7 @@ function stripCommentsApproximately(source: string): string {
       }
       continue;
     }
-    // Inside a string literal: kept verbatim, closing on its own quote and
-    // stepping over an escape so a \" does not end it early.
+    // Inside a string literal: kept verbatim, closing on its own quote and stepping over an escape so a \" does not end it early.
     if (char === "\\") {
       out += source.slice(i, i + 2);
       i += 2;
@@ -730,8 +728,7 @@ describe("uplink boundary: mod references stay inside their owning Uplink", () =
 
       expect(newViolations).toEqual([]);
       expect(staleEntries).toEqual([]);
-      // Walks packages/ + mod/ once per token; under concurrent
-      // core-suite load a single walk can exceed vitest's 5s default.
+      // Walks packages/ + mod/ once per token; under concurrent core-suite load a single walk can exceed vitest's 5s default.
     }, 30_000);
 
     /**
@@ -836,11 +833,9 @@ describe("scansat token: pattern coverage for the schema-identifier blind spot",
 
   it("catches SCAN-prefixed schema identifiers even with zero 'scansat' text", () => {
     for (const sample of SCHEMA_IDENTIFIER_SAMPLES) {
-      // Proves the leak: the old, sole `/scansat/i` pattern would have
-      // missed every one of these.
+      // Proves the leak: the old, sole `/scansat/i` pattern would have missed every one of these.
       expect(/scansat/i.test(sample)).toBe(false);
-      // Proves the fix: the token's full pattern set (including the two
-      // new patterns) catches all of them.
+      // Proves the fix: the token's full pattern set (including the two new patterns) catches all of them.
       expect(MOD_OWNERSHIP.scansat.patterns.some((re) => re.test(sample))).toBe(
         true,
       );
@@ -874,8 +869,7 @@ describe("the code-only scan can still see", () => {
   // long nobody checked. These assertions are the difference between "no
   // violations" and "no vision".
   //
-  // The probe token is a made-up mod name, so these stay true whatever the
-  // real tokens' debt does.
+  // The probe token is a made-up mod name, so these stay true whatever the real tokens' debt does.
 
   const codeOnly = (source: string, path = "probe.ts") =>
     stripCommentsKeepingStrings(source, path);
@@ -890,8 +884,7 @@ describe("the code-only scan can still see", () => {
   });
 
   it("KEEPS a mention in a string, because a module specifier is one", () => {
-    // The single most important thing a code-only token catches: a barrel
-    // re-export of a mod's schema, whose only occurrence is inside quotes.
+    // The single most important thing a code-only token catches: a barrel re-export of a mod's schema, whose only occurrence is inside quotes.
     expect(codeOnly('export * from "./schemas/widgetron";\n')).toMatch(
       /widgetron/i,
     );
@@ -940,8 +933,7 @@ describe("the code-only scan can still see", () => {
   });
 
   it("does not read CSS's `//` as a line comment", () => {
-    // The TS/C# stripper would blank the rest of this line, and a gate that
-    // blanks what it is meant to read reports a clean file forever.
+    // The TS/C# stripper would blank the rest of this line, and a gate that blanks what it is meant to read reports a clean file forever.
     expect(
       codeOnly("background: url(https://x.test/widgetron.png);\n", "probe.css"),
     ).toMatch(/widgetron/i);
@@ -957,8 +949,7 @@ describe("the code-only scan can still see", () => {
 
   it("still finds real references in the repo, so a blind scan cannot pass", () => {
     const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
-    // Not a specific file: naming one would fail the day its debt is paid,
-    // which would punish the migration this gate exists to encourage.
+    // Not a specific file: naming one would fail the day its debt is paid, which would punish the migration this gate exists to encourage.
     expect(findViolations(root, "kerbcast").length).toBeGreaterThan(0);
   });
 });
@@ -1113,8 +1104,7 @@ describe("the reseed seam is exactly as wide as the scan change", () => {
     expect(reachableAtBaseScope("src", "packages/app/uplink-bundle.ts")).toBe(
       false,
     );
-    // `src` has to be a whole path SEGMENT, or a directory called `srcery`
-    // would ride in on a substring match.
+    // `src` has to be a whole path SEGMENT, or a directory called `srcery` would ride in on a substring match.
     expect(reachableAtBaseScope("src", "packages/app/srcery/x.ts")).toBe(false);
   });
 
@@ -1186,8 +1176,7 @@ describe("the reseed seam is exactly as wide as the scan change", () => {
     expect(
       reachableAtBaseExtensions(tsEra, "packages/theme/src/tokens.css"),
     ).toBe(false);
-    // Absent means an allowlist predating the constant, which IS the ts/tsx/cs
-    // era, so it has to grade the same way.
+    // Absent means an allowlist predating the constant, which IS the ts/tsx/cs era, so it has to grade the same way.
     expect(
       reachableAtBaseExtensions(undefined, "packages/theme/src/tokens.css"),
     ).toBe(false);
@@ -1197,8 +1186,7 @@ describe("the reseed seam is exactly as wide as the scan change", () => {
   });
 
   it("is inert once the base carries the current extensions", () => {
-    // The commit after this one: base and current agree, so a `.css` path is
-    // graded like everything else and the seam has closed behind itself.
+    // The commit after this one: base and current agree, so a `.css` path is graded like everything else and the seam has closed behind itself.
     expect(
       reachableAtBaseExtensions(
         SCAN_EXTENSIONS,
@@ -1228,8 +1216,7 @@ describe("the reseed seam is exactly as wide as the scan change", () => {
       [...seen].filter((ext) => !SCAN_EXTENSIONS.includes(ext)),
       "the walk yielded a file kind SCAN_EXTENSIONS does not name",
     ).toEqual([]);
-    // Its own budget: the corpus is cached module-scope, but this describe has
-    // no `beforeAll`, so when it runs first it pays the whole walk.
+    // Its own budget: the corpus is cached module-scope, but this describe has no `beforeAll`, so when it runs first it pays the whole walk.
   }, 120_000);
 });
 

@@ -282,8 +282,7 @@ export function findHandTypedUnits(
       found.push({
         file,
         line: index + 1,
-        // The RAW line, so the report shows what is actually written there
-        // rather than the blanked form the scan matched against.
+        // The RAW line, so the report shows what is actually written there rather than the blanked form the scan matched against.
         source: raw[index].trim(),
         symbol: match[1],
       });

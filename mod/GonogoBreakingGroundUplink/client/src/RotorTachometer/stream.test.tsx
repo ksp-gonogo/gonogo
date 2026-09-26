@@ -9,8 +9,7 @@ import {
 import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-// Side-effect import: the widget self-registers on module load, and
-// `renderWidget` looks it up by id rather than importing the component.
+// Side-effect import: the widget self-registers on module load, and `renderWidget` looks it up by id rather than importing the component.
 import "./index";
 
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
@@ -84,8 +83,7 @@ describe("RotorTachometer: genuinely runs off the stream", () => {
       ]);
     });
 
-    // The rotor's RPM renders; the hinge entry is ignored (RotorTachometer is
-    // rotors-only, hinges/pistons are Robotics Console's domain).
+    // The rotor's RPM renders; the hinge entry is ignored (RotorTachometer is rotors-only, hinges/pistons are Robotics Console's domain).
     await waitFor(() => expect(visibleText(container)).toContain("240"));
     expect(screen.queryByText(/Arm Hinge/)).not.toBeInTheDocument();
 

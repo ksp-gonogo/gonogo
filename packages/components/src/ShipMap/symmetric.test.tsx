@@ -84,8 +84,7 @@ describe("ShipMap on a symmetric craft", () => {
   });
 
   it("rings nothing when the reading names no part id", async () => {
-    // A name alone cannot say which of the two it means, so neither is ringed;
-    // the header still names the part.
+    // A name alone cannot say which of the two it means, so neither is ringed; the header still names the part.
     const { fixture, container } = mount();
     act(() => {
       fixture.emit("vessel.parts", VESSEL_PARTS_WIRE);

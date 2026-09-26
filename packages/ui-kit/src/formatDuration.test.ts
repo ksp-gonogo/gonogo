@@ -131,8 +131,7 @@ describe("formatIrlDuration", () => {
   });
 
   it("has no year rung: a stale record reads in days", () => {
-    // 428 real days. `formatDuration` would say "1y 63d" off Kerbin's
-    // 426-day year, which says nothing useful about a recording on a disk.
+    // 428 real days. `formatDuration` would say "1y 63d" off Kerbin's 426-day year, which says nothing useful about a recording on a disk.
     expect(formatIrlDuration(428 * 24 * 60 * 60)).toBe("428d");
   });
 

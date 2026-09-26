@@ -104,8 +104,7 @@ export interface ObjectiveSourceContext {
   Section: ComponentType<ObjectiveSection>;
 }
 
-// No `declare module` block here, deliberately, and this is the only slot in
-// the package without one.
+// No `declare module` block here, deliberately, and this is the only slot in the package without one.
 //
 // `SlotRegistry` is now a single interface (`@ksp-gonogo/sitrep-sdk`'s), which
 // ui-kit and core re-export rather than re-declare, so this file's merge and the
@@ -450,8 +449,7 @@ registerComponent<ObjectivesConfig>({
   defaultSize: { w: 5, h: 8 },
   minSize: { w: 4, h: 3 },
   component: ObjectivesComponent,
-  // Exposes one typed-contract slot; the built-in source below binds into it,
-  // and any future Uplink objective source can too.
+  // Exposes one typed-contract slot; the built-in source below binds into it, and any future Uplink objective source can too.
   augmentSlots: ["objectives.source"],
   channels: topics.channels,
   fields: topics.fields,
@@ -467,8 +465,7 @@ registerAugment({
   id: "objectives-contracts",
   augments: "objectives.source",
   component: ContractsObjectiveSource,
-  // `contracts.active` is carried by the `career.status` Topic (see the stream
-  // dual-run tests); the legacy key is mapped onto it by the migration shim.
+  // `contracts.active` is carried by the `career.status` Topic (see the stream dual-run tests); the legacy key is mapped onto it by the migration shim.
   channels: ["career.status"],
   priority: 20,
   settings: [

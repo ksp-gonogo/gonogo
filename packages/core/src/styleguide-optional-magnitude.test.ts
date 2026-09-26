@@ -35,8 +35,7 @@ import { exitStatus } from "./ratchetBaseRef";
  * `.magnitude` must be optional too.
  */
 
-// `?.foo.magnitude`: an optional chain, then a NON-optional hop, then the
-// magnitude. `?.foo?.magnitude` and a plain `foo.magnitude` are both fine.
+// `?.foo.magnitude`: an optional chain, then a NON-optional hop, then the magnitude. `?.foo?.magnitude` and a plain `foo.magnitude` are both fine.
 const HALF_GUARDED = String.raw`\?\.[A-Za-z_$][A-Za-z0-9_$]*\.magnitude`;
 
 /**

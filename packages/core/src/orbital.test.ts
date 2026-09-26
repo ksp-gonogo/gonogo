@@ -325,8 +325,7 @@ describe("pressureFromProfile", () => {
   });
 
   it("says undefined above the last sample rather than claiming vacuum", () => {
-    // The table runs out before the body's ceiling, so past its end is "not
-    // stated", not "no air": zero would be a claim nothing on the wire made.
+    // The table runs out before the body's ceiling, so past its end is "not stated", not "no air": zero would be a claim nothing on the wire made.
     expect(pressureFromProfile(exponential, 40_001)).toBeUndefined();
   });
 

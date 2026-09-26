@@ -145,8 +145,7 @@ export function fitCommsDelay(input: {
   for (const hop of hops) {
     const metres = magnitudeOr(hop?.distanceMeters, Number.NaN);
     if (!Number.isFinite(metres)) {
-      // The same rule the mod applies before it publishes a delay at all: one
-      // hop without geometry means the total is not a length anyone measured.
+      // The same rule the mod applies before it publishes a delay at all: one hop without geometry means the total is not a length anyone measured.
       return {
         declined: {
           reason: "input-absent",

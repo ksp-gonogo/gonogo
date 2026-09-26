@@ -21,8 +21,7 @@ describe("dimension arithmetic", () => {
   });
 
   it("flattens parenthesisation", () => {
-    // (kg·m/s²)/m² and Pa are the same map, so they compare equal without
-    // anyone declaring that they should.
+    // (kg·m/s²)/m² and Pa are the same map, so they compare equal without anyone declaring that they should.
     const force = value("N", 100);
     const area = value("m²", 4);
     expect(force.dividedBy(area).unit).toBe("Pa");
@@ -179,8 +178,7 @@ describe("dimensionless units", () => {
   });
 
   it("keeps a count out of the dimensionless bucket", () => {
-    // Adding three crew to a 0.5 ratio is nonsense; collapsing count into
-    // dimensionless is what would have allowed it.
+    // Adding three crew to a 0.5 ratio is nonsense; collapsing count into dimensionless is what would have allowed it.
     // @ts-expect-error count plus ratio: refused statically and at runtime
     expect(() => value("count", 3).plus(value("ratio", 0.5))).toThrow();
   });
@@ -196,8 +194,7 @@ describe("collisions the catalog has to survive", () => {
   });
 
   it("keeps g-force apart from a gram it never has to mean", () => {
-    // Our own ladder starts mass at kg, so bare `g` is only ever acceleration
-    // in the first-party set.
+    // Our own ladder starts mass at kg, so bare `g` is only ever acceleration in the first-party set.
     expect(UNIT_DEFINITIONS.g.kind).toBe("acceleration");
   });
 });
@@ -449,8 +446,7 @@ describe("min and max", () => {
   });
 
   it("answers the same for the same quantity on two different rungs", () => {
-    // THE rule, on min/max as on the comparisons: one hour and sixty minutes are
-    // the same duration, so a bare 1800 (seconds) has to lose to both.
+    // THE rule, on min/max as on the comparisons: one hour and sixty minutes are the same duration, so a bare 1800 (seconds) has to lose to both.
     expect(value("h", 1).max(1800).in("s").magnitude).toBeCloseTo(3600, 6);
     expect(value("min", 60).max(1800).in("s").magnitude).toBeCloseTo(3600, 6);
     expect(value("h", 0.25).max(1800).in("s").magnitude).toBeCloseTo(1800, 6);
@@ -479,8 +475,7 @@ describe("vectorMagnitude", () => {
   });
 
   it("carries a velocity's unit, not a length's", () => {
-    // The point of returning a Value rather than a number: a closing rate is
-    // a speed, and the next thing that touches it should know.
+    // The point of returning a Value rather than a number: a closing rate is a speed, and the next thing that touches it should know.
     const relativeVelocity = {
       x: value("m/s", 0),
       y: value("m/s", 0),

@@ -301,8 +301,7 @@ describe("radio transmit, the waveform it keeps for its own rail", () => {
     expect(transmitter.snapshot().amplitudes).toHaveLength(
       AMPLITUDE_HISTORY_MAX,
     );
-    // Which is 60 s of light-time covered exactly, plus the one sample the
-    // reach measurement sits on.
+    // Which is 60 s of light-time covered exactly, plus the one sample the reach measurement sits on.
     expect(AMPLITUDE_HISTORY_MAX).toBe(3001);
   });
 
@@ -325,11 +324,9 @@ describe("radio transmit, the waveform it keeps for its own rail", () => {
 
 describe("amplitudeHistoryFor", () => {
   it("covers the light-time, one sample past it", () => {
-    // The rail measures the trace's reach off the OLDEST sample's age, so
-    // covering a span of n samples takes n + 1 of them.
+    // The rail measures the trace's reach off the OLDEST sample's age, so covering a span of n samples takes n + 1 of them.
     expect(amplitudeHistoryFor(10)).toBe(501);
-    // The top of the operator's stated range, covered exactly rather than one
-    // sample short: that is what sets the ceiling where it is.
+    // The top of the operator's stated range, covered exactly rather than one sample short: that is what sets the ceiling where it is.
     expect(amplitudeHistoryFor(60)).toBe(AMPLITUDE_HISTORY_MAX);
   });
 

@@ -58,8 +58,7 @@ export function useStationWakeLock(active: boolean): void {
         }
         sentinel = next;
       } catch {
-        // Permission denied, page not visible, or user-agent refusal,
-        // ignore; the lock is best-effort by contract.
+        // Permission denied, page not visible, or user-agent refusal, ignore; the lock is best-effort by contract.
       }
     }
 

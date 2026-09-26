@@ -103,8 +103,7 @@ describe("SerialDevicesMenu", () => {
       </SerialDeviceProvider>,
     );
 
-    // The gamepad transport needs no pre-existing user type, so add-device is
-    // always available now: the old "disabled when no types" guard was removed.
+    // The gamepad transport needs no pre-existing user type, so add-device is always available now: the old "disabled when no types" guard was removed.
     const addBtn = screen.getByRole("button", { name: /add device/i });
     expect(addBtn).toBeEnabled();
   });

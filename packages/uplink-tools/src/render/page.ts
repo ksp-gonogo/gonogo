@@ -125,11 +125,9 @@ function posix(path: string): string {
 function oneKitPerPage(dir: string): Record<string, string> {
   const alias: Record<string, string> = {};
 
-  // Ours: a sibling of this file, whether that dist sits in this repo or in a
-  // third party's `node_modules`.
+  // Ours: a sibling of this file, whether that dist sits in this repo or in a third party's `node_modules`.
   const probe = join(HERE, "render-probe.js");
-  // Absent means this is running from source, where the caller's own resolution
-  // is the only one in play and is already a single copy.
+  // Absent means this is running from source, where the caller's own resolution is the only one in play and is already a single copy.
   if (existsSync(probe)) {
     alias["@ksp-gonogo/uplink-tools/render-probe"] = probe;
   }
@@ -213,8 +211,7 @@ export function oneCopyPerPage(dir: string): Record<string, string> {
   const alias: Record<string, string> = {};
   for (const specifier of ["react", "react-dom", "styled-components"]) {
     try {
-      // Through `package.json` because that is the one path inside a package
-      // whose location IS the directory, whatever the entry points are called.
+      // Through `package.json` because that is the one path inside a package whose location IS the directory, whatever the entry points are called.
       alias[specifier] = dirname(from.resolve(`${specifier}/package.json`));
     } catch {
       // Not reachable from the Uplink, so there is no copy of it here to be the
@@ -279,15 +276,13 @@ export async function buildProbePage(
     sourcemap: "inline",
     define: { "process.env.NODE_ENV": '"production"' },
     plugins: [cssSideEffectPlugin],
-    // The kit's pins go LAST: it resolves itself to its own sibling files, and
-    // an Uplink's copy of the kit is not the one running this bundle.
+    // The kit's pins go LAST: it resolves itself to its own sibling files, and an Uplink's copy of the kit is not the one running this bundle.
     alias: { ...oneCopyPerPage(pkg.dir), ...oneKitPerPage(pkg.dir) },
     absWorkingDir: pkg.dir,
   });
   const bundle = result.outputFiles[0].text;
   const font = jetbrainsMonoFace();
-  // Function-form replacements throughout: a React bundle contains `$&`, and
-  // String.replace's string form reads it as a backreference and corrupts it.
+  // Function-form replacements throughout: a React bundle contains `$&`, and String.replace's string form reads it as a backreference and corrupts it.
   const escaped = bundle.replace(/<\/script/gi, "<\\/script");
   const html = PAGE_TEMPLATE.replace(
     '<style id="probe-theme"></style>',

@@ -213,8 +213,7 @@ describe("RotorTachometer: an unread cap commands nothing", () => {
         (c) => c.command === "robotics.rotor.setRpmLimit",
       ),
     ).toEqual([]);
-    // And the handler returns nothing, so a bound device's render style shows
-    // no cap either: the figure was computed, never measured.
+    // And the handler returns nothing, so a bound device's render style shows no cap either: the figure was computed, never measured.
     expect(returned).toBeUndefined();
   });
 
@@ -370,8 +369,7 @@ describe("RotorTachometer: an unread flag is not a false one", () => {
 
     const row = await screen.findByRole("button", { name: /Tail Rotor/i });
     await waitFor(() => expect(visibleText(row)).toContain("Tail Rotor"));
-    // " · off" is what `r.motorEngaged ? "" : " · off"` printed for an unread
-    // flag: the row said the motor was off.
+    // " · off" is what `r.motorEngaged ? "" : " · off"` printed for an unread flag: the row said the motor was off.
     expect(visibleText(row)).not.toContain("off");
   });
 });

@@ -54,8 +54,7 @@ test.describe("dashboard scrolling", () => {
     const page = await context.newPage();
     await page.goto("/?uplinkLoaderIds=");
 
-    // The map binds its wheel listener once the container has been measured,
-    // which is when the canvas wrapper gets an inline width.
+    // The map binds its wheel listener once the container has been measured, which is when the canvas wrapper gets an inline width.
     const canvasWrap = page
       .getByTestId("map-view-base-canvas")
       .locator("xpath=..");

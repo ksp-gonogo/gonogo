@@ -143,8 +143,7 @@ describe("Unit: what it resolves from the model", () => {
   });
 
   it("says the word INSTEAD of the symbol, not as well as it", () => {
-    // Announcing both reads as "kay em kilometres", and the currencies were
-    // worse: "twelve thousand four hundred and fifty f funds".
+    // Announcing both reads as "kay em kilometres", and the currencies were worse: "twelve thousand four hundred and fifty f funds".
     render(<Unit>km</Unit>);
     expect(screen.getByText("km")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByText("kilometres")).toBeInTheDocument();
@@ -362,15 +361,13 @@ describe("Unit: a universal time renders as a date, not a decimal", () => {
     const { container } = render(<Unit value={value("ut", 12_345_678)} />);
 
     const shown = visibleText(container);
-    // The failure this exists to catch, stated as what it must NOT be: the
-    // magnitude is large enough that the decimal rendering is unmistakable.
+    // The failure this exists to catch, stated as what it must NOT be: the magnitude is large enough that the decimal rendering is unmistakable.
     expect(shown).not.toMatch(/12,345,678/);
     expect(shown).toMatch(/^Y\d+ D\d+ \d{2}:\d{2}:\d{2}$/);
   });
 
   it("agrees exactly with <MissionDate> for the same instant", () => {
-    // Delegation asserted as a PROPERTY rather than by pinning a string, so the
-    // two cannot drift and a calendar change moves both together.
+    // Delegation asserted as a PROPERTY rather than by pinning a string, so the two cannot drift and a calendar change moves both together.
     const viaUnit = render(<Unit value={value("ut", 12_345_678)} />);
     const unitText = visibleText(viaUnit.container);
     viaUnit.unmount();

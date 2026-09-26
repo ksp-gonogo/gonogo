@@ -684,8 +684,7 @@ export function UnitSharedFormat({
     scope.attach();
     return () => scope.detach();
   }, [scope]);
-  // After the members' own effects, which React runs child-first, so the
-  // reports are in before the policy that reads them.
+  // After the members' own effects, which React runs child-first, so the reports are in before the policy that reads them.
   useLayoutEffect(() => {
     scope.setPolicy(policyOf(of, pins, { format, as, decimals }, separate));
   }, [scope, of, pins, format, as, decimals, separate]);

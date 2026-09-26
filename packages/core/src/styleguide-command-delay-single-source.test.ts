@@ -243,8 +243,7 @@ describe("the delay disposition is declared once", () => {
 
   it("draws no countdown over a command the mod runs on arrival", () => {
     const instant = railRows().filter((row) => !row.delayed);
-    // A tree where nothing is instant would pass the agreement check above
-    // while proving only that `true` equals `true`.
+    // A tree where nothing is instant would pass the agreement check above while proving only that `true` equals `true`.
     expect(instant.length).toBeGreaterThan(0);
     for (const row of instant) expect(commandDelayed(row.id)).toBe(false);
   });

@@ -87,8 +87,7 @@ describe("Sparkline", () => {
       />,
     );
     const d = container.querySelector("path")?.getAttribute("d") ?? "";
-    // The path's last point is the peak; its y coordinate must sit at least
-    // half a stroke width below the SVG's own top edge (y=0).
+    // The path's last point is the peak; its y coordinate must sit at least half a stroke width below the SVG's own top edge (y=0).
     const points = [...d.matchAll(/[ML]([\d.]+),([\d.]+)/g)];
     const lastY = Number(points.at(-1)?.[2]);
     expect(lastY).toBeGreaterThanOrEqual(2);

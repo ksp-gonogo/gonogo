@@ -70,8 +70,7 @@ describe("CurrentOrbit: a stale orbit with no model", () => {
       });
     });
 
-    // It really did arrive and really was drawn, so the disappearance below is
-    // a change rather than a field that was never there.
+    // It really did arrive and really was drawn, so the disappearance below is a change rather than a field that was never there.
     await waitFor(() => expect(visibleText()).toContain("0.3°"));
 
     act(() => {

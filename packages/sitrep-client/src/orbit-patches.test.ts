@@ -11,8 +11,7 @@ import { type WireOf, wrapWire } from "./stub-transport";
 function wirePatch(
   overrides: Partial<WireOf<OrbitPatchWirePayload>> = {},
 ): OrbitPatchWirePayload {
-  // Wire-shaped, then wrapped: `OrbitPatch` is a nested contract shape and
-  // the decode gives its declared quantities their units.
+  // Wire-shaped, then wrapped: `OrbitPatch` is a nested contract shape and the decode gives its declared quantities their units.
   return wrapWire<OrbitPatchWirePayload>("OrbitPatch", {
     sma: 700_000,
     ecc: 0.1,
@@ -41,8 +40,7 @@ describe("mapOrbitPatch", () => {
     const wire = wirePatch();
     const legacy = mapOrbitPatch(wire);
     expect(legacy).toEqual<LegacyOrbitPatch>({
-      // `.magnitude` throughout: the LEGACY shape is plain numbers, which is
-      // the whole point of the mapping, and the wire side carries units.
+      // `.magnitude` throughout: the LEGACY shape is plain numbers, which is the whole point of the mapping, and the wire side carries units.
       startUT: wire.startUt.magnitude,
       endUT: wire.endUt.magnitude,
       patchStartTransition: "INITIAL",

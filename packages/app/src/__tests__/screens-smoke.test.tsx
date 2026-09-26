@@ -62,8 +62,7 @@ describe("MainScreen smoke", () => {
 
   it("renders with the dashboard visible (widget area mounted)", () => {
     const { container } = renderScreen(<MainScreen />);
-    // Any styled container at the layout root, we're not asserting widget
-    // internals, just that the screen rendered past error boundary.
+    // Any styled container at the layout root, we're not asserting widget internals, just that the screen rendered past error boundary.
     expect(container.querySelector("div")).not.toBeNull();
   });
 
@@ -130,16 +129,14 @@ describe("StationScreen smoke", () => {
   });
 
   it("mounts without throwing and shows the connect prompt", () => {
-    // With no saved host in localStorage and no connection, StationScreen
-    // shows the "Connect to Mission Control" prompt rather than the dashboard.
+    // With no saved host in localStorage and no connection, StationScreen shows the "Connect to Mission Control" prompt rather than the dashboard.
     expect(() => renderScreen(<StationScreen />)).not.toThrow();
     expect(screen.getByText(/Connect to Mission Control/i)).not.toBeNull();
   });
 
   it("does not attempt auto-connect when localStorage is empty", () => {
     renderScreen(<StationScreen />);
-    // The connect button's disabled attribute reflects the live connection
-    // state: idle means the screen isn't mid-reconnect on mount.
+    // The connect button's disabled attribute reflects the live connection state: idle means the screen isn't mid-reconnect on mount.
     const connectButton = screen.getByRole("button", { name: /connect/i });
     expect(connectButton.getAttribute("disabled")).toBeNull();
   });

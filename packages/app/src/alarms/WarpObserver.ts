@@ -130,8 +130,7 @@ export class WarpObserver {
   }
 
   private recordRate(ut: number, rate: number): void {
-    // A view clock that went backwards (a rewind or a revert) means what was
-    // read after this instant no longer happened.
+    // A view clock that went backwards (a rewind or a revert) means what was read after this instant no longer happened.
     while ((this.rateChanges.at(-1)?.ut ?? Number.NEGATIVE_INFINITY) > ut) {
       this.rateChanges.pop();
     }

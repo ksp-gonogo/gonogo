@@ -204,8 +204,7 @@ describe("a connection's upstream vantage", () => {
     claim(conn, TOPIC);
 
     expect(craftSink.live.has(TOPIC)).toBe(true);
-    // The whole point: the ground session must not be pulling the pilot's
-    // topic, or the host is paying for two streams and reading one.
+    // The whole point: the ground session must not be pulling the pilot's topic, or the host is paying for two streams and reading one.
     expect(hostSink.live.has(TOPIC)).toBe(false);
     host.stop();
   });
@@ -243,8 +242,7 @@ describe("a connection's upstream vantage", () => {
     const conn = await connectStation(host, "pilot-a");
     setVantage(conn, CRAFT);
     claim(conn, TOPIC);
-    // Proves the claim really was on the craft's session, so the assertions
-    // after the clear are about it MOVING rather than never having left.
+    // Proves the claim really was on the craft's session, so the assertions after the clear are about it MOVING rather than never having left.
     expect(craftSink.live.has(TOPIC)).toBe(true);
     expect(hostSink.live.has(TOPIC)).toBe(false);
 
@@ -273,8 +271,7 @@ describe("a connection's upstream vantage", () => {
     const pilot = await connectStation(host, "pilot-a");
     setVantage(pilot, CRAFT);
     claim(pilot, TOPIC);
-    // Both sessions genuinely holding it is the state the assertion below is
-    // about; without this the test passes whenever the move never happened.
+    // Both sessions genuinely holding it is the state the assertion below is about; without this the test passes whenever the move never happened.
     expect(hostSink.live.has(TOPIC)).toBe(true);
     expect(craftSink.live.has(TOPIC)).toBe(true);
 
@@ -296,8 +293,7 @@ describe("a connection's upstream vantage", () => {
 
     pilot.close();
 
-    // A vantage nobody reads from is a session to close, so it must stop being
-    // reported the moment its last reader goes.
+    // A vantage nobody reads from is a session to close, so it must stop being reported the moment its last reader goes.
     expect(host.requestedVantages()).toEqual([]);
     host.stop();
   });
@@ -401,8 +397,7 @@ describe("a peer's command address", () => {
   });
 
   it("lets an explicit per-call vantage win over the connection's", async () => {
-    // `meta` pins a program-meta command to instant dispatch, and must not be
-    // overwritten by wherever the sender happens to be observing from.
+    // `meta` pins a program-meta command to instant dispatch, and must not be overwritten by wherever the sender happens to be observing from.
     const host = await startedHost();
     const vantages = captureDispatches();
     const pilot = await connectStation(host, "pilot-a");

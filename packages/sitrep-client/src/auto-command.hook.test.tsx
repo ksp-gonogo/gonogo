@@ -11,8 +11,7 @@ import { StubTransport } from "./stub-transport";
 import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
-// Manual rAF so `useUtNow`'s per-frame recompute only advances when the test
-// flushes (same injected-scheduler pattern as context.test.tsx).
+// Manual rAF so `useUtNow`'s per-frame recompute only advances when the test flushes (same injected-scheduler pattern as context.test.tsx).
 function installFakeRaf() {
   let nextHandle = 1;
   const pending = new Map<number, () => void>();
@@ -44,8 +43,7 @@ function setup() {
   // handler (which answers on a later microtask).
   transport.setCommandHandler((c, a) => ({ c, a }));
   const client = new TelemetryClient(transport);
-  // Wired the way `TelemetryProvider` wires an auto-built store, so the lead
-  // comes from the same delay the view clock is offset by.
+  // Wired the way `TelemetryProvider` wires an auto-built store, so the lead comes from the same delay the view clock is offset by.
   const authority = new DelayAuthority();
   authority.attach(client);
   const clock = new ViewClock({
@@ -78,8 +76,7 @@ function Harness(props: {
     enabled: props.enabled,
     onSkip: props.onSkip,
   });
-  // Consume the auto-command's handle: an auto-dispatch is subject to the same
-  // must-consume invariant as a click-driven one.
+  // Consume the auto-command's handle: an auto-dispatch is subject to the same must-consume invariant as a click-driven one.
   return <CommandDelay handle={status.command} />;
 }
 
@@ -100,8 +97,7 @@ describe("useAutoCommand", () => {
         <Harness targetUt={100} />
       </Provider>,
     );
-    // Emit the delay first (a comms.delay sample re-anchors utNowEstimate), THEN
-    // anchor utNow at 85 so my anchor wins.
+    // Emit the delay first (a comms.delay sample re-anchors utNowEstimate), THEN anchor utNow at 85 so my anchor wins.
     act(() => {
       transport.emit("comms.delay", { oneWaySeconds: 10 });
       raf.flush();
@@ -168,8 +164,7 @@ describe("useAutoCommand", () => {
     expect(staged()).toHaveLength(0);
   });
   it("leads by the issuing centre's own row, not home's light-time", async () => {
-    // Home is 10 s out, the forward centre this session stands at is 2 s out:
-    // target 100 dispatches at 98, not 90.
+    // Home is 10 s out, the forward centre this session stands at is 2 s out: target 100 dispatches at 98, not 90.
     const { wall, transport, clock, staged, Provider } = setup();
     render(
       <Provider>
@@ -205,8 +200,7 @@ describe("useAutoCommand", () => {
   });
 
   it("an issuing centre with no row leads by the whole-network delay, never zero", async () => {
-    // The unrouted centre is left off the list, so its commands ride
-    // `comms.delay`: target 100 dispatches at 90, the same as home.
+    // The unrouted centre is left off the list, so its commands ride `comms.delay`: target 100 dispatches at 90, the same as home.
     const { wall, transport, clock, staged, Provider } = setup();
     render(
       <Provider>
@@ -242,8 +236,7 @@ describe("useAutoCommand", () => {
   });
 
   it("holds the last lead through a no-path reading rather than dropping to zero", async () => {
-    // A null one-way is "no path home", not "the craft is here": the lead the
-    // clock runs on stays at 10, so target 100 still dispatches at 90.
+    // A null one-way is "no path home", not "the craft is here": the lead the clock runs on stays at 10, so target 100 still dispatches at 90.
     const { wall, transport, clock, staged, Provider } = setup();
     render(
       <Provider>

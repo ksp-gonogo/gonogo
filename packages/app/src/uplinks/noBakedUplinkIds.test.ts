@@ -1,7 +1,6 @@
 // @vitest-environment node
 //
-// Node realm rather than the package's jsdom default: this test walks the app's
-// own source tree and needs no DOM.
+// Node realm rather than the package's jsdom default: this test walks the app's own source tree and needs no DOM.
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -95,8 +94,7 @@ function shippedSourceFiles(dir: string): string[] {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) return shippedSourceFiles(full);
     if (!/\.tsx?$/.test(entry.name)) return [];
-    // Tests are not shipped, and several legitimately name an Uplink to build
-    // a fixture roster for it.
+    // Tests are not shipped, and several legitimately name an Uplink to build a fixture roster for it.
     if (/\.test\.tsx?$/.test(entry.name)) return [];
     return [full];
   });

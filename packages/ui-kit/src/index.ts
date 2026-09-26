@@ -512,8 +512,7 @@ export {
   type Quantityish,
 } from "./magnitude";
 // ── Null-display token ──────────────────────────────────────────────────────
-// The one sanctioned em dash in the codebase; see NullValue.tsx's own header
-// comment for the full rationale and the ratchet that enforces it.
+// The one sanctioned em dash in the codebase; see NullValue.tsx's own header comment for the full rationale and the ratchet that enforces it.
 export { Notice, type NoticeProps } from "./Notice";
 export { NULL_DISPLAY, NullValue } from "./NullValue";
 /**
@@ -634,8 +633,7 @@ export {
   type TextWeight,
 } from "./Text";
 export { TextField, type TextFieldProps } from "./TextField";
-// Switch's sibling, and the other half of the toggle vocabulary: a row of
-// alternatives is a ToggleButton, a single labelled setting is a Switch.
+// Switch's sibling, and the other half of the toggle vocabulary: a row of alternatives is a ToggleButton, a single labelled setting is a Switch.
 export {
   ToggleButton,
   type ToggleButtonProps,

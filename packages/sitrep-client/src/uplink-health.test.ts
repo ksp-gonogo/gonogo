@@ -203,8 +203,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
   });
 
   it("defaults facts to an empty array for a mod build that reports none (wire field absent)", () => {
-    // Empty rather than absent, so a caller enumerates unconditionally instead
-    // of testing for the key first.
+    // Empty rather than absent, so a caller enumerates unconditionally instead of testing for the key first.
     const raw: RawSystemUplinksPayload = {
       uplinks: [
         {

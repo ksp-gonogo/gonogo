@@ -167,8 +167,7 @@ describe("SystemView under an integrating provider against an analytic one", () 
     const d = arc?.getAttribute("d") ?? "";
     // Open by construction: it stops where the integrator stopped.
     expect(d).not.toMatch(/z/i);
-    // One `L` per captured point after the first, so the whole arc is on screen
-    // rather than a two-point stub that would also satisfy "a path exists".
+    // One `L` per captured point after the first, so the whole arc is on screen rather than a two-point stub that would also satisfy "a path exists".
     expect(d.match(/L/g)?.length).toBe(75);
   });
 
@@ -200,8 +199,7 @@ describe("SystemView under an integrating provider against an analytic one", () 
         throw new Error("the vessel curve has not rendered yet");
       }
     });
-    // `orbitPatches` returns [] on anything but a conic, so the craft that has
-    // the better trajectory is the one the diagram predicts nothing for.
+    // `orbitPatches` returns [] on anything but a conic, so the craft that has the better trajectory is the one the diagram predicts nothing for.
     expect(predictedPatchPaths(integrated)).toHaveLength(0);
   });
 

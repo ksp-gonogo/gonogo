@@ -57,8 +57,7 @@ const CONFIGS: WidgetRenderConfig[] = [
     outPath: "renders/affordability/strategies",
     fullContent: true,
     modes: [
-      // The balance rail this widget carries lives in the panel aside, which
-      // only has room to render at the wide bucket.
+      // The balance rail this widget carries lives in the panel aside, which only has room to render at the wide bucket.
       { name: "wide-9x12", w: 9, h: 12 },
       { name: "tiny-3x3", w: 3, h: 3 },
     ],

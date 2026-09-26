@@ -20,8 +20,7 @@ describe("Panel sticky header (standard)", () => {
     const scroller = document.querySelector("[data-panel-body]") as HTMLElement;
     expect(scroller).not.toBeNull();
     expect(scroller.contains(heading)).toBe(true);
-    // First in-flow child is the sticky unit, and the header is inside it,
-    // under the delay rail's band.
+    // First in-flow child is the sticky unit, and the header is inside it, under the delay rail's band.
     const unit = scroller.querySelector(
       "[data-panel-sticky-top]",
     ) as HTMLElement;
@@ -31,8 +30,7 @@ describe("Panel sticky header (standard)", () => {
 
   it("sticks the header (position: sticky) so the title stays in view", () => {
     render(<Panel panelTitle="ALTITUDE">body</Panel>);
-    // The stickiness lives on the unit the header shares with the rail, so
-    // whatever holds the title in view holds the rail there too.
+    // The stickiness lives on the unit the header shares with the rail, so whatever holds the title in view holds the rail there too.
     const unit = document.querySelector(
       "[data-panel-sticky-top]",
     ) as HTMLElement;

@@ -217,8 +217,7 @@ describe("design-system: a status badge never precedes its subject", () => {
   });
 
   it("scanned a real tree rather than an empty file list", () => {
-    // The roots hold well over two hundred .tsx files between them; a handful
-    // means the pathspec matched almost nothing and the verdict is worthless.
+    // The roots hold well over two hundred .tsx files between them; a handful means the pathspec matched almost nothing and the verdict is worthless.
     expect(files.length).toBeGreaterThan(200);
   });
 

@@ -63,8 +63,7 @@ describe("ExpandableText", () => {
 
     const shown = screen.getByText(/^Soviet OKBs/).textContent ?? "";
     const kept = shown.replace(/\.\.\.$/, "");
-    // A prefix of the authored string, ending on a whole word: truncation is
-    // a cut, never a paraphrase.
+    // A prefix of the authored string, ending on a whole word: truncation is a cut, never a paraphrase.
     expect(LONG.startsWith(kept)).toBe(true);
     expect(kept).not.toMatch(/\s$/);
     expect(LONG[kept.length]).toBe(" ");
@@ -72,8 +71,7 @@ describe("ExpandableText", () => {
   });
 
   it("does not hide a handful of characters behind a control", () => {
-    // Just over the limit: the control would cost more room than the tail it
-    // reveals, so there is no control and no cut.
+    // Just over the limit: the control would cost more room than the tail it reveals, so there is no control and no cut.
     const text = `${"word ".repeat(6)}tail`;
     render(<ExpandableText limit={text.length - 4}>{text}</ExpandableText>);
 

@@ -344,8 +344,7 @@ describe("SettingsModal Data Sources tab: per-Uplink health (system.uplinkHealth
     expect(screen.getByText("degraded")).toBeInTheDocument();
     expect(screen.getByText("no active CPU selected")).toBeInTheDocument();
 
-    // "system" is healthy with no detail, so it collapses into the N/M
-    // healthy chip by default (Task 6): expand it to assert its fields too.
+    // "system" is healthy with no detail, so it collapses into the N/M healthy chip by default (Task 6): expand it to assert its fields too.
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /show/i }));
 
@@ -441,8 +440,7 @@ describe("SettingsModal Data Sources tab: per-Uplink health (system.uplinkHealth
     expect(screen.getByText("b2569d21").closest("dl")).toBe(
       label.closest("dl"),
     );
-    // A fact the uplink could not establish reads as the null placeholder
-    // rather than as a blank cell an operator scans past.
+    // A fact the uplink could not establish reads as the null placeholder rather than as a blank cell an operator scans past.
     const placeholders = [...container.querySelectorAll("dd")].filter(
       (dd) => dd.textContent === NULL_DISPLAY,
     );
@@ -775,8 +773,7 @@ describe("SettingsModal: source-backed setting row", () => {
   });
 
   it("resolves the source via the uplink-handle registry (an Uplink singleton's path)", () => {
-    // An Uplink can register its source with registerUplinkHandle rather than
-    // registerDataSource: the row must resolve there too.
+    // An Uplink can register its source with registerUplinkHandle rather than registerDataSource: the row must resolve there too.
     registerUplinkHandle("throttle-src", makeThrottleSourceStub(true));
     registerThrottleSetting();
     renderModal("main");
@@ -936,8 +933,7 @@ describe("SettingsModal: stream-backed read-only rows", () => {
 
     act(() => stream.emitTopic("example.settings", FRAME_PREFS));
 
-    // The value is what arrives late; the label renders from the definition
-    // immediately, so awaiting the label would prove nothing.
+    // The value is what arrives late; the label renders from the definition immediately, so awaiting the label would prove nothing.
     const shown = await screen.findByText("Kerbin-centred inertial");
     const label = screen.getByText("Selected frame");
     expect(label.closest("dt")).not.toBeNull();

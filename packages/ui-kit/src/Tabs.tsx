@@ -136,8 +136,7 @@ export function Tabs({
     [isControlled, onChange],
   );
 
-  // Side-by-side mode lays out panels, and a disabled tab has no panel worth
-  // laying out, so it is measured and rendered against the tabs that apply.
+  // Side-by-side mode lays out panels, and a disabled tab has no panel worth laying out, so it is measured and rendered against the tabs that apply.
   const selectable = useMemo(
     () => resolved.filter((t) => !t.disabled),
     [resolved],
@@ -260,8 +259,7 @@ export function Tabs({
     const measure = () => {
       const el = buttonRefs.current.get(active?.id ?? "");
       if (!el) return;
-      // offsetLeft is relative to the scrolling bar's content box, so the blob
-      // travels with the tabs when the bar scrolls instead of detaching.
+      // offsetLeft is relative to the scrolling bar's content box, so the blob travels with the tabs when the bar scrolls instead of detaching.
       setBlob((prev) =>
         prev && prev.left === el.offsetLeft && prev.width === el.offsetWidth
           ? prev
@@ -304,8 +302,7 @@ export function Tabs({
           e.preventDefault();
           activateByIndex(currentIdx, -1);
           break;
-        // Home/End start one step OUTSIDE the strip so the search lands on the
-        // first (or last) tab itself, then walks inward past any disabled ones.
+        // Home/End start one step OUTSIDE the strip so the search lands on the first (or last) tab itself, then walks inward past any disabled ones.
         case "Home":
           e.preventDefault();
           activateByIndex(-1, 1);

@@ -32,12 +32,10 @@ export function useCamera(containerSize: { w: number; h: number } | null) {
   // Last pan-anchor position when there's a single pointer. Reset on transitions
   // in/out of pinch so the pan doesn't jump when a finger is added or lifted.
   const lastPanPos = useRef<PointerPos | null>(null);
-  // Distance between the two pointers on the previous move event, used to
-  // compute a frame-to-frame zoom ratio during pinch.
+  // Distance between the two pointers on the previous move event, used to compute a frame-to-frame zoom ratio during pinch.
   const lastPinchDist = useRef<number | null>(null);
 
-  // Reset to global fit when screen resizes, deliberately scoped to w/h
-  // so a new containerSize object with identical dimensions is a no-op.
+  // Reset to global fit when screen resizes, deliberately scoped to w/h so a new containerSize object with identical dimensions is a no-op.
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional: react only to dimension changes, not object identity
   useEffect(() => {
     if (containerSize) setCamera(fitCamera(containerSize.w, containerSize.h));

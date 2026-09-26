@@ -281,8 +281,7 @@ describe("JogWheel in rate mode", () => {
       drag(screen.getByRole("slider", { name: "Ignition" }), 80);
       expect(onChange).not.toHaveBeenCalled();
 
-      // Nothing moves on the pointer itself: the tick does the moving, so a
-      // value driven by both would advance twice.
+      // Nothing moves on the pointer itself: the tick does the moving, so a value driven by both would advance twice.
       vi.advanceTimersByTime(600);
       expect(onChange).toHaveBeenCalled();
       expect(onChange.mock.calls[0][0]).toBeGreaterThan(1000);
@@ -313,8 +312,7 @@ describe("JogWheel in rate mode", () => {
 
       fireEvent.pointerUp(handle, { pointerId: 1 });
       vi.advanceTimersByTime(1000);
-      // A rate control left displaced would keep driving a value nobody is
-      // holding: for a burn instant that is a plan sliding unattended.
+      // A rate control left displaced would keep driving a value nobody is holding: for a burn instant that is a plan sliding unattended.
       expect(onChange.mock.calls.length).toBe(movedWhileHeld);
     } finally {
       vi.useRealTimers();

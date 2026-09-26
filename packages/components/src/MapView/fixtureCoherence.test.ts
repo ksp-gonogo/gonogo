@@ -307,8 +307,7 @@ describe("MapView fixtures describe scenes that can exist", () => {
         const b = bodyOf(s.bodyName);
         const patch = toLegacy(s.patches[0] ?? orbitAsPatch(s, b.radius, b.gm));
         const g = geoFromInertial(patchStateAt(patch, s.ut), b.radius);
-        // A tenth of a degree is finer than the map can draw, and coarse enough
-        // to survive the fixtures' rounded decimals.
+        // A tenth of a degree is finer than the map can draw, and coarse enough to survive the fixtures' rounded decimals.
         expect(g.lat).toBeCloseTo(s.flight.latitude, 1);
         expect(g.alt / 1000).toBeCloseTo(s.flight.altitudeAsl / 1000, 2);
       });

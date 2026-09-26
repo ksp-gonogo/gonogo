@@ -356,8 +356,7 @@ function reckonedTailStep(
     gaps.push(inWindowUts[i] - inWindowUts[i - 1]);
   }
   gaps.sort((a, b) => a - b);
-  // Median, not mean: one long pause inside the window is exactly the thing a
-  // mean would let dominate the cadence of everything after it.
+  // Median, not mean: one long pause inside the window is exactly the thing a mean would let dominate the cadence of everything after it.
   const cadence = gaps.length > 0 ? gaps[gaps.length >> 1] : span;
   const floor = span / MAX_RECKONED_TAIL_SAMPLES;
   return Math.max(cadence > 0 ? cadence : span, floor);
@@ -549,8 +548,7 @@ const DISCRETE_NUMERIC_FIELD_NAMES: ReadonlySet<string> = new Set([
 /** Normalize a degree value into `(-180, 180]`. */
 function normalizeDegrees(deg: number): number {
   const wrapped = ((((deg + 180) % 360) + 360) % 360) - 180;
-  // The above maps 180 -> -180; prefer the +180 representative for the
-  // boundary case so a stationary angle round-trips exactly.
+  // The above maps 180 -> -180; prefer the +180 representative for the boundary case so a stationary angle round-trips exactly.
   return wrapped === -180 ? 180 : wrapped;
 }
 
@@ -933,8 +931,7 @@ export class TimelineStore {
   ingest<T>(topic: string, point: TimelinePoint<T>): void {
     const priorEpoch = this.clock.getEpoch();
     if (point.epoch < priorEpoch) {
-      // Stale-epoch straggler by the store's authoritative epoch, refused,
-      // not merely masked at read time.
+      // Stale-epoch straggler by the store's authoritative epoch, refused, not merely masked at read time.
       return;
     }
 
@@ -1541,8 +1538,7 @@ export class TimelineStore {
     toUt: number,
   ): ReckonedSample<T>[] {
     const walk = this.rawReckonedWalk(topic, fromUt, toUt);
-    // Nothing observed, or the newest observation IS the view time: either way
-    // there is no interval for a model to have carried anything across.
+    // Nothing observed, or the newest observation IS the view time: either way there is no interval for a model to have carried anything across.
     if (!walk || walk.lastObservedUt >= toUt) return [];
 
     const inWindow = [...new Set(walk.inWindowUts)]
@@ -2076,8 +2072,7 @@ export class TimelineStore {
       );
       if (!model || !covering) return undefined;
       return {
-        // From this read's point of view the whole (narrowed) value is
-        // modelled, so the root is what it claims.
+        // From this read's point of view the whole (narrowed) value is modelled, so the root is what it claims.
         modelled: [{ path: "", basis: covering.basis }],
         reckon: (at) => walkFieldPath(model.reckon(at), parsed.fieldPath) as T,
         /*
@@ -2669,8 +2664,7 @@ export class TimelineStore {
         anchor.validAt - window.spanUt,
         anchor.validAt,
       );
-      // A derived topic has no stored history to range over (`sampleRange`
-      // answers `undefined` for one), so its window is the point it computed.
+      // A derived topic has no stored history to range over (`sampleRange` answers `undefined` for one), so its window is the point it computed.
       if (!raw || raw.length === 0) {
         return { points: [anchor], truncatedAtBreak: false };
       }
@@ -2816,8 +2810,7 @@ export class TimelineStore {
   ): TopicReading<T> {
     const effectiveToken =
       token.generation === this.generation ? token : this.currentToken;
-    // Epoch-folded like every sibling read: a reading memoized before a
-    // mid-frame epoch bump (quickload rewind) must not survive it.
+    // Epoch-folded like every sibling read: a reading memoized before a mid-frame epoch bump (quickload rewind) must not survive it.
     const epoch = this.clock.getEpoch();
     return this.memoize(
       effectiveToken,
@@ -3319,8 +3312,7 @@ export class TimelineStore {
         carry.value = shareEqual(carry.value, derived);
         return {
           value: carry.value,
-          // Nothing read (a channel deriving from constants) is as current as
-          // the frame; nothing can be older than the moment being asked about.
+          // Nothing read (a channel deriving from constants) is as current as the frame; nothing can be older than the moment being asked about.
           observedAt: Number.isFinite(oldest)
             ? Math.min(oldest, viewUt)
             : viewUt,
@@ -3426,8 +3418,7 @@ export class TimelineStore {
   markTopicUnowned(topic: string): void {
     if (this.unownedTopics.has(topic)) return;
     this.unownedTopics.add(topic);
-    // The reading's other inputs are unchanged, so the identity cache would
-    // hand back the `pending` arm it built before the verdict.
+    // The reading's other inputs are unchanged, so the identity cache would hand back the `pending` arm it built before the verdict.
     this.readings.delete(topic);
     for (const listener of this.frameListeners) listener();
   }

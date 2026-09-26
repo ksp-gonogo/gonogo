@@ -27,13 +27,11 @@ const viewUt = 1_000_000;
 // @ts-expect-error an instant is not a duration; subtract the frame's view time first
 <Countdown value={encounterUt} />;
 
-// Which is what that subtraction looks like. `.magnitude` because UT
-// arithmetic is on plain numbers at the unwrap boundary.
+// Which is what that subtraction looks like. `.magnitude` because UT arithmetic is on plain numbers at the unwrap boundary.
 <Countdown value={encounterUt.magnitude - viewUt} />;
 
 // ── An instant renders as a date ────────────────────────────────────────────
 <MissionDate value={encounterUt} />;
 
-// The client's own view time has no declared unit to carry, so a bare number
-// stays valid: it is how every client-computed clock reaches here.
+// The client's own view time has no declared unit to carry, so a bare number stays valid: it is how every client-computed clock reaches here.
 <MissionDate value={viewUt} />;

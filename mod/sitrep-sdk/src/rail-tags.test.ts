@@ -26,8 +26,7 @@ describe("the generated rail table", () => {
       (id) => commandRail(id) === null,
     );
     expect(missing).toEqual([]);
-    // A count, because an empty `missing` over an empty id list would read as a
-    // clean pass while the table said nothing at all.
+    // A count, because an empty `missing` over an empty id list would read as a clean pass while the table said nothing at all.
     expect(GENERATED_COMMAND_IDS.length).toBeGreaterThan(40);
   });
 
@@ -60,8 +59,7 @@ describe("the two namespaces the two derivations read", () => {
   it("never names the same id a command and a Topic", () => {
     const topics = new Set<string>(GENERATED_TOPIC_IDS);
     expect(GENERATED_COMMAND_IDS.filter((id) => topics.has(id))).toEqual([]);
-    // Both namespaces are non-empty, so an empty intersection is a fact about
-    // them rather than about a list that failed to load.
+    // Both namespaces are non-empty, so an empty intersection is a fact about them rather than about a list that failed to load.
     expect(topics.size).toBeGreaterThan(40);
     expect(GENERATED_COMMAND_IDS.length).toBeGreaterThan(40);
   });
@@ -155,8 +153,7 @@ describe("railTagsForCommand", () => {
 describe("an Uplink registering its own command", () => {
   it("gets a rail row from its own registration", () => {
     const id = "testuplink.science.transmit";
-    // Before registration nothing is known about it, and the answer says so
-    // rather than guessing.
+    // Before registration nothing is known about it, and the answer says so rather than guessing.
     expect(commandRail(id)).toBeNull();
 
     registerUplinkCommand(id, { replies: true, delayed: true });

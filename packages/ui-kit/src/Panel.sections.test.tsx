@@ -137,8 +137,7 @@ describe("Panel sections that fill", () => {
     );
     const body = container.querySelector("[data-panel-body]");
     expect(screen.getByText("drawing").parentElement).toBe(body);
-    // The ordinary section is still a grid item, and the grid is the body's
-    // child rather than the section itself.
+    // The ordinary section is still a grid item, and the grid is the body's child rather than the section itself.
     expect(screen.getByText("rows").parentElement).not.toBe(body);
     expect(screen.getByText("rows").parentElement?.parentElement).toBe(body);
   });
@@ -245,8 +244,7 @@ describe("Section", () => {
     );
     const box = container.querySelector("section");
     expect(box).not.toBeNull();
-    // Still the Stack, so it still lays its children out as a column with the
-    // kit's gap rather than becoming a bare unstyled element.
+    // Still the Stack, so it still lays its children out as a column with the kit's gap rather than becoming a bare unstyled element.
     expect(getComputedStyle(box as Element).flexDirection).toBe("column");
   });
 });

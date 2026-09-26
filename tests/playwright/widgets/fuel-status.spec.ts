@@ -51,8 +51,7 @@ test.describe("widget DOM mirror: FuelStatus", () => {
         await expect(page.getByText("FUEL · ΔV", { exact: true })).toBeVisible({
           timeout: 30_000,
         });
-        // Full data path reached: the subtitle only renders once
-        // `vessel.structure.currentStage` has arrived.
+        // Full data path reached: the subtitle only renders once `vessel.structure.currentStage` has arrived.
         await expect(
           page.getByText("Stage 1 / 1", { exact: true }),
         ).toBeVisible({ timeout: 15_000 });

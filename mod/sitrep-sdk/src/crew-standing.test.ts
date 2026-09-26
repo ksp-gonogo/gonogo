@@ -13,8 +13,7 @@ import {
 
 describe("CREW_STANDING_ORDER", () => {
   it("covers every declared standing exactly once", () => {
-    // The Astronaut Complex builds its sub-tabs off this, so a standing missing
-    // from it is a standing with no tab and a bucket of kerbals nobody sees.
+    // The Astronaut Complex builds its sub-tabs off this, so a standing missing from it is a standing with no tab and a bucket of kerbals nobody sees.
     expect([...CREW_STANDING_ORDER].sort((a, b) => a - b)).toEqual(
       [...CREW_STANDING_NAMES.keys()].sort((a, b) => a - b),
     );
@@ -59,8 +58,7 @@ describe("crewStandingFromRosterStatus", () => {
   });
 
   it("refuses to guess at an ordinal it does not declare", () => {
-    // Unknown is a third answer: not "available" (we cannot promise the kerbal
-    // can fly) and not "dead" (we have no grounds to say so).
+    // Unknown is a third answer: not "available" (we cannot promise the kerbal can fly) and not "dead" (we have no grounds to say so).
     expect(crewStandingFromRosterStatus(9, false)).toBe(CrewStanding.Unknown);
     expect(crewStandingFromRosterStatus(null, false)).toBe(
       CrewStanding.Unknown,
@@ -98,8 +96,7 @@ describe("crewStandingLabel", () => {
   });
 
   it("invents no label for a value this build does not declare", () => {
-    // A label invented for an unknown number is a label an operator reads as a
-    // fact; a caller with nothing to show should show nothing.
+    // A label invented for an unknown number is a label an operator reads as a fact; a caller with nothing to show should show nothing.
     expect(crewStandingLabel(99)).toBeNull();
     expect(crewStandingLabel(null)).toBeNull();
     expect(crewStandingLabel(undefined)).toBeNull();

@@ -64,8 +64,7 @@ function streamFrame(topic: string, payload: unknown): string {
   });
 }
 
-// The exact per-(body,type) coverage read CoveragePanel performs, scalar
-// percent under the 4-segment canonical string.
+// The exact per-(body,type) coverage read CoveragePanel performs, scalar percent under the 4-segment canonical string.
 function CoverageProbe() {
   // @ts-expect-error two-arg form is type-banned; runtime shim still under test
   const pct = useTelemetry<number>("data", "scansat.coverage.Kerbin.8");

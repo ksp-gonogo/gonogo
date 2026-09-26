@@ -80,8 +80,7 @@ describe("useActionGroups characterisation: nothing has arrived at all", () => {
       "Stage",
     ]);
     expect(result.current).toHaveLength(STOCK_ACTION_GROUPS.length);
-    // No entry carries an `index`: every one of these is stock, none is a
-    // fabricated custom.
+    // No entry carries an `index`: every one of these is stock, none is a fabricated custom.
     expect(result.current.every((g) => g.index === undefined)).toBe(true);
   });
 
@@ -101,11 +100,9 @@ describe("useActionGroups characterisation: nothing has arrived at all", () => {
   it("keeps the stock half operable while the customs half is unknown", () => {
     const { result } = renderHook(() => useActionGroups());
 
-    // SAS keeps its toggle with zero telemetry: the "degrade to stock works,
-    // customs pending" behaviour the module's doc claims.
+    // SAS keeps its toggle with zero telemetry: the "degrade to stock works, customs pending" behaviour the module's doc claims.
     expect(result.current.find((g) => g.name === "SAS")?.toggle).toBe("f.sas");
-    // Precision Control is the one stock entry with no toggle, absence of a
-    // toggle here is a DESIGN decision and not a missing-telemetry symptom.
+    // Precision Control is the one stock entry with no toggle, absence of a toggle here is a DESIGN decision and not a missing-telemetry symptom.
     expect(
       result.current.find((g) => g.name === "Precision Control")?.toggle,
     ).toBeNull();

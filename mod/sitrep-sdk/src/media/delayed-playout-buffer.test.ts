@@ -92,13 +92,11 @@ describe("DelayedPlayoutBuffer", () => {
     clock.setEdge(5);
     expect(released).toEqual([]);
 
-    // Delay shrinks: edge jumps forward; frames release in UT order, none
-    // skipped (no gap), none double-released.
+    // Delay shrinks: edge jumps forward; frames release in UT order, none skipped (no gap), none double-released.
     clock.setEdge(20);
     expect(released).toEqual([10, 20]);
 
-    // Delay grows again (edge stalls): the still-queued frame (30) stays
-    // held, not shown early.
+    // Delay grows again (edge stalls): the still-queued frame (30) stays held, not shown early.
     clock.setEdge(20);
     expect(released).toEqual([10, 20]);
 
@@ -128,13 +126,11 @@ describe("DelayedPlayoutBuffer", () => {
     expect(buffer.peekQueue()).toHaveLength(0);
     expect(buffer.current()).toBeUndefined();
 
-    // Even once the (post-reset) clock sweeps far past the discarded UTs,
-    // those old frames never surface: they were dropped, not just held.
+    // Even once the (post-reset) clock sweeps far past the discarded UTs, those old frames never surface: they were dropped, not just held.
     clock.setEdge(1000);
     expect(released).toEqual([]);
 
-    // Fresh post-reset frames (a rewind can restart UT numbering low) still
-    // release normally.
+    // Fresh post-reset frames (a rewind can restart UT numbering low) still release normally.
     buffer.push({ ut: 5, keyframe: true });
     clock.setEdge(5);
     expect(released).toEqual([5]);
@@ -156,18 +152,15 @@ describe("DelayedPlayoutBuffer", () => {
     buffer.push({ ut: 3, keyframe: false, bytes: 1 });
     buffer.push({ ut: 4, keyframe: false, bytes: 1 }); // pushes over cap
 
-    // ut=2 (the oldest non-keyframe) was dropped; the keyframe (ut=1)
-    // survives even though it's older than the dropped delta.
+    // ut=2 (the oldest non-keyframe) was dropped; the keyframe (ut=1) survives even though it's older than the dropped delta.
     expect(buffer.peekQueue().map((f) => f.ut)).toEqual([1, 3, 4]);
     expect(released).toEqual([]);
 
-    // A second delta arrives: the next-oldest delta (ut=3) goes, the
-    // keyframe still survives.
+    // A second delta arrives: the next-oldest delta (ut=3) goes, the keyframe still survives.
     buffer.push({ ut: 5, keyframe: false, bytes: 1 });
     expect(buffer.peekQueue().map((f) => f.ut)).toEqual([1, 4, 5]);
 
-    // Once only keyframes remain over cap, the eviction has no non-keyframe
-    // to trade away and stops rather than stalling; never blocks ingest.
+    // Once only keyframes remain over cap, the eviction has no non-keyframe to trade away and stops rather than stalling; never blocks ingest.
     const kfOnly = new DelayedPlayoutBuffer({
       view: manualClock(Number.NEGATIVE_INFINITY),
       onRelease: () => {},
@@ -176,8 +169,7 @@ describe("DelayedPlayoutBuffer", () => {
     kfOnly.push({ ut: 1, keyframe: true, bytes: 1 });
     kfOnly.push({ ut: 2, keyframe: true, bytes: 1 });
     kfOnly.push({ ut: 3, keyframe: true, bytes: 1 }); // over cap, all keyframes
-    // Last-resort: the oldest keyframe is dropped rather than growing
-    // unboundedly: cap is still respected.
+    // Last-resort: the oldest keyframe is dropped rather than growing unboundedly: cap is still respected.
     expect(kfOnly.peekQueue().map((f) => f.ut)).toEqual([2, 3]);
   });
 
@@ -192,8 +184,7 @@ describe("DelayedPlayoutBuffer", () => {
     });
 
     buffer.push({ ut: 0, keyframe: true, data: "live-frame" });
-    // Released synchronously on push: no held-back wait, existing
-    // LAN-latency CameraFeed behaviour is unaffected.
+    // Released synchronously on push: no held-back wait, existing LAN-latency CameraFeed behaviour is unaffected.
     expect(released).toEqual([{ ut: 0, keyframe: true, data: "live-frame" }]);
 
     buffer.push({ ut: 1, keyframe: false, data: "live-frame-2" });

@@ -44,8 +44,7 @@ describe("useObservedVantage", () => {
     const { emit } = mount();
 
     emit("ksc");
-    // An instant-class topic is routed onto the meta vantage at subscribe time,
-    // so its frames say the topic skips the delay, not that the session moved.
+    // An instant-class topic is routed onto the meta vantage at subscribe time, so its frames say the topic skips the delay, not that the session moved.
     emit("meta");
     expect(screen.getByText("observed:ksc")).toBeTruthy();
   });

@@ -191,8 +191,7 @@ export function statusTone(
   brokerUnreachable = false,
 ): "neutral" | "info" | "go" | "nogo" {
   if (brokerUnreachable) return "nogo";
-  // A reclaim window (previously connected) is a transient "info" state, not
-  // the hard "nogo" of a wrong/dead code.
+  // A reclaim window (previously connected) is a transient "info" state, not the hard "nogo" of a wrong/dead code.
   if (hostNotFound) return everConnected ? "info" : "nogo";
   switch (status) {
     case "idle":

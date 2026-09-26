@@ -655,8 +655,7 @@ const prototype = {
     return { magnitude: this.magnitude, unit: this.unit };
   },
   toString(this: Value): string {
-    // Debug output, never a UI surface: rendering is `<Unit>`'s job and it is
-    // the only thing that knows the rung, the word and the spacing.
+    // Debug output, never a UI surface: rendering is `<Unit>`'s job and it is the only thing that knows the rung, the word and the spacing.
     return `${this.magnitude} ${this.unit}`.trimEnd();
   },
 
@@ -670,8 +669,7 @@ const prototype = {
   minus(this: Value, other: Value | number): Value {
     const difference =
       baseMagnitude(this) - baseOperandOf(this, other, "subtract");
-    // A bare operand is a plain amount, so it can never be the point-minus-point
-    // case below: only the affine pair of two INSTANTS lands in the vector.
+    // A bare operand is a plain amount, so it can never be the point-minus-point case below: only the affine pair of two INSTANTS lands in the vector.
     if (typeof other === "number") {
       return value(this.unit, difference / ratioOf(this.unit));
     }
@@ -728,8 +726,7 @@ const prototype = {
   equals(this: Value, other: Value | number): boolean {
     if (typeof other !== "number") {
       if (!Dim.equal(dimensionOf(this.unit), dimensionOf(other.unit))) {
-        // A question, not an operation: the answer to "is 5 m the same as 5 s"
-        // is no, so this is false where the arithmetic would throw.
+        // A question, not an operation: the answer to "is 5 m the same as 5 s" is no, so this is false where the arithmetic would throw.
         return false;
       }
       // Same reasoning one step in: a coincidental pair answers `false` rather

@@ -186,8 +186,7 @@ describe("PeerClientDataSource", () => {
 
     const schema = source.schema();
     expect(schema).toHaveLength(2);
-    // Critically, the label/unit/group are preserved, this is what drives
-    // the MapView config's grouped, searchable key picker on a station.
+    // Critically, the label/unit/group are preserved, this is what drives the MapView config's grouped, searchable key picker on a station.
     expect(schema[0]).toMatchObject({
       key: "v.altitude",
       label: "Altitude",
@@ -200,8 +199,7 @@ describe("PeerClientDataSource", () => {
     const fake = makeFakeClient();
     const source = new PeerClientDataSource("data", "Data", fake.service);
 
-    // Nothing seen yet: readers that snapshot synchronously (a widget
-    // resolving a telemetry arg at dispatch time) get undefined.
+    // Nothing seen yet: readers that snapshot synchronously (a widget resolving a telemetry arg at dispatch time) get undefined.
     expect(source.getLatestValue("v.altitude")).toBeUndefined();
 
     fake.emitData("data", "v.altitude", 1000, 5000);

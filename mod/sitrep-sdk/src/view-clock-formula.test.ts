@@ -60,8 +60,7 @@ describe("computeConfirmedEdgeUt", () => {
       warpRate: 100, // aggressive slope
       slackSeconds: 0,
     };
-    // Raw estimate at wall=5 would be 10 + 5*100 = 510, but only UT 10 has
-    // ever actually been confirmed.
+    // Raw estimate at wall=5 would be 10 + 5*100 = 510, but only UT 10 has ever actually been confirmed.
     expect(computeUtNowEstimate(inputs, 5)).toBeGreaterThan(500);
     expect(computeConfirmedEdgeUt(inputs, 5)).toBe(10);
   });

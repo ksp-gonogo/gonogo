@@ -96,8 +96,7 @@ interface VitestJson {
 function keyFor(file: string, fullName: string): string | undefined {
   const widget = /packages\/components\/src\/([^/]+)\//.exec(file)?.[1];
   if (widget === undefined) return undefined;
-  // Names read "<Widget> DOM snapshots <scenario> @ <mode>", so drop the suite
-  // prefix up to and including "snapshots " before taking the scenario.
+  // Names read "<Widget> DOM snapshots <scenario> @ <mode>", so drop the suite prefix up to and including "snapshots " before taking the scenario.
   const scenario = /snapshots?\s+(.+?)\s+@\s+[^@]+$/.exec(fullName)?.[1];
   if (scenario === undefined) return undefined;
   return `${widget}/${scenario.trim()}`;
@@ -239,8 +238,7 @@ function main(): void {
       if (owed === undefined) {
         regressions.push(`  ${String(count).padStart(3)}  ${key}  (new)`);
       } else if (count !== owed) {
-        // A count that GREW is a regression; one that shrank is progress that
-        // still has to be recorded, so both land here and both name the numbers.
+        // A count that GREW is a regression; one that shrank is progress that still has to be recorded, so both land here and both name the numbers.
         regressions.push(
           `  ${String(count).padStart(3)}  ${key}  (recorded as ${owed})`,
         );

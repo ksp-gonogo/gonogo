@@ -98,8 +98,7 @@ describe("push-to-main round trip", () => {
     // Simulate a station peer showing up, same path the real host takes.
     const conn = FakePeer.lastPeer.simulateIncomingStation();
 
-    // Now the station "sends" a widget-push: on the host side this arrives
-    // as a `data` event on the DataConnection carrying a PeerMessage.
+    // Now the station "sends" a widget-push: on the host side this arrives as a `data` event on the DataConnection carrying a PeerMessage.
     const stationConfig = {
       trajectoryLength: 2000,
       telemetryKeys: ["v.altitude", "v.surfaceSpeed", "v.mach"],
@@ -117,8 +116,7 @@ describe("push-to-main round trip", () => {
 
     const snap = pushHost.snapshot();
     expect(snap).toHaveLength(1);
-    // Deep equality on the whole config: catches any field that got dropped
-    // or transformed (e.g. array collapsed to [], boolean flipped, etc.).
+    // Deep equality on the whole config: catches any field that got dropped or transformed (e.g. array collapsed to [], boolean flipped, etc.).
     expect(snap[0].config).toEqual(stationConfig);
     expect(snap[0].width).toBe(8);
     expect(snap[0].height).toBe(6);

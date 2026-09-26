@@ -123,8 +123,7 @@ const CLIP_SECONDS = 3;
 
 const CLIP = { name: "say again your status", chunks: CLIP_CHUNKS };
 
-// Recorded for every run: the film IS the deliverable here, not a failure
-// artifact, and a timing defect is far easier to see than to reason back from.
+// Recorded for every run: the film IS the deliverable here, not a failure artifact, and a timing defect is far easier to see than to reason back from.
 test.use({ video: "on" });
 
 // Three page loads, a peer handshake each, and a nine-second crossing to wait
@@ -274,15 +273,13 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
       expect(playout).toBeGreaterThan(CLIP_SECONDS * 1000 * 0.5);
       expect(playout).toBeLessThan(CLIP_SECONDS * 1000 * 2.5);
 
-      // The lamp went dark again once the audio it named had finished, rather
-      // than at the `end` frame that arrived seconds earlier.
+      // The lamp went dark again once the audio it named had finished, rather than at the `end` frame that arrived seconds earlier.
       expect(heard.darkAt).not.toBeNull();
       expect(
         (heard.darkAt as number) - (heard.litAt as number),
       ).toBeGreaterThan(CLIP_SECONDS * 1000 * 0.5);
 
-      // Nobody hears their own voice back off the relay, which is what
-      // `authorStationKey` is repeated on every frame for.
+      // Nobody hears their own voice back off the relay, which is what `authorStationKey` is repeated on every frame for.
       const selfHeard = await reception(control.page);
       expect(selfHeard.decoded).toEqual([]);
       expect(selfHeard.litAt).toBeNull();
@@ -386,8 +383,7 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
       expect(gap).toBeGreaterThan((FAR_SECONDS - NEAR_SECONDS) * 1000 - 1_000);
       expect(gap).toBeLessThan((FAR_SECONDS - NEAR_SECONDS) * 1000 + 1_000);
 
-      // The SAME audio, arriving at two different times: identical chunk
-      // sequences, from the same keying, decoded independently at two vantages.
+      // The SAME audio, arriving at two different times: identical chunk sequences, from the same keying, decoded independently at two vantages.
       const wholeClip = Array.from({ length: CLIP_CHUNKS }, (_, i) => i);
       expect(nearHeard.decoded).toEqual(wholeClip);
       expect(farHeard.decoded).toEqual(wholeClip);

@@ -26,8 +26,7 @@
 //   window passed,    MISSED. The gap is still the intended change, and what is
 //   nothing delivered wrong is that the burn did not happen
 //
-// which is why the instants alone cannot decide this and delivery has to come
-// in.
+// which is why the instants alone cannot decide this and delivery has to come in.
 // ---------------------------------------------------------------------------
 
 export type ConformanceRegime =

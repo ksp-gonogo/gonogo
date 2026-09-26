@@ -70,8 +70,7 @@ async function renderScene(scene: Scene): Promise<void> {
     </ThemeProvider>,
   );
 
-  // A `StubTransport` emit is subscription-gated, so the banner has to be
-  // mounted and subscribed before anything is published.
+  // A `StubTransport` emit is subscription-gated, so the banner has to be mounted and subscribed before anything is published.
   await twoFrames();
   for (const [topic, payload] of Object.entries(scene.emit)) {
     fixture.emit(topic, payload as never);

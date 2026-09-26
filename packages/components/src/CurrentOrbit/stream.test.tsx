@@ -51,12 +51,10 @@ describe("CurrentOrbit: genuinely runs off the stream (M3 batch 2)", () => {
       </fixture.Provider>,
     );
 
-    // Nothing arrived yet: every field (mapped and gapped alike) is
-    // undefined, so every row shows its NULL_DISPLAY placeholder.
+    // Nothing arrived yet: every field (mapped and gapped alike) is undefined, so every row shows its NULL_DISPLAY placeholder.
     expect(screen.getAllByText(NULL_DISPLAY).length).toBeGreaterThanOrEqual(6);
 
-    // A real subscription must have happened for this to deliver at all,
-    // StubTransport.emit is subscription-gated (see its own doc comment).
+    // A real subscription must have happened for this to deliver at all, StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
     // meanAnomalyAtEpoch: 0, epoch: pinnedUt (10) -> elapsed time is 0 at
@@ -76,8 +74,7 @@ describe("CurrentOrbit: genuinely runs off the stream (M3 batch 2)", () => {
         meanAnomalyAtEpoch: 0,
         epoch: 10,
       });
-      // The conic's declared input, satisfied and carrying nothing: see this
-      // file's header for why an empty roster is the right shape here.
+      // The conic's declared input, satisfied and carrying nothing: see this file's header for why an empty roster is the right shape here.
       fixture.emit("system.bodies", { bodies: [] });
     });
 

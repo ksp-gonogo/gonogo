@@ -92,8 +92,7 @@ describe("eccentricToTrueAnomaly", () => {
   });
 
   it("is past E past periapsis in an elliptical orbit (vessel moves faster near periapsis)", () => {
-    // At E = π/2 (quarter into eccentric anomaly), ν should be larger than E
-    // for e > 0: the vessel has swept past more true angle.
+    // At E = π/2 (quarter into eccentric anomaly), ν should be larger than E for e > 0: the vessel has swept past more true angle.
     const e = 0.5;
     const nu = eccentricToTrueAnomaly(Math.PI / 2, e);
     expect(nu).toBeGreaterThan(Math.PI / 2);
@@ -207,8 +206,7 @@ describe("buildBodyRotation", () => {
     const patch = circularEquatorial({ maae: 0 });
     const ref = { ut: 0, lat: 0, lon: 0 };
     const fn = buildBodyRotation(patch, ref, 100); // 3.6 deg/s
-    // After 10 s the body has rotated 36° eastward, so a feature at inertial
-    // lon=0 is now at body lon=-36.
+    // After 10 s the body has rotated 36° eastward, so a feature at inertial lon=0 is now at body lon=-36.
     expect(fn(0, 10)).toBeCloseTo(-36, 5);
   });
 });
@@ -345,8 +343,7 @@ describe("predictGroundTrack", () => {
   });
 
   it("uses external calibrationPatches when sampling a future-only patch set", () => {
-    // Simulates a maneuver preview: current orbit at ref.ut=0 is fine; the
-    // maneuver patch doesn't start until UT=100 so it can't calibrate itself.
+    // Simulates a maneuver preview: current orbit at ref.ut=0 is fine; the maneuver patch doesn't start until UT=100 so it can't calibrate itself.
     const currentPatch = circularEquatorial({ endUT: 200 });
     const maneuverPatch = circularEquatorial({
       startUT: 100,

@@ -59,8 +59,7 @@ describe("the remembered microphone", () => {
   });
 
   it("is per screen, because two tabs are two consoles", () => {
-    // Keyed exactly as the monitor's mute exceptions are, and for the same
-    // reason: two operators at one browser may well have two headsets.
+    // Keyed exactly as the monitor's mute exceptions are, and for the same reason: two operators at one browser may well have two headsets.
     const storage = memoryStorage();
     saveInputDevice(KEY, "headset-1", storage);
     expect(loadInputDevice("station-xyz", storage)).toBeNull();

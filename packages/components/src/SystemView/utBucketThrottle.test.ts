@@ -38,8 +38,7 @@ function rebuildsPerRealSecond(warp: number, seconds = 3) {
 describe("SystemView UT bucket throttle", () => {
   it("advances about once a real second at 1x, so it is not merely frozen", () => {
     const { throttled } = rebuildsPerRealSecond(1);
-    // The control that matters: an over-aggressive throttle would pass the warp
-    // assertion below by never advancing at all, and would freeze the diagram.
+    // The control that matters: an over-aggressive throttle would pass the warp assertion below by never advancing at all, and would freeze the diagram.
     expect(throttled).toBeGreaterThanOrEqual(0.9);
     expect(throttled).toBeLessThanOrEqual(1.5);
   });

@@ -102,8 +102,7 @@ function mount() {
 
 describe("SitrepVantageSessions", () => {
   it("opens nothing until a peer asks for a vantage", () => {
-    // Every session with no remote pilot in it pays nothing, which is most of
-    // them.
+    // Every session with no remote pilot in it pays nothing, which is most of them.
     const f = mount();
 
     expect(f.opened).toEqual([]);

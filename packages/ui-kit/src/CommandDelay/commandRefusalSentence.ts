@@ -89,8 +89,7 @@ function comparison(
     case CommandErrorCode.AlreadyAtMaximum:
       return `it is already at ${breach.quantity || "level"} ${quantity(actual, unit)} of ${quantity(limit, unit)}`;
     case CommandErrorCode.InsufficientFunds:
-      // Actual is the price and Limit is the balance: what was asked for
-      // against what was allowed, the same way round as every other breach.
+      // Actual is the price and Limit is the balance: what was asked for against what was allowed, the same way round as every other breach.
       return `it costs ${quantity(actual, unit)} and funds are ${quantity(limit, unit)}`;
     case CommandErrorCode.InsufficientScience:
       return `it costs ${quantity(actual, unit)} and science is ${quantity(limit, unit)}`;

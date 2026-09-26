@@ -255,8 +255,7 @@ describe("design-system: spacing is written as a job, everywhere", () => {
     ).toEqual([]);
   });
 
-  // Each grep decides which files get read, so each is proved against files
-  // that must always match it.
+  // Each grep decides which files get read, so each is proved against files that must always match it.
   it("actually searched the tree", () => {
     expect(trackedFilesMatching(RUNG_PATTERN)).toContain(TOKENS_CSS);
     const ladder = new RegExp(`(${RUNG_PATTERN})\\s*:`, "g");

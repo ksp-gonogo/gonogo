@@ -116,8 +116,7 @@ export class IndexedDbStore implements FlightStore {
       (tx, reject) => {
         tx.objectStore(FLIGHTS_STORE).delete(id);
 
-        // Delete all samples with this flightId by walking the key range
-        // [id, "", -Infinity] ... [id, "\uffff", Infinity] on the compound key.
+        // Delete all samples with this flightId by walking the key range [id, "", -Infinity] ... [id, "\uffff", Infinity] on the compound key.
         const samples = tx.objectStore(SAMPLES_STORE);
         const range = IDBKeyRange.bound(
           [id, "", Number.NEGATIVE_INFINITY],

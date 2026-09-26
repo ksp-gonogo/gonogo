@@ -74,8 +74,7 @@ describe("loadHostWidgets imports what renderWith names", () => {
 
   it("loads a bare SPECIFIER entry, resolved from the client", async () => {
     const { dir, marker } = client(["@example/hosts-pkg/hosts"]);
-    // A real installed package, exports map and all: the defect was in
-    // resolution, so mocking resolution would have tested nothing.
+    // A real installed package, exports map and all: the defect was in resolution, so mocking resolution would have tested nothing.
     const pkgDir = join(dir, "node_modules", "@example", "hosts-pkg");
     mkdirSync(join(pkgDir, "dist"), { recursive: true });
     writeFileSync(

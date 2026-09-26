@@ -255,8 +255,7 @@ describe("Commcast, addressed across the mesh", () => {
     const out = () => ground.log.snapshot().outbox[0];
     expect(sentPhaseFor(out(), GROUND, 1479)).toBe("awaiting-reply");
     expect(sentPhaseFor(out(), GROUND, 1480)).toBe("confirmed");
-    // Which is also when the author's own words enter their own log: an echo
-    // after the round trip, the terminal widget's rule on a spoken line.
+    // Which is also when the author's own words enter their own log: an echo after the round trip, the terminal widget's rule on a spoken line.
     expect(sentArrivalUtFor(out(), GROUND, 1480)).toBe(1480);
   });
 
@@ -313,8 +312,7 @@ describe("Commcast, addressed across the mesh", () => {
       atUt: 1240,
     });
     expect(ground.log.snapshot().outbox[0].acks).toHaveLength(1);
-    // Woomera has no outbox entry for it, so the ack it saw pass changed
-    // nothing there.
+    // Woomera has no outbox entry for it, so the ack it saw pass changed nothing there.
     expect(range.log.snapshot().outbox).toHaveLength(0);
   });
 
@@ -330,8 +328,7 @@ describe("Commcast, addressed across the mesh", () => {
     expect(aboard.log.snapshot().pending).toHaveLength(0);
     const [out] = ground.log.snapshot().outbox;
     expect(out.neverLeft).toBe(true);
-    // Unconfirmed and recoverable: the author still has their words, and the
-    // one action attached to them is a resend.
+    // Unconfirmed and recoverable: the author still has their words, and the one action attached to them is a resend.
     expect(sentPhaseFor(out, GROUND, 9999)).toBe("lost");
     expect(sentArrivalUtFor(out, GROUND, 1000)).toBe(1000);
   });
@@ -345,8 +342,7 @@ describe("Commcast, addressed across the mesh", () => {
       sentUt: 1000,
       separationSeconds: 0,
     });
-    // Addressed to its OWN vantage, so the echo would land in its own inbox if
-    // the author filter keyed on the vantage rather than on the station.
+    // Addressed to its OWN vantage, so the echo would land in its own inbox if the author filter keyed on the vantage rather than on the station.
     expect(ground.log.snapshot().pending).toHaveLength(0);
   });
 

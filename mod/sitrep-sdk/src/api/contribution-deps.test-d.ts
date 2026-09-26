@@ -45,8 +45,7 @@ CLIENT.registerContribution({
   id: "slot-topics-still-guaranteed",
   contributes: "crew-status.row-tone",
   compute: (topics) => {
-    // The slot's own declaration still stands on its own: `crew-status.row-tone`
-    // guarantees `vessel.crew` to every contributor, deps or no deps.
+    // The slot's own declaration still stands on its own: `crew-status.row-tone` guarantees `vessel.crew` to every contributor, deps or no deps.
     void topics["vessel.crew"];
     return [];
   },

@@ -148,16 +148,14 @@ describe("a topic nothing will ever publish", () => {
   });
 
   it("keeps a reading's identity stable across reads once the verdict lands", () => {
-    // `useSyncExternalStore` compares by reference, so an `unowned` arm rebuilt
-    // per getSnapshot is an infinite render loop rather than a wasted object.
+    // `useSyncExternalStore` compares by reference, so an `unowned` arm rebuilt per getSnapshot is an infinite render loop rather than a wasted object.
     const { client, store } = harness();
     client.subscribe("nobody.publishes.this", () => {});
     vi.advanceTimersByTime(OWNERSHIP_ACK_WINDOW_MS);
     store.beginFrame();
     const first = store.sampleReading("nobody.publishes.this");
     const second = store.sampleReading("nobody.publishes.this");
-    // Asserted before the identity check so this cannot pass by both reads
-    // agreeing on the WRONG arm, which is how it first passed.
+    // Asserted before the identity check so this cannot pass by both reads agreeing on the WRONG arm, which is how it first passed.
     expect(first).toEqual({ state: "unowned", reckoning: { status: "none" } });
     expect(second).toBe(first);
   });

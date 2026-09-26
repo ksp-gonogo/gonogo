@@ -312,8 +312,7 @@ describe("TargetingComponent", () => {
         relativePosition: atRange(50_000),
         relativeVelocity: null,
       });
-      // Dock data present from the start; the HUD still only opens once the
-      // distance drops under 100 m (tracking → approach → docking-hud).
+      // Dock data present from the start; the HUD still only opens once the distance drops under 100 m (tracking → approach → docking-hud).
       fixture.emit("vessel.dock", {
         relativePosition: atRange(50_000),
         relativeVelocity: null,

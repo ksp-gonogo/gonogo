@@ -70,8 +70,7 @@ describe("currentRoute", () => {
   });
 
   it("does not read a pilot page as a station", () => {
-    // The two differ on the observation plane: a station is peer-fed and must
-    // skip the direct-to-KSP boot, a pilot holds its own session and must not.
+    // The two differ on the observation plane: a station is peer-fed and must skip the direct-to-KSP boot, a pilot holds its own session and must not.
     setPath("/pilot");
     expect(isStationRoute()).toBe(false);
   });
@@ -122,8 +121,7 @@ describe("bootsWithoutDirectMod", () => {
   });
 
   it("is FALSE for a pilot on http, which still holds its own session", () => {
-    // The LAN case, and the better one: a session of the pilot's own, with no
-    // dependence on mission control staying up.
+    // The LAN case, and the better one: a session of the pilot's own, with no dependence on mission control staying up.
     at("/pilot", "http:");
     expect(bootsWithoutDirectMod()).toBe(false);
   });

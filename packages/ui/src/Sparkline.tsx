@@ -46,8 +46,7 @@ export function Sparkline({
   background = true,
   ariaLabel = "Trend sparkline",
 }: Readonly<SparklineProps>) {
-  // Filter out non-finite values defensively: a stray NaN in the source
-  // collapses the auto-domain and drags the path off-screen.
+  // Filter out non-finite values defensively: a stray NaN in the source collapses the auto-domain and drags the path off-screen.
   const finite = useMemo(
     () => values.filter((v) => Number.isFinite(v)) as number[],
     [values],
@@ -69,8 +68,7 @@ export function Sparkline({
       if (v > max) max = v;
     }
     if (min === max) {
-      // Pad ±1% of value (or ±1 if value is zero) so a flat line still has
-      // a visible band to draw within.
+      // Pad ±1% of value (or ±1 if value is zero) so a flat line still has a visible band to draw within.
       const pad = Math.abs(min) > 0 ? Math.abs(min) * 0.01 : 1;
       return [min - pad, max + pad];
     }

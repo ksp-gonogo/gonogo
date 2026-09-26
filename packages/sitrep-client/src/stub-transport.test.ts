@@ -31,8 +31,7 @@ describe("StubTransport", () => {
       args: 42,
       sentAt: 0,
     });
-    // The response must not be visible synchronously, it settles on a
-    // later microtask, modeling a real transport's round trip.
+    // The response must not be visible synchronously, it settles on a later microtask, modeling a real transport's round trip.
     expect(seen).toHaveLength(0);
     await Promise.resolve();
     expect(seen[0]).toMatchObject({

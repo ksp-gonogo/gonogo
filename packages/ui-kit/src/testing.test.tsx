@@ -45,8 +45,7 @@ describe("@ksp-gonogo/ui-kit/testing", () => {
 
   it("normalises the thin space so an expectation can be typed", () => {
     const { container } = render(<Unit value={value("m", 12400)} />);
-    // The rendered separator is U+2009; the assertion above uses a plain
-    // space and passes, which is the whole point of the normalisation.
+    // The rendered separator is U+2009; the assertion above uses a plain space and passes, which is the whole point of the normalisation.
     expect(container.textContent).toContain(" ");
     expect(visibleText(container)).not.toContain(" ");
   });

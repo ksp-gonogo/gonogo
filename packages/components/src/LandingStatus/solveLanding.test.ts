@@ -110,8 +110,7 @@ describe("solveSuicideBurn: rocket-equation engine model", () => {
     // Optimal burn (mass loss + fuel) still arrives at terrain at ~278.5 m/s.
     expect(s.bestSpeedAtImpact as number).toBeGreaterThan(0.5);
     expect(s.bestSpeedAtImpact).toBeCloseTo(278.5, 0);
-    // dV to fully null the vector (556 m/s) IS affordable within 900: the
-    // limit is ALTITUDE, not fuel: you'd need ~26 km to stop.
+    // dV to fully null the vector (556 m/s) IS affordable within 900: the limit is ALTITUDE, not fuel: you'd need ~26 km to stop.
     expect(s.burnDeltaV).toBeCloseTo(556, -1);
     expect(s.burnDuration).toBeCloseTo(132.4, 0);
     expect(s.suicideBurnCountdown).toBe(0); // past the ignition point

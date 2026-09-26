@@ -83,8 +83,7 @@ function selfTest() {
     );
     process.exit(1);
   }
-  // And the other direction: a recorded asset must NOT be counted, or the gate
-  // is a file counter that would report the whole tree as debt forever.
+  // And the other direction: a recorded asset must NOT be counted, or the gate is a file counter that would report the whole tree as debt forever.
   writeFileSync(
     join(dir, "render-shape.json"),
     JSON.stringify({
@@ -118,8 +117,7 @@ const failures = [];
 const drops = [];
 
 for (const leg of legs) {
-  // `leg.client` is a boolean; the directory is derived from the Uplink's `id`,
-  // which is its `mod/` folder name.
+  // `leg.client` is a boolean; the directory is derived from the Uplink's `id`, which is its `mod/` folder name.
   const assetDir = join(ROOT, "mod", leg.id, "client/docs/assets");
   const missing = unrecorded(assetDir);
   const allowed = UNRECORDED_DEBT[leg.pkg] ?? 0;

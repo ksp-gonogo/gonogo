@@ -1,6 +1,5 @@
 // ---------------------------------------------------------------------------
-// `@ksp-gonogo/sitrep-sdk/registry`: the ORCHESTRATION half of the component
-// registry.
+// `@ksp-gonogo/sitrep-sdk/registry`: the ORCHESTRATION half of the component registry.
 //
 // The registry itself lives in this package (`../api/registry.ts`), because every
 // Uplink writes to it and an Uplink's tests reset and read it. Its author-facing

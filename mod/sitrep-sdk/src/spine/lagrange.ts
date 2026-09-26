@@ -264,8 +264,7 @@ function bisectCollinear(
   if (fLo === 0) return lo;
   if (fHi === 0) return hi;
   if (fLo > 0 === fHi > 0) return null;
-  // A hundred halvings of a bracket at most three units wide is well past
-  // double precision, and costs nothing at five points a second.
+  // A hundred halvings of a bracket at most three units wide is well past double precision, and costs nothing at five points a second.
   for (let i = 0; i < 100; i++) {
     const mid = (lo + hi) / 2;
     const fMid = collinearResidual(mid, mu);

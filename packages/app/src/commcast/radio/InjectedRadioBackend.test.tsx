@@ -65,8 +65,7 @@ describe("InjectedRadioBackend", () => {
         <Probe expected={injected} />
       </InjectedRadioBackend>,
     );
-    // Mounted on the real one: the swap below is what is being measured, so
-    // starting already matched would prove nothing.
+    // Mounted on the real one: the swap below is what is being measured, so starting already matched would prove nothing.
     expect(screen.getByText("other")).toBeTruthy();
 
     install(injected);
@@ -81,8 +80,7 @@ describe("InjectedRadioBackend", () => {
       </InjectedRadioBackend>,
     );
 
-    // A capture with no decoder: the shape a broken install produces, and the
-    // one that would look like a dead radio rather than a dead install.
+    // A capture with no decoder: the shape a broken install produces, and the one that would look like a dead radio rather than a dead install.
     install({ startCapture: () => Promise.resolve({ stop: () => {} }) });
 
     expect(screen.getByText("match")).toBeTruthy();

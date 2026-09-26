@@ -109,8 +109,7 @@ export function fittedTitleIndex(
 ): number {
   if (available <= 0 || widths.length === 0 || widths[0] <= 0) return 0;
   for (let i = 0; i < widths.length; i++) {
-    // Growing back to a form longer than the current one has to clear the
-    // margin; shrinking to this one, or staying put, does not.
+    // Growing back to a form longer than the current one has to clear the margin; shrinking to this one, or staying put, does not.
     const room = i < previous ? available - RELENGTHEN_MARGIN_PX : available;
     if (widths[i] <= room) return i;
   }

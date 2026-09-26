@@ -166,8 +166,7 @@ describe("PowerSystems: states + resource pick", () => {
     // Engine cuts off: LiquidFuel stops flowing (only EC flows now).
     act(() => fixture.emit("vessel.parts", EC_ONLY_WIRE));
 
-    // The pick MUST survive: it stays LiquidFuel (with a no-flow note), rather
-    // than silently resetting to ElectricCharge.
+    // The pick MUST survive: it stays LiquidFuel (with a no-flow note), rather than silently resetting to ElectricCharge.
     await waitFor(() =>
       expect(screen.getByText(/No active Liquid Fuel flow/)).toBeTruthy(),
     );

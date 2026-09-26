@@ -215,8 +215,7 @@ const errorMsgFull: ErrorMsg = {
   message: "node unreachable from vantage",
 };
 
-// requestId/topic both optional, omitted here (a server-level error not
-// tied to a specific request or topic).
+// requestId/topic both optional, omitted here (a server-level error not tied to a specific request or topic).
 const errorMsgMinimal: ErrorMsg = {
   type: "error",
   code: "INTERNAL",

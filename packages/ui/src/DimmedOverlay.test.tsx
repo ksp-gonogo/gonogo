@@ -21,8 +21,7 @@ describe("DimmedOverlay", () => {
         <div>stale content</div>
       </DimmedOverlay>,
     );
-    // Children still rendered (legible enough to verify shape) but the
-    // banner is now visible too.
+    // Children still rendered (legible enough to verify shape) but the banner is now visible too.
     expect(screen.getByText("stale content")).toBeInTheDocument();
     expect(screen.getByText(/Vessel in flight required/i)).toBeInTheDocument();
   });

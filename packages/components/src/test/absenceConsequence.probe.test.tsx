@@ -101,8 +101,7 @@ describe.runIf(process.env.ABSENCE_PROBE === "1")("absence consequence", () => {
       const stream = fixture._stream;
       if (!stream || !Array.isArray(stream.emits) || stream.emits.length === 0)
         continue;
-      // A scene already staged as held is a different question, and
-      // `stopsArriving` is where it is asked.
+      // A scene already staged as held is a different question, and `stopsArriving` is where it is asked.
       if (stream.stopsArriving === true) continue;
       const channels = (
         [

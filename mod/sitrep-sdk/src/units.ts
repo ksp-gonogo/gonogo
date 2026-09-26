@@ -174,8 +174,7 @@ export function registerTypeUnits(
 ): void {
   registeredTypeUnits.set(typeName, units);
   registeredTypeShapes.set(typeName, shapes);
-  // Names no Topic, but changes what one enumerates: a nested shape's fields
-  // are unreachable until the type it resolves through is registered.
+  // Names no Topic, but changes what one enumerates: a nested shape's fields are unreachable until the type it resolves through is registered.
   noteRuntimeTopicMetadata();
 }
 

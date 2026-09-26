@@ -186,8 +186,7 @@ describe("useComputedSeries", () => {
       );
     });
 
-    // The middle sample's zero mass answers null and is dropped, as a
-    // non-numeric fetched sample is.
+    // The middle sample's zero mass answers null and is dropped, as a non-numeric fetched sample is.
     await waitFor(() => {
       expect(result.current.v).toEqual([5, 5]);
     });

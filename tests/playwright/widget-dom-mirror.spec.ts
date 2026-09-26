@@ -168,8 +168,7 @@ test.describe("widget DOM mirror", () => {
     await seedContext(stationContext, "gonogo:dashboard:station");
 
     const main = await mainContext.newPage();
-    // Empty `?uplinkLoaderIds=` → loader loads nothing, no consent modal
-    // over the dashboard (see helpers.ts bootstrapPair for the full why).
+    // Empty `?uplinkLoaderIds=` → loader loads nothing, no consent modal over the dashboard (see helpers.ts bootstrapPair for the full why).
     await main.goto(`${MAIN_URL}?uplinkLoaderIds=`);
     await expect(main.getByText("ORBIT", { exact: true })).toBeVisible({
       timeout: 30_000,

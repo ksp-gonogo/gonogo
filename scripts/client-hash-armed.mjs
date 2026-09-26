@@ -178,8 +178,7 @@ if (required) {
 
 const unarmed = rows.filter((row) => row.state !== "armed");
 const unexcused = unarmed.filter((row) => !UNARMED_DEBT.has(row.id));
-// Both directions, the same as every other ratchet here: an entry that is armed
-// has to leave the list, or the list stops describing the repo.
+// Both directions, the same as every other ratchet here: an entry that is armed has to leave the list, or the list stops describing the repo.
 const stale = rows.filter(
   (row) => row.state === "armed" && UNARMED_DEBT.has(row.id),
 );

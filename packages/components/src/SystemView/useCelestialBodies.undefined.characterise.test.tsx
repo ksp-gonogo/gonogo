@@ -136,8 +136,7 @@ describe("useCelestialBodies: what undefined means today", () => {
     // an unarrived value as a fact.
     expect(kerbin.atmosphere).toBeNull();
     expect(kerbin.hasAtmosphere).toBe(false);
-    // The two mirrors of the same missing field stay honestly unknown, so the
-    // record is internally inconsistent about what absence means.
+    // The two mirrors of the same missing field stay honestly unknown, so the record is internally inconsistent about what absence means.
     expect(kerbin.maxAtmosphere).toBeNull();
     expect(kerbin.hasOxygen).toBeNull();
   });
@@ -169,16 +168,13 @@ describe("useCelestialBodies: what undefined means today", () => {
     expect(root.argumentOfPeriapsis).toBeNull();
     expect(root.meanAnomalyAtEpoch).toBeNull();
     expect(root.epoch).toBeNull();
-    // Derivations decline rather than coercing to zero, which is why
-    // `usePhaseAngles` can skip the body instead of plotting it at longitude 0.
+    // Derivations decline rather than coercing to zero, which is why `usePhaseAngles` can skip the body instead of plotting it at longitude 0.
     expect(root.period).toBeNull();
     expect(root.trueAnomaly).toBeNull();
-    // Carried, not derived: a wire that did not send it reads null, which is
-    // also what KSP's own PositiveInfinity for the root star becomes.
+    // Carried, not derived: a wire that did not send it reads null, which is also what KSP's own PositiveInfinity for the root star becomes.
     expect(root.hillSphere).toBeNull();
     expect(root.mass).toBeNull();
-    // The one property that only needs mu + radius still resolves, so a partial
-    // record is partially populated rather than dropped.
+    // The one property that only needs mu + radius still resolves, so a partial record is partially populated rather than dropped.
     expect(root.escapeVelocity).not.toBeNull();
   });
 
@@ -211,8 +207,7 @@ describe("useCelestialBodies: what undefined means today", () => {
     act(() => {
       fixture.emit("system.bodies", {
         bodies: [
-          // Parent present but with no gravParameter: the child's orbit is
-          // complete and still cannot be turned into a period or an anomaly.
+          // Parent present but with no gravParameter: the child's orbit is complete and still cannot be turned into a period or an anomaly.
           { index: 0, name: "Kerbin", parentIndex: null, orbit: null },
           {
             index: 1,

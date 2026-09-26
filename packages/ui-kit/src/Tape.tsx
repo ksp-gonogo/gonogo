@@ -212,8 +212,7 @@ export function Tape<U extends string = string>({
   // Mirror the whole scale about the track when the labels read inboard.
   const mirrored = labelSide === "right";
   const trackX = mirrored ? width - TRACK_X - TRACK_W : TRACK_X;
-  // The side the numeric scale is drawn on, and the opposite side used for
-  // zone/marker callouts.
+  // The side the numeric scale is drawn on, and the opposite side used for zone/marker callouts.
   const labelX = mirrored ? trackX + TRACK_W + 6 : trackX - 6;
   const labelAnchor = mirrored ? "start" : "end";
   const rightX = mirrored ? trackX - 6 : trackX + TRACK_W + 6;

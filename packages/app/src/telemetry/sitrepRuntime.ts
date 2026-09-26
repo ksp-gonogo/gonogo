@@ -59,8 +59,7 @@ function refreshCache(): void {
   notifyHostConfigChange();
 }
 
-// Host lives in core now: mirror its changes into this module's cache +
-// listeners so the provider's useSyncExternalStore re-reads.
+// Host lives in core now: mirror its changes into this module's cache + listeners so the provider's useSyncExternalStore re-reads.
 subscribeSetting(GAME_HOST_KEY, refreshCache);
 
 /** Effective host/port: host from core's shared gameHost, port from this service's own store. */
@@ -72,8 +71,7 @@ export function getSitrepHostConfig(): SitrepHostConfig {
 export function setSitrepHostConfig(config: SitrepHostConfig): void {
   portStore.set({ port: config.port });
   if (getGameHost() !== config.host) {
-    // Host changed → setSetting cascades to refreshCache via the module's
-    // subscribeSetting(GAME_HOST_KEY, ...) registration; no explicit refresh.
+    // Host changed → setSetting cascades to refreshCache via the module's subscribeSetting(GAME_HOST_KEY, ...) registration; no explicit refresh.
     setSetting(GAME_HOST_KEY, config.host);
   } else {
     // Port-only change: the host subscription won't fire, so refresh here.

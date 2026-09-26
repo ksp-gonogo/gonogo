@@ -15,8 +15,7 @@ describe("normaliseReactIds", () => {
   });
 
   it("still reports a control pointing at the wrong panel", () => {
-    // The failure a blanket replace would have hidden: both trees mention two
-    // ids, and only the referencing edge differs.
+    // The failure a blanket replace would have hidden: both trees mention two ids, and only the referencing edge differs.
     const wired = `<button aria-controls=":r3:" /><div id=":r3:" /><div id=":r4:" />`;
     const mixed = `<button aria-controls=":r4:" /><div id=":r3:" /><div id=":r4:" />`;
     expect(normaliseReactIds(wired)).not.toBe(normaliseReactIds(mixed));

@@ -208,8 +208,7 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
       store.beginFrame();
       expect(store.sampleStatus("vessel.target")).toBe("live");
 
-      // vessel.target goes silent (comms blackout); pacer.tick alone keeps
-      // advancing the shared view clock.
+      // vessel.target goes silent (comms blackout); pacer.tick alone keeps advancing the shared view clock.
       store.ingest("pacer.tick", point(140, 1, { deliveredAt: 140 }));
       const token = store.beginFrame();
 
@@ -256,8 +255,7 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
 
       expect(token.viewUt).toBe(200);
       expect(clock.confidence()).toBe("coasting");
-      // Prove the counterfactual explicitly: under "locked" this UT WOULD be
-      // overdue.
+      // Prove the counterfactual explicitly: under "locked" this UT WOULD be overdue.
       expect(store.heartbeats.isOverdue("vessel.target", 200, "locked")).toBe(
         true,
       );
@@ -299,8 +297,7 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
       expect(store.sampleStatus("vessel.orbit")).toBe("live");
 
       store.setTransportConnected(false);
-      // No time has passed and no heartbeat margin (30 + 30 = 60 UT) has
-      // elapsed: a per-topic-only implementation would still say "live".
+      // No time has passed and no heartbeat margin (30 + 30 = 60 UT) has elapsed: a per-topic-only implementation would still say "live".
       store.beginFrame();
 
       expect(store.sampleStatus("vessel.target")).toBe("disconnected");
@@ -468,8 +465,7 @@ describe("TimelineStore.sampleStatus across a warp step-up", () => {
         },
       });
     }
-    // A channel that IS changing keeps arriving, which is what moves the
-    // certainty horizon on under warp.
+    // A channel that IS changing keeps arriving, which is what moves the certainty horizon on under warp.
     store.ingest("busy.topic", point(90 + horizonAfterUt, 1));
     store.beginFrame();
     return store.sampleStatus("quiet.topic");

@@ -76,8 +76,7 @@ const CS_QUALIFIERS = compile(CS_QUALIFIER_PATTERNS);
 const GLOBALS = new Set<string>(GLOBAL_IDENTIFIERS);
 const PRIVATE_NPM = new Set<string>(PRIVATE_NPM_PACKAGES);
 const CS_PRIVATE = new Set<string>(CS_PRIVATE_ASSEMBLIES);
-// `Set<string>`, not the literal union `PUBLISHED_PACKAGES` infers: the names
-// tested against it are read out of the tree, so they are plain strings.
+// `Set<string>`, not the literal union `PUBLISHED_PACKAGES` infers: the names tested against it are read out of the tree, so they are plain strings.
 const PUBLISHED_NAMES = new Set<string>(PUBLISHED_PACKAGES.map((p) => p.name));
 
 /**
@@ -596,8 +595,7 @@ function scanCsharp(): CsScan {
     for (let i = 0; i < lines.length; i++) {
       if (!isDoc(i)) continue;
       docLines++;
-      // The qualifier window spans the whole doc block, not one `///` line: the
-      // assembly that qualifies a mention is routinely a sentence away.
+      // The qualifier window spans the whole doc block, not one `///` line: the assembly that qualifies a mention is routinely a sentence away.
       let from = i;
       while (isDoc(from - 1)) from--;
       let to = i;
@@ -633,8 +631,7 @@ function scanCsharp(): CsScan {
         );
         if (reachable) continue;
         if (!onSeam(head)) continue;
-        // Unplaceable in the block (a form `csDocRefs` does not read) means no
-        // neighbourhood to read a qualifier out of, so it stays unqualified.
+        // Unplaceable in the block (a form `csDocRefs` does not read) means no neighbourhood to read a qualifier out of, so it stays unqualified.
         const ref = blockRefs.find((r) => r.name === head);
         if (ref && attachedQualifier(block, blockRefs, ref, CS_QUALIFIERS))
           continue;
@@ -804,8 +801,7 @@ describe("published doc reachability", () => {
     };
 
     it("attaches a qualifier to its own reference, not to its neighbours", () => {
-      // The specifier leads, so BOTH mentions sit inside the backward window
-      // the old rule already gave them and only attachment separates them.
+      // The specifier leads, so BOTH mentions sit inside the backward window the old rule already gave them and only attachment separates them.
       const block =
         "`@ksp-gonogo/data`'s `beta` is the shim, and `alpha` reads through it";
       expect(attachesIn(block, "beta"), "the specifier's own mention").toBe(

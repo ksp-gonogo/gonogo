@@ -100,8 +100,7 @@ describe("a11y smoke (jest-axe)", () => {
   });
 
   it("Panel (scrolling header + ghost) has no axe violations", async () => {
-    // The ghost is always in the DOM (opacity gated), so this catches a
-    // duplicate heading or a focusable ghost without needing to scroll.
+    // The ghost is always in the DOM (opacity gated), so this catches a duplicate heading or a focusable ghost without needing to scroll.
     const { container } = render(
       <Panel panelTitle="Altitude" panelAside={<span>LOW</span>}>
         <p>content</p>

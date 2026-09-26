@@ -95,8 +95,7 @@ describe("the vessel.orbit reckoner", () => {
     expect(reading.reckoning.status).toBe("available");
     if (reading.reckoning.status !== "available")
       throw new Error("unreachable");
-    // A quarter period on a circular orbit is a quarter turn: the mean anomaly
-    // the model reports is π/2, and its epoch is the instant asked about.
+    // A quarter period on a circular orbit is a quarter turn: the mean anomaly the model reports is π/2, and its epoch is the instant asked about.
     expect(reading.reckoning.value.meanAnomalyAtEpoch?.magnitude).toBeCloseTo(
       Math.PI / 2,
       6,

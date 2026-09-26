@@ -189,8 +189,7 @@ describe("the rail's axes are derived, never spelled", () => {
     ).toBe(true);
     expect(HAND_TAGGED_RE.test(`  ${dir}:   ${tel},`)).toBe(true);
     expect(HAND_TAGGED_RE.test(`${dir}: 'comm${"and"}'`)).toBe(true);
-    // Neighbours that must NOT trip it: another `direction` field entirely, and
-    // a mention of the vocabulary that decides nothing.
+    // Neighbours that must NOT trip it: another `direction` field entirely, and a mention of the vocabulary that decides nothing.
     expect(HAND_TAGGED_RE.test(`${dir}: "column"`)).toBe(false);
     expect(HAND_TAGGED_RE.test(`railTagsForTelemetry("continuous")`)).toBe(
       false,

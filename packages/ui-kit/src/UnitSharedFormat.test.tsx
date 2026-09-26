@@ -379,8 +379,7 @@ describe("UnitSharedFormat", () => {
     );
     // Held at metres, where the group would have put it on kilometres.
     expect(container.textContent).toContain("3,400,000.0");
-    // And out of the group entirely, so the other reading is alone in it and
-    // keeps the rung its own magnitude earns.
+    // And out of the group entirely, so the other reading is alone in it and keeps the rung its own magnitude earns.
     expect(container.textContent).toContain("1.0");
     expect(container.textContent).toContain("km");
   });
@@ -463,8 +462,7 @@ describe("UnitSharedFormat", () => {
         </UnitSharedFormat>
       </UnitSharedFormat>,
     );
-    // Alone the inner member reads `500.0 m`; in the column it reads the
-    // column's kilometres.
+    // Alone the inner member reads `500.0 m`; in the column it reads the column's kilometres.
     expect(screen.queryAllByText("kilometres")).toHaveLength(2);
     expect(container.textContent).not.toContain("500.0");
   });

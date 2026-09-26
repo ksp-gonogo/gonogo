@@ -203,8 +203,7 @@ export function predictTrajectory({
   }
   const steps = Math.max(2, Math.min(MAX_SAMPLES, Math.floor(samplesPerPatch)));
 
-  // The live patch is the first elliptical one orbiting the frame parent whose
-  // [startUT, endUT] window contains `ut`.
+  // The live patch is the first elliptical one orbiting the frame parent whose [startUT, endUT] window contains `ut`.
   let currentIndex = -1;
   for (let i = 0; i < patches.length; i++) {
     const p = patches[i];
@@ -237,8 +236,7 @@ export function predictTrajectory({
     }
     if (offset === null) continue; // Reference body not on this frame.
 
-    // For the live patch, only draw from `ut` forward, the past arc is behind
-    // the vessel and the live-orbit ellipse already shows the full loop.
+    // For the live patch, only draw from `ut` forward, the past arc is behind the vessel and the live-orbit ellipse already shows the full loop.
     const from =
       i === currentIndex ? Math.max(patch.startUT, ut) : patch.startUT;
     const to = patch.endUT;

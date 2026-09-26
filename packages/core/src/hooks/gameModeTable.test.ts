@@ -27,8 +27,7 @@ function declaredModes(): string[] {
 
 describe("GAME_MODE_ORDINAL", () => {
   it("can read the GameMode members at all", () => {
-    // Guards the guard: an extractor returning nothing would let any table
-    // through and report success for the drift it was asked about.
+    // Guards the guard: an extractor returning nothing would let any table through and report success for the drift it was asked about.
     expect(declaredModes()).toEqual([
       "Sandbox",
       "Career",

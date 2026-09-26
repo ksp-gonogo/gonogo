@@ -29,8 +29,7 @@ function frenetNode(): ParsedManeuverNode {
   return {
     id: "planner:0",
     UT: 1_000,
-    // The wire's positional slots, in the basis's own order: tangent, normal,
-    // binormal.
+    // The wire's positional slots, in the basis's own order: tangent, normal, binormal.
     deltaV: [1, 2, 3],
     deltaVMagnitude: Math.hypot(1, 2, 3),
     frame: ManeuverFrame.TangentNormalBinormal,

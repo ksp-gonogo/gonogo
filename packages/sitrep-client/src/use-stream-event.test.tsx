@@ -37,11 +37,9 @@ describe("useStreamEvent", () => {
       transport.emit("crash.lastCrash", { vesselName: "Kerbal Y", ut: 200 });
     });
 
-    // The ReliableOrdered lane delivers every crash: both fire, in order, and
-    // the second is not coalesced away by the store's per-frame batching.
+    // The ReliableOrdered lane delivers every crash: both fire, in order, and the second is not coalesced away by the store's per-frame batching.
     expect(onCrash).toHaveBeenCalledTimes(2);
-    // `ut` arrives wrapped: `crash.lastCrash` declares it in seconds and the
-    // transport wraps on the way out, same as the wire decode.
+    // `ut` arrives wrapped: `crash.lastCrash` declares it in seconds and the transport wraps on the way out, same as the wire decode.
     expect(onCrash).toHaveBeenNthCalledWith(1, {
       vesselName: "Kerbal X",
       ut: value("ut", 100),
@@ -108,8 +106,7 @@ describe("useStreamEvent", () => {
 
     view.unmount();
 
-    // Last subscriber gone: the client sends `unsubscribe`, so the transport
-    // no longer delivers this topic and the handler never fires again.
+    // Last subscriber gone: the client sends `unsubscribe`, so the transport no longer delivers this topic and the handler never fires again.
     act(() => {
       transport.emit("crash.lastCrash", { vesselName: "Kerbal B", ut: 2 });
     });

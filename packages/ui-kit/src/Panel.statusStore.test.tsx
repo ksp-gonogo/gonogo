@@ -104,8 +104,7 @@ describe("Panel header summary (store-backed)", () => {
     }
     const { rerender } = render(<Harness severity="caution" />);
     expect(announcer()).toHaveTextContent("caution");
-    // A severity change updates the summary (and drives the one-shot pulse) with
-    // no throw and no stale reading.
+    // A severity change updates the summary (and drives the one-shot pulse) with no throw and no stale reading.
     rerender(<Harness severity="offline" />);
     expect(announcer()).toHaveTextContent("offline");
   });

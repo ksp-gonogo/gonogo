@@ -69,8 +69,7 @@ describe("a dropped ResizeObserver uninstall fails the next install", () => {
   });
 
   it("guards the global rather than either installer", () => {
-    // Different function, same resource: a drivable one over a fixed-size one
-    // is the same mistake and must not slip through.
+    // Different function, same resource: a drivable one over a fixed-size one is the same mistake and must not slip through.
     install();
     expect(() => installDrivableResizeObserver()).toThrowError(
       /already held by installFixedSizeResizeObserver/,

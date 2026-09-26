@@ -170,8 +170,7 @@ describe("AugmentAvailabilityFeeder: what undefined means for <domain>.available
     // absence of the store, like the absence of a value, reads as unavailable.
     const fixture = mount(null);
 
-    // No watch exists to subscribe, so the Domain's Topic is never even asked
-    // for: that is the specific, observable shape of "renders nothing" here.
+    // No watch exists to subscribe, so the Domain's Topic is never even asked for: that is the specific, observable shape of "renders nothing" here.
     expect(fixture.transport.isSubscribed(`${DOMAIN}.available`)).toBe(false);
     fixture.emitAvailable({ available: true });
 

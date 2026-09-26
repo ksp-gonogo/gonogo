@@ -267,8 +267,7 @@ export class PeerClientDataSource implements DataSource {
   }
 
   exportFlight(id: string): Promise<FlightFixtureLike> {
-    // Bigger timeout: fixtures of long flights run into a few MB which
-    // can take real time to traverse the IndexedDB cursor + serialise.
+    // Bigger timeout: fixtures of long flights run into a few MB which can take real time to traverse the IndexedDB cursor + serialise.
     return this.client.sendFlightRpc<FlightFixtureLike>(
       { op: "export", id },
       60_000,

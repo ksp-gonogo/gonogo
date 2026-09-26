@@ -81,8 +81,7 @@ const ANOMALY_STYLE: PoiKindStyle = {
   border: "var(--color-tag-cyan-fg)",
   borderStyle: "solid",
 };
-// Generic neutral fallback so a third-party provider's novel `kind` renders
-// sensibly instead of invisible/throwing.
+// Generic neutral fallback so a third-party provider's novel `kind` renders sensibly instead of invisible/throwing.
 const DEFAULT_STYLE: PoiKindStyle = {
   background: "var(--color-text-faint)",
   border: "var(--color-text-faint)",
@@ -184,8 +183,7 @@ export function MapPoiLayer({
   width,
   height,
 }: Readonly<MapPoiLayerProps>): ReactElement {
-  // Re-render when providers register/unregister so a layer mounted before
-  // a provider's module loads still picks it up (mirrors AugmentSlot).
+  // Re-render when providers register/unregister so a layer mounted before a provider's module loads still picks it up (mirrors AugmentSlot).
   const providers = useSyncExternalStore(
     onMapPoiProvidersChange,
     getProvidersSnapshot,
@@ -359,8 +357,7 @@ function PoiHoverCardView({
   onDismiss: () => void;
 }): ReactElement {
   const { x, y } = project(poi.lat, poi.lon);
-  // Flip the card to the opposite side of the marker when it would
-  // otherwise overflow the map's own edge.
+  // Flip the card to the opposite side of the marker when it would otherwise overflow the map's own edge.
   const openLeft = x > width - 200;
   const openUp = y > height - 120;
   const style: CSSProperties = {

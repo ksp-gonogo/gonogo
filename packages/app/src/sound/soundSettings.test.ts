@@ -19,8 +19,7 @@ describe("sound settings gating", () => {
   let oscillators: FakeOscillator[] = [];
 
   beforeEach(() => {
-    // Drop the shared AudioContext singleton first so this test's fresh fake
-    // isn't shadowed by a context captured in a previous case.
+    // Drop the shared AudioContext singleton first so this test's fresh fake isn't shadowed by a context captured in a previous case.
     __resetSharedAudioContextForTests();
     oscillators = installFakeAudio();
     __resetSoundEnabledForTests();

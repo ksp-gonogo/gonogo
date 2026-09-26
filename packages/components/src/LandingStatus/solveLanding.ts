@@ -212,8 +212,7 @@ function rocketEquationBurn(
   const stopDistance = dist(tStopIdeal);
   const burnDeltaV = surf + g * tStopIdeal; // = ve·ln(m0/m(t_stop))
 
-  // The powered phase ends at whichever comes first: the vessel stops, or the
-  // tank runs dry. `bestSpeedAtImpact` is the speed once it reaches terrain.
+  // The powered phase ends at whichever comes first: the vessel stops, or the tank runs dry. `bestSpeedAtImpact` is the speed once it reaches terrain.
   const tPowerEnd = Math.min(tStopIdeal, tFuel);
   const distPowerEnd = dist(tPowerEnd);
   let bestSpeedAtImpact: number;

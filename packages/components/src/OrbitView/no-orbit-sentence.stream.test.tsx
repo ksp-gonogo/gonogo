@@ -105,8 +105,7 @@ describe("OrbitView's empty sentence follows the reason the conic withdrew", () 
   });
 
   it("draws the orbit, and no empty sentence at all, for an analytic coast above the air", () => {
-    // The control: without it every assertion above would also pass on a
-    // widget that had stopped drawing anything.
+    // The control: without it every assertion above would also pass on a widget that had stopped drawing anything.
     scene({});
 
     expect(screen.queryByText(/No orbital data|packed/)).toBeNull();

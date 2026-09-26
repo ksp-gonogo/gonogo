@@ -49,8 +49,7 @@ export function useWorldCanvas({
     };
   }, []);
 
-  // Clear trajectory when switching celestial bodies.
-  // bodyName is the trigger, not read inside, biome-ignore is intentional.
+  // Clear trajectory when switching celestial bodies. bodyName is the trigger, not read inside, biome-ignore is intentional.
   // biome-ignore lint/correctness/useExhaustiveDependencies: bodyName is the change trigger, not consumed in the body
   useEffect(() => {
     const canvas = worldCanvasRef.current;
@@ -63,8 +62,7 @@ export function useWorldCanvas({
     lastDrawnCountRef.current = trajectoryCountRef.current;
   }, [bodyName]);
 
-  // Draw every buffered segment since the last paint, incrementally, no
-  // full redraws, but no dropped segments either.
+  // Draw every buffered segment since the last paint, incrementally, no full redraws, but no dropped segments either.
   useEffect(() => {
     if (trajectoryCount === 0) return;
     const canvas = worldCanvasRef.current;

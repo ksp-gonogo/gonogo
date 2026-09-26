@@ -386,8 +386,7 @@ describe("FleetReliabilityUpdates augment", () => {
     const { fixture } = renderAugment("v-active");
     emit(fixture, MODELED, SCENE);
 
-    // Both figures go through `Unit`, so 255 s reads on the duration ladder as
-    // "4min 15s" exactly as every other interval on the dashboard does.
+    // Both figures go through `Unit`, so 255 s reads on the duration ladder as "4min 15s" exactly as every other interval on the dashboard does.
     const row = await screen.findByText(/continuous rated burn left/);
     expect(row).toHaveTextContent("23s of 4min 15s continuous rated burn left");
     // And the OTHER scope's numbers are not what is on screen.

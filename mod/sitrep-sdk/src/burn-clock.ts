@@ -134,7 +134,6 @@ export function isBurning(
   if (ignitionUt == null || cutoffUt == null) {
     return false;
   }
-  // Ordered in the algebra: the unit system refuses to compare an instant with
-  // a duration, which is the mistake this reads as if it were unwrapped.
+  // Ordered in the algebra: the unit system refuses to compare an instant with a duration, which is the mistake this reads as if it were unwrapped.
   return nowUt.greaterThanOrEqual(ignitionUt) && nowUt.lessThan(cutoffUt);
 }

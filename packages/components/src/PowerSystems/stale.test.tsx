@@ -111,8 +111,7 @@ describe("PowerSystems when vessel.parts is no longer current", () => {
       fixture.emit("vessel.parts", VESSEL_PARTS_WIRE);
     });
     await waitFor(() => expect(visibleText(container)).toContain("-6.00"));
-    // The control: a live widget says nothing, which is what makes the
-    // assertion after `goStale` evidence of anything at all.
+    // The control: a live widget says nothing, which is what makes the assertion after `goStale` evidence of anything at all.
     expect(screen.queryByText("OFFLINE")).toBeNull();
 
     goStale(fixture);
@@ -139,12 +138,10 @@ describe("PowerSystems when vessel.parts is no longer current", () => {
     goStale(fixture);
 
     const marks = container.querySelectorAll("[data-not-current]");
-    // One per breakdown row that reports an efficiency: the producer and the
-    // consumer, each drawn from the read that stopped.
+    // One per breakdown row that reports an efficiency: the producer and the consumer, each drawn from the read that stopped.
     expect(marks.length).toBeGreaterThan(0);
     for (const mark of marks) {
-      // A mark with no caption looks marked and says nothing, which is the one
-      // outcome worse than no mark at all.
+      // A mark with no caption looks marked and says nothing, which is the one outcome worse than no mark at all.
       expect(mark.querySelector("[data-unit-currency]")).not.toBeNull();
     }
   });

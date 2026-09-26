@@ -22,8 +22,7 @@ describe("ViewClock", () => {
     });
 
     clock.observeSample(/* validAt */ 10, /* deliveredAt */ 10);
-    // Only one sample has ever been buffered (UT 10), but wall time races
-    // forward, so the raw estimate would run far past it.
+    // Only one sample has ever been buffered (UT 10), but wall time races forward, so the raw estimate would run far past it.
     wall.advanceBy(5); // estimate would be 10 + 5*100 = 510
 
     expect(clock.utNowEstimate()).toBeGreaterThan(500); // the raw estimate really did run away
@@ -160,14 +159,12 @@ describe("ViewClock", () => {
       clock.observeSample(1000, 1000);
       wall.advanceBy(2); // utNowEstimate = 1000 + 2*50 = 1100
 
-      // The confirmed edge stays sample-clamped: the estimate raced ahead
-      // under warp, but nothing new has actually been confirmed.
+      // The confirmed edge stays sample-clamped: the estimate raced ahead under warp, but nothing new has actually been confirmed.
       expect(clock.confirmedEdgeUt()).toBe(1000);
       expect(clock.certaintyHorizonUt()).toBe(1000);
 
       clock.setMode("predicted");
-      // Exactly utNowEstimate(): not 1100-30=1070 (re-subtracting delay,
-      // under-predicting) and not 1100+30=1130 (double-adding it).
+      // Exactly utNowEstimate(): not 1100-30=1070 (re-subtracting delay, under-predicting) and not 1100+30=1130 (double-adding it).
       expect(clock.viewUt()).toBe(1100);
       expect(clock.utNowEstimate()).toBe(1100);
       expect(clock.certaintyFor(clock.viewUt())).toBe("predicted");
@@ -187,8 +184,7 @@ describe("ViewClock", () => {
       expect(clock.viewUt()).toBe(510);
 
       clock.setMode("confirmed");
-      // confirmedEdgeUt is still sample-clamped at 10, the 510 predicted
-      // peak must not have pinned the confirmed cursor ahead of it.
+      // confirmedEdgeUt is still sample-clamped at 10, the 510 predicted peak must not have pinned the confirmed cursor ahead of it.
       expect(clock.viewUt()).toBe(10);
     });
   });

@@ -34,8 +34,7 @@ export function loadInputDevice(
   if (store === undefined) return null;
   try {
     const raw = store.getItem(STORAGE_PREFIX + screenKey);
-    // An empty string is not a device id: `enumerateDevices` uses it for an
-    // entry that names nothing openable, and the picker drops those.
+    // An empty string is not a device id: `enumerateDevices` uses it for an entry that names nothing openable, and the picker drops those.
     return raw === null || raw === "" ? null : raw;
   } catch {
     return null;

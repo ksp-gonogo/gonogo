@@ -63,8 +63,7 @@ describe("setupMockDataSource", () => {
   });
 
   it("returns a usable fixture even when connect: false", async () => {
-    // Skipping connect() bypasses detector hydration and the upstream
-    // status-bridge, but the registered fixture is still usable.
+    // Skipping connect() bypasses detector hydration and the upstream status-bridge, but the registered fixture is still usable.
     fixture = await setupMockDataSource({ keys: KEYS, connect: false });
     expect(fixture.source).toBeDefined();
     expect(fixture.buffered).toBeDefined();

@@ -25,8 +25,7 @@ describe("a value served by two models", () => {
       "kepler-propagation",
       "rate-integration",
     ]);
-    // The point of two rows rather than one row with two bases: the input lists
-    // differ, and a merged list could not say which inputs buy which model.
+    // The point of two rows rather than one row with two bases: the input lists differ, and a merged list could not say which inputs buy which model.
     expect(rows.map((row) => row.inputs.map(reckonableInputSpelling))).toEqual([
       ["@vessel.orbit", "@system.bodies"],
       ["verticalSpeed", "gForce", "@system.bodies"],
@@ -51,8 +50,7 @@ describe("a value served by two models", () => {
   });
 
   it("still answers undefined for a value no model carries", () => {
-    // Distinct from an empty list on purpose: a mark's input list is never
-    // empty, so empty could only have meant unmarked.
+    // Distinct from an empty list on purpose: a mark's input list is never empty, so empty could only have meant unmarked.
     expect(reckonableInputsOf("vessel.flight", "mach")).toBeUndefined();
     expect(reckonableInputsOf("no.such.topic", "anything")).toBeUndefined();
   });
@@ -114,8 +112,7 @@ function declaredCycles(): string[] {
   const walk = (node: string, path: string[]): void => {
     const seenAt = path.indexOf(node);
     if (seenAt !== -1) {
-      // Rotated to its smallest member so one cycle found from two entry points
-      // is reported once rather than twice.
+      // Rotated to its smallest member so one cycle found from two entry points is reported once rather than twice.
       const ring = path.slice(seenAt);
       const pivot = ring.indexOf([...ring].sort()[0]);
       out.add([...ring.slice(pivot), ...ring.slice(0, pivot)].join(" then "));

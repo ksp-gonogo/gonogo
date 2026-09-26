@@ -50,8 +50,7 @@ function PerfBudgetsComponent({
     return () => clearInterval(id);
   }, []);
 
-  // Selective rendering: at small sizes the bars are unreadable; collapse
-  // to a healthy-vs-over count.
+  // Selective rendering: at small sizes the bars are unreadable; collapse to a healthy-vs-over count.
   const cols = w ?? 6;
   const rows = h ?? 6;
   const showFullRows = rows >= 6 && cols >= 5;
@@ -218,8 +217,7 @@ const TONE_COLOR: Record<Tone, string> = {
 
 const LIST: CSSProperties = {
   listStyle: "none",
-  // No top margin: Panel.Body supplies the inset and the gap between the title
-  // and the first row.
+  // No top margin: Panel.Body supplies the inset and the gap between the title and the first row.
   margin: 0,
   padding: 0,
   display: "flex",

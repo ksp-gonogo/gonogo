@@ -168,13 +168,11 @@ describe("ControlDelayStream", () => {
     const confirmedCommands = confirmed?.getAttribute("d")?.match(/[ML]/g);
     expect(confirmedCommands).toHaveLength(2);
 
-    // The deviation segment starts AT that same shared vertex and covers the
-    // remaining two samples: it must NOT reach back before the divergence.
+    // The deviation segment starts AT that same shared vertex and covers the remaining two samples: it must NOT reach back before the divergence.
     const deviationCommands = deviation?.getAttribute("d")?.match(/[ML]/g);
     expect(deviationCommands).toHaveLength(2);
 
-    // Deviation-actual gets the reserved warning treatment; the pre-
-    // divergence "echo" segment does not.
+    // Deviation-actual gets the reserved warning treatment; the pre- divergence "echo" segment does not.
     expect(deviation).toHaveAttribute("data-deviation", "true");
     expect(confirmed).not.toHaveAttribute("data-deviation");
     expect(deviation).toHaveAttribute(
@@ -639,8 +637,7 @@ describe("delivery decides the return leg and nothing else", () => {
         .querySelector('[data-role="commanded-tail"]')
         ?.getAttribute("stroke");
       const id = /url\(#(.+)\)/.exec(ref ?? "")?.[1];
-      // By id rather than by selector: `useId()` spells one `:r4:`, which is a
-      // valid DOM id and not a valid CSS identifier.
+      // By id rather than by selector: `useId()` spells one `:r4:`, which is a valid DOM id and not a valid CSS identifier.
       const grad = Array.from(
         container.querySelectorAll("linearGradient"),
       ).find((g) => g.getAttribute("id") === id);
@@ -758,8 +755,7 @@ describe("an entry nothing can draw", () => {
       "telemetry/discrete/fire-and-forget",
     );
     expect(mark?.getAttribute("data-rail-entry")).toBe("science.result");
-    // Zero ink: no trace, and nothing that would move a pixel of a graph
-    // holding a represented entry beside it.
+    // Zero ink: no trace, and nothing that would move a pixel of a graph holding a represented entry beside it.
     expect(container.querySelector('[data-role="ribbon"]')).toBeNull();
     expect(mark?.children).toHaveLength(0);
     expect(errors).toHaveBeenCalledOnce();

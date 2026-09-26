@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
-// Generates `asyncapi.yaml`, the Sitrep contract's core wire surface as an
-// AsyncAPI 3.0.0 document, and validates it.
+// Generates `asyncapi.yaml`, the Sitrep contract's core wire surface as an AsyncAPI 3.0.0 document, and validates it.
 //
 //   node scripts/asyncapi-doc.mjs            write the document
 //   node scripts/asyncapi-doc.mjs --check    fail if the committed file is stale
@@ -716,8 +715,7 @@ function assertUnitsSurvived(document, units) {
   for (const [topic, fields] of Object.entries(units.topics)) {
     const channel = document.channels[topic];
     if (!channel) continue;
-    // The channel's own `payload`, which is the narrowing arm's rather than the
-    // envelope's placeholder: `propertySchemas` returns the most specific first.
+    // The channel's own `payload`, which is the narrowing arm's rather than the envelope's placeholder: `propertySchemas` returns the most specific first.
     const payload = propertySchemas(
       document.components.messages[`streamData.${topic}`]?.payload,
       "payload",

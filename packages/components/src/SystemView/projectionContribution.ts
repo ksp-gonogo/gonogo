@@ -25,8 +25,7 @@ function projectionEntries(
 ): SystemViewProjection[] {
   const entries: SystemViewProjection[] = [];
   for (const body of bodies?.bodies ?? []) {
-    // A body listed as its own parent is the root saying so, matching the
-    // catalogue's own reading of that case.
+    // A body listed as its own parent is the root saying so, matching the catalogue's own reading of that case.
     const hasParent =
       body.parentIndex != null && body.parentIndex !== body.index;
     entries.push(...projectionsForBody(body.index, hasParent));

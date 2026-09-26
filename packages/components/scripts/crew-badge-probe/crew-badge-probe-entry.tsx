@@ -39,11 +39,9 @@ import { defaultDarkTheme, PanelBadgesProvider } from "@ksp-gonogo/ui-kit";
 import { createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
-// Side-effect import: every built-in widget (CrewStatus included)
-// self-registers on module load, same contract as the shared probe.
+// Side-effect import: every built-in widget (CrewStatus included) self-registers on module load, same contract as the shared probe.
 import "../../src";
-// Side-effect import: the planted Uplink's crew contributions, the panel badge
-// among them, gated on the fixture emitting its Domain.
+// Side-effect import: the planted Uplink's crew contributions, the panel badge among them, gated on the fixture emitting its Domain.
 import "../probe/plantedUplink";
 import {
   type StreamFixture,
@@ -196,8 +194,7 @@ async function renderCrewBadgeProbe(
     ),
   );
 
-  // Let React commit + useEffect run (so useStream/useTelemetry actually
-  // subscribe) before replaying the fixture.
+  // Let React commit + useEffect run (so useStream/useTelemetry actually subscribe) before replaying the fixture.
   await rafTick();
 
   for (const e of payload.emits) {

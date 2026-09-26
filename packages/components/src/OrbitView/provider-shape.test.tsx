@@ -76,8 +76,7 @@ describe("OrbitView draws the shape the provider states", () => {
     await waitForDiagram(container);
     const path = container.querySelector("svg path[data-trajectory]");
     expect(path).not.toBeNull();
-    // A bounded arc is an open polyline: no `Z`, and more than the two points
-    // a degenerate sample would emit.
+    // A bounded arc is an open polyline: no `Z`, and more than the two points a degenerate sample would emit.
     const d = path?.getAttribute("d") ?? "";
     expect(d).not.toMatch(/z/i);
     expect(d.split("L").length).toBeGreaterThan(8);
@@ -101,8 +100,7 @@ describe("OrbitView draws the shape the provider states", () => {
   });
 
   it("draws nothing once the view instant runs past the integrator's horizon", async () => {
-    // The harness pins the view clock at UT 0, so a horizon in the PAST is the
-    // operator looking at an instant the provider has not computed.
+    // The harness pins the view clock at UT 0, so a horizon in the PAST is the operator looking at an instant the provider has not computed.
     const { container } = renderOrbitViewStream(
       { w: 9, h: 18 },
       { ...LKO, horizon: integratedHorizon(-100) },

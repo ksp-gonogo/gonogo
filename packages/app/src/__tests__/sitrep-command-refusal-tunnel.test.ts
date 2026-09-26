@@ -291,8 +291,7 @@ describe("a refused command crossing the peer boundary", () => {
   });
 
   it("still relays a genuine host-side failure as an error, settling failed", async () => {
-    // No host `TelemetryClient` at all: nothing was dispatched and nothing was
-    // refused, so this must stay on the error channel and stay `failed`.
+    // No host `TelemetryClient` at all: nothing was dispatched and nothing was refused, so this must stay on the error channel and stay `failed`.
     setActiveTelemetryClientForTests(undefined);
 
     const host = new PeerHostService();

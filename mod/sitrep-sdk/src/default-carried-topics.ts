@@ -150,8 +150,7 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // bypasses this stream carried-channels gate entirely, so it needs no
   // prefix entry here (unlike the scansat dynamic namespaces below).
   "kos.processors",
-  // career.mode feeds useGameContext's career-mode display map.
-  // science.sensors is the whole-topic sensor-by-type roster.
+  // career.mode feeds useGameContext's career-mode display map. science.sensors is the whole-topic sensor-by-type roster.
   "career.mode",
   "science.sensors",
   // The remaining trivial raw-field-walk and whole-topic reads. Naming a topic
@@ -176,8 +175,7 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "science.experiments",
   "science.experimentBreakdown",
   "science.lab",
-  // science.archive: the career-wide R&D archive (ScienceData's Archive tab),
-  // a new capability with no legacy read, so the stream is its only source.
+  // science.archive: the career-wide R&D archive (ScienceData's Archive tab), a new capability with no legacy read, so the stream is its only source.
   "science.archive",
   "deployed.bases",
   // The homes of AstronautComplex's, LaunchDirector's and SpaceCenterStatus's kc.crewRoster/kc.savedShips/kc.partsAvailable reads, under the same promotion rule as every mod-served topic above.
@@ -255,8 +253,7 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // here rather than left to a widget's own promotion because a board that
   // silently omits it reports a simulation as a mission.
   "flight.simulation",
-  // The SCET alarm arm (ScetAlarmUplink, both TrueNow): the roster of armed
-  // alarms and the notice that one fired and stopped the warp.
+  // The SCET alarm arm (ScetAlarmUplink, both TrueNow): the roster of armed alarms and the notice that one fired and stopped the warp.
   "alarm.scet",
   "alarm.scet.fired",
   // settings.gonogo: every setting the mod and its Uplinks declared and

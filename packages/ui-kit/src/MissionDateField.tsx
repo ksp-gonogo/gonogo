@@ -227,8 +227,7 @@ export function MissionDateField({
         // which is called "DAY" cannot say which instant is being edited, and
         // two of these on one panel are indistinguishable.
         aria-label={`${label} ${text}`}
-        // The sentence below, on every field, so the absence is spoken on focus
-        // rather than left to a dash nobody's screen reader reads out.
+        // The sentence below, on every field, so the absence is spoken on focus rather than left to a dash nobody's screen reader reads out.
         aria-describedby={parts === null ? absentId : undefined}
         min={min}
         step={1}

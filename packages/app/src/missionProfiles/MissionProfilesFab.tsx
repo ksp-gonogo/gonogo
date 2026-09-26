@@ -27,8 +27,7 @@ export function MissionProfilesFab({
   const screen = useScreen();
 
   function handleClick() {
-    // Modal portal renders above the service provider tree; re-wrap so hooks
-    // inside the modal content resolve the service + screen correctly.
+    // Modal portal renders above the service provider tree; re-wrap so hooks inside the modal content resolve the service + screen correctly.
     const id = open(
       <MissionProfilesProvider service={service}>
         <ScreenProvider value={screen}>

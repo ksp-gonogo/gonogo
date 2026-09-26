@@ -47,8 +47,7 @@ const ALLOWED_PATHS = [
   // theme provider. Mirrors defaultDark.ts in spirit: token source of
   // truth duplicated for a self-contained output target.
   "packages/components/src/ShipMap/render.ts",
-  // Navball/render.ts: same pattern as ShipMap/render.ts, design
-  // tokens duplicated into a standalone SVG for snapshot/export.
+  // Navball/render.ts: same pattern as ShipMap/render.ts, design tokens duplicated into a standalone SVG for snapshot/export.
   "packages/components/src/Navball/render.ts",
   // Minimap.tsx: canvas 2D `fillStyle` only accepts colour strings,
   // not CSS var() references. The minimap is a small enough surface
@@ -139,8 +138,7 @@ describe("design-system: raw hex literals", () => {
   it("does not exceed the rachet baseline", () => {
     const offenders = collectOffenders();
     if (offenders.length > HEX_OCCURRENCE_BASELINE) {
-      // Surface up to 10 of the new offenders so the failure message is
-      // actionable instead of just a count.
+      // Surface up to 10 of the new offenders so the failure message is actionable instead of just a count.
       const newCount = offenders.length - HEX_OCCURRENCE_BASELINE;
       const sample = offenders
         .slice(-Math.min(10, newCount))

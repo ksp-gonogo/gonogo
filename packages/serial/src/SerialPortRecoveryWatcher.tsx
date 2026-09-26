@@ -16,8 +16,7 @@ import { useSerialDeviceService } from "./SerialDeviceContext";
 export function SerialPortRecoveryWatcher() {
   const svc = useSerialDeviceService();
   const { open, close } = useModal();
-  // Per-device modal id, so if the user replugs twice without dismissing
-  // we don't stack duplicate prompts for the same controller.
+  // Per-device modal id, so if the user replugs twice without dismissing we don't stack duplicate prompts for the same controller.
   const openModalIds = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {

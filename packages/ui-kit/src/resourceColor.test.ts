@@ -78,8 +78,7 @@ describe("resourceColor", () => {
   });
 
   it("never resolves an unrecognised name into a curated resource's exact hue", () => {
-    // Sample a spread of unknown names and confirm none of them accidentally
-    // reproduce a curated resource's colour outright.
+    // Sample a spread of unknown names and confirm none of them accidentally reproduce a curated resource's colour outright.
     const curatedColors = new Set(
       ["Water", "Oxidizer", "LiquidFuel", "Food", "Xenon"].map(resourceColor),
     );
@@ -109,8 +108,7 @@ describe("resourceColor", () => {
       ];
       expect(matchCuratedHue("liquidfuel", genericFirst)).toBe(999);
 
-      // Flip the order: the specific alias now gets first refusal, matching
-      // the real CURATED table's discipline.
+      // Flip the order: the specific alias now gets first refusal, matching the real CURATED table's discipline.
       const specificFirst = [
         { aliases: ["liquidfuel"], hue: 40 },
         { aliases: ["fuel"], hue: 999 },
@@ -169,8 +167,7 @@ describe("resourceColor", () => {
     });
 
     it("keeps WasteWater on the waste family's hue, not water's", () => {
-      // "wastewater" contains "waste" (the waste family is ordered ahead of
-      // water in CURATED), so it must resolve to the olive hue, never blue.
+      // "wastewater" contains "waste" (the waste family is ordered ahead of water in CURATED), so it must resolve to the olive hue, never blue.
       const wasteHue = matchCuratedHue("waste");
       const waterHue = matchCuratedHue("water");
       expect(wasteHue).not.toBeUndefined();
@@ -220,8 +217,7 @@ describe("resourceColor", () => {
 
   describe("Tier 2: hashHue reserved-zone avoidance", () => {
     it("never lands within a curated family's reserved zone", () => {
-      // Sweep a wide sample of synthetic names; none should resolve within
-      // any curated family's reserved zone (centre +/- effective radius).
+      // Sweep a wide sample of synthetic names; none should resolve within any curated family's reserved zone (centre +/- effective radius).
       for (let i = 0; i < 200; i++) {
         const hue = hashHue(`synthetic-resource-${i}`);
         for (const zone of CURATED_RESERVED_ZONES) {

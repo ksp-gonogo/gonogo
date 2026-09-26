@@ -93,8 +93,7 @@ describe("Targeting: the dock channel alone stops being current", () => {
         screen.getByRole("region", { name: "Docking HUD for Port Mk2" }),
       ).toBeTruthy(),
     );
-    // The notice must carry information, so it cannot be on screen while the
-    // alignment is current.
+    // The notice must carry information, so it cannot be on screen while the alignment is current.
     expect(visibleText()).not.toMatch(/no longer current/i);
 
     act(() => {
@@ -163,19 +162,16 @@ describe("Targeting: the dock channel alone stops being current", () => {
       emitTarget(PINNED_UT);
     });
 
-    // Withheld, not frozen: an alignment reticle drawn from data we know we have
-    // missed updates on asserts an attitude it cannot know.
+    // Withheld, not frozen: an alignment reticle drawn from data we know we have missed updates on asserts an attitude it cannot know.
     await waitFor(() =>
       expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull(),
     );
-    // And the operator can tell withheld from broken from out here, which is the
-    // whole point: the reason is named and dated.
+    // And the operator can tell withheld from broken from out here, which is the whole point: the reason is named and dated.
     expect(
       screen.getByText(/Docking alignment no longer current/),
     ).toBeTruthy();
     expect(visibleText()).toMatch(/last seen .+ ago/);
-    // The alignment row itself is gone with the HUD rather than lingering as
-    // placeholders that look like a partial record.
+    // The alignment row itself is gone with the HUD rather than lingering as placeholders that look like a partial record.
     expect(visibleText()).not.toContain("α/β/γ");
 
     // Still a working widget: the target-derived figures are current and keep

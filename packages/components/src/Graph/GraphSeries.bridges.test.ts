@@ -57,8 +57,7 @@ describe("toNumericSeries: bridges", () => {
   });
 
   it("drops a chord whose left end the numeric filter removed", () => {
-    // Both ends must survive ADJACENT: dropping index 1 leaves 0 and 2 next to
-    // each other on the way out, but they were never a recorded chord.
+    // Both ends must survive ADJACENT: dropping index 1 leaves 0 and 2 next to each other on the way out, but they were never a recorded chord.
     const out = toNumericSeries(range([1, "x", 3], { bridges: [bridge(2)] }));
 
     expect(out.v).toEqual([1, 3]);

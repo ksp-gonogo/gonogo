@@ -139,8 +139,7 @@ test.describe("Uplink loader (default path)", () => {
       waitUntil: "load",
     });
 
-    // The standalone bundle was fetched by the loader (not statically
-    // imported).
+    // The standalone bundle was fetched by the loader (not statically imported).
     expect((await breakingGroundFetched).status()).toBe(200);
 
     // Singleton proof: the loaded bundle's registerComponent wrote into the
@@ -202,8 +201,7 @@ test.describe("Uplink loader (default path)", () => {
   test("?uplinkLoaderIds= overrides which ids the boot call attempts", async ({
     page,
   }) => {
-    // Establish the origin first so localStorage seeding (consent) has an
-    // origin to write against, same as the default-path test above.
+    // Establish the origin first so localStorage seeding (consent) has an origin to write against, same as the default-path test above.
     await page.goto(`${PREVIEW}/`, { waitUntil: "load" });
     await seedConsent(page);
 
@@ -213,8 +211,7 @@ test.describe("Uplink loader (default path)", () => {
         breakingGroundRequested = true;
       }
     });
-    // An empty boot-time enabled set, where the test above names
-    // breakingGround: proof the param is read rather than ignored.
+    // An empty boot-time enabled set, where the test above names breakingGround: proof the param is read rather than ignored.
     await page.goto(`${PREVIEW}/?uplinkLoaderIds=`, { waitUntil: "load" });
 
     // The app rendered, which happens only once the loader's boot call has

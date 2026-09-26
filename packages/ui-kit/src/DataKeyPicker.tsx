@@ -132,8 +132,7 @@ export function DataKeyPicker({
       e.preventDefault();
       setActiveIndex((i) => moveComboboxActiveIndex(i, -1, flatOptions.length));
     } else if (e.key === "Enter") {
-      // Arrow-highlighted item first; fall back to first filtered result so
-      // "type a partial label + Enter" works without needing an arrow key.
+      // Arrow-highlighted item first; fall back to first filtered result so "type a partial label + Enter" works without needing an arrow key.
       const opt = activeIndex >= 0 ? flatOptions[activeIndex] : flatOptions[0];
       if (opt) selectOption(opt.key);
     }

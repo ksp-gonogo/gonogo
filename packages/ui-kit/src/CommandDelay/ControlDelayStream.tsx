@@ -435,8 +435,7 @@ function StreamPaths({
   const confirmedPts = diverged ? echoPts.slice(0, divergeIndex + 1) : echoPts;
   const deviationPts = diverged ? echoPts.slice(divergeIndex) : [];
   const deviationExpectedPts = diverged ? expectedPts.slice(divergeIndex) : [];
-  // Nothing precedes the divergence (it starts at the very first sample):
-  // there is no genuine "confirmed, not yet diverged" segment to draw.
+  // Nothing precedes the divergence (it starts at the very first sample): there is no genuine "confirmed, not yet diverged" segment to draw.
   const hasConfirmedPrefix = !diverged || divergeIndex > 0;
 
   return (
@@ -677,8 +676,7 @@ export function ControlDelayStream({
   // Before the early return (hooks run unconditionally): the divider-fade
   // gradient id.
   const dividerFadeId = `cds-divfade-${useId()}`;
-  // Whichever kind of entry the graph has, they all cross the same gap, so the
-  // first one to state a light-time states it for the strip.
+  // Whichever kind of entry the graph has, they all cross the same gap, so the first one to state a light-time states it for the strip.
   const first = streams[0] ?? ribbons[0];
   const oneWay = first?.oneWaySeconds ?? null;
   if (!first || oneWay === null || oneWay < STREAM_MIN_DELAY_SECONDS)

@@ -37,8 +37,7 @@ describe("netFundsPerDay", () => {
   });
 
   it("withholds a net when only the upkeep half arrived", () => {
-    // Half an answer must not become a drain: an absent subsidy is unknown,
-    // not zero.
+    // Half an answer must not become a drain: an absent subsidy is unknown, not zero.
     expect(netFundsPerDay({ upkeepPerDay: value("f/day", 2180) })).toBe(null);
   });
 

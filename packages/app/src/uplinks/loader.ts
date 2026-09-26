@@ -616,8 +616,7 @@ async function loadThirdParty(
   });
 
   if (!roster.clientSource) {
-    // Guarded by the caller (`loadEnabledUplinks` only calls this when
-    // `roster.clientSource` is present), defensive only.
+    // Guarded by the caller (`loadEnabledUplinks` only calls this when `roster.clientSource` is present), defensive only.
     return quarantineOutcome(
       id,
       "no clientSource on the roster entry",
@@ -681,8 +680,7 @@ async function loadThirdParty(
   }
 
   const descriptor = descriptorFromClientSource(roster, manifest);
-  // The mod is the anchor here: `descriptorFromClientSource` fills `integrity`
-  // from `expectedClientHash`, so there is no Hub index in this story at all.
+  // The mod is the anchor here: `descriptorFromClientSource` fills `integrity` from `expectedClientHash`, so there is no Hub index in this story at all.
   return loadOne(descriptor, ctx, "installed-mod");
 }
 

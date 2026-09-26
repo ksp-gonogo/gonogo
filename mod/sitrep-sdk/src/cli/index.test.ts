@@ -49,8 +49,7 @@ describe("gonogo-uplink bake-hash", () => {
 
     const written = readFileSync(out, "utf8");
     expect(written).toContain("namespace Gonogo.X");
-    // The value the loader compares against, so its SHAPE is the contract: an
-    // `sha256-<64 hex>` it can match, never a bare digest or an empty string.
+    // The value the loader compares against, so its SHAPE is the contract: an `sha256-<64 hex>` it can match, never a bare digest or an empty string.
     expect(written).toMatch(
       /public const string Value = "sha256-[0-9a-f]{64}";/,
     );

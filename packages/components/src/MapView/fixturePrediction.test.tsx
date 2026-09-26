@@ -40,8 +40,7 @@ const MODE = { name: "default-12x18", w: 12, h: 18 };
 
 function segments(container: HTMLElement): number {
   const el = container.querySelector("[data-prediction-segments]");
-  // -1 rather than 0 for an absent layer: "the layer drew nothing" and "no
-  // layer mounted" are different failures and must not share a number.
+  // -1 rather than 0 for an absent layer: "the layer drew nothing" and "no layer mounted" are different failures and must not share a number.
   return Number(el?.getAttribute("data-prediction-segments") ?? "-1");
 }
 
@@ -89,8 +88,7 @@ describe("MapView predicts a ground track from its fixtures", () => {
       });
       try {
         await settle();
-        // Zero and "no layer" are both failures for a fixture carrying a
-        // chain, and `toBeGreaterThan(0)` catches the -1 too.
+        // Zero and "no layer" are both failures for a fixture carrying a chain, and `toBeGreaterThan(0)` catches the -1 too.
         if (absent === undefined)
           expect(segments(container)).toBeGreaterThan(0);
         else expect(segments(container)).toBe(0);

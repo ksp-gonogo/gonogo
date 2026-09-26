@@ -48,8 +48,7 @@ describe("MapView: genuinely runs off the stream (M3 mechanical-tail batch)", ()
     expect(visibleText(container)).toContain(NULL_DISPLAY);
     expect(container.textContent).not.toContain("°");
 
-    // A real subscription must have happened for this to deliver at all,
-    // StubTransport.emit is subscription-gated (see its own doc comment).
+    // A real subscription must have happened for this to deliver at all, StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.flight")).toBe(true);
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
@@ -74,8 +73,7 @@ describe("MapView: genuinely runs off the stream (M3 mechanical-tail batch)", ()
       expect(visibleText(container)).toContain("80.0 m");
     });
 
-    // v.body stays gapped/undefined (no legacy source here), the mapped
-    // position/altitude landing doesn't fabricate a body label.
+    // v.body stays gapped/undefined (no legacy source here), the mapped position/altitude landing doesn't fabricate a body label.
     expect(container.textContent).not.toContain("Kerbin");
   });
 });

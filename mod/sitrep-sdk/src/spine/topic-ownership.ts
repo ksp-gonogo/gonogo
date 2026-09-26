@@ -126,8 +126,7 @@ export class TopicOwnershipTracker {
     this.armed.set(topic, {
       timer: setTimeout(() => {
         this.armed.delete(topic);
-        // Re-checked rather than assumed: the ack can land in the same tick the
-        // timer fires, and a disconnect can beat both.
+        // Re-checked rather than assumed: the ack can land in the same tick the timer fires, and a disconnect can beat both.
         if (!this.connected || this.owned.has(topic)) return;
         if (this.unowned.has(topic)) return;
         this.unowned.add(topic);

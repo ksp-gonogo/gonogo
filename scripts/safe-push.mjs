@@ -161,8 +161,7 @@ if (!skipE2e)
   );
 
 console.log("push: gate green, opening the connection...");
-// GONOGO_GATE_DONE tells the hook the work is already done, so it does not repeat it
-// and hold the socket open for the length of a second full run.
+// GONOGO_GATE_DONE tells the hook the work is already done, so it does not repeat it and hold the socket open for the length of a second full run.
 let pushStatus = run("git", ["push", ...process.argv.slice(2)], {
   GONOGO_GATE_DONE: "1",
 });
@@ -211,8 +210,7 @@ const explicitRefspec = process.argv
   .some((a) => !a.startsWith("-") && a !== "origin" && a !== branch);
 
 if (branch === "HEAD" || explicitRefspec) {
-  // A detached HEAD or a hand-written refspec means local HEAD is not what was
-  // pushed, so the comparison below would be meaningless rather than reassuring.
+  // A detached HEAD or a hand-written refspec means local HEAD is not what was pushed, so the comparison below would be meaningless rather than reassuring.
   console.log("push: done (landing not verified: non-default refspec).");
   process.exit(0);
 }

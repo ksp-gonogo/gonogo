@@ -33,8 +33,7 @@ export function chunkAmplitude(samples: Float32Array): number {
   let sum = 0;
   for (let i = 0; i < samples.length; i++) {
     const s = samples[i];
-    // A non-finite sample is a broken buffer, not silence in the middle of it,
-    // so it contributes nothing rather than poisoning the whole chunk to NaN.
+    // A non-finite sample is a broken buffer, not silence in the middle of it, so it contributes nothing rather than poisoning the whole chunk to NaN.
     if (Number.isFinite(s)) sum += s * s;
   }
   const rms = Math.sqrt(sum / samples.length);

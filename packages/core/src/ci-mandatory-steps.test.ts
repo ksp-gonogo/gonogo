@@ -187,8 +187,7 @@ function evaluate(expression: string, ctx: Ctx): boolean {
     let result = comparison();
     while (peek() === "&&") {
       take();
-      // No short-circuit: the right side must still PARSE, so an expression
-      // this evaluator cannot read is caught rather than skipped over.
+      // No short-circuit: the right side must still PARSE, so an expression this evaluator cannot read is caught rather than skipped over.
       const right = comparison();
       result = result && right;
     }
@@ -255,8 +254,7 @@ describe("the KSP-assemblies check fires on every path that gates a merge", () =
   const condition = stepCondition(STEP_NAME_FRAGMENT);
 
   it("reads the condition it is about, so a pass means something", () => {
-    // Guard on the guard: a parser that silently returned "" would answer
-    // every case below and answer all of them the same way.
+    // Guard on the guard: a parser that silently returned "" would answer every case below and answer all of them the same way.
     expect(condition).toContain("github.");
     expect(condition.length).toBeGreaterThan(20);
   });

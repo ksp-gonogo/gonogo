@@ -31,8 +31,7 @@ function chip(): string | undefined {
     case "lost":
       return status.reason;
     case "undelivered":
-      // Never left this machine, so nothing ran it: the opposite claim to the
-      // arm above, and the reason an author is given both.
+      // Never left this machine, so nothing ran it: the opposite claim to the arm above, and the reason an author is given both.
       return `not sent: ${status.reason}`;
     case "found":
       // Lost, then answered. The outcome is what an author branches on, and it
@@ -47,8 +46,7 @@ function chip(): string | undefined {
     case "idle":
       return undefined;
   }
-  // A new phase must break an author's exhaustive switch at compile time, not
-  // silently fall through to "no chip".
+  // A new phase must break an author's exhaustive switch at compile time, not silently fall through to "no chip".
   const unhandled: never = status;
   return unhandled;
 }

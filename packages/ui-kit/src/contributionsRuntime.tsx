@@ -225,8 +225,7 @@ function SlotAggregator({
     for (const c of contribs) {
       for (const d of c.deps ?? []) {
         if (typeof d === "string") topics.add(d as TopicId);
-        // A reading dep names the same wire topic a bare id does; only what the
-        // consumer is HANDED differs, so it subscribes exactly the same way.
+        // A reading dep names the same wire topic a bare id does; only what the consumer is HANDED differs, so it subscribes exactly the same way.
         else if ("reading" in d) topics.add(d.reading as TopicId);
         else processors.set(d.id, d);
       }
@@ -376,8 +375,7 @@ function SlotAggregator({
     // reached the slot's consumers. See `getSlotPerfBudget`.
     budget.record();
     store.update(slot, { entries: collected });
-    // register() is a no-op-safe upsert on first write: update() alone
-    // returns early on an unknown id, so seed the entry once.
+    // register() is a no-op-safe upsert on first write: update() alone returns early on an unknown id, so seed the entry once.
     if (!current) store.register({ id: slot, entries: collected });
   }, [contribs, topicValues, slot, store, budget, client]);
 

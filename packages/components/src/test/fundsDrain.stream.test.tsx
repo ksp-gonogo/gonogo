@@ -188,8 +188,7 @@ describe("every funds-spending widget reports the standing drain beside the bala
       expect(text).not.toContain("/day");
       expect(text).not.toContain("drain");
       expect(text).not.toContain("left");
-      // The balance is still there: the rule this readout serves is that a
-      // spender always shows one.
+      // The balance is still there: the rule this readout serves is that a spender always shows one.
       expect(text).toContain("289,848f");
     });
 

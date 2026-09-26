@@ -158,8 +158,7 @@ const VESSEL_PARTS_READING = CORE_UPLINK_CLIENT.registerProcessor({
 CORE_UPLINK_CLIENT.registerContribution({
   id: "ship-map-part-meters",
   contributes: "ship-map.part-meters",
-  // `vessel.parts` stays a bare dep beside the reading: the bare id is what
-  // subscribes the topic, and the processor only reads what is stored.
+  // `vessel.parts` stays a bare dep beside the reading: the bare id is what subscribes the topic, and the processor only reads what is stored.
   deps: ["vessel.parts", VESSEL_PARTS_READING],
   compute: (topics) =>
     builtinPartMeterReadings(topics[VESSEL_PARTS_READING.id]),

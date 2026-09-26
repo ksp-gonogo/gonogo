@@ -99,8 +99,7 @@ registerUnit({ symbol: "fuel:drum", kind: "x", dimension: {}, ratio: 1 });
 export type _formatsLaddered = Expect<
   Equal<FormatsFor<"fuel:u">, "fuel:u" | "fuel:ku">
 >;
-// Written as an inclusion and an exclusion rather than an equality, because a unit
-// test elsewhere in this package declares a length of its own.
+// Written as an inclusion and an exclusion rather than an equality, because a unit test elsewhere in this package declares a length of its own.
 type Lengths = "m" | "km" | "Mm" | "Gm" | "Tm";
 export type _formatsLadderedFirstParty = Expect<
   Equal<Extract<FormatsFor<"Mm">, Lengths>, Lengths>

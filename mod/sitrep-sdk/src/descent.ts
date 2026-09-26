@@ -64,8 +64,7 @@ export function projectDescent(
   ];
   let u = startSpeed * startSpeed;
   let settleAltitude: number | null = null;
-  // A vessel already riding the curve has nothing to settle onto; a tick at its
-  // own altitude would be a mark pointing at the mark beside it.
+  // A vessel already riding the curve has nothing to settle onto; a tick at its own altitude would be a mark pointing at the mark beside it.
   const vtStart = opts.terminalVelocityAt(startAltitude);
   const startedSettled =
     vtStart > 0 &&

@@ -74,8 +74,7 @@ describe("Countdown, handed a Reading", () => {
 
   it("FREEZES on the last observation where nothing is carrying it", () => {
     const { container } = render(<Countdown value={frozen(value("s", 90))} />);
-    // 90 seconds reads as "1min 30s"; what matters is that it is the
-    // OBSERVATION and not a model's later answer.
+    // 90 seconds reads as "1min 30s"; what matters is that it is the OBSERVATION and not a model's later answer.
     expect(container.textContent).toContain("1min 30s");
   });
 

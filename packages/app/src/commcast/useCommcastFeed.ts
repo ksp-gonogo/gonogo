@@ -230,8 +230,7 @@ export function useCommcastFeed(
       if (entry.out) continue;
       if (acked.current.has(entry.msg.id)) continue;
       acked.current.add(entry.msg.id);
-      // A message already in the inbox was released on an earlier mount, and
-      // `release` finds nothing to move, so this cannot acknowledge twice.
+      // A message already in the inbox was released on an earlier mount, and `release` finds nothing to move, so this cannot acknowledge twice.
       const at = pinned.current.get(entry.msg.id);
       if (at === undefined) continue;
       log.release(entry.msg.id, {

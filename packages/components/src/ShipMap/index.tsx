@@ -273,8 +273,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
         // `vessel.parts` stamps and every cross-channel join uses; the diagram
         // holds it as a number purely for its own geometry.
         { partId: String(flightId), eventName },
-        // Operator-facing description for the delay readouts: the raw event name
-        // alone would not say which part it acts on.
+        // Operator-facing description for the delay readouts: the raw event name alone would not say which part it acts on.
         { label: `${actionLabel} on ${partTitle}` },
       );
     },
@@ -369,8 +368,7 @@ function externalTempTint(temperatureK: unknown): string | null {
   if (typeof temperatureK !== "number" || !Number.isFinite(temperatureK)) {
     return null;
   }
-  // Anchor points: 200 K = deep cold (subtle blue), 290 K = ambient (clear),
-  // 600 K = warning amber, 1500+ K = reentry red.
+  // Anchor points: 200 K = deep cold (subtle blue), 290 K = ambient (clear), 600 K = warning amber, 1500+ K = reentry red.
   if (temperatureK <= 250) {
     const alpha = Math.min(0.18, (290 - temperatureK) / 600);
     return `rgba(80, 140, 220, ${alpha.toFixed(3)})`;
@@ -475,8 +473,7 @@ const MAP_SURFACE: CSSProperties = {
   boxSizing: "border-box",
 };
 
-// The styled version carried a `code {}` rule; no <code> is rendered here, so
-// it is dropped rather than reproduced.
+// The styled version carried a `code {}` rule; no <code> is rendered here, so it is dropped rather than reproduced.
 const PLACEHOLDER: CSSProperties = {
   flex: 1,
   display: "flex",

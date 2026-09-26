@@ -26,8 +26,7 @@ import {
  * so a delayed command can never be dispatched without its delay UX rendered.
  * Stripped in production (the field is absent), so this is never a prod cost.
  */
-// Re-exported, not re-declared: an identical copy of a published type in a
-// second published package is the shape that drifts silently.
+// Re-exported, not re-declared: an identical copy of a published type in a second published package is the shape that drifts silently.
 export type { CommandOutputToken } from "@ksp-gonogo/sitrep-sdk";
 
 import type { CommandOutputToken } from "@ksp-gonogo/sitrep-sdk";
@@ -238,8 +237,7 @@ export function CommandDelay({
   }
   if (lone && loneRenderer !== "in-flight-row") {
     const streamHandle = lone;
-    // An unknown delay (`null`) falls the same way an instant one does: there
-    // is no positive light-time to draw a strip from either way.
+    // An unknown delay (`null`) falls the same way an instant one does: there is no positive light-time to draw a strip from either way.
     const delay = streamHandle.effectiveDelaySeconds;
     if (delay === null || delay <= 0) return null;
     return (

@@ -32,8 +32,7 @@ test.describe("Settings: Data Sources tab: main screen", () => {
     await context.addInitScript((sitrepCfg: string) => {
       try {
         localStorage.setItem("gonogo.datasource.sitrep", sitrepCfg);
-        // Pre-answer analytics consent so the blocking boot modal doesn't
-        // sit over the screen and intercept the FAB click.
+        // Pre-answer analytics consent so the blocking boot modal doesn't sit over the screen and intercept the FAB click.
         localStorage.setItem("gonogo.analytics.consent", "disabled");
         // The first-run setup host auto-opens the Settings modal on a fresh
         // browser (own component coverage in FirstRunSetupHost.test.tsx):

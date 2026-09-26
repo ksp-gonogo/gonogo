@@ -31,14 +31,12 @@ type Expect<T extends true> = T;
 // The hand-written union and the generated catalogue name the same models.
 type _BasisSetsAgree = Expect<Equal<ReckoningBasis, GeneratedReckoningBasis>>;
 
-// Every declared Topic is a real Topic, so `useTelemetry`'s conditional arm can
-// never fire on a name the topic map has never heard of.
+// Every declared Topic is a real Topic, so `useTelemetry`'s conditional arm can never fire on a name the topic map has never heard of.
 type _ReckonableTopicsAreTopics = Expect<
   Equal<Extract<ReckonableTopic, TopicId>, ReckonableTopic>
 >;
 
-// The per-Topic field unions, spelled out rather than derived, so adding a mark
-// is a deliberate edit here as well as in the contract.
+// The per-Topic field unions, spelled out rather than derived, so adding a mark is a deliberate edit here as well as in the contract.
 type _TargetFields = Expect<
   Equal<ReckonableFields<"vessel.target">, "relativePosition">
 >;
@@ -60,8 +58,7 @@ type _OrbitFields = Expect<
   Equal<ReckonableFields<"vessel.orbit">, "meanAnomalyAtEpoch" | "epoch">
 >;
 
-// An unmarked Topic answers `never`, which is what makes the conditional in
-// `useTelemetry` safe to write over every `TopicId`.
+// An unmarked Topic answers `never`, which is what makes the conditional in `useTelemetry` safe to write over every `TopicId`.
 //
 // This one is principled rather than merely unmarked
 // today: it is a CATALOGUE, not a reading of anything, so there is nothing for a

@@ -63,8 +63,7 @@ export const zoomBounds = (baseZoom: number) => ({
   max: baseZoom * ZOOM_MAX_FACTOR,
 });
 
-// Follow-mode zoom: slow vessel → zoomed in, fast vessel → global view
-// Surface speed in m/s; baseZoom is the fit-whole-world zoom for this screen.
+// Follow-mode zoom: slow vessel → zoomed in, fast vessel → global view Surface speed in m/s; baseZoom is the fit-whole-world zoom for this screen.
 export const followZoom = (surfaceSpeed: number, baseZoom: number): number => {
   const t = Math.min(surfaceSpeed / 3000, 1);
   return baseZoom * (8 - 7 * t); // 8× at speed=0, 1× at speed≥3000 m/s

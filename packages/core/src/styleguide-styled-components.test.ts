@@ -173,8 +173,7 @@ describe("design-system: styled-components imports outside ui-kit", () => {
     ]) {
       expect(STYLED_IMPORT_RE.test(planted)).toBe(true);
     }
-    // And does not fire on prose about it, which is what a bare
-    // /styled-components/ would have done to every comment in this file.
+    // And does not fire on prose about it, which is what a bare /styled-components/ would have done to every comment in this file.
     for (const innocent of [
       "// migrated off styled-components in favour of ui-kit",
       'import { Stack } from "@ksp-gonogo/ui-kit";',
@@ -214,7 +213,6 @@ describe("design-system: styled-components imports outside ui-kit", () => {
      * compares the two numbers with nothing in between.
      */
     expect(offenders.length).toBe(STYLED_COMPONENTS_IMPORT_BASELINE);
-    // Generous timeout: this scans every tracked source file, which is slow
-    // under the CPU contention of a full concurrent `turbo test` run.
+    // Generous timeout: this scans every tracked source file, which is slow under the CPU contention of a full concurrent `turbo test` run.
   }, 30_000);
 });

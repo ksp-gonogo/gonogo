@@ -51,8 +51,7 @@ describe("MapView: stream render golden (delay=0)", () => {
       });
     });
 
-    // altSea lands off vessel.flight.altitudeAsl: waiting on the altitude
-    // readout proves the stream leg rendered.
+    // altSea lands off vessel.flight.altitudeAsl: waiting on the altitude readout proves the stream leg rendered.
     await waitFor(() => {
       // 80 m at the pad: see the note in stream.test.tsx on the rung.
       if (!visibleText(container).includes("80.0 m")) {

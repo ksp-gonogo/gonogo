@@ -65,8 +65,7 @@ export async function stitch3up(
   outPath: string,
 ): Promise<void> {
   const imgs = await Promise.all(pngPaths.map(read));
-  // No gap between panels: the composite's width must be exactly the sum
-  // of the three panel widths (verified by crossBrowserComposite.test.ts).
+  // No gap between panels: the composite's width must be exactly the sum of the three panel widths (verified by crossBrowserComposite.test.ts).
   const gap = 0;
   const width =
     imgs.reduce((sum, i) => sum + i.width, 0) + gap * (imgs.length - 1);

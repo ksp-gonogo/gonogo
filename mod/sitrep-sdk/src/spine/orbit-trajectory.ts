@@ -688,8 +688,7 @@ function sampleArc(
   viewUt: number,
   samples: number | undefined,
 ): TrajectoryArcAnswer | null {
-  // `solveAnomalies` refuses outside `[0, 1)`, so an unbound osculating set has
-  // no arc rather than a thrown render.
+  // `solveAnomalies` refuses outside `[0, 1)`, so an unbound osculating set has no arc rather than a thrown render.
   if (!(elements.ecc >= 0 && elements.ecc < 1)) return null;
   const period = orbitalPeriod(elements);
   if (period === null) return null;
@@ -710,8 +709,7 @@ function sampleArc(
     points.push({
       x: radius * Math.cos(trueAnomaly),
       y: radius * Math.sin(trueAnomaly),
-      // A conic is flat in its own plane by construction, so the out-of-plane
-      // component is a real zero rather than an unfilled field.
+      // A conic is flat in its own plane by construction, so the out-of-plane component is a real zero rather than an unfilled field.
       z: 0,
       ut,
     });

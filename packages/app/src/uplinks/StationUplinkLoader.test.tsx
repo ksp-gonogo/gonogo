@@ -139,8 +139,7 @@ function asPeerClient(fake: {
 
 describe("runStationUplinkLoad", () => {
   it("with no roster sample (timeout), attempts nothing and never makes a direct bundle fetch", async () => {
-    // The station's host never told it what is installed, so there is nothing
-    // to attempt: no shipped id list stands behind an absent roster.
+    // The station's host never told it what is installed, so there is nothing to attempt: no shipped id list stands behind an absent roster.
     const directBundleFetches = stubFetch(registryWith(goodHash));
     const stub = new StubTransport();
     const client = new TelemetryClient(stub);
@@ -170,8 +169,7 @@ describe("runStationUplinkLoad", () => {
       1000,
       async () => ({}),
     );
-    // Roster present and reports "alpha" installed: the registry entry
-    // above matches it, so the derived enabled set is exactly ["alpha"].
+    // Roster present and reports "alpha" installed: the registry entry above matches it, so the derived enabled set is exactly ["alpha"].
     stub.emit("system.uplinks", {
       uplinks: [
         { id: "alpha", version: "1.0.0", available: true, reason: null },
@@ -197,8 +195,7 @@ describe("runStationUplinkLoad", () => {
       1000,
       async () => ({}),
     );
-    // The mod vouches for a DIFFERENT hash than the Hub index offers,
-    // three-way mismatch, must refuse before ever calling the conduit.
+    // The mod vouches for a DIFFERENT hash than the Hub index offers, three-way mismatch, must refuse before ever calling the conduit.
     stub.emit("system.uplinks", {
       uplinks: [
         {
@@ -331,8 +328,7 @@ describe("StationUplinkLoader", () => {
   });
 
   it("stays gated (never renders children) while telemetryClient/peerClient aren't both available yet", () => {
-    // No PeerClientProvider at all: usePeerClient() resolves null, so the
-    // effect must wait rather than starting the load with a missing conduit.
+    // No PeerClientProvider at all: usePeerClient() resolves null, so the effect must wait rather than starting the load with a missing conduit.
     const stub = new StubTransport();
     const client = new TelemetryClient(stub);
     render(

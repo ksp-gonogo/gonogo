@@ -123,8 +123,7 @@ export class Courier {
       return;
     }
 
-    // Snapshot the current subscriber set: later subscribes/unsubscribes
-    // must not affect delivery of this already-recorded sample.
+    // Snapshot the current subscriber set: later subscribes/unsubscribes must not affect delivery of this already-recorded sample.
     for (const subscriber of [...subs]) {
       // The delay this sample is SENT under. Captured once here and carried
       // into the delivery closure: it is a property of this sample's journey,

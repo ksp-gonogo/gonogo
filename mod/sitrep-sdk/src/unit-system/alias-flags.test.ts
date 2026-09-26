@@ -39,8 +39,7 @@ describe("the alias flag", () => {
         const runtimeWinner = declaredUnitFor(Dim.key(def.dim));
         const runtimePicksIt = runtimeWinner === symbol;
         const flaggedAlias = def.alias === true;
-        // Flagged as an alias but the runtime picks it, or not flagged and the
-        // runtime picks something else: either way the layers disagree.
+        // Flagged as an alias but the runtime picks it, or not flagged and the runtime picks something else: either way the layers disagree.
         return runtimePicksIt === flaggedAlias
           ? `${symbol}: runtime picks ${String(runtimeWinner)}, alias=${flaggedAlias}`
           : null;
@@ -57,8 +56,7 @@ describe("the alias flag", () => {
       byDimension.set(key, [...(byDimension.get(key) ?? []), symbol]);
     }
 
-    // Exactly one unflagged winner per contested dimension, or the type layer
-    // resolves to a union and every downstream `Equal` fails silently.
+    // Exactly one unflagged winner per contested dimension, or the type layer resolves to a union and every downstream `Equal` fails silently.
     const contested = [...byDimension.values()].filter(
       (symbols) => symbols.length > 1,
     );
@@ -84,8 +82,7 @@ describe("the alias flag", () => {
   });
 
   it("leaves every uncontested ratio-1 unit unflagged", () => {
-    // A stray flag would make a perfectly good unit unreachable as a computed
-    // result, which degrades to `Value<string>` and errors nowhere.
+    // A stray flag would make a perfectly good unit unreachable as a computed result, which degrades to `Value<string>` and errors nowhere.
     const strays = canonical
       .filter(([symbol, def]) => {
         if (def.alias !== true) return false;

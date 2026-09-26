@@ -183,8 +183,7 @@ describe("an Uplink's alarm request", () => {
       uplinkName: "Test Uplink",
       key: "facility-upgrade:LaunchPad",
     });
-    // The app's own, not a foreign arm: `createdBy` is the screen that made it,
-    // which is what lets `ScetAlarmBridge.reconcile` account for the row.
+    // The app's own, not a foreign arm: `createdBy` is the screen that made it, which is what lets `ScetAlarmBridge.reconcile` account for the row.
     expect(alarms[0].createdBy).toBe("main");
   });
 
@@ -246,8 +245,7 @@ describe("an Uplink's alarm request", () => {
 
     const alarms = host.snapshot().alarms;
     expect(alarms).toHaveLength(1);
-    // The SAME row, moved: keeping the id means a warp-to session or a SCET arm
-    // already holding it follows the change instead of being orphaned.
+    // The SAME row, moved: keeping the id means a warp-to session or a SCET arm already holding it follows the change instead of being orphaned.
     expect(alarms[0].id).toBe(firstId);
     expect(alarms[0].name).toBe("Burn starts (revised)");
     expect(alarms[0].trigger).toMatchObject({ ut: 9500 });
@@ -309,8 +307,7 @@ describe("an Uplink's alarm request", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Set alarm" }));
 
-    // The joined `dataKey` is derived from the address rather than asked for,
-    // so the client-side read and the mod-side arm cannot name different things.
+    // The joined `dataKey` is derived from the address rather than asked for, so the client-side read and the mod-side arm cannot name different things.
     expect(host.snapshot().alarms[0].trigger).toMatchObject({
       kind: "threshold",
       topic: "vessel.flight",
@@ -418,8 +415,7 @@ describe("an Uplink's alarm request", () => {
     });
 
     expect(added).toHaveLength(1);
-    // Both questions answered at once: the station is who SENT it, the Uplink
-    // is who asked for it.
+    // Both questions answered at once: the station is who SENT it, the Uplink is who asked for it.
     expect(added[0]).toMatchObject({
       createdBy: "station-abc",
       requestedBy: {

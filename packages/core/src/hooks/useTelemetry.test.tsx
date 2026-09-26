@@ -87,8 +87,7 @@ describe("useTelemetry: canonical TopicId read", () => {
       return <div>sma:{sma === undefined ? NULL_DISPLAY : String(sma)}</div>;
     }
 
-    // No carriedChannels prop: the canonical Topic read does not consult the
-    // migration-shim allowlist (it has no legacy fallback to protect).
+    // No carriedChannels prop: the canonical Topic read does not consult the migration-shim allowlist (it has no legacy fallback to protect).
     render(
       <TelemetryProvider client={client}>
         <Orbit />
@@ -104,8 +103,7 @@ describe("useTelemetry: canonical TopicId read", () => {
       });
     });
 
-    // Provider coalesces beginFrame() to the next animation frame, so the read
-    // resolves one frame after the emit rather than synchronously.
+    // Provider coalesces beginFrame() to the next animation frame, so the read resolves one frame after the emit rather than synchronously.
     await waitFor(() => expect(screen.getByText("sma:700000")).toBeTruthy());
   });
 

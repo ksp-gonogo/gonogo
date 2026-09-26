@@ -25,13 +25,11 @@ const APP_PORT = 5273;
 export default defineConfig({
   testDir: "./tests/rig",
   testMatch: /.*\.rig\.spec\.ts$/,
-  // Generous: a rig session waits on a real game, and the flight scene alone
-  // takes minutes to settle after a restart.
+  // Generous: a rig session waits on a real game, and the flight scene alone takes minutes to settle after a restart.
   timeout: 10 * 60_000,
   expect: { timeout: 30_000 },
   fullyParallel: false,
-  // Never in CI, and a rig failure is a finding rather than a flake: a retry
-  // would write a second trace over the state the first one left behind.
+  // Never in CI, and a rig failure is a finding rather than a flake: a retry would write a second trace over the state the first one left behind.
   retries: 0,
   workers: 1,
   reporter: "list",

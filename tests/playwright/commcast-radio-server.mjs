@@ -138,8 +138,7 @@ export function startRadioStreamServer({
     res.end();
   });
 
-  // No path: `WebSocketTransport` builds `ws://host:port` with no suffix, the
-  // same as the real mod.
+  // No path: `WebSocketTransport` builds `ws://host:port` with no suffix, the same as the real mod.
   const wss = new WebSocketServer({ server: http });
 
   wss.on("connection", (ws) => {

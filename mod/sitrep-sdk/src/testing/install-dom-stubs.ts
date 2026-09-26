@@ -104,8 +104,7 @@ function installRelayFetchStub(): void {
 
 function installNoopWebSocket(): void {
   if (typeof globalThis === "undefined") return;
-  // Some EventTarget-based runtimes (jsdom + Node) need at least these
-  // surface bits so consumer code doesn't crash on construction.
+  // Some EventTarget-based runtimes (jsdom + Node) need at least these surface bits so consumer code doesn't crash on construction.
   class NoopWebSocket extends EventTarget {
     static readonly CONNECTING = 0;
     static readonly OPEN = 1;

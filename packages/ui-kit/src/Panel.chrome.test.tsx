@@ -16,8 +16,7 @@ import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
  */
 describe("Panel toolbar", () => {
   it("puts the toolbar in the header, outside the scrolling body", () => {
-    // The whole reason it is a prop and not body content: controls that scroll
-    // away from what they steer are worse than no controls.
+    // The whole reason it is a prop and not body content: controls that scroll away from what they steer are worse than no controls.
     render(
       <Panel
         panelTitle="MAP"
@@ -54,8 +53,7 @@ describe("Panel toolbar", () => {
     );
     const toolbar = screen.getByRole("button", { name: "Layers" })
       .parentElement as HTMLElement;
-    // A full basis is what wraps it below the title/aside pair in the header's
-    // wrapping row; without it the controls compete for the first line.
+    // A full basis is what wraps it below the title/aside pair in the header's wrapping row; without it the controls compete for the first line.
     expect(getComputedStyle(toolbar).flexBasis).toBe("100%");
   });
 });

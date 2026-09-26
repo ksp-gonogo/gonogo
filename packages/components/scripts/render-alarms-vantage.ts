@@ -156,15 +156,13 @@ async function main(): Promise<void> {
         { kind },
       );
 
-      // The control's own field: the label the radiogroup names, the two
-      // radios, and the hints under them.
+      // The control's own field: the label the radiogroup names, the two radios, and the hints under them.
       const field = page.locator("#alarm-vantage-label").locator("..");
       const controlPath = join(OUT_DIR, `${kind}-control.png`);
       await field.screenshot({ path: controlPath, animations: "disabled" });
       console.log(`  ${kind}-control → ${controlPath}`);
 
-      // The top of the draft form, so which kind the control belongs to is
-      // legible in the same frame.
+      // The top of the draft form, so which kind the control belongs to is legible in the same frame.
       const formPath = join(OUT_DIR, `${kind}-form.png`);
       await page.screenshot({
         path: formPath,

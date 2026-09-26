@@ -65,8 +65,7 @@ function downloadJson(payload: unknown, filename: string): void {
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
-  // Append → click → remove keeps Firefox happy; the synchronous click
-  // triggers the download immediately, then we revoke the blob URL.
+  // Append → click → remove keeps Firefox happy; the synchronous click triggers the download immediately, then we revoke the blob URL.
   document.body.appendChild(a);
   a.click();
   a.remove();

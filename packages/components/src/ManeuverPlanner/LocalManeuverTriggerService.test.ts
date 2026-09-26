@@ -35,8 +35,7 @@ function fixture() {
   clock.scrubTo(PINNED_UT);
   const store = new TimelineStore(clock);
   client.attachStore(store);
-  // `StubTransport.emit` is subscription-gated: without these it delivers
-  // nothing and the store never sees a body at all.
+  // `StubTransport.emit` is subscription-gated: without these it delivers nothing and the store never sees a body at all.
   client.subscribe("vessel.orbit", () => {});
   client.subscribe("vessel.identity", () => {});
   client.subscribe("system.bodies", () => {});
@@ -150,8 +149,7 @@ describe("LocalManeuverTriggerService", () => {
     const { commands } = fixture();
     const svc = new LocalManeuverTriggerService();
     try {
-      // sma is 6_771_000, so the condition is already true and the trigger
-      // fires at arm time.
+      // sma is 6_771_000, so the condition is already true and the trigger fires at arm time.
       svc.arm({
         dataKey: "vessel.orbit.sma",
         op: ">=",

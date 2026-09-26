@@ -63,8 +63,7 @@ describe("SystemView panel badge (fleet-comms-badge contribution)", () => {
   let unmount: (() => void) | undefined;
 
   beforeEach(() => {
-    // The Processor evaluator caches per frame in a module global; a value
-    // cached against the previous test's fixture would otherwise answer here.
+    // The Processor evaluator caches per frame in a module global; a value cached against the previous test's fixture would otherwise answer here.
     clearProcessorRuntime();
     fixture = setupStreamFixture({
       carriedChannels: ["comms.link"],

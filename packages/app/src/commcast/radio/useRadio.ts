@@ -217,8 +217,7 @@ export function useRadio({
       const updated = new Set(muted);
       if (next) updated.add(threadKey);
       else updated.delete(threadKey);
-      // Written before the state, and outside the updater: an updater runs
-      // twice under StrictMode and is no place for anything that leaves a mark.
+      // Written before the state, and outside the updater: an updater runs twice under StrictMode and is no place for anything that leaves a mark.
       saveMutedThreads(local.stationKey, updated);
       setMutedThreads(updated);
     },
@@ -231,8 +230,7 @@ export function useRadio({
 
   const setInputDevice = useCallback(
     (deviceId: string | null) => {
-      // Written before the state and outside an updater, as the mute is, for
-      // the same StrictMode reason.
+      // Written before the state and outside an updater, as the mute is, for the same StrictMode reason.
       saveInputDevice(local.stationKey, deviceId);
       setInputDeviceId(deviceId);
     },

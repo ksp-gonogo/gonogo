@@ -102,8 +102,7 @@ describe("CoverageMaskStore", () => {
 
     const masks = await store.loadAllForProfile("p1");
     expect(masks).toHaveLength(3);
-    // Each row carries its layerId: used by CoverageSyncHostService to route
-    // station-bound payloads to the right per-type slot.
+    // Each row carries its layerId: used by CoverageSyncHostService to route station-bound payloads to the right per-type slot.
     const byKey = new Map(
       masks.map((m) => [
         `${m.key.split(":")[1]}:${m.layerId}`,

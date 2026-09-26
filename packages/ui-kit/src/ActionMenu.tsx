@@ -128,8 +128,7 @@ export function ActionMenu({
         onDismiss();
         return;
       }
-      // A menu does not keep Tab focus: Tab dismisses and lets focus continue
-      // past the trigger, rather than trapping the operator inside.
+      // A menu does not keep Tab focus: Tab dismisses and lets focus continue past the trigger, rather than trapping the operator inside.
       if (e.key === "Tab") {
         onDismiss();
         return;

@@ -108,8 +108,7 @@ function reportUncomparable(id: string, shape: string): void {
   else console.warn(message, { processorId: id, shape });
 }
 
-// The test seam beside the budget: a case that wants the exact ids and shapes
-// (rather than a count) reads them here without going through a rate window.
+// The test seam beside the budget: a case that wants the exact ids and shapes (rather than a count) reads them here without going through a rate window.
 let recordUncomparable: (id: string, shape: string) => void = () => {};
 
 /**
@@ -165,8 +164,7 @@ function teardownFrameSubscription(): void {
 export function setActiveTimelineStore(store: TimelineStore | undefined): void {
   if (store === activeStore) return;
   teardownFrameSubscription();
-  // Topic subscriptions resolved against the OLD store's derived-topic graph
-  // must be torn down and re-established against the new one.
+  // Topic subscriptions resolved against the OLD store's derived-topic graph must be torn down and re-established against the new one.
   teardownAllTopicSubscriptions();
   // A fresh store restarts frame generations from a low number, which can
   // COLLIDE with a `lastFrameGeneration` cached from the previous store and
@@ -175,8 +173,7 @@ export function setActiveTimelineStore(store: TimelineStore | undefined): void {
   // refCounts) so every active processor re-evaluates on the new store's frames.
   resetFrameTracking();
   activeStore = store;
-  // Back-fill: any processors activated before the store arrived get their
-  // frame source connected now, and an answer for the frame the store holds.
+  // Back-fill: any processors activated before the store arrived get their frame source connected now, and an answer for the frame the store holds.
   ensureFrameSubscription();
   ensureAllTopicSubscriptions();
   evaluateAllActive();
@@ -544,8 +541,7 @@ function compareResults(previous: unknown, next: unknown): Comparison {
   let uncomparable: string | undefined;
 
   function walk(a: unknown, b: unknown): Comparison {
-    // Also the NaN case: `Object.is(NaN, NaN)` is true, and a telemetry
-    // derivation that yields NaN twice running has not changed its answer.
+    // Also the NaN case: `Object.is(NaN, NaN)` is true, and a telemetry derivation that yields NaN twice running has not changed its answer.
     if (Object.is(a, b)) return "equal";
     if (budget-- <= 0) {
       uncomparable ??= "node-budget";
@@ -706,8 +702,7 @@ export function activateProcessor(id: string): () => void {
   entry.refCount++;
   if (entry.refCount === 1) {
     activeProcessorCount++;
-    // Connect the frame source and subscribe this processor's raw Topic deps
-    // (both no-ops until the store / subscriber arrive, then back-filled).
+    // Connect the frame source and subscribe this processor's raw Topic deps (both no-ops until the store / subscriber arrive, then back-filled).
     ensureFrameSubscription();
     ensureTopicSubscriptions(id);
     if (activeStore) {

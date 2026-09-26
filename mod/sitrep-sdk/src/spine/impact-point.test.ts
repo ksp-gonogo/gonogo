@@ -90,8 +90,7 @@ function syntheticPatch(overrides: Partial<WirePatch> = {}): WirePatch {
     inc: 0,
     lan: 0,
     argPe: 0,
-    // Mean anomaly π is apoapsis (r = 400_000, above the 200_000 radius); the
-    // walk crosses the surface on the way down toward periapsis (r = 100_000).
+    // Mean anomaly π is apoapsis (r = 400_000, above the 200_000 radius); the walk crosses the surface on the way down toward periapsis (r = 100_000).
     meanAnomalyAtEpoch: Math.PI,
     epoch: 0,
     period: 12,
@@ -271,8 +270,7 @@ describe("predictImpactPoint: a conic answer", () => {
   });
 
   it("answers none for an impact past the provider's horizon", () => {
-    // Reachable at the view instant, so the answer IS a conic, but the
-    // crossing is ~4.7 s out and the provider vouches for 4.
+    // Reachable at the view instant, so the answer IS a conic, but the crossing is ~4.7 s out and the provider vouches for 4.
     expect(
       predictImpactPoint(
         input({
@@ -300,8 +298,7 @@ describe("predictImpactPoint: an arc answer", () => {
   });
 
   it("lifts perifocal points back through the elements they were rotated by", () => {
-    // Inclined elements, so the perifocal frame is nowhere near the inertial
-    // one: the inertial answer comes back only if the lift undoes the rotation.
+    // Inclined elements, so the perifocal frame is nowhere near the inertial one: the inertial answer comes back only if the lift undoes the rotation.
     const tilted = { inc: 30, lan: 40, argPe: 50 };
     const rad = (d: number) => (d * Math.PI) / 180;
     const inertial = fallingArc(20);

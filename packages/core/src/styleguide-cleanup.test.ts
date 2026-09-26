@@ -139,8 +139,7 @@ function scan(): { scanned: number; offenders: string[] } {
 
 describe("test-hygiene: manual cleanup imports from @testing-library/react", () => {
   it("recognises the import it bans, and leaves its neighbours alone", () => {
-    // A ban whose pattern matches nothing passes every file in the repo, so the
-    // pattern is exercised here BEFORE the scan result is trusted.
+    // A ban whose pattern matches nothing passes every file in the repo, so the pattern is exercised here BEFORE the scan result is trusted.
     //
     // The samples are ASSEMBLED rather than written out, because this file is
     // itself inside the scan roots: a literal sample would make this guard its
@@ -158,8 +157,7 @@ describe("test-hygiene: manual cleanup imports from @testing-library/react", () 
         `import {\n  render,\n  ${bound},\n} from ${rtl};`,
       ),
     ).toBe(true);
-    // Neighbours that must NOT trip it: RTL without the banned binding, and a
-    // same-named binding that belongs to somebody else.
+    // Neighbours that must NOT trip it: RTL without the banned binding, and a same-named binding that belongs to somebody else.
     expect(CLEANUP_IMPORT_RE.test(sample("render", rtl))).toBe(false);
     expect(CLEANUP_IMPORT_RE.test(sample(bound, '"./my-own-helpers"'))).toBe(
       false,
@@ -184,7 +182,6 @@ describe("test-hygiene: manual cleanup imports from @testing-library/react", () 
       );
     }
     expect(offenders).toEqual([]);
-    // Generous timeout: this reads every tracked source file, which is slow
-    // under the CPU contention of a full concurrent `turbo test` run.
+    // Generous timeout: this reads every tracked source file, which is slow under the CPU contention of a full concurrent `turbo test` run.
   }, 30_000);
 });

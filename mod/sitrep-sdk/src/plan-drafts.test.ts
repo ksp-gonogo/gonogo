@@ -26,8 +26,7 @@ function draft(overrides: Partial<Omit<PlanDraft, "id">> = {}) {
 
 describe("the command centre's own plans", () => {
   it("holds more than one plan for the same craft", () => {
-    // The whole reason drafts live here: two operators can work on different
-    // plans for one craft because neither is touching the game.
+    // The whole reason drafts live here: two operators can work on different plans for one craft because neither is touching the game.
     const store = new PlanDraftStore();
 
     const a = store.create(draft({ name: "Direct" }));
@@ -38,8 +37,7 @@ describe("the command centre's own plans", () => {
   });
 
   it("gives two identical drafts separate ids", () => {
-    // An operator made them separately and may be comparing them, so identical
-    // contents are still two drafts.
+    // An operator made them separately and may be comparing them, so identical contents are still two drafts.
     const store = new PlanDraftStore();
 
     const a = store.create(draft());
@@ -82,8 +80,7 @@ describe("the command centre's own plans", () => {
   });
 
   it("does not tell subscribers about a discard that discarded nothing", () => {
-    // A notification with no change behind it re-renders every reader for
-    // nothing, and on a store read by a dashboard that is a real cost.
+    // A notification with no change behind it re-renders every reader for nothing, and on a store read by a dashboard that is a real cost.
     const store = new PlanDraftStore();
     const listener = vi.fn();
     store.subscribe(listener);
@@ -99,8 +96,7 @@ describe("the command centre's own plans", () => {
   });
 
   it("keeps a draft's id across an update", () => {
-    // The id is what a send addresses as its request id, so a draft that
-    // changed id under an edit would be applied twice by the receiving side.
+    // The id is what a send addresses as its request id, so a draft that changed id under an edit would be applied twice by the receiving side.
     const store = new PlanDraftStore();
     const created = store.create(draft());
 
@@ -110,8 +106,7 @@ describe("the command centre's own plans", () => {
   });
 
   it("carries a request id built from the draft when sent", () => {
-    // A retransmission after a silence has to be recognised as the same plan
-    // rather than applied twice, and the request id is what does that.
+    // A retransmission after a silence has to be recognised as the same plan rather than applied twice, and the request id is what does that.
     const store = new PlanDraftStore();
     const created = store.create(draft());
 
@@ -119,8 +114,7 @@ describe("the command centre's own plans", () => {
   });
 
   it("keeps the request id across a retransmission of an unedited draft", () => {
-    // The intent has not changed, so the id must not: this is the whole of what
-    // makes a repeat safe.
+    // The intent has not changed, so the id must not: this is the whole of what makes a repeat safe.
     const store = new PlanDraftStore();
     const created = store.create(draft());
 

@@ -125,8 +125,7 @@ describe("getUndescribedCarriedTopics()", () => {
     // described once an app that loads the Uplink builds the catalogue.
     expect([...getUndescribedCarriedTopics()].sort()).toEqual(
       [
-        // Both dv.* channels key their fields by RESOURCE NAME, so there is
-        // no fixed field set for a declaration to enumerate.
+        // Both dv.* channels key their fields by RESOURCE NAME, so there is no fixed field set for a declaration to enumerate.
         "dv.currentStageResource",
         "dv.currentStageResourceMax",
         // Bare primitive channels: the Topic IS the value, so it has no fields.
@@ -149,8 +148,7 @@ describe("getUndescribedCarriedTopics()", () => {
         // entries above rather than the awaiting-a-declaration ones below: this
         // one cannot have a field declaration, it is not missing one.
         "system.channels",
-        // Derived channels still awaiting a field declaration of their own, the
-        // way `spaceCenter.state` has one.
+        // Derived channels still awaiting a field declaration of their own, the way `spaceCenter.state` has one.
         "system.state",
         "system.uplinkHealth",
         "system.uplinks",

@@ -60,8 +60,7 @@ export function FirstRunSetupHost({
     };
 
     openIfClear();
-    // The operator answering the consent ask is what clears the way, so watch
-    // for it rather than leaving this unopened for the whole session.
+    // The operator answering the consent ask is what clears the way, so watch for it rather than leaving this unopened for the whole session.
     return analyticsConsent.subscribe(openIfClear);
   }, [open, close, analyticsConsent]);
 
