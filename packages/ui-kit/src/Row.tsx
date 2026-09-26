@@ -1,5 +1,5 @@
 import type { ElementType, HTMLAttributes, ReactNode } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { focusRingInset } from "./focusRing";
 
 export interface RowProps extends HTMLAttributes<HTMLElement> {
@@ -87,12 +87,14 @@ function RowBase({
   selected = false,
   wrap = false,
   nested = false,
+  type,
   children,
   ...rest
 }: RowProps) {
   return (
     <Row__Root
       as={as ?? "li"}
+      type={type ?? (as === "button" ? "button" : undefined)}
       $interactive={interactive}
       $selected={selected}
       $wrap={wrap}
@@ -133,7 +135,6 @@ const Row__Root = styled.li<{
   gap: var(--space-8, 8px);
   font-size: var(--font-size-compact);
   padding: var(--space-2, 2px) 0;
-  ${({ $nested }) => ($nested ? `padding-left: var(--space-12, 12px);` : "")}
   ${({ $wrap }) =>
     $wrap
       ? `
@@ -147,7 +148,7 @@ const Row__Root = styled.li<{
       : ""}
   ${({ $interactive }) =>
     $interactive
-      ? `
+      ? css`
   width: 100%;
   border: none;
   background: transparent;
@@ -176,6 +177,8 @@ const Row__Root = styled.li<{
   }
 `
       : ""}
+  /* After the interactive block, whose padding shorthand would reset it. */
+  ${({ $nested }) => ($nested ? "padding-left: var(--space-12, 12px);" : "")}
 `;
 
 export const Row = Object.assign(RowBase, { Name: RowName });

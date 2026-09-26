@@ -1,6 +1,8 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import { Row, RowName } from "./Row";
+import { emittedRuleFor } from "./test/emittedRule";
 
 describe("Row", () => {
   it("renders as an li by default", () => {
@@ -85,6 +87,35 @@ describe("Row", () => {
     expect(getComputedStyle(screen.getByTestId("row")).flexWrap).toBe("wrap");
     expect(getComputedStyle(screen.getByTestId("name")).minWidth).toBe(
       "min(12ch, 100%)",
+    );
+  });
+});
+
+describe("Row as a control", () => {
+  it("does not submit a form it sits in", async () => {
+    const onSubmit = vi.fn((e: { preventDefault: () => void }) =>
+      e.preventDefault(),
+    );
+    render(
+      <form onSubmit={onSubmit}>
+        <Row as="button" interactive>
+          <RowName>Mun</RowName>
+        </Row>
+      </form>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Mun" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("keeps a nested row's indent when it is also interactive", () => {
+    render(
+      <Row as="button" interactive nested>
+        <RowName>Minmus</RowName>
+      </Row>,
+    );
+    const rule = emittedRuleFor(screen.getByRole("button", { name: "Minmus" }));
+    expect(rule.lastIndexOf("padding-left")).toBeGreaterThan(
+      rule.lastIndexOf("padding:"),
     );
   });
 });
