@@ -1,6 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { useGameContext, useTelemetry } from "@ksp-gonogo/core";
-import { stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
+import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import {
@@ -68,7 +68,10 @@ export function LaunchDirectorComponent({
       ? careerReading.value.economy
       : undefined;
   const careerFunds = magnitudeOf(careerEconomy?.funds);
-  const fundsNotCurrent = careerReading.state === "stale";
+  // Drawn as the whole field reading, so a held balance stays on screen with the Unit's own mark.
+  const fundsReading = careerReading.economy.funds;
+  const hasFunds = stillTrue(careerReading, undefined)?.economy?.funds != null;
+  const fundsHeld = careerReading.state === "stale";
   // The standing rate the elected money model reports, beside the balance rather than folded into the gate; stock reports none.
   const netFunds = netFundsPerDay(careerEconomy);
   const { chargesFunds } = useGameContext();
@@ -162,9 +165,15 @@ export function LaunchDirectorComponent({
                       unreported: pads.filter((p) => p.occupied === null)
                         .length,
                     })}
-                {typeof careerFunds === "number" && (
-                  <FundsReadout title="Available funds">
-                    · <Unit value={value("funds", careerFunds)} />
+                {hasFunds && (
+                  <FundsReadout
+                    title={
+                      fundsHeld
+                        ? "Affordability is not judged against a held balance"
+                        : "Available funds"
+                    }
+                  >
+                    · <Unit value={fundsReading} />
                   </FundsReadout>
                 )}
                 {/* Not inside FundsReadout: that span is nowrap and would clip the drain. */}
@@ -177,16 +186,10 @@ export function LaunchDirectorComponent({
                     />
                   </DrainReadout>
                 )}
-                {/* The balance is required beside a spend control; the two ways of having none say which. */}
-                {careerFunds === null && chargesFunds && (
-                  <FundsReadout
-                    title={
-                      fundsNotCurrent
-                        ? "The last funds balance is no longer current, so affordability is not being judged"
-                        : "No funds balance has arrived"
-                    }
-                  >
-                    · {fundsNotCurrent ? "funds not current" : "funds unknown"}
+                {/* The balance is required beside a spend control. */}
+                {!hasFunds && chargesFunds && (
+                  <FundsReadout title="No funds balance has arrived">
+                    · funds unknown
                   </FundsReadout>
                 )}
               </div>

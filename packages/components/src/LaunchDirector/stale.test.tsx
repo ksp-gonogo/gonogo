@@ -8,10 +8,19 @@ import { LaunchDirectorComponent } from "./index";
 /**
  * What LaunchDirector does when its telemetry stops being current: the pad's
  * paperwork (craft, roster, scene, revert points, vessel roster, crash record)
- * is kept, since only events change it, and the funds balance is withheld,
- * since it is spent. The withheld balance must read differently from a short
- * balance and from a cold start.
+ * is kept, since only events change it, and the funds balance is withheld
+ * from the affordability verdict, since it is spent. The held balance stays on
+ * screen, marked by its Unit, and must read differently from a short balance
+ * and from a cold start.
  */
+
+/** The funds readout's spoken staleness, which carries the grade and the instant it was read. */
+function heldFundsCaption(): string | null {
+  const readout = screen.queryByTitle(
+    "Affordability is not judged against a held balance",
+  );
+  return readout?.querySelector("[data-unit-currency]")?.textContent ?? null;
+}
 
 const CARRIED = [
   "career.status",
@@ -158,7 +167,7 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
     ).toBe("false");
   });
 
-  it("withholds the balance when it stops being current, and says that is why", async () => {
+  it("keeps the held balance on screen, marked by its Unit, and says affordability is not judged against it", async () => {
     const { container } = renderWidget();
     emitPreLaunch();
     await waitFor(() =>
@@ -167,16 +176,10 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
 
     goStale();
 
-    // Withheld, not merely gone: the readout states the number is no longer current.
-    await waitFor(() =>
-      expect(screen.queryByTitle("Available funds")).toBeNull(),
-    );
-    expect(visibleText(container)).toContain("funds not current");
-    expect(
-      screen.getByTitle(
-        "The last funds balance is no longer current, so affordability is not being judged",
-      ),
-    ).toBeTruthy();
+    await waitFor(() => expect(heldFundsCaption()).toMatch(/OFFLINE, as of /));
+    expect(screen.queryByTitle("Available funds")).toBeNull();
+    // Time is shown only through Unit, never as a caption the widget writes.
+    expect(visibleText(container)).not.toContain("not current");
   });
 
   it("does not present a withheld balance as an empty wallet the operator has never seen", async () => {
@@ -189,9 +192,7 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
 
     goStale();
 
-    await waitFor(() =>
-      expect(visibleText(container)).toContain("funds not current"),
-    );
+    await waitFor(() => expect(heldFundsCaption()).not.toBeNull());
     expect(visibleText(container)).not.toContain("funds unknown");
     expect(screen.queryByTitle("No funds balance has arrived")).toBeNull();
   });
@@ -216,7 +217,7 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
 
     await waitFor(() => expect(screen.getByText("Kerbal X")).toBeTruthy());
     expect(visibleText(container)).toContain("funds unknown");
-    expect(visibleText(container)).not.toContain("funds not current");
+    expect(heldFundsCaption()).toBeNull();
   });
 
   it("suspends the affordability verdict with the balance, rather than spending against a held one", async () => {
@@ -251,9 +252,7 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
 
     goStale();
 
-    await waitFor(() =>
-      expect(visibleText(container)).toContain("funds not current"),
-    );
+    await waitFor(() => expect(heldFundsCaption()).not.toBeNull());
     expect(screen.getByText("Kerbal X")).toBeTruthy();
     expect(visibleText(container)).not.toContain(
       "Awaiting launch-pad telemetry",
