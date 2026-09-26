@@ -2,7 +2,7 @@
   "_meta": {
     "scenario": "reckoned-tail",
     "synthetic": true,
-    "notes": "SYNTHETIC. A craft coasting an eccentric Kerbin orbit (sma 900 km, ecc 0.4) whose vessel.orbit and vessel.flight samples stop at UT 280, when the link drops. The frame is drawn for UT 900, so 620 seconds of the window had no observation in it at all. The vessel.flight samples are solved from the same elements, so the measured trace and the conic meet. ONE field apart from 1-model-carries-the-silence: VesselOrbit.encounter, an SOI transition at UT 600. These elements describe ONE patch and stop being about the craft once it leaves, and the frame's view time is past the transition, so the elements cannot be carried to it and nothing modelled from them is drawn, not even the stretch before UT 600. The measured trace ends at UT 280 and the rest of the window is blank. The horizon is off the wire rather than a constant somebody chose."
+    "notes": "SYNTHETIC. A craft coasting an eccentric Kerbin orbit (sma 900 km, ecc 0.4) whose vessel.orbit and vessel.flight samples stop at UT 280, when the link drops. The frame is drawn for UT 900, so 620 seconds of the window had no observation in it at all. The vessel.flight samples are solved from the same elements, so the measured trace and the conic meet. ONE field apart from 1-model-carries-the-silence: VesselOrbit.encounter, an SOI transition at UT 600. These elements describe ONE patch and stop being about the craft once it leaves, so the tail runs from UT 280 to the transition at UT 600 and stops there, and the rest of the window is blank. The horizon is off the wire rather than a constant somebody chose."
   },
   "_stream": {
     "carriedChannels": ["vessel.flight", "vessel.orbit", "system.bodies"],

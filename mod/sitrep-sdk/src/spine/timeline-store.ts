@@ -2339,7 +2339,12 @@ export class TimelineStore {
       const depTopic = TimelineStore.depTopic(dep);
       return depTopic === undefined || exempt.horizon[depTopic] === undefined;
     });
-    const outOfReach = this.inputPastItsHorizon(topic, bounding, token);
+    const outOfReach = this.inputPastItsHorizon(
+      topic,
+      bounding,
+      token,
+      viewUt - this.viewUtFor(token, this.laneForTopic(topic)),
+    );
     if (outOfReach) return { declined: outOfReach };
     return {
       owner: elected.owner,
@@ -2398,7 +2403,12 @@ export class TimelineStore {
 
   /**
    * The decline for a model whose declared input cannot itself be carried to
-   * this frame, or `undefined` when every input still reaches.
+   * the instant asked about, or `undefined` when every input still reaches.
+   *
+   * `shift` is how far that instant sits from the frame's view time, zero for a
+   * point read. A tail asks about every instant between the last observation
+   * and the view time, and an input that runs out partway through ends the tail
+   * there rather than refusing every instant of it.
    *
    * This is the horizon rule, and it is spelled as a withdrawal because a
    * horizon has no other spelling here: there is no horizon FIELD on a
@@ -2422,12 +2432,13 @@ export class TimelineStore {
     topic: string,
     deps: readonly Dep[],
     token: FrameToken,
+    shift: number,
   ): ReckoningDecline | undefined {
     return this.whileEnforcing(topic, () => {
       for (const dep of deps) {
         const depTopic = TimelineStore.depTopic(dep);
         if (depTopic === undefined) continue;
-        const answer = this.inputReckoning(depTopic, token);
+        const answer = this.inputReckoning(depTopic, token, shift);
         if (
           answer &&
           "declined" in answer &&
@@ -2473,13 +2484,15 @@ export class TimelineStore {
    * shipped reckoner declares bare Topic ids, and reading enforcement off the
    * handed dep would have made both rules opt-in through a spelling choice.
    *
-   * At the input's OWN delay lane's view time, not the dependent's. The input's
-   * uncertainty is the uncertainty of the value that actually fed the model, and
-   * that value is the one its own frame carries.
+   * At the input's OWN delay lane's view time, not the dependent's, moved by
+   * `shift` seconds. The input's uncertainty is the uncertainty of the value
+   * that actually fed the model, and that value is the one its own frame
+   * carries.
    */
   private inputReckoning(
     depTopic: string,
     token: FrameToken,
+    shift: number,
   ):
     | { readonly owner: string; readonly model: TopicModel<unknown, unknown> }
     | { readonly declined: ReckoningDecline }
@@ -2494,7 +2507,7 @@ export class TimelineStore {
         token,
         this.sample<unknown>(depTopic, token),
         status === "live" ? undefined : (status as StaleGrade),
-        this.viewUtFor(token, this.laneForTopic(depTopic)),
+        this.viewUtFor(token, this.laneForTopic(depTopic)) + shift,
       ),
     );
   }
@@ -2584,7 +2597,7 @@ export class TimelineStore {
           let softest = false;
           let inexact = false;
           for (const depTopic of topics) {
-            const answer = this.inputReckoning(depTopic, token);
+            const answer = this.inputReckoning(depTopic, token, 0);
             if (!answer || !("model" in answer)) continue;
             const at = this.viewUtFor(token, this.laneForTopic(depTopic));
             for (const band of Object.values(answer.model.bandAt?.(at) ?? {})) {

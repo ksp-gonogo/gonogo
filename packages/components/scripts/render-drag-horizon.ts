@@ -13,10 +13,9 @@
  * `atmosphere`. Without it the wire says airless, the floor is the surface, and
  * the conic runs the whole window: that is the line a conic wants to draw, and
  * around an airless body it is the honest one. With it the view time is inside
- * the air, the conic no longer describes the craft there, and nothing modelled
- * from those elements is drawn at all, leaving the window blank past the last
- * observation. A controlled comparison rather than two drawings of two
- * datasets.
+ * the air, where the conic no longer describes the craft, so the tail runs down
+ * to the interface and stops there. A controlled comparison rather than two
+ * drawings of two datasets.
  *
  * Altitude rather than speed, because the atmosphere is an altitude and the
  * eye can put the two together.

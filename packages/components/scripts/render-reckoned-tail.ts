@@ -11,9 +11,9 @@
  * this and `render-chart-provenance.ts`, which hand-feeds `LineChart`.
  *
  * Two scenes one field apart: the second adds `VesselOrbit.encounter`, an SOI
- * transition before the view time, so the elements cannot be carried to the
- * frame and no tail is drawn. A controlled comparison rather than two drawings
- * of two datasets.
+ * transition before the view time, so the tail runs to the transition and
+ * stops there. A controlled comparison rather than two drawings of two
+ * datasets.
  *
  * Deliberately NOT registered in `widgets.ts`, the same reasoning
  * `render-affordability.ts` gives: that file is the visual gate's input, and a

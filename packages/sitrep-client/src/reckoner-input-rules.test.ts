@@ -167,6 +167,30 @@ describe("rule 1: a model reaches no further than its inputs do", () => {
     });
   });
 
+  it("carries a plotted tail up to where the input runs out, and no further", () => {
+    const store = storeWithInput(200);
+    // A second observation gives the tail a 10 s cadence to stride at.
+    ingestPoint(store, "test.contact", 0, { relativePosition: 5, name: "a" });
+    store.beginFrame();
+    registerReckoner(INPUT, UPLINK, inputModel(100));
+    registerReckoner("test.contact", UPLINK, {
+      deps: [INPUT],
+      reckon: (point) => ({
+        modelled: [{ path: "", basis: "rate-integration" }],
+        reckon: (at: number) => ({
+          relativePosition: at - point.validAt,
+          name: "a",
+        }),
+      }),
+    });
+
+    const instants = store
+      .sampleReckonedTail<number>("test.contact.relativePosition", 0, 200)
+      .map((s) => s.atUt);
+
+    expect(instants).toEqual([20, 30, 40, 50, 60, 70, 80, 90, 100]);
+  });
+
   it("serves the model anyway where the author declared an exemption", () => {
     const store = storeWithInput(200);
     registerReckoner(INPUT, UPLINK, inputModel(100));

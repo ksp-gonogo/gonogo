@@ -246,7 +246,7 @@ describe("useDataSeries: the stretch nobody measured", () => {
     });
   });
 
-  it("draws no run once the view time is past where the conic ends", async () => {
+  it("stops the run where the conic ends, short of a view time past it", async () => {
     const fixture = buildStreamFixture({ pinnedUt: 600 });
 
     render(
@@ -261,17 +261,15 @@ describe("useDataSeries: the stretch nobody measured", () => {
         // The wire's own next SOI transition. These elements describe the
         // patch the craft is in and stop being about the craft at all once it
         // leaves, so the model withdraws there rather than at a cutoff
-        // somebody chose. `vessel.flight`'s conic is bound by `vessel.orbit`'s
-        // horizon at the read's view time, so a view past the transition gets
-        // no tail rather than one clipped short.
+        // somebody chose.
         encounter: { transitionType: 1, transitionUt: 420, bodyIndex: 2 },
       });
       fixture.store.setTransportConnected(false);
     });
 
     await waitFor(() => {
-      // The three observations and nothing modelled after them, where the same elements without the transition draw a run to the view time.
-      expect(readProbe()).toBe("n:3|reckoned:");
+      // The run stops at 400 where the same elements without the transition carry it to 600.
+      expect(readProbe()).toBe("n:5|reckoned:3-4:kepler-propagation");
     });
   });
 });
