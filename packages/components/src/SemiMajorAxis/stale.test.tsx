@@ -8,9 +8,14 @@ import { SemiMajorAxisComponent } from "./index";
 /**
  * What this widget does when `vessel.orbit` stops being current: SMA dates
  * rather than blanks, since "No orbit data" is the sentence for a craft with
- * no orbit at all. The assertions that matter are about wording: a held
- * number must not look live, and a cold start must not be captioned.
+ * no orbit at all. A held number must not look live, the time it was read
+ * travels with it through Unit, and a cold start must not be marked.
  */
+
+/** The held figure's spoken staleness, which carries the grade and the instant it was read. */
+function heldCaption(container: HTMLElement): string | null {
+  return container.querySelector("[data-unit-currency]")?.textContent ?? null;
+}
 
 const CARRIED = ["vessel.orbit", "system.bodies"];
 
@@ -73,10 +78,11 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
     emitOrbit(fixture);
 
     await waitFor(() => expect(visibleText(container)).toContain("675.0 km"));
-    expect(visibleText(container)).not.toContain("at last contact");
+    expect(container.querySelector("[data-not-current]")).toBeNull();
+    expect(heldCaption(container)).toBeNull();
   });
 
-  it("keeps the value and says it is from the last contact, with its age", async () => {
+  it("keeps the value, and the held figure itself carries when it was read", async () => {
     const fixture = newFixture();
     const container = mount(fixture, "sma-stale-held");
     emitOrbit(fixture);
@@ -85,18 +91,14 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
     goStale(fixture);
 
     await waitFor(() =>
-      expect(visibleText(container)).toContain("at last contact"),
+      expect(container.querySelector("[data-not-current]")).not.toBeNull(),
     );
     // The number survives: this widget dates its readout rather than withholding it.
     expect(visibleText(container)).toContain("675.0 km");
-    // The age makes the caveat actionable. Emitted at UT 0, view clock pinned at 10.
-    expect(visibleText(container)).toMatch(/at last contact, .*10s ago/);
-    // Said in words, since the muted tone is invisible to a screen reader.
-    expect(
-      screen
-        .getAllByRole("status")
-        .some((el) => el.textContent?.includes("at last contact")),
-    ).toBe(true);
+    // Said in words through the Unit, since the muted tone is invisible to a screen reader.
+    expect(heldCaption(container)).toMatch(/OFFLINE, as of /);
+    // Time is shown only through Unit, never as a caption the widget writes.
+    expect(visibleText(container)).not.toMatch(/last contact|ago/);
   });
 
   it("marks the NUMBER itself, and says the grade beside it", async () => {
@@ -118,8 +120,7 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
     expect(visibleText(container)).not.toContain("OFFLINE");
   });
 
-  it("leaves the held mark alone to say it at 3x3, where the age has no room", async () => {
-    // A 3x3 body holds only the figure, and a caption there would be cut off.
+  it("marks the held figure at 3x3, where the body holds only the figure", async () => {
     const fixture = newFixture();
     const container = mount(fixture, "sma-stale-tiny", { w: 3, h: 3 });
     emitOrbit(fixture);
@@ -131,22 +132,21 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
       expect(container.querySelector("[data-not-current]")).not.toBeNull(),
     );
     expect(visibleText(container)).toContain("675.0 km");
-    expect(visibleText(container)).not.toContain("at last contact");
-    expect(container.textContent).toContain("OFFLINE");
+    expect(heldCaption(container)).toMatch(/OFFLINE, as of /);
   });
 
-  it("says nothing about last contact before an orbit has ever arrived", async () => {
+  it("marks nothing before an orbit has ever arrived", async () => {
     // A cold start is not a held reading, and must not accuse the link on first paint.
     const fixture = newFixture();
     const container = mount(fixture, "sma-stale-cold");
 
     await waitFor(() => expect(visibleText(container)).toContain("SMA"));
     expect(visibleText(container)).toContain("No orbit data");
-    expect(visibleText(container)).not.toContain("at last contact");
+    expect(container.querySelector("[data-not-current]")).toBeNull();
   });
 
-  it("keeps the streaming figure and the ticking age out of every live region", async () => {
-    // Both change every frame, so only the transition to held is worth announcing.
+  it("keeps the streaming figure out of every live region", async () => {
+    // It changes every frame, so no widget region announces it.
     const fixture = newFixture();
     const container = mount(fixture, "sma-stale-live-regions");
     emitOrbit(fixture);
@@ -162,13 +162,12 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
     goStale(fixture);
 
     await waitFor(() =>
-      expect(visibleText(container)).toContain("at last contact"),
+      expect(container.querySelector("[data-not-current]")).not.toBeNull(),
     );
-    const regions = screen.getAllByRole("status");
-    expect(regions.map((el) => el.textContent)).toEqual(["at last contact"]);
+    expect(screen.queryAllByRole("status")).toHaveLength(0);
   });
 
-  it("does not caption a confirmed tombstone, which is a claim about the craft", async () => {
+  it("does not mark a confirmed tombstone, which is a claim about the craft", async () => {
     // `absent` says there is no orbit, not that the link went quiet, so no staleness caveat.
     const fixture = newFixture();
     const container = mount(fixture, "sma-stale-absent");
@@ -182,6 +181,6 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
     await waitFor(() =>
       expect(visibleText(container)).toContain("No orbit data"),
     );
-    expect(visibleText(container)).not.toContain("at last contact");
+    expect(container.querySelector("[data-not-current]")).toBeNull();
   });
 });

@@ -251,7 +251,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * fraction stops being a quantity.
    */
   "packages/components/src/ShipMap/partMeters.tsx": 1,
-  "packages/components/src/SemiMajorAxis/index.tsx": 1,
   // 1: the view instant, unwrapped to bound a history window. sampleRange takes plain UT numbers because a store index is not a quantity.
   "packages/components/src/shared/usePastTrack.ts": 1,
   /*

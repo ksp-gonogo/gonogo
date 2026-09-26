@@ -3,10 +3,8 @@ import { defineTopicManifest, registerComponent } from "@ksp-gonogo/core";
 
 import { useDataSeries } from "@ksp-gonogo/data";
 import {
-  observedAt,
   readingOf,
   useStream,
-  useViewUt,
   withoutReckoning,
 } from "@ksp-gonogo/sitrep-client";
 import {
@@ -14,7 +12,6 @@ import {
   controlFrameLabel,
   lengthsAreLengths,
   stillTrue,
-  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { EmptyState, Panel, Sparkline } from "@ksp-gonogo/ui";
 import {
@@ -50,14 +47,6 @@ function SemiMajorAxisComponent({
       ? frameReading.value
       : undefined;
   const lengthsPulsate = lengthsAreLengths(controlFrame) === "invalid";
-  // Age against the frame's view time, never a wall clock, so two reads in one frame agree.
-  const viewUt = useViewUt();
-  // Clamped because samples arrive out of order, and "-0.4 s ago" is never a thing to render.
-  const smaObservedUt = observedAt(orbitReading);
-  const smaAgeSec =
-    viewUt && smaObservedUt
-      ? Math.max(0, viewUt.minus(smaObservedUt).magnitude)
-      : undefined;
   const referenceBody = useBodyName(
     stillTrue(orbitReading, undefined)?.referenceBodyIndex,
   );
@@ -66,11 +55,7 @@ function SemiMajorAxisComponent({
   const cols = w ?? 4;
   const rows = h ?? 4;
   const showSubtitle = rows >= 5 && cols >= 4;
-  /* At 3x3 the age gives way and the figure's own held mark says the link went quiet. */
-  const showHeldCaption = smaHeld && rows >= 4;
-  /* At four rows, while held, the age wins the one slot under the figure over a trend that stopped arriving. */
-  const showSparkline =
-    rows >= 4 && cols >= 3 && !(showHeldCaption && rows < 5);
+  const showSparkline = rows >= 4 && cols >= 3;
 
   const fontPx = readoutFontPx(cols);
 
@@ -125,26 +110,12 @@ function SemiMajorAxisComponent({
             style={{
               ...SMA_DISPLAY_STYLE,
               fontSize: `${fontPx}px`,
-              // Muted while held; the caption below says it in words.
+              // Muted while held; the Unit's own mark carries the time it was read.
               ...(smaHeld ? { color: "var(--color-text-muted)" } : {}),
             }}
           >
             <Unit value={readingOf(orbitReading, (orbit) => orbit.sma)} />
           </div>
-          {/* The caveat sits on the value: a header badge beside a confident number is what an operator reads past. */}
-          {showHeldCaption && (
-            <ReadoutCaption style={SMA_CAPTION_STYLE}>
-              <span role="status">at last contact</span>
-              {/* Game-time seconds, so the "s" ladder rather than the real-time one. */}
-              {smaAgeSec !== undefined && (
-                <>
-                  {", "}
-                  <Unit value={value("s", smaAgeSec)} />
-                  {" ago"}
-                </>
-              )}
-            </ReadoutCaption>
-          )}
           {/* A pulsating frame's length unit moves with its pair, so the frame is named. */}
           {lengthsPulsate && (
             <ReadoutCaption role="status">
