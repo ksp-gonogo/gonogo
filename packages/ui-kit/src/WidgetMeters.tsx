@@ -60,7 +60,7 @@ export function WidgetMeters({ row, style }: WidgetMetersProps) {
   if (mine.length === 0) return null;
 
   return (
-    <MeterStack style={style} aria-label="meters">
+    <MeterStack style={style} role="group" aria-label="meters">
       {mine.map((entry) => (
         <Meter
           key={entry.id}

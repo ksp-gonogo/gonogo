@@ -3,6 +3,7 @@ import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { ContributionsPanelStore } from "./contributionsRead";
+import { expectNoA11yViolations } from "./expectNoA11yViolations";
 import { WidgetMetaContext } from "./WidgetMetaContext";
 import { WidgetMeters } from "./WidgetMeters";
 
@@ -161,5 +162,17 @@ describe("WidgetMeters", () => {
     expect(marks).toHaveLength(2);
     expect(marks[0]).toHaveStyle({ left: "34%" });
     expect(marks[1]).toHaveStyle({ left: "46%" });
+  });
+});
+
+describe("WidgetMeters stack", () => {
+  it("is a named group, so its label is on an element allowed to carry one", async () => {
+    const { container } = render(
+      <WithMeters entries={[DOSE]}>
+        <WidgetMeters row="Jebediah Kerman" />
+      </WithMeters>,
+    );
+    expect(screen.getByRole("group", { name: "meters" })).toBeInTheDocument();
+    await expectNoA11yViolations(container);
   });
 });
