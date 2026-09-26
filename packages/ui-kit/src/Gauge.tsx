@@ -235,7 +235,7 @@ export function Gauge<U extends string = string>({
         height: "auto",
       }}
     >
-      <title>{ariaLabel ?? `Gauge: ${safeValue}`}</title>
+      <title>{sayHeld(ariaLabel ?? `Gauge: ${spoken}`, caption)}</title>
       <g transform={`translate(${cx} ${cy})`}>
         {/* Track (uncoloured background arc) */}
         <path
