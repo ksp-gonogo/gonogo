@@ -22,7 +22,6 @@ import {
   Cluster,
   IconButton,
   Inline,
-  NULL_DISPLAY,
   Section,
   Stack,
   Text,
@@ -33,6 +32,11 @@ import { useRef, useState } from "react";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
 import type { ActionGroupActions, ActionGroupConfig } from "./config";
 import type { ActionGroupSlotContext } from "./slots";
+import {
+  stateLabelOf,
+  UNAVAILABLE_TITLES,
+  unavailableReasonOf,
+} from "./toggleAvailability";
 
 export interface ActionGroupViewProps
   extends Readonly<ComponentProps<ActionGroupConfig>> {
@@ -103,17 +107,8 @@ export function ActionGroupView({
   }
 
   // Some groups, Stage among them, report a number rather than a boolean.
-  const isNumeric = typeof value === "number";
-  const isOn = isNumeric ? value > 0 : value === true;
-  // `null` (reported, unreadable) and `undefined` (never arrived) are both unknown, never OFF.
-  const isUnknown = value == null;
-  const stateLabel = isUnknown
-    ? NULL_DISPLAY
-    : isNumeric
-      ? String(value)
-      : value === true
-        ? "ON"
-        : "OFF";
+  const isOn = typeof value === "number" ? value > 0 : value === true;
+  const stateLabel = stateLabelOf(value);
 
   const slotContext: ActionGroupSlotContext = {
     groupId: group.name,
@@ -122,22 +117,16 @@ export function ActionGroupView({
     stateLabel,
   };
 
-  // In precedence order; "Not reported" is last because it alone does not stop the press.
-  let unavailableReason: string | null = null;
-  if (valueNotCurrent) unavailableReason = "State not current";
-  else if (stateUnreadable) unavailableReason = "State unreadable";
-  else if (isPaused === true) unavailableReason = "Paused";
-  else if (commConnected === false) unavailableReason = "No signal";
-  else if (group.provenance === "assumed") unavailableReason = "Not reported";
-  // Keyed off the chosen reason so title and reason cannot disagree.
-  const unavailableTitle =
-    unavailableReason === "State not current"
-      ? "The last known state is too old to invert, so the toggle is held"
-      : unavailableReason === "State unreadable"
-        ? "The backend reported this group but could not read whether it is engaged, so the toggle is held"
-        : unavailableReason === "Not reported"
-          ? "Configured, but no backend has reported this group, so its state is unknown"
-          : "The action group can't fire right now";
+  const unavailableReason = unavailableReasonOf({
+    valueNotCurrent,
+    stateUnreadable,
+    isPaused,
+    commConnected,
+    provenance: group.provenance,
+  });
+  const unavailableTitle = unavailableReason
+    ? UNAVAILABLE_TITLES[unavailableReason]
+    : undefined;
 
   const cols = w ?? 6;
   const showOfficialName = cols >= 5;
