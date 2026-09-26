@@ -5,17 +5,18 @@
  * ground line at the bottom, the suicide-burn ignition band shaded as a hot
  * zone the pointer descends into, and the ignition cue pinned beneath it.
  *
- * Presentational: `aglMeters` / `ignitionAltitude` / `suicideBurnCountdown`
- * are derived upstream by `solveSuicideBurn` and passed in. All nullable, the
- * rail renders a safe empty scale before data arrives.
+ * Presentational: `agl` is the reading it arrived in, handed to the `Tape` whole
+ * so the rail marks a held height itself. `ignitionAltitude` and
+ * `suicideBurnCountdown` are derived upstream by `solveSuicideBurn`. Before data
+ * arrives the rail renders a safe empty scale.
  */
 
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { Tape, Text, writeQuantity } from "@ksp-gonogo/ui-kit";
 
 export interface AltitudeRailProps {
-  /** Height of the vessel's lowest point above terrain, metres. */
-  aglMeters: number | null;
+  /** Height of the vessel's lowest point above terrain. */
+  agl: Reading<Value<"m">>;
   /** AGL at which the suicide burn must begin, metres. */
   ignitionAltitude: number | null;
   /** Seconds to the latest ignition. */
@@ -32,14 +33,14 @@ function niceCeil(x: number): number {
 }
 
 export function AltitudeRail({
-  aglMeters,
+  agl,
   ignitionAltitude,
   suicideBurnCountdown,
 }: Readonly<AltitudeRailProps>) {
-  const agl = aglMeters ?? 0;
+  const aglMeters = agl.value?.magnitude ?? 0;
   const ignition =
     ignitionAltitude != null && ignitionAltitude > 0 ? ignitionAltitude : null;
-  const maxScale = niceCeil(Math.max(agl, ignition ?? 0, 1) * 1.1);
+  const maxScale = niceCeil(Math.max(aglMeters, ignition ?? 0, 1) * 1.1);
 
   // The hot band: from the ground up to the ignition altitude, the region in
   // which the burn must already have started.
@@ -76,7 +77,7 @@ export function AltitudeRail({
           fillHeight
           labelSide="right"
           width={64}
-          value={value("m", agl)}
+          value={agl}
           min={value("m", 0)}
           max={value("m", maxScale)}
           tickStep={value("m", maxScale / 4)}

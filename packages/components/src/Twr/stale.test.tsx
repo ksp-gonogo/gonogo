@@ -8,9 +8,9 @@ import { TwrComponent } from "./index";
  * What the dial does once its telemetry stops arriving.
  *
  * Without the reading's currency the gauge would go on drawing a confident
- * TWR after telemetry stopped. The figure is HELD and captioned rather than
- * withheld: this widget's whole content is the one number, and its empty state
- * says there is no engine, so nulling a dated TWR would say something false
+ * TWR after telemetry stopped. The figure is HELD, and the gauge marks it,
+ * rather than withheld: this widget's whole content is the one number, and its
+ * empty state says there is no engine, so nulling a dated TWR would say something false
  * about the craft rather than about the link.
  */
 const STANDARD_GRAVITY = 9.80665;
@@ -63,13 +63,12 @@ function mount() {
   return fixture;
 }
 
-describe("Twr when vessel.state is no longer current", () => {
+describe("Twr when vessel.propulsion is no longer current", () => {
   it("says nothing about currency while the channel is live", async () => {
     mount();
-    expect(
-      await screen.findByRole("img", { name: /^TWR \d/ }),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/no longer current/i)).toBeNull();
+    const gauge = await screen.findByRole("img", { name: /^TWR \d/ });
+    expect(gauge).toHaveAccessibleName(/^TWR [\d.]+$/);
+    expect(gauge).not.toHaveAttribute("data-not-current");
     /*
      * The ResizeObserver that picks the variant settles after the body
      * returns, so holding the scope open across that microtask is what keeps
@@ -78,7 +77,7 @@ describe("Twr when vessel.state is no longer current", () => {
     await act(async () => {});
   });
 
-  it("holds the dial and names what is dated, rather than blanking it", async () => {
+  it("holds the dial and marks it, rather than blanking it", async () => {
     const fixture = mount();
     await screen.findByRole("img", { name: /^TWR \d/ });
 
@@ -88,8 +87,9 @@ describe("Twr when vessel.state is no longer current", () => {
     });
 
     // The figure survives: it is the last real one and still the best known.
-    expect(screen.getByRole("img", { name: /^TWR \d/ })).toBeInTheDocument();
-    expect(screen.getByText(/TWR no longer current/i)).toBeInTheDocument();
+    const gauge = screen.getByRole("img", { name: /^TWR \d/ });
+    expect(gauge).toHaveAttribute("data-not-current");
+    expect(gauge).toHaveAccessibleName(/^TWR [\d.]+, \S/);
     // And it must NOT claim the craft has no engine, which is what this
     // widget's empty state means.
     expect(screen.queryByText(/no engine data/i)).toBeNull();
