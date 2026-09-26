@@ -1172,6 +1172,9 @@ const NodeRowWrap = styled.li<{
 
 const NodeHeader = styled.button`
   display: flex;
+  /* The cost and badge drop to a line of their own rather than squeezing the
+     title to nothing when the row cannot hold both. */
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: var(--gap-related);
@@ -1203,28 +1206,35 @@ const NodeTitle = styled.span`
   display: flex;
   align-items: baseline;
   gap: var(--gap-related);
-  flex: 1;
+  flex: 1 1 8rem;
   min-width: 0;
   overflow: hidden;
 `;
 
 // The truncation lives on a flex child that is allowed to shrink: it needs
-// flex:1 + min-width:0 so it actually narrows (and ellipsises) within
-// NodeTitle instead of overflowing and colliding with the node id / meta.
+// min-width:0 so it actually narrows (and ellipsises) within NodeTitle instead
+// of overflowing and colliding with the node id / meta, and a content basis so
+// it keeps its width until the id beside it has given way.
 const NodeTitleText = styled.span`
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
+/* Gives way before the title does: the name is what a row is read by, and the
+   id is its footnote. */
 const NodeId = styled.span`
   font-size: var(--font-size-caption);
   font-family: monospace;
   color: var(--color-text-faint);
   font-weight: 400;
-  flex-shrink: 0;
+  flex: 0 1000 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const NodeMeta = styled.span`
