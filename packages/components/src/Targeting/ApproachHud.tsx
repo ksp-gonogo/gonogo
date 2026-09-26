@@ -1,0 +1,205 @@
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  Countdown,
+  Grid,
+  NULL_DISPLAY,
+  Panel,
+  ReadoutCaption,
+  Section,
+  Text,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
+import type { ReactNode } from "react";
+import { DISPLAY_VALUE_STYLE, DisplayDash } from "./TargetingView";
+
+interface ApproachHudProps {
+  name: string;
+  distance: number | undefined;
+  relVel: number | undefined;
+  closestApproachUT: number | null;
+  universalTime: number | null;
+  /** A pairing is selected but its geometry is no longer current, with the age of the last dock observation. */
+  alignmentWithheld?: { age: Value<"s"> | undefined };
+  cols: number;
+  rows: number;
+}
+
+/** A `label` / `value` pair for the approach + docking-HUD readout grids. */
+function ReadoutRow({
+  label,
+  tone,
+  children,
+}: {
+  label: string;
+  tone?: "ok" | "warn";
+  children: ReactNode;
+}) {
+  return (
+    <>
+      <ReadoutCaption
+        style={{
+          alignSelf: "baseline",
+          whiteSpace: "nowrap",
+          letterSpacing: "0.1em",
+        }}
+      >
+        {label}
+      </ReadoutCaption>
+      <Text
+        size="lg"
+        tone={tone === "ok" ? "accent" : "default"}
+        style={{
+          fontWeight: 600,
+          whiteSpace: "nowrap",
+          color: tone === "warn" ? "var(--color-status-warning-bg)" : undefined,
+        }}
+      >
+        {children}
+      </Text>
+    </>
+  );
+}
+
+/** Why the docking HUD is not on screen while a pairing is still selected, dated where possible. */
+function AlignmentWithheldNotice({ age }: { age: Value<"s"> | undefined }) {
+  return (
+    <ReadoutCaption role="status">
+      Docking alignment no longer current
+      {age !== undefined && (
+        <>
+          , last seen <Unit value={age} /> ago
+        </>
+      )}
+    </ReadoutCaption>
+  );
+}
+
+/**
+ * Approach mode, between long-range tracking and the docking HUD: the
+ * 100 m-5 km band, where closing rate and time to closest approach matter.
+ * `relVel` is positive when opening, negative when closing.
+ */
+export function ApproachHud({
+  name,
+  distance,
+  relVel,
+  closestApproachUT,
+  universalTime,
+  alignmentWithheld,
+  cols,
+  rows,
+}: ApproachHudProps) {
+  // Below 6 cols the paired grid clips values, so labels stack above them.
+  const stack = cols < 6;
+  const closing = relVel !== undefined && Number.isFinite(relVel) && relVel < 0;
+  const closingMagnitude =
+    relVel !== undefined && Number.isFinite(relVel) ? Math.abs(relVel) : null;
+
+  // NaN when no encounter is predicted.
+  const tcaSeconds =
+    closestApproachUT !== null &&
+    universalTime != null &&
+    Number.isFinite(universalTime)
+      ? closestApproachUT - universalTime
+      : null;
+
+  // The smallest size cannot fit the stacked grid: distance is the headline and closing rate a subreadout; TCA is cut.
+  if (rows < 5) {
+    return (
+      <Panel
+        panelTitle="APPROACH"
+        /* Panel measures before it centres, so an overflowing readout still starts at the top. */
+        fitToSize
+        sections={
+          <Section full gap="related-dense">
+            <Text tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
+              {name}
+            </Text>
+            {distance === undefined ? (
+              <DisplayDash />
+            ) : (
+              <Text tone="accent" style={DISPLAY_VALUE_STYLE}>
+                <Unit value={value("m", distance)} />
+              </Text>
+            )}
+            {closingMagnitude !== null && (
+              <Text
+                size="xs"
+                tone="muted"
+                style={{
+                  marginTop: "var(--gap-sub-readout)",
+                  letterSpacing: "0.04em",
+                }}
+              >
+                {closing ? "−" : "+"}
+                <Unit value={value("m/s", closingMagnitude)} decimals={1} />
+              </Text>
+            )}
+            {alignmentWithheld && (
+              <AlignmentWithheldNotice age={alignmentWithheld.age} />
+            )}
+          </Section>
+        }
+      />
+    );
+  }
+
+  return (
+    <Panel
+      panelTitle="APPROACH"
+      sections={[
+        <Section key="target" full>
+          <Text tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
+            {name}
+          </Text>
+        </Section>,
+        <Section key="approach" full>
+          <Grid
+            cols={stack ? "1fr" : "auto 1fr"}
+            gap="section-compact"
+            style={{
+              marginTop: "var(--gap-related-compact)",
+              rowGap: stack ? "0" : "var(--gap-row-wrap)",
+            }}
+          >
+            <ReadoutRow label="Distance">
+              {distance === undefined ? (
+                NULL_DISPLAY
+              ) : (
+                <Unit value={value("m", distance)} />
+              )}
+            </ReadoutRow>
+
+            <ReadoutRow
+              label="Closing rate"
+              tone={
+                closingMagnitude === null ? undefined : closing ? "ok" : "warn"
+              }
+            >
+              {closingMagnitude === null ? (
+                NULL_DISPLAY
+              ) : (
+                <>
+                  {closing ? "−" : "+"}
+                  <Unit value={value("m/s", closingMagnitude)} decimals={1} />
+                </>
+              )}
+            </ReadoutRow>
+
+            <ReadoutRow label="TCA">
+              {tcaSeconds === null ? (
+                NULL_DISPLAY
+              ) : (
+                <Countdown value={tcaSeconds} clock precise />
+              )}
+            </ReadoutRow>
+          </Grid>
+          {alignmentWithheld && (
+            <AlignmentWithheldNotice age={alignmentWithheld.age} />
+          )}
+        </Section>,
+      ]}
+    />
+  );
+}

@@ -21,7 +21,7 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-describe("Targeting: genuinely runs off the stream (M3 vessel-gap batch)", () => {
+describe("Targeting: genuinely runs off the stream", () => {
   it("renders tracking-mode distance/closing-rate derived from vessel.target's Vec3 fields", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.target"],
@@ -121,7 +121,7 @@ describe("Targeting: genuinely runs off the stream (M3 vessel-gap batch)", () =>
     teardownMockDataSource(legacyAux);
   });
 
-  it("M3 whole-branch review #4: degrades correctly (not stale) when the target is cleared, vessel.target present -> null tombstone", async () => {
+  it("degrades correctly (not stale) when the target is cleared, vessel.target present -> null tombstone", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.target"],
       pinnedUt: 10,
@@ -176,7 +176,7 @@ describe("Targeting: genuinely runs off the stream (M3 vessel-gap batch)", () =>
     teardownMockDataSource(legacyAux);
   });
 
-  it("renders approach-mode TCA from o.closestTgtApprUT and the SDK view-UT", async () => {
+  it("renders approach-mode TCA from vessel.target.closestApproach and the SDK view-UT", async () => {
     // The pinned view clock is UT 1000.
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.target"],

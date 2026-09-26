@@ -325,7 +325,7 @@ describe("TargetingComponent", () => {
   });
 });
 
-describe("Targeting: augment slots (spec §4)", () => {
+describe("Targeting: augment slots", () => {
   afterEach(() => {
     // Unmount before clearAugments(): RTL's own cleanup runs after this file's afterEach hooks.
     for (const unmount of renderedTrees) unmount();
