@@ -51,6 +51,22 @@ describe("createStore", () => {
     expect(store.getSnapshot().map((e) => e.id)).toEqual(["b"]);
   });
 
+  it("a replaced registrant's deregister leaves its replacement in place", () => {
+    const store = createStore<Entry>();
+    const dropFirst = store.register({ id: "a", value: 1 });
+    store.register({ id: "a", value: 9 });
+    dropFirst();
+    expect(store.getSnapshot().map((e) => e.value)).toEqual([9]);
+  });
+
+  it("deregister still drops an entry that has been updated since it registered", () => {
+    const store = createStore<Entry>();
+    const drop = store.register({ id: "a", value: 1 });
+    store.update("a", { value: 5 });
+    drop();
+    expect(store.getSnapshot()).toEqual([]);
+  });
+
   it("getSnapshot is referentially stable while the set is unchanged", () => {
     const store = createStore<Entry>();
     store.register({ id: "a", value: 1 });
