@@ -614,13 +614,7 @@ export function PanelHeader({
   const rowRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const asideFullRef = useRef<HTMLDivElement>(null);
-  const collapsed = useHeaderAsideFit(
-    rowRef,
-    titleRef,
-    asideFullRef,
-    title,
-    aside,
-  );
+  const collapsed = useHeaderAsideFit(rowRef, titleRef, asideFullRef);
 
   /**
    * The `<details>` below is a disclosure only while the aside is COLLAPSED:
