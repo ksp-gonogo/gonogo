@@ -114,6 +114,30 @@ describe("Band", () => {
     expect(container.textContent).not.toContain("65.286800");
   });
 
+  it.each([
+    ["format", { format: "km" }],
+    ["as", { as: "km" }],
+    ["decimals", { decimals: 1 }],
+  ] as const)("draws one approximate figure for equal ends under a pinned %s", (_pin, pins) => {
+    const { container } = render(
+      <Band min={value("m", 65_300)} max={value("m", 65_300)} {...pins} />,
+    );
+
+    expect(container.textContent).toContain("~");
+    expect(container.textContent).not.toContain("–");
+    expect(container.textContent?.match(/65\.3/g)).toHaveLength(1);
+  });
+
+  it("still widens the digits of a pinned band until its ends read apart", () => {
+    const { container } = render(
+      <Band min={value("m", 65_300)} max={value("m", 65_340)} format="km" />,
+    );
+
+    expect(container.textContent).not.toContain("~");
+    expect(container.textContent).toContain("65.30");
+    expect(container.textContent).toContain("65.34");
+  });
+
   it("leaves a band whose ends print differently completely alone", () => {
     const { container } = render(
       <Band min={value("m", 6_700_000)} max={value("m", 6_710_000)} />,
