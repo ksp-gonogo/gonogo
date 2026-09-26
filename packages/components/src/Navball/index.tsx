@@ -193,7 +193,6 @@ function NavballComponent({
                   pitch={pitch}
                   roll={roll}
                   across={readoutAcross}
-                  dialSuppressed={dialWanted}
                   reading={attitudeReading}
                 />
               </div>

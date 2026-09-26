@@ -1,9 +1,5 @@
-import {
-  observedAt,
-  type TopicReading,
-  useViewUt,
-} from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import type { TopicReading } from "@ksp-gonogo/sitrep-client";
+import { readingOf, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   BigReadout,
   NULL_DISPLAY,
@@ -21,13 +17,12 @@ import type { CSSProperties, ReactNode } from "react";
  */
 export const READOUT_TRIPLE_PX = 158;
 
-/** Heading, pitch and roll as numbers, shown in place of the dial, then why the dial is not there. */
+/** Heading, pitch and roll as numbers, shown in place of the dial; a held attitude wears Unit's held mark on each. */
 export function AttitudeReadout({
   heading,
   pitch,
   roll,
   across,
-  dialSuppressed,
   reading,
 }: {
   heading: number | null;
@@ -35,14 +30,12 @@ export function AttitudeReadout({
   roll: number | null;
   /** Whether the three cells fit on one line. */
   across: boolean;
-  /** A dial was wanted and the attitude's currency withheld it. */
-  dialSuppressed: boolean;
   reading: TopicReading<unknown>;
 }) {
   return (
     <>
       <div style={across ? READOUT_TRIPLE : READOUT_STACK}>
-        {attitudeCells(heading, pitch, roll).map((cell) =>
+        {attitudeCells(heading, pitch, roll, reading).map((cell) =>
           across ? (
             <BigReadout key={cell.label} style={READOUT_CELL}>
               {cell.value}
@@ -56,24 +49,13 @@ export function AttitudeReadout({
           ),
         )}
       </div>
-      <AttitudeCurrency dialSuppressed={dialSuppressed} reading={reading} />
+      <AttitudeAbsence reading={reading} />
     </>
   );
 }
 
-/**
- * Says why the dial is not there, under the numbers that replaced it.
- * `dialSuppressed` separates a non-current attitude from a tile merely too
- * small for a dial, which needs no explanation.
- */
-function AttitudeCurrency({
-  reading,
-  dialSuppressed,
-}: {
-  reading: TopicReading<unknown>;
-  dialSuppressed: boolean;
-}) {
-  if (reading.state === "observed") return null;
+/** Says why there is no attitude to draw, under the null tokens that stand in for it. */
+function AttitudeAbsence({ reading }: { reading: TopicReading<unknown> }) {
   if (reading.state === "pending") {
     return <ReadoutCaption>Waiting for attitude telemetry</ReadoutCaption>;
   }
@@ -83,39 +65,7 @@ function AttitudeCurrency({
   if (reading.state === "absent") {
     return <ReadoutCaption>No attitude reported</ReadoutCaption>;
   }
-  return (
-    <StaleCaption
-      label={dialSuppressed ? "attitude at last contact" : "at last contact"}
-      reading={reading}
-    />
-  );
-}
-
-/** The dated half of the caption, its own component so the per-frame `useViewUt` subscription exists only while a caption is on screen. */
-function StaleCaption({
-  label,
-  reading,
-}: {
-  label: string;
-  reading: TopicReading<unknown>;
-}) {
-  const viewUt = useViewUt();
-  // Clamped: an out-of-order sample can sit just ahead of the frame.
-  const observedUt = observedAt(reading);
-  const ageSec =
-    viewUt && observedUt
-      ? Math.max(0, viewUt.minus(observedUt).magnitude)
-      : undefined;
-  return (
-    <ReadoutCaption>
-      <span role="status">{label}</span>
-      {ageSec !== undefined && (
-        <>
-          , <Unit value={value("s", ageSec)} /> ago
-        </>
-      )}
-    </ReadoutCaption>
-  );
+  return null;
 }
 
 /**
@@ -126,7 +76,10 @@ function attitudeCells(
   heading: number | null,
   pitch: number | null,
   roll: number | null,
+  reading: TopicReading<unknown>,
 ): ReadonlyArray<{ label: string; value: ReactNode }> {
+  // Each angle is drawn off the attitude's own reading, so a held attitude is marked, and dated, by Unit.
+  const degrees = (v: number) => readingOf(reading, () => value("°", v));
   // One element, never a fragment: in the column-flex cell a bare sign would become its own flex item on its own line.
   const signed = (v: number | null): ReactNode => (
     <span>
@@ -135,7 +88,7 @@ function attitudeCells(
       ) : (
         <>
           {v >= 0 ? "+" : ""}
-          <Unit value={value("°", v)} decimals={0} />
+          <Unit value={degrees(v)} decimals={0} />
         </>
       )}
     </span>
@@ -148,7 +101,7 @@ function attitudeCells(
           {heading === null ? (
             NULL_DISPLAY
           ) : (
-            <Unit value={value("°", heading)} decimals={0} />
+            <Unit value={degrees(heading)} decimals={0} />
           )}
         </span>
       ),

@@ -40,6 +40,10 @@ function dial(): HTMLElement | null {
   return screen.queryByRole("img", { name: /attitude indicator/i });
 }
 
+function heldMarks(): NodeListOf<Element> {
+  return document.querySelectorAll("[data-not-current-mark]");
+}
+
 describe("Navball never draws an attitude it does not have", () => {
   it("draws no dial at all before any attitude arrives", () => {
     mount("nb-pending");
@@ -67,7 +71,7 @@ describe("Navball never draws an attitude it does not have", () => {
     expect(visibleText()).not.toMatch(/last contact/i);
   });
 
-  it("stops drawing the dial when the link drops, and says why", async () => {
+  it("stops drawing the dial when the link drops, and marks the held angles", async () => {
     const { fixture } = mount("nb-stale");
 
     act(() => {
@@ -89,12 +93,10 @@ describe("Navball never draws an attitude it does not have", () => {
 
     // A held dial is indistinguishable from a live one.
     await waitFor(() => expect(dial()).toBeNull());
-    expect(visibleText()).toMatch(/last contact/i);
-    // The age beside the caption ticks every frame, so only the words announcing the loss are in the live region.
-    const caption = screen
-      .getAllByRole("status")
-      .find((el) => /last contact/i.test(el.textContent ?? ""));
-    expect(caption?.textContent).not.toMatch(/ago/);
+    // Heading, pitch and roll each wear Unit's held mark and its spoken caption; the widget writes no time of its own.
+    expect(heldMarks()).toHaveLength(3);
+    expect(document.querySelectorAll("[data-unit-currency]")).toHaveLength(3);
+    expect(visibleText()).not.toMatch(/last contact|ago/i);
   });
 
   it("still reports the last observed angles as numbers when the link drops", async () => {
@@ -117,7 +119,7 @@ describe("Navball never draws an attitude it does not have", () => {
       fixture.store.beginFrame();
     });
 
-    await waitFor(() => expect(visibleText()).toMatch(/last contact/i));
+    await waitFor(() => expect(heldMarks()).toHaveLength(3));
     expect(visibleText()).toContain("90");
     expect(visibleText()).toContain("45");
   });
@@ -157,7 +159,7 @@ describe("Navball never draws an attitude it does not have", () => {
       fixture.store.setTransportConnected(false);
       fixture.store.beginFrame();
     });
-    await waitFor(() => expect(visibleText()).toMatch(/last contact/i));
+    await waitFor(() => expect(heldMarks()).toHaveLength(3));
 
     const controlsAfter = screen
       .getAllByRole("button")

@@ -243,12 +243,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // deeper.
   "packages/components/src/MapView/index.tsx": 18,
   "packages/components/src/MapView/vanillaPoiProvider.ts": 2,
-  // 1: minting a Value from a contributed row's magnitude-and-unit pair so the
-  // host can render it through Unit. The slot cannot carry a Value (its two
-  // declarations must be structurally identical to merge, and a Value reached
-  // by two module paths is not), so the raw number arrives by contract and the
-  // unwrap is the reconstruction rather than an escape.
-  "packages/components/src/Navball/index.tsx": 1,
   "packages/components/src/OrbitView/index.tsx": 6,
   /*
    * ONE, on a quotient `dividedBy` has already made dimensionless: a part
