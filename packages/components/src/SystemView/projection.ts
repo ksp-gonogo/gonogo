@@ -15,9 +15,9 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 
 /**
- * SystemView's three-dimensional arithmetic and how its frame is chosen.
+ * How SystemView's frame is chosen and placed.
  *
- * Projection to two dimensions happens once, where a coordinate becomes an SVG attribute: a rotation into a pair-rotating frame is about an arbitrary axis and cannot be done in a flattened plane. The dropped component is the depth the diagram colours with, which is not inclination: a body at its ascending node has no depth.
+ * Projection to two dimensions happens once, where a coordinate becomes an SVG attribute: a rotation into a pair-rotating frame is about an arbitrary axis and cannot be done in a flattened plane.
  */
 
 /**
@@ -31,95 +31,6 @@ const SYSTEM_PLACEMENT_BUDGET = new PerfBudget({
   windowMs: 1000,
   unit: "placements",
 });
-
-/**
- * How many points a drawn orbit ring is sampled into.
- *
- * Every ring is a sampled polyline, even under the identity projection: a projected or rotating-frame orbit is not an ellipse `cx`/`cy` can express. At 96 samples the polyline departs from the true curve by about `(pi/96)^2 / 2` of the semi-major axis, 0.16px on a 300px orbit.
- */
-export const ORBIT_RING_SAMPLES = 96;
-
-const RAD = Math.PI / 180;
-
-function clampEcc(eccentricity: number): number {
-  return Math.min(Math.max(eccentricity, 0), 0.999);
-}
-
-/** A point on a Keplerian orbit in the parent's inertial frame, metres, through the full perifocal-to-inertial rotation (argPe, then inclination, then lan). */
-export function orbitPointAt(
-  sma: number,
-  eccentricity: number,
-  lanDeg: number,
-  argPeDeg: number,
-  inclinationDeg: number,
-  trueAnomalyDeg: number,
-): Vector3 {
-  const e = clampEcc(eccentricity);
-  const theta = trueAnomalyDeg * RAD;
-  const r = (sma * (1 - e * e)) / (1 + e * Math.cos(theta));
-  return perifocalToParent(
-    r * Math.cos(theta),
-    r * Math.sin(theta),
-    lanDeg,
-    argPeDeg,
-    inclinationDeg,
-  );
-}
-
-/** A perifocal offset (periapsis on `+x`, motion toward `+y`, normal on `+z`) in the parent's inertial frame, metres; `z` is kept because an integrated arc leaves the osculating plane. */
-export function perifocalToParent(
-  xPerifocal: number,
-  yPerifocal: number,
-  lanDeg: number,
-  argPeDeg: number,
-  inclinationDeg: number,
-  zPerifocal = 0,
-): Vector3 {
-  const lan = lanDeg * RAD;
-  const argPe = argPeDeg * RAD;
-  const inc = inclinationDeg * RAD;
-  const cosW = Math.cos(argPe);
-  const sinW = Math.sin(argPe);
-  const cosO = Math.cos(lan);
-  const sinO = Math.sin(lan);
-  const cosI = Math.cos(inc);
-  const sinI = Math.sin(inc);
-  // Rotate by argPe in the orbit plane first, so what follows is the standard node-line tilt applied to a point measured from the ascending node.
-  const xn = xPerifocal * cosW - yPerifocal * sinW;
-  const yn = xPerifocal * sinW + yPerifocal * cosW;
-  return [
-    xn * cosO - yn * sinO * cosI + zPerifocal * sinO * sinI,
-    xn * sinO + yn * cosO * cosI - zPerifocal * cosO * sinI,
-    yn * sinI + zPerifocal * cosI,
-  ];
-}
-
-/** The whole ring of an orbit in the parent's inertial frame, metres, sampled uniformly in eccentric anomaly so points spread along the arc instead of piling up at apoapsis. */
-export function orbitRingPoints(
-  sma: number,
-  eccentricity: number,
-  lanDeg: number,
-  argPeDeg: number,
-  inclinationDeg: number,
-  samples: number = ORBIT_RING_SAMPLES,
-): Vector3[] {
-  const e = clampEcc(eccentricity);
-  const b = sma * Math.sqrt(1 - e * e);
-  const points: Vector3[] = [];
-  for (let i = 0; i <= samples; i++) {
-    const anomaly = (2 * Math.PI * i) / samples;
-    points.push(
-      perifocalToParent(
-        sma * (Math.cos(anomaly) - e),
-        b * Math.sin(anomaly),
-        lanDeg,
-        argPeDeg,
-        inclinationDeg,
-      ),
-    );
-  }
-  return points;
-}
 
 /** How the diagram sizes itself in a projection's own coordinates, a total union so the stock projection states `auto-fit-metres` rather than omitting it. */
 export type SystemProjectionExtent =
@@ -302,64 +213,4 @@ function frameSidesOf(
   return choice.kind === "parent-direction"
     ? { primary: bodyIndex, secondary: parentIndex }
     : { primary: parentIndex, secondary: bodyIndex };
-}
-
-/** Depth in SCREEN pixels at which the cue reads full strength, so a tilt reads only once it is actually visible at the current zoom. */
-const DEPTH_FULL_SCALE_PX = 40;
-
-/** Above the reference plane. */
-export const DEPTH_ABOVE_COLOUR = "rgb(230, 90, 90)";
-/** In it. */
-export const DEPTH_LEVEL_COLOUR = "rgb(160, 160, 170)";
-/** Below it. */
-export const DEPTH_BELOW_COLOUR = "rgb(80, 130, 230)";
-
-/** How strongly a depth of `depthPx` screen pixels should read, 0 to 1. */
-export function depthStrength(depthPx: number): number {
-  return Math.min(Math.abs(depthPx) / DEPTH_FULL_SCALE_PX, 1);
-}
-
-/** Which side of the reference plane `depthPx` is, as a colour. */
-export function depthColour(depthPx: number): string {
-  if (depthPx > 0) return DEPTH_ABOVE_COLOUR;
-  if (depthPx < 0) return DEPTH_BELOW_COLOUR;
-  return DEPTH_LEVEL_COLOUR;
-}
-
-export interface DepthGradientAxis {
-  /** Gradient start, in plot units: where the curve is deepest below the plane. */
-  x1: number;
-  y1: number;
-  /** Gradient end: where it is highest above it. */
-  x2: number;
-  y2: number;
-  /** Half the depth spread along the curve in PLOT units; the caller multiplies by zoom, which keeps placement memoisable across a wheel gesture. */
-  depthUnits: number;
-}
-
-/**
- * The axis a curve's depth varies along, between the projected positions of its deepest and highest samples.
- *
- * Derived from the samples, not the elements, so it holds for a rotating-frame rosette as for an ellipse, and recovers the node-perpendicular axis for a Keplerian ring.
- */
-export function depthGradientAxis(
-  points: readonly Vector3[],
-  plotScale: number,
-): DepthGradientAxis | null {
-  if (points.length === 0) return null;
-  let lowest = points[0];
-  let highest = points[0];
-  for (const p of points) {
-    if (p[2] < lowest[2]) lowest = p;
-    if (p[2] > highest[2]) highest = p;
-  }
-  const spread = highest[2] - lowest[2];
-  if (!(spread > 0)) return null;
-  return {
-    x1: lowest[0] * plotScale,
-    y1: lowest[1] * plotScale,
-    x2: highest[0] * plotScale,
-    y2: highest[1] * plotScale,
-    depthUnits: (spread / 2) * plotScale,
-  };
 }

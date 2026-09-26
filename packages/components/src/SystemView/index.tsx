@@ -23,8 +23,8 @@ import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { AlmanacPanel } from "./AlmanacPanel";
 import { ContactCaption, FRAME_CAPTION } from "./ContactCaption";
 import type { SystemViewConfig } from "./config";
-import { type EncounterDirection, encounterDirectionOf } from "./encounter";
-import { resolveFrame } from "./frame";
+import { encounterDirectionOf } from "./encounter";
+import { frameCaption, resolveFrame } from "./frame";
 import { conicPatches } from "./orbitPatches";
 import { overlayGeometry } from "./overlayGeometry";
 import { inertialFrameFor, resolveProjection } from "./projection";
@@ -35,11 +35,7 @@ import { SystemDiagram } from "./SystemDiagram";
 import { SystemEntitiesLayer } from "./SystemEntitiesLayer";
 // Registers the built-in vessel-orbits contribution.
 import "./vesselOrbitsContribution";
-import {
-  angleDelta,
-  hohmannPhaseAngle,
-  transferStatusesFor,
-} from "./transferWindow";
+import { panelHohmannFor, transferStatusesFor } from "./transferWindow";
 import { type CelestialBody, useCelestialBodies } from "./useCelestialBodies";
 import { useCommsEntities } from "./useCommsEntities";
 import { usePhaseAngles } from "./usePhaseAngles";
@@ -61,54 +57,6 @@ const topics = defineTopicManifest({
     "system.uplink.pending",
   ],
 });
-
-function frameCaption({
-  haveBodies,
-  parentName,
-  encounterDirection,
-  encounterBody,
-}: {
-  haveBodies: boolean;
-  parentName: string | null;
-  encounterDirection: EncounterDirection | null;
-  encounterBody: string | null;
-}): string {
-  if (!haveBodies) return "Waiting for body data...";
-  if (parentName === null) return "Pick a frame in the widget config.";
-  if (encounterDirection === null || encounterBody == null) {
-    return `Frame: ${parentName}`;
-  }
-  return `Frame: ${parentName} · next ${encounterDirection}: ${encounterBody}`;
-}
-
-/** The Hohmann ideal and the live offset from it for the panel's body, when the frame is the vessel's own parent and every input is finite. */
-function panelHohmannFor({
-  panelBody,
-  vesselBody,
-  parentName,
-  vSma,
-  panelPhaseAngle,
-}: {
-  panelBody: CelestialBody | null;
-  vesselBody: string | null;
-  parentName: string | null;
-  vSma: number | undefined;
-  panelPhaseAngle: number | null;
-}): { ideal: number; delta: number | null } | null {
-  if (panelBody === null || typeof vesselBody !== "string") return null;
-  if (parentName !== vesselBody || panelBody.referenceBody !== vesselBody) {
-    return null;
-  }
-  if (typeof vSma !== "number" || !Number.isFinite(vSma)) return null;
-  const rB = panelBody.semiMajorAxis;
-  if (typeof rB !== "number" || !Number.isFinite(rB)) return null;
-  const ideal = hohmannPhaseAngle(vSma, rB);
-  if (!Number.isFinite(ideal)) return null;
-  return {
-    ideal,
-    delta: panelPhaseAngle === null ? null : angleDelta(panelPhaseAngle, ideal),
-  };
-}
 
 function SystemViewComponent({
   config,
@@ -591,10 +539,11 @@ registerComponent<SystemViewConfig>({
 });
 
 export { AlmanacPanel } from "./AlmanacPanel";
+export type { ResolvedSystemEntity } from "./resolveSystemEntities";
+export { resolveSystemEntities } from "./resolveSystemEntities";
 export { SystemEntitiesLayer } from "./SystemEntitiesLayer";
 export type { SystemOverlayContext } from "./slots";
 export type {
-  ResolvedSystemEntity,
   SystemEntitiesContext,
   SystemEntity,
   SystemEntityEmphasis,
@@ -609,7 +558,6 @@ export type {
 export {
   projectEntityPosition,
   projectOrbitRing,
-  resolveSystemEntities,
   SYSTEM_ENTITY_DEFAULT_LAYER,
 } from "./systemEntities";
 export type { CelestialBody } from "./useCelestialBodies";

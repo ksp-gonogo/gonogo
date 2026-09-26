@@ -4,6 +4,7 @@ import { NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { PlacedBody, PlacedPoint } from "./diagramGeometry";
 import { DepthRing } from "./diagramMarks";
+import { normalizePhaseAngle } from "./transferWindow";
 import type { CelestialBody } from "./useCelestialBodies";
 
 /** How a body's dot and label are emphasised: the selected target, the vessel's own body, or neither. */
@@ -38,18 +39,6 @@ function phaseFill(status: "go" | "soon" | undefined): string {
   if (status === "go") return "var(--color-status-go-fg)";
   if (status === "soon") return "var(--color-status-warning-bg)";
   return "var(--color-text-faint)";
-}
-
-/**
- * Phase angles arrive in [0, 360); rendering them as the closest
- * signed value (-180, 180] makes the leading/trailing relationship obvious
- * at a glance.
- */
-function normalizePhaseAngle(deg: number): number {
-  let d = deg % 360;
-  if (d > 180) d -= 360;
-  if (d < -180) d += 360;
-  return d;
 }
 
 /** One child body: its depth ring, its dot, and a name and phase-angle label unless it sits on the parent. */

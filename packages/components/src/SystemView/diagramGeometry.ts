@@ -1,13 +1,12 @@
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import { TrajectoryFrameKindLike } from "@ksp-gonogo/sitrep-client";
+import { type DepthGradientAxis, depthGradientAxis } from "./depthCues";
 import {
-  type DepthGradientAxis,
-  depthGradientAxis,
   orbitPointAt,
   orbitRingPoints,
-  type Placement,
   perifocalToParent,
-} from "./projection";
+} from "./orbitGeometry";
+import type { Placement } from "./projection";
 import type { CelestialBody } from "./useCelestialBodies";
 
 export interface VesselOrbit {

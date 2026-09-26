@@ -1,6 +1,4 @@
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
-import { liftArc, openPath, type VesselOrbit } from "./diagramGeometry";
-import type { ProjectedPatch } from "./predictedTrajectory";
 import {
   DEPTH_ABOVE_COLOUR,
   DEPTH_BELOW_COLOUR,
@@ -8,8 +6,10 @@ import {
   type DepthGradientAxis,
   depthColour,
   depthStrength,
-  type Placement,
-} from "./projection";
+} from "./depthCues";
+import { liftArc, openPath, type VesselOrbit } from "./diagramGeometry";
+import type { ProjectedPatch } from "./predictedTrajectory";
+import type { Placement } from "./projection";
 
 /** The active vessel's own ring, thinner than a body orbit so the two classes read apart. */
 const ACTIVE_VESSEL_ORBIT_STROKE_WIDTH = 1;

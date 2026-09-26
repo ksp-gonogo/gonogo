@@ -1,10 +1,10 @@
 import { logger } from "@ksp-gonogo/logger";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { resolveSystemEntities } from "./resolveSystemEntities";
 import {
   formatEntityLabel,
   projectEntityPosition,
   projectOrbitRing,
-  resolveSystemEntities,
   SYSTEM_ENTITY_DEFAULT_LAYER,
   type SystemEntitiesContext,
   type SystemEntity,

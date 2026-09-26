@@ -1,11 +1,9 @@
 import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "../test/axe";
-import {
-  SystemEntitiesLayer,
-  travellingPulseWavePoints,
-} from "./SystemEntitiesLayer";
+import { SystemEntitiesLayer } from "./SystemEntitiesLayer";
 import type { SystemEntitiesContext, SystemEntity } from "./systemEntities";
+import { travellingPulseWavePoints } from "./TravellingPulse";
 
 const CTX: SystemEntitiesContext = {
   parentName: "Kerbin",

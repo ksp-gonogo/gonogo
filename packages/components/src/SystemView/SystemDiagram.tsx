@@ -14,6 +14,7 @@ import {
 } from "react";
 import { BodyMark, bodyTone } from "./BodyMark";
 import { clampTooltipX, clampTooltipY, tooltipRows } from "./bodyTooltip";
+import { DEPTH_LEVEL_COLOUR } from "./depthCues";
 import {
   diagramPlotScale,
   nameMatches,
@@ -29,7 +30,6 @@ import {
 } from "./diagramMarks";
 import { EmptyDiagram } from "./EmptyDiagram";
 import {
-  DEPTH_LEVEL_COLOUR,
   INERTIAL_PLACEMENT,
   type Placement,
   type ResolvedProjection,

@@ -29,3 +29,44 @@ export function transferStatusesFor(
   }
   return out;
 }
+
+/**
+ * Phase angles arrive in [0, 360); rendering them as the closest
+ * signed value (-180, 180] makes the leading/trailing relationship obvious
+ * at a glance.
+ */
+export function normalizePhaseAngle(deg: number): number {
+  let d = deg % 360;
+  if (d > 180) d -= 360;
+  if (d < -180) d += 360;
+  return d;
+}
+
+/** The Hohmann ideal and the live offset from it for the panel's body, when the frame is the vessel's own parent and every input is finite. */
+export function panelHohmannFor({
+  panelBody,
+  vesselBody,
+  parentName,
+  vSma,
+  panelPhaseAngle,
+}: {
+  panelBody: CelestialBody | null;
+  vesselBody: string | null;
+  parentName: string | null;
+  vSma: number | undefined;
+  panelPhaseAngle: number | null;
+}): { ideal: number; delta: number | null } | null {
+  if (panelBody === null || typeof vesselBody !== "string") return null;
+  if (parentName !== vesselBody || panelBody.referenceBody !== vesselBody) {
+    return null;
+  }
+  if (typeof vSma !== "number" || !Number.isFinite(vSma)) return null;
+  const rB = panelBody.semiMajorAxis;
+  if (typeof rB !== "number" || !Number.isFinite(rB)) return null;
+  const ideal = hohmannPhaseAngle(vSma, rB);
+  if (!Number.isFinite(ideal)) return null;
+  return {
+    ideal,
+    delta: panelPhaseAngle === null ? null : angleDelta(panelPhaseAngle, ideal),
+  };
+}

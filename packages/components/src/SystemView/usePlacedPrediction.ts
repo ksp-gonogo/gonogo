@@ -1,11 +1,12 @@
 import type { OrbitPatch } from "@ksp-gonogo/core";
 import { useMemo } from "react";
+import { orbitPointAt } from "./orbitGeometry";
 import {
   type PatchPoint,
   type PredictedTrajectory,
   predictTrajectory,
 } from "./predictedTrajectory";
-import { orbitPointAt, type Placement } from "./projection";
+import type { Placement } from "./projection";
 import type { CelestialBody } from "./useCelestialBodies";
 
 /** The predicted SOI chain sampled around the frame's parent and its drawn children, then placed through the diagram's projection. */
