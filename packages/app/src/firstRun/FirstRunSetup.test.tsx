@@ -262,9 +262,14 @@ describe("FirstRunSetup: the Uplinks reading", () => {
       rosterEntry({ id: "widget-noclient" }),
     ]);
 
-    await waitFor(() =>
-      expect(screen.getByText("by tester")).toBeInTheDocument(),
-    );
+    /*
+     * The roster count, not the identity: the identity comes from an outcome
+     * already in the store before render, so it is on screen before the
+     * roster frame that adds the row it is compared against.
+     */
+    await screen.findByText("1 of 2 installed Uplinks have a loaded client");
+    expect(screen.getByText("widget-noclient")).toBeInTheDocument();
+    expect(screen.getByText("by tester")).toBeInTheDocument();
     expect(screen.getByText("example/repo")).toBeInTheDocument();
     /*
      * The roster carries no name, author or repo, so the row for an Uplink the
@@ -292,9 +297,8 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     await goToUplinks();
     await emitRoster(wsClients, [rosterEntry({ id: "widget-tampered" })]);
 
-    await waitFor(() =>
-      expect(screen.getByText("Client quarantined")).toBeInTheDocument(),
-    );
+    await screen.findByText("0 of 1 installed Uplink has a loaded client");
+    expect(screen.getByText("Client quarantined")).toBeInTheDocument();
     expect(screen.getByText(/sha256-aaa/)).toBeInTheDocument();
     expect(screen.getByText(/sha256-bbb/)).toBeInTheDocument();
   });
@@ -326,9 +330,8 @@ describe("FirstRunSetup: accessibility", () => {
       rosterEntry({ id: "widget-loaded" }),
       rosterEntry({ id: "widget-noclient" }),
     ]);
-    await waitFor(() =>
-      expect(screen.getByText("Client loaded")).toBeInTheDocument(),
-    );
+    await screen.findByText("1 of 2 installed Uplinks have a loaded client");
+    expect(screen.getByText("Client loaded")).toBeInTheDocument();
     await expectNoA11yViolations(container);
   });
 });
