@@ -315,3 +315,29 @@ describe("LineGraph sparkline variant", () => {
     expect(container.querySelectorAll("polygon")).toHaveLength(1);
   });
 });
+
+describe("LineGraph with a missing sample", () => {
+  it("still draws the finite points when a sample is not a number, and never a NaN coordinate", () => {
+    const { container } = render(
+      <LineGraph
+        series={[
+          {
+            ...AMBIENT,
+            points: [
+              { x: 0, y: Number.NaN },
+              { x: 1, y: 2 },
+              { x: 2, y: 1.5 },
+              { x: 3, y: 1.8 },
+            ],
+          },
+        ]}
+        ariaLabel="Radiation trend"
+      />,
+    );
+    const lines = Array.from(container.querySelectorAll("polyline"));
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) {
+      expect(line.getAttribute("points")).not.toMatch(/NaN/);
+    }
+  });
+});
