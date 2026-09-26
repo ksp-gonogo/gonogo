@@ -83,22 +83,13 @@ test.describe("widget DOM mirror: FuelStatus", () => {
     // 3min 30s, and the stage row has its own assertion below.
     await expectVisibleText(pair.main, "3min 30s");
 
-    // Resource list: the stage-scoped LiquidFuel/Oxidizer rows now
-    // resolve (previously always 0/0 with dv.stages absent), plus the
-    // vessel-scope MonoPropellant/ElectricCharge rows from the shared
-    // snapshot's vessel.resources.
-    await expect(
-      pair.main.getByText("539.8 / 1980.0", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      pair.main.getByText("659.8 / 2420.0", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      pair.main.getByText("9.80 / 10.00", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      pair.main.getByText("448.8 / 450.0", { exact: true }),
-    ).toBeVisible();
+    // Resource list: each row is a kit Meter whose figure reads "<amount> / <capacity>"
+    // with the unit word after the capacity, so match the figure as a substring
+    // of the visible text rather than an exact node.
+    await expectVisibleText(pair.main, "539.8 / 1980.0");
+    await expectVisibleText(pair.main, "659.8 / 2420.0");
+    await expectVisibleText(pair.main, "9.8 / 10.0");
+    await expectVisibleText(pair.main, "448.8 / 450.0");
 
     // Per-stage stack: two stages, the active one (S1) carrying the ΔV.
     await expect(pair.main.getByText(/Stages · ΔV \(ACT\)/)).toBeVisible();
