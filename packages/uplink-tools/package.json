@@ -43,7 +43,8 @@
   "scripts": {
     "build": "rm -rf dist && tsup",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "peerDependencies": {
     "@ksp-gonogo/ui-kit": "*",
@@ -60,6 +61,7 @@
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.0.0",
     "@types/react": "^18.0.0",
+    "@vitest/coverage-v8": "^4.1.4",
     "esbuild": "^0.28.0",
     "gifenc": "^1.0.3",
     "jsdom": "^29.0.2",

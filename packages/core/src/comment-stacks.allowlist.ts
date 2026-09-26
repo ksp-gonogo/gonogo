@@ -1262,7 +1262,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "tests/playwright/widgets/semi-major-axis.spec.ts": 1,
   "tests/playwright/widgets/target-picker.spec.ts": 2,
   "tests/rig/plan-composer.rig.spec.ts": 2,
-  "vitest.workspace.ts": 1,
 };
 
 /**

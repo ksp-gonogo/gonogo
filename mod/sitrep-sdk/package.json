@@ -77,6 +77,7 @@
   "scripts": {
     "build": "node ../../scripts/gen-version.mjs SDK_VERSION && tsc -p tsconfig.build.json && node ../../scripts/prune-dist.mjs && node scripts/quote-downlevel-declaration-names.mjs && node scripts/bundle-delay-worker.mjs && node scripts/extend-relative-specifiers.mjs",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test-d.json"
   },
   "peerDependencies": {
