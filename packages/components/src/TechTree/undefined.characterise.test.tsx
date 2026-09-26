@@ -3,6 +3,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
+import { ReadingProbe } from "../test/ReadingProbe";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -40,9 +41,13 @@ function newFixture() {
   });
 }
 
-function renderTree(fixture: StreamFixture) {
+function renderTree(
+  fixture: StreamFixture,
+  { probe = false }: { probe?: boolean } = {},
+) {
   return render(
     <fixture.Provider>
+      {probe && <ReadingProbe topic="career.status" />}
       <DashboardItemContext.Provider value={{ instanceId: "tt-char" }}>
         <TechTreeComponent config={{}} id="tt-char" />
       </DashboardItemContext.Provider>
@@ -145,7 +150,7 @@ describe("TechTree: the `allNodes === null` absence gate", () => {
 
   it("fires for a partial payload whose `tech` field is null", async () => {
     const fixture = newFixture();
-    renderTree(fixture);
+    renderTree(fixture, { probe: true });
 
     act(() => {
       // The record arrived carrying a science balance but no tech sub-tree.
@@ -155,9 +160,7 @@ describe("TechTree: the `allNodes === null` absence gate", () => {
       );
     });
 
-    await waitFor(() =>
-      expect(fixture.transport.isSubscribed("career.status")).toBe(true),
-    );
+    await screen.findByText("career.status: observed");
     expect(screen.getByText(/Awaiting tech telemetry/i)).toBeInTheDocument();
     // The science figure the payload DID carry never reaches the screen.
     expect(visibleText()).not.toContain("5000");
@@ -165,15 +168,13 @@ describe("TechTree: the `allNodes === null` absence gate", () => {
 
   it("fires when `tech.nodes` itself is null", async () => {
     const fixture = newFixture();
-    renderTree(fixture);
+    renderTree(fixture, { probe: true });
 
     act(() => {
       fixture.emit("career.status", careerStatus(null, null));
     });
 
-    await waitFor(() =>
-      expect(fixture.transport.isSubscribed("career.status")).toBe(true),
-    );
+    await screen.findByText("career.status: observed");
     expect(screen.getByText(/Awaiting tech telemetry/i)).toBeInTheDocument();
   });
 });
@@ -181,7 +182,7 @@ describe("TechTree: the `allNodes === null` absence gate", () => {
 describe("TechTree: null versus undefined", () => {
   it("does NOT distinguish a whole-topic tombstone from a topic that never arrived", async () => {
     const fixture = newFixture();
-    renderTree(fixture);
+    renderTree(fixture, { probe: true });
 
     act(() => {
       // The hook hands back `null` for a tombstone rather than `undefined`, so
@@ -190,9 +191,7 @@ describe("TechTree: null versus undefined", () => {
       fixture.emit("career.status", null);
     });
 
-    await waitFor(() =>
-      expect(fixture.transport.isSubscribed("career.status")).toBe(true),
-    );
+    await screen.findByText("career.status: absent");
     expect(screen.getByText(/Awaiting tech telemetry/i)).toBeInTheDocument();
   });
 });

@@ -3,6 +3,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
+import { ReadingProbe } from "../test/ReadingProbe";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -46,9 +47,11 @@ function newFixture() {
 function renderStrategies(
   fixture: StreamFixture,
   size: { w?: number; h?: number } = { w: 9, h: 12 },
+  { probe = false }: { probe?: boolean } = {},
 ) {
   const result = render(
     <fixture.Provider>
+      {probe && <ReadingProbe topic="career.status" />}
       <DashboardItemContext.Provider value={{ instanceId: "strat-char" }}>
         <StrategiesComponent
           config={{}}
@@ -148,7 +151,7 @@ describe("Strategies: the `strategies === null` absence gate", () => {
 
   it("fires for a partial payload whose `strategies` field is null", async () => {
     const fixture = newFixture();
-    renderStrategies(fixture);
+    renderStrategies(fixture, undefined, { probe: true });
 
     // The record arrived, carrying economy but not strategies. Today that is
     // indistinguishable from the topic never having arrived.
@@ -157,9 +160,7 @@ describe("Strategies: the `strategies === null` absence gate", () => {
       strategies: null,
     });
 
-    await waitFor(() =>
-      expect(fixture.transport.isSubscribed("career.status")).toBe(true),
-    );
+    await screen.findByText("career.status: observed");
     expect(screen.getByText(/Awaiting career data/)).toBeInTheDocument();
     // The funds the payload DID carry are thrown away with the rest, even
     // though this widget is required to keep a balance on screen.
@@ -168,15 +169,13 @@ describe("Strategies: the `strategies === null` absence gate", () => {
 
   it("fires when `strategies.all` itself is null", async () => {
     const fixture = newFixture();
-    renderStrategies(fixture);
+    renderStrategies(fixture, undefined, { probe: true });
 
     emitCareer(fixture, {
       strategies: { active: [], all: null, activeCount: 0 },
     });
 
-    await waitFor(() =>
-      expect(fixture.transport.isSubscribed("career.status")).toBe(true),
-    );
+    await screen.findByText("career.status: observed");
     expect(screen.getByText(/Awaiting career data/)).toBeInTheDocument();
   });
 });
@@ -184,7 +183,7 @@ describe("Strategies: the `strategies === null` absence gate", () => {
 describe("Strategies: null versus undefined", () => {
   it("does NOT distinguish a whole-topic tombstone from a topic that never arrived", async () => {
     const fixture = newFixture();
-    renderStrategies(fixture);
+    renderStrategies(fixture, undefined, { probe: true });
 
     act(() => {
       // The hook returns `null` for a tombstone rather than `undefined`, so the
@@ -193,9 +192,7 @@ describe("Strategies: null versus undefined", () => {
       fixture.emit("career.status", null);
     });
 
-    await waitFor(() =>
-      expect(fixture.transport.isSubscribed("career.status")).toBe(true),
-    );
+    await screen.findByText("career.status: absent");
     expect(screen.getByText(/Awaiting career data/)).toBeInTheDocument();
   });
 });

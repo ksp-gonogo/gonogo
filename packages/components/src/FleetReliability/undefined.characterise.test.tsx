@@ -1,6 +1,11 @@
+import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
-import { setupStreamFixture } from "../test/setupStreamFixture";
+import { ReadingProbe } from "../test/ReadingProbe";
+import {
+  type StreamFixture,
+  setupStreamFixture,
+} from "../test/setupStreamFixture";
 import { FleetReliabilityUpdates } from "./index";
 
 /**
@@ -40,13 +45,14 @@ const FAILING_PARTS = [
   },
 ];
 
-function renderAugment(vesselId: string) {
+function renderAugment(vesselId: string, { probe }: { probe?: TopicId } = {}) {
   const fixture = setupStreamFixture({
     carriedChannels: CARRIED,
     suspendFrames: true,
   });
   const utils = render(
     <fixture.Provider>
+      {probe && <ReadingProbe topic={probe} />}
       <FleetReliabilityUpdates
         vesselId={vesselId}
         vesselName="Row"
@@ -56,6 +62,20 @@ function renderAugment(vesselId: string) {
     </fixture.Provider>,
   );
   return { fixture, ...utils };
+}
+
+/**
+ * A summary that lets the augment draw, so a test asserting a blank can then
+ * show the identity and parts it emitted did arrive and were withheld only by
+ * the summary under test.
+ */
+function emitModelledSummary(fixture: StreamFixture) {
+  act(() => {
+    fixture.emit("reliability.summary", {
+      source: "testflight",
+      coverage: "modeled",
+    });
+  });
 }
 
 describe("FleetReliability, what an unread channel renders", () => {
@@ -158,27 +178,32 @@ describe("FleetReliability, what an unread channel renders", () => {
     // The property under test is that it does not ASSERT A FAILURE, and that is
     // unchanged. What went is the notice: with no summary there is no reading to
     // qualify, and whether that is a comms problem is the signal status's story.
-    await waitFor(() =>
-      expect(screen.queryByText("LV-909 Terrier")).not.toBeInTheDocument(),
-    );
+    expect(screen.queryByText("LV-909 Terrier")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("group", { name: "Reliability updates" }),
     ).not.toBeInTheDocument();
+
+    emitModelledSummary(fixture);
+    expect(await screen.findByText("LV-909 Terrier")).toBeInTheDocument();
   });
 
   it("treats a CONFIRMED summary tombstone the same way", async () => {
     // Same gate, the tombstone side. A `null` summary is a confirmed "there is
     // no reliability summary", which is still not a statement about the parts.
-    const { fixture } = renderAugment("v-active");
+    const { fixture } = renderAugment("v-active", {
+      probe: "reliability.summary",
+    });
     act(() => {
       fixture.emit("vessel.identity", ACTIVE_IDENTITY);
       fixture.emit("reliability.summary", null);
       fixture.emit("reliability.parts", FAILING_PARTS);
     });
 
-    await waitFor(() =>
-      expect(screen.queryByText("LV-909 Terrier")).not.toBeInTheDocument(),
-    );
+    await screen.findByText("reliability.summary: absent");
+    expect(screen.queryByText("LV-909 Terrier")).not.toBeInTheDocument();
+
+    emitModelledSummary(fixture);
+    expect(await screen.findByText("LV-909 Terrier")).toBeInTheDocument();
   });
 
   it("stays silent when a producer never set a coverage", async () => {
@@ -186,16 +211,20 @@ describe("FleetReliability, what an unread channel renders", () => {
     // answer is that we do not know. Reading it as "modelled" would resurrect
     // the boolean this field replaced, so the part list must stay unrendered;
     // that is the assertion. The notice went with the other install-level ones.
-    const { fixture } = renderAugment("v-active");
+    const { fixture } = renderAugment("v-active", {
+      probe: "reliability.summary",
+    });
     act(() => {
       fixture.emit("vessel.identity", ACTIVE_IDENTITY);
       fixture.emit("reliability.summary", { source: "somemod" });
       fixture.emit("reliability.parts", FAILING_PARTS);
     });
 
-    await waitFor(() =>
-      expect(screen.queryByText("LV-909 Terrier")).not.toBeInTheDocument(),
-    );
+    await screen.findByText("reliability.summary: observed");
+    expect(screen.queryByText("LV-909 Terrier")).not.toBeInTheDocument();
+
+    emitModelledSummary(fixture);
+    expect(await screen.findByText("LV-909 Terrier")).toBeInTheDocument();
   });
 
   it("labels a failing part with an undefined title as 'Unknown part'", async () => {

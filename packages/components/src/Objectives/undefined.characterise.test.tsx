@@ -1,6 +1,7 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
+import { ReadingProbe } from "../test/ReadingProbe";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -28,9 +29,13 @@ function newFixture() {
   });
 }
 
-function renderObjectives(fixture: StreamFixture) {
+function renderObjectives(
+  fixture: StreamFixture,
+  { probe = false }: { probe?: boolean } = {},
+) {
   return render(
     <fixture.Provider>
+      {probe && <ReadingProbe topic="career.status" />}
       <DashboardItemContext.Provider value={{ instanceId: "obj-char" }}>
         <ObjectivesComponent config={{}} id="obj-char" />
       </DashboardItemContext.Provider>
@@ -59,7 +64,7 @@ describe("Objectives: nothing has arrived at all", () => {
 describe("Objectives: the absence gates around `contracts.active`", () => {
   it("renders identically for a never-arrived topic and for a confirmed-empty active list", async () => {
     const fixture = newFixture();
-    renderObjectives(fixture);
+    renderObjectives(fixture, { probe: true });
 
     const beforeAnything = screen.getByRole("status").textContent;
     expect(beforeAnything).toContain("No active objectives");
@@ -74,9 +79,7 @@ describe("Objectives: the absence gates around `contracts.active`", () => {
       });
     });
 
-    await waitFor(() =>
-      expect(fixture.transport.isSubscribed("career.status")).toBe(true),
-    );
+    await screen.findByText("career.status: observed");
     // "KSP says you have no active contracts" and "we have heard nothing"
     // produce the same DOM. This is the conflation the migration reassigns.
     expect(screen.getByRole("status").textContent).toBe(beforeAnything);
@@ -85,7 +88,7 @@ describe("Objectives: the absence gates around `contracts.active`", () => {
 
   it("fires the `?? []` coercion when the arrived record's `contracts` is null", async () => {
     const fixture = newFixture();
-    renderObjectives(fixture);
+    renderObjectives(fixture, { probe: true });
 
     act(() => {
       // The record arrived and the sub-tree the source reads did not.
@@ -98,9 +101,7 @@ describe("Objectives: the absence gates around `contracts.active`", () => {
       });
     });
 
-    await waitFor(() =>
-      expect(fixture.transport.isSubscribed("career.status")).toBe(true),
-    );
+    await screen.findByText("career.status: observed");
     expect(screen.getByRole("status")).toHaveTextContent(
       "No active objectives",
     );
@@ -109,7 +110,7 @@ describe("Objectives: the absence gates around `contracts.active`", () => {
 
   it("fires the `?? []` coercion when `contracts.active` itself is null", async () => {
     const fixture = newFixture();
-    renderObjectives(fixture);
+    renderObjectives(fixture, { probe: true });
 
     act(() => {
       // `parseContracts(null)` returns null, distinct from `[]`, and the `?? []`
@@ -123,9 +124,7 @@ describe("Objectives: the absence gates around `contracts.active`", () => {
       });
     });
 
-    await waitFor(() =>
-      expect(fixture.transport.isSubscribed("career.status")).toBe(true),
-    );
+    await screen.findByText("career.status: observed");
     expect(screen.getByRole("status")).toHaveTextContent(
       "No active objectives",
     );
@@ -164,7 +163,7 @@ describe("Objectives: the absence gates around `contracts.active`", () => {
 describe("Objectives: null versus undefined", () => {
   it("does NOT distinguish a whole-topic tombstone from a topic that never arrived", async () => {
     const fixture = newFixture();
-    renderObjectives(fixture);
+    renderObjectives(fixture, { probe: true });
 
     act(() => {
       // The hook hands back `null` for a tombstone rather than `undefined`, so
@@ -173,9 +172,7 @@ describe("Objectives: null versus undefined", () => {
       fixture.emit("career.status", null);
     });
 
-    await waitFor(() =>
-      expect(fixture.transport.isSubscribed("career.status")).toBe(true),
-    );
+    await screen.findByText("career.status: absent");
     expect(screen.getByRole("status")).toHaveTextContent(
       "No active objectives",
     );

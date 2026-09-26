@@ -8,6 +8,7 @@ import {
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ReadingProbe } from "../test/ReadingProbe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ActionGroupComponent } from "./index";
 
@@ -52,7 +53,11 @@ const CARRIED = [
   "comms.link",
 ];
 
-function mount(groupId: string, instanceId = "ag-characterise") {
+function mount(
+  groupId: string,
+  instanceId = "ag-characterise",
+  { probe = false }: { probe?: boolean } = {},
+) {
   const fixture = setupStreamFixture({
     carriedChannels: CARRIED,
     pinnedUt: 0,
@@ -62,6 +67,7 @@ function mount(groupId: string, instanceId = "ag-characterise") {
   fixture.transport.setCommandHandler(commandHandler);
   render(
     <fixture.Provider>
+      {probe && <ReadingProbe topic="vessel.control" />}
       <DashboardItemContext.Provider value={{ instanceId }}>
         <ActionGroupComponent
           config={{ actionGroupId: groupId }}
@@ -273,7 +279,7 @@ describe("ActionGroup: a partial payload", () => {
     // `index` through `control?.actionGroups?.find(...)`, and a miss returns
     // `undefined`. That is the state a saved AGX group lands in after AGX is
     // uninstalled, and the code chose "unknown, not false" for it.
-    const { fixture } = mount("AG1", "ag-custom");
+    const { fixture } = mount("AG1", "ag-custom", { probe: true });
 
     act(() => {
       fixture.emit("vessel.control", {
@@ -281,9 +287,7 @@ describe("ActionGroup: a partial payload", () => {
         actionGroups: [{ index: 4, name: "AG4", state: true }],
       });
     });
-    await waitFor(() =>
-      expect(fixture.transport.isSubscribed("vessel.control")).toBe(true),
-    );
+    await screen.findByText("vessel.control: observed");
 
     const toggle = screen.getByRole("button", { name: "Toggle AG1" });
     expect(toggle.textContent).toBe(NULL_DISPLAY);

@@ -3,6 +3,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
+import { ReadingProbe } from "../test/ReadingProbe";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -36,9 +37,11 @@ function newFixture() {
 function renderManager(
   fixture: StreamFixture,
   size?: { w: number; h: number },
+  { probe = false }: { probe?: boolean } = {},
 ) {
   return render(
     <fixture.Provider>
+      {probe && <ReadingProbe topic="career.status" />}
       <DashboardItemContext.Provider value={{ instanceId: "cm-char" }}>
         <ContractManagerComponent
           config={{}}
@@ -136,7 +139,7 @@ describe("ContractManager: the `active === null` absence gate", () => {
 
   it("fires for a partial payload whose `contracts` field is null", async () => {
     const fixture = newFixture();
-    renderManager(fixture);
+    renderManager(fixture, undefined, { probe: true });
 
     act(() => {
       // The record arrived; the sub-tree the widget reads did not. Today this
@@ -150,9 +153,7 @@ describe("ContractManager: the `active === null` absence gate", () => {
       });
     });
 
-    await waitFor(() =>
-      expect(fixture.transport.isSubscribed("career.status")).toBe(true),
-    );
+    await screen.findByText("career.status: observed");
     expect(
       screen.getByText(/Awaiting contract telemetry/i),
     ).toBeInTheDocument();
@@ -163,7 +164,7 @@ describe("ContractManager: the `active === null` absence gate", () => {
 describe("ContractManager: null versus undefined", () => {
   it("does NOT distinguish a whole-topic tombstone from a topic that never arrived", async () => {
     const fixture = newFixture();
-    renderManager(fixture);
+    renderManager(fixture, undefined, { probe: true });
 
     act(() => {
       // A tombstone: the hook returns `null` here rather than `undefined`
@@ -174,9 +175,7 @@ describe("ContractManager: null versus undefined", () => {
       fixture.emit("career.status", null);
     });
 
-    await waitFor(() =>
-      expect(fixture.transport.isSubscribed("career.status")).toBe(true),
-    );
+    await screen.findByText("career.status: absent");
     expect(
       screen.getByText(/Awaiting contract telemetry/i),
     ).toBeInTheDocument();

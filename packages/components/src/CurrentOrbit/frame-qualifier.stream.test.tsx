@@ -2,6 +2,7 @@ import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
+import { ReadingProbe } from "../test/ReadingProbe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
@@ -25,7 +26,7 @@ const CARRIED = [
   "system.frame",
 ];
 
-function mount() {
+function mount({ probe = false }: { probe?: boolean } = {}) {
   const fixture = setupStreamFixture({
     carriedChannels: CARRIED,
     pinnedUt: 10,
@@ -33,6 +34,7 @@ function mount() {
   });
   render(
     <fixture.Provider>
+      {probe && <ReadingProbe topic="system.frame" />}
       <DashboardItemContext.Provider value={{ instanceId: "orbit-frame" }}>
         <CurrentOrbitComponent id="orbit-frame" w={9} h={18} />
       </DashboardItemContext.Provider>
@@ -73,15 +75,14 @@ describe("CurrentOrbit: what the view frame does to the apsis readouts", () => {
   it("still renders the numbers in a frame that has a centre", async () => {
     // The contrast case. Without it the assertion above could pass because the
     // widget stopped rendering apsides at all.
-    const fixture = mount();
+    const fixture = mount({ probe: true });
     emitOrbit(fixture);
     act(() => {
       fixture.emit("system.frame", { kind: 1, centreBody: "Kerbin" });
     });
 
-    await waitFor(() =>
-      expect(screen.queryByText(/no Ap here/i)).not.toBeInTheDocument(),
-    );
+    await screen.findByText("system.frame: observed");
+    expect(screen.queryByText(/no Ap here/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/no Pe here/i)).not.toBeInTheDocument();
   });
 
@@ -121,15 +122,14 @@ describe("CurrentOrbit: naming the frame that took the numbers away", () => {
   it("does not caption a frame that takes nothing away", async () => {
     // A frame caption on a panel whose readouts it does not touch is a line of
     // text that explains nothing.
-    const fixture = mount();
+    const fixture = mount({ probe: true });
     emitOrbit(fixture);
     act(() => {
       fixture.emit("system.frame", { kind: 1, centreBody: "Kerbin" });
     });
 
-    await waitFor(() =>
-      expect(screen.queryByText(/no Ap here/i)).not.toBeInTheDocument(),
-    );
+    await screen.findByText("system.frame: observed");
+    expect(screen.queryByText(/no Ap here/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/^Frame: /)).not.toBeInTheDocument();
   });
 });
