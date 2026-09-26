@@ -1,11 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { defineTopicManifest, registerComponent } from "@ksp-gonogo/core";
 
-const topics = defineTopicManifest({
-  channels: ["vessel.orbit", "system.bodies"],
-  fields: ["vessel.orbit.sma", "vessel.orbit.referenceBodyIndex"],
-});
-
 import { useDataSeries } from "@ksp-gonogo/data";
 import {
   observedAt,
@@ -22,9 +17,19 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { EmptyState, Panel, Sparkline } from "@ksp-gonogo/ui";
-import { ReadoutCaption, Section, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  NULL_DISPLAY,
+  ReadoutCaption,
+  Section,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import { useCallback, useRef, useState } from "react";
 import { useBodyName } from "../shared/useBodyName";
+
+const topics = defineTopicManifest({
+  channels: ["vessel.orbit", "system.bodies"],
+  fields: ["vessel.orbit.sma", "vessel.orbit.referenceBodyIndex"],
+});
 
 type SemiMajorAxisConfig = Record<string, never>;
 
@@ -34,15 +39,9 @@ function SemiMajorAxisComponent({
   w,
   h,
 }: Readonly<ComponentProps<SemiMajorAxisConfig>>) {
-  /**
-   * A scalar beside a label dates rather than blanks when stale.
-   * `withoutReckoning` because a propagated orbit conserves SMA, so a
-   * modelled figure would be the same number dressed as fresh, and would
-   * disagree in kind with the observed sparkline beside it.
-   */
+  // A propagated orbit conserves SMA, so a modelled figure would be the observed number dressed as fresh.
   const orbitReading = withoutReckoning(topics.useTelemetry("vessel.orbit"));
   const sma = stillTrue(orbitReading, undefined)?.sma;
-  // Held rather than never-seen: only `stale` reads as "the link went quiet", and a cold start must not accuse it.
   const smaHeld = orbitReading.state === "stale";
   const frameReading = useStream<ControlFrame>("system.frame");
   // The selected frame is a setting, which a quiet link does not change.
@@ -62,12 +61,10 @@ function SemiMajorAxisComponent({
   const referenceBody = useBodyName(
     stillTrue(orbitReading, undefined)?.referenceBodyIndex,
   );
-  // The sparkline reads its window off the `TimelineStore`'s buffered history once `vessel.orbit` is carried.
   const series = useDataSeries("data", "vessel.orbit.sma", SPARK_WINDOW_SEC);
   const sparkValues = series.v as number[];
   const cols = w ?? 4;
   const rows = h ?? 4;
-  // The subtitle is elaboration, dropped when there is no room.
   const showSubtitle = rows >= 5 && cols >= 4;
   /* At 3x3 the age gives way and the figure's own held mark says the link went quiet. */
   const showHeldCaption = smaHeld && rows >= 4;
@@ -75,8 +72,7 @@ function SemiMajorAxisComponent({
   const showSparkline =
     rows >= 4 && cols >= 3 && !(showHeldCaption && rows < 5);
 
-  // Font scales with width so the value never wraps into the subtitle.
-  const readoutFontPx = cols <= 3 ? 18 : cols <= 4 ? 22 : 28;
+  const fontPx = readoutFontPx(cols);
 
   // The Sparkline is fixed-width SVG, so its slot is measured. A callback ref, since the slot only mounts once orbit data arrives.
   const roRef = useRef<ResizeObserver | null>(null);
@@ -122,18 +118,17 @@ function SemiMajorAxisComponent({
         <Section full gap="related-dense">
           {showSubtitle && (
             <ReadoutCaption style={SMA_CAPTION_STYLE}>
-              Semi-major axis{referenceBody ? ` · ${referenceBody}` : ""}
+              Semi-major axis{bodySuffix(referenceBody)}
             </ReadoutCaption>
           )}
           <div
             style={{
               ...SMA_DISPLAY_STYLE,
-              fontSize: `${readoutFontPx}px`,
+              fontSize: `${fontPx}px`,
               // Muted while held; the caption below says it in words.
               ...(smaHeld ? { color: "var(--color-text-muted)" } : {}),
             }}
           >
-            {/* The whole reading, so the number itself carries whether it is current. */}
             <Unit value={readingOf(orbitReading, (orbit) => orbit.sma)} />
           </div>
           {/* The caveat sits on the value: a header badge beside a confident number is what an operator reads past. */}
@@ -150,7 +145,7 @@ function SemiMajorAxisComponent({
               )}
             </ReadoutCaption>
           )}
-          {/* A pulsating frame's length unit moves with its pair, so the frame is named. Labelled rather than suppressed: a semi-major axis exists in such a frame, where an apsis does not. */}
+          {/* A pulsating frame's length unit moves with its pair, so the frame is named. */}
           {lengthsPulsate && (
             <ReadoutCaption role="status">
               {controlFrameLabel(controlFrame) ?? "pulsating frame"}
@@ -172,10 +167,24 @@ function SemiMajorAxisComponent({
   );
 }
 
+// Font scales with width so the value never wraps into the subtitle.
+function readoutFontPx(cols: number): number {
+  if (cols <= 3) return 18;
+  if (cols <= 4) return 22;
+  return 28;
+}
+
+/** Bare while the body table is loading, the null glyph once it is a confirmed tombstone. */
+function bodySuffix(name: string | null | undefined): string {
+  if (name === null) return ` · ${NULL_DISPLAY}`;
+  if (!name) return "";
+  return ` · ${name}`;
+}
+
 /** Centres the kit's caption on the reading it belongs to. */
 const SMA_CAPTION_STYLE = { textAlign: "center" } as const;
 
-/** Display tier, off the type scale. Only a floor: the widget writes a measured `readoutFontPx` over it. */
+/** Display tier, off the type scale. Only a floor: the widget writes `readoutFontPx` over it. */
 const SMA_DISPLAY_STYLE = {
   fontSize: "28px",
   letterSpacing: "0.04em",

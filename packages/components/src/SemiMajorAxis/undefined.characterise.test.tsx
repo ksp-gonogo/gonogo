@@ -1,5 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -11,8 +12,8 @@ import { SemiMajorAxisComponent } from "./index";
  * - `sma === undefined || !Number.isFinite(sma.magnitude)` is the whole-widget
  *   gate: one "No orbit data" state for nothing arrived, a record without sma,
  *   a tombstone, and a non-finite number
- * - `referenceBody ? " · X" : ""` renders an unnamed body and one that never
- *   arrived alike
+ * - the subtitle's body suffix is bare while the body table has not arrived,
+ *   and the null glyph once `system.bodies` is a confirmed tombstone
  */
 
 const SEMI_MAJOR_AXIS_CHANNELS = ["vessel.orbit", "system.bodies"];
@@ -128,8 +129,7 @@ describe("SemiMajorAxis: what undefined means today", () => {
     expect(screen.queryByText(/·/)).not.toBeInTheDocument();
   });
 
-  it("renders a confirmed-absent reference body identically to one that never arrived", async () => {
-    // `resolveBodyName` returns null only for a tombstoned table; the widget's `?? undefined` renders it like still loading.
+  it("marks a confirmed-absent reference body rather than rendering it as still loading", async () => {
     const fixture = makeFixture();
     renderSma(fixture);
 
@@ -139,8 +139,9 @@ describe("SemiMajorAxis: what undefined means today", () => {
     });
 
     await waitFor(() => expect(visibleText()).toContain("675.0 km"));
-    expect(screen.getByText("Semi-major axis")).toBeInTheDocument();
-    expect(screen.queryByText(/Kerbin/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(`Semi-major axis · ${NULL_DISPLAY}`),
+    ).toBeInTheDocument();
   });
 
   it("drops the suffix when the body table arrived but does not contain the referenced index", async () => {
