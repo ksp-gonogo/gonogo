@@ -12,7 +12,7 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { createRoot } from "react-dom/client";
-import { Meter, MeterStack } from "../src/Meter";
+import { Meter, MeterRowGroup, MeterStack } from "../src/Meter";
 import { type MeterCase, type MeterSheet, SHEETS } from "./meterBandScenarios";
 
 const AT = value("ut", 42_000);
@@ -79,8 +79,18 @@ function bandOf(
 
 function Case({ c, layout }: { c: MeterCase; layout: MeterSheet["layout"] }) {
   const tank = tankOf(c);
+  // A row case keeps the stack's columns through its caption box, so the
+  // sheet's bars line up the way a widget's do.
+  const Box = layout === "row" ? MeterRowGroup : "figure";
   return (
-    <figure style={{ margin: 0, display: "grid", gap: 4 }}>
+    <Box
+      {...(layout === "row" ? { as: "figure" } : {})}
+      style={
+        layout === "row"
+          ? { margin: 0, rowGap: 4 }
+          : { margin: 0, display: "grid", gap: 4 }
+      }
+    >
       {tank ? (
         <Meter
           label={c.label}
@@ -117,7 +127,7 @@ function Case({ c, layout }: { c: MeterCase; layout: MeterSheet["layout"] }) {
       >
         {c.note ?? ""}
       </figcaption>
-    </figure>
+    </Box>
   );
 }
 

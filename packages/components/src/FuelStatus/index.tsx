@@ -26,6 +26,7 @@ import {
   FieldHint,
   FieldLabel,
   Meter,
+  MeterRowGroup,
   MeterStack,
   NULL_DISPLAY,
   Panel,
@@ -296,7 +297,7 @@ function StageStackSection({
             "0s"
           );
           return (
-            <Stack key={s.stage} gap="xs">
+            <MeterRowGroup key={s.stage}>
               <Meter
                 label={`${active ? "▶ " : ""}S${s.stage}`}
                 value={dv}
@@ -317,7 +318,7 @@ function StageStackSection({
               <Text
                 size="xs"
                 style={{
-                  alignSelf: "flex-end",
+                  justifySelf: "end",
                   whiteSpace: "nowrap",
                   color: active
                     ? "var(--color-status-nogo-fg)"
@@ -326,7 +327,7 @@ function StageStackSection({
               >
                 {burn} · TWR {fmtFixed(twr, 2)}
               </Text>
-            </Stack>
+            </MeterRowGroup>
           );
         })}
       </MeterStack>

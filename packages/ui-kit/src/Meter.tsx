@@ -4,11 +4,17 @@ import {
   type Reading,
   type Value,
 } from "@ksp-gonogo/sitrep-sdk";
-import type { HTMLAttributes, ReactNode } from "react";
+import {
+  type HTMLAttributes,
+  type ReactNode,
+  useLayoutEffect,
+  useRef,
+} from "react";
 import styled, { css } from "styled-components";
 import { bandClaim } from "./bandClaim";
 import { boundsStandApart } from "./instrumentCurrency";
 import { magnitudeOr } from "./magnitude";
+import { NotCurrentHost, NotCurrentMark } from "./NotCurrentMark";
 import { NullValue } from "./NullValue";
 import { Unit } from "./Unit";
 import { UnitSharedFormat, useSharedFormat } from "./UnitSharedFormat";
@@ -28,7 +34,9 @@ export type MeterTone = "neutral" | "go" | "warn" | "nogo" | "info";
  * - `row`: label, bar and figure on ONE line, for a dense list of meters read
  *   down a column (a craft's tanks, a stack of stages). Where the line runs out
  *   of room the figure, then the bar, wraps to a line of its own rather than
- *   being clipped, so the figure and its not-current mark are never cut off
+ *   being clipped, so the figure and its not-current mark are never cut off.
+ *   Inside a `MeterStack` every row shares the stack's columns instead, so each
+ *   bar starts and ends at the same x whatever its label and figure say
  *
  * The bar is the same in both: one track height, the same fill, the same held
  * treatment and the same band marks. Only where the words sit changes.
@@ -653,10 +661,14 @@ function MeterFrame({
 }) {
   if (layout === "row") {
     return (
-      <Meter__Root $row {...rest}>
-        <Meter__Label>{label}</Meter__Label>
-        <Meter__Bar $row>{children}</Meter__Bar>
-        <Meter__Value $row>{display}</Meter__Value>
+      <Meter__Root $row data-meter-row="" {...rest}>
+        <Meter__Label data-meter-part="label">{label}</Meter__Label>
+        <Meter__Bar $row data-meter-part="bar">
+          {children}
+        </Meter__Bar>
+        <Meter__Value $row data-meter-part="figure">
+          {display}
+        </Meter__Value>
       </Meter__Root>
     );
   }
@@ -724,14 +736,31 @@ function MeterPairBar<U extends string = string>({
    * A row has one line to spend, so there the symbol is written once, after the
    * capacity: `960 / 1,000 units` rather than the unit twice. The group's rung
    * is still settled by both halves.
+   *
+   * The pair is then one phrase, and it carries ONE not-current mark, at its
+   * end, when either half is held. Each half's own mark would put the amount's
+   * between the number and the slash. Which half aged is still drawn on the
+   * bar: a dimmed fill for the amount, a dashed track for the capacity.
    */
-  const display = valueLabelNode ?? valueLabel ?? (
-    <>
-      <Unit value={value} hideUnitInGroup={bar.layout === "row"} />
-      {" / "}
-      <Unit value={capacity} />
-    </>
-  );
+  const display =
+    valueLabelNode ??
+    valueLabel ??
+    (bar.layout === "row" ? (
+      <Meter__Pair>
+        <Unit value={value} hideUnitInGroup />
+        {" / "}
+        <Unit value={capacity} />
+        {(bar.notCurrent || bar.trackNotCurrent) && (
+          <NotCurrentMark aria-hidden="true" data-not-current-mark="" />
+        )}
+      </Meter__Pair>
+    ) : (
+      <>
+        <Unit value={value} />
+        {" / "}
+        <Unit value={capacity} />
+      </>
+    ));
   const spoken =
     valueLabel ??
     `${speakQuantity(shown.figure, shared)} of ${speakQuantity(held.figure, shared)}`;
@@ -754,12 +783,205 @@ function MeterPairBar<U extends string = string>({
   );
 }
 
-/** Uniform vertical stack of meters with consistent spacing. */
-export const MeterStack = styled.div`
-  display: flex;
-  flex-direction: column;
+/**
+ * The narrowest a row meter's bar is drawn in a `MeterStack`, in pixels.
+ *
+ * A number rather than a token because the stack does arithmetic with it: it
+ * is the room a line must have left for the bar once the widest label and the
+ * widest figure are placed.
+ */
+const ROW_BAR_FLOOR_PX = 48;
+
+/**
+ * Uniform vertical stack of meters with consistent spacing.
+ *
+ * Also the list that lines row meters up. Every row meter that is a child of
+ * the stack (or of a `MeterRowGroup` in it) lays its label, bar and figure on
+ * the stack's own columns, so the widest label sets where every bar starts and
+ * the widest figure where every bar ends. Anything else spans the full width,
+ * which leaves a stack of stacked meters drawn as a plain column.
+ *
+ * Whether the figures fit BESIDE the bars is decided once for the whole list,
+ * from the widest label and the widest figure: where they cannot both sit on
+ * one line with a bar between them, every figure moves under its bar, at the
+ * trailing edge. One decision rather than one per row, since a list whose rows
+ * each wrapped on their own would have bars ending at two different x again.
+ */
+export function MeterStack({
+  children,
+  ...rest
+}: HTMLAttributes<HTMLDivElement>) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const stack = ref.current;
+    if (!stack || typeof ResizeObserver === "undefined") return;
+    const place = () => {
+      // A stack that has not been laid out has no width to decide against.
+      if (stack.clientWidth === 0) return;
+      stack.toggleAttribute("data-figures-below", !figuresFitBeside(stack));
+    };
+    /*
+     * The stack's own width, and every label and figure in it: a figure that
+     * grows a digit can push the list over the line without the stack itself
+     * changing size.
+     */
+    const resize = new ResizeObserver(place);
+    const watch = () => {
+      resize.disconnect();
+      resize.observe(stack);
+      for (const part of rowParts(stack)) resize.observe(part);
+    };
+    const rows = new MutationObserver(watch);
+    rows.observe(stack, { childList: true, subtree: true });
+    watch();
+    place();
+    return () => {
+      resize.disconnect();
+      rows.disconnect();
+    };
+  }, []);
+  return (
+    <Meter__Stack ref={ref} {...rest}>
+      {children}
+    </Meter__Stack>
+  );
+}
+
+/**
+ * A row meter that shares its slot in a `MeterStack` with other lines, such as
+ * a caption under the bar.
+ *
+ * The stack can only line up the row meters it can see; one wrapped in a box of
+ * the caller's own falls off the stack's columns. This box passes the columns
+ * through to its row meters, and gives every child the whole width.
+ */
+export const MeterRowGroup = styled.div.attrs({
+  "data-meter-row-group": "",
+} as HTMLAttributes<HTMLDivElement>)`
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  row-gap: var(--space-2);
+  min-width: 0;
+
+  & > * {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+`;
+
+/** The labels and figures of the row meters the stack lines up. */
+function rowParts(stack: HTMLElement): HTMLElement[] {
+  return Array.from(
+    stack.querySelectorAll<HTMLElement>(
+      ':scope > [data-meter-row] > [data-meter-part="label"], ' +
+        ':scope > [data-meter-row] > [data-meter-part="figure"], ' +
+        ':scope > [data-meter-row-group] > [data-meter-row] > [data-meter-part="label"], ' +
+        ':scope > [data-meter-row-group] > [data-meter-row] > [data-meter-part="figure"]',
+    ),
+  );
+}
+
+/**
+ * Whether the widest label, a bar at its floor and the widest figure fit on
+ * one line of the stack.
+ *
+ * Measured from the parts' own content widths, which are the same whichever
+ * side of the decision the stack is on, so the answer does not flip-flop on
+ * the layout it produces. A stack with no row meters has nothing to decide.
+ */
+function figuresFitBeside(stack: HTMLElement): boolean {
+  const parts = rowParts(stack);
+  if (parts.length === 0) return true;
+  let label = 0;
+  let figure = 0;
+  for (const part of parts) {
+    if (part.dataset.meterPart === "label") {
+      label = Math.max(label, unwrappedWidth(part));
+    } else {
+      figure = Math.max(figure, part.scrollWidth);
+    }
+  }
+  const style = getComputedStyle(stack);
+  const px = (v: string) => Number.parseFloat(v) || 0;
+  const gap = px(style.columnGap);
+  const room =
+    stack.clientWidth - px(style.paddingLeft) - px(style.paddingRight);
+  return label + gap + ROW_BAR_FLOOR_PX + gap + figure <= room;
+}
+
+/**
+ * A label's width on one line, whether or not the stack has wrapped it.
+ *
+ * Read with wrapping briefly turned off, because the width a wrapped label
+ * takes is the column's and not its own, and the decision has to be made from
+ * the same number on either side of it.
+ */
+function unwrappedWidth(label: HTMLElement): number {
+  const before = label.style.whiteSpace;
+  label.style.whiteSpace = "nowrap";
+  const width = label.scrollWidth;
+  label.style.whiteSpace = before;
+  return width;
+}
+
+/*
+ * Three columns: label, bar, figure. The label and figure columns are as wide
+ * as their widest member and the bar takes the rest. With the figures below
+ * there are two: the bar runs to the trailing edge, and each figure takes a
+ * line of its own across the whole row, pinned to that edge.
+ *
+ * A label wraps at a word break where even the two columns are too narrow for
+ * it on one line, rather than being cut short: the name is the meter's
+ * identity, and a truncated scope reads as a different meter.
+ */
+const Meter__Stack = styled.div`
+  display: grid;
+  grid-template-columns:
+    minmax(min-content, max-content)
+    minmax(${ROW_BAR_FLOOR_PX}px, 1fr)
+    max-content;
   gap: var(--space-8);
   width: 100%;
+
+  & > * {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  & > [data-meter-row],
+  & > [data-meter-row-group] > [data-meter-row] {
+    display: grid;
+    grid-template-columns: subgrid;
+    column-gap: normal;
+  }
+
+  & > [data-meter-row] > [data-meter-part="label"],
+  & > [data-meter-row-group] > [data-meter-row] > [data-meter-part="label"] {
+    white-space: normal;
+  }
+
+  &[data-figures-below] {
+    grid-template-columns:
+      minmax(min-content, max-content)
+      minmax(${ROW_BAR_FLOOR_PX}px, 1fr);
+  }
+
+  &[data-figures-below] > [data-meter-row] > [data-meter-part="bar"],
+  &[data-figures-below]
+    > [data-meter-row-group]
+    > [data-meter-row]
+    > [data-meter-part="bar"] {
+    grid-column: 2 / -1;
+  }
+
+  &[data-figures-below] > [data-meter-row] > [data-meter-part="figure"],
+  &[data-figures-below]
+    > [data-meter-row-group]
+    > [data-meter-row]
+    > [data-meter-part="figure"] {
+    grid-column: 1 / -1;
+  }
 `;
 
 const TONE_FILL = {
@@ -958,6 +1180,15 @@ const Meter__Bar = styled.div<{ $row: boolean }>`
           min-width: 28px;
         `
       : ""}
+`;
+
+/* One nowrap box for an amount over a capacity in the row form, so the single
+   not-current mark hangs off the end of the whole phrase. The halves' own marks
+   are suppressed in favour of it. */
+const Meter__Pair = styled(NotCurrentHost)`
+  & > span > [data-not-current-mark] {
+    display: none;
+  }
 `;
 
 const Meter__Bound = styled.div`
