@@ -10,6 +10,7 @@ import {
   Text,
   ToggleButton,
   Unit,
+  type UnitValue,
 } from "@ksp-gonogo/ui-kit";
 import {
   flagLabel,
@@ -19,22 +20,44 @@ import {
 } from "../unreadLabels";
 import {
   formatPos,
-  posWithUnit,
+  positionDecimals,
   type ServoInfo,
   TARGET_STEP,
   unitFor,
 } from "./servos";
 
+type PositionReading = UnitValue<"°" | "m">;
+
+export interface PositionReadings {
+  current: PositionReading;
+  target: PositionReading;
+}
+
 export interface RoboticsConsoleViewProps {
   servos: ServoInfo[];
   selected: ServoInfo;
-  positionsNotCurrent: boolean;
+  /** The field readings a servo's drawn positions come from. */
+  positionReadings: (s: ServoInfo) => PositionReadings;
   /** Grid rows; below six only the readout and target stepper fit. */
   rows: number;
   onSelect: (partId: string) => void;
   setTarget: (id: string, type: ServoInfo["type"], value: number) => void;
   setMotor: (id: string, engaged: boolean) => void;
   setLock: (id: string, locked: boolean) => void;
+}
+
+/** One of a joint's positions for the list; a withheld figure is "unknown" rather than a drawn zero. */
+function ServoPosition({
+  servo,
+  of,
+  readings,
+}: {
+  servo: ServoInfo;
+  of: "current" | "target";
+  readings: PositionReadings;
+}) {
+  if (servo[of] === null) return "unknown";
+  return <Unit value={readings[of]} decimals={positionDecimals(servo.type)} />;
 }
 
 function listSuffix(s: ServoInfo): string {
@@ -46,7 +69,7 @@ function listSuffix(s: ServoInfo): string {
 export function RoboticsConsoleView({
   servos,
   selected,
-  positionsNotCurrent,
+  positionReadings,
   rows,
   onSelect,
   setTarget,
@@ -54,6 +77,8 @@ export function RoboticsConsoleView({
   setLock,
 }: RoboticsConsoleViewProps) {
   const unit = unitFor(selected.type);
+  const decimals = positionDecimals(selected.type);
+  const readings = positionReadings(selected);
   const showToggles = rows >= 6;
   const showServoList = servos.length > 1 && rows >= 6;
 
@@ -62,13 +87,6 @@ export function RoboticsConsoleView({
       panelTitle="ROBOTICS"
       sections={[
         <Section key="readout" full>
-          {positionsNotCurrent && (
-            /* Names which half is dated, so the held list does not read as a dead panel. */
-            <Text tone="warn" size="xs" role="status" aria-live="polite">
-              Measured positions no longer current: the joints, their targets,
-              lock and motor state are the last reported.
-            </Text>
-          )}
           <Cluster justify="start" align="baseline" wrap>
             {selected.current === null ? (
               <Text size="lg" weight="semibold" tone="muted" role="status">
@@ -76,8 +94,7 @@ export function RoboticsConsoleView({
               </Text>
             ) : (
               <Text size="lg" weight="semibold">
-                {formatPos(selected.type, selected.current)}
-                <Unit>{unit}</Unit>
+                <Unit value={readings.current} decimals={decimals} />
               </Text>
             )}
             <Text tone="muted" aria-hidden="true">
@@ -89,8 +106,7 @@ export function RoboticsConsoleView({
               </Text>
             ) : (
               <Text tone="muted" size="lg">
-                {formatPos(selected.type, selected.target)}
-                <Unit>{unit}</Unit>
+                <Unit value={readings.target} decimals={decimals} />
               </Text>
             )}
             {showToggles && selected.atTarget !== null && (
@@ -195,8 +211,18 @@ export function RoboticsConsoleView({
               >
                 <span>{s.name}</span>
                 <span>
-                  {s.type} · {posWithUnit(s.type, s.current)}/
-                  {posWithUnit(s.type, s.target)}
+                  {s.type} ·{" "}
+                  <ServoPosition
+                    servo={s}
+                    of="current"
+                    readings={positionReadings(s)}
+                  />
+                  /
+                  <ServoPosition
+                    servo={s}
+                    of="target"
+                    readings={positionReadings(s)}
+                  />
                   {listSuffix(s)}
                 </span>
               </SelectableRow>

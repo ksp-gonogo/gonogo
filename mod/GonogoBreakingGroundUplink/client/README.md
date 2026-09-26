@@ -54,7 +54,7 @@ Current-vs-target position, at-target state and motor/lock controls for Breaking
 
 ![Breaking Ground not installed: the console names the missing DLC rather than reporting a craft with no joints on it](docs/assets/robotics-dlc-absent--default.png)
 
-![The same joints after the link drops: measured angles withheld, the roster and every commanded target held](docs/assets/servos-link-lost--default.png)
+![The same joints after the link drops: the angles held and marked, every setting held](docs/assets/servos-link-lost--default.png)
 
 ![A hinge driving towards its target, a piston already at one, and a locked rotor the console leaves to the tachometer](docs/assets/servos--default.png)
 

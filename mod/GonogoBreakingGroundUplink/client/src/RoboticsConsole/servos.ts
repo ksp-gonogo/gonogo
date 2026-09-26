@@ -8,6 +8,8 @@ export type ServoType = "hinge" | "rotationServo" | "piston";
  * Every figure is `null` when withheld, and `atTarget` is `null` whenever either input is, since the stepper steps from `target`.
  */
 export interface ServoInfo {
+  /** Position in `robotics.servos` as delivered, so a drawn figure can be read back as a field reading with its currency. */
+  srcIndex: number;
   partId: string;
   name: string;
   type: ServoType;
@@ -41,9 +43,9 @@ export const formatPos = (type: ServoType, v: number): string =>
 // A piston's extension is a length in metres, not a percentage.
 export const unitFor = (type: ServoType) => (type === "piston" ? "m" : "°");
 
-/** A position for the joint list; a withheld reading is "unknown", with no unit. */
-export const posWithUnit = (type: ServoType, v: number | null): string =>
-  v === null ? "unknown" : `${formatPos(type, v)}${unitFor(type)}`;
+/** Decimals a drawn position carries: whole degrees, or centimetres of a piston's metres. */
+export const positionDecimals = (type: ServoType): number =>
+  type === "piston" ? 2 : 0;
 
 /**
  * Parses `robotics.servos` down to the hinges, rotation servos and pistons this widget drives.
@@ -53,7 +55,7 @@ export function parseServos(raw: unknown): ServoInfo[] {
   if (!Array.isArray(raw)) return [];
   const entries: unknown[] = raw;
   const out: ServoInfo[] = [];
-  for (const entry of entries) {
+  for (const [srcIndex, entry] of entries.entries()) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     if (e.type !== "hinge" && e.type !== "rotationServo" && e.type !== "piston")
@@ -67,6 +69,7 @@ export function parseServos(raw: unknown): ServoInfo[] {
       type === "piston" ? e.targetExtension : e.targetAngle,
     );
     out.push({
+      srcIndex,
       partId: e.partId,
       name: typeof e.partName === "string" ? e.partName : `Servo ${e.partId}`,
       type,
@@ -84,10 +87,7 @@ export function parseServos(raw: unknown): ServoInfo[] {
   return out;
 }
 
-/**
- * The same joints off a list that has stopped arriving: the measured position (and the verdict derived from it) withheld.
- * `target` stays, because it is the last value commanded and does not drift while the link is down.
- */
-export function datePositions(servos: ServoInfo[]): ServoInfo[] {
-  return servos.map((s) => ({ ...s, current: null, atTarget: null }));
+/** The same joints off a list that has stopped arriving: every figure is held, but whether a joint is at its target is a judgement about now. */
+export function withholdVerdicts(servos: ServoInfo[]): ServoInfo[] {
+  return servos.map((s) => ({ ...s, atTarget: null }));
 }

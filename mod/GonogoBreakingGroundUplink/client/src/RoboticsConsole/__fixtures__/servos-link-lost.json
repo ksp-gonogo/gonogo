@@ -1,13 +1,13 @@
 {
   "_meta": {
     "scenario": "servos-link-lost",
-    "notes": "The servos scene, after the craft stops reporting. The wire is identical to `servos` and the link then drops, so the joint list, each commanded target, the lock and motor states and the torque limits are all HELD, and only the MEASURED angle is withheld. Rendering the two side by side is what shows the split at all. Before this the whole panel collapsed to \"Waiting for the robotic parts list\", a never-arrived sentence about a list already received."
+    "notes": "The servos scene, after the craft stops reporting. The wire is identical to `servos` and the link then drops, so every figure is HELD: the measured angles and the targets keep their last values and are marked, the joint list and the lock and motor states stay as last reported, and only the at-target verdict is withheld."
   },
   "_scene": {
     "widget": "robotics-console",
-    "caption": "The same joints after the link drops: measured angles withheld, the roster and every commanded target held",
+    "caption": "The same joints after the link drops: the angles held and marked, every setting held",
     "modes": ["default"],
-    "paints": ["ROBOTICS", "Measured positions no longer current"]
+    "paints": ["ROBOTICS", "22°"]
   },
   "robotics.available": true,
   "robotics.servos": [

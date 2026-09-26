@@ -13,17 +13,18 @@ import { BREAKING_GROUND } from "../uplink";
 import { type RoboticsConsoleActions, roboticsActions } from "./actions";
 import { RoboticsConsoleView } from "./RoboticsConsoleView";
 import {
-  datePositions,
   formatPos,
   parseServos,
+  type ServoInfo,
   type ServoType,
   TARGET_STEP,
   unitFor,
+  withholdVerdicts,
 } from "./servos";
 
 export type { RoboticsConsoleActions } from "./actions";
 export type { ServoInfo, ServoType } from "./servos";
-export { datePositions, parseServos } from "./servos";
+export { parseServos } from "./servos";
 
 /**
  * The active vessel's robotic hinges, rotation servos and pistons, with current-vs-target position and motor and lock controls.
@@ -34,10 +35,9 @@ type RoboticsConsoleConfig = Record<string, never>;
 function RoboticsConsoleComponent({
   h,
 }: Readonly<ComponentProps<RoboticsConsoleConfig>>) {
-  // Only the measured positions drift; the rest of each joint is a fact, so the list is held and its positions dated.
+  // The list is held through stale, and each drawn position carries its field reading, so a held one is marked.
   const roboticsReading = useTelemetry("robotics.servos");
   const roboticsRaw = stillTrue(roboticsReading, undefined);
-  const positionsNotCurrent = roboticsReading.state === "stale";
   // Two different facts: whether this craft carries a robotic part, and whether the install has the expansion.
   const available = stillTrue(
     useTelemetry("robotics.available"),
@@ -55,9 +55,16 @@ function RoboticsConsoleComponent({
   usePanelDelay(motorCmd);
   usePanelDelay(lockCmd);
 
-  const servos = positionsNotCurrent
-    ? datePositions(parseServos(roboticsRaw))
-    : parseServos(roboticsRaw);
+  const servos =
+    roboticsReading.state === "stale"
+      ? withholdVerdicts(parseServos(roboticsRaw))
+      : parseServos(roboticsRaw);
+  const positionReadings = (s: ServoInfo) => {
+    const entry = roboticsReading[s.srcIndex];
+    if (s.type === "piston")
+      return { current: entry.currentExtension, target: entry.targetExtension };
+    return { current: entry.currentAngle, target: entry.targetAngle };
+  };
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected =
     servos.find((s) => s.partId === selectedId) ?? servos[0] ?? null;
@@ -135,7 +142,7 @@ function RoboticsConsoleComponent({
     <RoboticsConsoleView
       servos={servos}
       selected={selected}
-      positionsNotCurrent={positionsNotCurrent}
+      positionReadings={positionReadings}
       rows={h ?? 8}
       onSelect={setSelectedId}
       setTarget={setTarget}

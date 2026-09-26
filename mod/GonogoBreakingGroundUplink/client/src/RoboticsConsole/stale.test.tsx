@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import "./index";
 
 /**
- * Proves that when `robotics.servos` stops arriving the measured angle is withheld and named, while the roster and everything a command set stays on screen.
+ * When `robotics.servos` stops arriving every figure is held and the drawn positions carry the not-current mark; only the at-target verdict, a judgement about now, is withheld.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -65,38 +65,35 @@ function mountWithHinge(instanceId: string) {
 }
 
 describe("RoboticsConsole: a servo list that has stopped arriving", () => {
-  it("draws the measured angle while the readings are current", async () => {
+  it("draws the measured angle unmarked while the readings are current", async () => {
     // The control: without it the assertions below would pass on a console that never drew an angle.
     const { container } = mountWithHinge("rc-stale-control");
 
     await waitFor(() => expect(visibleText(container)).toContain("22°"));
-    expect(visibleText(container)).not.toContain("Position unknown");
-    expect(visibleText(container)).not.toContain("no longer current");
+    expect(container.querySelector("[data-not-current-mark]")).toBeNull();
+    expect(visibleText(container)).toContain("MOVING");
   });
 
-  it("holds the joint, its target and its settings, and withholds only the measured angle", async () => {
+  it("holds the measured angle and marks it, with the joints, targets and settings", async () => {
     const { fixture, container } = mountWithHinge("rc-stale-held");
     await waitFor(() => expect(visibleText(container)).toContain("22°"));
 
     act(() => {
       fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
     });
 
-    // The measured angle goes, and says it has gone rather than blanking.
     await waitFor(() =>
-      expect(visibleText(container)).toContain("Position unknown"),
+      expect(container.querySelector("[data-not-current-mark]")).not.toBeNull(),
     );
-    expect(visibleText(container)).not.toContain("22°");
-
-    // Everything a command set is still on screen.
+    expect(visibleText(container)).toContain("22°");
+    expect(visibleText(container)).not.toContain("Position unknown");
+    expect(visibleText(container)).not.toContain("no longer current");
     expect(visibleText(container)).toContain("Arm Hinge");
     expect(visibleText(container)).toContain("Bay Piston");
     expect(visibleText(container)).toContain("60°");
-
-    // The reason is named, so a held panel does not read as a dead one.
-    expect(visibleText(container)).toContain(
-      "Measured positions no longer current",
-    );
+    // Whether the joint has reached its target is a claim about now.
+    expect(visibleText(container)).not.toContain("MOVING");
   });
 
   it("never calls a dated list a list that has not arrived", async () => {
@@ -105,10 +102,11 @@ describe("RoboticsConsole: a servo list that has stopped arriving", () => {
 
     act(() => {
       fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
     });
 
     await waitFor(() =>
-      expect(visibleText(container)).toContain("Position unknown"),
+      expect(container.querySelector("[data-not-current-mark]")).not.toBeNull(),
     );
     expect(visibleText(container)).not.toContain("Waiting for the");
     expect(visibleText(container)).not.toContain("No robotic parts");
