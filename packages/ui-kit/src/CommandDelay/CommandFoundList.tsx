@@ -140,6 +140,11 @@ export interface CommandFoundListProps {
   /** Clear one found. Omitted when no handle can dismiss, and the boxes then
    *  carry no clear control rather than an inert one. */
   onDismiss?: (id: string) => void;
+  /**
+   * Announce each entry as it arrives (the default). Off only where something
+   * else already announces these outcomes, as the delay rail does.
+   */
+  live?: boolean;
   ariaLabel?: string;
 }
 
@@ -158,19 +163,21 @@ export interface CommandFoundListProps {
  * operator who is looking somewhere else. Politely, never assertive: assertive
  * is reserved for ABORT, and this is news, not an interruption.
  *
- * Renders nothing for an empty set, like every other member of this family.
+ * An empty set draws nothing. A live list keeps its empty region mounted, so
+ * the first entry to arrive is announced.
  */
 export function CommandFoundList({
   founds,
   onDismiss,
   ariaLabel = "Lost commands that answered",
+  live = true,
 }: Readonly<CommandFoundListProps>) {
   return (
     <CommandOutcomeList
       ariaLabel={ariaLabel}
       onDismiss={onDismiss}
       tone="notice"
-      live
+      live={live}
       items={founds.map((found) => {
         const subject = commandRefusalSubject(found);
         return {

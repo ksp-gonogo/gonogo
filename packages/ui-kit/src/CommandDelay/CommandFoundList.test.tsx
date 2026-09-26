@@ -125,9 +125,11 @@ describe("CommandFoundList", () => {
     tags: RAIL_DISCRETE,
   };
 
-  it("renders nothing for an empty set, like every other member of this family", () => {
-    const { container } = render(<CommandFoundList founds={[]} />);
-    expect(container.firstChild).toBeNull();
+  it("draws no box for an empty set, and keeps its live region mounted and empty", () => {
+    render(<CommandFoundList founds={[]} />);
+    expect(
+      screen.getByRole("status", { name: /answered/i }),
+    ).toBeEmptyDOMElement();
   });
 
   it("announces politely, never assertively", () => {
@@ -135,7 +137,7 @@ describe("CommandFoundList", () => {
     // operator looking elsewhere. Assertive is reserved for ABORT.
     render(<CommandFoundList founds={[found]} />);
     const list = screen.getByRole("status", { name: /answered/i });
-    expect(list.getAttribute("aria-live")).toBeNull();
+    expect(list.getAttribute("aria-live")).not.toBe("assertive");
   });
 
   it("carries no clear control when no handle can dismiss", () => {

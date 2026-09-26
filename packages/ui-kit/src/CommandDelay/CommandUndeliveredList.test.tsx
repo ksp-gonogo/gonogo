@@ -81,9 +81,11 @@ describe("CommandUndeliveredList", () => {
     tags: RAIL_DISCRETE,
   };
 
-  it("renders nothing for an empty set, like every other member of this family", () => {
-    const { container } = render(<CommandUndeliveredList undelivered={[]} />);
-    expect(container.firstChild).toBeNull();
+  it("draws no box for an empty set, and keeps its live region mounted and empty", () => {
+    render(<CommandUndeliveredList undelivered={[]} />);
+    expect(
+      screen.getByRole("status", { name: /never sent/i }),
+    ).toBeEmptyDOMElement();
   });
 
   it("announces politely, never assertively", () => {
@@ -91,7 +93,7 @@ describe("CommandUndeliveredList", () => {
     // transport gives up on a link. Assertive is reserved for ABORT.
     render(<CommandUndeliveredList undelivered={[unsent]} />);
     const list = screen.getByRole("status", { name: /never sent/i });
-    expect(list.getAttribute("aria-live")).toBeNull();
+    expect(list.getAttribute("aria-live")).not.toBe("assertive");
   });
 
   it("carries no clear control when no handle can dismiss", () => {

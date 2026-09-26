@@ -59,6 +59,11 @@ export interface CommandLossListProps {
   /** Clear one loss. Omitted when no handle can dismiss, and the boxes then
    *  carry no clear control rather than an inert one. */
   onDismiss?: (id: string) => void;
+  /**
+   * Announce each entry as it arrives (the default). Off only where something
+   * else already announces these outcomes, as the delay rail does.
+   */
+  live?: boolean;
   ariaLabel?: string;
 }
 
@@ -71,17 +76,24 @@ export interface CommandLossListProps {
  * command's entire life while the issuing control settled exactly as it does on
  * success.
  *
- * Renders nothing for an empty set, like every other member of this family.
+ * `role="status"` by default, which is `aria-live="polite"`: an entry arrives
+ * on its own, a round trip after the press, when the operator may be looking
+ * elsewhere. Never assertive, which is reserved for ABORT.
+ *
+ * An empty set draws nothing. A live list keeps its empty region mounted, so
+ * the first entry to arrive is announced.
  */
 export function CommandLossList({
   losses,
   onDismiss,
   ariaLabel = "Commands with no reply",
+  live = true,
 }: Readonly<CommandLossListProps>) {
   return (
     <CommandOutcomeList
       ariaLabel={ariaLabel}
       onDismiss={onDismiss}
+      live={live}
       items={losses.map((loss) => {
         const subject = commandRefusalSubject(loss);
         return {

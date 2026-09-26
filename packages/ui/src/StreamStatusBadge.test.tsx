@@ -38,9 +38,9 @@ describe("formatStreamStatus", () => {
 });
 
 describe("StreamStatusBadge", () => {
-  it('renders nothing for "live"', () => {
-    const { container } = render(<StreamStatusBadge status="live" />);
-    expect(container).toBeEmptyDOMElement();
+  it('draws no badge for "live", leaving only its empty live region', () => {
+    render(<StreamStatusBadge status="live" />);
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
   });
 
   for (const [status, label] of Object.entries(STATUS_TO_LABEL)) {

@@ -1,5 +1,6 @@
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { focusRing } from "../focusRing";
+import { LiveRegion } from "../LiveRegion";
 import { type RailTags, railMark } from "./railTags";
 import { deriveGlyph } from "./toInFlightListItems";
 
@@ -47,8 +48,8 @@ export interface CommandOutcomeListProps {
   /**
    * Announce arrivals politely, for a list whose entries appear on their own
    * rather than in answer to a press. `role="status"` (implicitly
-   * `aria-live="polite"`) instead of the plain `role="list"`; never assertive,
-   * which is reserved for ABORT.
+   * `aria-live="polite"`) instead of the plain `role="list"`, each new box read
+   * on its own; never assertive, which is reserved for ABORT.
    */
   live?: boolean;
 }
@@ -62,7 +63,8 @@ export interface CommandOutcomeListProps {
  * are user-supplied and unbounded, and truncation eats the numbers off the end,
  * which are the only actionable part of it.
  *
- * Renders nothing for an empty set, like every other member of this family.
+ * Renders nothing for an empty set, like every other member of this family,
+ * unless it is `live`: a live list keeps its empty region mounted.
  */
 export function CommandOutcomeList({
   items,
@@ -71,47 +73,54 @@ export function CommandOutcomeList({
   tone = "warning",
   live = false,
 }: Readonly<CommandOutcomeListProps>) {
-  if (items.length === 0) return null;
-  return (
-    <CommandOutcomeList__Root
-      /* `status` is a live region AND a landmark-ish container: it carries its
-         own children fine, but it is not a list, so the rows drop `listitem`
-         with it rather than being orphaned items inside a non-list. */
-      role={live ? "status" : "list"}
-      aria-label={ariaLabel}
+  if (!live && items.length === 0) return null;
+  const boxes = items.map((item) => (
+    <CommandOutcomeList__Box
+      key={item.id}
+      role={live ? undefined : "listitem"}
+      $tone={tone}
     >
-      {items.map((item) => (
-        <CommandOutcomeList__Box
-          key={item.id}
-          role={live ? undefined : "listitem"}
-          $tone={tone}
+      {railMark(item.tags) === "ribbon" ? (
+        <CommandOutcomeList__Label $tone={tone}>
+          {item.subject}
+        </CommandOutcomeList__Label>
+      ) : (
+        <CommandOutcomeList__Glyph aria-hidden="true" $tone={tone}>
+          {deriveGlyph(item.subject)}
+        </CommandOutcomeList__Glyph>
+      )}
+      <CommandOutcomeList__Text>{item.sentence}</CommandOutcomeList__Text>
+      {onDismiss && (
+        <CommandOutcomeList__Dismiss
+          type="button"
+          onClick={() => onDismiss(item.id)}
+          aria-label={item.dismissLabel}
         >
-          {railMark(item.tags) === "ribbon" ? (
-            <CommandOutcomeList__Label $tone={tone}>
-              {item.subject}
-            </CommandOutcomeList__Label>
-          ) : (
-            <CommandOutcomeList__Glyph aria-hidden="true" $tone={tone}>
-              {deriveGlyph(item.subject)}
-            </CommandOutcomeList__Glyph>
-          )}
-          <CommandOutcomeList__Text>{item.sentence}</CommandOutcomeList__Text>
-          {onDismiss && (
-            <CommandOutcomeList__Dismiss
-              type="button"
-              onClick={() => onDismiss(item.id)}
-              aria-label={item.dismissLabel}
-            >
-              ✕
-            </CommandOutcomeList__Dismiss>
-          )}
-        </CommandOutcomeList__Box>
-      ))}
+          ✕
+        </CommandOutcomeList__Dismiss>
+      )}
+    </CommandOutcomeList__Box>
+  ));
+  /* A live list stays mounted, empty, while it has nothing to report, so the
+     first outcome to arrive is a change to a region assistive tech is already
+     watching. It is a status region rather than a list, so its boxes carry no
+     `listitem` role. */
+  return live ? (
+    <CommandOutcomeList__Region
+      forwardedAs="div"
+      aria-label={ariaLabel}
+      additionsOnly
+    >
+      {boxes}
+    </CommandOutcomeList__Region>
+  ) : (
+    <CommandOutcomeList__Root role="list" aria-label={ariaLabel}>
+      {boxes}
     </CommandOutcomeList__Root>
   );
 }
 
-const CommandOutcomeList__Root = styled.div`
+const outcomeListLayout = css`
   display: flex;
   flex: 0 0 auto;
   flex-direction: column;
@@ -119,6 +128,17 @@ const CommandOutcomeList__Root = styled.div`
   /* Matches the queue container's inset, so the boxes line up with the tiles
      above them rather than floating at their own margin. */
   margin: var(--space-4, 4px) var(--space-16, 16px);
+`;
+
+const CommandOutcomeList__Root = styled.div`
+  ${outcomeListLayout}
+`;
+
+const CommandOutcomeList__Region = styled(LiveRegion)`
+  ${outcomeListLayout}
+  &:empty {
+    margin: 0;
+  }
 `;
 
 /**

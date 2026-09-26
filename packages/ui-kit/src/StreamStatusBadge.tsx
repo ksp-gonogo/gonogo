@@ -1,5 +1,6 @@
 import type { StreamStatusValue } from "@ksp-gonogo/sitrep-sdk"; // erased at build; no runtime edge
 import { Badge } from "./Badge";
+import { LiveRegion } from "./LiveRegion";
 import { severityFromStreamStatus } from "./status/severity";
 
 export interface StreamStatusBadgeProps {
@@ -51,11 +52,13 @@ export function formatStreamStatus(status: StreamStatusValue): string | null {
 }
 
 /**
- * Small connectivity badge for a widget's title row, now a thin adapter over the
- * canonical `Badge`: it maps a `StreamStatusValue` onto a `Severity` and renders
- * the pill, preserving the "render nothing when live" rule by returning `null`
- * at the floor. Announces as a live region, since a stream degrading is exactly
- * the kind of state change an operator benefits from being told about.
+ * Small connectivity badge for a widget's title row, a thin adapter over the
+ * canonical `Badge`: it maps a `StreamStatusValue` onto a `Severity` and draws
+ * the pill, and draws nothing at the floor (`live`). It announces as a polite
+ * live region, since a stream degrading is exactly the kind of state change an
+ * operator benefits from being told about. The region stays mounted, empty,
+ * while the stream is live, so the first degradation is announced rather than
+ * arriving together with the region that should carry it.
  *
  * A widget does not render this by hand for a blackout: the dashboard host
  * derives `recorded` / `last-before-blackout` across the widget's declared
@@ -66,10 +69,13 @@ export function formatStreamStatus(status: StreamStatusValue): string | null {
  */
 export function StreamStatusBadge({ status }: StreamStatusBadgeProps) {
   const label = formatStreamStatus(status);
-  if (label === null) return null;
   return (
-    <Badge severity={severityFromStreamStatus(status)} size="sm" live>
-      {label}
-    </Badge>
+    <LiveRegion>
+      {label !== null && (
+        <Badge severity={severityFromStreamStatus(status)} size="sm">
+          {label}
+        </Badge>
+      )}
+    </LiveRegion>
   );
 }

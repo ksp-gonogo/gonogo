@@ -25,6 +25,11 @@ export interface CommandRefusalListProps {
   /** Clear one refusal. Omitted when no handle can dismiss, and the boxes then
    *  carry no clear control rather than an inert one. */
   onDismiss?: (id: string) => void;
+  /**
+   * Announce each entry as it arrives (the default). Off only where something
+   * else already announces these outcomes, as the delay rail does.
+   */
+  live?: boolean;
   ariaLabel?: string;
 }
 
@@ -35,17 +40,24 @@ export interface CommandRefusalListProps {
  * what belongs here is the composing, because a refusal quotes the game's
  * verdict and its numbers and no other outcome does.
  *
- * Renders nothing for an empty set, like every other member of this family.
+ * `role="status"` by default, which is `aria-live="polite"`: an entry arrives
+ * on its own, a round trip after the press, when the operator may be looking
+ * elsewhere. Never assertive, which is reserved for ABORT.
+ *
+ * An empty set draws nothing. A live list keeps its empty region mounted, so
+ * the first entry to arrive is announced.
  */
 export function CommandRefusalList({
   refusals,
   onDismiss,
   ariaLabel = "Refused commands",
+  live = true,
 }: Readonly<CommandRefusalListProps>) {
   return (
     <CommandOutcomeList
       ariaLabel={ariaLabel}
       onDismiss={onDismiss}
+      live={live}
       items={refusals.map((refusal) => {
         const subject = commandRefusalSubject(refusal);
         return {
