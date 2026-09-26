@@ -21,9 +21,7 @@ import "./styledComponentsTheme";
 // properties behind without anyone noticing. A consumer that can install this
 // package can import a stylesheet.
 //
-// Tokens are read bare, with no inline fallback, so the sheet is not optional:
-// a host that mounts none gets every padding and gap at `0` and every corner
-// square.
+// Tokens are read bare, with no inline fallback, so the sheet is not optional: a host that mounts none gets every padding and gap at `0` and every corner square.
 export {
   DefaultThemeProvider,
   defaultDarkTheme,

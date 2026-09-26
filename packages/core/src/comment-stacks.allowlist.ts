@@ -35,7 +35,6 @@ export const MATCHER_REVISION = 2;
  * `comment-stacks.scan.ts` for the matcher itself.
  */
 export const COMMENT_STACK_DEBT: Record<string, number> = {
-  "docs/examples/typecheck-guide-examples.mjs": 3,
   "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/absence.test.tsx": 2,
   "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/dual-run.test.tsx": 4,
   "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/index.test.tsx": 4,
@@ -827,7 +826,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/core/src/processorPerfBudget.test.ts": 4,
   "packages/core/src/published-barrel-collisions.test.ts": 1,
   "packages/core/src/published-doc-reachability.test.ts": 5,
-  "packages/core/src/published-docs-name-real-packages.test.ts": 1,
   "packages/core/src/ratchet-base-ref.test.ts": 3,
   "packages/core/src/ratchetBaseRef.ts": 1,
   "packages/core/src/reckoning-candidates.test.ts": 4,
@@ -871,12 +869,12 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/core/src/styleguide-tokens.test.ts": 1,
   "packages/core/src/styleguide-type-tests-gated.test.ts": 2,
   "packages/core/src/styleguide-wall-clock.test.ts": 1,
-  "packages/core/src/styleguide-widget-spacing.test.ts": 3,
+  "packages/core/src/styleguide-widget-spacing.test.ts": 1,
   "packages/core/src/styleguide.test.ts": 3,
   "packages/core/src/test/helpers.test.ts": 2,
   "packages/core/src/test/helpers.ts": 1,
   "packages/core/src/truenow-allowlist.test.ts": 2,
-  "packages/core/src/typecheck-coverage.test.ts": 3,
+  "packages/core/src/typecheck-coverage.test.ts": 2,
   "packages/core/src/unknown-cast-debt-cli.test.ts": 1,
   "packages/core/src/unknown-cast.test.ts": 5,
   "packages/core/src/uplink-boundary.allowlist.ts": 4,
