@@ -1,6 +1,7 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { StatusIndicator } from "./StatusIndicator";
+import { emittedRuleFor } from "./test/emittedRule";
 
 describe("StatusIndicator", () => {
   it("renders its label text", () => {
@@ -55,5 +56,18 @@ describe("StatusIndicator", () => {
       </StatusIndicator>,
     );
     expect(dotClass()).not.toBe(fastClass);
+  });
+});
+
+describe("StatusIndicator tone colours", () => {
+  it.each([
+    ["info", "var(--color-status-info-fg)"],
+    ["go", "var(--color-accent-fg)"],
+  ] as const)("draws the %s dot and border in a colour that shows on the raised box", (tone, colour) => {
+    render(<StatusIndicator tone={tone}>Label</StatusIndicator>);
+    const row = screen.getByText("Label").parentElement as HTMLElement;
+    const dot = row.firstElementChild as HTMLElement;
+    expect(emittedRuleFor(row)).toContain(`border-color:${colour}`);
+    expect(emittedRuleFor(dot)).toContain(`background:${colour}`);
   });
 });

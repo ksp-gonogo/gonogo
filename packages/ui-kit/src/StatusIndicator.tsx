@@ -25,9 +25,8 @@ export interface StatusIndicatorProps
 }
 
 /**
- * Coloured dot + one-line status text. Tone maps to the same palette
- * as `Badge` but the layout is different: dot on the left, free-form
- * label on the right, optional live-region semantics. Use for
+ * Coloured dot + one-line status text: dot on the left, free-form label on
+ * the right, optional live-region semantics. Use for
  * "connection status," "TURN reachability," "data source health"
  * surfaces: anywhere a single sentence describes a state and a glance
  * at the dot tells you whether to worry.
@@ -62,10 +61,10 @@ const TONE_BORDER = {
     border-color: var(--color-border-subtle);
   `,
   info: css`
-    border-color: var(--color-status-info-bg);
+    border-color: var(--color-status-info-fg);
   `,
   go: css`
-    border-color: var(--color-status-go-bg);
+    border-color: var(--color-accent-fg);
   `,
   warn: css`
     border-color: var(--color-status-warning-bg);
@@ -104,10 +103,10 @@ const TONE_DOT = {
     background: var(--color-text-dim);
   `,
   info: css`
-    background: var(--color-status-info-bg);
+    background: var(--color-status-info-fg);
   `,
   go: css`
-    background: var(--color-status-go-bg);
+    background: var(--color-accent-fg);
   `,
   warn: css`
     background: var(--color-status-warning-bg);
