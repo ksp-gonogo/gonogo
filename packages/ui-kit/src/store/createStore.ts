@@ -66,11 +66,19 @@ export function createStore<T extends { id: string }>(): Store<T> {
     for (const listener of listeners) listener();
   }
 
+  // Which registration currently owns each id, so a registrant that has been
+  // replaced cannot deregister its replacement.
+  const owners = new Map<string, object>();
+
   return {
     register(entry) {
+      const owner = {};
       entries.set(entry.id, entry);
+      owners.set(entry.id, owner);
       emit();
       return () => {
+        if (owners.get(entry.id) !== owner) return;
+        owners.delete(entry.id);
         if (entries.delete(entry.id)) emit();
       };
     },
