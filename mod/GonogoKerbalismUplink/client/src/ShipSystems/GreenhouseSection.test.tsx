@@ -58,11 +58,13 @@ afterEach(() => {
 function renderSection(
   greenhouses: readonly GreenhouseRow[],
   ambientRadiationRadPerSecond: number,
+  held = false,
 ) {
   const result = render(
     <GreenhouseSection
       greenhouses={greenhouses}
       ambientRadiationRadPerSecond={ambientRadiationRadPerSecond}
+      held={held}
     />,
   );
   renderedTrees.push(result.unmount);
@@ -156,5 +158,23 @@ describe("GreenhouseSection: radiation-too-high badge", () => {
       0.005,
     );
     await expectNoA11yViolations(container);
+  });
+});
+
+describe("GreenhouseSection: a held ledger", () => {
+  it("says held in place of the run state and dates the figures", () => {
+    renderSection([row({ issue: "insufficient lighting" })], 0, true);
+    expect(screen.getByText("held")).toBeInTheDocument();
+    expect(screen.queryByText("Blocked")).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/At last contact: Natural 300 W\/m²/),
+    ).toBeInTheDocument();
+  });
+
+  it("draws the run state and no held wording while current", () => {
+    renderSection([row()], 0);
+    expect(screen.getByText("Growing")).toBeInTheDocument();
+    expect(screen.queryByText("held")).not.toBeInTheDocument();
+    expect(screen.queryByText(/At last contact/)).not.toBeInTheDocument();
   });
 });

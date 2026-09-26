@@ -1095,6 +1095,15 @@ function quantityOf(
 }
 
 /**
+ * Whether a row's level is the last one there was rather than the tank now.
+ * Only a contributor that sends the whole reading can say so; a bare quantity
+ * claims nothing about when it was read.
+ */
+function isHeld(row: ShipMapPartMeterEntry): boolean {
+  return "state" in row.amount && row.amount.state === "stale";
+}
+
+/**
  * The fill, 0..1, and the one place a quantity leaves the algebra here.
  * `dividedBy` checks the two are the same kind and its quotient is
  * dimensionless, so the magnitude below is on a number that has already
@@ -1134,6 +1143,9 @@ function renderResourceFill(
         // the fill below is always the resource's identity colour,
         // regardless of level.
         const statusBorder = m.status ? STATUS_BORDER[m.status] : undefined;
+        // A held level is drawn faded inside a dashed track: still the last
+        // level there was, and visibly not the tank now.
+        const held = isHeld(m);
         return (
           <g key={m.resource}>
             <rect
@@ -1143,8 +1155,11 @@ function renderResourceFill(
               height={innerH}
               fill="var(--color-surface-raised)"
               opacity={0.35}
-              stroke={statusBorder}
-              strokeWidth={statusBorder ? 1 : 0}
+              stroke={
+                statusBorder ?? (held ? "var(--color-text-muted)" : undefined)
+              }
+              strokeWidth={statusBorder || held ? 1 : 0}
+              strokeDasharray={held ? "2 1" : undefined}
               strokeOpacity={0.9}
             />
             <rect
@@ -1153,7 +1168,7 @@ function renderResourceFill(
               width={barW}
               height={fillH}
               fill={resourceColor(m.resource)}
-              opacity={0.85}
+              opacity={held ? 0.4 : 0.85}
             />
           </g>
         );
@@ -1171,7 +1186,9 @@ export function partAriaLabel(
   for (const m of meters) {
     const ratio = fillRatio(m);
     if (ratio === null) continue;
-    bits.push(`${m.displayName} ${Math.round(ratio * 100)} percent`);
+    bits.push(
+      `${m.displayName} ${Math.round(ratio * 100)} percent${isHeld(m) ? ", held" : ""}`,
+    );
   }
   const maxK = p.maxTemperatureK ?? p.maxTemp;
   if (p.temperatureK !== undefined && maxK > 0) {

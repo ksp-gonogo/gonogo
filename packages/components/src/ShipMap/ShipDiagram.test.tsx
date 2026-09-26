@@ -156,6 +156,44 @@ describe("ShipDiagram", () => {
     expect(fillGroups.length).toBeGreaterThan(0);
   });
 
+  it("says a held level is held, on the part's label and in a dashed track", () => {
+    const partMeters = new Map([
+      [
+        "2",
+        [
+          {
+            partId: "2",
+            resource: "LiquidFuel",
+            displayName: "LiquidFuel",
+            amount: {
+              state: "stale" as const,
+              value: value("units", 90),
+              asOfUt: value("ut", 500),
+              grade: "disconnected" as const,
+              reckoning: { status: "none" as const },
+            },
+            capacity: value("units", 180),
+            status: null,
+          },
+        ],
+      ],
+    ]);
+    const { container } = render(
+      <ShipDiagram
+        parts={PARTS}
+        width={400}
+        height={400}
+        partMeters={partMeters}
+      />,
+    );
+    expect(
+      container.querySelector('[aria-label*="LiquidFuel 50 percent, held"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('rect[stroke-dasharray="2 1"]'),
+    ).not.toBeNull();
+  });
+
   it("renders no fuel-fill bars when no part-meters are contributed", () => {
     const { container } = render(
       <ShipDiagram parts={PARTS} width={400} height={400} />,
