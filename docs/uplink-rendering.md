@@ -93,13 +93,15 @@ scene it knows.
     "config": { "compact": true },      // per-instance config overlay
     "modes": ["default", "min"],        // optional; narrows the derived set
     "paints": ["REACTOR", "80%"],       // text that must be readable; see below
-    "expectsEmpty": "why this scene has nothing to draw"  // see below
+    "expectsEmpty": "why this scene has nothing to draw",  // see below
+    "unchangedWhenStale": "why dropping the link changes nothing"  // see below
   },
   "_stream": {
     "pinnedUt": 1000000,
     "emits": [
       { "topic": "mymod.reactor", "payload": { "output": 0.8 } }
-    ]
+    ],
+    "stopsArriving": true           // optional; stage the link dropping
   }
 }
 ```
@@ -227,7 +229,7 @@ each of three sections) is fine.
 Not available on a motion scene: what one exists to show is text arriving and
 leaving, so there is no single moment the assertion could be about.
 
-## The two things a run refuses to do
+## The three things a run refuses to do
 
 **It will not hand you a picture of nothing.** Every scene is rendered twice, once
 fed and once with every emission suppressed, and the run fails when the two renders
@@ -241,6 +243,36 @@ a scene's subject genuinely IS an empty state, say so:
 
 It takes prose rather than `true` deliberately. "This widget has nothing to draw
 here" is a claim someone can check in a year, and a boolean is not.
+
+**It will not let a held figure pass for a current one.** Every scene that feeds
+the stream and is not an empty state is rendered live and with the link dropped: a scene staging the drop
+(`"_stream": { "stopsArriving": true }`) against itself fed live, any other
+against itself with the drop staged. The run fails when the subject draws
+exactly the same thing both ways, because then an operator cannot tell a figure
+from twenty minutes ago from one that just arrived. It also fails on a held mark
+with no caption: a `data-not-current` element with no `data-unit-currency`
+inside it is a dot a screen reader is told nothing about. `Unit`, `Meter` and the
+readouts fed a `Reading` do both halves for you; words ("held", "at last
+contact") are the other honest answer.
+
+Your augments and contributions are judged on what THEY draw. The run renders the
+scene again with each one withheld and takes those elements away, in both states,
+so a host that marks its own held readings does not vouch for a guest drawn
+inside it. Every guest the scene's host draws is judged, not just the scene's own
+subject, and the run lists the guests no scene draws, since nothing has checked
+those.
+
+The comparison is on elements, attributes included, so a dimmed class counts as
+a change. A layout box with no text and nothing but a class, appearing on one
+side only, does not. When a subject genuinely draws no figure an operator could
+take for current (a vocabulary, a control, a label), say so:
+
+```jsonc
+"_scene": { "unchangedWhenStale": "filter terms, one per process title; no figure" }
+```
+
+Prose, for the same reason as `expectsEmpty`. A scene carrying it whose render
+starts to change fails until the field comes off.
 
 **It will not let an emission vanish.** The stream fixture is subscription-gated
 exactly as production is, so a payload nothing subscribed to is dropped in

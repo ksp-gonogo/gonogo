@@ -14,12 +14,14 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { getComponents } from "@ksp-gonogo/sitrep-sdk/registry";
 import {
+  clearContributions,
   getAllProcessors,
   getContributedChannelTopics,
   getContributions,
   getReckonedTopics,
   getReckonerExemptions,
   getUplinkClients,
+  registerContribution,
 } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { StreamFixture } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
@@ -60,6 +62,7 @@ import {
   HOST_DRAWN_CONTRIBUTION_SEGMENTS,
   PROBE_CHROME_ATTR,
   RENDER_PROBE_GLOBAL,
+  UNANNOUNCED_MARK,
 } from "./render/probe-global";
 import {
   advanceSceneClock,
@@ -230,6 +233,14 @@ export interface ScenePayload {
    * fixture is called. See `../../docs/uplink-rendering.md`.
    */
   starve: boolean;
+  /**
+   * An augment or contribution to take out of its registry for this mount, so
+   * the render is of everything else. The staleness check reads a guest's
+   * response to the link dropping as the difference between the render with
+   * it and the render without it, because the host around it may mark its own
+   * held readings whatever the guest does.
+   */
+  withhold?: SceneTarget;
   steps?: SceneStep[];
 }
 
@@ -248,6 +259,11 @@ export interface SceneReport {
   boxCount: number;
   /** `visibleText` plus a per-element size outline, hashed. */
   signature: string;
+  /**
+   * One line per element the subject drew: its tag, every attribute and its
+   * own text, with React ids folded. See {@link describeElements}.
+   */
+  elements: string[];
   /** Emitted topics the derived carried set never named. Informational. */
   uncarriedTopics: string[];
   /** Emitted topics nothing in the mounted tree subscribed to. A failure. */
@@ -672,6 +688,49 @@ let pendingEmits: SceneEmit[] = [];
 /** The mounted scene's derived carried set, for {@link refeedScene}. */
 let carriedNow: string[] = [];
 
+/** What {@link withhold} took out, for {@link restoreWithheld} to put back. */
+let withheldRegistry: (() => void) | null = null;
+
+/**
+ * Take one augment or contribution out of its registry, keeping every other
+ * entry in its original order.
+ *
+ * Neither registry can drop a single id, so it is emptied and refilled. The
+ * refill reuses the very definitions it read, which both registries accept as
+ * a fresh registration after a clear.
+ */
+function withhold(target: SceneTarget): void {
+  if (target.kind === "augment") {
+    const all = getAugments();
+    clearAugments();
+    for (const def of all) {
+      if (def.id !== target.id) registerAugment(def as never);
+    }
+    withheldRegistry = () => {
+      clearAugments();
+      for (const def of all) registerAugment(def as never);
+    };
+    return;
+  }
+  if (target.kind === "contribution") {
+    const all = getContributions();
+    clearContributions();
+    for (const def of all) {
+      if (def.id !== target.id) registerContribution(def as never);
+    }
+    withheldRegistry = () => {
+      clearContributions();
+      for (const def of all) registerContribution(def as never);
+    };
+  }
+}
+
+function restoreWithheld(): void {
+  const restore = withheldRegistry;
+  withheldRegistry = null;
+  restore?.();
+}
+
 function teardown(): void {
   // Media first. A `<video>` removed from the document while a `play()` is
   // still pending rejects with "the play() request was interrupted by a new
@@ -771,6 +830,7 @@ async function renderScene(scene: ScenePayload): Promise<SceneReport> {
     }
   }
   teardown();
+  restoreWithheld();
   // Before the mount, because a scene whose steps wait needs its widget's own
   // timers to register on the scene clock rather than on the page's.
   closeSceneClock();
@@ -814,6 +874,8 @@ async function renderScene(scene: ScenePayload): Promise<SceneReport> {
   await activeSetup.beforeScene?.({ scene, starve: scene.starve });
 
   const tree = buildTree(scene);
+  // After the tree is built, which looks the subject up to find its slot.
+  if (scene.withhold) withhold(scene.withhold);
   const wrapped = activeSetup.wrap?.(tree, { scene }) ?? tree;
   activeRoot = createRoot(el);
   activeRoot.render(
@@ -866,6 +928,7 @@ async function renderScene(scene: ScenePayload): Promise<SceneReport> {
 
   return {
     ...measure(el),
+    elements: describeElements(el),
     uncarriedTopics: uncarried,
     unsubscribedTopics: unsubscribed,
   };
@@ -1203,6 +1266,53 @@ function measure(host: HTMLElement): {
     );
   }
   return { visibleText, boxCount, signature: hash(parts.join("|")) };
+}
+
+/**
+ * The subject's render as a list of elements, for the staleness comparison.
+ *
+ * <p>Finer than {@link measure}'s signature on purpose. A widget that says a
+ * figure is held often changes nothing a size outline can see: a colour, a
+ * `data-not-current` attribute, a dimmed class. So every attribute is kept,
+ * `class` included, which is stable here because one page renders every scene
+ * and an identical style always hashes to the identical class.</p>
+ *
+ * <p>React ids are folded to one token rather than renumbered: the comparison
+ * that reads these lines subtracts one render from another, and an id counter
+ * that shifted because a guest mounted before an element would otherwise make
+ * the host's own element look changed.</p>
+ *
+ * <p>A `data-not-current` element with no `data-unit-currency` caption inside it
+ * is tagged {@link UNANNOUNCED_MARK}: the dot is drawn, and nothing tells a
+ * screen reader the figure is held.</p>
+ */
+function describeElements(host: HTMLElement): string[] {
+  const lines: string[] = [];
+  for (const el of Array.from(host.querySelectorAll("*"))) {
+    if (el.closest(`[${PROBE_CHROME_ATTR}]`)) continue;
+    if (el.tagName === "STYLE" || el.tagName === "SCRIPT") continue;
+    const attributes = Array.from(el.attributes)
+      .map(
+        (a) =>
+          `${a.name}="${a.value.replace(/:r[0-9a-z]+:|«r[0-9a-z]+»/g, ":r:")}"`,
+      )
+      .sort();
+    const own = Array.from(el.childNodes)
+      .filter((n) => n.nodeType === Node.TEXT_NODE)
+      .map((n) => n.textContent ?? "")
+      .join("")
+      .replace(/\s+/g, " ")
+      .trim();
+    let line = `<${el.tagName.toLowerCase()} ${attributes.join(" ")}> ${own}`;
+    if (
+      el.hasAttribute("data-not-current") &&
+      el.querySelector("[data-unit-currency]") === null
+    ) {
+      line += ` ${UNANNOUNCED_MARK}`;
+    }
+    lines.push(line);
+  }
+  return lines;
 }
 
 /** FNV-1a, hex. A signature only has to be stable and short; nothing here is

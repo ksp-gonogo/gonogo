@@ -452,6 +452,40 @@ describe("fixtures become scenes", () => {
     ).toThrow(/names widget and augment/);
   });
 
+  it("carries an unchangedWhenStale reason and refuses one that excuses nothing", () => {
+    const emits = [{ topic: "example.reactor", payload: {} }];
+    const [scene] = buildScenes(
+      resolveUplinkPackage(
+        fixture({
+          _scene: { widget: "reactor", unchangedWhenStale: "a label" },
+          _stream: { emits },
+        }),
+      ),
+      INVENTORY,
+    );
+    expect(scene.unchangedWhenStale).toBe("a label");
+
+    expect(() =>
+      buildScenes(
+        resolveUplinkPackage(
+          fixture({
+            _scene: { widget: "reactor", unchangedWhenStale: " " },
+            _stream: { emits },
+          }),
+        ),
+        INVENTORY,
+      ),
+    ).toThrow(/a blank reason is not one/);
+    expect(() =>
+      buildScenes(
+        resolveUplinkPackage(
+          fixture({ _scene: { widget: "reactor", unchangedWhenStale: "x" } }),
+        ),
+        INVENTORY,
+      ),
+    ).toThrow(/excuses nothing/);
+  });
+
   it("routes bare top-level keys to a legacy data source", () => {
     const pkg = resolveUplinkPackage(
       fixture({ _scene: { widget: "reactor" }, "v.altitude": 1200 }),
