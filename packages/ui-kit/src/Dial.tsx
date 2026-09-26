@@ -212,13 +212,22 @@ export function Dial<U extends string = string>({
 
   return (
     <Dial__Meter
-      role="meter"
-      aria-label={sayHeld(ariaLabel ?? "Dial", caption)}
       data-not-current={notCurrent ? "" : undefined}
-      aria-valuenow={display}
-      aria-valuemin={axisMin}
-      aria-valuemax={axisMax}
-      aria-valuetext={spoken}
+      {...(hasFigure
+        ? {
+            role: "meter",
+            "aria-label": sayHeld(ariaLabel ?? "Dial", caption),
+            "aria-valuenow": display,
+            "aria-valuemin": axisMin,
+            "aria-valuemax": axisMax,
+            "aria-valuetext": spoken,
+          }
+        : {
+            /* A meter must state a value, and there is none: the face is
+               announced as a picture of nothing rather than as its minimum. */
+            role: "img",
+            "aria-label": sayHeld(`${ariaLabel ?? "Dial"}: ${spoken}`, caption),
+          })}
     >
       <svg
         width={width}
