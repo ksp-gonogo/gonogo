@@ -112,6 +112,27 @@ describe("EscapeProfileComponent", () => {
     expect(await screen.findByText(/no reference data/i)).toBeInTheDocument();
   });
 
+  it("draws the notice as the kit's graph notice, with no widget-owned styling", async () => {
+    registerBody({
+      id: "Modtopia",
+      name: "Modtopia",
+      radius: 500_000,
+      hasAtmosphere: false,
+      maxAtmosphere: 0,
+    });
+
+    const { fixture, container } = renderEscape();
+
+    act(() => {
+      emitBody(fixture, "Modtopia");
+    });
+
+    const notice = await screen.findByRole("status");
+    expect(notice).toHaveTextContent(/no reference data/i);
+    expect(notice.getAttribute("style")).toBeNull();
+    expect(container.firstElementChild?.getAttribute("style")).toBeNull();
+  });
+
   /** `escapeVelocity` is `sqrt(2 * GM / (r + h))`, so the curve needs the reported radius and GM; rendered, since `buildEscapeCurve` takes the body as an argument. */
   it("draws the curve for a body the stock table has never heard of", async () => {
     const { fixture, container } = renderEscape();

@@ -11,8 +11,7 @@ const topics = defineTopicManifest({
   fields: ["vessel.flight.altitudeAsl", "vessel.flight.orbitalSpeed"],
 });
 
-import { Box, Stack } from "@ksp-gonogo/ui-kit";
-import type { CSSProperties } from "react";
+import { Fill, GraphNotice } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { type GraphConfig, GraphView, type ReferenceCurve } from "../Graph";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
@@ -99,51 +98,27 @@ function EscapeProfileComponent({
   const showNoBodyNotice = bodyName !== undefined && body === undefined;
 
   return (
-    <Stack style={WRAP_STYLE}>
-      {/* GraphView's Panel is height:100%, so it needs a shrinkable flex slot to yield room to the Notice below. */}
-      <Stack style={GRAPH_SLOT_STYLE}>
+    <Fill>
+      <Fill grow>
         <GraphView
           config={graphConfig}
           referenceCurves={referenceCurve ? [referenceCurve] : undefined}
           title="ESCAPE PROFILE"
         />
-      </Stack>
-      {/* In normal flow, not an absolute overlay, so it never covers the x-axis tick labels. */}
+      </Fill>
       {showNoGmNotice && body && (
-        <Box role="status" radius="regular" style={NOTICE_STYLE}>
+        <GraphNotice placement="inline">
           No reference data for {body.name}: plotting trace only.
-        </Box>
+        </GraphNotice>
       )}
       {showNoBodyNotice && (
-        <Box role="status" radius="regular" style={NOTICE_STYLE}>
+        <GraphNotice placement="inline">
           Unknown body “{bodyName}”: plotting trace only.
-        </Box>
+        </GraphNotice>
       )}
-    </Stack>
+    </Fill>
   );
 }
-
-const WRAP_STYLE: CSSProperties = {
-  height: "100%",
-  width: "100%",
-  minHeight: 0,
-};
-
-const GRAPH_SLOT_STYLE: CSSProperties = {
-  flex: "1 1 auto",
-  minHeight: 0,
-};
-
-const NOTICE_STYLE: CSSProperties = {
-  flex: "0 0 auto",
-  fontSize: "var(--font-size-compact)",
-  color: "var(--color-text-faint)",
-  background: "rgba(0, 0, 0, 0.7)",
-  padding: "var(--inset-chip)",
-  pointerEvents: "none",
-  alignSelf: "flex-start",
-  maxWidth: "100%",
-};
 
 registerComponent<EscapeProfileConfig>({
   id: "escape-profile",
