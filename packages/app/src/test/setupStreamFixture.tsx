@@ -59,6 +59,15 @@ import type { JSX, ReactNode } from "react";
  *   apply it deterministically) instead. Ingests are not the only frame
  *   source: a mounted `TelemetryProvider` also mints one every animation
  *   frame off `ViewClock.onFrame`, whether or not anything arrived.
+ * - **`suspendFrames`**: stops that animation-frame loop before the Provider
+ *   mounts, leaving `fixture.emitFrame()` the only frame source. A bare
+ *   `store.beginFrame()` notifies the store's frame listeners but not the
+ *   clock's `onFrame` subscribers (`useViewUt`, `useUtNow`,
+ *   `useTimeContexts`), which then catch up on the next real animation frame,
+ *   after the test body has returned. `emitFrame()` mints the clock's frame
+ *   and the store's together, so both reach the render synchronously. With it
+ *   set, `emit()` also mints the frame that publishes the sample it just
+ *   sent, so `act(() => fixture.emit(...))` then assert keeps working.
  */
 export interface StreamFixtureOptions {
   /** Topics (read AND command) to promote into the carried-channels allowlist. */
@@ -67,6 +76,8 @@ export interface StreamFixtureOptions {
   pinnedUt?: number;
   /** Fixed network/display delay in seconds (`ViewClock`'s delay authority). Defaults to 0, preserving every existing steady-state fixture's behavior untouched. */
   delaySeconds?: number;
+  /** Stop the view clock's animation-frame loop before anything can subscribe, leaving `emitFrame()` the only frame source. See this file's doc comment. */
+  suspendFrames?: boolean;
 }
 
 export interface StreamFixture {
@@ -76,12 +87,14 @@ export interface StreamFixture {
   wall: FakeWallClock;
   /** Wraps `children` in the `TelemetryProvider` this fixture built. */
   Provider: (props: { children: ReactNode }) => JSX.Element;
-  /** `transport.emit`, forwarded for convenience: subscription-gated, same as calling it directly. */
+  /** `transport.emit`, subscription-gated, plus the frame that publishes it when `suspendFrames` is set. */
   emit: (
     topic: string,
     payload: unknown,
     metaOverrides?: Partial<Meta>,
   ) => void;
+  /** Mint one frame synchronously, clock and store both, the manual half of `suspendFrames`. */
+  emitFrame: () => void;
 }
 
 export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
@@ -95,6 +108,18 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
   });
   const store = new TimelineStore(clock);
   if (opts.pinnedUt !== undefined) clock.scrubTo(opts.pinnedUt);
+  /*
+   * Before the Provider mounts, so the loop never starts rather than starting
+   * and being stopped: a loop that got one tick in has already scheduled the
+   * next one against whichever scheduler was current then.
+   */
+  const framesSuspended = opts.suspendFrames === true;
+  if (framesSuspended) clock.suspendFrames();
+
+  const mintFrame = () => {
+    clock.emitFrame();
+    store.beginFrame();
+  };
 
   const carriedChannels = opts.carriedChannels;
 
@@ -116,7 +141,10 @@ export function setupStreamFixture(opts: StreamFixtureOptions): StreamFixture {
     store,
     wall,
     Provider,
-    emit: (topic, payload, metaOverrides) =>
-      transport.emit(topic, payload, metaOverrides),
+    emit: (topic, payload, metaOverrides) => {
+      transport.emit(topic, payload, metaOverrides);
+      if (framesSuspended) mintFrame();
+    },
+    emitFrame: mintFrame,
   };
 }
