@@ -17,15 +17,7 @@ import {
 } from "../test/widgetDomSnapshot";
 import { LandingStatusComponent } from "./index";
 
-/**
- * The rebooted LandingStatus runs a FULL-VECTOR suicide-burn solve, the burn
- * must null the whole surface-speed vector, not just the descent rate. These
- * tests drive real physics through a genuine `setupStreamFixture` pipeline
- * (real Mun/Kerbin body constants, `vessel.flight`/`vessel.propulsion`/
- * `vessel.orbit`) so the derived numbers are honest, and assert the correctness
- * fix at the DOM: a mostly-horizontal descent must NOT report a survivable
- * burn-now touchdown.
- */
+/** A mostly-horizontal descent must not report a survivable burn-now touchdown: real physics through the stream pipeline, asserted at the DOM. */
 const CARRIED = [
   "vessel.orbit",
   "vessel.flight",
@@ -43,11 +35,7 @@ const CARRIED = [
 const MUN = { index: 3, name: "Mun", radius: 200_000, mu: 6.5138398e10 };
 const KERBIN = { index: 1, name: "Kerbin", radius: 600_000, mu: 3.5316e12 };
 
-/**
- * A body under a planet-pack rename, with no entry in the stock table at all.
- * Every physical fact here is one `system.bodies` reports, so a widget reading
- * the stream draws exactly as it would for Kerbin.
- */
+/** A planet-pack body absent from the stock table; every fact here is one `system.bodies` reports. */
 const EARTH = {
   index: 1,
   name: "Earth",
@@ -139,25 +127,10 @@ function emitVessel(
 }
 
 describe("LandingStatusComponent", () => {
-  /**
-   * The contribution budgets, reset between tests.
-   *
-   * `Contributions "<slot>" entries recomputed/sec` is capped at 30, which is
-   * ~7x a real 4 Hz stream. A spec emits its whole scenario in a handful of
-   * milliseconds, so the thirty-odd frames this file replays land inside one
-   * rolling second and every slot on the widget trips its cap at 31. The same
-   * thirty-one frames take eight seconds in the app.
-   *
-   * Reset rather than raised: the threshold is right for the load it is
-   * measuring, and widening it to fit a test's clock is how a budget stops
-   * being able to see the regression it exists for.
-   */
+  // A spec replays its scenario inside one rolling second, so the contribution budgets are reset between tests rather than raised.
   let stream: ReturnType<typeof setupStreamFixture>;
 
-  // A chart in an unmeasured box draws nothing but "Chart too small to render",
-  // and every plot on this widget is a chart now. jsdom lays nothing out, so
-  // the observer has to be told a size or the assertions below are all made
-  // against an empty frame. Same helper the snapshot harness uses.
+  // jsdom lays nothing out, so charts need a told size or every assertion is made against an empty frame.
   let restoreResizeObserver: () => void;
 
   beforeEach(() => {
@@ -204,11 +177,7 @@ describe("LandingStatusComponent", () => {
   it("does NOT report a survivable burn-now touchdown when horizontal velocity dominates", async () => {
     renderWidget();
     act(() => {
-      // The spec's worked Mun case: h=5km, descending 50 m/s but carrying
-      // 540 m/s of (mostly horizontal) surface speed, aMax=20 m/s^2.
-      // g≈1.63 -> horizontal≈538 m/s, best burn-now touchdown≈328 m/s (NOT 0),
-      // and the burn cannot be nulled within the remaining altitude, there is
-      // no descent trajectory to a safe touchdown.
+      // The worked Mun case: h=5km, descending 50 m/s with 540 m/s surface speed, aMax=20 m/s^2, so about 538 m/s horizontal, a 328 m/s best burn-now touchdown, and no safe trajectory.
       emitVessel(stream, {
         body: MUN,
         quality: Quality.Loaded,
@@ -221,16 +190,10 @@ describe("LandingStatusComponent", () => {
       });
     });
 
-    // The horizontal component the old vertical-only model ignored is surfaced in the velocity vector's accessible label.
     expect(await screen.findByText("UNAVOIDABLE IMPACT")).toBeInTheDocument();
-    // The horizontal component, which used to be read off the cross-section's
-    // accessible name. This scenario ships no terrain patch, so there is no
-    // ground to slice and that plot contributes nothing at all; the split is
-    // the Velocity readout's, which is where a number belongs anyway.
+    // The horizontal component, from the Velocity readout; this scenario has no terrain patch, so the cross-section contributes nothing.
     expect(visibleText()).toMatch(/538/);
-    // Burn-now touchdown is a large nonzero speed (the fatal-direction fix),
-    // and it's LED as the killer fact under the hero (UNAVOIDABLE IMPACT), as
-    // well as detailed in the readout grid.
+    // Burn-now touchdown is a large nonzero speed, led under the hero as well as in the readout grid.
     expect(visibleText()).toMatch(/328 m\/s/);
     expect(screen.getByText("UNAVOIDABLE IMPACT")).toBeInTheDocument();
     // No viable safe trajectory exists, so the hero reads NO LANDING VECTOR.
@@ -251,11 +214,7 @@ describe("LandingStatusComponent", () => {
         availableThrust: 20,
       });
     });
-    // The split is a readout pair now, not a plot label. The cross-section used
-    // to carry it in its accessible name and cannot any more: without a terrain
-    // patch it has no ground to slice and contributes NO plot rather than an
-    // empty box with two numbers written on it. Horizontal (538) dominates the
-    // 50 m/s descent either way, which is the fact under test.
+    // Horizontal (538) dominates the 50 m/s descent, read from the readout pair.
     await screen.findByText(/UNAVOIDABLE IMPACT|SUICIDE BURN|BURN GO IN/);
     expect(visibleText()).toMatch(/538/);
     expect(visibleText()).toMatch(/50\.0/);
@@ -300,14 +259,7 @@ describe("LandingStatusComponent", () => {
         heightFromTerrain: 2755,
       });
     });
-    // The number and its unit are separate elements now (a <Quantity>), so
-    // getByText, which concatenates only DIRECT text nodes, never sees the
-    // pair. The container does.
-    //
-    // "2.76", not "2.75": 2755 m is 2.755 km, exactly half way, and the kit
-    // rounds the decimal through `Intl` where it used to round the binary
-    // value through `toFixed`. The stored double for 2.755 sits a hair under,
-    // so the old answer went down.
+    // The number and unit are separate elements, so the container is searched. 2755 m rounds half-up to "2.76" through `Intl`.
     await screen.findByText("2.76");
     expect(visibleText(container)).toContain("2.76 km");
     // 2800 m is the CoM altitude this test exists to prove is NOT used.
@@ -349,14 +301,14 @@ describe("LandingStatusComponent", () => {
     expect(
       await screen.findByText(/kerbin · atmospheric/i),
     ).toBeInTheDocument();
-    // No mod terminal velocity → honest ESTIMATE read, not "descent unmodelled".
+    // No terminal velocity: the estimate read, not "descent unmodelled".
     expect(
       screen.getByText("Atmospheric descent (estimate)"),
     ).toBeInTheDocument();
     expect(screen.queryByText(/descent unmodelled/i)).toBeNull();
     // Vacuum burn section stays suppressed, not hedged.
     expect(screen.queryByText("Burn")).toBeNull();
-    // The (drag-independent) velocity split still shows (inside the estimate).
+    // The drag-independent velocity split still shows, inside the estimate.
     expect(screen.getByText("Horizontal")).toBeInTheDocument();
   });
 
@@ -419,7 +371,7 @@ describe("LandingStatusComponent", () => {
         parachuteState: "deployed",
       });
     });
-    // The top-down site plot re-appears (was suppressed on atmospheric boards).
+    // The top-down site plot appears near touchdown on an atmospheric board.
     expect(await screen.findByText("Touchdown site")).toBeInTheDocument();
     // ...alongside the atmospheric-aware descent read (both, near touchdown).
     expect(
@@ -521,10 +473,7 @@ describe("LandingStatusComponent", () => {
     // Confident touchdown confirmation, not a blank panel.
     expect(await screen.findByText("LANDED")).toBeInTheDocument();
     expect(screen.getByText(/touchdown confirmed/i)).toBeInTheDocument();
-    // Spatial context is KEPT: the site plot and the altitude plot both still
-    // render, showing the vessel now AT the site rather than a blank panel.
-    // `findBy`, not `getBy`: the chart only paints once the resize observer has
-    // reported, and that lands a macrotask after the text above.
+    // The site and altitude plots still render with the vessel at the site; `findBy`, since the chart paints once the resize observer reports.
     expect(
       await screen.findByRole("img", { name: /^Touchdown site;/ }),
     ).toBeInTheDocument();
@@ -547,7 +496,7 @@ describe("LandingStatusComponent", () => {
         },
         availableThrust: 20,
       });
-      // SignalDelay source with a 4s one-way -> staged regime, RT 8s.
+      // SignalDelay source with a 4s one-way: staged regime, 8s round trip.
       stream.emit("comms.delay", { source: 1, oneWaySeconds: 4 });
     });
     expect(await screen.findByText("STAGED")).toBeInTheDocument();
@@ -581,9 +530,7 @@ describe("LandingStatusComponent", () => {
   it("escalates to role=alert on a no-landing-vector (ABORT-class) state", async () => {
     renderWidget();
     act(() => {
-      // The worked Mun case: the burn can't be nulled in the remaining altitude
-      // (540 m/s surface, h=5km), no safe trajectory, so the hero reads NO
-      // LANDING VECTOR and the section escalates to role=alert (assertive).
+      // The worked Mun case: no safe trajectory, so NO LANDING VECTOR and an assertive role=alert.
       emitVessel(stream, {
         body: MUN,
         quality: Quality.Loaded,
@@ -599,16 +546,7 @@ describe("LandingStatusComponent", () => {
     expect(visibleText(alert)).toMatch(/NO LANDING VECTOR/);
   });
 
-  /**
-   * The board a rename produces.
-   *
-   * <p>These render the widget rather than calling `solveSuicideBurn` or
-   * `deriveBoard`, because both take the radius and the atmosphere flag as
-   * arguments and so cannot see where either came from: every case above hands
-   * them a correct value directly, which is why the resolution step had no
-   * coverage. `registerStockBodies` runs in `beforeEach`, so a table hit and a
-   * table miss are genuinely distinguishable here.</p>
-   */
+  /** Renders the widget, since `solveSuicideBurn` and `deriveBoard` take radius and atmosphere as arguments and cannot see where they came from. */
   describe("a body the stock table has never heard of", () => {
     const descent = {
       heightFromTerrain: 5000,
@@ -645,13 +583,7 @@ describe("LandingStatusComponent", () => {
       expect(visibleText()).not.toMatch(/no body data/i);
     });
 
-    /*
-     * The host reports airless as an explicit null, and that is a claim about
-     * the body rather than a gap in the stream, so it wins over the table.
-     * Stated against a body the table DOES know and calls atmospheric, because
-     * against a renamed one both sources say nothing and the case would pass
-     * without proving anything.
-     */
+    // An explicit airless null is a claim about the body and wins over the table; stated against a body the table calls atmospheric so the case proves something.
     it("takes an explicitly airless body as airless, table or no table", async () => {
       renderWidget();
       act(() => {

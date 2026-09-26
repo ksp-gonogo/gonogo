@@ -29,10 +29,7 @@ describe("Meter", () => {
 
   it("defaults the displayed text and aria-valuetext to a percentage", () => {
     render(<Meter label="Shielding" value={value("ratio", 0.5)} />);
-    // Two forms on purpose. What a reader SEES goes through <Unit>, which puts
-    // the number and its symbol in separate elements, so `visibleText` is what
-    // reads it back. What a screen reader HEARS is a string in an attribute,
-    // and says the unit as a word rather than as the percent sign.
+    // What a reader sees goes through <Unit>; what a screen reader hears says the unit as a word.
     expect(visibleText()).toContain("50 %");
     expect(screen.getByRole("meter")).toHaveAttribute(
       "aria-valuetext",
@@ -41,8 +38,6 @@ describe("Meter", () => {
   });
 
   it("rounds the percentage to the nearest whole number", () => {
-    // 0.365 -> 36.5 -> 37; guards the Math.round in the pct derivation that
-    // the shielding/resource fractions upstream rely on (e.g. 1.2 / 3.308).
     render(<Meter label="Dose" value={value("ratio", 0.365)} />);
     const meter = screen.getByRole("meter", { name: "Dose" });
     expect(meter).toHaveAttribute("aria-valuenow", "37");

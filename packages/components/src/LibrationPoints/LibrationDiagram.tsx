@@ -7,28 +7,17 @@ import type {
 import { TrajectoryFrameKindLike } from "@ksp-gonogo/sitrep-client";
 
 /**
- * The pair's own frame, drawn.
- *
- * <b>Every coordinate on this diagram is a multiple of the pair's separation,
- * and that is the whole reason the diagram exists.</b> The system diagram plots
- * bodies in metres about a parent, which is right for everything it draws and
- * wrong for these five markers: the pair's separation breathes, so in metres the
- * markers walk in and out once per orbit, and a marker that walks is not a
- * libration point. Dividing by the separation takes the breathing out of the
- * coordinates and the five points stand still, which is what they are.
- *
- * So there is no pan, no zoom and no auto-fit here. The extent is fixed in frame
- * units because the interesting content is always in the same place in these
- * units: the two bodies on the first axis a unit apart, L1 to L3 strung along
- * it, and L4 and L5 on the equilateral triangle. An auto-fit would rescale on
- * arrival and undo the constancy the units were chosen for.
+ * The pair's own frame, drawn. Every coordinate is a multiple of the pair's
+ * separation, which takes the breathing out and holds the five points still.
+ * No pan, zoom or auto-fit: the content always sits in the same place in
+ * these units, and an auto-fit would undo that constancy.
  */
 
 /** How many frame units of the first axis fit either side of the mass centre. */
 const HALF_WIDTH_UNITS = 1.5;
 /** And of the second. L4 and L5 sit at root-three-over-two. */
 const HALF_HEIGHT_UNITS = 1.2;
-/** SVG user units per frame unit. Fixed, for the reason in this file's own note. */
+/** SVG user units per frame unit. Fixed. */
 const PX_PER_UNIT = 100;
 
 const VIEW_BOX = [
@@ -42,11 +31,7 @@ const VIEW_BOX = [
 const MIN_BODY_RADIUS = 3;
 const MAX_BODY_RADIUS = 16;
 
-/**
- * What a station-keeping reading looks like. The arithmetic names what it MEANS
- * and this is the only place that turns a meaning into a colour, so one palette
- * change reaches every reading of it.
- */
+/** Station-keeping meaning to colour, in one place. */
 const KEEPING_COLOUR = {
   "on-station": "var(--color-accent-fg)",
   drifting: "var(--color-tag-yellow-fg)",
@@ -67,9 +52,7 @@ function bodyRadius(radiusMetres: number | null, unitLength: number): number {
     return MIN_BODY_RADIUS;
   }
   const scaled = (radiusMetres / unitLength) * PX_PER_UNIT;
-  // Clamped, and the clamp is visible rather than silent: a body's true disc is
-  // sub-pixel for a star-planet pair and would vanish, and a planet-moon pair's
-  // primary would otherwise swallow L1.
+  // Clamped: a star-planet pair's discs would vanish, and a planet-moon primary would swallow L1.
   return Math.min(MAX_BODY_RADIUS, Math.max(MIN_BODY_RADIUS, scaled));
 }
 
@@ -92,11 +75,7 @@ export interface LibrationDiagramProps {
   secondaryRadius: number | null;
   /** The craft's name, for the marker's label. */
   vesselName: string | null;
-  /**
-   * The craft's path. Drawn only when it arrived in THIS frame: an arc still in
-   * metres would be an orbit's width off the picture, and drawing it anyway is
-   * how a diagram in ratios starts telling a reader distances.
-   */
+  /** The craft's path, drawn only when it arrived in this frame: an arc in metres would be off the picture. */
   trajectory: OrbitTrajectory | null;
 }
 
@@ -146,19 +125,14 @@ export function LibrationDiagram({
       role="img"
       aria-label={`The five libration points of the ${answer.pair?.primaryName ?? "primary"}-${answer.pair?.secondaryName ?? "secondary"} pair, drawn in the frame that turns with it.`}
       style={{ display: "block", width: "100%", height: "100%" }}
-      // The frame the picture is in, on the picture. A diagram whose units are
-      // ratios and whose origin is a mass centre is not readable without it.
+      // The frame named on the picture: ratios about a mass centre are unreadable without it.
       data-libration-frame="rotating-pulsating"
       data-libration-pair={`${answer.pair?.primaryName ?? "?"}-${answer.pair?.secondaryName ?? "?"}`}
-      // What one frame unit is worth in metres at this instant. It MOVES while
-      // every marker below stands still, which is the property the frame was
-      // chosen for and the one a test can see.
+      // One frame unit in metres now. It moves while every marker stands still.
       data-libration-unit-length={frame.unitLength}
       data-libration-mass-ratio={massRatio}
     >
-      {/* The equilateral construction: a unit circle about the primary passes
-          through the secondary and through L4 and L5, so the triangle is
-          visible rather than asserted. */}
+      {/* A unit circle about the primary passes through the secondary, L4 and L5, so the triangle is visible. */}
       <circle
         cx={primary.x}
         cy={primary.y}
@@ -176,8 +150,7 @@ export function LibrationDiagram({
         stroke="var(--color-border-subtle)"
         strokeWidth={0.7}
       />
-      {/* The mass centre, which is the origin. Marked because in this frame it
-          is a place, not an artefact: neither body sits on it. */}
+      {/* The mass centre, the origin: in this frame a place, though neither body sits on it. */}
       <g stroke="var(--color-text-faint)" strokeWidth={0.9}>
         <line x1={-5} y1={0} x2={5} y2={0} />
         <line x1={0} y1={-5} x2={0} y2={5} />
@@ -191,9 +164,7 @@ export function LibrationDiagram({
           strokeWidth={1.2}
           opacity={0.8}
           data-libration-path="arc"
-          // The frame the POINTS are in, carried from the answer rather than
-          // assumed by the drawing, so a curve that arrived in another frame
-          // cannot be plotted here as if it had not.
+          // The points' frame, carried from the answer, so a curve in another frame cannot pass as this one.
           data-trajectory-frame={path?.frame.kind}
         />
       )}

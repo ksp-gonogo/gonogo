@@ -3,14 +3,7 @@ import { css } from "styled-components";
 /** The five-word severity vocabulary `Badge`, `Meter` and `StatEntry` share. */
 export type StatTone = "neutral" | "go" | "warn" | "nogo" | "info";
 
-/**
- * What each tone colours a FIGURE, as opposed to a fill or a pill.
- *
- * One map for `Stat` and `DataLine` rather than one each: two copies of a
- * tone-to-colour table is how a tone comes to mean one thing in a strip and
- * another on the line below it, and the kit already carried three such copies
- * before `Card`'s `tone` collected them.
- */
+/** What each tone colours a FIGURE, as opposed to a fill or a pill. */
 export const STAT_TONE_COLOR: Record<StatTone, ReturnType<typeof css>> = {
   neutral: css`
     color: var(--color-text-primary);
@@ -18,9 +11,7 @@ export const STAT_TONE_COLOR: Record<StatTone, ReturnType<typeof css>> = {
   go: css`
     color: var(--color-accent-fg);
   `,
-  /* The MUTED amber, for the reason `Text`'s own `warn` tone gives: the bright
-     `--color-status-warning-fg` is a near-black meant for text sitting ON the
-     amber chip, and on a panel it renders dark on dark. */
+  // The muted amber: `--color-status-warning-fg` is meant for text on the amber chip and renders dark on a panel.
   warn: css`
     color: var(--color-status-warning-fg-muted);
   `,

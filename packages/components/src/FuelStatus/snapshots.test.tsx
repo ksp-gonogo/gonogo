@@ -9,18 +9,7 @@ import launchpad from "./__fixtures__/launchpad-full-tanks.json";
 import noEngine from "./__fixtures__/no-engine-data.json";
 import { FuelStatusComponent } from "./index";
 
-/**
- * DOM snapshots off the stream pipeline, driven by each fixture's own
- * `_stream` block.
- *
- * This spec used to build the stream itself, emitting `vessel.resources`,
- * `vessel.structure`, `dv.stages` and `dv.summary` reassembled from the
- * fixtures' flat keys. All four are declared by every fixture.
- *
- * The registered `defaultConfig` (`deltaVMode: "actual"`) now applies; the
- * hand-built render passed only the per-mode config, so which dV column the
- * widget was reading was whatever its own internal fallback happened to be.
- */
+/** DOM snapshots off the stream pipeline, each driven by its fixture's own `_stream` block, under the registered `defaultConfig`. */
 
 const FIXTURES: Record<string, Record<string, unknown>> = {
   "launchpad-full-tanks": launchpad,

@@ -1,14 +1,9 @@
-/**
- * Great-circle distance + initial bearing between two lat/lon points on a
- * sphere of the given radius. Used for the reticle's drift vector (how far
- * downrange, and in which compass direction, the sampled touchdown site is from
- * directly below the vessel).
- */
+// Great-circle distance and initial bearing between two points on a sphere, for the reticle's drift vector.
 
 export interface GreatCircle {
   /** Surface distance, metres. */
   distanceMeters: number;
-  /** Initial bearing, degrees clockwise from north (0–360). */
+  /** Initial bearing, degrees clockwise from north (0-360). */
   bearingDeg: number;
 }
 
@@ -26,7 +21,7 @@ export function greatCircle(
   const dPhi = (lat2 - lat1) * DEG;
   const dLambda = (lon2 - lon1) * DEG;
 
-  // Haversine: numerically stable for small distances (acos loses precision near 1, which matters when the site is nearly directly below the vessel).
+  // Haversine, which stays precise when the site is nearly directly below the vessel, where acos does not.
   const a =
     Math.sin(dPhi / 2) ** 2 +
     Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) ** 2;

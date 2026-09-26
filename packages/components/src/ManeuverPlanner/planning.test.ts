@@ -8,12 +8,11 @@ import {
 
 describe("computeMu", () => {
   it("uses vis-viva when orbitalSpeed/radius/sma are all finite", () => {
-    // μ = v²·a·r / (2a − r). Pick LKO-ish numbers so μ ≈ Kerbin's.
+    // μ = v²·a·r / (2a - r), on LKO-ish numbers so μ ≈ Kerbin's.
     const sma = 700_000;
     const r = 700_000;
     const v = 2300;
     const result = computeMu(v, r, sma, undefined);
-    // gravParameterFromState returns v²·a·r/(2a−r) → 2300² * 700000 * 700000 / 700000 = 2300² * 700000
     expect(result).toBeCloseTo((v * v * sma * r) / (2 * sma - r), 0);
   });
 

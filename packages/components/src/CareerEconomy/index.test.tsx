@@ -94,12 +94,6 @@ describe("CareerEconomy", () => {
     await act(async () => {});
   });
 
-  /**
-   * The stock regression. Stock genuinely models none of this, so the widget
-   * must say so in words rather than draw a ledger of zeros: a zero subsidy
-   * beside a zero upkeep reads as a programme that happens to break even,
-   * which is a claim about a mechanism stock does not have.
-   */
   it("says stock's money does nothing rather than showing a ledger of zeros", async () => {
     mount(STOCK);
 
@@ -129,10 +123,7 @@ describe("CareerEconomy", () => {
   });
 
   it("shows the modified breakdown, which is the one that decomposes the total", async () => {
-    // 300 + 250.4 + 180 + 60 + 100 + 40 + 50 = 980.4, the upkeep beside it. The
-    // unmodified figures are on the same frame and higher, so a widget reading
-    // the wrong one shows a list that does not add up to the total above it,
-    // which is the disagreement the two fields exist to stop.
+    // The modified sources sum to the 980.4 upkeep; the higher unmodified set on the same frame does not.
     mount({
       ...OVERHAUL,
       upkeepBeforeModifiers: { ...OVERHAUL.upkeep, researchSalary: 240 },
@@ -148,9 +139,6 @@ describe("CareerEconomy", () => {
   });
 
   it("labels the breakdown as pre-discount when only the unmodified one arrived", async () => {
-    // A model that can state its costs but not price them. Rendering these under
-    // the plain heading would put a list beside a total it does not sum to, with
-    // nothing to say which of the two was the odd one out.
     const { upkeep, ...withoutModified } = OVERHAUL;
     mount({ ...withoutModified, upkeepBeforeModifiers: upkeep });
 
@@ -163,8 +151,7 @@ describe("CareerEconomy", () => {
   });
 
   it("names the net gain rather than signing it", async () => {
-    // 1240.2 in, 980.4 out. The direction is the whole point of the row, and a
-    // leading minus is read as a formatting artefact too often to carry it.
+    // 1240.2 in, 980.4 out.
     mount(OVERHAUL);
 
     expect(await screen.findByText("Net gain")).toBeInTheDocument();
@@ -223,16 +210,6 @@ describe("CareerEconomy", () => {
     await act(async () => {});
   });
 
-  /**
-   * What the widget does once the career stops arriving, which is the reason
-   * every figure here is handed its own reading rather than a bare number.
-   *
-   * The two answers it used to give were incompatible: a caption saying the
-   * last rates were being shown, over a body saying no career economy had
-   * arrived and two null tokens where the balances were. Each figure now
-   * carries its own currency, so the numbers stay on screen and say what they
-   * are.
-   */
   it("holds the figures and MARKS them once the career stops arriving", async () => {
     const { container, fixture } = mount(OVERHAUL);
     await screen.findByText("289,848");
@@ -242,23 +219,16 @@ describe("CareerEconomy", () => {
       fixture.store.beginFrame();
     });
 
-    /* Fifteen: the two balances, the four rates, the subsidy range's other end,
-       the net, and the seven upkeep sources. That is every figure the widget
-       draws, and the COUNT is the assertion, so a site that goes back to a
-       minted `Value` drops it rather than merely looking the same. */
+    // Every figure drawn: two balances, four rates, the range's other end, the net and seven upkeep sources.
     await waitFor(() => {
       expect(container.querySelectorAll("[data-not-current]").length).toBe(15);
     });
-    /* The figures, not placeholders: the balance and the net are both still
-       readable, which is what a "last known" reading is for. */
     expect(screen.getByText("289,848")).toBeInTheDocument();
     expect(screen.getByText("259.8")).toBeInTheDocument();
     expect(
       screen.queryByText(/no career economy has arrived/i),
     ).not.toBeInTheDocument();
-    /* And nothing says it in words. The fifteen marks above ARE the statement,
-       which is what this test is named for; a sentence repeating them says the
-       same thing twice, in the space the readings need. */
+    // The marks are the statement; no caption repeats them.
     expect(
       screen.queryByText(/no longer current: these are the last rates/i),
     ).not.toBeInTheDocument();

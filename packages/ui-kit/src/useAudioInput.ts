@@ -1,21 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { audioCaptureSupport } from "./audioCaptureSupport";
 
-/**
- * The permission-and-selection half of microphone capture, with no opinion
- * about how any of it is drawn.
- *
- * `AudioInputPicker` is the drawn form and the usual entry point; this exists
- * separately because a host that already owns its own chrome still wants the
- * state machine, and because the state machine is the part worth testing
- * against a stubbed `navigator.mediaDevices`.
- *
- * Every outcome is a named status rather than a boolean plus an error, for the
- * reason `audioCaptureSupport()` reports a reason: a refused permission, an
- * absent device and an insecure origin all end with no stream, and an operator
- * told only that reads the wrong cause and goes after the wrong fix.
- */
-
 /** One selectable capture device. */
 export interface AudioInputDevice {
   deviceId: string;
@@ -157,11 +142,7 @@ async function listInputs(): Promise<AudioInputDevice[]> {
       )
       .map((device) => ({ deviceId: device.deviceId, label: device.label }));
   } catch {
-    /*
-     * An enumeration that throws is not a device fact, so it is reported as an
-     * empty list rather than as an absent device: the request itself is still
-     * the thing that decides whether capture works.
-     */
+    // A failed enumeration is not a device fact; the request itself decides whether capture works.
     return [];
   }
 }
@@ -177,17 +158,21 @@ function initialState(): AudioInputState {
   };
 }
 
+/**
+ * The permission-and-selection half of microphone capture, with no opinion
+ * about how it is drawn. `AudioInputPicker` is the drawn form and the usual
+ * entry point.
+ *
+ * Every outcome is a named status rather than a boolean plus an error: a
+ * refused permission, an absent device and an insecure origin all end with no
+ * stream, and each needs a different fix.
+ */
 export function useAudioInput(
   options: UseAudioInputOptions = {},
 ): AudioInputControls {
   const [state, setState] = useState<AudioInputState>(initialState);
   const streamRef = useRef<MediaStream | null>(null);
-  /*
-   * The open device, mirrored out of state so the `devicechange` handler can
-   * decide whether the capture survived without reading a `prev` it would have
-   * to mutate around. The updater stays pure, which matters under StrictMode's
-   * double invocation.
-   */
+  // Mirrored out of state so the devicechange handler's updater stays pure under StrictMode's double invocation.
   const openDeviceIdRef = useRef<string | null>(null);
   const mountedRef = useRef(true);
   const optionsRef = useRef(options);
@@ -205,13 +190,7 @@ export function useAudioInput(
     optionsRef.current.onStream?.(null);
   }, []);
 
-  /*
-   * A device list that no longer holds the open device is an unplug, and the
-   * capture is over whether or not anything else remains: the two outcomes are
-   * kept apart because "nothing to capture from" and "the input you had is
-   * gone, others remain" are different facts, and only the first is a reason
-   * to stop offering a choice.
-   */
+  // Losing the open device ends the capture; only an empty list means there is nothing left to choose.
   const applyDevices = useCallback(
     (devices: AudioInputDevice[]) => {
       const openId = openDeviceIdRef.current;
@@ -235,13 +214,7 @@ export function useAudioInput(
     [closeStream],
   );
 
-  /*
-   * The device list is read once on mount and again on every `devicechange`.
-   * Before access is granted this yields ids without labels on the engines
-   * that publish it at all, which is enough to say how many inputs exist and
-   * not enough to name one; after it is granted the same read is what fills
-   * the labels in, and what notices a device being unplugged.
-   */
+  // Re-read on every devicechange: before access is granted this yields ids without labels, after it fills the labels in and notices an unplug.
   useEffect(() => {
     const media = navigator.mediaDevices;
     if (!media) return;

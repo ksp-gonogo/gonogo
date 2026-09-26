@@ -20,42 +20,14 @@ import {
   burnInstantRows,
 } from "./burnWindow";
 
-// ---------------------------------------------------------------------------
-// The three instants of one burn, laid out on the vessel-tracker deadline-row
-// pattern rather than a re-derivation of it. That layout took four commits to
-// stay readable at the smallest sizes, and the decisions carried over here are
-// the ones those commits arrived at:
-//
-//   - each row states what distinguishes it from the other two, because three
-//     rows each showing only a duration are indistinguishable
-//   - a row only grows a subtitle to say WHY it has no time (no burn-time
-//     model); routine provenance ("rocket equation"/"planned") added nothing
-//     the label and value didn't already say, and was dropped as noise
-//   - the pair most likely to be conflated is separated by SHAPE, not hue, so
-//     it survives greyscale and colour-vision deficiency
-//   - the burn's overall duration is its own line above the three rows, never
-//     folded into one of them, which pushed both off the end of the row
-// ---------------------------------------------------------------------------
-
-/**
- * One hue per instant, off the CATEGORICAL ramp rather than the status palette:
- * hue answers "which of the three is this", where a status colour would answer
- * "how bad is it", which is not a question a burn window has any business
- * answering.
- */
+/** Categorical hues, not status colours: hue says which instant this is, not how bad it is. */
 const KIND_COLOUR: Record<BurnInstantKind, string> = {
   ignition: "var(--color-data-1)",
   reference: "var(--color-data-3)",
   cutoff: "var(--color-data-5)",
 };
 
-/**
- * Ignition and cutoff are the pair a reader is most likely to conflate: both
- * are engine events, only one of them is the one to act on now, and on the axis
- * they are the two endpoint marks. So they are separated by FORM as well as
- * hue, because a hue difference does not survive a greyscale screenshot or a
- * glance. The reference sits between them and is the odd one out already.
- */
+/** Ignition and cutoff, the pair most easily conflated, differ by shape as well as hue so they survive greyscale. */
 const KIND_MARK: Record<BurnInstantKind, "round" | "diamond"> = {
   ignition: "round",
   reference: "round",
@@ -75,42 +47,19 @@ const KIND_CHIP: CSSProperties = {
   textTransform: "uppercase",
 };
 
-/**
- * Half the widest mark's on-screen extent.
- *
- * The cutoff mark is a square turned 45 degrees, so its bounding box is sqrt(2)
- * times its width and it reaches about 21% further than the round marks. Sizing
- * the track inset for the widest mark costs the circles a fraction of a pixel
- * and cannot come back at a smaller scale, which halving the plain width did:
- * the cutoff mark sat centred on the right-hand end with half its body outside
- * and read on screen as a left-pointing triangle.
- */
+/** Half the widest mark's extent: the diamond is a 45-degree square, sqrt(2) times its width across. */
 const MARK_HALF_EXTENT = "calc(var(--size-burn-mark) * 0.7072)";
 
 /**
- * Where a mark's CENTRE sits, as a CSS length, inset from both ends by
- * {@link MARK_HALF_EXTENT}.
- *
- * Padding on the track cannot do this, which is the trap that made the first fix
- * a no-op: an absolutely-positioned child's containing block is its positioned
- * ancestor's PADDING BOX, so a percentage resolves against a width that already
- * includes that padding and `left: 100%` lands at the same place either way. The
- * inset has to be in the position arithmetic, not around it.
+ * A mark's centre as a CSS length, inset from both ends by
+ * {@link MARK_HALF_EXTENT}. Padding cannot do this: an absolute child's
+ * percentages resolve against its ancestor's padding box.
  */
 function trackPosition(fraction: number): string {
   return `calc(${MARK_HALF_EXTENT} + ${fraction} * (100% - 2 * ${MARK_HALF_EXTENT}))`;
 }
 
-/**
- * Both instants are GAME universal time, so the gap between them is game
- * seconds and goes on the "s" ladder, where a KSP day is 6 hours. Reading it as
- * desk time would be off by four on every value above a day and still look
- * plausible.
- *
- * A string rather than a node because the two words that frame it ("ago", "in")
- * are what distinguish a past instant from a future one, and they have to stay
- * attached to the number they qualify.
- */
+/** Game seconds, on the ladder where a KSP day is 6 hours; a string so "ago"/"in" stay attached to the number. */
 function relativeToNow(atUt: number, nowUt: number): string {
   const delta = atUt - nowUt;
   if (delta < 0) return `${writeQuantity(value("s", -delta))} ago`;
@@ -156,11 +105,7 @@ function InstantRow({ row, nowUt }: { row: BurnInstantRow; nowUt: number }) {
               {row.label}
             </span>
           </Cluster>
-          {/* Only for the absent case: which is WHY there's no time, not
-              routine provenance. "rocket equation" / "planned" said nothing a
-              reader didn't already have from the label and the value beside
-              it, and were dropped as noise; "no burn-time model" is the one
-              subtitle that answers a question the row's own value can't. */}
+          {/* Only the absent case gets a subtitle: it says why there is no time. */}
           {row.atUt == null && (
             <Truncate style={CAPTION} title={row.detail ?? row.question}>
               {row.basis}
@@ -208,7 +153,7 @@ function BurnAxisBar({
         position: "relative",
         height: "var(--size-burn-axis)",
         marginInlineStart: "var(--indent-burn-axis)",
-        // No padding here on purpose: see MARK_HALF_EXTENT for why padding cannot do this job.
+        // No padding: see trackPosition.
       }}
     >
       <span
@@ -221,9 +166,7 @@ function BurnAxisBar({
           background: "var(--color-border-subtle)",
         }}
       />
-      {/* Omitted, never clamped, when the clock is outside the burn: a marker
-          pinned to ignition while the burn is still minutes away would be a lie
-          about the one thing being read off this axis. */}
+      {/* Omitted, never clamped, when now is outside the burn. */}
       {axis.nowFraction >= 0 && axis.nowFraction <= 1 && (
         <span
           aria-hidden="true"
@@ -248,10 +191,9 @@ function BurnAxisBar({
             width: "var(--size-burn-mark)",
             height: "var(--size-burn-mark)",
             background: KIND_COLOUR[mark.kind],
-            // --radius-circle, never a hand-computed 50%: the token exists so a circle stays a circle if the mark size ever changes.
             borderRadius:
               KIND_MARK[mark.kind] === "round" ? "var(--radius-circle)" : 0,
-            // Centred on its own position, so the inset arithmetic below is about the TRACK and never about which shape is being drawn.
+            // Centred on its own position, so the inset arithmetic is about the track, never the shape.
             transform:
               KIND_MARK[mark.kind] === "diamond"
                 ? "translate(-50%, -50%) rotate(45deg)"
@@ -264,12 +206,7 @@ function BurnAxisBar({
   );
 }
 
-/**
- * One burn's window: three rows, always all three, plus a shared axis when
- * there is an ordering to show. The axis is deliberately absent for an
- * impulsive plan, where a single mark would be decoration dressed as
- * information.
- */
+/** One burn's window: always three rows, plus an axis when there is an ordering to show (never for an impulsive plan). */
 export function BurnWindowRows({
   burn,
   nowUt,
@@ -283,19 +220,12 @@ export function BurnWindowRows({
 
   return (
     <Stack>
-      {/* No "Burn window" caption here: the section heading above already
-          says "Burn windows", and restating it on the first row said nothing
-          the heading hadn't. The duration is the one fact this line adds. */}
       <Cluster
         justify="end"
         align="baseline"
         style={{ gap: "var(--gap-related)" }}
       >
-        {/* The null case keeps its own branch rather than leaning on Unit's
-            null token: a bare "lasts" beside that token claims there is a burn
-            length and declines to say it, where a bare dash says there is no
-            burn-time model at all, which is the truth the three rows below are
-            already telling. */}
+        {/* A bare null, not "lasts" beside Unit's null token, which would claim a length it declines to state. */}
         <span style={CAPTION}>
           {duration == null ? (
             NULL_DISPLAY

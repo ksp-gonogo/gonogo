@@ -7,22 +7,10 @@ import { renderWidget } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { stripVolatile } from "../test/widgetDomSnapshot";
-// Side-effect import: the widget self-registers on module load, and `renderWidget` looks it up by id rather than importing the component.
+// Side-effect import: `renderWidget` looks the widget up by id.
 import "./index";
 
-/**
- * DeployedScience now reads its whole state off the canonical
- * `deployed.bases` + `game.dlc` Topics (no legacy `DataSource` fallback),
- * so these scenarios are streamed through a genuine `TelemetryProvider` in the
- * NEW flat `deployed.bases` wire shape (one entry per deployed experiment,
- * grouped client-side by `vesselName`: `groupFlatDeployedEntries`, index.tsx)
- * rather than the retired grouped-base `deployed.bases` shape. One field still
- * reads differently than the old fixtures did: `collecting` is derived
- * (`scienceCompletedPercentage < 100`) rather than declared. The power balance
- * is on the new wire as well, as the cluster's own POWER UNITS rather than an
- * EC figure, so the Minmus scenario carries a shortfall and the Mun one a
- * surplus.
- */
+/** DOM snapshots streamed through a real `TelemetryProvider` in the flat `deployed.bases` shape, one entry per deployed experiment. */
 const CARRIED = ["deployed.bases", "game.dlc"];
 
 interface Scenario {
@@ -45,7 +33,7 @@ const flatEntry = (
   scienceLimit: 40,
   powerState: "Powered",
   connectionState: "Connected",
-  // The DERIVED fields, which is what the widget reads; the two prose fields above are display labels only.
+  // The derived fields the widget reads; the prose fields above are display labels only.
   power: DeployedPowerState.Powered,
   controllerConnected: true,
   powerAvailable: 4,
@@ -55,7 +43,7 @@ const flatEntry = (
 });
 
 const SCENARIOS: Record<string, Scenario> = {
-  // A powered Mun base climbing on two experiments, and an unpowered Minmus base at night: same qualitative story as the old `bases` fixture.
+  // A powered Mun base climbing on two experiments, and an unpowered Minmus base at night.
   bases: {
     breakingGround: true,
     entries: [
@@ -87,20 +75,14 @@ const SCENARIOS: Record<string, Scenario> = {
         scienceCompletedPercentage: 50,
         scienceValue: 20,
         scienceLimit: 40,
-        /*
-         * "NoPower" was here, a string KSP has never emitted; the scenario's own
-         * comment says this base is meant to be unpowered, and under the old
-         * string comparison it rendered as a brownout instead.
-         */
         powerState: "Unpowered",
         power: DeployedPowerState.Unpowered,
-        // A genuine shortfall, which is what unpowered looks like on the cluster's own scale: demand met by nothing at all.
+        // Unpowered on the cluster's own scale: demand met by nothing.
         powerAvailable: 0,
         powerRequired: 3,
       }),
     ],
   },
-  // Breaking Ground not installed: empty state.
   unavailable: {
     breakingGround: false,
     entries: [],
@@ -126,9 +108,7 @@ async function snapshotDeployedScienceScenario(
     stream.emit("deployed.bases", scenario.entries);
   });
 
-  // Flush two rAF ticks so the provider's ingest -> beginFrame() applies the
-  // emitted values to React state before reading the DOM. Mirrors
-  // widgetDomSnapshot.tsx's flushProviderFrame.
+  // Two rAF ticks, so the provider's frame applies the emitted values before the DOM is read.
   await act(async () => {
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()));

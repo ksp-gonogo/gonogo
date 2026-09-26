@@ -90,20 +90,11 @@ import { useMapResize } from "./useMapResize";
 import { useTrajectoryBuffer } from "./useTrajectoryBuffer";
 import { useWorldCanvas } from "./useWorldCanvas";
 import { shouldSuppressVanillaBase } from "./vanillaSuppression";
-// Side-effect only: registers the vanilla KSC/launch-site/contract-target
-// POI provider (T-POI-6) so MapPoiLayer below has something to render out
-// of the box. Co-located with MapView per that file's own doc comment.
+// Side-effect only: registers the vanilla POI provider MapPoiLayer renders.
 import "./vanillaPoiProvider";
 
 const topics = defineTopicManifest({
-  /* `system.bodies` gives the mapped body's radius and rotation period, keyed
-     by the name the running game reports rather than looked up in the bundled
-     stock table. */
-  /* `vessel.orbit` carries the patch chain the ground track is drawn from, the
-     encounter the marker and the chip row show, and the horizon and arc the
-     impact point is propagated under. The chip row also solves the next apsis
-     from its elements, which is not a field of anything, so the channel is
-     what carries it. */
+  /* `system.bodies` is matched by the name the running game reports, not the bundled stock table. `vessel.orbit` also carries the next apsis the chip row solves from its elements. */
   channels: [
     "vessel.flight",
     "vessel.orbit",
@@ -126,11 +117,8 @@ const topics = defineTopicManifest({
 });
 
 /**
- * Resolve a CSS custom property to a concrete colour for use on a `<canvas>`
- * 2D context, which (unlike the DOM) cannot resolve `var(--...)` and silently
- * paints black when handed one. Reads the computed value off the canvas
- * element so theme switches are respected; falls back to the token's default
- * if the property isn't set (e.g. before the theme stylesheet is applied).
+ * Resolve a CSS custom property to a concrete colour for a `<canvas>` 2D
+ * context, which cannot resolve `var(--...)` and paints black when handed one.
  */
 function canvasColor(
   el: HTMLElement,
@@ -141,33 +129,10 @@ function canvasColor(
   return v || fallback;
 }
 
-// ---------------------------------------------------------------------------
-// Augment slots (Uplink architecture). MapView is a HOST that exposes
-// five slots; no first-party augment fills them here, so
-// each renders nothing until an Uplink registers an augment into it. This is
-// THE HARD CASE for slot design: the overlay must draw in
-// the map's own coordinate space, so `map-view.overlay` passes the live
-// equirectangular projection down as slot props. Composable /
-// layered by priority: an Uplink's own scan-layer, commlink, and
-// trajectory overlays all route HERE. `map-view.sections` is a
-// below-content panel slot (mirrors `objectives.source`/
-// `power-systems.sections`); `map-view.actions` is a header control-row
-// slot (mirrors `system-view.actions`) for quick per-layer toggles; and
-// `map-view.base` is the STACKABLE REPLACE slot for the map's base
-// surface: many augments may draw, composited in order; see each
-// interface's own doc comment below.
-// ---------------------------------------------------------------------------
-
 /**
- * Props for `map-view.overlay`: an OVERLAY slot, rendered in a
- * layer absolutely positioned over the map canvases. The base map draws in
- * screen pixels via a per-body coordinate offset (equirectangular
- * `latLonToMap`) followed by the live pan/zoom camera. An overlay augment
- * receives that full chain as `project`, so it can place markers on the exact
- * same pixels the base map paints: without re-deriving the offset / camera
- * maths. The raw pieces (`camera`, `worldW`/`worldH`, body identity) are passed
- * alongside for augments that need to build their own transform (e.g. a WebGL
- * layer) rather than call `project` per point.
+ * Props for `map-view.overlay`, a layer positioned over the map canvases.
+ * `project` is the exact chain the base map draws with (per-body offset, then
+ * camera); the raw pieces are there for an augment building its own transform.
  */
 export interface MapOverlayContext {
   /** Pixel width of the overlay layer (== the map canvas container). */
@@ -184,21 +149,11 @@ export interface MapOverlayContext {
   bodyName: string | undefined;
   /** Mapped body physical radius, metres, when known. */
   bodyRadius: number | undefined;
-  /**
-   * Project geographic lat/lon (degrees) to a pixel coordinate in the overlay
-   * layer's own space: the exact chain the base map draws with (per-body
-   * offset + camera), so an overlay augment (commlink, trajectory, custom scan
-   * layer) lands on the same pixels.
-   */
+  /** Project lat/lon (degrees) to a pixel in the overlay layer's own space. */
   project: (lat: number, lon: number) => { x: number; y: number };
   /**
-   * The active vessel's RAW (unadjusted: no `body.latitudeOffset`/
-   * `longitudeOffset` baked in) lat/lon, for great-circle distance/bearing
-   * ranking an overlay augment might want (e.g. anomaly proximity).
-   * `undefined` when there's no position fix yet, or the mapped body
-   * diverges from the vessel's body (a `bodyOverride` pinned elsewhere),
-   * matching the vessel-marker suppression rule the base map itself
-   * applies.
+   * The active vessel's raw lat/lon (no body offset applied). `undefined` with
+   * no position fix, or when the mapped body is not the vessel's body.
    */
   vesselLat: number | undefined;
   vesselLon: number | undefined;
@@ -207,13 +162,6 @@ export interface MapOverlayContext {
 /**
  * What this widget is currently looking at, published for every augment bound
  * to any of its slots. Read with `useWidgetScope("map-view")`.
- *
- * It was `map-view.sections`'s slot props, alongside an `augmentSettings` field
- * whose own doc said it was "always `undefined` until [the read-back loop
- * lands]". The read-back loop is the framework's now
- * (`AugmentSettingsProvider`), and the body is a scope, so neither belongs in a
- * slot's props: `map-view.sections` is the universal propless segment `Panel`
- * mounts for every widget.
  */
 export interface MapViewScope {
   /** The mapped body (may diverge from the active vessel under a pin). */
@@ -221,44 +169,24 @@ export interface MapViewScope {
 }
 
 /**
- * Props for `map-view.base`: the STACKABLE REPLACE slot for the map's base
- * surface. Any number of registered augments may fill it; each decides for
- * itself (against its OWN `augmentSettings[itsOwnId]?.show`, and its own
- * data readiness) whether it currently has anything to paint. An augment
- * filling this slot renders no JSX onto the page: it hands back a canvas via
- * `onLayer`, keyed by its OWN id (so
- * multiple augments calling `onLayer` concurrently don't clobber one
- * another). MapView composites every currently-supplied canvas in draw
- * order (see orderBaseLayers.ts), on top of its own stock-texture paint,
- * UNLESS some registered augment in this slot declares
- * `suppressesVanillaBase` (see augments.ts's `AugmentDefinition`), in which
- * case the stock texture is skipped outright, independent of which layers
- * (if any) are currently active. See paintBaseSurface.ts for the full
- * compositing rationale, including the "all layers off stays black" case.
+ * Props for `map-view.base`, the stackable replace slot for the map's base
+ * surface. Each augment hands back a canvas via `onLayer` keyed by its own id,
+ * and MapView composites them in draw order over the stock texture, which is
+ * skipped outright when any augment here declares `suppressesVanillaBase`.
  */
 export interface MapBaseLayerContext {
   /** The mapped body (may diverge from the active vessel under a pin). */
   bodyId: string | undefined;
   width: number;
   height: number;
-  /** Per-namespace augment settings: see `MapSectionsContext`'s doc
-   *  comment; same shape, same "undefined until the read-back loop lands"
-   *  caveat. An augment reads its OWN `augmentSettings[itsOwnId]?.show`
-   *  (default true when unset) to decide whether it currently contributes
-   *  a layer. */
+  /** Per-namespace augment settings. An augment reads its own `augmentSettings[itsOwnId]?.show`, default true when unset. */
   augmentSettings: Record<string, Record<string, unknown>> | undefined;
-  /** The paint-gate for this body: the augment samples this per
-   *  output tile while drawing its own surface. `hasAnySource: false`
-   *  means "paint fully open," not "paint nothing." */
+  /** The paint gate for this body, sampled per output tile. `hasAnySource: false` means paint fully open, not paint nothing. */
   coverageGate: CoverageGate;
   /**
-   * Called by the augment whenever it has a fresh canvas to contribute (or
-   * `null` to withdraw one, e.g. toggled off). MUST pass the augment's OWN
-   * id as the first argument: MapView keys its per-layer canvas store by it,
-   * because more than one augment may hold a canvas at once. Anything a layer
-   * leaves transparent falls
-   * through to whatever paints beneath it (another layer, the stock
-   * texture, or the dark panel fill) rather than being forced opaque.
+   * Called with a fresh canvas, or `null` to withdraw one. The first argument
+   * must be the augment's own id, since several augments may hold a canvas at
+   * once. Transparent pixels fall through to whatever paints beneath.
    */
   onLayer: (
     id: string,
@@ -267,27 +195,11 @@ export interface MapBaseLayerContext {
   ) => void;
 }
 
-/*
- * `map-view.actions` is deliberately absent from the declaration below. It is
- * propless: the universal `actions` segment `Panel` mounts, identical to
- * `system-view.actions`, with nothing map-specific about it.
- *
- * A per-instance read/write handle on the augment-SETTINGS system does not
- * belong in its props either. That is the framework's capability rather than
- * MapView's, and it is reachable from any widget through
- * `AugmentSettingsProvider` / `useAugmentSettings`, which the dashboard mounts.
- */
-
-// Co-located declaration-merge of this widget's slot ids → their props. Kept
-// next to the widget (not in a central registry file) so parallel slot work
-// on other widgets never collides on this seam.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "map-view.overlay": MapOverlayContext;
     "map-view.base": MapBaseLayerContext;
-    // Both mounted by `Panel`'s universal segments rather than by this widget.
-    // The ids stay declared so a binder's component types against the propless
-    // contract rather than the loose fallback.
+    // Mounted by `Panel`'s universal segments; declared so a binder types against the propless contract.
     "map-view.sections": Record<string, never>;
     "map-view.actions": Record<string, never>;
   }
@@ -296,15 +208,6 @@ declare module "@ksp-gonogo/core" {
     "map-view": MapViewScope;
   }
 }
-
-/**
- * The facade-sealed-client copy of this merge, needed so `SlotProps<"map-view.*">`
- * resolves precisely for a client that does not import `@ksp-gonogo/components`,
- * lives in `mod/sitrep-sdk/src/api/slots.ts` rather than as a second
- * `declare module "@ksp-gonogo/sitrep-sdk"` block here. That module's header
- * says why a same-file block cannot reach a foreign sealed client's compiled
- * program.
- */
 
 const mapViewActions = [
   {
@@ -336,9 +239,8 @@ export type MapViewActions = typeof mapViewActions;
 const ZOOM_STEP = 1.3;
 
 /**
- * Stroke a list of longitude-wrap-split segments with a fade that's
- * continuous across the whole list (rather than resetting per segment).
- * Caller is responsible for transform, lineWidth, and dash.
+ * Stroke longitude-wrap-split segments with one fade continuous across the
+ * whole list. Caller owns transform, lineWidth and dash.
  */
 function drawFadedSegments(
   ctx: CanvasRenderingContext2D,
@@ -374,16 +276,9 @@ function drawFadedSegments(
 }
 
 /**
- * Reports one `map-view.base` augment's live Domain availability up to
- * MapView, via `useAugmentAvailable`: the SAME gate `<AugmentSlot>` itself
- * applies before ever rendering that augment's component. Isolated into its
- * own component (mirrors `AugmentSlot.tsx`'s own `AugmentEntry`) so the
- * `useTelemetry` hook underneath has a stable position per augment
- * regardless of how many candidates are registered or how the set changes.
- * Renders nothing, this exists purely to feed
- * `suppressionAvailabilityRef`/`onSuppressAvailabilityChange` in
- * `MapViewComponent`, decoupled from whether the augment currently has
- * anything to paint.
+ * Reports one `map-view.base` augment's live Domain availability, through the
+ * same `useAugmentAvailable` gate `<AugmentSlot>` applies. One component per
+ * augment so the hook underneath keeps a stable position. Renders nothing.
  */
 function VanillaSuppressionProbe({
   augment,
@@ -396,9 +291,6 @@ function VanillaSuppressionProbe({
   // biome-ignore lint/correctness/useExhaustiveDependencies: reports on every value change; onAvailableChange is a stable host callback (useCallback with an empty dep list)
   useEffect(() => {
     onAvailableChange(augment.id, available);
-    // Drop this augment's contribution on unmount (e.g. deregistered, or
-    // the collapsed-view branch stops rendering this probe entirely),
-    // mirrors the onLayer cleanup discussion elsewhere in this file.
     return () => onAvailableChange(augment.id, false);
   }, [augment.id, available]);
   return null;
@@ -412,37 +304,16 @@ function MapViewComponent({
   const trajectoryLength = config?.trajectoryLength ?? 2000;
   const showPrediction = config?.showPrediction ?? true;
   const bodyOverride = config?.bodyOverride;
-  // Vanilla POIs (KSC, contract targets) are always-relevant reference points, not an opt-in extension-shaped feature: default on (T-POI-7).
+  // Vanilla POIs are reference points, not an opt-in feature: default on.
   const showPois = config?.showPois ?? true;
 
-  // Vessel kinematics read straight off the stream: `vessel.flight` for the
-  // surface-frame measurements, `vessel.orbit` for the patch chain, the
-  // encounter and the propagation the impact point is found under.
-  // `vessel.maneuver` carries the post-burn node trajectories.
   const flightReading = useTelemetry("vessel.flight");
-  // The HUD readouts (q, mach, speeds) show the last observed numbers with the
-  // caption below saying how old they are: a number beside a label can be
-  // dated honestly.
+  // The HUD readouts show the last observed numbers, captioned with their age.
   const flight =
     flightReading.state === "observed" || flightReading.state === "stale"
       ? flightReading.value
       : undefined;
-  // The MARKER cannot. A dot on a map is a positive claim about where the craft
-  // is NOW, and `reading.ts` names it as the sharpest form of the failure this
-  // type exists to prevent: such a widget either propagates or stops drawing.
-  // So the position comes from a CURRENT reading, or from a model if one is on
-  // offer, and otherwise from nothing at all: the `NoSignal` overlay below says
-  // which, so the suppression is visible rather than an empty map.
-  //
-  // The spread is what the contract's per-value declaration forces, and it is
-  // worth reading carefully: the conic moves `vessel.flight`'s altitude and its
-  // orbital speed, and NOT its latitude or longitude, because the body-fixed
-  // frame mapping is not on the wire. So the dot below still draws from the last
-  // observed pair even while a model is on offer, and the projection is what
-  // stops that being invisible.
-  /* The observation is reached first because `reckoning.status` narrows the
-     reckoning and not the arm carrying it: a nested discriminant says nothing
-     about which state has a value. */
+  /* The marker is a claim about where the craft is now, so it comes from a current reading or a model, never a held one. The conic does not move lat/lon (the body-fixed mapping is not on the wire), so the dot still draws from the last observed pair under a model. */
   const flightObserved =
     flightReading.state === "observed" || flightReading.state === "stale"
       ? flightReading.value
@@ -453,46 +324,19 @@ function MapViewComponent({
       : flightReading.state === "observed"
         ? flightReading.value
         : undefined;
-  /*
-   * "Marker withheld", so it has to be false in exactly the cases where a
-   * marker IS drawn. `state === "stale"` alone is not that question any more:
-   * a stale reading carrying a model reaches `positioned` above and draws, so
-   * testing staleness by itself would caption a withheld marker beside a marker
-   * that is on the map. The withholding is what the caption is about, and the
-   * withholding happens when no model is on offer.
-   */
+  // True exactly when no marker is drawn: a stale reading with a model still draws.
   const positionStale =
     flightReading.state === "stale" &&
     flightReading.reckoning.status !== "available";
   const lat = positioned?.latitude;
   const lon = positioned?.longitude;
-  /*
-   * TWO answers off one reading, on the two sides of one boundary: what an
-   * operator READS is not what the diagram is DRAWN from.
-   *
-   * `altitudeReading` is the field reading `vessel.flight` carries for its own
-   * altitude, so it states its currency and its band itself and needs no
-   * second channel's status to speak for it. That is what the readout is
-   * handed: `<Unit>` draws the figure, marks it when it is not current, and
-   * draws the interval where the model has one to give.
-   *
-   * `altSea` is the last OBSERVED magnitude, ungated, because it feeds
-   * `useTrajectoryBuffer`, which accumulates the FLOWN TRAIL: that is a record
-   * of where the craft has been, and a modelled altitude does not belong in
-   * it. The trail already declines to append without `lat`/`lon`, which come
-   * from the same reading and are withheld on their own terms.
-   */
+  /* `altitudeReading` feeds the readout, which marks its own currency. `altSea` is the last observed magnitude and feeds the flown trail, where a modelled altitude does not belong. */
   const altitudeReading = flightReading.altitudeAsl;
   const altSea =
     (altitudeReading.state === "observed" || altitudeReading.state === "stale"
       ? magnitudeOf(altitudeReading.value)
       : undefined) ?? undefined;
-  /*
-   * The number the imaging verdict is computed from: where the model puts the
-   * craft if one is on offer, and the observation while the link is live.
-   * "IMAGING" is a verdict about NOW, so an observation the reading has
-   * stopped vouching for is not one to compute it from.
-   */
+  // The imaging verdict is about now: modelled altitude if on offer, else a current observation.
   const altSeaReadout =
     magnitudeOf(
       altitudeReading.reckoning.status === "available"
@@ -501,24 +345,14 @@ function MapViewComponent({
           ? altitudeReading.value
           : undefined,
     ) ?? undefined;
-  // Collapsed deliberately: MapView draws the name or draws nothing, and has no third rendering for a catalogue that is a confirmed tombstone.
   const bodyName = useBodyName(useParentBodyIndex()) ?? undefined;
   const q = flight?.dynamicPressureKPa;
   const mach = flight?.mach;
   const speed = flight?.surfaceSpeed?.magnitude;
   const vSpeed = flight?.verticalSpeed;
-  // The patch chain is the provider's own, reshaped off `vessel.orbit.patches`,
-  // so projecting it is not invention. What a patch does NOT carry is a shape:
-  // the statement covering it is the `trajectoryKind` on the horizon riding the
-  // same `vessel.orbit` sample the chain came off, so that is what decides
-  // whether a Kepler solve is the right way to sample it.
+  // A patch carries no shape: the horizon's `trajectoryKind` decides whether a Kepler solve fits.
   const orbitReading = useTelemetry("vessel.orbit");
-  /*
-   * The observation OVERLAID by what the conic moved, which for `vessel.orbit`
-   * is the phase. Written here rather than in a helper because the spread IS
-   * the judgement (see `ReckonableReading`): taking `reckoning.value` alone
-   * gets the moved fields and nothing else, which is not an orbit.
-   */
+  /* The observation overlaid by what the conic moved (the phase). `reckoning.value` alone is not an orbit. */
   const orbitSampleObserved =
     orbitReading.state === "observed" || orbitReading.state === "stale"
       ? orbitReading.value
@@ -529,11 +363,7 @@ function MapViewComponent({
       : orbitReading.reckoning.status === "available"
         ? { ...orbitSampleObserved, ...orbitReading.reckoning.value }
         : orbitSampleObserved;
-  /*
-   * The patch chain is the orbit's own shape and holds with it, stale included.
-   * Memoised on the sample so the ground-track and maneuver memos below, which
-   * key on the array, rerun only when a new sample lands.
-   */
+  // Holds when stale. Memoised on the sample so the memos keyed on the array rerun only on a new sample.
   const orbitPatches = useMemo(
     () =>
       orbitSampleObserved === undefined
@@ -541,10 +371,7 @@ function MapViewComponent({
         : (orbitSampleObserved.patches ?? []).map(mapOrbitPatch),
     [orbitSampleObserved],
   );
-  /*
-   * The encounter and the impact point are MARKERS, claims about now, so like
-   * the craft's own dot they come from a current reading or not at all.
-   */
+  // The encounter and impact point are markers, so they need a current reading.
   const orbitCurrent =
     orbitReading.state === "observed" ? orbitReading.value : undefined;
   const flightCurrent =
@@ -554,62 +381,30 @@ function MapViewComponent({
   const trajectory: OrbitTrajectory | null = useOrbitTrajectory(orbitSample);
   const trajectoryWithheld =
     trajectory !== null && trajectory.shape === "withheld" ? trajectory : null;
-  // Whether there was a track to refuse. A refusal caption on a widget still
-  // waiting for its first elements would report a decision nobody had asked
-  // for, and read as a fault while the stream is simply cold.
+  // No refusal caption before the first elements arrive: a cold stream is not a refusal.
   const hasPatchChain = (orbitPatches?.length ?? 0) > 0;
-  // Read from `vessel.maneuver` directly rather than through the legacy reshape.
-  // This widget only ever wanted two things from a node, its instant and its
-  // post-burn patches, and both are on the modern shape. The reshape in between
-  // built a positional delta-v triple and never read the burn's FRAME, so a
-  // planner with more than one frame would have had its burns silently relabelled
-  // by a mapper this widget did not even use the output of.
   const planReading = useStream<VesselManeuver>("vessel.maneuver");
   const maneuverNodes =
     planReading.state === "observed" || planReading.state === "stale"
       ? planReading.value.nodes
       : undefined;
-  // t.universalTime is dropped as a data key, it was never a stream, it IS
-  // the SDK view-UT the propagation is evaluated at, so read that directly.
-  // `.magnitude` at the read: this widget threads the view time through geometry and
-  // solver code typed on plain numbers, and the instant type earns nothing there.
   const universalTime = useViewUt()?.magnitude;
-  // Whether we should bother computing any prediction at all. Consumed by
-  // both the current-orbit and maneuver memoisations and the chip overlay.
   const predictionEnabled = showPrediction;
 
-  // The body picker (config.bodyOverride) decouples MapView from the
-  // active vessel's body so the operator can inspect ANY body's base
-  // layer and augments while orbiting elsewhere. Unset (the default)
-  // follows v.body.
+  // The body picker (config.bodyOverride) lets the operator inspect any body; unset follows the vessel.
   const targetBodyId = bodyOverride ?? bodyName;
-  /*
-   * The radius and the rotation period come off `system.bodies`, which is the
-   * running game's own answer for whatever it calls the body. Read from the
-   * bundled stock table alone, a planet-pack rename missed and took the ground
-   * track with it: `predictGroundTrack` needs a rotation period to turn a time
-   * of flight into a longitude, and with none the prediction was simply never
-   * drawn. Matched by NAME rather than by index because the picker's scope is a
-   * body rather than a vessel, and both names come from the same game.
-   */
+  /* Radius and rotation period come off `system.bodies`, matched by name, so a planet-pack rename still gets a ground track. */
   const bodiesReading = useTelemetry("system.bodies");
-  /* The roster does not decay: a body's radius is the same one it had last
-     frame, so a stale record is the right read rather than a blank map. */
+  /* A body's radius does not decay, so a stale roster is the right read. */
   const bodies =
     bodiesReading.state === "observed" || bodiesReading.state === "stale"
       ? bodiesReading.value
       : undefined;
-  /* Memoised because the merge builds a fresh object and the ground-track
-     prediction below depends on it: unmemoised it would re-solve Kepler for
-     every sample on every render, defeating the `utBucket` throttle that
-     exists to hold that work to once a second. */
+  /* Memoised: an unmemoised merge would re-solve Kepler every render and defeat the `utBucket` throttle. */
   const body = useMemo(
     () => bodyNamed(bodies, targetBodyId),
     [bodies, targetBodyId],
   );
-  /* Current only while both samples it is solved from are, answered on the
-     measured basis alone, and propagated under whatever the orbit's own
-     provider vouches for. */
   const impact = useMemo(
     () =>
       orbitCurrent === undefined ||
@@ -632,13 +427,7 @@ function MapViewComponent({
     !(impact.lat === 0 && impact.lon === 0);
   const impactLat = impactMarked ? impact.lat : undefined;
   const impactLon = impactMarked ? impact.lon : undefined;
-  // True when the map is showing the active vessel's body, i.e. there's
-  // no override, OR the override happens to equal the vessel's body. When
-  // false (an override DIVERGES from the vessel's body), the
-  // vessel-relative draws (marker, trail, prediction, anomaly distances)
-  // and the follow chrome are suppressed, plotting a Kerbin craft onto
-  // the Mun map would be misleading. With no override set, behaviour is
-  // unchanged from before the picker existed.
+  // An override that diverges from the vessel's body suppresses every vessel-relative draw and the follow chrome.
   const vesselOnThisBody = !bodyOverride || bodyOverride === bodyName;
 
   const { outerRef, containerSize } = useMapResize();
@@ -711,13 +500,7 @@ function MapViewComponent({
   const persistentDataRef = useRef<HTMLCanvasElement>(null);
   const predictionRef = useRef<HTMLCanvasElement>(null);
 
-  // The map-view.base slot's contributed surfaces: stackable, so keyed by
-  // each contributing augment's OWN id rather than a single ref, since any
-  // number of augments can hold a canvas at once (see MapBaseLayerContext's
-  // doc comment). A ref
-  // (not state) because it's mutated on every `onLayer` call and read only
-  // inside the imperative paint effect below: `baseLayerVersion` is the
-  // state that actually triggers a redraw.
+  // Keyed by each contributing augment's own id. A ref, not state: `baseLayerVersion` is what triggers the redraw.
   const baseLayerCanvasesRef = useRef<Map<string, HTMLCanvasElement>>(
     new Map(),
   );
@@ -726,30 +509,13 @@ function MapViewComponent({
     (id: string, canvas: HTMLCanvasElement | null, _version: number) => {
       if (canvas) baseLayerCanvasesRef.current.set(id, canvas);
       else baseLayerCanvasesRef.current.delete(id);
-      // Bump MapView's OWN counter rather than forwarding the caller's
-      // `_version` into state directly: with a single contributor that
-      // number (typically `Date.now()`) was fine as a change-marker, but
-      // with several augments potentially calling `onLayer` within the
-      // same millisecond, two DIFFERENT augments could hand back an
-      // identical value: React would then skip the re-render for the
-      // second call since the state "changed" to the same number twice.
-      // An unconditional increment can't collide that way.
+      // An own counter rather than the caller's version: two augments in the same millisecond could hand back the same number and React would skip the render.
       setBaseLayerVersion((v) => v + 1);
     },
     [],
   );
 
-  // Live Domain-availability per `map-view.base` augment that declares
-  // `suppressesVanillaBase`: tracked independently of whether that augment
-  // currently has a canvas to contribute (per-layer `show` and data
-  // readiness are separate concerns; see paintTile.ts). Fed by
-  // `VanillaSuppressionProbe` below, one per candidate augment, using the
-  // SAME `useAugmentAvailable` gate `<AugmentSlot>` itself applies before
-  // ever rendering that augment's component: registry presence alone
-  // (an unconditionally-bundled client package) is NOT the same as the
-  // Domain actually being live (regression fixed 2026-07-20, see
-  // vanillaSuppression.ts's header comment). Reuses `baseLayerVersion` to
-  // trigger a repaint since both signals feed the same paint effect.
+  // Live Domain availability per suppressing `map-view.base` augment: registry presence is not the Domain being live.
   const suppressionAvailabilityRef = useRef<Map<string, boolean>>(new Map());
   const onSuppressAvailabilityChange = useCallback(
     (id: string, available: boolean) => {
@@ -760,33 +526,17 @@ function MapViewComponent({
     [],
   );
 
-  // Re-render (and so repaint) when the augment REGISTRY changes, an augment
-  // registers/deregisters for any slot. The `map-view.base` canvas path is
-  // already covered (a contributing augment calls `onLayer`, bumping
-  // baseLayerVersion), but the VanillaSuppressionProbe list below is built from
-  // `getAugmentsForSlot(...)` at render time with no subscription of its own,
-  // so a PURE-suppression augment (`suppressesVanillaBase` with no canvas, the
-  // spec's "hide vanilla, draw nothing" case) registered AFTER mount would get
-  // no probe, and its suppression wouldn't take effect until an unrelated
-  // repaint. Bumping baseLayerVersion on registry change refreshes both the
-  // probe list and the paint effect's `getAugmentsForSlot` read.
+  // The probe list is read from the registry at render time, so an augment registered after mount needs this to get a probe.
   useEffect(
     () => onAugmentsChange(() => setBaseLayerVersion((v) => v + 1)),
     [],
   );
 
-  // Per-namespace augment settings for map-view.base/map-view.sections,
-  // keyed by augment id: the same namespacing `getAugmentSettings` uses.
-  // Read straight off this widget's saved config, populated by
-  // `AugmentSettingsPanel` in `MapViewConfig.tsx`. `undefined` when nothing's
-  // been saved yet: every consumer (useCoverageGate, an augment's own
-  // settings) already treats that as "no overrides".
+  // Per-augment settings off the saved config; `undefined` means no overrides.
   const augmentSettings: Record<string, Record<string, unknown>> | undefined =
     config?.augmentSettings;
 
-  // T4's paint-gate: a mod-agnostic map-view.base augment samples this
-  // per output tile while drawing its own surface (settled model: zero
-  // registered sources means "paint fully open," not "paint nothing").
+  // Zero registered coverage sources means paint fully open, not paint nothing.
   const coverageGate = useCoverageGate(targetBodyId, augmentSettings);
 
   // Per-body coordinate offsets: applied in both world canvas and screen space
@@ -810,7 +560,6 @@ function MapViewComponent({
     bodyName: targetBodyId,
   });
 
-  // ── Follow mode: drive camera from vessel position + speed ────────────────
   useEffect(() => {
     if (viewMode !== "follow" || lat === undefined || lon === undefined) return;
     const { x: wx, y: wy } = adjustedMap(
@@ -826,8 +575,7 @@ function MapViewComponent({
     });
   }, [viewMode, lat, lon, speed, adjustedMap, baseZoom, setCamera]);
 
-  // ── Base layer: map texture + grid in world space via camera ──────────────
-  // Texture is cached in a ref so camera changes don't trigger a reload
+  // Cached in a ref so camera changes do not reload the texture.
   const textureImageRef = useRef<HTMLImageElement | null>(null);
   const [textureReady, setTextureReady] = useState(false);
 
@@ -865,18 +613,7 @@ function MapViewComponent({
 
     ctx.setTransform(...cameraTransform(camera, w, h));
 
-    // Base surface. `map-view.base` is STACKABLE, every registered
-    // augment's currently-active canvas composites in draw order (grouped
-    // by Uplink; see orderBaseLayers.ts), on top of the stock texture.
-    // Vanilla suppression is a SEPARATE, declarative decision: any
-    // registered augment declaring `suppressesVanillaBase` skips the
-    // stock-texture paint outright, even if every layer is currently
-    // toggled off: see paintBaseSurface.ts for that rationale, including
-    // why "all layers off" must stay black rather than falling back to the
-    // stock texture. But suppression must ALSO respect Domain availability
-    // exactly like rendering does, a registered augment whose Domain isn't
-    // live yet (or ever) must NOT suppress; see vanillaSuppression.ts's
-    // header comment for the regression this guards against.
+    // Stackable layers composite in draw order over the stock texture. Suppression needs the suppressing augment's Domain live, and suppressed with every layer off stays black.
     const activeBaseAugments = getAugmentsForSlot("map-view.base");
     const suppressVanilla = shouldSuppressVanillaBase(
       activeBaseAugments.map((a) => ({
@@ -899,12 +636,7 @@ function MapViewComponent({
       worldH: WORLD_H,
     });
 
-    // lineWidth compensates for zoom so grid lines remain 1 screen pixel.
-    // A painted base surface: stock texture / colour wash (only when NOT
-    // suppressed) OR at least one active layer, takes the light grid; a
-    // bare/washed OR fully suppressed-and-empty (deliberately black) canvas
-    // takes the dark one. Keyed off the same predicate paintBaseSurface uses,
-    // so it can't disagree with what was actually painted.
+    // lineWidth compensates for zoom so grid lines stay 1 screen pixel. Keyed off paintBaseSurface's own predicate so it cannot disagree with what was painted.
     const surfacePainted = baseSurfacePainted({
       textureImage,
       bodyColor: body?.color,
@@ -948,12 +680,7 @@ function MapViewComponent({
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }, [containerSize, camera, textureReady, body?.color, baseLayerVersion]);
 
-  // ── Coverage: paint-gate, not a drawn overlay ────────────────────────────
-  // There is no separate dark overlay canvas drawn on top of the map:
-  // `coverageGate` (T4, above) is handed to whichever `map-view.base`
-  // augment is active so IT can gate its own per-tile paint. This overlay
-  // canvas is left entirely for augments that draw ON TOP of the base
-  // surface via the `map-view.overlay` slot below.
+  // The overlay canvas is cleared only: coverage is a paint gate handed to base augments, not a drawn overlay.
   useEffect(() => {
     const canvas = overlayRef.current;
     if (!canvas || !containerSize) return;
@@ -965,8 +692,7 @@ function MapViewComponent({
     ctx.clearRect(0, 0, w, h);
   }, [containerSize]);
 
-  // ── Trajectory layer: blit world canvas through camera ────────────────────
-  // trajectoryCount is needed here even though worldCanvasRef is a ref: the ref's identity is stable but its canvas content changes on each new point.
+  // trajectoryCount drives the redraw: the world canvas ref is stable but its content is not.
   // biome-ignore lint/correctness/useExhaustiveDependencies: trajectoryCount triggers redraw when world canvas content changes
   useEffect(() => {
     const canvas = persistentDataRef.current;
@@ -979,9 +705,7 @@ function MapViewComponent({
     if (!ctx) return;
 
     ctx.clearRect(0, 0, w, h);
-    // The trajectory trail is the active vessel's track. When a
-    // bodyOverride maps a body the vessel isn't at, suppress it, the
-    // trail's lat/lon would be projected through the wrong body's frame.
+    // The trail is the vessel's track, meaningless projected through another body's frame.
     if (vesselOnThisBody) {
       ctx.setTransform(...cameraTransform(camera, w, h));
       ctx.drawImage(worldCanvas, 0, 0);
@@ -989,24 +713,12 @@ function MapViewComponent({
     }
   }, [containerSize, camera, trajectoryCount, vesselOnThisBody]);
 
-  // ── Prediction: forward-propagated ground track from o.orbitPatches ───────
-  // Kept as a memoised pure computation so the render effect only fires when
-  // the sampled path actually changes. We *throttle* via `quantiseUt` so the
-  // memo only invalidates once a second, not once per telemetry tick (~4 Hz).
-  // The orbit shape doesn't change between adjacent ticks; the body-rotation
-  // calibration drifts by ~0.1° of longitude over a second, well below
-  // perceptible at typical zoom levels.
+  // Throttled to once a second via `quantiseUt`: body-rotation drift over a second is about 0.1 degree of longitude.
   const utBucket = quantiseUt(universalTime, 1);
   // biome-ignore lint/correctness/useExhaustiveDependencies: lat/lon/universalTime read inside, but invalidation gated on utBucket; see comment above
   const predictionSegments = useMemo<TrackSample[][]>(() => {
     if (!predictionEnabled) return [];
-    // Only on the conic answer. `predictGroundTrack` solves Kepler per step and
-    // will not run past a patch's own `endUT`, so the REACH half was always
-    // honoured; shape was not asked at all, and an integrating provider got a
-    // route laid over real terrain that the craft will not fly. There is no arc
-    // arm to fall back to: the seam's sampled path is in the orbit's own plane
-    // and a ground track needs lat/lon, which nothing on the wire carries for
-    // an integrated path. Saying so beats drawing a two-body guess.
+    // Conic only: an integrated path carries no lat/lon on the wire, and a two-body guess would lay a route the craft will not fly.
     if (trajectory?.shape !== "conic") return [];
     if (
       !orbitPatches ||
@@ -1023,11 +735,7 @@ function MapViewComponent({
       (p) => p.referenceBody === targetBodyId,
     );
     if (!firstForBody) return [];
-    // 1.5 × period shows the whole closed orbit plus a bit so the loop is
-    // obvious. Capped at ONE DAY for absurdly long interplanetary patches;
-    // MAX_TRACK_SAMPLES further bounds sample count. Read from the calendar
-    // rather than hardcoded: the cap means "about one rotation", and under a
-    // planet pack a rotation is not 21,600s.
+    // 1.5 periods shows the closed loop, capped at one calendar day (about one rotation, which a planet pack changes).
     const horizon = Math.min(1.5 * firstForBody.period, kspCalendar().day);
     const samples = predictGroundTrack(
       orbitPatches,
@@ -1048,11 +756,7 @@ function MapViewComponent({
     utBucket,
   ]);
 
-  // Planned maneuvers: each node's `orbitPatches` is the post-burn trajectory.
-  // We calibrate from the current orbit patches (they contain ref.ut) and
-  // sample from the node's patches. Horizon uses the node's first-patch
-  // period so near-maneuver orbits render without extending indefinitely.
-  // Same `utBucket` throttle as the main prediction.
+  // Each node's patches are the post-burn trajectory, calibrated from the current orbit's patches.
   // biome-ignore lint/correctness/useExhaustiveDependencies: lat/lon/universalTime read inside, but invalidation gated on utBucket
   const maneuverSegments = useMemo<TrackSample[][][]>(() => {
     if (!predictionEnabled) return [];
@@ -1127,20 +831,14 @@ function MapViewComponent({
     // Current-orbit prediction: amber, faded proportional to time from now.
     drawFadedSegments(ctx, predictionSegments, adjustedMap, [255, 180, 64]);
 
-    // Planned maneuvers: cyan, same fade. Drawn on top of the main
-    // prediction so upcoming burns read as "future plan".
+    // Planned maneuvers: cyan, drawn over the main prediction.
     for (const segments of maneuverSegments) {
       drawFadedSegments(ctx, segments, adjustedMap, [64, 200, 255]);
     }
 
     ctx.setLineDash([]);
 
-    // SOI transition marker: the last sample of the prediction is the
-    // ground position just before the patch ends, which is exactly the
-    // ground track at SOI change (predictGroundTrack terminates on
-    // patch.referenceBody mismatch). Only renders when the orbit names an
-    // encounter (cyan ring) or an escape (orange ring). Drawn in world space
-    // so it pans/zooms with the map.
+    // SOI marker: predictGroundTrack stops at a referenceBody change, so the last sample is the ground point at the transition.
     if (encounterKind !== null) {
       let last: TrackSample | null = null;
       for (let i = predictionSegments.length - 1; i >= 0; i--) {
@@ -1209,7 +907,6 @@ function MapViewComponent({
     encounterKind,
   ]);
 
-  // ── Data layer: vessel dot in world → screen space ────────────────────────
   useEffect(() => {
     const canvas = dataRef.current;
     if (!canvas || !containerSize) return;
@@ -1221,10 +918,7 @@ function MapViewComponent({
 
     ctx.clearRect(0, 0, w, h);
 
-    // The vessel marker is only meaningful when the mapped body is the
-    // one the vessel is at, under a divergent bodyOverride, suppress it.
-    // Guard NaN lat/lon (bad frame) the same way the impact marker does, so a
-    // bad sample can't feed NaN into the projection.
+    // Only on the vessel's own body, and never with a NaN position.
     if (
       vesselOnThisBody &&
       lat !== undefined &&
@@ -1259,18 +953,13 @@ function MapViewComponent({
 
   const displayName = body?.name ?? targetBodyId;
 
-  // "NO SIGNAL" state lives in the global SignalLossIndicator banner;
-  // keeping it off this chip avoids double-reporting (and would be
-  // misleading now that coverage still paints during blackout).
+  // "NO SIGNAL" belongs to the global SignalLossIndicator banner, not this chip.
   const imagingStatus = useMemo<{
     label: string;
     variant: "on" | "off" | "warn";
   } | null>(() => {
     if (!body) return null;
-    /* The READOUT altitude, not the trail's: "IMAGING" is a verdict about now,
-       and computing it from an altitude the channel has stopped vouching for
-       would assert a window the craft may already have left. Falls to
-       "NO DATA", which is the honest null for a verdict chip. */
+    /* The readout altitude, not the trail's: "IMAGING" is a verdict about now. */
     if (altSeaReadout === undefined)
       return { label: "NO DATA", variant: "off" };
     const { min, max } = getImagingWindow(body);
@@ -1279,9 +968,7 @@ function MapViewComponent({
     return { label: "IMAGING", variant: "on" };
   }, [body, altSeaReadout]);
 
-  // Selective rendering: at small sizes the canvas isn't readable, so
-  // collapse to a lat/lon text readout. Header chrome (imaging chip, follow
-  // toggle) drops at narrow widths.
+  // Too small to read the canvas: collapse to a lat/lon readout.
   const cols = w ?? 12;
   const rows = h ?? 18;
   const showMap = rows >= 6 && cols >= 6;
@@ -1291,14 +978,8 @@ function MapViewComponent({
 
   /**
    * What stands in for a position neither branch can draw, shared so the two
-   * cannot say different things about one state.
-   *
-   * The compact branch made only the middle statement of the three, so a
-   * position that had NEVER arrived rendered there as two bare em dashes with
-   * nothing beside them. That is the case the caption below was written
-   * against: an operator cannot tell a craft that has never reported from one
-   * whose coordinates we hold and no longer vouch for, and one of those is a
-   * craft that may not be flying.
+   * branches say the same thing: never reported and held-but-not-current are
+   * different states to an operator.
    */
   const positionNotice =
     lat !== undefined && lon !== undefined
@@ -1309,11 +990,7 @@ function MapViewComponent({
           ? "Waiting for telemetry..."
           : "No position data";
 
-  // Slot props. `overlay` carries the live equirectangular projection so an
-  // augment can draw in the map's own pixel space, plus the vessel's raw
-  // position, so an augment can do its own distance/bearing ranking
-  // against it. `overlay` is null until the container has measured, the
-  // layer only mounts once there's a pixel-sized map beneath it.
+  // `overlay` is null until the container has measured.
   const scope: MapViewScope = useMemo(
     () => ({ bodyName: displayName }),
     [displayName],
@@ -1362,18 +1039,12 @@ function MapViewComponent({
       <WidgetScopeProvider widget="map-view" scope={scope}>
         <Panel
           panelTitle="MAP VIEW"
-          // No manual stream badge here: the composed header below renders the
-          // host-derived status (every topic this widget declares), same as the
-          // full map branch.
+          // The composed header renders the host-derived stream status.
           panelAside={
             showBodyLabel && displayName ? (
               <BodyLabel>{displayName}</BodyLabel>
             ) : undefined
           }
-          /* Panel's own centring, where `CompactReadout` hand-rolled the
-             `flex: 1` + `justify-content: center` pair. A handful of readouts
-             sized to the tile is what `fitToSize` is for, and Panel measures
-             before it centres so an overflowing set still starts at the top. */
           fitToSize
           sections={
             <Section full>
@@ -1406,10 +1077,6 @@ function MapViewComponent({
                     </CompactValue>
                   </CompactRow>
                 )}
-                {/* The compact branch makes the same statement the full map
-              makes, from the same string. Without it a withheld position is a
-              bare em dash, which is exactly "renders nothing and is
-              indistinguishable from broken". */}
                 {positionNotice !== undefined && (
                   <CompactRow>
                     <ReadoutCaption>{positionNotice}</ReadoutCaption>
@@ -1423,19 +1090,7 @@ function MapViewComponent({
     );
   }
 
-  // Eight children in one title row was the case the toolbar exists for. They
-  // split by kind rather than by size: the two augment slots are badges and
-  // stay beside the title, while the body label, the imaging chip, the follow
-  // toggle and the event chips are a row of state and controls in their own
-  // right, so they get their own line under it. The stream badge is dropped
-  // here because the composed header renders the host-derived one, which
-  // watches every topic this widget declares.
-  //
-  // No floating header here: this much chrome on top of the map would cover
-  // more of it than the reserved rows do, and a follow toggle sitting on the
-  // terrain it controls is harder to read than one pinned above it. The map
-  // gets its space from a MapFrame instead, which leaves the augment sections
-  // below it the body inset they need.
+  // The augment badges stay beside the title; state and controls get their own row. No floating header: this much chrome would cover the map.
   const toolbar =
     (showBodyLabel && displayName) ||
     (showImagingChip && vesselOnThisBody && imagingStatus) ||
@@ -1468,13 +1123,9 @@ function MapViewComponent({
       <Panel
         panelTitle="MAP VIEW"
         panelToolbar={toolbar}
-        /* The sections seam belongs under `MapSections`'s own divider, not at the
-         bare end of the body, so this widget places it and turns off the
-         default mount. */
+        /* The sections seam sits under `MapSections`'s own divider. */
         panelSections={false}
         sections={[
-          /* The map is the drawing this widget is: it takes the tile height
-             the toolbar, the caption and the augment sections leave. */
           <Section key="map" fill>
             <MapBody>
               <MapFrame>
@@ -1497,12 +1148,7 @@ function MapViewComponent({
                     />
                     <OverlayCanvas ref={overlayRef} />
                     <PersistentDataCanvas ref={persistentDataRef} />
-                    {/* The sampled-segment count and the markers the layer is
-                      handed, on the layer that draws them. A canvas has no
-                      inspectable content, so without these the only observable
-                      difference between a drawn track or marker and a refused one
-                      is pixels nothing can read, and a gate whose effect cannot be
-                      seen reports success either way. */}
+                    {/* A canvas has no inspectable content, so the drawn segment count and markers are exposed here. */}
                     <PredictionCanvas
                       ref={predictionRef}
                       data-prediction-segments={predictionSegments.length}
@@ -1551,10 +1197,7 @@ function MapViewComponent({
               </MapFrame>
             </MapBody>
           </Section>,
-          /* Under the map rather than over it: the terrain, the base layers and
-             the craft's own marker are all still correct, and only the forward
-             track is missing, so covering the map would overstate what was
-             refused. */
+          /* Under the map, not over it: only the forward track is refused. */
           trajectoryWithheld && predictionEnabled && hasPatchChain ? (
             <Section key="withheld">
               <ReadoutCaption role="status">
@@ -1563,10 +1206,7 @@ function MapViewComponent({
               </ReadoutCaption>
             </Section>
           ) : null,
-          /* No frame caption. A ground track is a body-fixed projection whatever
-             frame the path was computed in, so this map has exactly one frame it
-             can ever draw in and naming it states a constant. The caption earns
-             its place on the views that CAN be in another frame. */
+          /* No frame caption: a ground track is always body-fixed. */
           <MapSections key="augments">
             <WidgetSections />
           </MapSections>,
@@ -1575,10 +1215,6 @@ function MapViewComponent({
     </WidgetScopeProvider>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Registration
-// ---------------------------------------------------------------------------
 
 registerComponent<MapViewConfig>({
   id: "map-view",
@@ -1590,9 +1226,7 @@ registerComponent<MapViewConfig>({
   minSize: { w: 3, h: 4 },
   component: MapViewComponent,
   configComponent: MapViewConfigComponent,
-  // `vessel.orbit` is read by `OrbitalEventChips`, rendered inside this widget
-  // rather than by the component body itself: declared here because the panel
-  // that badges and the panel an alarm lights is this one.
+  // `vessel.orbit` is read by `OrbitalEventChips` inside this widget, so it is declared here.
   channels: topics.channels,
   fields: topics.fields,
   defaultConfig: {

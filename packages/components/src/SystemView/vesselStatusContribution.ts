@@ -9,37 +9,13 @@ import {
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 
-// ---------------------------------------------------------------------------
-// SystemView's `system-view.vessel-status` self-contribution: the comms-
-// derived silence reckoning for the plotted vessel, as SEMANTIC data
-// (severity/emphasis/label), never colours. SystemDiagram (the host) owns
-// the palette; a contributor only ever says what it means, not what it
-// looks like.
-//
-// `silence.<guid>.state` is a genuinely dynamic per-vessel topic (the guid
-// is only known once `vessel.identity` resolves at RUNTIME), while a
-// contribution's `deps` are declared once, statically, at module load. This
-// contribution therefore depends on the static `vessel.identity` topic for
-// the target id, and reads the actual reckoning through
-// `getLatestFleetVesselSilence` (fleet-contact.ts's per-vessel bridge,
-// mirrored there by whichever widget keeps the vessel's silence topic
-// subscribed via `useFleetVesselSilence`, SystemView included): the same
-// "static pointer bridges a lifetime/scope mismatch" discipline
-// `getViewUt()` already uses for the view clock.
-//
-// The reckoning is a Processor rather than the contribution's own `compute`
-// because it is a function of the view clock and of that bridge, neither of
-// which is a declared dep. A contribution recomputes only when its declared
-// inputs move; a Processor is evaluated every frame and notifies only when
-// its answer changes, so the countdown advances, and a loss is announced, off
-// the frame's own `viewUt` with nothing re-rendering while it holds still.
-//
-// A `label` is a plain string the host draws wherever it likes, so the
-// durations below go through `writeQuantity`, the sanctioned string escape,
-// rather than `<Unit>`. Both intervals are differences between universal
-// times, so they are GAME seconds ("s") and ride the six-hour-day ladder, not
-// the wall-clock one.
-// ---------------------------------------------------------------------------
+/*
+ * The `system-view.vessel-status` self-contribution: the plotted vessel's silence reckoning as semantic severity, emphasis and label, never colours.
+ *
+ * `silence.<guid>.state` is dynamic while `deps` are static, so this depends on `vessel.identity` and reads the reckoning through the `getLatestFleetVesselSilence` bridge. It is a Processor because it moves with the view clock and that bridge, neither a declared dep; it is evaluated every frame and notifies only on change.
+ *
+ * Labels are plain strings, so durations go through `writeQuantity`; they are differences of universal times, so GAME seconds on the six-hour-day ladder.
+ */
 
 export interface SystemViewVesselStatusEntry {
   /** The vessel this entry decorates: `vessel.identity`'s `vesselId`. */
@@ -61,13 +37,7 @@ const PHASE_SEVERITY: Record<
   lost: "critical",
 };
 
-/**
- * Pure core: given a vessel id and its silence reckoning, the entries
- * `system-view.vessel-status` contributes. Exported so a test can call it
- * directly against a plain `FleetVesselSilence` fixture without going
- * through telemetry, the per-vessel bridge, or the contribution registry at
- * all.
- */
+/** Pure core: the entries contributed for a vessel id and its silence reckoning, exported for direct testing. */
 export function computeVesselStatus(
   vesselId: string,
   silence: FleetVesselSilence | undefined,

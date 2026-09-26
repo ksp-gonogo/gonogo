@@ -2,31 +2,7 @@ import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
 import type { VesselCrew } from "@ksp-gonogo/sitrep-sdk";
 import type { BadgeEntry } from "@ksp-gonogo/ui-kit";
 
-// CrewStatus's own self-contribution to its automatic `crew-status.badges`
-// panel-badge slot, on the same self-contribution pattern
-// `ShipMap/partMetersContribution.ts` uses: an INFO-tone crew-count readout
-// ("3/4 aboard" / "4 aboard"), the
-// headcount promoted out of the body's plain-text `ReadoutCaption` line and
-// into the header badge row alongside it.
-//
-// Registered on `CORE_UPLINK_CLIENT` (the built-in half, not a
-// `defineUplinkClient(...).registerContribution` Uplink owner) because this
-// is a vanilla widget concern with no Uplink involved, exactly like
-// `ship-map-part-meters`. Lives on the SAME slot an Uplink's
-// `crew-survival-badge` contribution feeds: that one is nogo-tone and
-// vessel-danger gated (fires only once a kerbal crosses into the critical
-// band), this one
-// is info-tone and unconditional (fires whenever a headcount is known at
-// all), so the two badges coexist rather than compete, priority/order
-// doesn't matter between them.
-// ---------------------------------------------------------------------------
-
-/**
- * Pure core, exported so a test can call it directly against a plain
- * `VesselCrew` fixture without going through the contribution registry at
- * all (the same pattern the crew-survival badge contributed from an Uplink
- * follows).
- */
+/** Info-tone headcount badge ("3/4 aboard"); coexists with the nogo-tone crew-survival badge an Uplink feeds to the same slot. */
 export function crewAboardBadge(
   crew: VesselCrew | undefined,
 ): BadgeEntry[] | null {

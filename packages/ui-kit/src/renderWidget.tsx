@@ -17,33 +17,10 @@ import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
 import { useWidgetBadges } from "./useWidgetBadges";
 import { WidgetMetaContext } from "./WidgetMetaContext";
 
-/**
- * Render a widget THE WAY THE DASHBOARD DOES, by its registered id.
- *
- * `render` puts a theme up and stops there, which is the right floor for a
- * plain component but not for a widget: a widget is only ever mounted by the
- * dashboard, inside a stack of providers it never sets up for itself, and a
- * test that renders it bare is testing something the app never runs.
- *
- * The concrete cost of the bare form: `Panel` reads its header status off
- * `PanelStatusStoreProvider`, so with none mounted the status badge never appears,
- * and a `waitFor` for that badge returns immediately having proved nothing. The
- * check passes, permanently, whatever the widget does.
- *
- * Takes an ID rather than an element because that is what the dashboard has:
- * it looks the definition up in the registry and reads `dataRequirements`,
- * `contributionSlots` and the rest off it to build the surrounding stack. Given
- * an element there is no definition, and the stack would be a guess.
- *
- * A widget with unusual needs drops to `render` and builds its own scaffolding.
- * That is a lower-level primitive, not an escape hatch.
- */
 export interface RenderWidgetOptions {
   /**
    * The dashboard instance id, what the widget sees as
-   * `DashboardItemContext`'s `instanceId` and as its own `id` prop. Two
-   * instances of one widget on a dashboard differ by this and nothing else, so
-   * a test for per-instance behaviour sets it.
+   * `DashboardItemContext`'s `instanceId` and as its own `id` prop.
    */
   instanceId?: string;
   /** Per-instance config, the widget's `config` prop. */
@@ -54,11 +31,9 @@ export interface RenderWidgetOptions {
   /** The widget's `onConfigChange`. Defaults to a no-op. */
   onConfigChange?: (config: Record<string, unknown>) => void;
   /**
-   * Mounted OUTSIDE the dashboard stack, which is where the app mounts the
-   * equivalent: a stream fixture's `Provider` belongs above the widget host,
-   * because the host's own hooks read telemetry through it. Without this the
-   * host would derive its stream status from nothing, which is the failure
-   * `renderWidget` exists to prevent, one layer up.
+   * Mounted outside the dashboard stack, where the app mounts the equivalent:
+   * a stream fixture's `Provider` belongs above the widget host, because the
+   * host's own hooks read telemetry through it.
    */
   wrapper?: JSXElementConstructor<{ children: ReactNode }>;
 }
@@ -67,8 +42,8 @@ export interface RenderWidgetOptions {
  * The provider stack `GridItemContent` puts around every widget, in the same
  * order. Everything here is CONTEXT: what the widget can see.
  *
- * The dashboard also wraps a widget in three things this deliberately omits,
- * because each one would make a test quieter rather than truer:
+ * It omits three things the dashboard also wraps a widget in, because each
+ * would make a test quieter rather than truer:
  *
  * - an error boundary, which turns a throw into a fallback UI. In a test a
  *   throw should reach the test
@@ -98,15 +73,8 @@ export function WidgetHost({
 }
 
 /**
- * The same stack, given the DEFINITION rather than an id to look one up by.
- *
- * For the caller that has no registered widget to name: a render harness
- * previewing an augment or a contribution is mounting it against a host widget
- * that lives in a package it cannot import, so it stands in a synthetic
- * definition carrying the host's id and the one slot under test. Reaching for
- * `WidgetHost` there would throw on the lookup; hand-building the provider
- * stack instead is how the two copies start to differ, and this stack is the
- * thing being reproduced.
+ * The same stack, given the definition rather than an id to look one up by:
+ * for a harness previewing an augment against a synthetic host definition.
  */
 export function WidgetHostFor({
   def,
@@ -125,9 +93,7 @@ export function WidgetHostFor({
     }),
     [def.id, def.contributionSlots],
   );
-  // Real state, not a stub: the dashboard's own provider writes into the widget
-  // instance's saved config, so an augment's settings round-trip. A test that
-  // toggles one and reads it back is testing the loop it will meet in the app.
+  // Real state, not a stub, so an augment's settings round-trip as they do in the app.
   const [augmentSettings, setAugmentSettings] = useState<
     Record<string, Record<string, unknown>>
   >({});
@@ -145,8 +111,7 @@ export function WidgetHostFor({
       <PanelStatusStoreProvider>
         <DashboardItemContext.Provider value={itemContext}>
           <WidgetMetaContext.Provider value={meta}>
-            {/* Same id as `meta` above, for the SDK's own diagnostics: it
-                cannot read ui-kit's context, since ui-kit depends on it. */}
+            {/* The SDK's own diagnostics label, since it cannot read ui-kit's context. */}
             <TelemetrySubscriberLabel label={def.id}>
               <AugmentSettingsProvider
                 settings={augmentSettings}
@@ -164,8 +129,7 @@ export function WidgetHostFor({
   );
 }
 
-/** Its own component, not a hook call above: `useWidgetBadges` reads the
- *  contribution store and so has to sit inside `ContributionsProvider`. */
+/** Its own component, since `useWidgetBadges` has to sit inside `ContributionsProvider`. */
 function WidgetBadges({ children }: { children: ReactNode }) {
   const badges = useWidgetBadges();
   return <PanelBadgesProvider badges={badges}>{children}</PanelBadgesProvider>;
@@ -193,9 +157,12 @@ function requireComponent(widgetId: string): ComponentDefinition {
 const NOOP = () => {};
 
 /**
- * Mounts the registered widget `widgetId` inside the provider stack the
- * dashboard puts around one. The `RenderResult` it returns is named from
- * `@ksp-gonogo/sitrep-sdk/testing`.
+ * Render a widget the way the dashboard does: by its registered id, inside the
+ * provider stack the dashboard puts around one. A bare `render` omits that
+ * stack, so for instance a `Panel` status badge would never appear.
+ *
+ * The `RenderResult` it returns is named from `@ksp-gonogo/sitrep-sdk/testing`.
+ * A widget with unusual needs drops to `render` and builds its own scaffolding.
  */
 export function renderWidget(
   widgetId: string,

@@ -6,15 +6,10 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AtmosphereProfileComponent } from "./index";
 
 /**
- * The stream test-adapter proof for AtmosphereProfile: genuinely running off
- * the real `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport`, with no legacy `DataSource` registered anywhere in this
- * file:
- *
- * - `v.body` -> `vessel.identity.parentBodyIndex`, resolved to a name against
- *   a `system.bodies` entry.
- * - `v.altitude`/`v.atmosphericDensity`/`v.atmosphericTemperature`/
- *   `v.externalTemperature` -> raw fields on the `vessel.flight` Topic.
+ * AtmosphereProfile running off the real stream pipeline via `StubTransport`,
+ * with no legacy `DataSource` registered: the body resolves through
+ * `vessel.identity.parentBodyIndex` against `system.bodies`, and the air
+ * readings are raw `vessel.flight` fields.
  */
 describe("AtmosphereProfile: genuinely runs off the stream (M3 batch 2)", () => {
   it("reads body/altitude/density/temperatures off the real stream pipeline, not legacy", async () => {
@@ -33,13 +28,10 @@ describe("AtmosphereProfile: genuinely runs off the stream (M3 batch 2)", () => 
       </fixture.Provider>,
     );
 
-    // Nothing arrived yet: the widget shows its "waiting for body" empty state.
+    // Nothing arrived yet: the "waiting for body" empty state.
     expect(visibleText(container)).toContain("Waiting for body telemetry...");
 
-    // A real subscription must have happened for this to deliver at all,
-    // StubTransport.emit is subscription-gated (see its own doc comment).
-    // `vessel.orbit` is held up by `vessel.flight`'s reckoner, which reckons
-    // a flight point forward off the orbit and the body roster.
+    // StubTransport.emit is subscription-gated. `vessel.orbit` is subscribed because `vessel.flight`'s reckoner propagates off it.
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
     expect(fixture.transport.isSubscribed("vessel.flight")).toBe(true);
     expect(fixture.transport.isSubscribed("vessel.identity")).toBe(true);
@@ -66,9 +58,7 @@ describe("AtmosphereProfile: genuinely runs off the stream (M3 batch 2)", () => 
       });
     });
 
-    // The body now resolves off the stream, so the pressure curve/live chip
-    // render for real, proving every one of the five migrated reads
-    // genuinely flows through the real TimelineStore.
+    // The body resolves off the stream, so the curve and chip render through the real TimelineStore.
     await waitFor(() => {
       expect(visibleText(container)).toContain("1.217 kg/m³");
     });

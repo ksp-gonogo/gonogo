@@ -7,17 +7,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TransferWindowComponent } from "./index";
 
 /**
- * Characterisation of TransferWindow's `undefined` telemetry reads, recorded
- * BEFORE `useTelemetry` becomes `TopicReading<T>`.
- *
- * Three absence gates decide everything this widget draws:
- *
- *  - `if (!orbit || !origin)`            -> "Waiting for vessel orbit..."
- *  - `orbit?.sma != null && orbit?.ecc != null` -> "Waiting for orbital elements..."
- *  - `targetBodyIndex ?? null`, then `dests[0]` -> a silently chosen destination
- *
- * All three become no-ops the moment a `Reading` (always a truthy object) is on
- * the left of them, so the assertions below exist to make that visible.
+ * Characterisation of TransferWindow's `undefined` telemetry reads. Three
+ * absence gates decide what it draws: no orbit or origin, missing orbital
+ * elements, and an unset target, which silently picks the first destination.
  */
 
 const DEG = Math.PI / 180;
@@ -90,9 +82,7 @@ const LEO = {
   mu: 3.986004418e14,
 };
 
-// Unmounted before clearRegistry, which notifies the DataSource-registry
-// subscribers every useTelemetry keeps wired: firing that on a mounted widget
-// is a state update outside act(). See index.test.tsx's own note.
+// Unmounted before clearRegistry, whose notification on a mounted widget lands outside act().
 const renderedTrees: Array<() => void> = [];
 
 function renderTracked(ui: ReactElement) {
@@ -135,12 +125,7 @@ function emitReady(
   fixture.emit("vessel.orbit", { ...LEO, ...orbitOverrides });
 }
 
-/**
- * The raw `vessel.orbit` point the store holds for this frame. Three tests
- * below assert that a render is UNCHANGED by an emit, which would also pass if
- * the emit were silently dropped (`StubTransport` only delivers to a subscribed
- * topic), so they check the point landed rather than trusting it.
- */
+/** The raw `vessel.orbit` point for this frame, so an "unchanged by an emit" test proves the emit landed. */
 async function landedOrbitPoint(
   fixture: ReturnType<typeof setupStreamFixture>,
 ): Promise<{ payload: unknown }> {
@@ -156,25 +141,24 @@ async function landedOrbitPoint(
 describe("TransferWindow: nothing has arrived at all", () => {
   it("renders the waiting-for-orbit placeholder and none of the three instruments", async () => {
     const { view } = setup();
-    // `!orbit` fires: `useTelemetry('vessel.orbit')` is undefined. Meaning
-    // "nothing has come yet", and the copy says so honestly in this one case.
+    // Nothing has come yet, and the copy says so.
     expect(
       await screen.findByText("Waiting for vessel orbit..."),
     ).toBeInTheDocument();
 
-    // Named absences, not an empty container: the dial, the list and the chart are each specifically gone.
+    // Named absences: the dial, the list and the chart are each specifically gone.
     expect(screen.queryByText("Current phase")).not.toBeInTheDocument();
     expect(screen.queryByText(/^Windows to /)).not.toBeInTheDocument();
     expect(
       screen.queryByRole("img", { name: /Δv contour/i }),
     ).not.toBeInTheDocument();
-    // The destination picker is part of the panel header, and it goes too, so there is no control at all in this state.
+    // The destination picker in the header goes too, so there is no control at all.
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     expect(visibleText(view.container)).toContain("Transfer Window");
   });
 
   it("renders the same placeholder with no TelemetryProvider mounted at all", async () => {
-    // The other half of the current `undefined` contract (see useTelemetry's own doc): no provider in the tree is indistinguishable from a cold topic.
+    // No provider in the tree is indistinguishable from a cold topic.
     const view = renderTracked(
       <DashboardItemContext.Provider value={{ instanceId: "transfer-nop" }}>
         <TransferWindowComponent
@@ -192,9 +176,7 @@ describe("TransferWindow: nothing has arrived at all", () => {
 
 describe("TransferWindow: the absence gates fire today", () => {
   it("blames the vessel orbit when the orbit HAS arrived and system.bodies has not", async () => {
-    // `!orbit || !origin` is one message for two different absences. The orbit
-    // is present here; `origin` is null only because the body table is missing,
-    // and the operator is told to wait for the orbit.
+    // `!orbit || !origin` is one message for two absences: here only the body table is missing.
     const { fixture } = setup();
     await screen.findByText("Waiting for vessel orbit...");
     act(() => {
@@ -205,17 +187,7 @@ describe("TransferWindow: the absence gates fire today", () => {
     expect(screen.queryByText("Current phase")).not.toBeInTheDocument();
   });
 
-  /**
-   * Recorded prior behaviour: "renders the SAME placeholder for a confirmed
-   * vessel.orbit tombstone". `!orbit` did not distinguish null from undefined, so
-   * a confirmed "this vessel has no orbit" and a never-arrived orbit rendered one
-   * identical sentence and a craft on the pad waited forever for telemetry that
-   * was never coming.
-   *
-   * Changed deliberately in the `Reading` migration: `absent` is the subject
-   * confirming there is nothing, which is an answer rather than a wait, so it gets
-   * its own wording.
-   */
+  /** `absent` is the subject confirming there is no orbit, which gets its own wording rather than a wait. */
   it("names the confirmed vessel.orbit tombstone as no orbit rather than a wait", async () => {
     const { fixture } = setup();
     await screen.findByText("Waiting for vessel orbit...");
@@ -223,7 +195,7 @@ describe("TransferWindow: the absence gates fire today", () => {
       fixture.emit("system.bodies", { bodies: [SUN, EARTH, MARS, VENUS] });
       fixture.emit("vessel.orbit", null);
     });
-    // The tombstone genuinely reached the store: the render below is the widget's answer to it, not the answer to a dropped emit.
+    // The tombstone genuinely reached the store.
     expect((await landedOrbitPoint(fixture)).payload).toBeNull();
     expect(screen.getByText(/No parking orbit/)).toBeInTheDocument();
     expect(
@@ -232,7 +204,7 @@ describe("TransferWindow: the absence gates fire today", () => {
   });
 
   it("treats a null referenceBodyIndex the same as an absent one", async () => {
-    // `orbit?.referenceBodyIndex != null` is the one gate here written to catch both, so a present record with a nulled index also reads as "waiting".
+    // A present record with a nulled index also reads as "waiting".
     const { fixture } = setup();
     await screen.findByText("Waiting for vessel orbit...");
     act(() => {
@@ -244,7 +216,7 @@ describe("TransferWindow: the absence gates fire today", () => {
   });
 
   it("clears the placeholder once both reads land, proving the gate is what produced it", async () => {
-    // Contrast case: without it the assertions above could pass because the fixture feeds nothing rather than because the gate fires.
+    // Contrast case: proves the gate fires rather than the fixture feeding nothing.
     const { fixture } = setup();
     await screen.findByText("Waiting for vessel orbit...");
     act(() => {
@@ -261,10 +233,7 @@ describe("TransferWindow: the absence gates fire today", () => {
 
 describe("TransferWindow: a partial vessel.orbit payload", () => {
   it("shows the second placeholder, and keeps the destination picker, when sma and ecc are missing", async () => {
-    // The record arrived and resolved an origin, so the first gate passes; only
-    // `parkingRadius` is unresolvable, so `solution` is null. Different copy
-    // from the whole-record absence, and the header control stays live: the
-    // operator can still change destination while the body is a placeholder.
+    // Only `parkingRadius` is unresolvable: different copy, and the destination control stays live.
     const { fixture } = setup();
     await screen.findByText("Waiting for vessel orbit...");
     act(() => {
@@ -281,7 +250,7 @@ describe("TransferWindow: a partial vessel.orbit payload", () => {
   });
 
   it("shows the same second placeholder when only ecc is missing", async () => {
-    // `sma != null && ecc != null` is a conjunction, so one absent field of the two reads exactly as both being absent.
+    // A conjunction, so one absent field reads exactly as both absent.
     const { fixture } = setup();
     await screen.findByText("Waiting for vessel orbit...");
     act(() => {
@@ -295,10 +264,7 @@ describe("TransferWindow: a partial vessel.orbit payload", () => {
 
 describe("TransferWindow: an absent target.available picks a destination anyway", () => {
   it("defaults to the first sibling body with no indication that nothing was targeted", async () => {
-    // `targetBodyIndex ?? null` then `?? dests[0]`: an absent `target.available`
-    // is read as "nothing is targeted" and the widget silently plans a transfer
-    // to whichever sibling happens to be first. Nothing on screen says the
-    // route was chosen for the operator rather than by them.
+    // An absent `target.available` silently plans a transfer to the first sibling, with nothing on screen saying so.
     const { fixture } = setup();
     act(() => {
       emitReady(fixture);
@@ -309,8 +275,7 @@ describe("TransferWindow: an absent target.available picks a destination anyway"
   });
 
   it("reads a target.available tombstone the same way", async () => {
-    // null vs undefined: not distinguished. A confirmed empty target list and a
-    // never-arrived one both fall through to the first sibling.
+    // A confirmed empty target list and a never-arrived one both fall through to the first sibling.
     const { fixture } = setup();
     act(() => {
       emitReady(fixture);

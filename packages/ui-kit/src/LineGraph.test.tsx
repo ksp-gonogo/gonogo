@@ -33,11 +33,7 @@ describe("LineGraph", () => {
     expect(lines).toHaveLength(2);
   });
 
-  // A break is a span the chart has NO READINGS FOR. Drawn as one stroke, the
-  // segment across it is a straight line an operator cannot tell from data,
-  // which is the failure the whole blackout-recorder chain exists to avoid: the
-  // server states the hole on `Meta.gapSinceUt`, the store carries it, the
-  // series carries it as an index, and this is where it has to become visible.
+  // A break is a span with no readings; a stroke across it could not be told from data.
   it("breaks the stroke at a break index instead of joining across it", () => {
     const { container } = render(
       <LineGraph
@@ -56,7 +52,6 @@ describe("LineGraph", () => {
         ariaLabel="Radiation trend"
       />,
     );
-    // Two runs, not one line through the hole.
     expect(container.querySelectorAll("polyline")).toHaveLength(2);
   });
 
@@ -215,7 +210,7 @@ describe("LineGraph sparkline variant", () => {
         ]}
       />,
     );
-    // Two shaded runs with unshaded ground between: a fill across the gap would claim the quantity had a value throughout it.
+    // Two shaded runs with unshaded ground between.
     expect(container.querySelectorAll("polygon")).toHaveLength(2);
   });
 

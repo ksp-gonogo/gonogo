@@ -43,11 +43,7 @@ interface ManeuverPreviewProps {
   body: BodyDefinition | undefined;
   preset: string;
   burnTrueAnomaly: number | null;
-  /**
-   * The propagation seam's answer for the vessel's CURRENT orbit, which is the
-   * base curve everything here is drawn on top of. `null` means the question
-   * could not be put (no elements, no clock).
-   */
+  /** The propagation seam's answer for the current orbit, the base curve; `null` when it could not be asked. */
   currentTrajectory: OrbitTrajectory | null;
   /** Live orbit scalars used by the diagram. */
   diagram: {
@@ -91,8 +87,7 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
           <ManeuverDiagram {...props} />
         </PreviewMain>
       </PreviewContainer>
-      {/* Above the plane caveat because it qualifies every figure in the
-          readouts, where that one qualifies the drawing. */}
+      {/* Above the plane caveat: it qualifies every readout, that one only the drawing. */}
       {projectionDiffersFromTrajectory(props.currentTrajectory) && (
         <Note>
           <TwoBodyProjectionNote />
@@ -286,12 +281,7 @@ function ProjectedRows({
   body,
   prefix = "New",
 }: ProjectedRowsProps) {
-  /**
-   * What the operator's own view frame does to these two rows. A projected
-   * apoapsis is still an apoapsis: it is defined against a centre, and the
-   * frames defined by a pair of bodies do not have one, so a number here would
-   * be exactly as meaningless as the same number on the current orbit.
-   */
+  // A two-body frame has no centre, so projected apsides are as meaningless in it as current ones.
   const frameReading = useStream<ControlFrame>("system.frame");
   // The selected frame is a setting, which a quiet link does not change.
   const controlFrame =
@@ -301,9 +291,7 @@ function ProjectedRows({
   const apsides = apsidesExist(controlFrame);
 
   if (!projected) {
-    // Ordered ahead of the frame check on purpose: "this burn leaves no orbit"
-    // is a fact about the PLAN, and a plan that does not work outranks a view
-    // that cannot describe one that does.
+    // Ahead of the frame check: a plan that leaves no orbit outranks a view that cannot describe one.
     return (
       <>
         <Label>Projection</Label>
@@ -312,10 +300,7 @@ function ProjectedRows({
     );
   }
   if (apsides === "invalid") {
-    // One row rather than two empty ones. The plan is real and still
-    // committable; what is missing is a way to describe its result in the frame
-    // the operator chose, and saying that once is clearer than saying it twice
-    // beside labels that now name nothing.
+    // One row, not two empty ones: the plan is still committable, only the frame cannot describe it.
     return (
       <>
         <Label>{prefix} apsides</Label>
@@ -367,11 +352,7 @@ function ManeuverDiagram({
   setRadial,
 }: ManeuverPreviewProps) {
   if (!plan || !currentOrbit || !diagram.ApR || !diagram.PeR) return null;
-  // Every curve on this drawing rests on the current orbit: the base conic IS
-  // it, and the projected ellipses are patched-conic extrapolations of the same
-  // elements. So a refusal takes the whole drawing rather than one line of it.
-  // Leaving the projections behind would put the strongest claim on screen, a
-  // post-burn orbit, on top of elements nothing authorised a curve through.
+  // Every curve here extrapolates the current orbit, so a refusal withholds the whole drawing.
   if (currentTrajectory?.shape === "withheld") {
     return (
       <DiagramWrap>
@@ -383,16 +364,14 @@ function ManeuverDiagram({
     preset === "custom-apo" ||
     preset === "custom-peri" ||
     preset === "custom-ut";
-  // For sequences, draw the transfer ellipse dashed (`projected`) and
-  // the final orbit solid (`secondaryProjected`). For single-burn
-  // plans, just the post-burn ellipse goes in `projected`.
+  // A sequence draws its transfer ellipse dashed and its final orbit solid.
   const projected = isSequence(plan) ? plan.transferEllipse : plan.projected;
   const secondaryProjected = isSequence(plan) ? plan.finalProjected : null;
   return (
     <DiagramWrap>
       <OrbitDiagram
         variant="mini"
-        // The seam's answer, drawn as given. `null` on the conic arm, where the diagram's own conic renderer is what the provider said is right.
+        // The seam's arc when it gave one; null lets the diagram draw its own conic.
         trajectoryPath={
           currentTrajectory?.shape === "arc" ? currentTrajectory.points : null
         }
@@ -458,10 +437,7 @@ function ShortfallBanner({
   availableDeltaV,
 }: ShortfallBannerProps) {
   const available = availableDeltaV;
-  // `feasible === false` already implies a real number (the planner only judges when it
-  // has one), so this narrows for the compiler rather than guarding a reachable case.
-  // A shortfall cannot be quoted without an available figure, and a spent craft's 0 is
-  // a figure: that is the whole point of the total being nullable rather than zeroed.
+  // The null check only narrows for the compiler: the planner judges feasibility only against a real figure.
   if (feasible !== false || !plan || available === null) return null;
   return (
     <FeasibilityBanner role="status" aria-live="polite">

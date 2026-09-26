@@ -7,16 +7,12 @@ import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
 /**
  * The two header shapes that exist for widgets whose chrome does not fit one
  * title row: a pinned toolbar of controls, and a header that floats over
- * content which fills the tile.
- *
- * These assert structure and computed style rather than snapshots, because
- * what matters is the relationship between the parts (the toolbar is outside
- * the scroller; the floating header does not steal the pointer) and a snapshot
- * records neither.
+ * content which fills the tile. Asserted as structure and computed style,
+ * since the relationships between the parts are what matter.
  */
 describe("Panel toolbar", () => {
   it("puts the toolbar in the header, outside the scrolling body", () => {
-    // The whole reason it is a prop and not body content: controls that scroll away from what they steer are worse than no controls.
+    // Controls must not scroll away from what they steer.
     render(
       <Panel
         panelTitle="MAP"
@@ -33,8 +29,7 @@ describe("Panel toolbar", () => {
   });
 
   it("opts a toolbar-only panel into the composed model", () => {
-    // A widget may want the controls row without a title. That must still get
-    // the padded body, not the bare passthrough container.
+    // A controls row without a title still gets the padded body.
     render(
       <Panel panelToolbar={<button type="button">Zoom</button>}>body</Panel>,
     );
@@ -53,7 +48,7 @@ describe("Panel toolbar", () => {
     );
     const toolbar = screen.getByRole("button", { name: "Layers" })
       .parentElement as HTMLElement;
-    // A full basis is what wraps it below the title/aside pair in the header's wrapping row; without it the controls compete for the first line.
+    // A full basis wraps it below the title and aside in the header's wrapping row.
     expect(getComputedStyle(toolbar).flexBasis).toBe("100%");
   });
 });
@@ -76,9 +71,7 @@ describe("Panel floatingHeader", () => {
   });
 
   it("keeps the floating row clear of the pointer but not its title box", () => {
-    // The row spans the full width invisibly. If it kept pointer events it
-    // would swallow drags across the top of every map it floats over, so it
-    // gives them up and the boxes that hold real content take them back.
+    // The invisible full-width row gives up pointer events so drags reach the map; the boxes take them back.
     render(
       <Panel panelTitle="ORBIT" floatingHeader>
         <p>globe</p>
@@ -165,9 +158,7 @@ describe("Panel panelBadges", () => {
   });
 
   it("a lone severity-bearing badge is not ALSO drawn as the merged summary badge", () => {
-    /* The badge registers into the store (it has a real severity) and wins
-       its own summary, so it must render exactly once: as its own pill, not
-       again beside itself as `PanelSummaryBadge`. */
+    /* A badge that wins its own summary renders exactly once. */
     render(
       <PanelStatusStoreProvider>
         <Panel
@@ -180,9 +171,7 @@ describe("Panel panelBadges", () => {
   });
 
   it("a worse OTHER contributor still shows its own summary beside an unrelated badge", () => {
-    /* The badge is not the winner here (the stream contribution is worse),
-       so both the badge's own pill and the merged summary for the stream
-       must show: they are two different signals, not a duplicate of one. */
+    /* The stream contribution is worse and wins, so the badge and the stream summary are two signals and both show. */
     render(
       <PanelStatusStoreProvider>
         <Panel
@@ -198,22 +187,9 @@ describe("Panel panelBadges", () => {
 });
 
 /**
- * The toolbar takes a line of its own by asking for a full flex-basis, which
- * only starts a new line in a WRAPPING row. Both halves of that arrangement
- * live in different styled components, so each was individually defensible
- * while the pair rendered Map View's title as "M." with the Follow toggle
- * sitting on top of it, and hung the toolbar 32px past the panel's edge.
- *
- * jsdom does no layout, so this asserts the declaration rather than the geometry
- * it produces: the failure was never one component's rule being wrong, it was
- * two rules that cannot both hold.
- *
- * The 32px half is no longer here to assert. It was a local `box-sizing` on the
- * toolbar, and the document now sets border-box for everything, from a sheet
- * jsdom never loads. What holds it is the min-size gate: the toolbar declares
- * its edges are content (`fitBox`), so a toolbar hanging past its panel comes
- * back as a `box-clipped` finding at a real layout, which is where a geometry
- * defect is visible in the first place.
+ * The toolbar's full flex-basis only starts a new line in a wrapping row, and
+ * the two rules live in different styled components. jsdom does no layout, so
+ * this asserts both declarations.
  */
 describe("Panel toolbar occupies its own header line", () => {
   it("wraps the header row, so a full-basis toolbar starts a new line instead of competing with the title", () => {

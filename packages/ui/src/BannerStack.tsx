@@ -5,25 +5,7 @@ export interface BannerStackProps {
   children: ReactNode;
 }
 
-/**
- * Fixed-position horizontal strip sitting immediately to the left of the
- * action FAB, at the FAB's exact height. All ephemeral status banners
- * (signal loss, version mismatch, flight outcome, scene change, alarm /
- * warp pills) live in this stack so none of them overwrites a top-row
- * widget and the operator can scroll the dashboard freely.
- *
- * Layout:
- * - Height matches the FAB (48px), so banners sit vertically centered on
- *   the same baseline as the FAB itself.
- * - `flex-direction: row-reverse` puts the first DOM child closest to the
- *   FAB (the right edge); additional banners stack to the left.
- * - Overflow scrolls horizontally: when too many banners are active the
- *   leftward overflow becomes scrollable rather than pushing offscreen.
- *
- * The primary "+" FAB is 48×48 at `bottom: 24px; right: 24px`. The stack
- * sits at the same `bottom: 24px`, with `right: 88px` (24 FAB + 48 width
- * + 16 gap) so it never touches the FAB.
- */
+/** Fixed strip left of the action FAB, at its height, holding every ephemeral status banner; the first child sits nearest the FAB and overflow scrolls. */
 export function BannerStack({ children }: BannerStackProps) {
   return <ToastStack>{children}</ToastStack>;
 }

@@ -35,19 +35,10 @@ function SemiMajorAxisComponent({
   h,
 }: Readonly<ComponentProps<SemiMajorAxisConfig>>) {
   /**
-   * SMA is a scalar readout beside a label, so it DATES rather than blanks.
-   * Withholding a stale value is for the widgets that turn one into a verdict;
-   * a number an operator reads as "2.87 Mm, at last contact 14s ago" is still a
-   * useful, honest thing to draw, and blanking it would lose the one figure
-   * this tile exists to show.
-   *
-   * `withoutReckoning` first, deliberately: it puts `reckoned` out of reach so
-   * no later edit can quietly draw a modelled figure here. A propagated orbit
-   * conserves SMA exactly, so a reckoned figure would be the same number dressed
-   * as fresh evidence, and it would also disagree in kind with the sparkline
-   * beside it, which is observed history and cannot be modelled forward. So this
-   * widget declines the model and says how old the observation is instead. The
-   * caption fires off `state` alone, which the decline leaves exactly as it was.
+   * A scalar beside a label dates rather than blanks when stale.
+   * `withoutReckoning` because a propagated orbit conserves SMA, so a
+   * modelled figure would be the same number dressed as fresh, and would
+   * disagree in kind with the observed sparkline beside it.
    */
   const orbitReading = withoutReckoning(topics.useTelemetry("vessel.orbit"));
   const sma = stillTrue(orbitReading, undefined)?.sma;
@@ -60,13 +51,9 @@ function SemiMajorAxisComponent({
       ? frameReading.value
       : undefined;
   const lengthsPulsate = lengthsAreLengths(controlFrame) === "invalid";
-  // Age of the observation against the FRAME's view time, never a wall clock: two reads in one frame must not disagree about how old the same sample is.
+  // Age against the frame's view time, never a wall clock, so two reads in one frame agree.
   const viewUt = useViewUt();
-  // The age, spelled out now that `readingAge` is gone: an instant minus an instant
-  // is a duration, and the affine rules make that the type. The clamp came with it
-  // and stays, because samples arrive out of order (`ClientTimeline` insert-sorts
-  // for it) so one can sit marginally ahead of the frame and "-0.4 s ago" is never
-  // a thing to render.
+  // Clamped because samples arrive out of order, and "-0.4 s ago" is never a thing to render.
   const smaObservedUt = observedAt(orbitReading);
   const smaAgeSec =
     viewUt && smaObservedUt
@@ -75,46 +62,23 @@ function SemiMajorAxisComponent({
   const referenceBody = useBodyName(
     stillTrue(orbitReading, undefined)?.referenceBodyIndex,
   );
-  // `useDataSeries` (sparkline history) carries the same stream shim, `o.sma`
-  // maps to the raw `vessel.orbit.sma` field-subtopic, so once `vessel.orbit`
-  // is carried this sparkline reads its window straight off the
-  // `TimelineStore`'s buffered history, same as the headline `sma` value
-  // above. See `stream.test.tsx` for the end-to-end proof.
+  // The sparkline reads its window off the `TimelineStore`'s buffered history once `vessel.orbit` is carried.
   const series = useDataSeries("data", "vessel.orbit.sma", SPARK_WINDOW_SEC);
   const sparkValues = series.v as number[];
-  // Connectivity indicator keyed off the headline `o.sma` -> `vessel.orbit.sma`.
-
   const cols = w ?? 4;
   const rows = h ?? 4;
-  // Subtitle is "what is this widget" elaboration, suppress when there's
-  // no room without crowding the readout. At default 4×4 the panel title
-  // ("SMA") + value already cover the operator's read-at-a-glance need.
+  // The subtitle is elaboration, dropped when there is no room.
   const showSubtitle = rows >= 5 && cols >= 4;
-  /* A 3x3 body has room for the figure and nothing under it, so the age gives
-     way there and the figure's own held mark is what says the link went quiet. */
+  /* At 3x3 the age gives way and the figure's own held mark says the link went quiet. */
   const showHeldCaption = smaHeld && rows >= 4;
-  /* At four rows the body holds the figure and one thing under it. While held
-     that is the age, since a trend that has stopped arriving says less than how
-     long ago it stopped. */
+  /* At four rows, while held, the age wins the one slot under the figure over a trend that stopped arriving. */
   const showSparkline =
     rows >= 4 && cols >= 3 && !(showHeldCaption && rows < 5);
 
-  // SmaDisplay font scales with available width so the value (e.g.
-  // "2.87 Mm", "680.0 km") doesn't wrap onto two lines at narrow column
-  // counts. Wrap was the underlying cause of the readout overlapping the
-  // subtitle on small widgets: keep it on one line and the layout
-  // resolves itself.
+  // Font scales with width so the value never wraps into the subtitle.
   const readoutFontPx = cols <= 3 ? 18 : cols <= 4 ? 22 : 28;
 
-  // Sparkline width tracks its slot. The Sparkline renders a fixed-width
-  // SVG (no intrinsic responsiveness), so we measure the slot and feed it
-  // an explicit pixel width. The measurement lives on a *callback ref*
-  // rather than a `[]`-deps effect: the sparkline only mounts once orbit
-  // data arrives (before that the widget shows the EmptyState branch and
-  // SparkSlot is absent from the tree). A mount-time effect would run
-  // against a null ref and never re-attach when the slot later appears,
-  // leaving the width pinned at its 120-px default. The callback ref fires
-  // exactly when the node attaches/detaches.
+  // The Sparkline is fixed-width SVG, so its slot is measured. A callback ref, since the slot only mounts once orbit data arrives.
   const roRef = useRef<ResizeObserver | null>(null);
   const [sparkWidth, setSparkWidth] = useState(120);
   const sparkRef = useCallback((el: HTMLDivElement | null) => {
@@ -153,10 +117,6 @@ function SemiMajorAxisComponent({
   return (
     <Panel
       panelTitle="SMA"
-      /* Panel's own centring, where `Body` hand-rolled the `flex: 1` +
-         `justify-content: center` pair. A single headline readout sized to the
-         tile is what `fitToSize` is for, and Panel measures before it centres
-         so an overflowing readout still starts at the top. */
       fitToSize
       sections={
         <Section full gap="related-dense">
@@ -169,25 +129,18 @@ function SemiMajorAxisComponent({
             style={{
               ...SMA_DISPLAY_STYLE,
               fontSize: `${readoutFontPx}px`,
-              // Muted while held: the tone carries the caveat at a glance, the caption below says it in words.
+              // Muted while held; the caption below says it in words.
               ...(smaHeld ? { color: "var(--color-text-muted)" } : {}),
             }}
           >
-            {/* The whole reading rather than the bare value, so the number
-                itself carries whether it is current: the superscript dot for a
-                sighted reader, the grade's own word for a listening one. The
-                muted tone above and the caption below are the widget's own
-                additions to that, not the only thing saying it. */}
+            {/* The whole reading, so the number itself carries whether it is current. */}
             <Unit value={readingOf(orbitReading, (orbit) => orbit.sma)} />
           </div>
-          {/* The caveat belongs on the value rather than in the panel chrome: a
-            header badge beside a confident-looking number is the thing an
-            operator reads past. */}
+          {/* The caveat sits on the value: a header badge beside a confident number is what an operator reads past. */}
           {showHeldCaption && (
             <ReadoutCaption style={SMA_CAPTION_STYLE}>
               <span role="status">at last contact</span>
-              {/* Game-time seconds: the age is one UT minus another, so it
-                  belongs on the "s" ladder and not the real-time one. */}
+              {/* Game-time seconds, so the "s" ladder rather than the real-time one. */}
               {smaAgeSec !== undefined && (
                 <>
                   {", "}
@@ -197,11 +150,7 @@ function SemiMajorAxisComponent({
               )}
             </ReadoutCaption>
           )}
-          {/* The frame's name. A pulsating frame's length unit is its pair's own
-            separation, so a length quoted in it moves with the pair; naming the
-            frame is what says which units these are. LABELLED rather than
-            suppressed, unlike an apsis: an apsis in such a frame does not exist
-            at all, where a semi-major axis does. */}
+          {/* A pulsating frame's length unit moves with its pair, so the frame is named. Labelled rather than suppressed: a semi-major axis exists in such a frame, where an apsis does not. */}
           {lengthsPulsate && (
             <ReadoutCaption role="status">
               {controlFrameLabel(controlFrame) ?? "pulsating frame"}
@@ -226,11 +175,7 @@ function SemiMajorAxisComponent({
 /** Centres the kit's caption on the reading it belongs to. */
 const SMA_CAPTION_STYLE = { textAlign: "center" } as const;
 
-/**
- * The reading itself. Display tier, so it is off the type scale, and the size
- * here is only a floor: the widget measures its own width and writes a
- * `readoutFontPx` over it every render, which is why this cannot be a rung.
- */
+/** Display tier, off the type scale. Only a floor: the widget writes a measured `readoutFontPx` over it. */
 const SMA_DISPLAY_STYLE = {
   fontSize: "28px",
   letterSpacing: "0.04em",
@@ -240,14 +185,9 @@ const SMA_DISPLAY_STYLE = {
 } as const;
 
 /**
- * Reserves the sparkline's height before it measures, so the rows below it do
- * not jump on the first paint.
- *
- * `contain: inline-size` keeps the sparkline out of the column's width. The
- * sparkline is drawn at whatever width its slot measured, so without it the
- * column is sized by the sparkline's starting width, which is wider than a
- * three-column tile, the slot then measures that same width back, and the
- * centred rows spill past both edges of the cell.
+ * Reserves the sparkline's height before it measures. `contain: inline-size`
+ * keeps the sparkline's starting width from sizing the column, which would
+ * spill a three-column tile.
  */
 const SPARK_SLOT_STYLE = {
   width: "100%",

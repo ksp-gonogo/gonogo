@@ -10,21 +10,7 @@ import {
 import type { CSSProperties, ReactNode } from "react";
 import type { CelestialBody } from "./useCelestialBodies";
 
-/**
- * Every readout below builds its own `Value` rather than being handed one,
- * and that is the one place in this widget where a unit is named twice.
- *
- * `CelestialBody` is the SYSTEM DIAGRAM's model: its numbers exist to be
- * scaled into plot coordinates, so `useCelestialBodies` takes the magnitudes
- * off at the wire boundary and the diagram never sees a `Value`. This panel is
- * the other consumer of that same model, and it wants the units back.
- *
- * The fix is for `CelestialBody` to carry `Value` and for the diagram to
- * unwrap where it does its arithmetic, which is a change to a file with no
- * type errors in it and so is not this commit's. Until then the units are
- * restated here, next to the readout that shows them, where a wrong one is at
- * least visible.
- */
+// Each readout restates its unit because `CelestialBody` carries bare magnitudes for the diagram's arithmetic.
 
 export interface AlmanacPanelProps {
   /** Body to describe. When null, the panel renders an idle hint. */
@@ -37,12 +23,7 @@ export interface AlmanacPanelProps {
   hohmannIdealDeg?: number | null;
   /** Signed delta from ideal (deg). Negative = early; positive = late. */
   hohmannDeltaDeg?: number | null;
-  /**
-   * SOI event direction when *this* body is the vessel's upcoming encounter
-   * (or escape destination). `null` means no relevant transition for this
-   * body. Caller is responsible for matching `o.encounterBody` to the panel
-   * body before passing this through.
-   */
+  /** SOI event direction when this body is the vessel's upcoming encounter or escape destination; the caller matches `o.encounterBody` to the panel body first. */
   encounterDirection?: "encounter" | "escape" | null;
   /** Seconds until the SOI transition. Caller filters to positive values. */
   encounterTimeSec?: number | null;
@@ -51,14 +32,8 @@ export interface AlmanacPanelProps {
   /** Seconds to the next apsis. */
   nextApsisTimeSec?: number | null;
   /**
-   * The `vessel.orbit` read the four vessel-derived rows below were computed
-   * from, so each draws its own currency: held, they keep their number and
-   * gain the staleness mark and the instant it was last a reading of now.
-   *
-   * The body rows above take none, and must not: a radius and a day length come
-   * off the celestial catalogue, which is the shape of the system and does not
-   * decay when a craft stops reporting. Dating them with the craft's silence
-   * would mark a dozen figures that are still exactly true.
+   * The `vessel.orbit` read the vessel-derived rows were computed from, so each carries its currency.
+   * The body rows take none: catalogue figures do not go stale when the craft stops reporting.
    */
   orbitCurrency?: TopicReading<unknown>;
 }
@@ -80,12 +55,7 @@ function buildRows(
   nextApsisTimeSec: number | null,
   orbitCurrency: TopicReading<unknown> | undefined,
 ): AlmanacRow[] {
-  /*
-   * A figure computed from the orbit read, carrying that read's currency.
-   * `readingOf`'s selector ignores the payload because the arithmetic already
-   * happened upstream; what it carries across is the statement about WHEN, which
-   * is the half a bare number throws away.
-   */
+  // A figure computed from the orbit read, carrying that read's currency.
   const asOrbit = <U extends string>(magnitude: Value<U>): UnitValue<U> =>
     orbitCurrency === undefined
       ? magnitude
@@ -161,7 +131,6 @@ function buildRows(
   if (body.eccentricity !== null) {
     rows.push({
       label: "Eccentricity",
-      // Dimensionless, so it renders bare; the decimals are the widget's choice because nothing about "1" implies a precision.
       value: <Unit value={value("1", body.eccentricity)} decimals={3} />,
     });
   }
@@ -285,9 +254,6 @@ export function AlmanacPanel({
           ))
         )}
       </div>
-      {/* KSP's own body blurbs run to a few hundred characters and this panel
-          sits beside the diagram rather than owning the tile, so the blurb is
-          cut to a couple of lines and the rest is a press away. */}
       {body.description && !/^#autoLOC/i.test(body.description.trim()) && (
         <p style={DESCRIPTION}>
           <ExpandableText subject={body.name ?? undefined}>
@@ -299,11 +265,6 @@ export function AlmanacPanel({
   );
 }
 
-// Both of these render through the shared unit layer, so the symbol keeps its
-// styling and the unit is announced as a word. The row's `value` is a node
-// rather than a string for exactly this reason: a joined string cannot carry
-// either.
-
 function normalizeAngle(deg: number): number {
   let d = deg % 360;
   if (d > 180) d -= 360;
@@ -311,24 +272,14 @@ function normalizeAngle(deg: number): number {
   return d;
 }
 
-// Structural inline styles (CSS-var tokens): a bespoke almanac readout, no
-// reusable ui-kit primitive fits the column, so the layout stays local rather
-// than carrying styled-components into the widget.
-
-// No divider rule of its own: the diagram sits in a FramedDisplay and that
-// frame's edge does the dividing on every side at once. A border here would
-// have to be on whichever edge faces the diagram, which means telling this
-// panel where it is docked.
+// The enclosing FramedDisplay's edge divides this panel from the diagram, so it draws no border.
 const WRAP: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: "var(--gap-related)",
   padding: "var(--inset-frame-panel)",
   minWidth: 0,
-  // min-height:0 is load-bearing: the panel sidebar this sits in is a grid
-  // cell, and grid items default to min-height:auto, which would let this box
-  // grow past the cell and get hard-clipped by the parent's overflow:hidden
-  // instead of letting the sidebar's own scroller engage.
+  // Grid items default to min-height:auto, which would grow past the sidebar cell instead of letting its scroller engage.
   minHeight: 0,
   maxWidth: "100%",
   background: "var(--color-surface-panel)",
@@ -337,10 +288,7 @@ const WRAP: CSSProperties = {
 };
 
 function Wrap({ children }: { children: ReactNode }) {
-  // No ScrollArea of its own. `Panel.Sidebar` supplies one, and a second inside
-  // it scrolled nothing: the outer one took the overflow and this one sized to
-  // its content, so it was inert chrome plus a duplicate glow. The layout it
-  // carried (column + gap) moves onto the box that is left.
+  // Panel.Sidebar supplies the scroller.
   return <aside style={WRAP}>{children}</aside>;
 }
 
@@ -377,8 +325,6 @@ const HINT: CSSProperties = {
   lineHeight: "var(--line-height-body)",
 };
 
-// KSP's per-body flavour text. Long-form copy lives below the stats grid;
-// the panel scroll handles overflow on shorter widget sizes.
 const DESCRIPTION: CSSProperties = {
   margin: "var(--gap-related-comfortable) 0 0",
   color: "var(--color-text-muted)",

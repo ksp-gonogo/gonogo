@@ -1,4 +1,4 @@
-import type { StreamStatusValue } from "@ksp-gonogo/sitrep-sdk"; // erased at build; no runtime edge
+import type { StreamStatusValue } from "@ksp-gonogo/sitrep-sdk";
 import { Badge } from "./Badge";
 import { LiveRegion } from "./LiveRegion";
 import { severityFromStreamStatus } from "./status/severity";
@@ -11,15 +11,8 @@ export interface StreamStatusBadgeProps {
 /**
  * `StreamStatusValue` -> a short badge caption, or `null` for `"live"`.
  *
- * `null` is the whole design: a healthy stream shows NOTHING. There is no
- * green "OK" pill, because a pill that is present in the normal case teaches
- * the operator to stop seeing it, and this badge only matters in the
- * abnormal one.
- *
- * Extracted from the four widgets that grew an identical copy during the M3
- * migration pilot (`WarpControl`, `Navball`, `ThermalStatus`, `FuelStatus`):
- * each adopted the same read-the-status, render-a-badge pattern independently
- * and left a "follow-up to extract" comment. This is that follow-up.
+ * A healthy stream shows nothing: a pill present in the normal case teaches
+ * the operator to stop seeing it.
  */
 export function formatStreamStatus(status: StreamStatusValue): string | null {
   switch (status) {
@@ -28,19 +21,10 @@ export function formatStreamStatus(status: StreamStatusValue): string | null {
     case "held-stale":
       return "STALE";
     case "last-before-blackout":
-      // Its own word, not "STALE". The two grades mean "not current" and ask
-      // the operator for opposite moves: STALE is a producer whose updates
-      // stopped arriving, something to go and check, where this is the last
-      // reading that got out before the craft went behind something, and there
-      // is nothing to check and nothing to do but wait for acquisition. One
-      // caption for both said only "old" and threw the actionable half away.
-      // Same `warning` severity: still not current, still not a fault.
+      // Not "STALE": stale is something to go and check, a blackout is only something to wait out.
       return "BLACKOUT";
     case "recorded":
-      // Its own word, not "STALE". A recorded reading is EXACT for the instant
-      // it names; calling it stale would claim uncertainty the value does not
-      // have, and calling it nothing would read as live. "RECORDED" is what the
-      // operator needs to know: this came off the craft, not off the link.
+      // Not "STALE": a recorded reading is exact for the instant it names.
       return "RECORDED";
     case "disconnected":
       return "OFFLINE";
@@ -52,20 +36,16 @@ export function formatStreamStatus(status: StreamStatusValue): string | null {
 }
 
 /**
- * Small connectivity badge for a widget's title row, a thin adapter over the
- * canonical `Badge`: it maps a `StreamStatusValue` onto a `Severity` and draws
- * the pill, and draws nothing at the floor (`live`). It announces as a polite
- * live region, since a stream degrading is exactly the kind of state change an
- * operator benefits from being told about. The region stays mounted, empty,
- * while the stream is live, so the first degradation is announced rather than
- * arriving together with the region that should carry it.
+ * Small connectivity badge for a widget's title row: maps a
+ * `StreamStatusValue` onto a `Severity` and draws the pill, or nothing while
+ * `live`. It announces as a polite live region, which stays mounted while
+ * empty so the first degradation is announced.
  *
  * A widget does not render this by hand for a blackout: the dashboard host
- * derives `recorded` / `last-before-blackout` across the widget's declared
- * channels and puts the badge in the panel header through the status store.
- * Reach for this directly for a status that is not the panel's own (a
- * sub-region reading a different topic), or for one of the grades the host
- * does not derive; `Panel`'s `panelStatus` says which and why.
+ * derives `recorded` and `last-before-blackout` across the widget's declared
+ * channels and puts the badge in the panel header. Reach for this directly for
+ * a status that is not the panel's own (a sub-region reading a different
+ * topic), or for a grade the host does not derive; see `Panel`'s `panelStatus`.
  */
 export function StreamStatusBadge({ status }: StreamStatusBadgeProps) {
   const label = formatStreamStatus(status);

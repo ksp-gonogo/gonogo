@@ -8,24 +8,10 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SpaceCenterStatusComponent } from "./index";
 
 /**
- * What this widget does when career telemetry stops being current.
- *
- * The split it makes, and why the file exists to hold it in place:
- *
- * - The facility tiers STAY. A tier changes when the player pays for an upgrade,
- *   so no tier can have moved down a link that stopped delivering, and blanking
- *   nine cells would erase a KSC that is still standing.
- * - The funds balance GOES, along with every Upgrade button it authorised. The
- *   balance moves on its own and the button spends it. A held number is exactly
- *   the one that arms a 150,000f spend the player can no longer cover.
- * - The scene GOES for the same reason: it is not something this widget reports,
- *   it is the permission to spend, and a held scene means nobody knows whether
- *   the player is still in the Space Center.
- *
- * The assertions that earn the file are the ones about the WORDING. A row of dead
- * Upgrade buttons is what a fully-upgraded KSC also looks like, and a missing
- * balance is what a cold start also looks like, so "held" has to be legible from
- * outside the component or the refusal reads as the widget being broken.
+ * What this widget does when career telemetry stops being current. The tiers
+ * stay, since only a paid upgrade moves one. The funds balance and the scene go,
+ * with every Upgrade button they authorised, and "held" has to be legible or
+ * the refusal reads as a broken widget.
  */
 
 const CARRIED = [
@@ -72,7 +58,7 @@ function emitCareer(fixture: ReturnType<typeof setupStreamFixture>): void {
       scene: "SpaceCenter",
       launchSite: "LaunchPad",
     });
-    // Occupancy-only launch-site entry feeding the `spaceCenter.state` derived channel, the same trick `snapshots.test.tsx` documents.
+    // Occupancy-only launch-site entry feeding the `spaceCenter.state` derived channel.
     fixture.emit("spaceCenter.launchSites", [
       { name: "__pad_occupancy__", padOccupied: false, padVesselTitle: null },
     ]);
@@ -99,8 +85,7 @@ function goStale(fixture: ReturnType<typeof setupStreamFixture>): void {
 
 describe("SpaceCenterStatus when career telemetry is no longer current", () => {
   it("shows the balance and an armed upgrade while the career record is current", async () => {
-    // The control. Without it every assertion below would also pass on a widget
-    // that never offers an upgrade at all.
+    // The control: without it every assertion below would pass on a widget that never offers an upgrade.
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
@@ -136,8 +121,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     await waitFor(() =>
       expect(screen.getByTitle("Funds balance no longer current")).toBeTruthy(),
     );
-    // Not the cold-start sentence. One reports a warmup, the other accuses the
-    // link, and the operator needs to know which.
+    // Not the cold-start sentence: one reports a warmup, the other accuses the link.
     expect(screen.queryByTitle("No funds balance has arrived")).toBeNull();
     expect(screen.queryByTitle("Available funds")).toBeNull();
     expect(
@@ -165,11 +149,11 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
       expect(visibleText(container)).toContain("Upgrades held"),
     );
     const text = visibleText(container);
-    // The scene half is invisible on its own: withholding a permission removes an affordance and leaves nothing behind, so it has to be said out loud.
+    // Withholding a permission leaves nothing behind, so the scene half has to be said out loud.
     expect(text).toContain("scene");
     expect(text).toContain("funds balance");
     expect(text).toContain("no longer current");
-    // MAX is the other reason a facility offers no upgrade, and it is a claim about the facility rather than about the link.
+    // MAX is a claim about the facility, not about the link.
     expect(screen.queryByText("MAX")).toBeNull();
   });
 
@@ -190,9 +174,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
       expect(visibleText(container)).toContain("Upgrades held"),
     );
 
-    // The tier, the upgrade cost and the parts count all survive: each moves only
-    // when the player does something, and the player cannot have done it down a
-    // link that is not delivering.
+    // Each moves only when the player does something, which cannot happen down a dead link.
     expect(screen.getByLabelText("Launch Pad tier 2 of 3")).toBeTruthy();
     expect(screen.queryByLabelText("Launch Pad tier unknown")).toBeNull();
     expect(visibleText(container)).toContain("150.0k");
@@ -203,8 +185,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
   });
 
   it("says nothing about held upgrades before anything has ever arrived", async () => {
-    // A cold start is not a withholding. Conflating them would accuse the link of
-    // dropping on first paint, every paint.
+    // A cold start is not a withholding.
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,

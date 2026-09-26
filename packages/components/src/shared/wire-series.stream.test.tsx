@@ -9,20 +9,11 @@ import { TwrComponent } from "../Twr";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { useComputedSeries } from "./useComputedSeries";
 
-/**
- * Three plotted quantities the wire does not carry, each computed at the point
- * of read from fields it does, and each drawn with NO client-derived channel in
- * the store.
- *
- * A graph addresses its series by string, so a compiler cannot see one. When a
- * derived channel is deleted, an address on it resolves to a topic nothing
- * publishes and the chart draws an empty series with no error anywhere. Every
- * case here therefore runs with every production derived channel left out of
- * the store, and fails as exactly that empty chart if its series has gone onto
- * one.
- *
- * The operands VARY across the three samples on purpose. A constant operand
- * would let a series pass while computing nothing from it.
+/*
+ * Three plotted quantities computed from wire fields, drawn with no derived
+ * channel in the store: a series addressed at one would draw empty with no
+ * error. The operands vary across samples so a series cannot pass while
+ * computing nothing.
  */
 function stubSizedResizeObserver() {
   vi.stubGlobal(

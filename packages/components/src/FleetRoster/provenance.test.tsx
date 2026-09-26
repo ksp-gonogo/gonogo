@@ -8,21 +8,7 @@ import {
 import { beforeEach, describe, expect, it } from "vitest";
 import "./index";
 
-/**
- * Which Uplink is credited with extending this widget.
- *
- * <p>`effectiveSearchTags` and `uplinkAdditions` both walk the widget's
- * DECLARED `augmentSlots` to find the Uplinks binding into it. FleetRoster
- * renders `fleet-roster.updates` and did not declare it, so neither could see
- * the augment: the picker credited nobody, and the search tag was supplied by
- * hand as a literal mod name on the registration instead.</p>
- *
- * <p>That hand-written tag was wrong three ways. It named ONE of the two
- * Uplinks that provide reliability, it stayed on the
- * widget when neither was installed, and it put a mod's name in a core
- * widget's source. Declaring the slot makes the real mechanism answer, and
- * whoever binds gets the credit.</p>
- */
+/** The Uplink binding the declared `fleet-roster.updates` slot is the one credited with extending this widget, in search tags and the picker. */
 const RELIABILITY_MOD = defineUplinkClient({
   id: "reliability-mod",
   version: "0.0.0-dev",
@@ -55,11 +41,7 @@ describe("FleetRoster augment provenance", () => {
     );
   });
 
-  /*
-   * The literal is gone rather than merely redundant: a core widget naming one
-   * mod is the thing the boundary rules exist to stop, and it was carried in
-   * an allowlist entry to keep the gate quiet.
-   */
+  // A core widget naming a mod in its own tags is what the boundary rules exist to stop.
   it("names no mod in its own tags", () => {
     expect(fleetRoster().tags).toEqual(["telemetry"]);
   });

@@ -5,9 +5,7 @@ import { describe, expect, it } from "vitest";
 import { ShipDiagram } from "./ShipDiagram";
 import type { ShipMapPart } from "./shipTopology";
 
-// Sizes in metres, KSP convention: y is axial extent. Lateral pick for
-// these straight-stack test parts is X (the lat=0 line places parts on
-// the picked axis), so latHalfExtent = size.x / 2.
+// Metres, KSP convention: y is axial. These straight-stack parts pick X, so latHalfExtent = size.x / 2.
 const SIZE_SMALL = { x: 0.6, y: 0.4, z: 0.6 };
 const SIZE_TANK = { x: 1.25, y: 1.85, z: 1.25 };
 const SIZE_ENGINE = { x: 1.25, y: 1.0, z: 1.25 };
@@ -110,11 +108,7 @@ describe("ShipDiagram", () => {
   });
 
   it("renders fuel-fill bars only inside tanks and boosters, from contributed part-meters", () => {
-    // The compact fill bars no longer read `part.resources` directly: they
-    // render whatever `ship-map.part-meters` contributed for this part
-    // (self-contribution unify), keyed by stringified
-    // flightId. Mirrors the shape the built-in `core` contribution and an
-    // Uplink contribution both emit.
+    // Fill bars render what `ship-map.part-meters` contributed, keyed by stringified flightId.
     const partMeters = new Map([
       [
         "2",
@@ -146,11 +140,7 @@ describe("ShipDiagram", () => {
         partMeters={partMeters}
       />,
     );
-    // Two contributed meters on the one tank → two fill bars + two backdrop
-    // rects = 4 inner rects with the resource-fill role. The engine has no
-    // contributed meters, so no extra bars from it.
-    //
-    // Test the structural invariant rather than count: at least one fill-bar group exists, and engine groups have none.
+    // Structural rather than a count: at least one fill-bar group exists, and engine groups have none.
     const fillGroups = container.querySelectorAll('g[pointer-events="none"]');
     expect(fillGroups.length).toBeGreaterThan(0);
   });
@@ -203,11 +193,7 @@ describe("ShipDiagram", () => {
   });
 
   it("renders contributed part-meters and part-meta as real Meters in the hover tooltip", () => {
-    // The compact SVG bars and the tooltip render the SAME aggregated
-    // entries through two different renderers (doc comment on
-    // ShipDiagram.tsx); this is the tooltip half, which has no PNG-render
-    // equivalent (a static probe capture never hovers), so it is only
-    // exercised here.
+    // The tooltip half of the two renderings; a static capture never hovers, so it is only exercised here.
     const partMeters = new Map([
       [
         "2",
@@ -247,24 +233,16 @@ describe("ShipDiagram", () => {
       />,
     );
 
-    // Focusing a part's group triggers the same hover state a pointer would (ShipDiagramSvg's onFocus calls onPartHover too).
+    // Focus triggers the same hover state a pointer would.
     fireEvent.focus(screen.getByLabelText(/FL-T400 Fuel Tank/));
 
-    /*
-     * The contributed meter: a real ui-kit <Meter>, named by its label, with
-     * both halves written and spoken by `Unit` rather than by a `toFixed` pair
-     * that showed no unit and read aloud as two bare numbers.
-     */
+    // A real ui-kit <Meter> named by its label, with both halves written and spoken by `Unit`.
     const fuel = screen.getByRole("meter", { name: "LiquidFuel" });
     expect(fuel.getAttribute("aria-valuetext")).toBe(
       "90.0 units of 180.0 units",
     );
     expect(visibleText(container)).toContain("90.0 units / 180.0 units");
-    /*
-     * Oxidizer has no contributed meter for this part: still shown as the
-     * plain raw row (full transparency isn't lost), through `Unit` at the
-     * whole-units precision that row has always had.
-     */
+    // No contributed meter for Oxidizer, so the plain raw row, through `Unit` at whole units.
     expect(screen.getByText("Oxidizer")).toBeTruthy();
     expect(visibleText(container)).toContain("100 units / 220 units");
     // The part-meta row: a "text"-kind entry, not a Meter.

@@ -38,8 +38,8 @@ const tokens = parseColorTokens(
 );
 
 /**
- * Findings that are real and wait on a design ruling rather than a token
- * swap. Each entry is `file site: token property on ground`.
+ * Real contrast findings that no token swap fixes, so the design itself has to
+ * change. Each entry is `file site: token property on ground`.
  */
 const AWAITING_RULING: Readonly<Record<string, string>> = {
   "DataKeyPicker.tsx PickerInput &::placeholder: text-faint color on surface-raised":

@@ -1,15 +1,10 @@
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 
 /**
- * The minimal, dispatch-time-only shape `computeUplinkPulse` reads off a
- * `system.uplink.pending` entry (`Sitrep.Contract.PendingUplink`): never
- * anything execution/result-shaped, matching that contract's own
- * prediction-only invariant (see `mod/Sitrep.Contract/UplinkPending.cs`'s
- * class doc). `dispatchedAt`/`oneWaySeconds` are both TrueNow ground-clock
- * quantities frozen at dispatch time: compare against `useUtNow()`, never
- * the delayed `useViewUt()` (see `use-stream.ts`'s `useLatestValue` doc for
- * why: sampling either through the delayed frame makes the overlay appear,
- * and clear, a whole one-way-delay late).
+ * The dispatch-time-only shape `computeUplinkPulse` reads off a
+ * `system.uplink.pending` entry. Both fields are TrueNow ground-clock
+ * quantities: compare against `useUtNow()`, never the delayed `useViewUt()`,
+ * or the overlay appears and clears a whole one-way delay late.
  */
 export interface PendingPulseEntry {
   dispatchedAt: Quantityish;
@@ -33,34 +28,20 @@ const FADE_FRACTION = 0.1;
 const MIN_OPACITY = 0.15;
 
 /**
- * Predicts a `PendingUplink` entry's animation state at `utNow` (the
- * TrueNow ground-clock estimate, `useUtNow()`): an outbound pulse from
- * dispatch to `dispatchedAt + oneWaySeconds`, then a return pulse to
- * `dispatchedAt + 2*oneWaySeconds`. Matches the boundary convention the
- * already-shipped in-transit strips use (`reachUt`/`replyUt`), just expressed
- * as a continuous 0..1 progress fraction per leg instead of a countdown
- * string.
+ * A `PendingUplink` entry's animation state at `utNow` (TrueNow): an outbound
+ * leg to `dispatchedAt + oneWaySeconds`, then a return leg to
+ * `dispatchedAt + 2*oneWaySeconds`, each as 0..1 progress. Pure dispatch-time
+ * arithmetic, never anything about vessel-side receipt.
  *
- * `null`:
- * - before dispatch (defensive: shouldn't happen, the queue is
- *   dispatch-time-only),
- * - once the round trip has fully elapsed (a client-side safety net;
- *   the SERVER is the actual pruning authority, an entry disappearing from
- *   a later `system.uplink.pending` snapshot is the real "done" signal, this
- *   is just a belt-and-suspenders local expiry so a delayed prune never
- *   leaves a stale pulse glued to the diagram),
- * - for a non-finite or non-positive `oneWaySeconds` (no meaningful leg
- *   length to animate against).
- *
- * Never reads or infers anything about vessel-side receipt/execution,
- * pure dispatch-time arithmetic, honouring the contract's prediction-only
- * invariant.
+ * `null` before dispatch, once the round trip has elapsed (a local expiry; the
+ * server's snapshot is the pruning authority), and for a non-positive
+ * `oneWaySeconds`.
  */
 export function computeUplinkPulse(
   entry: PendingPulseEntry,
   utNow: number,
 ): UplinkPulse | null {
-  // The pulse is an ANIMATION: it interpolates a fraction of a round trip into a position along a drawn line, so it works in raw seconds.
+  // An animation, so it works in raw seconds.
   const dispatchedAt = magnitudeOf(entry.dispatchedAt);
   const oneWaySeconds = magnitudeOf(entry.oneWaySeconds);
   if (oneWaySeconds === null || oneWaySeconds <= 0) return null;

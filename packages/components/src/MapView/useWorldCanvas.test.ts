@@ -3,10 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrajectoryPoint } from "./useTrajectoryBuffer";
 import { useWorldCanvas } from "./useWorldCanvas";
 
-// Regression coverage for the trajectory-jank bug: under React 18 batching +
-// the reveal-gate's bursty catch-up delivery, several new buffered points can
-// land inside a single commit. The draw effect must paint every new segment,
-// not just the latest one: otherwise the rendered trajectory skips facets.
+// Several buffered points can land in one batched commit, and the draw effect must paint every new segment, not just the latest.
 
 function point(over: Partial<TrajectoryPoint> = {}): TrajectoryPoint {
   return {
@@ -41,13 +38,7 @@ const adjustedMap = (_w: number, _h: number, lat: number, lon: number) => ({
   y: lon,
 });
 
-/**
- * `getContext` answering the fake above.
- *
- * The real method is overloaded across four context ids, so a stub for the one
- * the hook asks for cannot satisfy the declared signature; the erasure is here
- * rather than in the `beforeEach`.
- */
+/** `getContext` answering the fake above. The real method is overloaded across four context ids, so the erasure lives here. */
 function stubGetContext(
   ctx: CanvasRenderingContext2D,
 ): typeof HTMLCanvasElement.prototype.getContext {
@@ -101,7 +92,7 @@ describe("useWorldCanvas", () => {
         point({ lat: 2, lon: 2 }),
         point({ lat: 3, lon: 3 }),
       );
-      // One commit carrying 3 new segments (0-1, 1-2, 2-3), mirrors a reveal-gate catch-up burst landing inside a single React commit.
+      // One commit carrying three new segments, as a catch-up burst lands.
       hook.rerender({ trajectoryCount: 3, bodyName: "Kerbin" });
     });
 
@@ -151,7 +142,7 @@ describe("useWorldCanvas", () => {
       hook.rerender({ trajectoryCount: 4, bodyName: "Mun" });
     });
 
-    // Only the one new segment for the new body should be painted, the pre-switch backlog must not get replayed onto the freshly-cleared canvas.
+    // Only the new body's one segment paints; the pre-switch backlog is not replayed.
     expect(moveToCalls().length - drawnBeforeNewPoint).toBe(1);
   });
 });

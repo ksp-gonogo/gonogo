@@ -10,11 +10,7 @@ import { describe, expect, it } from "vitest";
 import { NULL_DISPLAY } from "./NullValue";
 import { Tape } from "./Tape";
 
-/**
- * The reckoning slot: what `<Tape>` draws when it is handed a whole `Reading`
- * rather than a bare quantity. The rail's own version of the three statements
- * every instrument takes off a reading.
- */
+/** What `<Tape>` draws when handed a whole `Reading` rather than a bare quantity. */
 
 const AT = value("ut", 12_000);
 

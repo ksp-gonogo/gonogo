@@ -5,14 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ObjectivesComponent } from "./index";
 
-/**
- * The stream test-adapter proof for Objectives:
- * genuinely running off the real `TelemetryProvider`/`TelemetryClient`/
- * `TimelineStore` pipeline via `StubTransport`. `contracts.active` (->
- * `career.status.contracts.active`) is the widget's sole read, shared with
- * ContractManager (`parseContracts`/`contractObjectives`): the `mh.*`
- * mission source was removed (`mh` carries no channel on the new wire).
- */
+/** Proves Objectives runs off the real stream pipeline via `StubTransport`. */
 afterEach(() => {
   clearActionHandlers();
 });

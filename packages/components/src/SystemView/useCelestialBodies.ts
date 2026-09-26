@@ -6,33 +6,15 @@ import {
 
 export type { BodyAtmosphere, CelestialBody } from "@ksp-gonogo/sitrep-client";
 
-/**
- * Stable empty catalogue. `useProcessor` answers `undefined` before the first
- * frame, and a fresh `[]` per render would re-seed every downstream memo that
- * takes the list as a dep.
- */
+/** Stable empty catalogue, so a fresh `[]` before the first frame does not re-seed every downstream memo. */
 const NO_BODIES: CelestialBody[] = [];
 
 /**
- * The celestial-body tree, enriched with the almanac values the wire
- * deliberately drops.
- *
- * The derivation itself is `CELESTIAL_FACTS` in the SDK, which runs ONCE per
- * Sitrep frame however many surfaces read it, and belongs there rather than in
- * this hook: memoised locally on `[systemBodies, ut]` it would re-run the whole
- * map every frame, because `ut` moves every frame, once per consumer.
- *
- * A consumer wanting the index lookups (`nameByIndex` / `indexByName`) or a
- * single body by index reads `useProcessor(CELESTIAL_FACTS)` directly and uses
- * `bodyAtIndex` / `bodyNamed`; this hook is the plain-list read the diagram and
- * the almanac panels want.
+ * The celestial-body list, enriched with almanac values, from `CELESTIAL_FACTS` (which runs once per frame however many surfaces read it).
+ * A consumer wanting index lookups or a single body reads `useProcessor(CELESTIAL_FACTS)` directly.
  */
 export function useCelestialBodies(): CelestialBody[] {
-  /*
-   * A catalogue is a FACT: it changes when the game changes, and nothing
-   * changes it down a link that is not delivering, so a held one is still the
-   * catalogue. Both value-bearing arms, deliberately.
-   */
+  // A held catalogue is still the catalogue.
   const reading = useProcessor(CELESTIAL_FACTS);
   const facts =
     reading?.state === "observed" || reading?.state === "stale"

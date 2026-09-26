@@ -5,14 +5,7 @@ import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { OrbitViewComponent } from "./index";
 
-/**
- * The trail behind the craft: what was observed, drawn apart from what is
- * predicted.
- *
- * The two are different kinds of claim, so they are different elements with
- * different weights. Joined into one curve through the craft they would read as
- * equally certain, and the half that is a guess is the half an operator acts on.
- */
+/** The observed trail is drawn apart from the predicted path: joined into one curve they would read as equally certain. */
 const CARRIED = [
   "vessel.orbit",
   "vessel.flight",
@@ -28,15 +21,8 @@ const CARRIED = [
 const UT = 1_000;
 
 /**
- * A TILTED, rotated orbit, which is the whole reason these numbers are not
- * zeroes.
- *
- * <p>At `inc = lan = argPe = 0` the frame the diagram draws in and the frame a
- * solve hands back are the same frame, so a trail expressed in either one comes
- * out identical and no assertion here can tell them apart. Round, deliberately:
- * a circle's points are all one distance from the centre whatever the instant,
- * which is what makes the frame check below a comparison against a number rather
- * than against another implementation of the same solve.</p>
+ * A tilted, rotated, circular orbit. At zero angles the diagram's frame and the solve's frame coincide, so no assertion could tell them apart.
+ * A circle makes the frame check a comparison against one radius.
  */
 function orbitAt() {
   return {
@@ -92,8 +78,7 @@ function setup() {
 
 describe("OrbitView: the trail behind the craft", () => {
   it("draws no trail from a single sample", async () => {
-    // One observation is a position, not a path. Drawing a line through it
-    // would be drawing a direction of travel nothing has evidenced.
+    // One observation is a position, not a path.
     const { fixture, view } = setup();
     act(() => {
       fixture.emit("vessel.orbit", orbitAt());
@@ -125,13 +110,7 @@ describe("OrbitView: the trail behind the craft", () => {
   });
 
   it("draws the trail on the orbit the diagram drew, not beside it", async () => {
-    // The frame check. The diagram is drawn in the orbit's own plane, and a
-    // trail handed back in the body-centred inertial frame is the right shape at
-    // the right size, rotated away from the drawn orbit by that orbit's three
-    // angles and flattened out of its plane by the tilt. On a round orbit every
-    // point of the real path is exactly one radius from the centre; in the wrong
-    // frame the tilt pulls most of them a hundred kilometres inside it, and the
-    // curve still looks like an orbit.
+    // In the body-centred inertial frame the tilt pulls most points well inside the radius while the curve still looks like an orbit.
     const { fixture, view } = setup();
     for (const at of [750, 800, 850, 900, 950]) {
       act(() => {
@@ -156,8 +135,7 @@ describe("OrbitView: the trail behind the craft", () => {
   });
 
   it("keeps the trail a separate element from the predicted arc", async () => {
-    // The whole point: one is a record and one is a prediction. A single path
-    // element carrying both would say they are the same kind of thing.
+    // One is a record and one is a prediction, so they are separate elements.
     const { fixture, view } = setup();
     for (const at of [750, 800, 850, 900, 950]) {
       act(() => {
@@ -174,10 +152,7 @@ describe("OrbitView: the trail behind the craft", () => {
       ).not.toBeNull(),
     );
     const trail = view.container.querySelector('[data-trajectory="trail"]');
-    // The forward path here is the conic the elements describe, drawn as an
-    // ellipse rather than as supplied points: an analytic horizon means no
-    // provider handed over an arc. Either way it is a DIFFERENT element from
-    // the trail, which is the claim.
+    // An analytic horizon draws the forward path as an ellipse; either way it is a different element from the trail.
     const forward = view.container.querySelector("ellipse");
     expect(forward).not.toBeNull();
     expect(trail).not.toBe(forward);

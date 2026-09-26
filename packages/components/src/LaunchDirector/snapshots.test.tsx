@@ -10,19 +10,9 @@ import preLaunchMixed from "./__fixtures__/pre-launch-mixed.json";
 import { LaunchDirectorComponent } from "./index";
 
 /**
- * DOM snapshots off the stream pipeline, driven by each fixture's own
- * `_stream` block.
- *
- * This spec used to map every legacy `kc.*`/`v.*`/`ksp.*` key onto the topic it
- * now resolves through and emit that itself, roughly seventy lines of
- * translation. Each fixture declares the same emits, including the
- * `meta: { quality: 1 }` on `vessel.orbit` that puts the in-flight scenarios in
- * the Loaded basis so the altitude readout resolves, which was the one part of
- * the translation carrying real information.
- *
- * `awaiting` is deliberately thin (scene and launch sites only): the
- * pre-telemetry placeholder is its subject, and the un-fed gate lists it as
- * empty by design.
+ * DOM snapshots off the stream pipeline, driven by each fixture's own `_stream`
+ * block. `awaiting` is deliberately thin: the pre-telemetry placeholder is its
+ * subject.
  */
 
 const FIXTURES: Record<string, Record<string, unknown>> = {

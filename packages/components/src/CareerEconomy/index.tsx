@@ -28,12 +28,7 @@ const topics = defineTopicManifest({
 
 type CareerEconomyConfig = Record<string, never>;
 
-/**
- * Every upkeep source the wire can carry, in the order they are read out.
- *
- * The order is the operator's, not the wire's: the two structural costs, then
- * the three payrolls, then training.
- */
+/** Upkeep sources in reading order: the structural costs, then the payrolls, then training. */
 const UPKEEP_SOURCES = [
   { key: "facilities", label: "Facilities" },
   { key: "launchComplexes", label: "Launch complexes" },
@@ -45,35 +40,13 @@ const UPKEEP_SOURCES = [
 ] as const;
 
 /**
- * What this career's money is DOING, as opposed to how much of it there is.
- *
- * Reputation, funds and science are three balances core has always published,
- * and under a career overhaul the first two stop being scores: reputation
- * decays daily and buys a funding subsidy, against which a continuous per-day
- * cost runs. Those qualifiers arrive from whichever money model won the
- * `economy` capability, so this widget renders the same shape whether that was
- * an overhaul or stock.
- *
- * Stock's answer is that money does none of those things, which is true rather
- * than empty, and it renders as one sentence instead of a ledger of zeros. A
- * ledger reads as a programme that happens to break even; the sentence says
- * there is no mechanism.
+ * What the career's money is doing (decay, subsidy, upkeep), not how much of it
+ * there is. Stock has none of those mechanisms, so it renders as one sentence
+ * rather than a ledger of zeros that reads as breaking even.
  */
 function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
   const careerReading = useTelemetry("career.status");
-  /*
-   * Every number below is a rate or a balance that moves on its own, so how
-   * current each one is belongs ON the figure: the field readings below carry
-   * that, and `Unit` marks a value the link stopped carrying rather than
-   * drawing it as though it had just arrived. `career.status` declares no
-   * reckonable value, so there is no model to fall back to and the mark is the
-   * whole of the answer.
-   *
-   * The PAYLOAD is read on `stale` as well, for the structure only: which rows
-   * exist, which sources the model broke out. Withholding it there left the
-   * widget saying "no career economy has arrived" under a caption explaining
-   * that the last one had, which is two answers to one question.
-   */
+  // The payload is read on stale too, for structure only: which rows exist.
   const economyReading = careerReading.economy;
   const economy =
     careerReading.state === "observed" || careerReading.state === "stale"
@@ -87,45 +60,30 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
   const subsidyMax = magnitudeOf(economy?.subsidyMaxPerDay);
   const upkeep = magnitudeOf(economy?.upkeepPerDay);
 
-  /* The modified set is the one that decomposes the total beside it, so it is
-     the one to show. The unmodified set stands in when the model could not
-     price its own sources, and says so in its heading rather than quietly
-     rendering a list that does not add up: that mismatch is exactly what this
-     pair of fields exists to stop. */
+  // The modified set sums to the total; the unmodified one stands in, under its own heading, when the model could not price its sources.
   const breakdown = economy?.upkeep ?? economy?.upkeepBeforeModifiers;
   const beforeModifiers = economy?.upkeep === undefined;
   const breakdownReading = beforeModifiers
     ? economyReading.upkeepBeforeModifiers
     : economyReading.upkeep;
 
-  /* The magnitude decides whether the row EXISTS (a source the model does not
-     break out is not a source costing nothing), and the reading is what the row
-     draws. Addressable because the seven keys are this file's own table and not
-     a selection off the wire, so each has a path the accessor can walk. */
+  // The magnitude decides whether a row exists: a source the model does not break out is not a source costing nothing.
   const sources = UPKEEP_SOURCES.flatMap((source) => {
     const amount = magnitudeOf(breakdown?.[source.key]);
     if (amount === null) return [];
     return [{ label: source.label, reading: breakdownReading[source.key] }];
   });
 
-  // A model that reports every rate as zero and offers no breakdown is saying
-  // it has no mechanism, not that its mechanism nets out. Absent rates read the
-  // same way here: nothing to show either way.
+  // Every rate zero or absent with no breakdown means no mechanism, not a mechanism that nets out.
   const inert =
     (decay ?? 0) === 0 &&
     (subsidy ?? 0) === 0 &&
     (upkeep ?? 0) === 0 &&
     sources.length === 0;
 
-  // Only from two rates that both arrived. Treating an absent subsidy as zero
-  // would report a drain the model never claimed. Shared with the readout every
-  // funds-spending widget carries, so the two cannot disagree about what this
-  // career is costing.
+  // Only from two rates that both arrived: an absent subsidy is not a zero subsidy.
   const net = netFundsPerDay(economy);
-  /* The figure the row draws, unsigned: the label carries the direction, so the
-     magnitude is taken off the combination rather than off its inputs, which is
-     what keeps the currency on a net worked out from a subsidy that is no
-     longer current. */
+  // Unsigned, since the label carries the direction; taken off the combined reading so it keeps its currency.
   const netSize = combineReadings(
     [
       netFundsPerDayReading(
@@ -144,8 +102,6 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
       panelTitle="PROGRAMME FUNDING"
       compactTitle={["FUNDING", "FUNDS", "FUND"]}
       sections={[
-        /* Balances span: the rates and the breakdown below are both about what
-           happens to them. */
         <Section key="balances" full>
           <div style={BALANCES_STYLE}>
             <div style={BALANCE_STYLE}>
@@ -172,13 +128,10 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
             </p>
           ) : (
             <div style={RATES_STYLE}>
-              {/* The conclusion first, so it is never the row a small tile
-                  hides: the rates it sums follow it. */}
+              {/* The net comes first, so a small tile never hides it. */}
               {net !== null && (
                 <div style={RATE_TOTAL_STYLE}>
-                  {/* Named rather than signed: a leading minus on a rate beside
-                    two positive ones is read as a formatting artefact about as
-                    often as it is read as a direction. */}
+                  {/* Named, not signed: a leading minus reads as a formatting artefact. */}
                   <span style={RATE_LABEL_STYLE}>
                     {net < 0 ? "Net drain" : "Net gain"}
                   </span>
@@ -288,13 +241,7 @@ const RATES_STYLE = {
   gap: "0.25rem",
 } as const;
 
-/*
- * `flexWrap` is load-bearing rather than tidy: the range span asks for a whole
- * line with `flex-basis: 100%`, and on a row that cannot wrap it takes that
- * width from its siblings instead of from a second line. The label then shrinks
- * below its own text and paints under the value, which is what "Subsidy" and
- * "1840.0 f/day" were doing to each other on every career with a subsidy range.
- */
+// Without flexWrap the full-width range span squeezes the label under the value instead of taking a second line.
 const RATE_STYLE = {
   display: "flex",
   flexWrap: "wrap",

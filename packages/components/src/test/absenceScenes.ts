@@ -2,20 +2,11 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import type { AbsenceScene } from "./absenceScene";
 
 /**
- * Every render scene in this tree is a HEALTHY-telemetry scene, and these are
- * the exceptions.
- *
- * Each one takes a fixture that already renders and withholds ONE input, so the
- * pair differs by exactly that arrival and nothing else. What makes a scene
- * worth adding is not the withholding, which is mechanical, but the three
- * prose fields: why this input can be missing on a dashboard somebody is
- * looking at, what the widget owes them when it is, and which text on screen
- * settles it. A scene that omits an input, renders something and passes is the
- * same blind instrument one layer up.
- *
- * Deliberately short. Breadth here is mechanical once the mechanism is right,
- * and forty scenes that assert "something changed" would be worth less than
- * four that each say what the change has to BE.
+ * The exceptions to healthy-telemetry render scenes: each withholds one input
+ * from a fixture that already renders, so the pair differs by that arrival
+ * alone. The prose fields are what make a scene worth adding: why the input
+ * can be missing, what the widget owes the operator, and which text settles
+ * it. Deliberately few, each saying what the change has to be.
  */
 export const ABSENCE_SCENES: AbsenceScene[] = [
   {

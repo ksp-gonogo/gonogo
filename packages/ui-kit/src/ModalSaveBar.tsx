@@ -3,18 +3,11 @@ import { createContext, useContext, useEffect, useMemo, useRef } from "react";
 import { PrimaryButton } from "./Button";
 import { configEqual } from "./configEqual";
 
-// ---------------------------------------------------------------------------
-// Chrome context: lets content rendered *inside* a modal register a sticky
-// footer (rendered outside the scrollable body) and a dirty flag that gates
-// every close path. This is the mechanism behind useModalSaveBar.
-//
-// The modal shell itself (`ModalProvider`/`ModalDialog`) stays in
-// `@ksp-gonogo/ui`: it needs `safeRandomUuid` from `@ksp-gonogo/core`,
-// which this package must never depend on. `ModalChromeContext` is the
-// shared seam: `ui`'s `ModalDialog` provides it, this hook (and
-// `useModalSaveBar`) consume it. Neither side needs to know about the
-// other's extra dependencies.
-// ---------------------------------------------------------------------------
+/*
+ * Chrome context: lets content rendered inside a modal register a sticky footer
+ * (outside the scrollable body) and a dirty flag that gates every close path.
+ * The modal provides it; `useModalChrome` and `useModalSaveBar` consume it.
+ */
 
 export interface ModalChromeValue {
   /** Register/replace the sticky footer node. Pass null to clear. */
@@ -30,8 +23,7 @@ export const ModalChromeContext = createContext<ModalChromeValue | null>(null);
  * changes so the modal can guard its close paths. The footer lives OUTSIDE the
  * scrollable body, so it never scrolls out of view.
  *
- * Returns the rendered footer node (already portalled by the modal); call
- * sites render nothing inline; they just call this hook with their footer JSX.
+ * Call sites render nothing inline; they call this hook with their footer JSX.
  */
 export function useModalChrome(footer: ReactNode, dirty: boolean): void {
   const ctx = useContext(ModalChromeContext);
@@ -81,24 +73,19 @@ export interface ModalSaveBarOptions<TValue> {
  * sticky footer (so it's always visible) and computes a dirty flag so the modal
  * asks before discarding unsaved edits.
  *
- * Dirty is true only when the draft differs from BOTH the value captured when
- * the modal opened (the baseline) AND the persisted config. The baseline guards
- * against false positives from sparse stored configs (a default that the form
- * materializes into a denser object would otherwise always read as dirty); the
- * persisted-config comparison lets an async data load that reconverges the
- * draft to a saved value settle back to clean.
+ * Dirty is true only when the draft differs from both the value captured when
+ * the modal opened (the baseline) and the persisted config: the baseline stops
+ * a sparse stored config reading as dirty, and the persisted comparison lets a
+ * draft that reconverges settle back to clean.
  *
- * Renders nothing where it's called. If used outside a ModalProvider chrome
- * (e.g. an isolated unit test), it's a no-op, callers should not rely on a
- * fallback inline button.
+ * Renders nothing where it is called, and is a no-op outside a modal.
  */
 export function useModalSaveBar<TValue>(
   options: Readonly<ModalSaveBarOptions<TValue>>,
 ): void {
   const { onSave, value, saved, saveLabel = "Save", extra, disabled } = options;
 
-  // Capture the draft as it stood when the modal opened. Wrapped in an object
-  // so a falsy/empty first value still counts as "captured".
+  // Wrapped in an object, so a falsy first value still counts as captured.
   const baselineRef = useRef<{ v: TValue } | null>(null);
   if (baselineRef.current === null) baselineRef.current = { v: value };
 

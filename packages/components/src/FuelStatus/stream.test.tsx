@@ -6,35 +6,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FuelStatusComponent } from "./index";
 
 /**
- * The stream test-adapter proof for FuelStatus (mirrors
- * `WarpControl/stream.test.tsx`, the pilot): genuinely running off the real
- * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport`: no legacy `DataSource` is registered anywhere in this
- * file.
- *
- * FuelStatus's keys split MAPPED / GAPPED (`map-topic.ts`):
- * - MAPPED: `v.currentStage` -> `vessel.structure.currentStage`;
- *   `r.resource[X]`/`r.resourceMax[X]` (vessel-TOTAL) -> `vessel.resources.
- *   resources.<X>.{current,max}`: but only 3 of the 5 catalogued resources
- *   (MonoPropellant, XenonGas, ElectricCharge) are read at `scope:"vessel"`
- *   by `useResourceReading`; LiquidFuel/Oxidizer read the STAGE-scoped
- *   variant instead (below). Also MAPPED:
- *   `dv.stages` -> whole-topic `dv.stages` (a `StageDeltaVEntry[]`, a
- *   DIFFERENT field-name shape to the legacy `StageInfo`, `parseStages` in
- *   `index.tsx` reconciles it, exercised below) and `dv.stageCount`/
- *   `dv.totalDV*`/`dv.totalBurnTime` -> raw-field walks on the sibling
- *   `dv.summary` topic.
- * - GAPPED (stays legacy forever until a gap lands, not exercised here
- *   since no legacy source exists in this file): `r.resourceCurrent(Max)[X]`
- *   (STAGE-scoped, which is what LiquidFuel/Oxidizer actually read), so
- *   those two resources render as absent (`max > 0` filter drops them from
- *   the list) even once everything else streams.
- *
- * `vessel.resources`'s wire shape is `{ resources: { <name>: {current,
- * max} }, meta }`: the extra nesting that fix added to
- * `mapTopic`'s resource regex (see `map-topic.ts`'s doc comment); this
- * fixture reproduces that real shape rather than the flatter one a naive
- * reading of the old (buggy) mapping would suggest.
+ * FuelStatus off the real stream pipeline, with no legacy `DataSource` registered. MonoPropellant, XenonGas and ElectricCharge read vessel totals off `vessel.resources` (wire shape `{ resources: { <name>: { current, max } }, meta }`); LiquidFuel and Oxidizer read stage-scoped channels this file does not feed, so they drop from the list.
  */
 describe("FuelStatus: genuinely runs off the stream (M3 batch 1 + P4a dv.* migration)", () => {
   it("reads current stage + vessel-total resources off the real stream pipeline, not legacy", async () => {
@@ -52,11 +24,10 @@ describe("FuelStatus: genuinely runs off the stream (M3 batch 1 + P4a dv.* migra
       </fixture.Provider>,
     );
 
-    // Nothing arrived yet: every mapped/gapped key is undefined, so no resource row or stage subtitle has anything to render.
     expect(screen.getByText("FUEL · ΔV")).toBeTruthy();
     expect(screen.queryByText(/^Stage /)).not.toBeInTheDocument();
 
-    // A real subscription must have happened for this to deliver at all, StubTransport.emit is subscription-gated (see its own doc comment).
+    // StubTransport.emit is subscription-gated, so a real subscription must exist.
     expect(fixture.transport.isSubscribed("vessel.structure")).toBe(true);
     expect(fixture.transport.isSubscribed("vessel.resources")).toBe(true);
 
@@ -72,18 +43,12 @@ describe("FuelStatus: genuinely runs off the stream (M3 batch 1 + P4a dv.* migra
     });
 
     await waitFor(() => expect(visibleText()).toContain("Stage 2"));
-    // MonoPropellant (RCS) and ElectricCharge (Power) both stream a
-    // positive max and render; XenonGas's max === 0 so it's filtered out,
-    // exercising the widget's own "resources absent from the vessel are
-    // skipped" rule off REAL streamed data, not a fixture shortcut.
+    // XenonGas streams max 0 and is filtered out, exercising the "absent from the vessel" rule on real streamed data.
     expect(screen.getByRole("meter", { name: "RCS · vessel" })).toBeTruthy();
     expect(screen.getByRole("meter", { name: "Power · vessel" })).toBeTruthy();
     // The meter writes the pair at one rung, with the unit once.
     expect(visibleText()).toContain("30.0 / 30.0 units");
     expect(visibleText()).toContain("150.0 / 200.0 units");
-    // LiquidFuel/Oxidizer read the stage-scoped channels, which nothing feeds
-    // in this file, so they're filtered out of the resource list exactly like
-    // XenonGas.
     expect(screen.queryByRole("meter", { name: /^Liquid Fuel/ })).toBeNull();
     expect(screen.queryByRole("meter", { name: /^Oxidizer/ })).toBeNull();
   });
@@ -115,10 +80,7 @@ describe("FuelStatus: genuinely runs off the stream (M3 batch 1 + P4a dv.* migra
         totalDvActual: 3900,
         totalBurnTime: 125,
       });
-      // The mod's real StageDeltaVEntry field names (contract.ts:491),
-      // `dvVac`/`dvAsl`/`dvActual`/`twrVac`/`twrAsl`/`twrActual`/`thrustAsl`,
-      // NOT the legacy `StageInfo` names. Proves `parseStages` reads the
-      // new wire, not just the old shape `index.test.tsx` covers.
+      // The mod's real StageDeltaVEntry field names, not the legacy `StageInfo` ones.
       fixture.emit("dv.stages", [
         {
           stage: 1,

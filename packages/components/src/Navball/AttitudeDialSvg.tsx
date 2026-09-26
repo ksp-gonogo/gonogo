@@ -1,14 +1,8 @@
 /**
- * Pure-SVG copy of the attitude dial that drives the snapshot renderer.
- * Mirrors the dial portion of `AttitudeIndicator`: horizon ribbon, pitch
- * ladder, fixed bezel, aircraft mark. The live React widget continues to
- * use AttitudeIndicator at runtime; this component exists so the dial can
- * be rendered to a self-contained SVG string via `renderAttitudeDialToSvg`
- * without dragging in DOM-only siblings (heading strip, readout cells).
- *
- * Visual changes here MUST be mirrored into AttitudeIndicator (and vice
- * versa): they're parallel implementations of the same dial, and snapshot
- * drift here doesn't catch drift in the React-only path.
+ * Pure-SVG copy of `AttitudeIndicator`'s dial, rendered to a standalone string
+ * by `renderAttitudeDialToSvg`. The two are parallel implementations: a visual
+ * change to either must be mirrored in the other, since these snapshots cannot
+ * see drift in the React path.
  */
 
 export interface AttitudeDialSvgProps {
@@ -16,8 +10,7 @@ export interface AttitudeDialSvgProps {
   pitch: number | null;
   roll: number | null;
   size: number;
-  /** Prefixes the internal clipPath id so multiple dials can stack in the
-   *  same document without colliding. Defaults to "navball". */
+  /** Prefixes the clipPath id so several dials can share a document. */
   idPrefix?: string;
 }
 
@@ -36,9 +29,7 @@ export function AttitudeDialSvg({
   const safePitch = pitch ?? 0;
   const safeRoll = roll ?? 0;
 
-  // See AttitudeIndicator's matching constant for the full rationale: r/90
-  // maps the physical +/-90 pitch range onto the dial radius so the horizon
-  // doesn't vanish (or leave an unfilled gap) at a common ~45 climb.
+  // Maps the +/-90 pitch range onto the dial radius so the horizon stays on the dial through a steep climb.
   const pitchScale = r / 90;
   const horizonOffset = safePitch * pitchScale;
   const clipId = `${idPrefix}-clip-${size}`;

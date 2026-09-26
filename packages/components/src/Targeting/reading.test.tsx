@@ -13,13 +13,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TargetingComponent } from "./index";
 
 /**
- * The `TopicReading<T>` proof. Targeting carried the worst defect the
- * absence-gate audit found: `tarName === undefined` rendered **"No target set
- * in KSP"**, a positive claim about game state derived from the absence of a
- * frame. A dropped link said "no target set". `vessel.target` is declared
- * `absenceIsData: true` mod-side (`VesselUplink.cs`), so all four reading
- * states are reachable on the real wire, which is what makes this widget the
- * proof rather than a demonstration.
+ * The `TopicReading<T>` proof: `vessel.target` is `absenceIsData`, so all four
+ * reading states are reachable on the real wire, and a missing frame must never
+ * render as "No target set in KSP".
  */
 /*
  * The reckoner registry is module-level, so each test starts from core's own
@@ -50,9 +46,7 @@ async function mount(instanceId: string, pinnedUt = 10) {
     pinnedUt,
     suspendFrames: true,
   });
-  // The aux source carries the flat `tar.name`/`tar.type` keys exactly as
-  // `stream.test.tsx` does. The widget reads the target's name and kind off
-  // `vessel.target`, so nothing about the reading path routes through it.
+  // The aux source carries flat keys the widget does not read.
   const legacyAux = await setupMockDataSource({
     id: "data",
     keys: [{ key: "tar.name" }, { key: "tar.type" }],
@@ -72,9 +66,7 @@ describe("Targeting: pending is no longer reported as a confirmed absence", () =
   it("says it is waiting, not that no target is set, before anything arrives", async () => {
     const { legacyAux } = await mount("dtt-pending");
 
-    // The defect this whole workstream exists to make unrepresentable: the
-    // widget used to assert "No target set in KSP" here, from nothing but a
-    // missing frame.
+    // A missing frame must never assert "No target set in KSP".
     expect(screen.getByText("Waiting for target telemetry")).toBeTruthy();
     expect(screen.queryByText("No target set in KSP")).toBeNull();
 
@@ -91,7 +83,7 @@ describe("Targeting: pending is no longer reported as a confirmed absence", () =
     });
     await waitFor(() => expect(visibleText()).toContain("10.0 km"));
 
-    // Target cleared in KSP: a tombstone for the whole record, which is a confirmed fact about the subject rather than a gap in the link.
+    // A tombstone is a confirmed fact about the subject, not a gap in the link.
     act(() => {
       fixture.emit("vessel.target", null);
     });
@@ -99,8 +91,7 @@ describe("Targeting: pending is no longer reported as a confirmed absence", () =
     await waitFor(() =>
       expect(screen.getByText("No target set in KSP")).toBeTruthy(),
     );
-    // "Confirmed nothing, as of when". A tombstone can itself go old, and the
-    // age is what stops the claim being asserted indefinitely.
+    // A tombstone can itself go old, and the age stops the claim being asserted indefinitely.
     expect(visibleText()).toMatch(/confirmed/i);
     expect(screen.queryByText("10.0 km")).toBeNull();
 
@@ -108,19 +99,6 @@ describe("Targeting: pending is no longer reported as a confirmed absence", () =
   });
 });
 
-// A describe block asserting that KSP's "No Target Selected." sentinel rendered
-// as a confirmed absence was DELETED here, and its premise was wrong rather than
-// merely obsolete. I wrote it yesterday off the recorded fixture, calling the
-// sentinel a third encoding of absence that the wire could produce. It cannot:
-// `KspHost.BuildTarget` returns null before `name` is read, and `vessel.target`
-// is declared `absenceIsData`, so the only thing a cleared target produces is the
-// tombstone the test above already covers. The string belonged to the legacy
-// data source, which was retired in 806e7fe2.
-//
-// So the fixture that taught me the "lesson" was itself preserving a dead
-// producer's vocabulary, which is the trap in miniature: a fixture is not
-// evidence that a shape exists on the wire, and I read one as current twice in
-// two days.
 describe("Targeting: stale renders the last observation as an observation", () => {
   it("keeps the last distance but marks it at-last-contact once the link drops", async () => {
     const { fixture, legacyAux } = await mount("dtt-stale", 10);
@@ -131,7 +109,7 @@ describe("Targeting: stale renders the last observation as an observation", () =
       fixture.emit("vessel.target", TARGET);
     });
     await waitFor(() => expect(visibleText()).toContain("10.0 km"));
-    // While current, the readout carries no caveat: delay is not staleness, and a caveat on every value would carry no information.
+    // While current there is no caveat: delay is not staleness.
     expect(visibleText()).not.toMatch(/last contact/i);
 
     act(() => {
@@ -140,24 +118,11 @@ describe("Targeting: stale renders the last observation as an observation", () =
     });
 
     await waitFor(() => expect(visibleText()).toMatch(/last contact/i));
-    // The last REAL value stays reachable: it is the same reading, never a second channel the operator has to go and find.
+    // The last real value stays reachable on the same reading.
     expect(visibleText()).toContain("10.0 km");
-    /*
-     * And the MARK is on the figure, not only in the caption beside it. The
-     * range is derived client-side off the separation vector, so it only gets
-     * one by being combined rather than re-minted: before it was, a held range
-     * drew identically to a live one and the caption was the sole tell.
-     */
-    /*
-     * The mark is on the FIGURES, asserted by which figures carry one rather
-     * than by a count: both the range and the closing rate are derived
-     * client-side off the separation vector, so each only gets a mark by being
-     * combined instead of re-minted. Counting alone would have passed with the
-     * range reverted, because its sibling supplies a mark of its own.
-     */
+    // The mark is on each derived FIGURE, asserted by which carry one, since a count would pass with one reverted.
     const marked = [...document.querySelectorAll("[data-not-current]")].map(
-      /* Whitespace normalised: `Unit` sets the figure from its unit with a thin
-         space, so a plain-space needle never matches the DOM's own text. */
+      // Whitespace normalised: `Unit` uses a thin space.
       (el) => (el.textContent ?? "").replace(/\s+/g, " "),
     );
     expect(marked.some((text) => text.includes("10.0 km"))).toBe(true);
@@ -186,42 +151,24 @@ describe("Targeting: stale renders the last observation as an observation", () =
     });
     await waitFor(() => expect(visibleText()).toMatch(/last contact/i));
 
-    // No model is registered for the topic, so absence of a reckoned row is
-    // the honest rendering. Presence of the row is the statement of trust, so
-    // one drawn without a model would be the exact dishonesty the type exists
-    // to prevent.
+    // No model is registered for the topic, so no reckoned row: presence of the row is the statement of trust.
     expect(visibleText()).not.toMatch(/reckoned/i);
 
     teardownMockDataSource(legacyAux);
   });
 
   it("renders the modelled range beside the observation once a model exists", async () => {
-    // The `reckoning: "available"` axis end to end. Core's own dead reckoner
-    // would answer here too; this registers a second one under a non-core owner
-    // so the modelled range is a number the test chose, and the point is that
-    // the widget renders BOTH figures, the observation with its age and the
-    // model with its basis, rather than substituting one for the other.
+    // With a model available, the widget renders BOTH the observation with its age and the model with its basis.
     registerReckoner(
       "vessel.target",
-      // A non-core owner, so the election prefers it over core's vanilla and the
-      // figures below are the ones on screen. Core's own conic is still
-      // registered; this is what an Uplink electing a better model looks like.
+      // A non-core owner, so the election prefers it over core's own model.
       "targeting",
       {
         deps: [],
         reckon: () => ({
-          // Covers the payload ROOT, which is what a whole-topic read needs. The
-          // root of a DECLARED value's reckoning is the projection, not the
-          // payload, so claiming it says every field the caller can reach off
-          // `reckoned` was moved by this model.
+          // Covers the payload ROOT, which is what a whole-topic read needs.
           modelled: [{ path: "", basis: "linear-dead-reckoning" }],
-          // 12 km: visibly different from the observed 10 km, so a test that
-          // silently rendered the observation twice would fail. `value("m", n)`
-          // rather than bare numbers because a reckoner returns the SAME payload
-          // shape the decode produces, and the widget reads `.magnitude` off each
-          // component.
-          // No cast: `R` is inferred from what this returns, and the topic
-          // string is what carries the payload type now.
+          // 12 km, visibly different from the observed 10 km; a reckoner returns the decoded payload shape.
           reckon: () => ({
             relativePosition: {
               x: value("m", 7200),
@@ -247,8 +194,7 @@ describe("Targeting: stale renders the last observation as an observation", () =
     });
 
     await waitFor(() => expect(visibleText()).toMatch(/reckoned/i));
-    // Both, side by side. The observation is what we know; the model is what we
-    // infer, named so the operator can calibrate their trust in it.
+    // Both, side by side: the observation, and the model named so trust can be calibrated.
     expect(visibleText()).toContain("10.0 km");
     expect(visibleText()).toContain("12.0 km");
     expect(visibleText()).toContain("linear-dead-reckoning");
@@ -307,10 +253,7 @@ describe("Targeting: stale renders the last observation as an observation", () =
       fixture.store.beginFrame();
     });
 
-    // An alignment reticle drawn from data we know we have missed updates on is
-    // the sharpest form of the failure this type exists to prevent: it asserts
-    // something about NOW that it cannot know. Fall back to a rendering that
-    // can state its own age instead.
+    // An alignment reticle from data known to be missing updates asserts something about NOW it cannot know.
     await waitFor(() =>
       expect(
         screen.queryByRole("region", {

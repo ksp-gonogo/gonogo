@@ -6,29 +6,19 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SemiMajorAxisComponent } from "./index";
 
 /**
- * What `undefined` MEANS at this widget's two telemetry reads, as the code
- * stands today.
+ * What `undefined` means at this widget's two telemetry reads.
  *
- * Recorded before `useTelemetry` becomes a `Reading` union: every branch below
- * turns on a value being `undefined` or falsy, and a `Reading` is always
- * truthy.
- *
- * The gates:
- * - `sma === undefined || !Number.isFinite(sma.magnitude)` (index.tsx:84) is
- *   the whole-widget gate. One "No orbit data" empty state covers at least
- *   four distinct facts: nothing has arrived, the record arrived without an
- *   sma, the topic is a confirmed tombstone, and the number arrived non-finite
- * - `useBodyName(orbit.referenceBodyIndex)` then `referenceBody ? " · X" : ""`
- *   collapses an unnamed body and a body that never arrived into one
- *   rendering
+ * - `sma === undefined || !Number.isFinite(sma.magnitude)` is the whole-widget
+ *   gate: one "No orbit data" state for nothing arrived, a record without sma,
+ *   a tombstone, and a non-finite number
+ * - `referenceBody ? " · X" : ""` renders an unnamed body and one that never
+ *   arrived alike
  */
 
 const SEMI_MAJOR_AXIS_CHANNELS = ["vessel.orbit", "system.bodies"];
 
 function renderSma(fixture: ReturnType<typeof setupStreamFixture>) {
-  // w=5,h=6 clears both the subtitle threshold (rows>=5, cols>=4) and the
-  // sparkline one (rows>=4, cols>=3), so anything missing below is missing
-  // because of a data gate rather than a size gate.
+  // Clears both the subtitle and sparkline size thresholds, so anything missing is a data gate.
   return render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "sma-characterise" }}>
@@ -48,27 +38,21 @@ function makeFixture() {
 
 describe("SemiMajorAxis: what undefined means today", () => {
   it("renders the empty state and NONE of the readout furniture before anything arrives", async () => {
-    // The nothing-has-arrived case in full. Asserted by naming the elements
-    // that are gone rather than by an empty container: the whole `Body`
-    // subtree is behind the gate, so the readout, the sparkline
-    // and the caption all vanish together.
+    // Nothing arrived: the whole body subtree is behind the gate, so readout, sparkline and caption vanish together.
     const fixture = makeFixture();
     const { container } = renderSma(fixture);
 
     expect(await screen.findByText("No orbit data")).toBeInTheDocument();
-    // No readout element exists at all, so a screen reader is told nothing rather than "unknown".
+    // No readout element at all, so a screen reader is told nothing rather than "unknown".
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(container.querySelector("svg[aria-label='SMA trend']")).toBeNull();
     expect(screen.queryByText(/Semi-major axis/)).not.toBeInTheDocument();
-    // The panel frame survives, so the operator sees a titled tile.
+    // The panel frame survives: the operator sees a titled tile.
     expect(screen.getByText("SMA")).toBeInTheDocument();
   });
 
   it("falls back to the empty state when a later orbit record arrives without an sma field", async () => {
-    // Partial payload, one field deep. A live reading is established first so
-    // the second frame is provably delivered: the readout then DISAPPEARS,
-    // which is how "the record is here, the field is not" renders. Identical
-    // to the cold-topic render above.
+    // A live reading first, so the field-less frame is provably delivered; it renders like a cold topic.
     const fixture = makeFixture();
     renderSma(fixture);
 
@@ -88,12 +72,7 @@ describe("SemiMajorAxis: what undefined means today", () => {
   });
 
   it("falls back to the empty state for a confirmed tombstone on vessel.orbit", async () => {
-    // null-versus-undefined at the WHOLE-TOPIC read. A null payload is the
-    // store's confirmed "there is no orbit" (what the Reading union calls
-    // `absent`), and `useTelemetry(...)?.sma` optional-chains it straight into
-    // the same undefined the cold case produces. This widget implements no
-    // distinction between "no orbit, confirmed" and "no orbit data yet": the
-    // established readout simply vanishes back to the loading-shaped message.
+    // A tombstone optional-chains into the same undefined as a cold start, so the readout vanishes back to the loading message.
     const fixture = makeFixture();
     renderSma(fixture);
 
@@ -113,9 +92,7 @@ describe("SemiMajorAxis: what undefined means today", () => {
   });
 
   it("falls back to the empty state for an sma that arrives non-finite", async () => {
-    // The `!Number.isFinite(sma.magnitude)` half of the gate. A garbage number
-    // that DID arrive reads as no data at all, so a broken provider and a cold
-    // topic look identical.
+    // A non-finite number that did arrive reads as no data, like a cold topic.
     const fixture = makeFixture();
     renderSma(fixture);
 
@@ -138,9 +115,7 @@ describe("SemiMajorAxis: what undefined means today", () => {
   });
 
   it("drops the reference-body suffix while system.bodies has not arrived", async () => {
-    // `referenceBody` is undefined because the body table has not landed, so
-    // the subtitle is the bare label. Absence of the suffix is the widget's
-    // only way of saying "body unknown".
+    // The body table has not landed, so the subtitle is the bare label.
     const fixture = makeFixture();
     renderSma(fixture);
 
@@ -154,12 +129,7 @@ describe("SemiMajorAxis: what undefined means today", () => {
   });
 
   it("renders a confirmed-absent reference body identically to one that never arrived", async () => {
-    // null-versus-undefined at the DERIVED read, and this one is a distinction
-    // the producer went out of its way to make: `resolveBodyName` returns
-    // `null` only when `system.bodies` is an outright tombstone, and
-    // `undefined` for every not-yet-resolvable case. The widget's
-    // `?? undefined` throws that away, so a confirmed "there is no body table"
-    // renders as the same bare subtitle as "the table is still loading".
+    // `resolveBodyName` returns null only for a tombstoned table; the widget's `?? undefined` renders it like still loading.
     const fixture = makeFixture();
     renderSma(fixture);
 
@@ -174,10 +144,7 @@ describe("SemiMajorAxis: what undefined means today", () => {
   });
 
   it("drops the suffix when the body table arrived but does not contain the referenced index", async () => {
-    // Partial payload at the table level: `system.bodies` is present and whole,
-    // it simply has no entry for index 1. `resolveBodyName`'s `?? undefined`
-    // and then the widget's own falsy check produce the same bare subtitle
-    // again, a third fact folded into one rendering.
+    // A whole table with no entry for index 1 renders the same bare subtitle again.
     const fixture = makeFixture();
     renderSma(fixture);
 

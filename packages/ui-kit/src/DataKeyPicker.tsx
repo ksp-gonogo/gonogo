@@ -40,13 +40,8 @@ export interface DataKeyPickerProps {
 }
 
 /**
- * Shown in place of a label when a saved key is not in `keys`.
- *
- * A key can go missing because the vocabulary moved on: a widget saved before a
- * Topic was renamed or retired still holds the name it had. Rendering that key
- * as its own raw string reads as a valid selection, so a graph series draws a
- * flat line and an alarm simply never fires. Both look like a reading of zero,
- * and a zero is a claim about the craft.
+ * Shown in place of a label when a saved key is not in `keys`: rendering the
+ * raw key would read as a valid selection that silently reads nothing.
  */
 const RETIRED_MESSAGE = "no longer available";
 
@@ -73,10 +68,7 @@ export function DataKeyPicker({
   const optionId = (key: string) => `${optionIdPrefix}-${key}`;
 
   const selectedOption = keys.find((k) => k.key === value);
-  // A key is retired once it is saved but no longer offered. Only judged when
-  // there is a vocabulary to judge against: an empty `keys` means the catalogue
-  // has not arrived, and calling every saved key retired at that moment would
-  // report a broken widget on every mount.
+  // An empty `keys` is a catalogue that has not arrived, so nothing is judged retired against it.
   const retired =
     value !== null &&
     value !== "" &&
@@ -132,7 +124,7 @@ export function DataKeyPicker({
       e.preventDefault();
       setActiveIndex((i) => moveComboboxActiveIndex(i, -1, flatOptions.length));
     } else if (e.key === "Enter") {
-      // Arrow-highlighted item first; fall back to first filtered result so "type a partial label + Enter" works without needing an arrow key.
+      // Falls back to the first filtered result, so a partial label plus Enter works.
       const opt = activeIndex >= 0 ? flatOptions[activeIndex] : flatOptions[0];
       if (opt) selectOption(opt.key);
     }
@@ -268,9 +260,7 @@ const ClearButton = styled.button`
 
 /**
  * Sits under the input rather than replacing its text, so the operator can
- * still read WHICH key went missing. Recovering a widget usually means picking
- * the value the retired one used to name, and that is easier when its name is
- * still on screen.
+ * still read which key went missing.
  */
 const RetiredNote = styled.div`
   color: var(--color-status-nogo-fg);

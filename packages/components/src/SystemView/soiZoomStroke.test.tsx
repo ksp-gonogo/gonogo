@@ -7,34 +7,14 @@ import {
 import { SystemViewComponent } from "./index";
 
 /**
- * Board #28 regression: near-parent-orbit visibility at SOI zoom.
+ * An orbit's on-screen stroke stays a thin, roughly zoom-invariant line at any zoom.
  *
- * SystemView's `plotScale` (metres -> SVG user-units) is pinned to the
- * OUTERMOST orbit and never rescales on zoom; zooming only shrinks the
- * origin-centred SVG `viewBox` (magnification), capped at 25x. So a
- * near-parent orbit renders at a tiny fixed user-unit radius and is only
- * inspectable by zooming in.
- *
- * The bug: orbit + trajectory stroke widths were authored in SVG USER-UNITS
- * (`strokeWidth={1.2}` etc.), not divided by `zoom` like every dot / marker /
- * label / border in the diagram. Because the viewBox magnifies user-units,
- * an orbit's ON-SCREEN stroke grew with zoom, hitting 1.2 * 25 = 30 px at max
- * zoom. A near-parent orbit was then swallowed by its own 30 px stroke into an
- * unreadable filled blob that also smeared over the parent + nearby objects,
- * i.e. the near-parent orbit was no longer visible AS an orbit at SOI zoom.
- *
- * Invariant this locks in: an orbit's on-screen stroke width stays a thin,
- * roughly zoom-invariant line at ANY zoom (the same screen-constant treatment
- * the body markers already get via `/zoom`). At zoom=1 the rendered width is
- * unchanged (`1.2 / 1 === 1.2`), so the auto-fit visual-gate baseline does not
- * move.
+ * `plotScale` is pinned to the outermost orbit and zoom only shrinks the viewBox (up to 25x), so a user-unit stroke would grow with zoom and swallow a near-parent orbit. At zoom 1 the width is unchanged, so the visual baseline does not move.
  */
 
 const KERBIN_MU = 3.5316e12;
 
-// A wide-dynamic-range frame: a NEAR moon (2 Mm) close to the parent and a FAR
-// moon (120 Mm) that pins plotScale, so the near orbit is compressed and only
-// readable by zooming in, exactly the SOI-zoom situation the bug is about.
+// A near moon (2 Mm) and a far moon (120 Mm) that pins plotScale, so the near orbit is readable only by zooming in.
 function wideSystem() {
   return {
     bodies: [
@@ -112,7 +92,7 @@ describe("SystemView: near-parent orbit stroke stays readable at SOI zoom (board
       ).toBeGreaterThan(0),
     );
 
-    // Zoom to the 25x cap (wheel is 1.15x per notch; 30 notches saturates). ctrl+wheel because that is the pinch gesture the diagram zooms on, a plain wheel belongs to the page (see `useWheelZoom`).
+    // Zoom to the 25x cap (1.15x per notch). ctrl+wheel is the pinch gesture the diagram zooms on; a plain wheel belongs to the page.
     const svg = container.querySelector("svg");
     if (!svg) throw new Error("no diagram svg");
     for (let i = 0; i < 30; i++) {
@@ -122,9 +102,7 @@ describe("SystemView: near-parent orbit stroke stays readable at SOI zoom (board
     const zoom = currentZoom(container);
     expect(zoom).toBeGreaterThan(20); // reached (near) the 25x cap
 
-    // Every orbit ring's ON-SCREEN stroke (user-unit width * zoom) must stay a
-    // thin line. Pre-fix this was 1.2 * 25 = 30 px; a screen-constant stroke
-    // stays ~1.2 px. Cap at 3 px leaves headroom without admitting the blob.
+    // A screen-constant stroke stays about 1.2px; a user-unit one would reach 30px at the cap.
     const rings = Array.from(
       container.querySelectorAll("path[data-body-orbit]"),
     );

@@ -21,14 +21,7 @@ import {
   parseCrew,
 } from "./index";
 
-/**
- * The crew half of the pad panel: which kerbals are offered, what is said about
- * the ones that are not, and what the panel does when the roster cannot be read
- * at all.
- *
- * Kept apart from `index.test.tsx` because the three availability states are one
- * subject, and each of them needs its own roster.
- */
+/** The crew half of the pad panel: which kerbals are offered, what is said about the rest, and an unreadable roster. */
 const CARRIED = [
   "career.status",
   "spaceCenter.savedShips",
@@ -91,12 +84,7 @@ describe("LaunchDirector crew selection", () => {
     teardownMockDataSource(cmdFixture);
   });
 
-  /**
-   * Rendered TALL by default, because the crew grid stands open above
-   * `CREW_GRID_MIN_ROWS` and folds behind its tally below it: a test about what
-   * the chips say has to be given a tile the chips fit in. The fold itself is
-   * the subject of its own tests further down, which pass a short `h`.
-   */
+  /** Rendered TALL by default so the crew grid stands open; the fold's own tests pass a short `h`. */
   function renderWidget(id = "ld", h = 18) {
     return render(
       <stream.Provider>
@@ -220,9 +208,7 @@ describe("LaunchDirector crew selection", () => {
     await user.click(screen.getByText("Jeb"));
     expect(screen.getByText(/Launch Probe \(1 crew\)/)).toBeInTheDocument();
 
-    // Jeb is assigned to something else while the selection stands. The launch
-    // must stop counting him: the mod's own AssignCrew skips a name it cannot
-    // seat without refusing, so a stale count would fly one kerbal short.
+    // The mod skips a name it cannot seat without refusing, so a stale count would fly one kerbal short.
     act(() => {
       stream.emit("spaceCenter.crewRoster", [
         kerbal("Jeb", {
@@ -237,12 +223,7 @@ describe("LaunchDirector crew selection", () => {
     expect(screen.getByText(/Launch Probe unmanned/i)).toBeInTheDocument();
   });
 
-  /**
-   * A tile too short for the grid folds it behind the tally instead of pushing
-   * it, and the launch control with it, past the panel's fold. What the fold
-   * must not cost is the two things the section is FOR: knowing the roster's
-   * shape, and knowing who is already aboard.
-   */
+  /** A short tile folds the grid behind the tally, keeping the roster's shape and who is aboard. */
   describe("on a tile too short for the grid", () => {
     it("folds the grid behind the tally and keeps the launch control on screen", async () => {
       const user = userEvent.setup();
@@ -335,7 +316,7 @@ describe("LaunchDirector crew render scenes", () => {
     expect(text).toContain("Standing down");
     expect(text).toContain("Retired");
     expect(text).toContain("no reading");
-    // The chips are the interactive surface here: real buttons carrying aria-pressed for the selection and aria-disabled for the rest.
+    // Real buttons carrying aria-pressed for the selection and aria-disabled for the rest.
     await expectNoA11yViolations(rendered.container);
     rendered.teardown();
   });

@@ -19,22 +19,13 @@ export interface AudioInputPickerProps extends UseAudioInputOptions {
 /**
  * Microphone access and device choice, as one control: it asks for permission,
  * lists what the browser will admit to, opens the chosen input and hands the
- * stream back through `onStream`.
- *
- * It knows nothing about what the stream is for. Push-to-talk radio is the
- * first caller and not the shape of the API: anything capturing audio asks the
- * same questions, and a second copy of the answers is how two surfaces come to
- * disagree about what a refusal means.
+ * stream back through `onStream`. It knows nothing about what the stream is for.
  *
  * <b>Every state it can be in is a distinguishable sentence.</b> An insecure
- * origin, a refused permission and an absent device all end with no stream, and
- * each has a different cause and a different remedy. Collapsing them into one
- * "microphone unavailable" line sends an operator on a LAN http station hunting
- * through browser permissions that were never the problem. The refusal copy in
- * particular states where the answer is held rather than offering another
- * press, because the browser returns the same answer without prompting for as
- * long as the site setting stands, and a button that cannot work is worse than
- * no button.
+ * origin, a refused permission and an absent device all end with no stream, but
+ * each has a different remedy. A refusal offers no retry button, because the
+ * browser returns the same answer without prompting while the site setting
+ * stands.
  */
 export function AudioInputPicker({
   label = "Audio input",
@@ -113,11 +104,8 @@ function stateTone(status: AudioInputControls["status"]): StatusTone {
 
 /**
  * The one sentence describing where capture stands. `unasked` splits on
- * whether any label is populated, because a populated label is the browser's
- * own evidence that access was granted: the state after a release is not the
- * state before a first request, and saying access "has not been requested"
- * once it plainly has is the kind of small falsehood that costs trust in every
- * other reading on the screen.
+ * whether any device label is populated, because a populated label is the
+ * browser's evidence that access was already granted.
  */
 function stateSentence(state: AudioInputState): string {
   switch (state.status) {

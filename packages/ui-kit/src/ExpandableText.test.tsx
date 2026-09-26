@@ -3,11 +3,7 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { ExpandableText } from "./ExpandableText";
 
-/**
- * A real RP-1 strategy description, at the length that prompted this
- * primitive: the Administration Building's Programs screen rendered one of
- * these under every card it drew.
- */
+/** A real RP-1 strategy description, at full length. */
 const LONG =
   'Soviet OKBs (OKB translates roughly to "Experimental Design Bureau") were ' +
   "state-run institutions that would design and prototype things for military " +
@@ -71,7 +67,7 @@ describe("ExpandableText", () => {
   });
 
   it("does not hide a handful of characters behind a control", () => {
-    // Just over the limit: the control would cost more room than the tail it reveals, so there is no control and no cut.
+    // Just over the limit, so there is no control and no cut.
     const text = `${"word ".repeat(6)}tail`;
     render(<ExpandableText limit={text.length - 4}>{text}</ExpandableText>);
 

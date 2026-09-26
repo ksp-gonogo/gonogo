@@ -8,28 +8,7 @@ import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ResourceOpsComponent } from "./index";
 
-/**
- * What `undefined` MEANS at each of this widget's telemetry reads, as the code
- * stands today.
- *
- * Recorded before `useTelemetry` becomes a `Reading` union, because every
- * assertion below rests on a value being falsy or nullish, and a `Reading` is
- * always truthy. Nothing here says the behaviour is right; it says this is the
- * behaviour, so a change to it is visible.
- *
- * The reads and their gates:
- * - `isru.drills` / `isru.converters` → `?? []` (index.tsx:383-384), so a
- *   channel that has never delivered is indistinguishable from a channel that
- *   delivered an empty array
- * - `!anything` (index.tsx:468) turns that into the confident sentence "No
- *   drills or converters on this vessel", a claim about the VESSEL made from
- *   the absence of data
- * - `identity?.parentBodyIndex == null` (index.tsx:429) and
- *   `systemBodies?.bodies ?? []` (index.tsx:430) both fall back to "no body
- *   name", collapsing not-arrived into no-such-thing
- * - `identity?.name ? ... : undefined` (index.tsx:434) drops the whole "at"
- *   line
- */
+/** Pins what each telemetry read renders when its value has not arrived, arrived empty, or arrived partial. */
 
 const CARRIED = ["isru.drills", "isru.converters"];
 const CARRIED_WITH_LOCATION = [...CARRIED, "vessel.identity", "system.bodies"];
@@ -88,7 +67,6 @@ describe("ResourceOps: what undefined means today", () => {
     expect(
       screen.queryByText("No drills or converters on this vessel"),
     ).not.toBeInTheDocument();
-    // The stats header and the filter box only exist on the populated branch.
     expect(
       screen.queryByRole("group", { name: "Resource ops summary" }),
     ).not.toBeInTheDocument();
@@ -124,11 +102,6 @@ describe("ResourceOps: what undefined means today", () => {
   });
 
   it("omits the net EC stat when the converter channel never arrived, the same as when nothing draws power", async () => {
-    // `netElectricChargeDraw([])` reports that nothing MOVES ElectricCharge,
-    // and the header reads that as not-applicable. With `isru.converters` never
-    // delivered, that verdict comes from the absence of the channel rather than
-    // from the vessel's hardware: the widget omits a power stat it cannot know
-    // is inapplicable.
     const { fixture } = renderWidget();
     act(() => {
       fixture.emit("isru.drills", DRILLS);
@@ -136,22 +109,12 @@ describe("ResourceOps: what undefined means today", () => {
 
     await screen.findByText("Drill-O-Matic");
     const header = statsHeader();
-    // Drills alone still count as the whole process list.
     expect(within(header).getByText("2")).toBeInTheDocument();
     expect(within(header).getByText("processes")).toBeInTheDocument();
     expect(within(header).queryByText("net EC")).not.toBeInTheDocument();
   });
 
-  /**
-   * NOT a characterisation: the behaviour this pins is the corrected one.
-   *
-   * An absent rate is the producer's own way of saying it could not read one
-   * (a backend writes a null rate when the part's capacity failed to
-   * resolve, and says so at that site), so a stall
-   * diagnosed from it is a fault claimed from missing data. The card's own
-   * rate cells already print "unknown" for the very same values in the very
-   * same render, which is what the diagnosis has to agree with.
-   */
+  /** An absent rate is an unread one, so a stall diagnosed from it would contradict the "unknown" rate cells. */
   it("does not flag a running converter as starved when its output rates never arrived", async () => {
     const { fixture } = renderWidget();
     act(() => {
@@ -169,11 +132,10 @@ describe("ResourceOps: what undefined means today", () => {
 
     expect(await screen.findByText("Rateless Converter")).toBeInTheDocument();
     expect(screen.queryByText("no output")).not.toBeInTheDocument();
-    // Two rate cells, one per recipe side, both reading as unknown, which is the reading the starved diagnostic now agrees with rather than overrides.
     expect(screen.getAllByText("unknown")).toHaveLength(2);
   });
 
-  /** A READ zero is a real stall, and the diagnosis still has to make it. */
+  /** A zero that arrived is a real stall. */
   it("still flags a running converter whose output rates arrived as zero", async () => {
     const { fixture } = renderWidget();
     act(() => {
@@ -193,14 +155,7 @@ describe("ResourceOps: what undefined means today", () => {
     expect(screen.getByText("no output")).toBeInTheDocument();
   });
 
-  /**
-   * NOT a characterisation either: the corrected behaviour for the net EC sum.
-   *
-   * A total assembled from every rate it COULD read understates the draw, and
-   * the operator sizes a battery off it. Withheld instead, with the stat kept
-   * mounted, because whether the vessel moves ElectricCharge is a property of
-   * the recipes and remains a fact.
-   */
+  /** A partial net EC sum understates the draw, so the figure is withheld while the stat stays mounted. */
   it("withholds the net EC figure when one contributing rate never arrived", async () => {
     const { fixture } = renderWidget();
     act(() => {
@@ -225,14 +180,12 @@ describe("ResourceOps: what undefined means today", () => {
 
     await screen.findByText("Readable Converter");
     const header = statsHeader();
-    // The stat stays: these recipes DO move ElectricCharge.
     expect(within(header).getByText("net EC")).toBeInTheDocument();
-    // But not as "4", which is the readable converter's draw alone.
+    // "4" would be the readable converter's draw alone.
     expect(within(header).queryByText(/^4/)).not.toBeInTheDocument();
     expect(within(header).getByText("\u2014")).toBeInTheDocument();
   });
 
-  /** With every contributing rate readable, the sum is stated as before. */
   it("states the net EC figure when every contributing rate arrived", async () => {
     const { fixture } = renderWidget();
     act(() => {
@@ -255,10 +208,6 @@ describe("ResourceOps: what undefined means today", () => {
   });
 
   it("drops the location line while vessel.identity has not arrived", async () => {
-    // `identity?.name ? ... : undefined`: carried but unfed, so the "at" line
-    // is absent. Absence of the line is the widget's only way of saying "I
-    // don't know where this is", and it is the same rendering as "this mount
-    // never wires vessel.identity".
     const { fixture } = renderWidget(CARRIED_WITH_LOCATION);
     act(() => {
       fixture.emit("isru.drills", DRILLS);
@@ -270,10 +219,6 @@ describe("ResourceOps: what undefined means today", () => {
   });
 
   it("names the vessel with no body when system.bodies has not arrived yet", async () => {
-    // Partial location: the identity record arrived complete, including a
-    // parentBodyIndex, but the body TABLE has not. `systemBodies?.bodies ?? []`
-    // makes the lookup miss, so the header reads "at Prospector One" with no
-    // body, which is also what a vessel genuinely orbiting nothing would read.
     const { fixture } = renderWidget(CARRIED_WITH_LOCATION);
     act(() => {
       fixture.emit("isru.drills", DRILLS);
@@ -291,15 +236,11 @@ describe("ResourceOps: what undefined means today", () => {
     const header = statsHeader();
     expect(within(header).getByText("at")).toBeInTheDocument();
     expect(within(header).getByText("Prospector One")).toBeInTheDocument();
-    // The separator only appears when a body name resolved, so its absence is how "body unknown" is spelled.
+    // The separator only appears when a body name resolved.
     expect(within(header).queryByText(/·/)).not.toBeInTheDocument();
   });
 
   it("treats a null parentBodyIndex exactly as a missing one", async () => {
-    // null-versus-undefined: `identity?.parentBodyIndex == null` is a loose
-    // comparison, so a CONFIRMED "this vessel has no parent body" (null) and
-    // "the field never arrived" (undefined) take the same branch and render
-    // the same line. This widget implements no distinction between them.
     const { fixture } = renderWidget(CARRIED_WITH_LOCATION);
     act(() => {
       fixture.emit("isru.drills", DRILLS);
@@ -323,9 +264,6 @@ describe("ResourceOps: what undefined means today", () => {
   });
 
   it("drops the whole location line when the identity record arrived without a name", async () => {
-    // Partial payload, one field deep: the record is present and its
-    // parentBodyIndex resolves, but `identity?.name` is undefined so the
-    // truthiness gate throws away the body name it already had.
     const { fixture } = renderWidget(CARRIED_WITH_LOCATION);
     act(() => {
       fixture.emit("isru.drills", DRILLS);
@@ -347,14 +285,7 @@ describe("ResourceOps: what undefined means today", () => {
     expect(within(header).queryByText(/Duna/)).not.toBeInTheDocument();
   });
 
-  /**
-   * `running` is `bool?` on the shared shape, and every provider fills it by
-   * reading a module field that can go missing. "stopped" is a DIAGNOSIS: it
-   * tells an operator the rig is there, intact, and waiting to be started. The
-   * truthiness chip this pins gave that answer for a rig nobody could read,
-   * which is the same class of claim `deployed` was already spared (its chip is
-   * omitted rather than shown as a false "retracted").
-   */
+  /** "stopped" tells the operator the rig is intact and waiting to be started, so an unread flag must not say it. */
   it("says the run state is unread rather than calling an unreadable rig stopped", async () => {
     const { fixture } = renderWidget();
     act(() => {
@@ -364,7 +295,6 @@ describe("ResourceOps: what undefined means today", () => {
           partTitle: "Drill-O-Matic Senior",
           resource: "Ore",
           deployed: true,
-          // Read as far as the module and no further.
           running: null,
           abundance: 0.075,
           rate: null,

@@ -12,50 +12,18 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CommSignalComponent } from "./index";
 
-// `ContributionsProvider` only aggregates a widget's declared slots, and these
-// tests mount the component directly rather than through its registration, so
-// they supply the meta the dashboard would. Note what that CANNOT prove: for as
-// long as the registration itself was missing `contributionSlots`, this meta was
-// the only place the slot was declared anywhere, and the tests passed on their
-// own fixture while no real app ever aggregated it.
+// These tests mount the component directly, so they supply the meta the dashboard would derive from its registration.
 const HOP_RATE_META = {
   componentId: "comm-signal",
   contributionSlots: ["comm-signal.hop-rates"] as const,
 };
 
-// The hop-rate tests register a contribution into the global registry, and the
-// many no-provider CommSignal tests in this file expect that slot empty, so it
-// has to be cleared between tests.
-//
-// BEFORE each, deliberately, not after. Clearing after fires the registry's
-// `useSyncExternalStore` subscribers while the tree is still mounted, and every
-// one of those re-renders lands outside `act`: this exact hook was emitting five
-// act warnings a run as an `afterEach`. Clearing before leaves the same
-// guarantee (no test ever starts with another's contribution) with nothing
-// mounted to notify.
+// Cleared before each rather than after, so no mounted tree is notified outside act.
 beforeEach(() => {
   clearContributions();
 });
 
-/**
- * CommSignal genuinely running off the real `TelemetryProvider`/
- * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`: no legacy
- * `DataSource` is registered anywhere in this file.
- *
- * All five reads are clean homes now (`map-topic.ts`):
- * - `comm.connected` -> `comms.link.connected` (the dedicated Delayed,
- *   freeze-exempt connectivity MetaTopic: comms-delay-model-consistency spec),
- *   `comm.signalStrength` -> `vessel.comms.signalStrength` (raw field subtopic
- *   of the `vessel.comms` struct).
- * - `comm.controlState`/`comm.controlStateName` -> `vessel.comms.controlState`,
- *   the rich `ControlState` enum ordinal collapsed to a level and named.
- * - `comm.signalDelay` -> `comms.delay.oneWaySeconds`.
- *
- * A `vessel.comms` record with no `controlState` and no `comms.delay` emit
- * streams connected/signalStrength and leaves control state + delay
- * unresolved, so the widget renders the `describeControl`/delay NULL_DISPLAY
- * placeholders. A later test emits both to prove they stream too.
- */
+/** CommSignal off the real stream pipeline via `StubTransport`. */
 const FULL_CARRIED = ["vessel.comms", "comms.delay"];
 
 describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
@@ -74,10 +42,8 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
       </fixture.Provider>,
     );
 
-    // Nothing arrived yet: hasData is false (connected/strength/ controlState all undefined), so the empty state renders.
     expect(screen.getByText("No signal data")).toBeTruthy();
 
-    // A real subscription must have happened for this to deliver at all, StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.comms")).toBe(true);
 
     act(() => {
@@ -88,30 +54,14 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
       });
     });
 
-    // ceil(0.87 * 4) = 4 lit bars; headline reads the percentage.
     await waitFor(() => expect(visibleText()).toContain("87 %"));
     expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
-    // No control state rode the comms record and no delay was emitted, and
-    // there's no legacy source, so `describeControl` falls through to
-    // NULL_DISPLAY and the delay readout renders its NULL_DISPLAY placeholder,
-    // two independent NULL_DISPLAY cells.
+    // No control state and no delay arrived: two independent NULL_DISPLAY cells.
     expect(screen.getAllByText(NULL_DISPLAY).length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Signal to KSC")).toBeTruthy();
   });
 
-  /**
-   * Asserted rather than described.
-   *
-   * Three claims, and each is asserted because getting any one of them alone
-   * would be a worse panel than the collapse this replaced: the panel STAYS,
-   * every figure NULLS, and ONE badge carries the reason. A mark does not
-   * withdraw what a number asserts, and for a link there's no value in
-   * seeing what the link was.
-   *
-   * The badge is a `comm-signal.badges` contribution drawn by the panel header,
-   * so it is absent from this file's render and asserted in
-   * `./panel-badge.test.tsx` instead.
-   */
+  // The panel stays and every figure nulls; the badge itself is asserted in `panel-badge.test.tsx`.
   it("nulls every line once the link stops arriving", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.comms"],
@@ -136,7 +86,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
       fixture.store.beginFrame();
     });
 
-    // 1. The panel STAYS: no collapse to a single sentence.
+    // The panel stays: no collapse to a single sentence.
     await waitFor(() =>
       expect(screen.queryByText("Link state no longer current")).toBeNull(),
     );
@@ -144,20 +94,15 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     expect(screen.getByText("Control")).toBeTruthy();
     expect(screen.getByText("Delay")).toBeTruthy();
 
-    // 2. Every figure NULLS. Not held, not marked, not reckoned.
+    // Every figure nulls: not held, not marked, not reckoned.
     expect(visibleText()).not.toContain("87");
     expect(container.querySelectorAll("[data-not-current]").length).toBe(0);
-    /* And no control state stands in for it either: a confident "Full" for a
-       link that has stopped reporting would be a claim the wire no longer
-       backs. */
     expect(visibleText()).not.toContain("Full");
-    /* The bars withhold their count, and their aria-label matches the visible
-       badge too: a screen-reader message is operator-facing copy. */
+    // The bars withhold their count, and their aria-label matches the visible badge.
     expect(screen.getByLabelText("No signal")).toBeTruthy();
     expect(screen.queryByLabelText(/Signal \d of 4/)).toBeNull();
     expect(screen.queryByLabelText(/not current/i)).toBeNull();
 
-    // 3. None of the disallowed wording survives anywhere on the panel.
     expect(visibleText()).not.toMatch(/not current/i);
     expect(visibleText()).not.toMatch(/no longer current/i);
     expect(visibleText()).not.toMatch(/stale/i);
@@ -169,7 +114,6 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     "reflects a signal-loss transition (connected True->False->True) as LOS, " +
       "never a stuck-stale 'connected' readout",
     async () => {
-      // Connectivity now rides the dedicated comms.link MetaTopic (comm.connected -> comms.link.connected); signalStrength still rides vessel.comms.
       const fixture = setupStreamFixture({
         carriedChannels: ["vessel.comms", "comms.link"],
         pinnedUt: 10,
@@ -190,8 +134,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
       await waitFor(() => expect(visibleText()).toContain("87 %"));
       expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
 
-      // Signal lost: the wire actively reports connected:false on comms.link
-      // (not silence/absence). The widget must show LOS, not hold the stale 87%.
+      // A reported disconnection, not silence: LOS, never the held 87%.
       act(() => {
         fixture.emit("comms.link", { connected: false });
         fixture.emit("vessel.comms", { connected: false, signalStrength: 0 });
@@ -202,18 +145,12 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
         }
         expect(screen.getByText("LOS")).toBeTruthy();
       });
-      // `visibleText`, not `queryByText`. <Unit> puts a THIN SPACE between the
-      // number and its symbol and splits them across elements, so a
-      // `queryByText("87 %")` is null whether or not 87% is on screen: it
-      // would pass here for the wrong reason and keep passing if the widget
-      // held the stale value.
+      // `visibleText`, not `queryByText`: `Unit` splits number and symbol across elements, so a text query is always null.
       expect(visibleText(container)).not.toContain("87 %");
       expect(screen.getByLabelText("Signal 0 of 4")).toBeTruthy();
       expect(screen.getByText("No signal")).toBeTruthy();
-      // The polite live region announces the loss (not a live-regioned percentage: see the component's own a11y doc comment).
       expect(screen.getByText("Signal lost")).toBeTruthy();
 
-      // Signal regained.
       act(() => {
         fixture.emit("comms.link", { connected: true });
         fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
@@ -225,11 +162,6 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
   );
 
   it("holds the last-known value when the wire goes silent (no clear-on-disconnect)", async () => {
-    // A TelemetryProvider mounted, `vessel.comms` carried. No further wire
-    // activity after the initial value: simulating the underlying
-    // connection having gone silent. The streamed path does NOT clear to
-    // undefined the way the retired legacy `DataSource` did on a status
-    // drop; it holds the last-known value instead of clearing it.
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.comms"],
       pinnedUt: 10,
@@ -251,8 +183,6 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
       });
     });
     await waitFor(() => expect(visibleText()).toContain("90 %"));
-    // No new wire samples, no status event at all, nothing further happens
-    // by design. The value must still be showing.
     expect(visibleText()).toContain("90 %");
     expect(screen.queryByText("No signal data")).toBeNull();
   });
@@ -261,9 +191,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     "under delay>0, a newer sample doesn't win until the delay elapses, " +
       "renders the OLDER confirmed value in the meantime, then catches up",
     async () => {
-      // `pinnedUt` is deliberately OMITTED: ViewClock.viewUt()'s scrubTo
-      // target wins outright over the confirmed-edge/delay computation, so a
-      // pinned clock would make `delaySeconds` a no-op (see setupStreamFixture).
+      // No `pinnedUt`: a pinned clock overrides the confirmed edge and makes `delaySeconds` a no-op.
       const fixture = setupStreamFixture({
         carriedChannels: ["vessel.comms"],
         delaySeconds: 5,
@@ -278,7 +206,6 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
         </fixture.Provider>,
       );
 
-      // Sample A: validAt/deliveredAt = 0 (wall also starts at 0).
       act(() => {
         fixture.emit(
           "vessel.comms",
@@ -286,22 +213,16 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
           { validAt: 0, deliveredAt: 0 },
         );
       });
-      // Nothing renders yet, even sample A hasn't crossed the delay window
-      // (confirmedEdgeUt = utNowEstimate() - delaySeconds is negative before
-      // any wall time has passed).
+      // Sample A has not crossed the delay window yet.
       expect(screen.getByText("No signal data")).toBeTruthy();
 
-      // Advance the wall by exactly the delay, sample A crosses the confirmed
-      // edge. Wall time moving is not itself a frame, so the test mints one to
-      // apply it: the fixture's own loop is suspended and an emit is the only
-      // other frame source.
+      // Wall time moving is not itself a frame, so the test mints one.
       act(() => {
         fixture.wall.advanceBy(5);
         fixture.store.beginFrame();
       });
       await waitFor(() => expect(visibleText()).toContain("50 %"));
 
-      // Sample B: a MUCH more current reading arrives (validAt/deliveredAt = 20), but the delay window means it isn't confirmed yet.
       act(() => {
         fixture.emit(
           "vessel.comms",
@@ -310,11 +231,9 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
         );
         fixture.store.beginFrame();
       });
-      // The OLDER confirmed value (50%) must still be what's rendered.
       expect(visibleText()).toContain("50 %");
       expect(visibleText()).not.toContain("90 %");
 
-      // Advance past the delay window relative to sample B's timing too.
       act(() => {
         fixture.wall.advanceBy(5);
         fixture.store.beginFrame();
@@ -340,9 +259,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     );
 
     act(() => {
-      // `controlState` on the wire is the rich `ControlState` enum ordinal
-      // (Partial = 3); the SDK collapses it to the widget's level (1) and
-      // resolves the "Partial" name string.
+      // The wire carries the `ControlState` ordinal: Partial is 3.
       fixture.emit("vessel.comms", {
         connected: true,
         signalStrength: 0.4,
@@ -351,12 +268,9 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
       fixture.emit("comms.delay", { oneWaySeconds: 1.2 });
     });
 
-    // Control state resolves off vessel.comms, delay off comms.delay: both streamed, no legacy source.
     await waitFor(() => expect(screen.getByText("Partial")).toBeTruthy());
     expect(fixture.transport.isSubscribed("comms.delay")).toBe(true);
-    // ceil(0.4 * 4) = 2 lit bars.
     expect(screen.getByLabelText("Signal 2 of 4")).toBeTruthy();
-    // formatDuration(1.2, { ms: true }) -> "1s".
     expect(visibleText()).toContain("1s");
   });
 
@@ -378,9 +292,6 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     act(() => {
       fixture.emit("comms.link", { connected: true });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
-      // The vessel's path resolved to a crewed control-source vessel, not
-      // KSC (the vanilla "6-kerbal command center" case): the caption must
-      // name it, not fall back to the KSC default.
       fixture.emit("comms.commandCentre", {
         id: "vessel:abc-123",
         displayName: "Constant Companion",
@@ -413,9 +324,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     );
 
     act(() => {
-      /* The caption names a centre, which ASSERTS a signal, so the scene has
-         to carry a link verdict: with `comms.link` never arriving the widget
-         withholds the caption and there is no centre name to assert about. */
+      // The caption asserts a signal, so it needs a link verdict to render at all.
       fixture.emit("comms.link", { connected: true });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
     });
@@ -469,52 +378,35 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
       });
     });
 
-    // The top stop is the source vessel's own name, never "You": Gonogo is the experience FROM the command centre.
     await waitFor(() => expect(screen.getByText("Active Vessel")).toBeTruthy());
     expect(screen.getByText("Relay Sat 1")).toBeTruthy();
     expect(screen.getByText("KSC")).toBeTruthy();
-    // The legs carry their own numbers, which is the whole point of the
-    // schedule: a widget drawing three empty stops looks identical to one
-    // that works, so the distances are asserted by value.
+    // Asserted by value: three empty stops look identical to a working schedule.
     expect(visibleText()).toContain("1.9 Mm");
     expect(visibleText()).toContain("640.0 km");
-    /*
-     * No light-time yet, and that is the honest render rather than a gap. A leg
-     * carries the share of the route's total delay its distance earns, and no
-     * total has arrived, so there is nothing for either leg to be a share OF.
-     */
+    // No total delay has arrived, so no leg has a share of one.
     expect(visibleText()).not.toContain("6 ms");
 
     act(() => {
-      // The whole route's light-time at real light speed, which is what a save at clean realism reports for this geometry.
       fixture.emit("comms.delay", {
         oneWaySeconds: 2_490_000 / 299_792_458,
       });
     });
 
-    /*
-     * Each leg's share of that total, apportioned by distance: 1,850 km of the
-     * 2,490 km route is 6 ms of the 8, and 640 km is the remaining 2.
-     */
+    // 1,850 km of the 2,490 km route is 6 ms of the 8, and 640 km the remaining 2.
     await waitFor(() => expect(visibleText()).toContain("6 ms"));
     const visible = visibleText();
     expect(visible).toContain("2 ms");
-    // The whole chain, in order, so a reordered or duplicated stop fails here rather than passing on four independent substring hits.
+    // The whole chain in order, so a reordered or duplicated stop fails.
     expect(visible).toContain(
       "RouteActive Vessel1.9 Mm6 msRelay Sat 1640.0 km2 msKSC",
     );
-    // Subtitle keeps the plain centre name once the full schedule has room
-    // to render below it: the "(N relays)" hint is the cramped-size
-    // fallback, not a duplicate of the schedule.
+    // The "(N relays)" hint is the cramped fallback, not a duplicate of the schedule.
     expect(screen.getByText("Signal to KSC")).toBeTruthy();
   });
 
   it("stays on the hop-count hint (not the full chain) at the registered default size", async () => {
-    // 6x5 is the widget's own registered `defaultSize`. Stacked vertically
-    // (bars, headline, detail grid, then the route), it doesn't have the
-    // headroom for a fourth block: showing the chain there would clip
-    // against the panel's bottom edge with nothing useful visible. The hint
-    // stays legible at any size the subtitle itself shows.
+    // Portrait 6x5 has no headroom for the route below the detail grid.
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.comms", "comms.link", "comms.path"],
       pinnedUt: 10,
@@ -579,7 +471,6 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     await waitFor(() =>
       expect(screen.getByText("Signal to KSC (1 relay)")).toBeTruthy(),
     );
-    // Too cramped for the full chain: the relay's own name never renders.
     expect(screen.queryByText("Relay Sat 1")).toBeNull();
   });
 
@@ -614,12 +505,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
   });
 
   it("joins a `comm-signal.hop-rates` contribution onto the route and flags the bottleneck hop", async () => {
-    // Per-hop bitrate is no longer a core hop field: it arrives via the
-    // `comm-signal.hop-rates` slot. A comms Uplink fills it off
-    // its own Topic keyed by node id; here a local contribution stands in for
-    // that, keyed to the two hops emitted below. CommSignal joins the rates onto
-    // the route it already renders and flags the slower hop by colour, plus a
-    // screen-reader-only hint (no visible label word, it was overflowing the leg).
+    // A local contribution stands in for a comms Uplink, keyed to the two hops emitted below.
     registerContribution({
       id: "test-comm-signal-hop-rates",
       contributes: "comm-signal.hop-rates",
@@ -677,13 +563,10 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     });
 
     await waitFor(() => expect(screen.getByText("Active Vessel")).toBeTruthy());
-    // Both legs' rates render through the canonical Unit formatter, by value: 96,000 bit/s on the vessel-to-relay leg, 12,000 on the relay-to-home one.
     const routeText = visibleText();
     expect(routeText).toContain("96.0 kbit/s");
     expect(routeText).toContain("12.0 kbit/s");
-    // No literal "LIMITING" word (it was overflowing the leg): the bottleneck
-    // hop is flagged by colour on its rate value plus a screen-reader-only
-    // hint, never by a space-consuming label.
+    // The bottleneck is flagged by colour plus a hidden hint, never a visible label word.
     expect(screen.queryByText("Limiting")).toBeNull();
     const bottleneckHint = screen.getByText(
       /slowest hop, limits end-to-end rate/i,
@@ -693,9 +576,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
       '[title="Slowest hop: caps end-to-end throughput"]',
     );
     expect(bottleneckValue).toBeTruthy();
-    // The flag lands on the SLOWER leg, 12 kbit/s, not merely on some leg.
-    // `Unit` joins the magnitude to its symbol with a non-breaking space, so
-    // the whitespace class is matched rather than a literal space.
+    // The flag lands on the slower leg; `Unit` joins with a non-breaking space, hence `\s`.
     expect(bottleneckValue?.textContent ?? "").toMatch(/12\.0\skbit\/s/);
     expect(bottleneckValue).toHaveStyle({
       color: "var(--color-status-warning-fg-muted)",

@@ -21,11 +21,7 @@ describe("Inline", () => {
     expect(style.flexWrap).not.toBe("wrap");
   });
 
-  /**
-   * The shrink half matters as much as the wrap: a cluster pinned at
-   * `flex-shrink: 0` is never narrow enough to need a second line, so it runs
-   * on past its container and paints over whatever is drawn beside it.
-   */
+  /** The shrink half matters as much as the wrap: a cluster pinned at `flex-shrink: 0` never needs a second line. */
   it("breaks onto further lines, and gives up width to do it, when asked", () => {
     render(
       <Inline wrap data-testid="badges">

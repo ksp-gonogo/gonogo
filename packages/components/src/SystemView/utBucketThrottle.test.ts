@@ -2,12 +2,7 @@ import { describe, expect, it } from "vitest";
 import { quantiseUt } from "../MapView/predictionThrottle";
 import { createUtBucketThrottle } from "./utBucketThrottle";
 
-/**
- * Simulates a render loop: 60 frames per real second, game UT advancing at
- * `warp` game-seconds per real-second. Returns how many DISTINCT buckets each
- * strategy produced, which is how many times the expensive projection solve
- * would have re-run.
- */
+/** Simulates 60 frames per real second at `warp` game-seconds per real second, returning how many distinct buckets each strategy produced. */
 function rebuildsPerRealSecond(warp: number, seconds = 3) {
   const throttle = createUtBucketThrottle({ bucketSec: 1, minRealMs: 1000 });
   const frames = 60 * seconds;
@@ -38,7 +33,7 @@ function rebuildsPerRealSecond(warp: number, seconds = 3) {
 describe("SystemView UT bucket throttle", () => {
   it("advances about once a real second at 1x, so it is not merely frozen", () => {
     const { throttled } = rebuildsPerRealSecond(1);
-    // The control that matters: an over-aggressive throttle would pass the warp assertion below by never advancing at all, and would freeze the diagram.
+    // The control: a throttle that never advanced would pass the warp assertion below and freeze the diagram.
     expect(throttled).toBeGreaterThanOrEqual(0.9);
     expect(throttled).toBeLessThanOrEqual(1.5);
   });
@@ -49,10 +44,7 @@ describe("SystemView UT bucket throttle", () => {
   });
 
   it("is what the bare game-time bucket fails to do, which is the defect", () => {
-    // At 100x, one game second passes in well under one frame, so the bare
-    // bucket changes every frame and stops throttling anything. 34 bodies x 97
-    // placements x 60 changes/sec is the ~198,000/sec the placement budget
-    // calls its regression, produced here by ordinary time warp.
+    // At 100x a game second passes inside one frame, so the bare bucket changes every frame: the ~198,000 placements/sec the budget treats as a regression.
     const { raw, throttled } = rebuildsPerRealSecond(100);
     expect(raw).toBeGreaterThan(50);
     expect(throttled * 20).toBeLessThan(raw);

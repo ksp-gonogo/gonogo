@@ -6,22 +6,11 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LaunchDirectorComponent } from "./index";
 
 /**
- * What LaunchDirector does when its telemetry stops being current.
- *
- * The decision, one field at a time: the pad's paperwork is kept and the funds
- * balance is withheld. Craft files, the crew roster, the scene, the revert
- * points, the vessel roster and the crash record all change on events, and an
- * event cannot reach us down a link that is not delivering, so the last set
- * received is still the answer. The balance is the exception: it is spent, not
- * read. Contracts pay out and facilities bill while nobody is looking, so a held
- * balance is not evidence of what this save can afford, and the affordability
- * verdict rests on it.
- *
- * The assertions that earn this file are the ones separating withheld from
- * broken. A withheld balance blocks every priced craft, which looks exactly like
- * a save that is short of money, and it does so on a cold start too: without a
- * stated reason the operator cannot tell "the link stopped" from "you cannot
- * afford this" from "nothing has arrived yet".
+ * What LaunchDirector does when its telemetry stops being current: the pad's
+ * paperwork (craft, roster, scene, revert points, vessel roster, crash record)
+ * is kept, since only events change it, and the funds balance is withheld,
+ * since it is spent. The withheld balance must read differently from a short
+ * balance and from a cold start.
  */
 
 const CARRIED = [
@@ -153,15 +142,14 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
   }
 
   it("shows the balance and calls the craft launchable while the balance is current", async () => {
-    // The control. Without it every assertion below would also pass on a widget
-    // that never affords anything.
+    // The control: without it the assertions below would pass on a widget that never affords anything.
     renderWidget();
     emitPreLaunch();
 
     await waitFor(() =>
       expect(screen.getByTitle("Available funds")).toBeTruthy(),
     );
-    // The count belongs to the pad the operator opened, not to the panel: it is what THIS pad can take.
+    // The count belongs to the opened pad: what THIS pad can take.
     expect(screen.getByText(/Craft · 1\/1 ready/)).toBeTruthy();
     expect(
       screen
@@ -179,7 +167,7 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
 
     goStale();
 
-    // Withheld, not merely gone: the readout that held the number is replaced by a readout that states the number is no longer current.
+    // Withheld, not merely gone: the readout states the number is no longer current.
     await waitFor(() =>
       expect(screen.queryByTitle("Available funds")).toBeNull(),
     );
@@ -192,9 +180,7 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
   });
 
   it("does not present a withheld balance as an empty wallet the operator has never seen", async () => {
-    // The distinction this file exists for. A blocked craft with no balance on
-    // screen is what a broken widget looks like, and "funds unknown" is what a
-    // cold start says, so the not-current wording has to be its own sentence.
+    // The not-current wording is its own sentence, distinct from a cold start's "funds unknown".
     const { container } = renderWidget();
     emitPreLaunch();
     await waitFor(() =>
@@ -211,7 +197,7 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
   });
 
   it("says the balance is unknown, not out of date, before one has ever arrived", async () => {
-    // A cold start is not a dropped link, and this widget would otherwise accuse the link of dropping on first paint.
+    // A cold start is not a dropped link.
     const { container } = renderWidget();
     act(() => {
       stream.emit("spaceCenter.launchSites", [
@@ -234,9 +220,7 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
   });
 
   it("suspends the affordability verdict with the balance, rather than spending against a held one", async () => {
-    // The withheld balance is a judgement input, so the craft it priced stops
-    // being offered. This is the cost of the decision above and is stated here so
-    // it cannot be mistaken for a rendering bug in the craft list.
+    // The withheld balance is a judgement input, so the craft it priced stops being offered.
     renderWidget();
     emitPreLaunch();
     await waitFor(() =>
@@ -260,10 +244,7 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
   });
 
   it("keeps the craft shelf and the crew roster, rather than falling back to a wait message", async () => {
-    // A .craft file does not leave the disk because the link dropped, and this
-    // widget reads a missing craft list as "nothing has arrived" and blanks its
-    // whole body. Holding the paperwork is what keeps the funds notice on screen
-    // at all.
+    // A missing craft list would blank the whole body, so the paperwork is held.
     const { container } = renderWidget();
     emitPreLaunch();
     await waitFor(() => expect(screen.getByText("Kerbal X")).toBeTruthy());
@@ -280,11 +261,7 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
   });
 
   it("keeps the in-flight panel, its revert points and its vessel roster", async () => {
-    // The scene is the fact this widget can least afford to drop: withheld, it
-    // reads as "not in flight" and swaps a live flight's recover / revert
-    // controls for the pre-launch craft picker. The revert points and the roster
-    // go the same way, and a control greyed out as "(n/a)" would state that the
-    // save cannot revert when it demonstrably still can.
+    // A withheld scene would swap a live flight's controls for the pre-launch picker.
     renderWidget();
     emitInFlight();
     await screen.findByText(/In flight: Mun Hopper I/i);
@@ -302,10 +279,7 @@ describe("LaunchDirector when its telemetry is no longer current", () => {
   });
 
   it("keeps recovery available rather than reviving the crash block it was given to fix", async () => {
-    // `crash.hasRecent` is session-wide; the crash record is what scopes the
-    // block to the active vessel. Withholding the record would hand the flag back
-    // the false block on a successful landing, so the record is held: a crash is
-    // something that already happened.
+    // The crash record scopes the session-wide flag to the active vessel, so it is held.
     renderWidget();
     emitInFlight();
     act(() => {

@@ -27,16 +27,7 @@ interface BudgetSnapshot {
   exceedanceCount: number;
 }
 
-/**
- * Live view of every registered `PerfBudget`. Polls 1 Hz so it doesn't
- * compete with the metrics it's measuring; each row colour-codes under
- * (green) / approaching (amber) / over (red) the threshold so a glance
- * tells you whether anything has regressed.
- *
- * Useful as a permanent fixture on the main screen during development
- * and load testing, and during real flights when you want to spot-check
- * that you're inside the soft caps.
- */
+/** Live view of every registered `PerfBudget`, polled at 1 Hz so it does not compete with what it measures; each row reads under, approaching or over its threshold. */
 function PerfBudgetsComponent({
   w,
   h,
@@ -50,7 +41,7 @@ function PerfBudgetsComponent({
     return () => clearInterval(id);
   }, []);
 
-  // Selective rendering: at small sizes the bars are unreadable; collapse to a healthy-vs-over count.
+  // At small sizes the bars are unreadable, so collapse to a healthy-vs-over count.
   const cols = w ?? 6;
   const rows = h ?? 6;
   const showFullRows = rows >= 6 && cols >= 5;
@@ -134,8 +125,7 @@ function PerfBudgetsComponent({
               const t = toneOf(s);
               return (
                 <Card as="li" key={s.name} tone={KIT_TONE[t]}>
-                  {/* A bare figure rather than a reading: the rate is measured
-                      in this tab, so it is always current. */}
+                  {/* A bare figure rather than a reading: the rate is measured in this tab, so it is always current. */}
                   <Meter
                     label={s.name}
                     value={value("ratio", ratio)}
@@ -209,11 +199,6 @@ const TONE_COLOR: Record<Tone, string> = {
   near: "var(--color-status-warning-bg)",
   over: "var(--color-status-nogo-bg)",
 };
-
-// Structural inline styles (CSS-var tokens): a bespoke budget list + dot
-// summary, no reusable ui-kit primitive fits the layout, so it stays local.
-// Each budget is a kit Card holding a kit Meter. Per-tone colour (text + fills)
-// is applied inline at the call site from TONE_COLOR.
 
 const LIST: CSSProperties = {
   listStyle: "none",

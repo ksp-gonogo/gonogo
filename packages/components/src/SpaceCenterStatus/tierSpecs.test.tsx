@@ -14,35 +14,22 @@ import { registerStockFacilityContribution } from "./facilitiesContribution";
 import { SpaceCenterStatusComponent } from "./index";
 
 /**
- * What a facility cell does with KSP's own tier descriptions. They arrive as the
- * stock upgrade dialog's asterisk-bulleted blob, they are game copy rather than
- * a contract, and either tier's half can be missing.
- *
- * They arrive through the `space-center-status.facilities` slot, which is the
- * only thing that carries them. `career.facilities` does not:
- * `CareerViewProvider.BuildFacilities` emits `facilityOrdinal`, `currentTier`,
- * `maxTier` and `upgradeCost`, and KSP's tier copy is not among them. A career
- * model that keeps its own tier table has the text and contributes it.
+ * What a facility cell does with KSP's own tier descriptions: game copy, not a
+ * contract, and either tier's half can be missing. Only a contributor carries
+ * them; `career.facilities` does not.
  */
 const renderedTrees: Array<() => void> = [];
 
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
-  /* The widget's own contribution registers as a module side effect, so
-     emptying the registry takes it too; put it back rather than leave every
-     case after the first with no stock reading. */
+  // Emptying the registry takes the widget's own module-side-effect contribution too.
   clearContributions();
   registerStockFacilityContribution();
   clearActionHandlers();
 });
 
-/**
- * `settledLabel` is the accessible name of a tier the contribution sets, and it
- * is required: the facility NAMES render before any telemetry arrives, so
- * waiting on one of those returns on the first tick with an empty grid behind
- * it.
- */
+/** `settledLabel` is required: facility names render before telemetry, so waiting on one returns on an empty grid. */
 async function renderWithTiers(
   rows: readonly SpaceCenterFacilityEntry[],
   settledLabel: string,
@@ -77,9 +64,7 @@ async function renderWithTiers(
   renderedTrees.push(unmount);
   act(() => {
     fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
-    /* `career.facilities` is deliberately never emitted: the stock contribution
-       deps on it, so leaving it silent is what makes the contributed rows below
-       the only thing in the slot. */
+    // `career.facilities` is never emitted, so the contributed rows are the only thing in the slot.
     fixture.emit("career.status", {
       economy: { funds: 100000, reputation: 0, science: 0 },
       contracts: null,
@@ -149,10 +134,7 @@ describe("SpaceCenterStatus tier descriptions", () => {
 
     expect(screen.getByText("Now")).toBeInTheDocument();
     expect(screen.getByText("Next")).toBeInTheDocument();
-    // One dash, and it is the launch pad's own empty NOW block. The eight
-    // facilities nothing answered for get no cell at all: an absent facility has
-    // no description to be missing, and eight dashes for them buried the one
-    // that genuinely is.
+    // One dash, the launch pad's own empty NOW block; unanswered facilities get no cell.
     expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(1);
   });
 

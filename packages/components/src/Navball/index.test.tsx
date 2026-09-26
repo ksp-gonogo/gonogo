@@ -26,13 +26,8 @@ import {
 } from "../test/setupStreamFixture";
 import { NavballComponent } from "./index";
 
-// Legacy source keys: the widget's ACTIONS still route through
-// useExecuteAction("data"), and its connectivity badge reads the legacy
-// "data" status: so a legacy source stays registered for those. Every VALUE
-// read is off the stream now.
 const KEYS: DataKey[] = [{ key: "n.heading" }];
 
-// The read topics the widget consumes off the stream; comms.delay feeds the FBW-delay warning.
 const READ_CHANNELS = [
   "vessel.attitude",
   "vessel.control",
@@ -41,9 +36,7 @@ const READ_CHANNELS = [
   "vessel.identity",
 ];
 
-// Size large enough to meet the control-surface threshold (rows≥18,
-// cols≥7). Keeps the control-mode tests close to the live wide-open
-// dashboard slot.
+// Large enough to clear the control surface's size gate.
 const CONTROL_SIZE = { w: 9, h: 20 };
 
 interface EmitState {
@@ -74,7 +67,7 @@ describe("NavballComponent", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
   let onExecute: ReturnType<typeof vi.fn<(action: string) => void>>;
-  // Unmount before buffered.disconnect() (a status change that re-renders the still-mounted connectivity badge): the act() anti-pattern otherwise.
+  // Unmounted before buffered.disconnect(), whose status change would re-render a mounted tree outside act().
   const trees: Array<() => void> = [];
 
   beforeEach(async () => {
@@ -113,10 +106,6 @@ describe("NavballComponent", () => {
   }
 
   it("renders heading/pitch/roll readouts from the default root-part frame (n.*2)", async () => {
-    // Default config (useCoMFrame false) reads the root-part-referenced
-    // frame: vessel.attitude.*RootFrame: per the widget's verified frame
-    // mapping (the UNSUFFIXED n.heading is the CoM frame; see the component's
-    // ternary comment and VesselAttitude.cs's class doc).
     const { fixture } = renderNavball();
     emitReads(fixture, {
       attitude: {
@@ -150,9 +139,7 @@ describe("NavballComponent", () => {
 
   it("surfaces SAS mode on the SAS toggle", async () => {
     const { fixture } = renderNavball();
-    // vessel.control.sasMode (1 = Prograde), named and rendered as the grid's own three-letter token. On the
-    // toggle rather than a header chip, and on a display-sized tile that is
-    // still the only place the mode appears.
+    // 1 = Prograde; on a display-sized tile the toggle is the only place the mode appears.
     emitReads(fixture, { control: { sas: true, sasMode: 1 } });
     expect(
       await screen.findByRole("button", { name: "SAS: PRO" }),
@@ -160,9 +147,6 @@ describe("NavballComponent", () => {
   });
 
   it("displays the control surface and dispatches vessel.control.setSasMode", async () => {
-    // SAS-mode dispatch (delayed-command-ux migration) rides useCommand
-    // directly, unconditionally: no more legacy-execute fallback to assert
-    // against, see fixture.transport.sentCommands instead.
     const user = userEvent.setup();
     const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
     emitReads(fixture, { comms: { controlState: 4 } });
@@ -188,7 +172,6 @@ describe("NavballComponent", () => {
   });
 
   it("arms FBW on click and disarms on unmount", async () => {
-    // FBW arm/disarm (delayed-command-ux migration) rides useCommand directly against vessel.control.setFlyByWire, unconditionally.
     const user = userEvent.setup();
     const { fixture, unmount } = renderNavball(
       { controlMode: true },
@@ -214,17 +197,13 @@ describe("NavballComponent", () => {
   });
 
   it("drives vessel.control.setThrottle via the delayed control-stream when the throttle slider moves", async () => {
-    // Throttle migrated off the legacy execute() path onto useControlStream
-    // (same "no carried-channels gate" shape the FBW arm/disarm test above
-    // proves for vessel.control.setFlyByWire): the slider sets local
-    // commanded state, the hook's coalesced write half dispatches it.
     const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
     emitReads(fixture, {
       comms: { controlState: 4 },
       control: { throttle: 0.25 },
     });
     const slider = await screen.findByRole("slider", { name: "Throttle" });
-    // Range inputs have no userEvent equivalent (type/selectOptions don't apply); fireEvent.change is the RTL-recommended way to set a slider value.
+    // userEvent cannot set a range input.
     fireEvent.change(slider, { target: { value: "0.75" } });
     await waitFor(() => {
       const sent = fixture.transport.sentCommands.find(
@@ -237,11 +216,7 @@ describe("NavballComponent", () => {
   });
 
   it("re-seeds the commanded throttle from the new vessel's readback on a vessel switch, even after the old vessel's throttle was touched", async () => {
-    // Regression: `throttleTouchedRef` permanently latches once the operator
-    // touches the slider, so the seed-from-readback effect stays disabled
-    // for the rest of the widget's life. Without a reset keyed on the active
-    // vessel, switching to a freshly-controlled craft would keep showing
-    // (and re-commanding) the PREVIOUS vessel's stale throttle value.
+    // Touching the slider latches off readback seeding; the latch must reset per vessel.
     const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
     emitReads(fixture, {
       comms: { controlState: 4 },
@@ -251,13 +226,9 @@ describe("NavballComponent", () => {
     const slider = await screen.findByRole("slider", { name: "Throttle" });
     await waitFor(() => expect(slider).toHaveValue("0.25"));
 
-    // Operator touches the throttle: latches `throttleTouchedRef`, so the seed-from-readback effect would otherwise never fire again.
     fireEvent.change(slider, { target: { value: "0.75" } });
     await waitFor(() => expect(slider).toHaveValue("0.75"));
 
-    // Switch to a different vessel with its own live throttle. A stale
-    // latch would leave the slider stuck at 0.75 (vessel-a's touched
-    // value) instead of picking up vessel-b's actual live throttle.
     emitReads(fixture, {
       comms: { controlState: 4 },
       control: { throttle: 0.6 },
@@ -267,17 +238,8 @@ describe("NavballComponent", () => {
   });
 
   describe("FBW-under-delay warning", () => {
-    // `role="status"` doesn't compute an accessible name from content (only
-    // aria-label/aria-labelledby), and `StreamStatusBadge` already owns a
-    // sibling status region ("OFFLINE"): so identify our live region by its
-    // actual text content across `screen.getAllByRole("status")` rather than
-    // an accessible-name query.
+    // A status region takes no accessible name from its content, so it is found by text.
     function findDelayStatus(): HTMLElement | undefined {
-      // queryAll, not getAll: getAllByRole THROWS on zero matches rather than
-      // returning [], and zero is now the normal case. The widget used to
-      // render its own stream-status badge (role=status) unconditionally, so
-      // there was always at least one; the panel derives that badge from the
-      // host now, and a widget test mounts no host.
       return screen
         .queryAllByRole("status")
         .find((el) => /High signal delay/i.test(el.textContent ?? ""));
@@ -362,9 +324,7 @@ describe("Navball: navball.badges augment slot (spec §4)", () => {
   });
 
   afterEach(() => {
-    // Unmount before the state-mutating teardown: clearAugments() notifies the
-    // AugmentSlot subscribers and buffered.disconnect() re-renders the
-    // connectivity badge: both are the act() anti-pattern against a live tree.
+    // Unmounted before clearAugments() and disconnect(), which would re-render a mounted tree outside act().
     for (const unmount of trees) unmount();
     trees.length = 0;
     clearAugments();
@@ -389,9 +349,6 @@ describe("Navball: navball.badges augment slot (spec §4)", () => {
   }
 
   it("renders without an augment (empty slot is fine)", async () => {
-    // No augment bound → the slot composes to nothing and the widget doesn't
-    // crash. The stock SAS/RCS state is in the BODY now, on the two toggles,
-    // so the header aside is free for whatever an Uplink contributes here.
     const { fixture } = renderNavball();
     emitReads(fixture, { control: { sas: true, sasMode: 1, rcs: false } });
     expect(

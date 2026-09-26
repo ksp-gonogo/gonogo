@@ -7,20 +7,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { MapViewComponent } from "./index";
 
 /**
- * The stream test-adapter proof for MapView:
- * genuinely running off the real `TelemetryProvider`/`TelemetryClient`/
- * `TimelineStore` pipeline via `StubTransport`; no legacy `DataSource` is
- * registered anywhere in this file.
- *
- * MapView's reads: `v.lat`/`v.long` -> `vessel.flight.latitude`/`.longitude`,
- * `v.altitude` -> `vessel.flight.altitudeAsl`, the other kinematics ->
- * `vessel.flight.*` fields, and the patch chain -> `vessel.orbit.patches`.
- * This file exercises only the lat/lon/altitude readout below.
- *
- * Uses the compact (`!showMap`) mode, a narrow/short widget renders a
- * plain Lat/Lon/Alt text readout instead of the canvas map, so the mapped
- * values are directly DOM-visible without needing a white-box `store.
- * sample()` proof.
+ * MapView running off the real stream pipeline via `StubTransport`, with no
+ * legacy `DataSource` registered. The compact mode renders a plain
+ * Lat/Lon/Alt readout, so the mapped values are DOM-visible.
  */
 describe("MapView: genuinely runs off the stream (M3 mechanical-tail batch)", () => {
   it("reads lat/long/altitude off the real stream pipeline, not legacy", async () => {
@@ -43,12 +32,12 @@ describe("MapView: genuinely runs off the stream (M3 mechanical-tail batch)", ()
       </fixture.Provider>,
     );
 
-    // Nothing arrived yet: the compact readout shows the em-dash placeholder.
+    // Nothing arrived yet: the compact readout shows placeholders.
     expect(visibleText(container)).toContain("Lat");
     expect(visibleText(container)).toContain(NULL_DISPLAY);
     expect(container.textContent).not.toContain("°");
 
-    // A real subscription must have happened for this to deliver at all, StubTransport.emit is subscription-gated (see its own doc comment).
+    // StubTransport.emit is subscription-gated, so a real subscription must exist.
     expect(fixture.transport.isSubscribed("vessel.flight")).toBe(true);
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
@@ -67,13 +56,11 @@ describe("MapView: genuinely runs off the stream (M3 mechanical-tail batch)", ()
     await waitFor(() => {
       expect(visibleText(container)).toContain("-0.10°");
       expect(visibleText(container)).toContain("-74.56°");
-      // The launchpad sits at 80 m. The inline formatter this replaced
-      // divided by 1000 unconditionally, with no metre rung, so it rendered
-      // that as "0.1 km"; the shared ladder picks the rung.
+      // The launchpad sits at 80 m, which the shared ladder renders on the metre rung.
       expect(visibleText(container)).toContain("80.0 m");
     });
 
-    // v.body stays gapped/undefined (no legacy source here), the mapped position/altitude landing doesn't fabricate a body label.
+    // No body source, so no fabricated body label.
     expect(container.textContent).not.toContain("Kerbin");
   });
 });

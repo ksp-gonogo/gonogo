@@ -54,7 +54,7 @@ describe("predictTrajectory", () => {
     expect(patches).toHaveLength(1);
     const pts = patches[0].points;
     expect(pts.length).toBeGreaterThan(2);
-    // Metres, not plot units: the diagram places these into the frame in force and scales them, so a plot scale applied here would be a second one.
+    // Metres, not plot units: the diagram places and scales these, so a plot scale here would apply twice.
     for (const p of pts) {
       expect(Math.hypot(p.x, p.y)).toBeCloseTo(1e6, 1);
       expect(p.z).toBeCloseTo(0, 6);
@@ -68,9 +68,7 @@ describe("predictTrajectory", () => {
       ut: 0,
       childOffsets: NO_CHILDREN,
     });
-    // This used to be dropped here, on the stated grounds that the diagram was
-    // flat, and the diagram is not flat: `patchStateAt` already answers in three
-    // dimensions and two components of it were being taken.
+    // `patchStateAt` answers in three dimensions, and depth is kept.
     const depths = patches[0].points.map((p) => p.z);
     const peak = 1e6 * Math.sin((30 * Math.PI) / 180);
     expect(Math.max(...depths)).toBeCloseTo(peak, 1);
@@ -86,8 +84,7 @@ describe("predictTrajectory", () => {
     });
     expect(patches).toHaveLength(1);
     expect(patches[0].isCurrent).toBe(true);
-    // First sample is the vessel's position at ut=25 (quarter orbit), not at
-    // startUT. For a circular orbit with maae=0, ut=25 → 90° → +y axis.
+    // The first sample is the vessel's position at ut=25 (quarter orbit), not at startUT: 90 degrees, the +y axis.
     const first = patches[0].points[0];
     expect(first.x).toBeCloseTo(0, 1);
     expect(first.y).toBeCloseTo(1e6, 1);
@@ -119,9 +116,7 @@ describe("predictTrajectory", () => {
     const munPatch = projected.find((p) => p.referenceBody === "Mun");
     expect(munPatch).toBeDefined();
     expect(munPatch?.startEncounter).toBe("encounter");
-    // The Mun arc is centred on Mun's offset, not the origin, and the offset is
-    // composed in METRES: a frame transform is affine, so adding a placed offset
-    // to a placed arc would apply the frame's own translation twice.
+    // Centred on Mun's offset, composed in metres: adding a placed offset to a placed arc would apply the frame's translation twice.
     for (const p of munPatch?.points ?? []) {
       expect(Math.hypot(p.x - munOffset.x, p.y - munOffset.y)).toBeCloseTo(
         200_000,
@@ -132,7 +127,6 @@ describe("predictTrajectory", () => {
     expect(encounters[0].kind).toBe("encounter");
     expect(encounters[0].body).toBe("Mun");
     expect(encounters[0].ut).toBe(50);
-    // Marker sits at the first sample of the Mun patch.
     expect(encounters[0].x).toBeCloseTo(munPatch?.points[0].x ?? NaN, 6);
   });
 

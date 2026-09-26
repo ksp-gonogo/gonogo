@@ -6,12 +6,7 @@ import { SignalDelayBadge } from "./SignalDelayBadge";
 
 describe("SignalDelayBadge", () => {
   it("reads the time to reach the other end, not the time to hear back", () => {
-    /*
-     * The semantic this component exists to fix. It used to say the round trip,
-     * which answers when the acknowledgement gets back; the operator's question
-     * is when their words land, and quoting eight minutes for a four-minute
-     * crossing made the reading twice the number that mattered.
-     */
+    // The operator's question is when their words land, so one-way, not the round trip.
     render(<SignalDelayBadge oneWaySeconds={3.8} />);
     expect(visibleText(screen.getByLabelText("Signal delay"))).toContain(
       "~3.8 s",
@@ -19,7 +14,7 @@ describe("SignalDelayBadge", () => {
   });
 
   it("keeps a decimal under a minute rather than truncating to a whole unit", () => {
-    // A delay is a READOUT, not a countdown: the time ladder would show 7.6 s as "7s" and lose the tenth that distinguishes two links.
+    // A delay is a READOUT, not a countdown, so 7.6 s keeps its tenth.
     render(<SignalDelayBadge oneWaySeconds={7.6} />);
     expect(visibleText(screen.getByLabelText("Signal delay"))).toContain(
       "~7.6 s",

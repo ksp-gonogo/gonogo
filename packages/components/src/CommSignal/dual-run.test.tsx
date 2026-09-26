@@ -7,14 +7,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CommSignalComponent } from "./index";
 
 /**
- * CommSignal's full readout off the real stream pipeline
- * (`TelemetryProvider` + `StubTransport`), with no legacy `DataSource`: the
- * strength headline, bars, control label (`vessel.comms.controlState`
- * collapsed to a level and named) and the formatted delay
- * (`comms.delay.oneWaySeconds`) all resolve for the same signal state the
- * `strong-direct-ksc` fixture depicts.
+ * CommSignal's full readout (strength headline, bars, control label and
+ * delay) resolves off the real stream pipeline for a strong direct link.
  */
-// `comms.link` carries the connectivity verdict the caption asserts a signal on.
 const CARRIED = ["vessel.comms", "comms.delay", "comms.link"];
 
 describe("CommSignal: full readout off the stream (R6 Wave 1)", () => {
@@ -34,9 +29,7 @@ describe("CommSignal: full readout off the stream (R6 Wave 1)", () => {
     );
 
     act(() => {
-      // `controlState` on the wire is the rich `ControlState` enum ordinal
-      // (Full = 4); the SDK collapses it to the widget's level (2) and resolves
-      // the "Full" name string.
+      // The wire carries the `ControlState` ordinal: Full is 4.
       fixture.emit("vessel.comms", {
         connected: true,
         signalStrength: 0.87,
@@ -46,18 +39,14 @@ describe("CommSignal: full readout off the stream (R6 Wave 1)", () => {
       fixture.emit("comms.link", { connected: true });
     });
 
-    // A real subscription must have happened for StubTransport (subscription- gated) to deliver at all.
     expect(fixture.transport.isSubscribed("vessel.comms")).toBe(true);
     expect(fixture.transport.isSubscribed("comms.delay")).toBe(true);
 
-    // ceil(0.87 * 4) = 4 lit bars; headline reads the percentage.
     await waitFor(() => expect(visibleText()).toContain("87 %"));
     expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
-    // Control label + formatted delay both come off the stream now.
     expect(screen.getByText("Full")).toBeTruthy();
     expect(visibleText()).toContain("0 ms");
     expect(screen.getByText("Signal to KSC")).toBeTruthy();
-    // No stray NULL_DISPLAY placeholder: every field resolved.
     expect(container.textContent).not.toContain(NULL_DISPLAY);
   });
 });

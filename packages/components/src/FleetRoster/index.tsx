@@ -42,11 +42,7 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { Fragment, type ReactNode, useMemo } from "react";
-/*
- * UpdatesRow below keeps styled-components for a load-bearing `&:empty` rule:
- * an inline style cannot express a pseudo-class, and the JS equivalent it
- * replaces could only answer the question once (see that component's doc).
- */
+// UpdatesRow needs styled-components for its `:empty` collapse, which an inline style cannot express.
 // biome-ignore lint/style/noRestrictedImports: :empty row collapse, no inline equivalent (see above)
 import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
@@ -57,41 +53,9 @@ const topics = defineTopicManifest({
 
 type FleetRosterConfig = Record<string, never>;
 
-// ---------------------------------------------------------------------------
-// Data read
-//
-// The whole roster rides the single `system.vessels` Topic (every known
-// vessel, loaded or not, KspHost.BuildVesselRosterEntry's capture-add), NOT
-// a legacy `fleet.vessels` DataSource key. `system.bodies` resolves each
-// entry's `bodyIndex` to a display name, the same pattern SystemView already
-// uses for its own vessel-body lookups.
-//
-// `system.vessels` is intentionally unfiltered at the source: it enumerates
-// EVERY vessel KSP tracks (craft, debris, asteroids/comets, planted flags,
-// EVA kerbals, deployed science hardware), because other consumers of the
-// same Topic (TargetPicker, in particular) legitimately want the non-craft
-// entries too - e.g. picking an asteroid as a rendezvous target. A fleet
-// roster is a different question ("what do I fly"), so `isRosterCraft`
-// below filters client-side, in this widget, rather than mod-side in the
-// capture. Stripping non-craft rows out of `system.vessels` itself would
-// break every other consumer of the shared topic.
-// ---------------------------------------------------------------------------
+// `system.vessels` is deliberately unfiltered (other consumers want asteroids and debris as targets), so this widget filters to craft client-side.
 
-/**
- * Real, flyable craft: `Ship`/`Station`/`Lander`/`Probe`/`Rover`/`Base`/
- * `Relay`. Everything else `VesselType` can hold is structurally NOT a fleet
- * vessel an operator means when they say "Fleet":
- *  - `Debris` and `SpaceObject` (asteroids/comets) never get a `CommNetVessel`
- *    attached at all - verified against `CommNet.CommNetVessel.OnStart`
- *    (decompile) - a permanent, by-design exclusion, not a data gap.
- *  - `EVA` is a kerbal outside a craft, `Flag` is a planted flag, and
- *    `DeployedScienceController`/`DeployedSciencePart`/`DroppedPart` are
- *    stationary deployed hardware - none of these are vehicles either.
- *
- * Ordinals are Sitrep.Contract's OWN declared order (`VesselEnums.cs`), not
- * stock KSP's - reading off the generated `VesselType` enum (not a bare
- * numeric literal) is what keeps this safe if that order ever changes.
- */
+/** Real, flyable craft. Debris, space objects, EVA kerbals, flags and deployed hardware are not fleet vessels. */
 const CRAFT_VESSEL_TYPES: ReadonlySet<VesselType> = new Set([
   VesselType.Ship,
   VesselType.Station,
@@ -102,33 +66,14 @@ const CRAFT_VESSEL_TYPES: ReadonlySet<VesselType> = new Set([
   VesselType.Relay,
 ]);
 
-/**
- * `VesselType.Unknown` is deliberately NOT filtered out. It means the
- * producer itself couldn't classify the vessel this tick (a raw KSP
- * `VesselType` string the mapper doesn't recognize, see
- * `VesselViewProvider.ParseVesselType`'s own fallback), not "this is
- * confirmed to not be a craft" the way `Debris`/`SpaceObject`/etc. are. An
- * unclassified vessel silently disappearing from the roster would be the
- * same class of bug this widget already fixed once for its empty state: a
- * real "we don't know" fact reported as nothing at all. It renders through
- * the roster's existing null-safe row handling (body/crew fall back to the
- * usual null placeholder, comms shows the "unknown" tier) rather than
- * getting a fabricated craft identity.
- */
+/** `Unknown` means the producer could not classify the vessel this tick, not that it is not a craft, so it stays on the roster. */
 function isRosterCraft(vesselType: VesselType): boolean {
   return (
     vesselType === VesselType.Unknown || CRAFT_VESSEL_TYPES.has(vesselType)
   );
 }
 
-/**
- * `"unknown"` is a REAL, honestly-reported tier, not a client-side fallback,
- * the producer itself emits a null `commsControlSource` whenever CommNet had
- * nothing to read for that vessel this tick (see `VesselRosterEntry`'s own
- * doc comment), and this is that null carried through to the row. It must
- * never be presented the same as `"none"` (a confirmed no-link vessel is a
- * real ops fact; an unread vessel is not).
- */
+/** `"unknown"` is a null `commsControlSource` from the producer and must never be presented the same as a confirmed `"none"`. */
 type CommsLink = "connected" | "relay" | "none" | "unknown";
 
 interface FleetVessel {
@@ -163,54 +108,23 @@ function rosterCommsLink(
   }
 }
 
-/**
- * Where a control source this build does not name lands. With every member
- * cased above, `source` is `never` here, so a member added to the contract is a
- * type error rather than a silent "unknown"; an ordinal from a newer mod still
- * arrives at runtime, and reads as unknown because nothing here can name it.
- */
+/** `source` is `never` here, so a new contract member is a type error; an ordinal from a newer mod still reads as unknown at runtime. */
 function unnamedControlSource(_source: never): CommsLink {
   return "unknown";
 }
 
-/**
- * A link that carries commands, which is what coverage counts.
- *
- * Shared by the badge rollup and the coverage reading so the two cannot come to
- * disagree about what "linked" means: they are the same number shown twice, one
- * as a count and one as a share.
- */
+/** A link that carries commands, which is what coverage counts; shared by the badge rollup and the coverage reading so they cannot disagree. */
 function isLinked(link: CommsLink): boolean {
   return link === "connected" || link === "relay";
 }
 
-/**
- * `system.vessels` -> the widget's row shape. `known` distinguishes "the
- * topic has never delivered a sample" from "it delivered one, and the fleet
- * is genuinely empty", the same distinction the FleetRoster stub fix
- * established, now against the real Topic instead of the retired
- * `fleet.vessels` key.
- */
+/** `system.vessels` to the widget's row shape. `known` separates "never delivered" from "delivered an empty fleet". */
 function useFleet(): {
   known: boolean;
   vessels: FleetVessel[];
   coverage: Reading<Value<"ratio">>;
 } {
-  // FAIL-OPEN FIX, not merely a migration. `known` was `system !== undefined`,
-  // and a `Reading` is never undefined, so the roster would have reported itself
-  // KNOWN before a single frame arrived: an empty fleet presented as a confirmed
-  // empty fleet, on a GO/NO-GO-adjacent surface. `known` now means what its name
-  // says, that the fleet list has actually reported.
-  //
-  // A stale roster counts as known: a vessel does not cease to exist because a
-  // frame went missing, and the per-vessel comms state inside it is rendered from
-  // its own field rather than inferred from this list's currency.
-  /**
-   * A tombstone here is a CONFIRMED empty fleet, and the pre-migration gate said so
-   * (`system !== undefined` was false only for never-arrived). Collapsing it into
-   * `pending` would show "waiting for the fleet" to an operator whose save genuinely
-   * has no other vessels, which is a wait that never ends.
-   */
+  // A stale roster counts as known (vessels do not vanish with a missing frame), and a tombstone is a confirmed empty fleet, not a wait that never ends.
   const systemReading = topics.useTelemetry("system.vessels");
   const system = stillTrue(systemReading, EMPTY_FLEET);
   // The body catalogue is a fact, and a tombstone for it would mean a save with no celestial bodies, which cannot happen; `undefined` is the honest answer there.
@@ -241,24 +155,7 @@ function useFleet(): {
     [system, nameByIndex],
   );
 
-  /**
-   * Comms coverage as a reading rather than a bare figure.
-   *
-   * The share is arithmetic the WIDGET does, so before the combinator it was a
-   * `Value` with no currency at all: nothing on it said whether the roster it
-   * counted was live, held or never delivered, and the bar drew the same at a
-   * confirmed 40% as at a 40% remembered from two minutes ago.
-   *
-   * Computed from `system.vessels` alone, which is the whole of what it
-   * depends on: `system.bodies` supplies body NAMES for the table and the
-   * rollup never reads one. So the coverage is exactly as current as the
-   * roster, which is the honest answer and the one the combinator's rule
-   * gives.
-   *
-   * Consistent with this hook's own note above that a stale roster still
-   * counts as KNOWN: the currency belongs on the figure derived from the list,
-   * not on each vessel's own link, which is rendered from its own field.
-   */
+  /** Comms coverage as a reading derived from `system.vessels` alone, so it is exactly as current as the roster. */
   const coverage = useMemo(
     () =>
       combineReadings([systemReading.vessels], (entries) => {
@@ -276,18 +173,9 @@ function useFleet(): {
   return { known: system !== undefined, vessels, coverage };
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 type Tone = "go" | "info" | "warn" | "nogo" | "neutral";
 
-// NOTE: these are used as a single foreground color (dot fill, tag border
-// AND tag text) below, not a background fill, so "info" deliberately reads
-// off `-fg` rather than `-bg` - `--color-status-info-bg` is a near-black
-// background-fill token that renders invisibly as foreground/border/text
-// against this widget's dark panel. go/warn/nogo's `-bg` tokens happen to
-// already be saturated enough to read fine in that same role.
+// Used as a foreground colour (dot, tag border and text), so "info" reads the `-fg` token: the info `-bg` token is near-black and invisible here.
 const TONE_HEX: Record<Tone, string> = {
   go: "var(--color-status-go-bg)",
   info: "var(--color-status-info-fg)",
@@ -296,9 +184,7 @@ const TONE_HEX: Record<Tone, string> = {
   neutral: "var(--color-text-muted)",
 };
 
-/** Comms tier -> tone. This is the ONLY per-row signal the roster has a real
- *  read for, there is no vessel-health/reliability tone here (see the
- *  widget registration's own note on why `status` was dropped). */
+/** Comms tier to tone, the only per-row signal the roster has a real read for. */
 const COMMS_TONE: Record<CommsLink, Tone> = {
   connected: "go",
   relay: "info",
@@ -306,7 +192,7 @@ const COMMS_TONE: Record<CommsLink, Tone> = {
   unknown: "neutral",
 };
 
-/** Compact comms label + tone + a full accessible name. */
+/** Compact comms label and a full accessible name. */
 const COMMS: Record<CommsLink, { label: string; aria: string }> = {
   connected: { label: "DIRECT", aria: "Direct link" },
   relay: { label: "RELAY", aria: "Relay link" },
@@ -322,12 +208,7 @@ function crewLabel(v: FleetVessel): string {
     : String(v.crewCount);
 }
 
-/**
- * Fleet-wide comms rollup, the header badge + footer meter both read off
- * this. Deliberately worded around LINK, never "nominal"/"critical": those
- * words would read as a reliability/health verdict this widget has no data
- * to back (see the module doc comment on why `status` isn't a thing here).
- */
+/** Fleet-wide comms rollup for the header badge and footer meter, worded around LINK: the widget has no data for a health verdict. */
 function commsRollup(vessels: FleetVessel[]): {
   linked: number;
   none: number;
@@ -357,23 +238,11 @@ function commsRollup(vessels: FleetVessel[]): {
   return { linked, none, unknown, badgeLabel, tone };
 }
 
-// ---------------------------------------------------------------------------
-// Row chrome
-//
-// The grid and its centring come from the kit (`Grid`); the fixed row height
-// is the roster's own, because the list virtualises against it. `cols` is
-// passed per instance rather than baked in, since it depends on the compact
-// breakpoint.
-// ---------------------------------------------------------------------------
-
 const ROW_HEIGHT = 25;
 const GRID_FULL = "minmax(0, 1fr) auto 48px 66px";
 const GRID_COMPACT = "minmax(0, 1fr) 48px 66px";
 
-/** Small colour-coded circular link marker, purely decorative (the row's
- * `aria-label` on this element carries the meaning). No shared "dot"
- * primitive fits standalone (StatusIndicator's dot is only reachable
- * bundled with its own text), so this stays a plain styled span. */
+/** Decorative colour-coded link marker; its `aria-label` carries the meaning. */
 function LinkDot({ tone, ariaLabel }: { tone: Tone; ariaLabel: string }) {
   return (
     <span
@@ -390,12 +259,7 @@ function LinkDot({ tone, ariaLabel }: { tone: Tone; ariaLabel: string }) {
   );
 }
 
-/**
- * Compact outline chip: border AND text both read the tone colour, no
- * background fill (see the `TONE_HEX` doc comment above for why). This is
- * deliberately NOT `<Badge>`, which is always a filled pill - a different
- * look this widget's comms tag was never meant to have.
- */
+/** Outline chip: border and text both read the tone colour, unlike the filled `Badge` pill. */
 function CommsTag({ tone, children }: { tone: Tone; children: ReactNode }) {
   return (
     <span
@@ -419,22 +283,8 @@ function CommsTag({ tone, children }: { tone: Tone; children: ReactNode }) {
 
 /**
  * A vessel's contact state: due back, late, or given up on.
- *
- * The state worth the widget is `overdue`, past the moment geometry said the
- * craft should have re-appeared, but before the deadline that declares it lost.
- * That is the "expected back, didn't show" moment, and it is deliberately not
- * an early form of `lost`: there is still time for the craft to appear, and the
- * operator is told it is late rather than gone.
- *
- * A silent craft with no prediction renders as "no contact" with no countdown,
- * never as overdue. Nothing promised it would be back, so nothing can be late,
- * see `contactPhase`, which is where that distinction lives so no renderer has
- * to re-derive it.
- *
- * Announcements are scoped to what each state warrants: `role="status"`
- * (polite) for going overdue, `role="alert"` (assertive) for a declared loss,
- * and nothing at all for the states that change every tick, which would
- * otherwise flood a screen reader with a running countdown.
+ * `overdue` is not an early `lost`: the craft is late, not gone. A silent craft with no prediction reads "no contact" and is never overdue.
+ * Only going overdue (polite) and a declared loss (assertive) are announced; the per-tick countdown states are not.
  */
 function FleetContactCell({
   guid,
@@ -464,11 +314,7 @@ function FleetContactCell({
     const late = overdueSeconds(silence, nowUt.magnitude);
     return (
       <Badge severity="warning" live>
-        {/* Game-time seconds (both terms are UT), so "s" rather than "irl:s".
-            `late` cannot actually be null in this branch - `contactPhase`
-            only says "overdue" when a predicted reacquisition exists - and
-            Unit answers an absent value with the null token anyway, so the
-            unreachable arm no longer needs a hand-written placeholder. */}
+        {/* Game-time seconds (both terms are UT), so "s" rather than "irl:s". */}
         overdue by <Unit value={late == null ? null : value("s", late)} />
       </Badge>
     );
@@ -492,24 +338,8 @@ function FleetContactCell({
 }
 
 /**
- * The per-row Link cell: the connectivity glyph is the trigger of an accessible
- * Disclosure whose panel shows this vessel's own reachability and signal delay.
- * Focus/tap reachable, NOT hover-only. Each row subscribing to its own
- * `fleet.<guid>.*` topics IS the dynamic-subscription reconcile: rows
- * mount/unmount as `system.vessels` changes and each hook ref-counts its own
- * topic.
- *
- * Reachability comes off `fleet.<guid>.contact` and the light-time off
- * `fleet.<guid>.delay`, and the split is load-bearing rather than tidy.
- * `.delay` is Delayed and deliberately not freeze-exempt, and the mod arms the
- * per-subject freeze one statement before that tick's `.delay` publish, so the
- * LAST payload a client ever receives for a vessel entering blackout carries
- * `connected: true` and a last-known one-way. Reading that field put "Link:
- * connected" and a live-looking round-trip in the body of a row whose own chip
- * read NONE off live `system.vessels`, a contradiction inside one row that an
- * operator reported. `.contact` is freeze-exempt precisely so the disconnect
- * edge can escape, so it is the only field here that can answer whether the
- * link is up, and `.delay`'s own `connected` is never read.
+ * The per-row Link cell: the connectivity glyph triggers a Disclosure with this vessel's reachability and signal delay.
+ * Reachability comes only off freeze-exempt `.contact`: the last `.delay` payload before a blackout still says `connected: true`, so its `connected` is never read.
  */
 function FleetSignalCell({
   guid,
@@ -527,30 +357,18 @@ function FleetSignalCell({
   const contact = stillTrue(contactReading, undefined);
   const link = stillTrue(linkReading, undefined);
   const oneWay = link?.oneWaySeconds ?? null;
-  // ONE reading of the one field, so the Link term and the Delay label cannot
-  // disagree about it. Read separately, an arrived record whose `connected` was
-  // absent said "no path" in one place and labelled its light-time current in
-  // the other.
+  // One read of reachability, so the Link term and the Delay label cannot disagree.
   const reachable = contact == null ? null : contact.connected === true;
-  /*
-   * A reachability that has stopped arriving is the last one known, and says
-   * so: "connected" with nothing behind it is the present-tense claim this
-   * cell exists to get right.
-   */
+  // A reachability that has stopped arriving is the last one known, and says so.
   const contactHeld = contactReading.state === "stale";
   const linkState =
     reachable == null
       ? "unknown"
       : `${reachable ? "connected" : "no path"}${contactHeld ? " (last known)" : ""}`;
-  // A light-time measured before the link went down, or one that has stopped
-  // arriving. Still worth showing (it is what a reacquisition is planned
-  // against) but it is not a present reading.
+  // A light-time from before the link dropped, or one that stopped arriving, is still worth showing but is not a present reading.
   const heldOver =
     reachable === false || contactHeld || linkReading.state === "stale";
-  /*
-   * Handed over as readings so the figures carry their own currency. The row
-   * draws only once `oneWay` is known, so the zero is never on screen.
-   */
+  // The row draws only once `oneWay` is known, so the zero fallback is never on screen.
   const oneWayReading = readingOf(linkReading, (l) =>
     value("s", l.oneWaySeconds ?? 0),
   );
@@ -608,21 +426,7 @@ function FleetSignalCell({
   );
 }
 
-/**
- * Wraps the per-vessel `fleet-roster.updates` slot. A bound augment may
- * legitimately render nothing for THIS row (e.g. the reliability augment's
- * active-vessel-only gate): collapse the block's own padding/gap in that case,
- * so it doesn't leave an empty gap under every other row.
- *
- * The emptiness has to be asked of the DOM, because whether an augment rendered
- * anything is not something this widget can know, and `:empty` is the only form
- * of the question that stays live. The ref + layout effect this replaces asked
- * it once: a layout effect runs when its OWN component renders, and an augment
- * filling in from a telemetry frame re-renders the child alone, so a slot that
- * arrived after mount stayed hidden forever. That is the normal case for
- * anything riding the stream, and it hid the reliability augment in every
- * render of it.
- */
+/** Wraps the per-vessel `fleet-roster.updates` slot; `:empty` collapses it live when a bound augment renders nothing for this row, which a render-time check cannot see. */
 const UpdatesRow = styled.div`
   display: flex;
   flex-direction: column;
@@ -640,10 +444,6 @@ const UpdatesRow = styled.div`
   }
 `;
 
-// ---------------------------------------------------------------------------
-// Widget
-// ---------------------------------------------------------------------------
-
 /** A confirmed-no-other-vessels tombstone: a fleet, and it is empty. */
 const EMPTY_FLEET = { vessels: [] as never[] };
 
@@ -652,17 +452,11 @@ function FleetRosterComponent({
 }: Readonly<ComponentProps<FleetRosterConfig>>) {
   const { known, vessels, coverage } = useFleet();
   const rollup = commsRollup(vessels);
-  // Whose light-time the per-vessel delays are computed from: the selected
-  // command centre (Plan 3), or before this screen chooses, the one the mod put
-  // it at, which only the frames can name. Resolved to its display name via the
-  // roster, falling back to the raw id before the roster lands.
+  // Whose light-time the delays are computed from: the selected command centre, else the one the frames name.
   const chosenVantage = useSelectedVantage();
   const observedVantage = useObservedVantage();
   const vantage = chosenVantage ?? observedVantage;
-  // Centres do not move, so a stale list is still the list. The roster is held
-  // at the home command, so a vessel vantage reads it at its own light-time
-  // home; the raw id stands in until it lands, which is what the comment above
-  // already described.
+  // Centres do not move, so a stale list is still the list.
   const centresReading = topics.useTelemetry("commandCentre.roster");
   const centres =
     centresReading.state === "observed" || centresReading.state === "stale"
@@ -671,9 +465,7 @@ function FleetRosterComponent({
   const vantageName =
     centres?.find((c) => c.id === vantage)?.displayName ?? vantage ?? "unknown";
   const cols = w ?? 8;
-  // Below the width threshold the Body column and the per-vessel update lines
-  // are shed, the identity + crew + link (the at-a-glance fleet state) always
-  // stay. Height doesn't gate columns; the list just scrolls.
+  // Narrow widths shed the Body column; height never gates columns, the list scrolls.
   const compact = cols < 6;
   const gridCols = compact ? GRID_COMPACT : GRID_FULL;
 
@@ -691,9 +483,6 @@ function FleetRosterComponent({
           {rollup.badgeLabel}
         </Badge>
       }
-      /* PINNED by Panel rather than merely rendered last. The coverage rollup
-         used to sit after a `flex: 1` ScrollArea with `margin-top: auto`, and
-         both of those only work on a direct child of the body. */
       panelFooter={
         <Meter
           label="Comms coverage"
@@ -705,14 +494,10 @@ function FleetRosterComponent({
         />
       }
       sections={[
-        /* Vantage caption relocated out of the panel subtitle into the body
-           (staging change); severity= on the aside Badge is staging's canonical
-           tone wiring. */
         <Section key="vantage" full>
           <ReadoutCaption>viewing from: {vantageName}</ReadoutCaption>
         </Section>,
-        /* No `ScrollArea`. Panel's body IS the scroller and owns the glow, so a
-           second one here drew its glow inside the outer body's inset. */
+        /* No ScrollArea: Panel's body is the scroller. */
         <Section key="roster" full>
           {total === 0 ? (
             <EmptyState>
@@ -737,18 +522,7 @@ function FleetRosterComponent({
 
               {vessels.map((v) => {
                 const comms = COMMS[v.comms];
-                // The per-vessel line-updates block is PURELY the
-                // `fleet-roster.updates` augment slot, where the reliability
-                // augment composes its alarm/health one-liners. It carries no
-                // data of its own, so it renders nothing until an uplink
-                // actually registers.
-                //
-                // Deliberately NOT gated on `compact`. It used to be, which meant
-                // every reliability state including a critical part failure
-                // vanished below six columns, the normal width of a portrait
-                // station panel. The augment sheds its detail rows at that width
-                // instead (it is handed `compact`), so density is traded for
-                // words rather than for the alarm.
+                // Not gated on `compact`: the augment sheds detail at narrow widths itself, so a critical alarm never vanishes.
                 const showUpdates = updatesAugmentPresent;
                 return (
                   <Fragment key={v.id}>
@@ -841,11 +615,7 @@ function FleetRosterComponent({
   );
 }
 
-/**
- * Column header label. The Vessel column's grid track is minmax(0, 1fr): at
- * the tiny-4x4 minSize it shrinks well below "VESSEL"'s natural width, so
- * this truncates like a body cell rather than spilling into "CREW".
- */
+/** Column header label; truncates like a body cell since the Vessel track shrinks below "VESSEL" at minSize. */
 function ColLabel({
   right,
   children,
@@ -877,26 +647,13 @@ registerComponent<FleetRosterConfig>({
   description:
     "Fleet-wide roster table: one row per known craft (debris, asteroids, comets, flags, EVA kerbals and deployed science hardware are left out) with name, body, crew and comms link tier (direct, relay, no link), plus a fleet-wide comms-coverage summary. Each row carries a fleet-roster.updates slot for per-vessel health or alarm lines, which Fleet Reliability fills on the active vessel's row.",
   tags: ["telemetry"],
-  /*
-   * DECLARED, not merely rendered. `effectiveSearchTags` and `uplinkAdditions`
-   * both walk this list to find the Uplinks binding into the widget, so a slot
-   * that is rendered without being declared credits nobody: the picker showed
-   * no extending Uplink, and the search tag was supplied by hand as a literal
-   * mod name instead. That named one of the two Uplinks that provide
-   * reliability, stayed put when neither was installed, and put a mod's name in
-   * a core widget. Declaring the slot lets the real mechanism answer.
-   */
+  /* Declared, not merely rendered: the picker and search tags find extending Uplinks by walking this list. */
   augmentSlots: ["fleet-roster.updates"],
   defaultSize: { w: 8, h: 10 },
   minSize: { w: 4, h: 4 },
   component: FleetRosterComponent,
   channels: topics.channels,
-  /*
-   * Mission control only, by declaration. Nothing this reads is ground-only, so
-   * the derivation alone would put a whole-fleet table on a pilot's screen, and
-   * whether it belongs there is a question about that screen rather than about
-   * what the table reads.
-   */
+  /* Mission control only by declaration: nothing read is ground-only, so derivation alone would put it on a pilot's screen. */
   seats: ["mission-control"],
   defaultConfig: {},
   actions: [],

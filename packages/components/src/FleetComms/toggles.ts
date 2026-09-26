@@ -2,17 +2,10 @@ import { DashboardItemContext } from "@ksp-gonogo/core";
 import { useCallback, useContext, useSyncExternalStore } from "react";
 
 /**
- * The Commlinks and Traffic toggles, one pair per SystemView instance.
- *
- * The controls are drawn by the `system-view.actions` augment and read by
- * `SystemView/index.tsx`, which gates its connection-line entities and
- * command-traffic pulses on them. The augment is mounted in the panel chrome
- * rather than under anything SystemView provides, so a React context from one
- * cannot reach the other and the state sits in this external store instead.
- *
- * Both sides mount inside the same `DashboardItemContext`, so its instance id
- * is the key: two SystemView tiles on one dashboard each keep their own pair.
- * A tree with no dashboard item (a bare widget render) shares one pair.
+ * The Commlinks and Traffic toggles, one pair per SystemView instance. The
+ * augment drawing them mounts in the panel chrome, out of reach of any
+ * SystemView context, so the state sits in this external store keyed by
+ * `DashboardItemContext` instance id.
  */
 export interface FleetCommsToggles {
   /** Draw the active vessel's comms-path highlight + connectivity styling. */
@@ -87,7 +80,7 @@ export function useFleetCommsToggles(): FleetCommsToggles {
   return useSyncExternalStore(subscribeFleetCommsToggles, snapshot, snapshot);
 }
 
-/** Test-only: resets the module-scoped store between tests (mirrors `clearRegistry`/`clearAugments`). */
+/** Test-only: resets the module-scoped store between tests. */
 export function __resetFleetCommsTogglesForTests(): void {
   togglesByInstance.clear();
   listeners.clear();

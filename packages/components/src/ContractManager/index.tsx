@@ -30,16 +30,7 @@ import {
   usePanelDelay,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
-/*
- * One block left: `ParameterAlarmButton` carries a `:focus-visible` ring, which
- * inline style cannot express and which a control must have.
- *
- * Not exempt the way the SVG focus rings are: it is waiting on a kit primitive
- * giving the ring and the disabled treatment at caller-chosen geometry. It is a
- * chrome-less icon button at control padding, and the kit has no such thing:
- * `IconButton` is tighter and has no ring of its own, `TextButton` is
- * underlined link styling.
- */
+/* `ParameterAlarmButton` needs a `:focus-visible` ring, which inline style cannot express. */
 import styled from "styled-components";
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
 import { heldGrade } from "../shared/heldGrade";
@@ -47,9 +38,7 @@ import { asQuantityish, magnitudeOf, magnitudeOr } from "../shared/magnitude";
 
 const topics = defineTopicManifest({
   channels: ["career.status", "vessel.flight"],
-  // `altitudeAsl` is consumed by AltitudeProgress on altitude-bounded contract
-  // parameters; without it the orchestrator never subscribes and the bar stays
-  // empty in production.
+  // Without `altitudeAsl` listed the orchestrator never subscribes and AltitudeProgress stays empty.
   fields: [
     "career.status.contracts.active",
     "career.status.contracts.offered",
@@ -59,12 +48,8 @@ const topics = defineTopicManifest({
 });
 
 /**
- * Trigger shape used by the Mission Director's parameter bells. Mirrors
- * `ContractParameterTrigger` in `@ksp-gonogo/app/src/alarms/types.ts`;
- * declared inline here because @ksp-gonogo/components can't import from
- * @ksp-gonogo/app (would be circular). The bridge in
- * `AlarmsLauncherBridge.tsx` accepts the shape via the generic
- * `AlarmCreator<TTrigger>` interface.
+ * Trigger shape for the parameter bells. Mirrors the app's
+ * `ContractParameterTrigger`, which this package cannot import.
  */
 export interface ContractParameterAlarmTrigger {
   kind: "contract-parameter";
@@ -77,14 +62,9 @@ export interface ContractParameterAlarmTrigger {
 type ContractManagerConfig = Record<string, never>;
 
 /**
- * An objective's state, as this widget models it.
- *
- * The first three are KSP's `Contracts.ParameterState`. `"Unknown"` is OURS and
- * is the point: a state this build does not recognise gets its own answer
- * rather than collapsing onto `"Incomplete"`. Collapsing would read a completed
- * objective as outstanding and a mod's appended state as work still to do. An
- * unrecognised state is not the pessimistic arm, it is a third answer, and the
- * widget says so on screen.
+ * An objective's state. The first three are KSP's `Contracts.ParameterState`;
+ * `"Unknown"` is a third answer for a state this build does not recognise,
+ * never a collapse onto `"Incomplete"`.
  */
 export type ContractParameterState =
   | "Incomplete"
@@ -95,9 +75,7 @@ export type ContractParameterState =
 export interface ContractParameter {
   title: string;
   state: ContractParameterState;
-  /** KSP's own word for the state, shown when {@link state} is `"Unknown"` so
-   *  the operator reads the game's vocabulary rather than a bare question mark.
-   *  Empty when the producer sent no name. */
+  /** KSP's own word for the state, shown when {@link state} is `"Unknown"`; empty when none was sent. */
   stateLabel: string;
   optional: boolean;
   /** Lower bound of the altitude band the objective requires, metres. */
@@ -113,12 +91,7 @@ export interface ContractParameter {
 }
 
 export interface ContractEntry {
-  /**
-   * Contract id as a string. KSP contract IDs are full 64-bit longs and
-   * frequently exceed Number.MAX_SAFE_INTEGER; the fork emits them as
-   * strings (since 2026-05-11) to roundtrip cleanly. The parser accepts
-   * legacy numeric IDs too for backwards-compat with older DLLs.
-   */
+  /** KSP contract ids are 64-bit longs that exceed Number.MAX_SAFE_INTEGER, so they travel as strings. */
   id: string;
   title: string;
   agency: string;
@@ -133,11 +106,8 @@ export interface ContractEntry {
 }
 
 /**
- * KSP's `ParameterState` ordinal → the state this widget models.
- *
- * Keyed on the ORDINAL, not the name. `state` still arrives beside it and is
- * still the label shown for an unrecognised value, but nothing here compares it:
- * `ParameterState` is KSP's enum and its spelling is KSP's to change.
+ * KSP's `ParameterState` ordinal to the state this widget models. Keyed on
+ * the ordinal, never the name: the spelling is KSP's to change.
  */
 const PARAM_STATE_BY_ORDINAL: ReadonlyMap<number, ContractParameterState> =
   new Map([
@@ -147,9 +117,8 @@ const PARAM_STATE_BY_ORDINAL: ReadonlyMap<number, ContractParameterState> =
   ]);
 
 /**
- * What an objective's state actually is. An ordinal outside KSP's own members,
- * or no ordinal at all, is `"Unknown"`: we cannot say the objective is done and
- * we equally cannot say it is outstanding.
+ * What an objective's state actually is. An ordinal outside KSP's members, or
+ * none at all, is `"Unknown"`: neither done nor outstanding.
  */
 function paramState(ordinal: unknown): ContractParameterState {
   if (typeof ordinal !== "number") return "Unknown";
@@ -157,18 +126,11 @@ function paramState(ordinal: unknown): ContractParameterState {
 }
 
 /**
- * Defensive parser for contract array payloads. Accepts BOTH the legacy
- * GonogoTelemetry shape (`contracts.active`/`contracts.offered`/
- * `contracts.completedRecent`: `agency`/`repCompletion`/`deadlineUt`) and
- * the career-detail wire shape (`career.status.contracts.active`/
- * `.offered`, mod/Sitrep.Host/CareerViewProvider.cs's `BuildContractList`:
- * `agent`/`reputationCompletion`/`dateDeadline`): same "one parser, either
- * wire shape" pattern ScienceBench's `parseExperiments` established
- * (`partName ?? part`, map-topic.ts's doc comment). The new shape's
- * `parameters` carry no `optional`, so it stays undefined on a new-wire
- * parameter and the optional badge never draws. Drops malformed entries; tolerates unknown
- * parameter states by reporting them as "Unknown", never by collapsing them
- * onto an arm we cannot justify.
+ * Defensive parser for contract array payloads, accepting both field spellings
+ * (`agency`/`agent`, `repCompletion`/`reputationCompletion`,
+ * `deadlineUt`/`dateDeadline`). Parameter fields the wire does not carry stay
+ * undefined. Drops malformed entries and reports unrecognised parameter states
+ * as "Unknown".
  */
 export function parseContracts(raw: unknown): ContractEntry[] | null {
   if (raw === null || raw === undefined) return null;
@@ -178,18 +140,12 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
   for (const entry of entries) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
-    // Accept string (current) OR number (legacy DLL). KSP contract IDs
-    // routinely exceed Number.MAX_SAFE_INTEGER, so the fork emits them
-    // as strings since 2026-05-11. Older DLLs emit numbers, which we
-    // stringify so downstream consumers have one type to deal with.
+    // A numeric id is stringified so downstream has one type.
     let id: string | null = null;
     if (typeof e.id === "string" && e.id.length > 0) id = e.id;
     else if (typeof e.id === "number" && Number.isFinite(e.id))
       id = String(e.id);
     if (id === null) continue;
-    // agency/agent, repCompletion/reputationCompletion, deadlineUt/
-    // dateDeadline: legacy vs. career.status field names for the same
-    // value: prefer whichever the payload actually carries.
     const agency =
       typeof e.agency === "string"
         ? e.agency
@@ -243,16 +199,11 @@ function parseParameters(raw: unknown): ContractParameter[] {
 }
 
 /**
- * Convert a contract id string to a JS number when it fits in the
- * safe-integer range. Returns null for KSP-generated long IDs that
- * exceed Number.MAX_SAFE_INTEGER (about 9×10^15). Used to gate
- * features that depend on the alarm system's current
- * `contractId: number` shape.
+ * A contract id as a JS number when it fits the safe-integer range, else null.
+ * Gates features that depend on the alarm system's `contractId: number`.
  */
 export function contractIdToSafeNumber(id: string): number | null {
-  // Long.TryParse accepts negative IDs too, which JS Number can also
-  // represent. Reject scientific-notation strings since they'd already
-  // be lossy at this point.
+  // Negative ids are valid; scientific notation would already be lossy.
   if (!/^-?\d+$/.test(id)) return null;
   const n = Number(id);
   if (!Number.isFinite(n)) return null;
@@ -263,11 +214,8 @@ export function contractIdToSafeNumber(id: string): number | null {
 /**
  * Format a UT-second deadline relative to the current universal time.
  *
- * The remaining time is GAME seconds, so it is a `"s"` quantity and rides the
- * kit's time ladder, which sizes a day by the calendar the game reported (6h
- * under stock, 426d years) rather than by a real one. Written as a string
- * rather than rendered as a node because the phrase is a whole caption, "5d 2h
- * left", and both call sites want the sentence rather than its pieces.
+ * The remaining time is game seconds, so it rides the kit's time ladder and
+ * sizes a day by the game's own calendar.
  */
 export function formatDeadline(
   deadlineUt: number,
@@ -276,7 +224,7 @@ export function formatDeadline(
   if (!deadlineUt || deadlineUt <= 0) return "no deadline";
   const remaining = deadlineUt - universalTime;
   if (remaining <= 0) return "expired";
-  // Floored at a minute: the ladder's finest rung the operator needs here, and sub-minute resolution would add noise to a card that is scanned, not read.
+  // Floored at a minute: a card that is scanned needs no sub-minute noise.
   return `${writeQuantity(value("s", Math.max(60, remaining)))} left`;
 }
 
@@ -284,47 +232,23 @@ function ContractManagerComponent({
   w,
   h,
 }: Readonly<ComponentProps<ContractManagerConfig>>) {
-  // active/offered/completedRecent all ride the `career.status` Topic's `contracts` sub-tree (map-topic.ts): read the Topic once and pick them off.
-  //
-  // Facts, so they are held through a quiet link. A contract joins the offered
-  // board, gets accepted, or completes because the PLAYER or the game did
-  // something, and none of that can happen down a link that is not delivering:
-  // the last board we were sent is still the board. Blanking it would claim the
-  // programme has no contracts, which is a positive statement about career state
-  // made from the absence of a frame. Same split `SpaceCenterStatus` makes, where
-  // the facility tiers stay and only the funds balance goes.
-  //
-  // Nothing on these records is a quantity that drifts on its own. The one
-  // number that moves, the deadline countdown, is not remembered at all: it is
-  // computed from a FIXED `deadlineUt` against the frame's view UT, and that
-  // view time is the confirmed edge, so with nothing arriving it holds where the
-  // last sample left it rather than inventing progress the link cannot support.
+  /*
+   * The contract board is a fact: it changes only when the player or the game
+   * acts, so the last board sent is still the board. The deadline countdown is
+   * computed from a fixed `deadlineUt` against the confirmed view UT, so it holds
+   * rather than inventing progress.
+   */
   const careerReading = useTelemetry("career.status");
   const contracts = stillTrue(careerReading, undefined)?.contracts;
-  /*
-   * The board is held, so every card below states what the programme was, not
-   * what it is. Each card says so for itself, beside its own deadline, and the
-   * accept/decline/cancel controls go dead with it: a Cancel pressed against a
-   * held board forfeits a contract the operator cannot see the current state of,
-   * and the press would read as having worked.
-   */
+  // A held board marks every card and kills its controls: a Cancel against a held board forfeits a contract the operator cannot see.
   const boardHeld = heldGrade(careerReading);
   const activeRaw = contracts?.active;
   const offeredRaw = contracts?.offered;
   const recentRaw = contracts?.completedRecent;
-  // t.universalTime is dropped as a data key, it was never a stream, it IS the SDK view-UT the propagation is evaluated at, so read that directly.
   const universalTime = useViewUt();
-  /*
-   * The altitude an altitude-bounded parameter is scored against, off
-   * `vessel.flight`'s own field reading rather than the derived copy, which
-   * went `null` the moment the craft went on rails and took the progress bar
-   * with it.
-   */
+  // The field reading, not a derived copy, so the bar survives the craft going on rails.
   const altitudeReading = topics.useTelemetry("vessel.flight").altitudeAsl;
-  // Career actions dispatch at the meta-vantage: accepting/declining/cancelling
-  // a contract is a program-desk action with no vessel signal delay, so it
-  // stays instant regardless of the selected command centre. The handles are
-  // contributed to the panel delay rail by usePanelDelay (nothing at meta-vantage).
+  // Career actions dispatch at the meta-vantage, with no vessel signal delay.
   const acceptCmd = useCommand("career.contract.accept", {
     vantage: META_VANTAGE,
   });
@@ -346,13 +270,7 @@ function ContractManagerComponent({
 
   const rows = h ?? 8;
   const showSubtitle = rows >= 4;
-  // Wide-short boxes (landscape-18x5) strand the single-column card list: one
-  // card fills the full width while the rest scroll off the short height, and
-  // the right ~75% sits empty. Only the shape signal can see this, the size
-  // bucket reads the same `normal` at 18x5 as at 5x18. Flow the cards into a
-  // width-following multi-column grid only when landscape; portrait and square
-  // keep the unchanged single column so those sizes can't regress. The section
-  // labels (Active / Offered) stay outside the grid so the grouping holds.
+  // Only the shape can see a wide-short box stranding a single-column list, so landscape flows into a grid.
   const { shape } = getWidgetShape(w, h);
   const multiColumn = shape === "landscape";
 
@@ -408,10 +326,7 @@ function ContractManagerComponent({
                       )}
                     </span>
                     {boardHeld !== undefined && (
-                      /* On the card, not once above the list: an operator reads
-                         one card at a time and decides about that contract, and
-                         a statement out of their eyeline while they look at a
-                         Cancel button is a statement they do not get. */
+                      /* On the card, in the operator's eyeline while they look at its Cancel. */
                       <Badge
                         severity={severityFromStreamStatus(boardHeld)}
                         size="sm"
@@ -459,9 +374,7 @@ function ContractManagerComponent({
                       >
                         <span
                           style={parameterMarkStyle(p.state)}
-                          // Only on the Unknown arm: the ✓/✕/○ marks already say
-                          // what they are, and the "?" is the one that needs to
-                          // report the game's own word for a state we cannot place.
+                          // Only on the Unknown arm: report the game's own word for a state we cannot place.
                           title={
                             p.state === "Unknown"
                               ? `Unrecognised objective state${p.stateLabel ? `: ${p.stateLabel}` : ""}`
@@ -552,11 +465,7 @@ function ContractManagerComponent({
                         {p.state === "Incomplete" &&
                           createAlarm &&
                           contractIdToSafeNumber(c.id) === null && (
-                            // Big-id contracts (KSP-generated longs above
-                            // Number.MAX_SAFE_INTEGER) can't be addressed by the
-                            // current alarm trigger shape (contractId: number).
-                            // Render a disabled icon with explanation rather
-                            // than hide: keeps the row layout consistent.
+                            // A long id cannot fit the alarm trigger's `contractId: number`, so the button renders disabled.
                             <ParameterAlarmButton
                               type="button"
                               disabled
@@ -577,9 +486,7 @@ function ContractManagerComponent({
                     commandLabel={`Cancel ${c.title}`}
                     size="sm"
                     label="Cancel"
-                    /* Cancel forfeits any work in progress, so the confirm copy is
-                   stronger than Decline's: the loss is bigger, funds may
-                   already be spent and parameters part-achieved. */
+                    /* Cancel forfeits work in progress and spent funds, so its confirm is stronger than Decline's. */
                     confirmLabel="Forfeit contract"
                     confirmTone="nogo"
                     pendingLabel="Cancelling..."
@@ -609,10 +516,7 @@ function ContractManagerComponent({
                       )}
                     </span>
                     {boardHeld !== undefined && (
-                      /* On the card, not once above the list: an operator reads
-                         one card at a time and decides about that contract, and
-                         a statement out of their eyeline while they look at a
-                         Cancel button is a statement they do not get. */
+                      /* On the card, in the operator's eyeline while they look at its Cancel. */
                       <Badge
                         severity={severityFromStreamStatus(boardHeld)}
                         size="sm"
@@ -709,18 +613,9 @@ const SUMMARY_STYLE = {
 const CARD_MIN_WIDTH = "240px";
 
 /**
- * Single column by default (portrait / square). In landscape it becomes a
- * width-following grid: `auto-fill` plus a min card width derives the column
- * count from the available width rather than hardcoding two columns, so the
- * same rule fills an 18-wide box with several columns and scales up if the
- * widget is dropped wider. `alignContent: start` keeps short lists from
- * stretching. Each Active / Offered section is its own list so the section
- * labels stay full-width and the grouping holds.
- *
- * Section rather than related: with no box around a contract, the space
- * between two of them is the only thing saying where one ends. At the same rung
- * as a block's own rows they ran together into one paragraph. Both branches
- * carry the same gap, which is what makes them one layout rather than two.
+ * Single column in portrait or square; in landscape an `auto-fill` grid whose
+ * column count follows the width. Contracts separate at the section gap
+ * because nothing else marks where one ends.
  */
 function cardListStyle(multiColumn: boolean) {
   return multiColumn
@@ -759,10 +654,8 @@ const ACTIVE_ACTIONS_STYLE = {
 } as const;
 
 /**
- * A contract as a grouping rather than a box. `Block`, not `Card`: this widget
- * lists many contracts in a panel that is already a surface, and a sunken
- * record inside it read as a second box for no gain. Nothing is drawn here.
- * The separation is the list gap and the title's own weight.
+ * A contract as a grouping rather than a box: the panel is already a surface,
+ * so the separation is the list gap and the title's weight.
  */
 const ContractCard = Block;
 
@@ -779,11 +672,7 @@ const AGENCY_STYLE = {
   letterSpacing: "0.06em",
 } as const;
 
-/*
- * The row gap is kept tight so a wrapped third reward (FUNDS/SCI/REP at narrow
- * widths, e.g. portrait-5x18) sits close under the first line instead of
- * overflowing and clipping the panel edge.
- */
+/* A tight row gap keeps a wrapped third reward close under the first line. */
 const REWARDS_STYLE = {
   display: "flex",
   flexWrap: "wrap",
@@ -852,17 +741,13 @@ function parameterMarkStyle(state: ContractParameterState) {
 
 const PARAMETER_TITLE_STYLE = { flex: 1, minWidth: 0 } as const;
 /**
- * Inline progress indicator for ReachAltitudeEnvelope parameters: where the
- * craft's altitude sits against the band. Below the band the bar fills toward
- * the floor and the figure is the distance still to climb ("−Xkm"); in the band
- * it is full and says so; above it is full and the figure is the overshoot.
+ * Inline progress for ReachAltitudeEnvelope parameters: below the band the
+ * bar fills toward the floor and the figure is the climb still needed; in the
+ * band it is full; above it the figure is the overshoot.
  *
- * The bar is the kit's Meter fed the altitude reading, so a held altitude dims
- * the fill and marks the figure, and an unreported one draws the absent form.
- *
- * The band is judged against the modelled altitude where the reading offers
- * one: a parameter bounded at 70 km is asking where the craft IS, and on rails
- * the model is the only answer there is.
+ * A held altitude dims the fill and an unreported one draws the absent form.
+ * The band is judged against the modelled altitude where offered, since on
+ * rails the model is the only answer.
  */
 function AltitudeProgress({
   min,
@@ -923,10 +808,7 @@ function AltitudeProgress({
   );
 }
 
-// The shared `length` ladder, so a high-orbit contract target does not render
-// as five digits of km. Decimals stay tied to the magnitude the way the
-// hand-rolled version had them: this label sits inline in a contract row and
-// its width matters more than its last digit.
+// Decimals track magnitude: this label sits inline, where width matters more than the last digit.
 function AltitudeShort({ m }: { m: Reading<Value<"m">> }) {
   const short = m.value?.abs().lessThan(10_000) ?? true;
   return <Unit value={m} decimals={short ? 1 : 0} />;

@@ -18,9 +18,7 @@ describe("ToggleButton", () => {
   });
 
   it("forwards the data-failed convention attribute to the DOM (Ext-1)", () => {
-    // Navball's SAS-mode buttons rely on this passthrough: a failed command's
-    // control opts into the shared amber tint by setting data-failed, so the
-    // attribute MUST reach the rendered <button>.
+    // A failed command's control opts into the shared amber tint through data-failed, so it must reach the <button>.
     render(
       <ToggleButton data-failed="true" aria-label="retrograde failed">
         RET

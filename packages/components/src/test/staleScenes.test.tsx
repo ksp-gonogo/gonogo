@@ -12,28 +12,17 @@ import {
 } from "./widgetDomSnapshot";
 
 /**
- * Every scene staged as no longer arriving, rendered beside the live scene it
- * was taken from, and read for what the widget does about it.
+ * Every scene staged as no longer arriving, rendered beside its live twin and
+ * read for what the widget does about it. Four outcomes: a held figure marked
+ * through `Unit` announces with a `[data-unit-currency]` caption (an instrument
+ * does it at the end of its accessible name and stamps `data-currency-in-name`);
+ * one marked with neither is silent, which only a render can tell apart; a
+ * widget can withdraw a judgement instead; or it can change nothing, which
+ * leaves an operator no way to tell the link has gone.
  *
- * Four outcomes, because two would force a wrong answer. A held figure marked
- * through `Unit` ANNOUNCES: its `[data-not-current]` quantity carries a
- * `[data-unit-currency]` caption. An instrument (`Gauge`, `Tape`, `Dial`) has
- * no text node to hold one, so it announces by ending its own accessible name
- * with the caption instead, and stamps `data-currency-in-name` when it has.
- * One marked with neither is SILENT,
- * which only a render can tell apart from the first, since in source the two
- * are the same attribute. A widget can also mark nothing and still change,
- * withdrawing a judgement where it would otherwise hold a figure. And it can
- * change nothing at all, which is the one outcome that leaves an operator with
- * no way to tell the link has gone.
- *
- * "Nothing" is judged on the markup with its style classes kept, not on the
- * text alone: a dimmed panel differs from a lit one only in a class, and within
- * one run an identical style always hashes to the identical class.
- *
- * Live and stale mount in separate tests. A widget that registers actions does
- * so on every mount, and two in one test is a rate the perf gate reads as a
- * regression.
+ * "Nothing" is judged on markup with style classes kept: a dimmed panel
+ * differs only in a class. Live and stale mount in separate tests, since two
+ * action-registering mounts in one test trip the perf gate.
  */
 
 const FIXTURE_MODULES = import.meta.glob<{ default: Record<string, unknown> }>(
@@ -47,11 +36,7 @@ const FIXTURE_MODULES = import.meta.glob<{ default: Record<string, unknown> }>(
 
 const STALE_SUFFIX = "-stopped-arriving";
 
-/**
- * Stale scenes that render byte-identical to their live twin: widgets that give
- * an operator no way to tell the link has gone. Shrink-only. A scene that
- * starts to differ must come off, and a new one may not go on.
- */
+/** Stale scenes rendering byte-identical to their live twin. Shrink-only. */
 const UNCHANGED_DEBT = new Set<string>([]);
 
 interface Scene {
@@ -231,10 +216,7 @@ describe("every stale scene says the link has gone", () => {
       }
     }
   }
-  /*
-   * After every scene has rendered, because the verdict needs both halves of a
-   * pair and they mount in separate tests.
-   */
+  // After every scene, since the verdict needs both halves of each pair.
   it("changes something in every stale scene, beyond the debt it already carries", () => {
     const unchanged = [...results.values()]
       .filter(

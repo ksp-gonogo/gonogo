@@ -12,23 +12,7 @@ import {
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
 
-/**
- * Both of this widget's drawings put the vessel's CURRENT orbit on screen as a
- * conic, and neither asked whether a conic was the right renderer.
- *
- * The two overlays around it are different questions and are not gated here.
- * The Conformance plot's planned conic comes off the wire as the burn's own
- * `patches[0]`: the planner's own statement, not this client's extrapolation.
- * The Preview's projected ellipses are computed client-side from the live
- * elements, which is its own contract gap, and gating them individually would
- * be the wrong repair.
- *
- * What IS in question is whether either diagram appears at all while the
- * propagation seam refuses the current orbit. A plot whose whole content is a
- * comparison against where the vessel is cannot draw one half of it and stay
- * honest: a lone planned conic with no vessel curve beside it reads as being on
- * plan.
- */
+// Both drawings follow the propagation seam's answer for the current orbit, and withdraw whole when it refuses.
 afterEach(() => {
   clearActionHandlers();
 });
@@ -168,7 +152,7 @@ describe("ManeuverPlanner's conformance plot draws the shape the provider states
     const path = plot(container).querySelector("svg path[data-trajectory]");
     expect(path).not.toBeNull();
     expect(path?.getAttribute("d") ?? "").not.toMatch(/z/i);
-    // The planned conic survives: it came off the wire from the planner, and the seam was never asked about it.
+    // The planned conic is the planner's own statement, which the seam does not gate.
     expect(
       plot(container).querySelectorAll("svg [stroke-dasharray]").length,
     ).toBeGreaterThan(0);
@@ -179,8 +163,7 @@ describe("ManeuverPlanner's conformance plot draws the shape the provider states
       UNBOUNDED_HORIZON,
       "mnv-shape-unstated",
     );
-    // A comparison with one half missing reads as a match. The plot goes, and
-    // the refusal takes its place.
+    // A comparison with one half missing reads as a match.
     expect(visibleText(container)).toContain("SHAPE NOT STATED");
     expect(plot(container).querySelectorAll("svg ellipse").length).toBe(0);
     expect(
@@ -189,8 +172,7 @@ describe("ManeuverPlanner's conformance plot draws the shape the provider states
   });
 
   it("keeps the regime chip and the residual caption when the curves are refused", async () => {
-    // Those are about the BURN: how much delta-v was asked for and how much the
-    // impulsive model leaves out. Neither is a claim about the trajectory.
+    // Both describe the burn, not the trajectory.
     const { container } = await openConformance(
       UNBOUNDED_HORIZON,
       "mnv-shape-chip",
@@ -224,28 +206,14 @@ describe("ManeuverPlanner's preview diagram draws the shape the provider states"
         throw new Error("the refusal has not rendered yet");
       }
     });
-    // The projected ellipses go with it: they are patched-conic extrapolations of the very elements the provider declined to authorise a curve through.
+    // The projected ellipses extrapolate the same refused elements.
     expect(container.querySelectorAll("svg ellipse").length).toBe(0);
   });
 
   /**
-   * The post-burn figures are computed here from the live osculating elements
-   * by a two-body solver, whatever the provider said the trajectory is. When
-   * the provider integrates, those elements are exact at the sample instant
-   * and drift from there, so "New Ap" is where the craft would go if nothing
-   * else pulled on it, which is the one assumption an integrating provider
-   * exists to deny.
-   *
-   * Measured before this was written: the whole panel's visible text was
-   * character-identical between {@link ANALYTIC_UNBOUNDED_HORIZON} and
-   * {@link integratedHorizon}, down to "New T 33min 7s", a PERIOD for a craft
-   * whose provider will not vouch for a full revolution. The drawing differed
-   * (an open arc rather than a closed ellipse) and not one number did.
-   *
-   * Asserted in BOTH directions on purpose. A test that only checked the note
-   * appears would still pass if the note were rendered unconditionally, which
-   * would put a two-body warning on every stock dashboard and teach the
-   * operator to ignore it.
+   * The post-burn figures come from a two-body solve, which an integrating
+   * provider exists to deny. Asserted both ways, so a note rendered
+   * unconditionally fails.
    */
   it("says the post-burn figures are two-body when the provider integrates", async () => {
     const { container } = mountPlanner(
@@ -271,7 +239,7 @@ describe("ManeuverPlanner's preview diagram draws the shape the provider states"
         throw new Error("the preview diagram has not rendered yet");
       }
     });
-    // Under a two-body provider the projection and the trajectory rest on the same model, so there is no disagreement to declare.
+    // Under a two-body provider the projection and trajectory share one model.
     expect(visibleText(container)).not.toMatch(/two-body/i);
     await act(async () => {});
   });

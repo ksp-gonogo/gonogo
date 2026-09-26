@@ -20,9 +20,7 @@ describe("Value", () => {
         x
       </Text>,
     );
-    // The MUTED amber, and it has to be: the plain warning foreground is a
-    // near-black meant for text sitting on the amber badge, so a warning
-    // SENTENCE painted with it disappears into the panel behind it.
+    // The plain warning foreground is near-black text for the amber badge, so warning prose takes the muted amber.
     expect(screen.getByTestId("v")).toHaveStyle({
       color: "var(--color-status-warning-fg-muted)",
     });

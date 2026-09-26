@@ -20,10 +20,7 @@ import {
   computeVesselOrbitEntities,
 } from "./vesselOrbitsContribution";
 
-/**
- * What a stock host says about every body: a fixed conic about a fixed parent
- * is a published fact at any UT, so there is no drift to bound.
- */
+/** A stock body's fixed conic about a fixed parent is a published fact at any UT, so there is no drift to bound. */
 const STOCK_BODY_HORIZON = {
   kind: PropagationHorizonKind.Unbounded,
   trajectoryKind: TrajectoryKind.Analytic,
@@ -97,7 +94,7 @@ describe("computeVesselOrbitEntities", () => {
       ecc: 0.1,
       lan: 20,
       argPe: 30,
-      // Carried, not dropped: the diagram's arithmetic is three-dimensional and a contributed ring with no inclination is a ring it cannot turn.
+      // Carried: a contributed ring with no inclination is one the diagram cannot turn.
       inclination: 5,
       trueAnomaly: 0,
     });

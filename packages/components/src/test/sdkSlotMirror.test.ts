@@ -35,11 +35,9 @@ function stripComments(text: string): string {
 }
 
 /**
- * Every top-level key any sdk source merges into one registry interface, read
- * from the source because the merge exists only at the type level. The sdk
- * spreads its declarations over several files (`plots` is in `api/plots.ts`),
- * so every file is read, and only depth-one members count: a slot's own
- * `entry:` and `topics:` are not slot ids.
+ * Every depth-one key any sdk source file merges into one registry interface,
+ * read from source because the merge exists only at the type level. A slot's
+ * own `entry:` and `topics:` are not slot ids.
  */
 function mirroredKeys(iface: string): Set<string> {
   const keys = new Set<string>();
@@ -75,17 +73,10 @@ function unmirrored(
 }
 
 /**
- * Every slot a built-in widget owns must be declared in the sdk's mirror.
- *
- * An Uplink fills a first-party slot from outside this package, so it never
- * compiles `@ksp-gonogo/components` and never sees the `declare module` blocks
- * written beside each widget. The sdk's own merges (`api/slots.ts`,
- * `api/contribution-slots.ts` and their neighbours) are what reach it, and an
- * id they omit types as `never` there: the filler does not compile, while every
- * package in this repo, which does see the widget's own block, stays green.
- *
- * The owned ids come from the real registry, not from a scan of call sites,
- * because several widgets name their slots through constants.
+ * Every slot a built-in widget owns must be declared in the sdk's mirror: an
+ * Uplink filling it never compiles `@ksp-gonogo/components`, so an id the
+ * mirror omits types as `never` there while this repo stays green. Owned ids
+ * come from the real registry, since several widgets name slots by constant.
  */
 describe("the sdk mirrors every slot a built-in widget owns", () => {
   const components = getComponents();

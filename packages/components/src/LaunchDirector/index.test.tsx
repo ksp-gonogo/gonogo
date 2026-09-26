@@ -23,16 +23,9 @@ import {
 } from "./index";
 
 /**
- * Every read this widget makes has a real wire home (see `stream.test.tsx`'s
- * doc comment for the full read list) and every `ksp.*` command now dispatches
- * through `useCommand`, so both halves are asserted off `setupStreamFixture`:
- * reads by emitting, writes by reading `stream.transport.sentCommands`. The
- * `setupMockDataSource` registration survives only because the widget's
- * `useGameContext` reads still resolve against a registered `DataSource`.
- *
- * The mission clock counts from `vessel.identity.launchUt`, and every in-flight
- * scenario below reports it `null`, so `missionTime` renders NULL_DISPLAY in
- * each of them while the altitude comes straight off `vessel.flight`.
+ * Reads are asserted by emitting and writes by reading
+ * `stream.transport.sentCommands`. Every in-flight scenario reports a `null`
+ * `launchUt`, so the mission clock renders NULL_DISPLAY throughout.
  */
 const CARRIED = [
   "career.status",
@@ -69,10 +62,7 @@ function emitScene(
   stream.emit("spaceCenter.scene", { scene, launchSite });
 }
 
-/**
- * Feeds `vessel.identity` (with a `null` launchUt, so the mission clock stays
- * blank, per this file's doc comment) and `vessel.flight` for the altitude.
- */
+/** Feeds `vessel.identity` with a `null` launchUt, and `vessel.flight` for the altitude. */
 function emitInFlightVessel(
   stream: ReturnType<typeof setupStreamFixture>,
   opts: { name: string; altitudeAsl: number },
@@ -100,11 +90,7 @@ function emitInFlightVessel(
   });
 }
 
-/**
- * One `spaceCenter.launchSites` entry in the mod's own shape: `editorFacility`
- * rather than a `facility`/`unlocked` pair, and occupancy absent unless the
- * scenario is about it, which is what every site but the stock pad reports.
- */
+/** One `spaceCenter.launchSites` entry in the mod's own shape, occupancy absent unless the scenario is about it. */
 function padSite(
   name: string,
   displayName: string,
@@ -196,9 +182,7 @@ describe("LaunchDirectorComponent", () => {
         },
       ]);
     });
-    // Two of the three craft come out of the VAB, so those are the two this
-    // pad can take; the spaceplane belongs to the runway and is not counted
-    // against a pad that could never launch it.
+    // Two of the three craft come out of the VAB; the spaceplane belongs to the runway.
     await waitFor(() => expect(visibleText()).toMatch(/1\/2 ready/i));
     expect(visibleText()).toMatch(/Expensive Lander/);
     expect(visibleText()).not.toMatch(/Tech-Locked Plane/);
@@ -236,9 +220,7 @@ describe("LaunchDirectorComponent", () => {
   });
 
   it("says it is waiting rather than offering a launch it cannot aim", async () => {
-    // The saved craft have arrived and the pads have not. The old widget
-    // launched those craft at a hardcoded "LaunchPad" regardless; a widget whose
-    // subject is the pads has nothing to show and says so.
+    // Saved craft but no pads: a widget whose subject is the pads has nothing to show and says so.
     renderWidget();
     act(() => {
       emitFunds(stream, 100_000);
@@ -308,18 +290,7 @@ describe("LaunchDirectorComponent", () => {
     );
   });
 
-  /**
-   * The dispatched argument, on a facility name this build has never seen.
-   *
-   * `facility` is not a caption here: it is sent verbatim as the `ksp.launch`
-   * command's own argument. The old parser replaced any unrecognised name with
-   * `"VAB"`, so a spaceplane whose facility KSP had renamed launched from the
-   * LAUNCHPAD - and because the mod refuses an unknown facility outright, the
-   * substitution was not covering a gap, it was replacing a visible refusal with
-   * a wrong launch.
-   *
-   * Ordinal 2 is the SPH whatever KSP calls it, so that is what gets dispatched.
-   */
+  /** An unseen facility name is dispatched as the editor its ORDINAL names: ordinal 2 is the SPH whatever KSP calls it. */
   it("dispatches the editor the ORDINAL names, not the unrecognised facility label", async () => {
     const user = userEvent.setup();
     renderWidget();
@@ -341,7 +312,7 @@ describe("LaunchDirectorComponent", () => {
           missingParts: [],
         },
       ]);
-      // The launch controls are gated on the crew roster having ARRIVED, so an empty roster is needed even for an unmanned launch.
+      // Launch controls are gated on the roster having ARRIVED, so an empty one is needed even unmanned.
       stream.emit("spaceCenter.crewRoster", []);
     });
 
@@ -356,20 +327,14 @@ describe("LaunchDirectorComponent", () => {
     );
   });
 
-  /**
-   * With no ordinal to resolve, the raw name goes through untouched so the mod
-   * can refuse it. Choosing an editor on the player's behalf is the one thing
-   * this must not do.
-   */
+  /** With no ordinal, the raw name goes through untouched so the mod can refuse it. */
   it("passes an unresolvable facility through rather than picking an editor", async () => {
     const user = userEvent.setup();
     renderWidget();
     act(() => {
       emitFunds(stream, 100_000);
       emitScene(stream, "SpaceCenter", "Foundry_Site");
-      // A site whose own editor this build does not recognise offers every
-      // craft: narrowing on a name we cannot read would state that nothing can
-      // launch from here, which is not something we know.
+      // A site whose editor this build does not recognise offers every craft.
       stream.emit("spaceCenter.launchSites", [
         padSite("Foundry_Site", "The Foundry", { editorFacility: "Foundry" }),
       ]);
@@ -383,7 +348,7 @@ describe("LaunchDirectorComponent", () => {
           missingParts: [],
         },
       ]);
-      // The launch controls are gated on the crew roster having ARRIVED, so an empty roster is needed even for an unmanned launch.
+      // Launch controls are gated on the roster having ARRIVED, so an empty one is needed even unmanned.
       stream.emit("spaceCenter.crewRoster", []);
     });
 
@@ -402,7 +367,7 @@ describe("LaunchDirectorComponent", () => {
     const user = userEvent.setup();
     renderWidget();
     act(() => {
-      // present so awaiting placeholder clears
+      // Present so the awaiting placeholder clears.
       stream.emit("spaceCenter.savedShips", []);
       stream.emit("spaceCenter.launchSites", [
         padSite("LaunchPad", "KSC Pad", {
@@ -441,7 +406,7 @@ describe("LaunchDirectorComponent", () => {
     expect(
       await screen.findByText(/In flight: Stayputnik X/i),
     ).toBeInTheDocument();
-    // missionTime is null while launchUt is (see this file's doc comment): the panel shows its NULL_DISPLAY placeholder.
+    // `launchUt` is null, so the mission clock shows NULL_DISPLAY.
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
     expect(visibleText(container)).toContain("72.4 km");
     expect(screen.getByText("Revert to launch")).toBeInTheDocument();
@@ -509,11 +474,7 @@ describe("LaunchDirectorComponent", () => {
     expect(recoverBtn).toBeDisabled();
   });
 
-  // Tapping "Tracking Station" mid-flight takes the operator to the TS scene
-  // but reverts the flight, because KSP cannot save in that scene, and nothing
-  // on the wire reproduces the in-game warning dialog. The button therefore
-  // requires an arm-then-confirm step, so a casual mis-tap does not lose
-  // progress.
+  // Tracking Station mid-flight reverts the flight (KSP cannot save there), so it needs arm-then-confirm.
   it("requires a confirm step before firing ksp.toTrackingStation", async () => {
     const user = userEvent.setup();
     renderWidget();
@@ -546,13 +507,11 @@ describe("LaunchDirectorComponent", () => {
     });
   });
 
-  // The vessel switcher drives off `target.available`: the producer already
-  // excludes the active vessel itself, so every entry here is "other". It
-  // must dispatch the roster's stable `vesselId` guid, not a positional
-  // array index (`tar.switchVessel` only resolves by guid server-side,
-  // map-command.ts's own doc comment). Body-kind entries aren't offered
-  // (they aren't a "switch active vessel" target), and a SpaceObject entry
-  // stays hidden until the asteroid/comet toggle is used.
+  /*
+   * The switcher dispatches the roster's stable `vesselId` guid, never a
+   * positional index. Body-kind entries are not offered, and a SpaceObject
+   * stays hidden until the toggle is used.
+   */
   it("switches vessel via target.available, dispatching the stable vesselId guid", async () => {
     const user = userEvent.setup();
     renderWidget();
@@ -619,10 +578,7 @@ describe("LaunchDirectorComponent", () => {
     });
   });
 
-  // Regression from 2026-05-17 (21:15, 23:12 BST): debris from a previous
-  // flight crashed and the session-wide `crash.hasRecent` blocked recovery
-  // on a successful landing. The scoped gate compares against the active
-  // vessel's name, so debris no longer interferes.
+  // Debris from a previous flight must not block recovery: the gate is scoped to the active vessel's name.
   it("does not block recovery when crash.hasRecent is for a different vessel (debris)", async () => {
     renderWidget();
     act(() => {
@@ -648,17 +604,9 @@ describe("LaunchDirectorComponent", () => {
     expect(recoverBtn).not.toBeDisabled();
   });
 
-  // 2026-06-12: after a crash + revert-to-launch, the chip blocked recovery
-  // forever: the reverted vessel shares the crashed vessel's name, and
-  // crash.hasRecent is session-sticky. Reverting rewinds universal time
-  // below the snapshot's capture ut, so a future-dated snapshot is provably
-  // from an undone timeline and must not gate recovery. The mod clears it
-  // server-side on the same rule; this is the client mirror, for a deployed
-  // build that predates that.
+  // A crash snapshot dated after the current UT is from a reverted timeline and must not gate recovery.
   it("does not block recovery when the crash snapshot post-dates current UT (reverted flight)", async () => {
-    // universalTime reads off `useViewUt()`, pin the view clock at the same
-    // 113270 the crash-staleness math below needs (replaces the outer
-    // beforeEach's pinnedUt: 10).
+    // Pinned so the crash-staleness comparison below has its UT.
     teardownMockDataSource(cmdFixture);
     cmdFixture = await setupMockDataSource({ keys: [] });
     stream = setupStreamFixture({
@@ -849,19 +797,7 @@ describe("parseSavedShips", () => {
     expect(parsed).toHaveLength(1);
   });
 
-  /**
-   * The defect this channel's ordinal exists to end, and the most consequential
-   * one in the KSP-enum sweep, because the value is DISPATCHED.
-   *
-   * An unrecognised `EditorFacility` name used to be silently replaced with
-   * `"VAB"`, and `facility` is then sent as the `ksp.launch` command's own
-   * argument. So a spaceplane whose facility name this build did not recognise
-   * launched from the LAUNCHPAD. The mod refuses an unknown facility outright
-   * (`CommandErrorCode.Range`), so the substitution was not covering a gap: it
-   * was converting a clean, visible refusal into a wrong launch.
-   *
-   * The name is now carried verbatim as a label, and the ordinal decides.
-   */
+  /** An unrecognised `EditorFacility` name is carried verbatim as a label; the ordinal decides the dispatched editor. */
   it("keeps KSP's own facility name and carries the ordinal beside it", () => {
     const parsed = parseSavedShips([
       { name: "x", facility: "ModdedFacility", facilityOrdinal: 9 },
@@ -949,9 +885,8 @@ describe("LaunchDirectorComponent augment slots", () => {
     renderWidget();
     primePreLaunch();
 
-    // Pre-launch checklist is on screen ...
+    // The pre-launch checklist is on screen, but nothing composes into either slot.
     expect(await screen.findByText("Mun Hopper")).toBeInTheDocument();
-    // ... but nothing composes into either slot.
     expect(screen.queryByTestId("ld-badge")).not.toBeInTheDocument();
     expect(screen.queryByTestId("ld-section")).not.toBeInTheDocument();
   });
@@ -973,7 +908,7 @@ describe("LaunchDirectorComponent augment slots", () => {
     const section = await screen.findByTestId("ld-section");
     // No craft selected yet, funds carried through from telemetry.
     expect(section).toHaveTextContent("ship:null funds:100000");
-    // The existing funds readout in the subtitle is untouched (CLAUDE.md rule).
+    // The existing funds readout in the subtitle is untouched.
     expect(screen.getByTitle("Available funds")).toBeInTheDocument();
   });
 });

@@ -11,17 +11,10 @@ import fuellinePrelaunchPartState from "./__fixtures__/fuelline-tester-22parts-p
 import { ShipMapComponent } from "./index";
 
 /**
- * What ShipMap does when `vessel.thermal` stops being current.
- *
- * The decision: the hottest-part ring is withheld. Which part is hottest is a
- * verdict about the craft now, and heat moves between parts while nobody is
- * looking, so a held name draws a bright ring around the part that WAS hottest
- * and leaves the one glowing now unmarked. That is worse than an unmarked
- * diagram, because the ring is an instruction about where to look.
- *
- * Withholding it silently would be almost as bad. A diagram with no ring is
- * exactly what a cool craft draws, so the header tag has to keep speaking: the
- * operator must be able to tell "we no longer know" from "nothing is hot".
+ * What ShipMap does when `vessel.thermal` stops being current: the
+ * hottest-part ring is withheld, since it tells the operator where to look
+ * now. The header tag keeps speaking, so "we no longer know" is not the same
+ * silence as "nothing is hot".
  */
 
 const TOPOLOGY = fuellinePrelaunch["v.topology"] as VesselTopology;
@@ -108,14 +101,12 @@ describe("ShipMap when the thermal reading is not current", () => {
 
     await waitFor(() => expect(screen.getByText(NOT_CURRENT)).toBeTruthy());
     expect(ringCount(container)).toBe(0);
-    // The stale name itself is gone from the header too, not merely unringed:
-    // a named part beside a "no longer current" tag would invite the operator
-    // to go on watching it.
+    // The stale name leaves the header too, not merely the ring.
     expect(screen.queryByText(new RegExp(`hot: ${HOTTEST_PART}`))).toBeNull();
   });
 
   it("keeps drawing the diagram, so the tag is the only cue", async () => {
-    // The part tree is a fact and stays on screen, which is the whole reason the tag has to say something: nothing else about this render changes.
+    // The part tree is a fact and stays, so nothing but the tag changes.
     const { fixture } = mount();
     await emitHotCraft(fixture);
 
@@ -127,9 +118,7 @@ describe("ShipMap when the thermal reading is not current", () => {
   });
 
   it("does not present a withheld verdict as a craft with nothing hot", async () => {
-    // An arrived record with no hottest part is a real answer ("nothing stands
-    // out"), and it renders no tag at all. The withheld case must not land on
-    // that same silence.
+    // No hottest part is a real answer with no tag; the withheld case must not land on that silence.
     const { fixture } = mount();
     act(() => {
       fixture.emit("vessel.parts", VESSEL_PARTS_WIRE);
@@ -142,9 +131,7 @@ describe("ShipMap when the thermal reading is not current", () => {
 
     loseTheLink(fixture);
 
-    // "Nothing stands out" is itself a claim about the craft, so it goes out of
-    // date like any other. The tag keys on the reading rather than on the name
-    // it carried, which is why this case speaks too.
+    // "Nothing stands out" goes out of date too: the tag keys on the reading, not the name.
     await waitFor(() => expect(screen.getByText(NOT_CURRENT)).toBeTruthy());
   });
 

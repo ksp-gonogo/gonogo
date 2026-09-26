@@ -9,19 +9,7 @@ import far from "./__fixtures__/far-approach-vessel.json";
 import noTarget from "./__fixtures__/no-target.json";
 import { TargetingComponent } from "./index";
 
-/**
- * DOM snapshots off the stream pipeline, driven by each fixture's own
- * `_stream` block.
- *
- * This spec used to build the stream itself, choosing its carried channels per
- * scenario (`vessel.dock` only when the fixture had docking keys) and emitting
- * `vessel.target`/`vessel.dock` reassembled from the flat keys. Each fixture
- * declares both its channels and its emits, so the per-scenario branch is gone.
- *
- * The registered `defaultConfig` (`autoSwitch: true`,
- * `hudMode: "hud-with-camera"`) now applies, which the hand-built render never
- * passed: it mounted the widget on `mode.config ?? {}` alone.
- */
+/** DOM snapshots off the stream pipeline, driven by each fixture's own `_stream` block, under the registered `defaultConfig`. */
 
 const FIXTURES: Record<string, Record<string, unknown>> = {
   "no-target": noTarget,

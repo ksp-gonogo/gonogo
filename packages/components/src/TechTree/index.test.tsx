@@ -14,23 +14,7 @@ import {
 import { parseTechNodes, TechTreeComponent } from "./index";
 
 /**
- * Stream-migrated widget test (mirrors `stream.test.tsx`/`dual-run.test.tsx`
- * in this directory): `career.status` (tech nodes + science) and
- * `spaceCenter.scene` are ONE-ARG canonical reads with no legacy fallback
- * at all, so every render here runs off a real `TelemetryProvider`/
- * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`. Sample
- * nodes are emitted directly onto `career.status.tech.nodes` using the
- * LEGACY short-form shape (`state`/`parents` on each node), `parseTechNodes`
- * (index.tsx) explicitly accepts this exact shape as one of its two
- * supported inputs (its own doc comment: "Accepts BOTH the legacy
- * GonogoTelemetry tech.nodes shape... and the career-detail wire shape"),
- * so this is a legitimate value for that field, not a bypass, it's what
- * lets these tests keep exercising the rich per-node `parts` rendering
- * (`parts` has no field on the real wire; `description` gained one in
- * contract 14.1 and is covered off the wire shape in `dual-run.test.tsx`).
- * `tech.unlock[...]` (the spend command, unmapped) stays on the legacy
- * `useExecuteAction("data")` fallback: a `setupMockDataSource` AUX
- * supplies the `onExecute` spy for the arm-then-confirm test.
+ * TechTree off a real stream pipeline. Nodes are emitted in the explicit-`state` shape `parseTechNodes` also accepts, which lets these tests exercise the per-node `parts` rendering the real wire has no field for.
  */
 const CARRIED_CHANNELS = ["career.status", "spaceCenter.scene"];
 
@@ -106,10 +90,7 @@ function renderTree(fixture: StreamFixture) {
 }
 
 describe("TechTreeComponent", () => {
-  // Reset the action-handler + augment registries at the START of each test,
-  // by this point the prior test's tree is already unmounted (RTL
-  // auto-cleanup), so these registry mutations never fire against a live
-  // component (no manual `cleanup()` needed to order them).
+  // Reset at the start of each test, when the prior tree is already unmounted, so no mutation fires against a live component.
   beforeEach(() => {
     clearActionHandlers();
     clearAugments();
@@ -136,7 +117,7 @@ describe("TechTreeComponent", () => {
       fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
     });
-    // Default filter is "All", every node is present on first paint.
+    // Default filter is "All", so every node is present on first paint.
     await waitFor(() => expect(screen.getByText("Start")).toBeInTheDocument());
     expect(screen.getByText("Basic Rocketry")).toBeInTheDocument();
     expect(screen.getByText("Advanced Rocketry")).toBeInTheDocument();
@@ -267,7 +248,7 @@ describe("TechTreeComponent", () => {
   });
 
   it("exposes the per-node badges slot with no bound augment (empty is fine)", async () => {
-    // No augment registered → the slot composes nothing and the list renders exactly as before, one row per node.
+    // No augment registered: the slot composes nothing and the list renders one row per node.
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED_CHANNELS,
       pinnedUt: 10,

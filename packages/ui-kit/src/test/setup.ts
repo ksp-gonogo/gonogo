@@ -1,9 +1,7 @@
 import "@testing-library/jest-dom";
 import { setQuantityLocale } from "../units";
 
-// jsdom omits ResizeObserver, which ScrollArea/Tabs construct at mount to track
-// overflow. A no-op stub keeps those components mountable in tests; the glow
-// indicators it would drive aren't asserted here.
+// jsdom omits ResizeObserver, which ScrollArea and Tabs construct at mount.
 if (typeof globalThis.ResizeObserver === "undefined") {
   globalThis.ResizeObserver = class ResizeObserver {
     observe() {}
@@ -12,9 +10,7 @@ if (typeof globalThis.ResizeObserver === "undefined") {
   };
 }
 
-// Pin the locale every quantity is written in. It defaults to the READER's
-// locale, which is right for an operator and wrong for a snapshot: a render on
-// a French machine has to match one on an American CI runner.
+// Quantities default to the reader's locale, so pin one for renders that must match across machines.
 setQuantityLocale("en-GB");
 
 // The act-warning gate's post-body wait, imported only when the gate asks for it so

@@ -12,11 +12,7 @@ import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { type DeployedExperimentContext, parseBases } from "./index";
 
-/*
- * One flat entry off the `deployed.bases` wire (see index.tsx's
- * `parseBases`/`groupFlatDeployedEntries`): grouped by `vesselName` into the
- * widget's `DeployedBase[]` display shape client-side.
- */
+/** One flat entry off the `deployed.bases` wire, grouped by `vesselName` into a base. */
 const flatEntry = (
   over: Record<string, unknown> = {},
 ): Record<string, unknown> => ({
@@ -32,12 +28,10 @@ const flatEntry = (
   scienceLimit: 60,
   powerState: "Powered",
   connectionState: "Connected",
-  // The DERIVED fields, which is what the widget reads; the two prose fields above are display labels only.
+  // The derived fields the widget reads; the prose fields above are display labels only.
   power: DeployedPowerState.Powered,
   controllerConnected: true,
-  // The cluster's own power-unit balance, off `DeployedScienceCluster`. A
-  // surplus, so the default entry renders a balance rather than the shortfall
-  // case, and the two sides differ so a transposition would show.
+  // A surplus with unequal sides, so a transposition would show.
   powerAvailable: 3,
   powerRequired: 2,
   deployedOnGround: true,
@@ -53,7 +47,7 @@ function newFixture(): StreamFixture {
 }
 
 function renderDeployed(fixture: StreamFixture) {
-  // Through the registry, inside the dashboard's own provider stack, with the stream fixture above it: what the app actually mounts.
+  // Through the registry and the dashboard's own provider stack, as the app mounts it.
   const result = renderWidget("deployed-science", {
     instanceId: "db",
     wrapper: fixture.Provider,
@@ -96,10 +90,6 @@ describe("DeployedScienceComponent", () => {
   });
 
   it("says it is waiting when the roster has not streamed yet", () => {
-    // This expected "No deployed bases", a positive claim that nothing is
-    // planted anywhere, before the first emission: `parseBases` answers null
-    // for "could not read" and a `?? []` was discarding exactly that. An
-    // operator with four bases on Duna read that they had none.
     renderDeployed(newFixture());
     expect(
       screen.getByText(/Waiting for the deployed-base roster/i),
@@ -116,7 +106,7 @@ describe("DeployedScienceComponent", () => {
     });
     await waitFor(() => expect(screen.getByText("Mun")).toBeInTheDocument());
     expect(screen.getByText(/Powered/i)).toBeInTheDocument();
-    // The cluster's produced-over-required power units, from `DeployedScienceCluster.PowerAvailable`/`.PowerRequired`.
+    // Produced over required, in Breaking Ground power units.
     expect(visibleText()).toMatch(/Power 3\/2/);
     expect(screen.getByText("Seismometer")).toBeInTheDocument();
     expect(visibleText()).toContain("50 %");
@@ -148,22 +138,7 @@ describe("DeployedScienceComponent", () => {
     expect(visibleText()).not.toMatch(/Power 3/);
   });
 
-  /**
-   * Every state stock actually distinguishes reads as either powered or
-   * unpowered, and there is no third.
-   *
-   * This test used to assert a "Brownout" label, driven by `powerState:
-   * "NoPower"` and `powerState: "PartiallyPowered"` - two strings KSP has never
-   * emitted. Brownout was only ever reachable through the fall-through arm that
-   * was the bug: any prose the client did not recognise became
-   * powered-with-a-partial-flag, so an unpowered cluster painted as a working
-   * one and the label documented the defect as if it were a feature.
-   *
-   * `partialPower` has no producer, so the Brownout branch in the render is now
-   * unreachable. It is left in place rather than removed here: taking display
-   * code out belongs in its own change, not in a correctness fix. This test is
-   * the note saying why nothing reaches it.
-   */
+  // Stock distinguishes only powered and unpowered, so nothing reaches the Brownout label.
   it("labels each of KSP's real power states, and produces no brownout", async () => {
     const fixture = newFixture();
     renderDeployed(fixture);
@@ -192,7 +167,6 @@ describe("DeployedScienceComponent", () => {
   });
 
   it("renders the augment slots with no bound augment (empty is fine)", async () => {
-    // No augment registered → both slots compose nothing and the base card renders exactly as before.
     const fixture = newFixture();
     renderDeployed(fixture);
     act(() => {
@@ -207,10 +181,7 @@ describe("DeployedScienceComponent", () => {
   });
 
   it("renders a bound sections augment per experiment card, carrying its datum", async () => {
-    // A test Uplink binds `deployed-science.experiment` and echoes back the
-    // per-card experiment props. Proves (a) the slot is exposed, (b) an
-    // augment composes into it once per experiment, and (c) the props carry
-    // the right experiment/body so a per-card augment targets correctly.
+    // A test augment echoes back its per-card props, so each card must carry its own experiment and body.
     registerAugment<"deployed-science.experiment">({
       id: "test-deployed-section",
       augments: "deployed-science.experiment",
@@ -246,11 +217,6 @@ describe("DeployedScienceComponent", () => {
       ]);
     });
 
-    /*
-     * One augment per experiment card, each carrying its own card's datum
-     * (name + progress + body) in DOM order, proves the per-card props identity
-     * is correct.
-     */
     const sections = await waitFor(() => {
       const found = screen.getAllByTestId("deployed-section");
       expect(found).toHaveLength(2);
@@ -280,9 +246,7 @@ describe("parseBases", () => {
     ]);
     expect(parsed).toHaveLength(1);
     expect(parsed?.[0]?.experiments[0]?.progress).toBe(1);
-    // The legacy entry carries no `collecting` flag, so there is no verdict to
-    // report. This read `false` while `collecting` was `=== true`, which claims
-    // the experiment is idle on a wire that never said so.
+    // No `collecting` flag on the wire is no verdict, not idle.
     expect(parsed?.[0]?.experiments[0]?.collecting).toBeNull();
   });
 });

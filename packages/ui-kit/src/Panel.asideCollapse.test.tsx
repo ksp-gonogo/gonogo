@@ -18,14 +18,9 @@ import {
 import { usePanelAsideSize } from "./usePanelAsideSize";
 
 /**
- * Task 9 (operator-review rework, see usePanelAsideSize.ts): the header aside
- * collapses via `useHeaderAsideFit`'s measured-fit + hysteresis, not a fixed
- * `@container` width threshold. jsdom never completes a real ResizeObserver
- * cycle and gives `<canvas>` no 2D backend, so it always renders the WIDE
- * default (the full aside inline inside the box), exactly as the old
- * `@container`-based version did (jsdom could not evaluate that either).
- * These assert the JS-observable structure; the measured collapse itself is
- * left to the visual gate.
+ * The header aside collapses on a measured fit with hysteresis. jsdom never
+ * measures, so unstubbed it renders the wide default; these assert the
+ * JS-observable structure and leave the rendered collapse to the visual gate.
  */
 
 function header(): HTMLElement {
@@ -42,10 +37,8 @@ function statusDots(): NodeListOf<Element> {
 
 /**
  * Give `useHeaderAsideFit` real widths to measure under jsdom, which otherwise
- * reports 0 for everything: a 0 is the hook's "unmeasured" signal and HOLDS the
- * current state, which is why every other test here sees the wide default and
- * why a test that wants to widen again has to feed a fit rather than simply
- * un-stub.
+ * reports 0: the hook's "unmeasured" signal, which holds the current state, so
+ * a test that widens again has to feed a fit rather than un-stub.
  *
  * `row` is the header row's own width (the room available); `part` is what the
  * title and the aside each report, and the hook sums them. So `part * 2 > row`
@@ -114,7 +107,7 @@ describe("Panel header aside expand box", () => {
     const box = expandBox();
     expect(box.tagName).toBe("DETAILS");
     const full = box.querySelector("[data-panel-aside-full]") as HTMLElement;
-    // Both a badge-like readout and a real control live in the box's full slot, so a collapsed panel reaches the control by expanding it (Task 9's point).
+    // Both a readout and a real control live in the full slot, so a collapsed panel reaches the control by expanding it.
     expect(within(full).getByText("LAYER")).toBeInTheDocument();
     expect(
       within(full).getByRole("button", { name: "Toggle grid" }),
@@ -153,7 +146,7 @@ describe("Panel header aside expand box", () => {
     );
     // No store / healthy panel: empty breakdown, so no dots.
     expect(statusDots()).toHaveLength(0);
-    // The chevron is always present so a control-only collapsed box is still discoverable (the deferred affordance decision: chevron, not a bare dot).
+    // The chevron is always present so a control-only collapsed box is still discoverable.
     expect(header().querySelector("[data-panel-aside-chevron]")).not.toBeNull();
   });
 
@@ -163,12 +156,7 @@ describe("Panel header aside expand box", () => {
         body
       </Panel>,
     );
-    // The inline state has no summary to click (it is display: none) and the
-    // full aside renders regardless of [open], so a CLOSED details would tell
-    // the accessibility tree that visible badges are behind a disclosure with
-    // no trigger. Playwright's webkit visibility check reads exactly that
-    // structural claim rather than the CSS, which is how a green chromium run
-    // and a red webkit run described the same rendered pixels.
+    // A closed details would tell the accessibility tree that visible badges sit behind a disclosure with no trigger.
     expect(expandBox().open).toBe(true);
   });
 
@@ -210,7 +198,7 @@ describe("Panel header aside expand box", () => {
     await waitFor(() => expect(toggles.count).toBe(2));
     expect(expandBox().open).toBe(true);
 
-    // Widening to a fit forces open (the inline state), and must not keep the operator's choice around to re-open the box the next time it narrows.
+    // Widening forces open, and must not keep the operator's choice to re-open the box the next time it narrows.
     withHeaderMeasurements(...ROOMY);
     act(() => observers?.resize(header(), { width: ROOMY[0], height: 20 }));
     expect(expandBox().open).toBe(true);
@@ -237,8 +225,7 @@ describe("Panel header aside expand box", () => {
     const { rerender } = render(panel(["3/4 aboard", "2 crit", "in range"]));
     expect(expandBox().open).toBe(false);
 
-    // The third badge goes: 220 of the same 230, inside the re-expand margin.
-    // Same room, different content, so it is decided afresh and fits.
+    // 220 of the same 230 is inside the re-expand margin, but the content changed, so it is decided afresh and fits.
     withHeaderMeasurements(230, 110);
     rerender(panel(["3/4 aboard", "2 crit"]));
     expect(expandBox().open).toBe(true);
@@ -273,15 +260,12 @@ describe("Panel header aside expand box", () => {
         body
       </Panel>,
     );
-    // jsdom never completes a measurement, so this is the wide default same as
-    // an un-provided call would report; the point of the test is that it comes
-    // from PanelHeader's PanelAsideSizeProvider around `aside`, so a widget
-    // reading it from inside its own panelAside content is wired up at all.
+    // Proves PanelHeader provides the size around `aside`; jsdom's value is the wide default either way.
     expect(screen.getByText("bucket: full")).toBeInTheDocument();
   });
 
   it("stays inline (the wide default) in jsdom, where @container cannot fire", () => {
-    // Every existing widget test that renders a Panel sees the aside content inline, unchanged: jsdom never evaluates the collapse query.
+    // A widget test rendering a Panel sees the aside content inline, since jsdom never measures.
     render(
       <Panel panelTitle="LANDING" panelAside={<span>NO LANDING VECTOR</span>}>
         body

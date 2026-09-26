@@ -103,11 +103,7 @@ describe("CommandGroup", () => {
   });
 });
 
-/**
- * Arrangement. A stacked group spends about 30px of height on the commit row
- * and wraps its inputs unconditionally, which is the wrong shape for a strip of
- * corner-sized controls; neither could be changed from outside.
- */
+// Arrangement: a stacked group is the wrong shape for a strip of corner-sized controls.
 describe("CommandGroup arrangement", () => {
   const parts = (container: HTMLElement) => {
     const root = container.firstElementChild as HTMLElement;
@@ -166,17 +162,9 @@ describe("CommandGroup arrangement", () => {
   });
 });
 
-/**
- * A commit with no room for the word. The type-level half of this (a glyph
- * cannot be passed without a name) is pinned in `CommandGroup.test-d.tsx`;
- * these are the halves a typecheck cannot see.
- */
+// A glyph commit: the type-level half is in `CommandGroup.test-d.tsx`, these are the halves a typecheck cannot see.
 describe("CommandGroup icon-only commit", () => {
-  /*
-   * `commitAriaLabel` is passed through a non-null assertion so a test can omit
-   * it: that stands in for the caller the types cannot see, which is the whole
-   * reason the component warns as well as refusing at compile time.
-   */
+  // The non-null assertion lets a test omit `commitAriaLabel`, standing in for a caller the types cannot see.
   const IconCommit = ({
     onCommit = vi.fn(),
     commitLabel = <SendIcon size={16} />,
@@ -227,11 +215,7 @@ describe("CommandGroup icon-only commit", () => {
     await expectNoA11yViolations(container);
   });
 
-  /*
-   * What is left when the name goes missing is a button whose only content is
-   * an `aria-hidden` glyph, i.e. no accessible name at all. It renders fine and
-   * it commits fine, which is exactly why it has to say something.
-   */
+  // Without the name the button has only an `aria-hidden` glyph, so no accessible name at all.
   it("warns in dev when a glyph commit arrives with no name to go with it", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 

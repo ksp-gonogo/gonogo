@@ -10,32 +10,10 @@ import {
 import { TargetingComponent } from "./index";
 
 /**
- * Characterisation of what `undefined` MEANS at every read site in this widget,
- * recorded before `useTelemetry` starts returning a `Reading`.
- *
- * `vessel.target` already reads as a `Reading` here, and its four arms are
- * pinned in `reading.test.tsx`. What is NOT pinned, and is what the migration
- * moves, is everything downstream of a read that is still a bare payload:
- *
- * - `vessel.dock` is still `useTelemetry`, and every consumer of it gates on
- *   `undefined`. Those gates carry a MEANING ("this is not a docking
- *   scenario"), not a currency question, and after the migration a `Reading` is
- *   always truthy so each one silently stops gating
- * - the field-level gates inside an OBSERVED `vessel.target` record, where the
- *   record arrived and a field did not. Those are a third meaning again: the
- *   producer had nothing to say about this field
- *
- * Every assertion here records observed behaviour. Two of them pin renders that
- * are arguably wrong (a named absence claim from a nameless record, a tombstone
- * read as a non-scenario); they are here so the change shows up when someone
- * fixes them.
- *
- * `vessel.dock` has since migrated too, and every assertion below still holds: its
- * geometry now reaches the widget through an observed-or-reckoned branch, which
- * answers `undefined` for a never-arrived record and for a tombstone exactly as the
- * old bare read did. What it also answers `undefined` for is a record that stopped
- * being current with no model on offer, and that case is NOT characterised here
- * because it was unreachable before the migration: `stale.test.tsx` covers it.
+ * What `undefined` means at every read site downstream of the readings: for
+ * `vessel.dock`, "not a docking scenario" (never-arrived and tombstone alike),
+ * and inside an observed `vessel.target`, "the producer said nothing about this
+ * field". A dock record no longer current is `stale.test.tsx`'s subject.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -87,27 +65,20 @@ describe("Targeting: nothing has arrived on either topic", () => {
     const fixture = dockingFixture();
     const { container } = renderWidget(fixture);
 
-    // Named specifically rather than asserting an empty container: this widget
-    // has four whole-body branches and three of them are absence renderings, so
-    // "renders nothing" would pass against any of them.
+    // Named specifically: three of the four whole-body branches are absence renderings.
     expect(screen.getByText("Waiting for target telemetry")).toBeTruthy();
-    // The confident absence claim is a DIFFERENT branch and must not be here.
+    // The confident absence claim is a different branch and must not be here.
     expect(visibleText(container)).not.toContain("No target set in KSP");
     // Neither specialised view can be entered from nothing: both assert something about now.
     expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
     expect(screen.queryByText("APPROACH")).toBeNull();
-    // And no age caption: there is no observation for an age to be measured from, so `readingAge` answers undefined and the caption is skipped.
+    // No observation, so no age caption.
     expect(visibleText(container)).not.toMatch(/ago/);
   });
 });
 
 describe("Targeting: the vessel.dock absence gate", () => {
-  /**
-   * `dockingAvailable = dockRelPos !== undefined` is the gate. `undefined` on
-   * `vessel.dock` means "the mod is not publishing a dock channel, so this is
-   * not a docking scenario", NOT "waiting". The widget is deliberately inside
-   * HUD range in both tests below, so only the gate keeps it out.
-   */
+  /** An undefined `vessel.dock` means "not a docking scenario", not "waiting"; both tests sit inside HUD range so only the gate keeps the HUD shut. */
   it("stays in the approach view at HUD range while vessel.dock has never arrived", async () => {
     const fixture = dockingFixture();
     renderWidget(fixture);
@@ -123,19 +94,13 @@ describe("Targeting: the vessel.dock absence gate", () => {
     await waitFor(() => expect(screen.getByText("APPROACH")).toBeTruthy());
     // 60 m is well inside HUD_ENTER_M (100), so distance alone would promote.
     expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
-    // The approach view still renders every row it can: the dock gate costs the reticle, not the numbers.
+    // The dock gate costs the reticle, not the numbers.
     expect(screen.getByText("Distance")).toBeTruthy();
     expect(screen.getByText("Closing rate")).toBeTruthy();
   });
 
   it("treats a vessel.dock tombstone exactly as it treats never-arrived, and drops the HUD", async () => {
-    // null vs undefined: the store means `null` = the subject confirms there is
-    // no dock scenario, `undefined` = nothing has arrived. This widget implements
-    // NEITHER distinction, deliberately and still: the two reach it as `absent`
-    // and `pending`, both of which leave `dock` undefined, and the only
-    // visible consequence either way is a HUD that does not open, so the
-    // tombstone below produces the identical render to the never-arrived case
-    // above.
+    // A dock tombstone renders identically to never-arrived: a HUD that does not open.
     const fixture = dockingFixture();
     renderWidget(fixture);
     act(() => {
@@ -168,26 +133,19 @@ describe("Targeting: the vessel.dock absence gate", () => {
 });
 
 describe("Targeting: a partial vessel.dock record", () => {
-  /**
-   * These pin the `??` fallbacks. `dock.distance` and `dock.relativeVelocity`
-   * each fall back to the vessel-to-vessel figure derived off `vessel.target`
-   * when absent, so a missing dock field is silently answered by a DIFFERENT
-   * quantity rather than by a placeholder.
-   */
+  /** A missing dock distance or relative velocity is silently answered by the target-derived figure, not a placeholder. */
   it("falls back to the target's distance and closing rate when the dock record omits them", async () => {
     const fixture = dockingFixture();
     const { container } = renderWidget(fixture);
     act(() => {
-      // Target-derived figures, deliberately unlike anything the dock record
-      // could produce from its own geometry (|(2,-1.5,40)| is ~40, not 77), so
-      // the numbers below can only have come through the fallback.
+      // Target-derived figures unlike anything the dock geometry could produce, so they can only come through the fallback.
       fixture.emit("vessel.target", {
         name: "Port Mk2",
         kind: KIND.Vessel,
         relativePosition: atRange(77),
         relativeVelocity: atRange(-0.77),
       });
-      // Dock record present (so the HUD opens) but carrying only the geometry the reticle needs: no `distance`, no `relativeVelocity`.
+      // Dock record present with only the reticle geometry.
       fixture.emit("vessel.dock", {
         relativePosition: { x: 2, y: -1.5, z: 40 },
         forwardDot: 0.9999,
@@ -199,9 +157,9 @@ describe("Targeting: a partial vessel.dock record", () => {
         screen.getByRole("region", { name: /Docking HUD for Port Mk2/ }),
       ).toBeTruthy(),
     );
-    // `dockDistanceStream ?? tarDistance`: the headline is the TARGET's 77 m, not a placeholder, even though the dock channel said nothing about range.
+    // The headline is the TARGET's 77 m.
     expect(visibleText(container)).toContain("77.0 m");
-    // `derivedDockRelVel ?? relVel`: the Δv row is the target's radial rate.
+    // The Δv row is the target's radial rate.
     expect(visibleText(container)).toContain("-0.77 m/s");
   });
 
@@ -227,21 +185,14 @@ describe("Targeting: a partial vessel.dock record", () => {
         screen.getByRole("region", { name: /Docking HUD for Port Mk2/ }),
       ).toBeTruthy(),
     );
-    // α and β are derived client-side off `dock.relativePosition`, so they
-    // survive `forwardDot` being absent. γ (roll) is not on the wire at all and
-    // is the widget's own permanent `undefined`, hard-coded rather than read.
+    // α and β are derived off `dock.relativePosition`; γ (roll) is not on the wire.
     expect(visibleText(container)).toContain(`2.9° · -2.1° · ${NULL_DISPLAY}`);
   });
 });
 
 describe("Targeting: a partial vessel.target record", () => {
   it("reports a confident absence for an OBSERVED record that carries no name", async () => {
-    // The belt-and-braces `|| tarName === undefined` arm, which survives
-    // alongside the `absent` arm. A record DID arrive and is current, so the
-    // reading is `observed`, and the widget nonetheless renders the
-    // confirmed-absence branch: "No target set in KSP, confirmed N ago", from a
-    // frame that only failed to carry a name. Pinned as observed behaviour, not
-    // endorsed.
+    // A current record with no name renders the confirmed-absence branch: pinned as observed behaviour, not endorsed.
     const fixture = dockingFixture();
     const { container } = renderWidget(fixture);
     act(() => {
@@ -255,7 +206,7 @@ describe("Targeting: a partial vessel.target record", () => {
     await waitFor(() =>
       expect(screen.getByText("No target set in KSP")).toBeTruthy(),
     );
-    // "confirmed", not "last seen": the arm is `observed`, so the widget states the absence in the present tense.
+    // "confirmed", not "last seen": the arm is `observed`.
     expect(visibleText(container)).toMatch(/confirmed/i);
     // The distance the record DID carry is discarded with it.
     expect(visibleText(container)).not.toContain("1.5 km");
@@ -263,10 +214,7 @@ describe("Targeting: a partial vessel.target record", () => {
   });
 
   it("renders the display dash and no closing-rate row when the record carries no relative position", async () => {
-    // The record is whole enough to be a target (it has a name) but carries no
-    // geometry, so `tarDistance` and `relVel` are both undefined. This is the
-    // "producer said nothing about this field" meaning, distinct from both
-    // never-arrived and tombstoned.
+    // A nameable record with no geometry: the producer said nothing about these fields.
     const fixture = dockingFixture();
     const { container } = renderWidget(fixture, { w: 6, h: 9 });
     act(() => {
@@ -279,20 +227,18 @@ describe("Targeting: a partial vessel.target record", () => {
     await waitFor(() =>
       expect(screen.getByText("Geometry-Free Station")).toBeTruthy(),
     );
-    // Tracking mode: the headline is the null-display placeholder at the value's own display tier, NOT a zero and NOT the waiting empty state.
+    // The headline is the null placeholder at display tier, not a zero and not the waiting state.
     expect(visibleText(container)).toContain(NULL_DISPLAY);
     expect(screen.queryByText("Waiting for target telemetry")).toBeNull();
-    // `tarDistance === undefined` also blocks the mode effect outright, so a nameable Vessel target never reaches approach or the HUD without geometry.
+    // No geometry also blocks the mode effect, so the target never reaches approach or the HUD.
     expect(screen.queryByText("APPROACH")).toBeNull();
     expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
-    // `showSubReadout` gates on relVel, so the Δv sub-readout is absent entirely rather than rendered as a placeholder.
+    // No relVel, so the Δv sub-readout is absent rather than placeholdered.
     expect(visibleText(container)).not.toContain("Δv");
   });
 
   it("renders TCA as the null placeholder when the record carries no closest approach", async () => {
-    // `magnitudeOf(target?.closestApproach?.time)` is undefined for a record
-    // with no solver output, and the approach view converts that to `null` and
-    // renders the placeholder rather than a T-0 countdown.
+    // No solver output renders the placeholder rather than a T-0 countdown.
     const fixture = dockingFixture();
     const { container } = renderWidget(fixture, { w: 6, h: 9 });
     act(() => {
@@ -306,10 +252,10 @@ describe("Targeting: a partial vessel.target record", () => {
 
     await waitFor(() => expect(screen.getByText("APPROACH")).toBeTruthy());
     expect(screen.getByText("TCA")).toBeTruthy();
-    // The rows that DO have data still render, so this is the TCA row alone degrading rather than the view.
+    // Only the TCA row degrades.
     expect(visibleText(container)).toMatch(/2\.0 km/);
     expect(visibleText(container)).toMatch(/−5\.0 m\/s/);
-    // No countdown anywhere: `Countdown` renders a T± string, and its absence is what says the placeholder took its place.
+    // No T± countdown anywhere.
     expect(visibleText(container)).not.toMatch(/T[−+]/);
   });
 });

@@ -10,20 +10,14 @@ import {
 } from "./DelayRailContext";
 import { usePanelDelay } from "./usePanelDelay";
 
-/*
- * The rail axes these fixtures carry, from the same derivations production uses
- * rather than written as literals: a fixture that spelled its own tags would go
- * on asserting the old picture after a derivation moved.
- */
+// The rail axes come from the production derivations, so the fixtures follow them rather than asserting stale literals.
 const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
 
 function handle(effectiveDelaySeconds = 5): CommandDelayHandle {
   return { inFlight: [], tags: RAIL_DISCRETE, effectiveDelaySeconds };
 }
 
-/** A command widget's usage: it holds a handle (from `useCommand` in real
- * code, a structural literal here) and contributes it with `usePanelDelay`,
- * exactly as `Badge` contributes with `useStatusContribution`. */
+/** A command widget's usage: it holds a handle and contributes it with `usePanelDelay`. */
 function Reporter({ h }: { h: CommandDelayHandle | null }) {
   usePanelDelay(h);
   return null;

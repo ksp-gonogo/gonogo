@@ -13,16 +13,8 @@ import { type OrbitScenario, renderOrbitStream } from "../test/orbitScenario";
 import { CurrentOrbitComponent } from "./index";
 
 /**
- * CurrentOrbit's mini diagram must not decide what shape the orbit is.
- *
- * The numbers beside it are a different question and stay: `sma`, `ecc` and the
- * apsides are what the provider measured at the sample instant, and they are
- * true whoever computed them. Only the CURVE asserts what the craft will fly,
- * and only the curve is gated here.
- *
- * Written against the rendered SVG rather than a helper's return value, for the
- * same reason as OrbitView's twin: a unit test of the decision function would
- * pass whether or not the widget consulted it.
+ * The mini diagram draws the shape the provider states, never its own.
+ * The numbers beside it were measured and stay whoever computed them; only the curve is gated.
  */
 
 /** Wide enough for the diagram slot (`cols >= 5 && (rows >= 8 || cols >= 10)`). */
@@ -80,9 +72,7 @@ describe("CurrentOrbit draws the shape the provider states", () => {
   it("draws the vouched-for arc, not a closed conic, when the provider integrates", async () => {
     const { container } = render({ ...LKO, horizon: integratedHorizon(500) });
     await waitForDiagram(container);
-    // The osculating conic on the wire is exact at the sample instant and is
-    // not the path. A closed ellipse drawn from it is a curve the craft will
-    // not fly, and drawing one is the whole defect.
+    // The osculating conic is exact at the sample instant and is not the path.
     expect(closedConics(container)).toBe(0);
     const path = container.querySelector("svg path[data-trajectory]");
     expect(path).not.toBeNull();
@@ -93,9 +83,7 @@ describe("CurrentOrbit draws the shape the provider states", () => {
 
   it("draws no curve at all when the producer states reach but not shape", async () => {
     const { container } = render({ ...LKO, horizon: UNBOUNDED_HORIZON });
-    // `Unspecified` is what a producer that dropped the field sends. Reading it
-    // as "conic" would put the permissive default back, which is the failure
-    // the enum's own zero-value ordering exists to prevent.
+    // `Unspecified` is what a producer that dropped the field sends, so it must not read as conic.
     await waitForText(container, "SHAPE NOT STATED");
     expect(closedConics(container)).toBe(0);
     expect(container.querySelector("svg path[data-trajectory]")).toBeNull();
@@ -109,15 +97,12 @@ describe("CurrentOrbit draws the shape the provider states", () => {
   });
 
   it("keeps the numbers when the curve is refused", async () => {
-    // A refusal is about the path. Apoapsis, periapsis and eccentricity were
-    // measured, and blanking them would report a data outage that has not
-    // happened.
+    // A refusal is about the path; blanking the measured numbers would report an outage that has not happened.
     const { container } = render({ ...LKO, horizon: UNBOUNDED_HORIZON });
     await waitForText(container, "SHAPE NOT STATED");
     const text = visibleText(container);
     expect(text).toContain("Ap");
     expect(text).toContain("Pe");
-    // ecc 0.005 at four decimals, the row's own formatting.
     expect(text).toContain("0.0050");
   });
 

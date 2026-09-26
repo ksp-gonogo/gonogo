@@ -61,7 +61,7 @@ describe("deriveCommsPath", () => {
       ],
       [edge("home", "v-relay"), edge("v-relay", "v-far")],
     );
-    // Traversal order runs from the SELECTED VESSEL outward to home (the walk starts at the vessel), so the vessel's own hop comes first.
+    // The walk starts at the vessel, so the vessel's own hop comes first.
     expect(deriveCommsPath(net, "v-far")).toEqual({
       quality: "full",
       edgeIds: ["comms-edge:v-relay:v-far", "comms-edge:home:v-relay"],
@@ -69,9 +69,7 @@ describe("deriveCommsPath", () => {
   });
 
   it("walks edges bidirectionally regardless of a/b order", () => {
-    // Edge stored as (v-far -> v-relay), the reverse of the direction the
-    // walk needs; the path must still resolve and the entity id must still
-    // match the edge's OWN a/b order (not the traversal direction).
+    // The edge is stored reversed; the path still resolves, and the entity id keeps the edge's own a/b order.
     const net = network(
       [
         node({ id: "home" }),
@@ -149,12 +147,7 @@ describe("COMMS_PATH_COLOUR", () => {
 });
 
 describe("commsControlQuality", () => {
-  // The highlighted path's actual colour source: the SELECTED VESSEL'S own
-  // roster commsLabel (`vesselOrbitsContribution.ts`), not `deriveCommsPath`'s
-  // traversal-only `quality`. A vessel can sit on an all-active BFS route to
-  // home through another vessel's relay while its own control source is
-  // still Partial or None; these assertions are keyed off the roster label
-  // directly, independent of what any particular graph shape produces.
+  // The path colour comes from the selected vessel's own roster commsLabel, not the traversal `quality`: a vessel can route to home over active edges while its own control is Partial or None.
   it("maps a FULL-control roster label ('connected') to the go tone", () => {
     expect(COMMS_PATH_COLOUR[commsControlQuality("connected")]).toBe(
       "var(--color-status-go-bg)",

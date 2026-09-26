@@ -7,22 +7,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
 
 /**
- * What the planner does when the elements its apsis figures are solved from
- * stop arriving.
- *
- * `ApR`, `PeR`, `timeToAp` and `timeToPe` are derived at view time off
- * `vessel.orbit`, and they are absent together whenever the conic that
- * authorises deriving them has withdrawn: there is no model to carry stale
- * elements forward, so there is nothing for `computePlan` to take.
- *
- * The plan is WITHHELD rather than marked: a plan built on inputs that stopped
- * arriving is wrong rather than stale, and it does not look wrong. It renders
- * as a confident burn for a position the craft has left.
- *
- * The gating governs this ADDITIONAL reasoning only and must not reach the
- * diagram's own reckoning of basic motion, which it does not: the diagram is
- * `useOrbitTrajectory(orbit)`, fed from the `vessel.orbit` reading rather than
- * from any of these four.
+ * When the elements the apsis figures are solved from stop arriving, the plan
+ * is withheld rather than marked: it would be a confident burn for a position
+ * the craft has left. The gate does not reach the diagram's own trajectory.
  */
 const CARRIED = [
   "vessel.orbit",
@@ -61,10 +48,7 @@ describe("ManeuverPlanner when its apsis inputs stop arriving", () => {
         meanAnomalyAtEpoch: 0,
         epoch: 1_000_000,
         mu: 3.5316e12,
-        // The reach and shape a live sample states, and the roster beside it:
-        // the two declared inputs of the conic the apsis figures are solved
-        // through. The control below is that the planner is NOT waiting, which
-        // needs a model to exist at all.
+        // The control below needs a conic model, which needs a stated horizon.
         horizon: ANALYTIC_UNBOUNDED_HORIZON,
       });
       fixture.emit("system.bodies", {
@@ -82,11 +66,7 @@ describe("ManeuverPlanner when its apsis inputs stop arriving", () => {
       fixture.store.beginFrame();
     });
 
-    /*
-     * Withheld, and it SAYS so rather than going quiet: a planner that silently
-     * shows its last plan is the failure this gate exists to stop, and an empty
-     * panel would be indistinguishable from one that never had telemetry.
-     */
+    // Withheld out loud: a silent empty panel would look like one that never had telemetry.
     await waitFor(() =>
       expect(visibleText(container)).toContain("Awaiting orbit telemetry"),
     );

@@ -22,12 +22,8 @@ export interface RowFilter {
 }
 
 /**
- * A declared segment whose contributions are plain search terms.
- *
- * Not every segment is: `badges` contributes a `BadgeEntry`, and a badge object
- * is not something this hook can lowercase and substring-match. Constraining the
- * option is what keeps `useContributions(segment)` returning `string` here
- * instead of a union that every line below would have to narrow.
+ * A declared segment whose contributions are plain search terms. `badges`, for
+ * one, contributes a `BadgeEntry`, which cannot be substring-matched.
  */
 export type TermSegment = {
   [K in ComponentSlotSegment]: ComponentSlotRegistry[K] extends string
@@ -48,15 +44,13 @@ export interface UseRowFilterOptions {
 }
 
 /**
- * The filter semantics behind `FilterList`, separated so a host that renders
- * its own rows can share them. A table cannot hand its rows to `FilterList`
- * without giving up its columns, and a second, subtly different filter box
- * next to the first is exactly the kind of drift this package exists to stop.
+ * The filter semantics behind `FilterList`, for a host that renders its own
+ * rows (a table cannot hand its rows to `FilterList` without giving up its
+ * columns).
  *
- * Model, unchanged from `FilterList`: contributed toggles STACK (AND with each
- * other), the free-text box is ANDed on top, every needle a case-insensitive
- * substring. Nothing selected and nothing typed matches everything, so a list
- * hides nothing until an operator narrows it.
+ * Contributed toggles stack (AND with each other), the free-text box is ANDed
+ * on top, and every needle is a case-insensitive substring. Nothing selected
+ * and nothing typed matches everything.
  */
 export function useRowFilter({
   segment = "filters",

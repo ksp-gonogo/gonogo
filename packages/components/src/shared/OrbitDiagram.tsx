@@ -12,34 +12,20 @@ import styled from "styled-components";
 
 export type OrbitDiagramVariant = "full" | "mini";
 
-/**
- * A second orbit drawn on the same frame as the main one, dashed and in a
- * contrasting colour. Used for maneuver-planner previews ("what will the
- * orbit become after this burn?") without forcing callers to mount two
- * diagrams side by side.
- */
+/** A second orbit drawn dashed on the same frame as the main one. */
 export interface ProjectedOrbit {
   sma: number;
   ecc: number;
   apoapsis: number;
   periapsis: number;
-  /**
-   * Optional: argument of periapsis of the projected orbit. Defaults to
-   * the main orbit's argPe, which is correct for burns at an apsis (the
-   * line of apsides is preserved).
-   */
+  /** Defaults to the main orbit's, which is correct for a burn at an apsis. */
   argPe?: number;
 }
 
 /**
- * Interactive maneuver handles rendered at the burn point. Prograde +
- * radial ΔV are draggable along their axes; normal is out-of-plane so
- * we can't meaningfully render it in a 2-D diagram, the call site
- * keeps a numeric input for that.
- *
- * The prograde axis is the tangent to the orbit (perpendicular-to-radius
- * approximation: exact at apsides, within a few degrees off-apsis for
- * low-eccentricity orbits, good enough for visual preview).
+ * Draggable prograde and radial handles at the burn point; normal is out of
+ * plane and cannot be drawn in 2-D. Prograde is taken perpendicular to the
+ * radius, exact at the apsides and close enough elsewhere for a preview.
  */
 export interface ManeuverHandleProps {
   /** Where on the current orbit the burn happens, true anomaly in degrees. */
@@ -48,7 +34,7 @@ export interface ManeuverHandleProps {
   radial: number;
   onPrograde: (v: number) => void;
   onRadial: (v: number) => void;
-  /** Map m/s → orbital-distance units. Default auto-scales to apoapsis. */
+  /** Orbital-distance units per m/s; defaults to a fraction of the orbit's extent. */
   scale?: number;
 }
 
@@ -75,116 +61,52 @@ export interface OrbitDiagramProps {
   variant?: OrbitDiagramVariant;
   /** Show Ap/Pe dots (labels only rendered in "full" variant). Default: true. */
   showMarkers?: boolean;
-  /**
-   * Optional projected orbit drawn dashed behind the current one. Pass
-   * `null` (or omit) to skip. The viewBox grows to contain the larger of
-   * the two apoapses so the overlay never clips.
-   */
+  /** Drawn dashed behind the current orbit; the frame grows to contain it. */
   projected?: ProjectedOrbit | null;
-  /**
-   * Optional second projected orbit drawn solid in the projected colour.
-   * Used by the Hohmann preset to render the final circular orbit on top
-   * of the (dashed) transfer ellipse. Same bbox treatment as `projected`.
-   */
+  /** Drawn solid in the projected colour, e.g. the final orbit over a dashed transfer. */
   secondaryProjected?: ProjectedOrbit | null;
   /**
-   * Fill the region between the current conic and `projected`, as one shape
-   * rather than two lines.
-   *
-   * <p>For a FLOWN-versus-PLANNED comparison, where both curves are known
-   * exactly: one is authored by the planner, the other is observed. The filled
-   * region is their measured difference, so it carries no claim about
-   * uncertainty and is deliberately not a band.</p>
-   *
-   * <p>Ignored unless both conics are closed. A region between an ellipse and
-   * an open hyperbola is not bounded, and filling it would draw a shape whose
-   * area means nothing.</p>
+   * Fill the region between the current conic and `projected`: a measured
+   * flown-versus-planned difference, not an uncertainty band. Ignored unless
+   * both conics are closed, since a region against a hyperbola is unbounded.
    */
   corridor?: boolean;
   /**
-   * Frame a neighbourhood of the orbit instead of the whole of it, in the
-   * diagram's own units: centre plus half-extent.
-   *
-   * <p>For a difference too small to see against the orbit that contains it.
-   * Nothing is redrawn and nothing is scaled up relative to anything else:
-   * the same curves are framed more closely, so every distance inside the
-   * frame stays in true proportion to every other. A caller deriving the
-   * half-extent FROM the difference gets a frame that reads at whatever size
-   * the difference happens to be.</p>
+   * Frame a neighbourhood of the orbit (centre plus half-extent, diagram
+   * units) instead of all of it. The same curves are framed more closely, so
+   * every distance inside stays in true proportion.
    */
   focus?: {
     x: number;
     y: number;
     halfExtent: number;
-    /**
-     * Turn the scene about the focus point, degrees, so the arc through it
-     * runs along the frame rather than across it. A separation is measured
-     * ACROSS the curves and read ALONG them, so the two want perpendicular
-     * axes: without this, a frame short enough not to dominate the panel is
-     * also too short to show any arc.
-     */
+    /** Turns the scene about the focus point so the arc runs along the frame rather than across it. */
     rotationDeg?: number;
   } | null;
-  /** Interactive prograde/radial drag handles at the burn point. */
   maneuverHandles?: ManeuverHandleProps | null;
-  /**
-   * Current rotation angle (degrees) of the body. When provided, an
-   * inset pole marker rotates around the centre to indicate the body's
-   * spin. Combined with the body fill alone gives "is this thing
-   * spinning at all" at a glance.
-   */
+  /** Body rotation in degrees, drawn as a pole marker circling the centre. */
   rotationAngleDeg?: number | null;
-  /**
-   * Atmosphere depth in the same units as `bodyRadius`. When provided,
-   * a soft radial gradient extends from the body's surface up to the
-   * top of the atmosphere: a thin band the operator can use to gauge
-   * where the orbit is relative to the air. Defaults to no band.
-   */
+  /** Atmosphere depth in `bodyRadius` units, drawn as a band above the surface. */
   atmosphereDepthM?: number | null;
   /** Tint the atmosphere band blue when oxygen, amber when not. */
   atmosphereHasOxygen?: boolean | null;
   /**
-   * The trajectory as SUPPLIED points, in the orbit's own plane with periapsis
-   * on +x, same units as `apoapsis`/`periapsis`. When present it replaces the
-   * conic entirely: the caller has been told by the propagation seam that this
-   * path, and not a curve derived from `sma`/`ecc`, is what the craft flies.
-   *
-   * `sma`/`ecc` still arrive alongside it and are still used, for the frame's
-   * extent and the apsis markers. That is scale and annotation, not the
-   * trajectory, and it is the one thing a supplied path cannot give: a bounded
-   * arc says nothing about how large the orbit it belongs to is.
+   * Supplied trajectory points in the orbit plane (periapsis on +x). When
+   * present they replace the conic; `sma`/`ecc` still set the frame extent
+   * and the apsis markers, which a bounded arc cannot give.
    */
   trajectoryPath?: readonly { x: number; y: number }[] | null;
   /**
-   * Where the craft HAS BEEN, drawn behind it.
-   *
-   * <p>Deliberately a separate prop from `trajectoryPath` and drawn in a
-   * different weight, because the two are different kinds of claim: one is a
-   * record of what was observed, the other a prediction of what will happen.
-   * Joined into one curve through the craft they would read as equally certain,
-   * and the half that is a guess is the half an operator would act on.</p>
+   * Where the craft has been. A separate prop in a different weight from
+   * `trajectoryPath`: an observed record and a prediction must never read as
+   * one equally certain curve.
    */
   trailPath?: readonly { x: number; y: number }[] | null;
-  /**
-   * What the far end of `trajectoryPath` IS, which decides the sentence on the
-   * mark drawn there.
-   *
-   * A supplied path always gets that mark and it is always a MARK rather than a
-   * fade, because the failure it prevents is that a prediction which stops short
-   * and a trajectory which ends look identical. A fade is the wrong instrument
-   * for it: fading reads as growing uncertainty about the shape, where the fact
-   * is complete certainty about where the authority behind the shape stops.
-   *
-   * Null when the caller has no supplied path, which is when there is no far end
-   * to mark.
-   */
+  /** What the far end of `trajectoryPath` is; a stop is marked, never faded, since a fade reads as an uncertain shape. */
   trajectoryFarEnd?: ArcFarEnd | null;
 }
 
-// Per-variant styling knobs. Kept here so the two call sites don't diverge.
-// Padding is generous on the "full" variant so the apsis labels (sized
-// relative to the viewBox so they read at a sensible pixel size) don't
-// clip when argPe rotates the apsis line vertical.
+// Full-variant padding keeps the apsis labels from clipping when argPe turns the apsis line vertical.
 const variantConfig = {
   full: {
     padding: 0.25,
@@ -207,17 +129,9 @@ const variantConfig = {
 } as const;
 
 /**
- * One closed conic sampled to a polygon, in the diagram's own frame.
- *
- * The two conics a corridor spans each carry their OWN argument of periapsis,
- * so neither can ride the `<g transform="rotate(...)">` the strokes use: the
- * rotation has to be baked per point or the region between them is drawn
- * between two curves that were never in the same frame. Degrees and the sign
- * convention match that transform exactly.
- *
- * Sampled on eccentric anomaly rather than true anomaly, which spaces points
- * evenly around the ellipse instead of crowding them at periapsis, where the
- * two curves are usually closest and the fill thinnest.
+ * One closed conic sampled to a polygon with its own argPe baked into every
+ * point, since two conics with different rotations cannot share one transform.
+ * Sampled on eccentric anomaly so points do not crowd at periapsis.
  */
 function conicPolygon(
   sma: number,
@@ -245,13 +159,7 @@ function conicPolygon(
 /** Points per conic in a corridor. 240 keeps the fill smooth at the widest variant. */
 const CORRIDOR_STEPS = 240;
 
-/**
- * Applies a rotation to the scene, and emits NOTHING when there is none.
- *
- * An unconditional wrapper would be invisible and still wrong: it adds a `<g>`
- * to the DOM of every diagram in the app for a transform only the focus frame
- * asks for, which is a change to markup that other widgets pin.
- */
+/** Emits no wrapper at all without a rotation, keeping every other diagram's markup unchanged. */
 function Rotated({
   transform,
   children,
@@ -288,11 +196,7 @@ export function OrbitDiagram({
 }: Readonly<OrbitDiagramProps>) {
   const cfg = variantConfig[variant];
 
-  // Hyperbolic orbits: an escape trajectory arrives with `sma < 0` and
-  // `ecc >= 1`. The ellipse representation collapses (negative
-  // rx + zero ry from b = sma·√(1-e²) when e²>1) so we render a sampled
-  // hyperbolic path instead. Apoapsis is meaningless on a hyperbola so
-  // we suppress the marker and base scale-ref on periapsis.
+  // An escape trajectory has no ellipse and no apoapsis: it is sampled as a hyperbola and scaled off periapsis.
   const isHyperbolic = ecc >= 1 || sma <= 0;
   const projIsHyperbolic = projected
     ? projected.ecc >= 1 || projected.sma <= 0
@@ -301,15 +205,9 @@ export function OrbitDiagram({
     ? secondaryProjected.ecc >= 1 || secondaryProjected.sma <= 0
     : false;
 
-  // Orbital geometry: semi-minor axis and focus offset
   const b = sma * Math.sqrt(Math.max(0, 1 - ecc * ecc));
   const c = sma * ecc;
 
-  /*
-   * Only where the region is bounded and there are two curves to bound it.
-   * An open hyperbola has no inside, so a fill between one and an ellipse
-   * would be a shape whose area is an artefact of where the sampling stopped.
-   */
   const corridorPath =
     corridor && projected && !isHyperbolic && !projIsHyperbolic
       ? `${conicPolygon(sma, ecc, argPe, CORRIDOR_STEPS)}${conicPolygon(
@@ -320,14 +218,12 @@ export function OrbitDiagram({
         )}`
       : null;
 
-  // Projected orbit geometry (optional overlay)
   const projB = projected
     ? projected.sma * Math.sqrt(Math.max(0, 1 - projected.ecc * projected.ecc))
     : 0;
   const projC = projected ? projected.sma * projected.ecc : 0;
   const projArgPe = projected?.argPe ?? argPe;
 
-  // Secondary projected geometry: same derivation as `projected`.
   const sec2B = secondaryProjected
     ? secondaryProjected.sma *
       Math.sqrt(
@@ -339,11 +235,7 @@ export function OrbitDiagram({
     : 0;
   const sec2ArgPe = secondaryProjected?.argPe ?? argPe;
 
-  // Scale reference: expand to contain whichever orbit reaches furthest.
-  // For hyperbolic trajectories, apoapsis is meaningless, and a provider
-  // that answers with a huge sentinel instead of nothing would zoom the
-  // diagram out to dwarf the body; fall back to a multiple of periapsis so the
-  // trajectory + body have visual breathing room.
+  // A hyperbola's apoapsis may be a huge sentinel, so its extent is a multiple of periapsis instead.
   const HYPERBOLIC_SCALE = 5;
   const mainExtent = isHyperbolic ? periapsis * HYPERBOLIC_SCALE : apoapsis;
   const projExtent = projected
@@ -358,20 +250,12 @@ export function OrbitDiagram({
     : 0;
   const scaleRef = Math.max(mainExtent, projExtent, sec2Extent);
   const padding = scaleRef * cfg.padding;
-  /*
-   * Stroke and marker sizes follow the FRAME, not the orbit. They are
-   * fractions of whatever is on screen, so under a focus frame the orbit's own
-   * extent is the wrong reference by exactly the magnification: a stroke sized
-   * for a 1250 km orbit drawn into an 11 km frame is a band wider than the
-   * separation it is meant to let you see.
-   */
+  // Stroke and marker sizes follow the frame, not the orbit, or a focus frame magnifies them too.
   const frameRef = focus ? focus.halfExtent : scaleRef;
   const strokeW = frameRef * cfg.strokeW;
   const dotR = frameRef * cfg.dotR;
 
-  // Track the rendered container size so we can pad the viewBox to its
-  // aspect (avoids letterboxing) AND convert px-based label sizes back
-  // into viewBox units.
+  // The container size pads the viewBox to its aspect and converts pixel label sizes to viewBox units.
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerSize, setContainerSize] = useState<{
     w: number;
@@ -393,36 +277,17 @@ export function OrbitDiagram({
     ? containerSize.w / containerSize.h
     : null;
 
-  // Body disc renders at the body's real radius when known, in both
-  // variants. Earlier the mini variant capped to `apoapsis * 0.2` so a
-  // small preview wouldn't be dominated by the body, but that turned
-  // sub-orbital trajectories (apoapsis << bodyRadius) into a body-dot
-  // that sat inside its own orbit and hid the "ship will crash" cue.
-  // With render order orbit-then-body, the body naturally occludes any
-  // orbit segment that crosses through it: for normal orbits the
-  // orbit shows as a ring around the body, for sub-orbital the orbit
-  // disappears into the body indicating impact.
-  //
-  // Floor at 4% of scaleRef so highly-eccentric orbits (apoapsis ≫
-  // bodyRadius: e.g. Kerbin 600 km against a 7 Mm Ap puts the body at
-  // <2% of the visible extent) still render a visible body. This
-  // exaggerates proportions in the corner case but the alternative is
-  // a body that's literally invisible.
+  /* The body is drawn at its real radius over the orbit, so a sub-orbital arc
+     visibly disappears into it. Floored at 4% of the extent so a highly
+     eccentric orbit still shows a body at all. */
   const MIN_BODY_DISC_RATIO = 0.04;
   const minDisc = scaleRef * MIN_BODY_DISC_RATIO;
   const bodyDisc = bodyRadius
     ? Math.max(bodyRadius, minDisc)
     : scaleRef * cfg.defaultBodyDiscRatio;
 
-  // Bbox pipeline shared by both variants:
-  //   orbit (rotated by argPe) → union with projected + body → pad →
-  //   centre/aspect-fit
-  // The rotated-bbox step is what keeps the mini variant from clipping
-  // orbits with non-zero argPe: apoapsis/b taken directly is only
-  // correct at argPe=0. Including the body
-  // bbox covers sub-orbital trajectories where the body is much larger
-  // than the orbit: without it, the body extends past the viewBox and
-  // renders as a uniform colour across the whole frame.
+  /* Frame: each orbit's argPe-rotated box, unioned with the body's (which can
+     dwarf a sub-orbital arc), padded, then aspect-fitted. */
   const mainBox = isHyperbolic
     ? hyperbolicBoundingBox(periapsis * HYPERBOLIC_SCALE)
     : orbitBoundingBox(sma, b, c, argPe);
@@ -448,15 +313,9 @@ export function OrbitDiagram({
   const orbitOrBodyBox = unionBox(orbitBox, bodyBox);
   const paddedBox = padBox(orbitOrBodyBox, padding);
 
-  // full: body-centred (origin in viewBox centre) + aspect fit; default to
-  //       a square frame when unmeasured to match pre-aspect-aware behaviour.
-  // mini: orbit-centred (orbit edge-to-edge) + aspect fit when measured;
-  //       leaves the bbox tight when unmeasured.
-  /*
-   * A focus frame replaces the fitted bbox rather than adjusting it: the
-   * caller has asked for a specific neighbourhood, and unioning that with the
-   * orbit's own extent would put the whole orbit back and undo the framing.
-   */
+  /* Full is body-centred and square until measured; mini is orbit-centred and
+     tight until measured. A focus frame replaces the fitted box outright, since
+     a union with the orbit would undo the framing. */
   const framedBox = focus
     ? {
         xMin: focus.x - focus.halfExtent,
@@ -475,13 +334,10 @@ export function OrbitDiagram({
     ? "rgba(0,255,136,0.55)"
     : "rgba(255,80,0,0.55)";
 
-  // Vessel position from true anomaly (body-centric polar → cartesian)
   const r = trueAnomalyToRadius(sma, ecc, trueAnomaly);
   const { x: vx, y: vy } = orbitalToCartesian(r, trueAnomaly);
 
-  // Rotated marker positions in SVG world space, used so labels and the
-  // hover tooltip stay axis-aligned (they previously lived inside the
-  // rotation group and read sideways at large argPe).
+  // Marker positions pre-rotated into SVG space, so the labels stay axis-aligned.
   const argPeRad = (argPe * Math.PI) / 180;
   const cosA = Math.cos(argPeRad);
   const sinA = Math.sin(argPeRad);
@@ -489,25 +345,15 @@ export function OrbitDiagram({
   const periMarker = { x: periapsis * cosA, y: -periapsis * sinA };
 
   const [hoveredMarker, setHoveredMarker] = useState<null | "ap" | "pe">(null);
-  // Apsis labels are sized in CSS pixels (~8% of the smaller container,
-  // clamped). We CAN'T just multiply by vbPerPx onto the `font-size`
-  // attribute: browsers clamp computed font-size to 5000 px, which
-  // for our viewBoxes (often millions of user units wide) means the
-  // attribute saturates and the text renders at ~1 actual pixel. Fix
-  // is in ApsisLabel: it counter-scales via a parent `<g scale>` so
-  // its child `<text>` can keep `font-size` small (under the cap).
+  // Apsis labels are sized in CSS pixels; ApsisLabel counter-scales them into viewBox units.
   const labelPxSize = containerSize
     ? clamp(Math.min(containerSize.w, containerSize.h) * 0.04, 11, 32)
     : 16;
   const vbPerPx = containerSize
     ? Math.max(vb.w / containerSize.w, vb.h / containerSize.h)
     : 1;
-  // labelOffset is a user-unit value (apsis position lives in user units), so convert the px target back to user units for the radial nudge.
   const labelOffset = Math.max(dotR * 2.5, labelPxSize * 0.7 * vbPerPx);
-  // Offset labels OUTWARD from the body (radial), not just up the y-axis.
-  // Earlier code hardcoded `marker.y - labelOffset`, which placed the
-  // label inside the body whenever the marker sat below origin (argPe
-  // around 270° or any rotation that flipped the apsis line).
+  // Labels are nudged radially outward, so a marker below the body never puts its label inside it.
   function radialOffset(p: { x: number; y: number }): {
     x: number;
     y: number;
@@ -529,11 +375,7 @@ export function OrbitDiagram({
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label="Orbital diagram"
-        /* The orbiting verdict is drawn as the trace's COLOUR and nothing
-           else, so it was assertable only as an rgba literal, which is why
-           nothing tested it. Green says "in orbit", and saying that of a
-           craft on its way down is a wrong answer rather than a missing
-           one. */
+        /* The orbiting verdict is otherwise drawn only as the trace colour. */
         data-orbiting={isOrbiting ? "yes" : "no"}
       >
         <Rotated
@@ -543,12 +385,7 @@ export function OrbitDiagram({
               : undefined
           }
         >
-          {/* The corridor between flown and planned, drawn first so both
-          strokes stay legible on top of it. An even-odd ring: two closed
-          subpaths, so whichever conic is inside the other leaves a hole
-          rather than the fill covering the gap it exists to show. Which one
-          encloses which is not fixed (a burn can raise or lower the orbit),
-          and even-odd means nothing here has to know. */}
+          {/* Even-odd, so whichever conic is inner leaves a hole without knowing which one it is. */}
           {corridorPath && (
             <path
               d={corridorPath}
@@ -558,9 +395,7 @@ export function OrbitDiagram({
             />
           )}
 
-          {/* Projected orbit (behind): dashed, amber to contrast with the
-          green "current" trajectory. Drawn before the current orbit so
-          the live trajectory stays visually dominant. */}
+          {/* Drawn before the current orbit so the live trajectory stays dominant. */}
           {projected && (
             <g transform={`rotate(${-projArgPe})`}>
               {projIsHyperbolic ? (
@@ -590,9 +425,6 @@ export function OrbitDiagram({
             </g>
           )}
 
-          {/* Secondary projection: solid amber. Used for the "final"
-          orbit on a Hohmann transfer; the (dashed) `projected` carries
-          the intermediate transfer ellipse. */}
           {secondaryProjected && (
             <g transform={`rotate(${-sec2ArgPe})`}>
               {sec2IsHyperbolic ? (
@@ -623,8 +455,6 @@ export function OrbitDiagram({
           {/* Trajectory first so the body overdraws it at the focus */}
           <g transform={`rotate(${-argPe})`}>
             {trailPath && trailPath.length > 1 && (
-              /* Dimmer and thinner than the forward arc, because it is the other
-               kind of claim: what was observed, against what is predicted. */
               <path
                 data-trajectory="trail"
                 d={buildSuppliedPath(trailPath)}
@@ -635,10 +465,7 @@ export function OrbitDiagram({
               />
             )}
             {trajectoryPath ? (
-              /* A supplied path wins over the conic: the seam has said this is
-               the trajectory, and deriving one from the elements beside it
-               would be drawing a second, contradicting answer. Open by
-               construction, no `Z`: it stops where the provider stopped. */
+              /* A supplied path wins over the conic, and stays open where the provider stopped. */
               <>
                 <path
                   data-trajectory="supplied"
@@ -675,9 +502,7 @@ export function OrbitDiagram({
             )}
           </g>
 
-          {/* Atmosphere band: soft radial gradient from body surface to
-            atmosphere top. Drawn before the body disc so the body's solid
-            fill occludes the inner edge. */}
+          {/* Before the body disc, which occludes its inner edge. */}
           {atmosphereDepthM !== null &&
             atmosphereDepthM > 0 &&
             bodyRadius !== undefined && (
@@ -701,11 +526,6 @@ export function OrbitDiagram({
             fill={bodyColor ?? cfg.defaultBodyColor}
           />
 
-          {/* Rotation marker: a small dot near the limb that rotates as
-            `b.rotationAngle` ticks. Rendered with a thin diameter line so
-            the rotation is legible even on small body discs. Only shown
-            in the "full" variant; mini-variant frames are too small for
-            a meaningful read. */}
           {rotationAngleDeg !== null && variant === "full" && (
             <g transform={`rotate(${-rotationAngleDeg})`}>
               <line
@@ -728,10 +548,7 @@ export function OrbitDiagram({
           <g transform={`rotate(${-argPe})`}>
             {showMarkers && (
               <>
-                {/* Apoapsis is undefined on a hyperbolic trajectory. Skip the
-                  marker rather than place it at a sentinel value, which would
-                  land it off-screen and point a "tab to focus" target at empty
-                  space. */}
+                {/* A hyperbola has no apoapsis, and a sentinel would put a focus target off-screen. */}
                 {!isHyperbolic && (
                   <ApsisMarker
                     cx={-apoapsis}
@@ -781,10 +598,7 @@ export function OrbitDiagram({
             )}
           </g>
 
-          {/* Apsis labels live outside the rotation group so they always
-            read horizontally regardless of argPe. The hover tooltip
-            replaces the static label with the altitude on the
-            corresponding marker. */}
+          {/* Outside the rotation group so the labels always read horizontally. */}
           {showMarkers && cfg.showLabels && (
             <g pointerEvents="none">
               {!isHyperbolic && (
@@ -821,10 +635,7 @@ export function OrbitDiagram({
   );
 }
 
-/**
- * A string rather than a node: this feeds an SVG `<text>` label and an
- * `aria-label`, and neither can hold a `<span>`.
- */
+/** A string, not a node: it feeds an SVG `<text>` and an `aria-label`. */
 function formatAltitude(
   radius: number,
   bodyRadius: number | undefined,
@@ -833,7 +644,7 @@ function formatAltitude(
 }
 
 const ApsisMarker = styled.circle.attrs<{ r: number | string }>(({ r }) => ({
-  // role="img" gives the focusable marker a valid role so its descriptive `aria-label` is permitted (a bare <circle> prohibits aria-label).
+  // A bare <circle> may not carry an aria-label; role="img" permits it.
   role: "img",
   style: { "--apsis-focus-stroke-w": `${Number(r) * 0.5}px` },
 }))`
@@ -862,19 +673,9 @@ function ApsisLabel({
   vbPerPx: number;
   text: string;
 }>) {
-  // Browsers clamp computed `font-size` to ~5000 px. We typically need
-  // labels at ~30–60 actual pixels; for viewBoxes measured in millions
-  // of user units, the unscaled `font-size` would have to be in the
-  // hundreds of thousands, which the browser then clamps to 5000,
-  // which the SVG transform shrinks to ~1 actual pixel.
-  //
-  // Counter-scale: place the text inside a `<g>` whose scale matches
-  // the SVG's vb-to-px ratio. Inside that group, `font-size` stays in
-  // CSS pixels (well under the cap); the group's scale magnifies the
-  // glyphs back to real-world user-unit size, and the SVG transform
-  // shrinks them to the target pixel size on render.
-  // paint-order:stroke draws a halo behind the glyphs so the label is
-  // legible against any orbit / body colour without needing a rect.
+  /* Browsers clamp computed font-size to about 5000px, far below what a
+     viewBox millions of units wide would need, so the text keeps a pixel
+     font-size inside a group scaled by the viewBox-per-pixel ratio. */
   return (
     <g transform={`translate(${x}, ${y}) scale(${vbPerPx})`}>
       <text
@@ -887,11 +688,7 @@ function ApsisLabel({
         style={{
           paintOrder: "stroke",
           stroke: "var(--color-surface-app)",
-          // Halo for legibility against orbit + body. Too wide and the
-          // dark stroke eats into the glyphs (paint-order draws fill on
-          // top of stroke, but a stroke wider than the glyph stem turns
-          // the letter into a black-and-fill blob). 0.18 keeps the halo
-          // visible without obscuring the text.
+          // A halo any wider than this swallows the glyph stems.
           strokeWidth: fontSizePx * 0.18,
           strokeLinejoin: "round",
           userSelect: "none",
@@ -903,13 +700,6 @@ function ApsisLabel({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Bounding-box pipeline: small composable steps that drive both variants'
-// viewBox math. The SVG group applies rotate(-argPe) and y is flipped vs
-// the orbital frame; both transforms are linear so the projected extents
-// stay axis-aligned and we can work in a single frame.
-// ---------------------------------------------------------------------------
-
 interface BBox {
   xMin: number;
   xMax: number;
@@ -917,26 +707,14 @@ interface BBox {
   yMax: number;
 }
 
-/** Bbox of one orbit (focus at origin, rotated by argPe). */
-/** Bounding box for a hyperbolic trajectory rendered out to `rMax`.
- *  We render the trajectory symmetrically around the focus so a square
- *  box of ±rMax covers the visible extent. The body sits at origin
- *  inside this box; periapsis sits on the +x axis at `periapsis` units. */
+/** A hyperbola is drawn symmetrically about the focus out to `rMax`, so a square box covers it. */
 function hyperbolicBoundingBox(rMax: number): BBox {
   return { xMin: -rMax, xMax: rMax, yMin: -rMax, yMax: rMax };
 }
 
 /**
- * Emit an SVG `d` for a trajectory that arrived as points.
- *
- * Pure transcription: a `M` and then an `L` per point, y negated because SVG's
- * y grows downward while the orbital frame's grows up. Nothing here decides
- * anything about the curve, which is the point of the prop that feeds it, and
- * it never closes the path: a supplied arc that came back short did so because
- * the provider stopped, and joining its ends would put the closure back.
- *
- * Non-finite points are skipped rather than emitted as `NaN,NaN`, which SVG
- * treats as a parse error and drops the ENTIRE path for.
+ * An open SVG path through supplied points, y negated into SVG space.
+ * Non-finite points are skipped: one `NaN` makes SVG drop the whole path.
  */
 function buildSuppliedPath(
   points: readonly { x: number; y: number }[],
@@ -952,19 +730,8 @@ function buildSuppliedPath(
 }
 
 /**
- * The stop mark at the far end of a supplied path: a bar drawn ACROSS the
- * curve, perpendicular to its last heading.
- *
- * <b>A mark, and specifically not a fade.</b> A prediction that stops short and
- * a trajectory that ends look identical on a diagram, so something has to say
- * which this is. Fading the tail out is the instrument reached for first and it
- * says the wrong thing: a fade reads as the shape becoming uncertain, where the
- * fact is that the shape is certain and the AUTHORITY behind it ends here. A bar
- * across the curve reads as a stop, which is what happened.
- *
- * Renders nothing when there are fewer than two finite points to take a heading
- * from, because a bar with no direction would be a bar at an arbitrary angle,
- * and an arbitrary angle on a diagram is read as meaning something.
+ * A stop bar across the far end of a supplied path, perpendicular to its last
+ * heading. Renders nothing without two finite points to take a heading from.
  */
 function HorizonMark({
   points,
@@ -979,11 +746,7 @@ function HorizonMark({
   strokeWidth: number;
   stroke: string;
 }>) {
-  // Marked only where the stop is a drawing CONVENTION rather than the end of
-  // the data: a second lap is not drawn because an integrated path does not
-  // retrace, and that is worth annotating. A path that simply reached the last
-  // instant anyone vouched for stops where the points stop, which the curve's
-  // own end already shows.
+  // Marked only where the stop is a drawing convention; a horizon already shows where the points stop.
   if (farEnd !== "revolution") return null;
 
   const finite = points.filter(
@@ -993,14 +756,11 @@ function HorizonMark({
   const end = finite[finite.length - 1];
   const before = finite[finite.length - 2];
 
-  // The heading of the last segment, in the same y-down space the path is
-  // emitted in, so the bar sits square across the drawn curve rather than
-  // across the curve's mirror image.
+  // Heading taken in the path's own y-down space, or the bar crosses the curve's mirror image.
   const dx = end.x - before.x;
   const dy = -(end.y - before.y);
   const len = Math.hypot(dx, dy);
   if (!(len > 0)) return null;
-  // Perpendicular to the heading, half the bar each side of the end point.
   const nx = (-dy / len) * (length / 2);
   const ny = (dx / len) * (length / 2);
   const ex = end.x;
@@ -1026,21 +786,14 @@ function HorizonMark({
   );
 }
 
-/** Sample points along a hyperbolic trajectory and emit an SVG path `d`
- *  string. Walks true anomaly from -180° to +180° in 2° steps, skipping
- *  the asymptote (r ≤ 0) and any point past `rMax` so the path doesn't
- *  shoot off-screen. */
+/** Samples a hyperbola in 2 degree steps of true anomaly, breaking the path past the asymptote or `rMax`. */
 function buildHyperbolicPath(sma: number, ecc: number, rMax: number): string {
   const points: string[] = [];
-  // Hyperbolic orbits use a negative semi-major axis (the conic convention);
-  // telemetry/callers pass the magnitude, so a positive sma here makes
-  // r = sma·(1-e²)/(1+e·cosθ) negative across the whole near branch and the
-  // r<=0 guard drops every sample (no curve drawn). Normalise to negative.
+  // A hyperbola's semi-major axis is negative; callers may pass its magnitude.
   const a = -Math.abs(sma);
   for (let theta = -180; theta <= 180; theta += 2) {
     const r = trueAnomalyToRadius(a, ecc, theta);
     if (!Number.isFinite(r) || r <= 0 || r > rMax) {
-      // Discontinuity / clipped: emit a path break so we don't draw a straight line across the missing arc.
       if (points.length > 0 && !points[points.length - 1].startsWith("__")) {
         points.push("__BREAK__");
       }
@@ -1049,8 +802,6 @@ function buildHyperbolicPath(sma: number, ecc: number, rMax: number): string {
     const { x, y } = orbitalToCartesian(r, theta);
     points.push(`${x.toFixed(1)},${(-y).toFixed(1)}`);
   }
-  // Build path segments: each consecutive run of points becomes one
-  // `M ... L ...` chain; `__BREAK__` tokens split runs.
   const segments: string[] = [];
   let current: string[] = [];
   for (const p of points) {
@@ -1116,11 +867,7 @@ function symmetriseAroundOrigin(box: BBox): BBox {
   return { xMin: -halfX, xMax: halfX, yMin: -halfY, yMax: halfY };
 }
 
-/**
- * Pad whichever axis is "too short" so the box's aspect matches the
- * container. Empty space ends up inside the viewBox margins instead of
- * being letterboxed by xMidYMid meet.
- */
+/** Pads the short axis to the container's aspect, so no space is letterboxed. */
 function fitToAspect(box: BBox, targetAspect: number | null): BBox {
   if (targetAspect == null || targetAspect <= 0) return box;
   const w = box.xMax - box.xMin;
@@ -1146,12 +893,6 @@ function toViewBox(box: BBox): { x: number; y: number; w: number; h: number } {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Maneuver handles: rendered inside the rotated <g> above so callers feed
-// positions in the orbital plane (periapsis on +x, +y north) and we handle
-// the SVG y-flip at the edges.
-// ---------------------------------------------------------------------------
-
 interface InternalHandleProps extends ManeuverHandleProps {
   sma: number;
   ecc: number;
@@ -1174,23 +915,19 @@ function ManeuverHandles({
   scaleRef,
 }: Readonly<InternalHandleProps>) {
   const nuRad = (burnTrueAnomaly * Math.PI) / 180;
-  // Exact burn position on the current ellipse.
   const burnRadius = trueAnomalyToRadius(sma, ecc, burnTrueAnomaly);
   const { x: burnX, y: burnY } = orbitalToCartesian(
     burnRadius,
     burnTrueAnomaly,
   );
 
-  // Prograde direction ≈ tangent to the orbit (perpendicular to radius,
-  // CCW). Exact at apsides; off by γ otherwise, close enough for a
-  // drag gesture whose precision comes from the numeric readout.
+  // Prograde approximated as perpendicular to the radius: exact at the apsides, and the readout carries precision.
   const progX = -Math.sin(nuRad);
   const progY = Math.cos(nuRad);
-  // Radial direction = along +r̂ from body centre.
   const radX = Math.cos(nuRad);
   const radY = Math.sin(nuRad);
 
-  // Default scale: 500 m/s extends ~25% of apoapsis. Tweakable via prop.
+  // By default 500 m/s spans about a quarter of the orbit's extent.
   const effectiveScale = scale ?? (scaleRef * 0.25) / 500;
 
   return (
@@ -1276,8 +1013,7 @@ function HandleAxis({
       const ctm = g.getScreenCTM();
       if (!ctm) return;
       const local = pt.matrixTransform(ctm.inverse());
-      // local is in the rotated group's coords, where +y points down.
-      // Flip back to orbital (+y up) then project.
+      // The group's y points down; the orbital frame's points up.
       const orbX = local.x;
       const orbY = -local.y;
       const along = (orbX - burnX) * axisX + (orbY - burnY) * axisY;

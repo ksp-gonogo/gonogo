@@ -10,11 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { KeplerPeriodComponent } from "./index";
 
-// Rendered trees, tracked so afterEach can unmount them BEFORE clearBodies()
-// notifies the body-registry subscribers. RTL auto-cleanup runs after this
-// file's afterEach, so it can't be relied on to unmount first, clearBodies()
-// firing on a still-mounted widget is a state update outside act(), the
-// documented anti-pattern in CLAUDE.md.
+// Unmounted before clearBodies(), which would otherwise notify a mounted tree outside act().
 const renderedTrees: Array<() => void> = [];
 
 function render(ui: ReactElement) {
@@ -28,14 +24,6 @@ function unmountAll() {
   renderedTrees.length = 0;
 }
 
-/**
- * KeplerPeriod's behavior test. `v.body`/`o.referenceBody` are the
- * `vessel.identity`/`vessel.orbit` body indices named against
- * `system.bodies`, and the widget feeds entirely from the real stream
- * pipeline (`TelemetryProvider` + `StubTransport`). This test proves the
- * POSITIVE path: a KNOWN streamed body resolves and the Kepler reference curve
- * renders (the unknown-body degraded path is covered in `stream.test.tsx`).
- */
 let restoreResizeObserver: () => void = () => {};
 
 beforeEach(() => {
@@ -50,11 +38,7 @@ beforeEach(() => {
 afterEach(() => {
   unmountAll();
   clearBodies();
-  /*
-   * `installFixedSizeResizeObserver` assigns `globalThis.ResizeObserver`
-   * directly rather than through `vi.stubGlobal`, so the closure it returns is
-   * the only way back and `unstubAllGlobals` below does not cover it.
-   */
+  // installFixedSizeResizeObserver assigns the global directly, so unstubAllGlobals does not restore it.
   restoreResizeObserver();
   vi.unstubAllGlobals();
 });
@@ -81,10 +65,7 @@ describe("KeplerPeriod: renders the reference curve off the stream (R6 Wave 1)",
       </fixture.Provider>,
     );
 
-    // Kerbin's low orbit (kerbin-lko fixture) as the wire carries it:
-    // `referenceBodyIndex`/`parentBodyIndex` point at
-    // Kerbin (stock index 1), so `resolveBodyName` -> "Kerbin" and the widget
-    // resolves a real BodyDefinition with a `gm` to build the curve from.
+    // Both body indices point at Kerbin (stock index 1), whose definition carries a gm.
     act(() => {
       fixture.emit("vessel.orbit", {
         sma: 680000,
@@ -110,10 +91,9 @@ describe("KeplerPeriod: renders the reference curve off the stream (R6 Wave 1)",
       });
     });
 
-    // A real subscription must have happened for StubTransport (subscription- gated) to deliver.
+    // StubTransport delivers only to subscribed channels.
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
-    // The reference curve renders off the streamed, resolved body, no "Unknown body"/"No reference data" degraded notice.
     await waitFor(() => {
       expect(
         container.querySelectorAll("path[stroke-dasharray]").length,

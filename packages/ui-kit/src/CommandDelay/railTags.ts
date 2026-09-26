@@ -13,30 +13,15 @@
  * | telemetry | continuous | fire-and-forget  | radio voice                     | `continuous-strip` |
  * | telemetry | discrete   | fire-and-forget  | a science result sent home      | NOTHING YET        |
  *
- * The table names a RENDERER, which is a component, and stops there. WHICH MARK
- * that component draws is `railMark`'s answer and the data's: two continuous
- * entries share one strip, and a control axis reporting a value against a
- * readback is drawn as lines while a microphone reporting how loud each 20 ms
- * chunk was is drawn as a trace. That is a difference in the DATA and not in
- * what the entry is, which is why both rows point at the same renderer. A table
- * that gave them separate renderers would be back to a component per row, which
- * is how the voice ribbon got its own strip.
+ * The table names a RENDERER (a component). WHICH MARK it draws follows from
+ * the data: both continuous rows share one strip, lines for a value against a
+ * readback, a trace for an amplitude history.
  *
- * **The table is the whole point, and the fourth row is why.** Three of the four
- * rows an operator can name have a renderer; the fourth is declarable today and
- * nothing can draw it, so it reads as `null` here, `unrepresentedRailTags()`
- * names it, and an entry that arrives carrying it is reported rather than
- * silently omitted. A rail that grew a new component per row is how the voice
- * ribbon ended up on a second strip with its boundary at 98% of the widget; a
- * rail that quietly drew nothing is how a declared entry would vanish. The
- * table's job is to make both impossible: a new row costs an entry here plus the
- * renderer it names, and until it has one it is visibly missing rather than
- * absent.
+ * A combination with no renderer reads as `null`, `unrepresentedRailTags()`
+ * names it, and an entry carrying it is reported rather than silently omitted
+ * or drawn wrongly. A new row costs an entry here plus the renderer it names.
  *
- * Each axis drives exactly ONE visual property, and `railTags.test.ts` asserts
- * that one-to-one rather than leaving it as prose: an accessor that started
- * reading a second axis would be a special case wearing the vocabulary of a
- * model.
+ * Each axis drives exactly ONE visual property.
  */
 
 import type {
@@ -47,12 +32,6 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import { hasHost, logger } from "@ksp-gonogo/sitrep-sdk";
 
-/*
- * Re-exported, not re-declared. An identical copy of a published type in a
- * second published package is the shape that drifts silently, and this one has
- * two audiences that must agree: an Uplink declares a rail entry against the
- * SDK's vocabulary and hands it to this kit to draw.
- */
 export type {
   RailContinuity,
   RailDelivery,
@@ -76,12 +55,8 @@ export function railFlow(tags: RailTags): "outbound" | "inbound" {
 }
 
 /**
- * The DIRECTION axis, and only it, as a theme token NAME (no `var()` wrapper,
- * so a caller can put it in a custom property as easily as in a fill).
- *
- * Both tokens are ones the rail already speaks: accent is the colour an
- * in-flight command wears in `InFlightList`, and the info token is what the
- * rail's found-summary uses for news arriving rather than orders leaving.
+ * The DIRECTION axis, and only it, as a theme token NAME (no `var()` wrapper):
+ * accent for orders leaving, info for news arriving.
  */
 export function railToneToken(tags: RailTags): string {
   return tags.direction === "command"
@@ -94,11 +69,7 @@ const DIRECTIONS: readonly RailDirection[] = ["command", "telemetry"];
 const CONTINUITIES: readonly RailContinuity[] = ["discrete", "continuous"];
 const DELIVERIES: readonly RailDelivery[] = ["acked", "fire-and-forget"];
 
-/**
- * One combination, spelled as the table's key. A template-literal type rather
- * than `string`, so the renderer table below cannot hold a key that is not a
- * real combination and cannot miss one by a typo.
- */
+/** One combination, spelled as the table's key; a template-literal type, so the table cannot hold a typo. */
 export type RailTagKey = `${RailDirection}/${RailContinuity}/${RailDelivery}`;
 
 export function railTagKey(tags: RailTags): RailTagKey {
@@ -114,15 +85,7 @@ export function railTagKey(tags: RailTags): RailTagKey {
  */
 export type RailRenderer = "in-flight-row" | "continuous-strip";
 
-/**
- * Which renderer draws which combination. `Partial`, deliberately: a
- * combination absent here has NO renderer, which is a fact about the rail worth
- * being able to state rather than a hole to be filled with a fallback.
- *
- * A fallback is what the rail had. Every entry was drawn as a discrete acked
- * command because that was the only picture, so an entry that was something else
- * was drawn wrongly instead of not at all.
- */
+/** Which renderer draws which combination. `Partial`: an absent combination has NO renderer, never a fallback. */
 const RAIL_RENDERERS: Partial<Record<RailTagKey, RailRenderer>> = {
   "command/discrete/acked": "in-flight-row",
   "command/continuous/acked": "continuous-strip",
@@ -130,12 +93,9 @@ const RAIL_RENDERERS: Partial<Record<RailTagKey, RailRenderer>> = {
 };
 
 /**
- * The renderer for an entry, or `null` when nothing draws that combination.
- *
- * `null` is not an error to swallow. A caller handed one should say so
- * ({@link reportUnrepresentedRail}) rather than render nothing quietly, because
- * a declared entry that draws nothing looks exactly like a widget whose data
- * went missing.
+ * The renderer for an entry, or `null` when nothing draws that combination. A
+ * caller handed `null` reports it ({@link reportUnrepresentedRail}) rather than
+ * rendering nothing quietly.
  */
 export function railRendererFor(tags: RailTags): RailRenderer | null {
   return RAIL_RENDERERS[railTagKey(tags)] ?? null;
@@ -151,36 +111,19 @@ export function allRailTags(): RailTags[] {
   return out;
 }
 
-/**
- * The combinations nothing can draw. Exists so the gap is a value the tree can
- * assert on and print, rather than something a reader has to work out by
- * subtracting a table from a product in their head.
- */
+/** The combinations nothing can draw, as a value the tree can assert on. */
 export function unrepresentedRailTags(): RailTags[] {
   return allRailTags().filter((tags) => railRendererFor(tags) === null);
 }
 
-/**
- * Combinations already reported, so an entry re-rendering at frame rate says it
- * once. Keyed by combination and not by entry: the fact worth reporting is that
- * the rail cannot draw this KIND of thing, and it does not become truer for
- * being said about a second entry.
- */
+/** Combinations already reported, keyed by combination rather than entry, so a frame-rate re-render says it once. */
 const reportedUnrepresented = new Set<RailTagKey>();
 
 /**
- * Say out loud that an entry declared something the rail cannot draw, naming the
- * combination and who declared it.
- *
- * Reports and returns; it does not throw. The entry is already going to be
- * missing from the picture, and taking the widget down with it would turn a
- * declaration the rail has not caught up with into a blank panel.
- *
- * Via the host `logger` where there is one (so it reaches Axiom, which is the
- * only place a report from a deployed session can be read) and `console.error`
- * otherwise, the same fallback `augments.ts` uses and for the same reason: the
- * sdk's `logger` throws with no host installed, which is exactly the setting an
- * Uplink's own test runs in.
+ * Reports that an entry declared something the rail cannot draw, naming the
+ * combination and who declared it. Never throws, so the widget survives. Falls
+ * back to `console.error` without a host, because the sdk's `logger` throws
+ * when none is installed.
  */
 export function reportUnrepresentedRail(tags: RailTags, who: string): void {
   const key = railTagKey(tags);
@@ -194,12 +137,7 @@ export function reportUnrepresentedRail(tags: RailTags, who: string): void {
   else console.error(message);
 }
 
-/**
- * Test-only: forget what has been reported, so a case can be exercised twice.
- * Deliberately NOT on the published barrel, unlike the reporter beside it: an
- * Uplink drawing its own surface has reason to report a gap and none to reset
- * the record of one.
- */
+/** Test-only: forget what has been reported. Not on the published barrel. */
 export function resetUnrepresentedRailReports(): void {
   reportedUnrepresented.clear();
 }

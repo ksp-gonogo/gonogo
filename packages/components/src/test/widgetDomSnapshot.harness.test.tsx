@@ -5,37 +5,12 @@ import { describe, expect, it } from "vitest";
 import { renderWidgetMode, snapshotWidgetMode } from "./widgetDomSnapshot";
 
 /**
- * The harness has to actually FEED the widget, and the assertions that would
- * normally notice cannot say so.
- *
- * A widget rendered with nothing behind it still renders: a title bar, an empty
- * state, a placeholder. `toMatchSnapshot` records that render as the expected
- * one and passes forever after, and `expectNoA11yViolations` over a page with
- * nothing on it passes too. Both instruments report success in exactly the
- * situation they exist to catch, so neither can be the check on the harness
- * that produced the page.
- *
- * These tests are that check. Each mounts a probe widget that renders ONE thing
- * and renders nothing at all without it, so "the harness fed me" and "the
- * assertion passed" become the same statement. Each covers a way the harness
- * has been found silently feeding nothing:
- *
- *  - a fixture's own `_stream` block ignored, so a widget on canonical stream
- *    reads got no telemetry (201 fixtures carry one)
- *  - a `ResizeObserver` that never calls back, so anything gated on a measured
- *    box never rendered (all 48 KeplerPeriod baselines were one blank panel)
- *  - the widget's REGISTERED `defaultConfig` never applied, so a mode with no
- *    config overlay rendered the not-configured placeholder (24 of ActionGroup's
- *    48)
- *  - a scene staged as NOT CURRENT captured live, so the mark, the held figure
- *    and the caption, which is the whole visible product of the reckoning work,
- *    were absent from a render named after them
- *
- * To check this file still works, break the thing it names: delete the
- * `resolveStreamBlock` branch from `buildStreamWrap`, or the
- * `installSizedResizeObserver` call, or the `baselineConfig` fallback, or the
- * `dropTransport` call, and the matching test must go red. It does; that is why
- * they assert on rendered text rather than on the harness's internals.
+ * The harness has to actually feed the widget, and a snapshot or a11y
+ * assertion over an empty render passes anyway. Each probe widget here renders
+ * one thing and nothing without it, so "the harness fed me" and "the
+ * assertion passed" are the same statement. Covered: a fixture's `_stream`
+ * block, a `ResizeObserver` that reports a size, the registered
+ * `defaultConfig`, and a scene staged as not current.
  */
 
 const MODE = { name: "probe", w: 8, h: 8 };
@@ -50,12 +25,8 @@ function StreamProbe() {
 }
 
 /**
- * Renders how current the reading is, and the value with it.
- *
- * Both halves matter: a scene staged as not-current has to reach the widget as
- * `stale` AND still hand it the figure, which is the whole shape the mark and
- * the held value are drawn from. A probe asserting only the state would pass on
- * a harness that dropped the transport and lost the payload with it.
+ * Renders how current the reading is, and the value with it: a not-current
+ * scene must arrive as `stale` and still carry the figure.
  */
 function CurrencyProbe() {
   const reading = useTelemetry("vessel.control");
@@ -111,16 +82,12 @@ registerComponent({
   defaultConfig: { marker: "from-registry" },
 });
 
-/** Fails inside the harness's render, where its restore path used to be skipped. */
+/** Fails inside the harness's render, to exercise its restore path. */
 function ThrowsOnRender(): never {
   throw new Error("planted render failure");
 }
 
-/**
- * Carries a `_stream` block and NO flat legacy keys, so none of the harness's
- * legacy-key reshapes can rescue it: the only route from this object to the
- * widget is the block itself.
- */
+/** A `_stream` block and no flat legacy keys, so only the block can reach the widget. */
 const STREAM_ONLY_FIXTURE = {
   _meta: { scenario: "harness-guard" },
   _stream: {
@@ -130,11 +97,7 @@ const STREAM_ONLY_FIXTURE = {
   },
 };
 
-/**
- * The same wire, staged as no longer arriving. Identical to
- * {@link STREAM_ONLY_FIXTURE} but for the one flag, because the pair is the
- * assertion: two scenes that differ only by the drop must not render the same.
- */
+/** The same wire staged as no longer arriving: two scenes differing only by the drop must not render the same. */
 const STOPPED_ARRIVING_FIXTURE = {
   ...STREAM_ONLY_FIXTURE,
   _stream: { ...STREAM_ONLY_FIXTURE._stream, stopsArriving: true },
@@ -163,17 +126,7 @@ describe("widget DOM harness feeds the widget", () => {
     }
   });
 
-  /**
-   * A scene the reckoning work is ABOUT: the mark, the held figure and the
-   * caption are all a widget's answer to a reading that is no longer current,
-   * and until `stopsArriving` existed no harness could stage one. Measured on
-   * CareerEconomy at the time: a fixture declaring the state and its live twin
-   * produced the same md5, so every render of that work pictured nothing.
-   *
-   * The two cases are a pair on purpose. The first pins what the flag's absence
-   * means, so a harness that dropped the transport unconditionally fails here
-   * rather than making every scene look stale.
-   */
+  // The first of a pair: without the flag a scene stays current, so an unconditional drop fails here.
   it("leaves a scene current when it does not ask to stop arriving", async () => {
     const html = await snapshotWidgetMode({
       Widget: CurrencyProbe,
@@ -211,9 +164,7 @@ describe("widget DOM harness feeds the widget", () => {
       fixture: {},
       mode: MODE,
     });
-    // 8 columns: 8 * 32 + 7 * 8, the grid arithmetic the playwright harness
-    // sizes its iframe with. Asserting the number, not merely "non-zero", so a
-    // harness that hard-codes one constant for every mode fails here.
+    // 8 * 32 + 7 * 8, the playwright harness's grid arithmetic, asserted exactly so a constant fails.
     expect(html).toContain("width=312");
   });
 
@@ -235,21 +186,6 @@ describe("widget DOM harness feeds the widget", () => {
     expect(html).toContain("marker=from-mode");
   });
 
-  /**
-   * The clock's frame loop reschedules itself forever by design, so a mounted
-   * `TelemetryProvider` mints a React update every animation frame whether or
-   * not anything arrived. React's async `act()` drains its queue and then
-   * requires the queue to be EMPTY, so a frame landing in that window means it
-   * never is and the mount hangs until vitest's timeout. Whether it hangs comes
-   * down to whether one drain finishes inside one frame interval, which is a
-   * property of the machine: measured on CI it was two populations, ~250ms and
-   * exactly 30000ms, across an unchanged tree.
-   *
-   * So the harness suspends the fixture clock and mints frames itself. This
-   * asserts the invariant that makes the settle phases able to finish, rather
-   * than the hang, which is what a timing test could only observe by being slow
-   * on a fast machine.
-   */
   it("releases the sized ResizeObserver when a live render throws", async () => {
     await expect(
       renderWidgetMode({
@@ -267,6 +203,7 @@ describe("widget DOM harness feeds the widget", () => {
     teardown();
   });
 
+  // A live frame loop keeps act()'s queue from ever emptying, so the harness suspends it and mints frames itself.
   it("leaves no frame loop running behind a mounted widget", async () => {
     const { container, teardown } = await renderWidgetMode({
       Widget: FrameCountProbe,

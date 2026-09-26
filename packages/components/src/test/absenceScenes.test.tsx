@@ -12,13 +12,7 @@ import { snapshotWidgetMode } from "./widgetDomSnapshot";
 
 const SRC = resolve(import.meta.dirname, "..");
 
-/**
- * Where to write each scene's two rendered texts, for reading a failure.
- *
- * A failed assertion here names a string and says which side it was on, which
- * is enough to know the scene is wrong and not enough to know what the widget
- * drew instead. Set `ABSENCE_DUMP=<dir>` and the pair is on disk to compare.
- */
+/** Set `ABSENCE_DUMP=<dir>` to write each scene's two rendered texts to disk for reading a failure. */
 const DUMP = process.env.ABSENCE_DUMP;
 
 async function renderPair(scene: (typeof ABSENCE_SCENES)[number]) {
@@ -66,14 +60,10 @@ describe("absence scenes", () => {
 });
 
 /**
- * Two widgets that mishandle a missing input, through the same check the
- * scenes above run through.
- *
- * A harness that cannot be shown to fail on a widget that mishandles absence is
- * not a harness, and the two plants fail DIFFERENTLY on purpose: one draws a
- * number it does not have and the other draws the same picture either way. The
- * first passes the difference check and the second passes the treatment check,
- * so a single plant would leave half the instrument unwitnessed.
+ * Two planted mishandlers through the same check as the scenes. They fail
+ * differently: one draws a number it does not have (passes the difference
+ * check), the other draws the same picture either way (passes the treatment
+ * check), so both halves of the check are witnessed.
  */
 const PLANT_FIXTURE = {
   _stream: {

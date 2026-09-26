@@ -4,20 +4,10 @@ import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { StrategiesComponent } from "./index";
 
-// Unmount each rendered tree BEFORE clearing the action-handler registry,
-// clearActionHandlers() firing on a still-mounted widget is a state update
-// outside act(). RTL auto-cleanup runs after this file's afterEach, too late
-// to unmount first.
+// Unmounted before `clearActionHandlers()`, which would otherwise update a mounted widget outside act().
 const renderedTrees: Array<() => void> = [];
 
-/**
- * The stream test-adapter proof for Strategies:
- * genuinely running off the real `TelemetryProvider`/`TelemetryClient`/
- * `TimelineStore` pipeline via `StubTransport`. `career.funds`/
- * `career.reputation`/`career.science` (-> `career.status.economy.*`) AND
- * `strategies.all` (-> `career.status.strategies.all`)
- * all stream now: no legacy AUX needed for this widget any more.
- */
+/** Strategies off the real stream pipeline via `StubTransport`. */
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
@@ -53,15 +43,11 @@ describe("Strategies: genuinely runs off the stream (M3/M3b career batch)", () =
       });
     });
 
-    // `getByText` concatenates only an element's direct text nodes, so it
-    // finds the bare number; `Unit` puts its glyph and the word that replaces
-    // it in a nested span. The full `textContent` is what a screen reader
-    // announces, so assert that: the glyphs are aria-hidden, and without the
-    // hidden word these tallies would read as three bare numbers.
-    //
-    // The decimals are the unit model's, not this widget's: funds are whole
-    // and reputation and science carry one, which is why 420 reads back as
-    // "420.0". See DECIMALS in ui-kit's units.ts.
+    /*
+     * `textContent` is what a screen reader announces: the glyphs are
+     * aria-hidden, so the hidden word is what names each tally. Reputation and
+     * science carry one decimal in the unit model.
+     */
     const funds = await screen.findByText("289,848");
     expect(funds.textContent).toBe("289,848f funds");
     expect(screen.getByText("420.0").textContent).toBe("420.0 reputation");
@@ -112,9 +98,7 @@ describe("Strategies: genuinely runs off the stream (M3/M3b career batch)", () =
         economy: { funds: 289848, reputation: 420, science: 145 },
         facilities: null,
         contracts: null,
-        // parseStrategies (and the widget) reads `strategies.all` only,
-        // `active` is derived client-side by filtering `isActive`, so the
-        // entry must be present in `all`, not just `active`.
+        // The widget reads `strategies.all` only; `active` is derived from `isActive`.
         strategies: {
           active: [aggressiveNegotiations],
           all: [aggressiveNegotiations],

@@ -15,12 +15,11 @@ export interface ToggleButtonProps
 
 /**
  * Two-state toggle button: a real `<button>` carrying `aria-pressed`, set
- * automatically. Subsumes the many ad-hoc styled buttons that switch between
- * an "on" and "off" presentation (mode pickers, filter toggles, rate
- * pickers).
+ * automatically, for controls that switch between an "on" and "off"
+ * presentation (mode pickers, filter toggles, rate pickers).
  *
  * ToggleButton or `Switch`? They are different ARIA patterns for different
- * jobs, and the distinction is deliberate:
+ * jobs:
  *
  *   - ToggleButton is a BUTTON whose label IS the thing being chosen, and
  *     which is usually one of several peers: warp rates, a filter row, a

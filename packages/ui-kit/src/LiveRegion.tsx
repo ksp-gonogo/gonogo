@@ -6,10 +6,8 @@ export interface LiveRegionProps {
   /** Names the region, for a region that also holds visible content. */
   "aria-label"?: string;
   /**
-   * Keep the region off screen: an announcer, for words assistive tech needs
-   * while the visible form of the same fact is drawn somewhere else. An
-   * announcer is a bare `aria-live` region rather than a `status`, since it is
-   * a channel for announcements and not a part of the page to navigate to.
+   * Keep the region off screen: an announcer, a bare `aria-live` region rather
+   * than a `status`, for words whose visible form is drawn somewhere else.
    */
   visuallyHidden?: boolean;
   /**
@@ -25,11 +23,9 @@ export interface LiveRegionProps {
 /**
  * A polite live region that is in the document before anything is said in it.
  *
- * Assistive tech watches a region for CHANGES from the moment it appears, so a
- * region inserted already holding its first message is often never announced:
- * nothing in it changed. Mount this unconditionally for as long as the thing it
- * reports on is on screen, and put the words in it when there is something to
- * say. Empty, it is silent.
+ * Assistive tech announces changes to a region, so one inserted already holding
+ * its message is often never announced. Mount this for as long as the thing it
+ * reports on is on screen, and put the words in when there is something to say.
  *
  * Polite only. An interruption is `role="alert"`, which is ABORT's.
  */

@@ -2,15 +2,10 @@ import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import { Panel } from "./Panel";
 
-/**
- * The compound Panel exists so that presentation is controlled centrally
- * rather than by 46 widgets. These tests pin the two properties that make that
- * true: the composition is exclusively named subcomponents, and the legacy
- * passthrough still works while widgets migrate.
- */
+/** Panel composition is exclusively named subcomponents, and a widget drawing its own heading keeps the unpadded passthrough. */
 describe("Panel (compound)", () => {
   it("exposes every piece it composes", () => {
-    // The governing principle: if Panel renders something not reachable here, a widget needing a variant cannot reproduce it by hand.
+    // Anything Panel renders must be reachable here, or a widget needing a variant cannot reproduce it.
     expect(Panel.Container).toBeDefined();
     expect(Panel.Title).toBeDefined();
     expect(Panel.Glow).toBeDefined();
@@ -28,9 +23,6 @@ describe("Panel (compound)", () => {
   });
 
   it("passes children straight through when given no title or subtitle", () => {
-    // The migration bridge. A widget that draws its own heading (as a
-    // `Panel.Title` child) keeps today's unpadded behaviour, so widgets move to
-    // `panelTitle` one at a time and each render change is attributable.
     const { container } = render(
       <Panel>
         <span>legacy</span>
@@ -41,8 +33,7 @@ describe("Panel (compound)", () => {
   });
 
   it("accepts a className so styled(Panel) keeps working", () => {
-    // Panel is a function component now; styled(Panel) silently produces an
-    // unstyled panel if className is not forwarded.
+    // styled(Panel) silently produces an unstyled panel if className is not forwarded.
     const { container } = render(<Panel className="probe" panelTitle="X" />);
     expect(container.querySelector(".probe")).not.toBeNull();
   });
@@ -54,9 +45,7 @@ describe("Panel.Glow coordination", () => {
   });
 
   it("warns when it has no scroller to observe", () => {
-    // Fail loudly, not silently. Outside a Panel.Context the glow renders
-    // perfectly and does nothing, which is exactly how the previous glow bug
-    // (an invalid unitless zero in a calc) survived unnoticed.
+    // Outside a Panel.Context the glow renders but does nothing, so it must warn.
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     render(<Panel.Glow />);
     expect(warn).toHaveBeenCalledWith(

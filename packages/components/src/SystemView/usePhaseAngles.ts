@@ -9,47 +9,18 @@ import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
 import type { CelestialBody } from "./useCelestialBodies";
 
 /**
- * Phase angle (deg, in [0, 360)) from each body to the active vessel, keyed by
- * body index: the input the AlmanacPanel's transfer-window readout and
- * SystemDiagram's per-body label consume.
+ * Phase angle (deg, in [0, 360)) from each body to the active vessel, keyed by body index.
  *
- * The wire carries no phase angle, so it is reconstructed CLIENT-SIDE here:
- * each object's true longitude is `L = wrap360(Ω + ω + ν)`
- * (LAN + argPe + true anomaly), and the
- * phase angle is `wrap360(bodyLon − vesselLon)`. Positive = the body is ahead of
- * the vessel in the prograde direction, matching `hohmannPhaseAngle`'s "+ =
- * target ahead" convention so `angleDelta(live, ideal)` lines up.
+ * Each object's true longitude is `wrap360(lan + argPe + trueAnomaly)` and the phase angle is `wrap360(bodyLon - vesselLon)`, positive when the body is ahead prograde, matching `hohmannPhaseAngle`. That longitude is exact only for coplanar orbits, the transfer window's own assumption.
  *
- * The bodies arrive with their elements already on `CelestialBody` (LAN + argPe
- * off the wire, `trueAnomaly` derived at the view-UT). The vessel side reads the
- * `vessel.orbit` Topic and solves its true anomaly at the same view-UT through
- * the shared Kepler path (`deriveTrueAnomalyDeg`): no second solver.
- *
- * `L = Ω + ω + ν` is the exact in-plane longitude only for COPLANAR orbits; an
- * inclined body picks up a small projection error. That's already the
- * transfer-window's own assumption: the consumer only acts on the result when
- * the vessel and the bodies share a parent, and KSP inclinations are low, so
- * the standard approximation is used deliberately rather than a full
- * reference-plane projection.
- *
- * Degrades to a stable empty map (no consumer churn, treated as "no highlight")
- * when there's no vessel orbit yet, the orbit is hyperbolic (ecc ≥ 1, no valid
- * anomaly), the view-UT isn't known, or the elected provider declines to answer
- * for the instant on screen.
+ * Returns a stable empty map when there is no vessel orbit, the orbit is hyperbolic, the view UT is unknown, or the provider will not answer for the instant on screen.
  */
 export function usePhaseAngles(
   bodies: readonly CelestialBody[],
 ): Map<number, number> {
-  // A phase angle is a POSITION relationship, so it is only meaningful from a
-  // current reading (or a model, where one exists). A stale one would draw the
-  // transfer window the craft was in, not the one it is in.
+  // A position relationship, so only a current reading or a model will do; a stale one would draw the window the craft was in.
   const orbitReading = useTelemetry("vessel.orbit");
-  /*
-   * The observation OVERLAID by what the conic moved, which for `vessel.orbit`
-   * is the phase. Written here rather than in a helper because the spread IS
-   * the judgement (see `ReckonableReading`): taking `reckoning.value` alone
-   * gets the moved fields and nothing else, which is not an orbit.
-   */
+  // The observation overlaid by what the conic moved (the phase); `reckoning.value` alone is not an orbit.
   const orbitObserved =
     orbitReading.state === "observed" || orbitReading.state === "stale"
       ? orbitReading.value
@@ -60,35 +31,16 @@ export function usePhaseAngles(
       : orbitReading.reckoning.status === "available"
         ? { ...orbitObserved, ...orbitReading.reckoning.value }
         : orbitObserved;
-  /**
-   * Unwrapped at the read: this widget threads the view time through geometry
-   * and solver code typed on plain numbers, and the instant type earns nothing
-   * there. `magnitudeOf` is the canonical funnel and already answers `null` for
-   * an absent or non-finite reading, so the gate below asks one question rather
-   * than re-deriving finiteness here.
-   */
+  // Unwrapped at the read; `magnitudeOf` already answers null for an absent or non-finite reading.
   const ut = magnitudeOf(useViewUt());
 
   return useMemo(() => {
     if (!orbit) return EMPTY;
-    // No instant, no question: `deriveTrueAnomalyDeg` refuses a non-finite `ut` on its own, but the gate below needs a real one to put a window to.
+    // The provider gate below needs a real instant to put a window to.
     if (ut === null) return EMPTY;
-    // Ask the provider before propagating the vessel's elements to the view
-    // instant, the same question and the same window as SystemView's own
-    // `derived` memo: the horizon is an absolute UT bound, so "can these answer
-    // for the moment on screen" is the whole of it. Skipping the gate here
-    // while the sibling applies it to the identical propagation lets an
-    // operator scrub past an integrator's horizon and get no vessel dot but a
-    // live transfer-window highlight worked out from where the craft would be.
-    //
-    // SHAPE is deliberately not consulted. A phase angle is a position
-    // relationship at one instant, which the osculating elements give exactly
-    // whoever computed them; only a CURVE through them needs a shape.
+    // The same horizon question SystemView's own solve asks, so scrubbing past an integrator's horizon cannot leave a live highlight without a vessel dot. Shape is not consulted: a position at one instant needs none.
     if (!canPropagate(orbit.horizon, ut, ut).propagatable) return EMPTY;
-    // Vessel true anomaly at the view-UT via the shared solver (null for a
-    // parabolic/hyperbolic orbit or a missing element: no phase reference).
-    // Magnitudes: `deriveTrueAnomalyDeg` is the shared Kepler solver and works
-    // in canonical SI throughout, which is what the wire already carries.
+    // Null for a non-elliptical orbit or a missing element.
     const nu = deriveTrueAnomalyDeg({
       semiMajorAxis: orbit.sma.magnitude,
       eccentricity: orbit.ecc.magnitude,
@@ -98,7 +50,7 @@ export function usePhaseAngles(
       ut,
     });
     if (nu === null) return EMPTY;
-    // LAN/argPe default to 0 (equatorial / circular), the same coalescing the widget uses when it draws the vessel's own orbit.
+    // LAN and argPe default to 0, the same coalescing the widget uses to draw the vessel's orbit.
     const vesselLon = wrap360(
       magnitudeOr(orbit.lan, 0) + magnitudeOr(orbit.argPe, 0) + nu,
     );
@@ -141,5 +93,5 @@ function wrap360(deg: number): number {
   return wrapped < 0 ? wrapped + 360 : wrapped;
 }
 
-// Stable identity so a consumer memoising on the returned map doesn't churn while there's no live phase angle.
+// Stable identity so a memoising consumer does not churn while there is no phase angle.
 const EMPTY: Map<number, number> = new Map();

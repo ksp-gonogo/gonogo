@@ -14,22 +14,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ActionGroupComponent } from "./index";
 
 /**
- * What ActionGroup does when the state behind its pill is no longer current.
- *
- * The decision, not a description of the migration: the state pill is WITHHELD.
- * "ON" is a two-state verdict about the vessel now (an operator reads it as the
- * gear being down, not as the gear having been down a while ago), and the same
- * boolean is inverted to build the toggle's absolute-set command, so a held
- * value would both misstate the craft and command the wrong way. This file's
- * companion assertion is the one that earns it: an empty pill is also what the
- * widget shows before anything has ever arrived, so "withheld" has to be
- * legible from outside the component or the failure mode is a control that looks
- * merely slow.
- *
- * Two things are deliberately NOT withheld, and each has its own case below:
- * which action groups the vessel has, and Stage's number. Both change only when
- * an event changes them, and no event can reach us down a link that has stopped
- * delivering.
+ * A group's state pill is withheld, and says so, once its state stops being
+ * current, since the toggle inverts it to build its command. Which groups exist,
+ * and Stage's number, are facts and stay held.
  */
 
 const CARRIED = [
@@ -110,8 +97,7 @@ async function settle() {
 
 describe("ActionGroup when the group's state is not current", () => {
   it("shows the state while it is current", async () => {
-    // The control. Without it every assertion below would also pass on a widget
-    // that never shows a state at all.
+    // Control: without it a widget that never shows a state would pass.
     const { fixture } = mount("SAS");
     act(() => {
       fixture.emit("vessel.control", { ...CONTROL_ALL_OFF, sas: true });
@@ -134,9 +120,7 @@ describe("ActionGroup when the group's state is not current", () => {
     stopDelivering(fixture);
 
     await waitFor(() => {
-      // Deliberate and readable from the outside. The blank pill on its own
-      // would satisfy "not claiming ON" while being indistinguishable from a
-      // widget still waiting for its first sample.
+      // A blank pill alone is indistinguishable from waiting for the first sample.
       expect(visibleText(container)).toContain("State not current");
     });
     expect(toggle().textContent).toBe(NULL_DISPLAY);
@@ -151,7 +135,7 @@ describe("ActionGroup when the group's state is not current", () => {
     const toggle = () => screen.getByRole("button", { name: "Toggle SAS" });
     await waitFor(() => expect(toggle().textContent).toBe("ON"));
 
-    // Prove the press reaches the wire while the state is current, so the refusal below is a refusal and not a broken command path.
+    // The press reaches the wire while current, so the refusal below is a refusal.
     act(() => {
       toggle().click();
     });
@@ -169,14 +153,12 @@ describe("ActionGroup when the group's state is not current", () => {
       toggle().click();
     });
     await settle();
-    // Nothing further on the wire: an inverted held boolean is not a stale command, it is a command to the wrong state.
+    // An inverted held boolean is a command to the wrong state, not a late one.
     expect(fixture.transport.sentCommands).toHaveLength(1);
   });
 
   it("says nothing about a withheld state before anything has ever arrived", async () => {
-    // A cold start is not a dropped link, and the pill reads NULL_DISPLAY in
-    // both cases. Conflating them would accuse the stream of dropping on first
-    // paint, every paint.
+    // A cold start is not a dropped link, though both read NULL_DISPLAY.
     mount("SAS");
     await waitFor(() =>
       expect(
@@ -192,11 +174,7 @@ describe("ActionGroup when the group's state is not current", () => {
 
 describe("ActionGroup: what a stale link does NOT take away", () => {
   it("keeps the group the vessel reported, toggle key and all", async () => {
-    // The registry half of `vessel.control` is a fact: an AGX group named
-    // something other than AG{n} exists ONLY in the arrived list, and losing it
-    // would silently demote the control to a nameless read-only pill with no
-    // toggle key. The bell is the visible proof the key survived, it renders
-    // only for a group that has one.
+    // The bell renders only for a group with a toggle key, so it proves the key survived.
     const { fixture, container } = mount("Radiators", "ag-stale-agx");
     act(() => {
       fixture.emit("vessel.control", {
@@ -218,7 +196,6 @@ describe("ActionGroup: what a stale link does NOT take away", () => {
     await waitFor(() =>
       expect(visibleText(container)).toContain("State not current"),
     );
-    // The group is still there and still identified; only its state went.
     expect(screen.queryByText("No action group configured")).toBeNull();
     expect(
       screen.getByRole("button", { name: "Set alarm to fire Radiators" }),
@@ -229,10 +206,6 @@ describe("ActionGroup: what a stale link does NOT take away", () => {
   });
 
   it("keeps Stage's number and keeps staging available", async () => {
-    // Stage is the one state here that cannot drift while nobody is looking:
-    // it moves when something stages. And the stage command never inverts the
-    // number, so nothing unsafe rides on it being current. Blanking it would
-    // cost the operator a readout and buy no honesty.
     const { fixture, commandHandler, container } = mount(
       "Stage",
       "ag-stale-stage",
@@ -245,9 +218,7 @@ describe("ActionGroup: what a stale link does NOT take away", () => {
 
     stopDelivering(fixture);
 
-    // Proof the reading really did go stale. Stage's render is unchanged by
-    // design, so without this the case would pass on a fixture that never
-    // stopped delivering at all.
+    // Stage's render does not change, so prove the reading did go stale.
     await waitFor(() =>
       expect(fixture.store.sampleReading("vessel.structure").state).toBe(
         "stale",

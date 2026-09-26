@@ -4,11 +4,8 @@ import { focusRing } from "./focusRing";
 
 /**
  * A number with a name and a unit beside it, laid out so a column of them lines
- * up on the label, the field and the suffix.
- *
- * <p>The field is right-aligned because these are read as a column of
- * magnitudes, and a column of numbers that agree on their last digit is one an
- * operator can compare at a glance.</p>
+ * up on the label, the field and the suffix. The field is right-aligned, so a
+ * column of magnitudes agrees on its last digit.
  */
 export interface LabeledInputProps {
   label: string;

@@ -83,7 +83,7 @@ describe("Meter, given a capacity to divide by", () => {
   });
 
   it("divides across rungs of one kind, not across raw magnitudes", () => {
-    // 500 W of a 1 kW budget is half, and nothing at the call site had to know that a kilowatt is a thousand watts.
+    // 500 W of a 1 kW budget is half.
     render(
       <Meter label="Power" value={value("W", 500)} capacity={value("kW", 1)} />,
     );
@@ -105,10 +105,7 @@ describe("Meter, given a capacity to divide by", () => {
   });
 
   it("settles ONE rung across the pair rather than laddering each half", () => {
-    // Two independent ladders write this tank as "999 m / 1.0 km": one tank,
-    // two units, and a fill the reader has to convert before they can see it.
-    // The pair settles on the capacity's kilometres, and the last 0.1% of the
-    // fill is left to the track to show.
+    // Independent ladders would write "999 m / 1.0 km"; the pair settles on the capacity's kilometres.
     const { container } = render(
       <Meter
         label="Range"
@@ -121,13 +118,7 @@ describe("Meter, given a capacity to divide by", () => {
   });
 
   it("names the same unit to the eye and to the ear", () => {
-    /*
-     * The whole reason the scope encloses the track rather than just the
-     * header. `aria-valuetext` is an attribute holding a string, so it can
-     * never report into the group the way a rendered `<Unit>` does; left to
-     * choose its own rung it would say "five hundred watts" beside a shown
-     * "0.5 kW", and neither reader could tell.
-     */
+    // Left to itself, `aria-valuetext` would say "five hundred watts" beside a shown "0.5 kW".
     const { container } = render(
       <Meter label="Power" value={value("W", 500)} capacity={value("kW", 1)} />,
     );
@@ -165,8 +156,7 @@ describe("Meter, given a capacity to divide by", () => {
   });
 
   it("renders an unread capacity as absence, exactly as an unread value does", () => {
-    // The capacity is the axis. With no axis there is no fraction to assert,
-    // and a bar drawn anyway would be asserting one.
+    // With no readable axis there is no fraction to assert.
     render(
       <Meter
         label="LiquidFuel"

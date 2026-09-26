@@ -23,23 +23,12 @@ export interface SubjectHeadingProps {
 }
 
 /**
- * A subject and its state on one line, in that order.
+ * A subject and its state on one line, in that order, which is not a knob: a
+ * badge drawn before the thing it is a status of reads as the state arriving
+ * before its subject, to an eye and to a screen reader.
  *
- * <para>The order is the whole point and it is not a knob. A status badge
- * drawn before the thing it is a status OF reads as the state arriving before
- * its subject, both to an eye scanning the line and to a screen reader walking
- * it, so status badges belong above the title or aligned to its right and
- * never in front of it.</para>
- *
- * <para>Two sites had drifted the other way (an RP-1 Program's detail pane and
- * a training course's card) while every other heading in the tree happened to
- * be right, which is what a convention with no home looks like just before it
- * breaks again. This is the home: the order cannot be passed in, so a caller
- * cannot get it wrong.</para>
- *
- * <para>The line WRAPS: a long subject drops its badge onto a second line
- * rather than squeezing the name, because the name is the only part that says
- * which thing the line is about.</para>
+ * The line wraps: a long subject drops its badge onto a second line rather
+ * than squeezing the name.
  */
 export function SubjectHeading({
   children,

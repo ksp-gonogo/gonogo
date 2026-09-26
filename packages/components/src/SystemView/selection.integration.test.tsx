@@ -13,20 +13,10 @@ import {
   setupStreamFixture,
 } from "../test/setupStreamFixture";
 import { SystemViewComponent } from "./index";
-// Side-effect import: registers the real `system-view-vessel-orbits`
-// contribution (fleet + comms.network graph), same as `index.tsx` does for
-// the live app; the selection tests exercise the whole pipeline end to end,
-// not `resolveSystemEntities`/`deriveCommsPath` in isolation.
+// Registers the real contribution, so selection runs the whole pipeline.
 import "./vesselOrbitsContribution";
 
-/**
- * The interactive payoff: selecting a vessel display object
- * brightens its orbit, highlights its derived CommNet path to home coloured
- * by control quality, and swaps the info panel to its roster meta.
- * End-to-end against a real `SystemViewComponent`, a real stream, and the
- * real DOM `SystemEntitiesLayer` renders, mirroring
- * `commsNetworkContribution.integration.test.tsx`'s own style.
- */
+/** Selecting a vessel brightens its orbit, highlights its CommNet path home coloured by control quality, and swaps the info panel to its roster meta. */
 
 const KERBOL_MU = 1.1723328e18;
 const KERBIN_MU = 3.5316e12;
@@ -81,11 +71,7 @@ const META = {
   contributionSlots: ["system-view.entities"] as const,
 };
 
-/** Mounts SystemViewComponent framed on Kerbin, with the active vessel
- *  ("v-active", excluded from the entities layer) plus three OTHER roster
- *  vessels exercising the three CommNet path outcomes: a direct one-hop link
- *  (v-direct), a relayed two-hop link through v-relay (v-relayed), and a
- *  vessel with no route to home at all (v-isolated). */
+/** Mounts SystemViewComponent on Kerbin with the active vessel (excluded from the layer) plus a one-hop (v-direct), a relayed two-hop (v-relayed) and an unreachable (v-isolated) vessel. */
 function mountScene() {
   const fixture: StreamFixture = setupStreamFixture({
     carriedChannels: [
@@ -223,7 +209,7 @@ describe("SystemView selection: brighten, CommNet path colour, info panel", () =
       return el as SVGEllipseElement;
     });
     expect(ring.getAttribute("stroke")).toBe("var(--color-text-faint)");
-    // Frame-body info, not a vessel: the almanac's own title text.
+    // The almanac's own title, so frame-body info rather than a vessel.
     expect(screen.getByText("orbiting Kerbol")).toBeInTheDocument();
   });
 
@@ -247,7 +233,7 @@ describe("SystemView selection: brighten, CommNet path colour, info panel", () =
       expect(ring?.getAttribute("stroke")).toBe("var(--color-accent-fg)");
     });
 
-    // Info panel swap: the selected vessel's roster meta, not the almanac.
+    // The selected vessel's roster meta replaces the almanac.
     expect(screen.getByText("Direct Sat")).toBeInTheDocument();
     expect(screen.queryByText("orbiting Kerbol")).not.toBeInTheDocument();
   });
@@ -286,11 +272,7 @@ describe("SystemView selection: brighten, CommNet path colour, info panel", () =
     });
     fireEvent.click(marker);
 
-    // Both hops are `active: true` (an all-active BFS route exists), but
-    // v-relayed's OWN roster commsControlSource is Partial (1), which the
-    // info panel reports as "relay". Colouring by the graph heuristic alone
-    // would draw this GREEN, contradicting that "relay" row; it must draw
-    // the same degraded tone `COMMS_PATH_COLOUR.partial` uses.
+    // Both hops are active, but v-relayed's own control source is Partial, so the path draws the degraded tone the info panel's "relay" row implies, not green.
     await waitFor(() => {
       const homeToRelay = container.querySelector(
         '[data-entity-id="comms-edge:home:v-relay"]',
@@ -326,10 +308,7 @@ describe("SystemView selection: brighten, CommNet path colour, info panel", () =
     });
     fireEvent.click(marker);
 
-    // v-direct's roster commsControlSource is Full (2), "connected" in the
-    // info panel: the one case where the graph heuristic and the roster
-    // value happen to agree, confirming the fix didn't just invert the
-    // colour, it derives it from the roster either way.
+    // Full control: roster and graph agree, and the colour still derives from the roster.
     const edge = await waitFor(() => {
       const el = container.querySelector(
         '[data-entity-id="comms-edge:home:v-direct"]',
@@ -360,8 +339,7 @@ describe("SystemView selection: brighten, CommNet path colour, info panel", () =
       );
       expect(ring?.getAttribute("stroke")).toBe("var(--color-accent-fg)");
     });
-    // ...but every comms edge on screen stays untouched: none of them belong
-    // to an unreachable vessel's (empty) derived path.
+    // ...but no comms edge on screen belongs to an unreachable vessel's empty path.
     for (const id of [
       "comms-edge:home:v-direct",
       "comms-edge:home:v-relay",
@@ -391,11 +369,7 @@ describe("SystemView selection: brighten, CommNet path colour, info panel", () =
     );
     expect(marker).toHaveAttribute("aria-pressed", "true");
 
-    // Escape bubbles from the focused marker up through the DOM to
-    // `document`, where `index.tsx` registers a `keydown` listener (a
-    // `useEffect`, live only while something is selected) rather than
-    // putting the handler on the diagram wrapper itself, same idiom
-    // `ActionMenu.tsx` already uses for its own outside-pointer dismiss.
+    // Escape bubbles to the document-level listener that is live only while something is selected.
     fireEvent.keyDown(marker, { key: "Escape" });
     await waitFor(() =>
       expect(screen.getByText("orbiting Kerbol")).toBeInTheDocument(),

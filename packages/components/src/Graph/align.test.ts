@@ -11,7 +11,6 @@ describe("alignXY", () => {
   });
 
   it("pairs same-tick samples via nearest-prior match", () => {
-    // Two keys from the same tick land a few ms apart; alignXY pairs them.
     const xs = { t: [1000, 2000, 3000], v: [10, 20, 30] };
     const ys = { t: [1002, 2001, 3003], v: [100, 200, 300] };
     const out = alignXY(ys, xs);
@@ -19,7 +18,6 @@ describe("alignXY", () => {
   });
 
   it("drops Y samples with no prior X within the tolerance", () => {
-    // First Y arrives before any X; second Y has a prior X in window.
     const xs = { t: [500], v: [5] };
     const ys = { t: [100, 600], v: [1, 2] };
     const out = alignXY(ys, xs);
@@ -55,10 +53,6 @@ describe("alignXY", () => {
     expect(alignXY(ys, xs, 1_000)).toEqual({ x: [], y: [], breaks: [] });
   });
 
-  // A break names a hole by INDEX, and this function reindexes: it drops any Y
-  // sample it cannot pair with an X. Passed through unchanged the index would
-  // break the trace at whatever sample happened to land there, which is a
-  // wrong claim rather than a missing one.
   it("reindexes a break onto the output position of its own sample", () => {
     const xs = { t: [0, 1000, 2000], v: [10, 11, 12] };
     const ys = { t: [0, 1000, 2000], v: [1, 2, 3], breaks: [2] };
@@ -70,11 +64,7 @@ describe("alignXY", () => {
   });
 
   it("carries a break whose own sample is dropped onto the next survivor", () => {
-    /**
-     * The Y sample at t=500 has no prior X inside the tolerance and is
-     * dropped; the hole it opened is still there, so the break lands on the
-     * next sample that actually draws.
-     */
+    // The Y sample at t=500 has no prior X inside the tolerance and is dropped.
     const xs = { t: [0, 2000], v: [10, 12] };
     const ys = { t: [0, 500, 2000], v: [1, 2, 3], breaks: [1] };
     expect(alignXY(ys, xs, 100)).toEqual({

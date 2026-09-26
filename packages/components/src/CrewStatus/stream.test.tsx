@@ -4,23 +4,7 @@ import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CrewStatusComponent } from "./index";
 
-/**
- * The stream test-adapter proof for CrewStatus (mirrors
- * `ThermalStatus/stream.test.tsx`): genuinely running off the real
- * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport`, no legacy `DataSource` is registered anywhere in this
- * file.
- *
- * `v.crewCount` / `v.crew` / `v.crewCapacity` all land on the single
- * `vessel.crew` wire channel (`count` / `capacity` / `crew: CrewMember[]`),
- * read here via the canonical one-arg `useTelemetry`. `v.isEVA` rides
- * `vessel.identity.vesselType`; it is not emitted here, so the EVA badge
- * simply stays off.
- *
- * With no legacy source registered, the full roster + capacity render off the
- * stream alone, proving the mapped fields genuinely drive the widget's
- * rendering off the real pipeline.
- */
+/** CrewStatus renders its roster off the real stream pipeline with no legacy `DataSource` registered. */
 describe("CrewStatus, genuinely runs off the stream (M3 batch 4)", () => {
   it("reads v.crewCount/v.crew/v.crewCapacity off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
@@ -40,7 +24,7 @@ describe("CrewStatus, genuinely runs off the stream (M3 batch 4)", () => {
     // Nothing arrived yet, known is false, so the waiting placeholder shows.
     expect(screen.getByText(/Waiting for telemetry/i)).toBeInTheDocument();
 
-    // A real subscription must have happened for this to deliver at all, StubTransport.emit is subscription-gated (see its own doc comment).
+    // StubTransport.emit is subscription-gated, so nothing would deliver without this.
     expect(fixture.transport.isSubscribed("vessel.crew")).toBe(true);
 
     act(() => {
@@ -55,11 +39,7 @@ describe("CrewStatus, genuinely runs off the stream (M3 batch 4)", () => {
       });
     });
 
-    // The roster now renders straight off the stream, no legacy fallback
-    // needed for names or capacity. The "3 / 4 aboard" headcount itself has
-    // moved to the info-tone `crew-status.badges` panel-badge contribution
-    // (`./badge.ts`), which this bare-component render tree (no
-    // `ContributionsProvider`/`Panel` chrome) never mounts.
+    // The headcount is a panel badge, which a bare-component render never mounts.
     await waitFor(() =>
       expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
     );

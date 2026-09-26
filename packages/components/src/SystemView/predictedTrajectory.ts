@@ -1,39 +1,12 @@
 /**
- * Multi-SOI predicted-trajectory sampling for the SystemView diagram. Reuses the
- * same Keplerian propagator as MapView's ground-track (`patchStateAt`) and keeps
- * the whole inertial state.
+ * Multi-SOI predicted-trajectory sampling for the SystemView diagram, on MapView's Keplerian propagator (`patchStateAt`).
  *
- * <b>`z` is kept, not dropped.</b> `patchStateAt` answers with a full
- * three-dimensional parent-centred position, and taking only two components of
- * it flattens the arc while the bodies around it stay three-dimensional.
- * Everything below is parent-centred METRES; the diagram places it into the
- * frame in force and scales it, so the predicted arc lands in the same frame as
- * the bodies it passes.
- *
- * SystemView renders one parent frame at a time (e.g. Kerbin with its moons).
- * An `o.orbitPatches` array can span several SOIs:
- *
- *   - A patch whose `referenceBody` matches the rendered frame is the vessel's
- *     trajectory **around the frame body**: drawn at the frame's plot scale,
- *     origin at the frame body.
- *   - A patch whose `referenceBody` is one of the frame's **children** (a moon
- *     the vessel encounters) is drawn in that child's local frame, offset to
- *     the child's drawn position. The encounter loop is small relative to the
- *     parent-orbit scale: exactly the visual cue "you pass close to this
- *     body here".
- *
- * The first sample of any non-initial patch (ENCOUNTER / ESCAPE transition) is
- * the SOI-crossing point: surfaced separately as an encounter marker.
+ * Everything here is parent-centred inertial METRES with `z` kept; the diagram places it into the frame in force. A patch around the frame body draws at the origin, one around a child draws offset to that child, and the first sample of a non-initial patch is the SOI crossing.
  */
 import { type OrbitPatch, patchStateAt } from "@ksp-gonogo/core";
 import type { TransitionName } from "@ksp-gonogo/sitrep-client";
 
-/**
- * A point on a predicted arc, in parent-centred inertial METRES (origin = the
- * frame body). Not plot units: the diagram places and scales it, and offsetting a
- * moon-local arc after the frame transform would add a translation the transform
- * has already accounted for.
- */
+/** A point on a predicted arc in parent-centred inertial metres (origin: the frame body), never plot units. */
 export interface PatchPoint {
   x: number;
   y: number;
@@ -43,30 +16,12 @@ export interface PatchPoint {
 export type EncounterKind = "encounter" | "escape";
 
 /**
- * Which way a patch transition crosses an SOI boundary, or `null` when it does
- * not cross one at all.
+ * Which way a patch transition crosses an SOI boundary, or `null` when it does not.
  *
- * The single place this diagram decides what an SOI event is, and it is
- * exhaustive on purpose. Deciding by membership of a hand-written set instead
- * makes any transition outside the set silently not an event, so a member
- * appended to `TransitionType` draws no marker on the diagram and lists no row
- * in the almanac, and an operator cannot tell that from a trajectory that
- * genuinely stays in one SOI.
- *
- * `TransitionName` is derived from the generated enum, so the `never` binding
- * below stops compiling the moment C# grows a member, and whoever adds it has
- * to say whether it crosses. That is the whole guarantee: the decision is on a
- * string because `patchStartTransition` reaches the diagram as a name, and a
- * string branch is only safe while it is exhaustive.
- *
- * A name that is not a transition at all yields `null` rather than a guess.
- * Marking a crossing would put a body's name and a UT on the diagram off a
- * value that was never read.
+ * Exhaustive by design: the `never` binding stops compiling when `TransitionType` grows a member, so a new transition cannot silently draw no marker. A name that is not a transition yields `null` rather than a guess.
  */
 export function soiEventKind(transition: string): EncounterKind | null {
-  // Widened at the boundary rather than inside the switch, so the `default`
-  // arm narrows this binding and not a fresh cast: casting there would assert
-  // exhaustiveness instead of checking it.
+  // Widened here so the default arm narrows this binding, checking exhaustiveness rather than asserting it.
   const named = transition as TransitionName;
   switch (named) {
     case "ENCOUNTER":
@@ -94,11 +49,7 @@ export interface ProjectedPatch {
   patchIndex: number;
   /** Body this patch orbits (its reference frame). */
   referenceBody: string;
-  /**
-   * Whether this patch is the live current orbit (the first elliptical patch
-   * orbiting the rendered frame body and containing `ut`). Drives the green
-   * vs. de-emphasised styling in the diagram.
-   */
+  /** Whether this is the live orbit: the first elliptical patch around the frame body containing `ut`. */
   isCurrent: boolean;
   /** Sampled polyline in parent-centred metres. */
   points: PatchPoint[];
@@ -134,16 +85,7 @@ function isElliptical(patch: OrbitPatch): boolean {
   );
 }
 
-/**
- * A patch's parent-centred inertial state at `ut`, metres, offset to where its
- * reference body sits. `offset` is the frame body's own zero for a patch orbiting
- * the frame body, and the moon's parent-centred position for an encounter patch.
- *
- * Composed in metres rather than in drawn coordinates. A frame transform is
- * affine, so placing the arc and then adding a placed offset would apply the
- * frame's own translation twice; adding first and placing the sum is exact in
- * every frame.
- */
+/** A patch's parent-centred state at `ut` in metres plus its reference body's offset, composed before placement so a frame's translation applies once. */
 function patchPointAt(
   patch: OrbitPatch,
   ut: number,
@@ -163,11 +105,7 @@ export interface PredictTrajectoryArgs {
   parentName: string;
   /** Current universal time: identifies the live patch. */
   ut: number;
-  /**
-   * Parent-centred positions of the frame's children in METRES, keyed by body
-   * name. Used to offset encounter arcs around the moon the vessel passes. The
-   * frame body itself is the origin.
-   */
+  /** The frame's children in parent-centred metres, keyed by name, for offsetting encounter arcs; the frame body is the origin. */
   childOffsets: ReadonlyMap<string, PatchPoint>;
   /** Samples per patch arc. Capped to bound work; defaults to 64. */
   samplesPerPatch?: number;
@@ -182,13 +120,7 @@ function sameBody(a: string | null, b: string | null): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
-/**
- * Sample and project every renderable patch in `patches` for the current
- * frame. Patches orbiting the frame parent draw at the origin; patches
- * orbiting a drawn child draw offset to that child. Patches orbiting a body
- * that isn't on screen (a different SOI entirely) are skipped, they belong to
- * another frame.
- */
+/** Samples every patch around the frame parent or a drawn child; a patch around an off-screen body belongs to another frame and is skipped. */
 export function predictTrajectory({
   patches,
   parentName,
@@ -222,7 +154,6 @@ export function predictTrajectory({
     const patch = patches[i];
     if (!isElliptical(patch)) continue;
 
-    // Resolve where this patch's reference body sits in the diagram.
     let offset: PatchPoint | null = null;
     if (sameBody(patch.referenceBody, parentName)) {
       offset = { x: 0, y: 0, z: 0 };
@@ -236,7 +167,7 @@ export function predictTrajectory({
     }
     if (offset === null) continue; // Reference body not on this frame.
 
-    // For the live patch, only draw from `ut` forward, the past arc is behind the vessel and the live-orbit ellipse already shows the full loop.
+    // The live patch draws from `ut` forward; the live-orbit ellipse already shows the full loop.
     const from =
       i === currentIndex ? Math.max(patch.startUT, ut) : patch.startUT;
     const to = patch.endUT;
@@ -274,11 +205,7 @@ export function predictTrajectory({
   return { patches: out, encounters };
 }
 
-/**
- * Summarise the next SOI event for the AlmanacPanel / subtitle. Picks the
- * earliest encounter/escape after `ut`. Returns null when the trajectory stays
- * in one SOI.
- */
+/** The earliest encounter or escape after `ut`, or null when the trajectory stays in one SOI. */
 export function nextEncounter(
   trajectory: PredictedTrajectory,
   ut: number,
@@ -300,13 +227,7 @@ export interface PatchEncounter {
   ut: number;
 }
 
-/**
- * Scan raw orbit patches for SOI crossings, independent of the rendered frame.
- * Unlike {@link predictTrajectory} this doesn't project or skip off-frame
- * patches: it's the source of truth for the AlmanacPanel encounter text,
- * which wants every future encounter regardless of which body the diagram is
- * framed around. Returned in chronological order, filtered to `ut` onward.
- */
+/** Every SOI crossing from `ut` onward in chronological order, independent of the rendered frame, for the almanac encounter text. */
 export function scanEncounters(
   patches: readonly OrbitPatch[],
   ut: number,

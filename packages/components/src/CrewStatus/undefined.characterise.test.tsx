@@ -5,21 +5,8 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CrewStatusComponent } from "./index";
 
 /**
- * Characterisation, not specification: what CrewStatus does when its
- * `useTelemetry` reads are absent.
- *
- * The widget has three distinct absence gates over one Topic (`vessel.crew`)
- * plus two more over `vessel.identity` and `vessel.resources`:
- *
- *   1. `crew?.count` / `crew?.capacity` / `crew?.crew`, optional-chained off a
- *      possibly-undefined payload
- *   2. `known = crewCount !== undefined || crewCapacity !== undefined ||
- *      names.length > 0`, the whole-widget "anything at all yet" test
- *   3. `crewCount === undefined` inside `renderBody`, a SECOND gate that exists
- *      only because `known` can be true while the headcount is still missing
- *
- * Every one of them is written against `undefined` specifically, so each one
- * changes meaning when the read starts answering with a `Reading`.
+ * Characterisation, not specification: what CrewStatus renders when its reads are absent.
+ * `renderBody` checks `crewCount === undefined` separately because `known` can be true before the headcount lands.
  */
 
 const CARRIED = ["vessel.crew", "vessel.identity", "vessel.resources"];
@@ -57,15 +44,11 @@ afterEach(() => {
 
 describe("CrewStatus, what undefined telemetry renders today", () => {
   it("renders the waiting placeholder and NO roster when nothing has arrived", () => {
-    // Gate 2 (`known` false) firing on a cold widget. The placeholder wording
-    // is the whole observable difference between "nothing yet" and every other
-    // state, so it is pinned literally.
+    // The placeholder wording is the only difference between "nothing yet" and every other state, so it is pinned literally.
     const container = renderCrew(newFixture(), { w: 6, h: 8 });
 
     expect(screen.getByText("Waiting for telemetry...")).toBeInTheDocument();
-    // Specifically not the confident conclusions the same body can draw: an
-    // undefined headcount is NOT reported as an unmanned probe, and no roster
-    // list element exists at all.
+    // An undefined headcount is not an unmanned probe, and no roster list exists.
     expect(screen.queryByText(/Unmanned/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/names unavailable/i)).not.toBeInTheDocument();
     expect(container.querySelector("ul")).toBeNull();
@@ -73,9 +56,7 @@ describe("CrewStatus, what undefined telemetry renders today", () => {
   });
 
   it("renders 'No crew data' at tiny size when nothing has arrived", () => {
-    // Same `known` gate, the OTHER branch of the size split: at 3x3 the roster
-    // body is skipped entirely and the cold state has different wording, so a
-    // migration has two places to change and only one of them is above.
+    // The tiny-size branch of the same gate has its own cold-state wording.
     renderCrew(newFixture(), { w: 3, h: 3 });
 
     expect(screen.getByText("No crew data")).toBeInTheDocument();
@@ -87,15 +68,7 @@ describe("CrewStatus, what undefined telemetry renders today", () => {
   });
 
   it("REVERTS to the waiting placeholder when a confirmed tombstone lands on vessel.crew", async () => {
-    // null-vs-undefined, and the widget does not distinguish them. The store
-    // hands `useTelemetry` a literal `null` for a tombstoned Topic (`sample()`
-    // finds the point, its payload is null), so `crew?.count` optional-chains
-    // to undefined and every gate reads it as "nothing has arrived yet".
-    //
-    // A real roster is rendered FIRST so this cannot pass vacuously: the
-    // tombstone has to be genuinely ingested and read for the roster to
-    // disappear, which is what proves the confirmed-absence case collapses onto
-    // the never-arrived one rather than merely sharing its wording.
+    // A tombstone (null payload) collapses onto the never-arrived state. A roster renders first so this cannot pass vacuously.
     const fixture = newFixture();
     renderCrew(fixture, { w: 6, h: 8 });
     act(() => {
@@ -122,9 +95,7 @@ describe("CrewStatus, what undefined telemetry renders today", () => {
   });
 
   it("keeps waiting when capacity arrives but the headcount field does not", async () => {
-    // Gate 3: a PARTIAL payload. `known` is already true off `capacity`, so
-    // only the second, field-level `crewCount === undefined` test stops the
-    // widget concluding "Unmanned" about a crewed vessel.
+    // Partial payload: `known` is true off capacity, so only the field-level headcount check stops a false "Unmanned".
     const fixture = newFixture();
     renderCrew(fixture, { w: 6, h: 8 });
     act(() => {
@@ -138,9 +109,7 @@ describe("CrewStatus, what undefined telemetry renders today", () => {
   });
 
   it("reports 'names unavailable' when the count arrives but the roster field does not", async () => {
-    // Partial payload, the other field: an undefined `crew` array is reported
-    // as a KNOWN headcount with withheld names, a genuinely different message
-    // from either placeholder above.
+    // A known headcount with no roster is reported as withheld names, distinct from either placeholder.
     const fixture = newFixture();
     renderCrew(fixture, { w: 6, h: 8 });
     act(() => {
@@ -158,9 +127,7 @@ describe("CrewStatus, what undefined telemetry renders today", () => {
   });
 
   it("renders the headcount with NO capacity caption when only the count arrives, at tiny size", async () => {
-    // Tiny-mode `crewCapacity !== undefined &&` gate: an undefined capacity
-    // drops the whole "of n aboard" caption rather than showing a placeholder
-    // denominator.
+    // An undefined capacity drops the whole caption rather than showing a placeholder denominator.
     const fixture = newFixture();
     renderCrew(fixture, { w: 3, h: 3 });
     act(() => {
@@ -173,10 +140,7 @@ describe("CrewStatus, what undefined telemetry renders today", () => {
   });
 
   it("renders an em dash for an undefined headcount when capacity alone arrives, at tiny size", async () => {
-    // The one place an undefined read renders as visible punctuation rather
-    // than a sentence: `known` is true off capacity, and the missing count
-    // becomes NULL_DISPLAY beside a real "of 4 aboard" caption. A cheap textual
-    // empty-state detector cannot see this state, which is why it is pinned.
+    // The one undefined read that renders as punctuation, invisible to a textual empty-state detector, hence pinned.
     const fixture = newFixture();
     renderCrew(fixture, { w: 3, h: 3 });
     act(() => {
@@ -190,11 +154,7 @@ describe("CrewStatus, what undefined telemetry renders today", () => {
   });
 
   it("omits the EVA suit meters when vessel.resources never arrives on an EVA kerbal", async () => {
-    // `resources?.resources?.Oxygen` absence gate, isolated: everything else
-    // the block needs is present (isEVA true with a resolved single name, so
-    // the header names the kerbal per #384), and the undefined resources
-    // Topic silently removes the whole meter group rather than drawing empty
-    // tanks.
+    // Everything else is present, so this isolates the resources gate: no meters rather than empty tanks.
     const fixture = newFixture();
     renderCrew(fixture, { w: 6, h: 8 });
     act(() => {
@@ -217,9 +177,7 @@ describe("CrewStatus, what undefined telemetry renders today", () => {
   });
 
   it("omits the EVA caption entirely when vessel.identity never arrives", async () => {
-    // `isEVA === true` gate: an absent identity record is NOT rendered as
-    // "not on EVA", the caption line is dropped, so nothing on screen states
-    // the vessel's EVA standing either way.
+    // An absent identity is not "not on EVA": the caption line is dropped.
     const fixture = newFixture();
     renderCrew(fixture, { w: 6, h: 8 });
     act(() => {

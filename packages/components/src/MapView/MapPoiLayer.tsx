@@ -17,31 +17,19 @@ import { useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
 
 /**
- * The always-on shared POI layer: mounted as a sibling to
- * `OverlayAugmentLayer`, above the coverage-gated surface (see this file's
- * placement in `index.tsx`). Renders every registered `MapPoiProvider`'s
- * points for the currently-mapped body as markers, with ONE shared hover
- * card (label/detail/coords/meta + actions) rather than letting each
- * provider invent its own hover UX: same reasoning as `mapPoi.ts`'s own
- * header comment.
+ * The always-on shared POI layer: every registered `MapPoiProvider`'s points
+ * for the mapped body, with one shared hover card rather than a hover UX per
+ * provider.
  */
 export interface MapPoiLayerProps {
   bodyId: string | undefined;
-  /** Project geographic lat/lon (degrees) to a pixel coordinate in this
-   *  layer's own space: the same `MapOverlayContext.project` a `map-view.overlay`
-   *  augment draws with, so a POI marker lands on the same pixels. */
+  /** The same `MapOverlayContext.project` a `map-view.overlay` augment draws with. */
   project: (lat: number, lon: number) => { x: number; y: number };
   width: number;
   height: number;
 }
 
-// Stable-reference snapshot cache: getMapPoiProviders() allocates a fresh
-// array every call, which would infinite-loop useSyncExternalStore directly.
-// Refreshed via an UNCONDITIONAL module-load subscription (mirrors
-// useCoverageGate.ts's cachedSources / AugmentSlot.tsx's slotCache), not from
-// inside a component lifecycle: a provider can register before any
-// MapPoiLayer instance ever mounts (an Uplink SDK bundle registering before
-// the operator navigates to a MapView layout), and that must not be missed.
+// A stable snapshot, since getMapPoiProviders() allocates per call and would loop useSyncExternalStore. Refreshed by a module-load subscription so a provider registered before any layer mounts is not missed.
 let cachedProviders: MapPoiProviderDefinition[] = getMapPoiProviders();
 onMapPoiProvidersChange(() => {
   cachedProviders = getMapPoiProviders();
@@ -81,7 +69,7 @@ const ANOMALY_STYLE: PoiKindStyle = {
   border: "var(--color-tag-cyan-fg)",
   borderStyle: "solid",
 };
-// Generic neutral fallback so a third-party provider's novel `kind` renders sensibly instead of invisible/throwing.
+// Neutral fallback so a third-party provider's novel `kind` still renders.
 const DEFAULT_STYLE: PoiKindStyle = {
   background: "var(--color-text-faint)",
   border: "var(--color-text-faint)",
@@ -183,7 +171,7 @@ export function MapPoiLayer({
   width,
   height,
 }: Readonly<MapPoiLayerProps>): ReactElement {
-  // Re-render when providers register/unregister so a layer mounted before a provider's module loads still picks it up (mirrors AugmentSlot).
+  // Re-render when providers register, so a layer mounted before a provider loads picks it up.
   const providers = useSyncExternalStore(
     onMapPoiProvidersChange,
     getProvidersSnapshot,
@@ -216,12 +204,7 @@ export function MapPoiLayer({
   );
 }
 
-/**
- * Applies one provider's Domain presence gate. Isolated into its own
- * component (mirrors `AugmentSlot.tsx`'s `AugmentEntry`) so its
- * `useTelemetry` gate hook has a stable position regardless of how many
- * sibling providers are registered or how the registered set changes.
- */
+/** Applies one provider's Domain presence gate, one component per provider so the gate hook keeps a stable position. */
 function PoiProviderGate({
   provider,
   bodyId,
@@ -235,27 +218,13 @@ function PoiProviderGate({
   hoveredId: string | undefined;
   onHover: (poi: MapPoi | null) => void;
 }): ReactElement | null {
-  // Always call the hook (stable order); the topic is only meaningful when
-  // the provider declares `requires`. A dummy topic for the ungated case
-  // reads `undefined` off the store and is never consulted.
+  // Always called for stable hook order; the dummy topic for an ungated provider is never consulted.
   const availabilityTopic = (
     provider.requires ? `${provider.requires}.available` : ""
   ) as TopicId;
   const available = useTelemetry(availabilityTopic);
 
-  // Whether the domain has EVER reported. A `.available` topic is a presence
-  // gate, not a quantity: a domain that reported and then went quiet is still
-  // installed, so `stale` counts as available and only a never-arrived reading
-  // hides the provider.
-  //
-  // This was `available === undefined`, which is why it needed changing rather
-  // than merely compiling: a `Reading` is never undefined, so the gate would
-  // have failed OPEN and rendered every gated provider unconditionally. The
-  // comparison stayed legal, so the types said nothing; `MapPoiLayer.test.tsx`
-  // is what caught it.
-  // `absent` counts too: a producer answering "there is no value" is still a
-  // producer, so the Uplink is installed. The two answers that mean nothing is
-  // there are `pending` and `unowned`, which is what `hasAnswered` collapses.
+  // A `.available` topic is a presence gate: stale and absent both mean installed, and only pending or unowned hides the provider.
   const domainReported = hasAnswered(available);
 
   if (provider.requires && !domainReported) {
@@ -273,12 +242,7 @@ function PoiProviderGate({
   );
 }
 
-/**
- * Calls the provider's own `usePois` hook and renders one marker per POI.
- * A distinct component instance from `PoiProviderGate` so `usePois`, which
- * itself may call `useTelemetry`/`useMemo`/etc, is only ever mounted (and
- * its hooks only ever called) while the provider's gate is satisfied.
- */
+/** Calls the provider's own `usePois`, mounted only while its gate is satisfied. */
 function PoiProviderMarkers({
   provider,
   bodyId,
@@ -357,7 +321,7 @@ function PoiHoverCardView({
   onDismiss: () => void;
 }): ReactElement {
   const { x, y } = project(poi.lat, poi.lon);
-  // Flip the card to the opposite side of the marker when it would otherwise overflow the map's own edge.
+  // Flip the card to the marker's other side when it would overflow the map edge.
   const openLeft = x > width - 200;
   const openUp = y > height - 120;
   const style: CSSProperties = {
@@ -386,9 +350,7 @@ function PoiHoverCardView({
       {metaEntries.map(([key, value]) => (
         <PoiHoverMetaRow key={key}>
           <span>{key}</span>
-          {/* `meta` is an open bag, so a provider can put anything in it.
-              A quantity gets the readout every other quantity gets; a
-              string or a flag is still whatever the provider wrote. */}
+          {/* `meta` is an open bag: a quantity gets the standard readout, anything else prints as written. */}
           <span>{isValue(value) ? <Unit value={value} /> : String(value)}</span>
         </PoiHoverMetaRow>
       ))}

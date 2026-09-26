@@ -7,38 +7,9 @@ import kerbinSuborbital from "./__fixtures__/kerbin-suborbital-prograde-node.jso
 import { ManeuverPlannerComponent } from "./index";
 
 /**
- * ManeuverPlanner renders its planned nodes entirely off the Uplink stream.
- *
- * This file used to be a legacy<->stream behavior-preservation dual-run: the
- * same planned node rendered once off the legacy `"data"` `DataSource` and
- * once with a `TelemetryProvider` mounted alongside it, asserted byte-
- * identical. That comparison no longer has a legacy leg to make. The widget
- * has no `useDataValue` read left at all: the node list reads
- * `useStream("vessel.maneuver.legacy")`, which has NO legacy fallback, so a
- * leg fed only `o.maneuverNodes` renders "No maneuver nodes planned." for any
- * fixture whatsoever.
- *
- * Which is what it had been doing. Both legs rendered the empty state and the
- * byte comparison passed on the strength of two blank renders agreeing, until
- * `11d4f359c` registered the production derived channels in
- * `setupStreamFixture` and the stream leg started drawing the node it was fed.
- * The legacy leg could not follow, so a real render began failing against an
- * empty one. Worse, it failed only sometimes: the settle waited for the
- * "SYNCING" badge to go ABSENT, and a wait on an absence is satisfied on the
- * first paint when the badge has not appeared yet, so whether the stream leg
- * was allowed to commit its frame came down to machine speed. That is the
- * exact wait `unfed-snapshot-gate.ts` was built over, and it was still
- * load-bearing here.
- *
- * What remains is the full stream render on its own, with NO legacy source
- * registered anywhere in this file, and a wait on the node's presence rather
- * than a badge's absence. It also pins the invariant `11d4f359c` was about:
- * the node list and the burn-window section describe the SAME node, because
- * both iterate one parsed array rather than reading `vessel.maneuver` twice.
- *
- * The New-maneuver preview still reports "Awaiting orbit telemetry": this
- * fixture carries no `vessel.orbit` emit, and the preview's inputs are a
- * separate surface from the node list this file is about.
+ * The planned nodes render off the stream alone, and the node list and the
+ * burn-window section describe the same node because both iterate one parsed
+ * array.
  */
 
 const NODE_UT = kerbinSuborbital["o.maneuverNodes"][0].UT;
@@ -79,17 +50,14 @@ describe("ManeuverPlanner: full node render off the stream", () => {
             dvNormal: 0,
             dvPrograde: 300,
             dvTotal: 300,
-            // Contract-valid: `patches` is always an array. Omitting it was
-            // what made this file the one that threw.
+            // Contract-valid: `patches` is always an array.
             patches: [],
           },
         ],
       });
     });
 
-    // Wait on the node's OWN delta-v reaching the list, a fact only the
-    // emitted frame can supply. The previous wait ("SYNCING" gone) was
-    // satisfiable before any frame committed; see this file's doc comment.
+    // Waits on a presence only the emitted frame can supply, never on a badge's absence.
     await waitFor(() => {
       if (!visibleText(container).includes("300")) {
         throw new Error("the emitted node has not reached the list yet");
@@ -97,7 +65,6 @@ describe("ManeuverPlanner: full node render off the stream", () => {
     });
 
     const text = visibleText(container);
-    // The list: one node, its delta-v and its countdown, off the derived `vessel.maneuver.legacy` reshape of the emitted frame.
     expect(text).toContain("Planned nodes");
     expect(text).not.toContain("No maneuver nodes planned.");
     expect(text).toContain("300 m/s");
@@ -106,13 +73,12 @@ describe("ManeuverPlanner: full node render off the stream", () => {
       3,
     );
 
-    // The burn window is the same node, not a second read of it: its half-delta-v instant IS the node's UT, so it counts down to the same moment the row does.
+    // The burn window's half-delta-v instant is the node's UT, so both count down to one moment.
     expect(text).toContain("Burn windows");
     expect(text).toContain(`in ${SECONDS_TO_BURN}s`);
-    // Nothing on this craft models a burn duration, so ignition and cutoff are absent rather than substituted from the node's UT.
+    // No burn-duration model, so ignition and cutoff are absent rather than substituted.
     expect(text).toContain("no burn-time model");
 
-    // Editing and deleting a node are the list's own controls, and they only exist once a node does.
     expect(
       container.querySelector('button[aria-label="Edit node"]'),
     ).not.toBeNull();

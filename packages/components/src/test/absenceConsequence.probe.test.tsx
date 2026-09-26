@@ -9,31 +9,19 @@ import { withoutChannel } from "./absenceScene";
 import { snapshotWidgetMode } from "./widgetDomSnapshot";
 
 /**
- * Which declared inputs have a VISIBLE consequence, measured rather than
- * reasoned about.
+ * Which declared inputs have a visible consequence, measured. Every widget
+ * with render fixtures, every declared channel its fixtures emit, rendered
+ * whole and with that one channel never arriving at `defaultSize`. A
+ * byte-identical pair is either a figure with no reading behind it or an
+ * overstated declaration; this narrows the list, it does not tell which.
  *
- * For every widget with render fixtures, every fixture that declares a wire,
- * and every declared channel that fixture emits, this renders the widget twice
- * at its own `defaultSize`: once whole, once with that one channel never
- * arriving. A pair that comes back byte-identical means the widget draws the
- * same picture whether or not the input reached it, which is either a figure
- * drawn with no reading behind it or a declaration that overstates what the
- * widget consumes. It cannot tell those apart, and is not meant to: it narrows
- * hundreds of pairs to a list short enough to read one at a time.
- *
- * OPT-IN, because it takes minutes rather than seconds and answers a survey
- * question rather than a pass/fail one. The scenes in `absenceScenes.ts` are
- * the standing checks; this is how the next batch of them gets chosen.
+ * Opt-in, since it takes minutes and answers a survey question:
  *
  *   ABSENCE_PROBE=1 ABSENCE_PROBE_OUT=/tmp/probe.json \
  *     pnpm --filter @ksp-gonogo/components exec vitest run absenceConsequence
  *
- * Two things it cannot see, both worth knowing before reading its output. A
- * widget still on legacy `dataRequirements` declares no channels at all, so it
- * is absent from the run entirely. And a control that renders only once
- * something has been clicked (a tech node expanded, a tab selected) is in
- * neither half of the pair, so an input gating ONLY such a control reads as
- * having no consequence when it has the sharpest one there is.
+ * Blind to widgets on legacy `dataRequirements` (no channels declared) and to
+ * controls that render only after a click.
  */
 const SRC = resolve(import.meta.dirname, "..");
 
@@ -59,11 +47,7 @@ interface Row {
   channel: string;
   required: boolean;
   identical: boolean;
-  /**
-   * Legacy flat keys the fixture also carries, which the harness feeds through
-   * a `MockDataSource` beside the wire. A widget still reading one of those is
-   * fed twice, so its row says less than a row from a wire-only fixture.
-   */
+  /** Legacy flat keys the fixture also carries, fed through a `MockDataSource`, which weakens the row. */
   legacyKeys: number;
   error?: string;
 }
@@ -101,7 +85,7 @@ describe.runIf(process.env.ABSENCE_PROBE === "1")("absence consequence", () => {
       const stream = fixture._stream;
       if (!stream || !Array.isArray(stream.emits) || stream.emits.length === 0)
         continue;
-      // A scene already staged as held is a different question, and `stopsArriving` is where it is asked.
+      // A scene staged as held is `stopsArriving`'s question.
       if (stream.stopsArriving === true) continue;
       const channels = (
         [

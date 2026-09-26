@@ -6,19 +6,10 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ContractManagerComponent } from "./index";
 
 /**
- * What this widget does when `career.status` stops being current: it KEEPS the
- * board, and this file is what stops that being quietly reversed.
- *
- * The contract board is a set of facts. A contract joins the offered list, gets
- * accepted, or completes because the player or the game did something, and
- * neither can happen down a link that has stopped delivering, so the last board
- * we were sent is still the board. Withholding it would swap a real programme
- * for "Awaiting contract telemetry", which is the widget's cold-start sentence:
- * the operator would read a quiet link as a career with nothing in it.
- *
- * A widget that renders nothing passes almost every test written about it, so
- * the assertions here are about what is still on screen once the link is gone,
- * and about the deadline countdown continuing to be computed rather than frozen.
+ * ContractManager keeps the board when `career.status` stops being current: the
+ * board is a set of facts, and withholding it would read a quiet link as a
+ * career with nothing in it. The assertions are about what is still on screen
+ * and about the deadline staying computed.
  */
 
 const CARRIED = ["career.status", "vessel.flight"];
@@ -67,11 +58,7 @@ function emitBoard(fixture: ReturnType<typeof setupStreamFixture>): void {
   });
 }
 
-/**
- * The active card's remaining-time phrase, e.g. "1d left". Anchored on the
- * leading digit because `visibleText` joins adjacent nodes with no separator,
- * so the contract title runs straight into it.
- */
+/** The active card's remaining-time phrase, anchored on the leading digit because `visibleText` joins nodes with no separator. */
 function timeLeft(container: HTMLElement): string | undefined {
   return visibleText(container).match(/(\d[^ ]* left)/)?.[1];
 }
@@ -102,22 +89,17 @@ describe("ContractManager when career telemetry is no longer current", () => {
     expect(screen.getByText("Orbit Kerbin")).toBeInTheDocument();
     expect(screen.getByText("Test a decoupler")).toBeInTheDocument();
     expect(screen.getByText("Reach orbit")).toBeInTheDocument();
-    // The counts are counts of held facts, not a claim about now, and they must not collapse to zero.
+    // Counts of held facts must not collapse to zero.
     expect(visibleText(container)).toContain("1 active");
     expect(visibleText(container)).toContain("1 offered");
-    // Emphatically NOT the cold-start sentence: that one says no contract telemetry has ever arrived, and one has.
+    // Not the cold-start sentence: contract telemetry has arrived.
     expect(screen.queryByText(/Awaiting contract telemetry/i)).toBeNull();
-    // Nor the confirmed-empty one, which would be KSP stating the board is bare.
+    // Nor the confirmed-empty one.
     expect(screen.queryByText(/No active contracts/i)).toBeNull();
   });
 
   it("holds the deadline where the last sample left it instead of inventing progress", async () => {
-    // The deadline is not a remembered number: it is a fixed `deadlineUt` on the
-    // record, minus the frame's view time. That view time is the CONFIRMED edge,
-    // so with nothing arriving it stops advancing and the phrase holds, which is
-    // why the board needs no staleness caption of its own. The wrong behaviour
-    // would be a countdown that ran on desk time and marched a held contract to
-    // "expired" with no evidence that it did.
+    // The deadline is `deadlineUt` minus the confirmed view UT, so it holds rather than marching to "expired" on desk time.
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       suspendFrames: true,
@@ -132,7 +114,6 @@ describe("ContractManager when career telemetry is no longer current", () => {
 
     goStale(fixture);
     act(() => {
-      // An hour of desk time with nothing confirmed.
       fixture.wall.advanceBy(3600);
       fixture.store.beginFrame();
     });
@@ -152,29 +133,24 @@ describe("ContractManager when career telemetry is no longer current", () => {
     await waitFor(() =>
       expect(screen.getByText("Orbit Kerbin")).toBeInTheDocument(),
     );
-    // Live: nothing said, and every control live. The control for the two
-    // assertions below, without which they would pass on a widget that marked
-    // and disabled unconditionally.
+    // The control: without it the assertions below would pass on a widget that marked and disabled unconditionally.
     expect(screen.queryAllByText("OFFLINE")).toHaveLength(0);
     expect(screen.getByRole("button", { name: /Cancel/ })).toBeEnabled();
 
     goStale(fixture);
 
-    // One per card, beside its own deadline: the operator decides about one contract at a time and the statement has to be where they are looking.
+    // One per card, beside its own deadline.
     expect(screen.getAllByText("OFFLINE")).toHaveLength(2);
-    // The half that matters. A Cancel pressed here forfeits a contract whose
-    // current state cannot be read, and the press would look like it worked.
+    // A Cancel against a held board forfeits a contract whose current state cannot be read.
     expect(screen.getByRole("button", { name: /Cancel/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Accept/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Decline/ })).toBeDisabled();
-    // Not by hiding them: a missing control reads as a contract that cannot be cancelled, which is a different and wrong statement.
+    // Disabled, not hidden: a missing control reads as a contract that cannot be cancelled.
     expect(visibleText(container)).toContain("Cancel");
   });
 
   it("still shows the cold-start placeholder when nothing ever arrived", async () => {
-    // The control for the sentence above: a link that never delivered is a
-    // different statement from one that stopped, and the placeholder belongs
-    // only to the first.
+    // A link that never delivered gets the placeholder; one that stopped does not.
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 100,

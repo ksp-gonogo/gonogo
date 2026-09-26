@@ -11,11 +11,7 @@ import type { ControlStreamDatum } from "./ControlDelayStream";
 import { resetUnrepresentedRailReports } from "./railTags";
 import type { InFlightCommandLike } from "./toInFlightListItems";
 
-/*
- * The rail axes these fixtures carry, from the same derivations production uses
- * rather than written as literals: a fixture that spelled its own tags would go
- * on asserting the old picture after a derivation moved.
- */
+// The rail axes come from the production derivations, so the fixtures follow them rather than asserting stale literals.
 const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
 const RAIL_CONTINUOUS = railTagsForControlAxis("vessel.control.setAxes");
 
@@ -187,12 +183,7 @@ describe("CommandDelay", () => {
   });
 });
 
-/**
- * A handle whose combination nothing draws. It must NOT fall through to the
- * discrete queue: drawing a science result sent home as a discrete acked
- * command is the fallback the axes exist to remove, and it is worse than
- * drawing nothing because it looks right.
- */
+// A handle whose combination nothing draws must NOT fall through to the discrete queue, which would look right and be wrong.
 describe("a handle nothing can draw", () => {
   afterEach(() => {
     resetUnrepresentedRailReports();
@@ -213,9 +204,7 @@ describe("a handle nothing can draw", () => {
         .querySelector("[data-rail-unrepresented]")
         ?.getAttribute("data-rail-unrepresented"),
     ).toBe("telemetry/discrete/fire-and-forget");
-    // The rows it carries are NOT drawn as an in-flight queue. It has some, on
-    // purpose: an entry with content is exactly the case a fallback would have
-    // rendered wrongly.
+    // It carries rows on purpose, so a fallback would have had something to draw.
     expect(screen.queryByRole("list")).toBeNull();
     expect(errors.mock.calls[0][0]).toContain("Science result on its way home");
   });

@@ -15,7 +15,7 @@ describe("ConsoleFrame", () => {
   });
 
   it("is a positioning context, so a pinned child costs the body no height", () => {
-    // The whole reason this primitive exists rather than a plain bordered div: a status badge stacked above the pane adds a row, and at a widget's declared minSize that row pushes the composer out of the tile.
+    // A badge stacked above the pane would add a row and push the composer out of a tile at its minSize.
     render(
       <ConsoleFrame>
         <p>scrollback</p>
@@ -26,11 +26,7 @@ describe("ConsoleFrame", () => {
   });
 
   it("holds the footer inside itself, with the scrollback", () => {
-    /*
-     * The property this whole primitive gained a slot for. Both consoles used
-     * to stack their composer BELOW the frame, where it read as a box strapped
-     * to the console rather than a control in the widget.
-     */
+    // The composer sits inside the frame, a control in the widget rather than a box strapped below it.
     const { container } = render(
       <ConsoleFrame composer={<button type="button">Send</button>}>
         <p>scrollback</p>
@@ -45,7 +41,7 @@ describe("ConsoleFrame", () => {
   });
 
   it("draws no foot at all when there is nothing to type", () => {
-    // An inbox is a list of conversations with no composer, and an inset empty row at the bottom of it would be a control that is not there.
+    // An inbox has no composer, and an empty inset row would read as a missing control.
     const { container } = render(
       <ConsoleFrame>
         <p>scrollback</p>
@@ -57,14 +53,7 @@ describe("ConsoleFrame", () => {
   });
 
   it("draws the standing reading at the foot, never over the scrollback", () => {
-    /*
-     * The defect this placement fixes. The slot was the top-right of the
-     * scrollback, which on a column of prose is a sentence somebody has to
-     * read: "I don't think it can stay in that top corner". At the foot it sits
-     * on a border instead, and in the same column as the queue's countdowns,
-     * because a separation and an ETA are the same kind of value and were
-     * diagonally opposite each other.
-     */
+    // At the foot, on a border and in the queue's column, never over the prose.
     const { container } = render(
       <ConsoleFrame
         standing={<span>one-way ~0.4 s</span>}
@@ -88,12 +77,7 @@ describe("ConsoleFrame", () => {
   });
 
   it("costs the body no height while there is a composer to straddle", () => {
-    /*
-     * The reason the slot is here rather than in each console: a badge as a
-     * flex sibling adds its own row, and at a widget's declared minSize that
-     * row pushes the composer out of the tile. Out of flow over the composer's
-     * top border, so it adds none.
-     */
+    // Out of flow over the composer's top border, so it adds no height.
     const { container } = render(
       <ConsoleFrame standing={<span>chip</span>} composer={<input />}>
         <p>scrollback</p>
@@ -106,12 +90,7 @@ describe("ConsoleFrame", () => {
   });
 
   it("puts the standing reading back in flow when there is no composer", () => {
-    /*
-     * The state most likely to be got wrong. An inbox has nothing to type at,
-     * so there is no border to straddle and an overlay would go back on the
-     * prose. It takes a line of its own at the foot instead, growing a foot
-     * that was not otherwise there, and pays the band of height that costs.
-     */
+    // With no border to straddle, the chip takes a line of its own at a foot grown for it.
     const { container } = render(
       <ConsoleFrame standing={<span>chip</span>}>
         <p>scrollback</p>
@@ -130,11 +109,7 @@ describe("ConsoleFrame", () => {
   });
 
   it("keeps a falsy composer's foot but stops straddling it", () => {
-    /*
-     * A terminal in character mode composes nothing, so the foot stays (the
-     * surface above must not change height with the mode) and the border it
-     * would have straddled is gone with the composer.
-     */
+    // Character mode keeps the foot so the surface height is stable, but has no border to straddle.
     const { container } = render(
       <ConsoleFrame standing={<span>chip</span>} composer={false}>
         <p>scrollback</p>
@@ -147,7 +122,7 @@ describe("ConsoleFrame", () => {
   });
 
   it("draws no standing slot at all when there is no reading", () => {
-    // An empty pinned box at the foot of every console is a slot showing through, which is what a conditional slot is for.
+    // No empty pinned box at the foot when there is no reading.
     const { container } = render(
       <ConsoleFrame>
         <p>scrollback</p>
@@ -157,18 +132,7 @@ describe("ConsoleFrame", () => {
   });
 
   it("puts the queue and the standing reading above the composer, in that order", () => {
-    /*
-     * Two slots rather than one `footer` node, so the frame can see whether
-     * there is a composer to place the reading against instead of taking the
-     * caller's word for it.
-     *
-     * The reading comes BEFORE the composer, which is where it is now drawn: on
-     * the top border rather than the bottom, "above the composer, not below".
-     * The straddle is out of flow and does not care, but the falsy-composer
-     * state puts the same node in flow at this exact spot, and a screen reader
-     * that hears the delay after the control it sits above hears it out of
-     * order.
-     */
+    // The reading comes BEFORE the composer in DOM order, so a screen reader hears it in the order it is drawn.
     const { container } = render(
       <ConsoleFrame
         queue={<span>queue</span>}
@@ -187,15 +151,9 @@ describe("ConsoleFrame", () => {
 
   it("straddles the composer's TOP border, never the bottom one", () => {
     /*
-     * The operator's correction: "the trip time badge should sit above the
-     * composer, not below". Read off the EMITTED RULE rather than
-     * `getComputedStyle`, which resolves neither the `var()` offset nor an
-     * `absolute` box it never laid out, and would report the initial value for
-     * both edges whichever way the stylesheet ran.
-     *
-     * Both halves are asserted: a rule that grew a `top` while keeping its
-     * `bottom` would pin the chip to a stretched box spanning the whole foot,
-     * and the positive half alone reads green on it.
+     * Above the composer, not below. Read off the emitted rule, since jsdom
+     * resolves no `var()` offset; both halves are asserted, because `top` plus
+     * `bottom` would stretch the chip across the foot.
      */
     const { container } = render(
       <ConsoleFrame standing={<span>chip</span>} composer={<input />}>
@@ -211,12 +169,7 @@ describe("ConsoleFrame", () => {
   });
 
   it("deepens the foot's TOP inset so the half-chip clears the scrollback", () => {
-    /*
-     * The base inset is a chip's padding shy of its half-height, so without the
-     * deepening the part hanging above the border reaches back over the last
-     * line of the log, which is the exact defect this reading was taken off the
-     * prose to fix.
-     */
+    // Without the deeper inset, the half-chip above the border would reach over the log's last line.
     const { container } = render(
       <ConsoleFrame standing={<span>chip</span>} composer={<input />}>
         <p>scrollback</p>
@@ -230,16 +183,7 @@ describe("ConsoleFrame", () => {
   });
 
   it("declares the tone for what is inside it, and wears none of it", () => {
-    /*
-     * The one difference between the app's two consoles, and a prop rather than
-     * a stylesheet each: a terminal dispatching to a craft keeps the primary
-     * accent, a message log carrying words takes the informational one.
-     *
-     * Read off the custom property rather than the frame's own border, because
-     * the frame paints NOTHING with it: the accent belongs to the input, and
-     * this is the declaration its border, prompt and focus ring all resolve, so
-     * they cannot come out in different colours.
-     */
+    // Read off the custom property: the frame paints nothing with the tone, the input's border, prompt and focus ring resolve it.
     const toneOf = (element: Element | null) =>
       element &&
       getComputedStyle(element).getPropertyValue("--console-tone-fg");
@@ -257,18 +201,9 @@ describe("ConsoleFrame", () => {
 
   it("keeps its own border subtle, whatever the tone", () => {
     /*
-     * The operator's correction, and the reason `tone` paints nothing here:
-     * "I don't want that border to go round the entire widget, it can stay just
-     * around the input". A toned outline here would seal the scrollback and the
-     * composer into one console with a bottom section, instead of a widget with
-     * a bordered control in it.
-     *
-     * Read off the EMITTED RULE rather than `getComputedStyle`, which is blind
-     * to this: jsdom does not resolve a `border` shorthand carrying a `var()`
-     * and answers "medium none rgb(0, 0, 0)" whatever the stylesheet says, so a
-     * computed-style assertion here would pass just as happily with the tone
-     * back on the frame. `ruleFor` throws when it finds no rule, because an
-     * instrument that cannot see its own subject reports success.
+     * The accent belongs to the input, not the frame. Read off the emitted
+     * rule, since jsdom does not resolve a `border` shorthand holding a
+     * `var()`; `ruleFor` throws when it finds no rule, so a blind check fails.
      */
     for (const tone of ["accent", "info"] as const) {
       const { container } = render(<ConsoleFrame tone={tone}>a</ConsoleFrame>);

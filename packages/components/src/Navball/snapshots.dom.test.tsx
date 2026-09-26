@@ -13,21 +13,6 @@ import steepDive from "./__fixtures__/steep-dive-west.json";
 import uncontrollable from "./__fixtures__/uncontrollable-drift.json";
 import { NavballComponent } from "./index";
 
-/**
- * DOM snapshots off the stream pipeline, driven by each fixture's own
- * `_stream` block.
- *
- * This spec used to build that stream itself, translating each fixture's flat
- * `n.*`/`f.*`/`v.*` keys back into `vessel.attitude`/`vessel.control`/
- * `vessel.comms` emits and mapping the SAS-mode name onto its ordinal in the
- * test. The nine fixtures declare all of that, plus the `vessel.identity` and
- * `system.bodies` the hand-built stream carried but never fed.
- *
- * The registered `defaultConfig` (`useCoMFrame: false`, `controlMode: false`)
- * now applies, and the ball itself is size-gated, so it is drawn at the mode's
- * own pixel box rather than not at all.
- */
-
 const FIXTURES: Record<string, Record<string, unknown>> = {
   "launchpad-vertical": launchpad,
   "prograde-east-level": progradeLevel,

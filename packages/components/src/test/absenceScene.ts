@@ -1,30 +1,14 @@
 /**
- * A scene staged with one input MISSING: carried, subscribed, never published.
+ * A scene staged with one input missing: carried, subscribed, never published.
  *
- * `stopsArriving` and this are not the same lever and do not stage the same
- * state. That one replays every emit and then drops the transport, so each
- * topic is `stale`: a real observation, held, with a UT saying how old it is.
- * This one never emits the topic at all, so the read is `pending`: there is no
- * observation to hold and no age to caption. A widget that handles one
- * correctly says nothing about how it handles the other, and the staleness
- * treatments in this tree (the HELD caption, the age) have nothing to draw from
- * a reading that never arrived.
+ * Not `stopsArriving`, which holds a real observation as `stale` with an age.
+ * This never emits the topic, so the read is `pending`: nothing to hold and
+ * no age to caption. The channel stays carried, staging a healthy Uplink that
+ * has not published, rather than an unpromoted topic.
  *
- * The channel stays in `carriedChannels` on purpose. Dropping it there would
- * stage an UNPROMOTED topic, which is a client misconfiguration; leaving it
- * stages the production case, a healthy Uplink that has not published this
- * topic.
- *
- * ## A missing REQUIRED channel is not a fiction
- *
- * `ComponentDefinition.channels` reads "the widget only mounts once every one
- * of these Topics is live". Nothing implements that. The orchestrator wraps
- * every widget in `RequiresGuard`, which resolves the declared channels to
- * their owning Uplink and gates on that Uplink's HEALTH; a healthy Uplink that
- * has published nothing on the topic leaves the widget mounted at full size
- * with a `pending` reading inside it, and `useWidgetStreamStatus` draws no
- * badge for that grade either. So the scenes below are staging a state an
- * operator can be looking at, not one the type system rules out.
+ * A missing required channel is a real operator state: `RequiresGuard` gates
+ * on the owning Uplink's health, not on the topic being live, so the widget
+ * stays mounted with a `pending` reading and no badge.
  */
 
 /** The `_stream` block, as much of it as staging an absence needs to see. */
@@ -40,13 +24,9 @@ interface StreamFixture {
 }
 
 /**
- * The same fixture with `channel` never arriving.
- *
- * Refuses a channel the fixture does not emit, because the thing a silent
- * no-op produces here is a degraded scene identical to its healthy twin, which
- * is the exact reading this family exists to stop being drawn: a pair that does
- * not differ would then mean both "the widget ignores the absence" and "the
- * absence was never staged", with nothing to tell them apart.
+ * The same fixture with `channel` never arriving. Refuses a channel the
+ * fixture does not emit, since a silent no-op would stage a scene identical
+ * to its healthy twin.
  */
 export function withoutChannel<T extends StreamFixture>(
   fixture: T,
@@ -73,12 +53,8 @@ export function withoutChannel<T extends StreamFixture>(
 
 /**
  * One scene, and what the widget owes an operator when the input is missing.
- *
- * The prose fields are the point. A degraded render that comes out different
- * from its healthy twin proves only that the fixture reached the widget; it
- * says nothing about whether what replaced the figure is honest. So every scene
- * has to write down what SHOULD be on screen, and the check below asserts that
- * rather than the difference alone.
+ * A render that differs from its healthy twin proves only that the fixture
+ * arrived, so each scene states what should be on screen.
  */
 export interface AbsenceScene {
   /** Slug for the render filenames and the test name. */
@@ -97,23 +73,9 @@ export interface AbsenceScene {
   expects: string;
   /** Text the healthy render paints and the degraded one must not. */
   withholds?: string[];
-  /**
-   * Text the degraded render paints MORE often than its healthy twin.
-   *
-   * A count rather than presence, because the treatments are shared furniture:
-   * an em dash and the word HELD are already somewhere on most panels, so
-   * "appears in the degraded render" is satisfied by a render that withheld
-   * nothing. One more of them is the observable consequence of one withheld
-   * figure.
-   */
+  /** Text the degraded render paints more often than its healthy twin: a count, since an em dash or HELD is already on most panels. */
   showsMore?: string[];
-  /**
-   * Text BOTH renders paint: the rest of the panel survives one missing input.
-   *
-   * A widget that blanks to its empty state the moment one input is late is a
-   * second failure, and it satisfies every check above: the pair differs and
-   * the figure is gone.
-   */
+  /** Text both renders paint: the rest of the panel must survive one missing input. */
   stillPaints?: string[];
 }
 
@@ -143,12 +105,8 @@ function count(haystack: string, needle: string): number {
 
 /**
  * Every way this pair falls short of what the scene says the widget owes, as
- * sentences.
- *
- * Returns the list rather than asserting, so the planted mishandlers below can
- * be checked from the same function the real scenes run through. An instrument
- * that cannot be seen to fail reports success for both reasons, and a second
- * copy of these rules written to fail on purpose would be checking the copy.
+ * sentences. Returned rather than asserted, so the planted mishandlers run
+ * through the same rules as the real scenes.
  */
 export function absenceSceneFailures(
   scene: Pick<

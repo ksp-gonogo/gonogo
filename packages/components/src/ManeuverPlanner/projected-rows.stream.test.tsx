@@ -7,17 +7,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
 
 /**
- * The preview's projected apsides: what a planned burn would leave the craft on.
- *
- * <p><b>These rows had no coverage at all.</b> Forcing a new branch through them
- * permanently on left the whole 111-test ManeuverPlanner suite passing, which is
- * how the gap was found: nothing anywhere asserted that a projection renders, or
- * what it renders. A widget's headline output was unobserved.</p>
- *
- * <p>The fixture needs <c>system.bodies</c> as well as an orbit, because the
- * rows are altitudes and an altitude is a radius minus the body's. Without it
- * the projection still computes and the numbers are radii, which look entirely
- * plausible and are wrong by six hundred kilometres.</p>
+ * The preview's projected apsides. The fixture carries `system.bodies` because
+ * the rows are altitudes; without a body radius they would print plausible
+ * radii.
  */
 const CARRIED = [
   "vessel.orbit",
@@ -66,9 +58,7 @@ function setup() {
       meanAnomalyAtEpoch: 0,
       epoch: UT,
       mu: 3.5316e12,
-      // The reach and shape a live sample states. Without them nothing vouches
-      // for these elements being a conic, the model over them withdraws, and
-      // the CURRENT apsides the projected ones are compared against are gone.
+      // Without a stated horizon the conic model withdraws and the current apsides go with it.
       horizon: ANALYTIC_UNBOUNDED_HORIZON,
     });
     fixture.emit("system.bodies", {
@@ -98,15 +88,7 @@ describe("ManeuverPlanner: the projected apsides", () => {
     setup();
     await planABurn();
 
-    /*
-     * Altitudes, not radii: the burn leaves apsis RADII of 747 km and 707 km,
-     * and above a 600 km body those are altitudes of 147 km and 107 km. This
-     * file used to assert 747 and 707 while calling them altitudes, and both
-     * agreed because the radius came from a static body table this test never
-     * registered: the rows were printing radii under an altitude's label and
-     * the comment described the subtraction that was not happening. The radius
-     * now comes off the `system.bodies` the fixture already emits.
-     */
+    // Apsis radii of 747 km and 707 km above a 600 km body are altitudes of 147 km and 107 km.
     await waitFor(() => expect(screen.getByText(/New Ap/)).toBeTruthy());
     expect(screen.getByText(/147\.4/)).toBeTruthy();
     expect(screen.getByText(/New Pe/)).toBeTruthy();
@@ -114,14 +96,7 @@ describe("ManeuverPlanner: the projected apsides", () => {
   });
 
   it("says escape rather than projecting apsides a burn does not leave", async () => {
-    // The contrast case, and it is what gives the first test meaning: without
-    // it, an assertion that apsides render could pass on a widget that renders
-    // them unconditionally, including for a burn that leaves no orbit to have
-    // apsides on.
-    //
-    // Also a correction worth recording: the DEFAULT preset already computes a
-    // burn, so "no input" is not the no-projection case. Projecting nothing
-    // takes a burn big enough to escape.
+    // The default preset already computes a burn, so no projection takes a burn big enough to escape.
     setup();
     expect(await screen.findByText("Preview")).toBeInTheDocument();
     await userEvent.selectOptions(
@@ -143,10 +118,7 @@ describe("ManeuverPlanner: the projected apsides", () => {
 describe("ManeuverPlanner: the view frame and the projected apsides", () => {
   it("says the projected apsides do not exist in a frame defined by a pair", async () => {
     const fixture = setup();
-    // The burn FIRST, then the frame. `StubTransport.emit` is
-    // subscription-gated, and these rows only mount once there is a projection
-    // to render, so a frame emitted before the burn reaches nothing and the
-    // test measures a component that never heard it.
+    // Burn first: the rows subscribe only once a projection exists, and StubTransport delivers only to subscribers.
     await planABurn();
     act(() => {
       fixture.emit("system.frame", {
@@ -156,7 +128,6 @@ describe("ManeuverPlanner: the view frame and the projected apsides", () => {
       });
     });
 
-    // Named, so the operator sees WHICH frame took them away and that it is their own view rather than the plan being wrong.
     await waitFor(() =>
       expect(screen.getByText(/none in Kerbol-Kerbin Lagrange/i)).toBeTruthy(),
     );
@@ -164,12 +135,9 @@ describe("ManeuverPlanner: the view frame and the projected apsides", () => {
   });
 
   it("still quotes them in a frame that has a centre", async () => {
-    // The contrast: without it, the assertion above could pass because the rows stopped rendering for an unrelated reason.
+    // The control for the test above.
     const fixture = setup();
-    // Burn first, then frame, for the subscription-gating reason above. Emitted
-    // the other way round this test passes whether the frame arrived or not,
-    // which makes it indistinguishable from the no-frame case and therefore
-    // proof of nothing.
+    // Burn first, for the subscription reason above.
     await planABurn();
     act(() => {
       fixture.emit("system.frame", { kind: 1, centreBody: "Kerbin" });
@@ -180,14 +148,9 @@ describe("ManeuverPlanner: the view frame and the projected apsides", () => {
   });
 
   it("reports an escaping burn as escaping even in a frame with no apsides", async () => {
-    // A plan that does not work outranks a view that cannot describe one that
-    // does. Getting this order wrong would tell an operator their frame was the
-    // problem when their burn was.
+    // A plan that does not work outranks a view that cannot describe one.
     const fixture = setup();
-    // A modest burn first, so the rows mount and the frame is heard, and only
-    // THEN the burn that escapes. Emitting the frame while nothing is
-    // subscribed would leave this asserting precedence in a frame the component
-    // never received, which is no test of precedence at all.
+    // A modest burn first so the rows mount and hear the frame, then the escaping one.
     await planABurn();
     act(() => {
       fixture.emit("system.frame", {

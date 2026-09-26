@@ -12,10 +12,8 @@ function announcer(): HTMLElement | null {
 }
 
 /**
- * The panel header now summarises its OWN worst state out of the per-item
- * PanelStatusStore: `report` badges, stream staleness, and (via the app bridge)
- * alarms all merge through one door. These pin the store-backed header, the part
- * the old single-status aside splice could never do.
+ * The panel header summarises its own worst state out of the per-item
+ * PanelStatusStore: `report` badges, stream staleness and alarms all merge.
  */
 function inStore(children: ReactNode) {
   return <PanelStatusStoreProvider>{children}</PanelStatusStoreProvider>;
@@ -104,7 +102,7 @@ describe("Panel header summary (store-backed)", () => {
     }
     const { rerender } = render(<Harness severity="caution" />);
     expect(announcer()).toHaveTextContent("caution");
-    // A severity change updates the summary (and drives the one-shot pulse) with no throw and no stale reading.
+    // A severity change updates the summary with no throw and no stale reading.
     rerender(<Harness severity="offline" />);
     expect(announcer()).toHaveTextContent("offline");
   });

@@ -4,11 +4,11 @@ import { Block } from "./Block";
 import { Card } from "./Card";
 import { resourceColor } from "./resourceColor";
 
-/** Every styled-components rule the render injected, as one string.
- *
- *  jsdom's CSS parser drops a `border-left` shorthand entirely once it holds an
- *  unresolved `var()`, and it never evaluates a `::before`, so neither the tone
- *  accent nor the identity tab is reachable through `toHaveStyle`. */
+/**
+ * Every styled-components rule the render injected, as one string. jsdom drops
+ * a `border-left` shorthand holding an unresolved `var()` and never evaluates
+ * `::before`, so `toHaveStyle` cannot reach the tone rule or the identity tab.
+ */
 function injectedCss(): string {
   return Array.from(document.querySelectorAll("style"))
     .map((s) => s.textContent)
@@ -35,12 +35,10 @@ describe("Card", () => {
     const card = screen.getByTestId("card");
     const title = screen.getByText("Kerbin Explorer I");
     expect(card).toContainElement(title);
-    // The arrangement owns BOTH sides of the relation: the title at the value
-    // size above the compact body it declares. A title alone cannot be bigger
-    // than a body it does not know.
+    // The arrangement declares both sides of the size step: title and body.
     expect(injectedCss()).toContain("font-size:var(--font-size-value);");
     expect(injectedCss()).toContain("font-size:var(--font-size-compact);");
-    // The name comes before the figures under it, in the DOM a screen reader walks as well as on screen.
+    // The name precedes the figures in DOM order too, which is what a screen reader walks.
     expect(
       title.compareDocumentPosition(screen.getByText("Apoapsis 84km")),
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
@@ -55,9 +53,7 @@ describe("Card", () => {
   });
 
   it("renders every aside, the footer and the body together", () => {
-    // The collapse rule is that nothing is ever dropped, only rearranged. That
-    // is a statement about what is IN THE TREE, which is exactly what jsdom can
-    // answer; where each one lands at a given width is a render question.
+    // A collapse rearranges and never drops, so every part stays in the tree.
     render(
       <Card
         title="Bill Kerman"
@@ -88,8 +84,6 @@ describe("Card", () => {
   });
 
   it("steps the frame radius down inside a side aside", () => {
-    // The container answers, the content asks. A FramedDisplay handed to `left`
-    // writes --radius-display-frame and gets the aside's smaller value.
     render(<Card left={<span>avatar</span>}>body</Card>);
     expect(injectedCss()).toContain(
       "--radius-display-frame:var(--radius-display-frame-aside);",
@@ -108,7 +102,7 @@ describe("Card", () => {
   });
 
   it("colours a short centred top tab from identityColor", () => {
-    // Not a full-width border: operator feedback called the earlier full-edge strip too busy, it read as a second meter stacked on the card.
+    // A short tab, not a full-width border that would read as a second meter.
     render(
       <Card identityColor="#654321" data-testid="card">
         Contents
@@ -123,9 +117,7 @@ describe("Card", () => {
   });
 
   it("accepts a colour the caller already resolved via resourceColor", () => {
-    // Card takes only a plain colour: it never imports resourceColor itself. A
-    // caller wanting the resource-identity look resolves the name first, the
-    // same way Meter's own fillColor doc asks for.
+    // Card takes only a plain colour and never resolves a resource name itself.
     render(
       <Card identityColor={resourceColor("LiquidFuel")} data-testid="fuel-card">
         Contents
@@ -137,8 +129,6 @@ describe("Card", () => {
   });
 
   it("shows a status accent on the left AND an identity tab on top at once", () => {
-    // The whole point of the split. ResourceOps needs both: which resource the
-    // converter makes, and whether it is running.
     render(
       <Card tone="alert" identityColor="#654321" data-testid="card">
         Contents
@@ -164,9 +154,6 @@ describe("Card", () => {
 
 describe("Block and Card share one set of parts", () => {
   it("reaches the SAME objects through both doors", () => {
-    // By construction, not by discipline: Card is assembled from BLOCK_PARTS
-    // rather than declaring parts of its own, so there is no second object to
-    // drift. This is the reason the Panel-parts guard has no twin here.
     expect(Card.Title).toBe(Block.Title);
     expect(Card.Body).toBe(Block.Body);
     expect(Card.Aside).toBe(Block.Aside);
@@ -188,9 +175,6 @@ describe("Block and Card share one set of parts", () => {
   });
 
   it("puts no surface on Block", () => {
-    // ContractManager opted out of the kit to escape the sunken box and drew
-    // its records the same colour as the panel behind them. Block is the
-    // grouping without the box.
     render(<Block data-testid="block">Contents</Block>);
     expect(screen.getByTestId("block")).not.toHaveStyle(
       "background: var(--color-surface-sunken)",

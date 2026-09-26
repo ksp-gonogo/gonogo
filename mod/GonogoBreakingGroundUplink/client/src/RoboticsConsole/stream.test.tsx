@@ -9,13 +9,10 @@ import {
 import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-// Side-effect import: the widget self-registers on module load, and `renderWidget` looks it up by id rather than importing the component.
+// Side-effect import: the widget self-registers on module load.
 import "./index";
 
-// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// action-handler registry: clearActionHandlers() firing on a still-mounted
-// widget is a state update outside act(). RTL auto-cleanup runs after this
-// file's afterEach, too late to unmount first.
+// Unmounted in afterEach before the action-handler registry is cleared, since RTL's own cleanup runs too late.
 const renderedTrees: Array<() => void> = [];
 
 function _render(ui: ReactElement) {
@@ -24,13 +21,7 @@ function _render(ui: ReactElement) {
   return result;
 }
 
-/**
- * RoboticsConsole runs genuinely off the real `TelemetryProvider`/
- * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`:
- * `robotics.servos` is its whole identity list (partId-keyed selection), and
- * `robotics.servo.*` command dispatch rides the same stream via
- * `useCommand`, asserted against `fixture.transport.sentCommands`.
- */
+/** Proves RoboticsConsole reads and commands over the real stream pipeline via `StubTransport`. */
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
@@ -78,7 +69,7 @@ describe("RoboticsConsole: genuinely runs off the stream", () => {
       ]);
     });
 
-    // The hinge's angle renders; the rotor entry is ignored (RoboticsConsole is hinges/pistons-only, rotors are Rotor Tachometer's domain).
+    // The rotor entry is ignored; rotors belong to Rotor Tachometer.
     await waitFor(() => expect(visibleText(container)).toContain("22°"));
     expect(screen.queryByText(/EM-32S Standard Rotor/)).not.toBeInTheDocument();
 
@@ -124,7 +115,6 @@ describe("RoboticsConsole: genuinely runs off the stream", () => {
       );
     });
 
-    // Default selection is the first entry (partId "1", 10deg).
     await waitFor(() => expect(visibleText(container)).toContain("10°"));
 
     const rows = screen.getAllByRole("button", {

@@ -5,13 +5,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CommSignalComponent } from "./index";
 
 /**
- * The control-state tone: which colour the Control readout and the signal bars
- * are painted, given a `Sitrep.Contract.ControlState` ordinal off the wire.
- *
- * Both surfaces read the SAME tone through two separate code paths (the bar
- * fill and the grid value's text colour), so each case asserts both. A probe
- * with no control that paints green in one of them is the bug this file exists
- * for: an operator reads "healthy link" off a vessel that cannot be commanded.
+ * Every `ControlState` ordinal paints the right tone in both the signal bars
+ * and the Control row, which are separate code paths reading one tone. A probe
+ * with no control must never paint green in either.
  */
 
 // Bar fills and text colours per tone, copied from the widget's own tables so a test failure names the tone that was painted rather than a hex string.
@@ -31,13 +27,8 @@ const UNLIT_FILL = "var(--color-border-subtle)";
 
 type Tone = keyof typeof BAR_FILL;
 
-/**
- * Every `ControlState` ordinal, its enum NAME, and the tone the readout owes it.
- *
- * `Unknown` (11) is the one ordinal that carries no verdict: it collapses to an
- * `undefined` level BY DESIGN, so it must read neutral. Painting it `lost`
- * would assert a link failure the wire never reported.
- */
+// `Unknown` (11) carries no verdict, so it reads neutral rather than lost.
+
 const CASES: ReadonlyArray<{ ordinal: number; name: string; tone: Tone }> = [
   { ordinal: 0, name: "None", tone: "lost" },
   { ordinal: 1, name: "Probe", tone: "ok" },
@@ -80,11 +71,8 @@ function litBarStyles(): string[] {
     .filter((style) => !style.includes(UNLIT_FILL));
 }
 
-/**
- * The Control row's VALUE cell, found via its label rather than its text: an
- * absent delay renders NULL_DISPLAY too, so matching on the text alone is
- * ambiguous in exactly the not-yet-arrived case this file cares most about.
- */
+// Found via its label: an absent delay renders NULL_DISPLAY too, so the text alone is ambiguous.
+
 function controlValueCell(): HTMLElement {
   const cell = screen.getByText("Control").nextElementSibling;
   if (!(cell instanceof HTMLElement)) {
@@ -109,9 +97,7 @@ describe("CommSignal control tone", () => {
       renderComm(fixture);
       act(() => {
         fixture.emit("comms.link", { connected: true });
-        // A live signal strength alongside the control state, so the bars are
-        // LIT and their tone is observable: an unlit bar is border-subtle
-        // whatever the tone, which would hide the bug on this path entirely.
+        // A live strength lights the bars, since an unlit bar hides its tone.
         fixture.emit("vessel.comms", {
           connected: true,
           signalStrength: 0.82,
@@ -121,9 +107,7 @@ describe("CommSignal control tone", () => {
 
       await waitFor(() => expect(controlValueCell()).toHaveTextContent(name));
 
-      // Soft, so one run names BOTH surfaces that got it wrong. The text
-      // colour and the bar fill are separate code paths reading one tone, and
-      // a hard assert on the first would hide whatever the second did.
+      // Soft, so one run names both surfaces that got it wrong.
       expect.soft(controlValueStyle()).toContain(TEXT_COLOR[tone]);
       for (const other of Object.keys(TEXT_COLOR) as Tone[]) {
         if (TEXT_COLOR[other] === TEXT_COLOR[tone]) continue;
@@ -142,11 +126,7 @@ describe("CommSignal control tone", () => {
     });
   }
 
-  /**
-   * The arm most likely to be lost to a later "undefined means no control"
-   * simplification. A channel that has not arrived reported nothing, so the
-   * readout owes the operator neutral, not a link failure.
-   */
+  // A channel that has not arrived reported nothing, so it is not a link failure.
   it("reads neutral, not lost, when the control channel has not arrived", async () => {
     const fixture = newFixture();
     renderComm(fixture);

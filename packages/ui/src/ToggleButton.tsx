@@ -1,7 +1,4 @@
-/**
- * Lives in `@ksp-gonogo/ui-kit`; this is the app-side alias. Its doc comment
- * carries the ToggleButton-or-Switch guidance.
- */
+// App-side alias; the implementation lives in ui-kit so an Uplink can reach it, so add nothing here.
 export {
   ToggleButton,
   type ToggleButtonProps,

@@ -9,8 +9,7 @@ export interface DataTableColumn<Row> {
   render: (row: Row) => ReactNode;
   /**
    * `end` right-aligns the cell and its header. Use it for every numeric
-   * column: a column of figures only becomes scannable once the digits line
-   * up, which is most of the reason to reach for a table at all.
+   * column, so the digits line up.
    */
   align?: "start" | "end";
   /**
@@ -20,10 +19,8 @@ export interface DataTableColumn<Row> {
    */
   width?: string;
   /**
-   * Floor for the column's width. Without one, a text column in a narrow
-   * panel shrinks until every cell wraps to a column of single words, which
-   * costs far more height than the horizontal scroll it was avoiding. Set it
-   * to the narrowest the content stays readable at and let the table scroll.
+   * Floor for the column's width, so a text column in a narrow panel scrolls
+   * instead of wrapping to single words.
    */
   minWidth?: string;
 }
@@ -46,33 +43,26 @@ export interface DataTableProps<Row> {
   sections?: ReadonlyArray<DataTableSection<Row>>;
   rowKey: (row: Row) => string;
   /**
-   * Describes the table to a screen reader. Required rather than optional:
-   * a table of numbers with no caption is a wall of digits to anyone who
-   * cannot see the surrounding widget.
+   * Describes the table to a screen reader. Required, since a table of numbers
+   * with no caption is a wall of digits.
    */
   caption: string;
   /** Shown in place of the body when there is nothing to list. */
   empty?: ReactNode;
   /**
-   * Extra content for a row, rendered as a full-width row directly beneath
-   * it. This is where per-row controls and augment slots go: they get the
-   * table's full width instead of being crushed into a cell, and the columns
-   * above stay aligned.
+   * Extra content for a row, rendered as a full-width row directly beneath it:
+   * where per-row controls and augment slots go, so the columns stay aligned.
    */
   rowDetail?: (row: Row) => ReactNode;
   className?: string;
 }
 
 /**
- * A real table for tabular readouts, in place of the per-row cluster of
- * label/value pairs that widgets otherwise grow. The difference that matters
- * is column alignment: figures in a column can be compared down the page,
- * where a cluster forces the eye to re-find each number on every row.
+ * A real table for tabular readouts, so figures in a column can be compared
+ * down the page.
  *
- * Semantic `<table>` throughout, so row and column headers are announced as
- * such. Each section is a `<tbody>` of its own, headed by a
- * `<th scope="rowgroup">` spanning the width, so its heading heads only its
- * rows.
+ * Semantic `<table>` throughout. Each section is a `<tbody>` of its own,
+ * headed by a `<th scope="rowgroup">` spanning the width.
  */
 export function DataTable<Row>({
   columns,
@@ -167,8 +157,7 @@ export function DataTable<Row>({
   );
 }
 
-/* Wide content scrolls inside the table rather than pushing the widget's
-   own layout sideways. */
+/* Wide content scrolls inside the table rather than pushing the widget's layout sideways. */
 const DataTable__Scroller = styled.div`
   overflow-x: auto;
   min-width: 0;
@@ -224,9 +213,7 @@ const DataTable__SectionCell = styled.th`
   border-bottom: 1px solid var(--color-border-subtle);
 `;
 
-/* A row and its detail are ONE record, so only the bottom of the pair is
-   ruled. Bordering both drew a second line across every row that had a
-   detail, which read as a stray divider rather than as one record. */
+/* A row and its detail are one record, so only the bottom of the pair is ruled. */
 const DataTable__Row = styled.tr<{ $hasDetail: boolean }>`
   &:not(:last-child) > td {
     border-bottom: ${({ $hasDetail }) =>

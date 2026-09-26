@@ -2,19 +2,7 @@ import { TransitionType } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { type EncounterKind, soiEventKind } from "./predictedTrajectory";
 
-/**
- * Which patch transitions are SOI crossings, and which way.
- *
- * `patchStartTransition` reaches the diagram as the enum NAME, uppercased, so
- * the decision has to be made on a string. It used to be made by a two-entry
- * `Set` with an `=== "ESCAPE"` ternary behind it, which meant a member appended
- * to `TransitionType` was silently not an SOI event: no marker on the diagram,
- * no row in the almanac, and no way to tell that from a trajectory that
- * genuinely stays in one SOI.
- *
- * This table is the rule on each member. A member added to the C# enum lands
- * here as a missing row, and in `soiEventKind` as a compile error.
- */
+/** Which patch transitions are SOI crossings, and which way: one row per `TransitionType` member, so a member added to the C# enum is a missing row here and a compile error in `soiEventKind`. */
 const CASES: ReadonlyArray<{
   transition: keyof typeof TransitionType;
   kind: EncounterKind | null;
@@ -27,9 +15,7 @@ const CASES: ReadonlyArray<{
   { transition: "Maneuver", kind: null },
   // An impact ends the trajectory rather than moving it to another body.
   { transition: "Collision", kind: null },
-  // A transition this contract does not recognize is not a crossing we can
-  // draw. Marking one would put a body's name on a diagram off a value we
-  // cannot read.
+  // An unrecognised transition is not a crossing that can be drawn.
   { transition: "Unknown", kind: null },
 ];
 

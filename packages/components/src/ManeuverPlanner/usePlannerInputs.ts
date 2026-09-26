@@ -29,12 +29,7 @@ export interface PlannerInputsApi {
   setStandoffMeters: (n: number) => void;
 }
 
-/**
- * Consolidates the 10 setter pairs that drive the per-preset form. The
- * `setPreset` returned here also resets prograde/normal/radial to 0 when
- * switching to a preset that doesn't take custom Δv inputs, preserves the
- * pre-extraction behaviour from `renderNewManeuverSection`.
- */
+/** The per-preset form state; `setPreset` zeroes the Δv inputs when switching to a preset that takes none. */
 export function usePlannerInputs(
   config: ManeuverPlannerConfig | undefined,
 ): PlannerInputsApi {
@@ -44,8 +39,7 @@ export function usePlannerInputs(
   const [prograde, setPrograde] = useState(0);
   const [normal, setNormal] = useState(0);
   const [radial, setRadial] = useState(0);
-  // "Burn in N seconds" input for the custom-ut preset. Default 60s so the
-  // UI always has a sensible future UT even before the user touches it.
+  // Defaults to 60s so the custom-ut preset always has a future UT.
   const [burnInSeconds, setBurnInSeconds] = useState(60);
   // "relative" → burnInSeconds from now; "absolute" → burnAtUT as entered.
   const [utMode, setUtMode] = useState<"relative" | "absolute">("relative");

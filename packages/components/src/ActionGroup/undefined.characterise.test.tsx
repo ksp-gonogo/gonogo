@@ -13,22 +13,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ActionGroupComponent } from "./index";
 
 /**
- * CHARACTERISATION: what `undefined` MEANS at each of ActionGroup's read sites
- * today, recorded before `useTelemetry` returns a `Reading`.
- *
- * The widget has four telemetry reads and every one of them can be `undefined`:
- *
- *   - `useTelemetry("vessel.control")`   -> the group registry AND the group value
- *   - `useTelemetry("vessel.structure")` -> Stage's value only
- *   - `useTelemetry("time.warp")?.paused`     -> the "Paused" unavailable badge
- *   - `useTelemetry("comms.link")?.connected` -> the "No signal" unavailable badge
- *
- * They do NOT agree on what absence means. The value read treats `undefined` as
- * "unknown" and renders NULL_DISPLAY. The two badge reads treat it as "fine, no
- * reason to warn" (each needs a CONFIRMED `true`/`false` to fire). `null` inside
- * a payload used to be a third thing again, a confident "OFF", and is now the
- * same unknown as `undefined`: see the "null versus undefined" describe for why
- * that changed. Each test below names which of those it pins.
+ * What absence means at each of ActionGroup's reads. The group value reads it as
+ * unknown (NULL_DISPLAY); the pause and comms badges need a confirmed value to
+ * fire; a `null` field is the same unknown as an absent one.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -45,7 +32,7 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-/** Every topic this widget reads, so nothing falls back to a legacy source. */
+/** Every topic this widget reads. */
 const CARRIED = [
   "vessel.control",
   "vessel.structure",
@@ -81,8 +68,7 @@ function mount(
   return { fixture, commandHandler };
 }
 
-/** Let a fire-and-forget command settle, so "no dispatch" is a real observation
- *  and not just an assertion made too early. */
+/** Let a fire-and-forget command settle, so "no dispatch" is a real observation. */
 async function settle() {
   await act(async () => {
     await Promise.resolve();
@@ -107,20 +93,12 @@ describe("ActionGroup: nothing has arrived at all", () => {
   it("renders the configured group, named and enabled, with NULL_DISPLAY for its state", () => {
     mount("SAS");
 
-    /*
-     * `useActionGroupFrom(undefined, "SAS")` still resolves: SAS is a STOCK
-     * singleton in the static half of the registry, so an absent
-     * `vessel.control` never reaches the `!group` placeholder.
-     */
+    // SAS is a stock singleton, so it resolves with no `vessel.control` at all.
     expect(screen.queryByText("No action group configured")).toBeNull();
 
     const toggle = screen.getByRole("button", { name: "Toggle SAS" });
-    // `isUnknown = value === undefined` -> NULL_DISPLAY. This is the one site
-    // that reads absence as "unknown" rather than as a state.
     expect(toggle.textContent).toBe(NULL_DISPLAY);
-    // `isOn` is `value === true`, so an absent read presents as not-pressed.
     expect(toggle.getAttribute("aria-pressed")).toBe("false");
-    // The control is fully live-looking: nothing about the widget says the number behind it never arrived.
     expect(toggle).not.toBeDisabled();
     expect(screen.getByRole("button", { name: "Rename SAS" })).toBeTruthy();
   });
@@ -128,11 +106,6 @@ describe("ActionGroup: nothing has arrived at all", () => {
   it("shows no unavailable badge: absent pause/comms reads are read as 'nothing to warn about'", () => {
     mount("SAS");
 
-    /*
-     * `isPaused === true` and `commConnected === false` both need a CONFIRMED
-     * value. `undefined` fires neither, so the widget asserts the action can
-     * fire right now off no evidence at all.
-     */
     expect(screen.queryByText("Paused")).toBeNull();
     expect(screen.queryByText("No signal")).toBeNull();
     expect(
@@ -153,8 +126,6 @@ describe("ActionGroup: the absence gates", () => {
       fixture.emit("vessel.control", CONTROL_ALL_OFF);
     });
 
-    // A CONFIRMED false is a different render from an absent read: "OFF", not
-    // NULL_DISPLAY. That distinction is what the gate exists for.
     await waitFor(() =>
       expect(
         screen.getByRole("button", { name: "Toggle SAS" }).textContent,
@@ -170,9 +141,6 @@ describe("ActionGroup: the absence gates", () => {
     });
     await settle();
 
-    // `buildToggleArgs` returns TOGGLE_INVALID for a non-boolean value, and
-    // `handleToggle` returns early. So the widget silently swallows the click:
-    // no command, no feedback, nothing on the wire.
     expect(commandHandler).not.toHaveBeenCalled();
     expect(fixture.transport.sentCommands).toHaveLength(0);
   });
@@ -215,18 +183,13 @@ describe("ActionGroup (Stage): the one group whose absence gate does not block t
     const { fixture, commandHandler } = mount("Stage", "ag-stage");
 
     const toggle = screen.getByRole("button", { name: "Toggle Stage" });
-    // `structure?.currentStage` is undefined, so the readout is unknown.
     expect(toggle.textContent).toBe(NULL_DISPLAY);
 
     act(() => {
       toggle.click();
     });
 
-    /*
-     * `buildToggleArgs` short-circuits Stage to `null` BEFORE the boolean
-     * check, so Stage is the only group that actuates the vessel off a read
-     * that never arrived.
-     */
+    // The stage command takes no args, so it needs no value to build them from.
     await waitFor(() =>
       expect(commandHandler).toHaveBeenCalledWith("vessel.control.stage", null),
     );
@@ -238,11 +201,7 @@ describe("ActionGroup: a partial payload", () => {
   it("a vessel.control that arrived WITHOUT the group's field reverts to NULL_DISPLAY", async () => {
     const { fixture, commandHandler } = mount("SAS");
 
-    /*
-     * Land a real value first, so the partial record below is provably
-     * delivered rather than silently dropped: NULL_DISPLAY alone is also the
-     * never-arrived render, and asserting it from a cold mount proves nothing.
-     */
+    // A real value first, so the partial record below is provably delivered.
     act(() => {
       fixture.emit("vessel.control", { ...CONTROL_ALL_OFF, sas: true });
     });
@@ -253,9 +212,7 @@ describe("ActionGroup: a partial payload", () => {
     );
 
     act(() => {
-      // The record is here; `sas` is not. The optional-chain read collapses
-      // this to the same `undefined` the never-arrived case produces, so the
-      // widget DISCARDS the value it had rather than holding the last known.
+      // The record arrives without `sas`, so the last known value is discarded, not held.
       const { sas: _dropped, ...withoutSas } = CONTROL_ALL_OFF;
       fixture.emit("vessel.control", withoutSas);
     });
@@ -274,10 +231,7 @@ describe("ActionGroup: a partial payload", () => {
   });
 
   it("a custom group missing from the arrived actionGroups list reads unknown, not off", async () => {
-    // The other absence gate on the value path: a CUSTOM group resolves by
-    // `index` through `control?.actionGroups?.find(...)`, and a miss returns
-    // `undefined`. That is the state a saved AGX group lands in after AGX is
-    // uninstalled, and the code chose "unknown, not false" for it.
+    // A saved custom group missing from the list (its mod uninstalled, say) is unknown, not off.
     const { fixture } = mount("AG1", "ag-custom", { probe: true });
 
     act(() => {
@@ -290,25 +244,12 @@ describe("ActionGroup: a partial payload", () => {
 
     const toggle = screen.getByRole("button", { name: "Toggle AG1" });
     expect(toggle.textContent).toBe(NULL_DISPLAY);
-    // Still presented as operable, and still silently inert on click.
     expect(toggle).not.toBeDisabled();
   });
 });
 
 describe("ActionGroup: null versus undefined", () => {
   it("a NULL field reads as unknown, matching the command path that already refused it", async () => {
-    /*
-     * This USED to read as a confident OFF, because the unknown test was
-     * `value === undefined` and a null field skipped it, falling through
-     * `value === true` to "OFF": the widget stated the vessel's SAS was off on
-     * the strength of a null, while `buildToggleArgs` demanded a real boolean
-     * and refused the press. The readout and the command path disagreed, and
-     * the readout was the one lying.
-     *
-     * `isUnknown` is `value == null` now, so both halves say the same thing:
-     * nobody knows, the toggle is held, and the widget names which kind of
-     * unknown it is.
-     */
     const { fixture, commandHandler } = mount("SAS");
 
     act(() => {
@@ -330,13 +271,9 @@ describe("ActionGroup: null versus undefined", () => {
   });
 
   it("a whole-topic tombstone reads exactly like nothing having arrived", async () => {
-    // A `null` PAYLOAD (the store's confirmed "there is no value") reaches the
-    // widget through `control?.<field>`, which erases the difference between a
-    // tombstone and a cold topic. Both render NULL_DISPLAY, so the operator
-    // cannot tell "the mod says there is no vessel control" from "waiting".
     const { fixture } = mount("SAS");
 
-    // Observed value first, so the tombstone is provably delivered: it has to move the render off "ON" for the assertion below to mean anything.
+    // An observed value first, so the tombstone is provably delivered.
     act(() => {
       fixture.emit("vessel.control", { ...CONTROL_ALL_OFF, sas: true });
     });

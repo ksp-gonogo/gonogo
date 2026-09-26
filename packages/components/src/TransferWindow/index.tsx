@@ -63,18 +63,10 @@ const topics = defineTopicManifest({
 const NO_BODIES: CelestialBody[] = [];
 
 /**
- * Transfer Window: interplanetary/interlunar departure planning. Client-derived
- * from the body Keplerian elements already on the wire (`system.bodies`), no mod
- * channel. Three linked instruments:
- *
- *  1. the DIAL: the live "right now" phase relationship (current vs ideal);
- *  2. the WINDOWS LIST: the next several departure windows to the target
- *     (countdown / Δv / transfer time); select a row to focus the chart on it
- *     and expand its detail + a set-alarm option;
- *  3. the PORKCHOP: the departure×arrival Δv surface for the selected window,
- *     with per-cell hover.
- *
- * The list ↔ chart link teaches the chart: pick a window, see its Δv surface.
+ * Transfer Window: departure planning derived client-side from the body
+ * elements on `system.bodies`. Three linked instruments: the phase DIAL, the
+ * WINDOWS LIST (select a row to focus the chart on it), and the PORKCHOP Δv
+ * surface for the selected window.
  */
 
 const WINDOW_COUNT = 5;
@@ -86,12 +78,7 @@ const VERDICT_LABEL: Record<ReachVerdict, string> = {
   no: "NO",
 };
 
-/**
- * `one-way` is deliberately a WARNING and not a failure: a flyby or an impactor is
- * a real mission, and colouring it as a refusal would tell the operator the wrong
- * thing about what their craft can do. `marginal` is the coplanar model declining
- * to commit, which is the same shape of statement.
- */
+// `one-way` is a WARNING, not a failure: a flyby or an impactor is a real mission. `marginal` is the coplanar model declining to commit.
 const VERDICT_SEVERITY: Record<ReachVerdict, Severity | undefined> = {
   go: "nominal",
   "one-way": "warning",
@@ -104,11 +91,7 @@ interface TransferWindowConfig {
   showPorkchop?: boolean;
   /** Alarm lead time in hours (warp steps down this far before the window). Default: 6. */
   leadHours?: number;
-  /**
-   * Δv held back from the reach verdicts (m/s). Default 0, so out of the box the
-   * verdict is plain arithmetic on the whole vehicle figure and nobody inherits a
-   * fudge factor they did not choose. Set it to reserve a lander's descent budget.
-   */
+  /** Δv held back from the reach verdicts (m/s), e.g. a lander's descent budget. Default 0. */
   reserveDeltaV?: number;
 }
 
@@ -130,25 +113,20 @@ const transferWindowActions = [
 
 export type TransferWindowActions = typeof transferWindowActions;
 
-// State-descriptive labels for the phase relationship: this is an instrument
-// that SHOWS state, not one that issues commands. IDEAL: the phase is at the
-// Hohmann ideal; NEAR: approaching it; FAR: well off it.
 const STATUS_LABEL: Record<string, string> = {
   go: "IDEAL",
   soon: "NEAR",
   off: "FAR",
 };
 
-// off/FAR carries no severity: being far from a window is not an alarm, just "not yet", so it stays a decorative grey chip via an undefined severity.
+// Being far from a window is "not yet", not an alarm, so FAR carries no severity.
 const STATUS_SEVERITY: Record<string, Severity | undefined> = {
   go: "nominal",
   soon: "warning",
   off: undefined,
 };
 
-// Days and years here are Kerbin's (6h, 426d), not Earth's: a transfer to
-// Duna is quoted in the same calendar the game's own map view and the
-// dashboard's mission clock use.
+// Days and years are Kerbin's, the calendar the game's own map view uses.
 const fmtDays = (sec: number): string =>
   `${Math.round(sec / kspCalendar().day)} d`;
 
@@ -159,11 +137,7 @@ const fmtCountdown = (sec: number): string => {
   return `in ${(d / kspYearDays()).toFixed(1)} y`;
 };
 
-/**
- * How a body is named to the operator. The catalogue's own name when the save
- * sent one, its index otherwise: the index identifies the body unambiguously,
- * where a fabricated name would not.
- */
+/** The catalogue's own name when the save sent one, its index otherwise, never a fabricated name. */
 function bodyLabel(body: CelestialBody): string {
   return body.name ?? `Body ${body.index}`;
 }
@@ -176,34 +150,14 @@ function TransferWindowComponent({
   const reserveDeltaV = config?.reserveDeltaV ?? 0;
 
   /**
-   * The parking orbit, and what of it survives the link going quiet.
-   *
-   * Two fields are read off this record and both are facts rather than
-   * measurements. The reference body changes on an SOI transition; the elements
-   * change under thrust or drag. Both are events, and no event reaches us down a
-   * link that is not delivering. Keplerian elements in particular do not drift on
-   * their own, which is what makes them elements, so the last ones received still
-   * describe the orbit the craft is parked in.
-   *
-   * Nothing this widget JUDGES rests on them either, which is why holding them is
-   * not a stale verdict in disguise. The dial, the IDEAL/NEAR/FAR badge and the
-   * window countdowns are computed from the body catalogue propagated to the view
-   * time (`transferStatus` takes a phase angle and nothing else), so the verdict
-   * is current even when the vessel channel is not. The elements set the ejection
-   * Δv alone, a planning figure for a departure days to years out, and that is a
-   * number a readout can date: `orbitNotCurrent` captions it rather than blanking
-   * a whole board that is otherwise live.
+   * The parking orbit's reference body and elements are facts that only events
+   * move, so the last ones received still describe the orbit. Nothing this
+   * widget judges rests on them (the dial, badge and countdowns ride the body
+   * catalogue at view time); they set only the ejection Δv, which
+   * `orbitNotCurrent` dates rather than blanking the board.
    */
   const orbitReading = topics.useTelemetry("vessel.orbit");
-  /*
-   * The observation OVERLAID by what the conic moved, which for `vessel.orbit`
-   * is the phase. `stillTrue` is the right read for an UNMARKED topic and this
-   * one carries a mark: a `ReckonableReading` is deliberately not
-   * assignable to `TopicReading`, so it cannot go through that helper at all,
-   * and taking `reckoning.value` alone gets the moved fields and nothing else,
-   * which is not an orbit. The spread is written here rather than in a helper
-   * because it IS the judgement; see `ReckonableReading`.
-   */
+  // The observation overlaid with what the conic moved; a `ReckonableReading` cannot go through `stillTrue`.
   const observedOrbit =
     orbitReading.state === "observed" || orbitReading.state === "stale"
       ? orbitReading.value
@@ -213,60 +167,23 @@ function TransferWindowComponent({
       ? { ...observedOrbit, ...orbitReading.reckoning.value }
       : observedOrbit;
   const orbitNotCurrent = orbitReading.state === "stale";
-  /**
-   * "This vessel is not in an orbit" and "no orbit has reached us yet" are
-   * different sentences. The pre-migration gate was `!orbit` and said "waiting" to
-   * both, so a craft on the pad waited forever for telemetry that was never
-   * coming. `absent` is the subject confirming it, so it gets its own wording.
-   */
+  // "Not in an orbit" and "no orbit has reached us yet" are different sentences.
   const orbitConfirmedAbsent = orbitReading.state === "absent";
-  // The one enriched catalogue, evaluated once per frame however many widgets
-  // read it, and it carries the index lookup too rather than each panel
-  // repeating one by hand.
-  /*
-   * A catalogue is a FACT: it changes when the game changes, and nothing
-   * changes it down a link that is not delivering, so a held one is still the
-   * catalogue. Both value-bearing arms, deliberately.
-   */
+  // A catalogue only changes when the game does, so a held one is still the catalogue.
   const factsReading = useProcessor(CELESTIAL_FACTS);
   const facts =
     factsReading?.state === "observed" || factsReading?.state === "stale"
       ? factsReading.value
       : undefined;
   const bodies = facts?.bodies ?? NO_BODIES;
-  // Everything below treats the view time as a bare UT for arithmetic, and the
-  // instant type earns nothing threaded through it. Unwrapped once, here, and
-  // through the canonical funnel, which coalesces a non-finite reading to the
-  // same 0 an absent one gets rather than passing NaN into the porkchop.
+  // Through the canonical funnel, which coalesces a non-finite reading to 0 rather than passing NaN into the porkchop.
   const nowUt = magnitudeOr(useViewUt(), 0);
 
   /**
-   * The vehicle's Δv, and the third provenance on this panel.
-   *
-   * A DESCRIPTION in `LandingStatus`'s sense, and that doc names this exact
-   * quantity: "how much delta-v there was" renders from a last-known value,
-   * labelled. We plan with what we have, and running dry at execution is
-   * operator error. So a dated budget is captioned, never withheld.
-   *
-   * It is dated more carefully than the parking orbit above, because the two decay
-   * differently. Elements do not drift; only a burn or an SOI change moves them,
-   * and both are events. A budget only ever falls, by burning, and rises solely by
-   * staging or docking. So an old budget systematically OVER-states what is
-   * reachable, and every error it makes promises a body the craft cannot get to.
-   * Hence `budgetNotCurrent` hollows the verdict pips rather than only adding a
-   * line of text: "GO, six minutes ago" must not read as "GO".
-   *
-   * No `withoutReckoning`. Nothing registers a reckoner for `dv.summary` today, so
-   * this presents as `stale`, but the topic is deliberately absent from
-   * `NEVER_RECKONABLE`: Δv against a burn rate is a real rate-integrable pairing,
-   * and a list that had declined the model in advance would be the wrong default
-   * the day someone writes it.
-   */
-  /*
-   * Both value-bearing arms. A budget that has stopped being current is still
-   * the best figure available, and every readout drawn from it below is a
-   * FIGURE rather than a control: dropping it would blank the panel for a craft
-   * whose link merely went quiet.
+   * The vehicle's Δv budget: a description, so a dated one is captioned, never
+   * withheld. An old budget can only OVER-state reach (it falls by burning), so
+   * `budgetNotCurrent` hollows the verdict pips: "GO, six minutes ago" must not
+   * read as "GO".
    */
   const budgetReading = useProcessor(DELTA_V_BUDGET);
   const budget =
@@ -277,7 +194,7 @@ function TransferWindowComponent({
   const budgetNotCurrent = budget?.budget.state === "stale";
   /** The stock Δv sim has no figure for this craft, as opposed to none having arrived. */
   const budgetConfirmedAbsent = budget?.budget.confirmedAbsent ?? false;
-  // Stays in the algebra: `Unit` renders a duration and unwrapping here would type a unit symbol beside a number, which is what `Unit` exists to prevent.
+  // Stays in the algebra so `Unit` renders the duration.
   const budgetAge =
     budget?.budget.ageSec === undefined
       ? null
@@ -291,18 +208,10 @@ function TransferWindowComponent({
     [origin, bodies],
   );
 
-  // Seed the destination from the Target API: a targeted body defaults the
-  // transfer to it. An explicit pick wins; otherwise the targeted body, then
-  // the first sibling.
   /**
-   * The roster is a fact, on TargetPicker's reasoning: bodies and vessels do not
-   * stop existing because the link dropped, and which one is flagged current is
-   * what we last told the craft and what it last confirmed. So a held list still
-   * seeds the destination.
-   *
-   * `absent` needs no arm of its own here, unlike the orbit above: a confirmed
-   * empty roster and a roster that has not arrived both mean nothing is targeted,
-   * and the fall-through to the first sibling is already the answer to that.
+   * Seeds the destination: an explicit pick wins, then the targeted body, then
+   * the first sibling. The roster is a fact, so a held list still seeds it, and
+   * a confirmed empty roster means nothing is targeted like a missing one does.
    */
   const targetList = stillTrue(
     topics.useTelemetry("target.available"),
@@ -338,9 +247,7 @@ function TransferWindowComponent({
     cycleDestination: () => cycleDestination(),
   });
 
-  // Periapsis radius, `a(1 - e)`. Eccentricity is `Value<"1">`, so the whole of
-  // it is expressible in the algebra: unwrapping `ecc` to subtract it from a
-  // literal 1 was arithmetic done on a bare number for no boundary.
+  // Periapsis radius, `a(1 - e)`, kept in the algebra.
   const parkingRadius =
     orbit?.sma != null && orbit?.ecc != null
       ? orbit.sma.times(value("1", 1).minus(orbit.ecc)).magnitude
@@ -355,43 +262,23 @@ function TransferWindowComponent({
   );
 
   /**
-   * What the porkchop's inputs are rounded to before they reach a memo.
-   *
-   * The grid is 1,024 Lambert solves and measures about 7ms, so it must not
-   * depend on raw `nowUt`: `useViewUt` notifies every frame the clock moves,
-   * which rebuilds at 60Hz for an answer identical frame to frame, roughly 42%
-   * of one core burned continuously on the main thread. It fits inside a frame,
-   * so nothing fails, which is why `PORKCHOP_SOLVE_BUDGET` exists.
-   *
-   * The quantum SCALES WITH THE CHART rather than being a fixed number of seconds, and
-   * that is the load-bearing part. A fixed quantum is not warp-proof: at 100,000x, sixty
-   * UT-seconds elapse in well under a millisecond of wall time, so a 60-second bucket
-   * flips every frame and the fix evaporates exactly when the clock is moving fastest.
-   * `transferTimeSec` is the Hohmann transfer time, which is what the axes are drawn in
-   * multiples of, so a quantum of T/500 is about a thirteenth of one departure sample:
-   * far below anything the chart can express, at any warp.
+   * What the porkchop's inputs are rounded to before they reach a memo: the
+   * grid is 1,024 Lambert solves and `useViewUt` notifies every frame. The
+   * quantum scales with the Hohmann transfer time the axes are drawn in, so it
+   * holds at any warp.
    */
   const gridQuantum = solution
     ? porkchopGridQuantum(solution.transferTimeSec)
     : null;
   const quantise = (ut: number): number => quantiseGridUt(ut, gridQuantum);
-  // Both inputs are quantised, not just `nowUt`. `departureUt` is `nowUt + waitSeconds`
-  // and so ought to be constant as the clock advances, but it is re-derived from the
-  // body positions every frame and jitters in the low bits, which invalidates a memo
-  // just as effectively as a real change.
+  // `departureUt` is re-derived every frame and jitters in the low bits, so it is quantised too.
   const gridNowUt = quantise(nowUt);
   const gridCenterDepUt =
     solution?.departureUt === undefined
       ? undefined
       : quantise(solution.departureUt);
 
-  // The base porkchop is windowed on the next window's ideal departure; its optimum is that window's Δv, which seeds the windows list.
-  //
-  // Its time axes are derived first, without solving anything on them, so the
-  // body states can be asked of the game before the grid is built. The grid
-  // falls back to the client's own conic until they arrive, and for good on a
-  // screen with no stream mounted, so the chart is never blank waiting on a
-  // round trip.
+  // The base porkchop is windowed on the next window's ideal departure. Its axes come first so body states can be asked of the game; the grid uses the client's own conic until they arrive.
   const baseAxes = useMemo(
     () =>
       origin && dest
@@ -444,53 +331,17 @@ function TransferWindowComponent({
   const selIdx = Math.min(selectedWindow, Math.max(0, windows.length - 1));
   const selected = windows[selIdx] ?? null;
 
-  // Focus the porkchop on the selected window: window 0 is the base chart;
   /**
-   * UT the reach list's phase solve is quantised to: ONE DAY of the game's own
-   * calendar, which is what its countdown column can actually display. Read live
-   * rather than held as a constant: a day is 6h on stock Kerbin and 24h under
-   * RSS, and quantising an RSS save to 6h buys back none of the cost below.
-   *
-   * This was 60 seconds, and 60 seconds was arbitrary. Same trap as the porkchop's
-   * (`porkchopGridQuantum`): a fixed quantum stops working under time warp, because at
-   * 100,000x a frame advances UT by about 1,670 seconds and a 60-second bucket changes on
-   * every one of them. It failed from roughly 10,000x upward, which for a transfer planner
-   * is most of the time it is being looked at.
-   *
-   * **The porkchop's fix does not transfer here, and that is worth saying rather than
-   * forcing.** That quantum scales with the Hohmann transfer time because the chart's axes
-   * are drawn in transfer times. The reach list has N destinations with N different
-   * transfer times and no single T to scale by.
-   *
-   * What it does have is a display granularity. `nowUt` reaches only `waitSeconds` (the
-   * Window column); the Δv columns are functions of radii and μ, and Transit is the Hohmann
-   * time, so neither moves with the clock at all. And Window renders as
-   * `Math.round(days)`, or tenths of a year past 1000 days. So one day is the finest
-   * change the column can express, which makes it the honest quantum rather than merely a
-   * bigger number: 0.46 rebuilds/s at 10,000x and 4.6 at 100,000x, of six closed-form
-   * solves each.
-   *
-   * The cost is that a window opening reads "in 1 d" for up to a day before it says "now".
-   * Acceptable because this is the SURVEY column: the actionable countdown is the windows
-   * list below, which is exact and unquantised, and it owns the alarm button.
-   *
-   * **That makes this quantum conditional on the windows list existing.** If the exact,
-   * unquantised countdown is ever removed or itself coarsened, a day's lag on the only
-   * remaining countdown stops being a survey's rounding and becomes a defect: an operator
-   * would be told "in 1 d" about a window that is open. Re-derive the quantum from
-   * whatever column is then load-bearing rather than leaving this one in place.
+   * The reach list's recompute quantum: one day of the game's own calendar,
+   * the finest change its Window column can display. Only `waitSeconds` moves
+   * with the clock. This is acceptable only while the exact, unquantised
+   * countdown in the windows list exists; without it a day's lag would tell the
+   * operator "in 1 d" about an open window.
    */
   const reachRecomputeUt = kspCalendar().day;
   const reachUtBucket = Math.floor(nowUt / reachRecomputeUt);
 
-  /**
-   * The reach list: every sibling, what it costs, and whether this craft affords it.
-   *
-   * Keyed on a COARSE view time rather than `nowUt`. `useViewUt` notifies at frame
-   * rate whenever the clock moves, and the phase angle does not change meaningfully
-   * inside a minute, so quantising here keeps a list of closed-form solves off the
-   * per-frame path. The window countdowns it produces are quoted in whole days.
-   */
+  // Keyed on a coarse view time so a list of closed-form solves stays off the per-frame path.
   const reach = useMemo(
     () =>
       origin && parkingRadius != null && Number.isFinite(parkingRadius)
@@ -504,12 +355,7 @@ function TransferWindowComponent({
     [origin, bodies, parkingRadius, reachUtBucket, reachRecomputeUt],
   );
 
-  // later windows rebuild centred on their own departure so their Δv surface
-  // shows (each is a synodic period later, same bowl shape).
-  // Same quantisation as the base grid, and for the same reason. `selected` is a fresh
-  // object on every windows-list rebuild, so depending on the object rather than the two
-  // numbers read off it would reintroduce the churn by identity even with the UT
-  // quantised.
+  // Later windows rebuild centred on their own departure. Depends on the two quantised numbers, not on `selected`, which is a fresh object every rebuild.
   const focusedIsBase = !selected || selected.index === 0;
   const focusedCenterDepUt = selected
     ? quantise(selected.departureUt)
@@ -596,10 +442,7 @@ function TransferWindowComponent({
         <Section>
           <Body>
             {orbitNotCurrent && (
-              // Dated, not withheld. Says which half of the panel it applies to,
-              // because a bare "not current" over a live dial would read as a dead
-              // instrument: the phase relationship and the window times come off the
-              // body catalogue and are as current as the view clock.
+              // Dated, and says which half of the panel it applies to: the dial and window times are still current.
               <Text tone="warn" size="xs" role="status" aria-live="polite">
                 Parking orbit no longer current: Δv is from the last known
                 elements. Phase and window times stay live.
@@ -616,13 +459,7 @@ function TransferWindowComponent({
               budgetAge={budgetAge}
               budgetConfirmedAbsent={budgetConfirmedAbsent}
             />
-            {/*
-             * Responsive on the body's own width (container query): stacked when
-             * narrow (dial + list, then the chart below), side-by-side when wide. The
-             * grid renders whether or not a transfer solves, because the destination
-             * select lives on the windows heading and must stay reachable: an operator
-             * whose orbit payload is partial still needs to change destination.
-             */}
+            {/* Container-queried on the body's own width. Renders whether or not a transfer solves, so the destination select stays reachable. */}
             <ContentGrid>
               <LeftCol>
                 {solution ? (
@@ -643,7 +480,7 @@ function TransferWindowComponent({
                           />
                         </Muted>
                       </NowValue>
-                      {/* Only the verdict is announced: the phase above moves every frame, and a live region around it would read it out continuously. */}
+                      {/* Only the verdict is announced: the phase moves every frame. */}
                       <Badge severity={STATUS_SEVERITY[solution.status]} live>
                         {STATUS_LABEL[solution.status]}
                       </Badge>
@@ -658,14 +495,7 @@ function TransferWindowComponent({
                   selectedIndex={selIdx}
                   onSelect={setSelectedWindow}
                   destPicker={
-                    /*
-                     * NOT wrapped in a FieldRow: the label and the select have to be
-                     * direct children of the wrapping SectionHead, or the select's
-                     * narrow-width rule sizes against an inner row that is itself the
-                     * thing overflowing the panel. The heading IS the control's label,
-                     * since a static "Windows to Mars" beside a Mars select would name
-                     * the destination twice on one line.
-                     */
+                    // Label and select are direct children of SectionHead so the select's narrow-width rule sizes correctly; the heading IS the control's label.
                     <>
                       <FieldLabel htmlFor="transfer-dest">
                         <ListTitle as="span">Windows to</ListTitle>
@@ -795,13 +625,9 @@ function WindowsList({
 }
 
 /**
- * The reach list: which destinations this craft can get to on its current budget,
- * and roughly when.
- *
- * A table because it is genuinely tabular, sorted cheapest-first so the top row
- * answers "the nearest thing I can reach". The verdict column is DROPPED ENTIRELY
- * when there is no budget rather than filled with placeholders: an empty column
- * invites the reader to supply a verdict, and no verdict is available.
+ * The reach list: which destinations this craft can get to on its current
+ * budget, cheapest first. The verdict column is DROPPED when there is no budget:
+ * an empty column invites a verdict nobody can supply.
  */
 function ReachList({
   entries,
@@ -834,15 +660,7 @@ function ReachList({
     <ListWrap>
       <ReachHead>
         <ListTitle id="reach-caption">Reach from {originName}</ListTitle>
-        {/*
-         * The budget belongs on THIS row, not in the panel header. It is the reach
-         * list's own input, it sits directly above the verdicts it produced (the
-         * funds-readout rule: nobody should have to look elsewhere for the number
-         * that said NO), and putting it in `panelAside` pushed that row past its
-         * width so Panel collapsed the destination select behind a disclosure. The
-         * render caught it; `vac` stays on screen because the ISP assumption is part
-         * of the figure.
-         */}
+        {/* The budget sits directly above the verdicts it produced, the funds-readout rule; `vac` stays because the ISP assumption is part of the figure. */}
         {budgetDeltaV != null && (
           <BudgetReadout>
             <Muted>Budget</Muted>{" "}
@@ -856,14 +674,7 @@ function ReachList({
           </BudgetReadout>
         )}
       </ReachHead>
-      {/*
-       * Three different sentences about the budget, and the list must not collapse
-       * them: a dated figure still plans, a confirmed-absent one says the stock sim
-       * has nothing for this craft, and silence says we have not heard. Only the
-       * first renders a number. They sit HERE rather than at the top of the panel
-       * because they are about this list, and above the panel's first heading they
-       * read as a statement about the whole widget.
-       */}
+      {/* Three distinct budget sentences: a dated figure still plans, confirmed-absent means the stock sim has nothing, and silence means not heard. */}
       {budgetNotCurrent && budgetDeltaV != null && (
         <Text tone="warn" size="xs" role="status" aria-live="polite">
           Budget last heard{" "}
@@ -916,10 +727,7 @@ function ReachList({
                   {haveBudget && (
                     <ReachTd>
                       {verdict ? (
-                        // Dated verdicts read as advisory rather than live. A stale
-                        // budget can only over-state reach (Δv falls by burning), so
-                        // "GO as of some minutes ago" must not wear the live GO
-                        // colour.
+                        // A stale budget can only over-state reach, so dated verdicts do not wear the live GO colour.
                         <Badge
                           severity={
                             budgetNotCurrent
@@ -1011,16 +819,12 @@ function PhaseDial({ solution }: { solution: TransferSolution }) {
   );
 }
 
-// Continuous Δv → colour ramp: violet (the cheap optimum) sweeping through
-// blue/cyan/green/yellow/orange to red (the worst). A smooth hue sweep with no
-// discrete banding, so the bowl reads as smooth concentric shading. `t` is the
-// capped, normalised Δv in [0,1].
+// Continuous Δv to colour ramp, violet (cheap optimum) through to red (worst), with no discrete banding. `t` is the capped, normalised Δv in [0,1].
 const clamp01 = (t: number): number => (t < 0 ? 0 : t > 1 ? 1 : t);
 const rampColor = (t: number): string =>
   `hsl(${(258 * (1 - clamp01(t))).toFixed(1)}, 66%, 48%)`;
 
-// Plot geometry (SVG user units). Margins leave room for the arrival ticks
-// (left), departure ticks (bottom) and the Δv legend (right).
+// Plot geometry (SVG user units); margins leave room for the ticks and the Δv legend.
 const VB_W = 360;
 const VB_H = 300;
 const M = { top: 12, right: 74, bottom: 34, left: 50 };
@@ -1045,11 +849,7 @@ function Porkchop({
   const min = grid.minDeltaV;
   const max = grid.maxDeltaV;
   if (cols === 0 || rows === 0 || min == null || max == null) return null;
-  // Colour scale is capped near the optimum (min → min·1.8, but never past the
-  // real max) so the low-Δv bullseye keeps full contour resolution; cells beyond
-  // the cap (the far, off-ridge transfers) saturate in the top band, the way a
-  // canonical porkchop clips its contours rather than letting outliers wash the
-  // scale flat.
+  // Capped near the optimum (never past the real max) so the bullseye keeps contour resolution; outliers saturate the top band.
   const scaleMax = Math.min(max, min * 1.8);
   const scaleSpan = scaleMax - min || 1;
   const capped = scaleMax < max;
@@ -1059,8 +859,7 @@ function Porkchop({
   const dayOffset = (ut: number) => days(ut - nowUt);
   const kms = (ms: number) => (ms / 1000).toFixed(1);
 
-  // Cell → plot pixel. Departure increases left→right (i); arrival increases
-  // bottom→top (j), so later arrivals sit at the top like a canonical porkchop.
+  // Departure increases left to right; arrival bottom to top, like a canonical porkchop.
   const cellX = (i: number) => M.left + i * cellW;
   const cellY = (j: number) => M.top + (rows - 1 - j) * cellH;
 
@@ -1082,8 +881,7 @@ function Porkchop({
           aria-label={`Transfer Δv contour plot, departure against arrival date. Best transfer ${best ? `${Math.round(best.deltaV)} metres per second departing ${dayOffset(best.depUt)} days from now` : "none"}.`}
         >
           <defs>
-            {/* Continuous legend ramp: worst (red) at top → cheap (violet) at
-              bottom, matching the plot's colour scale. */}
+            {/* Legend ramp: worst at top, cheap at bottom, matching the plot's scale. */}
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={rampColor(1)} />
               <stop offset="25%" stopColor={rampColor(0.75)} />
@@ -1092,10 +890,7 @@ function Porkchop({
               <stop offset="100%" stopColor={rampColor(0)} />
             </linearGradient>
           </defs>
-          {/* Background = the worst / off-scale (≥cap) colour. The whole plot is a
-            wall of that colour and only the lower-Δv cells are painted on top,
-            so the good transfers read as a clean blob that blends smoothly out
-            to the background. Null (no-solution) cells stay background too. */}
+          {/* The off-scale colour fills the plot and only lower-Δv cells paint on top; no-solution cells stay background. */}
           <rect
             x={M.left}
             y={M.top}
@@ -1104,7 +899,6 @@ function Porkchop({
             fill={rampColor(1)}
             pointerEvents="none"
           />
-          {/* lower-Δv cells, coloured on a smooth continuous gradient */}
           {grid.cells.map((col, i) =>
             col.map((c, j) => {
               if (c.deltaV == null) return null;
@@ -1126,7 +920,6 @@ function Porkchop({
             }),
           )}
 
-          {/* best-transfer marker */}
           {best && (
             <g
               stroke="var(--color-accent-fg)"
@@ -1142,7 +935,6 @@ function Porkchop({
             </g>
           )}
 
-          {/* plot frame */}
           <rect
             x={M.left}
             y={M.top}
@@ -1154,7 +946,6 @@ function Porkchop({
             pointerEvents="none"
           />
 
-          {/* x axis: departure */}
           {tickIndices(cols).map((i) => (
             <text
               key={`xt-${i}`}
@@ -1177,7 +968,6 @@ function Porkchop({
             departure: days from now
           </text>
 
-          {/* y axis: arrival */}
           {tickIndices(rows).map((j) => (
             <text
               key={`yt-${j}`}
@@ -1201,7 +991,6 @@ function Porkchop({
             arrival: days from now
           </text>
 
-          {/* Δv legend: a continuous gradient bar with a few value ticks */}
           <rect
             x={VB_W - M.right + 20}
             y={M.top}
@@ -1270,19 +1059,12 @@ registerComponent<TransferWindowConfig>({
 
 export { TransferWindowComponent };
 
-// Container-query breakpoint (body inline-size) at which the chart flows from under the list (stacked) to beside it (side-by-side).
+// Body inline-size at which the chart moves from under the list to beside it.
 const WIDE_AT = "560px";
 
-/**
- * Below this body width the destination select stops sharing a line with its
- * heading. Measured against the render harness rather than picked: a 5-unit-wide
- * placement gives the body about 152px and a 6-unit one about 192px, and neither
- * fits "WINDOWS TO" plus a select without the select touching the panel edge.
- */
+// Below this body width the destination select takes its own line: at 5 and 6 units wide "WINDOWS TO" plus a select does not fit.
 const NARROW_HEAD_AT = "256px";
-// Panel.Body already pads, scrolls and glows; all this adds is the query
-// container, so the content grid reflows on the body's own width rather than
-// the viewport's (a container cannot query itself, hence the wrapper).
+// The query container, so the content grid reflows on the body's own width (a container cannot query itself).
 const Body = styled.div`
   flex: 1;
   min-height: 0;
@@ -1294,9 +1076,6 @@ const Body = styled.div`
   container-type: inline-size;
 `;
 
-// Holds the dial + list + chart. Stacked (dial/list, then chart below) when
-// narrow; side-by-side (list left, chart right) past WIDE_AT. `min-height: 100%`
-// lets the chart's flex-grow claim any spare vertical space in the tile.
 const ContentGrid = styled.div`
   flex: 1;
   min-height: 100%;
@@ -1344,9 +1123,7 @@ const NowRow = styled.div`
   align-items: center;
 `;
 
-// The chart box grows to fill whatever space the tile/column gives it, down to
-// a sensible minimum height. The SVG scales to fit (preserveAspectRatio meet),
-// so the whole diagram: axes, legend and all: stays visible and undistorted.
+// Grows to fill the tile down to a minimum height; the SVG scales to fit undistorted.
 const MapBox = styled.div`
   flex: 1 1 auto;
   min-height: 220px;
@@ -1420,10 +1197,9 @@ const SectionHead = styled.div`
 `;
 
 /**
- * The destination cell as a control. A `<button>` inside the cell rather than a
- * click handler on the `<tr>`: the row stays a row for a screen reader, and picking
- * a destination is reachable by keyboard. `aria-pressed` carries which one the
- * windows list below is currently scoped to, since the visual cue is a colour.
+ * The destination cell as a `<button>`, so the row stays a row for a screen
+ * reader and picking is keyboard-reachable. `aria-pressed` carries the scope,
+ * since the visual cue is a colour.
  */
 const ReachPick = styled.button<{ $selected: boolean }>`
   appearance: none;
@@ -1457,15 +1233,7 @@ const BudgetReadout = styled.span`
   font-variant-numeric: tabular-nums;
 `;
 
-/**
- * The reach table is the widest thing in the widget and it is now the FIRST thing,
- * so at a narrow placement it has to go somewhere. It scrolls here rather than
- * clipping: at `mobile-9x8` the Transit column was cut off mid-heading and at
- * `portrait-5x18` the verdict badges were sliced in half, which loses data with no
- * indication that anything is missing. A scroll container keeps every column intact
- * and says so by scrolling. `min-width` stops the columns collapsing into each other
- * instead of overflowing, which is what makes the scroll meaningful.
- */
+// Scrolls rather than clipping at narrow placements, so no column is lost silently; `min-width` keeps columns from collapsing.
 const ReachScroll = styled.div`
   overflow-x: auto;
   max-width: 100%;
@@ -1588,7 +1356,6 @@ const ExpValue = styled.span`
   font-variant-numeric: tabular-nums;
 `;
 
-// The chart column: grows to fill free space (flex) with a minimum height when stacked; fills the row height when beside the list.
 const PorkchopWrap = styled.div`
   display: flex;
   flex-direction: column;

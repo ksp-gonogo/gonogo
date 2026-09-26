@@ -1,14 +1,6 @@
 /**
- * One line of a facility tier's stock description.
- *
- * `pair` is the shape the game almost always emits, "Max Size: 140t": a named
- * property and its setting. `note` is everything else, including a line that
- * states a capability outright ("Maneuver nodes enabled") and any line whose
- * form we did not anticipate.
- *
- * `id` identifies the line within its own tier. The content is what makes a
- * line the line it is, so it is the identity; a repeated line gets a suffix so
- * two of them stay distinguishable.
+ * One line of a facility tier's stock description: a `pair` ("Max Size: 140t")
+ * or a `note` (anything else). `id` is the content, suffixed when repeated.
  */
 export type TierSpec = { id: string } & (
   | { kind: "pair"; label: string; value: string }
@@ -16,20 +8,9 @@ export type TierSpec = { id: string } & (
 );
 
 /**
- * KSP's own upgrade dialog writes its tier descriptions as an asterisk-bulleted
- * list in one string, so `"* Max Size: 140t\n* Max Parts: 255"` is what arrives
- * on the wire. The asterisks are the game's list markup and mean nothing to an
- * operator reading a dashboard; this turns them into items the widget can lay
- * out as a real list.
- *
- * The marker set is narrow on purpose. Stripping anything that could plausibly
- * start a line risks eating a minus sign off a negative value, and a stray
- * marker in front of a line the operator can still read costs far less than a
- * mangled number.
- *
- * The text is game copy rather than a contract, so a line that fits no pattern
- * is kept as a `note` and shown as it arrived. Dropping it would hide whatever
- * a future KSP version, a localisation or a mod decided to say there.
+ * Splits KSP's asterisk-bulleted tier text into items. The marker set is narrow
+ * so a minus sign on a negative value is never eaten, and a line that fits no
+ * pattern is kept as a `note` rather than dropped.
  */
 export function parseLevelText(text: string): TierSpec[] {
   const specs: TierSpec[] = [];

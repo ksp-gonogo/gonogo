@@ -20,18 +20,10 @@ import {
 import { AstronautComplexComponent } from "./index";
 
 /**
- * Characterisation, not specification: what AstronautComplex DOES today when
- * its `useTelemetry` reads come back `undefined`.
- *
- * The load-bearing site is `if (complex === undefined)`, a whole-widget early
- * return that swaps the header + Applicants/Active tabs for a one-line empty
- * state. It is also the one place in this widget where `null` and `undefined`
- * mean different things: the empty state names which of the two it is, and the
- * tombstone case below pins that both reach it (the pre-migration gate let the
- * tombstone through and drew the full widget instead).
- *
- * The remaining absence sites are all `magnitudeOf(...) !== null` guards over
- * fields inside the payload, each rendering NULL_DISPLAY on its own.
+ * What AstronautComplex does when its `useTelemetry` reads come back
+ * `undefined`. `complex === undefined` is a whole-widget early return to a
+ * one-line empty state that names whether it is waiting or off career; the
+ * other absences are per-field NULL_DISPLAY guards.
  */
 const CARRIED = [
   "spaceCenter.astronautComplex",
@@ -84,21 +76,9 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
     );
   }
 
-  /**
-   * Recorded prior behaviour: "collapses to the career-only empty state, with NO
-   * tabs, when nothing has arrived". A cold start was reported as a save with no
-   * space programme, because one gate served both "nothing yet" and "off
-   * career".
-   *
-   * The collapse is unchanged, only the sentence: `pending` now says it is
-   * waiting, and "career mode only" is kept for the producer confirming there is
-   * no Complex.
-   */
+  /** A cold start collapses like off-career does, but says it is waiting. */
   it("collapses to a waiting empty state, with NO tabs, when nothing has arrived", () => {
-    // The `complex === undefined` gate firing. Everything below the panel title
-    // is replaced: no tablist, no header stat boxes, no applicant list. The
-    // only reads that survive the early return are funds, which has not
-    // arrived either and shows the em dash.
+    // Everything below the title is replaced; only funds survive the early return, showing the placeholder.
     renderWidget();
 
     expect(
@@ -109,7 +89,7 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText("Funds")).toBeInTheDocument();
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
-    // The gate's whole observable effect: these exist only past it.
+    // These exist only past the gate.
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("tab", { name: "Applicants" }),
@@ -118,24 +98,9 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
     expect(screen.queryByText("Active Kerbals")).not.toBeInTheDocument();
   });
 
-  /**
-   * Recorded prior behaviour: "still shows the funds figure inside the empty
-   * state when only funds have arrived", where that empty state read "career
-   * mode only".
-   *
-   * The funds rule is unchanged: a known balance survives the early return. Only
-   * the accompanying sentence moved, for the same reason as the case above.
-   */
+  /** A known balance survives the early return. */
   it("still shows the funds figure inside the waiting empty state when only funds have arrived", async () => {
-    // Partial: the widget's own funds rule survives the early return, so an undefined complex does NOT suppress a known balance.
-    //
-    // The two branches now render the SAME cell: this used to assert a
-    // `title="Available funds"` that existed only on the empty state's own
-    // funds readout, because the empty state and the header each drew the
-    // figure themselves and only one was reachable at a time. Both go through
-    // one `Stat` built once above the gate, so the assertion is on the spoken
-    // quantity the header always used, and there is no second treatment left to
-    // pin.
+    // Both branches render the same funds `Stat`, so the assertion is on its spoken quantity.
     renderWidget();
     act(() => {
       fixture.emit("career.status", { economy: { funds: 500000 } });
@@ -154,16 +119,7 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
   });
 
-  /**
-   * Recorded prior behaviour: "RENDERS THE FULL WIDGET for a confirmed tombstone,
-   * because the gate tests undefined strictly". A confirmed no-Complex sailed
-   * past `complex === undefined` and drew the whole header plus both tabs with em
-   * dashes in every cell, so the save with no space programme got the richer
-   * display of the two and the cold start got the empty state.
-   *
-   * The inversion is gone: `absent` is now the case the "career mode only"
-   * wording exists for, and it collapses to that empty state.
-   */
+  /** `absent` is off career, so a tombstone collapses to the career-only empty state. */
   it("COLLAPSES to the career-only empty state for a confirmed tombstone, because absent means off career", async () => {
     renderWidget();
     act(() => {
@@ -186,10 +142,7 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
   });
 
   it("shows an em dash for funds in the header while the complex payload is present", async () => {
-    // `careerFunds !== null` gate on the far side of the early return: an
-    // undefined `career.status` read is drawn as punctuation, never as zero
-    // funds, so a widget that spends money shows no balance rather than a
-    // wrong one.
+    // An undefined `career.status` is drawn as punctuation, never as zero funds.
     renderWidget();
     act(() => {
       fixture.emit("spaceCenter.astronautComplex", {
@@ -208,7 +161,7 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
   });
 
   it("disables Hire on an unquoted price as 'Hire price not quoted', never as a funds shortfall", async () => {
-    // A partial payload with the applicant list present but every numeric field missing. The cap readouts go to em dash with no "/ capacity" suffix at all.
+    // Applicants present, every numeric field missing: the cap readouts show the placeholder with no "/ capacity" suffix.
     renderWidget();
     act(() => {
       fixture.emit("spaceCenter.astronautComplex", { applicants: [APPLICANT] });
@@ -218,13 +171,12 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
       name: /Hire price not quoted/,
     });
     expect(hire).toBeDisabled();
-    // The accessible name carries no cost clause, because `costText` is "".
+    // No cost clause in the accessible name.
     expect(hire).toHaveAccessibleName(
       "Hire Desdin Kerman (Hire price not quoted)",
     );
     expect(screen.queryByText(/Insufficient funds/)).not.toBeInTheDocument();
-    // Active Kerbals: em dash, and no " / n" denominator since capKnown is
-    // false. FULL is not claimed either, rosterFull needs a known cap.
+    // No denominator and no FULL claim without a known cap.
     const activeValue = screen.getByText("Active Kerbals").nextElementSibling;
     expect(activeValue).toHaveTextContent(NULL_DISPLAY);
     expect(activeValue?.textContent).not.toContain("/");
@@ -232,9 +184,7 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
   });
 
   it("shows 'No active crew' on the Active tab when the crew roster never arrives", async () => {
-    // `readCrewRoster(undefined)` returns `[]`, so an unread roster is
-    // presented as a definitively empty one. Nothing on screen distinguishes
-    // "no crew hired" from "the roster channel is silent".
+    // An unread roster is presented as an empty one: nothing distinguishes "no crew hired" from a silent channel.
     renderWidget();
     act(() => {
       fixture.emit("spaceCenter.astronautComplex", {
@@ -256,10 +206,7 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
   });
 
   it("makes the fireHighlighted action a no-op while the crew roster is undefined", async () => {
-    // Same `[]` coercion, on the action path rather than the render path: the
-    // handler's `availableCrew.length === 0` early return is reached because an
-    // undefined roster became an empty array, so the serial input silently does
-    // nothing instead of erroring or firing the wrong kerbal.
+    // The same `[]` coercion on the action path: the serial input silently does nothing.
     renderWidget();
     act(() => {
       fixture.emit("spaceCenter.astronautComplex", {

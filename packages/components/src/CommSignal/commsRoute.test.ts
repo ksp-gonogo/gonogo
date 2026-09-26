@@ -117,11 +117,6 @@ describe("commsLegTime", () => {
   });
 
   it("apportions without being told the save's light speed", () => {
-    /*
-     * The share is a length over a length, so whatever speed this save's light
-     * travels at cancels: a save running at twice light speed reports half the
-     * total, and each leg's share of it is unchanged.
-     */
     const hops = [
       hopWithDistance("Active Vessel", "Relay Sat 1", 299_792_458),
       hopWithDistance("Relay Sat 1", "home", 299_792_458),
@@ -147,11 +142,7 @@ describe("commsLegTime", () => {
   });
 
   it("returns nothing when there is no delay to apportion", () => {
-    /*
-     * A save with the delay feature off reports a real, applied ZERO. The route
-     * carries no light-time, so no leg of it does either, and annotating one
-     * with the time it WOULD take is a claim about a different save.
-     */
+    // A route with a real zero delay carries no light-time, so no leg of it does either.
     const hops = [hopWithDistance("Active Vessel", "home", 299_792_458)];
     expect(commsLegTime(hops[0], hops, undefined)).toBeUndefined();
     expect(commsLegTime(hops[0], hops, null)).toBeUndefined();

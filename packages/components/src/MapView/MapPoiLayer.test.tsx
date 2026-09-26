@@ -11,10 +11,7 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MapPoiLayer } from "./MapPoiLayer";
 
-// Unmount each rendered tree BEFORE clearMapPoiProviders(): clearing the
-// provider registry re-renders a still-mounted MapPoiLayer (providers gone), a
-// state update outside act(). RTL auto-cleanup runs after this file's afterEach,
-// too late to unmount first.
+// Unmount each tree before clearMapPoiProviders(), which would re-render a mounted layer outside act(); RTL's auto-cleanup runs too late.
 const renderedTrees: Array<() => void> = [];
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();

@@ -6,11 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FleetRosterComponent } from "./index";
 
-/**
- * What a craft's signal panel says once its `fleet.<guid>.*` topics stop
- * arriving. The Link term is a present-tense verdict, so a held one has to say
- * it is the last known, the same way the Delay row already does.
- */
+/** A held Link term in the signal panel says it is the last known, as the Delay row does. */
 
 const CRAFT = {
   vessels: [

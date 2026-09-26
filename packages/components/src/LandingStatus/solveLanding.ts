@@ -1,37 +1,9 @@
 /**
- * The full-vector suicide-burn solve: the correctness core of the rebooted
- * landing widget. Client-side only; every input is already on the wire
- * (`vessel.flight`, `vessel.propulsion`, `vessel.orbit`, `system.bodies`).
+ * The full-vector suicide-burn solve, client-side from `vessel.flight`, `vessel.propulsion`, `vessel.orbit` and `system.bodies`.
  *
- * WHY THE FULL VECTOR. A purely-VERTICAL burn solve kills `vDown` alone and
- * ignores the horizontal velocity a craft arrives with from orbit. On a standard low-Mun descent that
- * under-states the burn by ~2 orders of magnitude and reports "burn now ->
- * touchdown at 0 m/s" while the craft still carries ~540 m/s horizontally,
- * wrong in the fatal (fires-too-late) direction. A vacuum landing is
- * overwhelmingly a HORIZONTAL problem: the burn's job is to null the whole
- * velocity VECTOR, so the stopping distance and the ignition point must be
- * computed from the full surface speed, not its vertical component.
+ * The burn must null the whole velocity VECTOR: a vacuum landing is mostly a horizontal problem, and a vertical-only solve under-states the burn by orders of magnitude, firing too late. The model decelerates the full surface speed over the terrain height at `aNet = aMax - g`; it has no drag, so the widget suppresses it on atmospheric bodies.
  *
- * The model here treats the suicide burn as a 1-D deceleration of the full
- * surface-speed magnitude `vSurf` over the available terrain height `h`, at net
- * deceleration `aNet = aMax - g`. This matches the spec's worked Appendix-A
- * numbers and, unlike the vertical-only model, correctly reports the burn as
- * unsurvivable / already-committed when horizontal velocity dominates. It is
- * still a vacuum model with no drag, so the widget suppresses it on atmospheric
- * bodies rather than emit a confidently wrong number.
- *
- * ENGINE MODEL. Given the vessel's actual fuel, thrust and specific impulse,
- * the solve is a real rocket-equation burn: as fuel burns the mass falls, so
- * the deceleration RISES through the burn (constant thrust, shrinking mass).
- * That makes the stopping distance SHORTER than a naive constant-`aMax`
- * estimate, and it caps the burn at the active stage's fuel, so a NO LANDING
- * VECTOR verdict means there is genuinely no achievable burn path that lands
- * safely, not a fixed-decel artefact. The exhaust velocity `ve` is the ACTIVE
- * engine's (derived caller-side from `dv.stages[currentStage]`'s ΔV + mass
- * ratio, atmosphere-adjusted), NOT a whole-vessel multi-stage average, and the
- * burn floor is the active stage's burnout mass. When those inputs
- * (`exhaustVelocity`, `burnoutMass`) are absent the solve falls back to a
- * constant-deceleration estimate at the current mass (see `constantDecelBurn`).
+ * With the active engine's exhaust velocity and burnout mass it is a rocket-equation burn whose deceleration rises as mass falls, capped at the stage's fuel, so NO LANDING VECTOR means no achievable burn lands safely. Without them it falls back to `constantDecelBurn`.
  */
 
 export type LandingSolutionState =
@@ -56,16 +28,9 @@ export interface SuicideBurnInputs {
   availableThrust: number | undefined;
   /** Total (wet) vessel mass, tonnes (`vessel.propulsion.totalMass`). */
   totalMass: number | undefined;
-  /** Effective exhaust velocity ve = Isp·g0, m/s, of the ACTIVE ENGINE(S) doing
-   * the landing burn, derived caller-side from the active stage's ΔV and mass
-   * ratio (`dv.stages[currentStage]`), atmosphere-adjusted (the "actual"
-   * variant). With `burnoutMass` this unlocks the rocket-equation burn model;
-   * absent, the solve falls back to constant-deceleration at the current mass.
-   * (Must be the ACTIVE stage, not a whole-vessel multi-stage average.) */
+  /** Effective exhaust velocity ve = Isp * g0, m/s, of the ACTIVE engines (not a whole-vessel average); with `burnoutMass` it enables the rocket-equation model. */
   exhaustVelocity?: number | undefined;
-  /** Vessel mass, tonnes, at the moment the active stage's fuel is exhausted
-   * (the active stage's burnout mass): the floor the burn can decelerate down
-   * to before it runs dry. Fuel available now = `totalMass − burnoutMass`. */
+  /** Vessel mass, tonnes, when the active stage's fuel runs out; fuel available now is `totalMass - burnoutMass`. */
   burnoutMass?: number | undefined;
 }
 
@@ -126,11 +91,7 @@ function deriveMaxAccel(
   return finiteOrNull(availableThrust / totalMass);
 }
 
-/** The burn-solve outputs the two engine models share. `stopDistance` is the
- * along-vector distance an optimal burn (starting now) needs to null the whole
- * surface-speed vector: the datum for the ignition point. `bestSpeedAtImpact`
- * is the minimum achievable touchdown speed (0 when the burn stops the vessel
- * at or above terrain with fuel to spare). */
+/** Outputs both engine models share: `stopDistance` is the along-vector distance an optimal burn from now needs, the datum for ignition; `bestSpeedAtImpact` is 0 when the burn fits. */
 interface BurnResult {
   stopDistance: number;
   bestSpeedAtImpact: number;
@@ -138,9 +99,7 @@ interface BurnResult {
   burnDeltaV: number;
 }
 
-/** Constant-deceleration fallback: `aNet = aMax − g` held at the CURRENT mass.
- * Used when dry-mass / dV aren't on the wire. Over-states the stopping distance
- * (ignores the accel rising as fuel burns) but errs on the safe side. */
+/** Constant-deceleration fallback at the current mass, `aNet = aMax - g`: over-states the stopping distance, erring safe. */
 function constantDecelBurn(
   surf: number,
   h: number,
@@ -160,8 +119,7 @@ function constantDecelBurn(
   };
 }
 
-/** Bisection root of a monotonic `f` on `[lo, hi]` (f(lo) and f(hi) opposite
- * sign). 60 iterations → ~1e-18 relative on a full-range bracket; ample. */
+/** Bisection root of a monotonic `f` on `[lo, hi]`; 60 iterations are ample for a full-range bracket. */
 function bisect(f: (t: number) => number, lo: number, hi: number): number {
   let a = lo;
   let b = hi;
@@ -173,18 +131,13 @@ function bisect(f: (t: number) => number, lo: number, hi: number): number {
   return (a + b) / 2;
 }
 
-/** The real rocket-equation suicide burn: constant thrust `F`, mass falling from
- * `m0` to `mdry` as fuel burns, so the deceleration RISES through the burn.
+/**
+ * The rocket-equation suicide burn: constant thrust `F` with mass falling from `m0` to `mdry`, so deceleration rises through the burn.
  *
- * Given the active engine's exhaust velocity `ve` (= Isp·g0) and mass-flow
- * ṁ = F/ve, the along-vector speed is
- *   s(t) = surf + g·t + ve·ln(1 − t/τ),   τ = m0/ṁ
- * (the ln term is the delivered ΔV; `g·t` the gravity loss). s is strictly
- * decreasing while TWR>1, so the null time `t_stop` is a clean bisection root;
- * the distance is the closed-form integral of s. The burn is capped at the fuel
- * (t_fuel = (m0−mdry)/ṁ): if the vessel can't null the vector within that, or
- * within the remaining height `h`, it arrives at terrain still moving: a
- * genuine NO LANDING VECTOR, not a fixed-decel artefact. */
+ * With mass flow mdot = F / ve, the along-vector speed is
+ *   s(t) = surf + g*t + ve*ln(1 - t/tau),   tau = m0 / mdot
+ * s falls strictly while TWR > 1, so the null time is a bisection root and the distance is s's closed-form integral. The burn is capped at t_fuel = (m0 - mdry) / mdot; failing to null within that or the remaining height is a genuine NO LANDING VECTOR.
+ */
 function rocketEquationBurn(
   surf: number,
   h: number,
@@ -201,30 +154,29 @@ function rocketEquationBurn(
   const speed = (t: number) => surf + g * t + ve * Math.log(1 - t / tau);
   const dist = (t: number) => {
     const u = 1 - t / tau;
-    // ∫₀ᵗ ve·ln(1−t'/τ) dt' = −ve·τ·(u·ln u − u + 1); u·ln u → 0 as u → 0.
+    // Integral of ve*ln(1 - t'/tau) from 0 to t is -ve*tau*(u*ln u - u + 1), with u*ln u going to 0 as u does.
     const uLnU = u <= 0 ? 0 : u * Math.log(u);
     return surf * t + 0.5 * g * t * t - ve * tau * (uLnU - u + 1);
   };
 
-  // Ideal (fuel-unbounded) null time, always exists in (0, τ): s(0)=surf>0 and
-  // s→−∞ as t→τ. This is the datum for the ignition point + the full-null dV.
+  // The ideal null time always exists in (0, tau): s(0) = surf > 0 and s falls without bound as t nears tau.
   const tStopIdeal = bisect(speed, 0, tau * (1 - 1e-12));
   const stopDistance = dist(tStopIdeal);
-  const burnDeltaV = surf + g * tStopIdeal; // = ve·ln(m0/m(t_stop))
+  const burnDeltaV = surf + g * tStopIdeal;
 
   // The powered phase ends at whichever comes first: the vessel stops, or the tank runs dry. `bestSpeedAtImpact` is the speed once it reaches terrain.
   const tPowerEnd = Math.min(tStopIdeal, tFuel);
   const distPowerEnd = dist(tPowerEnd);
   let bestSpeedAtImpact: number;
   if (distPowerEnd >= h) {
-    // Hits terrain while still under power → residual at the ground.
+    // Hits terrain while still under power: the residual at the ground.
     const tGround = bisect((t) => dist(t) - h, 0, tPowerEnd);
     bestSpeedAtImpact = Math.max(0, speed(tGround));
   } else if (tStopIdeal <= tFuel) {
-    // Stopped above terrain with fuel to spare → a safe touchdown.
+    // Stopped above terrain with fuel to spare: a safe touchdown.
     bestSpeedAtImpact = 0;
   } else {
-    // Fuel exhausted above terrain, still moving → free-fall the rest.
+    // Fuel exhausted above terrain, still moving: free-fall the rest.
     const vOut = Math.max(0, speed(tFuel));
     bestSpeedAtImpact = Math.sqrt(vOut * vOut + 2 * g * (h - distPowerEnd));
   }
@@ -259,8 +211,7 @@ export function solveSuicideBurn(inp: SuicideBurnInputs): LandingSolution {
   const g = mu / (r * r);
   if (!(g > 0) || !Number.isFinite(g)) return base("no-solution");
 
-  // Full velocity vector magnitude. Guard against a surfaceSpeed that is
-  // (spuriously) below the vertical component: horizontal is never negative.
+  // The full vector's magnitude, guarded so a surface speed below its vertical component never gives a negative horizontal.
   const surf =
     inp.surfaceSpeed !== undefined && inp.surfaceSpeed > vDown
       ? inp.surfaceSpeed
@@ -293,12 +244,10 @@ export function solveSuicideBurn(inp: SuicideBurnInputs): LandingSolution {
     maxAccel: aMax,
   };
 
-  // A suicide burn needs net deceleration, thrust must beat gravity (TWR > 1).
+  // A suicide burn needs thrust to beat gravity (TWR > 1).
   if (aMax === null || !(aMax > g)) return solved;
 
-  // The rocket-equation model needs the active engine's ve + the active stage's
-  // burnout mass; when either is missing (legacy callers / tests) fall back to
-  // constant-deceleration at the current mass. Both paths return a `BurnResult`.
+  // The rocket-equation model needs the active engine's ve and burnout mass; without either it falls back to constant deceleration.
   const { exhaustVelocity, burnoutMass, totalMass, availableThrust } = inp;
   const canRocketSolve =
     exhaustVelocity !== undefined &&
@@ -321,8 +270,7 @@ export function solveSuicideBurn(inp: SuicideBurnInputs): LandingSolution {
     : constantDecelBurn(surf, h, g, aMax);
 
   const ignitionAltitude = h - burn.stopDistance;
-  // Countdown to the latest ignition: ballistic fall through `stopDistance` of
-  // vertical altitude. 0 ("IGNITE") once already at or past the ignition point.
+  // Ballistic fall through `stopDistance` of vertical altitude; 0 ("IGNITE") at or past the ignition point.
   const suicideBurnCountdown =
     ignitionAltitude <= 0
       ? 0

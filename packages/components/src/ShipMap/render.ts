@@ -1,9 +1,6 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-// ShipDiagramSvg deliberately keeps one styled block (PartGroup, an SVG <g>
-// keyboard focus ring that inline style cannot express, see its own note); this
-// server-side extraction folds that block's CSS into the standalone SVG string.
-// It stays until PartGroup can.
+// Folds PartGroup's styled CSS (an SVG <g> focus ring) into the standalone SVG string.
 // biome-ignore lint/style/noRestrictedImports: collects PartGroup's CSS for standalone SVG export (see above)
 import { ServerStyleSheet } from "styled-components";
 import { ShipDiagramSvg } from "./ShipDiagramSvg";
@@ -15,20 +12,14 @@ export interface RenderShipMapOptions {
   /** `ShipMapPart.flightId`, stringified, of the one part to ring. */
   highlightPartId?: string | null;
   highlightColor?: string;
-  /** Background colour painted behind the diagram. Defaults to the app
-   *  surface colour so the SVG looks the same as in the dashboard. */
+  /** Background painted behind the diagram. Defaults to the app surface colour. */
   background?: string;
 }
 
 /**
- * Render the ship diagram to a self-contained SVG string.
- *
- * Output is portable: CSS-variable references are resolved via an embedded
- * `<style>` block carrying the dark-mode palette from
- * `packages/app/src/styles/global.css`, so the SVG renders correctly in
- * any viewer (browser, IDE preview, screenshot diff). styled-components
- * classes (non-deterministic `sc-...` hashes) are stripped so snapshot
- * tests stay stable.
+ * Render the ship diagram to a self-contained SVG string: CSS variables
+ * resolve through an embedded dark-palette `<style>` block, so it renders in
+ * any viewer, and nondeterministic `sc-` classes are stripped.
  */
 export function renderShipMapToSvg(
   parts: readonly ShipMapPart[],
@@ -58,8 +49,7 @@ export function renderShipMapToSvg(
 
   const stripped = stripNonDeterministicClasses(rendered);
 
-  // Inject xmlns, a background <rect>, and a <style> block that resolves
-  // the CSS variables. We do this by rebuilding the opening <svg> tag.
+  // xmlns, a background rect and the variable-resolving style block, by rebuilding the opening <svg> tag.
   const withChrome = stripped.replace(
     /^<svg([^>]*)>/,
     `<svg$1 xmlns="http://www.w3.org/2000/svg">${SVG_STYLE_BLOCK}<rect width="${width}" height="${height}" fill="${background}" />`,
@@ -69,20 +59,11 @@ export function renderShipMapToSvg(
 }
 
 function stripNonDeterministicClasses(html: string): string {
-  // styled-components v6 emits `class="sc-XXXXXX hashYYYY"` on every styled
-  // element: both tokens vary per build. Strip any class attribute that
-  // contains an `sc-` token. Deterministic classes (e.g. `focus-ring` on
-  // the keyboard-focus rect) have no `sc-` prefix and are untouched.
+  // Both tokens of a styled-components class vary per build; deterministic classes such as `focus-ring` carry no `sc-` and stay.
   return html.replace(/\sclass="[^"]*\bsc-[^"]*"/g, "");
 }
 
-/**
- * Resolved CSS variables: must stay in sync with
- * `packages/app/src/styles/global.css`. Inlined here so the SVG output
- * is standalone (no dependency on the app's stylesheet). Only the
- * variables the ship diagram actually references are duplicated; the
- * rest of the palette is intentionally omitted.
- */
+/** Resolved CSS variables, only those the diagram references. Must stay in sync with `packages/app/src/styles/global.css`. */
 const SVG_STYLE_BLOCK = `<style><![CDATA[
 :root {
   --color-text-primary: #ccc;

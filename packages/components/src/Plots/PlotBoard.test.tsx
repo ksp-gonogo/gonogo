@@ -10,13 +10,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { PlotBoard } from "./PlotBoard";
 
 /**
- * What the arranger does with what it is handed, and the two things it must not
- * do with it.
- *
- * The contributions go in through the REAL registry rather than a stubbed hook:
- * the questions here are about the slot being global and about an entry with
- * nothing on it, and both of those are answered by the registry and the
- * aggregation rather than by this component alone.
+ * What the arranger does with what it is handed, through the real registry,
+ * since slot globality and empty entries are the registry's and aggregation's
+ * answers, not this component's alone.
  */
 
 const FRAME: PlotEntry["frame"] = {
@@ -42,11 +38,7 @@ function Host({ componentId = "host-widget" }: { componentId?: string }) {
   );
 }
 
-// `beforeEach` only, deliberately. Two tests below register the same id, so a
-// clear between them is load-bearing; an `afterEach` one is not, and it clears
-// the registry while the tree is still mounted, so every `useSyncExternalStore`
-// subscriber re-renders outside `act` (CLAUDE.md's third cause). RTL's own
-// auto-cleanup has already unmounted by the time the next `beforeEach` runs.
+// `beforeEach` only: two tests register the same id, and an `afterEach` clear would notify a still-mounted tree outside `act`.
 beforeEach(() => {
   clearContributions();
 });
@@ -68,19 +60,12 @@ describe("PlotBoard", () => {
 
     render(<Host />);
 
-    // The contributor wrote `plots`, never `host-widget.plots`, and the widget hosting it is one it has never heard of.
+    // The contributor wrote `plots`, and the hosting widget is one it has never heard of.
     await waitFor(() => expect(screen.getByText("Guest plot")).toBeTruthy());
     await act(async () => {});
   });
 
-  /**
-   * The absence case, and the reason it is a test rather than a comment: the
-   * shape a layerless plot renders as is not blank. `GraphView` draws its frame,
-   * pins the axes it was given and lays "Configure series to begin graphing."
-   * across the middle, so the failure mode is a complete-looking instrument
-   * saying nothing, which reads as "nothing is happening" rather than "nothing
-   * is known".
-   */
+  // A layerless plot would render a framed, captioned instrument saying nothing, which reads as "nothing is happening" rather than "nothing is known".
   it("renders nothing at all for a plot with no layers", async () => {
     registerContribution({
       id: "silent-plot",
@@ -124,7 +109,7 @@ describe("PlotBoard", () => {
     registerContribution({
       id: "irrelevant-plot",
       contributes: "plots",
-      // Relevance, the only route there is: not now, for whatever reason the plot's own subject gives it.
+      // Not relevant now: the only route to no plot.
       compute: () => null,
     });
 

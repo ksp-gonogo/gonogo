@@ -3,10 +3,8 @@
  * quantity: the not-current mark, the model's two bounds, and the sentence a
  * screen reader hears.
  *
- * The vocabulary is `<Unit>`'s and `<Meter>`'s, in SVG. An instrument draws in
- * a medium where a span cannot go, so the dot is a tspan and the bound is a
- * line, but the hue, the shape and the wording are the same ones a readout
- * beside it uses. Nothing here is a second way of saying not current.
+ * The vocabulary is `<Unit>`'s and `<Meter>`'s, in SVG: the dot is a tspan and
+ * the bound is a line, with the same hue, shape and wording.
  */
 import type { ReactNode } from "react";
 import { severityDotColor } from "./status/severityDotColor";
@@ -14,20 +12,14 @@ import { severityDotColor } from "./status/severityDotColor";
 /**
  * The not-current mark, as an instrument can draw it.
  *
- * An SVG text cannot hold a span, so the dot rides inside the readout as a
- * superscript tspan instead of hanging off a positioned box. It keeps what
- * carries the meaning: the same warning hue the panel badge and the readout dot
- * are painted from, and a SHAPE that is present or absent, so nothing rests on
- * telling amber from grey (WCAG 1.4.1).
- *
- * Silent to a screen reader. The instrument says it in words through
- * {@link sayHeld} on its accessible name, where a bullet read out after
- * every figure would only bury it.
+ * A superscript tspan in the readout's warning hue; a shape that is present or
+ * absent, so nothing rests on telling amber from grey. Silent to a screen
+ * reader: the instrument says it through {@link sayHeld}.
  */
 export function InstrumentHeldMark({ size }: { size: number }) {
   return (
     <tspan
-      // Raised against the digits rather than sitting on the baseline, which is what makes it read as a mark on the figure instead of another figure.
+      // Raised, so it reads as a mark on the figure rather than another figure.
       dy={-size * 0.55}
       fontSize={size}
       fill={severityDotColor("warning")}
@@ -42,22 +34,14 @@ export function InstrumentHeldMark({ size }: { size: number }) {
  * How far a model's bound has to sit from the observation, as a fraction of
  * the instrument's whole scale, before the bounds are drawn at all.
  *
- * One percent because that is the finest step a percentage readout writes: a
- * bound closer to the figure than that says nothing the number beside it does
- * not, and on a meter of ordinary width it lands on or against the end of the
- * bar, where it reads as part of the bar rather than as a second place.
+ * One percent, the finest step a percentage readout writes.
  */
 export const BAND_MARK_TOLERANCE = 0.01;
 
 /**
  * Whether a model's bounds stand visibly apart from the observation, every
- * position a fraction of the scale. They are drawn only when at least one does:
- * a model that agrees with the reading to within {@link BAND_MARK_TOLERANCE}
- * has nothing to show, live or held, and its marks come back as soon as it
- * disagrees.
- *
- * Positions are clamped to the scale first, because that is where the marks
- * are drawn; `wraps` measures the short way round a scale whose ends meet.
+ * position a fraction of the scale, clamped to it first. `wraps` measures the
+ * short way round a scale whose ends meet.
  */
 export function boundsStandApart(
   observed: number,
@@ -76,13 +60,8 @@ export function boundsStandApart(
 /**
  * One end of the model's interval, drawn across the instrument's own track.
  *
- * Two marks and never a shaded interval, the same choice the meter made: a
- * shaded span reads as a region the value is IN, and a band is a claim about
- * how well one number is known.
- *
- * The caller owns the geometry, because an arc, a rail and a face put a bound
- * in three different places. What is shared is how it looks, so two
- * instruments on one panel cannot draw the same claim two ways.
+ * Two marks, never a shaded interval, as on `<Meter>`. The caller owns the
+ * geometry; what is shared is how it looks.
  */
 export function InstrumentBound({
   end,
@@ -115,10 +94,7 @@ export function InstrumentBound({
 /**
  * The accessible name, with the currency said after it.
  *
- * An instrument's name is an attribute and can only hold text, so the caption
- * goes on the end of it rather than into a hidden node the way a readout does.
- * Nothing is appended when the figure is current, so an unconverted instrument
- * announces exactly what it announced before.
+ * Nothing is appended when the figure is current.
  */
 export function sayHeld(name: string, caption: string | null): string {
   return caption === null ? name : `${name}, ${caption}`;
@@ -139,9 +115,8 @@ export function heldNameMarker(caption: string | null): {
  * What an instrument shows in place of a needle when the reading carries no
  * number at all.
  *
- * A needle parked at the bottom of the scale is a READING: it says the value is
- * that. So an instrument with nothing to point at draws no pointer, and says so
- * where the figure would have gone.
+ * A needle parked at the bottom of the scale would be a reading, so an
+ * instrument with nothing to point at draws no pointer.
  */
 export function InstrumentNoFigure({
   x,

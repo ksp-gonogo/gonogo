@@ -21,36 +21,21 @@ export interface StepperProps<T> {
   format?: (value: T) => string;
   disabled?: boolean;
   /** Sits under the value, for the sentence that explains what the setting
-   * costs. Not a tooltip: the reason to change a setting should not be hidden
-   * behind a hover. */
+   * costs. */
   children?: React.ReactNode;
   "data-testid"?: string;
 }
 
 /**
  * A stepper over a FIXED ORDERED SET: eight step counts, four tolerances, five
- * quality levels. Not a number the operator may type and not a continuous
- * slider, because neither models a set whose only legal members are the ones
- * listed.
+ * quality levels. For a free quantity with a unit use `UnitInput`; for one
+ * tuned by feel use `JogWheel`.
  *
- * Stepper, `UnitInput` or `JogWheel`? Three different quantities:
- *
- *   - Stepper holds one of a SMALL CLOSED SET, and the set is the point. Any
- *     value between two members is not merely unusual, it is not a value.
- *   - `UnitInput` holds a free quantity with a unit. Any number in range is
- *     legal and the operator usually knows the one they want.
- *   - `JogWheel` holds a quantity being tuned by feel, where the interesting
- *     thing is the RATE of change rather than the value typed.
- *
- * Rendered as the ARIA spinbutton pattern, which is what a stepper is: the
- * readout carries `role="spinbutton"` and the arithmetic, the two buttons beside
- * it are ordinary buttons that drive it. `aria-valuenow` carries the INDEX
- * rather than the value, because the members need not be evenly spaced and a
- * screen reader announcing "1048576 of 8" would be nonsense; `aria-valuetext`
- * carries the formatted member, which is what actually gets announced.
- *
- * Keyboard, per the pattern: up and right step forward, down and left step back,
- * Home and End go to the ends.
+ * Rendered as the ARIA spinbutton pattern. `aria-valuenow` carries the INDEX
+ * rather than the value, because the members need not be evenly spaced;
+ * `aria-valuetext` carries the formatted member, which is what gets announced.
+ * Up and right step forward, down and left step back, Home and End go to the
+ * ends.
  */
 export function Stepper<T>({
   options,
@@ -81,9 +66,7 @@ export function Stepper<T>({
     [disabled, onChange, options, value],
   );
 
-  // An index of -1 means the held value is not in the set. Stepping from there
-  // has to land somewhere, and the ends are the only two answers that need no
-  // guess about which neighbour was meant.
+  // A held value outside the set steps to an end, the only answer that needs no guess at the neighbour.
   const back = () => step(index < 0 ? 0 : index - 1);
   const forward = () => step(index < 0 ? options.length - 1 : index + 1);
 

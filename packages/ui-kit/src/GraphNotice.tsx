@@ -7,11 +7,9 @@ export type GraphNoticePlacement = "overlay" | "inline";
 export interface GraphNoticeProps extends HTMLAttributes<HTMLDivElement> {
   children?: ReactNode;
   /**
-   * `overlay` pins the pill to the bottom-left corner on top of the graph
-   * (absolute positioning, pair with a `position: relative` ancestor,
-   * e.g. `Fill`). `inline` sits as a normal flow row below the graph
-   * instead, for a widget where an overlay would cover the x-axis tick
-   * labels at narrow heights.
+   * `overlay` pins the pill to the bottom-left corner over the graph (pair with
+   * a `position: relative` ancestor such as `Fill`). `inline` sits as a flow
+   * row below the graph, where an overlay would cover the x-axis labels.
    */
   placement: GraphNoticePlacement;
 }
@@ -32,15 +30,8 @@ const PLACEMENT_STYLES = {
 
 /**
  * Faint degraded-state pill for a graph widget ("no reference data",
- * "unknown body", ...), extracted from the near-identical `Notice =
- * styled.div` blocks scattered across the Graph-family widgets
- * (OrbitalAscent, KeplerPeriod, and the still-styled-components
- * AtmosphereProfile / EscapeProfile).
- *
- * `pointer-events: none` throughout, the pill is informational only and
- * must never intercept clicks meant for the graph underneath.
- * `role="status"` by default so screen readers announce the degraded
- * state; override via the `role` prop if a caller needs otherwise.
+ * "unknown body"). `pointer-events: none`, so it never intercepts the graph's
+ * clicks. `role="status"` by default; override via `role`.
  */
 export function GraphNotice({
   placement,

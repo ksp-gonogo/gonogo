@@ -13,16 +13,7 @@ import {
 } from "../test/setupStreamFixture";
 import { OrbitalAscentComponent } from "./index";
 
-/**
- * The widget's own read is the parent-body name, resolved from
- * `vessel.identity.parentBodyIndex` against `system.bodies`. The reference
- * curve is then computed client-side from the body registry. The two plotted
- * series (`vessel.flight.altitudeAsl` and the horizontal speed computed off
- * `vessel.flight`) go through the shared GraphView
- * path and are left empty here, the assertions only cover the body-driven
- * reference curve, so no series data is emitted.
- */
-
+// Covers the body-driven reference curve only; no series data is emitted.
 const ORBITAL_ASCENT_CHANNELS = [
   "vessel.flight",
   "vessel.identity",
@@ -31,19 +22,13 @@ const ORBITAL_ASCENT_CHANNELS = [
 
 describe("OrbitalAscentComponent", () => {
   let restoreResizeObserver: () => void = () => {};
-  // Trees are unmounted synchronously in afterEach before clearBodies()
-  // notifies the body-registry subscribers, that notification re-renders a
-  // still-mounted widget, the act() anti-pattern. RTL auto-cleanup runs after
-  // this hook, too late to rely on for the ordering.
+  // Unmounted before clearBodies(), which would otherwise notify a mounted tree outside act().
   const trees: Array<() => void> = [];
 
   beforeEach(() => {
     clearBodies();
     registerStockBodies();
-    // The default installDomStubs ResizeObserver never fires its callback,
-    // which leaves LineChart's `size` null and skips the SVG paths we want
-    // to assert against. Stub a version that fires once on observe(), the
-    // same shape used by the Graph widget's own tests.
+    // LineChart draws no paths until its ResizeObserver reports a size.
     restoreResizeObserver = installFixedSizeResizeObserver({
       width: 400,
       height: 300,
@@ -75,13 +60,7 @@ describe("OrbitalAscentComponent", () => {
     return { ...result, fixture };
   }
 
-  /**
-   * Stream the parent body through vessel.identity + system.bodies.
-   *
-   * `facts` are the physical ones the roster reports. Omitting `radius` is the
-   * one case where nothing anywhere knows the body, which is a different state
-   * from a body with no gravitational parameter.
-   */
+  /** Streams the parent body; a null radius is an unknown body, unlike a missing gravitational parameter. */
   function emitBody(
     fixture: StreamFixture,
     name: string,
@@ -110,9 +89,7 @@ describe("OrbitalAscentComponent", () => {
 
   it("renders the title and no reference curve before v.body arrives", async () => {
     const { container } = renderAscent();
-    // Wait for the panel to actually render (covers any post-mount async
-    // settling from the buffered series subscription) before asserting
-    // the negative.
+    // Waits for the panel so the negative assertion is not vacuous.
     await screen.findByText("ORBITAL ASCENT");
     expect(container.querySelectorAll("path[stroke-dasharray]")).toHaveLength(
       0,
@@ -124,7 +101,6 @@ describe("OrbitalAscentComponent", () => {
 
     emitBody(fixture, "Kerbin");
 
-    // The reference curve is a dashed SVG path inside the LineChart svg.
     await waitFor(() => {
       const dashed = container.querySelectorAll("path[stroke-dasharray]");
       expect(dashed.length).toBeGreaterThan(0);
@@ -150,11 +126,6 @@ describe("OrbitalAscentComponent", () => {
     );
   });
 
-  /*
-   * "Unknown" now means nothing REPORTED a radius and no table had one either.
-   * It used to mean "not in the bundled stock table", which a planet-pack
-   * rename made true of every body the player was actually flying near.
-   */
   it("falls back to a notice when nothing reports a radius for the body", async () => {
     const { fixture } = renderAscent();
 
@@ -163,14 +134,7 @@ describe("OrbitalAscentComponent", () => {
     expect(await screen.findByText(/unknown body/i)).toBeInTheDocument();
   });
 
-  /**
-   * The curve is `circularOrbitVelocity`, which needs the body's radius and
-   * gravitational parameter. Both are reported per body, and both used to be
-   * taken from a table of stock bodies keyed by NAME instead, so under a planet
-   * pack the whole reference curve vanished and the widget said the body was
-   * unknown. Rendered rather than run through `buildReferenceCurve`, which
-   * takes the body as an argument and cannot see where it came from.
-   */
+  // Radius and gravitational parameter come from the streamed roster, so a planet-pack body still draws.
   it("draws the reference curve for a body the stock table has never heard of", async () => {
     const { container, fixture } = renderAscent();
 

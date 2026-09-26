@@ -14,15 +14,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FleetRosterComponent } from "./index";
 
-/**
- * FleetRoster runs entirely off the real stream: `system.vessels` (every
- * known vessel, loaded or not, KspHost.BuildVesselRosterEntry's capture-add)
- * plus `system.bodies` to resolve each entry's `bodyIndex` to a display
- * name. There is no legacy `MockDataSource`/`fleet.vessels` registered here,
- * that key never existed at runtime (see the FleetRoster stub-fix commit);
- * this is the real `TelemetryProvider`/`TimelineStore` pipeline via
- * `setupStreamFixture`.
- */
+/** FleetRoster runs entirely off the real stream: `system.vessels` for the roster, `system.bodies` for body names. */
 
 const BODIES = {
   bodies: [
@@ -69,9 +61,7 @@ const MIXED = {
       commsControlSource: RosterCommsControlSource.Partial,
     },
     {
-      // A real CommNet read of "no link home", a confirmed ops fact, not an
-      // absence. vesselType 0 (Ship), not Station, this is a crewed craft,
-      // not a habitat.
+      // A real CommNet "no link home": a confirmed ops fact, not an absence.
       vesselId: "v-orbiter-eve",
       name: "Eve Orbiter Charlie",
       vesselType: 0,
@@ -83,13 +73,7 @@ const MIXED = {
       commsControlSource: RosterCommsControlSource.None,
     },
     {
-      // No crew/comms/body fields at all - the producer's own transient
-      // "could not read this tick" case (BuildVesselRosterEntry's try/catch
-      // default, or a not-yet-resolved protoVessel/orbitDriver on a
-      // freshly-spawned vessel). vesselType 14 (Unknown) is NOT filtered out
-      // by isRosterCraft - an unclassified vessel is a real "we don't know"
-      // fact, not license to make the row vanish. Must render as an honest
-      // unknown, never a fabricated zero/no-link.
+      // No crew, comms or body fields: the producer could not read this tick. Unknown is not filtered, and must render as unknown, never a fabricated zero or no-link.
       vesselId: "v-unresolved",
       name: "New Contact",
       vesselType: 14,
@@ -98,14 +82,7 @@ const MIXED = {
   ],
 };
 
-/**
- * Every non-craft `VesselType` the roster must filter out, plus one real
- * craft and one genuinely-unclassified contact as controls. Debris and
- * asteroids are the two the operator explicitly flagged, but the same
- * "not a vehicle" reasoning applies to a planted flag, an EVA kerbal, and
- * Kerbalism-style deployed science hardware - see isRosterCraft's own doc
- * comment for why each is excluded.
- */
+/** Every non-craft `VesselType` the roster must filter out, plus one real craft and one unclassified contact as controls. */
 const NON_CRAFT = {
   vessels: [
     {
@@ -131,12 +108,7 @@ const NON_CRAFT = {
       situation: 0,
     },
     {
-      // Real, honest zeros for crew (Part.CrewCapacity sums to 0 for debris -
-      // ProtoVessel.GetVesselCrew()/partPrefab.CrewCapacity both resolve
-      // cleanly), but comms fields are OMITTED - verified against
-      // CommNet.CommNetVessel.OnStart (decompile): VesselType.Debris never
-      // gets a CommNetVessel attached at all, so this is the vessel's
-      // permanent state, not a glitch. Must not render at all now.
+      // Debris never gets a CommNetVessel, so omitted comms is its permanent state. Must not render.
       vesselId: "v-debris",
       name: "Stage 2 Debris",
       vesselType: 9, // Debris
@@ -146,8 +118,7 @@ const NON_CRAFT = {
       crewCapacity: 0,
     },
     {
-      // Same structural reason as debris - CommNetVessel.OnStart's guard
-      // excludes VesselType.SpaceObject too. Must not render at all now.
+      // Space objects get no CommNetVessel either. Must not render.
       vesselId: "v-asteroid",
       name: "Ast. XC7-142",
       vesselType: 10, // SpaceObject
@@ -271,19 +242,17 @@ describe("FleetRosterComponent", () => {
     expect(screen.getByText("Duna Lander Bravo")).toBeInTheDocument();
     expect(screen.getByText("Eve Orbiter Charlie")).toBeInTheDocument();
     expect(screen.getByText("New Contact")).toBeInTheDocument();
-    // Body names resolved via system.bodies. Each craft orbits a distinct
-    // body; the unresolved contact has no resolvable body at all.
+    // Body names resolved via system.bodies; the unresolved contact has none.
     expect(screen.getByText("Kerbin")).toBeInTheDocument();
     expect(screen.getByText("Mun")).toBeInTheDocument();
     expect(screen.getByText("Duna")).toBeInTheDocument();
     expect(screen.getByText("Eve")).toBeInTheDocument();
-    // Crew: the probe's real, honest 0/0; the rest are distinct crewed
-    // counts. Only the fully-unresolved contact renders an em-dash for crew.
+    // The probe's honest 0/0 renders; only the unresolved contact shows the null token for crew.
     expect(visibleText()).toContain("0/0");
     expect(visibleText()).toContain("6/6");
     expect(visibleText()).toContain("2/3");
     expect(visibleText()).toContain("1/1");
-    // Em-dashes: the unresolved contact's Body cell, Crew cell, and the Link column's "unknown" tag - three in total.
+    // Null tokens: the unresolved contact's Body cell, Crew cell and "unknown" Link tag, three in total.
     expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(3);
     // Comms link tags: direct / relay / none / unknown.
     expect(screen.getByText("DIRECT")).toBeInTheDocument();
@@ -446,12 +415,7 @@ describe("FleetRosterComponent", () => {
     ],
   };
 
-  /**
-   * The five operator states, and specifically the two that are easy to get
-   * wrong: a silent craft with NO prediction must read "no contact" and never
-   * "overdue" (nothing promised it would be back), and going overdue must not
-   * be the same thing as being declared lost.
-   */
+  /** A silent craft with no prediction reads "no contact", never "overdue", and going overdue is not being declared lost. */
   async function renderWithContact(silence: Record<string, unknown>) {
     const fixture = setupStreamFixture({
       carriedChannels: [
@@ -485,10 +449,7 @@ describe("FleetRosterComponent", () => {
   it("counts down to a predicted reacquisition", async () => {
     await renderWithContact(SILENT);
 
-    // pinned UT 2000, predicted 2600 => 10 minutes out. The interval renders
-    // through `Unit`, which splits the number from its symbol into separate
-    // nodes, so the duration is asserted on the badge's textContent rather
-    // than by a text match that would only ever see the literal prefix.
+    // Pinned UT 2000, predicted 2600: 10 minutes out. `Unit` splits number and symbol into separate nodes, so the badge's textContent is asserted.
     const badge = await screen.findByText(/reacquire in/i);
     expect(badge.textContent).toContain("10min");
   });
@@ -497,8 +458,7 @@ describe("FleetRosterComponent", () => {
     await renderWithContact({ ...SILENT, predictedReacquisitionUt: 1_800 });
 
     const overdue = await screen.findByText(/overdue by/i);
-    // pinned UT 2000, predicted 1800 => 200s late (see the note above on why
-    // the duration is read off textContent).
+    // Pinned UT 2000, predicted 1800: 200s late.
     expect(overdue.textContent).toContain("3min 20s");
     expect(overdue.closest("[role='status']")).not.toBeNull();
     expect(screen.queryByText(/lost/i)).toBeNull();
@@ -529,9 +489,7 @@ describe("FleetRosterComponent", () => {
       suspendFrames: true,
     });
     renderRoster(fixture);
-    // The row (and its fleet.<guid>.delay subscription) only mounts once
-    // system.vessels arrives; emit that first and wait for the row, THEN emit
-    // the delay, so the subscription-gated transport actually delivers it.
+    // The row and its `.delay` subscription mount only once system.vessels arrives, so the delay is emitted after the row renders.
     act(() => {
       fixture.emit("system.vessels", ONE_PROBE);
     });
@@ -549,10 +507,7 @@ describe("FleetRosterComponent", () => {
     act(() => {
       trigger.click();
     });
-    // round-trip = 2 x one-way = 9.0 s
-    // Scope to the disclosure's own group via the trigger's aria-controls: the
-    // panel header now nests the aside in a `<details>`, itself a role="group",
-    // so a bare getByRole("group") is ambiguous.
+    // A bare getByRole("group") is ambiguous (the panel header nests a `<details>`), so scope via the trigger's aria-controls.
     await waitFor(() => {
       const panel = document.getElementById(
         trigger.getAttribute("aria-controls") ?? "",
@@ -564,14 +519,7 @@ describe("FleetRosterComponent", () => {
     });
   });
 
-  /**
-   * The blackout contradiction the operator actually reported. `fleet.<guid>.delay`
-   * is Delayed and NOT freeze-exempt, and the mod arms the per-subject freeze one
-   * statement before that tick's `.delay` publish, so the LAST payload a client
-   * ever receives for a vessel entering blackout carries `connected: true` and a
-   * last-known light-time. `fleet.<guid>.contact` is freeze-exempt precisely so
-   * the disconnect edge can escape, and it is what the Link row must read.
-   */
+  /** The last `.delay` payload before a blackout still claims `connected: true`; the Link row must read the freeze-exempt `.contact`. */
   const BLACKED_OUT_PROBE = {
     vessels: [
       {
@@ -590,15 +538,7 @@ describe("FleetRosterComponent", () => {
     return panel as HTMLElement;
   }
 
-  /**
-   * The value of one term in the signal disclosure's definition list.
-   *
-   * Deliberately NOT a `visibleText` regex over the whole panel: that
-   * concatenates with no separator ("LinkconnectedDelayone-way ~4s"), so a
-   * `\bconnected\b` assertion has no word boundary to anchor on and passes
-   * against the very text it was written to catch. Asking the `<dd>` beside a
-   * named `<dt>` is the question the test actually means.
-   */
+  /** One term's value in the signal disclosure, asked of the `<dd>` beside a named `<dt>`: the panel's concatenated text has no word boundaries to anchor a regex. */
   function definitionFor(panel: HTMLElement, term: RegExp): string {
     const dt = Array.from(panel.querySelectorAll("dt")).find((el) =>
       term.test(el.textContent ?? ""),
@@ -658,14 +598,10 @@ describe("FleetRosterComponent", () => {
   it("marks a light-time held over from before a blackout as last known, not current", async () => {
     const { trigger } = await renderBlackout();
 
-    // The figure is still worth showing, an operator planning a reacquisition
-    // wants the last measured light-time. What it must not do is read as a
-    // live measurement of a link that is down.
+    // The last measured light-time is still worth showing, but must not read as a live measurement of a link that is down.
     await waitFor(() => {
       expect(visibleText(openSignalDisclosure(trigger))).toMatch(/last known/i);
     });
-    // ... and the figure itself survives, an operator planning a reacquisition
-    // still needs it.
     expect(visibleText(openSignalDisclosure(trigger))).toMatch(
       /round-trip[\s~]*9\s*s/i,
     );
@@ -723,9 +659,7 @@ describe("FleetRosterComponent", () => {
     act(() => {
       trigger.click();
     });
-    // Scope to the disclosure's own group via the trigger's aria-controls: the
-    // panel header now nests the aside in a `<details>`, itself a role="group",
-    // so a bare getByRole("group") is ambiguous.
+    // A bare getByRole("group") is ambiguous (the panel header nests a `<details>`), so scope via the trigger's aria-controls.
     await waitFor(() => {
       const panel = document.getElementById(
         trigger.getAttribute("aria-controls") ?? "",

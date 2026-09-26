@@ -11,17 +11,10 @@ export interface AttitudeIndicatorProps {
 }
 
 /**
- * Compact attitude indicator: not a full 8-ball, but pulls together the
- * three primary attitude readouts in a way that reads at a glance:
- *
- *   - The horizon ribbon rolls and pitches inside a circular viewport,
- *     with hash marks every 10° of pitch.
- *   - A heading rose strip sits below, scrolling so the current heading
- *     sits at the centre.
- *
- * Markers (prograde, retrograde, normal etc.) are deferred, they need
- * direction vectors the wire doesn't carry for a compact projection,
- * and the attitude readouts here already cover the GNC use-case for v1.
+ * Compact attitude indicator: a horizon ribbon that rolls and pitches inside a
+ * circular viewport, over a heading strip that scrolls to keep the current
+ * heading centred. No prograde/normal markers: the wire carries no direction
+ * vectors to project them from.
  */
 export function AttitudeIndicator({
   heading,
@@ -40,21 +33,10 @@ export function AttitudeIndicator({
   const safeRoll = roll ?? 0;
   const safeHeading = heading ?? 0;
 
-  // 1° of pitch = pitchScale px on the horizon ribbon. r/90 maps the full
-  // physical pitch range (+/-90, straight up to straight down) onto the
-  // dial's radius, so the horizon line only ever reaches the very edge at
-  // the extremes: a common ~45 climb (see the Navball "gravity-turn-east"
-  // fixture) still leaves the horizon roughly mid-dial instead of pinning
-  // it off the edge. r/45 would put the horizon at the edge (ground/sky
-  // band clipped to invisible) at just +/-45, well short of "without
-  // horizon-bar disappearing on climbs" below, and leave an unfilled gap
-  // across half the dial at +/-90: the sky/ground rects only span 2r each,
-  // so a 2r offset outruns them, while r/90's max +/-r offset keeps a
-  // rect's span flush with the dial exactly at the extreme.
+  // r/90 maps +/-90 pitch onto the radius, so the horizon reaches the edge only at the extremes and the 2r sky/ground rects never outrun the dial.
   const pitchScale = r / 90;
   const horizonOffset = safePitch * pitchScale;
 
-  // Heading band: 1° = 4px gives ~120° of context across a 480px-equivalent strip; we scale relative to size so smaller widgets compress.
   const headingPxPerDeg = size / 90;
   const headingTickEvery = 10;
 
@@ -77,7 +59,6 @@ export function AttitudeIndicator({
           <g clipPath={`url(#${clipId})`}>
             <g transform={`rotate(${safeRoll} ${cx} ${cy})`}>
               <g transform={`translate(0 ${horizonOffset})`}>
-                {/* Sky */}
                 <rect
                   x={cx - r * 2}
                   y={cy - r * 2}
@@ -86,7 +67,6 @@ export function AttitudeIndicator({
                   fill="var(--color-status-info-fg)"
                   opacity={0.18}
                 />
-                {/* Ground */}
                 <rect
                   x={cx - r * 2}
                   y={cy}
@@ -95,7 +75,6 @@ export function AttitudeIndicator({
                   fill="var(--color-status-warning-bg)"
                   opacity={0.18}
                 />
-                {/* Horizon */}
                 <line
                   x1={cx - r * 2}
                   y1={cy}
@@ -104,7 +83,6 @@ export function AttitudeIndicator({
                   stroke="var(--color-text-primary)"
                   strokeWidth={1.2}
                 />
-                {/* Pitch ladder: every 10°, ± 60°. */}
                 {pitchTicks(60).map((deg) => {
                   const y = cy - deg * pitchScale;
                   const w = deg % 30 === 0 ? r * 0.45 : r * 0.25;
@@ -136,7 +114,6 @@ export function AttitudeIndicator({
             </g>
           </g>
 
-          {/* Fixed bezel: aircraft mark + roll scale */}
           <circle
             cx={cx}
             cy={cy}
@@ -169,10 +146,7 @@ export function AttitudeIndicator({
 
       <div style={HEADING_STRIP}>
         <div
-          // The ticker shares the strip's width (inset:0), so translateX(50%)
-          // shifts the whole tick row right by stripWidth/2, combined with
-          // the per-degree shift this puts the current-heading tick directly
-          // under the centred pointer instead of at the strip's left edge.
+          // translateX(50%) is half the strip's width, which puts the current-heading tick under the centred pointer.
           style={{
             ...HEADING_TICKER,
             transform: `translateX(calc(50% - ${safeHeading * headingPxPerDeg}px))`,
@@ -195,11 +169,7 @@ export function AttitudeIndicator({
         <div style={HEADING_POINTER} />
       </div>
 
-      {/* Reading first, label under it, matching the numeric readout the widget
-          degrades to: the same three readings should not swap places with their
-          own captions when the ball goes away. A reorder only, so the two
-          rendered heights this row contributes to `ATTITUDE_CHROME_PX` are
-          unchanged. */}
+      {/* Reading above label, matching the numeric readout the widget degrades to. */}
       <Grid cols="repeat(3, 1fr)" gap="related-comfortable">
         <div style={CELL}>
           <span style={VAL}>
@@ -256,20 +226,12 @@ function bearingOf(deg: number): number {
   return ((deg % 360) + 360) % 360;
 }
 
-// Structural inline styles (CSS-var tokens): a bespoke attitude readout, no
-// reusable ui-kit primitive fits, so the layout stays local. Off-scale font
-// sizes (9/14px) and the 80ms heading chase are deliberately literal (see each
-// note) and were already literal in the styled blocks this replaces.
-
 const WRAP: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   alignItems: "stretch",
   gap: "var(--gap-related)",
-  // Fill the column beside the throttle bar rather than shrinking to the dial's
-  // own width. The dial is sized to the SHORTER axis, so on a tall narrow tile
-  // it is much narrower than the space available, and a tape sized to it holds
-  // barely 30° of heading either side of the pointer.
+  // The dial is sized to the shorter axis; the heading tape fills the column so it holds more than 30 degrees either side.
   flex: "1 1 auto",
   minWidth: 0,
 };
@@ -285,11 +247,7 @@ const HEADING_STRIP: CSSProperties = {
 const HEADING_TICKER: CSSProperties = {
   position: "absolute",
   inset: 0,
-  // The ticks position absolutely against the parent, so transform on the
-  // wrapper just shifts them as a group without affecting the pointer.
-  // Off the motion scale on purpose: an 80ms chase on live heading, not a
-  // UI-motion choice. --duration-instant is the hover rung, and retuning it
-  // must not change how the strip tracks telemetry.
+  // Off the motion scale: an 80ms chase of live heading must not move when the UI motion tokens are retuned.
   transition: "transform 80ms linear",
 };
 
@@ -297,11 +255,7 @@ const HEADING_TICK: CSSProperties = {
   position: "absolute",
   top: 0,
   bottom: 0,
-  // The tick container shrinks to fit its label, so anchoring with just a
-  // left:Xpx style puts the LEFT EDGE at that position and the visible tick +
-  // label end up offset by half the container's intrinsic width.
-  // translateX(-50%) centres the visible content on the anchor so the
-  // current-heading tick lines up under the fixed pointer at strip centre.
+  // Centres the tick on its `left` anchor rather than putting its left edge there.
   transform: "translateX(-50%)",
   display: "flex",
   flexDirection: "column",
@@ -315,10 +269,7 @@ const HEADING_TICK_MARK: CSSProperties = {
 };
 
 const HEADING_TICK_LABEL: CSSProperties = {
-  // Off the type scale: this label sits under a 6px tick mark inside
-  // HeadingStrip's fixed 22px, which leaves ~20px after its border.
-  // --font-size-2xs is 11px on a coarse pointer and the strip's
-  // overflow: hidden clips the label at that size.
+  // Off the type scale: the smallest token is 11px on a coarse pointer, which the 22px strip clips.
   fontSize: "9px",
   color: "var(--color-text-muted)",
   marginTop: "var(--gap-line)",
@@ -342,12 +293,7 @@ const CELL: CSSProperties = {
   padding: "var(--inset-line)",
 };
 
-// Lab and Val stay off the type scale: their rendered heights are two of the
-// terms in Navball's verticalReserve = 74, the bare JS number its
-// ResizeObserver subtracts before sizing the dial. The tokens grow this column
-// ~2px on desktop and ~4px on a coarse pointer while 74 does not move, which is
-// what pushes the strip and readout past the Panel's bottom edge in the
-// wide-and-short (mobile 9x8) case that reserve exists for.
+// Off the type scale: these heights are fixed terms in the chrome reserve Navball subtracts before sizing the dial.
 const LAB: CSSProperties = {
   fontSize: "9px",
   color: "var(--color-text-faint)",
@@ -355,7 +301,6 @@ const LAB: CSSProperties = {
 };
 
 const VAL: CSSProperties = {
-  // Off the type scale with Lab above: same verticalReserve budget.
   fontSize: "14px",
   fontWeight: 600,
   color: "var(--color-text-primary)",

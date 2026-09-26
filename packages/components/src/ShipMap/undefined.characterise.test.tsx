@@ -17,22 +17,17 @@ import fuellinePrelaunchPartState from "./__fixtures__/fuelline-tester-22parts-p
 import { ShipMapComponent } from "./index";
 
 /**
- * CHARACTERISATION: what `undefined` MEANS at each of ShipMap's read sites
- * today, recorded before `useTelemetry` returns a `Reading`.
+ * What `undefined` means at each of ShipMap's read sites:
  *
- * Four reads, four different meanings:
+ *   - `vessel.parts` absent: the "waiting" placeholder and no diagram, the one
+ *     absence the operator sees
+ *   - `vessel.control.throttle` absent: coerced to zero, so an active engine
+ *     draws no flame, identical to a confirmed idle throttle
+ *   - `vessel.thermal.hottestPart.name` absent: no "hot:" tag
+ *   - `vessel.flight.externalTemperature` absent: no ambient tint, identical to
+ *     a comfortable 300 K
  *
- *   - `vessel.parts` absent -> `useTopology` gives undefined -> the "waiting"
- *     placeholder, and NO diagram. The one read whose absence the operator sees
- *   - `vessel.control.throttle` absent -> COERCED TO ZERO, so an engine reported
- *     active draws no flame: byte-identical to a confirmed idle throttle
- *   - `vessel.thermal.hottestPart.name` absent -> no "hot:" tag, silently
- *   - `vessel.flight.externalTemperature` absent -> no ambient tint, which is
- *     also what a confirmed comfortable 300 K renders
- *
- * `useTopology`'s own `wire ? ... : undefined` additionally folds a store-level
- * tombstone into the pending placeholder, so "there is no vessel" and "nothing
- * has arrived" are the same sentence on screen.
+ * `useTopology` also folds a tombstone into the pending placeholder.
  */
 
 const TOPOLOGY = fuellinePrelaunch["v.topology"] as VesselTopology;
@@ -62,12 +57,7 @@ const CARRIED = [
 ];
 
 const PLACEHOLDER_WAITING =
-  /**
-   * The domain-free half of the widget's own copy. Asserting the whole sentence
-   * would duplicate the legacy data-source name into this file, which
-   * `uplink-boundary` reads as a mod reference from `packages/`, and would make
-   * the test rewrite itself every time the copy is reworded around it.
-   */
+  // The domain-free half of the copy: the whole sentence names the legacy data source, which `uplink-boundary` reads as a mod reference.
   /Waiting for vessel topology/;
 
 const renderedTrees: Array<() => void> = [];
@@ -112,13 +102,12 @@ describe("ShipMap: nothing has arrived at all", () => {
   it("renders the waiting placeholder and NO diagram", () => {
     const { container } = mount();
 
-    // `if (!topology)` fires. This is the widget's honest read of absence, and
-    // the only one of its four that the operator can see.
+    // The honest read of absence, and the only one of the four the operator sees.
     expect(screen.getByText(PLACEHOLDER_WAITING)).toBeTruthy();
-    // Named-element absence, not an empty container: the diagram is the thing that must not be there.
+    // Named-element absence: the diagram is what must not be there.
     expect(screen.queryByLabelText("Ship diagram")).toBeNull();
     expect(flameCount(container)).toBe(0);
-    // The header meta row (part count + seq) belongs to the diagram branch, so it is absent too.
+    // The header meta row belongs to the diagram branch.
     expect(screen.queryByText(/part/)).toBeNull();
     expect(screen.queryByText(/seq/)).toBeNull();
   });
@@ -132,9 +121,7 @@ describe("ShipMap: the `!topology` gate versus the empty-parts gate", () => {
       fixture.emit("vessel.parts", { parts: [] });
     });
 
-    // The one place ShipMap distinguishes "nothing arrived" from "arrived and
-    // there is nothing": a truthy record with zero parts takes the second
-    // placeholder.
+    // A truthy record with zero parts takes the second placeholder.
     await waitFor(() =>
       expect(screen.getByText("Vessel has no parts.")).toBeTruthy(),
     );
@@ -144,7 +131,7 @@ describe("ShipMap: the `!topology` gate versus the empty-parts gate", () => {
   it("a whole-topic tombstone falls back to the WAITING placeholder, not the empty one", async () => {
     const { fixture } = mount();
 
-    // Land a real vessel first, so the tombstone below is provably delivered.
+    // A real vessel first, so the tombstone is provably delivered.
     act(() => {
       fixture.emit("vessel.parts", VESSEL_PARTS_WIRE);
     });
@@ -156,9 +143,7 @@ describe("ShipMap: the `!topology` gate versus the empty-parts gate", () => {
       fixture.emit("vessel.parts", null);
     });
 
-    // `useTopology`'s `wire ? derive(wire) : undefined` treats the store's
-    // confirmed "there is no value" as "nothing has arrived", so a vessel that
-    // demonstrably went away is reported as a data-source problem.
+    // A confirmed "no value" reads as "nothing has arrived", so a vessel that went away reads as a data-source problem.
     await waitFor(() =>
       expect(screen.getByText(PLACEHOLDER_WAITING)).toBeTruthy(),
     );
@@ -179,9 +164,7 @@ function controlWire(throttle?: number) {
   };
 }
 
-/** What the store actually holds for `topic`, independent of what the widget
- *  chose to draw from it. The delivery proof for a read whose value never
- *  reaches the DOM. */
+/** What the store holds for `topic`, independent of what the widget drew: the delivery proof for a read that never reaches the DOM. */
 function sampled(fixture: ReturnType<typeof mount>["fixture"], topic: string) {
   const payload = fixture.store.sample(
     topic,
@@ -203,16 +186,14 @@ describe("ShipMap: the throttle coercion to zero", () => {
       expect(screen.getByLabelText("Ship diagram")).toBeTruthy(),
     );
 
-    // Three engines report `state: "active"`, and `vessel.control` has never
-    // arrived: `throttle` is coerced to 0, so the flame gate closes and the
-    // diagram shows a dead stack under thrust.
+    // Active engines and no `vessel.control`: throttle is coerced to 0 and the flame gate closes.
     expect(flameCount(container)).toBe(0);
 
     act(() => {
       fixture.emit("vessel.control", controlWire(0.5));
     });
 
-    // The record lands, and the store holds a real half throttle for it.
+    // The store holds a real half throttle.
     await waitFor(() =>
       expect(sampled(fixture, "vessel.control")).toBeTruthy(),
     );
@@ -220,11 +201,7 @@ describe("ShipMap: the throttle coercion to zero", () => {
       magnitude: 0.5,
     });
 
-    // And the diagram still draws no flame. `throttleRaw` is the unit-WRAPPED
-    // `Value<"ratio">` the wire carries, so `typeof throttleRaw === "number"`
-    // rejects it and the coercion to 0 fires for a present, non-zero throttle.
-    // The absence branch is the ONLY branch this widget can reach today, which
-    // makes "nothing arrived" indistinguishable from every throttle there is.
+    // Still no flame: the wire carries a wrapped `Value<"ratio">`, which `typeof throttleRaw === "number"` rejects, so the absence branch is the only one reachable.
     expect(flameCount(container)).toBe(0);
 
     act(() => {
@@ -249,7 +226,7 @@ describe("ShipMap: the throttle coercion to zero", () => {
       expect(sampled(fixture, "vessel.control")).toBeTruthy(),
     );
 
-    // A record with no `throttle` at all lands on the same render as a record with one, and as no record: three states, one picture.
+    // No `throttle` field, a record with one, and no record: three states, one picture.
     expect(sampled(fixture, "vessel.control")?.throttle).toBeUndefined();
     expect(flameCount(container)).toBe(0);
   });
@@ -266,9 +243,7 @@ describe("ShipMap: the silent absence gates", () => {
       expect(screen.getByLabelText("Ship diagram")).toBeTruthy(),
     );
 
-    // `typeof hottestPart?.name === "string" ? ... : null` -> `hottestName` null
-    // -> `{hottestName && ...}`. Absence renders nothing at all, so the operator sees
-    // a diagram with no hottest part rather than a diagram with an unknown one.
+    // Absence renders no tag: a diagram with no hottest part rather than an unknown one.
     expect(screen.queryByText(/hot:/)).toBeNull();
 
     act(() => {
@@ -282,7 +257,7 @@ describe("ShipMap: the silent absence gates", () => {
     );
 
     act(() => {
-      // The record arrives without the nested part: the tag goes away again, indistinguishable from the thermal channel never having spoken.
+      // A record without the nested part: indistinguishable from the channel never speaking.
       fixture.emit("vessel.thermal", {});
     });
 
@@ -312,10 +287,7 @@ describe("ShipMap: the silent absence gates", () => {
       sampled(fixture, "vessel.flight")?.externalTemperature,
     ).toMatchObject({ magnitude: 1000 });
 
-    // Reentry heat is in the store and the tint stays transparent:
-    // `externalTempTint` type-checks for a raw `number` and the wire carries a
-    // `Value<"K">`, so the "no signal" branch is the only branch reachable.
-    // Absence is therefore indistinguishable from every temperature there is.
+    // Reentry heat in the store and still transparent: `externalTempTint` checks for a raw number and the wire carries `Value<"K">`.
     expect(tintLayer(container)?.style.background).toBe("transparent");
   });
 });

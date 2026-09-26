@@ -48,13 +48,8 @@ export type IconProps = LucideProps;
 
 /**
  * A `var()` resolves inside the SVG `width`/`height` presentation attribute
- * lucide writes `size` out as, so the size token reaches the glyph through the
- * prop and picks up the coarse-pointer step a bare number cannot. Verified in
- * chromium, firefox and webkit.
- *
- * The default is `standalone` because it is calibrated for the Fabs, which are
- * the only icons that take it by omission; every other site passes its own and
- * most of them pass something smaller.
+ * lucide writes `size` out as, so the size token picks up the coarse-pointer
+ * step a bare number cannot. The default `standalone` is calibrated for Fabs.
  */
 const ICON_DEFAULTS: LucideProps = {
   size: "var(--icon-size-standalone)",
@@ -73,7 +68,6 @@ function makeIcon(
   return Wrapped;
 }
 
-// Existing exports: kept stable so call sites don't change.
 export const JoystickIcon = makeIcon(Joystick);
 export const HistoryIcon = makeIcon(History);
 /** Marks a roster entry as the home command centre. Decorative: pair with an accessible name from the caller, this glyph carries none of its own. */
@@ -94,20 +88,17 @@ export const ComputerIcon = makeIcon(Computer);
 export const DiagnosticsIcon = makeIcon(FileText);
 export const PlusIcon = makeIcon(Plus, { strokeWidth: 2.4 });
 
-// New exports: replacements for inline unicode glyphs.
 export const CloseIcon = makeIcon(X);
 export const PencilIcon = makeIcon(Pencil);
 export const CheckIcon = makeIcon(Check);
 export const GearIcon = SettingsIcon;
 export const StarIcon = makeIcon(Star);
 /**
- * Reputation, per the currency-icon trial. Close to the in-game glyph.
- *
- * Reputation ONLY. FlightsManager's "starred flight" is `HeartIcon`, so that
- * one glyph does not carry two unrelated meanings.
+ * Reputation, close to the in-game glyph. Reputation only, so one glyph does
+ * not carry two unrelated meanings.
  */
 export const HeartIcon = makeIcon(Heart);
-/** Science, per the currency-icon trial. */
+/** Science. */
 export const MicroscopeIcon = makeIcon(Microscope);
 export const PlayIcon = makeIcon(Play);
 export const PauseIcon = makeIcon(Pause);
@@ -129,28 +120,12 @@ export const FullHeightIcon = makeIcon(RectangleVertical);
 /**
  * Commit what is composed, on a console's composer.
  *
- * The RETURN CARRIAGE, the ⏎ on the key itself: a rule running right, turning
- * down and coming back with an arrowhead. A paper plane was here first and read
- * as a messaging app rather than as a console: "I don't like the submit icon,
- * it's too app-y. I want more of a return carriage icon."
+ * The return carriage, the ⏎ on the key itself, since the button is an
+ * addition to Enter and never a replacement for it. One meaning wherever it
+ * appears: commit what the operator composed locally. Anything that fires on
+ * its own takes a different icon.
  *
- * It also says the true thing about the control. The button is an addition to
- * Enter and never a replacement for it (see `ComposerBar.onSend`), so a glyph
- * that IS the Enter key names the key an operator should be using, where a send
- * arrow named a second way to do it.
- *
- * `ComposerBar` is the only thing in the kit that draws it, but no longer the
- * only place it can appear: `CommandGroup.commitLabel` takes a node, so a
- * caller with no room for the word "Commit" puts this glyph on the commit
- * button itself. That is still ONE meaning wherever an operator meets it,
- * because the composer in the first line is the ACT and not the widget: both
- * are a surface where the operator builds something locally, nothing leaves
- * until they say so, and this glyph is how they say so. Anything that fires on
- * its own, or that sends what it did not compose, takes a different icon.
- *
- * It is `aria-hidden` like every icon here, so drawing it alone means naming
- * the ACTION from outside: `ComposerBar` passes `sendLabel` to `aria-label`,
- * `CommandGroup` takes `commitAriaLabel`. Without one the button has no
- * accessible name at all, which is worse than a glyph for a name.
+ * `aria-hidden` like every icon here, so drawn alone the action must be named
+ * from outside (`ComposerBar`'s `sendLabel`, `CommandGroup`'s `commitAriaLabel`).
  */
 export const SendIcon = makeIcon(CornerDownLeft);

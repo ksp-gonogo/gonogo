@@ -1,5 +1,2 @@
-// Compat shim: `Switch` now lives in `@ksp-gonogo/ui-kit` so export-safe
-// third-party Uplink clients can use it without depending on this package.
-// Re-exported here unchanged so in-tree consumers of `@ksp-gonogo/ui` keep
-// compiling. A later migration phase removes this file.
+// App-side alias; the implementation lives in ui-kit so an Uplink can reach it, so add nothing here.
 export { Switch } from "@ksp-gonogo/ui-kit";

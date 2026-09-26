@@ -39,18 +39,9 @@ function pressureFor(body: StreamBody, altitude: number): number | undefined {
 }
 
 /**
- * The reference curve.
- *
- * <p>When the stream reported a profile the samples ARE the curve and are
- * plotted as they arrived. The host chose their spacing by bisecting on the
- * curve's own bend, so they already sit where the shape needs them, and
- * re-sampling that at a fixed cadence would only interpolate the host's
- * interpolation while moving points away from the places it decided
- * mattered.</p>
- *
- * <p>Falling back to the model, the old fixed cadence over the model's own
- * smooth exponential is still right, because nothing about it is worth
- * resolving adaptively.</p>
+ * The reference curve. A reported profile is plotted as it arrived: the host
+ * already spaced its samples on the curve's own bend. The model fallback is a
+ * smooth exponential, so a fixed cadence suits it.
  */
 function buildPressureCurve(
   body: StreamBody,
@@ -76,11 +67,7 @@ function buildPressureCurve(
       const altitude = (ceiling * i) / REFERENCE_SAMPLES;
       const p = pressureAtAltitude(body, altitude);
       if (p === undefined) continue;
-      /* The log axis can't show zero, and clamping the beyond-atmosphere tail
-         to a tiny positive drew a long flat line at the chart floor that read
-         as "constant residual pressure in vacuum". Once pressure reaches zero
-         the atmosphere has ended, stop the curve there rather than dragging a
-         misleading floor segment across the rest of the plot. */
+      /* The log axis cannot show zero, and zero pressure is where the atmosphere ends, so the curve stops there. */
       if (p <= 0) break;
       xs.push(altitude);
       ys.push(p);
@@ -103,28 +90,12 @@ function AtmosphereProfileComponent({
   h,
 }: Readonly<ComponentProps<AtmosphereProfileConfig>>) {
   /**
-   * All three atmospheric numbers are quantities that drift on their own as the
-   * craft climbs or dives, and the HUD chip states them as the air the craft is
-   * flying through: an undated three-row overlay pinned to the plot, with no
-   * room for an "as of" and no reading of it other than "now". Density is the
-   * stronger case still, because it also decides whether the craft counts as
-   * being in atmosphere at all. So a stale record withholds the chip rather than
-   * holding a sea-level density over a craft that has since left the air, and
-   * the marked altitude line is what says the record went quiet.
+   * The chip states the air the craft is flying through now, undated, and
+   * density decides whether it is in atmosphere at all, so a stale record
+   * withholds the chip; the marked altitude line says the record went quiet.
    */
   const flightReading = topics.useTelemetry("vessel.flight");
-  /*
-   * `vessel.flight` is a topic the contract declares reckonable, so the read
-   * branches on both discriminants: `reckoned` carries only the altitude and
-   * orbital speed
-   * a conic moves, and the three atmospheric numbers this chip draws are not
-   * among them. The spread overlays the modelled fields on the observation, and
-   * it is written here rather than hidden in a helper because choosing to draw a
-   * modelled altitude beside an observed density IS the judgement.
-   */
-  /* The observation is reached first because `reckoning.status` narrows the
-     reckoning and not the arm carrying it: a nested discriminant says nothing
-     about which state has a value. */
+  /* The conic moves only altitude and orbital speed, not the three atmospheric numbers; the spread overlays the modelled fields on the observation. */
   const flightObserved =
     flightReading.state === "observed" || flightReading.state === "stale"
       ? flightReading.value
@@ -136,18 +107,9 @@ function AtmosphereProfileComponent({
         ? flightReading.value
         : undefined;
   const bodyName = useBodyName(useParentBodyIndex());
-  /* Resolved against the same `system.bodies` roster the name came from, not
-     against the bundled table of STOCK bodies: a planet pack renames both
-     sides together, and a name lookup in the table missed every one of them. */
+  /* Resolved against the `system.bodies` roster the name came from, so a planet-pack rename resolves. */
   const body = useStreamBody(bodyName);
-  /*
-   * Off the same reading the three atmospheric numbers come from, so the point
-   * on the curve and the air it claims to be flying through are the same
-   * sample. Read from `flight`, which already carries the modelled fields
-   * overlaid, so the altitude moves with the conic exactly as its siblings do.
-   * A held record with no model still places the line, because the line wears
-   * the held-reading mark where the chip could only have stated a present air.
-   */
+  /* Off the same reading as the atmospheric numbers, modelled fields overlaid. A held record with no model still places the line, which wears the held mark. */
   const altitude =
     magnitudeOf((flight ?? flightObserved)?.altitudeAsl) ?? undefined;
   // Magnitudes: all three feed threshold checks and the chart's own number-taking readouts.
@@ -157,40 +119,22 @@ function AtmosphereProfileComponent({
 
   const cols = w ?? 8;
   const rows = h ?? 8;
-  // At extreme tall-narrow aspects (portrait-5x18) the plot is only a few
-  // columns wide. The shared LineChart stamps the series legend top-left and
-  // right-anchors the threshold label at the plot's right edge; on a wide
-  // chart they sit at opposite ends, but on a narrow plot the right-anchored
-  // threshold label sweeps left across the whole plot and collides with both
-  // the legend chip and the Y-axis tick labels. We can't reposition either
-  // element (that's shared LineChart chrome), but both *strings* are
-  // widget-owned: shortening them pulls the right-anchored label's left edge
-  // back toward the right edge and shrinks the legend chip, clearing the
-  // overlap. Same responsive trick already used for the panel title.
+  // Shared chart chrome collides at narrow widths; shorten widget-owned labels.
   const narrow = cols < 6;
 
   const referenceCurve = useMemo(() => {
     if (!body) return null;
-    /* Plot a bit beyond the atmosphere ceiling so the curve clearly bottoms
-       out before the chart edge; airless bodies short-circuit above. A
-       reported profile carries its own end and stops there regardless: it runs
-       out where the air stops carrying anything worth stating, which is short
-       of the formal ceiling. */
+    /* Plot a bit beyond the ceiling so the curve bottoms out before the edge. A reported profile stops at its own end. */
     const ceiling = config?.altitudeCeiling ?? body.maxAtmosphere * 1.1;
     const curve = buildPressureCurve(body, ceiling);
     if (curve && narrow) {
-      // Drop the "Pressure (Body)" framing to just the body name so the
-      // top-left legend chip collapses to a few glyphs instead of spanning
-      // the narrow plot. The panel title already says "ATMOSPHERE".
+      // Narrow: the legend chip collapses to the body name.
       return { ...curve, label: body.name };
     }
     return curve;
   }, [body, config?.altitudeCeiling, narrow]);
 
-  // Vertical "current altitude" markers don't exist in the engine; fake the
-  // marker by sampling the curve at the live altitude and dropping a
-  // horizontal threshold at that pressure value. The horizontal line picks
-  // out exactly the pressure you're flying through.
+  // No vertical marker in the chart engine: a horizontal threshold at the live altitude's pressure stands in.
   const currentPressure = useMemo(() => {
     if (!body || altitude === undefined) return undefined;
     return pressureFor(body, altitude);
@@ -199,7 +143,7 @@ function AtmosphereProfileComponent({
   const thresholds: GraphThresholdConfig[] | undefined = useMemo(() => {
     if (currentPressure === undefined || currentPressure <= 0) return undefined;
     if (altitude === undefined) return undefined;
-    // Narrow aspect: drop the " @ N km" suffix so the right-anchored label stays short and its left edge can't run into the legend / Y-ticks.
+    // Narrow: drop the " @ N km" suffix so the right-anchored label stays short.
     const label = narrow
       ? formatPressure(currentPressure)
       : `${formatPressure(currentPressure)} @ ${writeQuantity(value("m", altitude), { decimals: 0 })}`;
@@ -211,9 +155,7 @@ function AtmosphereProfileComponent({
         label,
         color: "var(--color-status-warning-bg)",
         dashed: false,
-        /* The altitude behind this line is the craft's own, so it is only as
-           current as the flight record it came from, and a held record marks
-           the label rather than leaving a present-tense figure unqualified. */
+        /* The altitude is the craft's own, so a held record marks the label. */
         reading: readingOf(flightReading, (f) => f.altitudeAsl),
       },
     ];
@@ -221,7 +163,7 @@ function AtmosphereProfileComponent({
 
   const graphConfig: GraphConfig = useMemo(
     () => ({
-      // No live series: the widget is a static body-aware reference plot with the threshold pulling out the current altitude's pressure.
+      // No live series: a body-aware reference plot, with the threshold marking the current altitude's pressure.
       series: [],
       windowSec: 60,
       xKey: "vessel.flight.altitudeAsl",
@@ -235,14 +177,9 @@ function AtmosphereProfileComponent({
     body?.hasAtmosphere === true && !body.pressureProfile && !body.atmosphere;
   const showNoBodyNotice = bodyName !== undefined && body === undefined;
 
-  // Live readout chip: only meaningful when we're actually in atmosphere
-  // (density picks up). Outside it, density reads ~0 / NaN and the chip is
-  // noise. Also suppress on very small widgets where the chip would
-  // obscure most of the chart it's annotating.
+  // The chip only means something in atmosphere, and would obscure a small chart.
   const chipFits = cols >= 7 && rows >= 6;
-  // At narrow widths the full title wraps to two lines inside the panel
-  // header, stealing a row from the already-short chart. Drop to a single
-  // word so the header stays one line and the plot keeps its height.
+  // Narrow: the full title would wrap and steal a chart row.
   const title = narrow ? "ATMOSPHERE" : "ATMOSPHERE PROFILE";
   const showLiveChip =
     chipFits &&
@@ -263,12 +200,7 @@ function AtmosphereProfileComponent({
           }
         />
       </Fill>
-      {/* `showAirlessNotice` would duplicate the GraphView empty-state
-          ("No atmosphere on Mun.") that already fires when buildPressureCurve
-          returns null for an airless body. Suppress the Notice for that
-          case: `showNoModelNotice` and `showNoBodyNotice` stay because
-          they describe a missing-data state where the chart is still
-          attempting to render and the operator needs the explanation. */}
+      {/* No airless notice: the GraphView empty state already says so. The other two describe missing data while the chart still renders. */}
       {showNoModelNotice && body && (
         <div role="status" style={NOTICE_STYLE}>
           No atmospheric model registered for {body.name}.
@@ -309,22 +241,17 @@ function AtmosphereProfileComponent({
   );
 }
 
-// Kelvin on the wire, Celsius on screen: the conversion is a presentation choice made through the shared unit layer, not something the wire pre-applies.
+// Kelvin on the wire, Celsius on screen.
 function TempC({ k }: { k: number }) {
   return <Unit value={value("K", k)} as="°C" />;
 }
 
-// A string rather than a node: this feeds a chart annotation's `label`, which
-// is measured and positioned as text. `speakQuantity` gives the word instead
-// of the symbol, which is the right trade for a label a reader hears.
+// A string, not a node: a chart annotation label is measured as text. `speakQuantity` gives the word rather than the symbol.
 function formatPressure(p: number): string {
   return speakQuantity(value("Pa", p));
 }
 
-/* Notice sits below the chart as a normal flow row rather than an absolute
-   overlay (the absolute version covered the x-axis tick labels at narrow
-   heights). Off-token rgba scrim + clearances stay as inline style: no ui-kit
-   surface primitive expresses a translucent pointer-through notice. */
+/* A flow row below the chart, not an overlay over the x-axis ticks. The translucent pointer-through scrim has no ui-kit primitive. */
 const NOTICE_STYLE = {
   flex: "0 0 auto",
   fontSize: "var(--font-size-compact)",
@@ -338,10 +265,7 @@ const NOTICE_STYLE = {
   marginTop: "var(--gap-sub-readout)",
 } as const;
 
-/* HUD-style overlay chip: absolute-positioned, off-token bottom/right measured
-   clearance over the chart's tick band, local z-index 1. A bespoke positioned
-   overlay has no ui-kit primitive, so it carries inline style (same treatment
-   as Targeting's docking HUD). */
+/* A positioned HUD chip over the chart's tick band; no ui-kit primitive for it. */
 const LIVE_CHIP_STYLE = {
   position: "absolute",
   bottom: 32,

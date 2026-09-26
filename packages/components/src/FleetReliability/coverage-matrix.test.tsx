@@ -4,28 +4,11 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FleetReliabilityUpdates } from "./index";
 
 /**
- * The one assertion this augment most needed and never had: that its outcomes
- * are DIFFERENT FROM EACH OTHER.
- *
- * Every test that predated this file asserted `null` for an absence, one file at
- * a time. Six situations therefore passed six separate tests while rendering the
- * same nothing: no reliability mod installed, a mod installed and not modelling
- * this save, a probe that could not tell, a provider whose factory threw, a
- * modelled craft whose parts had not arrived, and a craft with nothing wrong.
- * Those were corroborating copies of one belief, not controls. A test that says
- * "this renders blank" cannot notice that everything else does too.
- *
- * So this renders every state through the REAL augment and asserts no two
- * non-empty renders read alike, and that the silences are exactly the two the
- * design accepts, named rather than counted: nothing installed that could be
- * broken, and everything installed reporting the craft is fine. Any third state
- * landing in that list is a state whose absence has gone invisible again.
- *
- * It is deliberately only HALF the instrument. A render-side matrix cannot see a
- * producer that is only capable of emitting one state, because it is handed the
- * states. `mod/Sitrep.Host.Tests/ReliabilityStateWireTests.cs` is the other kind,
- * asserting distinctness on the bytes the real backends and the real JsonWriter
- * produce.
+ * The augment's outcomes are DIFFERENT FROM EACH OTHER: every state renders
+ * through the real augment, no two non-empty renders read alike, and the
+ * silences are named, not counted. Half the instrument:
+ * `mod/Sitrep.Host.Tests/ReliabilityStateWireTests.cs` asserts distinctness on
+ * the bytes the real producers emit.
  */
 const CARRIED = ["reliability.summary", "reliability.parts", "vessel.identity"];
 
@@ -146,13 +129,7 @@ async function renderCase(testCase: Case): Promise<string> {
     });
   }
 
-  /*
-   * A sample reaches the tree on a FRAME, not on the emit, and read before one
-   * every case reports the cold-start blank instead of its own answer, which is
-   * exactly the false agreement this file exists to detect. The fixture's clock
-   * is suspended, so the frame arrives with the emit rather than whenever the
-   * loop next runs; this holds the act scope open across the commit it caused.
-   */
+  // A sample reaches the tree on a FRAME; the fixture's clock is suspended, so this holds the act scope open across the commit.
   await act(async () => {});
 
   const text = (container.textContent ?? "").trim();
@@ -186,20 +163,10 @@ describe("what the reliability augment says in each coverage state", () => {
     expect(rendered).toHaveLength(CASES.length);
 
     /*
-     * The silences are enumerated rather than counted, because WHICH states are
-     * allowed to share one is the whole design decision, and the decision
-     * changed: every state that is not MODELLED is now silent here.
-     *
-     * They are facts about the install, not about this craft, they hold for the
-     * whole session, and none is actionable from a roster row, so each one had
-     * been a permanent badge on every active row. `system.uplinkHealth` carries
-     * them instead, and the settings panel and the Uplink wizard read it.
-     *
-     * What this list still guards is the half that kept its content: among the
-     * states where something IS modelling, no two may read alike, and a
-     * modelled state arriving in this list would be a real finding going
-     * invisible. S9 is the one modelled member, and it is silent because
-     * "nothing is wrong" is the absence of news rather than news.
+     * Which states may be silent is the design decision: every non-modelled
+     * state (install facts, carried by `system.uplinkHealth`) and S9, where
+     * nothing is wrong. A modelled state arriving here would be a finding
+     * going invisible.
      */
     const silent = rendered
       .filter((entry) => entry.text === "")
@@ -217,11 +184,7 @@ describe("what the reliability augment says in each coverage state", () => {
     await act(async () => {});
   });
 
-  /**
-   * The gate above the ladder, kept out of the distinctness sweep because it is
-   * SUPPOSED to render the same nothing as S6: an augment that cannot bind
-   * itself to a row must not draw on one.
-   */
+  /** The identity gate renders the same nothing as S6: an augment that cannot bind to a row must not draw on one. */
   it("renders nothing at all on a row that is not the active craft", async () => {
     expect(
       await renderCase({
@@ -234,11 +197,7 @@ describe("what the reliability augment says in each coverage state", () => {
     await act(async () => {});
   });
 
-  /**
-   * The staleness caption outranks the count, so it must fire even when there is
-   * a critical failure to report: a "3 at risk" drawn from a possibly-held frame
-   * is worst precisely during the occlusion or the burn that held it.
-   */
+  /** The staleness caption outranks the count, even over a critical failure. */
   it("withholds a critical count rather than dating it", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,

@@ -7,28 +7,10 @@ import smallCareerDetail from "./__fixtures__/small-career-detail.json";
 import { ContractManagerComponent } from "./index";
 
 /**
- * ContractManager's real recorded-fixture render off the stream.
- *
- * `contracts.active`/`.offered`/`.completedRecent` all read off the
- * `career.status` Topic's `contracts` sub-tree now (canonical `useTelemetry`),
- * with `parseContracts` normalizing `agent` -> `agency` /
- * `reputationCompletion` -> `repCompletion` / `dateDeadline` -> `deadlineUt`.
- * The original version of this test rendered the same contract state once off a
- * legacy `DataSource` (`snapshotWidgetMode`, which mounts no
- * `TelemetryProvider`) and once off the stream and asserted byte-identical DOM;
- * that comparison is no longer possible, the legacy leg now renders nothing but
- * "Awaiting contract telemetry" since the reads are stream-only. Same cause
- * (full stream migration, not a test bug) as every other widget's
- * `dual-run.test.tsx` dropping its now-impossible legacy leg.
- *
- * What remains, and is still worth its own file: the real
- * `small-career-detail` fixture run genuinely through the stream pipeline, with
- * the view clock pinned at the fixture's own `t.universalTime` so the rendered
- * deadline text is realistic. `small-career-detail.json` is used (not the other
- * ContractManager fixtures) because `career.status.contracts` entries never
- * carry `optional`/`parameterType` on their parameters
- * and every other fixture sets at least one,
- * which the wire can't reproduce.
+ * ContractManager rendering the real `small-career-detail` fixture through the
+ * stream pipeline, with the view clock pinned at the fixture's own UT so the
+ * deadline text is realistic. It is the one fixture whose parameters carry no
+ * `optional`/`parameterType`, which the wire cannot reproduce.
  */
 afterEach(() => {
   clearActionHandlers();

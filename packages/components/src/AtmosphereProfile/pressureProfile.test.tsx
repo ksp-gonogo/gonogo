@@ -14,22 +14,11 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AtmosphereProfileComponent } from "./index";
 
 /**
- * The pressure curve has to come from the game, not from a table of stock
- * bodies plus an exponential.
- *
- * <p>Two separate faults meet in this widget, and neither is visible from
- * inside `pressureAtAltitude`, which takes the body as an ARGUMENT and so
- * cannot see where it came from. The first is RESOLUTION: the body was looked
- * up by NAME in the bundled stock registry, and a planet pack renames every
- * body, so under RSS (the configuration RP-1 is played in) the lookup missed
- * and the widget drew nothing at all. The second is the MODEL: `P0·exp(-h/H)`
- * is not what KSP evaluates. A body with `atmosphereUsePressureCurve` set
- * follows a tabulated curve, which is what stock's own atmospheres and every
- * RealAtmospheres-style pack use, and the exponential is out by three orders
- * of magnitude against the real RSS Earth curve at altitude.</p>
- *
- * <p>Both are tested here at COMPONENT level for that reason: the resolution
- * fault only exists at the seam between the widget and the registry.</p>
+ * The pressure curve comes from the game. The body resolves off the stream
+ * rather than by name in the stock registry (a planet pack renames every
+ * body), and a reported tabulated profile wins over `P0·exp(-h/H)`, which is
+ * out by three orders of magnitude against the RSS Earth curve at altitude.
+ * Tested at component level, since resolution only fails at the seam.
  */
 
 const CARRIED_CHANNELS = [
@@ -127,12 +116,7 @@ describe("AtmosphereProfile: the pressure curve is the game's, not a model", () 
   it("states the pressure the stream reported, not the one the exponential models", async () => {
     const { fixture, container } = renderAtmo();
 
-    /*
-     * Kerbin IS in the bundled table, so the name resolves either way and only
-     * the MODEL is under test. The bundled exponential reads
-     * 101.325·exp(-5000/5600) = 41.5 kPa at this altitude; the reported
-     * profile says 54.0.
-     */
+    // Kerbin is in the bundled table, so only the model is under test: the exponential reads 41.5 kPa here, the profile 54.0.
     act(() => {
       emitBody(fixture, "Kerbin", 5_000, {
         depth: 70_000,

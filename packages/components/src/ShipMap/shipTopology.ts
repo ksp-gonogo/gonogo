@@ -12,12 +12,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import type { MeterTone } from "@ksp-gonogo/ui-kit";
 
-/**
- * Diagram-side categories. Narrower than KSP's `PartCategories` enum
- * because the renderer only cares about visually distinct shapes
- * (engine / booster / tank / decoupler / fin / rcs / capsule / solar /
- * parachute / other). All other KSP categories collapse to "other".
- */
+/** Diagram-side categories: one per visually distinct shape. Every other KSP category is "other". */
 export type PartType =
   | "engine"
   | "booster"
@@ -34,11 +29,8 @@ export type PartType =
   | "other";
 
 /**
- * Flattened per-part view consumed by `<ShipDiagram>`. Combines the static
- * topology fields with whatever live data has landed so far. Live data is
- * optional: the diagram falls back to topology values (e.g. `dryMass`)
- * when the corresponding `r.resourceFor` / `therm.part` push hasn't
- * arrived yet.
+ * Flattened per-part view consumed by `<ShipDiagram>`: static topology plus
+ * whatever live data has landed. Live fields are optional.
  */
 export interface ShipMapPart {
   flightId: number;
@@ -50,29 +42,19 @@ export interface ShipMapPart {
   lat: number;
   /** Position along the spine (orgPos z). */
   axial: number;
-  /**
-   * Position along the collapsed depth axis (the lateral axis NOT picked
-   * for the 2D side view). Not drawn, but it's the only depth cue we have:
-   * the renderer sorts parts back-to-front by it so a front-facing radial
-   * part (panel, winglet) paints over the fuselage instead of behind it.
-   */
+  /** Position along the collapsed depth axis. Not drawn, but parts are painted back-to-front by it. */
   depth: number;
   /**
-   * Screen-space CCW rotation in radians applied to the part's body box
-   * when rendering. Derived from the part's vessel-local `up` vector
-   * projected into the same 2D plane the diagram uses for positions:
-   * axial → screen-up, lateral (picked) → screen-right. A part with
-   * `up=[0,1,0]` (axially mounted) renders with zero rotation; a part
-   * with `up=[1,0,0]` rotates 90° clockwise; an inverted part rotates
-   * 180°. Falls back to 0 when the fork didn't emit `up`.
+   * Screen-space CCW rotation in radians, from the part's `up` vector
+   * projected into the diagram plane (axial to screen-up, lateral to
+   * screen-right). 0 when `up` is absent.
    */
   rotationRad: number;
   /** Prefab bounds in metres: `{x, y, z}` from `v.topology.parts[].bounds.size`. */
   size: { x: number; y: number; z: number };
-  /** Half-extent along the picked lateral axis (matches whatever `useX`
-   *  chose when building this part). Always in metres. */
+  /** Half-extent along the picked lateral axis, in metres. */
   latHalfExtent: number;
-  /** Half-extent along the vessel-local Y axis (the spine). In metres. */
+  /** Half-extent along the spine, in metres. */
   axialHalfExtent: number;
   /** `Part.mass` from topology: dry mass, no resources. */
   dryMass: number;
@@ -82,119 +64,59 @@ export interface ShipMapPart {
   maxTemp: number;
   /** Live temperature in Kelvin from `therm.part[flightId]`, if available. */
   temperatureK?: number;
-  /** Live max temperature in Kelvin (matches topology `maxTemp` unless the
-   *  game adjusts it mid-flight). */
+  /** Live max temperature in Kelvin. */
   maxTemperatureK?: number;
-  /** Live resources from `usePartsLive` (sourced off the `vessel.parts`
-   *  stream), normalised to the same `{n, a, c}` triplet shape the diagram
-   *  uses for fuel-fill bars. */
+  /** Live resources, normalised to the `{n, a, c}` triplet the fuel-fill bars use. */
   resources?: { n: string; a: number; c: number }[];
-  /**
-   * Net ElectricCharge flow sign on this part, drives a subtle producer /
-   * consumer ring in the diagram. `null` when there's no live flow row
-   * (the part doesn't contribute to EC). EC is the only resource tinted in
-   * v1; other resources can be added behind a config later.
-   */
+  /** Net ElectricCharge flow sign on this part; `null` when it has no live EC flow. */
   ecFlowSign?: "producer" | "consumer" | null;
-  /**
-   * Pass-through from `TopologyPart.fuelLineTarget`: the destination
-   * tank's flightId for fuel-line parts. Used by the renderer to draw
-   * source→target arrows.
-   */
+  /** The destination tank's flightId for a fuel-line part. */
   fuelLineTarget?: number | null;
   /**
-   * Per-module behavioural state from `usePartsLive` (sourced off the
-   * `vessel.parts` stream). Carries deploy / activation status for solar
-   * panels, radiators, antennas, parachutes, engines, drills, cargo bays,
-   * and landing gear. Empty array when the part has no behavioural
-   * modules; undefined when no `vessel.parts` payload has landed yet
-   * (consumers should treat it as "unknown" rather than "all retracted").
+   * Per-module behavioural state (deploy, activation). Empty when the part has
+   * no behavioural modules; undefined before any `vessel.parts` payload, which
+   * means unknown, not all retracted.
    */
   partState?: PartStateModule[];
 }
 
 /**
- * One resource meter for a single part, aggregated from the
- * `ship-map.part-meters` contribution slot (the framework's self-
- * contribution flagship). Both the built-in `core` contribution
- * (the five classic drainable propellants, `ShipMap/partMetersContribution.ts`)
- * and an Uplink contribution (a life-support backend's supply tanks, say) emit this SAME
- * shape onto the SAME slot, so `ShipDiagramSvg`'s per-part fill bars and
- * `ShipDiagram`'s hover tooltip read one aggregated list regardless of which
- * contributor produced an entry. There is no hardcoded resource allowlist
- * left in ShipMap itself: which resource earns a meter on which part is
- * entirely the contributor's call.
- *
- * Identity is separate from status: the meter's FILL colour is the resource's
- * IDENTITY (`resourceColor(resource)`, derived by the renderer from
- * `resource`, not carried on the wire), and is entirely independent of
- * `status`. A contributor therefore never picks a colour at all, only a
- * name and a status.
+ * One resource meter for a part, aggregated from the `ship-map.part-meters`
+ * contribution slot. The built-in contribution and any Uplink's emit this
+ * same shape, and which resource earns a meter is the contributor's call.
+ * The fill colour is the resource's identity (`resourceColor(resource)`),
+ * independent of `status`, so a contributor never picks a colour.
  */
 export interface ShipMapPartMeterEntry {
-  /**
-   * `ShipMapPart.flightId`, stringified: contribution entries travel through
-   * the generic per-slot aggregation store as plain data, so the key stays a
-   * string rather than baking in a numeric-vs-string identity assumption.
-   */
+  /** `ShipMapPart.flightId`, stringified: entries travel the slot store as plain data. */
   partId: string;
-  /** Resource name exactly as it appears on `vessel.parts` (e.g.
-   *  "LiquidFuel", "Water"). Doubles as part of this meter's identity: a
-   *  contributor should emit at most one entry per (partId, resource) pair.
-   *  Also the renderer's key into `resourceColor` for the fill's identity
-   *  colour, see this interface's own doc comment. */
+  /** Resource name as on `vessel.parts` (e.g. "LiquidFuel"). At most one entry per (partId, resource). */
   resource: string;
-  /** Human label. Falls back to `resource` when the contributor has no nicer
-   *  name (the built-in five don't; a mod's own resource definitions
-   *  generally carry one). */
+  /** Human label; falls back to `resource`. */
   displayName: string;
-  /**
-   * Current stored amount, as a quantity or the whole `Reading` of one.
-   *
-   * A `Reading` is how a contributed meter says more than where the bar is:
-   * the `Meter` draws the figure the same either way, and what the reading
-   * adds is whether it is a reading of NOW, and the band it places as one mark
-   * per bound. The primitive looks that up, never the contributor.
-   */
+  /** Current stored amount, as a quantity or the whole `Reading` of one, so the `Meter` can mark currency and band. */
   amount: Value<"units"> | Reading<Value<"units">>;
-  /** Max storage capacity, same terms as `amount`. A renderer drops any entry
-   *  whose capacity is not positive: nothing to fill. */
+  /** Max storage capacity, same terms as `amount`. A non-positive capacity drops the entry. */
   capacity: Value<"units"> | Reading<Value<"units">>;
   /**
-   * A SEPARATE status signal, never the fill hue: `"critical"` /
-   * `"low"` draw a border tint or badge alongside the identity-coloured
-   * fill; `null`/`undefined` means healthy, no status signal drawn. A
-   * contributor decides its own low/critical thresholds (a life-support
-   * profile's own configured level, or the built-in contribution's ratio
-   * cutoffs); ShipMap only renders whichever of the two levels it's given.
+   * A status signal separate from the fill hue: `"low"`/`"critical"` draw a
+   * border tint or badge; `null`/`undefined` is healthy. The contributor owns
+   * its own thresholds.
    */
   status?: "low" | "critical" | null;
 }
 
 /**
- * One per-part status/metadata row for the `ship-map.part-meta` slot: things
- * about a part that aren't a fill-level meter. Today the only contribution
- * with real per-part data carries a fitted life-support process's
- * running/broken state, keyed by flight id; habitat pressure, radiation dose,
- * and reliability MTBF are NOT yet on the wire with per-part granularity (only
- * vessel-wide aggregates), so no contributor emits a `"ratio"` entry yet. The
- * shape reserves that case rather than leaving it unmodelled, and each
- * contribution's own doc comment records the exact gap it still has.
+ * One per-part status row for the `ship-map.part-meta` slot: things about a
+ * part that are not a fill level.
  */
 export interface ShipMapPartMetaEntry {
   /** `ShipMapPart.flightId`, stringified (see `ShipMapPartMeterEntry.partId`). */
   partId: string;
-  /** Short label, e.g. "Water Recycler". Doubles as part of this row's
-   *  identity: a contributor should emit at most one entry per (partId,
-   *  label) pair. */
+  /** Short label, e.g. "Water Recycler". At most one entry per (partId, label). */
   label: string;
   tone: MeterTone;
-  /**
-   * "ratio": a 0..1 reading, rendered as a `<Meter>` (reserved: see the
-   * interface doc above, nothing emits this today). "text": a free-form
-   * status string, rendered as a plain label/value row (fitted-process
-   * running/broken/idle state today).
-   */
+  /** "ratio": a 0..1 reading rendered as a `<Meter>`. "text": a free-form status row. */
   kind: "ratio" | "text";
   /** Present when `kind === "ratio"`. */
   value?: number;
@@ -203,18 +125,10 @@ export interface ShipMapPartMetaEntry {
 }
 
 /**
- * Classify a part into one of the diagram's coarse `PartType` buckets.
- * Mirrors the kerboscript's old derivation (which lived in
- * `shipMapScript.ts`): module names are the primary signal, with a
- * SolidFuel resource pass distinguishing solid boosters from liquid
- * engines.
- *
- * `resources` is optional because resource data arrives asynchronously
- * after the topology snapshot. Booster classification needs it; tank
- * classification is also resource-driven. Falls back to KSP's
- * `PartCategories` enum (the `category` field) and finally to a
- * name/title heuristic so first-frame renders look sensible before live
- * resource data arrives.
+ * Classify a part into one of the diagram's coarse `PartType` buckets. Module
+ * names first, SolidFuel telling boosters from engines, then KSP's category,
+ * then a name/title heuristic. `resources` is optional because it arrives
+ * after the topology snapshot.
  */
 export function classifyPart(
   part: TopologyPart,
@@ -235,11 +149,7 @@ export function classifyPart(
       m.includes("AeroSurface") ||
       m.includes("ControlSurface"),
   );
-  // Cargo bays / service bays carry ModuleLiftingSurface for the body-
-  // lift bonus, but visually they're boxes, not wings. Disqualify the
-  // fin classification when we see a ModuleCargoBay so a 2.5 m bay
-  // doesn't render as a giant triangle (this was the rover's mk2CargoBayS
-  // dominating every harness render before the gate was added).
+  // Cargo bays carry ModuleLiftingSurface for body lift but are boxes, not wings.
   const hasCargoBay = modules.some((m) => m.includes("CargoBay"));
   const hasWheel = modules.some((m) => m.includes("ModuleWheelBase"));
   const isFuelLine = modules.some((m) => m.includes("CModuleFuelLine"));
@@ -250,21 +160,13 @@ export function classifyPart(
     (resources.SolidFuel?.maxAmount ?? 0) > 0;
   const hasAnyResource = resources && Object.keys(resources).length > 0;
 
-  // Nose cones live under PartCategories.Aero alongside wings + control
-  // surfaces, but they're shape-distinct (rounded dome vs. triangle) so
-  // they get their own classification. Name-based detection because KSP
-  // doesn't gate them with a dedicated module; convention is reliable
-  // ("noseCone", "rocketNoseCone", "nosecone_v2", etc.).
+  // Nose cones share the Aero category with wings but not the shape, and have no dedicated module.
   const isNoseCone = part.name.toLowerCase().includes("nose");
 
   if (hasEngine && hasSolidFuel) return "booster";
   if (hasEngine) return "engine";
   if (hasWheel) return "wheel";
-  // Fuel lines come back from KSP under PartCategories.FuelTank with
-  // bounds that wrap the whole conduit run (per the 2026-05-15 audit),
-  // neither the category nor the bounds are useful for rendering. Bail
-  // out before the resource-based 'tank' fallback so they get the
-  // dedicated source→target arrow treatment in the renderer.
+  // Fuel-line bounds wrap the whole conduit run, so they bail out before the resource-based tank fallback.
   if (isFuelLine) return "fuel-line";
   if (hasDecouple) return "decoupler";
   if (hasRCSMod) return "rcs";
@@ -283,21 +185,10 @@ export function classifyPart(
 }
 
 /**
- * KSP's `PartCategories` ORDINAL to a diagram glyph, or null for a category
- * this diagram has no distinct shape for.
- *
- * Switched on the NAME until 2026-08-21, which is KSP's spelling to change.
- * A renamed member did not break anything visibly: every part of that category
- * fell through to `classifyByName`, so engines got drawn as whatever their title
- * happened to match, and nothing said it had happened. Falling through to a
- * heuristic is the right behaviour for a category with no glyph; it is the wrong
- * behaviour for `Engine`.
- *
- * Null covers three cases that all want the heuristic underneath: no ordinal
- * sent, a category with no distinct glyph, and a category KSP has added since.
- * `Propulsion`, `Payload`, `Cargo`, `Robotics` and `none` are members with no
- * arm here, which is deliberate rather than an omission: a part in one of those
- * is better served by its modules and title than by a generic box.
+ * KSP's `PartCategories` ordinal to a diagram glyph, switched on the ordinal
+ * rather than KSP's spelling. Null (no ordinal, no distinct glyph, or a newer
+ * category) falls through to the name heuristic; `Propulsion`, `Payload`,
+ * `Cargo`, `Robotics` and `none` are left to it deliberately.
  */
 function categoryFromKsp(ordinal: number | null | undefined): PartType | null {
   if (ordinal == null) return null;
@@ -357,8 +248,7 @@ function classifyByName(name: string, title: string): PartType {
   return "other";
 }
 
-/** Normalise `r.resourceFor` output into the `{n, a, c}` shape the diagram
- *  uses for fuel-fill rendering. Drops resources with zero capacity. */
+/** Normalise `r.resourceFor` output into the diagram's `{n, a, c}` shape, dropping zero-capacity resources. */
 export function normaliseResources(
   resources: PartResources | undefined,
 ): ShipMapPart["resources"] {
@@ -372,13 +262,8 @@ export function normaliseResources(
 }
 
 /**
- * Pick whichever vessel-local lateral axis (X or Z) has the wider spread,
- * so the side-view shows the actual silhouette rather than edge-on. In KSP
- * the vessel's local Y axis is the stack/spine direction (parts run from
- * pod at y≈0 down to engines at y<<0); X and Z are the two horizontal
- * lateral axes that radial-mounted parts spread across. Parts on the
- * other lateral axis still project onto the spine and overlap, the
- * known 2D-projection limitation of this widget.
+ * Pick whichever lateral axis (X or Z) has the wider spread, so the side view
+ * shows the silhouette rather than edge-on. Y is the vessel's spine.
  */
 export function pickLateralAxis(parts: readonly TopologyPart[]): {
   useX: boolean;
@@ -399,25 +284,11 @@ export function pickLateralAxis(parts: readonly TopologyPart[]): {
 }
 
 /**
- * Rotate a part-local vector into the vessel frame using the only piece of
- * the part's rotation that reaches the client: `up`, which the mod emits as
- * `orgRot * Vector3.up`.
- *
- * The rotation applied is the minimal swing taking vessel +Y onto `up`,
- * built with the trig-free `v + k x v + (k x (k x v)) / (1 + cos)` form
- * where `k` is the (unnormalised) cross product. `up` is treated as a
- * direction, so a non-unit vector off the wire is normalised first.
- *
- * Two degenerate inputs, both real:
- *
- * - No `up`, or a zero-length one, is the identity. An axially-mounted part
- *   and a fixture recorded before the field existed both land here, and
- *   both want the vector through unchanged.
- * - An exactly inverted part makes `1 + cos` zero and the closed form
- *   divide by it, so the half-turn is applied directly. There is no unique
- *   swing for that case (any axis in the plane will do); the half-turn
- *   about the vessel X axis is the one chosen, and picking a convention is
- *   the point, since the alternative reaching the SVG is `NaN`.
+ * Rotate a part-local vector into the vessel frame by the minimal swing
+ * taking +Y onto `up` (`orgRot * Vector3.up`, the only rotation on the wire),
+ * via the trig-free `v + k x v + (k x (k x v)) / (1 + cos)` form. No `up`, or
+ * a zero one, is the identity. An exactly inverted part is a half-turn about
+ * X, since the closed form divides by zero there.
  */
 function rotateIntoVesselFrame(
   v: { x: number; y: number; z: number },
@@ -453,11 +324,8 @@ function rotateIntoVesselFrame(
 }
 
 /**
- * Build a `ShipMapPart` from one topology entry + the live slice. Live
- * temperature uses `therm.part`'s Kelvin reading; resources are
- * normalised to the diagram's `{n, a, c}` triple. The caller picks the
- * lateral axis (see `pickLateralAxis`) once per vessel and threads the
- * decision through `useX`.
+ * Build a `ShipMapPart` from one topology entry and the live slice. The
+ * caller picks the lateral axis once per vessel via `pickLateralAxis`.
  */
 export function buildShipMapPart(
   part: TopologyPart,
@@ -476,47 +344,17 @@ export function buildShipMapPart(
         : "consumer"
       : null;
   const size = part.bounds.size;
-  // Project the part's vessel-local up vector into screen space. The
-  // diagram maps vessel +axial → screen-up (smaller y) and vessel
-  // +picked-lateral → screen-right (larger x), so the rotation angle
-  // is `atan2(lateral, axial)` from screen-up. Without fork-emitted up,
-  // default to axially-aligned (zero rotation).
-  //
-  // Edge-on guard: when both projected components are near zero the
-  // part's up points along the collapsed depth axis, atan2 in that
-  // case would flip 0 vs π depending on the sign of -0 (Unity routinely
-  // emits -0.0 for components that are floating-point zero). Render
-  // unrotated rather than picking a meaningless angle.
+  /* Rotation is `atan2(lateral, axial)` from screen-up. When both projected components are near zero the part points along the depth axis, where atan2 flips on the sign of -0, so it renders unrotated. */
   const up = part.up;
   const upLat = up ? (useX ? up[0] : up[2]) : 0;
   const upAxial = up ? up[1] : 1;
   const projectedMagSq = upLat * upLat + upAxial * upAxial;
   const rotationRad = projectedMagSq < 0.01 ? 0 : Math.atan2(upLat, upAxial);
-  /**
-   * Mesh-centre offset, rotated out of the part's own frame and into the
-   * vessel's before it can be added to `orgPos`.
-   *
-   * `orgPos` is the attach-node anchor; for a radial-mount part the mesh
-   * centre sits some distance away, and the diagram draws the body box on
-   * the mesh centre so radial decouplers don't appear to sink into the
-   * parent stack. But `bounds.center` is `Part.boundsCentroidOffset`, which
-   * is PART-local: KSP's own two readers of it both spell
-   * `partTransform.rotation * boundsCentroidOffset`, and nothing anywhere
-   * writes the field, so no load step transforms it for us. Adding it raw
-   * put a radial part's offset in the wrong direction, which is precisely
-   * the case the offset exists to fix.
-   *
-   * `orgRot` itself is not on the wire, only `up = orgRot * Vector3.up`,
-   * so the recoverable rotation is the minimal swing carrying vessel +Y
-   * onto `up`. That is exact for an offset lying along the part's own up
-   * axis and leaves the twist about `up` unrecovered for one that doesn't;
-   * a lateral offset can still land on the wrong side of its own mount.
-   * Emitting the quaternion is the only thing that would close that, and
-   * it is a mod-side change.
-   *
-   * No `up` means either an axial part or a fixture recorded before the
-   * field existed, and both want the identity, so an absent offset or an
-   * absent rotation leaves the anchor exactly where it was.
+  /*
+   * Mesh-centre offset, rotated into the vessel frame before it is added to
+   * `orgPos` (the attach-node anchor). `bounds.center` is part-local. Only the
+   * swing onto `up` is recoverable, so the twist about `up` is not, and a
+   * lateral offset can land on the wrong side of its mount.
    */
   const center = part.bounds.center;
   const meshOffset = center
@@ -528,19 +366,7 @@ export function buildShipMapPart(
     (useX ? orgPos[2] : orgPos[0]) + (useX ? meshOffset.z : meshOffset.x);
   const meshAxial = orgPos[1] + meshOffset.y;
   const type = classifyPart(part, resources);
-  // Lateral half-extent along the picked axis: normally just the picked-
-  // axis half of the prefab bounds. Flat radial plates (solar panels and
-  // fins) are the exception: a 2D side view reads better when each is
-  // foreshortened by how face-on it is to the viewer. One on the collapsed
-  // depth axis shows its full broad silhouette; one on the picked axis
-  // collapses toward its thin edge. Azimuth comes from the part's offset
-  // from its parent; true proportions from `size`. The mount rotation isn't
-  // on the wire (only near-axial `up` is), so we assume the ring convention
-  // that the thin axis faces radially out (panels) / tangentially (fins).
-  // Exact for evenly clocked rings, a good approximation otherwise. Parent-
-  // relative (not root-relative): a plate on a docked or offset sub-stack
-  // must foreshorten by its mount direction on that stack, not by the
-  // stack's distance from the vessel root.
+  /* Flat radial plates (solar panels, fins) are foreshortened by how face-on they are, from their azimuth relative to the parent (not the root). Assumes the ring convention: a panel's thin axis faces radially, a fin's tangentially. */
   let latHalfExtent = (useX ? size.x : size.z) / 2;
   if (type === "solar" || type === "fin") {
     const parentLat = parentOrgPos
@@ -557,23 +383,12 @@ export function buildShipMapPart(
     const depthPos = (useX ? orgPos[2] : orgPos[0]) - parentDepth;
     const radius = Math.hypot(pickedPos, depthPos);
     if (radius > 0.05) {
-      // Project the flat plate onto the picked axis. The two lateral-plane
-      // extents are the broad dimension and the thin edge (size.y is the
-      // axial height, handled separately). A solar panel's broad face is
-      // tangential and its thin (cell-normal) axis is radial; a fin's broad
-      // dimension is its radial span and its thin (blade-normal) axis is
-      // tangential: so the two swap which extent rides the radial vs the
-      // tangential direction.
+      // A panel's broad face is tangential and a fin's is radial, so they swap which extent rides which direction.
       const broad = Math.max(size.x, size.z);
       const thin = Math.min(size.x, size.z);
       const ru = Math.abs(pickedPos / radius);
       const rd = Math.abs(depthPos / radius);
-      // A fin reads full when side-on (ru=1) and edge-on when it points at
-      // the camera (ru=0). The true orthographic falloff is linear in `ru`,
-      // but that's subtle at a glance: a 45° fin still shows ~71% span. We
-      // square it so angled fins read clearly shorter, leaving the side-on
-      // and camera-facing extremes untouched. (A panel's broad face is
-      // tangential, so it foreshortens on `rd` instead and isn't exaggerated.)
+      // A fin's radial factor is squared so angled fins read clearly shorter; the extremes are unchanged.
       latHalfExtent =
         type === "fin"
           ? (broad / 2) * ru * ru + (thin / 2) * rd

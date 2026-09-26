@@ -1,17 +1,12 @@
 /**
  * The dashboard grid's cell geometry, in CSS pixels.
  *
- * A widget's `defaultSize` / `minSize` are grid units, and anything that has to
- * lay one out outside the dashboard (a render harness sizing its mount box, a
- * docs page quoting a tile size) has to convert. Both numbers live HERE rather
- * than hand-mirrored in `packages/components/scripts/widgetRenderHarness.ts`,
- * which is a package no Uplink can install: a third-party author sizing a
- * render would have nothing to read.
+ * A widget's `defaultSize` / `minSize` are grid units; anything laying one out
+ * outside the dashboard (a render harness, a docs page) converts with these.
  *
- * `COL_WIDTH` approximates the `lg` breakpoint (36 columns) at a comfortable
- * viewport rather than being exact, because a column's real width is a fraction
- * of the container and there is no single number. `ROW_HEIGHT` and `GRID_MARGIN`
- * are the app's own values.
+ * `COL_WIDTH` approximates the `lg` breakpoint (36 columns), since a column's
+ * real width is a fraction of the container. `ROW_HEIGHT` and `GRID_MARGIN` are
+ * the app's own values.
  */
 export const COL_WIDTH = 32;
 export const ROW_HEIGHT = 25;

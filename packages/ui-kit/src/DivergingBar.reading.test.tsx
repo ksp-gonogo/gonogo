@@ -4,13 +4,9 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { DivergingBar } from "./DivergingBar";
 
-/**
- * The reckoning slot: what `<DivergingBar>` draws when it is handed a whole
- * `Reading`.
- *
- * Less than the other instruments draw, deliberately. The bar is decorative and
- * `aria-hidden`, so its whole treatment is to FADE, and the number beside it is
- * where the currency is stated in the ways a reader can reach.
+/*
+ * What `<DivergingBar>` draws when handed a whole `Reading`: the bar is
+ * decorative, so its whole treatment is to fade.
  */
 
 const AT = value("ut", 12_000);
@@ -78,11 +74,7 @@ describe("DivergingBar, handed a Reading", () => {
         maxAbs={SCALE}
       />,
     );
-    /*
-     * The zero line survives, so the track still reads as a scale. What goes is
-     * the fill, because a zero-width one sits on the line and says the term is
-     * neither producing nor consuming.
-     */
+    // The zero line survives, so the track still reads as a scale; only the fill goes.
     const track = screen.getByTestId("diverging-bar");
     expect(track.children).toHaveLength(1);
   });

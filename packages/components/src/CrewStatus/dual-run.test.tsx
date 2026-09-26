@@ -5,14 +5,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import valentinaSoloOrbit from "./__fixtures__/valentina-solo-orbit.json";
 import { CrewStatusComponent } from "./index";
 
-/**
- * CrewStatus's real recorded-fixture render off the stream.
- *
- * Every CrewStatus read is a stream read: `vessel.crew` (count/capacity/roster)
- * plus `vessel.identity.vesselType` for the EVA flag. This file runs the real
- * `valentina-solo-orbit` fixture (single pilot in a 1-seat Mk1 pod) through
- * the stream pipeline.
- */
+/** Renders the recorded valentina-solo-orbit fixture (one pilot, 1-seat pod) through the stream. */
 describe("CrewStatus, real recorded-fixture render off the stream (delay=0)", () => {
   it("renders Valentina's solo-orbit roster and headcount off the stream", async () => {
     const mode = { name: "default-6x8", w: 6, h: 8 };
@@ -39,9 +32,7 @@ describe("CrewStatus, real recorded-fixture render off the stream (delay=0)", ()
       });
     });
 
-    // The "1 / 1 aboard" headcount now lives on the info-tone
-    // `crew-status.badges` panel-badge contribution (`./badge.ts`), which
-    // this bare-component render (no `Panel` badge chrome) never mounts.
+    // The headcount is a panel badge, which a bare-component render never mounts.
     await waitFor(() =>
       expect(screen.getByText("Valentina Kerman")).toBeInTheDocument(),
     );

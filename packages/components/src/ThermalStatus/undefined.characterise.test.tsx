@@ -10,17 +10,7 @@ import {
 import { ThermalStatusComponent } from "./index";
 
 /**
- * What `undefined` MEANS to ThermalStatus today, recorded before
- * `useTelemetry` starts returning a `Reading`.
- *
- * Every read in this widget is one `useTelemetry("vessel.thermal")` plus
- * optional chaining down the record, so `undefined` arrives at the render from
- * four different situations that the widget currently cannot tell apart:
- * nothing has streamed, the channel was tombstoned, the record arrived without
- * the field, and the field arrived carrying a near-absolute-zero sentinel the
- * widget itself converts to `undefined`. All four collapse into the same
- * absence, and the `noData` gate then decides between an empty state and a
- * fully-drawn nominal readout. These tests pin which of those it does for each.
+ * Pins what ThermalStatus renders for each source of `undefined`: nothing streamed, a tombstoned channel, a missing field, and a field at the near-zero sentinel the widget itself drops.
  */
 const CARRIED_CHANNELS = ["vessel.thermal"];
 
@@ -34,19 +24,7 @@ function renderThermal(fixture: StreamFixture) {
   );
 }
 
-/**
- * Frames are SUSPENDED, which is what lets the assertions below be about the
- * widget rather than about timing.
- *
- * A sample reaches the render on a frame, not on the emit, so an assertion made
- * straight after `fixture.emit` used to read the widget as it was BEFORE the
- * record arrived. That is survivable for a test asserting a presence, which
- * retries until the frame lands, and silently fatal for one asserting an
- * absence, which passes on the pre-emit render whatever the widget does. This
- * file used to wait two real animation frames for the loop to get round to it;
- * a suspended fixture mints the frame as part of the emit, so the record has
- * landed by the time `act` returns and an absence is a real absence.
- */
+// Frames are suspended so the emitted record has landed by the time `act` returns, and an asserted absence is a real one.
 function newFixture() {
   return setupStreamFixture({
     carriedChannels: CARRIED_CHANNELS,
@@ -60,9 +38,7 @@ describe("ThermalStatus: what undefined means today", () => {
     const fixture = newFixture();
     const { container } = renderThermal(fixture);
 
-    // `noData` reads every one of its inputs as undefined, so the entire Body
-    // (pill row + readout rows) is never mounted. Named absences rather than an
-    // empty container: the widget draws its panel chrome either way.
+    // The panel chrome draws either way, so the absences are named rather than read off an empty container.
     expect(screen.getByText("No thermal data")).toBeInTheDocument();
     expect(screen.getByText("THERMAL")).toBeInTheDocument();
     expect(screen.queryByText("Hottest part")).toBeNull();
@@ -74,10 +50,7 @@ describe("ThermalStatus: what undefined means today", () => {
   });
 
   it("draws the readout, not the empty state, when the record carries ONLY a critical ratio", async () => {
-    // `maxInternalTempRatio` IS one of the fields the `noData` gate consults, so
-    // a record saying the hottest part sits at 99% of its limit clears the gate
-    // on its own: a present, critical number is not suppressed by the absent
-    // ones around it. The rows it cannot fill draw placeholders instead.
+    // A present critical ratio clears `noData` on its own; the rows it cannot fill draw placeholders.
     const fixture = newFixture();
     renderThermal(fixture);
 
@@ -93,14 +66,7 @@ describe("ThermalStatus: what undefined means today", () => {
   });
 
   it("treats a tombstoned channel exactly as it treats one that never arrived", async () => {
-    // `null` vs `undefined`: the store delivers a tombstone as a `null`
-    // payload, and every read here is `thermal?.field`, so a CONFIRMED absence
-    // and a never-arrived channel produce the identical five words. The widget
-    // implements no distinction between the two.
-    //
-    // A real record goes first so the tombstone is proven to have LANDED: the
-    // readout has to be driven back to the empty state, which a dropped emit
-    // could not do.
+    // A real record goes first so the tombstone is proven to have landed by driving the readout back to empty.
     const fixture = newFixture();
     renderThermal(fixture);
 
@@ -118,9 +84,7 @@ describe("ThermalStatus: what undefined means today", () => {
       expect(screen.getByText("LV-T30 'Reliant'")).toBeInTheDocument(),
     );
 
-    // Stamped at the pinned view time, so it is the newest point the frame can
-    // sample: a tombstone stamped in the FUTURE is simply not sampled and the
-    // widget would keep drawing the old record.
+    // Stamped at the pinned view time: a tombstone stamped in the future is not sampled.
     act(() => {
       fixture.emit("vessel.thermal", null, { seq: 2, validAt: 10 });
     });
@@ -132,9 +96,7 @@ describe("ThermalStatus: what undefined means today", () => {
   });
 
   it("converts a real name and temperature into absence when the temperature is at the sentinel floor", async () => {
-    // The widget MANUFACTURES undefined here: a skin temperature below 50 K is
-    // read as "no part fitted", and the guard drops the part's NAME along with
-    // its numbers, so a record that did arrive renders as though nothing had.
+    // A skin temperature below 50 K reads as "no part fitted", and the guard drops the part's name with its numbers.
     const fixture = newFixture();
     renderThermal(fixture);
 
@@ -153,16 +115,6 @@ describe("ThermalStatus: what undefined means today", () => {
     expect(screen.queryByText("OX-STAT Photovoltaic Panels")).toBeNull();
   });
 
-  /**
-   * Recorded prior behaviour: "draws a confident nominal band and an empty bar
-   * when the ratio is missing". `bandFromRatio(undefined)` returned "nominal",
-   * so a part at 500 K with no ratio on the wire read as reassuringly nominal in
-   * the pill and in both band tags, green tone and all. An engine row with no
-   * data whatsoever also said "nominal".
-   *
-   * A green NOMINAL is a positive claim that nothing is overheating. There is now
-   * an `unknown` band for the case where the widget has not been told.
-   */
   it("draws an unknown band, not a nominal one, when the ratio is missing", async () => {
     const fixture = newFixture();
     renderThermal(fixture);
@@ -176,9 +128,7 @@ describe("ThermalStatus: what undefined means today", () => {
     await waitFor(() =>
       expect(screen.getByText("LV-T30 'Reliant'")).toBeInTheDocument(),
     );
-    // Nothing claims nominal, because nothing measured says so. Three places
-    // read "unknown": the summary pill, the hottest-part band tag and the engine
-    // band tag, the last of which has no data at all.
+    // The summary pill and both band tags read "unknown", including the engine tag with no data at all.
     expect(screen.queryAllByText("nominal")).toHaveLength(0);
     expect(screen.getAllByText("unknown")).toHaveLength(3);
     // A missing ratio has no length to draw, so the meter draws its absent form: no fill and no aria-valuenow asserting one.
@@ -188,9 +138,6 @@ describe("ThermalStatus: what undefined means today", () => {
   });
 
   it("omits the '/ ... max' tag when the max temperature is missing, keeping the temperature", async () => {
-    // `hottestMaxK !== undefined` is the gate. Absent max means no denominator
-    // is drawn at all, and the bare temperature is left to read as if it were
-    // the whole story.
     const fixture = newFixture();
     const { container } = renderThermal(fixture);
 
@@ -209,10 +156,7 @@ describe("ThermalStatus: what undefined means today", () => {
   });
 
   it("renders the row skeleton with placeholders when hottestPart is null inside a present record", async () => {
-    // Partial payload: the record arrived, one nested record inside it is a
-    // confirmed null, and one unrelated field (the heat shield) is real. The
-    // real field is enough to clear `noData`, so every row mounts, and the
-    // rows with nothing behind them render placeholders rather than dropping.
+    // One real field clears `noData`, so every row mounts and the empty ones draw placeholders.
     const fixture = newFixture();
     const { container } = renderThermal(fixture);
 

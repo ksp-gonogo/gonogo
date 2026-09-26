@@ -12,10 +12,7 @@ export interface DividerProps extends HTMLAttributes<HTMLHRElement> {
 
 /**
  * A full-width 1px horizontal rule on the subtle border colour: the one way to
- * separate stacked sections. Replaces the hand-rolled `border-bottom`/
- * `border-top` dividers widgets grew (ScienceOfficer's `LabList` rule,
- * ScienceBench's `CareerStrip` top border). A real `<hr>`, so it carries the
- * separator semantics for free.
+ * separate stacked sections. A real `<hr>`, so it carries separator semantics.
  */
 export function Divider({ space, ...rest }: DividerProps) {
   return <Divider__Root $space={space} {...rest} />;

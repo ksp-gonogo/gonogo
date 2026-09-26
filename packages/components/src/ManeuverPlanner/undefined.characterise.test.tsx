@@ -9,18 +9,12 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
 
 /**
- * Characterisation of every place ManeuverPlanner reads `undefined` off
- * telemetry, recorded BEFORE `useTelemetry` becomes `TopicReading<T>`.
- *
- * The widget currently reads `undefined` with four different meanings, and
- * nothing in the codebase says which is which:
+ * Pins the four meanings ManeuverPlanner gives an absent telemetry read:
  *
  *  1. "no orbit has arrived, wait"     -> the awaiting-orbit empty state
  *  2. "there is no target set"         -> a confident "No target selected in-game."
  *  3. "there is no delta-V"            -> coerced to 0, then 0 is a null-display sentinel
  *  4. "no stream node id yet"          -> refuses the command and says so
- *
- * Every assertion below pins one of those meanings as it is today.
  */
 
 const CARRIED = [
@@ -36,7 +30,7 @@ const CARRIED = [
 
 const PINNED_UT = 1_000_000;
 
-// Rendered trees, unmounted before the fixture goes away: disposing a still mounted widget's provider is a state update outside act().
+// Unmounted before the fixture goes, whose disposal would otherwise update a mounted tree outside act().
 const renderedTrees: Array<() => void> = [];
 
 function renderTracked(ui: ReactElement) {
@@ -81,7 +75,6 @@ function emitOrbitReady(
     meanAnomalyAtEpoch: 0,
     epoch: PINNED_UT,
     mu: 3.5316e12,
-    // The reach and shape a live sample states, and the roster beside it: the two declared inputs of the conic the apsis figures are solved through.
     horizon: ANALYTIC_UNBOUNDED_HORIZON,
     ...overrides,
   });
@@ -90,23 +83,7 @@ function emitOrbitReady(
   });
 }
 
-/**
- * The widget's own content wrapper: the sibling right after the panel header,
- * inside `[data-panel-body]`.
- *
- * It used to reach for `[data-scroll-area-inner]`, an element that no longer
- * exists. This widget wrapped its whole body in a SECOND `ScrollArea` inside
- * `Panel.Body`, whose glow then drew inside the outer body's inset, and that
- * nesting was deleted. These tests are about the reference-body caption's
- * three states and never had anything to do with scrolling; the inner element
- * was only ever a convenient query root.
- *
- * Query the caption itself rather than whatever sits first in the content.
- * Two positional versions of this helper have now been broken by changes that
- * had nothing to do with the caption: the scroll-body nesting going away, then
- * the Plan/Conformance tabs putting a tab root where a <section> used to be.
- * The subject is whether the caption rendered, so ask about the caption.
- */
+/** The reference-body caption, queried directly rather than by position. */
 function refBodyCaption(container: HTMLElement): HTMLElement | null {
   return container.querySelector<HTMLElement>("[data-ref-body-caption]");
 }
@@ -114,13 +91,12 @@ function refBodyCaption(container: HTMLElement): HTMLElement | null {
 describe("ManeuverPlanner: nothing has arrived at all", () => {
   it("renders the awaiting-orbit empty state, and no preview or commit control", async () => {
     const { view } = setup();
-    // `vessel.orbit` undefined -> sma/ecc undefined -> planReady false. This is
-    // meaning 1 of `undefined`: wait, nothing has come yet.
+    // Meaning 1: no orbit yet, so wait.
     expect(
       await screen.findByText("Awaiting orbit telemetry."),
     ).toBeInTheDocument();
 
-    // Named absences rather than an empty container: a widget that renders nothing would otherwise pass this whole file.
+    // Named absences, so a widget that renders nothing cannot pass.
     expect(screen.queryByText("Preview")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Add node" }),
@@ -129,12 +105,11 @@ describe("ManeuverPlanner: nothing has arrived at all", () => {
       screen.queryByRole("button", { name: "Add Node When..." }),
     ).not.toBeInTheDocument();
 
-    // The sections around the empty state DO render: the panel is not blank.
     expect(screen.getByText("Planned nodes")).toBeInTheDocument();
     expect(screen.getByText("New maneuver")).toBeInTheDocument();
     expect(screen.getByText("No maneuver nodes planned.")).toBeInTheDocument();
 
-    // The hyperbolic branch is the other side of the same `waiting` flag, and an absent ecc does NOT take it.
+    // An absent ecc does not take the hyperbolic branch.
     expect(screen.queryByText("Hyperbolic trajectory")).not.toBeInTheDocument();
     expect(visibleText(view.container)).toContain("MANEUVER PLANNER");
   });
@@ -142,16 +117,13 @@ describe("ManeuverPlanner: nothing has arrived at all", () => {
   it("omits the reference-body caption entirely: the gate is `refBody !== undefined`", async () => {
     const { view } = setup();
     await screen.findByText("Awaiting orbit telemetry.");
-    // With no reference body ever named the caption element is absent entirely, not present-and-empty.
     expect(refBodyCaption(view.container)).toBeNull();
   });
 });
 
 describe("ManeuverPlanner: the absence gates fire today", () => {
   it("reports 'No target selected in-game.' from a vessel.target that never arrived", async () => {
-    // `targetName = useTelemetry('vessel.target')?.name`, then PresetInput's
-    // `targetName ? ... : "No target selected in-game."`. Meaning 2: absence is
-    // read as a positive statement about the game, not as "we do not know".
+    // Meaning 2: absence reads as a statement about the game, not "we do not know".
     setup({ defaultPreset: "match-target-inclination" });
     expect(
       await screen.findByText("No target selected in-game."),
@@ -159,9 +131,7 @@ describe("ManeuverPlanner: the absence gates fire today", () => {
   });
 
   it("reports the SAME 'No target selected in-game.' for a confirmed vessel.target tombstone", async () => {
-    // null vs undefined: this site does NOT distinguish them. `null?.name` and
-    // `undefined?.name` are both undefined, so a confirmed "no target" and a
-    // never-arrived target render one identical sentence.
+    // This site does not distinguish a tombstone from a never-arrived target.
     const { fixture } = setup({ defaultPreset: "match-target-inclination" });
     await screen.findByText("No target selected in-game.");
     act(() => {
@@ -175,7 +145,6 @@ describe("ManeuverPlanner: the absence gates fire today", () => {
   });
 
   it("drops that sentence once vessel.target actually arrives, proving the gate is what produced it", async () => {
-    // Contrast case: without this, the assertion above could be passing because the fixture feeds nothing rather than because the gate fires.
     const { fixture } = setup({ defaultPreset: "match-target-inclination" });
     await screen.findByText("No target selected in-game.");
     act(() => {
@@ -194,9 +163,7 @@ describe("ManeuverPlanner: the absence gates fire today", () => {
   });
 
   it("reports 'or target LAN unavailable' for match-target-plane, folding two absences into one string", async () => {
-    // `targetName && targetLanLive !== undefined`: one gate over two separate
-    // reads (`vessel.target` and `vessel.target.orbit.lan`), so the operator
-    // cannot tell which of the two is missing.
+    // One gate over two reads, so the operator cannot tell which is missing.
     setup({ defaultPreset: "match-target-plane" });
     expect(
       await screen.findByText(
@@ -206,10 +173,7 @@ describe("ManeuverPlanner: the absence gates fire today", () => {
   });
 
   it("renders an EMPTY reference-body caption when system.bodies is a confirmed tombstone", async () => {
-    // The one place this widget's undefined/null handling genuinely diverges.
-    // `resolveBodyName` answers `null` (not undefined) for a tombstoned
-    // `system.bodies`, and the caption's gate is `refBody !== undefined`, so
-    // null passes it and an empty <div> is rendered where the body name goes.
+    // A tombstoned roster resolves to null, which passes the caption's `!== undefined` gate.
     const { fixture, view } = setup();
     await screen.findByText("Awaiting orbit telemetry.");
     act(() => {
@@ -225,7 +189,6 @@ describe("ManeuverPlanner: the absence gates fire today", () => {
 
 describe("ManeuverPlanner: the reference-body caption's three states", () => {
   it("renders the body name once system.bodies resolves the index", async () => {
-    // Contrast case for the two caption assertions above: absent -> no element, tombstone -> empty element, resolved -> the name.
     const { fixture, view } = setup();
     await screen.findByText("Awaiting orbit telemetry.");
     act(() => {
@@ -249,9 +212,7 @@ describe("ManeuverPlanner: the reference-body caption's three states", () => {
 
 describe("ManeuverPlanner: a partial vessel.orbit payload", () => {
   it("stays on the awaiting-orbit empty state when the record arrived but ecc did not", async () => {
-    // The record is present, one field is not. Indistinguishable in the render
-    // from the record being absent: `planReady` is a conjunction of positive
-    // finite-number checks, so any one missing field reads as "no telemetry".
+    // Any one missing field reads as no telemetry at all.
     const { fixture } = setup();
     await screen.findByText("Awaiting orbit telemetry.");
     act(() => {
@@ -262,10 +223,6 @@ describe("ManeuverPlanner: a partial vessel.orbit payload", () => {
   });
 
   it("shows the hyperbolic notice instead when ecc IS present and >= 1", async () => {
-    // The contrast case that gives the test above its meaning: the widget can
-    // only say "escaping" because it reads the raw ecc rather than the derived
-    // orbit, so a PRESENT ecc is distinguished from an ABSENT one here and
-    // nowhere else.
     const { fixture } = setup();
     await screen.findByText("Awaiting orbit telemetry.");
     act(() => {
@@ -282,13 +239,7 @@ describe("ManeuverPlanner: a partial vessel.orbit payload", () => {
 
 describe("ManeuverPlanner: an absent node id refuses instead of guessing", () => {
   it("dispatches nothing, and says why, when the node arrived without an id", async () => {
-    // Meaning 4, and a field-level absence inside a PRESENT record: the raw `vessel.maneuver` read landed, its node just carries no `id`.
-    //
-    // This used to substitute the node's array position and send that.
-    // `KspVesselActuator.RemoveManeuverNode` resolves only an exact GUID
-    // match, so "0" could only ever come back NotFound, and nothing surfaced
-    // the refusal: the operator pressed Delete and the node stayed. A command
-    // that cannot resolve is now not sent, and the reason is on screen.
+    // Meaning 4: the node arrived without an id, and removal resolves only an exact guid.
     const { fixture } = setup();
     const dispatched: Array<[string, unknown]> = [];
     fixture.transport.setCommandHandler((command, args) => {
@@ -313,7 +264,7 @@ describe("ManeuverPlanner: an absent node id refuses instead of guessing", () =>
     const deleteBtn = await screen.findByRole("button", {
       name: "Delete node",
     });
-    // Wait on the raw read specifically, so a pass cannot come from the record being absent instead of the field.
+    // Waits on the raw read, so a pass cannot come from the whole record being absent.
     await waitFor(() => {
       const point = fixture.store.sample(
         "vessel.maneuver",
@@ -327,17 +278,13 @@ describe("ManeuverPlanner: an absent node id refuses instead of guessing", () =>
     await waitFor(() =>
       expect(screen.getByText(/arrived without an id/i)).toBeInTheDocument(),
     );
-    // The absence of a dispatch is the point, so it is asserted rather than left to the sentence above to imply.
     expect(dispatched).toEqual([]);
   });
 });
 
 describe("ManeuverPlanner: dv.stages absent is coerced to zero", () => {
   it("renders the null-display dash for Available and no feasibility chip", async () => {
-    // Meaning 3: `useVesselDeltaV` turns an absent `dv.stages` into
-    // `totalVac: 0`, and the preview then reads 0 back as a NO-DATA sentinel
-    // (`NULL_DISPLAY`), while `feasible` collapses to null so neither OK nor
-    // SHORT is shown. A vessel with genuinely zero delta-V renders identically.
+    // Meaning 3: an absent delta-v renders like a genuine zero, with no feasibility chip.
     const { fixture } = setup();
     act(() => {
       emitOrbitReady(fixture);
@@ -347,7 +294,7 @@ describe("ManeuverPlanner: dv.stages absent is coerced to zero", () => {
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
     expect(screen.queryByText("OK")).not.toBeInTheDocument();
     expect(screen.queryByText("SHORT")).not.toBeInTheDocument();
-    // The commit button is NOT disabled by the missing delta-V: only an explicit `feasible === false` disables it, and null is not false.
+    // Only an explicit `feasible === false` disables the commit button.
     expect(screen.getByRole("button", { name: "Add node" })).toBeEnabled();
   });
 });

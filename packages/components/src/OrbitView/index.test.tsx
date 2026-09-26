@@ -5,15 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { OrbitOverlayContext } from "./index";
 import { type OrbitScenario, renderOrbitViewStream } from "./streamHarness";
 
-/**
- * OrbitView behavioural unit tests. The widget reads
- * exclusively off the SDK stream (`vessel.orbit`, with the body named and sized
- * off `vessel.identity` and `system.bodies`), so these render through a real `TelemetryProvider` via the shared
- * `renderOrbitViewStream` harness: there is no legacy `MockDataSource`
- * anywhere in this file. Reads settle a frame after the emit, so the
- * data-present assertions wait for the diagram/pill rather than reading
- * synchronously.
- */
+/** Reads settle a frame after the emit, so data-present assertions wait for the diagram or pill. */
 const LKO: OrbitScenario = {
   bodyName: "Kerbin",
   sma: 681500,
@@ -54,7 +46,7 @@ describe("OrbitViewComponent", () => {
 
   it("renders the diagram in a wide-short landscape cell (12×3)", async () => {
     const { container } = renderOrbitViewStream({ w: 12, h: 3 }, LKO);
-    // Landscape relaxation: cols ≥ 8 && rows ≥ 3 is now enough.
+    // Landscape: cols >= 8 && rows >= 3 is enough.
     await waitFor(() => {
       if (container.querySelector("svg") === null) {
         throw new Error("diagram has not rendered yet");
@@ -64,8 +56,7 @@ describe("OrbitViewComponent", () => {
 
   it("still collapses to a pill when landscape is too narrow (7×3)", async () => {
     const { container } = renderOrbitViewStream({ w: 7, h: 3 }, LKO);
-    // 7 cols is below the landscape threshold (8) and the standard
-    // threshold (5×5 needs h≥5 too). Pill mode wins even once data lands.
+    // Below both the landscape (8 cols) and the standard (5x5) thresholds.
     await waitFor(() => {
       if (!/orbit|orbital|escape/i.test(container.textContent ?? "")) {
         throw new Error("status pill has not resolved yet");
@@ -75,18 +66,9 @@ describe("OrbitViewComponent", () => {
   });
 });
 
-/**
- * Augment-slot exposure (Uplink architecture). OrbitView exposes an
- * `orbit-view.overlay` slot over the diagram and an `orbit-view.badges`
- * escape-hatch in the header. No first-party augment fills them, so these tests
- * register throwaway augments (cleared each test) to prove the slots compose,
- * and that the empty slots are inert when nothing is registered.
- */
+/** Throwaway augments prove the overlay slot composes, and that an empty slot is inert. */
 describe("OrbitView augment slots", () => {
-  // Unmount the rendered trees synchronously before clearAugments() notifies
-  // the still-mounted AugmentSlot subscribers, that notification is a state
-  // update, so firing it against a live tree is the act() anti-pattern. RTL
-  // auto-cleanup runs after this hook, too late to rely on for ordering.
+  // Unmount before clearAugments() notifies the mounted AugmentSlot subscribers; RTL auto-cleanup runs too late for that ordering.
   const trees: Array<() => void> = [];
   afterEach(() => {
     for (const unmount of trees) unmount();
@@ -99,9 +81,7 @@ describe("OrbitView augment slots", () => {
       id: "test-orbit-overlay",
       augments: "orbit-view.overlay",
       component: (ctx: OrbitOverlayContext) => (
-        // `apoapsis` is `undefined` on a hyperbolic orbit (no apoapsis),
-        // this scenario (LKO) is elliptical, so it's always a real number
-        // here; the `?? Number.NaN` only satisfies the type.
+        // LKO is elliptical, so `apoapsis` is real; `?? Number.NaN` only satisfies the type.
         <div data-testid="overlay-probe">
           apo={Math.round(ctx.apoapsis ?? Number.NaN)}
         </div>
@@ -133,7 +113,6 @@ describe("OrbitView augment slots", () => {
         throw new Error("diagram has not rendered yet");
       }
     });
-    // No augment registered → nothing composes into either slot.
     expect(container.querySelector('[data-testid="overlay-probe"]')).toBeNull();
     expect(container.textContent).not.toContain("badge:");
   });

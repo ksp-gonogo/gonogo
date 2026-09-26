@@ -5,14 +5,7 @@ import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { OrbitViewComponent } from "./index";
 
-/**
- * The apsis markers, against the operator's own view frame.
- *
- * <p>Found on a render, not by a test: the pulsating-frame render of this
- * widget was pixel-identical to the inertial one, with Ap and Pe dots and
- * labels still drawn in a frame where CurrentOrbit says apsides do not exist.
- * Two panels on one dashboard disagreeing about whether a point is there.</p>
- */
+/** Apsis markers are not drawn in a frame where apsides do not exist. */
 const CARRIED = [
   "vessel.orbit",
   "vessel.flight",
@@ -62,9 +55,7 @@ function setup() {
 
 describe("OrbitView: the apsis markers and the view frame", () => {
   it("draws the Ap and Pe labels in a frame that has apsides", async () => {
-    // The contrast case, and it is what gives the next test meaning: without
-    // it, an assertion that the labels are absent could pass on a widget that
-    // never drew them.
+    // The contrast case: without it, the absence below could pass on a widget that never drew the labels.
     const fixture = setup();
     act(() => {
       fixture.emit("system.frame", { kind: 1, centreBody: "Kerbin" });
@@ -85,11 +76,7 @@ describe("OrbitView: the apsis markers and the view frame", () => {
       });
     });
 
-    // Wait for the diagram to have RENDERED before asserting the labels are
-    // absent. `waitFor` around a negative assertion succeeds on its first tick,
-    // which here was before the diagram existed at all: the assertion passed
-    // with the frame gate deliberately disabled, and would have passed on a
-    // widget that drew nothing.
+    // Wait for the diagram first: `waitFor` around a negative assertion passes on its first tick.
     await waitFor(() => expect(screen.getByText(/orbit plane/)).toBeTruthy());
     expect(screen.queryByText("Ap")).not.toBeInTheDocument();
     expect(screen.queryByText("Pe")).not.toBeInTheDocument();

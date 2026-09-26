@@ -6,96 +6,29 @@ import type {
 import { hasHost, logger } from "@ksp-gonogo/sitrep-sdk";
 import type { ComponentType } from "react";
 
-// ---------------------------------------------------------------------------
-// The augment model (Uplink architecture spec §4)
-//
-// Core (or any) widgets expose named **augment slots**; any Uplink contributes
-// a component into a slot using ONLY its own Topics; the **host composes**. Two
-// mutually-unaware mods binding the same slot both render, ordered by priority,
-// neither references the other, honouring "no Uplink talks to another."
-//
-// This registry lives in the published design floor (`@ksp-gonogo/ui-kit`) so
-// contributions AND augments both resolve from the one package a third-party
-// Uplink can import. It is spine-free: it sources `sitrep-sdk` types, the react
-// types, this package's own `UplinkClientIdentity`, and the sdk's `logger` /
-// `hasHost` for the retired-slot diagnostic below. `@ksp-gonogo/core`
-// re-exports every symbol here, so a `declare module "@ksp-gonogo/core"`
-// augmentation of `SlotRegistry` still merges and every existing core importer
-// is byte-identical. The frame-batched evaluator that consumes availability
-// (`SlotAggregator` / `ContributionsProvider`) stays spine-side in core BY
-// DESIGN (spec §14); it never imports from here.
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Slot-id typing: declaration-merging seam (spec §4.6)
-//
-// `TopicId` is generated centrally from the C# contract, but slot ids are
-// declared across many TS packages, so a `SlotId` union + per-slot props type
-// can't be generated the same way. The Phase-0 answer (spec §4.6 "likely a
-// HYBRID, user leans toward declaration-merging as the base") is module
-// augmentation: each in-tree package that OWNS a slot augments this global
-// `SlotRegistry` interface, mapping its slot id → the props that slot passes
-// down to its augments. That gives full compile-time safety across all in-tree
-// Uplinks NOW, which is the whole current rollout.
-//
-//   // in @ksp-gonogo/components, next to registerComponent('power-systems'):
-//   declare module "@ksp-gonogo/core" {
-//     interface SlotRegistry {
-//       "power-systems.sections": { instanceId: string };
-//     }
-//   }
-//
-// Once merged, `registerAugment({ augments: "power-systems.sections", ... })`
-// types its `component` against `{ instanceId: string }`, and
-// `<AugmentSlot name="power-systems.sections" props={{ instanceId }} />`
-// requires exactly those props. The augmentation targets `@ksp-gonogo/core`
-// (which re-exports this interface); declaration merging still lands on the
-// shared symbol, so `AugmentSlot` here reads the merged registry.
-//
-// The out-of-repo case (a third-party Uplink not in this tsconfig, which cannot
-// merge into `SlotRegistry`) is deliberately NOT solved here, that is Phase 7
-// (a local type-gen script / runtime-validated string slots). This module only
-// provides the reserved seam and a graceful loose-typed fallback so an unknown
-// slot id still compiles (as `Record<string, unknown>` props) rather than
-// erroring: matching the spec's hybrid (c) fallback.
-// ---------------------------------------------------------------------------
-
-// The seam itself is NOT declared here. It is `@ksp-gonogo/sitrep-sdk`'s,
-// re-exported, and a re-export carries the augmentation: a `declare module
-// "@ksp-gonogo/core"` merge lands on the aliased declaration, so every in-repo
-// augmentation keeps working and lands on the SAME interface an Uplink's
-// `declare module "@ksp-gonogo/sitrep-sdk"` merge does.
-//
-// Declaring it in BOTH packages is the one divergence shape that cannot fail
-// loudly: an Uplink merging a slot id into the sdk's registry and a widget
-// merging one into ui-kit's are both correct-looking and both compile, onto two
-// different interfaces. `AugmentSlot` reads ui-kit's and never sees an Uplink's
-// slot ids; `SlotProps` off the sdk never sees a widget's. Neither side can
-// observe the other's absence.
+/*
+ * Widgets expose named augment slots, any Uplink contributes a component into a
+ * slot using only its own Topics, and the host composes. Two mutually unaware
+ * mods binding the same slot both render, ordered by priority.
+ *
+ * Slot ids are typed by declaration merging into `SlotRegistry`, which maps
+ * a slot id to the props it passes down. An undeclared slot id still compiles.
+ * The seam is the sdk's, re-exported, so a merge into either package lands on
+ * the same interface; declaring it in both would split slot ids across two
+ * interfaces with nothing failing.
+ */
 export type {
   SlotId,
   SlotProps,
   SlotRegistry,
 } from "@ksp-gonogo/sitrep-sdk";
 
-// ---------------------------------------------------------------------------
-// Segment-keyed augment-props seam, the parallel of `SlotRegistry` for the
-// component-led `<AugmentSlot segment>` form. A reusable component writes only
-// the SEGMENT and `<AugmentSlot>` completes `${componentId}.${segment}` from
-// `useWidgetMeta()`; this maps a SEGMENT -> the props that augment slot passes
-// down. An undeclared segment falls back to the same loose record `SlotProps`
-// uses. Declare a line here (or via `declare module "@ksp-gonogo/core"`) when
-// an augment segment lands.
-//
-// The two framework-universal augment segments below are `Panel`'s (see
-// `FRAMEWORK_AUGMENT_SEGMENTS` in Panel.tsx), and they are PROPLESS by
-// construction. A universal segment can only pass what the framework knows,
-// and the framework knows nothing about any one widget's state; a segment
-// whose props were `Record<string, unknown>` would be a slot whose contract is
-// "some object", which is not a contract. What a widget knows and an augment
-// wants reaches it through `WidgetScopeContext` instead, where the widget
-// names the type.
-// ---------------------------------------------------------------------------
+/**
+ * Maps an augment SEGMENT to the props it passes down, for the component-led
+ * `<AugmentSlot segment>` form, which completes `${componentId}.${segment}` from
+ * `useWidgetMeta()`. The framework-universal segments are propless: a widget's
+ * state reaches an augment through `WidgetScopeContext` instead.
+ */
 export interface AugmentSegmentRegistry {
   /**
    * Body sections appended below everything the host widget renders. The
@@ -110,75 +43,40 @@ export interface AugmentSegmentRegistry {
   actions: Record<string, never>;
 }
 
-/**
- * The props a component-led augment SEGMENT passes to its augments, resolved
- * from {@link AugmentSegmentRegistry}; loose fallback until a segment is
- * declared, mirroring {@link SlotProps}.
- */
+/** The props a component-led augment SEGMENT passes to its augments, resolved from {@link AugmentSegmentRegistry}. */
 export type AugmentSegmentProps<Seg extends string> =
   Seg extends keyof AugmentSegmentRegistry
     ? AugmentSegmentRegistry[Seg]
     : never;
 
-// Augment settings (spec §4.7)
-
 /*
- * `AugmentSettingField` is a single per-instance setting an augment
- * contributes, merged into the host widget's settings panel namespaced by
- * augment id; `NamespacedAugmentSettings` is one augment's block of them. Both
- * are the sdk's, re-exported. They were identical copies here, and two
- * published declarations of one author-facing type drift without anything
- * saying so.
- *
- * A block comment rather than JSDoc, because a doc block above a multi-name
- * `export type {}` attaches to nothing: it emits no documentation for either
- * name and reads, in the source, as though it documented the first.
+ * `AugmentSettingField` is one per-instance setting an augment contributes to
+ * the host widget's settings panel, namespaced by augment id;
+ * `NamespacedAugmentSettings` is one augment's block of them.
  */
-export type {
-  AugmentSettingField,
-  NamespacedAugmentSettings,
-} from "@ksp-gonogo/sitrep-sdk";
-
-// Augment definition + registration (spec §4.2)
-
 /**
  * Registration descriptor for an augment: a component bound into another
  * widget's slot. `S` is inferred from `augments`, so `component` is typed
  * against that slot's {@link SlotProps}.
- *
- * The sdk's, re-exported. Both packages declared it with the same nine fields,
- * and two published declarations of one author-facing type is the shape that
- * drifts with nothing to say so: an Uplink typing an augment against the sdk's
- * and a widget typing one against ui-kit's would both compile forever while
- * meaning different things. The long-form field documentation stays on the sdk's
- * copy, which is the one an author reads.
  */
-export type { AugmentDefinition } from "@ksp-gonogo/sitrep-sdk";
+export type {
+  AugmentDefinition,
+  AugmentSettingField,
+  NamespacedAugmentSettings,
+} from "@ksp-gonogo/sitrep-sdk";
 
 /*
- * The erased form the registry stores, so one map can hold augments for every
- * slot. `component` is widened here rather than left at `SlotProps<string>`,
- * which resolves to `never` for a slot nothing has declared and so describes no
- * component at all; `S` is checked at the `registerAugment` call site, which is
- * the only place that knows it.
+ * The erased form the registry stores, so one map holds every slot's augments.
+ * `SlotProps<string>` would resolve to `never` for an undeclared slot; `S` is
+ * checked at the `registerAugment` call site instead.
  */
 export type AnyAugment = Omit<AugmentDefinition<string>, "component"> & {
   component: ComponentType<Record<string, unknown>>;
 };
 
 /**
- * The single global slot the augment registry lives in, keyed by a string rather
- * than a symbol so two different builds of this package still find the same
- * state.
- *
- * A module-static `Map` held only while exactly one copy of this module was
- * loaded. Two reach it: `@ksp-gonogo/ui-kit` exports `registerAugment` /
- * `getAugmentsForSlot` / `clearAugments` directly, and
- * `@ksp-gonogo/sitrep-sdk` exports three shims onto `getHost()`, which land on
- * whichever copy the APP linked. An Uplink that inlines ui-kit instead of
- * marking it external loads a second copy, registers into it, and the dashboard
- * renders from the app's, with no error anywhere. Same reasoning, and the same
- * fix, as the sdk's `map-poi` registry and `PerfBudget`'s.
+ * The registry lives on `globalThis` under a string key so every loaded copy of
+ * this package (an Uplink that inlines ui-kit loads a second) shares one state.
  */
 const AUGMENT_REGISTRY_KEY = "__GONOGO_AUGMENT_REGISTRY__" as const;
 
@@ -202,38 +100,17 @@ function registry(): AugmentRegistry {
 }
 
 /**
- * Slot ids this repo has retired, mapped to the id that replaced them.
- *
- * A renamed slot is the one registry mistake that costs nothing at registration
- * and everything at render: `registerAugment` accepts any string, and
- * `getAugmentsForSlot` matches on equality, so an augment bound to a retired id
- * is stored, never matched, and draws nothing, with no error anywhere. A
- * third-party Uplink pinned to the old name would look installed and healthy
- * while contributing no pixels.
- *
- * There is deliberately no general unknown-slot check to lean on here: slot ids
- * are a compile-time declaration-merging seam (`SlotRegistry`) declared across
- * many packages, so at runtime this registry sees only strings and cannot know
- * which are real. It CAN know which ones we ourselves retired, which is the case
- * that actually breaks a working Uplink, so that is what this table carries.
- *
- * Entries stay for as long as an Uplink built against the old name might still
- * be installed. The retired id is not accepted, only explained: forwarding it to
- * the new slot would keep a dead name silently load-bearing.
+ * Retired slot ids, mapped to their replacements. An augment bound to a retired
+ * id is stored but never rendered, so registration reports it. The retired id
+ * is explained, never forwarded. Runtime cannot tell a real slot id from a typo,
+ * only a retired one.
  */
 export const RETIRED_SLOT_IDS: Readonly<Record<string, string>> = {
   "distance-to-target.camera": "targeting.camera",
   "distance-to-target.overlay": "targeting.overlay",
 };
 
-/**
- * An augment named a retired slot, so it would render nothing. Reported through
- * the host's logger when there is a host, so it reaches Axiom and the shared
- * `exportLogs()` buffer, and through `console.error` when there is not: the
- * sdk's `logger` is a Proxy over `getHost().logger` and THROWS when nothing is
- * installed, which would turn a stale slot name into a torn-down module load in
- * exactly the setting where a bare registration is likeliest, an Uplink's test.
- */
+/** Reports a retired slot id. Falls back to `console.error` without a host, because the sdk's `logger` throws when none is installed. */
 function reportIfSlotRetired(
   def: Pick<AugmentDefinition<string>, "id" | "augments" | "owner">,
 ): void {
@@ -272,11 +149,7 @@ export function registerAugment<S extends string>(
   reportIfSlotRetired(def);
   const state = registry();
   state.augments.set(def.id, {
-    // Erased through `unknown`: with the slot registry merged, `SlotProps<S>` is
-    // a real props type rather than a loose bag, so `ComponentType` is not
-    // bivariantly comparable to the erased form. The erasure itself is
-    // the point (the registry holds augments for every slot); `S` is checked at
-    // this call site, which is the only place it can be.
+    // Erased through `unknown`: a merged `SlotProps<S>` is not bivariantly comparable to the erased form.
     def: def as unknown as AnyAugment,
     order: state.counter++,
   });
@@ -285,9 +158,8 @@ export function registerAugment<S extends string>(
 
 /**
  * Every augment bound to `slotName`, ordered for rendering: ascending
- * `priority` (default 0), ties in registration order. Presence-gating
- * (`requires`) is applied at RENDER time by {@link AugmentSlot}, not here, this
- * returns all registered augments for the slot regardless of Domain availability.
+ * `priority` (default 0), ties in registration order. `requires` gating is
+ * applied at render time by {@link AugmentSlot}, not here.
  */
 export function getAugmentsForSlot(slotName: string): AnyAugment[] {
   return Array.from(registry().augments.values())

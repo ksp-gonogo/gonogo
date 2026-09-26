@@ -1,8 +1,5 @@
 /**
- * The landing-site hazard verdict: SAFE / MARGINAL / DIVERT / UNRESOLVED,
- * telemetry alerting (never GO/NO-GO, which is human-only). Worst-band-wins
- * across four axes with agent-3's researched defaults, plus a hard
- * water-DIVERT override:
+ * The landing-site hazard verdict: SAFE / MARGINAL / DIVERT / UNRESOLVED, telemetry alerting and never GO/NO-GO. Worst band wins across four axes, and a liquid surface forces DIVERT:
  *
  * | axis            | SAFE | MARGINAL | DIVERT | anchor                       |
  * | slope (deg)     | <=5  | 5-15     | >15    | Apollo LM 12-degree limit    |
@@ -10,34 +7,9 @@
  * | vertical (m/s)  | <=2  | 2-6      | >6     | stock modal crashTolerance   |
  * | lateral (m/s)   | <=1  | 1-3      | >3     | tip-over torque              |
  *
- * Slope/vertical/lateral are per-instance tunable; roughness (shared helper),
- * worst-wins, and the water override are fixed. A verdict of null means no axis
- * had data yet (unknown, not SAFE).
+ * Slope, vertical and lateral are per-instance tunable. A null verdict means no axis had data (unknown, not SAFE).
  *
- * ## The band, and why it needed a fourth verdict rather than a caption
- *
- * An axis fed from a reckoned value may arrive with an `UncertaintyBand`: the
- * interval the model is prepared to defend, in the axis's own unit. Where that
- * interval spans a threshold, the point estimate still lands in exactly one
- * band and the widget would state it with the same confidence it states a
- * measured one. A descent rate reckoned at 5.8 m/s that the model puts
- * anywhere between 4 and 9 is not MARGINAL; it is not yet known which side of
- * the 6 m/s DIVERT line the craft is on, and that is a different instruction
- * to an operator than either answer.
- *
- * NOTHING PASSES A BAND TODAY, and the widget says why at its call: none of the
- * three axes that can take one reads a value any model in the tree bands. So
- * `UNRESOLVED` is reachable from these tests and not from the board, and the
- * three band inputs are a shape waiting on a producer rather than a live arm.
- *
- * ## Uncertainty only raises UNRESOLVED where it could change the verdict
- *
- * An unresolved axis does NOT automatically make the verdict unresolved. The
- * verdict goes UNRESOLVED only when some unresolved axis could turn out worse
- * than everything the other axes are certain of. A definite DIVERT on water
- * stays DIVERT however vague the descent rate is: the operator's move is the
- * same, and downgrading a firm answer to a shrug because a different axis is
- * fuzzy would make the fourth verdict noise rather than information.
+ * An axis with an `UncertaintyBand` that spans a threshold is UNRESOLVED rather than stated with a measured value's confidence. The verdict goes UNRESOLVED only when an unresolved axis could turn out worse than everything the settled axes say, so a firm DIVERT stays DIVERT.
  */
 
 import {
@@ -54,17 +26,7 @@ import {
 
 export type Hazard = "SAFE" | "MARGINAL" | "DIVERT" | "UNRESOLVED";
 
-/**
- * `[safeMax, marginalMax]` per axis, each end carrying its own unit.
- *
- * Quantities rather than bare numbers because the ladder is COMPARED against
- * a reading and, on a banded axis, against the ends of an interval. A bare
- * threshold makes the comparison numeric, and a numeric comparison here is
- * what put four unwraps in this file: the band arrives as `Value`s and had to
- * be flattened to meet a plain ladder. Typing the ladder instead means the
- * comparison happens in the algebra, and the unit is checked rather than
- * assumed to match the comment beside it.
- */
+/** `[safeMax, marginalMax]` per axis as quantities, so readings and band ends compare in the algebra with the unit checked. */
 export interface HazardThresholds {
   slope: readonly [Value<"°">, Value<"°">];
   vertical: readonly [Value<"m/s">, Value<"m/s">];
@@ -88,12 +50,7 @@ export interface HazardInputs {
   lateralSpeed?: number | null;
   /** Biome at the site: a liquid-surface biome forces DIVERT. */
   biome?: string | null;
-  /**
-   * How well the model knows the descent rate, where the reading was reckoned
-   * and the model said. Absent means the number stands on its own, which is
-   * the case for a measured reading and for a model that will not bound its
-   * own error: neither is evidence the figure is exact.
-   */
+  /** How well a model knows the descent rate, when it said; absent means the number stands alone, which is not evidence it is exact. */
   verticalSpeedBand?: UncertaintyBand<"m/s"> | null;
   /** As `verticalSpeedBand`, for the lateral rate. */
   lateralSpeedBand?: UncertaintyBand<"m/s"> | null;
@@ -106,24 +63,12 @@ export interface HazardAxis {
   band: Hazard;
   /** Short human note, e.g. "slope 18°" or "landing on water". */
   detail: string;
-  /**
-   * The worst band this axis could still turn out to be. Equal to `band` on
-   * every axis that resolved; on an `UNRESOLVED` one it is the band its
-   * interval's far end lands in, which is what decides whether the
-   * uncertainty can change the overall verdict at all.
-   */
+  /** The worst band this axis could still turn out to be: `band` when resolved, else where its interval's far end lands. */
   worstPossible: Hazard;
 }
 
 export interface HazardResult {
-  /**
-   * null when no axis had data (unknown, NOT safe). `UNRESOLVED` is a
-   * different answer: axes had data and it was not decisive.
-   *
-   * NOT `axes[0].band`. The ordering below is presentational, and an axis that
-   * is unresolved about something the rest of the board has already settled
-   * does not get to speak for the whole verdict.
-   */
+  /** null when no axis had data (unknown, NOT safe); `UNRESOLVED` means axes had data that was not decisive. Not `axes[0].band`, whose ordering is presentational. */
   verdict: Hazard | null;
   /** Per-axis bands that contributed, worst first. */
   axes: HazardAxis[];
@@ -138,17 +83,7 @@ function bandOf<U extends string>(
   return "DIVERT";
 }
 
-/**
- * The interval an axis's threshold ladder actually sees, once the sign is
- * taken off it.
- *
- * Vertical and lateral rates are graded on their MAGNITUDE, and the magnitude
- * of an interval is not the interval of its magnitudes: a descent rate the
- * model puts between -1 and +4 m/s has a magnitude anywhere from 0 to 4, and
- * mapping the ends alone would give 1 to 4 and quietly assert the craft is
- * definitely moving. Every reckoned rate crosses zero eventually, so this is
- * the normal case rather than a corner of it.
- */
+/** The interval a rate's threshold ladder sees once the sign is off: the magnitude of an interval straddling zero starts at 0, not at its nearer end. */
 function absExtent<U extends string>(
   band: UncertaintyBand<U>,
 ): readonly [Value<U>, Value<U>] {
@@ -160,14 +95,7 @@ function absExtent<U extends string>(
   return [value(lo.unit, 0), reach.greaterThan(hi) ? reach : hi];
 }
 
-/**
- * One axis's band, and the worst it could still be: `UNRESOLVED` where the
- * interval spans one of the two thresholds.
- *
- * The point estimate decides whenever the interval resolves, so a banded axis
- * and an unbanded one reading the same number never disagree. The band's only
- * job here is to withhold that answer when it is not yet earned.
- */
+/** One axis's band, and the worst it could still be: the point estimate decides whenever the interval resolves, and `UNRESOLVED` where it spans a threshold. */
 function bandedVerdict<U extends string>(
   reading: Value<U>,
   thresholds: readonly [Value<U>, Value<U>],
@@ -194,11 +122,7 @@ function bandedVerdict<U extends string>(
     : { band: plain, worstPossible: plain };
 }
 
-/**
- * Display order only, worst first. `UNRESOLVED` sorts above `DIVERT` because a
- * question the board cannot answer is the line an operator should read before
- * the ones it can, and it never decides the verdict itself.
- */
+/** Display order only, worst first; `UNRESOLVED` sorts above `DIVERT` because an open question should be read first. */
 const RANK: Record<Hazard, number> = {
   SAFE: 0,
   MARGINAL: 1,
@@ -212,11 +136,7 @@ function roughnessBand(badge: RoughnessBadge): Hazard {
   return "DIVERT";
 }
 
-/**
- * The interval, appended to an axis's detail, on an axis that could not
- * resolve. The reading alone would read as a settled figure the board happened
- * not to grade, so the numbers that stopped it are what the line has to carry.
- */
+/** The interval appended to an unresolved axis's detail, so the line carries the numbers that stopped it. */
 function extentNote<U extends string>(
   extent: readonly [Value<U>, Value<U>] | undefined,
   decimals: number,
@@ -308,12 +228,7 @@ export function deriveHazardVerdict(
   // Report worst-first, which for an unresolved axis means by the question it raises rather than by the reading behind it.
   axes.sort((a, b) => RANK[b.band] - RANK[a.band]);
 
-  /*
-   * Worst-band-wins over the axes that actually settled, then one question: is
-   * anything still open that could land worse than that? Only then is the
-   * board unable to say. An unresolved descent rate under a certain DIVERT on
-   * water changes nothing an operator would do.
-   */
+  // Worst band wins over the settled axes; UNRESOLVED only if something still open could land worse.
   const settled = axes.filter((a) => a.band !== "UNRESOLVED");
   const certainWorst = settled.reduce(
     (worst, a) => (RANK[a.band] > RANK[worst] ? a.band : worst),

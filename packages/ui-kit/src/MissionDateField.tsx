@@ -11,57 +11,22 @@ import { writeQuantity } from "./units";
 
 /**
  * A universal time ENTERED as a calendar instant: year, day, hour, minute,
- * second, each its own field, plus coarse steps.
+ * second, each its own field, plus coarse steps. The fields are for an instant
+ * you know; the steps are the tuning loop for one you are looking for.
  *
- * ## Why five fields and not one
+ * Calendar lengths are read per render from `kspCalendar()`, so day 300 means
+ * what the game's own clock calls day 300. Edits round to the second, so the
+ * field never shows one instant and holds another.
  *
- * An instant a mission runs on is a date, and the operator holding it in their
- * head holds it as "day 214, about ten past four", not as 4,633,000 seconds.
- * One seconds field makes every edit an arithmetic problem: to move an ignition
- * six hours later you have to know how long a day is on the calendar the game
- * is running, which is exactly the knowledge this component exists to carry.
- *
- * ## Both halves are needed, and they do different jobs
- *
- * The fields are for an instant you already know. The coarse steps are for the
- * one you are looking for: nudging a burn a day earlier and watching what
- * happens is the tuning loop, and it is a different gesture from typing a
- * number. Offering only the fields turns every nudge into a re-type; offering
- * only the steps makes a known instant unreachable.
- *
- * ## The calendar is whichever one the game is running
- *
- * Six-hour days and 426-day years on stock Kerbin time, 24 and 365 under a
- * planet pack. The lengths are read per render from `kspCalendar()`, so an
- * entry typed as day 300 means the same instant the game's own clock would call
- * day 300. Compiling the stock numbers in would make this component wrong for
- * an RSS player in a way that still looks like a date, which is the whole reason
- * the calendar is a runtime fact rather than a constant.
- *
- * ## Rounding, and why it is to the second
- *
- * The fields cannot express a fraction of a second, so a UT with one loses it
- * on the first edit. That is deliberate: a plan whose ignition is specified to
- * the microsecond is not a plan an operator typed, and preserving the remainder
- * would make the field show one instant and hold another.
- *
- * ## An instant nobody stated is not the epoch
- *
- * A caller whose instant could not be read passes `null`, and the field comes up
- * empty with the absent token beside it rather than showing a date. The epoch is
- * a real instant and rendering it over an unread value tells the operator their
- * save says Year 1 Day 1, which is a claim the save did not make. Nothing is
- * committed until a component is typed, so a form over an absent instant cannot
- * send one either.
+ * An instant nobody stated is not the epoch: `null` comes up empty with the
+ * absent token, and nothing is committed until a component is typed.
  */
 export interface MissionDateFieldProps {
   /**
    * The instant being edited, in seconds since the game's epoch, or `null` when
    * there is none: a reading that did not arrive, a field the producer withheld.
    *
-   * <p>A non-finite number is read as `null` too. A NaN going through the
-   * calendar arithmetic is precisely how an unread instant came out as Year 1
-   * Day 1, so it is turned away at the door rather than clamped.</p>
+   * A non-finite number is read as `null` too, rather than clamped to the epoch.
    */
   value: number | null;
 
@@ -77,10 +42,8 @@ export interface MissionDateFieldProps {
    * button and a plus button per entry. Defaults to a minute, ten minutes, an
    * hour and a day of the LIVE calendar.
    *
-   * <p>An EMPTY list removes the row entirely, for a caller that has another
-   * nudge control beside this one. Two rows of nudge buttons doing one job is
-   * one gesture offered twice, and eight buttons that wrap at a panel's width
-   * cost more height than the date fields above them.</p>
+   * An empty list removes the row entirely, for a caller with another nudge
+   * control beside this one.
    */
   steps?: number[];
 }
@@ -98,14 +61,8 @@ export interface MissionDateParts {
  * Splits a UT into calendar components, with years and days ONE-BASED to match
  * every other date this kit renders: UT zero is Year 1 Day 1, not Year 0 Day 0.
  *
- * A non-finite or negative UT lands on the epoch rather than on a negative year,
- * the same way every other date readout in this kit clamps: a stray value should
- * read as the start of time, not as a nonsensical date.
- *
- * That clamp is a floor under arithmetic, never a way to render an instant
- * nobody stated. `MissionDateField` keeps an absent value away from here
- * entirely, because "no reading" arriving as Year 1 Day 1 is a date the save
- * never claimed.
+ * A non-finite or negative UT lands on the epoch, as a floor under arithmetic;
+ * it is never a way to render an absent instant, which never reaches here.
  */
 export function partsOfUt(ut: number): MissionDateParts {
   const { year: YEAR, day: DAY, hour: HOUR, minute: MINUTE } = kspCalendar();
@@ -137,10 +94,8 @@ const EPOCH_PARTS: MissionDateParts = {
 /**
  * Recombines calendar components into a UT.
  *
- * Deliberately does NOT clamp an out-of-range component: an hour of 30 rolls
- * into the next day, which is what a keyboard-driven edit wants. Typing over
- * the hour field to reach tomorrow morning should work, and refusing it would
- * make the operator do the carry themselves.
+ * Does not clamp an out-of-range component: an hour of 30 rolls into the next
+ * day, so the operator never does the carry.
  */
 export function utOfParts(parts: MissionDateParts): number {
   const { year: YEAR, day: DAY, hour: HOUR, minute: MINUTE } = kspCalendar();
@@ -154,18 +109,8 @@ export function utOfParts(parts: MissionDateParts): number {
 }
 
 /**
- * A coarse step's label, written by the kit's own duration formatter on the live
- * calendar's tiers: a day's worth of seconds reads as a day, not as 21,600
- * seconds.
- *
- * Not hand-assembled from a number and a letter. A step is a duration and the
- * kit already owns how a duration is written, including which tiers exist on the
- * calendar the game reported; spelling "1d" here would be a second answer to
- * that question, wrong for anyone not on stock Kerbin time.
- *
- * A button's label is a string, so this takes `writeQuantity` rather than
- * `<Unit>`: same ladder either way, since the `time` kind is what
- * `formatQuantity` hands to the duration formatter.
+ * A coarse step's label, written by the kit's duration formatter on the live
+ * calendar's tiers, so a day's worth of seconds reads as a day.
  */
 function stepLabel(seconds: number): string {
   return writeQuantity(value("s", seconds));
@@ -180,11 +125,7 @@ export function MissionDateField({
 }: MissionDateFieldProps) {
   const groupId = useId();
   const absentId = `${groupId}-absent`;
-  /*
-   * A non-finite number is the same absence as a null, reached by a different
-   * route: `magnitudeOf` on a withheld reading gives one, a NaN out of a
-   * producer gives the other, and neither is a date.
-   */
+  // A non-finite number is the same absence as a null, reached by a different route.
   const instant = value !== null && Number.isFinite(value) ? value : null;
   const parts = instant === null ? null : partsOfUt(instant);
   const calendar = kspCalendar();
@@ -195,15 +136,11 @@ export function MissionDateField({
     calendar.day,
   ];
 
-  // An in-progress edit is held as TEXT for the one field being typed in.
-  //
-  // Without it the field is unusable: clearing it leaves an empty string, an
-  // empty string is not a number, and a controlled field with no number to show
-  // snaps back to whatever the instant says. The operator then types a digit
-  // onto the end of a value they thought they had deleted. Holding the draft
-  // means an empty field stays empty until there is something to commit, and
-  // dropping it on blur means the field can never disagree with the instant it
-  // is showing.
+  /*
+   * An in-progress edit is held as text for the one field being typed in, so a
+   * cleared field stays empty instead of snapping back. Dropped on blur, so the
+   * field never disagrees with the instant.
+   */
   const [draft, setDraft] = useState<{
     key: keyof MissionDateParts;
     text: string;
@@ -221,13 +158,9 @@ export function MissionDateField({
         id={`${groupId}-${key}`}
         type="number"
         inputMode="numeric"
-        // Named for the group as well as the column, the same way the nudge
-        // buttons below already are. The visible heading stays the column's own
-        // word; without the group in the spoken name, a screen every field of
-        // which is called "DAY" cannot say which instant is being edited, and
-        // two of these on one panel are indistinguishable.
+        // Named for the group as well as the column, so two of these on one panel are distinguishable.
         aria-label={`${label} ${text}`}
-        // The sentence below, on every field, so the absence is spoken on focus rather than left to a dash nobody's screen reader reads out.
+        // On every field, so the absence is spoken on focus.
         aria-describedby={parts === null ? absentId : undefined}
         min={min}
         step={1}
@@ -248,11 +181,7 @@ export function MissionDateField({
           if (typed.trim() === "") return;
           const next = Number(typed);
           if (!Number.isFinite(next)) return;
-          // The epoch is the base ONLY once the operator has typed something,
-          // which is the moment an instant starts existing. The other four
-          // components have to start somewhere and there is nothing else to
-          // start them from; what matters is that the date appears because a
-          // key was pressed, not because a reading was missing.
+          // The epoch is the base only once the operator has typed something.
           onChange(utOfParts({ ...(parts ?? EPOCH_PARTS), [key]: next }));
         }}
       />
@@ -268,26 +197,18 @@ export function MissionDateField({
         {field("minute", "MIN", 0, "4rem")}
         {field("second", "SEC", 0, "4rem")}
       </Cluster>
-      {/* Words as well as the token. The dash carries the absence to an eye and
-          to nothing else, and an operator on a screen reader meeting five empty
-          number boxes has no way to tell an unread instant from one that failed
-          to render. */}
+      {/* Words as well as the token, since the dash carries the absence only to an eye. */}
       {parts === null && (
         <Text id={absentId} tone="muted" size="sm">
           {`${NULL_DISPLAY} no ${label.toLowerCase()} to show. Type one to state it.`}
         </Text>
       )}
-      {/* Gone entirely when there are no steps, heading included. A caller
-          passing an empty list has a different nudge control beside this one, and
-          the word alone above nothing reads as a row that failed to render. */}
       {coarse.length === 0 ? null : (
         <Cluster gap="related-packed" wrap justify="start">
           <Text tone="faint" size="sm">
             NUDGE
           </Text>
-          {/* Dark over an absent instant, both rows: a step is relative, and
-              there is nothing here to step from. Stepping off the epoch would
-              invent the date the empty fields are refusing to show. */}
+          {/* Disabled over an absent instant: a step is relative, and there is nothing to step from. */}
           {coarse.map((step) => (
             <ActionButton
               key={`minus-${step}`}

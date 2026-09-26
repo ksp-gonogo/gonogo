@@ -17,19 +17,13 @@ import { useCommandFailures } from "../CommandDelay/useCommandFailures";
 import { focusRing } from "../focusRing";
 import { Spinner } from "../Spinner";
 
-/**
- * How long an armed control stays armed before it quietly disarms.
- *
- * The ONE definition: `styleguide-delay-ux.test.ts` fails if it is
- * duplicated elsewhere.
- */
+/** How long an armed control stays armed before it quietly disarms. The ONE definition. */
 export const ARM_TIMEOUT_MS = 4000;
 
 /**
- * How long a refusal stays on the control before it returns to rest. Longer
- * than the arm window because the operator is READING this one, and not forever
- * because the situation the game refused on can change, and a stale "refused"
- * would then be a lie about the present.
+ * How long a refusal stays on the control before it returns to rest: long
+ * enough to read, not forever, because the situation the game refused on can
+ * change.
  */
 export const REFUSAL_TIMEOUT_MS = 8000;
 
@@ -40,47 +34,23 @@ export const REFUSAL_TIMEOUT_MS = 8000;
  */
 export const PENDING_BACKSTOP_MS = 30_000;
 
-/**
- * What the mod says about this command before it is pressed, as much of it as
- * this control needs.
- *
- * Declared structurally, exactly as {@link CommandButtonHandle} and
- * `CommandDelayHandle` are: ui-kit stays the vanilla design system, and
- * `useCommand`'s `gate` satisfies this shape.
- */
+/** What the mod says about this command before it is pressed, declared structurally; `useCommand`'s `gate` satisfies it. */
 export interface CommandGateLike extends CommandRefusalLike {
   /** The game EVALUATED this and said no. */
   blocked: boolean;
   /**
-   * The mod could not evaluate this command's gates at all, so it knows nothing
-   * about them. Deliberately NOT a reason to darken the control: an absent
-   * authority is not the game's judgement, and in a sandbox save
-   * `ScenarioUpgradeableFacilities.Instance` is null by design, so treating this
-   * as a refusal would permanently dark a working control with an
-   * authoritative-looking sentence. Renders as ordinary, and reports itself
-   * through `data-gate` for a diagnostic surface.
+   * The mod could not evaluate this command's gates at all. NOT a reason to
+   * darken the control (a sandbox save has no facility authority by design):
+   * it renders as ordinary and reports itself through `data-gate`.
    */
   undetermined?: boolean;
 }
 
 /**
  * What a command reply is known to be BEFORE you know which command produced
- * it: the result envelope, carrying the command's own value on `payload`.
- *
- * The default {@link CommandButtonHandle} reply, and the reason that default is
- * no longer `unknown`. `unknown` is the top type, so it accepts every reader
- * including one that treats the envelope AS the payload, and a handle passed a
- * row deep through a bare `CommandButtonHandle` prop had forgotten its real
- * reply by the time anyone read it. Twenty-one props in this repo's own widget
- * library are declared bare; every one was a place a widget could read a field
- * off the wrapper and get `undefined` forever with nothing complaining.
- *
- * Deliberately the floor rather than a mirror of the wire's `CommandResult`:
- * ui-kit is the vanilla design system and declares this family structurally, as
- * {@link CommandDelayHandle} and {@link CommandGateLike} already do. `success`
- * is what every reply has and what an honest reader wants; `payload` stays
- * `unknown`, so reaching into it means narrowing, which is the step the wrong
- * cast skipped.
+ * it: the result envelope, carrying the command's own value on `payload`. The
+ * default {@link CommandButtonHandle} reply, so a reader cannot treat the
+ * envelope as the payload; `payload` stays `unknown` until narrowed.
  */
 export interface CommandReplyLike {
   /** Whether the command ran. False pairs with the refusal the handle surfaces. */
@@ -90,35 +60,24 @@ export interface CommandReplyLike {
 }
 
 /**
- * The command handle this control dispatches on: the delay-rail handle plus the
- * one thing a rail never needed, a way to actually send.
- *
- * Declared structurally here rather than imported from
- * `@ksp-gonogo/sitrep-client`, exactly as `CommandDelayHandle` is: ui-kit stays
- * the vanilla design system, and `useCommand`'s real return value satisfies this
- * shape at every call site.
+ * The command handle this control dispatches on: the delay-rail handle plus a
+ * way to send. Declared structurally; `useCommand`'s return value satisfies it.
  */
 export interface CommandButtonHandle<
   TResult = CommandReplyLike,
   TArgs = unknown,
 > extends CommandDelayHandle {
   /**
-   * Dispatch. The returned promise resolves when the command is confirmed and
-   * rejects when it is refused, lost, or the machinery failed, which is what
-   * lets this control clear its own pending state with no per-command telemetry
-   * predicate.
+   * Dispatch. The promise resolves when the command is confirmed and rejects
+   * when it is refused, lost, or the machinery failed, so the control clears its
+   * own pending state with no per-command telemetry predicate.
    *
-   * `TResult` is what it RESOLVES with, and it is the only reason this
-   * interface has a type parameter: it is what carries the reply's real type to
-   * {@link CommandButtonProps.onConfirmed}. A handle from `useCommand("...")`
-   * supplies it out of the generated command map with nothing written at the
-   * call site; a handle that says nothing falls back to
-   * {@link CommandReplyLike}, the envelope every command answers with.
+   * `TResult` carries the reply's real type to
+   * {@link CommandButtonProps.onConfirmed}; a handle from `useCommand("...")`
+   * supplies it from the generated command map.
    *
-   * A method rather than a property holding a function, so a handle whose args
-   * are typed from the generated command map is still a handle: as a property,
-   * `strictFunctionTypes` checks the parameter contravariantly and every
-   * `useCommand("vessel.control.setSas")` stops being assignable here.
+   * A method rather than a function-valued property, so `strictFunctionTypes`
+   * does not check typed args contravariantly and reject every typed handle.
    */
   send(
     args?: TArgs,
@@ -126,8 +85,7 @@ export interface CommandButtonHandle<
   ): Promise<TResult>;
   /**
    * The standing gate verdict, when the mod publishes one for this command.
-   * Absent means nothing is known in advance, which is where every control was
-   * before the gate channel existed, so a handle without it behaves as before.
+   * Absent means nothing is known in advance.
    */
   gate?: CommandGateLike;
 }
@@ -138,28 +96,18 @@ export interface CommandButtonHandle<
  * - `idle`: at rest
  * - `armed`: the operator has asked, and is being asked to mean it. Only
  *   reachable when the caller supplied a `confirmLabel`
- * - `pending`: dispatched, nothing back yet. The window signal delay makes real,
- *   and the phase a command button without one cannot express
+ * - `pending`: dispatched, nothing back yet (the signal-delay window)
  * - `refused`: the game evaluated it and said no. A retry changes nothing until
- *   the situation does, so this is a reason rather than a try-again
- * - `lost`: nothing came back. Deliberately NOT folded into `idle`: settling a
- *   dropped command at rest made it byte-identical to a confirmed one, so a
- *   command the engine threw away for a downed link looked exactly like one
- *   that ran. It is also not `refused`, because the game decided nothing and
- *   the command may well have executed; the wording says only what was heard
+ *   the situation does
+ * - `lost`: nothing came back. Not `idle`, which would look like a confirmed
+ *   command, and not `refused`, because the game decided nothing and the
+ *   command may have executed
  * - `found`: this control lost a command, and that command has since answered.
- *   The one phase that reverses another, and deliberately not `idle` and not a
- *   confirmation: confirmed means it worked as expected, and being told a
- *   command was lost and then that it ran is the opposite of expected. The
- *   operator may already have re-sent it on the strength of the loss, which is
- *   exactly who this is for
+ *   Not a confirmation: the operator may already have re-sent it
  * - `blocked`: the game will refuse this, and said so before anyone pressed.
- *   The control is dark and NOT `disabled`, for two reasons. A `disabled`
- *   button is skipped by some screen readers, so a dimmed dead control tells a
- *   screen-reader user that nothing is there at all. And a gate verdict is
- *   advice, not permission: it is sampled, so it can be a beat stale, and the
- *   dispatch re-evaluates anyway. So it carries `aria-disabled` instead, stays
- *   focusable, and answers a press by SAYING WHY rather than by doing nothing
+ *   The control is dark but NOT `disabled`: it carries `aria-disabled`, stays
+ *   focusable, and answers a press by saying why. A gate verdict is advice,
+ *   sampled and possibly a beat stale, and the dispatch re-evaluates anyway
  */
 export type CommandButtonPhase =
   | "idle"
@@ -204,9 +152,8 @@ export interface CommandButtonState {
    */
   isBlocked: boolean;
   /**
-   * The operator pressed a blocked control and is being told why. The FACT is
-   * always on the control (it is dark, and `aria-disabled`); this is the reason
-   * made visible on demand, for the sighted keyboard user that a `title` never
+   * The operator pressed a blocked control and is being told why: the reason
+   * made visible on demand, for the sighted keyboard user a `title` never
    * reaches.
    */
   isShowingReason: boolean;
@@ -217,10 +164,8 @@ export interface CommandButtonState {
   refusalText: string | null;
   /**
    * What the recovered command turned out to have done, composed, or `null`
-   * outside the `found` phase. Kept apart from `refusalText` even though a found
-   * refusal is one of its three outcomes: the two are true at different moments
-   * and a control that layered them would say "refused" about a command that
-   * ran.
+   * outside the `found` phase. Kept apart from `refusalText`, which is true at a
+   * different moment.
    */
   foundText: string | null;
   /**
@@ -234,25 +179,17 @@ export interface CommandButtonState {
    * The control was pressed. Advances the machine: arm, then dispatch; a press
    * while pending is ignored; a press while refused, lost or found clears that
    * outcome; a press while BLOCKED dispatches nothing and shows the reason
-   * instead.
-   *
-   * `armable` says whether there is a confirm step, which is the caller's
-   * decision (it owns the confirm copy), not something this hook can infer.
+   * instead. `armable` says whether there is a confirm step, which only the
+   * caller knows.
    */
   press: (armable: boolean) => void;
 }
 
 /**
- * The command lifecycle with no rendering attached, for a control whose CHROME
- * genuinely differs: `SpaceCenterStatus`'s facility cells measure their label
- * and collapse it to an icon, `LaunchDirector` colours by verb. Those are real
- * rendering requirements and forcing one look on them would be a worse answer
- * than the duplication it removed.
- *
- * What must never be duplicated is the BEHAVIOUR, which is all of this. A caller
- * here writes no `useState`, no arm timeout, and no reconciliation.
- * `CommandButton` below is this hook plus the default rendering, and is what a
- * caller with no such requirement should use.
+ * The command lifecycle with no rendering attached, for a control whose chrome
+ * genuinely differs. The behaviour is never duplicated: a caller writes no
+ * `useState`, no arm timeout and no reconciliation. `CommandButton` is this
+ * hook plus the default rendering.
  */
 export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
   handle,
@@ -263,18 +200,14 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
   const [phase, setPhase] = useState<CommandButtonPhase>("idle");
   const [refusal, setRefusal] = useState<CommandRefusalLike | null>(null);
   const [found, setFound] = useState<CommandFoundLike | null>(null);
-  // A press on a blocked control shows its reason. Local, and cleared on the
-  // same window a refusal gets, because it is the same act of reading.
+  // A press on a blocked control shows its reason, cleared on the refusal window.
   const [reasonShown, setReasonShown] = useState(false);
 
   const gate = handle.gate;
-  // `blocked` only. An undetermined gate is NOT a refusal: see
-  // CommandGateLike.undetermined for why it must not darken anything.
+  // An undetermined gate is NOT a refusal and must not darken anything.
   const gateBlocks = gate?.blocked === true;
 
-  // A dispatch that settles after this control unmounted must not set state, and
-  // a SECOND dispatch has to invalidate the first one's answer rather than let a
-  // late reply overwrite a fresh pending.
+  // A late reply must not set state after unmount or overwrite a newer dispatch's pending.
   const mountedRef = useRef(true);
   const dispatchSeqRef = useRef(0);
   useEffect(
@@ -285,19 +218,10 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
   );
 
   /*
-   * A command THIS control lost, turning up answered.
-   *
-   * Gated on `awaitingFoundRef`, set the moment this control's own dispatch
-   * settled lost and cleared the moment a found is read. One `useCommand` handle
-   * commonly serves a whole list of rows, so a found landing on the handle
-   * cannot be attributed to a row that never lost anything: the shared
-   * `hasFailure` tint accepts that imprecision because it is only a tint, and a
-   * PHASE, which takes over the control's own words, cannot.
-   *
-   * Watched off the handle rather than the dispatch promise, and it has to be:
-   * that promise rejected as lost, honestly and once, and it never settles
-   * again. `useCommand` moves the entry from `losses` to `founds` off the
-   * client's status store, which is the living channel.
+   * A command THIS control lost, turning up answered. One handle often serves
+   * many rows, so the phase is gated on `awaitingFoundRef` (set when this
+   * control's own dispatch settled lost). Watched off the handle, because the
+   * dispatch promise already rejected as lost and never settles again.
    */
   const founds = handle.founds;
   const awaitingFoundRef = useRef(false);
@@ -321,38 +245,29 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
     return () => clearTimeout(id);
   }, [phase]);
 
-  // Let a refusal, or a silence, be read, then return to rest. Both get the
-  // same window for the same reason: the operator is READING it, and the
-  // situation behind it can change. See REFUSAL_TIMEOUT_MS.
+  // Let a refusal, a silence or a found be read, then return to rest.
   useEffect(() => {
     if (phase !== "refused" && phase !== "lost" && phase !== "found") return;
     const id = setTimeout(() => {
       setPhase("idle");
       setRefusal(null);
-      // A found is the durable one and the rail is where it is durable: it sits
-      // there until the operator dismisses it. This is the echo on the control
-      // that issued it, so it gets the same read window as the other two rather
-      // than parking the button on a sentence for ever.
+      // The rail holds a found until dismissed; this is only the echo on the control.
       setFound(null);
     }, REFUSAL_TIMEOUT_MS);
     return () => clearTimeout(id);
   }, [phase]);
 
-  // Same window as a refusal: the operator is reading it, and the condition the
-  // game named can change, so the reason must not sit there claiming a present
-  // that has moved on.
   useEffect(() => {
     if (!reasonShown) return;
     const id = setTimeout(() => setReasonShown(false), REFUSAL_TIMEOUT_MS);
     return () => clearTimeout(id);
   }, [reasonShown]);
 
-  // The gate reopening takes the reason down with it: a control that lit up again while still explaining why it was dark would be describing the past.
+  // The gate reopening takes the reason down with it.
   useEffect(() => {
     if (!gateBlocks) setReasonShown(false);
   }, [gateBlocks]);
 
-  // Backstop only. See PENDING_BACKSTOP_MS.
   useEffect(() => {
     if (phase !== "pending") return;
     const id = setTimeout(() => setPhase("idle"), PENDING_BACKSTOP_MS);
@@ -382,18 +297,11 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
         if (rejection.kind === "lost") {
           // From here on, a found landing on the handle is this control's.
           awaitingFoundRef.current = true;
-          // Nothing came back, which is neither the game saying no nor a
-          // success. It used to settle at `idle` with a null reason, which is
-          // the confirmed path exactly, so a dropped command was
-          // indistinguishable from one that ran. It says what it heard instead:
-          // nothing.
           settle("lost", null);
           return;
         }
         if (rejection.kind !== "refused") {
-          // `failed` is the machinery, and the machinery is what the panel rail
-          // and the link indicators already speak for. It surfaces through the
-          // shared `data-failed` tint, off the handle's own in-flight set.
+          // A machinery failure is the rail's to report; here it is only the `data-failed` tint.
           settle("idle", null);
           return;
         }
@@ -403,41 +311,25 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
           args: rejection.args,
           label: rejection.label ?? commandLabel,
           breach: rejection.breach,
-          // The game's own words for this refusal, and the clause
-          // `commandRefusalSentence` prefers over anything ui-kit writes.
-          // Copying the rejection field by field dropped it, so a refusal that
-          // said exactly why came out as the general clause for its coarse code
-          // ("the game would not say why" for ModeUnavailable). The blocked path
-          // spreads the whole gate and so never lost it, which is why the only
-          // `detail` coverage in this component's tests was over there.
+          // The game's own words, which `commandRefusalSentence` prefers over its general clause.
           detail: rejection.detail,
         });
       },
     );
   }, [handle, args, commandLabel, onConfirmed]);
 
-  // This handle's own dead dispatches, for the shared `data-failed` tint. The
-  // panel-top queue stays the primary failure surface; this only says WHICH
-  // control issued the command that died.
+  // The rail is the primary failure surface; this tint only says WHICH control issued the command that died.
   const { hasFailure } = useCommandFailures(handle);
 
   const press = useCallback(
     (armable: boolean) => {
       if (phase === "pending") return;
-      // The game has already said it will refuse this. Dispatching anyway would
-      // spend a signal-delay round trip to be told what the control already
-      // knows, so the press SAYS WHY instead. Not a dead press: it is the only
-      // route to the reason that a sighted keyboard user has, since `title`
-      // wants a pointer and `aria-label` wants a screen reader.
+      // The game already said it will refuse this, so the press shows why instead of spending a round trip.
       if (gateBlocks) {
         setReasonShown(true);
         return;
       }
-      // A refused control is not inert: the operator may well be pressing it
-      // again because the situation changed. The press clears the refusal and
-      // starts the handshake over rather than dispatching straight back into
-      // the same no. A silent one clears the same way, and there the retry is
-      // the whole point: nobody knows whether the first attempt landed.
+      // A press on an outcome clears it and starts the handshake over, rather than dispatching straight back.
       if (phase === "refused" || phase === "lost" || phase === "found") {
         setRefusal(null);
         setFound(null);
@@ -453,10 +345,7 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
     [phase, gateBlocks, dispatch],
   );
 
-  // A REAL refusal outranks a standing gate: it is the more specific answer, and
-  // it is about a command the operator actually sent. Pending outranks both,
-  // because a command already travelling has not been stopped by a gate that
-  // shut behind it.
+  // A real outcome outranks a standing gate, and a command already travelling is not stopped by a gate that shut behind it.
   const effectivePhase: CommandButtonPhase =
     phase === "pending" ||
     phase === "refused" ||
@@ -479,10 +368,7 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
     refusalText: refusal
       ? commandRefusalSentence(refusal)
       : effectivePhase === "blocked" && gate
-        ? // The caller's own words for this dispatch, layered on exactly as the
-          // refusal path layers them: the mod publishes the gate per COMMAND
-          // and has never seen "Hire Valentina Kerman", which is the half that
-          // says which row went dark.
+        ? // The mod's gate is per command, so the caller's label says which row went dark.
           commandGateSentence({
             ...gate,
             label: gate.label ?? commandLabel,
@@ -508,24 +394,18 @@ export interface CommandButtonProps<TResult = CommandReplyLike, TArgs = unknown>
   extends NativeButtonProps {
   /**
    * The command this control dispatches. Its reply type is what
-   * {@link CommandButtonProps.onConfirmed} receives, inferred, so a caller
-   * declares nothing to get it.
+   * {@link CommandButtonProps.onConfirmed} receives, inferred.
    */
   handle: CommandButtonHandle<TResult, TArgs>;
   /**
-   * Args for the dispatch, passed straight to `handle.send`, and checked
-   * against what that command actually takes.
-   *
-   * `NoInfer` because this is a SECOND inference site for `TArgs` and the handle
-   * is the honest one. Without it a wrong args object widens `TArgs` to its own
-   * shape and agrees with itself, which is how this prop went from
-   * `args?: unknown` to a typed one and checked nothing on the first attempt.
+   * Args for the dispatch, passed straight to `handle.send` and checked
+   * against what that command takes. `NoInfer`, so a wrong args object cannot
+   * widen `TArgs` to its own shape.
    */
   args?: NoInfer<TArgs>;
   /**
-   * The dispatch's operator-facing description. Worth passing: it is what a
-   * refusal is NAMED after, so the operator reads "Hire Valentina Kerman
-   * refused: ..." rather than a sentence about `career.crew.hire`.
+   * The dispatch's operator-facing description, which a refusal is named
+   * after ("Hire Valentina Kerman refused: ...").
    */
   commandLabel?: string;
   /** The resting label. */
@@ -543,40 +423,28 @@ export interface CommandButtonProps<TResult = CommandReplyLike, TArgs = unknown>
   /** The refused label. Defaults to "Refused". */
   refusedLabel?: ReactNode;
   /**
-   * The label for a dispatch nothing answered. Defaults to "No reply", which is
-   * the whole of what is known: not "failed", which claims the machinery broke,
-   * and not "refused", which claims the game said no.
+   * The label for a dispatch nothing answered. Defaults to "No reply": not
+   * "failed" and not "refused", neither of which is known.
    */
   lostLabel?: ReactNode;
   /**
-   * The label for a command this control lost that has since answered. Defaults
-   * to "Found", the operator's own word for it, with the whole sentence carried
-   * on the accessible name and the title the way the lost phase carries its own.
-   *
-   * Not "Confirmed": confirmed means it worked as expected, and this is a
-   * command the operator was told to give up on.
+   * The label for a command this control lost that has since answered.
+   * Defaults to "Found", with the whole sentence on the accessible name and
+   * title. Not "Confirmed": the operator was told to give up on it.
    */
   foundLabel?: ReactNode;
   /**
    * The blocked phase's accessible name, for a control whose gate reason is
-   * already spelled out beside it (a row that renders the same sentence itself).
-   *
-   * Omit it and the accessible name becomes the composed gate sentence, which is
-   * the deliberate default: a screen-reader user landing on a dark button with
-   * its resting name learns that it exists and nothing about why it will not
-   * work, and "why" is the whole of what this phase has to give.
+   * already spelled out beside it. Omit it and the accessible name is the
+   * composed gate sentence.
    */
   blockedAriaLabel?: string;
   /**
    * The armed phase's accessible name, for a control whose resting
    * `aria-label` says more than its visible word ("Hire Desdin Kerman for
-   * 30,000 funds").
-   *
-   * Omit it and the armed phase carries NO `aria-label`, so the visible confirm
-   * wording becomes the accessible name. That is the deliberate default rather
-   * than falling back to the resting label: a control that still announces
-   * "Hire" after arming has told a screen-reader user nothing happened, and the
-   * whole point of the arm is that the next press means something different.
+   * 30,000 funds"). Omit it and the visible confirm wording is the accessible
+   * name, never the resting label, since the next press means something
+   * different.
    */
   confirmAriaLabel?: string;
   /** The in-flight phase's accessible name. Same rule as `confirmAriaLabel`. */
@@ -584,11 +452,8 @@ export interface CommandButtonProps<TResult = CommandReplyLike, TArgs = unknown>
   /**
    * Whether this control's command is CURRENTLY IN EFFECT, for a control that
    * represents state as well as acting on it: a SAS toggle, an action group, an
-   * activated strategy. Sets `aria-pressed` and the active fill.
-   *
-   * Leave it undefined for a control that only acts. That is the whole of the
-   * difference between a "toggle button" and a "command button", so it is a
-   * property of one control rather than a second component.
+   * activated strategy. Sets `aria-pressed` and the active fill. Leave it
+   * undefined for a control that only acts.
    */
   active?: boolean;
   tone?: CommandButtonTone;
@@ -599,52 +464,26 @@ export interface CommandButtonProps<TResult = CommandReplyLike, TArgs = unknown>
    * Called once a dispatch is confirmed, for a caller with local state to
    * settle. The pending state itself needs nothing from you.
    *
-   * Receives whatever the dispatch RESOLVED with, TYPED off the handle. Worth
-   * reading, because a confirmed command is not always a command that did
-   * something: a mod that de-duplicates on request id answers a repeat with the
-   * receipt it stored the first time, and the receipt is the only place a repeat
-   * is distinguishable from a fresh write. A caller that ignores the argument
-   * behaves exactly as it did.
-   *
-   * The type is the point. This was `(result: unknown) => void`, and `unknown`
-   * accepts every reader, including one that reads the command ENVELOPE as if it
-   * were the payload the envelope wraps. Seven controls across one Uplink did
-   * exactly that, reading a receipt's fields off the `CommandResult` that
-   * carries it: every one came back `undefined`, so every write reported success
-   * and the "nothing was written" banner those fields exist to raise could not
-   * fire at all. The reply type reaching here is what makes that reach a compile
-   * error instead of a silent `undefined`.
+   * Receives what the dispatch resolved with, typed off the handle. A confirmed
+   * command did not necessarily do something: a mod that de-duplicates on
+   * request id answers a repeat with the receipt it stored the first time. The
+   * value is the reply envelope; the command's own value is on `payload`.
    */
   onConfirmed?: (result: TResult) => void;
 }
 
 /**
- * The one command control. Arm, confirm, in-flight and refused are a single
- * state machine, and it lives here rather than once per widget.
+ * The one command control: arm, confirm, in-flight and refused as a single
+ * state machine. The panel delay rail says something is in flight; this says
+ * which control committed it.
  *
- * Every command has a real in-flight window under signal delay, so every command
- * button can express one; a button that cannot is claiming the command already
- * landed. The panel delay rail says SOMETHING is in flight, which in a list of
- * twenty applicants does not say which row the operator committed. This says it
- * at the control.
+ * Pending clears on `send()`'s own promise, not on a telemetry predicate, so it
+ * is command-agnostic and settles even for a command with no observable
+ * telemetry consequence. Pending is per RENDERED CONTROL, not per handle, so
+ * one handle serving a list gives each row its own pending state.
  *
- * Pending clears on `send()`'s own promise, not on a telemetry predicate. That
- * is the load-bearing choice: a predicate has to be written per command
- * ("`tarName` matches", "`hasData` went false", "the node flipped"), which is
- * why the widgets that had a pending state each hand-rolled a different one and
- * the rest had none. The promise is command-agnostic, and settles even for a
- * command with no observable telemetry consequence at all.
- *
- * Pending is per RENDERED CONTROL, not per handle. One `useCommand` handle
- * serving a list of rows gives each row its own pending state here, which is
- * what the widgets tracking a `pendingId` by hand were reaching for.
- *
- * The caller still calls `usePanelDelay(handle)` itself, and this component
- * deliberately does not: `usePanelDelay` registers the handle under an identity
- * of its own, so a per-row control calling it would enter one command into the
- * rail once per row. Leaving it to the caller also leaves `useCommand`'s
- * must-consume assertion doing its job, so a widget that renders a
- * `CommandButton` and forgets the rail still throws on the first dispatch.
+ * The caller calls `usePanelDelay(handle)` itself: a per-row control calling it
+ * would enter one command into the rail once per row.
  */
 export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
   handle,
@@ -699,10 +538,7 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
   } else if (isFound) {
     body = foundLabel;
   } else if (isShowingReason) {
-    // The reason IN the control, not only in its title and its accessible name.
-    // A gate sentence runs to about a hundred characters and the numbers are at
-    // the end, so whatever lays this out has to wrap rather than truncate: see
-    // commandRefusalSentence's own note.
+    // The reason IN the control. It runs long with the numbers at the end, so it must wrap, never truncate.
     body = refusalText;
   } else if (isArmed) {
     body = confirmLabel;
@@ -711,9 +547,7 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
   return (
     <CommandButton__Body
       type="button"
-      /* `found` is deliberately NOT `warn`: it is the one outcome that reverses
-         a warning, and wearing the warning's colour would file it beside the
-         loss it replaced. */
+      // `found` reverses a warning, so it does not wear the warning's colour.
       $tone={
         isRefused ? "warn" : isFound ? "neutral" : isArmed ? confirmTone : tone
       }
@@ -722,23 +556,13 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
       $armed={isArmed}
       $blocked={isBlocked}
       aria-pressed={active}
-      // Only while it IS busy: a permanent `aria-busy="false"` on every command button in the tree is noise a screen reader has to step over.
       aria-busy={isPending || undefined}
-      /*
-       * aria-disabled, NOT disabled, while blocked or pending. A `disabled`
-       * button is dropped from some screen readers' walk entirely and loses
-       * keyboard focus, so the outcome of a press would land on a control the
-       * operator is no longer on. `press` already ignores a press while pending,
-       * and a blocked press surfaces the reason.
-       */
+      // aria-disabled, not disabled, so the control keeps focus while the outcome lands on it.
       aria-disabled={isBlocked || isPending || undefined}
       disabled={disabled}
       data-failed={hasFailure ? "true" : undefined}
       data-command-phase={phase}
-      // Reports itself without changing how it renders: the operator sees an
-      // ordinary control, and a diagnostic surface can still find every command
-      // the mod could not judge. `undetermined` never wins over `blocked`,
-      // because a verdict is one or the other.
+      // A diagnostic hook only: an undetermined gate renders as an ordinary control.
       data-gate={
         isBlocked
           ? "blocked"
@@ -746,27 +570,20 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
             ? "undetermined"
             : undefined
       }
-      // The accessible name TRACKS THE PHASE. A refusal sentence names the
-      // command and the numbers behind the no, so it is the name while it
-      // stands: a screen-reader user landing on a button reading "Refused"
-      // learns nothing from the word. Armed and pending fall back to undefined
-      // rather than to the resting label, so the visible phase wording speaks
-      // instead of a name that describes a state the control has left.
+      /*
+       * The accessible name tracks the phase: an outcome's full sentence while
+       * it stands, and for armed and pending the visible wording rather than
+       * the resting label, which describes a state the control has left.
+       */
       aria-label={
         isRefused
           ? (refusalText ?? undefined)
           : isLost
-            ? // The visible words are two and the fact needs a sentence: a
-              // screen-reader user landing on "No reply" learns that something is up and nothing about what is unknown.
-              (lossText ?? undefined)
+            ? (lossText ?? undefined)
             : isFound
-              ? // Same rule again, and the gap is widest here: "Found" is one
-                // word and the fact it stands for is a reversal plus a verdict.
-                (foundText ?? ariaLabel)
+              ? (foundText ?? ariaLabel)
               : isBlocked
-                ? // Same rule as a refusal: the sentence names the command and
-                  // the numbers behind the no, and the resting name says none of that.
-                  (blockedAriaLabel ?? refusalText ?? ariaLabel)
+                ? (blockedAriaLabel ?? refusalText ?? ariaLabel)
                 : isPending
                   ? pendingAriaLabel
                   : isArmed

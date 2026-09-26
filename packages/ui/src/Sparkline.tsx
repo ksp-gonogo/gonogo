@@ -1,35 +1,20 @@
 import { useId, useMemo } from "react";
 import { buildPath, makeScale } from "./lineChartMath";
 
-/**
- * Tiny inline trendline. No axes, no margins, no labels, just the path.
- * Designed to embed next to a numeric readout (e.g. TWR, SMA, altitude) so
- * the reader can glance at the recent trend without taking up much space.
- *
- * The component is purely presentational: it accepts an array of `values`
- * (oldest → newest) and renders them at the given `width`/`height`. Y axis
- * auto-scales to the data range with a small padding factor so a flat line
- * still draws something visible.
- */
+/** Inline trendline with no axes or labels; `values` run oldest to newest and a flat series still draws a visible band. */
 export interface SparklineProps {
   values: ReadonlyArray<number>;
   width: number;
   height: number;
   /** Stroke colour. Defaults to `var(--color-text-primary)`. */
   color?: string;
-  /** Stroke width in pixels. Defaults to 1.5, thin enough to feel inline,
-   *  thick enough not to read as a misdraw on standard-DPI screens. */
+  /** Stroke width in pixels. Defaults to 1.5. */
   strokeWidth?: number;
   /** Pin the Y range; otherwise auto-scaled. Useful for "0..max-throttle" gauges. */
   yDomain?: [number, number];
   /** Render a faint baseline at y=0 if 0 falls within the visible range. */
   showZeroBaseline?: boolean;
-  /**
-   * Render a faint plot background + soft fill under the line so the
-   * sparkline reads as a chart rather than a single floating stroke.
-   * Defaults to `true`; set false when embedding inside a chip that
-   * already provides its own background.
-   */
+  /** Faint plot background and fill under the line; set false inside a chip that has its own background. */
   background?: boolean;
   /** ARIA label for screen readers. Defaults to "Trend sparkline". */
   ariaLabel?: string;
@@ -46,16 +31,13 @@ export function Sparkline({
   background = true,
   ariaLabel = "Trend sparkline",
 }: Readonly<SparklineProps>) {
-  // Filter out non-finite values defensively: a stray NaN in the source collapses the auto-domain and drags the path off-screen.
+  // A stray NaN would collapse the auto-domain.
   const finite = useMemo(
     () => values.filter((v) => Number.isFinite(v)) as number[],
     [values],
   );
 
-  // Stable instance-scoped ID for the gradient `<defs>`. React 18's useId
-  // emits ":r0:"-style strings that aren't valid in SVG `url(#id)`
-  // references; strip the colons. Has to be called unconditionally
-  // (rules-of-hooks): gradient consumption is gated by `background` later.
+  // useId's colons are not valid inside an SVG url(#id) reference.
   const fillId = `sparkline-fill-${useId().replace(/:/g, "")}`;
 
   const domain = useMemo<[number, number]>(() => {
@@ -68,14 +50,12 @@ export function Sparkline({
       if (v > max) max = v;
     }
     if (min === max) {
-      // Pad ±1% of value (or ±1 if value is zero) so a flat line still has a visible band to draw within.
       const pad = Math.abs(min) > 0 ? Math.abs(min) * 0.01 : 1;
       return [min - pad, max + pad];
     }
     return [min, max];
   }, [yDomain, finite]);
 
-  // Render path even at very small sizes; if invalid, just emit an empty SVG.
   if (width <= 0 || height <= 0 || finite.length < 2) {
     return (
       <svg
@@ -90,21 +70,12 @@ export function Sparkline({
     );
   }
 
-  // Half the stroke's own width, reserved top and bottom, so the highest and
-  // lowest points plot inside the viewport instead of ON its edge. An SVG
-  // clips to its own box by default, and a stroke is centred on its path: a
-  // peak scaled all the way to y=0 draws half its ink above the box, which is
-  // the apex-gets-cut-off bug this guards against. The domain's actual min/max
-  // still touch the edges of this padded band exactly, so the line's true
-  // extremes are unchanged, only where they land in pixels moves.
+  // Half a stroke width of padding keeps the extreme points from being clipped by the SVG box.
   const padY = strokeWidth / 2;
   const xs = finite.map((_, i) => i);
   const scaleX = makeScale(0, finite.length - 1, 0, width);
   const scaleY = makeScale(domain[0], domain[1], height - padY, padY);
   const d = buildPath(xs, finite, scaleX, scaleY);
-  // Filled-area path: the line plus the bottom-left/right corners. Gives
-  // the sparkline visual weight against a plot background without
-  // requiring a second data array.
   const dFill = `${d} L ${width},${height} L 0,${height} Z`;
 
   const showBaseline = showZeroBaseline && domain[0] <= 0 && domain[1] >= 0;

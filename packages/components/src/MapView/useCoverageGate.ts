@@ -1,9 +1,4 @@
-// MapView's paint-gate. NOT a darkening-overlay compositor, there is no dark
-// layer drawn on top in this design. A base-layer augment (e.g. an altimetry
-// or biome map) calls useCoverageGate WHILE PAINTING ITS OWN SURFACE and
-// indexes into the returned composite grid to decide each tile's alpha:
-// 0 = fully un-covered (paint nothing / black), 255 = fully covered
-// (paint at full opacity).
+// MapView's paint gate, not an overlay: a base-layer augment reads the composite grid while painting its own surface, 0 uncovered (paint nothing) to 255 covered (full opacity).
 import {
   type CoverageSourceDefinition,
   getCoverageSources,
@@ -13,23 +8,16 @@ import { type BodyMask, useCoverageMaskCache } from "@ksp-gonogo/data";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 export interface CoverageGate {
-  /** Composite reveal intensity, one byte per cell, row-major, same
-   *  dimensions as `width`/`height`. 0 = fully un-covered (paint nothing /
-   *  black), 255 = fully covered (paint at full opacity). */
+  /** Composite reveal intensity, one byte per cell, row-major, `width` by `height`. */
   data: Uint8Array | null;
   version: number;
   width: number;
   height: number;
-  /** True when at least one coverage source is registered AND a
-   *  `CoverageMaskCacheProvider` is mounted to actually resolve its masks.
-   *  False in either the "no coverage system mounted" case (zero coverage sources
-   *  registered) or the "no cache provider" case (sources are registered
-   *  but nothing can fetch their masks). A base-layer augment should treat
-   *  false as "paint fully open," NOT "fully un-covered", an Uplink that
-   *  registers a base-layer provider but no coverage source at all gets an
-   *  ungated (always-visible) surface, which is the correct degenerate
-   *  case, not an error state. A missing `CoverageMaskCacheProvider` must
-   *  degrade the same way: never a blanked map. */
+  /**
+   * True when a coverage source is registered and a
+   * `CoverageMaskCacheProvider` can resolve its masks. False means paint fully
+   * open, never a blanked map.
+   */
   hasAnySource: boolean;
 }
 
@@ -54,14 +42,7 @@ export function compositeCoverage(
   return reveal;
 }
 
-// Stable-reference snapshot cache: getCoverageSources() allocates fresh every call, which would infinite-loop useSyncExternalStore directly.
-//
-// Refreshed via an UNCONDITIONAL module-load subscription (mirrors
-// packages/core/src/AugmentSlot.tsx's slotCache/onAugmentsChange pattern),
-// not from inside a component lifecycle: a coverage source can register or
-// unregister while zero useCoverageGate instances are mounted (e.g. an
-// Uplink SDK bundle registers a source before the user ever navigates to a
-// MapView layout), and that change must not be missed.
+// A stable snapshot, since getCoverageSources() allocates per call and would loop useSyncExternalStore. Refreshed by a module-load subscription, so a source registered while no instance is mounted is not missed.
 let cachedSources: CoverageSourceDefinition[] = getCoverageSources();
 onCoverageSourcesChange(() => {
   cachedSources = getCoverageSources();
@@ -74,9 +55,7 @@ export function useCoverageGate(
   bodyId: string | undefined,
   augmentSettings: Record<string, Record<string, unknown>> | undefined,
 ): CoverageGate {
-  // Per-instance subscribe purely to trigger a re-render when the registry
-  // changes, cachedSources itself is kept fresh by the module-load
-  // subscription above regardless of whether any instance is mounted.
+  // Subscribed only to re-render on registry change; the cache is kept fresh at module scope.
   const sources = useSyncExternalStore(
     onCoverageSourcesChange,
     getSourcesSnapshot,
@@ -92,9 +71,7 @@ export function useCoverageGate(
   });
 
   useEffect(() => {
-    // No CoverageMaskCacheProvider mounted: masks can never resolve regardless
-    // of how many sources are registered. Degrade to fully-open, not a
-    // gated state stuck with null data forever.
+    // No cache provider: masks can never resolve, so degrade to fully open.
     if (!cache) {
       setGate((g) => ({ ...g, data: null, hasAnySource: false }));
       return;

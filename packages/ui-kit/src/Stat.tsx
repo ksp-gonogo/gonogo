@@ -16,23 +16,8 @@ export interface StatProps
 
 /**
  * One cell of a core-stat strip: a label, a figure, and at most one line under
- * it.
- *
- * <para>It exists because the shape was hand-rolled per widget as a bare
- * label/value flex pair, and the result was uniformly quiet: label and figure a
- * step apart on the type scale, both in a grey, so the figure an operator reads
- * first and the one they read last were drawn identically. Here the figure is
- * four rungs above its label and carries the primary foreground, and the label
- * is `--color-text-muted` rather than `--color-text-faint`, which clears 4.5:1
- * on the raised surface a cell actually sits on (faint does not, at
- * 4.05:1).</para>
- *
- * <para>A description list, one per cell, for the reason `ReadOnlyField` gives:
- * the label is associated with the figure programmatically rather than by
- * adjacency, so a reader in browse mode gets "Funds, 289,848 funds" as one unit.
- * One `<dl>` per cell rather than one around the strip, because a cell has to be
- * valid wherever it is dropped, including as the only thing a contributor
- * renders.</para>
+ * it. A `<dl>` per cell, so the label is associated with the figure
+ * programmatically and a cell stays valid wherever it is dropped.
  */
 export function Stat({
   label,
@@ -54,18 +39,11 @@ export function Stat({
 
 /**
  * The strip a widget's core stats sit in: a self-fitting grid of {@link Stat}
- * cells.
+ * cells, so every stat gets the same room and the row reflows to fewer columns
+ * as the tile narrows.
  *
- * <para>A GRID rather than a wrapping flex row, and that is the whole point.
- * Flexed, the cells took their content's width, so a short figure got a narrow
- * cell, the run read as one continuous line of text, and a fourth stat wrapped
- * into a ragged second row. `auto-fit` with a floor gives every stat the same
- * room whatever it says, so they read as a set of instruments and the row
- * reflows to two columns and then one as the tile narrows.</para>
- *
- * <para>The caller owns the live region: a strip is not always an announcing
- * surface, and `role="status" aria-live="polite"` on a strip whose figures move
- * every frame would flood a screen reader.</para>
+ * The caller owns the live region: figures that move every frame would flood a
+ * screen reader.
  */
 export const StatStrip = styled.div`
   display: grid;

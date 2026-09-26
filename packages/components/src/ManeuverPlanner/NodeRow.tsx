@@ -13,9 +13,9 @@ import styled from "styled-components";
 import { FeasibilityChip } from "./styles";
 
 /**
- * An edit, in the same POSITIONAL slots the node arrived in. The field names are
- * the stock basis's and the slots are whatever basis the node declared, which is
- * why the editor labels its boxes from `node.frame` rather than from these.
+ * An edit, in the positional slots the node arrived in. The field names are the
+ * stock basis's; the slots are whatever basis the node declared, so the editor
+ * labels its boxes from `node.frame`.
  */
 export interface NodeEditPatch {
   ut: number;
@@ -27,7 +27,7 @@ export interface NodeEditPatch {
 interface NodeRowProps {
   node: ParsedManeuverNode;
   currentUT: number | undefined;
-  /** Vessel ΔV available, or null when there is no usable reading (NOT the same as zero). */
+  /** Vessel ΔV available, or null when there is no usable reading. */
   availableDv: number | null;
   completed?: boolean;
   /** Omitted on phantom rows (the underlying node is already gone from KSP). */
@@ -48,9 +48,6 @@ export function NodeRow({
   const [saving, setSaving] = useState(false);
   const timeTo = currentUT !== undefined ? node.UT - currentUT : null;
   const feasible =
-    // `=== 0` here made a spent craft's every node read as unknown rather than
-    // short. A vessel with no ΔV left is telemetry, and it fails the comparison
-    // like any other number; only an ABSENT reading declines to judge.
     completed || availableDv === null
       ? null
       : availableDv >= node.deltaVMagnitude;
@@ -75,14 +72,7 @@ export function NodeRow({
           {completed ? (
             "Removing in 10 s"
           ) : timeTo !== null && timeTo < 0 ? (
-            /*
-             * A node the clock has passed. `Countdown` renders unsigned by
-             * default, so the elapsed case read "burn in 1min 1s" for a burn
-             * that happened a minute AGO, and a node with delta-v still owed
-             * legitimately outlives its own instant: a burn stopped short
-             * keeps its node. Past tense rather than a `T+` prefix, because
-             * this sits next to prose rather than on a launch clock.
-             */
+            // A burn stopped short keeps its node past its own instant; Countdown is unsigned, so the tense carries it.
             <>
               burn was <Countdown value={-timeTo} /> ago
             </>
@@ -174,10 +164,7 @@ function NodeEditor({
       <EditHint>
         burn in <Countdown value={timeTo} />
       </EditHint>
-      {/* Named from the burn's own basis, and in slot order, so the box an
-          operator types an along-track burn into is the one that carries it.
-          The stock and Frenet bases put different quantities in the same
-          slots, and the field names below are only the first basis's. */}
+      {/* Labelled from the burn's own basis: stock and Frenet put different quantities in the same slots. */}
       <LabeledInput label={slot2} value={prograde} onChange={setProgade} />
       <LabeledInput label={slot1} value={normal} onChange={setNormal} />
       <LabeledInput label={slot0} value={radial} onChange={setRadial} />
@@ -240,7 +227,6 @@ const RowActions = styled.div`
   gap: var(--gap-related);
 `;
 
-// The cursor, hover and colour transition come from the kit's IconButton; the bordered 22x22 box and its $active background are this row's.
 const StepButton = styled(IconButton)<{ $active: boolean }>`
   background: ${({ $active }) =>
     $active ? "var(--color-surface-raised)" : "transparent"};
@@ -255,9 +241,7 @@ const StepButton = styled(IconButton)<{ $active: boolean }>`
   padding: 0;
 `;
 
-// Same bordered 22x22 box as StepButton, in the alert hue. `padding: 0` is
-// load-bearing: a bare <button> keeps the UA's 1px 6px, which leaves 8px of
-// content width inside the border and squashes the 12px glyph to 8px wide.
+// `padding: 0` overrides the UA's button padding, which squashes the 12px glyph to 8px.
 const DeleteButton = styled.button`
   background: transparent;
   border: 1px solid var(--color-status-alert-muted);
@@ -303,7 +287,6 @@ const EditActions = styled.div`
   padding-top: var(--gap-actions);
 `;
 
-// The accent treatment and hover come from the kit; only the compact sizing and the align-self it sets for form footers are overridden here.
 const CompactPrimaryButton = styled(PrimaryButton)`
   align-self: auto;
   font-size: var(--font-size-compact);

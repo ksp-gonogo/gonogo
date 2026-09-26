@@ -23,19 +23,12 @@ export function useWorldCanvas({
   maxAtmosphere: number | undefined;
   bodyName: string | undefined;
 }) {
-  // Offscreen canvas that holds the trajectory in world coordinates.
-  // Fixed resolution matches WORLD_W × WORLD_H so latLonToMap maps 1:1.
+  // Offscreen trajectory canvas at WORLD_W by WORLD_H, so latLonToMap maps 1:1.
   const worldCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // trajectoryCount at the last point the canvas was actually painted up to.
-  // A plain "draw the latest segment" tip drops every in-between point when
-  // a reveal-gate catch-up burst delivers several new samples inside one
-  // batched React commit: this tracks how far behind the paint is so every
-  // buffered segment since the last draw gets caught up, not just the tip.
+  // How far the canvas has been painted, so a burst of samples in one commit draws every segment, not just the tip.
   const lastDrawnCountRef = useRef(0);
-  // Mirrors trajectoryCount for the body-switch effect below, which must not
-  // depend on trajectoryCount directly (that would make it re-fire on every
-  // sample instead of only on a body change).
+  // Mirrors trajectoryCount so the body-switch effect fires on a body change only.
   const trajectoryCountRef = useRef(trajectoryCount);
   trajectoryCountRef.current = trajectoryCount;
 
@@ -49,20 +42,16 @@ export function useWorldCanvas({
     };
   }, []);
 
-  // Clear trajectory when switching celestial bodies. bodyName is the trigger, not read inside, biome-ignore is intentional.
   // biome-ignore lint/correctness/useExhaustiveDependencies: bodyName is the change trigger, not consumed in the body
   useEffect(() => {
     const canvas = worldCanvasRef.current;
     if (!canvas) return;
     canvas.getContext("2d")?.clearRect(0, 0, WORLD_W, WORLD_H);
-    // Rebaseline: the buffer isn't cleared on a body switch, only the
-    // canvas is. Without this, the next draw would treat every point
-    // buffered under the old body as "new" and redraw that whole backlog
-    // onto the freshly-cleared canvas.
+    // Rebaseline: the buffer survives a body switch, and its old points must not redraw onto the cleared canvas.
     lastDrawnCountRef.current = trajectoryCountRef.current;
   }, [bodyName]);
 
-  // Draw every buffered segment since the last paint, incrementally, no full redraws, but no dropped segments either.
+  // Draw every buffered segment since the last paint, incrementally.
   useEffect(() => {
     if (trajectoryCount === 0) return;
     const canvas = worldCanvasRef.current;
@@ -74,9 +63,7 @@ export function useWorldCanvas({
     const newPoints = trajectoryCount - lastDrawnCountRef.current;
     if (newPoints <= 0) return;
 
-    // Cap to what's actually in the buffer, if points shifted out of the
-    // front (buffer over capacity) since the last draw, only what's left
-    // can be painted.
+    // Points shifted out of the front since the last draw can no longer be painted.
     const segments = Math.min(newPoints, trajectory.length - 1);
     if (segments <= 0) {
       lastDrawnCountRef.current = trajectoryCount;

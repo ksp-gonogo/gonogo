@@ -1,14 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { baseSurfacePainted, paintBaseSurface } from "./paintBaseSurface";
 
-// The map is a BACKGROUND with everything else drawn on top. `map-view.base`
-// is a STACKABLE slot: many
-// augments may draw, in order, and the stock texture is skipped only when
-// `suppressVanilla` is true, a declarative decision independent of
-// whether any layer currently has something to paint. "All layers off"
-// while suppression is active must NOT fall back to the stock texture:
-// it falls through to the dark panel fill already on the
-// canvas, same as an individual layer's own un-painted tiles always have.
+// With suppression on and every layer off, the surface falls through to the dark panel fill, never the stock texture.
 
 function fakeCtx() {
   const calls: string[] = [];
@@ -27,13 +20,7 @@ function layer(id: string) {
 
 const STOCK = namedSource("stock");
 
-/**
- * A drawable stand-in the assertions can tell apart by name.
- *
- * `CanvasImageSource` is a union of browser handles with no constructor, and
- * `paintBaseSurface` only ever passes one to `drawImage`, which the fake
- * context records rather than draws.
- */
+/** A drawable stand-in the assertions can tell apart by name; the fake context records `drawImage` rather than drawing. */
 function namedSource(id: string): CanvasImageSource {
   return { __id: id } as unknown as CanvasImageSource;
 }
@@ -136,11 +123,7 @@ describe("paintBaseSurface", () => {
   });
 });
 
-// The grid stroke keys its light-vs-dark choice off whether a surface was
-// actually painted (mirrors paintBaseSurface's own paint decision). The
-// regression this guards: the stroke used `textureImage || layers.length` and
-// ignored suppressVanilla, so a suppressed-and-empty (deliberately black) map
-// with a stock texture still loaded took the LIGHT grid.
+// A suppressed and empty map with a stock texture loaded is not painted, so it takes the dark grid.
 describe("baseSurfacePainted", () => {
   it("true when the stock texture paints (no suppression)", () => {
     expect(

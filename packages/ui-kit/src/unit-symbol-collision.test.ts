@@ -4,31 +4,10 @@ import { durationTierSymbols, irlDurationTierSymbols } from "./formatDuration";
 import { LADDERS } from "./units";
 
 /**
- * Guard for the bug that shipped a Kerbalism death-clock badge reading "~4M
- * TO FATAL": `formatDuration`'s own minute tier used the bare symbol "m",
- * silently colliding with the `length` kind's metre, and a severity
- * `Badge`'s `text-transform: uppercase` finished the job of making "4m"
- * indistinguishable from four METRES.
- *
- * `styleguide-unit-adoption.test.ts` did not catch it and never would: it
- * only checks that a value ROUTES THROUGH the unit layer
- * (`Unit`/`speakQuantity`/`writeQuantity`), never a hand-typed symbol next
- * to a number. It says nothing about whether the symbol that layer hands
- * back is itself unambiguous. This is the guard for THAT gap: no ladder
- * tier symbol may name two different dimensions.
- *
- * One deliberate exception. A duration-ladder tier symbol
- * ("y"/"d"/"h"/"min"/"s") legitimately repeats across the two duration
- * kinds, `time` (the in-game calendar) and `irlTime` (its wall-clock twin):
- * both render as a composite, interleaved string ("2h 15min") built by
- * `formatDuration`/`formatIrlDuration` directly, never resolved through a
- * single symbol->kind lookup the way every other unit is, so a reader is
- * never shown one in a context where the other kind's own reading also
- * appears. What a duration tier must never do is collide with a symbol from
- * an UNRELATED dimension, because that symbol IS looked up standalone by
- * `kindOfUnit`/`displaySymbol` and IS shown beside other units of that same
- * dimension elsewhere on the same screen, which is exactly the shape of the
- * bug above.
+ * No duration tier symbol may also name an unrelated dimension (a minute tier
+ * of "m" reads as metres, worse once a badge uppercases it). The tiers may
+ * repeat across `time` and `irlTime`, because both render as composite strings
+ * built by the duration formatters and are never looked up symbol by symbol.
  */
 describe("no duration-ladder tier symbol collides with an unrelated kind's symbol", () => {
   const DURATION_KINDS = new Set(["time", "irlTime"]);

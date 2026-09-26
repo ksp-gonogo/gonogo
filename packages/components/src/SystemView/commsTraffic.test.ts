@@ -77,9 +77,7 @@ describe("directTrafficHops", () => {
 });
 
 describe("pulsePositionOnHops", () => {
-  // forward=true: the vessel->home walk crosses this edge a->b, so the
-  // edge's own a (x1,y1) is the vessel-side end and b (x2,y2) is the
-  // home-side end.
+  // forward=true: the vessel-to-home walk crosses this edge a to b, so a (x1,y1) is the vessel-side end.
   const SINGLE_FORWARD = [{ edgeId: "e1", forward: true }];
   const SINGLE_REVERSED = [{ edgeId: "e1", forward: false }];
 
@@ -163,9 +161,7 @@ describe("pulsePositionOnHops", () => {
     });
 
     it("outbound at progress=0 sits at the home end of the home-adjacent hop", () => {
-      // near-home is forward (vessel->home matches a->b), so home->vessel
-      // (outbound) starts at its b, i.e. a->b sense t=1... wait: outbound
-      // reverses the edge's own forward sense, so aToB=false, legLocalT=0 -> t=1-0=1.
+      // near-home is forward, and outbound reverses that sense, so aToB=false and legLocalT=0 gives t=1.
       expect(pulsePositionOnHops(HOPS, "outbound", 0, 1)).toEqual({
         edgeId: "near-home",
         t: 1,

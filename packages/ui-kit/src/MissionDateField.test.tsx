@@ -50,7 +50,7 @@ describe("partsOfUt and utOfParts", () => {
   });
 
   it("carries an out-of-range component instead of refusing it", () => {
-    // Typing 30 into the hour field of a six-hour day should reach the day after next, not be clamped: the operator should not have to do the carry.
+    // An hour of 30 on a six-hour day rolls over rather than clamping.
     const rolled = utOfParts({
       year: 1,
       day: 1,
@@ -73,9 +73,7 @@ describe("MissionDateField", () => {
   });
 
   it("reports the whole instant when one component is typed over", async () => {
-    // Controlled, as every real caller is: the field renders the instant it was
-    // given, so a test that never feeds the change back is typing into a box
-    // that keeps resetting.
+    // Controlled, as every real caller is, so the change is fed back.
     function Harness() {
       const [ut, setUt] = useState(0);
       return <MissionDateField value={ut} onChange={setUt} label="Ignition" />;
@@ -143,13 +141,7 @@ describe("MissionDateField", () => {
 });
 
 describe("an instant nobody stated", () => {
-  /**
-   * The defect this state exists for. `partsOfUt` clamps a non-finite UT onto
-   * the epoch, so a caller that flattened an unread instant onto zero, or passed
-   * one straight through, got five boxes reading Year 1 Day 1: a date the save
-   * never claimed, under a row already showing the absent token for the same
-   * value.
-   */
+  /** An unread instant must not render as Year 1 Day 1. */
   it("comes up empty rather than on the epoch", () => {
     render(
       <MissionDateField value={null} onChange={() => {}} label="Ignition" />,
@@ -173,11 +165,7 @@ describe("an instant nobody stated", () => {
     expect(screen.getByLabelText("YEAR")).toHaveValue(null);
   });
 
-  /**
-   * A dash is a shape on a screen. Five empty number boxes are indistinguishable
-   * from a field that failed to render, so the absence is said in words and tied
-   * to every input, which is what a screen reader announces on focus.
-   */
+  /** The absence is said in words and tied to every input, so a screen reader announces it on focus. */
   it("says the absence rather than only drawing a dash", () => {
     render(
       <MissionDateField value={null} onChange={() => {}} label="Ignition" />,
@@ -200,14 +188,11 @@ describe("an instant nobody stated", () => {
 
     await userEvent.type(screen.getByLabelText("DAY"), "3");
 
-    // Day 3 of year 1 is two whole days in, the rest of the instant at the epoch: the first keystroke is what states it.
+    // Day 3 of year 1 is two whole days in, the rest of the instant at the epoch.
     expect(onChange).toHaveBeenCalledWith(2 * STOCK_KERBIN_CALENDAR.day);
   });
 
-  /**
-   * A step is relative and there is nothing here to step from. Nudging off the
-   * epoch would invent exactly the date the empty boxes are refusing to show.
-   */
+  /** A step is relative, and an absent instant has nothing to step from. */
   it("darkens the nudges, which have nothing to move", () => {
     render(
       <MissionDateField value={null} onChange={() => {}} label="Ignition" />,

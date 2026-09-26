@@ -13,19 +13,9 @@ import { formatQuantity } from "./units";
 
 /**
  * The reckoning slot: what `<Meter>` draws when it is handed a whole `Reading`
- * rather than a bare quantity.
- *
- * Three things come off the readings and only three: whether the bar is a
- * reading of NOW, which it draws the way `<Unit>` does; the VALUE's band, which
- * it draws as one mark per bound where the value is; and the CAPACITY's band,
- * which it draws at the track's end, because the end is one whole and an
- * uncertain whole is an uncertain end. The two are never merged, which the last
- * describe block pins.
- *
- * The band LOOKUP is what these tests pin to the primitive: a call site that had
- * to reach `reckoning.band` itself would be deciding both what an absent one
- * means and what unit the interval arrived in, and sixty widgets deciding that
- * separately is the visual language the operator asked for coming apart.
+ * rather than a bare quantity: whether the bar is a reading of now, the value's
+ * band as one mark per bound, and the capacity's band at the track's end. The
+ * two bands are never merged.
  */
 
 const AT = value("ut", 12_000);
@@ -79,19 +69,7 @@ function endMarks(container: HTMLElement): HTMLElement[] {
 }
 
 describe("Meter's bound marks, and the track that used to contain them", () => {
-  /**
-   * The defect an operator asked about (#246): a mark lived inside the track,
-   * whose `overflow: hidden` clipped it, so a mark was exactly as tall as its
-   * own track. Back when a meter had two track heights that made the same
-   * statement about a model two pixels tall on one and six on the other. The
-   * size axis is gone now, but the marks stay out of the clip: their height is
-   * the track's business only if they live in it.
-   *
-   * The structural fix is this: a mark is NOT inside the element that clips.
-   * Asserted on the DOM rather than on a computed height, because jsdom
-   * computes no layout and a height assertion here would pass whatever the
-   * styles said.
-   */
+  /** A mark is not inside the element that clips. Asserted on the DOM, since jsdom computes no heights. */
   it("draws its marks outside the clipping track, so the track cannot shorten them", () => {
     const { container } = render(
       <Meter
@@ -108,10 +86,7 @@ describe("Meter's bound marks, and the track that used to contain them", () => {
     }
   });
 
-  /**
-   * The fill still belongs to the track, and must: the track's overflow is what
-   * rounds the fill's ends into the pill. Only the marks moved.
-   */
+  /** The fill stays inside the track, whose overflow rounds its ends into the pill. */
   it("leaves the fill inside the track it is clipped by", () => {
     const { container } = render(
       <Meter
@@ -154,7 +129,7 @@ describe("Meter, given a reading of a fraction", () => {
   });
 
   it("finds the band itself, so no call site reads reckoning.band", () => {
-    // The whole of what a caller passes is the reading it already holds: no path, no unit, no map lookup, and nothing to get wrong per widget.
+    // A caller passes only the reading it already holds.
     const { container } = render(
       <Meter
         label="Dose"
@@ -177,11 +152,7 @@ describe("Meter, given a reading of a fraction", () => {
   });
 
   it("ignores a band the model wrote in some other unit", () => {
-    /*
-     * `bandIn` refuses to narrow it, and a meter with no band behaves exactly
-     * as one whose model offered none: silence beats a percentage read as a
-     * fraction.
-     */
+    // `bandIn` refuses to narrow it, so the meter behaves as one whose model offered no band.
     const { container } = render(
       <Meter
         label="Dose"
@@ -199,22 +170,13 @@ describe("Meter, given a reading of a fraction", () => {
       />,
     );
     const meter = screen.getByRole("meter", { name: "Dose" });
-    /*
-     * Pinned whole rather than probed for its parts. This is a sentence a
-     * person hears, and the parts can each be present while the sentence reads
-     * as three numbers in a row.
-     */
+    // Pinned whole: the parts can each be present while the sentence reads as three numbers in a row.
     expect(meter.getAttribute("aria-valuetext")).toBe(
       "39 percent, with bands at 30 percent and 44 percent",
     );
   });
 
-  /*
-   * The listener is the reason. A meter's `aria-valuetext` is spoken on every
-   * focus and every change, and "one sigma" names the interval instead of
-   * saying what it claims: someone who already knows the statistics learns
-   * nothing new from it and someone who does not learns nothing at all.
-   */
+  // `aria-valuetext` is spoken on every focus and change, and "one sigma" names the interval without saying what it claims.
   it("speaks the interval in plain words, with no statistics vocabulary", () => {
     render(
       <Meter
@@ -300,13 +262,7 @@ describe("Meter, given a reading of a fraction", () => {
         }}
       />,
     );
-    /*
-     * The mark rather than a word: the meter says the figure is no longer a
-     * reading of now by marking the figure, and the grade's own word is said
-     * in `aria-valuetext` and nowhere on screen. Asserted HERE because nothing
-     * else asserts the mark inside a Meter, which is how it came to be clipped
-     * out of sight without a test noticing.
-     */
+    // The figure carries the mark; the grade's word is only in `aria-valuetext`.
     expect(container.querySelector("[data-not-current-mark]")).not.toBeNull();
   });
 
@@ -323,13 +279,7 @@ describe("Meter, given a reading of a fraction", () => {
       />,
     );
 
-    /*
-     * A figure can stop being current without anything saying HOW, and it is
-     * no more a reading of now for the silence: all three signals fire, and
-     * the words are grade-neutral because there is no grade to report. The
-     * failure this pins is two signals without the third, a row that reads as
-     * held and carries nothing explaining why.
-     */
+    // A stale figure with no named grade still fires all three signals, with grade-neutral words.
     expect(container.querySelector("[data-fill-not-current]")).not.toBeNull();
     expect(container.querySelector("[data-not-current-mark]")).not.toBeNull();
 
@@ -363,16 +313,8 @@ describe("Meter, given a reading of a fraction", () => {
     );
 
     /*
-     * Meter draws its value as `<Unit value={value} />`, so the dot, the
-     * caption and the tooltip are all Unit's and arrive together. Asserted
-     * here rather than trusted, because "it inherits it" is the kind of claim
-     * that stays true until someone passes `valueLabel` instead.
-     *
-     * Both halves of what a held figure owes a reader are pinned: the grade
-     * word, and the instant it was last a reading of now. The time is matched
-     * FORMATTED rather than by a loose /as of/, because the failure worth
-     * catching is a UT arriving as the null token: "as of <null>" matches the
-     * words around it and says nothing, which is what `lastValidAt` refuses.
+     * The dot, caption and tooltip are Unit's and arrive together. The time is
+     * matched formatted, since "as of <null>" would pass a loose /as of/.
      */
     const at = formatQuantity(AT.magnitude, AT.unit).value;
     expect(at).not.toBe(NULL_DISPLAY);
@@ -385,12 +327,7 @@ describe("Meter, given a reading of a fraction", () => {
     const mark = container.querySelector("[data-not-current-mark]");
     expect(mark?.getAttribute("aria-hidden")).toBe("true");
 
-    /*
-     * Anchored to the marked quantity rather than the first [title] in the
-     * document. `Unit` also titles the unit SYMBOL, which a `ratio` happens
-     * not to render, so a document-order query passes today and would quietly
-     * start testing the symbol the day one appears.
-     */
+    // Anchored to the marked quantity, since `Unit` also titles the unit symbol.
     const hover = mark?.closest("[title]")?.getAttribute("title");
     expect(hover).toMatch(/STALE/i);
     expect(hover).toContain(at);
@@ -411,11 +348,7 @@ describe("Meter, given a reading of a fraction", () => {
       />,
     );
 
-    /*
-     * The property that makes inheriting safe: the dot and the words are the
-     * same component's, so a call site bypassing `Unit` loses both together
-     * and cannot end up with a silent dot.
-     */
+    // Bypassing `Unit` loses the dot and the words together, so there is never a silent dot.
     expect(container.querySelector("[data-not-current-mark]")).toBeNull();
     expect(container.querySelector("[data-unit-currency]")).toBeNull();
   });
@@ -492,15 +425,8 @@ describe("Meter, given a value and a capacity", () => {
 });
 
 describe("Meter, given a capacity that is itself a reading", () => {
-  /*
-   * A capacity is not always a tank. A fatal threshold is one, and RP-1's
-   * facility tiers move, so the axis can go stale and can carry doubt of its
-   * own. These pin the three places that doubt goes, and the one place it must
-   * never go.
-   */
   it("marks an uncertain capacity at the END of the track, not along it", () => {
-    // The end IS one whole. A capacity that might be 390 rather than 400 puts
-    // the true end just inside the track, at 390/400.
+    // A capacity that might be 390 rather than 400 puts the true end just inside the track.
     const { container } = render(
       <Meter
         label="LiquidFuel"
@@ -534,12 +460,7 @@ describe("Meter, given a capacity that is itself a reading", () => {
   });
 
   it("never merges the two intervals into one", () => {
-    /*
-     * #215: a fraction of an uncertain whole is uncertain twice over, and
-     * combining two intervals is width arithmetic the framework may not do,
-     * because it cannot know whether the errors are independent. So the two
-     * bands stay four marks in two places, and the sentence stays two clauses.
-     */
+    // Whether the errors are independent is unknown, so the bands stay four marks in two places and two clauses.
     const { container } = render(
       <Meter
         label="LiquidFuel"

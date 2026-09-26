@@ -5,20 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CrewStatusComponent } from "./index";
 
-/**
- * What the EVA suit meters do when `vessel.resources` stops arriving.
- *
- * `EvaSuitReadout` used to return early and replace both meters with the
- * sentence "Suit resources no longer current". The comment justifying it said a
- * held reading "is exactly the case where nothing was drawn", and the code in
- * the same file contradicted it: `suitTank` takes both halves as FIELD
- * READINGS, so `amount` and `capacity` are populated on a stale reading and
- * carry the currency they were read with.
- *
- * So both meters draw, marked. The two figures in question are the ones that
- * decide whether a kerbal outside the craft has time to get back in, which is
- * the worst possible pair to discard the moment the link goes.
- */
+/** EVA suit meters stay drawn, marked, when `vessel.resources` stops arriving: those two figures decide whether a kerbal can get back inside. */
 
 const VESSEL_TYPE_EVA = 7;
 
@@ -66,8 +53,7 @@ function mountEva() {
 
 describe("CrewStatus: EVA suit resources that have stopped arriving", () => {
   it("draws both suit meters while the readings are current", async () => {
-    // The control. Without it every assertion below would also pass on a
-    // widget that never drew a suit meter at all.
+    // The control: without it every assertion below would pass on a widget that never drew a meter.
     mountEva();
 
     await waitFor(() => expect(screen.getByText("O2")).toBeInTheDocument());
@@ -86,9 +72,6 @@ describe("CrewStatus: EVA suit resources that have stopped arriving", () => {
       fixture.store.setTransportConnected(false);
     });
 
-    /* The meters survive the drop and keep their fractions. The old early
-       return replaced both with a sentence, so an operator on EVA lost the two
-       figures that decide whether their kerbal can get back inside. */
     await waitFor(() =>
       expect(screen.getByRole("meter", { name: "O2" })).toHaveAttribute(
         "aria-valuenow",
@@ -99,9 +82,7 @@ describe("CrewStatus: EVA suit resources that have stopped arriving", () => {
   });
 
   it("no longer states its own staleness in words", async () => {
-    /* The sentence goes because each meter already carries the mark. Saying it
-       again in prose over marked figures says it twice, and a widget
-       defaulting to "can't show this now" is the stale style. */
+    // Each meter already carries the stale mark, so prose would say it twice.
     const fixture = mountEva();
     await waitFor(() => expect(screen.getByText("O2")).toBeInTheDocument());
 

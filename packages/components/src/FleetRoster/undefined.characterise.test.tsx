@@ -10,25 +10,7 @@ import {
 } from "../test/setupStreamFixture";
 import { FleetRosterComponent } from "./index";
 
-/**
- * Characterisation: what FleetRoster DOES today when its telemetry reads come
- * back `undefined`, recorded before `useTelemetry` starts returning a
- * `Reading`. Every assertion here is an observation, not an endorsement.
- *
- * The absence-sensitive reads, in the order the widget makes them:
- * - `useTelemetry("system.vessels")`, consumed twice and differently:
- *   `system?.vessels ?? []` for the rows, and `known: system !== undefined`
- *   for the empty-state wording. `known` is the ONE site in this widget that
- *   distinguishes `undefined` from `null`
- * - `useTelemetry("system.bodies")` via `bodies?.bodies ?? []`, so an
- *   unarrived bodies topic silently becomes an empty name map
- * - `useTelemetry("commandCentre.roster")` via
- *   `centres?.find(...)?.displayName ?? vantage`
- * - `useFleetVesselSilence(guid)` behind `if (!silence || nowUt == null ...)`
- * - `useFleetVesselLink(guid)` behind `link == null` and `oneWay != null`
- * - per-field: `magnitudeOf(v.crewCount)`, `v.bodyIndex != null`, and
- *   `rosterCommsLink(undefined)`
- */
+/** Characterisation, not specification: what FleetRoster renders when its telemetry reads are absent. Every assertion is an observation, not an endorsement. */
 
 const CARRIED = [
   "system.vessels",
@@ -89,10 +71,6 @@ const ONE_CRAFT = {
 
 const BODIES = { bodies: [{ index: 1, name: "Mun" }] };
 
-// ---------------------------------------------------------------------------
-// 1. Nothing has arrived at all
-// ---------------------------------------------------------------------------
-
 describe("FleetRoster: nothing has arrived at all", () => {
   it("says fleet data is not available, renders no table at all, and still asserts a comms rollup of zero", () => {
     const fixture = newFixture();
@@ -104,30 +82,15 @@ describe("FleetRoster: nothing has arrived at all", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("No vessels tracked.")).toBeNull();
 
-    // `total === 0` sheds the whole table: the column header row goes with it, so none of these labels exist rather than sitting above an empty list.
+    // `total === 0` sheds the whole table, column header row included.
     expect(screen.queryByText("Vessel")).toBeNull();
     expect(screen.queryByText("Body")).toBeNull();
     expect(screen.queryByText("Crew")).toBeNull();
     expect(screen.queryByText("Link")).toBeNull();
 
-    /*
-     * REASSIGNED, which this test anticipated in its own words: the footer
-     * meter used to publish a fleet-wide verdict of "nothing is linked" beside
-     * the sentence saying there is no data, because the share was a bare
-     * `Value` computed from an empty list.
-     *
-     * The coverage is now a `Reading` combined from `system.vessels`, so
-     * before a frame lands it is `pending` and `Meter` draws its ABSENT form:
-     * no `role="meter"` at all, because a meter asserts a fill fraction and
-     * there is no fraction to assert. "Nobody has said" and "nothing is
-     * linked" are different claims and the widget no longer conflates them.
-     */
+    // A pending coverage reading draws the meter's absent form: "nobody has said" is not "nothing is linked".
     expect(screen.queryByRole("meter", { name: "Comms coverage" })).toBeNull();
-    /*
-     * The count line goes with it, and that is the same correction rather than
-     * collateral: "0 linked · 0 no link" is a tally of a roster that was never
-     * delivered, so it asserted the same thing the bar did, in words.
-     */
+    // A tally of a roster never delivered would say the same thing in words.
     expect(visibleText()).not.toContain("0 linked");
     // `commsRollup([])`'s own branch, distinct from "No Link".
     expect(screen.getByText("No Vessels")).toBeInTheDocument();
@@ -138,19 +101,11 @@ describe("FleetRoster: nothing has arrived at all", () => {
     const fixture = newFixture();
     renderRoster(fixture);
 
-    /*
-     * `centres?.find(...)?.displayName ?? vantage ?? "unknown"` falls all the
-     * way through: no selection, no stamped frame, so there is no id to show.
-     */
     expect(screen.getByText(/viewing from:\s*unknown/i)).toBeInTheDocument();
   });
 
   it("renders the same not-available state with no TelemetryProvider mounted at all", () => {
-    /*
-     * Every read degrades through its `*Optional` variant rather than
-     * throwing, so "no stream in the tree" is indistinguishable from "the
-     * stream is mounted and cold".
-     */
+    // Every read degrades through its optional variant, so no stream in the tree is indistinguishable from a cold one.
     const { unmount } = render(
       <DashboardItemContext.Provider value={{ instanceId: "fleet-char" }}>
         <FleetRosterComponent config={{}} id="fleet-char" w={8} h={10} />
@@ -162,14 +117,10 @@ describe("FleetRoster: nothing has arrived at all", () => {
       screen.getByText("Fleet data not available yet."),
     ).toBeInTheDocument();
     expect(screen.getByText(/viewing from:\s*unknown/i)).toBeInTheDocument();
-    // Same reassignment as above: no stream is a `pending` coverage reading, which draws the absent form rather than a confident zero.
+    // No stream is a pending coverage reading, drawn in the absent form.
     expect(screen.queryByRole("meter", { name: "Comms coverage" })).toBeNull();
   });
 });
-
-// ---------------------------------------------------------------------------
-// 2. The `known` gate, and the one null-vs-undefined distinction
-// ---------------------------------------------------------------------------
 
 describe("FleetRoster: the `system !== undefined` absence gate", () => {
   it("fires before any roster arrives and stops firing for a confirmed-empty fleet", async () => {
@@ -203,9 +154,7 @@ describe("FleetRoster: the `system !== undefined` absence gate", () => {
     );
 
     act(() => {
-      // A tombstone: `getStreamSnapshot` hands back `point.payload`, which is
-      // `null` here, not `undefined`. So `system !== undefined` is TRUE and
-      // `known` stays set, while `null?.vessels ?? []` empties the table.
+      // A tombstone payload is `null`, not `undefined`, so `known` stays set while the table empties.
       fixture.emit("system.vessels", null, { validAt: 100 });
     });
 
@@ -222,11 +171,7 @@ describe("FleetRoster: the `system !== undefined` absence gate", () => {
     renderRoster(fixture);
 
     act(() => {
-      /*
-       * Partial payload: the record landed, the array inside it did not.
-       * `known` reads the RECORD, `vessels` reads the field, so the two
-       * disagree and the confident copy wins.
-       */
+      // Partial payload: `known` reads the record and `vessels` the field, so they disagree and the confident copy wins.
       fixture.emit("system.vessels", {});
     });
 
@@ -236,12 +181,6 @@ describe("FleetRoster: the `system !== undefined` absence gate", () => {
     expect(screen.queryByText("Fleet data not available yet.")).toBeNull();
   });
 });
-
-/*
- * ---------------------------------------------------------------------------
- * 3. system.bodies absent, with a roster present
- * ---------------------------------------------------------------------------
- */
 
 describe("FleetRoster: the `bodies?.bodies ?? []` absence gate", () => {
   it("renders every Body cell as the null placeholder while system.bodies has not arrived", async () => {
@@ -255,9 +194,7 @@ describe("FleetRoster: the `bodies?.bodies ?? []` absence gate", () => {
     await waitFor(() =>
       expect(screen.getByText("Explorer")).toBeInTheDocument(),
     );
-    // The vessel HAS a `bodyIndex` of 1. An unarrived bodies topic collapses
-    // to an empty lookup map, so a resolvable index renders identically to an
-    // unresolvable one: waiting is drawn as "there is no body".
+    // An unarrived bodies topic is an empty lookup, so a resolvable index renders like an unresolvable one.
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
     expect(screen.queryByText("Mun")).toBeNull();
 
@@ -290,8 +227,7 @@ describe("FleetRoster: the `bodies?.bodies ?? []` absence gate", () => {
 
     act(() => {
       fixture.emit("system.bodies", BODIES);
-      // `v.bodyIndex != null` short-circuits before the lookup. A fully
-      // populated bodies map makes no difference.
+      // `v.bodyIndex != null` short-circuits before the lookup, so a populated bodies map makes no difference.
       fixture.emit("system.vessels", {
         vessels: [
           {
@@ -313,10 +249,6 @@ describe("FleetRoster: the `bodies?.bodies ?? []` absence gate", () => {
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
   });
 });
-
-// ---------------------------------------------------------------------------
-// 4. Per-row partial payloads
-// ---------------------------------------------------------------------------
 
 describe("FleetRoster: partial vessel records", () => {
   it("renders the null placeholder for crew when crewCount is absent, and a bare count when only crewCapacity is", async () => {
@@ -363,9 +295,7 @@ describe("FleetRoster: partial vessel records", () => {
     await waitFor(() =>
       expect(screen.getByText("Unread Crew")).toBeInTheDocument(),
     );
-    // Exactly one placeholder in the whole table: the first row's crew cell.
-    // Every body cell resolved and every link tier is DIRECT, so nothing else
-    // can contribute one.
+    // Every body resolved and every link DIRECT, so the only placeholder is the first row's crew cell.
     expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(1);
     expect(screen.getByText("3")).toBeInTheDocument();
     expect(screen.getByText("0")).toBeInTheDocument();
@@ -396,21 +326,13 @@ describe("FleetRoster: partial vessel records", () => {
     await waitFor(() =>
       expect(screen.getByText("Unread Comms")).toBeInTheDocument(),
     );
-    /*
-     * `rosterCommsLink(undefined)` hits the `default` arm, which is a real
-     * tier rather than a fallback: the tag is the null placeholder and the
-     * accessible name says unknown, never "No link".
-     */
+    // An unread control source is the unknown tier: the null placeholder tag, accessible name "unknown", never "No link".
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
     expect(
       screen.getByRole("img", { name: "Link state unknown" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("img", { name: "No link" })).toBeNull();
-    /*
-     * The rollup does NOT hide the unread vessel: with linked === 0 it takes
-     * the "No Link" branch, so one unread vessel reads as a fleet with no
-     * comms at all.
-     */
+    // With linked === 0 the rollup takes the "No Link" branch, so one unread vessel reads as a fleet with no comms.
     expect(screen.getByText("No Link")).toBeInTheDocument();
     expect(visibleText()).toContain("0 linked · 0 no link · 1 unknown");
     expect(
@@ -418,12 +340,6 @@ describe("FleetRoster: partial vessel records", () => {
     ).toHaveAttribute("aria-valuenow", "0");
   });
 });
-
-/*
- * ---------------------------------------------------------------------------
- * 5. fleet.<guid>.contact / fleet.<guid>.delay absent
- * ---------------------------------------------------------------------------
- */
 
 /** Open a row's signal Disclosure and return its panel element. */
 async function openSignalPanel(name: RegExp): Promise<HTMLElement> {
@@ -448,8 +364,7 @@ describe("FleetRoster: the `contact == null` absence gate", () => {
     });
 
     const panel = await openSignalPanel(/Explorer signal/i);
-    // `contact == null ? "unknown"` fires. Note the row's own comms tag still
-    // reads DIRECT off `system.vessels`, so the two disagree inside one row.
+    // The row's own comms tag still reads DIRECT off `system.vessels`, so the two disagree inside one row.
     expect(visibleText(panel)).toContain("unknown");
     // `oneWay != null` gates the whole Delay term, so there is no label at all rather than a delay of zero or a placeholder.
     expect(visibleText(panel)).not.toContain("Delay");
@@ -473,11 +388,7 @@ describe("FleetRoster: the `contact == null` absence gate", () => {
     await waitFor(() => expect(visibleText(panel)).toContain("connected"));
 
     act(() => {
-      /*
-       * A confirmed "there is no contact record" is written `== null`, the
-       * same test the never-arrived case takes, so the Link term falls back to
-       * exactly the cold-start render.
-       */
+      // A confirmed "no contact record" takes the same `== null` test as never-arrived, so the Link term renders the cold-start state.
       fixture.emit("fleet.v-probe.contact", null, { validAt: 100 });
     });
 
@@ -497,11 +408,7 @@ describe("FleetRoster: the `contact == null` absence gate", () => {
         oneWaySeconds: 4.5,
         connected: true,
       });
-      /*
-       * Partial payload: a contact record with no reachability flag.
-       * `contact.connected` is undefined, and the ternary has no third arm, so
-       * an unread field is stated as a confirmed lack of a path.
-       */
+      // A contact record with no reachability flag: the ternary has no third arm, so an unread field reads as a confirmed lack of a path.
       fixture.emit("fleet.v-probe.contact", { lastContactUt: 100 });
     });
 
@@ -532,12 +439,6 @@ describe("FleetRoster: the `contact == null` absence gate", () => {
   });
 });
 
-/*
- * ---------------------------------------------------------------------------
- * 6. silence.<guid>.state absent
- * ---------------------------------------------------------------------------
- */
-
 const SILENT = {
   state: "Silent",
   silenceSinceUt: 1_000,
@@ -558,10 +459,7 @@ describe("FleetRoster: the `!silence` absence gate", () => {
     await waitFor(() =>
       expect(screen.getByText("Explorer")).toBeInTheDocument(),
     );
-    // `if (!silence || ...) return null` renders NOTHING, so a vessel whose
-    // silence reckoning has never arrived is presented exactly like a vessel
-    // confirmed nominal. Asserted as four named absences rather than an empty
-    // container, because the cell renders nothing in the nominal case too.
+    // An unarrived silence reckoning renders nothing, exactly like a confirmed-nominal vessel, so each badge is asserted absent by name.
     expect(screen.queryByText(/no contact/i)).toBeNull();
     expect(screen.queryByText(/overdue/i)).toBeNull();
     expect(screen.queryByText(/reacquire/i)).toBeNull();
@@ -594,11 +492,7 @@ describe("FleetRoster: the `!silence` absence gate", () => {
     );
 
     act(() => {
-      /*
-       * `!silence` is falsy for `null` too, so a confirmed "no silence record
-       * for this vessel" retracts the badge entirely and is drawn as nominal,
-       * identical to the never-arrived render.
-       */
+      // `!silence` is true for `null` too, so a confirmed "no silence record" is drawn as nominal, like never-arrived.
       fixture.emit("silence.v-probe.state", null, { validAt: 100 });
     });
 
@@ -617,11 +511,7 @@ describe("FleetRoster: the `!silence` absence gate", () => {
     });
     await screen.findByRole("button", { name: /Explorer signal/i });
     act(() => {
-      /*
-       * Partial payload: the field is simply absent rather than an explicit
-       * null. `predicted == null` covers both, so this is the `waiting` phase
-       * and no countdown is invented from the deadline.
-       */
+      // An absent field and an explicit null both mean `waiting`, so no countdown is invented from the deadline.
       fixture.emit("silence.v-probe.state", {
         state: "Silent",
         silenceSinceUt: 1_000,

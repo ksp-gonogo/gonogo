@@ -1,36 +1,19 @@
 export interface MapViewConfig {
   /** Number of trajectory history points to keep. Default: 2000. */
   trajectoryLength?: number;
-  /**
-   * Render the predicted ground track from `o.orbitPatches`. Default: true.
-   * When false, prediction is never computed, saves the work entirely.
-   */
+  /** Render the predicted ground track. Default true; false skips computing it. */
   showPrediction?: boolean;
   /**
-   * Body to map. When set, MapView renders this body's base surface (and
-   * whatever `map-view.base`/`map-view.overlay`/`map-view.sections`
-   * augments have registered) regardless of where the active vessel is,
-   * so you can inspect another body while orbiting elsewhere. Unset =
-   * follow the active vessel's `v.body` (the default).
-   *
-   * When the override differs from the active vessel's body, the vessel
-   * marker, trajectory trail and prediction are suppressed, plotting a
-   * Kerbin craft onto the Mun map would be misleading.
+   * Body to map, regardless of where the active vessel is. Unset follows the
+   * vessel. When it differs from the vessel's body, the marker, trail and
+   * prediction are suppressed.
    */
   bodyOverride?: string;
-  /**
-   * Renders the shared POI layer (`map-view.overlay`-adjacent, T-POI-7).
-   * Default true: vanilla POIs (KSC, contract targets) are always-relevant
-   * reference points, not an opt-in survey-coverage feature.
-   */
+  /** Renders the shared POI layer. Default true: vanilla POIs are reference points, not an opt-in feature. */
   showPois?: boolean;
   /**
-   * Per-augment settings, namespaced by augment id, the
-   * read-back half of `registerAugment({ settings: [...] })`. Populated by
-   * `AugmentSettingsPanel` in the config UI, merged from
-   * `getAugmentSettings("map-view.overlay"|"map-view.sections"|"map-view.base")`
-   * and `getCoverageSourceSettings()`. Read back into `MapSectionsContext`/
-   * `MapBaseLayerContext`'s `augmentSettings` field at render time.
+   * Per-augment settings, namespaced by augment id: the read-back half of
+   * `registerAugment({ settings: [...] })`, written by `AugmentSettingsPanel`.
    */
   augmentSettings?: Record<string, Record<string, unknown>>;
 }

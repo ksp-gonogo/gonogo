@@ -6,22 +6,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ThermalStatusComponent } from "./index";
 
 /**
- * What ThermalStatus does when `vessel.thermal` stops arriving.
- *
- * It holds every figure it has and withdraws only the bands. The record carries
- * the heat-shield temperature and flux, the hottest part's name and its skin
- * figures, and those are MEASUREMENTS rather than judgements, so a dropped link
- * is no reason to delete them.
- *
- * Nothing says so in words. Each held figure carries its own staleness mark, and
- * a sentence repeating them is the same statement twice.
- *
- * The split now: the band tags and the summary pill go to `unknown`, because a
- * band is read as the situation NOW and a craft that has since flown deeper
- * into re-entry would keep showing "nominal" for as long as the link stayed
- * down. The temperatures stay, dated, because an operator who has just lost the
- * link during re-entry is better served by the last heat-shield reading than by
- * a panel that has discarded it.
+ * When `vessel.thermal` stops arriving, ThermalStatus holds every temperature, dated, and withdraws only the bands, which are verdicts about now. No caption repeats what each figure's staleness mark already says.
  */
 
 const RE_ENTRY = {
@@ -55,8 +40,7 @@ function mount(instanceId: string) {
 
 describe("ThermalStatus: a thermal record that has stopped arriving", () => {
   it("draws the board while the readings are current", async () => {
-    // The control. Without it every assertion below would also pass on a
-    // widget that never drew a temperature at all.
+    // The control: without it every assertion below would pass on a widget that never drew a temperature.
     const { container } = mount("therm-stale-control");
 
     await waitFor(() =>
@@ -71,40 +55,25 @@ describe("ThermalStatus: a thermal record that has stopped arriving", () => {
       expect(visibleText(container)).toContain("Heat Shield"),
     );
 
-    /* The control for the wait below. Without it, a fixture that never showed a
-       band would satisfy "no longer says nominal" before the link even drops,
-       and the wait would assert nothing. */
+    // The control for the wait below: a band must be showing before the link drops.
     expect(visibleText(container).toLowerCase()).toContain("nominal");
 
     act(() => {
       fixture.store.setTransportConnected(false);
     });
 
-    /* Waiting on the TRANSITION, not on a word. No sentence announces the drop
-       any more, and "unknown" is not a signal because a band can already be
-       unknown while the link is up: waiting on it returns at once and asserts
-       against the state before the drop. A band that WAS a verdict ceasing to
-       be one only happens after it lands. */
+    // Wait on the band ceasing to be nominal, not on "unknown", which can already show while the link is up.
     await waitFor(() =>
       expect(visibleText(container).toLowerCase()).not.toContain("nominal"),
     );
 
-    /* The figures survive. This is the whole point: the part that is hottest
-       and how hot it was are exactly what the operator wants after the link
-       goes, and the old collapse deleted both. */
     expect(visibleText(container)).toContain("Heat Shield (2.5m)");
     expect(visibleText(container)).toContain("1177 °C");
 
-    /* And no sentence says any of it. Each held figure carries its own staleness
-       mark, so a caption repeating them is the same statement twice, in the
-       space the readings need. */
     expect(visibleText(container)).not.toContain("no longer current");
   });
 
   it("does not keep claiming a band a stale ratio cannot support", async () => {
-    /* The half that MUST still be withheld. A band is a verdict about now, so
-       holding "nominal" across a dropped link would tell an operator the craft
-       is fine while it flies deeper into re-entry. */
     const { fixture, container } = mount("therm-stale-band");
     await waitFor(() =>
       expect(visibleText(container)).toContain("Heat Shield"),

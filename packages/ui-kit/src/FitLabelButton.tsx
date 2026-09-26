@@ -11,8 +11,7 @@ import styled from "styled-components";
 export interface FitLabelButtonProps
   extends Omit<ComponentPropsWithoutRef<"button">, "children"> {
   /**
-   * The button's word AND its accessible name, in both states. Not optional and
-   * not separate from the name on purpose: see the component doc.
+   * The button's word and its accessible name, in both states.
    */
   label: string;
   /** Shown in place of the label when the label does not fit. */
@@ -22,26 +21,13 @@ export interface FitLabelButtonProps
 /**
  * A button that falls back to an icon when its label does not fit.
  *
- * The switch is MEASURED, not a breakpoint. A `cols < 6` style guess is wrong
- * the moment a label is longer than the one it was tuned against, and the same
- * lesson as the tiny-mode work applies: a rule that looks right in isolation is
- * not evidence about the real box. This compares the label's natural width
- * against the width the button actually has.
+ * The switch is measured, not a breakpoint: a hidden ghost copy of the label is
+ * compared against the button's width, since measuring the visible label would
+ * oscillate.
  *
- * The measurement uses a hidden GHOST copy of the label rather than the visible
- * one, because measuring the visible label would oscillate: collapsing removes
- * the text, the button then has room, so it expands, so it has no room. The
- * ghost's width does not depend on the state being decided from it.
- *
- * **The accessible name never changes.** `aria-label` carries it in both states
- * and the visible text is `aria-hidden`, so the two cannot drift: a screen
- * reader says the same word whether or not the word is on screen. A button did
- * not become a different control by getting narrower, and a user who cannot see
- * the icon must not be able to tell which mode it is in.
- *
- * Anything explaining a DISABLED state has to travel in `title`, which is
- * carried through untouched and is the only explanation left once the word is
- * gone.
+ * The accessible name never changes: `aria-label` carries it in both states
+ * and the visible text is `aria-hidden`. Anything explaining a disabled state
+ * travels in `title`, the only explanation left once the word is gone.
  */
 export const FitLabelButton = forwardRef<
   HTMLButtonElement,
@@ -56,7 +42,7 @@ export const FitLabelButton = forwardRef<
     const ghost = ghostRef.current;
     if (!content || !ghost) return;
     const measure = () => {
-      // clientWidth of the content span IS the button's content box, so the padding is already excluded without reading computed styles.
+      // The content span's clientWidth is the button's content box, padding excluded.
       setFits(ghost.scrollWidth <= content.clientWidth);
     };
     measure();

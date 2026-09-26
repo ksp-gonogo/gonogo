@@ -29,7 +29,7 @@ describe("Disclosure", () => {
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText("7 aboard")).toBeInTheDocument();
 
-    // Open at mount is a starting POSITION, not a lock: a caller that opens a section because the tile is tall still has to let the reader fold it.
+    // Open at mount is a starting position, not a lock.
     fireEvent.click(trigger);
     expect(screen.queryByText("7 aboard")).toBeNull();
   });
@@ -43,7 +43,7 @@ describe("Disclosure", () => {
     const trigger = screen.getByRole("button", { name: "Delay" });
     fireEvent.click(trigger);
     expect(screen.getByText("detail")).toBeInTheDocument();
-    // Escape from within the disclosure (fired on the trigger, which bubbles to the root handler) closes it and returns focus to the trigger.
+    // Escape closes it and returns focus to the trigger.
     fireEvent.keyDown(trigger, { key: "Escape" });
     expect(screen.queryByText("detail")).toBeNull();
     expect(trigger).toHaveAttribute("aria-expanded", "false");
@@ -90,11 +90,7 @@ describe("Disclosure", () => {
     const trigger = screen.getByRole("button", {
       name: "Show rate breakdown for Water",
     });
-    // A real ui-kit Button, not the bare unstyled trigger: the bordered
-    // GhostButton chrome (background/border/radius/padding/case) comes
-    // from the SAME styled component every other bordered button in the kit
-    // uses, so a change to that shared style shows up here too rather than
-    // this trigger silently drifting back to plain text.
+    // A real GhostButton, so the trigger shares the kit's bordered button chrome.
     expect(trigger.tagName).toBe("BUTTON");
     expect(trigger).toHaveTextContent("Show detail");
     expect(trigger).toHaveAttribute("aria-expanded", "false");

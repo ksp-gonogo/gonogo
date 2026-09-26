@@ -10,7 +10,7 @@ export interface StatusIndicatorProps
   /**
    * When true, the indicator becomes a screen-reader live region.
    * Use for state that updates dynamically and the user benefits from
-   * being told (connection going from probing → ok / fail). Default
+   * being told (connection going from probing to ok or fail). Default
    * false to keep it out of the accessibility tree for purely decorative
    * uses.
    */

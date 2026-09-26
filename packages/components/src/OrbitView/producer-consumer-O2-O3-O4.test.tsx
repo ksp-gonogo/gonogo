@@ -8,23 +8,8 @@ import { OrbitViewComponent } from "./index";
 import { emitScenario, renderOrbitViewStream } from "./streamHarness";
 
 /**
- * Producer↔consumer disagreements O2/O3/O4: hyperbolic orbits and the packed
- * (under physics) case.
- *
- * - **O2**: `hasOrbit` must not require apoapsis. Apoapsis is `null` by
- *   design on a hyperbolic orbit (`ecc >= 1`, no apoapsis exists), the gate
- *   must still show the diagram/pill for a fully-known escape orbit, keyed
- *   off periapsis (always real whenever there's an orbit) instead.
- * - **O3**: the apsis radii must come off the orbit solve (which is correctly
- *   `null` for a hyperbolic apoapsis), not a client-side `sma·(1+ecc)`
- *   computation (finite but GARBAGE-negative for a hyperbolic orbit, since
- *   sma<0 there), that garbage must never reach `overlayContext.scale` or
- *   any augment slot prop.
- * - **O4**: while the craft is under physics (Loaded/packed), the conic
- *   declines to advance the elements even though raw `vessel.orbit.sma`/`ecc`
- *   are present. The widget must not draw a diagram from those osculating
- *   elements, and must show a distinct "packed" empty state rather than the
- *   generic "No orbital data" (which implies no orbit at all, not true here).
+ * Hyperbolic orbits and the loaded case.
+ * `hasOrbit` keys off periapsis because apoapsis is `null` on a hyperbolic orbit; the apsis radii come from the solve because `sma·(1+ecc)` is a garbage negative there; a loaded craft still draws.
  */
 describe("OrbitView: O2: hyperbolic orbit still counts as hasOrbit", () => {
   it("renders the diagram (not 'No orbital data') for a fully hyperbolic orbit", async () => {
@@ -45,9 +30,7 @@ describe("OrbitView: O2: hyperbolic orbit still counts as hasOrbit", () => {
       }
     });
     expect(container.textContent).not.toContain("No orbital data");
-    // The periapsis marker/label renders (real on a hyperbolic orbit) but
-    // the apoapsis one doesn't (there is none), confirms `hasOrbit`
-    // resolved true off periapsis alone, not a fabricated apoapsis.
+    // A Pe marker and no Ap marker: `hasOrbit` resolved off periapsis alone.
     expect(
       container.querySelector('[aria-label^="Periapsis altitude"]'),
     ).not.toBeNull();
@@ -85,10 +68,7 @@ describe("OrbitView: O3: no finite-negative apoapsis leaks into the overlay scal
       }
     });
 
-    // White-box: the solve the widget reads its apsis radii from, in the same
-    // provider. The apoapsis must be null on this hyperbolic orbit, never a
-    // client-side `sma·(1+ecc)` finite-negative figure (-500000 * 2.4 =
-    // -1200000).
+    // The apoapsis is null, never the `sma·(1+ecc)` figure of -1200000.
     const solve = solved as OrbitalSolve | null;
     expect(solve).not.toBeNull();
     expect(solve?.apoapsisRadius).toBeNull();

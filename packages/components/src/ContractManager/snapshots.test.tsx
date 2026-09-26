@@ -10,12 +10,9 @@ import noContracts from "./__fixtures__/no-contracts.json";
 import { ContractManagerComponent } from "./index";
 
 /**
- * DOM snapshots off the stream pipeline, driven by each fixture's own
- * `_stream` block.
- * Each fixture declares its own `career.status` emit and pinned UT.
- *
- * `awaiting-telemetry` carries no `_stream` block: the pre-telemetry
- * placeholder is its subject, and the un-fed gate lists it as empty by design.
+ * DOM snapshots off the stream pipeline, driven by each fixture's own `_stream`
+ * block. `awaiting-telemetry` has none: the pre-telemetry placeholder is its
+ * subject.
  */
 
 const FIXTURES: Record<string, Record<string, unknown>> = {

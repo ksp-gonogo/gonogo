@@ -1,24 +1,17 @@
 /**
- * Dial: a full or near-full radial gauge with a needle, distinct from the
- * half-circle `Gauge` in @ksp-gonogo/ui. A round instrument whose needle sweeps
- * a configurable arc (default a full 360° compass), so it can show a heading
- * that wraps (slope-fall direction, drift bearing) as well as a bounded value a
- * half-dial can't wrap. Purely presentational: map data in via props.
+ * Dial: a round instrument whose needle sweeps a configurable arc (default a
+ * full 360° compass), so it can show a heading that wraps as well as a bounded
+ * value. The half-circle sibling is `Gauge`.
  *
  * Angles are degrees clockwise from 12 o'clock (up = 0°), matching a compass.
  * `startAngle` places `min`; `sweep` is the span from `min` to `max`.
  *
- * 📌 Revisit (landing-widget plan A2): confirm after first real use whether Dial
- * belongs in ui-kit or demotes into the widget.
- *
  * Semantics: `role="meter"` on a styled wrapper (aria-valuenow / valuetext); the
  * SVG face is `aria-hidden`.
  *
- * The whole axis is ONE kind: `value`, `min`, `max`, every zone bound and every
- * tick are `Value<U>` of the same unit, so a tick that belongs to another scale
- * is a compile error rather than a mark in the wrong place. The centre readout
- * writes that unit itself; there is no unit string to pass, because a symbol
- * passed beside a bare number is a symbol nothing checks.
+ * The whole axis is one kind: `value`, `min`, `max`, every zone bound and every
+ * tick are `Value<U>` of the same unit, and the centre readout writes that unit
+ * itself.
  */
 
 import { bandIn, type Value } from "@ksp-gonogo/sitrep-sdk";
@@ -123,17 +116,9 @@ export function Dial<U extends string = string>({
   trackColor = "var(--color-border-subtle)",
   ariaLabel,
 }: Readonly<DialProps<U>>) {
-  // Split first, so the figure and the statements about it go separate ways.
   const { shown, notCurrent, caption, band } = resolveCurrency(value);
 
-  /*
-   * The axis, unwrapped ONCE into the face's own angular geometry. Everything
-   * below is trigonometry on bare numbers, which is what an arc command is
-   * made of; one `U` across value, min, max, zones and ticks is what makes
-   * these magnitudes comparable in the first place. Every figure a READER sees
-   * goes back out through the unit layer, in the centre readout and in
-   * `aria-valuetext`.
-   */
+  // The axis, unwrapped once into the face's angular geometry; every figure a reader sees goes back out through the unit layer.
   const current = shown?.magnitude ?? Number.NaN;
   const axisMin = min.magnitude;
   const axisMax = max.magnitude;
@@ -145,24 +130,14 @@ export function Dial<U extends string = string>({
         ? axisMin + ((((safe - axisMin) % span) + span) % span)
         : Math.max(axisMin, Math.min(axisMax, safe))
       : axisMin;
-  /*
-   * An SVG `<text>` cannot contain a `<span>`, so `<Unit>` will not go in one
-   * and `writeQuantity` is the sanctioned way out: same formatter, same attach
-   * rule (a dial's degree sign is written hard against its number), rendered
-   * to a string. `speakQuantity` is its spoken twin, for `aria-valuetext`,
-   * which is an attribute and can only hold text.
-   */
-  // A reading carrying no number gets no needle: one parked on the face would
-  // say the value is there. A number that is present but non-finite keeps the
-  // fallback to the start of the scale.
+  // No number, no needle; a present but non-finite number still falls back to the start of the scale.
   const hasFigure = shown != null;
   const face = shown == null ? null : { magnitude: display, unit: shown.unit };
+  // An SVG `<text>` cannot contain a `<span>`, so this uses `writeQuantity`, with `speakQuantity` for `aria-valuetext`.
   const centreLabel =
     valueLabel ?? (face === null ? null : writeQuantity(face, { format }));
   const spoken = face === null ? NULL_DISPLAY : speakQuantity(face, { format });
-  // Where the model would defend its answer, on the face the needle sweeps.
-  // Narrowed to the figure's own unit: an interval placed by a number of
-  // another kind is an interval about something else.
+  // The model's interval, narrowed to the figure's own unit.
   const interval =
     shown == null || band === null ? null : (bandIn(band, shown.unit) ?? null);
 
@@ -176,18 +151,9 @@ export function Dial<U extends string = string>({
   };
 
   /*
-   * Onto the axis, and then onto the face. Kept apart because only the first is
-   * a claim about the quantity: `min`/`max` convert before they compare, so a
-   * bound written on another rung of the same kind lands where it belongs
-   * rather than where its bare number would put it, which is the failure
-   * `Math.max` on two magnitudes cannot see. Clamped for the reason a meter
-   * clamps its bounds: a model fitted near a limit routinely bounds past it,
-   * and pinning at the end says more than vanishing does.
-   *
-   * `onFace` is then the single unwrap, and it stays a separate step so the
-   * ordering and emptiness of a zone are still decided on QUANTITIES. Deciding
-   * them on angles would inverse-flip every zone on a dial drawn with a
-   * negative sweep.
+   * Onto the axis (clamped in the algebra, so another rung of the same kind
+   * converts before it compares), then onto the face. Zone order and emptiness
+   * are decided on quantities, since angles would flip under a negative sweep.
    */
   const onAxis = (q: Value<U>): Value<U> => q.max(min).min(max);
   const onFace = (q: Value<U>): number => angleOf(q.magnitude);
@@ -225,8 +191,7 @@ export function Dial<U extends string = string>({
             "aria-valuetext": spoken,
           }
         : {
-            /* A meter must state a value, and there is none: the face is
-               announced as a picture of nothing rather than as its minimum. */
+            /* With no value to state, the face is an image rather than a meter at its minimum. */
             role: "img",
             "aria-label": sayHeld(`${ariaLabel ?? "Dial"}: ${spoken}`, caption),
             ...heldNameMarker(caption),
@@ -244,7 +209,6 @@ export function Dial<U extends string = string>({
           height: "auto",
         }}
       >
-        {/* Track */}
         {r > 0 &&
           (isFullCircle ? (
             <circle
@@ -265,7 +229,6 @@ export function Dial<U extends string = string>({
             />
           ))}
 
-        {/* Zones */}
         {r > 0 &&
           zones?.map((z) => {
             const lo = onAxis(z.from.min(z.to));
@@ -283,7 +246,6 @@ export function Dial<U extends string = string>({
             );
           })}
 
-        {/* Ticks */}
         {r > 0 &&
           ticks?.map((tk) => {
             const at = tk.value.magnitude;
@@ -317,7 +279,6 @@ export function Dial<U extends string = string>({
             );
           })}
 
-        {/* The model's two bounds, across the track the needle sweeps over */}
         {r > 0 &&
           drawnInterval !== null &&
           (["lo", "hi"] as const).map((end) => {
@@ -336,7 +297,6 @@ export function Dial<U extends string = string>({
             );
           })}
 
-        {/* Needle + hub */}
         {r > 0 && hasFigure && (
           <>
             <line
@@ -352,7 +312,6 @@ export function Dial<U extends string = string>({
           </>
         )}
 
-        {/* Centre value */}
         <text
           x={cx}
           y={cy + r * 0.55}

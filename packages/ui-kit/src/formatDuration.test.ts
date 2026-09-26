@@ -16,9 +16,7 @@ describe("formatDuration", () => {
   });
 
   it("truncates (never rounds up) the smaller unit", () => {
-    // 89s = 1min 29s exactly, but this also documents the choice for
-    // fractional input: the smaller unit is floored, not rounded, so a
-    // countdown never displays a value that hasn't fully elapsed yet.
+    // The smaller unit is floored, not rounded, so a countdown never shows time that has not elapsed.
     expect(formatDuration(89)).toBe("1min 29s");
     expect(formatDuration(89.9)).toBe("1min 29s");
   });
@@ -116,9 +114,7 @@ describe("formatCountdown", () => {
 
 describe("formatIrlDuration", () => {
   it("uses a 24-hour day where formatDuration uses Kerbin's six", () => {
-    // The reason the two exist separately. A reading taken yesterday is one
-    // day old on the wall calendar and four days old on Kerbin, and the second
-    // answer is nonsense in a staleness badge.
+    // A reading taken yesterday is one day old on the wall calendar and four on Kerbin.
     const oneRealDay = 24 * 60 * 60;
     expect(formatIrlDuration(oneRealDay)).toBe("1d");
     expect(formatDuration(oneRealDay)).toBe("4d");
@@ -131,7 +127,7 @@ describe("formatIrlDuration", () => {
   });
 
   it("has no year rung: a stale record reads in days", () => {
-    // 428 real days. `formatDuration` would say "1y 63d" off Kerbin's 426-day year, which says nothing useful about a recording on a disk.
+    // 428 real days, with no year rung.
     expect(formatIrlDuration(428 * 24 * 60 * 60)).toBe("428d");
   });
 

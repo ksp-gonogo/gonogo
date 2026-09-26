@@ -13,13 +13,7 @@ export interface VersionMismatchBannerProps {
   remoteLabel?: string;
 }
 
-/**
- * Pinned banner shown when this screen and a peer/proxy are running
- * mismatched gonogo versions. Sits below SignalLossBanner so the two
- * never overlap when both are active. Renders nothing when `kind` is
- * "patch" or "same": the caller decides what to do for those (typically
- * a tooltip-only annotation, not a banner).
- */
+/** Banner for a peer running a different gonogo version; a patch-level difference is the caller's to handle without one. */
 export function VersionMismatchBanner({
   kind,
   local,

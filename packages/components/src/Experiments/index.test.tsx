@@ -10,15 +10,9 @@ import {
   sumExperimentDataAmount,
 } from "./index";
 
-// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// action-handler registry: clearActionHandlers() firing on a still-mounted
-// widget is a state update outside act(). RTL auto-cleanup runs after this
-// file's afterEach, too late to unmount first.
+// Unmounted before the registry clears, so the clear never updates a mounted tree outside act().
 const renderedTrees: Array<() => void> = [];
 
-// Instrument deploy/transmit (delayed-command-ux migration) dispatch via
-// useCommand against the real stream, asserted through
-// `fixture.transport.sentCommands` below, no legacy DataSource needed.
 function newFixture() {
   return setupStreamFixture({
     carriedChannels: ["science.instruments", "science.experiments"],
@@ -98,17 +92,14 @@ describe("ExperimentsComponent", () => {
       ]);
     });
 
-    // Group labels
     await waitFor(() =>
       expect(screen.getByText("mysteryGoo")).toBeInTheDocument(),
     );
     expect(screen.getByText("temperatureScan")).toBeInTheDocument();
 
-    // Badges
     expect(screen.getByText("DATA")).toBeInTheDocument();
     expect(screen.getByText("INOPERABLE")).toBeInTheDocument();
 
-    // Subtitle summary: 1/3 with data, 1 deployed, 1 inoperable
     expect(
       screen.getByText(/1\/3 with data · 1 deployed · 1 inoperable/i),
     ).toBeInTheDocument();
@@ -246,7 +237,7 @@ describe("parseInstruments", () => {
       },
       // missing partId
       { partTitle: "Bad" },
-      // missing partTitle (should fall back, not drop)
+      // missing partTitle falls back rather than dropping
       {
         partId: 2,
         expId: "temp",

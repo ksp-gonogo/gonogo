@@ -8,13 +8,11 @@ import munPolarOrbit from "./__fixtures__/mun-polar-orbit.json";
 import { splitOnDrawnLongitudeWrap } from "./groundTrackWrap";
 
 /**
- * An inclined pass that leaves the map at the right edge and comes back at the
- * left, drawn on a body whose texture is rotated 90 degrees.
- *
- * Kerbin's offset means the drawn seam is at body longitude 90, so the break
- * belongs between the 85 and 95 samples. Their latitudes are far from zero on
- * purpose: the whole reason this went unnoticed is that a spurious full-width
- * line at latitude zero is indistinguishable from an equatorial track.
+ * An inclined pass leaving the map at the right edge and returning at the
+ * left, on a body whose texture is rotated 90 degrees: the drawn seam is at
+ * body longitude 90, so the break belongs between the 85 and 95 samples.
+ * Latitudes are far from zero so a spurious full-width line cannot hide on an
+ * equatorial track.
  */
 const PASS = [
   { lon: 65, lat: -27.9 },
@@ -42,12 +40,7 @@ describe("splitOnDrawnLongitudeWrap", () => {
     );
   });
 
-  /*
-   * The bug, stated as the thing that used to happen: reading the propagated
-   * longitude puts the break at 175 -> -175, so the pair straddling the drawn
-   * seam (85 -> 95, at latitude -25) stays inside one segment and is stroked
-   * as one line across the entire map.
-   */
+  // Splitting on propagated longitude would leave the 85 -> 95 pair in one segment, stroked across the whole map.
   it("keeps the pair the old split let through in separate segments", () => {
     const unfixed = splitOnLongitudeWrap(PASS);
     expect(unfixed[0].map((p) => p.lon)).toContain(85);
@@ -60,19 +53,10 @@ describe("splitOnDrawnLongitudeWrap", () => {
   });
 });
 
-/**
- * The pole half, driven off the real `mun-polar-orbit` fixture rather than a
- * hand-built pass, because the numbers are the point: the south crossing jumps
- * 179.97 degrees of longitude, and a seam split written as `> 180` misses it by
- * three hundredths of a degree.
- */
+// The real `mun-polar-orbit` fixture: its south crossing jumps 179.97 degrees, which a `> 180` seam split misses.
 const MUN = { radius: 200000, rotationPeriod: 138984.376574476 } as const;
 
-/**
- * The wire fields the fixture's `vessel.orbit` patch carries, as a shape the
- * emits array can be read through: enough to build an `OrbitPatch` field by
- * field, rather than asserting one out of the JSON.
- */
+/** The wire fields of the fixture's `vessel.orbit` patch, enough to build an `OrbitPatch` field by field. */
 interface WirePatch {
   sma: number;
   ecc: number;
@@ -115,7 +99,7 @@ function munPolarSamples(
     period: p.period,
     sma: p.sma,
     eccentricity: p.ecc,
-    // The one field a caller may vary: everything else stays the fixture's.
+    // The one field a caller may vary.
     inclination: inclinationDeg ?? p.inc,
     lan: p.lan,
     argumentOfPeriapsis: p.argPe,
@@ -130,7 +114,7 @@ function munPolarSamples(
     lat: FIXTURE["v.lat"],
     lon: FIXTURE["v.long"],
   };
-  // The horizon MapView itself asks for: 1.5 periods, sampled every 10 s.
+  // The horizon MapView asks for: 1.5 periods, sampled every 10 s.
   return predictGroundTrack(
     patches,
     "Mun",
@@ -168,7 +152,7 @@ describe("splitOnDrawnLongitudeWrap over a pole", () => {
   });
 
   it("breaks the track at the south pole rather than stroking a bar along the bottom edge", () => {
-    // The Mun's texture is not rotated, so the drawn longitude is the propagated one and the seam split has nothing of its own to do here.
+    // The Mun's texture is not rotated, so the seam split has nothing of its own to do.
     const segments = splitOnDrawnLongitudeWrap(samples, 0);
     const { before, after } = southPoleStraddle(samples);
     const segmentOf = (p: { lat: number; lon: number }) =>
@@ -181,7 +165,7 @@ describe("splitOnDrawnLongitudeWrap over a pole", () => {
     // Two crossings in 1.5 revolutions of a polar orbit: one north, one south.
     expect(segments.length).toBe(3);
     expect(segments.reduce((n, s) => n + s.length, 0)).toBe(samples.length);
-    // No segment may contain a drawn line long enough to read as a bar: the craft covers well under a degree of arc in the 10 s between samples.
+    // No drawn line long enough to read as a bar: the craft covers well under a degree between samples.
     const widest = Math.max(
       ...segments.flatMap((s) =>
         s.slice(1).map((p, i) => Math.abs(p.lon - s[i].lon)),
@@ -191,17 +175,11 @@ describe("splitOnDrawnLongitudeWrap over a pole", () => {
   });
 
   /*
-   * The guard against the cheap fix. A break taken on latitude alone, or on a
-   * lowered longitude threshold, would cut these tracks too, and a pass lost to
-   * an over-eager split is worse than the bar. The same orbit at 60 through 88
-   * degrees reaches high latitude and jogs across longitude at the top of each
-   * pass, but never passes nearer the pole than one sample step, so the
-   * straight line between its samples is the path and stays whole.
-   *
-   * 88 is the one that bites: it swings 35.6 degrees of longitude in a single
-   * 10 s step over the top, so every threshold between 36 and 180 splits it,
-   * and 36 is what a threshold tuned to catch this fixture's 179.97 would have
-   * to be nowhere near.
+   * A split on latitude or a lowered longitude threshold would also cut these
+   * tracks. At 60 through 88 degrees the orbit jogs across longitude at the
+   * top of each pass but never nearer the pole than one sample step, so it
+   * stays whole. 88 swings 35.6 degrees in one step, so every threshold
+   * between 36 and 180 would split it.
    */
   it.each([
     60, 75, 80, 88,
@@ -210,7 +188,7 @@ describe("splitOnDrawnLongitudeWrap over a pole", () => {
     expect(Math.max(...inclined.map((p) => Math.abs(p.lat)))).toBeGreaterThan(
       inclination - 1,
     );
-    // One break, and it is the date line: the same answer as before the pole rule existed.
+    // One break, at the date line.
     expect(splitOnDrawnLongitudeWrap(inclined, 0)).toEqual(
       splitOnLongitudeWrap(inclined),
     );

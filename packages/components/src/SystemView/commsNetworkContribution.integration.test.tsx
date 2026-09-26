@@ -6,24 +6,13 @@ import {
   setupStreamFixture,
 } from "../test/setupStreamFixture";
 import { SystemViewComponent } from "./index";
-// Side-effect import: registers the real `system-view-vessel-orbits`
-// contribution (owns BOTH the fleet and the comms.network graph),
-// same as `index.tsx` does for the live app.
+// Registers the real contribution, which owns both the fleet and the comms.network graph.
 import "./vesselOrbitsContribution";
 
 /**
- * End-to-end proof for the CommNet relay graph half of the built-in
- * `system-view-vessel-orbits` contribution: a real `comms.network`
- * stream, a real `SystemViewComponent`, and the actual `SystemEntitiesLayer`
- * DOM it renders into, not a unit test of `computeCommsNetworkEntities` in
- * isolation.
+ * The CommNet relay graph half of `system-view-vessel-orbits`, end to end: a real `comms.network` stream through `SystemViewComponent` into the `SystemEntitiesLayer` DOM.
  *
- * `system.bodies` here flags Kerbin `isHome: true`, the join the graph's
- * `"home"` node now resolves against, matching `multi-vessel-orbits.json`
- * and `vesselOrbitsContribution.test.ts`'s own `bodies()` fixture, unlike
- * the sibling `vesselOrbitsContribution.integration.test.tsx` file (whose
- * minimal two-body list carries no home flag at all, for a different,
- * home-agnostic purpose).
+ * `system.bodies` flags Kerbin `isHome: true`, which the graph's `"home"` node resolves against.
  */
 
 const KERBOL_MU = 1.1723328e18;
@@ -189,12 +178,12 @@ describe("SystemView: comms.network relay graph as faint connection lines", () =
       return el as SVGLineElement;
     });
 
-    // Faint styling: the same emphasis/opacity every other faint contributed entity (the vessel-orbit rings) resolves to.
+    // Faint styling, the same emphasis every other faint contributed entity resolves to.
     expect(resolvedLine.tagName.toLowerCase()).toBe("line");
     expect(resolvedLine.getAttribute("stroke")).toBe("var(--color-text-faint)");
     expect(resolvedLine.getAttribute("stroke-opacity")).toBe("0.5");
 
-    // The unresolvable edge never renders, honest omission rather than a fabricated endpoint.
+    // An unresolvable edge is omitted rather than drawn to a fabricated endpoint.
     expect(
       container.querySelector('[data-entity-id="comms-edge:v-relay:v-ghost"]'),
     ).toBeNull();

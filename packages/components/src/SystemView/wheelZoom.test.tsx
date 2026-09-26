@@ -7,15 +7,8 @@ import {
 import { SystemViewComponent } from "./index";
 
 /**
- * The diagram is the third pan/zoom surface, and the last one still holding its
- * own wheel handler. That handler was React's, so it was passive and never
- * blocked the page; what it did do was zoom the diagram out from under anyone
- * scrolling past it, because it fired on every wheel event the pointer
- * happened to be over.
- *
- * Both directions are asserted, because either one alone passes for the wrong
- * reason: a surface that has stopped zooming entirely satisfies the first test,
- * and one that swallows every wheel satisfies the second.
+ * The diagram zooms on the pinch gesture only and leaves a plain wheel to scroll the page.
+ * Both directions are asserted, since a surface that never zooms passes the first and one that swallows every wheel passes the second.
  */
 
 const KERBIN_MU = 3.5316e12;
@@ -60,11 +53,7 @@ function currentZoom(container: HTMLElement): number {
   return 360 / vbWidth;
 }
 
-/**
- * Renders the widget and waits for the populated diagram. The empty state
- * returns before the element the wheel listener binds to exists, so a test that
- * dispatched at it would be dispatching at nothing.
- */
+/** Renders the widget and waits for the populated diagram, since the empty state has no element for the wheel listener to bind to. */
 async function renderDiagram() {
   const fixture: StreamFixture = setupStreamFixture({
     carriedChannels: ["system.bodies", "vessel.identity", "vessel.orbit"],

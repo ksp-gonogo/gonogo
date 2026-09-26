@@ -2,20 +2,12 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { UnitInput } from "./UnitInput";
 
 /**
- * The rules `UnitInput` keeps in the TYPE system rather than at runtime.
- *
- * <p>Here rather than beside the runtime tests because the package's own `tsc`
- * excludes `*.test.tsx`: a `@ts-expect-error` written there is never compiled,
- * so it asserts nothing while looking exactly like it does. That is not
- * hypothetical, it is where this file's contents started.</p>
+ * The rules `UnitInput` keeps in the type system. They live here because the
+ * package's `tsc` excludes `*.test.tsx`, where a `@ts-expect-error` would never
+ * be compiled. Each unused directive fails `pnpm typecheck`.
  */
 
-// A point-like unit refuses a slider. A UT is legitimately years out, so no
-// pair of bounds is the right pair.
-//
-// The directive IS the assertion: should this stop being a type error, the
-// unused `@ts-expect-error` becomes one and `pnpm typecheck` fails, so the rule
-// cannot quietly lapse.
+// A point-like unit refuses a slider.
 export const instantRefusesARange = (
   <UnitInput
     label="Ignition"
@@ -27,7 +19,7 @@ export const instantRefusesARange = (
   />
 );
 
-// An INTERVAL of the same dimension takes one, which is what makes the rule about point-ness rather than about time.
+// An interval of the same dimension takes one: the rule is about point-ness, not time.
 export const intervalTakesARange = (
   <UnitInput
     label="Coast"
@@ -38,7 +30,7 @@ export const intervalTakesARange = (
   />
 );
 
-// The value and the emitted value carry the SAME unit: a control for one dimension cannot be handed another's value.
+// The value and the emitted value carry the same unit.
 export const unitsMustAgree = (
   <UnitInput
     label="Tangent"

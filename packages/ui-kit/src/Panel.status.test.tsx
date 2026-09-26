@@ -8,27 +8,12 @@ function announcer(): HTMLElement | null {
 }
 
 /**
- * The panel's stream badge is the WIDGET'S to supply, through `panelStatus`.
- *
- * A host-derived version of this used to exist over EVERY grade: the dashboard
- * took every topic a widget declared, reduced them to one worst-of value and
- * handed it down. It was withdrawn because one pill cannot say WHICH of five
- * topics is degraded, and because "absent" means opposite things per topic (an
- * empty `vessel.maneuvers` is a normal state, an absent `vessel.orbit` is not),
- * so the aggregate read as a fault where there was none. That withdrawal
- * stands.
- *
- * The two BLACKOUT grades came back on their own terms, through the status
- * store rather than this prop (`useWidgetStreamStatus`): they are stamped per
- * SUBJECT, so the objection above has nothing to bite on. Everything else is
- * still the widget's to supply.
- *
- * What these pin is the rendering contract that survived it, which a widget
- * naming one topic of its own still relies on.
+ * The panel's stream badge is the widget's to supply, through `panelStatus`;
+ * only the per-subject blackout grades arrive from the host, through the store.
  */
 describe("Panel stream status", () => {
   it("renders nothing for a healthy stream", () => {
-    // The whole point of the null-for-live design: a badge that is present in the normal case teaches the operator to stop seeing it.
+    // A badge present in the normal case teaches the operator to stop seeing it.
     render(<Panel panelTitle="ORBIT" panelStatus="live" />);
     expect(announcer()).toBeEmptyDOMElement();
     expect(document.querySelector("[data-panel-aside-expand]")).toBeNull();
@@ -40,9 +25,7 @@ describe("Panel stream status", () => {
   });
 
   it("renders nothing when no status is supplied at all", () => {
-    // Panel is used in the settings modal and the station connect view too.
-    // Those have no widget and no topics, so "unknown" must read as quiet
-    // rather than as an alarming NO DATA.
+    // A panel with no widget and no topics reads "unknown" as quiet, not as NO DATA.
     render(<Panel panelTitle="SOURCES">body</Panel>);
     expect(announcer()).toBeEmptyDOMElement();
     expect(document.querySelector("[data-panel-aside-expand]")).toBeNull();

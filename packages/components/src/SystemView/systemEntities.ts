@@ -6,36 +6,10 @@ import {
   type Placement,
 } from "./projection";
 
-/**
- * The `system-view.entities` contribution slot (contribution-slots-spec
- * precedent: `ship-map.part-meters`): the shape-contribution foundation
- * every later SystemView augmentation (vessel orbits, the CommNet graph,
- * selection, CME) draws through.
- *
- * A contribution supplies a flat list of STATIC display objects, computed
- * once per frame from its own `deps` (same aggregation pipeline as any other
- * contribution slot, `contributionsRuntime.tsx`'s `SlotAggregator`). It never
- * receives the diagram's live pan/zoom or which body the widget is framed
- * on: `SystemEntitiesLayer` filters/projects every entity against whichever
- * frame is currently rendered (an entity whose `position.parentName` doesn't
- * match the current frame simply doesn't project this render, and reappears
- * automatically if the user re-frames onto its body).
- *
- * SystemView owns three things a contribution never touches:
- *   - Projection: `projectEntityPosition`/`projectOrbitRing` below, built on
- *     `SystemDiagram.tsx`'s own `bodyPosition` (the same conic-section math
- *     that places a body dot on its orbit).
- *   - Z-order: `SYSTEM_ENTITY_DEFAULT_LAYER` layers shapes so contributed
- *     geometry never occludes another contribution's destructively (orbits
- *     under blobs under connections under markers); a contributor can still
- *     force an explicit stacking position via `zHint`.
- *   - The id-keyed decoration hook (`resolveSystemEntities`'s `decorate`
- *     param): lets host-owned state (selection now, CommNet traffic/
- *     highlight in later tasks) override an entity's style by id, without
- *     the contribution itself knowing selection exists.
+/*
+ * The `system-view.entities` contribution slot: a contribution supplies a flat list of static display objects from its own `deps`, never seeing pan, zoom or the framed body. An entity whose parent is not the rendered frame simply does not project this render.
+ * SystemView owns projection, z-order (`SYSTEM_ENTITY_DEFAULT_LAYER`, overridable by `zHint`) and the id-keyed `decorate` hook that lets host state such as selection restyle an entity.
  */
-
-// ── Style / meta ─────────────────────────────────────────────────────────
 
 export type SystemEntityEmphasis = "faint" | "normal" | "bright";
 
@@ -45,19 +19,9 @@ export type SystemEntitySeverity = "info" | "warning" | "critical";
 export interface SystemEntityStyle {
   /** Defaults to "normal" when omitted. */
   emphasis?: SystemEntityEmphasis;
-  /**
-   * What this entity MEANS, when it means more than "here it is": the host
-   * turns it into a hue. A contributor names a severity and never a colour,
-   * so a palette change reaches every contributed entity at once and an
-   * Uplink cannot hard-code a token that stops matching the theme.
-   */
+  /** What the entity means, which the host turns into a hue; a contributor never names a colour, so the theme reaches every entity. */
   severity?: SystemEntitySeverity;
-  /**
-   * A resolved CSS colour, overriding both of the above. For the HOST's own
-   * `decorate` hook, which already knows the palette (SystemView tints a
-   * selected vessel's route by its comms quality this way). A contribution
-   * names `severity` instead.
-   */
+  /** A resolved CSS colour overriding both of the above, for the host's own `decorate` hook; a contribution names `severity` instead. */
   colour?: string;
 }
 
@@ -66,14 +30,7 @@ export type SystemEntityMeta = Readonly<
   Record<string, string | number | boolean>
 >;
 
-// ── Position specs ───────────────────────────────────────────────────────
-
-/**
- * A point on a Keplerian orbit around `parentName`, in the same element set
- * `SystemDiagram`'s own child-body and vessel-orbit props already carry.
- * `trueAnomaly` places the POINT along the orbit; shapes that draw the whole
- * ring (`orbit-path`) ignore it.
- */
+/** A point on a Keplerian orbit around `parentName`; `trueAnomaly` places the point, and whole-ring shapes ignore it. */
 export interface SystemEntityOrbitPosition {
   kind: "orbit";
   parentName: string;
@@ -84,40 +41,19 @@ export interface SystemEntityOrbitPosition {
   lan: number;
   /** Argument of periapsis, degrees. */
   argPe: number;
-  /**
-   * Inclination to the parent's reference plane, degrees.
-   *
-   * <b>Required, and required is the point.</b> The diagram's arithmetic is
-   * three-dimensional and a frame transform is a rotation about an arbitrary
-   * axis, so a two-dimensional position is not something it can accept at all:
-   * the transform would have nothing to rotate. An orbit that really is
-   * equatorial says `0` deliberately, which is a statable fact, where an omitted
-   * field is a contributor who was never asked.
-   */
+  /** Inclination to the parent's reference plane, degrees. Required: an equatorial orbit says `0`, since a frame transform needs a third component to rotate. */
   inclination: number;
   /** True anomaly, degrees. */
   trueAnomaly: number;
 }
 
-/**
- * A position given directly in parent-centric metres (the same frame an
- * orbit's polar form resolves into), for anything that isn't itself on a
- * conic: e.g. a ground station co-located with its body, or a body's own
- * projected position a fleet/comms contribution has already resolved.
- * Placing something "at a body" is the contributing Uplink's job (it reads
- * that body's own orbit off `system.bodies` and projects it the same way a
- * child body would be); SystemView only ever turns metres into pixels.
- */
+/** A position in parent-centred metres for anything not itself on a conic; placing something at a body is the contributor's job, and SystemView only turns metres into pixels. */
 export interface SystemEntityFixedPosition {
   kind: "fixed";
   parentName: string;
   xMetres: number;
   yMetres: number;
-  /**
-   * Out of the parent's reference plane, metres. Same reasoning as
-   * `SystemEntityOrbitPosition.inclination`: a position with two components is
-   * not a position the projection can turn.
-   */
+  /** Out of the parent's reference plane, metres; required for the same reason as `inclination`. */
   zMetres: number;
 }
 
@@ -125,81 +61,39 @@ export type SystemEntityPosition =
   | SystemEntityOrbitPosition
   | SystemEntityFixedPosition;
 
-// ── Shape kinds ───────────────────────────────────────────────────────────
-
 export type SystemEntityShape =
   | { kind: "point"; radiusPx?: number }
   /** Draws the FULL ellipse of `position` (which must be `kind: "orbit"`). */
   | { kind: "orbit-path" }
   /** A line from this entity's own `position` to `to`. */
   | { kind: "connection-line"; to: SystemEntityPosition }
-  /** A physically-scaled disc: `radiusMetres` is projected by `plotScale` like any other distance, so it grows/shrinks correctly on zoom (e.g. an expanding CME front). */
+  /** A physically scaled disc: `radiusMetres` projects by `plotScale`, so it scales on zoom. */
   | { kind: "blob"; radiusMetres: number }
   /**
-   * A moving segment from this entity's own `position` (the apex, e.g. a
-   * star) travelling outward toward `to` (a bearing + distance, e.g. the
-   * body a CME threatens): use this instead of `blob`/a fixed wedge for
-   * anything that reads as ONE thing in transit along a bearing (a CME
-   * front) rather than an omnidirectional or static field.
-   * `segmentLengthMetres` is the physical length of the moving segment
-   * itself (NOT the full apex->tip distance), projected by `plotScale` like
-   * `blob`'s radius so it scales on zoom, and clamped to the apex->tip
-   * distance if it would overshoot.
+   * A segment travelling once from this entity's `position` (the apex) toward `to`, for one thing in transit along a bearing such as a CME front.
    *
-   * A SINGLE pass, never a loop: `SystemEntitiesLayer` positions the
-   * segment each render from real UT (its own `nowUt` prop) against
-   * `arriveUt`/`clearUt` below, so the wave departs the apex once and
-   * finishes once, matching one real event (e.g. one CME) rather than
-   * decoratively repeating. `arriveUt`/`clearUt` are absolute UT timestamps
-   * a contribution derives from its own Topic data (e.g. a space-weather
-   * Uplink's storm-arrival UT and post-arrival duration): ordinary arithmetic on
-   * values already on the wire, not a wall-clock read, so this still holds
-   * the contribution-slots-spec rule that `compute()` is a pure function of
-   * Topics/Processors only. `SystemEntitiesLayer` derives the DEPARTURE time
-   * itself (`arriveUt` minus however long the apex->tip crossing takes at
-   * the same constant rate `clearUt - arriveUt` implies for crossing
-   * `segmentLengthMetres`), so the leading edge emerges from the apex,
-   * travels the bearing, reaches `to` exactly at `arriveUt`, and keeps
-   * sliding until its trailing edge clears `to` at `clearUt`; the portion of
-   * the segment that has passed beyond `to` fades out over a short distance
-   * rather than staying full-strength, so the render doesn't overstate a
-   * "how far has it gone past the target" the underlying data doesn't
-   * actually carry.
+   * `segmentLengthMetres` is the segment's own physical length, clamped to the apex-to-tip distance. `arriveUt` and `clearUt` are absolute UTs derived from Topic data, keeping `compute()` pure; the layer derives departure at the same constant rate, so the leading edge reaches `to` at `arriveUt` and the trailing edge clears it at `clearUt`, fading past the target.
    */
   | {
       kind: "travelling-pulse";
       to: SystemEntityPosition;
       segmentLengthMetres: number;
-      /** UT the leading edge reaches `to` (the real event this entity
-       *  represents "arriving" or "beginning" at the target). */
+      /** UT the leading edge reaches `to`. */
       arriveUt: number;
-      /** UT the trailing edge fully clears `to`: the real event "ending" at
-       *  the target (`arriveUt` plus however long it stays active there). */
+      /** UT the trailing edge fully clears `to`. */
       clearUt: number;
     };
 
 export interface SystemEntity {
-  /** Stable, globally-unique id: the decoration hook and the future info panel key off this. */
+  /** Stable, globally unique id that the decoration hook and info panel key off. */
   id: string;
   position: SystemEntityPosition;
   shape: SystemEntityShape;
   style?: SystemEntityStyle;
   meta?: SystemEntityMeta;
-  /**
-   * `system.vessels`' `vesselId`, when this entity represents a specific
-   * vessel. Lets host-owned state match an entity by vessel identity without
-   * parsing a contribution-private `id` string: SystemView uses it to
-   * suppress the active/framed vessel's own entry, since `SystemDiagram`
-   * already draws that vessel's dedicated bright ring and a contributed
-   * faint one would sit on top of it.
-   */
+  /** `system.vessels`' `vesselId` when this entity is a vessel, so host state matches by identity rather than parsing `id`. */
   vesselId?: string;
-  /**
-   * Explicit stacking override. Omitted: the shape kind's entry in
-   * `SYSTEM_ENTITY_DEFAULT_LAYER` applies. Entities within the same
-   * effective layer keep their `entities` array order (ties broken by
-   * array position, not id).
-   */
+  /** Explicit stacking override of `SYSTEM_ENTITY_DEFAULT_LAYER`; ties within a layer keep array order. */
   zHint?: number;
 }
 
@@ -212,16 +106,7 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// ── Projection context ───────────────────────────────────────────────────
-
-/**
- * The diagram's auto-fit projection: structurally the same contract
- * `SystemOverlayContext` (`index.tsx`) already gives third-party overlay
- * augments (zoom=1, no pan; the SVG's parent-centric metres → user-unit
- * scale), kept as its own named type since the two slots may diverge later.
- * SystemView passes its existing `overlayContext` value straight through:
- * one projection computed once per render, reused by both slots.
- */
+/** The diagram's auto-fit projection (zoom 1, no pan), the same value SystemView passes to overlay augments. */
 export interface SystemEntitiesContext {
   /** Name of the parent body the diagram is centred on. */
   parentName: string;
@@ -231,12 +116,7 @@ export interface SystemEntitiesContext {
   plotScale: number;
   /** The parent body sits at this SVG-space point (the origin, in practice). */
   center: { x: number; y: number };
-  /**
-   * The frame the diagram is drawing in, so a contributed entity lands in the
-   * same one the bodies do. Absent means the parent-centred inertial frame the
-   * host's own stock entry names, which is the frame a contributed position is
-   * already expressed in.
-   */
+  /** The frame the diagram draws in, so an entity lands where the bodies do; absent is parent-centred inertial, the frame positions arrive in. */
   placement?: Placement;
 }
 
@@ -245,12 +125,7 @@ function sameParent(a: string, b: string): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
-/**
- * Projects a position spec into the diagram's SVG user-units. Returns
- * `null` when the position's `parentName` doesn't match the currently
- * rendered frame (the entity simply isn't drawn this render) or the
- * geometry is degenerate (non-finite/non-positive sma, non-finite metres).
- */
+/** Projects a position spec into SVG user units, or `null` when its parent is not the rendered frame or the geometry is degenerate. */
 export function projectEntityPosition(
   position: SystemEntityPosition,
   ctx: SystemEntitiesContext,
@@ -289,18 +164,7 @@ export function projectEntityPosition(
   };
 }
 
-/**
- * An `orbit-path` ring as a closed polyline in the diagram's SVG user units,
- * centred on `ctx.center`. `null` for a frame mismatch or degenerate sma, same
- * as `projectEntityPosition`.
- *
- * A polyline rather than an `<ellipse cx cy rx ry>` in a `rotate()` group, for
- * the same reason the diagram's own body rings are polylines: an ellipse is the
- * shape a closed orbit has in its own plane, and under an honest projection it
- * has a centre those four attributes cannot express. Same sampling as
- * the host's rings, so a contributed ring and a body ring cannot disagree about
- * the shape of the same orbit.
- */
+/** An `orbit-path` ring as a closed polyline in SVG user units, sampled like the host's own rings so the two cannot disagree; `null` as for `projectEntityPosition`. */
 export function projectOrbitRing(
   orbit: SystemEntityOrbitPosition,
   ctx: SystemEntitiesContext,
@@ -324,23 +188,12 @@ export function projectOrbitRing(
   return `${d} Z`;
 }
 
-// ── Z-order ───────────────────────────────────────────────────────────────
-
-/**
- * Default stacking, back to front: orbit rings read as background structure,
- * blobs and travelling pulses (physical ambient effects, e.g. a CME) sit
- * above them but below the network layer, connection lines sit above them so
- * a link is always readable against whatever it crosses, and point markers
- * are always on top so they stay clickable. A contributed entity's `zHint`
- * overrides this outright when a contribution needs a different stacking
- * (e.g. an entity that must clear a specific other entity).
- */
+/** Default stacking, back to front: orbit rings, then blobs and travelling pulses, then connection lines, then point markers on top so they stay clickable. */
 export const SYSTEM_ENTITY_DEFAULT_LAYER: Readonly<
   Record<SystemEntityShape["kind"], number>
 > = {
   "orbit-path": 0,
   blob: 1,
-  // Same tier as `blob`: another physical ambient effect, just a directional one rather than an omnidirectional field.
   "travelling-pulse": 1,
   "connection-line": 2,
   point: 3,
@@ -350,13 +203,9 @@ function effectiveLayer(entity: SystemEntity): number {
   return entity.zHint ?? SYSTEM_ENTITY_DEFAULT_LAYER[entity.shape.kind];
 }
 
-// ── Style resolution ──────────────────────────────────────────────────────
-
 const SEVERITY_COLOUR: Readonly<Record<SystemEntitySeverity, string>> = {
   info: "var(--color-status-info-fg)",
-  // A distinctly energetic yellow: the muted warning gold read as an
-  // ordinary de-emphasised line at faint emphasis, and the accent green is
-  // reserved for selection, so neither could carry "caution" here.
+  // Yellow: the muted warning gold reads as an ordinary faint line, and green is reserved for selection.
   warning: "var(--color-tag-yellow-fg)",
   critical: "var(--color-status-nogo-fg)",
 };
@@ -383,17 +232,12 @@ function resolveOpacity(style: SystemEntityStyle): number {
   return EMPHASIS_OPACITY[style.emphasis ?? "normal"];
 }
 
-// ── Resolved (projected + styled + z-ordered) draw descriptors ────────────
-
 interface ResolvedBase {
   id: string;
   colour: string;
   opacity: number;
   meta?: SystemEntityMeta;
-  /** Carried through from `SystemEntity.vesselId`: lets a consumer (the
-   *  selection interactivity in `SystemEntitiesLayer`) recognise which
-   *  resolved shapes represent a specific vessel, regardless of whether the
-   *  contribution drew it as a point or a full orbit ring. */
+  /** Carried from `SystemEntity.vesselId`, so selection recognises a vessel whether drawn as a point or a ring. */
   vesselId?: string;
 }
 
@@ -406,17 +250,9 @@ export type ResolvedSystemEntity =
     })
   | (ResolvedBase & {
       kind: "orbit-path";
-      /**
-       * The whole ring as a closed SVG path in the diagram's user units, already
-       * absolute: no wrapping `rotate()` group, because the projection has been
-       * applied to every sample and there is no residual rotation left to apply.
-       */
+      /** The whole ring as a closed SVG path, already absolute because every sample is projected. */
       ring: string;
-      /** The entity's own `position` (its declared anomaly), projected: a
-       *  small marker distinguishing WHERE on the ring this entity's data
-       *  actually points (e.g. a `connection-line`'s join point) from the
-       *  ring itself, which only shows the orbit's SHAPE. Omitted on the
-       *  rare projection failure the ring itself didn't already hit. */
+      /** The entity's own declared anomaly, projected, marking where on the ring its data points. */
       dotX?: number;
       dotY?: number;
     })
@@ -442,8 +278,7 @@ export type ResolvedSystemEntity =
       x2: number;
       y2: number;
       segmentLengthPx: number;
-      /** Carried straight through from `shape.arriveUt`/`clearUt`: see
-       *  `SystemEntityShape`'s `travelling-pulse` doc comment. */
+      /** See the `travelling-pulse` shape's doc. */
       arriveUt: number;
       clearUt: number;
     });
@@ -451,21 +286,9 @@ export type ResolvedSystemEntity =
 const DEFAULT_POINT_RADIUS_PX = 4;
 
 /**
- * Projects, styles, and z-orders every entity for the currently rendered
- * frame. An entity that fails to project (wrong frame, degenerate geometry,
- * or a shape/position combination that doesn't make sense, e.g. an
- * `orbit-path` on a `fixed` position) is silently skipped, same "just
- * doesn't render this frame" contract as `projectEntityPosition`; a dev
- * warning is logged for the shape/position mismatch case since that one is
- * always a contribution bug, not a normal off-frame entity.
+ * Projects, styles and z-orders every entity for the rendered frame. An entity that fails to project is skipped; a shape and position that cannot combine (an `orbit-path` on a `fixed` position) also logs a dev warning, since that is always a contribution bug.
  *
- * `decorate`, given an entity's id, returns a style override merged OVER the
- * entity's own declared style (host-owned state, e.g. selection, drives this
- * without the contribution needing to know it exists).
- *
- * Sorted back-to-front by effective layer; ties keep `entities` array order
- * (relies on `Array.prototype.sort` being a stable sort, guaranteed since
- * ES2019).
+ * `decorate` returns a style override merged over the entity's own. Sorting is stable, so ties keep array order.
  */
 export function resolveSystemEntities(
   entities: readonly SystemEntity[],
@@ -564,9 +387,7 @@ export function resolveSystemEntities(
       const from = projectEntityPosition(entity.position, ctx);
       const to = projectEntityPosition(entity.shape.to, ctx);
       if (!from || !to) continue;
-      // A coincident apex/tip has no bearing to travel along: skip rather
-      // than resolve a zero-length line the renderer would have to notice
-      // and discard itself.
+      // A coincident apex and tip has no bearing to travel along.
       if (from.x === to.x && from.y === to.y) continue;
       const segmentLengthPx = entity.shape.segmentLengthMetres * ctx.plotScale;
       if (!(segmentLengthPx > 0)) continue;

@@ -1,16 +1,7 @@
-// Type-level proof that a `declare module "@ksp-gonogo/core"` augmentation of
-// the contribution declaration-merge seams STILL merges after those interfaces
-// moved to `@ksp-gonogo/ui-kit` and are re-exported through `@ksp-gonogo/core`.
-// This is the load-bearing acceptance criterion of the ui-kit seam relocation:
-// an Uplink that augments `ContributionRegistry` / `ComponentSlotRegistry` via
-// the `@ksp-gonogo/core` module specifier must keep resolving to the precise
-// entry type, not the loose `Record<string, unknown>` fallback.
-//
-// Checked by `tsc` (the package `typecheck`), NOT the vitest runner (see the
-// sibling `slot-registry-augmentation.test-d.ts`, which proves the same for the
-// `SlotRegistry` augment seam now that it too lives in ui-kit, and
-// `Objectives/slot-contract.test-d.ts`, which proves it for a real widget's
-// typed-contract slot).
+/*
+ * Type-level proof that a `declare module "@ksp-gonogo/core"` augmentation of the contribution seams merges through the re-export from `@ksp-gonogo/ui-kit`, resolving to the precise entry type rather than the loose `Record<string, unknown>` fallback.
+ * Checked by `tsc` (the package `typecheck`), not vitest.
+ */
 
 import type { ContributionEntry } from "@ksp-gonogo/core";
 
@@ -31,22 +22,22 @@ type Equal<A, B> =
     : false;
 type Expect<T extends true> = T;
 
-// ── Full-id augmentation merged through the re-export: the entry is the declared shape, not the loose fallback.
+// Full-id augmentation merged through the re-export: the entry is the declared shape, not the loose fallback.
 type _FullIdMerged = Expect<
   Equal<ContributionEntry<"augtest.rows">, { label: string }>
 >;
 
-// ── Segment augmentation merged: a completed `<widget>.augtest-seg` key resolves via the ComponentSlotRegistry branch to the segment's entry type.
+// Segment augmentation merged: a completed `<widget>.augtest-seg` key resolves via the ComponentSlotRegistry branch to the segment's entry type.
 type _SegmentMerged = Expect<
   Equal<ContributionEntry<"any-widget.augtest-seg">, { magnitude: number }>
 >;
 
-// ── Negative control: a NAMED slot id nothing declares carries no entry shape, proving the two positives above are real merges and not a fallback.
+// Negative control: a named slot id nothing declares carries no entry shape, so the two positives above are real merges.
 type _UndeclaredIsNever = Expect<
   Equal<ContributionEntry<"nope.not-declared">, never>
 >;
 
-// ── An id erased to `string` is what a REGISTRY READ holds, and keeps the open record: the reader fished the contribution out by key and declared nothing.
+// An id erased to `string`, as a registry read holds it, keeps the open record.
 type _ErasedStaysLoose = Expect<
   Equal<ContributionEntry<string>, Record<string, unknown>>
 >;

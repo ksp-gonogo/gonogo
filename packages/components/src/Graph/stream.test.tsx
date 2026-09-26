@@ -6,28 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { GraphComponent } from "./index";
 
-/**
- * The Graph running off the pipeline production actually uses.
- *
- * `index.test.tsx` next door drives the widget through a `BufferedDataSource`,
- * which registers itself under the id `"data"`, on the retired flat keys
- * (`v.altitude`, `v.verticalSpeed`). Nothing registers a `"data"` source in
- * production and nothing translates those keys any more (`map-topic.ts`'s own
- * "retired flat vocabulary" test), so every assertion in that file is about a
- * branch a running dashboard never reaches: `useDataSeries`'s legacy
- * `useDataSourceSubscription` half, which retires with the shim at M4.
- *
- * A real dashboard plots a canonical Topic path off `TimelineStore.sampleRange`
- * through the streamed half of the same hook. No legacy `DataSource` is
- * registered anywhere in this file, so a rendered curve can only have come from
- * the stream.
- */
+/** The Graph plotting canonical Topic paths off the stream; no `DataSource` is registered here, so every rendered curve came from the stream. */
 let restoreResizeObserver: () => void = () => {};
 
-/**
- * A `ResizeObserver` that reports one fixed box on observe, so the chart has a
- * plot area in jsdom. Shared by every describe in this file.
- */
+/** A `ResizeObserver` that reports one fixed box on observe, so the chart has a plot area in jsdom. */
 function stubSizedResizeObserver(): void {
   restoreResizeObserver = installFixedSizeResizeObserver({
     width: 400,
@@ -61,9 +43,7 @@ describe("Graph: genuinely runs off the stream", () => {
       </fixture.Provider>,
     );
 
-    // Nothing has arrived, so there is no curve to draw yet. Without this the
-    // assertion below cannot tell a plotted series from an axis path that was
-    // always there.
+    // With nothing arrived there is no curve, so the later assertion cannot be satisfied by an axis path.
     expect(
       container.querySelector(
         'svg[aria-label="Telemetry line chart"] path[d][fill="none"]',
@@ -98,19 +78,7 @@ describe("Graph: genuinely runs off the stream", () => {
     });
   });
 
-  /**
-   * Every assertion above this one reads the Y half of the path and none of
-   * them reads the X half, which is how a trace drawn several hundred million
-   * units to the left of the plot box passed as a working chart.
-   *
-   * `useDataSeries` hands the streamed half back in UT SECONDS and the legacy
-   * half in wall-clock MILLISECONDS, and the time domain was
-   * `[Date.now() - windowSec * 1000, Date.now()]`: the second basis only.
-   * Nothing registers the legacy `"data"` source in production, so every
-   * time-axis graph on a running dashboard scaled its samples against wall
-   * time and put them off the canvas, while still drawing the axes, the ticks,
-   * the legend and the header for them.
-   */
+  // Streamed samples are stamped in UT seconds, so a wall-clock domain would put them far off the canvas.
   it("draws the trace inside the plot box, not off the left edge", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.orbit"],
@@ -145,29 +113,17 @@ describe("Graph: genuinely runs off the stream", () => {
         .filter(Boolean)
         .map((pt) => Number(pt.split(",")[0]));
       expect(xs.length).toBe(3);
-      // The stubbed ResizeObserver reports a 400x300 box, so anything outside
-      // it is off screen. A generous ceiling rather than the exact plot inset:
-      // the failure this catches is eight orders of magnitude out.
+      // The stubbed ResizeObserver reports a 400x300 box, so anything outside it is off screen.
       for (const x of xs) {
         expect(x).toBeGreaterThanOrEqual(0);
         expect(x).toBeLessThanOrEqual(400);
       }
-      // And spread across the axis rather than piled on one edge, which is what a domain wider than the data by a factor of a thousand would produce.
+      // Spread across the axis, not piled on one edge as a far-too-wide domain would leave it.
       expect(xs[2] - xs[0]).toBeGreaterThan(50);
     });
   });
 
-  /**
-   * The domain fix put the trace on the canvas; the LABELS under it stayed in
-   * the other basis. `LineChart`'s default X formatter reads its domain as unix
-   * MILLISECONDS, so a twenty-minute window of UT seconds is a span of 1200 and
-   * the ladder under a whole outage reads `0:00 ... 0:01`.
-   *
-   * A chart whose question is WHEN cannot answer it off a ladder that is wrong
-   * by a factor of a thousand, which is why the widget can no longer guess:
-   * `SeriesRange.basis` is `useDataSeries` stating which clock it stamped `t`
-   * in, and the formatter follows the declaration.
-   */
+  // The tick formatter follows `SeriesRange.basis`; read as milliseconds, twenty minutes of UT seconds labels as `0:00 ... 0:01`.
   it("labels the time axis in the basis the samples are stamped in", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.orbit"],
@@ -177,7 +133,6 @@ describe("Graph: genuinely runs off the stream", () => {
 
     const config = {
       series: [{ id: "sma", key: "vessel.orbit.sma", axis: "auto" as const }],
-      // Twenty minutes, the span the blackout scenes are drawn over.
       windowSec: 1200,
     };
 
@@ -203,26 +158,16 @@ describe("Graph: genuinely runs off the stream", () => {
           'svg[aria-label="Telemetry line chart"] text',
         ),
       ).map((t) => t.textContent ?? "");
-      // The span is twenty minutes and the right-hand end of the ladder says
-      // so. Read as milliseconds the same domain labels the whole window
-      // "0:00 / 0:00 / 0:01", which is the defect.
       expect(labels).toContain("20:00");
-      // And the rungs between climb through it rather than repeating a value.
       expect(labels).toContain("3:20");
       expect(labels).toContain("11:40");
     });
   });
 
   /**
-   * A replayed sample is a sample the craft MEASURED, and it arrived late. The
-   * chart therefore draws it exactly as it draws a live one: setting it apart
-   * would say "trust this less" about a reading that is exact. `breaks` still
-   * draws what is GONE, which is the honest distinction the wire actually
-   * carries about this window.
+   * A replayed sample was measured and merely arrived late, so it is drawn exactly as a live one; only the hole before it breaks the trace.
    *
-   * The emissions are the shape `Courier.ReplayRecorded` produces, checked
-   * against that method rather than against the widget: every sample of a dump
-   * is stamped `Staleness.Recorded` and only the FIRST carries `gapSinceUt`.
+   * The emissions match `Courier.ReplayRecorded`: every sample of a dump is `Staleness.Recorded` and only the first carries `gapSinceUt`.
    */
   it("draws a recorded run exactly as the live trace", async () => {
     const fixture = setupStreamFixture({
@@ -256,8 +201,7 @@ describe("Graph: genuinely runs off the stream", () => {
           { validAt: -1200 + i * 150 },
         );
       }
-      // The dump the craft sends on reacquisition. Its oldest span overran the
-      // recorder, so the first replayed sample also states the hole.
+      // The dump sent on reacquisition; its first sample states the hole.
       for (let i = 0; i < 5; i++) {
         fixture.emit(
           "vessel.orbit",
@@ -277,9 +221,7 @@ describe("Graph: genuinely runs off the stream", () => {
           'svg[aria-label^="Telemetry line chart"] path[d][fill="none"]',
         ),
       );
-      // The provenance still cuts the path in two, and is still recorded in
-      // the DOM, so a later readout can name it. What it must not do is put a
-      // mark on the trace.
+      // The provenance cuts the path in two and is recorded in the DOM, but puts no mark on the trace.
       expect(paths.length).toBe(2);
       const recorded = paths.filter(
         (p) => p.getAttribute("data-stream-status") === "recorded",
@@ -290,7 +232,7 @@ describe("Graph: genuinely runs off the stream", () => {
         expect(p.getAttribute("stroke-opacity")).toBeNull();
         expect(p.getAttribute("stroke")).toBe(paths[0].getAttribute("stroke"));
       }
-      // Nor say anything about it to a screen reader, which would hand one reader a caveat the chart does not put in front of the other.
+      // Nor to a screen reader, which would get a caveat the sighted reader does not.
       const label =
         container
           .querySelector("svg[aria-label]")
@@ -300,11 +242,6 @@ describe("Graph: genuinely runs off the stream", () => {
   });
 
   it("splits two series with different units onto separate axes", async () => {
-    // On the stream, where the units are. This assertion cannot be made
-    // against the legacy `"data"` keys at all: `useDataSchema` answers from the
-    // topic-field catalog, `v.altitude`/`v.verticalSpeed` are not in it, so
-    // `resolveAxes` sees "raw" for both and puts them on the SAME axis. The
-    // legacy version of this test passed on an X-axis time label.
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.flight"],
       pinnedUt: 10,
@@ -359,15 +296,11 @@ describe("Graph: genuinely runs off the stream", () => {
         container.querySelectorAll(`text[text-anchor="${anchor}"]`),
       ).map((t) => t.textContent ?? "");
 
-    // Each axis carries ITS series' domain: metres on the left, m/s on the
-    // right. Both tick sets also hold one X-axis time label, hence `toContain`
-    // rather than an exact list.
+    // Both tick sets also hold an X-axis time label, hence `toContain`.
     expect(tickText("end")).toContain("12.0k");
     expect(tickText("start")).toContain("42");
-    // And they are genuinely two domains, not one drawn twice.
     expect(tickText("end")).not.toContain("42");
     expect(tickText("start")).not.toContain("12.0k");
-    // The header names what the chart measures, which is the same split.
     expect(container.textContent ?? "").toContain("GRAPH m x m/s");
   });
 
@@ -405,21 +338,9 @@ describe("Graph: genuinely runs off the stream", () => {
   });
 
   /**
-   * The one provenance a trace has cause to mark: the stretch after the last
-   * observation, where the craft said nothing and `vessel.flight`'s own model
-   * answered instead.
+   * The stretch after the last observation, where `vessel.flight`'s model answered instead, is the one provenance a trace marks.
    *
-   * Nothing here hands the chart a `reckoned` prop. The flight samples stop at
-   * UT 200, the link then drops, and the view time is pinned at 600, which is
-   * the whole of the scenario: the tail exists because
-   * `TimelineStore.sampleReckonedTail` asks the topic's registered reckoner
-   * across the silence and `useDataSeries` joins it on. A tail fills a silence,
-   * so while the link is up there is nothing to draw.
-   *
-   * The reckoner moves `orbitalSpeed` along the conic in `vessel.orbit`, sea
-   * level off `system.bodies`. `Quality.OnRails` is what makes those elements a
-   * CAUSE rather than an osculating snapshot, and the roster names no
-   * atmosphere, so the conic answers for the whole gap.
+   * Samples stop at UT 200, the link drops and the view is pinned at 600; the tail comes from the registered reckoner across that silence, not from any prop.
    */
   it("carries a modelled trace across the silence, muted and dashed", async () => {
     const fixture = setupStreamFixture({
@@ -475,13 +396,13 @@ describe("Graph: genuinely runs off the stream", () => {
       const measured = paths.filter(
         (p) => p.getAttribute("data-reckoning-basis") === null,
       );
-      // Both halves are drawn, and they are told apart by stroke rather than by a caption sitting beside a line that looks like every other line.
+      // Both halves are drawn, told apart by stroke.
       expect(reckoned.length).toBe(1);
       expect(measured.length).toBe(1);
       expect(reckoned[0].getAttribute("stroke-dasharray")).not.toBeNull();
       expect(measured[0].getAttribute("stroke-dasharray")).toBeNull();
       expect(measured[0].getAttribute("stroke-opacity")).toBeNull();
-      // And said in words, because a dash is not a channel a screen reader has.
+      // And in words, because a dash is not a channel a screen reader has.
       const label =
         container
           .querySelector("svg[aria-label]")
@@ -491,21 +412,7 @@ describe("Graph: genuinely runs off the stream", () => {
     });
   });
 
-  /**
-   * Where a model STOPPED, which the trace alone cannot show.
-   *
-   * A craft inside the air, sampled once a second on its way down, then the
-   * link drops. Inside the atmosphere `vessel.flight`'s reckoner integrates the
-   * observed descent rates, and that is honest only for a few seconds at the
-   * sensed deceleration, so the model withdraws partway through the window. On
-   * an axis fitted to the data that withdrawal is invisible: the series
-   * shortens, the axis shrinks with it, and the picture is identical to one
-   * where the model ran to the view time. The blank stretch IS the statement.
-   *
-   * Asserted on the axis rather than on a pixel: the last modelled point sits
-   * strictly inside the drawn width, which is the same claim a reader makes by
-   * eye and the only one that survives a font change.
-   */
+  // Inside the atmosphere the reckoner withdraws partway through the gap, and the axis must still run to the view time so the blank stays visible.
   it("leaves the stretch a declining model would not answer for on the axis", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.flight", "vessel.orbit", "system.bodies"],
@@ -544,7 +451,6 @@ describe("Graph: genuinely runs off the stream", () => {
           validAt,
           quality: Quality.Loaded,
         });
-        // A steady 4 m/s² steepening of the descent, inside the air.
         fixture.emit(
           "vessel.flight",
           {
@@ -574,19 +480,13 @@ describe("Graph: genuinely runs off the stream", () => {
           .map((pair) => Number(pair.trim().split(/[ ,]/)[0])),
       );
       const width = Number(plot?.getAttribute("width") ?? 0);
-      // Strictly short of the right edge: the model declined at its horizon and the axis still runs to the instant it was asked for.
       expect(width).toBeGreaterThan(0);
       expect(rightmost).toBeLessThan(width * 0.95);
     });
   });
 });
 
-/**
- * Elements for a craft low in Kerbin's atmosphere, stamped `Quality.Loaded`
- * as the mod stamps a craft under physics: near apoapsis, about 50 km up, so
- * the radius they solve for agrees with the observed altitude that the craft
- * is inside the air.
- */
+/** Elements for a craft about 50 km up, inside Kerbin's atmosphere. */
 const DESCENT_ORBIT = {
   referenceBodyIndex: 1,
   sma: 620_000,
@@ -600,10 +500,7 @@ const DESCENT_ORBIT = {
   horizon: { kind: 1, trajectoryKind: 1 },
 };
 
-/**
- * Kerbin as the roster describes it, with no atmosphere block, which on this
- * wire means airless rather than unknown: the conic's floor is the surface.
- */
+/** Kerbin with no atmosphere block, which on this wire means airless rather than unknown. */
 const AIRLESS_KERBIN = {
   name: "Kerbin",
   index: 1,
@@ -612,12 +509,7 @@ const AIRLESS_KERBIN = {
   orbit: null,
 };
 
-/**
- * A closed conic around Kerbin, eccentric so the orbital speed actually MOVES
- * across the propagated stretch: a circular orbit would carry forward to a flat
- * line, which is a true answer that proves nothing about whether the model ran.
- * `mu` is Kerbin's, so the solve is a real one rather than a scaled toy.
- */
+/** A closed conic around Kerbin, eccentric so the propagated orbital speed actually moves. */
 const ECCENTRIC_KERBIN_ORBIT = {
   referenceBodyIndex: 1,
   sma: 900_000,
@@ -628,40 +520,18 @@ const ECCENTRIC_KERBIN_ORBIT = {
   meanAnomalyAtEpoch: 0,
   epoch: 0,
   mu: 3_531_600_000_000,
-  /*
-   * What the stock producer sends, reach AND shape (`AnalyticHorizon()` in
-   * `VesselViewProvider.cs`). Not nullable on the wire, so an element set
-   * without it is a recording of a producer that dropped a required field
-   * rather than a neutral scene. The JSON gate beside it
-   * (`orbitFixtureHorizon`) cannot see an inline one, and this is the
-   * constant the next reckoning test gets copied from.
-   */
+  // Required on the wire, as the stock producer sends it.
   horizon: { kind: 1, trajectoryKind: 1 },
 };
 
-/**
- * `vessel.flight.orbitalSpeed` along `ECCENTRIC_KERBIN_ORBIT` at the three
- * sample instants, `[validAt, orbitalSpeed]`, by vis-viva off the same
- * elements.
- */
+/** `[validAt, orbitalSpeed]` along `ECCENTRIC_KERBIN_ORBIT` by vis-viva. */
 const ECCENTRIC_KERBIN_SPEEDS: ReadonlyArray<readonly [number, number]> = [
   [0, 3025.888],
   [100, 2935.193],
   [200, 2719.576],
 ];
 
-/**
- * The shaded region behind a modelled trace, end to end off the stream.
- *
- * Nothing here hands the chart a band either. A reckoner is registered for
- * `vessel.orbit` and the plotted key is a FIELD of it, so the band travels the
- * path a real plot travels: the model's per-path map, narrowed by
- * `fieldScopedReckoner` to the field being read, onto the reckoned tail,
- * through `useDataSeries`'s run building, through `GraphSeries`'s reindexing,
- * and out as a filled path. Every one of those was a place it could have been
- * dropped silently, because a lost band looks exactly like a model that would
- * not say.
- */
+/** The shaded band behind a modelled trace, end to end off the stream: registered reckoner, field scoping, run building, reindexing and the filled path. */
 describe("Graph: the region behind a modelled trace", () => {
   beforeEach(stubSizedResizeObserver);
 
@@ -715,11 +585,7 @@ describe("Graph: the region behind a modelled trace", () => {
     );
   }
 
-  /*
-   * Fed, then the link dropped. A tail FILLS a silence and there is no silence
-   * while the topic is live, so a plot of a raw channel needs the link actually
-   * down before the model has a gap to answer for.
-   */
+  // A tail fills a silence, so the link must actually drop before the model has a gap to answer for.
   function feedThenGoQuiet(
     fixture: ReturnType<typeof setupStreamFixture>,
   ): void {
@@ -752,7 +618,7 @@ describe("Graph: the region behind a modelled trace", () => {
       expect(regions).toHaveLength(1);
       expect(regions[0].getAttribute("data-band-kind")).toBe("bound");
       expect(regions[0].getAttribute("d")).not.toBe("");
-      // The stroke is still there and still marked: a region is a fourth MARK, never a replacement for the dash that says nobody measured this.
+      // The band never replaces the dashed stroke that says nobody measured this.
       const reckonedStroke = container.querySelector(
         'path[data-reckoning-basis="kepler-propagation"]',
       );
@@ -771,7 +637,6 @@ describe("Graph: the region behind a modelled trace", () => {
     feedThenGoQuiet(fixture);
 
     await waitFor(() => {
-      // The modelled trace still draws; only the shading is withheld.
       expect(
         container.querySelector(
           'path[data-reckoning-basis="kepler-propagation"]',

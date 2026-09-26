@@ -9,8 +9,7 @@ beforeEach(() => clearAugments());
 /**
  * A widget mounted the way the dashboard mounts one: identified by
  * `WidgetMetaContext`, rendering a plain `Panel` and declaring no slot of its
- * own. Everything below turns on the widget having said NOTHING, which is what
- * makes the two segments universal.
+ * own, which is what makes the two segments universal.
  */
 function HostWidget({
   componentId = "host-widget",

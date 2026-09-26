@@ -9,13 +9,11 @@ import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Meter, MeterRowGroup, MeterStack } from "./Meter";
 
-/**
- * A list of row meters shares one set of columns, and decides for the whole
- * list whether the figures fit beside the bars. jsdom lays nothing out, so the
- * widths the decision reads are supplied here per part, and the decision is
- * read off the stack's attribute.
+/*
+ * A list of row meters shares one set of columns and decides once whether the
+ * figures fit beside the bars. jsdom lays nothing out, so widths are supplied
+ * per part and the decision is read off the stack's attribute.
  */
-
 const AT = value("ut", 12_000);
 
 function held<U extends string>(figure: Value<U>): Reading<Value<U>> {

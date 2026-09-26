@@ -45,10 +45,7 @@ export function useTrajectoryBuffer({
       vSpeed: vSpeed ?? 0,
     };
 
-    // Mutate the existing array instead of slicing + spreading. Spread
-    // copied the entire backing array on every sample (~2 KB × 2 = 4 KB
-    // per telemetry tick at default trajectoryLength=2000); push + shift
-    // does one append + one head-shift, ~half the moves and zero allocations.
+    // Mutated in place: push and shift allocate nothing, where a spread copied the whole buffer every sample.
     const buf = trajectoryRef.current;
     buf.push(point);
     while (buf.length > trajectoryLength) buf.shift();

@@ -19,8 +19,7 @@ describe("Console", () => {
   });
 
   it("grows no foot at all when the caller passes no composer", () => {
-    // The inbox case: a list of conversations with nothing to type at it. An
-    // empty padded band under the surface is height taken from the list.
+    // An inbox has nothing to type at, and an empty foot would take height from the list.
     const { container } = render(
       <Console>
         <p>scrollback</p>
@@ -31,11 +30,7 @@ describe("Console", () => {
   });
 
   it("keeps the foot for a composer that is given but currently absent", () => {
-    /*
-     * A terminal in character mode composes nothing, and it is a MODE of a
-     * console that has a composer: the surface above must not change height
-     * when the operator toggles it.
-     */
+    // Character mode is a MODE of a console with a composer, so toggling it must not change the surface's height.
     const { container } = render(<Console composer={false} />);
     const frame = container.querySelector("[data-console-frame]");
     expect(frame?.children).toHaveLength(2);
@@ -65,9 +60,7 @@ describe("Console", () => {
     });
 
     it("hangs the chip at the foot, on the composer, not over the scrollback", () => {
-      // WHERE the reading hangs is what the two consoles disagreed about, and
-      // it is invisible to a role query: both drew a perfectly good chip. It
-      // sat over the log for three days and sat on the prose while it did.
+      // WHERE the reading hangs is invisible to a role query, so the placement is asserted directly.
       const { container } = render(
         <Console oneWaySeconds={0.4} composer={<input aria-label="Msg" />}>
           <p>scrollback</p>
@@ -86,11 +79,7 @@ describe("Console", () => {
     });
 
     it("grows a foot for a chip on a console that has no composer", () => {
-      /*
-       * The state most likely to be got wrong: an inbox has no composer, so
-       * there is no foot and no border, and the chip's only other home is back
-       * over the list it is meant to stay off. It gets a foot of its own.
-       */
+      // With no composer the chip gets a foot of its own rather than sitting over the list.
       const { container } = render(
         <Console oneWaySeconds={0.4}>
           <p>scrollback</p>
@@ -112,7 +101,7 @@ describe("Console", () => {
     });
 
     it("gives a console that cannot queue neither reading at a long delay", () => {
-      // A read-only viewer dispatches nothing, so there is no queue to draw and a standing chip would quote a cost it never pays.
+      // A read-only viewer dispatches nothing, so there is no queue and no cost to quote.
       render(<Console oneWaySeconds={240} canQueue={false} inFlight={OUT} />);
       expect(screen.queryByLabelText("Signal delay")).toBeNull();
       expect(screen.queryByLabelText("Uplink queue")).toBeNull();
@@ -127,7 +116,7 @@ describe("Console", () => {
 
   describe("inFlightFrozenAtDispatch", () => {
     it("keeps listing entries after the live reading has gone", () => {
-      // Words put out at four light-minutes are still four light-minutes out after the path drops, and this queue is the only place they appear.
+      // Words sent at four light-minutes are still out there after the path drops.
       render(
         <Console
           oneWaySeconds={null}

@@ -1,16 +1,13 @@
 /**
  * Value-equality for widget config objects, used to decide whether a config
- * modal's working draft differs from the persisted config (the "dirty" flag
- * that gates the discard-changes guard).
+ * modal's draft differs from the persisted config.
  *
- * Semantics tuned for config shapes:
- * - `undefined` and a missing key are treated the same (config defaults are
- *   often `key: undefined` vs the key simply absent).
- * - Object key order is irrelevant.
- * - Arrays compare by index.
+ * - `undefined` and a missing key are treated the same
+ * - object key order is irrelevant
+ * - arrays compare by index
  *
- * Not a general-purpose deep-equal: it doesn't handle Map/Set/Date/etc. Config
- * values are plain JSON-ish data, so that's fine.
+ * Not a general deep-equal: config values are plain JSON-like data, so
+ * Map/Set/Date are not handled.
  */
 export function configEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;

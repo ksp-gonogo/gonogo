@@ -10,28 +10,18 @@ export interface StackProps extends HTMLAttributes<HTMLDivElement> {
    * from a container deciding the spacing for what it holds.
    */
   gap?: GapToken;
-  /**
-   * Rendered tag. Defaults to `div`. Declared for the same reason `Row`
-   * declares it: a widget adopting this in place of its own `styled.section`
-   * should not have to give up the semantic element to do so.
-   */
+  /** Rendered tag. Defaults to `div`. */
   as?: ElementType;
   /**
    * Take the remaining space in a flex parent, and allow shrinking below the
    * content's natural height. That pair is what lets a scroller nested inside
-   * actually scroll instead of growing the whole column, which is otherwise
-   * the most-copied two lines of inline style in the widget set.
+   * actually scroll instead of growing the whole column.
    */
   fill?: boolean;
   children?: ReactNode;
 }
 
-/**
- * Vertical flex list: the most common container shape in the dashboard.
- * Replaces the many ad-hoc `styled.div\`flex-direction:column;gap:...\`` blocks
- * scattered across widgets (e.g. ScienceOfficer's `Group`/`InstrumentList`/
- * `LabList`).
- */
+/** Vertical flex list: the most common container shape in the dashboard. */
 export function Stack({ gap, fill = false, children, ...rest }: StackProps) {
   return (
     <Stack__Root $gap={gap} $fill={fill} {...rest}>

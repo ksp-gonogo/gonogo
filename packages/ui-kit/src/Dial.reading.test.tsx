@@ -11,9 +11,8 @@ import { Dial } from "./Dial";
 import { NULL_DISPLAY } from "./NullValue";
 
 /**
- * The reckoning slot: what `<Dial>` draws when it is handed a whole `Reading`
- * rather than a bare quantity. The face's own version of the three statements
- * every instrument takes off a reading.
+ * What `<Dial>` draws when it is handed a whole `Reading` rather than a bare
+ * quantity.
  */
 
 const AT = value("ut", 12_000);

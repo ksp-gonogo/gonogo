@@ -9,9 +9,6 @@ import {
 const burn = { ut: 1000, ignitionUt: 976, cutoffUt: 1021 };
 
 describe("conformanceRegime", () => {
-  // The whole reason the regime exists: before ignition the gap is at its
-  // LARGEST and nothing is wrong. Calling that deviance would make the plot's
-  // worst-looking state the correct one.
   it("calls the gap the intended change before ignition", () => {
     expect(conformanceRegime(burn, 900)).toBe("intended-change");
   });
@@ -26,7 +23,6 @@ describe("conformanceRegime", () => {
     expect(conformanceRegime(burn, 5000)).toBe("deviance");
   });
 
-  // Without instants nothing establishes that the burn was flown, so the plot may never call the gap deviance however late the clock is.
   it("never reaches deviance without a burn-duration model", () => {
     const noModel = { ut: 1000 };
     expect(conformanceRegime(noModel, 900)).toBe("intended-change");
@@ -41,7 +37,6 @@ describe("conformanceRegime", () => {
 });
 
 describe("finiteBurnResidual", () => {
-  // The measured table, which is the argument for computing this per burn rather than writing one caveat: no single sentence is true at both ends.
   it("is negligible for a short burn and dominant for a long one", () => {
     expect(finiteBurnResidual(45, 3383)).toBeCloseTo(0.0003, 4);
     expect(finiteBurnResidual(0.25, 1)).toBeCloseTo(0.0997, 3);
@@ -64,13 +59,11 @@ describe("devianceIsAttributable", () => {
     expect(devianceIsAttributable(finiteBurnResidual(45, 3383))).toBe(true);
   });
 
-  // At T/P = 0.25 the residual is ~10%: the same size as any flying error the operator could see, so the plot must stop calling the gap theirs.
+  // At T/P = 0.25 the residual is ~10%, the size of any visible flying error.
   it("refuses to attribute a long low-thrust burn", () => {
     expect(devianceIsAttributable(finiteBurnResidual(0.25, 1))).toBe(false);
   });
 
-  // Unknown is not zero. A craft with no duration model has an unattributable
-  // gap for a different reason, and must not read as a clean one.
   it("does not treat an unknown residual as a small one", () => {
     expect(devianceIsAttributable(null)).toBe(false);
   });
@@ -84,7 +77,6 @@ describe("conformanceRegime: past cutoff is not the same fact as flown", () => {
   const burn = { ut: 1000, ignitionUt: 980, cutoffUt: 1020 };
 
   it("reads MISSED when the window has passed and nothing was delivered", () => {
-    // The contradiction a render surfaced: this burn read as "flown, the gap is the deviance" while the row beside it said "not started, 0 of 300 m/s".
     expect(conformanceRegime(burn, 1060, 0, 300)).toBe("missed");
   });
 
@@ -93,8 +85,6 @@ describe("conformanceRegime: past cutoff is not the same fact as flown", () => {
   });
 
   it("reads DEVIANCE when delivery is UNKNOWN, rather than inventing a miss", () => {
-    // null is not zero. With no observation behind it, calling the burn missed
-    // would be asserting something nothing measured.
     expect(conformanceRegime(burn, 1060, null, 300)).toBe("deviance");
     expect(conformanceRegime(burn, 1060)).toBe("deviance");
   });
@@ -105,7 +95,6 @@ describe("conformanceRegime: past cutoff is not the same fact as flown", () => {
   });
 
   it("does not let delivery override the regimes before cutoff", () => {
-    // A burn not yet lit has delivered nothing, and that must not read as missed while its window is still open.
     expect(conformanceRegime(burn, 900, 0, 300)).toBe("intended-change");
     expect(conformanceRegime(burn, 1000, 0, 300)).toBe("in-progress");
   });

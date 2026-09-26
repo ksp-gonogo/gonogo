@@ -39,11 +39,7 @@ interface ModalContextValue {
 
 const ModalContext = createContext<ModalContextValue | null>(null);
 
-/**
- * The id `open()` hands back is an opaque close-handle: the only thing anyone
- * does with it is pass it to `close()`, which compares it to the ids of the
- * modals in this module's own stack, so a counter is sufficient.
- */
+/** The id `open()` hands back is only ever compared against this module's own stack, so a counter is sufficient. */
 let modalSeq = 0;
 
 export function ModalProvider({ children }: Readonly<{ children: ReactNode }>) {
@@ -120,18 +116,14 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
     };
   }, []);
   const titleId = useId();
-  // Only dismiss when both the press and the release land on the backdrop
-  // itself. A mousedown inside the dialog (e.g. starting a text selection) that
-  // releases over the backdrop must NOT close the modal.
+  // Dismiss only when both press and release land on the backdrop, so a text selection dragged out of the dialog does not close it.
   const downOnBackdropRef = useRef(false);
 
-  // Footer + dirty state registered by content via useModalChrome.
+  // Footer and dirty state registered by content via useModalChrome.
   const [footer, setFooter] = useState<ReactNode>(null);
   const [dirty, setDirty] = useState(false);
-  // Whether the discard-confirmation step is showing.
   const [confirming, setConfirming] = useState(false);
   const confirmRef = useRef<HTMLButtonElement>(null);
-  // Keep the latest dirty flag readable from event handlers without re-binding.
   const dirtyRef = useRef(dirty);
   dirtyRef.current = dirty;
   const confirmingRef = useRef(confirming);
@@ -139,8 +131,7 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
 
   const chrome = useMemo<ModalChromeValue>(() => ({ setFooter, setDirty }), []);
 
-  // Single funnel for every close path. When the content reports unsaved
-  // changes, intercept and show the discard confirmation instead of closing.
+  // Every close path funnels here, so unsaved changes show the discard confirmation instead.
   const requestClose = useCallback(() => {
     if (dirtyRef.current) {
       setConfirming(true);
@@ -149,8 +140,7 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
     onClose();
   }, [onClose]);
 
-  // Close on Escape. While the discard confirmation is open, Escape cancels
-  // the confirmation (back to editing) rather than closing the modal.
+  // While the discard confirmation is open, Escape cancels it rather than closing the modal.
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key !== "Escape" || !isTopRef.current) return;
@@ -165,7 +155,7 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [requestClose]);
 
-  // Move focus into the confirmation when it appears so it's immediately keyboard-operable (and the focus trap stays inside the dialog).
+  // Move focus into the confirmation when it appears.
   useEffect(() => {
     if (confirming) confirmRef.current?.focus();
   }, [confirming]);
@@ -208,15 +198,13 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
   return (
     <>
       {createPortal(
-        // Backdrop is interactive (click-to-close) so it can't also declare
-        // role="presentation": the two contradict. Keyboard users close via
-        // the dialog's Escape handler instead of clicking the backdrop.
+        // Interactive, so it cannot also be role="presentation"; keyboard users close with Escape.
         <Backdrop
           onMouseDown={(e) => {
             downOnBackdropRef.current = e.target === e.currentTarget;
           }}
           onMouseUp={(e) => {
-            // Run the existing press+release-on-backdrop detection first, then route through requestClose so the dirty guard can intercept.
+            // Through requestClose, so the dirty guard can intercept.
             if (downOnBackdropRef.current && e.target === e.currentTarget) {
               requestClose();
             }

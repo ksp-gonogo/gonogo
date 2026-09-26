@@ -22,13 +22,7 @@ interface Asked {
   uts: number[];
 }
 
-/**
- * What the hook must have sent, narrowed rather than asserted.
- *
- * A handler that assumed the shape would answer a malformed request as
- * readily as a good one, and the test would then be pinning the reply path
- * against a request nobody checked.
- */
+/** What the hook must have sent, narrowed rather than asserted, so a malformed request fails. */
 function asked(args: unknown): Asked {
   if (
     typeof args === "object" &&
@@ -98,13 +92,7 @@ describe("useBodyStatePropagators: the porkchop asks the game where the bodies a
       expect(fixture.transport.sentCommands).toHaveLength(2);
     });
     const sent = fixture.transport.sentCommands.map((c) => c.args);
-    /*
-     * Two commands for six instants, not six: the batch is the whole reason a
-     * 32x32 grid is 64 solves rather than 64 round trips. And the bound it
-     * will accept is on the request rather than left to a default, so a grid
-     * cannot keep drawing the same plot right up until that default moves and
-     * then draw a different transfer without saying so.
-     */
+    // One batched command per body, with the certification bound on the request rather than left to a default.
     expect(sent).toEqual([
       {
         bodyIndex: 1,
@@ -141,9 +129,7 @@ describe("useBodyStatePropagators: the porkchop asks the game where the bodies a
     const fixture = setupStreamFixture({ carriedChannels: [BODY_STATES] });
     fixture.transport.setCommandHandler((_command, args) => {
       const { uts, bodyIndex } = asked(args);
-      // The destination comes back one state short. A half-provider,
-      // half-local grid would put a seam through the middle of a Δv surface,
-      // so the caller must get nothing and fall back whole.
+      // One state short: the caller must get nothing and fall back whole.
       return reply(bodyIndex === 2 ? uts.slice(1) : uts, bodyIndex);
     });
 
@@ -161,11 +147,7 @@ describe("useBodyStatePropagators: the porkchop asks the game where the bodies a
 
     const seen: { current: BodyStatePropagators | null } = { current: null };
     function Probe() {
-      /*
-       * Earth orbits the Sun and the Moon orbits Earth: there is no frame one
-       * request can express both in, and a centre picked anyway would be a
-       * silently wrong answer rather than a missing one.
-       */
+      // No single frame expresses both, and a centre picked anyway would be silently wrong.
       seen.current = useBodyStatePropagators(earth, moon, bodies, axes);
       return null;
     }

@@ -10,13 +10,7 @@ import {
   parseContracts,
 } from "./index";
 
-/**
- * ContractManager runs off the stream: active/offered/completedRecent all ride
- * the `career.status` Topic's `contracts` sub-tree (canonical `useTelemetry`),
- * and the view UT comes from `useViewUt()` (pinned by the fixture). The
- * accept/cancel/decline commands dispatch through `useCommand` at the
- * meta-vantage; the stream fixture's `transport.sentCommands` captures them.
- */
+/** Commands dispatch at the meta-vantage and are captured on the stream fixture's `transport.sentCommands`. */
 
 interface Contract {
   id: number | string;
@@ -57,7 +51,7 @@ function emitContracts(
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
-  // The augment registry is intentionally not cleared by the data-source teardown; reset it so a test-bound augment can't leak into later tests.
+  // The data-source teardown does not clear the augment registry, so a test-bound augment would leak.
   clearAugments();
 });
 
@@ -118,12 +112,11 @@ describe("ContractManagerComponent", () => {
     expect(screen.getByText(/Plant flag/)).toBeInTheDocument();
     expect(screen.getByText(/Return safely/)).toBeInTheDocument();
     expect(screen.getByText(/optional/i)).toBeInTheDocument();
-    // The kit's ladder drops a zero smaller unit, so this reads "5d left" rather than "5d 0h left".
+    // The ladder drops a zero smaller unit: "5d left", not "5d 0h left".
     expect(visibleText()).toMatch(/5d left/i);
   });
 
   it("renders the per-contract badges slot with no bound augment (empty is fine)", async () => {
-    // No augment registered → the slot composes nothing and the cards render exactly as before, one per contract.
     const fixture = newFixture();
     renderContract(fixture);
     act(() => {
@@ -145,7 +138,7 @@ describe("ContractManagerComponent", () => {
 
     renderContract(fixture);
     act(() => {
-      // Emit active (empty) so the widget exits the awaiting-telemetry early-return: without active, offered isn't rendered.
+      // Without active the widget stays on the awaiting-telemetry return and never renders offered.
       emitContracts(fixture, {
         active: [],
         offered: [{ id: 7, title: "Survey the Mun", parameters: [] }],
@@ -206,7 +199,6 @@ describe("ContractManagerComponent", () => {
       });
     });
 
-    // First click arms: should not fire yet.
     await user.click(await screen.findByText("Decline"));
     expect(
       fixture.transport.sentCommands.filter(
@@ -214,7 +206,6 @@ describe("ContractManagerComponent", () => {
       ),
     ).toHaveLength(0);
 
-    // Confirm fires the decline.
     await user.click(screen.getByText(/Confirm decline/i));
     await waitFor(() => {
       const sent = fixture.transport.sentCommands.find(
@@ -261,7 +252,7 @@ describe("parseContracts", () => {
       { title: "missing id" },
     ]);
     expect(parsed).toHaveLength(1);
-    // IDs are stringified, JS numbers can't represent KSP's full long range, so the parser normalises to string regardless of input type.
+    // KSP ids exceed the JS safe-integer range, so the parser normalises every id to a string.
     expect(parsed?.[0]?.id).toBe("1");
   });
 
@@ -276,14 +267,9 @@ describe("parseContracts", () => {
   });
 
   /**
-   * The pessimistic-arm defect. An unrecognised parameter state used to collapse
-   * onto `Incomplete`, which is a CLAIM: it says the objective is outstanding.
-   * Rename `ParameterState.Complete` in a future KSP and every finished
-   * objective on every contract reads as still to do, with a hollow circle
-   * beside it and an offer to set an alarm for something already done.
-   *
-   * Unknown is its own arm, and the state comes off the ORDINAL. A row whose
-   * ordinal is one KSP declares is that state whatever the name says.
+   * An unrecognised state collapsed onto `Incomplete` would claim a finished
+   * objective is outstanding. Unknown is its own arm, read off the ordinal, so a
+   * declared ordinal is that state whatever the name says.
    */
   it("reports an unrecognised parameter state as Unknown, not as Incomplete", () => {
     const parsed = parseContracts([
@@ -291,11 +277,11 @@ describe("parseContracts", () => {
         id: 1,
         title: "Test",
         parameters: [
-          // A mod appending to ParameterState: an ordinal outside KSP's three.
+          // An ordinal outside KSP's three, as a mod appending to ParameterState would send.
           { title: "Modded state", state: "Waived", stateOrdinal: 7 },
-          // No ordinal at all: also unknown, and for the same reason - nothing here can say whether it is done.
+          // No ordinal at all: nothing can say whether it is done.
           { title: "No ordinal", state: "Complete" },
-          // A renamed member. The ordinal is what it is.
+          // A renamed member: the ordinal decides.
           { title: "Renamed", state: "Achieved", stateOrdinal: 1 },
         ],
       },
@@ -305,7 +291,7 @@ describe("parseContracts", () => {
       "Unknown",
       "Complete",
     ]);
-    // The game's own word survives as a label, so an operator sees what KSP called it rather than only that we could not place it.
+    // The game's own word survives as a label.
     expect(parsed?.[0]?.parameters[0]?.stateLabel).toBe("Waived");
   });
 });

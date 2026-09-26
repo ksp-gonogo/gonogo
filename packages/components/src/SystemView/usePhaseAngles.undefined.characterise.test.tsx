@@ -7,18 +7,9 @@ import type { CelestialBody } from "./useCelestialBodies";
 import { usePhaseAngles } from "./usePhaseAngles";
 
 /**
- * CHARACTERISATION of what `undefined` MEANS to `usePhaseAngles` today.
+ * Characterises what `undefined` means to `usePhaseAngles`: one read behind one gate, `if (!orbit) return EMPTY`.
  *
- * One telemetry read, `useTelemetry("vessel.orbit")`, behind one gate:
- *
- *     if (!orbit) return EMPTY;
- *
- * `EMPTY` is a module-level shared `Map`, and the hook's own doc says the empty
- * map is "treated as no highlight". Three separate situations reach it: no
- * vessel orbit has arrived, the orbit is hyperbolic, and every body lacked
- * elements (`out.size > 0 ? out : EMPTY`). A `Reading` is always truthy, so the
- * gate above stops gating on migration and `orbit.sma.magnitude` reads a field
- * off the wrapper instead of the payload.
+ * No vessel orbit, a hyperbolic orbit, and every body lacking elements all reach the shared `EMPTY`. A `Reading` is always truthy, so the gate stops gating on migration.
  */
 
 const KERBIN_MU = 3.5316e12;
@@ -43,7 +34,7 @@ function makeBody(
     argumentOfPeriapsis: null,
     meanAnomalyAtEpoch: null,
     epoch: null,
-    // These fixtures are about geometry, not about how far anyone will vouch for it, so every body here is unbounded and analytic.
+    // About geometry, not how far anyone vouches for it, so every body is unbounded and analytic.
     horizon: ANALYTIC_BODY_HORIZON,
     period: null,
     trueAnomaly: null,
@@ -65,13 +56,7 @@ function makeBody(
   };
 }
 
-/**
- * A circular vessel orbit whose true longitude is exactly `lonDeg` at UT 0,
- * carrying the horizon the stock analytic producer sends. Absence of the field
- * is its own case (a producer that dropped it) and the hook refuses it, so a
- * fixture about MISSING ELEMENTS has to state one or it would be testing two
- * absences at once.
- */
+/** A circular vessel orbit at true longitude `lonDeg` at UT 0 with the stock analytic horizon, so a missing-elements fixture does not also test a missing horizon. */
 function vesselAtLongitude(lonDeg: number): Record<string, unknown> {
   return {
     referenceBodyIndex: 0,
@@ -110,14 +95,10 @@ function bodyAt90() {
 }
 
 describe("usePhaseAngles: what undefined means today", () => {
-  // ── 1. Nothing has arrived at all ────────────────────────────────────────
-
   it("answers no phase angle for a fully-elemented body while vessel.orbit is absent", () => {
     const { result } = renderPhaseAngles([bodyAt90()]);
 
-    // The body has everything the maths needs; only the vessel side is missing.
-    // The gate short-circuits before the body loop runs at all, so the absence
-    // of ONE telemetry read erases every body's answer rather than the vessel's.
+    // The gate short-circuits before the body loop, so one absent read erases every body's answer.
     expect(result.current.size).toBe(0);
     expect(result.current.has(1)).toBe(false);
     expect(result.current.get(1)).toBeUndefined();
@@ -127,16 +108,12 @@ describe("usePhaseAngles: what undefined means today", () => {
     const { result, rerender } = renderPhaseAngles([bodyAt90()]);
     const first = result.current;
 
-    // The shared module-level `EMPTY` is what `SystemView`'s `transferStatuses`
-    // memo depends on, so its identity is load-bearing: a fresh map per render
-    // would recompute the whole transfer-window pass every frame.
+    // `EMPTY`'s identity keeps SystemView's transfer-window memo from recomputing every frame.
     rerender({ b: [makeBody(2, "Minmus", { lan: 45 })] });
     expect(result.current).toBe(first);
     rerender({ b: [] });
     expect(result.current).toBe(first);
   });
-
-  // ── 2. The absence gate is indistinguishable from two other outcomes ─────
 
   it("cannot tell an absent vessel orbit from bodies that have no elements", async () => {
     const { fixture, result } = renderPhaseAngles([
@@ -148,9 +125,7 @@ describe("usePhaseAngles: what undefined means today", () => {
       fixture.emit("vessel.orbit", vesselAtLongitude(0));
     });
 
-    // `out.size > 0 ? out : EMPTY` sends "the vessel is missing" and "the bodies
-    // are missing" to the identical value, down to object identity, so a
-    // consumer cannot report which side it is waiting on.
+    // "Vessel missing" and "bodies missing" reach the identical value, so a consumer cannot say which it awaits.
     await waitFor(() => expect(result.current.size).toBe(0));
     expect(result.current).toBe(beforeAnyOrbit);
   });
@@ -165,13 +140,9 @@ describe("usePhaseAngles: what undefined means today", () => {
     });
 
     await waitFor(() => expect(result.current.get(1)).toBeCloseTo(90, 4));
-    // Per-body absence is per-body: `trueLongitudeDeg` returns null for the
-    // missing element and the loop `continue`s. A partly-resynced body is
-    // absent from the map, never plotted at longitude 0.
+    // Absence is per body: a partly-resynced body is left out of the map, never plotted at longitude 0.
     expect(result.current.has(2)).toBe(false);
   });
-
-  // ── 3. null versus undefined ─────────────────────────────────────────────
 
   it("treats a null vessel.orbit as not-arrived-yet, not as a confirmed absence", async () => {
     // View time ahead of both samples so the tombstone is the one sampled.
@@ -185,14 +156,9 @@ describe("usePhaseAngles: what undefined means today", () => {
       fixture.emit("vessel.orbit", null, { validAt: 5, seq: 1 });
     });
 
-    // A tombstone surfaces as `null` from `useTelemetry`, and `!orbit` catches
-    // it exactly as it catches `undefined`: the hook does not distinguish
-    // "confirmed no orbit" from "have not heard yet", and reverts to the shared
-    // EMPTY with no record that anything was ever known.
+    // A tombstone is caught exactly like `undefined`: "confirmed no orbit" and "not heard yet" are the same EMPTY.
     await waitFor(() => expect(result.current.size).toBe(0));
   });
-
-  // ── 4. A partial payload: the record arrived, a field inside did not ─────
 
   it("reads an absent LAN and argPe as a real zero, indistinguishable from an equatorial orbit", async () => {
     const noNodeElements = {
@@ -211,10 +177,7 @@ describe("usePhaseAngles: what undefined means today", () => {
       fixture.emit("vessel.orbit", noNodeElements);
     });
 
-    // `orbit.lan?.magnitude ?? 0` coerces both absences to zero, so the answer
-    // is a confident 90 degrees: exactly what an explicitly-equatorial vessel
-    // at longitude 0 produces. The phase angle carries no trace of the two
-    // elements never having arrived.
+    // `orbit.lan?.magnitude ?? 0` gives a confident 90 degrees, exactly what an equatorial vessel produces.
     await waitFor(() => expect(result.current.get(1)).toBeCloseTo(90, 4));
 
     const explicitZeroes = renderPhaseAngles([bodyAt90()]);

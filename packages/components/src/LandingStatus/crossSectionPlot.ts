@@ -10,53 +10,21 @@ import { parentBodyFromTopics } from "../shared/streamBody";
 import { greatCircle } from "./geo";
 
 /**
- * The terrain cross-section, as a CONTRIBUTED PLOT, and now in metres.
+ * The terrain cross-section as a contributed plot, in real metres both ways: a side-on slice along the ground track through the predicted touchdown, with the vessel above it and its velocity drawn as where it will be in ten seconds.
  *
- * A side-on slice of the terrain along the ground track through the predicted
- * touchdown point: distance downrange on X, elevation on Y, with the vessel
- * above it and its velocity drawn as where it will be in ten seconds.
- *
- * **It did not used to be in metres, and that is the substantive change.** The
- * hand-rolled version normalised the terrain patch to 0..1 and multiplied by an
- * amplitude chosen for the box, put the vessel at `agl / (agl + 1200)` down the
- * plot and its horizontal position at a fraction of a drift full-scale. Every
- * one of those is a compression picked so the picture stays legible from three
- * kilometres down to touchdown, and the cost is that the slope it drew was not
- * the slope, the height was not the height, and no reading on it could be
- * compared with a reading on anything else.
- *
- * A `PlotFrame` has to state a domain in a unit, so the conversion forces the
- * question, and the honest answer is the one taken here. It is not free: with
- * the vessel three kilometres up, a fifty-metre relief is a flat line at the
- * bottom, because compared with three kilometres it IS flat. The top-down
- * reticle carries the relief at its own scale, and a plot that reads flat when
- * the ground is flat relative to the vessel is telling the truth about the
- * thing the operator is about to fly into.
- *
- * The vessel sits at its real downrange displacement from the site (negative,
- * upwind) rather than at a made-up fraction, so it converges on the site
- * because it is converging, not because a constant said it should.
+ * With the vessel kilometres up a small relief reads flat, because relative to the vessel it is; the top-down reticle carries relief at its own scale. The vessel sits at its real downrange displacement from the site.
  */
-
-/** How far ahead the velocity vector is drawn, seconds. A vector in a metric
- *  frame needs a time to have a length, and stating one turns an arbitrary
- *  arrow into a claim: this is where the vessel will be, unpowered, in ten
- *  seconds if nothing changes. */
+/** How far ahead the velocity vector is drawn, seconds: where the vessel will be, unpowered, if nothing changes. */
 const VELOCITY_LOOKAHEAD_S = 10;
 
-/** How far below the terrain's lowest point the frame's floor sits, as a
- *  fraction of its span: enough that the ground reads as filled rather than as
- *  a line balanced on the edge. */
+/** How far below the terrain's lowest point the floor sits, as a fraction of its span, so the ground reads as filled. */
 const GROUND_INSET = 0.06;
-/** How much taller than it is wide the window may get while reaching for the
- *  vessel. Past this the craft is off the top: a terrain view with a 5% band of
- *  terrain in it has stopped being one. */
+/** How much taller than wide the window may get while reaching for the vessel; past it the craft is off the top. */
 const MAX_TALLNESS = 1.6;
 /** Sky above the vessel, so it is not drawn on the frame's own edge. */
 const VESSEL_HEADROOM = 1.12;
 
-/** Samples taken along the slice. The patch is bilinear-interpolated, so this
- *  is a drawing resolution rather than a data one. */
+/** Samples along the slice; the patch is bilinear-interpolated, so this is drawing resolution. */
 const SLICE_STEPS = 48;
 
 export interface CrossSectionInputs {
@@ -109,15 +77,7 @@ export interface TerrainSlice {
   halfSpan: number;
 }
 
-/**
- * The terrain profile along the ground track, in real metres both ways.
- *
- * Null when the patch cannot be sliced honestly: no patch, a patch shorter than
- * it claims, a non-finite elevation in it, or no ground extent to state the X
- * axis in. A patch with no extent is the interesting one, because it is the
- * case that USED to work: without `terrainPatchExtentMeters` the old version
- * simply drew the profile across the box, which is a slice at an unknown scale.
- */
+/** The terrain profile along the ground track in real metres, or null when the patch cannot be sliced honestly (missing, short, non-finite, or with no ground extent). */
 export function sliceTerrain(
   inputs: Readonly<CrossSectionInputs>,
 ): TerrainSlice | null {
@@ -163,25 +123,10 @@ export function sliceTerrain(
   };
 }
 
-/**
- * Metres AGL below which an atmospheric descent is a LANDING rather than an
- * entry, and this plot has a site worth pointing at.
- *
- * `compute` is pure, and a settling rate is a difference between frames, so
- * there is nowhere for one to live: the altitude gate is the whole of it.
- *
- * That is the safe direction to be missing a case in: a settled prediction
- * between this gate and the edge of the atmosphere waits rather than showing
- * early. A pinpoint reticle around a point still moving kilometres a second
- * is a picture of a decision nobody can take.
- */
+/** Metres AGL below which an atmospheric descent is a landing rather than an entry; `compute` is pure, so a settling rate between frames has nowhere to live and the altitude gate is the whole test. */
 const ATMO_PLOT_ALT_GATE_M = 10_000;
 
-/**
- * Whether an atmospheric descent is close enough for the site plots to mean
- * something. A vacuum descent has no entry phase to wait out, so it is always
- * ready; an atmospheric one waits for the gate above.
- */
+/** A vacuum descent is always ready; an atmospheric one waits for the gate above. */
 function siteWorthPlotting(
   hasAtmosphere: boolean,
   aglMeters: number | null,
@@ -194,13 +139,7 @@ function fmtSpeed(v: number): string {
   return writeQuantity(value("m/s", v), { decimals: 0 });
 }
 
-/**
- * The cross-section as a whole plot, or null when there is no honest one.
- *
- * Every branch that returns null is a reading the plot would otherwise have to
- * invent: no sliceable patch, no altitude to put the vessel at. There is no
- * fallback here that substitutes a zero.
- */
+/** The cross-section as a whole plot, or null when there is no honest one; no branch substitutes a zero. */
 export function buildCrossSectionPlot(
   inputs: Readonly<CrossSectionInputs>,
 ): PlotEntry | null {
@@ -210,10 +149,7 @@ export function buildCrossSectionPlot(
   const slice = sliceTerrain(inputs);
   if (!slice) return null;
 
-  // The vessel sits UPWIND of the site by its real downrange displacement, and
-  // its elevation is the ground beneath it plus its own height above it. Where
-  // the drift is unknown the vessel is directly over the site rather than at a
-  // guessed offset, which is the one reading this plot can honestly default.
+  // The vessel sits upwind of the site by its real displacement; with the drift unknown it is directly over the site.
   const vesselX =
     driftMeters != null && Number.isFinite(driftMeters) ? -driftMeters : 0;
   const groundUnderVessel = nearestGround(slice, vesselX);
@@ -226,10 +162,7 @@ export function buildCrossSectionPlot(
       boundary: slice.points,
       side: "below",
       tone: "neutral",
-      // Solid, not faint. The ground is the subject of this picture and it
-      // reads as ground by being FILLED: a profile line with nothing under it
-      // is a graph of a number, and which side of it you are standing on is
-      // exactly what the plot is for.
+      // Filled, so which side of the profile the vessel is on reads at a glance.
       opacity: 0.3,
       description: "terrain below the ground track",
     },
@@ -263,9 +196,7 @@ export function buildCrossSectionPlot(
     },
   ];
 
-  // The velocity vector, as a ten-second projection rather than a scaled arrow.
-  // Drawn only when there is motion to draw: a stationary vessel gets no
-  // zero-length mark, which would read as a mark rather than as no motion.
+  // A ten-second projection, drawn only when there is motion, so a stationary vessel gets no zero-length mark.
   const vDown = verticalSpeed != null && verticalSpeed > 0 ? verticalSpeed : 0;
   const vHor =
     horizontalSpeed != null && horizontalSpeed > 0 ? horizontalSpeed : 0;
@@ -288,10 +219,7 @@ export function buildCrossSectionPlot(
     });
   }
 
-  // The two speeds, in the corners INSIDE the frame, which is where a reading
-  // goes on a picture of a place: there is no gutter to put a number in and no
-  // axis to read one off. They are the plot's headline facts, so they are said
-  // rather than left to be inferred from the vector's angle.
+  // The two speeds sit inside the frame corners: there is no axis to read them off.
   if (vDown > 0 || vHor > 0) {
     layers.push({
       kind: "caption",
@@ -309,34 +237,19 @@ export function buildCrossSectionPlot(
     });
   }
 
-  // The frame is anchored on the GROUND, and this is the whole difference between a terrain view and an altitude chart.
-  //
-  // It spans the terrain patch across, the same distance up, and sits with the
-  // ground near its bottom edge. A vessel three kilometres above a fifty-metre
-  // relief is simply not in the picture, and that is correct: this plot is OF
-  // the ground near the site. Letting the window grow to reach the vessel is
-  // what turned a terrain profile into an altitude chart with the terrain as a
-  // sliver along the bottom, at which point neither reading survived.
-  //
-  // Equal spans both ways because the frame is spatial: a slope drawn here is the slope, at any tile size.
+  /*
+   * The frame is anchored on the GROUND, spanning the patch across and the same distance up: a vessel far above the relief is simply out of the picture.
+   * Equal spans both ways because the frame is spatial, so a slope drawn here is the slope.
+   */
   const across = slice.halfSpan * 2;
   const groundLo = Math.min(...slice.points.map((p) => p.y));
   const floor = groundLo - across * GROUND_INSET;
-  // Tall enough to hold the vessel WHEN IT FITS, and otherwise not tall at all.
-  //
-  // The window is anchored on the ground and stretches upward to reach the
-  // craft, which keeps "you, above that" true on an approach. Past the limit it
-  // does not stretch part of the way, it stops: a window opened to its cap for
-  // a craft that is still nowhere near it is all sky and a smear of ground,
-  // which is the same sliver as before wearing a different number. Beyond the
-  // cap the craft is off the top and the picture is a terrain profile, which is
-  // what it is a picture OF.
-  //
-  // Equal SCALE survives either branch: the arranger derives the box's shape from these two spans, so the pixels stay square however tall the window is.
+  /*
+   * Tall enough to hold the vessel when it fits within the cap, and otherwise not stretched at all, so the picture stays a terrain profile.
+   * Equal scale survives either branch, since the arranger derives the box shape from the two spans.
+   */
   const reach = (vesselY - floor) * VESSEL_HEADROOM;
-  // ONE span, used both ways, because the plot is drawn in a square and equal
-  // scale has to survive that: a window taller than it is wide inside a square
-  // box stretches the picture, and a stretched slope is not the slope.
+  // One span used both ways, so the square box never stretches the slope.
   const span =
     reach <= across * MAX_TALLNESS ? Math.max(across, reach) : across;
   const halfWide = span / 2;
@@ -346,10 +259,7 @@ export function buildCrossSectionPlot(
     title: "Cross-section",
     frame: {
       kind: "spatial",
-      // Centred on the site across, the ground at the bottom up. The patch may
-      // be narrower than the span when the window stretched to reach the craft,
-      // which shows as terrain that stops short of the edges: the honest
-      // picture of ground we sampled less of than we are looking at.
+      // Centred on the site; a patch narrower than the span stops short of the edges, the honest picture of less sampled ground.
       xDomain: [-halfWide, halfWide],
       xUnit: "m",
       yDomain: [floor, floor + span],
@@ -359,10 +269,7 @@ export function buildCrossSectionPlot(
   };
 }
 
-/** Terrain elevation at the sampled point nearest `x`, falling back to the
- *  site's own elevation once past the patch's edge: beyond the sampled ground
- *  there is no terrain reading, and holding the last one is the honest
- *  extrapolation of a profile that has run out. */
+/** Terrain elevation at the sample nearest `x`, holding the site's elevation past the patch's edge. */
 function nearestGround(slice: TerrainSlice, x: number): number {
   if (x <= slice.points[0].x) return slice.points[0].y;
   const last = slice.points[slice.points.length - 1];
@@ -374,16 +281,7 @@ function nearestGround(slice: TerrainSlice, x: number): number {
   return best.y;
 }
 
-/**
- * Descent rate and ground speed off the wire's two readings.
- *
- * `vessel.flight.verticalSpeed` is UP-positive, so descending is its negation,
- * and the horizontal component is what is left of the surface speed once the
- * vertical is taken out. The `surf > vDown` guard is `solveSuicideBurn`'s, kept
- * for its reason rather than copied: a surface speed that reads below its own
- * vertical component would put a negative under the root, and the horizontal
- * speed that falls out of that is not a reading at all.
- */
+/** Descent rate (the negated up-positive `verticalSpeed`) and the horizontal speed left of surface speed; `surf > vDown` keeps a negative out from under the root. */
 function descentVelocity(
   verticalSpeed: number | null,
   surfaceSpeed: number | null,
@@ -424,10 +322,7 @@ CORE_UPLINK_CLIENT.registerContribution({
       | undefined;
     const body = parentBodyFromTopics(topics);
 
-    // The ground track direction and how far downrange the site is, derived
-    // here rather than handed down: an outside author contributing this plot
-    // would have to do the same arithmetic off the same two Topics, and there
-    // is no route into the widget's own copy of it.
+    // Derived here from the same two Topics an outside author would use, since a contribution has no route into the widget's copy.
     const drift =
       flight?.latitude != null &&
       flight?.longitude != null &&

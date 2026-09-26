@@ -3,39 +3,11 @@ import { describe, expect, it } from "vitest";
 import { type DeployedBase, parseBases } from "./index";
 
 /**
- * A deployed base's power readout, against what the mod actually sends.
- *
- * `ModuleGroundSciencePart.PowerState` and `.ConnectionState` are `public string`
- * fields that `UpdateModuleUI()` assigns LOCALISED PROSE to, out of
- * `Localizer`. Decompiled from the installed build:
- *
- * ```
- * PowerState      #autoLOC_7003285 "N/A"       | 8002241 "Powered"
- *                 8002242 "Unpowered"          | 8002253 "Controller Disabled"
- *                 8002243 "Disabled"
- * ConnectionState #autoLOC_8002240 "Connected" | 8002244 "Not Connected"
- * ```
- *
- * So there was no ordinal to put on the wire, and no comparison against those
- * strings could be made correct.
- *
- * The mod now derives `power` (our own `DeployedPowerState` ordinal) and
- * `controllerConnected` from the four booleans stock's own readout branches on,
- * and the prose rides along as the display label it always was. These tests feed
- * the derived fields and, crucially, feed them ALONGSIDE prose that disagrees:
- * every case below would pass by accident if the widget were still reading the
- * strings, so each one sets the prose to something that would give the wrong
- * answer.
+ * Proves a deployed base's power and controller state come from the derived `power` and `controllerConnected` fields, never the localised prose.
+ * Every case sets the prose to something that would give the wrong answer.
  */
 
-/**
- * One flat wire entry through the real parser, as the bases it groups into.
- *
- * `parseBases` answers null for a payload it cannot read, so the null is
- * rejected here rather than carried into every assertion: a fixture that stops
- * parsing should fail loudly at the fixture, not as an unreadable `undefined`
- * several expectations later.
- */
+/** One flat wire entry through the real parser, failing at the fixture if it stops parsing. */
 function baseWith(opts: {
   power: DeployedPowerState | null;
   controllerConnected?: boolean | null;
@@ -70,18 +42,14 @@ describe("deployed-science power state", () => {
   it("reads Powered as powered, even when the prose says otherwise", () => {
     const [base] = baseWith({
       power: DeployedPowerState.Powered,
-      // A translated "Powered": the old code read this as partially powered.
+      // A translated "Powered".
       powerState: "Alimentado",
     });
     expect(base?.powered).toBe(true);
     expect(base?.partialPower).toBe(false);
   });
 
-  /**
-   * The four states that mean NOT POWERED. Every one of them used to read
-   * `powered: true`. Each carries the prose "Powered" here, so the only way to
-   * get the right answer is to ignore it.
-   */
+  // The four states that mean not powered, each carrying the prose "Powered".
   it.each([
     ["Unpowered", DeployedPowerState.Unpowered],
     ["ControllerDisabled", DeployedPowerState.ControllerDisabled],
@@ -93,28 +61,14 @@ describe("deployed-science power state", () => {
     expect(base?.partialPower).toBe(false);
   });
 
-  /**
-   * No derived state at all: an older mod build, or a cluster the capture could
-   * not read. That is a THIRD answer, not "not powered".
-   *
-   * We cannot claim it IS powered, and it does not follow that we may claim
-   * it is not: `false` is what the render paints the red `nogo` "Unpowered"
-   * pill from, so an unread cluster would read exactly as confidently dark
-   * as a genuinely dark one. `partialPower` stays false, as it does in every
-   * arm.
-   */
+  // No derived state is a third answer, not "not powered".
   it("reads an absent power state as neither powered nor unpowered", () => {
     const [base] = baseWith({ power: null, powerState: "Powered" });
     expect(base?.powered).toBeNull();
     expect(base?.partialPower).toBe(false);
   });
 
-  /**
-   * `partialPower` has no producer and never did: stock distinguishes powered
-   * from not, with no partial state, so the flag was only ever set by the
-   * fall-through that was the bug. Pinned at false across every state so a
-   * future change cannot quietly reintroduce a middle reading nothing supplies.
-   */
+  // Stock has no partial power state, so nothing may report one.
   it("never reports partial power, for any state", () => {
     for (const power of [
       DeployedPowerState.Powered,
@@ -128,11 +82,6 @@ describe("deployed-science power state", () => {
     }
   });
 
-  /**
-   * The connection half. The old test was `connectionState === "Connected"`, so
-   * a localised "Connected" read as disconnected; here the prose says
-   * "Not Connected" while the derived boolean says otherwise.
-   */
   it("reads controller attachment from the derived boolean, not the prose", () => {
     expect(
       baseWith({

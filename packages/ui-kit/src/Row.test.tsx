@@ -26,18 +26,8 @@ describe("Row", () => {
   });
 
   /**
-   * The subordinate row, asserted as an ASYMMETRY against an ordinary one.
-   *
-   * <para>Left-only is the whole reason the prop exists: the obvious indent is a
-   * padded wrapper, ui-kit's `Box` pads both sides, and the waste on the right
-   * costs the name exactly the width it needs. A row indented on both sides is a
-   * squeeze wearing an indent's clothes.</para>
-   *
-   * <para>Compared against a plain row rather than against a literal, because
-   * jsdom does not resolve custom properties and an assertion on the token's
-   * VALUE would be testing how the test environment renders `var()` rather than
-   * what the prop does. The relationship is the claim: left differs, right does
-   * not.</para>
+   * The subordinate row, asserted as an asymmetry against an ordinary one
+   * rather than a literal, since jsdom does not resolve custom properties.
    */
   it("insets a nested row on the left and nowhere else", () => {
     render(
@@ -74,9 +64,8 @@ describe("Row", () => {
   });
 
   /**
-   * Both halves of `wrap`, because either alone leaves the row exactly as
-   * broken as it was: without the floor the name yields all its width and the
-   * line never overflows, so `flex-wrap` never fires.
+   * Both halves of `wrap`: without the floor the name yields all its width and
+   * `flex-wrap` never fires.
    */
   it("wraps and floors the name width when asked", () => {
     render(

@@ -16,14 +16,10 @@ import { StrategiesComponent } from "./index";
 import { resolveScreens, type StrategiesScreenEntry } from "./screens";
 
 /**
- * The Administration Building's tab strip: the contribution supplies the screen
- * LIST, an augment supplies a screen's BODY, and the widget owns the tablist.
- *
- * The two halves are tested from opposite ends. `resolveScreens` is pure and
- * gets the ordering, claiming and locking cases directly; the rendered tests go
- * through a real contribution registration and the real aggregation, because the
- * thing worth proving is that a screen registered the way an Uplink registers
- * one arrives on screen as a tab.
+ * The Administration Building's tab strip: a contribution supplies the screen
+ * list, an augment supplies a screen's body, and the widget owns the tablist.
+ * The rendered tests go through a real contribution registration, so a screen
+ * registered the way an Uplink registers one arrives as a tab.
  */
 
 const strategy = (
@@ -230,7 +226,7 @@ describe("Strategies: the screen contribution slot", () => {
       emitCareer(stream, RP1_CAREER);
     });
     expect(await screen.findByText("Early Sounding Rockets")).toBeTruthy();
-    // Every strategy is on screen, ungrouped, exactly as before the slot existed.
+    // Every strategy is on screen, ungrouped.
     expect(screen.getByText("Sergei Korolev")).toBeTruthy();
     expect(screen.queryByRole("tablist")).toBeNull();
   });
@@ -263,7 +259,7 @@ describe("Strategies: the screen contribution slot", () => {
     ).toEqual(["Programs", "Other"]);
 
     expect(screen.getByText("Early Sounding Rockets")).toBeTruthy();
-    // Leaders belong to no contributed screen, so they are on the trailing one and not on this one.
+    // Leaders belong to no contributed screen, so they are on the trailing one.
     expect(screen.queryByText("Sergei Korolev")).toBeNull();
   });
 
@@ -312,14 +308,7 @@ describe("Strategies: the screen contribution slot", () => {
     expect(programs).toHaveAttribute("aria-selected", "false");
   });
 
-  /*
-   * The honest-empty-state half. RP-1 ships six `leaderLocked*` strategies
-   * carrying `cannotActivative = True`, one per department, whose entire purpose
-   * is to display an unlock condition; a screen gated the same way has to be able
-   * to say so. The screen exists, is labelled, is REACHABLE, and states its
-   * reason: a screen that were merely absent would be indistinguishable from an
-   * Uplink bundle that failed to load.
-   */
+  // A locked screen exists, is reachable and states its reason; an absent one would look like a bundle that failed to load.
   it("draws a locked screen as a reachable tab that states why it will not open", async () => {
     registerContribution({
       id: "test-locked-screen",
@@ -383,18 +372,7 @@ describe("Strategies: the screen contribution slot", () => {
     );
   });
 
-  /*
-   * The margin complaint, as a structure: "the programs section seems to use the
-   * correct margin but the active/program detail sections have a tighter
-   * margin".
-   *
-   * The augment slot used to be a bare sibling of three sections that each padded
-   * THEMSELVES, so the widget's own lists sat 12px in from the panel body while
-   * an Uplink's body sat flush against it, and the two halves of one screen read
-   * as two widgets. jsdom lays nothing out, so the assertion is on what the fix
-   * actually is: ONE box carries the screen's inset and everything on the screen
-   * is inside it, so nothing below can pad itself back out of agreement.
-   */
+  // jsdom lays nothing out, so this asserts the structure: one box carries the screen's inset and everything is inside it.
   it("puts an augment's body inside the same inset box as the widget's own sections", async () => {
     registerContribution({
       id: "test-programs-screen",
@@ -424,11 +402,7 @@ describe("Strategies: the screen contribution slot", () => {
     expect(within(inset).getByTestId("screen-body")).toBeInTheDocument();
   });
 
-  /*
-   * Caught by looking at the render rather than by a test: inside the Programs
-   * tab every card carried a "PROGRAMS" chip, which is the tab's own name written
-   * out once per row.
-   */
+  // A one-department tab drops the per-card department chip, which would repeat the tab's name.
   it("drops the department chip on a screen that IS one department, and keeps it on Other", async () => {
     registerContribution({
       id: "test-programs-screen",
@@ -445,7 +419,7 @@ describe("Strategies: the screen contribution slot", () => {
     await screen.findByRole("tablist");
     expect(screen.queryByText("Programs", { ignore: "[role=tab]" })).toBeNull();
 
-    // The trailing screen gathers several departments and its label names none of them, so there the chip is the only thing that says which is which.
+    // The trailing screen names no department, so there the chip is the only thing that says which is which.
     await user.click(screen.getByRole("tab", { name: "Other" }));
     expect(screen.getByText("Engineering")).toBeTruthy();
     expect(screen.getByText("Administration")).toBeTruthy();

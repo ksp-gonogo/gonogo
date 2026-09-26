@@ -16,15 +16,9 @@ import {
 } from "./index";
 
 /**
- * Experiments augment-slot exposure. The slots (`experiments.instrument`,
- * the per-instrument row slot, and `experiments.actions`: the header
- * escape-hatch) are exposed but ship no filler here (that's an Uplink
- * augment): an empty slot must render cleanly, and a test augment registered
- * into it must appear, receiving the widget's focus as typed slot props.
- *
- * Runs off the real stream pipeline (`science.instruments`/`science.experiments`
- * carried through a `TelemetryProvider`): the widget reads its whole state
- * off canonical Topics now, no legacy `DataSource`.
+ * Experiments augment slots (`experiments.instrument` per row, `experiments.actions`
+ * in the header): an empty slot renders cleanly, and a registered augment appears
+ * with its typed slot props.
  */
 
 const INSTRUMENT: Instrument = {
@@ -37,13 +31,10 @@ const INSTRUMENT: Instrument = {
   inoperable: false,
 };
 
-// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// action-handler / augment registries: clearActionHandlers()/clearAugments()
-// firing on a still-mounted widget is a state update outside act(). RTL
-// auto-cleanup runs after this file's afterEach, too late to unmount first.
+// Unmounted before the registries clear, so the clear never updates a mounted tree outside act().
 const renderedTrees: Array<() => void> = [];
 
-// Drive the widget to its full instrument-list layout, where both the header `badges` slot and the per-instrument `sections` slot render.
+// The full instrument-list layout, where both slots render.
 async function renderFullList(): Promise<void> {
   const fixture = setupStreamFixture({
     carriedChannels: ["science.instruments", "science.experiments"],
@@ -52,9 +43,7 @@ async function renderFullList(): Promise<void> {
   });
   const { unmount } = render(
     <fixture.Provider>
-      {/* The identity the dashboard supplies: `Panel` completes
-          `${componentId}.${segment}` from it for the universal
-          `sections` and `actions` seams. */}
+      {/* `Panel` names its universal segments from this identity. */}
       <WidgetMetaContext.Provider
         value={{ componentId: "experiments", contributionSlots: [] }}
       >
@@ -128,11 +117,7 @@ describe("Experiments: augment slots (spec §4)", () => {
   });
 
   it("renders a test augment bound to the header actions segment", async () => {
-    // `experiments.actions` is the framework's universal header segment now,
-    // mounted by `Panel` for every widget and propless by construction: an
-    // actions augment reads its own Topics rather than being handed the host's
-    // instrument list. This one reads nothing, which is the point: it renders
-    // on the widget's identity alone, with the widget declaring no slot.
+    // A propless header segment, mounted by `Panel` from the widget's identity alone.
     function ActionsAugment() {
       return <span data-testid="sci-actions-augment">EXTRA 3</span>;
     }

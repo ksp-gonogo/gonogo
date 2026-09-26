@@ -8,8 +8,7 @@ import {
   resourceColor,
 } from "./resourceColor";
 
-/** Local mirror of the module's own circular-distance helper, kept private
- *  there on purpose; tests need it to reason about reserved-zone membership. */
+/** Local mirror of the module's private circular-distance helper. */
 function hueDistance(a: number, b: number): number {
   const diff = Math.abs(a - b) % 360;
   return diff > 180 ? 360 - diff : diff;
@@ -38,9 +37,7 @@ describe("resourceColor", () => {
   });
 
   it("maps curated resources to kind-appropriate hues", () => {
-    // Exact numbers are tunable; what matters is each curated resource
-    // resolves through Tier 1 (a specific, named hue) rather than falling
-    // through to the Tier 2 hash.
+    // Exact numbers are tunable; each curated resource must resolve through Tier 1.
     const water = resourceColor("Water");
     const oxidizer = resourceColor("Oxidizer");
     const liquidFuel = resourceColor("LiquidFuel");
@@ -52,10 +49,7 @@ describe("resourceColor", () => {
   });
 
   it("resolves aliases of the same curated family to that family's exact hue", () => {
-    // ElectricCharge/EC etc are different full strings, so each may get its
-    // OWN deterministic lightness, but the hue is now the family's single
-    // shared identity: every member of a family renders at exactly the same
-    // hue, never a spread.
+    // Members may differ in lightness, but every member of a family renders at exactly the family's hue.
     const assertSameHue = (nameA: string, nameB: string) => {
       const keyA = nameA.toLowerCase();
       const keyB = nameB.toLowerCase();
@@ -78,7 +72,7 @@ describe("resourceColor", () => {
   });
 
   it("never resolves an unrecognised name into a curated resource's exact hue", () => {
-    // Sample a spread of unknown names and confirm none of them accidentally reproduce a curated resource's colour outright.
+    // No unknown name reproduces a curated resource's colour outright.
     const curatedColors = new Set(
       ["Water", "Oxidizer", "LiquidFuel", "Food", "Xenon"].map(resourceColor),
     );
@@ -97,18 +91,14 @@ describe("resourceColor", () => {
 
   describe("Tier 1: matchCuratedHue precedence mechanism", () => {
     it("first match wins, so ordering determines precedence", () => {
-      // A synthetic table where a short generic alias is listed BEFORE a
-      // longer, more specific one that also contains it: the generic one
-      // wins purely because it comes first, proving the algorithm is
-      // order-driven (not automatically "most specific"), which is exactly
-      // why CURATED itself must be authored most-specific-first.
+      // A generic alias listed first wins purely because it comes first: matching is order-driven.
       const genericFirst = [
         { aliases: ["fuel"], hue: 999 },
         { aliases: ["liquidfuel"], hue: 40 },
       ];
       expect(matchCuratedHue("liquidfuel", genericFirst)).toBe(999);
 
-      // Flip the order: the specific alias now gets first refusal, matching the real CURATED table's discipline.
+      // Flipped, the specific alias gets first refusal.
       const specificFirst = [
         { aliases: ["liquidfuel"], hue: 40 },
         { aliases: ["fuel"], hue: 999 },
@@ -128,12 +118,7 @@ describe("resourceColor", () => {
 
   describe("Tier 1: family hue -> member lightness identity", () => {
     it("spreads three distinct waste-family resources into three visibly distinct lightnesses, sharing one hue", () => {
-      // Waste, WasteWater and CarbonDioxide are three different real
-      // resources that share the ["carbondioxide","co2","waste"] family
-      // (a single family, not split into hand-picked hues). All three now
-      // render at the family's EXACT hue; what tells them apart is
-      // lightness, not hue, since hue-only spreading left them 2.8-6deg
-      // apart in a crowded region and unreadable as distinct colours.
+      // Waste, WasteWater and CarbonDioxide share one family: the same hue, told apart by lightness.
       const waste = placedColor("waste") as { hue: number; lightness: number };
       const wasteWater = placedColor("wastewater") as {
         hue: number;
@@ -147,13 +132,10 @@ describe("resourceColor", () => {
       expect(wasteWater).not.toBeUndefined();
       expect(carbonDioxide).not.toBeUndefined();
 
-      // Same hue, exactly, for every member.
       expect(waste.hue).toBe(wasteWater.hue);
       expect(waste.hue).toBe(carbonDioxide.hue);
 
-      // Lightness is where the distinctness lives now: pairwise separated
-      // by a real, visible margin, not just "not bitwise equal". The
-      // tightest real pair (CarbonDioxide/WasteWater) lands ~6.4pts apart.
+      // Pairwise separated by a visible margin, not just "not equal".
       const MIN_SEPARATION_PCT = 5;
       expect(Math.abs(waste.lightness - wasteWater.lightness)).toBeGreaterThan(
         MIN_SEPARATION_PCT,
@@ -187,10 +169,7 @@ describe("resourceColor", () => {
     });
 
     it("anchors a single-alias family at the neutral mid-lightness", () => {
-      // Food, Water, Oxidizer, Ore, Xenon and Ablator each have exactly one
-      // alias: nothing else shares their neighbourhood, so they sit at the
-      // neutral middle of the legible range rather than an arbitrary
-      // hash-derived point.
+      // A single-alias family sits at the middle of the legible range.
       for (const name of [
         "food",
         "water",
@@ -233,10 +212,7 @@ describe("resourceColor", () => {
   });
 
   it("two unknowns that both escape the same reserved zone get distinct hues", () => {
-    // solidfuel hashes to ~214deg (water's zone) and kerbalkrunchies to ~128deg
-    // (food's zone), so both must escape. With a NAME-DERIVED escape step they
-    // diverge instead of converging on one hue (the old fixed-step collision
-    // put both on the same magenta ~1.7deg apart).
+    // Both hash into a reserved zone; a name-derived escape step makes them diverge.
     expect(
       hueDistance(hashHue("solidfuel"), hashHue("kerbalkrunchies")),
     ).toBeGreaterThan(15);

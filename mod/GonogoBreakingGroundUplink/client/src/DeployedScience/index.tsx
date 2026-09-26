@@ -29,43 +29,15 @@ import { BREAKING_GROUND } from "../uplink";
 import { boolOrNull, num, numOrNull } from "../wire";
 
 /**
- * Deployed Base Monitor (Breaking Ground). Lists every deployed surface
- * science base on every body (loaded or not), with its power balance and
- * per-experiment science progress toward cap. Read-only: deployed science
- * auto-transmits and background bases can't be actioned remotely.
- *
- * Reads `deployed.bases` + `deployed.available`; degrades to a muted empty
- * state without Breaking Ground or when no base is deployed.
- *
- * `deployed.bases` comes off `BreakingGroundViewProvider.BuildDeployed`, itself fed by
- * `Gonogo.KSP.KspHost.BuildDeployedScience`'s GLOBAL `FlightGlobals.Vessels`
- * walk, because a Breaking Ground cluster is its own vessel and never the active
- * one. `parseBases` below accepts both wire shapes; see its own doc comment for
- * the field-by-field mapping.
- *
- * `deployed.available` reads `game.dlc.breakingGround`, an independent
- * capability boolean rather than something derived from `deployed.bases` being
- * empty.
- *
- * The fixtures behind this are hand-authored to the real wire shape rather than
- * captured, because a capture needs a deployed cluster in physics range.
+ * Every deployed Breaking Ground surface base on every body, loaded or not, with its power balance and per-experiment science progress.
+ * Read-only: deployed science auto-transmits and background bases cannot be actioned remotely.
  */
 
 type DeployedScienceConfig = Record<string, never>;
 
 /**
  * One deployed experiment as the widget draws it.
- *
- * The science figures are `number | null` for the same reason the power balance
- * below is: the mod withholds each of them through `SnapshotDict.GetDouble`, and
- * a deployed experiment genuinely sitting at 0% is a reading. A substituted zero
- * drew the card at "0%" with an empty bar AND lit the collecting dot, because
- * `collecting` was derived as `pct < 100` and 0 satisfies it, so an experiment
- * nobody read presented as one that has gathered nothing and is hard at work.
- * `aria-valuenow=0` said it to a screen reader too.
- *
- * `collecting` is therefore `boolean | null` as well: a verdict derived from a
- * fabricated number is the same lie one layer up.
+ * Every figure is `null` when the mod withheld it, since 0% is a real reading, and `collecting` is `null` whenever the completion it derives from is.
  */
 export interface DeployedExperiment {
   partId: number;
@@ -82,14 +54,10 @@ export interface DeployedExperiment {
 export interface DeployedBase {
   id: number;
   body: string;
-  /** `null` when the mod declined to state the cluster's power state, which is
-   *  a third answer and not "unpowered": `power === DeployedPowerState.Powered`
-   *  made every unread base paint a red "Unpowered" pill. */
+  /** `null` when the mod declined to state the cluster's power state, which is a third answer and not "unpowered". */
   powered: boolean | null;
   partialPower: boolean;
-  /** Breaking Ground's own integral power units, not electric charge. `null`
-   *  when the cluster could not be read: a live cluster with dark panels
-   *  genuinely reports 0, so a zero cannot stand in for absence. */
+  /** Breaking Ground's own integral power units, not electric charge; a live cluster with dark panels reports 0. */
   powerAvailable: number | null;
   powerRequired: number | null;
   controllerEnabled: boolean;
@@ -97,12 +65,7 @@ export interface DeployedBase {
   experiments: DeployedExperiment[];
 }
 
-/**
- * The value of a FACT: something that stays true until an event changes it, and no
- * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
- * what an `absent` tombstone means here, which is a different answer from `pending`
- * and must not collapse into it.
- */
+/** A fact's value, held through stale; `whenConfirmedNothing` is what an `absent` tombstone means, distinct from `pending`. */
 function stillTrue<T, A>(
   reading: TopicReading<T>,
   whenConfirmedNothing: A,
@@ -124,8 +87,7 @@ function parseExperiments(raw: unknown): DeployedExperiment[] {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
     out.push({
-      // A React list key, never rendered as text, so a substitute here states
-      // nothing about the craft. Every field below it does.
+      // A React list key, never rendered, so a substitute states nothing about the craft.
       partId: num(e.partId, 0),
       id: typeof e.id === "string" ? e.id : "",
       name: typeof e.name === "string" && e.name ? e.name : "Experiment",
@@ -140,15 +102,13 @@ function parseExperiments(raw: unknown): DeployedExperiment[] {
   return out;
 }
 
-/** One flat entry off the new `deployed.bases` wire; see `parseBases`'s doc comment. */
+/** One flat entry off the `deployed.bases` wire; see `parseBases`. */
 interface FlatDeployedEntry {
   vesselName: string;
   partName: string | null;
   body: string | null;
   experimentId: string | null;
-  /** The four science figures, `null` when the mod withheld one. Zero is a
-   *  reading here: a freshly planted experiment reports 0%. See
-   *  {@link DeployedExperiment}. */
+  /** The four science figures, `null` when the mod withheld one; a freshly planted experiment reports 0%. */
   scienceCompletedPercentage: number | null;
   scienceTransmittedPercentage: number | null;
   scienceValue: number | null;
@@ -157,13 +117,11 @@ interface FlatDeployedEntry {
   powerState: string | null;
   /** Localised prose, display only. See {@link controllerConnected}. */
   connectionState: string | null;
-  /** The mod's derived power state. Null when it could not be determined, which
-   *  is a third answer and not "unpowered". */
+  /** The mod's derived power state; `null` is a third answer, not "unpowered". */
   power: DeployedPowerState | null;
   /** The mod's derived controller-attachment fact. */
   controllerConnected: boolean | null;
-  /** The cluster's power balance in Breaking Ground's own power units. Null
-   *  when the cluster could not be read; see {@link DeployedBase.powerAvailable}. */
+  /** The cluster's power balance in Breaking Ground's own power units; see {@link DeployedBase.powerAvailable}. */
   powerAvailable: number | null;
   powerRequired: number | null;
 }
@@ -193,36 +151,14 @@ function parseFlatDeployedEntry(entry: unknown): FlatDeployedEntry | null {
 }
 
 /**
- * The mod's derived `DeployedPowerState` -> this widget's
- * `powered`/`partialPower` pair.
- *
- * This read `ModuleGroundSciencePart.PowerState`, and that field is not an enum
- * name: it is LOCALISED PROSE that `UpdateModuleUI()` writes from `Localizer`.
- * Comparing it against `"Powered"` and `"NoPower"` (a string KSP has never
- * emitted) drops `Unpowered`, `Disabled`, `Controller Disabled` and `N/A` off
- * the end into powered-with-a-partial-flag, so an unpowered cluster paints as a
- * working one on a reduced supply in English, and in any other language a fully
- * powered one does too.
- *
- * `DeployedPowerState` is OUR enum, derived mod-side from the four booleans
- * stock's own readout branches on, so it is an ordinal and it survives
- * translation. `powerState` is still on the wire and still shown, as the label
- * it always was.
- *
- * `partialPower` has no producer and never did: stock distinguishes powered from
- * not, with no partial state, and the flag only ever got set by the fall-through
- * that was the bug. It stays in the display shape (the render reads it) and is
- * now always false, rather than being removed in the same change as a behaviour
- * fix.
+ * Maps the mod's derived `DeployedPowerState` onto the `powered`/`partialPower` pair.
+ * Branch on this ordinal, never on the localised `powerState` prose. Stock has no partial state, so `partialPower` is always false.
  */
 function powerFromState(power: DeployedPowerState | null | undefined): {
   powered: boolean | null;
   partialPower: boolean;
 } {
-  // `power === DeployedPowerState.Powered` answered a definite FALSE for a
-  // cluster the mod declined to state, so an unread base painted the red
-  // "Unpowered" pill (`POWER_TONE.unpowered` is `nogo`) as confidently as a
-  // genuinely dark one. Absence gets its own arm.
+  // An unstated power state is unknown, not unpowered.
   if (power === null || power === undefined) {
     return { powered: null, partialPower: false };
   }
@@ -230,20 +166,8 @@ function powerFromState(power: DeployedPowerState | null | undefined): {
 }
 
 /**
- * Groups the new wire's FLAT per-experiment list (see `parseBases`'s doc
- * comment) into the widget's existing `DeployedBase[]` display shape, keyed
- * by `vesselName`: a Breaking Ground cluster is its own vessel
- * (`Gonogo.KSP.KspHost.BuildDeployedScience`'s doc comment), so grouping by
- * vessel reproduces the legacy "one card per base" layout. Fields with no
- * new-wire equivalent degrade explicitly:
- * - `powerAvailable`/`powerRequired` -> the cluster's own power-unit balance,
- *   or `null` when it could not be read. This used to be hardcoded `0`/`0`
- *   under a comment claiming the wire had no numbers to give; it did, off the
- *   cluster the mod was already holding, and they are Breaking Ground power
- *   units rather than electric charge.
- * - `controllerEnabled` -> the mod's derived `controllerConnected` boolean.
- * - `id`/`partId` -> synthesized indices (stable within one payload, and
- *   never rendered as text: only used as React list keys).
+ * Groups the flat per-experiment list into one `DeployedBase` per `vesselName`, since a Breaking Ground cluster is its own vessel.
+ * `id` and `partId` are synthesised indices, used only as React keys.
  */
 function groupFlatDeployedEntries(raw: unknown[]): DeployedBase[] {
   const order: string[] = [];
@@ -265,10 +189,7 @@ function groupFlatDeployedEntries(raw: unknown[]): DeployedBase[] {
     const first = entries[0];
     const { powered, partialPower } = powerFromState(first?.power);
     const experiments: DeployedExperiment[] = entries.map((e, i) => {
-      /* Every derivation below carries the absence rather than closing over it:
-         a withheld completion percentage yields no progress, and therefore no
-         `collecting` verdict either, because `pct < 100` is satisfied by the
-         zero that used to stand in for it. */
+      // Every derivation carries the absence: a withheld completion yields no progress and no `collecting` verdict.
       const progress = clamp01OrNull(
         e.scienceCompletedPercentage === null
           ? null
@@ -308,11 +229,7 @@ function groupFlatDeployedEntries(raw: unknown[]): DeployedBase[] {
       partialPower,
       powerAvailable: first?.powerAvailable ?? null,
       powerRequired: first?.powerRequired ?? null,
-      /*
-       * The mod's derived boolean, not `connectionState === "Connected"`: that
-       * compared against the English rendering of a localised sentence, so a
-       * connected controller read as disconnected in every other language.
-       */
+      // The derived boolean, never the localised `connectionState` prose.
       controllerEnabled: first?.controllerConnected ?? false,
       experimentCount: experiments.length,
       experiments,
@@ -321,28 +238,8 @@ function groupFlatDeployedEntries(raw: unknown[]): DeployedBase[] {
 }
 
 /**
- * Parse `deployed.bases`. Returns null when the key is absent (older fork)
- * so the widget can tell "no DLC support" from "no bases deployed". Two wire
- * shapes land here:
- *
- * - **Legacy GonogoTelemetry shape**: grouped per-base objects, a numeric
- *   `id`, a `powerAvailable`/`powerRequired` balance, and a nested
- *   `experiments` list already keyed by numeric `partId`.
- * - **New SDK `deployed.bases`** (routed onto this key by
- *   `map-topic.ts`): a FLAT array of individual deployed
- *   experiments: one entry per `ModuleGroundExperiment`, no base grouping,
- *   `{ vesselName, partName, body, situation, biome, experimentId,
- *   scienceCompletedPercentage, scienceTransmittedPercentage, scienceValue,
- *   scienceLimit, powerState, connectionState, deployedOnGround }`
- *   (`mod/Sitrep.Host/ScienceViewProvider.cs`'s `BuildDeployedEntry`).
- *   `groupFlatDeployedEntries` above derives an equivalent `DeployedBase[]`
- *   client-side, grouped by `vesselName`.
- *
- * Detected by shape: a legacy entry always carries a numeric `id`; a
- * new-wire entry never does but always carries a string `vesselName`
- * instead. The two shapes never mix within one array (one source or the
- * other populates the whole payload), so the first recognizable entry
- * decides how the rest of the array is read.
+ * Parses `deployed.bases`, returning null when it could not be read so "no bases deployed" stays a claim only a real empty list makes.
+ * Accepts grouped per-base entries (a numeric `id`) or a flat per-experiment list (a string `vesselName`); the shapes never mix, so the first recognisable entry decides.
  */
 export function parseBases(raw: unknown): DeployedBase[] | null {
   if (raw === null || raw === undefined) return null;
@@ -366,9 +263,7 @@ export function parseBases(raw: unknown): DeployedBase[] | null {
     out.push({
       id: e.id,
       body: typeof e.body === "string" ? e.body : "",
-      /* Narrowed rather than `=== true`, for the same reason the new wire arm
-         is: the legacy shape can omit the flag, and the panel would then paint
-         the red "Unpowered" pill for a cluster that never reported one. */
+      // An omitted flag is unknown, not unpowered.
       powered: boolOrNull(e.powered),
       partialPower: e.partialPower === true,
       powerAvailable: numOrNull(e.powerAvailable),
@@ -394,7 +289,6 @@ const POWER_LABEL: Record<PowerState, string> = {
   powered: "Powered",
   partial: "Brownout",
   unpowered: "Unpowered",
-  // Matches the shape `powerBalance`'s "Power unknown" already uses on the same card, and reads as an absence rather than as a fourth power state.
   unknown: "Power unknown",
 };
 
@@ -408,34 +302,14 @@ const POWER_TONE: Record<PowerState, StatusTone> = {
 
 const XS2_STYLE = { fontSize: "var(--font-size-caption)" } as const;
 
-/**
- * The cluster's produced-over-required power balance, or null when either side
- * did not arrive. Both or neither: half a ratio is not a balance, and the
- * missing half would have to be drawn as something.
- *
- * `Units.Count` renders an empty display symbol, so the number carries no
- * suffix and the label has to say what scale it is on.
- */
+/** The produced-over-required power balance, or null unless both sides arrived. */
 function powerBalance(base: DeployedBase): string | null {
   const { powerAvailable, powerRequired } = base;
   if (powerAvailable === null || powerRequired === null) return null;
   return `Power ${Math.round(powerAvailable)}/${Math.round(powerRequired)}`;
 }
 
-/**
- * A completion fraction as a percentage that still says how current it is.
- *
- * `parseBases` normalises two wire shapes into one local number, so this figure
- * has no single field path to be read back through. What it does have is the
- * topic it came off, and that is what its currency is: as current as
- * `deployed.bases` was when the roster arrived.
- *
- * The fraction is taken already-narrowed rather than nullable, because the only
- * safe substitute for a missing completion is no figure at all: a zero here
- * claims an experiment has gathered nothing, and `collecting` (`pct < 100`) is
- * satisfied by that zero, so the card would report "gathered nothing and
- * actively working" about an experiment nobody has heard from.
- */
+/** A completion fraction as a percentage, exactly as current as `deployed.bases` is. */
 function progressPercentReading(
   source: Reading<unknown>,
   fraction: number,
@@ -454,12 +328,7 @@ function progressRatioReading(
 function DeployedScienceComponent(
   _: Readonly<ComponentProps<DeployedScienceConfig>>,
 ) {
-  // A deployed-base roster is a fact: bases are planted by an event.
-  //
-  // The reading is NAMED rather than consumed inline because the progress
-  // figure below is drawn from it and has to say how current it is. `stillTrue`
-  // hands back a fact's payload through stale on purpose, so without the
-  // reading beside it a held percentage draws as a present-tense claim.
+  // The roster is a fact, held through stale; the reading stays named so each progress figure can carry its currency.
   const basesReading = useTelemetry("deployed.bases");
   const basesRaw = stillTrue(basesReading, undefined);
   const available = stillTrue(
@@ -467,11 +336,7 @@ function DeployedScienceComponent(
     undefined,
   )?.breakingGround;
 
-  // `parseBases` returns null for "could not read", which is the whole reason
-  // it returns null: a `?? []` here discarded exactly that and the panel then
-  // said "No deployed bases", a positive claim that nothing is planted
-  // anywhere, before the first emission and on a mod that does not carry the
-  // channel. An operator with four bases on Duna read that they had none.
+  // Null is "could not read", never "no deployed bases".
   const bases = parseBases(basesRaw);
 
   if (bases === null || bases.length === 0) {
@@ -498,8 +363,7 @@ function DeployedScienceComponent(
     <Panel
       panelTitle="DEPLOYED SCIENCE"
       compactTitle={["DEPLOYED SCI", "DEPLOYED"]}
-      /* One section per base, so a landscape tile runs the base cards side by
-         side instead of down one column. */
+      /* One section per base, so a landscape tile runs the cards side by side. */
       sections={bases.map((base) => {
         const state = powerState(base);
         return (
@@ -522,12 +386,7 @@ function DeployedScienceComponent(
                   </StatusIndicator>
                 </Cluster>
                 <Text tone="muted" style={XS2_STYLE}>
-                  {/* Breaking Ground POWER UNITS, produced over required, not
-                      electric charge: the label said "EC" over two hardcoded
-                      zeros that no wire ever carried, so every base read
-                      "Powered · EC 0/0". A cluster the mod could not read draws
-                      no balance at all rather than a zero one, because zero is
-                      what a live cluster reports with its panels dark. */}
+                  {/* Breaking Ground power units, not electric charge. */}
                   {powerBalance(base) ?? "Power unknown"}
                   {base.experiments.length > 0 && (
                     <Text tone="faint" style={XS2_STYLE}>
@@ -539,11 +398,7 @@ function DeployedScienceComponent(
 
                 {base.experiments.map((exp) => (
                   <Stack key={`${base.id}-${exp.partId}`}>
-                    {/* The figure is drawn THROUGH the reading, so a percentage
-                        held over from a link that stopped delivering is marked
-                        rather than stated as current. An experiment with no
-                        completion reported draws the absent form: an empty
-                        track would read as 0%. */}
+                    {/* Drawn through the reading so a held percentage is marked; no completion draws the absent form, not an empty track. */}
                     <Meter
                       label={exp.name}
                       tone="go"
@@ -562,12 +417,6 @@ function DeployedScienceComponent(
                               )}
                               decimals={0}
                             />
-                            {/* The dot is only lit on a verdict there was
-                                something to derive. `collecting` was `pct <
-                                100`, which a substituted zero satisfied, so the
-                                card read "gathered nothing and actively
-                                working" about an experiment nobody had heard
-                                from. */}
                             {exp.collecting === true && (
                               <Text
                                 tone="accent"
@@ -582,13 +431,6 @@ function DeployedScienceComponent(
                         )
                       }
                     />
-                    {/* Per-experiment-card body slot (augment-slot-map:
-                        deployed-science.experiment). A Kerbalism Uplink appends a
-                        background-transmission progress bar here; because the
-                        slot renders once PER experiment card, its props carry
-                        THIS card's experiment datum (and its body) so the
-                        augment targets the right experiment. Renders nothing
-                        until an augment binds. */}
                     <AugmentSlot
                       name="deployed-science.experiment"
                       props={{ experiment: exp, body: base.body }}
@@ -604,13 +446,7 @@ function DeployedScienceComponent(
   );
 }
 
-/**
- * Props passed to every `deployed-science.experiment` augment. The slot renders
- * once PER experiment card, so its props MUST carry that card's experiment
- * datum: a Kerbalism-style Uplink appends a background-transmission progress
- * bar and needs THIS experiment's identity/progress to target the right one.
- * `body` is the parent base's body, for context.
- */
+/** Props passed to every `deployed-science.experiment` augment, rendered once per experiment card. */
 export interface DeployedExperimentContext {
   /** The deployed experiment this card renders, the augment's datum. */
   experiment: DeployedExperiment;
@@ -618,17 +454,7 @@ export interface DeployedExperimentContext {
   body: string;
 }
 
-// Declaration-merge this widget's slot ids → their props types into the sdk's
-// `SlotRegistry`. Kept co-located here, not in a
-// shared central registry file, so parallel per-widget slot work never
-// collides. `.sections` is a typed-contract per-card slot, carrying the
-// experiment.
-//
-// The target is `@ksp-gonogo/sitrep-sdk`, as it is for every other slot-owning
-// widget in the mod tree: `@ksp-gonogo/core` is a module a third-party author
-// cannot install, so a merge declared against it would simply never resolve
-// for them, silently, leaving every augment of this slot typed as the loose
-// fallback.
+// Merged into the sdk's `SlotRegistry`, since a merge against the private `@ksp-gonogo/core` would silently never resolve for an outside author.
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface SlotRegistry {
     "deployed-science.experiment": DeployedExperimentContext;
@@ -642,11 +468,7 @@ registerComponent<DeployedScienceConfig>({
     "Power balance and per-experiment science progress for Breaking Ground deployed surface bases on every body, reported even while you fly something else. Read-only.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 5, h: 9 },
-  /* Five rows, not four. At 4x4 the body scroller is 122px against 135px of
-     content, and the thirteen pixels that puts past the fold turn on an
-     overflow glow whose mask reaches seventeen, so "Waiting for the
-     deployed-base roster" lost its last line to a cover it could not be read
-     under. */
+  // At four rows the overflow glow covers the last line of the empty state.
   minSize: { w: 4, h: 5 },
   component: DeployedScienceComponent,
   dataRequirements: ["deployed.bases", "game.dlc.breakingGround"],

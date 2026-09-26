@@ -7,8 +7,7 @@ import { WidgetMetaContext } from "./WidgetMetaContext";
 
 beforeEach(() => clearAugments());
 
-/* The colliding slot the test mounts, declared because an undeclared slot id
-   carries no props at all. */
+/* Declared because an undeclared slot id carries no props at all. */
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface SlotRegistry {
     "deployed.sections": { row?: string };
@@ -16,17 +15,9 @@ declare module "@ksp-gonogo/sitrep-sdk" {
 }
 
 /**
- * A widget-authored slot whose id happens to END IN a framework segment is the
- * same string the universal segment completes to, so both mounts fire and the
- * augment renders twice: once with the widget's props, once with the segment's
- * empty ones. The second render is what crashes, because a component written
- * against per-row props reads a field of `undefined`.
- *
- * This is not hypothetical. `deployed-science.sections` was exactly that, and
- * its own test threw `Cannot read properties of undefined (reading 'name')` the
- * moment `Panel` started mounting the segment. The slot was renamed; this is the
- * guard that makes the next one fail loudly instead of at whichever call site
- * happens to dereference first.
+ * A widget-authored slot whose id ends in a framework segment is the same
+ * string the universal segment completes to, so both mounts fire and the
+ * augment renders twice, the second time with the segment's empty props.
  */
 describe("a widget-authored slot must not end in a framework segment", () => {
   it("renders a colliding slot's augment twice, the second time with no props", () => {
@@ -56,7 +47,7 @@ describe("a widget-authored slot must not end in a framework segment", () => {
   });
 
   it("names the segments a widget-authored slot id may not end in", () => {
-    // A widget slot may be called anything EXCEPT these, because these are the framework's and `Panel` mounts them for every widget.
+    // A widget slot may be called anything except these, which `Panel` mounts for every widget.
     expect([...FRAMEWORK_AUGMENT_SEGMENTS]).toEqual(["sections", "actions"]);
   });
 });

@@ -20,54 +20,35 @@ export interface DisclosureProps {
   ariaLabel?: string;
   className?: string;
   /**
-   * "popover" (default): the panel pops out, absolutely positioned over
-   * whatever follows, sized to its own content, for a compact hint next to a
-   * tight trigger (FleetRoster's per-row signal cell).
-   * "inline": the panel expands IN FLOW below the trigger, full width,
-   * pushing later content down rather than covering it, the accordion shape
-   * a resource-row ledger needs. By default the trigger also grows a
-   * rotating chevron so the control reads unambiguously as an expander (set
-   * `chevron={false}` when `label` is itself a right-aligned, worded control
-   * like "Show detail" and a second glyph would be redundant). Long panels
-   * scroll inside a capped-height block instead of overflowing the row.
+   * - `"popover"` (default): the panel pops out over whatever follows, sized to
+   *   its content, for a compact hint beside a tight trigger
+   * - `"inline"`: the panel expands in flow below the trigger, full width, as
+   *   an accordion. The trigger grows a rotating chevron unless `chevron={false}`
    */
   variant?: "popover" | "inline";
   /**
-   * How tall an `inline` panel may grow. "cap" (default) stops at a fixed
-   * height and scrolls its own content, which is right for an accordion sitting
-   * in a dashboard row. "auto" lets it grow in flow, for a panel already inside
-   * a scrolling body: nesting a second scroller there hides content behind a
-   * bar the reader has no reason to expect.
+   * How tall an `inline` panel may grow. `"cap"` (default) stops at a fixed
+   * height and scrolls. `"auto"` grows in flow, for a panel already inside a
+   * scrolling body, where a second scroller would hide content.
    */
   panelHeight?: "cap" | "auto";
   /**
    * Whether the rotating chevron renders for `variant="inline"`. Defaults to
    * `true`. Set `false` when `label` already reads as the affordance (e.g.
-   * "Show detail"): the trigger then right-aligns that label to where the
-   * chevron would have sat, rather than showing both. Ignored for
-   * `variant="popover"`, which never has a chevron.
+   * "Show detail"); the label then right-aligns where the chevron would sit.
    */
   chevron?: boolean;
   /**
    * Renders the trigger as a real `GhostButton` (bordered, padded chrome)
-   * instead of the plain unstyled `Disclosure__Trigger`. Off by default, so
-   * `FleetRoster`'s compact popover trigger (a coloured tag, not a worded
-   * label) is unaffected. Pair with `chevron={false}` and a worded `label`
-   * (e.g. "Show detail"): a chevron-less text label with no visible chrome
-   * reads as plain text, which is exactly the "is this actually a button?"
-   * complaint this prop exists to fix. The trigger sizes to its own content
-   * and right-aligns within the row rather than stretching full width, so it
-   * reads as a small control, not a giant clickable band.
+   * instead of a plain unstyled one, sized to its content and right-aligned.
+   * Pair with `chevron={false}` and a worded `label`: a chevron-less label with
+   * no chrome reads as plain text.
    */
   asButton?: boolean;
   /**
-   * Size of the `asButton` trigger. `"md"` (default) is the full bordered
-   * `GhostButton` chrome (uppercase, tracked-out label) every other bordered
-   * button in the kit uses. `"sm"` is a compact, quiet secondary control
-   * (normal case, tight tracking, small type/padding, matching
-   * `ActionButton`'s "ghost" tone) for rows where the trigger needs to read
-   * as a small aside rather than a CTA-weight button. Ignored when
-   * `asButton` is false.
+   * Size of the `asButton` trigger. `"md"` (default) is the full `GhostButton`
+   * chrome; `"sm"` is a compact, quiet secondary control, as `ActionButton`'s
+   * "ghost" tone.
    */
   buttonSize?: "md" | "sm";
   /**
@@ -75,23 +56,17 @@ export interface DisclosureProps {
    * ordinary shape: detail on demand.
    *
    * Pass `true` where the panel is the primary content and the trigger exists
-   * only so it can be folded away when the space runs out, which is what a
-   * widget does when its tile is too short to hold a section: the same section,
-   * open in a tall tile and closed in a short one. Read once, at mount. To
-   * re-seat it when the deciding condition changes, give the Disclosure a React
-   * key that changes with it.
+   * so it can be folded away in a short tile. Read once, at mount; to re-seat
+   * it, give the Disclosure a React key that changes with the condition.
    */
   defaultOpen?: boolean;
 }
 
 /**
- * A minimal accessible disclosure: a real `<button aria-expanded>` that toggles a
- * panel, keyboard AND pointer reachable (click / Enter / Space to open, Escape to
- * close returning focus to the trigger), with a visible focus ring. The one
- * general-purpose focus/tap detail surface in the kit, deliberately NOT the
- * hover-only reveal `ControlDelayStream` uses (unreachable without a mouse). Use
- * it wherever a compact control needs to expand detail on demand: `popover`
- * (the default) for a tooltip-shaped hint, `inline` for a true accordion row.
+ * A minimal accessible disclosure: a real `<button aria-expanded>` that toggles
+ * a panel, reachable by keyboard and pointer (Enter / Space to open, Escape to
+ * close and return focus). The kit's general-purpose detail-on-demand surface,
+ * for when a hover-only reveal would be unreachable without a mouse.
  */
 export function Disclosure({
   label,
@@ -165,9 +140,7 @@ const Disclosure__Root = styled.div<{ $variant: "popover" | "inline" }>`
 const Disclosure__Trigger = styled.button<{
   $variant: "popover" | "inline";
   $align: "between" | "end";
-  // Accepted for prop-type parity with Disclosure__ButtonTrigger (the two
-  // are interchangeable as `TriggerTag` above); the plain trigger has no
-  // bordered chrome to size, so this is unused here.
+  // Unused: accepted so the two triggers are interchangeable as `TriggerTag`.
   $size: "md" | "sm";
 }>`
   display: inline-flex;
@@ -192,20 +165,9 @@ const Disclosure__Trigger = styled.button<{
 `;
 
 /**
- * The `asButton` trigger: a real `GhostButton` (border, padding, hover/focus
- * chrome all inherited from it) rather than the bare `Disclosure__Trigger`
- * above. Sized to its own content and pinned to the row's trailing edge via
- * `align-self`, never stretched to `width: 100%` the way the plain trigger
- * is for `variant="inline"`, so it reads as a small control sitting at the
- * end of the row rather than a full-width clickable band with right-aligned
- * text inside it.
- *
- * `$size="sm"` overrides GhostButton's uppercase/tracked-out CTA styling
- * with the same compact, normal-case chrome `ActionButton`'s "ghost" tone
- * uses, for triggers that need to read as a quiet secondary control rather
- * than a primary-weight button. `min-height: 44px` is kept under a coarse
- * pointer regardless of size (matching `ToggleButton`'s own sm/md split) so
- * the smaller visual size never shrinks the touch target.
+ * The `asButton` trigger: a real `GhostButton`, sized to its content and
+ * pinned to the row's trailing edge. Under a coarse pointer it keeps a 44px
+ * touch target whatever its size.
  */
 const Disclosure__ButtonTrigger = styled(GhostButton)<{
   $variant: "popover" | "inline";

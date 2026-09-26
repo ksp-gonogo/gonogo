@@ -1,11 +1,8 @@
 import { type CommsHop, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 
 /**
- * One `comm-signal.hop-rates` entry (components-side mirror of the sdk leaf's
- * `CommSignalHopRateEntry`): a hop's forward bitrate keyed by the SAME node ids
- * `comms.path` carries, so the route schedule joins it by {@link commsHopId}
- * without importing backend-aware code. `bitsPerSec` is a plain magnitude; the
- * schedule wraps it in `<Unit>` and compares magnitudes to flag the bottleneck.
+ * One `comm-signal.hop-rates` entry: a hop's forward bitrate keyed by the same
+ * node ids `comms.path` carries, joined onto the route by {@link commsHopId}.
  */
 export interface CommSignalHopRateEntry {
   fromNodeId: string;
@@ -13,22 +10,12 @@ export interface CommSignalHopRateEntry {
   bitsPerSec: number;
 }
 
-// The components-side `comm-signal.hop-rates` slot, declared on core's registry
-// and kept member-for-member identical to the sdk leaf's mirror in
-// `contribution-slots.ts` (the conformance test-d proves the two agree, and TS
-// itself rejects a declaration-merge that disagrees). A comms Uplink
-// contributes each hop's forward rate keyed by node id; the route schedule
-// joins it onto the hop it already renders and flags the bottleneck.
-//
-// It declares no `topics`. It used to name the contributor's source channel,
-// which put a single mod's topic id in the one place this widget could still be
-// said to reference a provider. A contribution declares its own `deps` at
-// runtime and that is what feeds `compute`, so the union only typed the
-// argument and the contributor cast through it regardless. Naming nothing is
-// the honest statement: any comms Uplink may fill this, from whatever channel
-// it owns.
-//
-// Declared here rather than in `index.tsx` so the contribution-slot conformance test-d can load the augmentation by importing this module's entry type.
+/*
+ * Kept member-for-member identical to the sdk leaf's mirror in
+ * `contribution-slots.ts`. It declares no `topics`: any comms Uplink may fill
+ * it from whatever channel it owns. Declared here rather than in `index.tsx`
+ * so the conformance test-d can load the augmentation through this module.
+ */
 declare module "@ksp-gonogo/core" {
   interface ContributionRegistry {
     "comm-signal.hop-rates": {
@@ -38,23 +25,18 @@ declare module "@ksp-gonogo/core" {
 }
 
 /**
- * The join key for a hop: the SINGLE derivation both this route schedule and any
- * `comm-signal.hop-rates` contributor key by, built from the hop's from/to node
- * ids (identical to `comms.path`'s `CommsHop.from`/`to`). A contribution relays
- * the raw node ids off its own Topic and the schedule joins them here, so the
- * widget never imports backend-aware code. A unit-separator control character
- * delimits the two ids so a node name containing it cannot forge a collision.
+ * The join key for a hop, shared by the route schedule and every
+ * `comm-signal.hop-rates` contributor. A unit-separator control character
+ * delimits the two ids so a node name cannot forge a collision.
  */
 export function commsHopId(fromNodeId: string, toNodeId: string): string {
   return `${fromNodeId}${toNodeId}`;
 }
 
 /**
- * The bottleneck hop's id: the minimum-rate hop in the path, since the slowest
- * link caps end-to-end throughput. `undefined` unless at least TWO hops carry a
- * rate: a bottleneck only means something relative to another leg, so a lone
- * rated leg (or a bare-CommNet path with no rates at all) is never flagged.
- * Ties resolve to the first hop at the minimum, in path order.
+ * The bottleneck hop's id: the minimum-rate hop, first in path order on a tie.
+ * `undefined` unless at least two hops carry a rate, since a bottleneck only
+ * means something relative to another leg.
  */
 export function commsBottleneckHopId(
   hops: readonly CommsHop[],
@@ -84,18 +66,13 @@ export interface CommsRouteNode {
 }
 
 /**
- * Builds the display chain for a `comms.path` hop list: the active vessel
- * (`vesselLabel`, its own name, `comms.path` is always the reader's OWN
- * path, never another vessel's), each intermediate relay (the hop's own raw
- * node name), and the resolved command centre (`centreLabel`, the same name
- * the panel subtitle already uses, not the hop's own opaque "home" id).
- * Gonogo is the experience FROM the command centre, so the vessel is named
- * rather than addressed as "you", the centre is the implicit reader.
+ * Builds the display chain for a `comms.path` hop list: the active vessel by
+ * name, each intermediate relay, and the resolved command centre (not the
+ * hop's opaque "home" id). The vessel is named rather than addressed as "you"
+ * because the command centre is the implicit reader.
  *
- * `hops` is ordered vessel-to-centre (`CommNetBackend.Path`/`RaCommsBackend`
- * in `mod/`), so node `i+1` is hop `i`'s `to`: an N-hop path always yields
- * N+1 nodes. Empty hops (no path home) yields an empty chain, the caller's
- * cue to render nothing.
+ * `hops` is ordered vessel-to-centre, so an N-hop path yields N+1 nodes and
+ * no hops yields an empty chain.
  */
 export function buildCommsRouteNodes(
   hops: readonly CommsHop[],
@@ -114,33 +91,21 @@ export function buildCommsRouteNodes(
 }
 
 /**
- * Relay nodes between the vessel and the command centre: hop count minus
- * one (a 1-hop path is a direct link with no relay in between). Position-
- * based rather than counting `CommsHopKind.Relay` hops, because a crewed-vessel
- * command centre never sets a hop's `Kind` to `Home`, so kind-counting would
- * over-count by one whenever the centre itself is not a ground station.
+ * Relay nodes between the vessel and the command centre: hop count minus one.
+ * Position-based because a crewed-vessel command centre never marks its hop
+ * `Home`, so counting by kind would over-count.
  */
 export function commsRouteRelayCount(hops: readonly CommsHop[]): number {
   return Math.max(0, hops.length - 1);
 }
 
 /**
- * One leg's light-time. `comms.path` carries each hop's distance but no per-hop
- * delay (the contract has no such field), so this derives it rather than
- * reading it off the wire.
+ * One leg's light-time: the path's total one-way delay apportioned by the
+ * hop's share of the route distance. The legs sum to the total delay and the
+ * save's light speed cancels out, so it never has to be known.
  *
- * The hop's share of the path's total one-way delay, apportioned by distance
- * against the route's total distance. That reproduces `SignalDelay.cs`'s own
- * `OneWaySeconds = totalMeters / effectiveC` exactly, so every leg's time sums
- * to the total DELAY row above the route, and the save's light speed cancels
- * out of the arithmetic rather than having to be known: a length over a length
- * is dimensionless, and scaling a delay by it lands back in seconds.
- *
- * `undefined` when this hop has no distance, when the route has no distance at
- * all, or when there is no positive total to apportion. A save with the delay
- * feature off reports a real, applied ZERO here, and the honest annotation for a
- * leg of a route that carries no delay is no light-time rather than the one it
- * would carry if the feature were on.
+ * `undefined` when the hop or route has no distance, or the total delay is not
+ * positive: a route that carries no delay gets no light-time annotation.
  */
 export function commsLegTime(
   hop: CommsHop,
@@ -148,10 +113,7 @@ export function commsLegTime(
   pathDelay: Value<"s"> | null | undefined,
 ): Value<"s"> | undefined {
   const hopDistance = hop.distanceMeters;
-  // `== null`: `distanceMeters` is a `double?` and the wire keeps the key, so a
-  // hop whose geometry nobody could measure arrives as an explicit null. The
-  // strict form let it past into `hopDistance.per(...)`, which throws inside
-  // render rather than returning undefined.
+  // Loose equality: an unmeasured hop arrives as an explicit null.
   if (hopDistance == null) return undefined;
   if (!pathDelay?.greaterThan(0)) return undefined;
   const totalDistance = hops.reduce(

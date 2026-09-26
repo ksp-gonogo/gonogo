@@ -12,27 +12,14 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-// Importing the real module runs its module-load
-// `CORE_UPLINK_CLIENT.registerContribution(...)` (the badge under test) and
-// the Processor it deps on. Nothing else in this file registers anything, so
-// if that registration is ever dropped every case here goes to the unknown
-// glyph and fails.
+// Importing the real module registers the badge contribution and its Processor; nothing else here registers anything.
 import "./badge";
 
 /**
- * End-to-end proof that the comms link badge reaches SystemView's header
- * through the CONTRIBUTION slot, not the augment slot it used to ride
- * (`badge.test.ts` covers the label/tone table on its own). Wires the same
- * chain the app's `GridItemContent` does: `WidgetMetaContext` ->
- * `ContributionsProvider` -> `useWidgetBadges` -> `PanelBadgesProvider` ->
- * `Panel`, so a break anywhere along it shows up here rather than only inside
- * `commsLinkBadge`.
- *
- * Mounts a stand-in header rather than the real `SystemViewComponent`: the
- * widget under test is the badge, and the diagram needs a body/orbit fixture
- * that has nothing to do with whether a contribution lands in the header.
- * `FleetComms/slot.test.tsx` still renders the real SystemView for the overlay
- * and actions augments.
+ * The comms link badge reaches SystemView's header through the contribution
+ * slot, wired the same chain the app's `GridItemContent` does. A stand-in
+ * header replaces the real diagram, which needs fixtures irrelevant to the
+ * badge.
  */
 
 function SystemViewPanelHeader() {
@@ -63,7 +50,7 @@ describe("SystemView panel badge (fleet-comms-badge contribution)", () => {
   let unmount: (() => void) | undefined;
 
   beforeEach(() => {
-    // The Processor evaluator caches per frame in a module global; a value cached against the previous test's fixture would otherwise answer here.
+    // The Processor evaluator caches per frame in a module global.
     clearProcessorRuntime();
     fixture = setupStreamFixture({
       carriedChannels: ["comms.link"],

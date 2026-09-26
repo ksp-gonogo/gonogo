@@ -2,19 +2,7 @@ import type { SeriesRange } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { toNumericSeries } from "./GraphSeries";
 
-/**
- * A bridge names the chord ENDING at its sample, so reindexing it is not the
- * same problem as reindexing a break. A break survives a dropped sample by
- * sliding onto the next one that lives, because the hole is still there. A
- * chord cannot: it is drawn between two specific samples, and if either end is
- * dropped, or a break opens between them, the chord the chart would draw is a
- * different chord from the one recorded.
- */
-/*
- * The basis is whatever model carried the span, taken straight off the gap
- * model by `plottedGap`. Reindexing carries it verbatim and never reads it, so
- * one real member stands for all four here.
- */
+/** A bridge is the chord ending at its sample: unlike a break it cannot slide, so it survives only while both ends do, adjacent and unbroken. */
 const bridge = (to: number) => ({
   to,
   t: [10, 20],
@@ -57,7 +45,7 @@ describe("toNumericSeries: bridges", () => {
   });
 
   it("drops a chord whose left end the numeric filter removed", () => {
-    // Both ends must survive ADJACENT: dropping index 1 leaves 0 and 2 next to each other on the way out, but they were never a recorded chord.
+    // Dropping index 1 makes 0 and 2 adjacent on the way out, but they were never a recorded chord.
     const out = toNumericSeries(range([1, "x", 3], { bridges: [bridge(2)] }));
 
     expect(out.v).toEqual([1, 3]);

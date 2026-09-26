@@ -5,13 +5,9 @@ import { type RailTags, railMark } from "./railTags";
 import { deriveGlyph } from "./toInFlightListItems";
 
 /**
- * One dead dispatch as the rail draws it, reduced to what the box needs: who
- * it was and what became of it.
- *
- * The composing is the caller's, because the two outcomes that reach here say
- * different kinds of thing. A refusal quotes the game's verdict and its
- * numbers; a loss quotes no verdict at all, because nothing was decided. The
- * BOX is identical for both, which is why it lives in one place.
+ * One dead dispatch as the rail draws it: who it was and what became of it.
+ * The sentence is composed by the caller; the box is the same for every
+ * outcome.
  */
 export interface CommandOutcomeItem {
   /** The dispatch's own `requestId`, which keys the box and is what `dismiss` takes. */
@@ -23,10 +19,8 @@ export interface CommandOutcomeItem {
   /** The clear control's accessible name, so each outcome names its own gesture. */
   dismissLabel: string;
   /**
-   * The entry's three axes, of which only the MARK is read here: a `dot`
-   * (discrete) gets the same terse glyph tile its command carries in the
-   * in-flight queue, a `ribbon` (continuous) gets its text label, because a
-   * continuous command has no tile in that queue to match.
+   * The entry's three axes, of which only the MARK is read: a `dot` gets its
+   * in-flight glyph tile, a `ribbon` its text label.
    */
   tags: RailTags;
 }
@@ -35,36 +29,28 @@ export interface CommandOutcomeListProps {
   items: readonly CommandOutcomeItem[];
   /** Names the list for assistive tech, and says which outcome it holds. */
   ariaLabel: string;
-  /** Clear one outcome. Omitted when no handle can dismiss, and the boxes then
-   *  carry no clear control rather than an inert one. */
+  /** Clear one outcome. Omit it and the boxes carry no clear control rather than an inert one. */
   onDismiss?: (id: string) => void;
   /**
    * `warning` (the default) for an outcome that did not happen: a refusal, a
-   * loss. `notice` for one that DID, which is only `found` today. The colour is
-   * the fastest thing an operator reads off this list, so an outcome that
-   * reverses a warning must not wear the warning's own colour.
+   * loss. `notice` for one that DID (a found), which must not wear the
+   * warning's colour.
    */
   tone?: "warning" | "notice";
   /**
-   * Announce arrivals politely, for a list whose entries appear on their own
-   * rather than in answer to a press. `role="status"` (implicitly
-   * `aria-live="polite"`) instead of the plain `role="list"`, each new box read
-   * on its own; never assertive, which is reserved for ABORT.
+   * Announce arrivals politely (`role="status"` instead of `role="list"`), for
+   * a list whose entries appear on their own rather than in answer to a press.
    */
   live?: boolean;
 }
 
 /**
- * The dead-dispatch boxes under the rail's two queues.
+ * The dead-dispatch boxes under the rail's two queues: one per outcome, with
+ * the command's identity and the whole sentence. The sentence WRAPS and is
+ * never truncated, since names are unbounded and the numbers sit at the end.
  *
- * A box per outcome, warning-coloured, carrying the command's own identity (the
- * queue glyph it would have had, or its label for a stream) and the whole
- * sentence. The sentence WRAPS and is never truncated: craft and facility names
- * are user-supplied and unbounded, and truncation eats the numbers off the end,
- * which are the only actionable part of it.
- *
- * Renders nothing for an empty set, like every other member of this family,
- * unless it is `live`: a live list keeps its empty region mounted.
+ * Renders nothing for an empty set unless it is `live`: a live list keeps its
+ * empty region mounted.
  */
 export function CommandOutcomeList({
   items,
@@ -101,10 +87,7 @@ export function CommandOutcomeList({
       )}
     </CommandOutcomeList__Box>
   ));
-  /* A live list stays mounted, empty, while it has nothing to report, so the
-     first outcome to arrive is a change to a region assistive tech is already
-     watching. It is a status region rather than a list, so its boxes carry no
-     `listitem` role. */
+  // A live list stays mounted while empty so assistive tech is already watching when the first outcome arrives.
   return live ? (
     <CommandOutcomeList__Region
       forwardedAs="div"
@@ -141,11 +124,7 @@ const CommandOutcomeList__Region = styled(LiveRegion)`
   }
 `;
 
-/**
- * The two colour roles this family draws in. `warning` for an outcome that did
- * NOT happen (a refusal, a loss), `notice` for one that did after we said it had
- * not (a found).
- */
+/** `warning` for an outcome that did NOT happen (a refusal, a loss), `notice` for one that did after all (a found). */
 type OutcomeTone = "warning" | "notice";
 
 const toneBg = (tone: OutcomeTone) =>
@@ -175,8 +154,7 @@ const CommandOutcomeList__Box = styled.div<{ $tone: OutcomeTone }>`
   text-align: left;
 `;
 
-/** The command's own terse identity, the same glyph its tile carries in the
- *  in-flight queue, so a dead command is recognisable as the thing that was sent. */
+/** The same glyph the command's tile carries in the in-flight queue, so a dead command is recognisable. */
 const CommandOutcomeList__Glyph = styled.span<{ $tone: OutcomeTone }>`
   flex: 0 0 auto;
   display: grid;
@@ -193,8 +171,7 @@ const CommandOutcomeList__Glyph = styled.span<{ $tone: OutcomeTone }>`
     `color-mix(in srgb, ${toneBg($tone)} 14%, var(--color-surface-raised))`};
 `;
 
-/** A stream command's name in words. It has no queue tile to echo, so a glyph
- *  here would be an abbreviation of nothing the operator has seen. */
+/** A stream command's name in words, since it has no queue tile to echo. */
 const CommandOutcomeList__Label = styled.span<{ $tone: OutcomeTone }>`
   flex: 0 0 auto;
   align-self: center;

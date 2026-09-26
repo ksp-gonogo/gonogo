@@ -1,15 +1,7 @@
 /**
- * What the unit system looks like from a widget, checked by `tsc`.
- *
- * Every block below is compiled by `tsconfig.test-d.json`. The ones marked
- * `@ts-expect-error` are compiled too, and `tsc` fails if any of them stops
- * erroring, so this file cannot rot into aspirational documentation: the
- * examples that should work do, and the mistakes that should be caught still
- * are.
- *
- * This exists because the migration ahead touches hundreds of readouts. A
- * reviewer should be able to see the whole surface on one screen before any of
- * that starts.
+ * What the unit system looks like from a widget, compiled by
+ * `tsconfig.test-d.json`. A `@ts-expect-error` line that stops erroring fails
+ * the build.
  */
 
 import {
@@ -22,8 +14,7 @@ import { Band } from "./Band";
 import { Unit } from "./Unit";
 import { UnitSharedFormat } from "./UnitSharedFormat";
 
-// Stand-ins for what `useTelemetry` hands a widget once the wrap is wired.
-// Post-flip these are the real field types, not constructions.
+// Stand-ins for the values `useTelemetry` hands a widget.
 const altitude = value("m", 12_400);
 const surfaceSpeed = value("m/s", 340);
 const timeToApoapsis = value("s", 8_040);
@@ -32,12 +23,9 @@ const funds = value("funds", 289_848);
 const dryMass = value("t", 18.4);
 const burnTime = value("s", 42);
 
-// ── 1. The whole API ────────────────────────────────────────────────────────
-// The call site names neither the unit nor the format. It cannot get either
-// wrong because it does not participate.
+// The call site names neither the unit nor the format.
 export const _basic = <Unit value={altitude} />;
 
-// ── 2. Presentation is asked for, never computed ────────────────────────────
 export const _precision = <Unit value={heatShieldFlux} decimals={1} />;
 export const _pinned = <Unit value={surfaceSpeed} format="km/h" />;
 export const _celsius = <Unit value={value("K", 300)} as="°C" />;
@@ -49,21 +37,15 @@ export const _wrongKind = <Unit value={surfaceSpeed} format="s" />;
 // @ts-expect-error: not a unit of any kind
 export const _notAUnit = <Unit value={altitude} format="furlongs" />;
 
-// `as` is checked the same way. A cross-kind conversion is refused by the
-// formatter and the value renders in its own unit, so an open `as` would be a
-// prop that could be spelled wrong and do nothing.
+// `as` is checked the same way, since the formatter silently refuses a cross-kind conversion.
 // @ts-expect-error: a length is not a mass
 export const _wrongAsKind = <Unit value={altitude} as="kg" />;
 
-// A ratio and a percent are different kinds, which is the single most common
-// unit bug in a dashboard. A ratio already renders as a percentage.
+// A ratio and a percent are different kinds; a ratio already renders as a percentage.
 // @ts-expect-error: a ratio is not a percent
 export const _ratioAsPercent = <Unit value={value("ratio", 0.42)} as="%" />;
 
-// ── 2b. A group settles one format, and its pins name a kind ────────────────
-// `of` is the unit the pins are addressed to, and the whole of how they come to
-// be checked. A `Band` passes its own unit down, so its callers annotate
-// nothing.
+// `of` is the unit a scope's pins are checked against. A `Band` passes its own unit down.
 export const _band = (
   <Band min={value("m", 6_700_000)} max={value("m", 6_710_000)} format="km" />
 );
@@ -83,7 +65,7 @@ export const _scopePinned = (
   </UnitSharedFormat>
 );
 
-// The directive sits on the ELEMENT rather than on the attribute: the scope resolves an overload, and a failed overload is reported at the call.
+// The directive sits on the element: a failed overload is reported at the call, not the attribute.
 export const _scopeWrongKind = (
   // @ts-expect-error: a scope over lengths cannot be read in kilograms
   <UnitSharedFormat of="m" as="kg">
@@ -91,12 +73,7 @@ export const _scopeWrongKind = (
   </UnitSharedFormat>
 );
 
-/*
- * A mixed scope keys its pins BY GROUP, so each is checked against what that
- * group measures, a group needing nothing is simply absent, and one group
- * cannot be pinned twice: a repeated key is already an error in an object
- * literal.
- */
+// A mixed scope keys its pins by group, each checked against what that group measures.
 export const _mixedScope = (
   <UnitSharedFormat pins={{ length: { format: "km" }, mass: { format: "t" } }}>
     <Unit value={altitude} />
@@ -118,12 +95,7 @@ export const _mixedScopeSwapped = (
   </UnitSharedFormat>
 );
 
-/*
- * A ladder is keyed by its NAME, and a unit on one is not a key at all.
- * This is the whole point of the group key: under a unit-keyed record
- * `{ m: ..., km: ... }` was one length group pinned twice, and the runtime kept
- * whichever entry came last.
- */
+// A ladder is keyed by its name, and a unit on one is not a key at all.
 export const _mixedScopeUnitKeyRefused = (
   <UnitSharedFormat
     // @ts-expect-error: `m` is a unit of the length group, not a group
@@ -133,22 +105,14 @@ export const _mixedScopeUnitKeyRefused = (
   </UnitSharedFormat>
 );
 
-/*
- * A unit that climbs nothing keys ITSELF, because it shares a format with
- * nothing else: `s` and `min` are one kind and two groups, and a record keyed
- * by kind throughout would refuse to tell them apart.
- */
+// A unit that climbs nothing keys itself: `s` and `min` are one kind but two groups.
 export const _mixedScopeUnladdered = (
   <UnitSharedFormat pins={{ s: { decimals: 1 } }}>
     <Unit value={burnTime} />
   </UnitSharedFormat>
 );
 
-// A group may be pinned at most once, and there is no example below because the
-// mistake cannot be WRITTEN: `pins={{ length: ..., length: ... }}` is TS1117
-// from `tsc` and `noDuplicateObjectKeys` from the linter, independently, and
-// neither can be suppressed without suppressing the other. A positional list
-// could say none of this: `["m", "m"]` reads as two pins and quietly keeps one.
+// Pinning one group twice cannot be written: a duplicate key is TS1117 and a lint error.
 
 // An entry may be left out entirely, and the group it would have pinned settles for itself.
 export const _mixedScopePartial = (
@@ -158,7 +122,6 @@ export const _mixedScopePartial = (
   </UnitSharedFormat>
 );
 
-// ── 3. Arithmetic and ordering carry the unit through ───────────────────────
 // Same dimension adds, converting as it goes: 42s + 2min is one duration.
 export const _totalBurn = burnTime.plus(value("min", 2));
 
@@ -170,24 +133,18 @@ export const _nonsense = dryMass.plus(burnTime);
 export const _acceleration = surfaceSpeed.per(burnTime); // m/s²
 export const _fuelFlow = dryMass.per(burnTime); // kg/s
 
-// Ordering converts first, so the unit a value happens to be in does not
-// decide the answer. Comparing `.magnitude` directly would: 2 h has a smaller
-// magnitude than 120 s and is thirty times the duration.
+// Ordering converts first; comparing `.magnitude` directly would let the unit decide.
 export const _isLong = burnTime.greaterThan(value("min", 1));
 export const _sorted = [burnTime, value("min", 2)].sort((a, b) => a.compare(b));
 
-// Sign needs no operand: zero is zero in every unit of a dimension, and "is this rate a drain" is the most common comparison in the codebase.
+// Sign needs no operand: zero is zero in every unit of a dimension.
 export const _draining = value("units/s", -0.32).isNegative();
 export const _drift = value("m", -14.2).abs();
 
-// min/max convert first. Math.max via valueOf would compare 1 against 90 and
-// return the 90 MINUTES, which is the shorter duration.
+// min/max convert first; Math.max via valueOf would return 90 min over 1 h.
 export const _longer = value("h", 1).max(value("min", 90));
 
-// ── 4. What the migration will actually hit ─────────────────────────────────
-// These are the compile errors that ARE the work list. Each one is a site
-// where a number was being treated as a bare number and the unit was being
-// carried in someone's head.
+// A Value used as a bare number is a compile error.
 
 // @ts-expect-error: a Value is not a ReactNode. This is the {value} in JSX case.
 export const _rawInJsx = <span>{altitude}</span>;
@@ -201,7 +158,7 @@ export const _rawCompare = altitude > 1_000;
 // @ts-expect-error: toFixed belongs to Number.prototype, and formatting is Unit's job
 export const _rawFormat = altitude.toFixed(2);
 
-// The migrations for each, in order:
+// The unit-carrying form of each, in order:
 export const _fixedJsx = (
   <span>
     <Unit value={altitude} />
@@ -217,34 +174,20 @@ export const _axisMax: number = Math.max(
   value("m", 5_000).valueOf(),
 );
 
-// ── 5. A duration is a unit like any other ──────────────────────────────────
-// No formatDuration, no formatCountdown. Time climbs by 60 and 6 rather than
-// by 1000, and Unit knows that because the value says it is a time.
+// A duration is a unit like any other; Unit climbs time by 60s rather than 1000s.
 export const _countdown = <Unit value={timeToApoapsis} />;
 
-// ── 6. Currencies ───────────────────────────────────────────────────────────
-// The glyph, the spoken word and the thousands separator all come from the
-// model. A widget spending funds shows the balance; it does not format it.
+// A currency's glyph, spoken word and thousands separator all come from the model.
 export const _funds = <Unit value={funds} />;
 
-// ── 7. A Vec3 leaf is a value ───────────────────────────────────────────────
-// The unit is declared on the whole vector and reaches x/y/z, so a component of a relative velocity renders like any other quantity.
-//
-// This block used to spell the shape out by hand, because `Vec3Of` was built
-// on the transitional `Value = number` alias and its leaves were bare numbers
-// that `Unit` would not take. Both were re-pointed at the model together, so
-// the real contract type is what is exercised here now.
+// A unit declared on a whole vector reaches x/y/z, so each leaf renders like any other quantity.
 declare const relativeVelocity: Vec3Of<"m/s">;
 export const _vectorLeaf = <Unit value={relativeVelocity.x} />;
 
 // @ts-expect-error: a whole vector is not a scalar quantity
 export const _wholeVector = <Unit value={relativeVelocity} />;
 
-// ── 8. An Uplink's own unit ─────────────────────────────────────────────────
-// Namespaced, so it cannot collide with a first-party glyph. Declared where every
-// unit is declared, so it is a full participant: it adds, divides and renders, and
-// every check above applies to it. `unit-declarations.test-d.tsx` walks each
-// surface for an Uplink unit beside a first-party one of the same shape.
+// An Uplink's own unit is namespaced, and a full participant: every check above applies to it.
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface UnitDeclarations {
     "snacks:snack": { kind: "snacks"; dim: { readonly snack: 1 }; ratio: 1 };

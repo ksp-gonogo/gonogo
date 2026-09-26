@@ -169,9 +169,7 @@ describe("Tabs disabled", () => {
   });
 
   it("shows the panel of the first tab that applies when the active one turns off", () => {
-    // The case this exists for: a tab whose subsystem goes away while it is
-    // open. Rendering its (now meaningless) panel, or nothing at all, both
-    // strand the operator; the next applicable tab is what they wanted.
+    // A tab whose subsystem goes away while it is open falls through to the next applicable one.
     render(
       <Tabs tabs={DISABLED_FIRST} activeId="one" onChange={() => undefined} />,
     );
@@ -238,26 +236,14 @@ describe("shouldExpandTabs", () => {
   });
 });
 
-/**
- * jsdom's global `ResizeObserver` stub never fires, so `useElementSize`
- * reports the seed `{ w: 0, h: 0 }` for the lifetime of a test. This double
- * records what it observes and lets a test hand a specific width to the
- * `Tabs` root, exercising the `expandWhenRoomy` render path end to end
- * (mirrors `Panel.sidebar.test.tsx`'s `DrivableResizeObserver`).
- */
+/** jsdom's `ResizeObserver` never fires, so this double lets a test hand the `Tabs` root a width. */
 let observers: DrivableResizeObservers;
 
 function tabsRoot(): Element {
   return document.querySelector("[data-tabs-root]") as Element;
 }
 
-/**
- * `Tabs` watches its tab bar with a `MutationObserver`, whose callback lands on
- * a microtask and sets state. A synchronous `act` returns before that microtask
- * runs, so the update would land in teardown, outside any act scope. Awaiting an
- * async `act` holds the scope open across the checkpoint and takes the update
- * with it.
- */
+/** An async `act`, so the tab bar's `MutationObserver` update (on a microtask) lands inside the scope. */
 async function resizeTo(el: Element, width: number) {
   await act(async () => {
     observers.resize(el, { width, height: 100 });
@@ -336,7 +322,7 @@ describe("Tabs expandWhenRoomy", () => {
     const { rerender } = render(
       <Tabs tabs={TABS} activeId="one" onChange={() => undefined} />,
     );
-    // Unnamed is the default and stays that way: a name nobody asked for would be one more thing read aloud on every screen that has only one strip.
+    // Unnamed by default: an unrequested name is one more thing read aloud.
     expect(screen.getByRole("tablist")).not.toHaveAttribute("aria-label");
 
     rerender(

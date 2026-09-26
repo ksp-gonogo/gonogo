@@ -10,14 +10,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
 /**
- * The state word beside the dashes when the conic will not advance the
- * elements.
- *
- * Five dashes and nothing else cannot be told from a broken widget, and the two
- * want opposite reactions: one is the model declining by design, the other is
- * a fault. The word is the instrument's state, not an explanation, one word
- * for every decline; each scene below declines for a different reason, and the
- * control at the end declines for none.
+ * The state word beside the dashes when the conic will not advance the elements, so a model declining by design never reads as a broken widget.
  */
 const CARRIED = [
   "vessel.orbit",

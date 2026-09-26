@@ -53,9 +53,7 @@ const topics = defineTopicManifest({
     "spaceCenter.crewRoster",
     "career.status",
   ],
-  // Funds is the only thing drawn off `career.status`; the contracts, tech and
-  // strategy fields on it belong to other widgets and their alarms are not
-  // about this panel.
+  // Funds is the only thing drawn off `career.status`.
   fields: [
     "spaceCenter.astronautComplex",
     "spaceCenter.crewRoster",
@@ -68,20 +66,10 @@ const topics = defineTopicManifest({
 type AstronautComplexConfig = Record<string, never>;
 
 /**
- * The `astronaut-complex.crew` slot contract: a per-kerbal cell rendered under
- * the name, in both the Applicants and the Active lists.
- *
- * <p>Its reason for existing is what stock does NOT have. Under stock a kerbal's
- * whole state is their standing and their stats, both of which this widget
- * already renders. Under a career overhaul they also have a retirement date, a
- * training course with an ETA, and training about to lapse, and none of that is
- * core's to model or to name. So the host renders the roster and passes down
- * the identity; whichever Uplink manages the career renders the schedule.</p>
- *
- * <p>The identity is the NAME, because that is the key every career-overhaul
- * mod on record uses for its own crew bookkeeping and it is the join key on
- * `spaceCenter.crewRoster`. The standing rides along so an augment can render
- * differently for a retiree without joining back to the roster itself.</p>
+ * The `astronaut-complex.crew` slot contract: a per-kerbal cell under the name,
+ * in both lists, for the schedule a career overhaul owns (retirement, a course
+ * ETA, lapsing training) and stock has none of. Keyed by NAME, the join key on
+ * `spaceCenter.crewRoster`.
  */
 export interface AstronautComplexCrewContext {
   /** `ProtoCrewMember.name`: the join key to the augment's own crew channel. */
@@ -92,11 +80,7 @@ export interface AstronautComplexCrewContext {
   isApplicant: boolean;
 }
 
-// Declaration-merge each slot id onto its props type in core's `SlotRegistry`.
-// Co-located here (not a shared central file) so parallel slot work on other
-// widgets can't collide. `astronaut-complex.training` is a whole tab and passes
-// nothing, which `Record<string, never>` states; an id missing from here carries
-// no props at all, so an augment of it does not compile.
+// Declaration-merge each slot id onto its props type in core's `SlotRegistry`; `astronaut-complex.training` is a whole tab and passes nothing.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "astronaut-complex.crew": AstronautComplexCrewContext;
@@ -107,99 +91,40 @@ declare module "@ksp-gonogo/core" {
 
 /**
  * The `astronaut-complex.crew-badge` slot: the top-right corner of a kerbal's
- * card, at the end of the identity line, beside whichever action that list
- * offers.
- *
- * <p>A different question from `astronaut-complex.crew`, which is why it is a
- * second slot and not a rearrangement of the first. That one is a BLOCK of
- * readings under the name: dates, a course, a deadline, each one read on its own
- * terms once an operator has settled on a kerbal. A corner mark is read WITH the
- * name, scanning a roster, without any of the rows underneath being read at all.
- * A mark placed in the block cannot be scanned for, and a reading placed in the
- * corner has nowhere to say what it is.</p>
- *
- * <p>Nothing under stock puts a mark there, and that is the point: KSP's own
- * roster status is the whole of what stock knows, and the host already draws it
- * through the unavailable badge on the identity line. A career overhaul has
- * states KSP's roster does not carry at all, a kerbal mid-course still reads
- * `Available` to KSP, so the host cannot derive the mark and must not try.</p>
- *
- * <p>Same props as the crew slot, because it is the same subject seen from a
- * different distance, and an augment filling both should not have to learn two
- * shapes.</p>
+ * card, a mark read WITH the name while scanning, where the crew slot is a
+ * block read once settled on a kerbal. Stock puts nothing here: a career
+ * overhaul's states (a naut mid-course still reads `Available` to KSP) cannot
+ * be derived by the host. Same props as the crew slot.
  */
 const ASTRONAUT_COMPLEX_CREW_BADGE_SLOT = "astronaut-complex.crew-badge";
 
-/**
- * KSP's `int.MaxValue`, the literal sentinel `GameVariables.GetActiveCrewLimit`
- * returns at the top Astronaut Complex tier (an unlimited roster). The mod
- * preserves it verbatim on the wire, so a `>= int.MaxValue` floor guard is the
- * correct test: every real save's tiered cap sits far below it (tier 1 caps
- * at 5, tier 2 at 13), so there is no risk of a legitimate cap reading as
- * unlimited.
- */
+/** KSP's `int.MaxValue`, which `GameVariables.GetActiveCrewLimit` returns for an unlimited roster; every tiered cap sits far below it. */
 const UNLIMITED_CREW_CAP = 2_147_483_647;
 
 /**
- * The `astronaut-complex.training` slot: a whole TAB, beside Applicants and
- * Active rather than nested under either.
- *
- * <p>Stock KSP has no crew training, so there is nothing for this widget to put
- * behind the tab and the tab does not exist until an Uplink claims the slot.
- * What goes in it is the career overhaul's own: the courses it is running and
- * the way onto one.</p>
- *
- * <p>A tab rather than a section under the roster because the two answer
- * different questions. The roster rows say WHERE each kerbal is, which is a
- * per-kerbal reading; a course is a thing in its own right with its own dates
- * and its own controls, and several kerbals share one. Under the roster it was
- * read as a footnote to whichever kerbal happened to be last on screen.</p>
- *
- * <p>It takes no props: a tab is not about one kerbal, and every augment that
- * fills it reads its own channels.</p>
+ * The `astronaut-complex.training` slot: a whole TAB beside Applicants and
+ * Active, absent until an Uplink claims it, since stock has no crew training.
+ * A course is a thing in its own right that several kerbals share. No props.
  */
 const ASTRONAUT_COMPLEX_TRAINING_SLOT = "astronaut-complex.training";
 
 /**
  * The `astronaut-complex.readouts` contribution slot: further cells in the
- * core-stat strip, beside funds, hire price and roster occupancy.
- *
- * <p>Those three are what STOCK considers core about a complex, and they are the
- * whole of what stock has. A career overhaul owns the other half of the same
- * state: how many nauts are mid-course, how many qualifications are about to
- * lapse, what the payroll does next quarter. An operator reads the strip to
- * learn where the complex stands, so a figure the career model considers as core
- * as the hire price belongs in the strip and not two tabs away.</p>
- *
- * <p>A CONTRIBUTION and not an augment, which is the difference that matters
- * here. The point of the row is that everything in it is drawn the same way; an
- * augment renders its own React, so an Uplink's figures would arrive in the
- * Uplink's own treatment and the row would read as two widgets sharing a line.
- * A contribution is data, so the host draws every cell with its own `Stat` and a
- * contributed figure is indistinguishable from a built-in one. It also means the
- * host keeps what a slot owner should keep: it can count the cells, order them,
- * and lay them out in its own grid.</p>
+ * core-stat strip. A contribution, not an augment, so the host draws every
+ * cell with its own `Stat` and a contributed figure is indistinguishable from
+ * a built-in one.
  */
 const ASTRONAUT_COMPLEX_READOUTS_SLOT = "astronaut-complex.readouts";
 
 const NO_SEGMENT_PROPS: Record<string, never> = Object.freeze({});
 
-/**
- * Said on screen whenever the balance is withheld for going stale, so the blank
- * beside "Funds" is legible as a refusal to quote rather than as a balance
- * nobody has sent yet. Hiring stays available: the game arbitrates the purchase,
- * and refusing locally on a balance we cannot see would block a legal hire.
- */
+/** Shown whenever a stale balance is withheld. Hiring stays available: the game arbitrates the purchase. */
 const FUNDS_STALE_NOTE = "Funds no longer current";
 
 /**
- * Firing is a per-row action against an arbitrary-length list, the same "cycle
- * then act" shape {@link PowerSystems}'s `cycleResource` and
- * {@link ResourceOps}'s `next` use for a physical control with no way to pick
- * an arbitrary row: `highlightNextAvailable` walks the highlight over every
- * crew member the roster will let go (`canBeSacked`), and `fireHighlighted`
- * arms on its first press and fires on its second, the same two steps the
- * per-row {@link FireButton} takes. Moving the highlight disarms.
+ * Firing from a bound input is "cycle then act": `highlightNextAvailable` walks
+ * the highlight over every sackable crew member, and `fireHighlighted` arms on
+ * its first press and fires on its second. Moving the highlight disarms.
  */
 const astronautComplexActions = [
   {
@@ -223,8 +148,7 @@ type AstronautComplexActions = typeof astronautComplexActions;
 interface Applicant {
   name: string;
   trait: string;
-  /** Retained from the wire and withheld from display; `null` when the pool
-   *  quoted none. */
+  /** Retained from the wire and withheld from display; `null` when the pool quoted none. */
   experienceLevel: number | null;
   courage: number | null;
   stupidity: number | null;
@@ -232,12 +156,7 @@ interface Applicant {
   descriptionEffects: string;
 }
 
-/** An applicant carries only the fields the pool shows. The remaining
- *  astronaut stats the shared row can render (veteran, badass, career
- *  flights, current assignment) do not apply to someone not yet on the
- *  books, so they take their safe zero and those badges never render. Rank
- *  is retained on the model (astronauts keep experience when dismissed and
- *  rehired) but withheld from display via `showRank={false}`. */
+/** An applicant's fields; the stats that do not apply to someone not yet hired take their safe zero, and rank is withheld from display. */
 function applicantStats(a: Applicant): KerbalStatFields {
   return {
     name: a.name,
@@ -248,13 +167,10 @@ function applicantStats(a: Applicant): KerbalStatFields {
     careerFlights: 0,
     available: true,
     unavailableReason: "",
-    // The unavailable badge never renders while available is true, so this
-    // never feeds the severity derivation; kept as the applicant pool's
-    // implicit standing rather than left undefined.
+    // Never rendered while available is true; the pool's implicit standing.
     situation: "Applicant",
     standing: CrewStanding.Applicant,
-    // An applicant is not in the roster, so it has no RosterStatus. Null is
-    // the fact, not a missing read.
+    // An applicant has no RosterStatus: null is the fact, not a missing read.
     situationOrdinal: null,
     currentVesselName: "",
     courage: a.courage,
@@ -268,60 +184,28 @@ function AstronautComplexComponent(
   _props: Readonly<ComponentProps<AstronautComplexConfig>>,
 ) {
   /**
-   * The applicant pool, roster cap and active-crew count ride the
-   * spaceCenter.astronautComplex Topic; funds comes off
-   * career.status.economy.funds (the same read SpaceCenterStatus uses). Both
-   * degrade to nothing outside career, so the widget shows an empty state
-   * rather than erroring.
-   *
-   * All four fields on the complex record are facts, which is why the record
-   * takes `stillTrue` whole: the applicant pool changes when the game refreshes
-   * it or somebody is hired, the active-crew count when somebody is hired or
-   * fired, the cap when the facility is upgraded, and the next-hire price is a
-   * quote the game derives from the roster size. None of them can move while
-   * nobody is looking, and a blanked pool would report a Complex with no
+   * Every field on the complex record is a fact that only an event moves, so
+   * the record takes `stillTrue` whole: a blanked pool would report no
    * candidates for a save that has four waiting.
    */
   const complexReading = topics.useTelemetry("spaceCenter.astronautComplex");
   const complex = stillTrue(complexReading, undefined);
-  /**
-   * Off career there is no Astronaut Complex and the producer says so, which is
-   * `absent` and is the case the "career mode only" wording was written for.
-   * `pending` is a cold start, and it gets its own sentence so a first paint
-   * stops reading as a save with no space programme.
-   */
+  // `absent` is off career; `pending` is a cold start and gets its own sentence.
   const complexConfirmedEmpty = complexReading.state === "absent";
   /**
-   * Funds is the one judgement in this widget. The figure sits beside a spend
-   * control, the operator reads it as the balance they are about to spend from,
-   * and it decides `affordable`. A recovery or a purchase moves it while the
-   * link is down, so a held balance is a claim about money that may already be
-   * spent; withheld instead, with `fundsNotCurrent` saying which of the two
-   * reasons the figure is missing for.
+   * Funds is the one judgement here: it sits beside a spend control and decides
+   * `affordable`, so a held balance is withheld, with `fundsNotCurrent` saying
+   * why it is missing.
    */
   const fundsReading = topics.useTelemetry("career.status");
-  /* A judgement cannot be dated, so the verdict rests on the observation alone,
-     and `career.status` declares no reckonable value to stand in for one. */
   const careerEconomy =
     fundsReading.state === "observed" ? fundsReading.value.economy : undefined;
   const careerFunds = magnitudeOf(careerEconomy?.funds);
-  /*
-   * The note this drives explains a MISSING figure, so it has to be off
-   * whenever a figure is on screen. A held reading is exactly the case where
-   * the figure above was withheld, so the two can never disagree.
-   */
+  // The note explains a MISSING figure, so it is on exactly when a held figure is withheld.
   const fundsNotCurrent = fundsReading.state === "stale";
-  /**
-   * Crew are a standing cost, not a one-off: a hire this balance covers today
-   * adds to a payroll the same balance keeps paying. The rate comes from
-   * whichever money model won the `economy` capability, so a stock career, which
-   * charges nothing to keep a kerbal on the books, reports nothing here.
-   */
+  // Crew are a standing cost: the rate from whichever money model won `economy`; stock reports none.
   const netFunds = netFundsPerDay(careerEconomy);
-  /**
-   * The hired-crew roster is the textbook fact: a kerbal is on the books until
-   * an event takes them off, so the last roster received is still the roster.
-   */
+  // A kerbal is on the books until an event takes them off, so the last roster received stands.
   const crewRosterRaw = stillTrue(
     topics.useTelemetry("spaceCenter.crewRoster"),
     undefined,
@@ -330,20 +214,14 @@ function AstronautComplexComponent(
     () => readCrewRoster(crewRosterRaw),
     [crewRosterRaw],
   );
-  /**
-   * Whether anything claims the training slot, which decides whether the tab
-   * exists at all. Stock KSP has no such thing as crew training, so the strip
-   * stays two tabs wide until a career overhaul's Uplink binds one.
-   */
+  // The training tab exists only while something claims its slot.
   const trainingBound = useSlotBound(ASTRONAUT_COMPLEX_TRAINING_SLOT);
 
-  // Hiring is a KSC ground action (no vessel signal delay), so it dispatches at
-  // the meta-vantage (instant). usePanelDelay contributes the handle to the
-  // panel's delay rail (a no-op here, but the must-consume invariant requires it).
+  // A KSC ground action, dispatched at the meta-vantage; the handle still has to reach the delay rail.
   const hireCmd = useCommand("career.crew.hire", { vantage: META_VANTAGE });
   usePanelDelay(hireCmd);
 
-  // Firing is the same kind of KSC ground action as hiring: instant, no signal delay, no cost.
+  // Firing is the same kind of KSC ground action: instant and free.
   const fireCmd = useCommand("career.crew.fire", { vantage: META_VANTAGE });
   usePanelDelay(fireCmd);
 
@@ -353,7 +231,7 @@ function AstronautComplexComponent(
   );
   const [highlightedName, setHighlightedName] = useState<string | null>(null);
   const [armedName, setArmedName] = useState<string | null>(null);
-  // By name, so the highlight follows its kerbal when the roster reorders, and falls to the first fireable one when its kerbal leaves.
+  // By name, so the highlight follows its kerbal through a reorder and falls to the first fireable one when it leaves.
   const highlighted =
     sackableCrew.find((c) => c.name === highlightedName) ?? sackableCrew[0];
 
@@ -386,9 +264,7 @@ function AstronautComplexComponent(
   const applicants = readApplicants(complex?.applicants);
   const activeCrew = magnitudeOf(complex?.activeCrew);
   const crewCapacity = magnitudeOf(complex?.crewCapacity);
-  // One hire cost for the whole pool (spaceCenter.astronautComplex.nextHireCost):
-  // the recruit price rises with roster size, not per applicant, so it is a
-  // single header readout rather than a figure repeated on every row.
+  // The recruit price rises with roster size, not per applicant, so it is one header readout.
   const nextHireCost = magnitudeOf(complex?.nextHireCost);
 
   const capUnlimited =
@@ -406,14 +282,9 @@ function AstronautComplexComponent(
   const canHire = affordable && !rosterFull;
 
   /**
-   * The lines qualifying the funds figure: the rate it is moving at, and the
-   * sentence saying the balance is withheld rather than absent.
-   *
-   * Composed here rather than handed to `Stat` unconditionally, because
-   * `FundsDrain` renders nothing on a career with no standing cost and a `Stat`
-   * cannot tell an element that will draw nothing from one that will: an empty
-   * detail line would still take its height, on the one cell in the strip, and
-   * lift the funds figure out of line with every other.
+   * The lines qualifying the funds figure, composed only when there is one:
+   * an empty detail line would still take its height and lift the figure out of
+   * line with the rest of the strip.
    */
   const fundsDetail: ReactNode =
     reportsFundsDrain(netFunds) || fundsNotCurrent ? (
@@ -437,8 +308,7 @@ function AstronautComplexComponent(
     </Stat>
   );
 
-  // Off career (or before telemetry warms up): no applicant pool at all. Show a
-  // graceful empty state, still surfacing funds when they are known.
+  // Off career or before telemetry: no applicant pool, still surfacing funds when known.
   if (complex === undefined) {
     return (
       <Panel
@@ -472,8 +342,7 @@ function AstronautComplexComponent(
       panelTitle="ASTRONAUT COMPLEX"
       compactTitle={["ASTRONAUTS", "CREW"]}
       sections={[
-        /* Both span. The strip is a grid that reflows on its own, and a tab
-           strip beside anything reads as two widgets. */
+        /* Both span: a tab strip beside anything reads as two widgets. */
         <Section key="stats" full>
           <StatStrip role="status" aria-live="polite">
             {fundsStat}
@@ -502,8 +371,7 @@ function AstronautComplexComponent(
                 </Badge>
               )}
             </Stat>
-            {/* Whatever the career model running this save considers as core as
-                the three above. Nothing under stock, which has none of it. */}
+            {/* Whatever the save's career model considers as core as the three above. */}
             <StatContributions slot={ASTRONAUT_COMPLEX_READOUTS_SLOT} />
           </StatStrip>
         </Section>,
@@ -544,25 +412,7 @@ function AstronautComplexComponent(
                       id: "training",
                       label: "Training",
                       content: (
-                        /* The same rhythm the other two tabs get from `List`,
-                           and the empty state they both have.
-
-                           A slot renders one element per augment, so a career
-                           overhaul contributing two sections had them butted
-                           edge to edge with nothing between: one card ending and
-                           the next section's title beginning on the following
-                           line. Applicants and Active space their rows and this
-                           did not, which is the whole of why this tab read as
-                           the odd one out.
-
-                           And a claimed slot is not a filled one. `useSlotBound`
-                           counts REGISTRATIONS, so an Uplink whose augments all
-                           decide they have nothing to say still grows the tab,
-                           which is exactly what a career Uplink installed on a
-                           stock save does. `AutoEmptyState` is the only thing
-                           here that can tell: the fallback hides itself the
-                           moment the content region has a child, so the host
-                           never has to introspect augments it does not own. */
+                        /* Rows spaced like the other tabs, and an empty state: a claimed slot is not a filled one, and only `AutoEmptyState` can tell. */
                         <AutoEmptyState
                           fallback={
                             <div style={EMPTY_STYLE}>No training right now</div>
@@ -599,11 +449,7 @@ function ApplicantsPanel({
   canHire: boolean;
   rosterFull: boolean;
   hireCost: number | null;
-  /**
-   * The shared hire handle. Each row's own `CommandButton` holds the arm and
-   * in-flight state for THAT applicant, so a hire in flight shows on the row it
-   * was issued from rather than on all of them.
-   */
+  /** The shared hire handle; each row's own `CommandButton` holds that applicant's arm and in-flight state. */
   hireCmd: CommandButtonHandle;
 }) {
   if (applicants.length === 0) {
@@ -612,14 +458,9 @@ function ApplicantsPanel({
   return (
     <Stack as="ul" style={LIST_STYLE}>
       {applicants.map((a) => (
-        // Kerbal names are unique within the applicant pool, so the name is a stable key (no array index).
+        // Kerbal names are unique within the applicant pool, so the name is a stable key.
         <Card as="li" key={a.name}>
-          {/* Hand-composed from the title row rather than passed as `title`:
-              the subject is a whole KerbalStats block carrying its own type,
-              not a name, so it must not inherit the heading's. The corner
-              holds whatever mark the career model wants read WITH that name,
-              then the action. An applicant gets one too, for the same reason
-              they get the crew slot. */}
+          {/* Hand-composed so the KerbalStats block does not inherit the heading type; the corner holds the career model's mark, then the action. */}
           <Card.TitleRow
             right={
               <Cluster align="center">
@@ -658,10 +499,7 @@ function ApplicantsPanel({
               />
             </Stack>
           </Card.TitleRow>
-          {/* An applicant has a schedule too under a career overhaul: RP-1
-              gives an applicant a retirement date and retires them out of the
-              pool. Same slot as the Active rows, flagged so an augment can
-              tell which list it is in. */}
+          {/* An applicant has a schedule too under a career overhaul, flagged so an augment knows which list it is in. */}
           <AugmentSlot
             name="astronaut-complex.crew"
             props={{
@@ -677,23 +515,10 @@ function ApplicantsPanel({
 }
 
 /**
- * The Active tab: itself tabbed, one sub-tab per `CrewStanding` actually present
- * on the hired-crew roster. A standing with zero members has no bucket, so it
- * never produces an empty tab, and a standing added to the contract gets a tab
- * with no edit here.
- *
- * <p>It groups by the STANDING rather than by KSP's roster status, which is the
- * fix for the defect this widget shipped with: RP-1 retires a kerbal by writing
- * stock's `Dead` into the roster status, so every RP-1 retiree sat in the Dead
- * tab wearing a red fatality badge. Retired is its own tab now because it is its
- * own fact.</p>
- *
- * Composition: ONE underlying `crew` array, sliced per standing for each
- * tab's content, rather than a `FilterBar` toggle group layered over a single
- * flat list. The shared `Tabs` primitive already IS the mutually-exclusive
- * filter switch here, so the standings read as tabs, matching the top-level
- * Applicants|Active split one level up rather than introducing a second
- * filtering idiom for the same shape of decision.
+ * The Active tab, sub-tabbed by the `CrewStanding` values actually present, so
+ * no tab is ever empty and a new standing gets a tab with no edit. Grouped by
+ * STANDING, not KSP's roster status: RP-1 writes `Dead` into the roster status
+ * of a living retiree.
  */
 function ActivePanel({
   crew,
@@ -709,13 +534,7 @@ function ActivePanel({
   /** Whether that crew member's fire is armed: the next `fireHighlighted` press sends it. */
   armed: boolean;
 }) {
-  // Defensive, not load-bearing: spaceCenter.crewRoster never actually
-  // carries an applicant (that only appears in the astronautComplex pool),
-  // but filtering them out here keeps this panel correct even if a future
-  // producer ever merges the two channels. Reads the `isApplicant` FLAG rather
-  // than the "Applicant" label, and rather than a null roster ordinal: an
-  // absent ordinal is a field that did not arrive, which is not the same fact
-  // and must not empty the panel.
+  // Filters on the `isApplicant` flag: an absent roster ordinal is a field that did not arrive, not an applicant.
   const active = crew.filter((c) => !c.isApplicant);
   if (active.length === 0) {
     return <div style={EMPTY_STYLE}>No active crew</div>;
@@ -726,22 +545,11 @@ function ActivePanel({
     (standing) => {
       const members = groups.get(standing) ?? [];
       const keys = crewRowKeys(members);
-      // Whether the roster will accept a sacking, which is NOT whether the
-      // kerbal can fly. This used to read `standing === Available`, and the two
-      // questions only looked like one while a stand-down and a training course
-      // were invisible to the standing: once they became standings, that
-      // expression quietly took the Fire control away from every kerbal resting
-      // after a flight, which is a normal daily state and a perfectly legitimate
-      // thing to fire someone out of. The rule lives in the SDK so the widget
-      // does not carry a second copy of it.
+      // Whether the roster accepts a sacking, which is not whether the kerbal can fly: a resting kerbal can be fired.
       const fireable = canBeSacked(standing);
       const label = crewStandingLabel(standing) ?? members[0]?.situation ?? "";
       return {
-        // The tab set is built from whatever standings are present, so each id is
-        // the standing's own name, never the array-index fallback: an index can
-        // collide across re-renders once the set of present standings changes, a
-        // stable id can't. Named rather than numbered so a tab id stays legible
-        // in a test failure and in the DOM.
+        // Named after the standing: stable across re-renders and legible in a test failure.
         id: `standing-${standing}`,
         label: `${label} (${members.length})`,
         content: (
@@ -754,19 +562,7 @@ function ActivePanel({
                   fireable && m.name === highlightedName ? "true" : undefined
                 }
               >
-                {/* The identity line, and the sack control at the END of it
-                    rather than in a column of its own down the side of the
-                    card. Weight follows how often a control is reached for,
-                    and firing an astronaut is close to the rarest thing an
-                    operator does here: given its own full-height column it
-                    claimed a fixed slice of every row on the roster, and took
-                    that width off the schedule underneath, which is the part
-                    that is read on every glance.
-
-                    A career overhaul knows things about this kerbal that KSP's
-                    roster status does not carry (a naut mid-course still reads
-                    Available to KSP), and the corner is where a mark is read
-                    WITH the name rather than in the block below it. */}
+                {/* The sack control sits at the END of the identity line: firing is rare, and a column of its own would take width off the schedule. The corner is where a career model's mark is read WITH the name. */}
                 <Card.TitleRow
                   right={
                     <Cluster align="center">
@@ -802,10 +598,7 @@ function ActivePanel({
                     />
                   </Stack>
                 </Card.TitleRow>
-                {/* This kerbal's schedule, contributed by whichever Uplink
-                    manages their career: a retirement date, a training ETA,
-                    the mission training about to lapse. Nothing renders under
-                    stock, which has none of those concepts. */}
+                {/* This kerbal's schedule from whichever Uplink manages their career; nothing under stock. */}
                 <AugmentSlot
                   name="astronaut-complex.crew"
                   props={{
@@ -825,11 +618,7 @@ function ActivePanel({
   return <Tabs tabs={tabs} />;
 }
 
-/**
- * Hire: a funds SPEND, so it never fires on a single click. Arm, confirm and
- * in-flight all come from the shared {@link CommandButton}; this wrapper exists
- * only for the accessible name, which has to say what hiring costs.
- */
+/** Hire: a funds spend, arm-then-confirm via the shared {@link CommandButton}; the wrapper supplies an accessible name that says the cost. */
 function HireButton({
   applicantName,
   hireCost,
@@ -843,10 +632,7 @@ function HireButton({
   disabledReason?: string;
   hireCmd: CommandButtonHandle;
 }) {
-  // The cost moved to the header (one figure for the whole pool), so a
-  // screen-reader user tabbing straight to the button still needs to hear
-  // what hiring costs; speakQuantity (word form) rather than <Unit> because
-  // this only ever renders as an accessible name, never on screen.
+  // The cost lives in the header, so the accessible name still has to say it; words, since it never renders on screen.
   const costText =
     hireCost !== null
       ? ` for ${speakQuantity(value("funds", hireCost), { decimals: 0 })}`
@@ -876,11 +662,9 @@ function HireButton({
 }
 
 /**
- * Fire: the inverse of {@link HireButton}, no cost (so no figure to speak in
- * the accessible name) but the same two-step commit, because a fire is
- * destructive enough to warrant one even though it is reversible (a re-hire
- * brings the kerbal back with their stats intact). Always enabled: it renders
- * only on a row whose standing `career.crew.fire` accepts (`canBeSacked`).
+ * Fire: no cost, but the same two-step commit, since a fire is destructive
+ * even though a re-hire restores the kerbal. Renders only on a row whose
+ * standing `career.crew.fire` accepts.
  */
 function FireButton({
   kerbalName,
@@ -907,41 +691,26 @@ function FireButton({
   );
 }
 
-/** One row from `spaceCenter.crewRoster`: the hired-crew roster, shared wire
- *  shape with {@link Applicant} but carrying `situation` (the raw roster
- *  standing the Active tab groups by) and `experienceLevelDelta` (progress
- *  toward the next rank). */
+/** One row from `spaceCenter.crewRoster`, the hired-crew roster. */
 interface CrewRosterRow {
   name: string;
   trait: string;
-  /** Rank; `null` when the capture carried none, which is a different fact
-   *  from a rookie at rank zero and renders as a dash rather than as one. */
+  /** Rank; `null` when none was carried, which renders as a dash rather than rank zero. */
   experienceLevel: number | null;
-  /** Display label only, and only for a row whose {@link standing} this build
-   *  cannot name; every tab label comes from the standing instead. */
+  /** Display label only, for a row whose {@link standing} this build cannot name. */
   situation: string;
-  /** `CrewStanding`: the field every DECISION here reads, and the Active tab's
-   *  grouping key. `null` for a producer that sent none, which is why the
-   *  applicant test below reads {@link isApplicant} instead of this. */
+  /** `CrewStanding`: the field every decision reads and the Active tab's grouping key; `null` when none was sent. */
   standing: number | null;
-  /** Which provider decided {@link standing} (`"stock"`, `"rp1"`, ...); `null`
-   *  when the capture named none. Shown on a corrected row, so an operator can
-   *  see which mod is claiming their astronaut retired rather than died. */
+  /** Which provider decided {@link standing}; shown on a corrected row so the operator sees which mod claims a retirement. */
   standingSource: string | null;
-  /** KSP's own `RosterStatus` ordinal. Carried, never branched on: under RP-1 it
-   *  reads `Dead` for a living retiree. */
+  /** KSP's own `RosterStatus` ordinal, carried and never branched on: under RP-1 it reads `Dead` for a living retiree. */
   situationOrdinal: number | null;
-  /** Standing down for rest (`ProtoCrewMember.inactive`): KSP's own field,
-   *  carried like {@link situationOrdinal} and branched on no more than it is.
-   *  It is an INPUT to the producer's derivation, which turns it into a
-   *  `Resting` {@link standing} with {@link available} false. */
+  /** `ProtoCrewMember.inactive`, an input to the producer's `Resting` standing; never branched on here. */
   inactive: boolean;
   inactiveUntilUt: number | null;
-  /** When {@link standing} lapses, as universal time: a course's ETA, a rest
-   *  period's end. Absent for a standing with no scheduled end. */
+  /** When {@link standing} lapses, as universal time; absent for a standing with no scheduled end. */
   standingEndsAtUt: number | null;
-  /** When this kerbal is scheduled to retire, as universal time. Absent under
-   *  any backend that does not schedule retirements, stock included. */
+  /** When this kerbal retires, as universal time; absent where no backend schedules retirements. */
   retiresAtUt: number | null;
   /** Whether the row is a hireable candidate rather than owned crew. */
   isApplicant: boolean;
@@ -954,10 +723,7 @@ interface CrewRosterRow {
   descriptionEffects: string;
 }
 
-/** A hired kerbal's veteran/badass/career-flight badges don't exist on the
- *  wire (`CrewRosterEntry` carries only what the Astronaut Complex shows),
- *  so they take their safe zero here the same way {@link applicantStats}
- *  does for an applicant's rank fields. */
+/** Badges not on the wire take their safe zero, as {@link applicantStats} does. */
 function crewRowStats(c: CrewRosterRow): KerbalStatFields {
   return {
     name: c.name,
@@ -981,31 +747,18 @@ function crewRowStats(c: CrewRosterRow): KerbalStatFields {
   };
 }
 
-/**
- * The tab order, taken from `CREW_STANDING_ORDER` in the SDK, which derives it
- * from the contract enum's own numbering. A standing added to the contract takes
- * a place here with no edit.
- *
- * The predecessor derived the same list from KSP's `RosterStatus` and carried a
- * comment promising a mod's "Retired" a tab for free. It never got one: RP-1
- * appends no roster status, it writes stock's `Dead`, so the mechanism was
- * sound and the premise was false. Ordering off the STANDING is what actually
- * delivers what that comment claimed.
- */
+/** The tab order, from the SDK's `CREW_STANDING_ORDER`, so a standing added to the contract takes its place with no edit. */
 function orderStandings(present: Iterable<number>): number[] {
   const seen = new Set(present);
   const known = CREW_STANDING_ORDER.filter((standing) => seen.has(standing));
-  // A standing this build cannot name is still a bucket of real kerbals, so it sorts after the known ones rather than being dropped.
+  // A standing this build cannot name is still a bucket of real kerbals, so it sorts last rather than being dropped.
   const unknown = [...seen]
     .filter((standing) => !CREW_STANDING_ORDER.includes(standing))
     .sort((a, b) => a - b);
   return [...known, ...unknown];
 }
 
-/** Groups active crew by `standing`, one bucket per value actually present, so
- *  a standing with zero members produces no bucket and never renders an empty
- *  tab. A row whose standing did not arrive is bucketed as `Unknown`, which is
- *  the standing the producer would have sent for it. */
+/** Groups active crew by `standing`, one bucket per value present; a row with no standing buckets as `Unknown`. */
 function groupByStanding(
   crew: readonly CrewRosterRow[],
 ): Map<number, CrewRosterRow[]> {
@@ -1019,14 +772,7 @@ function groupByStanding(
   return groups;
 }
 
-/**
- * A standing's label: the contract's own word for it, falling back to whatever
- * label the producer sent and then to a dash.
- *
- * The fallback order matters. A standing this build cannot name is a number, and
- * a number is not something to show an operator; the producer's own label is the
- * next best answer, and where there is neither, nothing is said.
- */
+/** A standing's label: the contract's word, then the producer's label, then a dash, never a bare number. */
 function standingLabelOf(row: {
   standing: number | null;
   situation: string;
@@ -1034,9 +780,7 @@ function standingLabelOf(row: {
   return crewStandingLabel(row.standing) ?? row.situation ?? "";
 }
 
-/** Stable per-row keys for a standing's member list. Kerbal names aren't
- *  guaranteed unique within a standing (a re-hired duplicate is legal), so
- *  each key is name + an occurrence count rather than the array index. */
+/** Stable per-row keys: name plus an occurrence count, since a re-hired duplicate name is legal. */
 function crewRowKeys(members: readonly CrewRosterRow[]): string[] {
   const seen = new Map<string, number>();
   return members.map((m) => {
@@ -1058,11 +802,7 @@ function readCrewRoster(raw: unknown): CrewRosterRow[] {
       trait: typeof e.trait === "string" ? e.trait : "",
       experienceLevel: magnitudeOf(asQuantityish(e.experienceLevel)),
       situation: typeof e.situation === "string" ? e.situation : "",
-      // Absent only from a mod build older than the crew-standing capability.
-      // Falling back to KSP's roster status keeps that case reading exactly as
-      // it did before the capability existed, rather than bucketing the whole
-      // roster as Unknown; see `crewStandingFromRosterStatus` for why the
-      // fallback invents no retirement.
+      // Absent only from a mod build without the crew-standing capability, so fall back to KSP's roster status.
       standing:
         typeof e.standing === "number"
           ? e.standing
@@ -1122,12 +862,7 @@ function readApplicants(raw: unknown): Applicant[] {
   return out;
 }
 
-/**
- * The roster list, at the related gap rather than a tighter rung: each row is a
- * bordered `Card`, and closer together two adjacent borders read as one thick
- * divider instead of as two records. The list itself is not inside a card, so
- * this resolves to the roomy 8px.
- */
+// Related gap, so two adjacent card borders do not read as one thick divider.
 const LIST_STYLE = {
   listStyle: "none",
   margin: 0,
@@ -1135,14 +870,7 @@ const LIST_STYLE = {
   gap: "var(--gap-related)",
 } as const;
 
-/**
- * The identity column: takes the row's width and lets the name ellipsise.
- *
- * Its name over its role is two lines of one readout, which the vocabulary no
- * longer separates from siblings of one kind, so both take the related gap. It
- * sits inside a `Card`, which declares the compact tier, so related is 6px here
- * and would be 8px on a panel; this file names neither number.
- */
+// The identity column takes the row's width and lets the name ellipsise.
 const WHO_STYLE = {
   minWidth: 0,
   flex: 1,

@@ -12,23 +12,16 @@ import {
 import { SystemViewComponent } from "./index";
 
 /**
- * CHARACTERISATION of what `undefined` MEANS to SystemView today, read off the
- * rendered output rather than off the source.
- *
- * The widget makes four telemetry reads (`vessel.orbit`, `vessel.identity`,
- * `vessel.target`, `system.bodies`) plus `useViewUt`, and gives `undefined` a
- * DIFFERENT meaning at nearly every site:
+ * Characterises what `undefined` means to SystemView, read off the rendered output. Each of its reads gives absence a different meaning:
  *
  *  - `bodies.length === 0` prints "Waiting for body data..."
- *  - `identity?.parentBodyIndex != null` failing makes the frame fall back to
- *    the root star, so an absent vessel produces a confident frame label
- *  - `identity?.name` failing prints the literal string "Vessel"
- *  - `orbit?.encounter` failing prints no encounter suffix, the same render as a
- *    craft that genuinely has no encounter
- *  - `targetName` failing draws no target marker, the same render as no target
- *  - `parentName ?? NULL_DISPLAY` prints an em dash in compact mode
+ *  - a missing `identity?.parentBodyIndex` frames the root star, a confident label for an absent vessel
+ *  - a missing `identity?.name` prints the literal "Vessel"
+ *  - a missing `orbit?.encounter` renders the same as no encounter
+ *  - a missing `targetName` renders the same as no target
+ *  - compact mode prints `NULL_DISPLAY` for `parentName`
  *
- * Every one of those is an absence gate, and a `Reading` is always truthy.
+ * Every one is an absence gate, and a `Reading` is always truthy.
  */
 
 const KERBIN_MU = 3.5316e12;
@@ -144,31 +137,24 @@ describe("SystemView: what undefined means today", () => {
     );
   }
 
-  // ── 1. Nothing has arrived at all ────────────────────────────────────────
-
   it("says only 'Waiting for body data...' when no telemetry has arrived at all", () => {
     const { container } = mount();
 
-    // The `bodies.length === 0` branch. It is the ONLY thing the widget says,
-    // and it lives in the same polite live region that later carries the frame
-    // label, so the transition out of it is announced.
+    // The only thing the widget says, in the same polite live region that later carries the frame label.
     const caption = screen.getByText("Waiting for body data...");
     expect(caption).toHaveAttribute("role", "status");
     expect(caption).toHaveAttribute("aria-live", "polite");
 
-    // Not merely "the container is empty": these are the specific things the
-    // widget declines to draw. `parentName` is null, so the diagram is gated
-    // out entirely rather than rendered with an empty body list.
+    // `parentName` is null, so the diagram is gated out entirely rather than drawn with no bodies.
     expect(container.querySelector("svg")).toBeNull();
     expect(container.querySelectorAll(VESSEL_DOT)).toHaveLength(0);
     expect(visibleText(container)).not.toMatch(/Frame:/);
 
-    // The almanac renders its own absence copy rather than a table of dashes, because `panelBody` is null (no focus, and no vessel body to default to).
+    // `panelBody` is null, so the almanac renders its own absence copy.
     expect(
       screen.getByText(/Hover or focus a body in the diagram/i),
     ).toBeInTheDocument();
-    // No contact caption: `vesselGuid` is null so no contribution matches, and
-    // `ContactCaption`'s `if (!status) return null` fires.
+    // `vesselGuid` is null, so no contribution matches and `ContactCaption` renders nothing.
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
@@ -176,9 +162,7 @@ describe("SystemView: what undefined means today", () => {
     // Compact mode takes a different absence path: `parentName ?? NULL_DISPLAY`.
     const { container } = mount({}, { w: 3, h: 4 });
 
-    // The em dash is the widget's whole answer about which frame it is showing,
-    // while the caption above it still says data is being waited for. Two
-    // different renderings of the same absent value, in one widget.
+    // Two renderings of one absent value: `NULL_DISPLAY` here, while the caption says data is awaited.
     expect(visibleText(container)).toContain(NULL_DISPLAY);
     expect(screen.getByText("Waiting for body data...")).toBeInTheDocument();
     expect(container.querySelector("svg")).toBeNull();
@@ -193,10 +177,7 @@ describe("SystemView: what undefined means today", () => {
       expect(screen.getAllByText("Kerbin").length).toBeGreaterThan(0),
     );
 
-    // A tombstone reaches `useTelemetry` as `null`, `useCelestialBodies`'
-    // `systemBodies?.bodies` gate catches it, and the widget reverts to the
-    // never-arrived sentence. A confirmed "there are no bodies" is spoken as
-    // "waiting", with no age attached to the confirmation.
+    // A tombstone reaches the hook as `null` and reverts to the never-arrived sentence, with no age on the confirmation.
     act(() => {
       fixture.emit("system.bodies", null, { validAt: 50, seq: 1 });
     });
@@ -206,8 +187,6 @@ describe("SystemView: what undefined means today", () => {
     expect(container.querySelector("svg")).toBeNull();
   });
 
-  // ── 2. Absence gates, proved to fire ─────────────────────────────────────
-
   it("names a frame confidently off the root star when no vessel telemetry exists", async () => {
     const { container } = mount({ frame: "auto" });
     // Bodies only: no vessel.identity, so `identity?.parentBodyIndex != null` fails and `vesselBody` is null.
@@ -215,9 +194,7 @@ describe("SystemView: what undefined means today", () => {
       fixture.emit("system.bodies", kerbinSystem());
     });
 
-    // `resolveFrame("auto", null)` falls back to the tree root, so the widget
-    // asserts "Frame: Kerbin" with nothing whatsoever known about the craft.
-    // Identical text to a vessel confirmed to be at Kerbin.
+    // `resolveFrame("auto", null)` falls back to the root, text identical to a vessel confirmed at Kerbin.
     await waitFor(() =>
       expect(screen.getByText("Frame: Kerbin")).toBeInTheDocument(),
     );
@@ -244,15 +221,13 @@ describe("SystemView: what undefined means today", () => {
       expect(screen.getAllByText("Mun").length).toBeGreaterThan(0),
     );
 
-    // `useTelemetry("vessel.target")?.name` is undefined, coerced to null by
-    // `typeof targetName === "string" ? ... : null`, so no body is drawn as the
-    // target. Indistinguishable from a confirmed "no target set".
+    // No target body is drawn, indistinguishable from a confirmed "no target set".
     expect(container.querySelectorAll(TARGET_DOT)).toHaveLength(0);
 
     act(() => {
       fixture.emit("vessel.target", { name: "Mun" });
     });
-    // The contrast is what makes the assertion above load-bearing: the marker exists, and only the absent read was keeping it off screen.
+    // The contrast: the marker exists, and only the absent read kept it off screen.
     await waitFor(() =>
       expect(container.querySelectorAll(TARGET_DOT)).toHaveLength(1),
     );
@@ -271,9 +246,7 @@ describe("SystemView: what undefined means today", () => {
       });
     });
 
-    // `orbit?.encounter ?? null` makes `encounterExists` 0, which is the same
-    // value a craft on a closed orbit with no encounter produces. The caption
-    // is the bare frame label either way.
+    // `encounterExists` is 0, the same as a closed orbit with no encounter.
     await waitFor(() =>
       expect(screen.getByText("Frame: Kerbin")).toBeInTheDocument(),
     );
@@ -303,10 +276,7 @@ describe("SystemView: what undefined means today", () => {
       expect(screen.getAllByText("Mun").length).toBeGreaterThan(0),
     );
 
-    // `!orbit` in the `derived` and `orbitPatches` memos, plus `vesselOrbit`'s
-    // own `orbit &&`: the widget declines to place anything for the craft
-    // rather than placing it at the origin. The bodies still draw, so this is a
-    // per-read absence, not a blank widget.
+    // The craft is not placed at all rather than at the origin, while the bodies still draw.
     expect(container.querySelectorAll(VESSEL_DOT)).toHaveLength(0);
     const pathsWithoutOrbit = container.querySelectorAll("path").length;
 
@@ -321,14 +291,11 @@ describe("SystemView: what undefined means today", () => {
     );
   });
 
-  // ── 3. A partial payload: the record arrived, fields inside did not ──────
-
   it("calls the craft the literal string 'Vessel' when identity carries no name", async () => {
     mount({ frame: "Kerbin" });
     act(() => {
       fixture.emit("system.bodies", kerbinSystem());
-      // A partial identity: the guid arrived, the name and the parent body did
-      // not. The guid alone is enough to subscribe the silence topic.
+      // The guid alone is enough to subscribe the silence topic.
       fixture.emit("vessel.identity", { vesselId: "v" });
     });
     await waitFor(() =>
@@ -344,10 +311,7 @@ describe("SystemView: what undefined means today", () => {
       });
     });
 
-    // `typeof identity?.name === "string" ? identity.name : "Vessel"` prints a
-    // placeholder name inside an assertive live region, so a screen reader is
-    // told "Vessel officially lost" for a craft whose name simply had not
-    // arrived yet.
+    // A placeholder name inside an assertive live region: "Vessel officially lost" for a craft whose name has not arrived.
     const caption = await screen.findByText(/officially lost/i);
     expect(caption.closest("[role='alert']")).not.toBeNull();
     expect(visibleText(caption)).toContain("Vessel");
@@ -360,9 +324,7 @@ describe("SystemView: what undefined means today", () => {
       fixture.emit("vessel.identity", { vesselId: "v", name: "Tester" });
     });
 
-    // The gate is `identity?.parentBodyIndex != null`, so a present record with
-    // an absent field takes the identical path to no record at all: the frame
-    // label is the root star's name, stated as fact.
+    // A present record with an absent field takes the same path as no record: the root star's name, stated as fact.
     await waitFor(() =>
       expect(screen.getByText("Frame: Kerbin")).toBeInTheDocument(),
     );
@@ -392,11 +354,7 @@ describe("SystemView: what undefined means today", () => {
       });
     });
 
-    // `orbit.lan?.magnitude ?? 0` (three separate call sites: `vesselOrbit`,
-    // `orbitPatches`, `usePhaseAngles`) coerces both absences to zero, so the
-    // dot is drawn at a definite place derived partly from values that never
-    // arrived. There is no visual difference from an explicitly equatorial
-    // orbit, and nothing marks the position as partly assumed.
+    // `orbit.lan?.magnitude ?? 0` at three sites draws the dot at a definite place partly from values that never arrived, like an equatorial orbit.
     await waitFor(() =>
       expect(container.querySelectorAll(VESSEL_DOT)).toHaveLength(1),
     );

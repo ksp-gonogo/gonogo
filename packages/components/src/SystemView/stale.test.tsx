@@ -7,16 +7,7 @@ import {
 import { SystemViewComponent } from "./index";
 
 /**
- * What this widget does when `vessel.orbit` stops being current.
- *
- * The picture is KEPT, and most of it is still exactly true: the bodies are
- * where the catalogue says they are, and a radius and a day length do not decay
- * because a craft went quiet. What stops being true is the craft's own place in
- * it, and the countdowns taken off its elements.
- *
- * So the marks are on those and only those. Dating the body rows with the
- * craft's silence would mark a dozen figures that are still current, which is
- * the way a staleness mark stops being read.
+ * When `vessel.orbit` stops being current the picture is kept, and only the craft's place in it and the countdowns off its elements are marked: catalogue figures do not decay because a craft went quiet.
  */
 
 const KERBOL_MU = 1.1723328e18;
@@ -52,9 +43,7 @@ function kerbolSystem() {
           epoch: 0,
         },
       },
-      /* A child of the frame body, without which the diagram has nothing to
-         place and draws its "no bodies orbiting Kerbin yet" hint instead of an
-         svg, which takes the vessel marker with it. */
+      // A child of the frame body, without which the diagram draws its empty hint and no vessel marker.
       {
         index: 2,
         name: "Mun",
@@ -136,8 +125,7 @@ describe("SystemView when vessel.orbit is no longer current", () => {
     await waitFor(() => {
       expect(view.container.querySelector("svg")).not.toBeNull();
     });
-    // The control. A widget that marked unconditionally would pass the
-    // assertion below without ever reading the link's state.
+    // The control: a widget that marked unconditionally would pass the assertion below.
     expect(view.container.querySelectorAll("[data-not-current]")).toHaveLength(
       0,
     );
@@ -170,13 +158,7 @@ describe("SystemView when vessel.orbit is no longer current", () => {
     expect(held?.querySelector("title")?.textContent).toBe(
       "Vessel position, no longer current",
     );
-    /*
-     * SHAPE, not shade. A dot that only dimmed would carry the whole statement
-     * in a colour, and the marker has no text beside it to fall back on
-     * (WCAG 1.4.1). The dashed hollow ring is the language this diagram already
-     * uses for a position that was computed rather than reported, which is the
-     * same claim a held position makes.
-     */
+    // Shape, not shade: the marker has no text to fall back on (WCAG 1.4.1), so held draws the hollow dashed ring of a computed position.
     const ring = held?.querySelector("[data-vessel-marker]");
     expect(ring?.getAttribute("fill")).toBe("none");
     expect(ring?.getAttribute("stroke-dasharray")).not.toBeNull();

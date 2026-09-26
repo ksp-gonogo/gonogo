@@ -6,22 +6,10 @@ import { describe, expect, it } from "vitest";
 import "../index";
 
 /**
- * Every `_series` key in a widget fixture is a key that widget actually reads.
- *
- * A fixture's `_series` block seeds `useDataSeries`-backed sparklines and trace
- * dots in the RENDER HARNESS. Nothing else consumes it, and the harness is a
- * browser probe: it cannot run here, and the visual gate downstream of it does
- * not answer this question either.
- *
- * So a `_series` key that stops matching what its widget reads feeds NOTHING.
- * The sparkline renders empty, which is also what "no history yet" looks like,
- * and the render is still a perfectly plausible picture of the widget. Renaming
- * a data key without renaming it in the fixture is a one-character way to
- * produce that, and `Twr` had six fixtures keyed on `dv.currentTWR`.
- *
- * This is deliberately a DIFFERENT KIND of check from the harness rather than a
- * cheaper copy of it: it never renders anything, and it asks a question the
- * harness cannot fail on, because an empty sparkline is not a harness error.
+ * Every `_series` key in a widget fixture is one that widget reads. The block
+ * seeds sparklines only in the browser render harness, and a key that matches
+ * nothing renders an empty sparkline, indistinguishable from "no history yet".
+ * This never renders: an empty sparkline is not a harness error.
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -66,11 +54,7 @@ function readFixtureSeries(): FixtureSeries[] {
 
 const FIXTURE_SERIES = readFixtureSeries();
 
-/**
- * A floor on the enumeration, not on the finding. A walk that resolved nothing
- * would report no offenders, and no offenders is what success looks like. Set
- * below the count at the time of writing so adding a fixture never trips it.
- */
+/** A floor on the enumeration, since a walk that resolved nothing would report no offenders. */
 const ENUMERATION_FLOOR = 3;
 
 describe("widget fixture _series keys", () => {
@@ -79,12 +63,7 @@ describe("widget fixture _series keys", () => {
   });
 
   it("seeds only keys something actually plots", () => {
-    // Two places name a plotted key. A widget that reads a fixed series names
-    // it in `dataRequirements`; a config-driven one (Graph, and the reference
-    // overlays) is handed its series by the harness mode config in
-    // `scripts/widgets.ts`, which is also the only place a deliberately
-    // SYNTHETIC key such as a band edge appears. A key in neither is seeding
-    // history nothing will ever ask for.
+    // A fixed series is named in `dataRequirements`; a config-driven one (Graph, the reference overlays, synthetic band edges) in the harness mode config in `scripts/widgets.ts`.
     const plotted = new Set<string>();
     for (const component of getComponents()) {
       for (const key of component.dataRequirements ?? []) plotted.add(key);

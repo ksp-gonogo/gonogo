@@ -10,20 +10,8 @@ import { MapViewComponent } from "./index";
 
 /**
  * DOM snapshots off the stream pipeline, driven by each fixture's own
- * `_stream` block.
- *
- * This spec used to build the stream itself, emitting `vessel.flight`,
- * `vessel.orbit`, `vessel.identity` and `system.bodies` reassembled from the
- * fixtures' flat keys and pinning the clock at a constant 10 rather than each
- * fixture's own UT. Every fixture declares all four emits and its own
- * `pinnedUt`.
- *
- * The registered `defaultConfig` (`trajectoryLength: 2000`,
- * `showPrediction: true`) now applies, and the map canvas is size-gated, so the
- * mode's real pixel box reaches it instead of the no-op observer's silence.
- *
- * `no-vessel-data` carries no `_stream` block: no position to plot is its
- * subject, and the un-fed gate lists it as empty by design.
+ * `_stream` block. `no-vessel-data` carries none by design: no position is its
+ * subject.
  */
 
 const FIXTURES: Record<string, Record<string, unknown>> = {

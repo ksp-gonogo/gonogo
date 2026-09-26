@@ -1,20 +1,8 @@
-// ---------------------------------------------------------------------------
-// Tier-1 conformance: did the burn deliver the delta-v it was planned with.
-//
-// MODEL-AGNOSTIC on purpose, and that is the whole reason this tier exists and
-// comes first. It compares a planned delta-v against a delivered one, which is
-// the same question whoever planned the burn and whatever propagator drew the
-// trajectory. Nothing here touches a predicted orbit.
-//
-// Tier 2, comparing the ACHIEVED trajectory against the predicted one, is
-// deliberately not this. Under a patched-conic plan the prediction is the
-// post-impulse conic and the burn was not an impulse, so a tier-2 number
-// measures OUR model error and charges it to the pilot: for a long low-thrust
-// burn it reads badly no matter how well the burn was flown. An instrument that
-// reports a known modelling error as operator failure is worse than no
-// instrument, which is why the cheap tier is the primary one and not a
-// stepping stone to the expensive one.
-// ---------------------------------------------------------------------------
+/*
+ * Did the burn deliver the delta-v it was planned with. Model-agnostic: it
+ * never touches a predicted orbit, since against a patched-conic prediction a
+ * finite burn's model error would read as the pilot's.
+ */
 
 /** What the plan asked for and what the craft has actually put in, m/s. */
 export interface BurnConformance {
@@ -25,11 +13,7 @@ export interface BurnConformance {
   plannedDv: number | null;
   /** What the burn still has left to deliver, m/s. */
   remainingDv: number;
-  /**
-   * Planned minus remaining. Null when there is no planned figure to subtract
-   * from, never 0, because "nothing delivered" and "we do not know what was
-   * asked for" are different answers.
-   */
+  /** Planned minus remaining, or null without a planned figure: not knowing the ask is not "nothing delivered". */
   deliveredDv: number | null;
   /** Delivered as a fraction of planned, or null on the same terms. */
   deliveredFraction: number | null;
@@ -37,19 +21,10 @@ export interface BurnConformance {
 }
 
 /**
- * Where the burn is, given the delta-v channel and, for `stopped-short`, the
- * thrust latch on `vessel.propulsion`.
- *
- * There is no `under-burned` member. `lastThrustEndUt` does say the engines
- * have stopped, but no reading can say WHY they stopped: a burn paused to be
- * re-planned and a burn abandoned produce the same instant, because the
- * difference between them is whether the operator comes back, which has not
- * happened yet at the moment of the reading. "Under-burned" asserts a
- * shortfall, so it would put exactly that unavailable judgement into the label.
- *
- * `stopped-short` is what is actually known: thrust has ceased and this burn
- * still owes delta-v. It is true either way, and it reads correctly when the
- * truth is a deliberate pause.
+ * Where the burn is, from the delta-v channel and, for `stopped-short`, the
+ * thrust latch. `stopped-short` means only that thrust ceased with delta-v
+ * owed: no reading can tell a paused burn from an abandoned one, so there is
+ * no shortfall phase.
  */
 export type BurnConformancePhase =
   | "unknown"
@@ -58,49 +33,28 @@ export type BurnConformancePhase =
   | "stopped-short"
   | "delivered";
 
-/**
- * What the propulsion channel's thrust latch says as of the latest reading, or
- * null when nothing has been heard from it.
- *
- * Null is not "no thrust": it is "no observation", and the two must never
- * collapse. A craft whose propulsion channel has not arrived reads as a craft
- * whose engines are off if they do, and every burn on the plan would be
- * announced as stopped short of its target.
- */
+/** The propulsion channel's thrust latch as of the latest reading; a missing observation is never "engines off". */
 export interface ThrustObservation {
   /** Whether the craft is under thrust as of the latest measurable reading. */
   thrusting: boolean;
   /**
-   * UT thrust last ceased, or null when no period of thrust has been observed
-   * to end for this craft.
-   *
-   * An OBSERVATION INSTANT: it says when something was seen to be true. It is
-   * carried here only to distinguish "the engines ran and stopped" from "the
-   * engines have never run", which a bare `thrusting: false` cannot do. It is
-   * deliberately not surfaced on `BurnConformance` and deliberately never
-   * subtracted from a planned instant: that subtraction is type-legal and
-   * meaningless, and it is the shape of three separate defects already found on
-   * this branch.
+   * UT thrust last ceased, or null when none has been seen to end. An
+   * observation instant, carried only to tell "ran and stopped" from "never
+   * ran"; never subtract it from a planned instant, which is type-legal and
+   * meaningless.
    */
   lastThrustEndUt: number | null;
 }
 
-/**
- * Below this much remaining delta-v a burn counts as delivered, m/s. The same
- * threshold `BurnCompletionTracker` uses to call a burn complete, shared so the
- * two surfaces cannot disagree about whether the same burn finished.
- */
+/** Remaining delta-v, m/s, below which a burn counts as delivered; shared with BurnCompletionTracker so they cannot disagree. */
 export { COMPLETED_THRESHOLD_DV as DELIVERED_THRESHOLD_DV } from "./BurnCompletionTracker";
 
 import { COMPLETED_THRESHOLD_DV } from "./BurnCompletionTracker";
 
 /**
- * Conformance for one burn from the two figures the maneuver channel supports:
- * the largest delta-v seen for it, and what it currently has left.
- *
- * `maxDvSeen` comes from watching the burn over time, which is why it is passed
- * in rather than derived: a single sample cannot tell a 300 m/s burn with 300 to
- * go from a 1000 m/s burn with 300 to go, and those conform very differently.
+ * Conformance for one burn from the largest delta-v seen for it and what it has
+ * left. `maxDvSeen` comes from watching over time: one sample cannot tell a
+ * 300 m/s burn with 300 to go from a 1000 m/s burn with 300 to go.
  */
 export function burnConformance(
   remainingDv: number,
@@ -130,20 +84,12 @@ function phaseOf(
   thrust: ThrustObservation | null | undefined,
   threshold: number,
 ): BurnConformancePhase {
-  // Without a planned figure the remaining number alone says nothing about progress, so it reports unknown rather than guessing "not started".
   if (planned == null || delivered == null) return "unknown";
-  // Delivered first: a burn that met its target was not stopped short of it, however the engines came to be off afterwards.
+  // Delivered first: a burn that met its target was not stopped short, whatever the engines did afterwards.
   if (remainingDv < threshold) return "delivered";
-  // Then never-started: a burn nothing has gone into cannot have been stopped short of anything, even if the craft's engines ceased for another burn.
+  // A burn nothing has gone into cannot have been stopped short, even if the engines ceased for another burn.
   if (delivered < threshold) return "not-started";
-  // Both halves are required, and `thrusting` is the one easy to forget:
-  // ThrustObserver does NOT clear `lastThrustEndUt` when the engines relight,
-  // so a check on that field alone reports a burn stopped while the craft is
-  // actively flying it.
-  //
-  // Absent is NO OBSERVATION, never "engines off". Collapsing the two would
-  // announce every burn on a craft whose propulsion channel has not arrived as
-  // stopped short of its target.
+  // `lastThrustEndUt` survives a relight, so `thrusting` must be checked too.
   if (thrust != null && !thrust.thrusting && thrust.lastThrustEndUt != null) {
     return "stopped-short";
   }

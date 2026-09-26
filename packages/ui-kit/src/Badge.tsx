@@ -29,9 +29,6 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
    * defaults to the badge's text content when `children` is a plain string; pass
    * it explicitly otherwise. A floor (`nominal`) badge with `report` still
    * registers but never wins a merge that has anything above the floor.
-   *
-   * Contribution is opt-in, so a widget full of neutral kind-chips does not
-   * drown its own real status.
    */
   report?: { id: string; label?: string };
   children: ReactNode;
@@ -74,29 +71,14 @@ export function Badge({
   );
 }
 
-/**
- * Decorative grey: a kind-chip or count with no severity. Distinct from
- * `offline`, which is a dimmer grey carrying a real "data absent" reading.
- * Unaffected by the sausage restyle below: a decorative chip was never the
- * thing that read as a live button, so it keeps its solid fill.
- */
+/** Decorative grey, solid-filled: a kind-chip or count with no severity. Distinct from `offline`, which is a real "data absent" reading. */
 const DECORATIVE_STYLE = css`
   background: var(--color-surface-raised);
   border-color: var(--color-border-subtle);
   color: var(--color-text-muted);
 `;
 
-/**
- * The pill's outline/text/glow colour for each severity. Reads off
- * `severityDotColor`, the one function every other per-severity accent
- * already goes through, with a single deliberate exception: `nominal`'s dot
- * colour (`--color-status-go-bg`) is a DARK fill tuned for a small dot or a
- * button's solid background (2.4:1 against the panel, under the 3:1
- * non-text floor), so painting it directly as this pill's outline/text would
- * fail contrast on the pill's transparent background. `--color-accent-fg` is
- * the bright "go" text token PrimaryButton itself already uses and clears
- * the floor with room to spare.
- */
+/** `nominal`'s dot colour is a dark fill that fails 3:1 contrast as outline and text on a transparent pill, so it uses the bright go text token. */
 function pillColor(severity: Severity): string {
   return severity === "nominal"
     ? "var(--color-accent-fg)"
@@ -104,21 +86,10 @@ function pillColor(severity: Severity): string {
 }
 
 /**
- * Sausage-shaped severity pill: transparent background, a coloured outline,
- * and coloured text, restoring the look from before the solid-fill
- * consolidation (see `bd7ff353^` for the pre-refactor version). The solid
- * fill made a `nominal` badge read as indistinguishable from a live "go"
- * button, since both painted the exact same `--color-status-go-bg` chip; a
- * transparent pill with only its outline and text lit up reads as status,
- * not as a control.
- *
- * The glow (`box-shadow`) scales with severity: `nominal`/`offline` carry
- * none at all (a healthy or data-absent pill has nothing to shout about),
- * `info`/`caution` get a soft bloom, and `warning`/`critical` get a
- * progressively stronger one, so the AMOUNT a badge glows is itself a
- * severity signal at a glance, before the label is even read. Kept
- * deliberately soft ("slight glow", not a neon sign): a static box-shadow
- * needs no `prefers-reduced-motion` guard, it never animates.
+ * A transparent pill with a coloured outline and text, so a `nominal` badge
+ * reads as status rather than as a solid "go" button. The glow scales with
+ * severity: none for `nominal` and `offline`, growing from `info` to
+ * `critical`.
  */
 const SEVERITY_STYLES: Record<Severity, ReturnType<typeof css>> = {
   nominal: css`
@@ -150,9 +121,7 @@ const SEVERITY_STYLES: Record<Severity, ReturnType<typeof css>> = {
     color: ${pillColor("critical")};
     box-shadow: 0 0 8px 2px color-mix(in srgb, ${pillColor("critical")} 65%, transparent);
   `,
-  // Data gone: a dim, hollow grey with no glow, deliberately quieter than a
-  // red critical and dimmer than a decorative chip, so "disconnected" reads
-  // as faded rather than alarming.
+  // Data gone reads as faded, dimmer than a decorative chip, rather than alarming.
   offline: css`
     background: transparent;
     border-color: ${pillColor("offline")};

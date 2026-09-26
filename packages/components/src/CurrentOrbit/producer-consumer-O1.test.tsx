@@ -7,13 +7,7 @@ import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
-/**
- * A hyperbolic orbit (`ecc >= 1`) has no countdown to a periapsis the view
- * can promise. The neighbouring `t-Ap`/period/Ap rows all carry an explicit
- * `hyperbolic ? NULL_DISPLAY` guard so the operator doesn't read a hyperbolic
- * flyby as an imminent event, and `t-Pe` carries the same guard: this test pins
- * that it renders the null-display placeholder, never a `0s` countdown.
- */
+/** A hyperbolic orbit's t-Pe renders the null placeholder, never a `0s` countdown that reads as an imminent event. */
 const CURRENT_ORBIT_CHANNELS = [
   "vessel.orbit",
   "vessel.identity",
@@ -39,9 +33,7 @@ describe("CurrentOrbit: O1, t-Pe shows the null-display placeholder on a hyperbo
     );
 
     act(() => {
-      // A hyperbolic escape trajectory: ecc 1.4 (> 1), sma negative as KSP
-      // reports for an open orbit. Drives `hyperbolic` true off vessel.orbit
-      // and nulls the derived timeToPe.
+      // sma is negative for an open orbit, as KSP reports it.
       stream.emit(
         "vessel.orbit",
         {

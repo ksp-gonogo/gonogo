@@ -12,9 +12,6 @@ describe("burnConformance", () => {
     expect(c.phase).toBe("in-progress");
   });
 
-  // A single sample cannot tell a 300 m/s burn with 300 to go from a 1000 m/s
-  // burn with 300 to go, and those conform very differently. Without a planned
-  // figure the honest answer is that we do not know.
   it("is unknown without a planned figure, never a confident zero", () => {
     const c = burnConformance(300, null);
 
@@ -35,9 +32,7 @@ describe("burnConformance", () => {
     expect(c.deliveredFraction).toBeGreaterThan(0.99);
   });
 
-  // KSP recomputes a node's remaining delta-v against the live orbit, so it can
-  // exceed the largest figure seen so far. Clamping planned UP keeps delivered
-  // from going negative, which would render as a burn that un-burned itself.
+  // KSP recomputes remaining delta-v against the live orbit, so it can exceed the largest figure seen.
   it("never reports negative delivery when remaining exceeds the max seen", () => {
     const c = burnConformance(400, 300);
 
@@ -49,20 +44,11 @@ describe("burnConformance", () => {
   it("shares one threshold with the completion tracker", async () => {
     const tracker = await import("./BurnCompletionTracker");
 
-    // Not a tautology: the two surfaces must not be able to disagree about
-    // whether the SAME burn finished, and a second literal here is exactly how
-    // they would drift.
+    // Not a tautology: a second literal is how the two surfaces would drift apart.
     expect(DELIVERED_THRESHOLD_DV).toBe(tracker.COMPLETED_THRESHOLD_DV);
   });
 });
 
-// ---------------------------------------------------------------------------
-// stopped-short: the phase the thrust latch exists to make reachable.
-//
-// It was declared and documented before it was wired, so nothing could return
-// it and nothing tested it. These come first, and they were watched failing
-// against that state.
-// ---------------------------------------------------------------------------
 describe("burnConformance with the thrust latch", () => {
   const latch = (lastThrustEndUt: number | null, thrusting = false) => ({
     lastThrustEndUt,
@@ -75,9 +61,6 @@ describe("burnConformance with the thrust latch", () => {
     expect(c.phase).toBe("stopped-short");
   });
 
-  // The label says what is KNOWN. It does not say the burn was under-flown,
-  // because a burn paused to be re-planned and a burn abandoned produce the
-  // same reading, and the difference is whether the operator comes back.
   it("does not claim a shortfall once the burn is delivered", () => {
     const c = burnConformance(0.1, 300, latch(500));
 
@@ -88,23 +71,16 @@ describe("burnConformance with the thrust latch", () => {
     expect(burnConformance(120, 300, latch(null)).phase).toBe("in-progress");
   });
 
-  // Absent is not "engines off". A craft whose propulsion channel has not
-  // arrived would otherwise have every burn on its plan announced as stopped
-  // short of its target.
   it("treats a missing latch as no observation, never as a cessation", () => {
     expect(burnConformance(120, 300, undefined).phase).toBe("in-progress");
     expect(burnConformance(120, 300, null).phase).toBe("in-progress");
   });
 
-  // A burn never started cannot have been stopped short of anything.
   it("does not call an untouched burn stopped-short", () => {
     expect(burnConformance(300, 300, latch(500)).phase).toBe("not-started");
   });
 
-  // ThrustObserver does NOT clear lastThrustEndUt when the engines relight, so
-  // a check on that field alone reports "stopped" while the craft is actively
-  // burning. `thrusting` is what separates them, which is why the observation
-  // carries both.
+  // lastThrustEndUt survives a relight; only `thrusting` separates a restarted burn.
   it("is not stopped-short while the craft is burning again", () => {
     const c = burnConformance(120, 300, latch(500, true));
 

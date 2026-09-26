@@ -10,12 +10,9 @@ import { INVOKE_PART_ACTION_COMMAND } from "./PartActionMenu";
 import { PART_ACTIONS_TOPIC_PREFIX, partActionsTopic } from "./usePartActions";
 
 /**
- * PAW part actions on the ShipMap, end to end through the real pipeline: a real
- * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` over `StubTransport`, the
- * real widget, the real per-part dynamic topic, and the real delayed command.
- * Nothing internal is mocked, only the wire is stubbed (the project's testing
- * philosophy), and `StubTransport.emit` only delivers to topics something
- * actually subscribed, so these tests also prove the subscription really happens.
+ * PAW part actions end to end: real provider, client, store, widget, dynamic
+ * per-part topic and delayed command over `StubTransport`, which delivers
+ * only to subscribed topics, so the subscription is proven too.
  */
 
 const TOPOLOGY = fuellinePostStage2["v.topology"] as VesselTopology;
@@ -51,9 +48,7 @@ function partActionsWire(
 
 async function renderDiagram() {
   const fixture = setupStreamFixture({
-    // The part-action namespace is carried as a `.`-terminated PREFIX: the
-    // per-part keys are computed at interaction time and can never be
-    // enumerated up front, which is the whole reason the prefix form exists.
+    // Carried as a `.`-terminated prefix: per-part keys cannot be enumerated up front.
     carriedChannels: [
       "vessel.parts",
       PART_ACTIONS_TOPIC_PREFIX,
@@ -113,10 +108,7 @@ describe("ShipMap: PAW part actions", () => {
   });
 
   it("draws the menu outside the widget, not inside its clipping container", async () => {
-    // The widget's Panel clips with `overflow: hidden`, so a menu rendered as a
-    // descendant of the diagram lost its lower items on a small tile, outside
-    // its own scroll box where nothing could reveal them. It is portalled to the
-    // body instead: being no descendant of the diagram IS the fix.
+    // The Panel clips with overflow hidden, so the menu must be portalled out of the diagram.
     const user = userEvent.setup();
     const { fixture, view } = await renderDiagram();
 
@@ -154,7 +146,7 @@ describe("ShipMap: PAW part actions", () => {
     const sent = fixture.transport.sentCommands;
     expect(sent).toHaveLength(1);
     expect(sent[0].command).toBe(INVOKE_PART_ACTION_COMMAND);
-    // The wire keys by the STRINGIFIED flightID, the same form vessel.parts stamps: the diagram holding it as a number is its own business.
+    // The wire keys by the stringified flightID, the form vessel.parts stamps.
     expect(sent[0].args).toEqual({
       partId: String(PART_FLIGHT_ID),
       eventName: "ToggleSolarPanel",
@@ -176,10 +168,10 @@ describe("ShipMap: PAW part actions", () => {
     });
 
     const item = await screen.findByRole("menuitem", { name: /Deploy/ });
-    // aria-disabled rather than the native attribute: a natively-disabled button cannot take focus, so it would drop out of the keyboard walk entirely.
+    // aria-disabled, not the native attribute, so the item stays in the keyboard walk.
     expect(item.getAttribute("aria-disabled")).toBe("true");
 
-    // And firing it does nothing: a disabled PAW button is inert in-game too.
+    // Firing it does nothing, as in-game.
     await user.click(item);
     expect(fixture.transport.sentCommands).toHaveLength(0);
   });
@@ -189,7 +181,7 @@ describe("ShipMap: PAW part actions", () => {
     const { fixture } = await renderDiagram();
 
     const part = partElement();
-    // Focusing a part is a state change in the diagram (hover/focus highlight), so the raw DOM call needs the act scope a user-event gesture would bring.
+    // Focus changes diagram state, so the raw DOM call needs an act scope.
     act(() => {
       part.focus();
     });
@@ -200,9 +192,7 @@ describe("ShipMap: PAW part actions", () => {
         partActionsWire([{ name: "Deploy", label: "Deploy" }]),
       );
     });
-    // Wait for the menu to own focus, not merely to exist: it opens empty while
-    // the action list is still in transit, and Escape is handled by bubbling out
-    // of the menu, so pressing it before focus lands would go to the part.
+    // Wait for the menu to own focus: Escape bubbles out of the menu, so pressed early it would go to the part.
     const menu = await screen.findByRole("menu");
     await waitFor(() =>
       expect(menu.contains(document.activeElement)).toBe(true),
@@ -231,7 +221,7 @@ describe("ShipMap: PAW part actions", () => {
   });
 
   it("says a part is still awaiting its list rather than reporting no actions", async () => {
-    // Under signal delay the list arrives a light-time after the popover opens; an empty menu and an unanswered subscription are different facts.
+    // Under delay the list arrives a light-time after the popover opens.
     const user = userEvent.setup();
     await renderDiagram();
 

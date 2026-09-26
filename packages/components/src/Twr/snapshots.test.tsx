@@ -9,11 +9,6 @@ import standard from "./__fixtures__/standard-launch-ok.json";
 import vacuumLow from "./__fixtures__/vacuum-low-nogo.json";
 import { TwrComponent } from "./index";
 
-/**
- * DOM snapshots off the stream pipeline, driven by each fixture's own
- * `_stream` block.
- */
-
 const FIXTURES: Record<string, Record<string, unknown>> = {
   "standard-launch-ok": standard,
   "atmosphere-ascent-ok": atmosphereAscent,

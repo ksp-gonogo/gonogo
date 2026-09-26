@@ -8,20 +8,9 @@ import preLaunch from "./__fixtures__/pre-launch-mixed.json";
 import { LaunchDirectorComponent } from "./index";
 
 /**
- * LaunchDirector's stream render golden. This began life as a
- * legacy-`DataSource`↔stream byte-identical dual-run (comparing
- * `career.funds`/`kc.savedShips`/`kc.crewRoster` streamed against every
- * other fixture key staying legacy); with the widget now reading its WHOLE
- * pre-launch state off canonical Topics (`spaceCenter.savedShips`/
- * `spaceCenter.crewRoster`/`career.status`/`spaceCenter.scene`/
- * `spaceCenter.launchSites`), there is no legacy read path left to compare
- * against: same "the legacy leg is gone" story as
- * `WarpControl/dual-run.test.tsx`'s own doc comment. What remains proves the
- * widget renders the full pre-launch state correctly off the real stream
- * pipeline (`TelemetryProvider` + `TelemetryClient`/`TimelineStore`), using
- * the SAME `pre-launch-mixed` fixture the DOM-snapshot suite covers, driven off
- * that fixture's own `_stream` block so the two specs cannot disagree about
- * what the fixture says.
+ * LaunchDirector's stream render golden: the full pre-launch state off the real
+ * stream pipeline, driven by the `pre-launch-mixed` fixture's own `_stream`
+ * block so this and the DOM-snapshot suite cannot disagree.
  */
 const STREAM = preLaunch._stream;
 
@@ -63,10 +52,7 @@ describe("LaunchDirector: stream render golden (delay=0)", () => {
     expect(scope.getByText("Woomerang")).toBeTruthy();
     expect(scope.getAllByText("Occupancy unreported")).toHaveLength(2);
 
-    // The first pad opens on its own, and offers the craft that come out of the
-    // VAB: the funds-blocked one is tagged, and its value and funds marker are
-    // separate elements now, so this matches the bare number and asserts the
-    // announced text on the element itself.
+    // The first pad opens on its own with its VAB craft; the funds-blocked one is tagged, its value and marker separate elements.
     expect(scope.getByText("Mun Hopper I")).toBeTruthy();
     expect(scope.getByText("180,000").textContent).toBe("180,000f funds");
     expect(scope.getByText(/Craft · 1\/2 ready/)).toBeTruthy();

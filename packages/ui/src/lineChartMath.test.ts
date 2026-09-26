@@ -38,7 +38,6 @@ describe("niceTicks", () => {
 
   it("falls back to bounds when min equals max with count < 2 effective ticks", () => {
     const ticks = niceTicks(5, 5, 5);
-    // All 5 entries are 5
     expect(ticks).toHaveLength(5);
     expect(new Set(ticks)).toEqual(new Set([5]));
   });
@@ -55,20 +54,13 @@ describe("buildPath", () => {
     );
   });
 
-  // A break is a span the chart HAS NO READINGS FOR: a blackout, or a
-  // recording whose oldest span overran the recorder. Joined across, it draws a
-  // straight line the operator cannot tell from data, which is the one thing
-  // this chart must never do. A fresh `M` is what stops it.
+  // Joined across a break, the line would be indistinguishable from data.
   it("starts a new subpath at a break index instead of joining across it", () => {
     expect(buildPath([0, 1, 2, 3], [0, 10, 20, 30], id, id, [2])).toBe(
       "M0.00,0.00 L1.00,10.00 M2.00,20.00 L3.00,30.00",
     );
   });
 
-  /**
-   * A run of one sample is still a reading. A bare `M` strokes nothing, so a
-   * series broken at every index would draw an empty chart over data it has.
-   */
   it("draws a sample between two breaks as a dot", () => {
     expect(buildPath([0, 1, 2], [0, 10, 20], id, id, [1, 2])).toBe(
       "M0.00,0.00 L0.00,0.00 M1.00,10.00 L1.00,10.00 M2.00,20.00 L2.00,20.00",
@@ -84,7 +76,6 @@ describe("buildPath", () => {
 
 describe("buildStepPath", () => {
   it("holds Y until the next X then jumps", () => {
-    // Three samples: y starts at 0, rises to 5, falls to 2.
     const path = buildStepPath([0, 1, 2], [0, 5, 2], id, id);
     expect(path).toBe("M0.00,0.00 H1.00 V5.00 H2.00 V2.00");
   });
@@ -98,12 +89,7 @@ describe("buildStepPath", () => {
     expect(buildStepPath([], [], id, id)).toBe("");
   });
 
-  /**
-   * The step builder needs the break too, and needs it MORE than the line
-   * builder does: a step holds its value across the gap, so joining across a
-   * blackout asserts the state did not change while out of contact, which is
-   * exactly what nobody knows.
-   */
+  // Holding across a blackout would assert the state did not change while out of contact.
   it("starts a new subpath at a break index instead of holding across it", () => {
     expect(buildStepPath([0, 1, 2], [0, 5, 2], id, id, [2])).toBe(
       "M0.00,0.00 H1.00 V5.00 M2.00,2.00 L2.00,2.00",
@@ -177,13 +163,7 @@ describe("niceLogTicks", () => {
   });
 });
 
-/**
- * `breaks` says what the trace has NO readings for; a span says which of its
- * readings did not arrive live. They answer different questions and a chart
- * needs both: a run drawn identically to the live one claims the craft was in
- * contact throughout, which is the falsehood the blackout model exists to
- * stop.
- */
+/** A run drawn identically to the live one would claim the craft was in contact throughout. */
 describe("buildSegmentedPath", () => {
   it("returns one whole-series run when nothing is spanned", () => {
     expect(
@@ -202,17 +182,13 @@ describe("buildSegmentedPath", () => {
       [{ from: 2, to: 3, status: "recorded" }],
     );
     expect(segments.map((s) => s.status)).toEqual([undefined, "recorded"]);
-    // The joining segment belongs to the RUN IT ENTERS, drawn once: the newer
-    // endpoint is the newer provenance. Without the reach-back the line would
-    // have a one-segment hole between the two runs that means nothing.
+    // The joining segment is drawn once, in the style of the run it enters.
     expect(segments[0].d).toBe("M0.00,0.00 L1.00,10.00");
     expect(segments[1].d).toBe("M1.00,10.00 L2.00,20.00 L3.00,30.00");
   });
 
   it("does not reach back across a break", () => {
-    // The recorder overran: the trace has a hole AND resumes on recorded data,
-    // which is the real reacquisition shape. Nothing joins into index 2, so the
-    // recorded run must not borrow the sample before it.
+    // Nothing joins into a break index, so the recorded run must not borrow the sample before it.
     const segments = buildSegmentedPath(
       [0, 1, 2, 3],
       [0, 10, 20, 30],
@@ -285,13 +261,12 @@ describe("buildSegmentedPath", () => {
       undefined,
       "kepler-propagation",
     ]);
-    // Same reach-back as a status run: the joining segment lands in the run it enters, so the line does not lose a segment at the handover.
     expect(segments[0].d).toBe("M0.00,0.00 L1.00,10.00");
     expect(segments[1].d).toBe("M1.00,10.00 L2.00,20.00 L3.00,30.00");
   });
 
   it("cuts on a reckoning change even where the stream status is unchanged", () => {
-    // A run that is recorded throughout and reckoned onward from its midpoint is two DRAWABLE runs, because only the second is muted and dashed.
+    // Only the reckoned half is muted and dashed, so this is two drawable runs.
     const segments = buildSegmentedPath(
       [0, 1, 2, 3],
       [0, 10, 20, 30],
@@ -358,11 +333,6 @@ describe("buildUncertaintyRegions", () => {
     );
   });
 
-  /*
-   * One region per run rather than one for the tail. A fill spanning two runs
-   * would bridge a basis change, and where a run was cut by a dropped sample
-   * it would bridge a stretch nothing answered for.
-   */
   it("keeps two runs as two regions rather than joining them", () => {
     const regions = buildUncertaintyRegions(
       [0, 1, 2, 3],
@@ -402,7 +372,6 @@ describe("chordDeparts", () => {
     expect(chordDeparts([0, 1], [0, 4], bridge([1, 2, 3]), id, id)).toBe(false);
   });
 
-  /** In the chart's pixels: the same departure is invisible on a wider axis. */
   it("forgives a departure smaller than a pixel", () => {
     const squeezed = (v: number) => v / 10;
     expect(chordDeparts([0, 1], [0, 0], bridge([5, 5, 5]), id, id)).toBe(true);

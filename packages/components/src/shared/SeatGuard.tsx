@@ -13,18 +13,9 @@ export interface SeatGuardProps {
 }
 
 /**
- * Refuses a ground instrument a place on the pilot's screen, and says why.
- *
- * This is a RENDER gate and not a picker filter, because a picker filter is
- * bypassed by every other path that puts an item in `items[]`: mission-profile
- * replace, scene auto-switch with no user action at all, backup restore, raw
- * localStorage, and peer widget-push, by which mission control could put a
- * space-centre widget straight onto a pilot's dashboard. The picker filter is
- * the cosmetic half of the same rule.
- *
- * It SAYS why rather than blanking, the same choice `RequiresGuard` makes and
- * in the same chrome: a widget that silently vanishes reads as a bug, and a
- * pushed widget that silently vanishes reads as the push having failed.
+ * Refuses a ground instrument a place on the pilot's screen, and says why. A
+ * render gate, not a picker filter, because profiles, restores and peer pushes
+ * all place widgets without the picker.
  */
 export function SeatGuard({ def, children }: SeatGuardProps) {
   const seat = useSeat();

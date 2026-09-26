@@ -22,54 +22,17 @@ const STOCK_GROUPS_ALL_OFF = Array.from({ length: 10 }, (_, i) => ({
 }));
 
 /**
- * The command-table proof for Navball's control surface, covering the
- * DISTINCT `map-command.ts`-shaped arg bridges it exercises (the widget
- * code proves each one dispatches with the right envelope, not a re-
- * derivation of `map-command.test.ts`'s own coverage):
- *
- * 1. **toggle to absolute**: the SAS ON/OFF button dispatches
- *    `vessel.control.setSas` directly via `useCommand`, the same bridge shape
- *    `ActionGroup` uses, built off the already-known live `sas` value rather
- *    than a `mapCommand` current-value sample. Unconditional: no
- *    carried-channels gate, no legacy `DataSource` fallback (see `toggleSas` in
- *    index.tsx).
- * 2. **positional to named enum**: a SAS-mode button dispatches
- *    `vessel.control.setSasMode` directly via `useCommand`, the mode name
- *    resolved to its wire ordinal by `sasModeOrdinal`, which reads the
- *    generated enum rather than counting `SAS_MODES`' array positions (see
- *    `setSasMode` in index.tsx). Also unconditional.
- * 3. **continuous, delayed control-stream**: the throttle ZERO button.
- *    Throttle rides `useControlStream`: the button sets local commanded state,
- *    and the hook's coalesced write half dispatches
- *    `vessel.control.setThrottle` on its own 10 Hz tick. Unconditional too,
- *    the same as bridges 1 and 2: no carried-channels gate and no legacy
- *    `DataSource` fallback.
- * 4. **nullable-partial field set**: each trim action dispatches
- *    `vessel.control.setAxes` carrying ONLY its own field. Trim is the one
- *    fly-by-wire input with no `[SitrepControlChannel]` (the contract has the
- *    write fields but no trim readback), so unlike `set-pitch`/`set-yaw`/
- *    `set-roll`/`translate-*` it cannot ride `useControlStream` and dispatches
- *    the command directly.
- *
- * `arm-fbw`/`disarm-fbw` (`vessel.control.setFlyByWire`) migrated alongside
- * SAS/SAS-mode (same discrete-command shape) but aren't separately proven in
- * this file; `Twr` (the other Navball/Twr command-validation candidate)
- * declares `actions: []`: no command surface at all to validate.
- *
- * Every test renders Navball in `controlMode: true` at a size that clears
- * `showControlSurface`'s gate (rows>=18, cols>=7) so the real DOM buttons
- * are present.
+ * Each control-surface bridge dispatches the right command envelope: SAS toggle
+ * to an absolute `setSas`, a SAS-mode button to its contract ordinal, throttle
+ * through the coalesced control stream, and each trim as a `setAxes` carrying
+ * only its own field (trim has no readback, so it cannot ride the stream).
  */
 const CONTROL_MODE_CONFIG = { controlMode: true };
+// Large enough to clear the control surface's size gate.
 const CONTROL_SIZE = { w: 10, h: 20 };
 
 beforeEach(() => {
-  // Navball registers ~30 actions via useActionInput on every mount, this
-  // file mounts it 6 times (one per test) inside the same 1000ms rolling
-  // window the `useActionInput register/sec` PerfBudget (threshold 50)
-  // tracks, which would trip on the 2nd mount alone. Reset before each test,
-  // the codebase's established idiom for this exact repeated-mount shape
-  // (see Navball/dual-run.test.tsx, useActionInput.test.tsx).
+  // Each mount registers ~30 actions, so back-to-back mounts would trip the register/sec budget.
   PerfBudget.getAll()
     .find((b) => b.name.startsWith("useActionInput register"))
     ?.reset();
@@ -109,7 +72,6 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
 
     renderControlNavball("nav-cmd-sas", fixture.Provider);
 
-    // Live SAS = true, so a click should invert it to `enabled: false`.
     act(() => {
       fixture.emit("vessel.control", {
         sas: true,
@@ -123,9 +85,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
       });
     });
 
-    // "SAS: SAS" rather than a bare "SAS ON": the payload names StabilityAssist
-    // as the held mode, and the toggle reports the mode the wire carries. The
-    // stutter is deliberate, see `badgeSasMode`.
+    // The toggle names the held mode, StabilityAssist, so "SAS: SAS" is not a stutter.
     const button = await screen.findByRole("button", { name: "SAS: SAS" });
     act(() => {
       button.click();
@@ -139,10 +99,6 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
   });
 
   it("SAS toggle still dispatches vessel.control.setSas even when the command topic isn't in the carried allowlist", async () => {
-    // useCommand (delayed-command-ux migration) dispatches unconditionally
-    // via the client: no carried-channels gate, no legacy DataSource
-    // fallback. Proves the carried allowlist genuinely stopped mattering for
-    // this bridge.
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.control"],
       pinnedUt: 0,
@@ -166,9 +122,6 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
       });
     });
 
-    // "SAS: SAS" rather than a bare "SAS ON": the payload names StabilityAssist
-    // as the held mode, and the toggle reports the mode the wire carries. The
-    // stutter is deliberate, see `badgeSasMode`.
     const button = await screen.findByRole("button", { name: "SAS: SAS" });
     act(() => {
       button.click();
@@ -192,7 +145,6 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
 
     renderControlNavball("nav-cmd-mode", fixture.Provider);
 
-    // No current-value read needed for this bridge (positional -> named, not toggle -> absolute): the button is live from first render.
     const button = await screen.findByRole("button", { name: "PRO" });
     act(() => {
       button.click();
@@ -230,7 +182,6 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
 
   it("throttle ZERO button drives vessel.control.setThrottle to 0 via the delayed control-stream (bridge 3: continuous, unconditional)", async () => {
     const fixture = setupStreamFixture({
-      // Deliberately NOT carrying vessel.control.setThrottle: proves the control-stream's write half is unconditional, same as bridges 1/2.
       carriedChannels: ["vessel.control"],
       pinnedUt: 0,
       suspendFrames: true,
@@ -240,9 +191,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
 
     renderControlNavball("nav-cmd-thr", fixture.Provider);
 
-    // FULL first so ZERO's dispatch is unambiguously caused by the click,
-    // not just the coalesced write half's unconditional first-tick echo of
-    // the already-0 default commanded state.
+    // FULL first, so a 0 can only come from the ZERO click.
     const fullButton = await screen.findByRole("button", { name: "FULL" });
     act(() => {
       fullButton.click();
@@ -323,10 +272,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
 
     renderControlNavball("nav-cmd-trim", fixture.Provider);
 
-    // Trim has no on-screen control: it is a serial-input action, so the test
-    // fires it the way a mapped device would. `setAxes` is a nullable-partial,
-    // so each trim must send ONLY its own field, never a zero-padded triple
-    // that would clobber a live axis.
+    // Trim is input-only; a zero-padded triple would clobber a live axis.
     const { dispatchAction } = await import("@ksp-gonogo/core");
     for (const [action, field, value] of [
       ["set-pitch-trim", "pitchTrim", 0.25],
@@ -387,7 +333,7 @@ describe("Navball commands nothing it was not asked to", () => {
     );
   }
 
-  /** Several coalescing ticks of the control stream (10 Hz), held inside act so the widget's updates stay in scope. */
+  /** Several 10 Hz control-stream ticks, held inside act. */
   async function letTheStreamTick(): Promise<void> {
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 450));

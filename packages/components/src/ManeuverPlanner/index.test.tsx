@@ -19,12 +19,7 @@ import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
 
-// Rendered trees, tracked so each describe's afterEach can unmount them BEFORE
-// disconnecting the legacy source or clearing the augment registry. RTL
-// auto-cleanup runs after this file's afterEach, so it can't be relied on to
-// unmount first: buffered.disconnect()/clearAugments() firing on a
-// still-mounted widget is a state update outside act(), the documented
-// anti-pattern in CLAUDE.md.
+// Unmounted before disconnect() or clearAugments(), which would otherwise notify a mounted tree outside act().
 const renderedTrees: Array<() => void> = [];
 
 function render(ui: ReactElement) {
@@ -38,65 +33,33 @@ function unmountAll() {
   renderedTrees.length = 0;
 }
 
-// Captured at import: before any `clearRegistry` in a beforeEach wipes the module-load `registerComponent`, so the augment-slot metadata is intact.
+// Captured at import, before a beforeEach's clearRegistry wipes the module-load registration.
 const maneuverPlannerDef = getComponent("maneuver-planner");
 
-/*
- * currentUT reads off `useViewUt()`, so this pins a minimal
- * `TelemetryProvider` at the same UT the tests' `t.universalTime` emits carry.
- * `vessel.orbit` is carried so the trigger editor's key picker offers its
- * fields, which the trigger tests threshold on.
- */
+// Carries `vessel.orbit` so the trigger editor's key picker offers the fields the trigger tests threshold on.
 const UT_FIXTURE_VALUE = 1_000_000;
 const utFixture = setupStreamFixture({
   carriedChannels: ["vessel.orbit"],
   pinnedUt: UT_FIXTURE_VALUE,
-  /*
-   * Every test here drives the widget through `userEvent`, and each keystroke is
-   * an `act()` that has to see an empty React queue to return. The clock's own
-   * loop mints a frame every 16ms forever, so on a loaded machine the queue is
-   * never empty and the test spends its whole 30s budget waiting. Frames come
-   * from the emits and `flushViewUt` instead.
-   */
+  // A free-running frame loop never lets a userEvent act() see an empty queue; frames come from emits and flushViewUt.
   suspendFrames: true,
 });
 
-/**
- * Reconstructs the legacy `o.addManeuverNode[...]` action string from a
- * dispatched `{command, args}` pair, lets the trigger-fire tests below keep
- * asserting the same `.toMatch(/^o\.addManeuverNode\[/)` shape even though
- * `LocalManeuverTriggerService.fire()` now dispatches through the stream
- * (`dispatchActiveCommand`) instead of the legacy `DataSource.execute`.
- */
+/** Formats a dispatched `vessel.maneuver.add` as one comparable string. */
 function formatManeuverAddCommand(args: unknown): string {
   const a = commandArgs<"vessel.maneuver.add">(args);
   return `o.addManeuverNode[${a?.ut},${a?.radialOut},${a?.normal},${a?.prograde}]`;
 }
 
-// `StubTransport.emit` only delivers a topic once something has actually
-// subscribed (the realistic "proves ref-counted subscribe happened" gate,
-// see its own doc comment). No widget in THIS test reads `vessel.orbit`/
-// `vessel.identity`/`system.bodies` reactively (`LocalManeuverTriggerService`'s
-// non-hook accessors sample the store directly, with no subscription of
-// their own: see `sampleActiveTopic`'s doc comment in `sitrep-client`), so
-// this stands in for "some other live widget already has it subscribed",
-// the same assumption production relies on. `system.bodies` feeds the conic
-// the trigger service plans against, so a fired trigger needs it.
+// StubTransport delivers only to subscribed channels, and the trigger service's non-hook reads subscribe to nothing.
 utFixture.client.subscribe("vessel.orbit", () => {});
 utFixture.client.subscribe("vessel.identity", () => {});
 utFixture.client.subscribe("system.bodies", () => {});
 
 /**
- * One frame, so a quantity that only moves on a frame tick (`useViewUt`, the
- * derived channels, the trigger service's re-evaluation) reaches the render.
- * Call this after emitting on the LEGACY source, whose values arrive through a
- * `DataSource` subscription rather than the stream, or after advancing time.
- *
- * A stream emit does not need it: this file's fixtures suspend the clock's own
- * loop, and a suspended fixture mints the frame that publishes each emit. This
- * used to wait two real animation frames for the loop to get round to it, which
- * is the wait that put the whole file at the mercy of how loaded the machine
- * was.
+ * One frame, so frame-driven quantities (view UT, the trigger service's
+ * re-evaluation) reach the render. Needed after a legacy-source emit or a time
+ * advance; a stream emit mints its own frame.
  */
 async function flushViewUt(): Promise<void> {
   await act(async () => {
@@ -104,16 +67,7 @@ async function flushViewUt(): Promise<void> {
   });
 }
 
-/**
- * ManeuverPlanner component test.
- *
- * The orbital math (circularize/match-plane/etc.) is covered exhaustively in
- * packages/core/src/calc/maneuver.test.ts. This test exercises the widget
- * shell: waiting → ready transitions and the planned-node list. We drive a
- * real BufferedDataSource (not mocks of our own hooks) to catch regressions
- * in how data flows into the widget.
- */
-
+// The widget shell over a real BufferedDataSource; the orbital math has its own tests in core.
 const KEYS: DataKey[] = [
   { key: "v.name" },
   { key: "v.missionTime" },
@@ -144,20 +98,7 @@ const KEYS: DataKey[] = [
   { key: "dv.summary" },
 ];
 
-/**
- * `LocalManeuverTriggerService` (the trigger-editor's fallback service,
- * since this test never supplies a `providedTriggerService`) now reads its
- * OWN orbit/target/vessel-identity fields off the stream
- * (`getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()`) instead of the legacy `o.*`/`tar.o.*`/`v.name` keys,
- * see that file's own doc comment. The widget's own DISPLAYED numbers still
- * come from the legacy `o.*` emits above (unmigrated `useDataValue` reads),
- * so the two don't need to match exactly; this just needs to be a
- * self-consistent Keplerian orbit so `computePlan`'s circularize-apo preset
- * (the only preset a trigger-armed test exercises) has real numbers to work
- * with. `meanAnomalyAtEpoch: 0` + `epoch: UT_FIXTURE_VALUE` puts the vessel
- * at periapsis exactly at the pinned view-UT, matching `o.trueAnomaly: 0`
- * above for a coherent (if not byte-identical) picture.
- */
+/** A self-consistent Keplerian orbit, at periapsis exactly at the pinned view UT. */
 const VESSEL_ORBIT_STREAM_FIXTURE = {
   referenceBodyIndex: 1,
   sma: 700000,
@@ -169,9 +110,7 @@ const VESSEL_ORBIT_STREAM_FIXTURE = {
   epoch: UT_FIXTURE_VALUE,
   mu: 3.5316e12,
   patches: [],
-  /* The reach and shape a live sample states. Without them nothing vouches for
-     these elements being a conic, the model over them withdraws, and the
-     apsides and countdowns solved from them are absent along with it. */
+  // Without a stated horizon the model withdraws, and the apsides solved from it go with it.
   horizon: ANALYTIC_UNBOUNDED_HORIZON,
 };
 
@@ -182,14 +121,7 @@ const VESSEL_IDENTITY_STREAM_FIXTURE = {
   situation: 0,
 };
 
-/**
- * `o.maneuverNodes` (behind `useManeuverNodes`) now reads the
- * `vessel.maneuver.legacy` derived channel off the real `vessel.maneuver`
- * wire topic: no legacy fallback of its own. `id` defaults to a plain
- * positional-index string (not a real guid) since most callers below only
- * care about the node's DELTA-V shape, not its id round-trip (that's
- * covered end-to-end, with a real guid, by `stream.test.tsx`).
- */
+/** Emits `vessel.maneuver`; `id` defaults to the node's index, since most callers care only about its delta-v. */
 function emitManeuverNode(
   nodes: Array<{
     id?: string;
@@ -207,21 +139,14 @@ function emitManeuverNode(
       dvNormal: n.dvNormal ?? 0,
       dvPrograde: n.dvPrograde ?? 0,
       dvTotal: Math.hypot(n.dvRadial ?? 0, n.dvNormal ?? 0, n.dvPrograde ?? 0),
-      // Stated, because `StockManeuverPlanBackend` states it. The three slots
-      // are positional and the basis is what names them, so a fixture that
-      // leaves it out is sending a node the stock producer never sends, and the
-      // editor rightly declines to put stock's words on one.
+      // The stock producer always states the basis that names the three positional slots.
       frame: ManeuverFrame.RadialNormalPrograde,
       patches: [],
     })),
   });
 }
 
-/**
- * `bodyName` is the name `system.bodies` reports at index 1, and defaults to the
- * stock one. A planet pack changes it and nothing else: the index, the radius
- * and every element stay put, which is exactly the case a name lookup misses.
- */
+/** `bodyName` is the name reported at index 1; a planet pack changes only that, which a name lookup misses. */
 function emitFullOrbit(source: MockDataSource, bodyName = "Kerbin"): void {
   source.emit("comm.connected", true);
   source.emit("v.name", "Test Vessel");
@@ -243,12 +168,7 @@ function emitFullOrbit(source: MockDataSource, bodyName = "Kerbin"): void {
   source.emit("o.orbitalSpeed", 2300);
   source.emit("o.radius", 700000);
   source.emit("t.universalTime", 1_000_000);
-  /*
-   * Stream leg: see the doc comment above. The trigger tests threshold on this
-   * orbit's `sma` (700_000), read by `LocalManeuverTriggerService` through
-   * `getValue`, and plan against the conic over it, which needs
-   * `system.bodies` for Kerbin's radius.
-   */
+  // The trigger tests threshold on this orbit's sma and plan against its conic, which needs the body radius.
   utFixture.emit("vessel.orbit", VESSEL_ORBIT_STREAM_FIXTURE);
   utFixture.emit("vessel.identity", VESSEL_IDENTITY_STREAM_FIXTURE);
   utFixture.emit("system.bodies", {
@@ -288,21 +208,11 @@ describe("ManeuverPlannerComponent", () => {
       </utFixture.Provider>,
     );
     expect(screen.getByText(/Awaiting orbit telemetry/i)).toBeInTheDocument();
-    // No wire keys on an operator surface: the panel used to list the data
-    // keys it was waiting on, which named a transport this widget stopped
-    // reading at the Sitrep migration.
+    // No wire keys on an operator surface.
     expect(screen.queryByText(/o\.sma|t\.universalTime/)).toBeNull();
-    // O5: the plain no-data case must NOT show the hyperbolic notice, only a hyperbolic `vessel.orbit.ecc` does that (see the dedicated test below).
     expect(screen.queryByText(/Hyperbolic trajectory/i)).toBeNull();
   });
 
-  // O5: ManeuverPlanner conflated "hyperbolic orbit" with "no data", both
-  // used to fall into the same generic "Waiting for telemetry" empty state
-  // because `buildCurrentOrbit` legitimately returns null on a hyperbolic
-  // orbit (no apoapsis, so ApR/timeToAp come back NaN/null even once real
-  // telemetry has landed). The fix reads the raw `vessel.orbit.ecc` (always
-  // present once the orbit topic arrives, independent of the derived
-  // `currentOrbit`) to tell the two cases apart.
   it("shows a distinct hyperbolic-trajectory notice (not the generic waiting panel) when ecc >= 1", async () => {
     render(
       <utFixture.Provider>
@@ -310,10 +220,7 @@ describe("ManeuverPlannerComponent", () => {
       </utFixture.Provider>,
     );
     act(() => {
-      // Hyperbolic: ecc >= 1, sma conventionally negative. Real telemetry
-      // has arrived (unlike the plain no-data case above), it's just an
-      // orbit shape the planner can't offer circularize/rendezvous presets
-      // for.
+      // Hyperbolic: ecc >= 1, sma conventionally negative.
       utFixture.emit("vessel.orbit", {
         ...VESSEL_ORBIT_STREAM_FIXTURE,
         sma: -700_000,
@@ -354,14 +261,9 @@ describe("ManeuverPlannerComponent", () => {
       emitFullOrbit(source);
       emitManeuverNode([{ ut: 1_000_120, dvRadial: 30 }]);
     });
-    // The derived `vessel.maneuver.legacy` channel only recomputes once the
-    // provider's ingest->beginFrame() rAF tick has run, flush it (a bare
-    // synchronous act() samples a stale frame, which on the shared
-    // module-level utFixture store is whatever the prior test last left).
+    // The node list recomputes on a frame tick, and the shared store otherwise holds the prior test's frame.
     await flushViewUt();
-    // Empty-state copy should be gone.
     expect(screen.queryByText("No maneuver nodes planned.")).toBeNull();
-    // Node list contains a Delete button per-node.
     expect(screen.getByRole("button", { name: /delete/i })).toBeInTheDocument();
   });
 
@@ -373,10 +275,7 @@ describe("ManeuverPlannerComponent", () => {
     );
     act(() => {
       emitFullOrbit(source);
-      // Highly eccentric orbit with non-trivial circularise cost, paired with
-      // a tiny vessel ΔV budget: the planner should refuse the commit.
-      // sma·(1±ecc) -> ApR ≈ 1_000_000 / PeR ≈ 700_000, same numbers the
-      // pre-migration legacy `o.ApR`/`o.PeR` emits carried directly.
+      // ApR about 1_000_000 and PeR about 700_000: a real circularise cost against a tiny budget.
       utFixture.emit("vessel.orbit", {
         ...VESSEL_ORBIT_STREAM_FIXTURE,
         sma: 850000,
@@ -401,9 +300,7 @@ describe("ManeuverPlannerComponent", () => {
           thrustActual: 1,
         },
       ]);
-      // The vessel total is the wire's own figure, not the sum of the rows
-      // above: `dv.stages` is OperatingStageInfo and this is accumulated over
-      // WorkingStageInfo, so the client never adds the rows up.
+      // The vessel total is the wire's own figure, never the sum of the rows above.
       utFixture.emit("dv.summary", {
         stageCount: 1,
         totalDvVac: 25,
@@ -413,11 +310,7 @@ describe("ManeuverPlannerComponent", () => {
     });
     await flushViewUt();
 
-    // Two role="status" live-regions now coexist: the ΔV-shortfall banner
-    // (asserted here) and the title-row stream-status badge (which reads
-    // "OFFLINE" in this no-TelemetryProvider legacy test, since the mock
-    // source reports disconnected without a comm.connected emit). Scope to
-    // the shortfall banner by its text rather than the bare role.
+    // Scoped by text: the title row's stream badge is a second role="status" region.
     const banner = screen
       .getByText(/shortfall/i)
       .closest('[role="status"]') as HTMLElement;
@@ -429,21 +322,7 @@ describe("ManeuverPlannerComponent", () => {
     expect(addBtn).toBeDisabled();
   });
 
-  /*
-   * A SPENT craft, and the case the zero sentinel hid.
-   *
-   * The ΔV total used to be reported as `0` for four different situations: nothing
-   * arrived, the sim confirmed no figure, the reading went stale, and the vessel
-   * genuinely has no ΔV left. The planner read that 0 as "unknown" and set
-   * `feasible = null`, which is RIGHT for the first three and disarms the fourth: null
-   * shows no SHORT chip, and `feasible === false` is the only thing that disables the
-   * commit, so an out-of-fuel craft would accept a plan it cannot fly and say nothing.
-   * `DELTA_V_BUDGET` keeps the two apart with `null` versus a real `0`.
-   *
-   * Its OWN fixture, deliberately. The module-level `utFixture` is shared across this
-   * file and topic values are sticky, so emitting a zero-ΔV budget on it poisons
-   * every later test that expects a dispatchable plan (it did, once).
-   */
+  // Its own fixture: topic values on the shared one are sticky, and a zero budget would block every later dispatch.
   it("refuses the commit for a craft whose budget reports genuinely zero delta-v", async () => {
     const spent = setupStreamFixture({
       carriedChannels: [],
@@ -462,15 +341,11 @@ describe("ManeuverPlannerComponent", () => {
         sma: 850000,
         ecc: 0.1765,
       });
-      /*
-       * The conic over those elements declares the roster as an input, so this
-       * scene carries it too: without it there is no model, no plan, and the
-       * shortfall this test is about never gets asked.
-       */
+      // The conic declares the roster as an input; without it there is no plan to judge.
       spent.emit("system.bodies", {
         bodies: [{ name: "Kerbin", index: 1, radius: 600_000 }],
       });
-      // A real stage list whose ΔV is really zero: a fact about the vessel, not the absence of one.
+      // A real zero: a fact about the vessel, not the absence of one.
       spent.emit("dv.stages", [
         {
           stage: 0,
@@ -490,7 +365,6 @@ describe("ManeuverPlannerComponent", () => {
           thrustActual: 0,
         },
       ]);
-      // A real total that is really zero, which is telemetry about the vessel, and rather emphatic telemetry.
       spent.emit("dv.summary", {
         stageCount: 1,
         totalDvVac: 0,
@@ -523,9 +397,7 @@ describe("ManeuverPlannerComponent", () => {
     buffered = new BufferedDataSource({ source, store: new MemoryStore() });
     registerDataSource(buffered);
     await buffered.connect();
-    // The trigger's fire dispatch now rides `dispatchActiveCommand`, not
-    // the legacy `onExecute` above: capture it off the shared stream
-    // fixture's transport instead (see `formatManeuverAddCommand`).
+    // A fired trigger dispatches over the stream, so it is captured off the transport.
     utFixture.transport.setCommandHandler((command, args) => {
       if (command === "vessel.maneuver.add") {
         calls.push(formatManeuverAddCommand(args));
@@ -543,11 +415,9 @@ describe("ManeuverPlannerComponent", () => {
     });
     await flushViewUt();
 
-    // Open the trigger editor.
     await user.click(screen.getByRole("button", { name: /add node when/i }));
 
-    // Pick the semi-major axis key via the data-key search input. The picker
-    // offers the path the trigger reads from, not a flat alias for it.
+    // The picker offers the path the trigger reads from, not a flat alias for it.
     const picker = screen.getByPlaceholderText("Search telemetry...");
     await user.click(picker);
     await user.type(picker, "vessel.orbit.sma{Enter}");
@@ -559,17 +429,10 @@ describe("ManeuverPlannerComponent", () => {
 
     await user.click(screen.getByRole("button", { name: /^arm$/i }));
 
-    // Armed row visible, no burn dispatched yet.
     expect(visibleText()).toMatch(/vessel\.orbit\.sma >= 800000/);
     expect(calls).toHaveLength(0);
 
-    /*
-     * The orbit grows past the threshold: trigger fires and the burn is
-     * dispatched with the frozen circularize-apo preset. The trigger's
-     * `dataKey` read (`getValue`) samples `vessel.orbit.sma` off the STREAM,
-     * so the crossing has to come from a new `vessel.orbit` emit (sma
-     * 900_000), not the legacy `source.emit` alone.
-     */
+    // The trigger reads sma off the stream, so the crossing has to be a stream emit.
     await act(async () => {
       source.emit("o.ApA", 250000);
       utFixture.emit("vessel.orbit", {
@@ -577,12 +440,10 @@ describe("ManeuverPlannerComponent", () => {
         sma: 900_000,
       });
     });
-    // Let the provider's scheduled `store.beginFrame()` run so the trigger's frame-tick re-evaluation fires.
     await flushViewUt();
 
     expect(calls.length).toBe(1);
     expect(calls[0]).toMatch(/^o\.addManeuverNode\[/);
-    // Armed row removed after firing.
     expect(screen.queryByText(/vessel\.orbit\.sma >= 800000/)).toBeNull();
   });
 
@@ -601,7 +462,6 @@ describe("ManeuverPlannerComponent", () => {
     buffered = new BufferedDataSource({ source, store: new MemoryStore() });
     registerDataSource(buffered);
     await buffered.connect();
-    // See the previous test's identical note: the trigger's fire dispatch rides `dispatchActiveCommand` now, captured off the stream fixture.
     utFixture.transport.setCommandHandler((command, args) => {
       if (command === "vessel.maneuver.add") {
         calls.push(formatManeuverAddCommand(args));
@@ -623,7 +483,7 @@ describe("ManeuverPlannerComponent", () => {
     const picker = screen.getByPlaceholderText("Search telemetry...");
     await user.click(picker);
     await user.type(picker, "vessel.orbit.sma{Enter}");
-    // Threshold below the current sma (700000): should fire on arm.
+    // Below the current sma (700000), so it fires on arm.
     const valueInput = screen.getByLabelText(/^Value$/);
     await user.clear(valueInput);
     await user.type(valueInput, "600000");
@@ -635,16 +495,7 @@ describe("ManeuverPlannerComponent", () => {
   });
 
   it("flashes a completed node green for 10s then auto-removes it from KSP", async () => {
-    // Auto-remove (delayed-command-ux migration) dispatches unconditionally
-    // via `useCommand` against the real stream: no carried-gate, no legacy
-    // fallback, so it's captured off `utFixture`'s command handler, same
-    // pattern the trigger-fire tests above use.
-    //
-    // The stream id is deliberately NOT "0". The stream guid and the legacy
-    // positional index are two different things, and this test cannot tell a
-    // correct guid dispatch apart from a raw-index one unless they disagree:
-    // with `emitManeuverNode`'s default id (String(index)) both produce the
-    // identical assertion.
+    // A guid, not the index-shaped default id, so a raw-index dispatch cannot pass for a correct one.
     const NODE_GUID = "3f2504e0-4f89-11d3-9a0c-0305e82c3301";
 
     const calls: string[] = [];
@@ -666,11 +517,7 @@ describe("ManeuverPlannerComponent", () => {
       act(() => {
         emitFullOrbit(source);
       });
-      // The derived `vessel.maneuver.legacy` channel only recomputes once
-      // `TelemetryProvider`'s ingest->beginFrame() requestAnimationFrame
-      // tick has run (`context.tsx`'s `scheduleFrame`), fake timers (below)
-      // fake `requestAnimationFrame` too, so it needs an explicit advance,
-      // not just a microtask flush.
+      // Fake timers also fake requestAnimationFrame, so the frame tick needs an explicit advance.
       act(() => {
         emitManeuverNode([{ id: NODE_GUID, ut: 1_000_120, dvPrograde: 30 }]);
       });
@@ -678,11 +525,9 @@ describe("ManeuverPlannerComponent", () => {
         await vi.advanceTimersByTimeAsync(20);
       });
 
-      // Initial render: live row shows "30 m/s", not the completion banner.
       expect(visibleText()).toMatch(/30 m\/s/);
       expect(screen.queryByText(/Burn complete/i)).toBeNull();
 
-      // Burn completes: remaining ΔV drops below threshold.
       act(() => {
         emitManeuverNode([{ id: NODE_GUID, ut: 1_000_120, dvPrograde: 0.1 }]);
       });
@@ -690,11 +535,9 @@ describe("ManeuverPlannerComponent", () => {
         await vi.advanceTimersByTimeAsync(20);
       });
 
-      // Green-flash state visible, but no removal call yet.
       expect(screen.getByText(/Burn complete/i)).toBeInTheDocument();
       expect(calls).toHaveLength(0);
 
-      // Advance past the 10 s hold, auto-remove should fire.
       await act(async () => {
         await vi.advanceTimersByTimeAsync(10_000);
       });
@@ -705,14 +548,7 @@ describe("ManeuverPlannerComponent", () => {
     }
   });
 
-  /**
-   * The projected apsides are ALTITUDES, and an altitude is a radius minus the
-   * body's own. The subtrahend used to come from a name lookup in the bundled
-   * table of stock bodies, so under a planet pack it was zero and the row
-   * printed the radius with an altitude's label: 707 km where the craft is at
-   * 107 km. Rendered rather than computed, because `computePlan` is handed a
-   * `bodyRadius` and cannot see where it came from.
-   */
+  // Projected apsides are altitudes, so the body radius subtracted must be the reported one.
   it("subtracts the reported radius from the projected apsides under a rename", async () => {
     render(
       <utFixture.Provider>
@@ -777,7 +613,6 @@ describe("ManeuverPlannerComponent", () => {
     const select = screen.getByRole("combobox") as HTMLSelectElement;
     await user.selectOptions(select, "custom-apo");
 
-    // Find the prograde input by walking up from its label.
     const progradeLabel = screen.getByText("Prograde");
     const progradeInput = progradeLabel.parentElement?.querySelector(
       'input[type="number"]',
@@ -799,11 +634,6 @@ describe("ManeuverPlannerComponent", () => {
 
   it("sends vessel.maneuver.update with edited values via the per-node editor", async () => {
     const user = userEvent.setup();
-    // Edit flow: click Edit on a planned-node row, change the prograde, Save.
-    // Verifies the dispatched args and vector convention: `{nodeId, ut,
-    // radialOut, normal, prograde}`, same convention as add. Dispatch
-    // (delayed-command-ux migration) is unconditional via `useCommand`
-    // against the real stream, captured off `utFixture`'s command handler.
     const calls: Array<{
       nodeId?: string;
       ut?: number;
@@ -827,20 +657,12 @@ describe("ManeuverPlannerComponent", () => {
       emitFullOrbit(source);
       emitManeuverNode([{ ut: 1_000_120, dvPrograde: 30 }]);
     });
-    // Flush the provider frame so the derived `vessel.maneuver.legacy` channel
-    // recomputes to THIS test's node (dvPrograde 30) rather than sampling the
-    // stale last frame the shared module-level utFixture store carries from a
-    // prior test.
     await flushViewUt();
 
-    // Open the editor on the planned node.
     const editBtn = screen.getByRole("button", { name: /edit node/i });
     await user.click(editBtn);
 
-    // The editor exposes a Prograde input pre-filled with the current value.
-    // Multiple "Prograde" labels can exist (the custom-preset form has one too,
-    // but the default preset doesn't show it). On the default preset, only the
-    // editor's Prograde input is rendered.
+    // The default preset shows no Prograde field, so the only one is the editor's.
     const progradeLabel = screen.getByText("Prograde");
     const progradeInput = progradeLabel.parentElement?.querySelector(
       'input[type="number"]',
@@ -864,15 +686,7 @@ describe("ManeuverPlannerComponent", () => {
 
   it("sends vessel.maneuver.add args with the [radialOut, normal, prograde] vector convention", async () => {
     const user = userEvent.setup();
-    // KSP's ManeuverNode.DeltaV is a Vector3d(radialOut, normal, prograde),
-    // established by decompile, and the actuator passes its `[ut,x,y,z]`
-    // args straight to OnGizmoUpdated(Vector3d(x,y,z), ut) in that order.
-    // Mixing this up turns a pure-prograde Hohmann burn into a pure-radial
-    // one, and the vessel ends up pointing straight up instead of along
-    // velocity.
-    // Dispatch (delayed-command-ux migration) is unconditional via
-    // `useCommand` against the real stream, captured off `utFixture`'s
-    // command handler.
+    // KSP's node-local frame is (radialOut, normal, prograde); a mix-up turns a prograde burn radial.
     const calls: Array<{
       ut?: number;
       radialOut?: number;
@@ -921,7 +735,7 @@ describe("ManeuverPlanner: augment slots (Uplink §4)", () => {
 
   afterEach(() => {
     unmountAll();
-    // The widget module registers no augments of its own, but a test may have bound one into a slot: reset so it never leaks into a later test.
+    // A test may have bound an augment into the slot.
     clearAugments();
     buffered.disconnect();
   });
@@ -941,7 +755,6 @@ describe("ManeuverPlanner: augment slots (Uplink §4)", () => {
     act(() => {
       emitFullOrbit(source);
     });
-    // The frame still renders normally, an unfilled slot contributes no DOM.
     expect(screen.getByText("MANEUVER PLANNER")).toBeInTheDocument();
     expect(screen.queryByText(/from-sections-augment/i)).toBeNull();
   });
@@ -954,9 +767,7 @@ describe("ManeuverPlanner: augment slots (Uplink §4)", () => {
     });
     render(
       <utFixture.Provider>
-        {/* The identity the dashboard supplies: `Panel` completes
-          `${componentId}.${segment}` from it for the universal `sections`
-          and `actions` seams. */}
+        {/* Panel builds its seam ids from the component id this context supplies. */}
         <WidgetMetaContext.Provider
           value={{ componentId: "maneuver-planner", contributionSlots: [] }}
         >

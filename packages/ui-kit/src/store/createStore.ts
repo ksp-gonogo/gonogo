@@ -1,17 +1,10 @@
 /**
  * A generic, off-tree external store: an id-keyed set of entries with
  * `subscribe`/`getSnapshot`/`register`/`update`, a referentially stable
- * snapshot while unchanged, and insertion order. No React, no panel, no DOM
- * knowledge; the per-panel context plumbing is `createPanelStore`'s job, and a
- * derived view (the status summary) is layered on top by its own store.
+ * snapshot while unchanged, and insertion order.
  *
- * This is the shared spine under `PanelStatusStore` and the delay rail store:
- * both were the same "Map of contributions + listener set + dirty-flagged
- * cached snapshot" written twice, so the machinery lives here once.
- *
- * HARD RULE carried from those designs: the live data lives in the store, never
- * in a React context value, so a change re-renders only the snapshot's
- * subscribers, not every widget in the tree.
+ * The live data lives in the store, never in a React context value, so a
+ * change re-renders only the snapshot's subscribers.
  */
 export interface Store<T extends { id: string }> {
   /** Add or replace an entry (keyed on `entry.id`). Returns its deregister function. */
@@ -50,11 +43,10 @@ function unchanged<T extends { id: string }>(
 }
 
 export function createStore<T extends { id: string }>(): Store<T> {
-  // Insertion-ordered by construction (Map), so the snapshot order is stable and a top-rank tie-break (in a derived view) is deterministic.
+  // Insertion order keeps a derived view's top-rank tie-break deterministic.
   const entries = new Map<string, T>();
   const listeners = new Set<() => void>();
 
-  // Dirty-flagged cache so `getSnapshot` returns a stable array while the set is unchanged and rebuilds only after a real change.
   let cached: readonly T[] = EMPTY;
   let dirty = true;
 

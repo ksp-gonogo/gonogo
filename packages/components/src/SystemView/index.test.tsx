@@ -10,12 +10,7 @@ import {
 } from "../test/setupStreamFixture";
 import { SystemViewComponent } from "./index";
 
-// `useContributions("system-view.vessel-status")` needs both contexts
-// mounted, mirrors the app's real `WidgetContributions` wrapper
-// (`GridItemContent.tsx`) and ShipMap's own contribution test
-// (`ShipMap/contributions.test.tsx`): SystemViewComponent alone has no
-// contribution store at all, and `useContributions` silently returns empty,
-// same as a bare widget with no dashboard around it.
+// `useContributions` needs both contexts mounted, as the app's `WidgetContributions` wrapper provides; without them it silently returns empty.
 const CONTRIBUTIONS_META = {
   componentId: "system-view",
   contributionSlots: ["system-view.vessel-status"] as const,
@@ -29,18 +24,10 @@ function WithContributions({ children }: { children: ReactNode }) {
   );
 }
 
-/**
- * SystemView reads entirely off the stream. The body table
- * (`useCelestialBodies`) rides the mod's `system.bodies` Topic, and the
- * orbit / target / encounter / apsis scalars + view-UT come off the streamed
- * `vessel.*` Topics via `useTelemetry` / `useViewUt`, all through a real
- * `TelemetryProvider` + `TimelineStore` (`setupStreamFixture`).
- */
-
 // Kerbin's GM: makes the client-side period / true-anomaly derivation land on real numbers so the predicted arc actually renders.
 const KERBIN_MU = 3.5316e12;
 
-// A Kerbin parking orbit that encounters the Mun (stable body index 1). `epoch` == the pinned view-UT so the derivation reads a clean mean-anomaly-at-epoch.
+// A Kerbin parking orbit that encounters the Mun (body index 1); `epoch` equals the pinned view-UT so mean anomaly reads cleanly.
 function encounterOrbit() {
   return {
     referenceBodyIndex: 0,
@@ -57,9 +44,7 @@ function encounterOrbit() {
   };
 }
 
-// The Kerbin system as it lands off `system.bodies`: Kerbin as the frame root
-// (orbit null) with its GM so children get a parent μ for period/true-anomaly
-// derivation, plus Mun and Minmus with full orbits + almanac fields.
+// Kerbin as frame root (orbit null) with its GM, so children get a parent mu, plus Mun and Minmus with full orbits and almanac fields.
 function kerbinSystem() {
   return {
     bodies: [
@@ -69,7 +54,6 @@ function kerbinSystem() {
         parentIndex: null,
         radius: 600_000,
         gravParameter: KERBIN_MU,
-        // On the wire since the contract stopped asking the client to reconstruct what the game already holds.
         mass: 5.2915158e22,
         surfaceGravity: 1,
         sphereOfInfluence: 84_159_286,
@@ -142,7 +126,6 @@ describe("SystemViewComponent", () => {
     });
   });
 
-  // Body tree + vessel identity + orbit, everything off the stream.
   function primeStream(orbit?: unknown) {
     act(() => {
       fixture.emit("system.bodies", kerbinSystem());
@@ -157,11 +140,7 @@ describe("SystemViewComponent", () => {
     });
   }
 
-  /**
-   * The four contact states the diagram has to express, and specifically what
-   * each is allowed to announce: a running countdown must NOT live in a live
-   * region, overdue is polite, lost is assertive.
-   */
+  /** What each contact state may announce: a running countdown must not sit in a live region, overdue is polite, lost is assertive. */
   describe("contact state", () => {
     const SILENT = {
       state: "Silent",
@@ -180,9 +159,7 @@ describe("SystemViewComponent", () => {
         </fixture.Provider>,
       );
       primeStream();
-      // The silence.<guid>.state subscription only exists once identity has
-      // arrived and the component has re-rendered with a guid; the transport is
-      // subscription-gated, so emitting before that delivers to nobody.
+      // The transport is subscription-gated, and the silence.<guid>.state subscription exists only once identity has arrived.
       await screen.findAllByText(/Kerbin/i);
       act(() => {
         fixture.emit("silence.v.state", silence);
@@ -244,9 +221,7 @@ describe("SystemViewComponent", () => {
       </fixture.Provider>,
     );
     primeStream();
-    // "Kerbin" appears in both the SVG parent label and the almanac title,
-    // both confirm the panel landed on the vessel's body (v.body, resolved off
-    // vessel.identity.parentBodyIndex + system.bodies).
+    // "Kerbin" in both the SVG parent label and the almanac title confirms the panel landed on the vessel's body.
     await waitFor(() =>
       expect(screen.getAllByText("Kerbin").length).toBeGreaterThanOrEqual(2),
     );
@@ -261,11 +236,7 @@ describe("SystemViewComponent", () => {
     primeStream();
     await waitFor(() => expect(screen.getByText("Radius")).toBeInTheDocument());
 
-    // Assert the VALUES, not just that the labels rendered. This test used to
-    // check the "Radius" label alone, which meant the panel's two hand-rolled
-    // SI ladders were never covered at all: they could have printed anything.
-    // That is how the mass ladder shipped applying GRAM thresholds to a
-    // KILOGRAM value, labelling Kerbin one whole prefix tier low.
+    // Assert the values, not just the labels, so the SI ladders are covered.
     await waitFor(() => expect(visibleText(container)).toContain("600.0 km"));
     // Kerbin's mass, derived from mu. 5.29e22 kg is 5.29e25 g, so Yg, not Zg.
     expect(visibleText(container)).toMatch(/52\.\d+ Yg/);
@@ -292,7 +263,7 @@ describe("SystemViewComponent", () => {
       </fixture.Provider>,
     );
     primeStream(encounterOrbit());
-    // The single client-reconstructed conic renders as a predicted <path> arc (the post-encounter conic isn't on the wire, so there is exactly one).
+    // The single client-reconstructed conic renders as one predicted arc; the post-encounter conic is not on the wire.
     await waitFor(() =>
       expect(container.querySelectorAll("path").length).toBeGreaterThanOrEqual(
         1,
@@ -301,11 +272,7 @@ describe("SystemViewComponent", () => {
   });
 
   it("renders without crashing on a hyperbolic (escape) orbit", async () => {
-    // ecc >= 1 makes the client-side Kepler solver (`solveAnomalies`) throw a
-    // RangeError: a routine state for a system-wide diagram during an
-    // interplanetary escape/flyby. The derivation must degrade the orbital
-    // scalars to null instead of crashing the widget mid-render (no error
-    // boundary inside it).
+    // ecc >= 1 makes the Kepler solver throw, which the derivation must degrade to null scalars rather than crash the widget.
     render(
       <fixture.Provider>
         <SystemViewComponent config={{ frame: "Kerbin" }} id="sv" />
@@ -324,9 +291,7 @@ describe("SystemViewComponent", () => {
       horizon: ANALYTIC_UNBOUNDED_HORIZON,
       encounter: { transitionType: 3, transitionUt: 600, bodyIndex: 1 },
     });
-    // Frame label still lands (widget rendered, didn't throw). The escape is
-    // surfaced from the raw `vessel.orbit.encounter` scalar, not the thrown
-    // derivation.
+    // The widget rendered, and the escape surfaces from the raw `vessel.orbit.encounter` scalar.
     await waitFor(() =>
       expect(screen.getByText(/next escape:\s*Mun/i)).toBeInTheDocument(),
     );
@@ -344,15 +309,7 @@ describe("SystemViewComponent", () => {
     );
   });
 
-  // ── Vessel-marker "honest degradation" ────────────────────────────────────
-  // Regression coverage for the live-reported "green dots stacked in the
-  // centre" bug (see FleetComms/slot.test.tsx for the duplicate-render half
-  // of the fix). The vessel marker itself (`SystemDiagram`'s `VesselMarker`)
-  // is the sole surface that draws the active vessel's dot now that
-  // `FleetComms` no longer renders its own copy, it must never fabricate a
-  // position: no `vessel.orbit` sample yet (or one with a non-numeric `sma`)
-  // must draw NOTHING rather than a dot at the origin.
-
+  // The vessel marker must never fabricate a position: no `vessel.orbit` sample, or a non-numeric `sma`, draws nothing rather than a dot at the origin.
   it("draws no vessel marker before vessel.orbit has ever been emitted", async () => {
     const { container } = render(
       <fixture.Provider>
@@ -401,12 +358,7 @@ describe("SystemViewComponent", () => {
     });
   });
 
-  /**
-   * The next-apsis countdown comes off the orbit model's own solve, so it is
-   * withheld wherever that model refuses to advance the elements. Under physics
-   * they are osculating, a conic does not describe where the craft is going,
-   * and a countdown to an apsis it may never reach is a claim nothing made.
-   */
+  /** The next-apsis countdown is withheld wherever the orbit model refuses to advance the elements, as under physics where they are osculating. */
   describe("the next-apsis countdown", () => {
     const orbit = {
       referenceBodyIndex: 0,

@@ -6,20 +6,8 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { EscapeProfileComponent } from "./index";
 
 /**
- * EscapeProfile's stream proof.
- *
- * `v.body` is `vessel.identity.parentBodyIndex` resolved against
- * `system.bodies`. This test runs the widget OFF THE STREAM, a real
- * `TelemetryProvider`/`TimelineStore` pipeline, NO legacy `"data"` source, and
- * proves the streamed body name actually reaches the widget: emitting
- * `vessel.identity` + `system.bodies` for a body with no gravitational
- * parameter surfaces the widget's "No reference data" Notice with that exact
- * name. If the read had silently fallen back to a (nonexistent) legacy source,
- * the body would stay `undefined` and no Notice would render.
- *
- * The plot's trace (`vessel.flight.altitudeAsl`/`orbitalSpeed` via
- * `GraphView`) is not emitted here, so this asserts on the title + body-driven
- * Notice only.
+ * EscapeProfile off the stream, with no legacy source: a streamed body with no gravitational parameter surfaces the "No reference data" Notice under that exact name, which only happens if the name actually streamed.
+ * The trace is not emitted, so only the title and Notice are asserted.
  */
 const ESCAPE_PROFILE_CHANNELS = [
   "vessel.flight",
@@ -43,9 +31,7 @@ describe("EscapeProfile: reads v.body off the stream (R6)", () => {
       </fixture.Provider>,
     );
 
-    // The roster reports a radius for "Proxima" and no gravitational parameter,
-    // so a resolved streamed name drives the widget's no-reference-data Notice:
-    // an observable proof the value streamed.
+    // A radius and no GM for "Proxima", so the Notice proves the name streamed.
     act(() => {
       fixture.emit("system.bodies", {
         bodies: [

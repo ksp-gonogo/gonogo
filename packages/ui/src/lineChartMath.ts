@@ -1,5 +1,3 @@
-/** Pure math helpers for LineChart. No React, no side-effects. */
-
 import type {
   BandKind,
   ReckoningBasis,
@@ -8,28 +6,12 @@ import type {
   SeriesStatusSpan,
 } from "@ksp-gonogo/sitrep-sdk";
 
-/**
- * Declared beside `SeriesStatusSpan` in the sdk, which is where the producer
- * now mints it: it moved out of this file the moment a `SeriesRange` could
- * carry one, so the shape a chart draws and the shape a series hands over are
- * the same declaration rather than two that agree today. Re-exported here so
- * every existing import site reads the same.
- */
 export type { SeriesReckonedSpan };
 
-/**
- * How far, in drawn pixels, a chord may stray from the model's own path before
- * it is a claim the model contradicts. Below a pixel there is nothing to see.
- */
+/** Below a pixel of departure from the model's path, a chord has nothing to show. */
 export const CHORD_TOLERANCE_PX = 1;
 
-/**
- * Whether the straight segment a chart draws into `bridge.to` departs from what
- * the value's model says happened across the same span by more than
- * {@link CHORD_TOLERANCE_PX}, measured vertically at every instant the model
- * answered for. Judged in the chart's own pixels because a tolerance in the
- * value's units would mean something different on every axis.
- */
+/** Whether the chord into `bridge.to` departs from the model's path by more than the tolerance, judged in pixels so it means the same on every axis. */
 export function chordDeparts(
   xs: readonly number[],
   ys: readonly number[],
@@ -66,17 +48,13 @@ export function makeScale(
   return (v) => rangeMin + ((v - domainMin) / span) * (rangeMax - rangeMin);
 }
 
-/**
- * Nice round tick values for a numeric axis.
- * Returns exactly `count` evenly-spaced ticks.
- */
+/** Up to `count` nice round, evenly spaced ticks for a numeric axis. */
 export function niceTicks(min: number, max: number, count = 5): number[] {
   if (min === max) {
     return Array.from({ length: count }, () => min);
   }
   const span = max - min;
   const rawStep = span / (count - 1);
-  // Round step to a "nice" magnitude
   const mag = 10 ** Math.floor(Math.log10(rawStep));
   const nice = [1, 2, 2.5, 5, 10].find((m) => m * mag >= rawStep) ?? 10;
   const step = nice * mag;
@@ -88,9 +66,7 @@ export function niceTicks(min: number, max: number, count = 5): number[] {
     ticks.push(t);
   }
   if (ticks.length >= 2) return ticks;
-  // Fallback (e.g. count===2 where the nice step lands a single tick in
-  // range): return rounded bounds to the nice step rather than the raw
-  // min/max, which would otherwise render unrounded axis labels like "174.96".
+  // Round the bounds to the nice step, or the labels read like "174.96".
   const lo = Math.floor(min / step) * step;
   const hi = Math.ceil(max / step) * step;
   return hi > lo ? [lo, hi] : [lo, lo + step];
@@ -110,19 +86,7 @@ export function formatTimeLabel(t: number, spanMs: number): string {
   return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
-/**
- * Build an SVG path `d` string from x/y arrays run through scale functions.
- *
- * `breaks` names the indices that OPEN a known hole in the data: the path
- * starts a fresh subpath (`M`) at each one instead of joining into it, so the
- * chart shows a gap rather than a straight line across a span it has no
- * readings for. See `SeriesRange.breaks`, which is where the indices come from,
- * and `Meta.gapSinceUt`, which is where the server states the hole.
- *
- * A run of ONE sample, with a break on both sides, is still an observation. A
- * bare `M` draws nothing, so it gets a zero-length segment, which the chart's
- * round caps draw as a dot.
- */
+/** SVG path through the samples, starting a fresh subpath at each `breaks` index; an isolated sample becomes a zero-length segment so round caps draw it as a dot. */
 export function buildPath(
   ts: number[],
   vs: number[],
@@ -151,11 +115,7 @@ function isolated(
   return i + 1 >= length || breaks.includes(i + 1);
 }
 
-/**
- * Step-after path: hold each y value until the next x. Right shape for
- * discrete-state telemetry like stage number or throttle setting where
- * linear interpolation between transitions is misleading.
- */
+/** Step-after path: hold each y until the next x. */
 export function buildStepPath(
   ts: number[],
   vs: number[],
@@ -173,15 +133,12 @@ export function buildStepPath(
     const x = scaleX(ts[i]).toFixed(2);
     const y = scaleY(vs[i]).toFixed(2);
     if (breaks.includes(i)) {
-      // A break matters more to a step than to a line: the hold IS an
-      // assertion that the value did not change, and across a blackout that is
-      // precisely what nobody knows. See buildPath's own note.
+      // Holding across a break would assert the value did not change while nobody could see it.
       parts.push(`M${x},${y}`);
       if (isolated(i, ts.length, breaks)) parts.push(`L${x},${y}`);
       prevY = y;
       continue;
     }
-    // Horizontal hold to the new x at the previous y, then vertical jump.
     parts.push(`H${x}`);
     if (y !== prevY) parts.push(`V${y}`);
     prevY = y;
@@ -189,18 +146,7 @@ export function buildStepPath(
   return parts.join(" ");
 }
 
-/**
- * One drawable run of a series: its path, the stream status every sample in it
- * carried, and the model that moved it if nobody measured it.
- *
- * `status` absent means the run arrived live. It is a RECORD, not a mark: a
- * replayed reading is exact, so nothing about it changes the stroke, and it
- * exists here so a caller can name the provenance in the DOM or in a readout
- * without the trace itself making a claim about it.
- *
- * `basis` absent means the run is observed. It is the one that DOES change the
- * stroke.
- */
+/** One drawable run of a series. `status` is a record only and never changes the stroke; `basis` marks a reckoned run, which does. */
 export interface PathSegment {
   status?: SeriesStatusSpan["status"];
   basis?: ReckoningBasis;
@@ -208,23 +154,9 @@ export interface PathSegment {
 }
 
 /**
- * Cut a series into runs that share a provenance, one path per run.
- *
- * Two independent annotations cut it, and they cut it for different reasons.
- * `spans` says where a sample came off the link and where it came off the
- * craft's recorder: both were measured, so the runs are drawn identically and
- * the split only carries the record. `reckoned` says a model produced the
- * value, which is the split that has something to draw.
- *
- * Neither is a break: the line stays continuous across the join, which is the
- * difference between "we have no readings for this" (`breaks`) and "this run
- * is not a reading".
- *
- * A run is extended one sample BACKWARDS so the segment joining it to the
- * previous run is drawn once, in the new run's style: a segment's right-hand
- * endpoint is the newer sample, so the newer provenance is the honest label for
- * it. Not extended across a `breaks` index, where there is no joining segment
- * to claim.
+ * Cut a series into runs that share a provenance, one path per run. Unlike `breaks`, the line stays
+ * continuous across a join. Each run reaches back one sample, except across a break, so the joining
+ * segment is drawn in the newer sample's style.
  */
 export function buildSegmentedPath(
   ts: number[],
@@ -246,11 +178,7 @@ export function buildSegmentedPath(
   if (spans.length === 0 && reckoned.length === 0) {
     return [{ d: builder(ts, vs, scaleX, scaleY, breaks) }];
   }
-  /*
-   * Both annotations are inclusive index runs that may name indices this slice
-   * does not have, a window having been trimmed since the run was built, so
-   * both are clamped rather than trusted.
-   */
+  // Runs may name indices a trimmed window no longer has, so they are clamped.
   function paint<R extends { from: number; to: number }, T>(
     runs: readonly R[],
     pick: (run: R) => T,
@@ -268,7 +196,6 @@ export function buildSegmentedPath(
   const out: PathSegment[] = [];
   let runStart = 0;
   const flush = (start: number, end: number) => {
-    // Reach back one sample for the joining segment, unless a hole sits at the run's own first index, where nothing joins into it.
     const from = start > 0 && !breakSet.has(start) ? start - 1 : start;
     const slice = (arr: number[]) => arr.slice(from, end + 1);
     const localBreaks: number[] = [];
@@ -293,11 +220,7 @@ export function buildSegmentedPath(
   return out;
 }
 
-/**
- * Filled band between an upper and lower y for each x. Forward along upper,
- * reverse along lower, closed. Used for envelopes (e.g. apoapsis/periapsis
- * over time, with the orbital extent shaded between).
- */
+/** Closed band between a lower and upper y for each x. */
 export function buildBandPath(
   xs: number[],
   yLow: number[],
@@ -330,20 +253,7 @@ export interface UncertaintyRegion {
   kind: BandKind;
 }
 
-/**
- * The shaded region behind a reckoned run: how well the model knew each point
- * it answered for.
- *
- * One region PER RUN rather than one for the whole tail. A run is already the
- * unit of shared provenance the stroke is cut on, so a region that spanned two
- * of them would bridge a basis change (and, where a run was cut by a dropped
- * sample, a stretch nothing answered for) with a continuous fill, which is the
- * same lie a joined line tells across a break.
- *
- * A run with no band contributes nothing, and that is not the same as a band
- * of zero width: the first says the model would not say, the second says it
- * claims to know the value exactly.
- */
+/** One uncertainty region per reckoned run, never spanning two. A run with no band adds nothing, which is not a band of zero width. */
 export function buildUncertaintyRegions(
   xs: readonly number[],
   reckoned: readonly SeriesReckonedSpan[],
@@ -364,26 +274,18 @@ export function buildUncertaintyRegions(
   return out;
 }
 
-/**
- * Logarithmic scale (base 10). Domain values must be positive; non-positive
- * inputs are clamped to `domainMin` so a stray zero doesn't produce -Infinity.
- *
- * Convention: callers pass the raw positive domain bounds. Internally we
- * work in log space.
- */
+/** Base-10 log scale; non-positive inputs clamp to the floor so a stray zero cannot produce -Infinity. */
 export function makeLogScale(
   domainMin: number,
   domainMax: number,
   rangeMin: number,
   rangeMax: number,
 ): (v: number) => number {
-  // Collapse takes precedence over the log-floor clamp, equal bounds map every input to the midpoint regardless of sign, matching makeScale().
+  // Equal bounds map to the midpoint regardless of sign, matching makeScale.
   if (domainMin === domainMax) {
     const mid = (rangeMin + rangeMax) / 2;
     return () => mid;
   }
-  // Floor to keep log() finite. The chart tracks data that may dip to zero
-  // momentarily (altitude on the launchpad); clamping is safer than NaN.
   const safeMin = domainMin > 0 ? domainMin : 1e-9;
   const safeMax = domainMax > safeMin ? domainMax : safeMin * 10;
   const logMin = Math.log10(safeMin);
@@ -401,12 +303,7 @@ export function makeLogScale(
   };
 }
 
-/**
- * Tick values for a log axis. Returns powers of 10 within the domain plus
- * the bounds themselves. When the domain spans many decades we thin out so
- * we don't draw 30 grid lines on a small chart; when it spans less than a
- * decade we fall back to linear ticks so the chart stays readable.
- */
+/** Powers of ten within the domain, thinned over many decades; under one decade it falls back to linear ticks. */
 export function niceLogTicks(min: number, max: number, count = 5): number[] {
   if (!(min > 0) || !(max > 0) || max <= min) return niceTicks(min, max, count);
   const logMin = Math.log10(min);

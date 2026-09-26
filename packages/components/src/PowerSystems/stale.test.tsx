@@ -5,18 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { PowerSystemsComponent } from "./index";
 
-/**
- * What this widget does when `vessel.parts` stops being current.
- *
- * Every figure it draws, the totals row and all three breakdown sections, comes
- * off that one read, which is the case a panel-wide statement is honest in: the
- * host does not derive one precisely because a worst-of pill across five topics
- * cannot say which is degraded, and here there is only the one to name.
- *
- * The rates are KEPT. A vessel that was drawing 6/s is still the last thing it
- * reported, and a blank NET would read as a craft with no load on it, which is
- * a claim about the vessel made out of the absence of a frame.
- */
+/** When `vessel.parts` stops being current, every figure comes off that one read, so it is marked once; the rates are kept, since a blank NET would claim no load. */
 
 const CARRIED = ["vessel.parts", "parts.power"];
 
@@ -111,7 +100,7 @@ describe("PowerSystems when vessel.parts is no longer current", () => {
       fixture.emit("vessel.parts", VESSEL_PARTS_WIRE);
     });
     await waitFor(() => expect(visibleText(container)).toContain("-6.00"));
-    // The control: a live widget says nothing, which is what makes the assertion after `goStale` evidence of anything at all.
+    // The control: a live widget carries no mark.
     expect(screen.queryByText("OFFLINE")).toBeNull();
 
     goStale(fixture);
@@ -141,7 +130,7 @@ describe("PowerSystems when vessel.parts is no longer current", () => {
     // One per breakdown row that reports an efficiency: the producer and the consumer, each drawn from the read that stopped.
     expect(marks.length).toBeGreaterThan(0);
     for (const mark of marks) {
-      // A mark with no caption looks marked and says nothing, which is the one outcome worse than no mark at all.
+      // A mark with no caption says nothing.
       expect(mark.querySelector("[data-unit-currency]")).not.toBeNull();
     }
   });

@@ -32,7 +32,7 @@ describe("Dial", () => {
   });
 
   it("writes the degree sign hard against the number, as SI requires", () => {
-    // No space before the sign, and the precision is the angle kind's own rather than anything this component chose.
+    // No space before the sign, and the angle kind's own precision.
     const { container } = render(
       <Dial value={deg(45)} min={deg(0)} max={deg(360)} ariaLabel="Heading" />,
     );
@@ -50,7 +50,7 @@ describe("Dial", () => {
         ariaLabel="Heading"
       />,
     );
-    // 370° wraps to 10° on a 0–360 compass.
+    // 370° wraps to 10° on a 0-360 compass.
     expect(screen.getByRole("meter", { name: "Heading" })).toHaveAttribute(
       "aria-valuenow",
       "10",

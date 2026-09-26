@@ -29,10 +29,7 @@ import {
   WidgetMeters,
 } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useMemo } from "react";
-// Side-effect import: the widget's own `crew-status.badges` panel-badge
-// self-contribution (the info-tone "N/M aboard" header chip) registers on
-// module load, see that file's own doc comment for why it lives apart from
-// the per-row AugmentSlot declarations below.
+// Registers the header headcount badge.
 import "./badge";
 
 const topics = defineTopicManifest({
@@ -46,64 +43,20 @@ const topics = defineTopicManifest({
   ],
 });
 
-/**
- * Tiny-mode hero readout font size. `BigReadout`'s 38px max coexists fine
- * with its caption in a roomy panel, but at the widget's 3x3 `minSize` the
- * number + stacked "OF n ABOARD" caption overflows the short panel and the
- * caption gets clipped by `Panel`'s `overflow: hidden`. We can't touch the
- * shared `BigReadout`, so this caps the number lower via an inline style
- * override and lets the centred flex box keep both lines inside the box.
- *
- * Off the type scale on purpose: this is a fluid, viewport-responsive fit,
- * and its endpoints are not independent font-size choices. The scale stops
- * at --font-size-lg (16px) and a fixed rung here would freeze the fit.
- */
+/** Caps the tiny-mode hero readout so the number and its caption both fit a 3x3 panel. Fluid on purpose, so it sits off the type scale. */
 const TINY_READOUT_STYLE = {
   fontSize: "clamp(20px, 4vw, 30px)",
   minHeight: 0,
 } as const;
 
-/**
- * Leading per-crew avatar cell bounds: a square that reserves room for an
- * avatar-face augment, clamped 36-56px so it stays legible on a cramped tile
- * and never dominates a roomy one.
- *
- * The size itself tracks the widget's own measured content width (`useElementSize`
- * on the roster wrapper in `CrewStatusComponent`, `avatarCellSizePx` below),
- * not a `vw` viewport-relative clamp (the previous version's approach, and
- * `TINY_READOUT_STYLE`'s idiom, still fine THERE because that readout
- * genuinely wants to track the browser window). A dashboard tile's on-screen
- * width has no fixed relationship to the viewport, a station on a big
- * monitor with a NARROW crew tile would otherwise render a large avatar and
- * a wide tile on a small laptop a small one, backwards from what "scale with
- * the widget" means. Mirrors `Twr`/`SystemView`'s existing
- * measured-slot-width idiom (`useElementSize` + `Math.min`/`Math.max`), not
- * a CSS-only fix.
- *
- * Only reserved when an Uplink actually binds `crew-status.avatar`
- * (`avatarAugmentPresent` in `renderBody`, below): a vanilla roster with no
- * avatar-providing Uplink installed carries no leading cell at all, not a
- * same-size cell showing an empty placeholder. Operator feedback: a ~40-56px
- * box reserved for nothing but a 6px decorative dot was wasted width on
- * every row, and the dot never signalled anything (no augment, no
- * kerbal-not-seated flag, nothing) - just a bullet point standing in for a
- * future avatar image. Once an avatar-providing Uplink IS present (e.g. a
- * facecam augment), the cell renders exactly as before, including the
- * per-kerbal case where THAT Uplink has nothing to show for one kerbal (it
- * now shows blank there, not the bullet either, same "nothing to signal"
- * reasoning).
- */
+/** Avatar cell bounds. Sized off the roster's measured width, not the viewport, since a tile's width has no fixed relation to the window. */
 const AVATAR_CELL_MIN_PX = 36;
 const AVATAR_CELL_MAX_PX = 56;
 /** Fraction of the measured roster width the avatar cell targets before clamping. */
 const AVATAR_CELL_WIDTH_FRACTION = 0.2;
-/** Seed size used until the first real `ResizeObserver` measurement lands
- *  (matches the widget's own `defaultSize.w` of 6 columns at the render
- *  harness's grid formula, so the very first paint already lands mid-range
- *  rather than pinned to the floor). */
+/** Seed width until the first measurement lands: the default 6-column width, so first paint is mid-range. */
 const AVATAR_MEASURE_SEED = { w: 232, h: 0 };
 
-/** Pure size calc, unit-testable with no DOM: clamps a fraction of the measured roster width between the cell's min and max bounds. */
 function avatarCellSizePx(containerWidthPx: number): number {
   return Math.round(
     Math.min(
@@ -118,34 +71,9 @@ function avatarCellSizePx(containerWidthPx: number): number {
 
 type CrewStatusConfig = Record<string, never>;
 
-// EVA suit resources (additive; only meaningful while the active vessel IS
-// an EVA kerbal). A stock KSP EVA kerbal is a real Vessel with its own
-// resource-carrying Part (KSP's own `GameEvents.onCrewOnEva` hands over the
-// spawned Vessel), so the already-existing, already-consumed
-// `vessel.resources` Topic (see FuelStatus) works against it unchanged - no
-// new wire protocol needed. Which resources ride along on the suit is decided
-// by the install's own life-support profile, via each resource's `on_eva`
-// transfer amount; the two an unmodified profile carries are ElectricCharge
-// and Oxygen, which is why those are the two looked up. Plain resource-name
-// lookups, no mod-specific shape, and an install whose profile puts neither
-// on the suit simply renders nothing.
+// An EVA kerbal is a real vessel, so its suit resources arrive on `vessel.resources`; the install's life-support profile decides which ones.
 
-/**
- * Both halves of a `vessel.resources` entry as READINGS under their own keyed
- * path, or `undefined` when the vessel carries no such resource.
- *
- * The presence question and the figure question are separate here, and the
- * contract is what separates them: a key ABSENT from the map is structural, it
- * means this vessel has no tank for the resource and changes only on staging
- * or docking, so it is the one case that should render no meter at all. Every
- * other case (never reported, gone stale, present and empty) is a figure the
- * `Meter` already draws honestly, which is why nothing else is gated here.
- *
- * The two halves are reached through the field property rather than pulled off
- * the payload, so each arrives carrying the currency the channel read with.
- * Taking `entry.current` off `reading.value` would hand the meter a number
- * with no way to say how old it is.
- */
+/** A resource's amount and capacity as field readings, or `undefined` when the vessel has no tank for it, the one structural absence that hides the meter. */
 function suitTank(
   reading: TopicReading<VesselResources>,
   name: string,
@@ -159,31 +87,12 @@ function suitTank(
   return { amount: entry.current, capacity: entry.max };
 }
 
-/**
- * A suit tank as this widget carries it between the read and the two props it
- * becomes.
- *
- * Local rather than the kit's, because the kit no longer has one: `Meter` takes
- * the amount and the capacity as two props, so the bundle exists only for the
- * few lines between reading a `vessel.resources` entry and handing both halves
- * over, and nothing outside this file ever sees it.
- */
 interface SuitTank {
   amount: Reading<Value<"units">>;
   capacity: Reading<Value<"units">>;
 }
 
-/** Tone for what is left in a suit tank: a full tank is calm, an empty one is
- *  alarming, the inverse of a "toward fatal" accumulator reading.
- *
- *  `undefined` where either half carries no figure, rather than a tone chosen
- *  for a fraction nobody could compute. `Meter` draws the absent form in that
- *  case and a tone would be colouring an empty track.
- *
- *  `dividedBy` is what checks the two halves are the same kind, and its
- *  quotient is dimensionless by construction, so the `.magnitude` is on a
- *  number that has already stopped being a quantity. It is compared against
- *  two thresholds and never shown. */
+/** Tone for what is left in a suit tank: full is calm, empty alarms. `undefined` when either half has no figure. */
 function suitResourceTone(pair: SuitTank): MeterTone | undefined {
   const amount = pair.amount.value;
   const capacity = pair.capacity.value;
@@ -194,13 +103,7 @@ function suitResourceTone(pair: SuitTank): MeterTone | undefined {
   return "go";
 }
 
-/**
- * Compact EVA-suit resource block: O2 + EC meters shown only while the
- * active vessel is an EVA kerbal and the Uplink actually publishes
- * `vessel.resources` for it. Presentational (no hooks) - renders nothing
- * when neither resource is available, so an Uplink without this data leaves
- * the roster exactly as before.
- */
+/** O2 and EC meters for an EVA kerbal; renders nothing when neither resource is carried. */
 function EvaSuitReadout({
   oxygen,
   electricCharge,
@@ -208,15 +111,6 @@ function EvaSuitReadout({
   oxygen: SuitTank | undefined;
   electricCharge: SuitTank | undefined;
 }>) {
-  /* A stale reading draws both meters, marked, rather than replacing them with
-     a sentence. `suitTank` takes each figure as a FIELD READING, so `amount`
-     and `capacity` carry their own currency all the way into `Meter`, which
-     marks the value and the track itself. The early return here threw those
-     marks away along with the figures, and the two figures in question are the
-     ones deciding whether a kerbal outside the craft has time to get back in.
-
-     No replacement sentence: the mark on each meter already says it, and a
-     panel that states its own staleness in words as well says it twice. */
   if (!oxygen && !electricCharge) return null;
   return (
     <Cluster justify="start" wrap aria-label="EVA suit resources">
@@ -240,22 +134,7 @@ function EvaSuitReadout({
   );
 }
 
-// The `crew-status.row-badges` slot contract.
-//
-// A per-crew-row inline badges slot: an Uplink backing a life-support or
-// radiation capability can badge each kerbal with comfort/dose without leaving
-// this widget. Because the slot renders once PER ROW, its props MUST carry the crew
-// member's identity so the augment badges the right kerbal, `crewName` is that
-// identity (the only per-kerbal handle exposed here), and
-// `crewIndex` disambiguates in the (legal) case of two kerbals sharing a name.
-//
-// It was `crew-status.badges` and had to move. That string is also the
-// framework's auto-completed `${componentId}.badges` CONTRIBUTION slot, which
-// exists for every widget whether or not the widget asks for it and is fed by
-// two live contributions (`./badge.ts` and a crew-survival badge contributed
-// from an Uplink). One name, two registries, two places on screen, and
-// nothing to tell an author which one they were binding. The framework segment
-// cannot be renamed for one widget, so this one was.
+// `crew-status.row-badges`: per-row inline badges keyed by `crewName`, with `crewIndex` disambiguating shared names. Not `.badges`, which is the framework's own contribution slot.
 
 /** Props passed to every `crew-status.row-badges` augment, one per crew row. */
 export interface CrewBadgeContext {
@@ -265,32 +144,13 @@ export interface CrewBadgeContext {
   crewIndex: number;
 }
 
-// Declaration-merge the slot id → props type into core's `SlotRegistry`.
-// Co-located here (not in a shared central file) so parallel slot work in
-// other widgets can't collide. Makes `registerAugment({ augments:
-// "crew-status.row-badges" })` and `<AugmentSlot name="crew-status.row-badges"
-// props={...} />` type-check precisely against `CrewBadgeContext`.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "crew-status.row-badges": CrewBadgeContext;
   }
 }
 
-// The `crew-status.avatar` slot contract.
-//
-// A per-crew-row LEADING square cell (left of the name): the SDK-independent
-// shell of a per-kerbal avatar/portrait. An Uplink can register an augment
-// that fills it with a live face, keyed by kerbal identity. Same per-row
-// keying as `crew-status.row-badges`, `crewName` is the augment's identity
-// handle and `crewIndex` disambiguates duplicate names. The cell itself is
-// only reserved while at least one augment is bound to this slot at all
-// (`avatarAugmentPresent`, `renderBody` below); with no avatar-providing
-// Uplink installed, no cell is rendered and the row's leading space goes to
-// the name instead, not a same-size empty placeholder. Once an Uplink IS
-// providing avatars, the cell renders as usual, and for any one kerbal that
-// Uplink has nothing to show for (avatar source disabled, kerbal not seated),
-// the cell renders blank rather than a placeholder: the avatar augment is
-// entirely optional, both at the slot level and per-kerbal.
+// `crew-status.avatar`: a per-row leading avatar cell keyed like `.row-badges`, reserved only while an Uplink binds it and blank for a kerbal it has nothing for.
 
 /** Props passed to every `crew-status.avatar` augment, one per crew row. */
 export interface CrewAvatarContext {
@@ -306,46 +166,12 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// Per-crew-row survival meters
-//
-// There is no `crew-status.survival` slot any more, and no widget-authored
-// anything: each roster row mounts ui-kit's `<WidgetMeters row={name}>`, which
-// draws whatever is contributed to the framework's universal
-// `crew-status.meters` segment for that kerbal.
-//
-// It WAS an augment slot, filled by an Uplink component whose entire render
-// was a `Stack` of `Meter` and nothing else: zero pixels this widget did not
-// already own. That is the definition of a contribution, and as one the host
-// gets back what an augment could never give it, the ability to count what
-// arrived, order it, and lay it out with its own rows. The kerbal's name rides
-// on each entry's `row`, which is what lets a once-per-widget segment address a
-// per-row extension at all.
-//
-// This widget still carries no mod-specific reads: the derivation lives in the contributing Uplink's own Processor exactly as it did before.
+// Per-row survival meters are the framework's `crew-status.meters` contribution segment, addressed to a kerbal by `row`.
 
-// The `crew-status.row-tone` CONTRIBUTION slot (contribution-slots-spec,
-// same "pure data, host renders its own chrome" model as ShipMap's
-// `ship-map.part-meters`/`.part-meta`, NOT an AugmentSlot: unlike
-// `.row-badges`/`.avatar`/`.summary` above, an Uplink doesn't render anything
-// into this slot, it only says how alarming a kerbal's situation is and the
-// widget paints its own `Card` accordingly. That split matters here
-// specifically: the per-row `Card` wraps the WHOLE row (name, badges, meters
-// together), so no single augment's own JSX has a natural place to reach up
-// and colour an ancestor element it doesn't render. A contribution sidesteps
-// that: this widget stays exactly as mod-agnostic as the meters segment
-// already is, while the contributing Uplink still gets to say which kerbal is
-// critical.
-//
-// A contributor names a SEVERITY and never a tone or a colour, because the
-// host owns the palette: `ROW_TONE_BY_SEVERITY` below is the only place that
-// decides what "critical" looks like. The vocabulary is the established
-// `"info" | "warning" | "critical"`, the same three words every other
-// contribution in the app uses.
-//
-// Entries are looked up by `crewName` (`rowToneByName` in the component
-// body, below); a kerbal absent from every contribution's entries renders
-// with no tone (`Card`'s own default, an untinted border). First-registered
-// entry per name wins, same convention as ShipMap's `groupByPart`.
+/*
+ * `crew-status.row-tone`: data rather than JSX, because the tinted `Card` wraps the whole row and no augment can reach it.
+ * A contributor names a severity; the host owns the palette. First entry per name wins.
+ */
 
 /** One entry of a `crew-status.row-tone` contribution: how alarming this
  *  kerbal's situation is, or omit the kerbal entirely for "nothing to
@@ -375,17 +201,7 @@ const ROW_TONE_BY_SEVERITY: Record<CrewRowToneEntry["severity"], ReadoutTone> =
     critical: "alert",
   };
 
-// The `crew-status.summary` slot contract.
-//
-// A WHOLE-WIDGET section slot, rendered once above the roster rather than
-// once per kerbal: the generic home for a status that affects the whole
-// crew together, not any one of them individually (e.g. a vessel-wide
-// radiation-environment reading). Unlike `.badges`/`.avatar`/`.survival`
-// above, this carries no per-kerbal identity, there is exactly one instance
-// of it per widget, mirroring `ThermalStatus`'s `thermal-status.badges`
-// slot (`ThermalStatus/index.tsx`): no props, an empty object contract.
-// Renders nothing when no augment is bound, so the roster degrades
-// gracefully exactly like the other slots.
+// `crew-status.summary`: one whole-widget section above the roster for crew-wide status, with no per-kerbal props.
 
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
@@ -393,23 +209,7 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-/**
- * `v.crew` is documented as `string[]` ("List of crew names") in the
- * the source's own readme. (Historical note, kept for the object-shape
- * guard below: some sources augment this key with a richer per-kerbal
- * object instead of a bare name string; the defensive object-shape parsing
- * stays useful for any `v.crew`-shaped source.)
- *
- * `v.crew` lives on the wire at `vessel.crew.crew`, a `CrewMember[]`
- * (`contract.ts`'s `{name?, trait?, ...}`), read here off the canonical
- * `vessel.crew` Topic. The object-shape branch below (already required for
- * the richer per-kerbal payloads some sources publish) is exactly what parses
- * `CrewMember` entries too, no shape fix needed.
- *
- * Guard against unknown shapes (e.g. the server returning null before
- * the first sample or a mod replacing the payload), extract strings
- * and drop anything else.
- */
+/** Crew names from `vessel.crew.crew`, accepting bare strings or `{ name }` objects and dropping anything else. */
 function toCrewNames(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   const entries: unknown[] = raw;
@@ -428,12 +228,7 @@ function CrewStatusComponent({
   w,
   h,
 }: Readonly<ComponentProps<CrewStatusConfig>>) {
-  // Roster, count, and capacity all ride the single `vessel.crew` Topic, read it once and pick the three fields off it.
-  /**
-   * The roster is a fact, not a measurement: nobody leaves the capsule because the
-   * link dropped, so a held roster is still the crew. The suit resources further
-   * down are the opposite and are read off the observation alone.
-   */
+  // A held roster is still the crew: nobody leaves the capsule because the link dropped.
   const crewReading = topics.useTelemetry("vessel.crew");
   const crew = stillTrue(crewReading, undefined);
   const crewRaw = crew?.crew;
@@ -444,39 +239,17 @@ function CrewStatusComponent({
   const isEVA =
     identity === undefined ? undefined : identity.vesselType === VesselType.EVA;
 
-  // Connectivity indicator (mirroring the WarpControl pilot): count, roster,
-  // and capacity all land on the same `vessel.crew` wire channel, so
-  // `v.crewCount`'s stream status is representative of the whole trio.
-
-  // EVA suit resources - additive, only relevant while the active vessel IS
-  // an EVA kerbal (see the EvaSuitReadout block comment above). Read
-  // unconditionally (stable hook order); undefined whenever no Uplink
-  // publishes `vessel.resources` or the active vessel isn't an EVA kerbal.
-  /**
-   * Suit oxygen and charge only fall, and they are read as "what is left right
-   * now". A held figure would overstate both, on the two numbers that decide
-   * whether a kerbal outside the craft has time to get back in.
-   */
+  // Suit resources are never held like the roster: they only fall, so a stale figure is drawn marked, never as current.
   const resourcesReading = topics.useTelemetry("vessel.resources");
   const suitOxygen = isEVA ? suitTank(resourcesReading, "Oxygen") : undefined;
   const suitElectricCharge = isEVA
     ? suitTank(resourcesReading, "ElectricCharge")
     : undefined;
 
-  // Avatar cell width tracks the roster's own measured content width (see
-  // `avatarCellSizePx`'s doc comment above for why this is a real
-  // `ResizeObserver` measurement, not a viewport-relative `vw` clamp).
-  // Called unconditionally, ahead of the `showRoster` early return below, so
-  // hook order stays stable across renders regardless of which branch fires.
   const { ref: rosterWidthRef, size: rosterSize } =
     useElementSize<HTMLDivElement>(AVATAR_MEASURE_SEED);
   const avatarSizePx = avatarCellSizePx(rosterSize.w);
 
-  // Per-kerbal row tone (e.g. an Uplink's "this kerbal is critical" signal),
-  // see the `crew-status.row-tone` contribution slot's own doc comment
-  // above. First-registered entry per name wins, mirroring ShipMap's own
-  // `groupByPart` dedupe convention. Called unconditionally alongside the
-  // other hooks above, ahead of the `showRoster` early return below.
   const rowToneContributions = useContributions("crew-status.row-tone");
   const rowToneByName = useMemo(() => {
     const map = new Map<string, ReadoutTone>();
@@ -488,11 +261,7 @@ function CrewStatusComponent({
     return map;
   }, [rowToneContributions]);
 
-  // Same `crew-status.meters` segment `WidgetMeters` itself reads (both calls
-  // share `useWidgetMeta()`'s auto-namespacing, so this resolves to the same
-  // entries). Read here too, ahead of the roster, so the EVA solo-row check
-  // below can tell whether THIS kerbal has a meter contributed without
-  // rendering `WidgetMeters` twice.
+  // Read here as well as in `WidgetMeters` so the EVA solo-row check can see this kerbal's meters.
   const meterContributions = useContributions("meters");
 
   const names = toCrewNames(crewRaw);
@@ -532,29 +301,14 @@ function CrewStatusComponent({
     );
   }
 
-  // Headcount ("N/M aboard") moved off this body-level caption entirely, an
-  // info-tone `crew-status.badges` self-contribution (`./badge.ts`) now
-  // carries it as a header panel badge instead, the same badge system an
-  // Uplink's nogo-tone crew-critical badge already rides. Only the
-  // EVA marker is left for this line to carry; when the vessel isn't an EVA
-  // kerbal there's nothing left to show, and the line drops entirely.
+  // The headcount lives in the header badge; this line carries only the EVA marker.
   const crewSummary = known && isEVA === true ? "EVA" : "";
 
-  // On an EVA the active vessel IS the kerbal: the suit meters below are
-  // about THEM, not about "EVA" as an abstract mode, so the header names
-  // them rather than restating the mode. Requires exactly one resolved name:
-  // an EVA vessel always carries one kerbal, but a transient state (isEVA
-  // true, roster not yet resolved) falls back to the bare "EVA" caption
-  // rather than pick a stale or wrong name.
+  // On EVA the header names the kerbal; with no single resolved name yet it falls back to a bare "EVA".
   const evaKerbalName =
     known && isEVA === true && names.length === 1 ? names[0] : undefined;
 
-  // Whether the roster's own Card for that kerbal has anything to show
-  // beyond their bare name: an avatar, a row-badge augment, a row-tone
-  // contribution, or a contributed meter. With the header above already
-  // carrying the name, a Card with none of these bound would be an empty box
-  // repeating a fact the operator already read once; a Card with something
-  // bound still earns its place as the container for that content.
+  // A Card showing only the name the header already carries is an empty box, so it is dropped unless something else is bound to that row.
   const evaRowHasBoundContent =
     evaKerbalName !== undefined &&
     (getAugmentsForSlot("crew-status.avatar").length > 0 ||
@@ -567,9 +321,6 @@ function CrewStatusComponent({
       panelTitle="CREW"
       sections={
         <Section>
-          {/* Whole-widget status slot: a vessel-level condition (e.g. an
-          Uplink's radiation-environment reading), never a per-kerbal one.
-          Renders nothing until an Uplink binds it. */}
           <AugmentSlot name="crew-status.summary" props={{}} />
           {evaKerbalName ? (
             <ReadoutCaption>{evaKerbalName} · EVA</ReadoutCaption>
@@ -587,10 +338,6 @@ function CrewStatusComponent({
               names,
               avatarSizePx,
               rowToneByName,
-              // The EVA kerbal's own row: omit the Card entirely once the
-              // header already named them and nothing else is bound to
-              // them. Otherwise keep the Card but drop its now-redundant
-              // name text.
               omitCardFor:
                 evaKerbalName !== undefined && !evaRowHasBoundContent
                   ? evaKerbalName
@@ -629,10 +376,7 @@ function renderBody({
 }): React.ReactNode {
   if (!known) return <EmptyState>Waiting for telemetry...</EmptyState>;
 
-  // Only conclude "Unmanned" once the headcount itself has arrived. If
-  // `crewCapacity` (or another key) lands before `crewCount`, `known` is
-  // already true but `crewCount` is still undefined, treating that as
-  // unmanned flashes a wrong "no kerbals aboard" label on a crewed vessel.
+  // Only conclude "Unmanned" once the headcount itself has arrived; capacity can land first.
   if (crewCount === undefined) {
     return <EmptyState>Waiting for telemetry...</EmptyState>;
   }
@@ -645,13 +389,7 @@ function renderBody({
     listStyle: "none",
     margin: "var(--gap-related-comfortable) 0 0",
     padding: 0,
-    /*
-     * Section rather than related: each row is a `Card`, and a card sets its
-     * own interior spacing to something tighter than the panel around it. A
-     * between-row gap that matched the panel would sit within a pixel or two
-     * of the gap inside each card, and the rows would stop reading as separate
-     * surfaces.
-     */
+    /* Wider than the gap inside each Card, so rows read as separate surfaces. */
     gap: "var(--gap-section)",
   } as const;
 
@@ -666,64 +404,29 @@ function renderBody({
     );
   }
 
-  // Non-reactive read, augments register at module load, before first render
-  // (same convention as FleetRoster's `updatesAugmentPresent`). Gates whether
-  // the leading avatar cell is reserved at all: with no Uplink providing
-  // avatars, no cell is rendered and that width goes back to the name instead
-  // of sitting empty behind a decorative dot that never signalled anything.
+  // Augments register at module load, so a non-reactive read is enough.
   const avatarAugmentPresent =
     getAugmentsForSlot("crew-status.avatar").length > 0;
 
   return (
     <Stack as="ul" style={rosterListStyle}>
       {names.map((name, index) => {
-        // The EVA header already named this kerbal (see `omitCardFor` /
-        // `suppressNameFor` above): with nothing else bound to their row,
-        // an otherwise-empty Card here would just be a box around a name
-        // the operator already read once. So skip the row entirely.
         if (name === omitCardFor) return null;
         const suppressName = name === suppressNameFor;
         return (
-          // Per-crew row: a padded, rounded `Card` (operator feedback: the
-          // previous bare `Stack`/`Cluster` row gave the roster no visual
-          // separation between kerbals, which was also why the death-clock
-          // badge above read as glued to the meter directly under it rather
-          // than owned by the kerbal as a whole). `tone` picks up the
-          // `crew-status.row-tone` contribution when an Uplink reports this
-          // kerbal critical (`rowToneByName` above); with none bound, or
-          // this kerbal not flagged, the card renders with its default
-          // untinted border, identical to every other nominal row.
           <Card
             as="li"
             key={name}
             tone={rowToneByName.get(name)}
-            // Only set while the visible name text below is suppressed: the
-            // EVA header carries it instead. The row's identity still needs
-            // to reach an accessibility tree that has no other text naming
-            // which kerbal this row is about.
+            // The row's identity for assistive tech while its visible name is suppressed.
             aria-label={suppressName ? name : undefined}
-            /* The avatar is a VISUAL, so it goes in a frame, and the frame
-               goes in the block's left aside. The kerbal is not itself a
-               framed display: they are a record that happens to contain one.
-
-               The frame's corner is not stated here. It writes
-               --radius-display-frame and the aside answers with a value
-               proportioned to the ~40px square it is handing over, so this
-               site never has to know that a map's frame and an avatar's frame
-               want different corners.
-
-               Only rendered while an Uplink actually binds the slot; with none
-               bound there is no aside at all, see `avatarAugmentPresent`. */
+            /* The avatar is a visual, so it sits in a framed left aside; the aside sets the frame's corner. */
             left={
               avatarAugmentPresent ? (
                 <CrewAvatarCell
                   sizePx={avatarSizePx}
                   slot={
                     <div style={AVATAR_LAYER_STYLE}>
-                      {/* Forces whatever the augment renders (e.g. a face
-                          image) to fill the cell. Renders blank (not a
-                          placeholder) for a kerbal the bound Uplink has
-                          nothing to show yet. */}
                       <div style={{ width: "100%", height: "100%" }}>
                         <AugmentSlot
                           name="crew-status.avatar"
@@ -736,26 +439,7 @@ function renderBody({
               ) : undefined
             }
           >
-            {/* The title row is hand-composed INSIDE the body rather than
-                passed as `title`, because the avatar spans the whole rest of
-                the row (name, badge and survival section), not just the name
-                line. A `title` prop draws its row above the asides, which would
-                put the name over the avatar instead of beside it.
-
-                `flex: 1 1 auto` (not the shared `Truncate`'s default `flex: 1`
-                = `1 1 0%`, overridden via inline `style` since that wins over
-                the class-based rule without a bespoke styled wrapper): the name
-                commands its own natural width in the row's wrap decision, so a
-                trailing badge wraps onto its own line instead of shrinking the
-                name into an ellipsis. Still truncates in the rare case the
-                panel itself is too narrow for the name alone. Omitted when
-                `suppressName`: the EVA header above already carries it, and
-                the Card's own `aria-label` keeps it reachable for a screen
-                reader.
-
-                The badges slot renders nothing until an Uplink (e.g. a
-                habitation or radiation backend) binds; the props carry this
-                row's kerbal identity so the augment badges the right one. */}
+            {/* Composed in the body, not via `title`, so the avatar aside sits beside the name rather than under it. The name's `flex: 1 1 auto` lets a trailing badge wrap instead of truncating it. */}
             <Card.TitleRow
               right={
                 <Inline>
@@ -772,10 +456,6 @@ function renderBody({
                 </Card.Title>
               )}
             </Card.TitleRow>
-            {/* This kerbal's contributed survival meters (e.g. an Uplink's
-                per-rule dose/stress bars). Renders nothing at all when nothing
-                is contributed, so the roster degrades exactly as it did with an
-                unbound slot. */}
             <WidgetMeters row={name} style={CREW_METERS_STYLE} />
           </Card>
         );
@@ -793,15 +473,7 @@ const AVATAR_LAYER_STYLE = {
   justifyContent: "center",
 } as const;
 
-/**
- * The crew-row name: overrides `Truncate`'s `flex: 1 1 0%` with `flex: 1 1
- * auto` so a trailing badge wraps to its own line instead of shrinking the
- * name (see the row's own comment above). An inline `style` override, not a
- * bespoke `styled(Truncate)` extension: this widget carries zero bespoke CSS
- * (`noRestrictedImports` bans `styled-components` here), and inline `style`
- * already wins over the shared component's class-based rule for the one
- * property being overridden.
- */
+/** Lets a trailing badge wrap rather than shrinking the name into an ellipsis. */
 const NAME_FLEX_STYLE = { flex: "1 1 auto" } as const;
 
 /** Indents a row's contributed meters under the kerbal's name, and keeps a gap
@@ -812,14 +484,7 @@ const CREW_METERS_STYLE = {
   paddingLeft: "var(--indent-row)",
 } as const;
 
-/**
- * Leading per-crew avatar cell: a framed square that reserves room for an
- * avatar-face augment, sized in JS pixels via `sizePx` (`avatarCellSizePx`,
- * computed once per render off the roster's measured width, see that helper's
- * own doc comment). `position: relative` so the augment slot layer fills the
- * box. Only rendered while `avatarAugmentPresent` (`renderBody`, above) is
- * true, so this component never has to fall back to placeholder content.
- */
+/** Framed square for the avatar augment; `position: relative` so the slot layer fills it. */
 function CrewAvatarCell({
   slot,
   sizePx,
@@ -848,40 +513,14 @@ registerComponent<CrewStatusConfig>({
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 3, h: 3 },
   component: CrewStatusComponent,
-  // Per-crew-row augment slots, all unfilled until an Uplink
-  // binds, the roster renders as before:
-  //   crew-status.row-badges, trailing inline badges (e.g. dose/comfort);
-  //     wraps under the name (Cluster `wrap`) rather than truncating it.
-  //   crew-status.avatar, leading square face cell (Uplink-provided avatar); only
-  //     reserved while an Uplink actually binds it, see `avatarAugmentPresent`.
-  //   crew-status.summary, ONE whole-widget section above the roster (e.g. a
-  //     vessel-wide radiation-environment reading), not per-kerbal, see
-  //     that slot's own doc comment above.
-  //
-  // The per-row survival section is NOT here: it is the framework's universal
-  // `crew-status.meters` CONTRIBUTION segment now, drawn by `<WidgetMeters>`
-  // per roster row. It stopped being an augment because the Uplink filling it
-  // was rendering a stack of the kit's own `Meter` and nothing else.
   augmentSlots: [
     "crew-status.row-badges",
     "crew-status.avatar",
     "crew-status.summary",
   ],
-  // `crew-status.row-tone`: the only slot this widget declares that carries
-  // DATA rather than JSX, see its own doc comment above. (`crew-status.meters`
-  // is a contribution too, but it is the framework's universal segment and no
-  // widget declares it.) Fed by nothing when no Uplink binds, every row's
-  // `Card` renders with the default untinted border.
   contributionSlots: ["crew-status.row-tone"],
   channels: topics.channels,
   fields: topics.fields,
-  // `vessel.resources` is the (already-existing, already-consumed-by-
-  // FuelStatus) generic per-vessel resource Topic; here it feeds the EVA
-  // suit O2/EC readout, only relevant while the active vessel is an EVA
-  // kerbal. `optionalChannels` (not `channels`): the widget's core roster
-  // reads always work without it, so it must never gate the whole widget's
-  // mount the way a REQUIRED `channels` entry would (see `RequiresGuard`'s
-  // own doc comment on the distinction).
   optionalChannels: topics.optionalChannels,
   defaultConfig: {},
   actions: [],

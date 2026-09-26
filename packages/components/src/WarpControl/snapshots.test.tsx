@@ -10,19 +10,9 @@ import spaceCenter from "./__fixtures__/space-center-no-flight.json";
 import { WarpControlComponent } from "./index";
 
 /**
- * DOM snapshots off the stream pipeline, driven by each fixture's own
- * `_stream` block.
- *
- * This spec used to build that stream itself: it carried `spaceCenter.scene`
- * alone and re-derived a `time.warp` payload from the fixture's flat `t.*`
- * keys, mapping the warp-mode string back onto its enum ordinal in the test.
- * Each fixture already declares both channels on the wire, plus the
- * `spaceCenter.launchSites` and `career.mode` the pad-occupancy and career
- * readouts need and the hand-built stream carried neither of.
- *
- * `connectSource` stays on: the widget's status badge reads
- * `useDataStreamStatus("data", ...)`, and a disconnected legacy source paints a
- * badge these fixtures do not depict.
+ * DOM snapshots off the stream pipeline, driven by each fixture's own `_stream`
+ * block. `connectSource` stays on because a disconnected legacy source paints a
+ * status badge these fixtures do not depict.
  */
 
 const FIXTURES: Record<string, Record<string, unknown>> = {

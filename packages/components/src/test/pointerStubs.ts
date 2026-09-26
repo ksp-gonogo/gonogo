@@ -1,7 +1,4 @@
-/**
- * Pointer-interaction stand-ins for the zoom/pan hooks, shared by their two
- * specs so the one unavoidable erasure lives in a single place.
- */
+/** Pointer-interaction stand-ins for the zoom/pan hooks' specs. */
 
 /**
  * A real element with a fixed 200x100 box and the pointer-capture methods
@@ -23,13 +20,7 @@ export interface PointerFields {
   currentTarget?: HTMLDivElement;
 }
 
-/**
- * A pointer event carrying those fields.
- *
- * React's synthetic event has no public constructor and is minted by the
- * reconciler, so a spec driving a handler directly cannot build a real one.
- * The erasure is here rather than in each spec.
- */
+/** A pointer event carrying those fields. React's synthetic event has no public constructor, so the erasure lives here. */
 export function pointerEvent(
   fields: PointerFields,
   el?: HTMLDivElement,

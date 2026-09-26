@@ -13,15 +13,7 @@ import { SystemViewComponent } from "./index";
 import type { SystemEntity } from "./systemEntities";
 
 /**
- * End-to-end proof of the wiring `systemEntities.test.ts` /
- * `SystemEntitiesLayer.test.tsx` can't see: that a REAL `registerContribution`
- * against `system-view.entities`, aggregated through the widget's declared
- * `contributionSlots` (`GridItemContent.tsx`'s real path, mirrored here via
- * `WidgetMetaContext` + `ContributionsProvider`, same as `ShipMap/
- * contributions.test.tsx`), actually reaches the diagram as a drawn SVG
- * primitive. `contributionSlots` missing from `registerComponent` would pass
- * every unit test in this folder while leaving the slot permanently empty in
- * the live app: this is the test that would have caught it.
+ * A real `registerContribution` against `system-view.entities`, aggregated through the widget's declared `contributionSlots` as the dashboard does, reaches the diagram as a drawn SVG primitive.
  */
 
 const KERBIN_MU = 3.5316e12;
@@ -61,9 +53,7 @@ const ENTITY: SystemEntity = {
 };
 
 describe("SystemView: system-view.entities contribution wiring", () => {
-  // No `clearContributions()` teardown: the registry is this file's own
-  // (vitest isolates per file), and clearing it notifies the aggregator while
-  // the tree is still mounted, which re-renders outside act.
+  // No `clearContributions()` teardown: vitest isolates the registry per file, and clearing it would re-render the mounted tree outside act.
   it("draws a registered contribution's entity as an SVG primitive", async () => {
     registerContribution({
       id: "test-system-view-entity",

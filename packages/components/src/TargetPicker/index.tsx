@@ -48,38 +48,21 @@ const topics = defineTopicManifest({
   channels: ["target.available", "vessel.target"],
 });
 
-// Config is empty, bodies/vessels/parts all come off the one `target.available` list now, so there is nothing per-instance to save.
+// Config is empty: everything comes off the one `target.available` list.
 type TargetPickerConfig = Record<string, never>;
 
-// ── Augment slots (Uplink architecture) ─────────────────────────────
-// One host-owned slot any Uplink may compose into. It carries no slot props:
-// it is not an overlay or typed-contract slot, a bound augment reads its OWN
-// Topics via hooks and fires its own actions, so it passes `{}`.
-//
-//  - `target-picker.sections`: a body slot for a fleet-management Uplink (mission
-//    tagging / constellation grouping) to add a filter/grouping view alongside
-//    the stock Suggested / Bodies / Vessels / Parts sections. No confirmed filler yet.
-//
-// Typed here via co-located `SlotRegistry` declaration-merging so
-// the ids type-check at the `AugmentSlot` / `registerAugment` sites rather than
-// falling back to the loose `Record<string, unknown>`.
+// `target-picker.sections`: a body slot for a fleet-management Uplink's filter or grouping view.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "target-picker.sections": Record<string, never>;
   }
 }
 
-/** `Sitrep.Contract.VesselType`'s C# declared order (VesselEnums.cs): the
- * ordinal -> display-label bridge for a `target.available` entry's
- * `vesselType` (set for Vessel/Part-kind entries: the owning vessel's type).
- * Hand-ordered to match the generated SDK `VesselType` enum (source of
- * truth, since it's generated straight off the C# contract), index
- * alignment is locked by the drift-guard test in `enumLabelDrift.test.ts`
- * (imported there under the `TARGET_PICKER_VESSEL_TYPE_LABELS` alias at the
- * bottom of this file: LaunchDirector declares an identically-named const
- * of its own, and both can't be bare-named at the package's `export *`
- * barrel), so an inserted C# enum member fails CI here instead of silently
- * mis-labelling every row. */
+/**
+ * `Sitrep.Contract.VesselType`'s C# declared order: ordinal to display label
+ * for a `target.available` entry's `vesselType`. Alignment with the SDK enum is
+ * locked by `enumLabelDrift.test.ts`.
+ */
 const VESSEL_TYPE_LABELS: readonly string[] = [
   "Ship",
   "Station",
@@ -98,15 +81,10 @@ const VESSEL_TYPE_LABELS: readonly string[] = [
   "Unknown",
 ];
 
-/** Ordinal for the asteroid/comet toggle, DERIVED from the generated SDK
- * enum (not a bare literal) so it can never point at the wrong
- * `VesselType` member even if the C# declaration order changes. */
+/** Derived from the generated SDK enum, so it tracks the C# declaration order. */
 export const SPACE_OBJECT_VESSEL_TYPE = VesselType.SpaceObject;
 
-/** `Sitrep.Contract.Situation`'s C# declared order: the ordinal -> label
- * bridge for a `target.available` entry's `situation` (set for Vessel-kind
- * entries only). Index-alignment with the generated SDK `Situation` enum is
- * locked by the drift-guard test in `enumLabelDrift.test.ts`. */
+/** `Sitrep.Contract.Situation`'s C# declared order: ordinal to label, locked by `enumLabelDrift.test.ts`. */
 const SITUATION_LABELS: readonly string[] = [
   "Landed",
   "Splashed",
@@ -129,11 +107,7 @@ const targetPickerActions = [
 ] as const satisfies readonly ActionDefinition[];
 type TargetPickerActions = typeof targetPickerActions;
 
-/**
- * Stable per-entry id: used both as the pending-spinner disambiguator and
- * the row's React key. Baked from the SAME stable id `tar.setTarget*` takes,
- * so it never collides across kinds.
- */
+/** Stable per-entry id, the pending-spinner key and React key, baked from the id `vessel.target.set` takes. */
 function entryId(entry: TargetListEntry): string {
   switch (entry.kind) {
     case TargetKind.Body:
@@ -147,16 +121,12 @@ function entryId(entry: TargetListEntry): string {
   }
 }
 
-/** Type · situation subtitle for a Vessel/Part row. `null` for Body (bodies
- * carry neither field) or when neither resolves to a label. */
+/** Type and situation subtitle for a Vessel/Part row; `null` for a Body or when neither resolves. */
 function entrySubtitle(entry: TargetListEntry): string | null {
   if (entry.kind !== TargetKind.Vessel && entry.kind !== TargetKind.Part) {
     return null;
   }
-  /* `!= null` on both: `vesselType` and `situation` are nullable enums on the
-     contract and the wire keeps the key, so "the mod could not classify this
-     one" arrives as an explicit null and the strict form indexed the label
-     table with it. */
+  // `!= null`: an unclassified entry arrives as an explicit null.
   const type =
     entry.vesselType != null ? VESSEL_TYPE_LABELS[entry.vesselType] : undefined;
   const situation =
@@ -165,8 +135,7 @@ function entrySubtitle(entry: TargetListEntry): string | null {
   return parts.length > 0 ? parts.join(" · ") : null;
 }
 
-/** Ascending by `distance`, undefined sorted last: "closest first" for
- * every category and the Suggested selection built from them. */
+/** Ascending by `distance`, undefined last. */
 function sortByDistance(list: readonly TargetListEntry[]): TargetListEntry[] {
   return [...list].sort((a, b) => {
     const da = magnitudeOf(a.distance) ?? Number.POSITIVE_INFINITY;
@@ -182,35 +151,14 @@ function TargetPickerComponent({
   w,
   h,
 }: Readonly<ComponentProps<TargetPickerConfig>>) {
-  // Canonical native reads: the whole `target.available` list, and the
-  // target-detail scalars off the whole `vessel.target` Topic (name, kind,
-  // and the Vec3 fields distance/Δv derive from), the same native-shim
-  // reads Targeting uses.
   /**
-   * The roster is a fact: bodies and vessels do not stop existing because the link
-   * dropped, and a picker with no rows is useless. So the last roster stands.
-   *
-   * The current target is also a fact, but a fact about the CRAFT rather than the
-   * solar system, and the operator uses it to decide whether to send a change. A
-   * held target is the right answer there too (it is what we last told it and what
-   * it last confirmed), which is why both take `stillTrue` and neither is withheld.
+   * The roster and the current target are facts, so both take `stillTrue`: a
+   * held target is what we last told the craft and what it last confirmed.
    */
   const availableReading = topics.useTelemetry("target.available");
-  /**
-   * "The producer says there are no targets" and "no roster has reached us" are
-   * different sentences and this widget already said them differently, by accident
-   * of its gate being spelled `=== undefined` against a `null` payload. The
-   * tombstone argument makes it deliberate: a confirmed empty sky IS an empty
-   * roster, so it renders the empty-list wording, and only `pending` renders the
-   * wait.
-   */
+  // A confirmed empty sky IS an empty roster; only `pending` renders the wait.
   const available = stillTrue(availableReading, EMPTY_ROSTER);
-  /*
-   * The model is dropped on the way in: this reads the target's identity and
-   * the range it was last OBSERVED at, and a picker offering a modelled range
-   * beside a name is the confident-wrong picture the reading type exists to
-   * prevent.
-   */
+  // The model is dropped: a picker offering a modelled range beside a name is the confident-wrong picture.
   const targetReading = topics.useTelemetry("vessel.target");
   const target = stillTrue(withoutReckoning(targetReading), undefined);
   const tarName = target?.name;
@@ -223,20 +171,13 @@ function TargetPickerComponent({
     tarRelPos && tarRelVelVec
       ? radialSpeed(tarRelPos, tarRelVelVec)
       : undefined;
-  /* The plain numbers above decide whether a row EXISTS; these are what the
-     rows draw, so a range held over from the last contact is marked rather than
-     passing for a live one. Same derivation, off the same fields. */
+  // The plain numbers decide whether a row EXISTS; these are what it draws, so a held range is marked.
   const rangeR = rangeReading(targetReading.relativePosition);
   const closingRateR = closingRateReading(
     targetReading.relativePosition,
     targetReading.relativeVelocity,
   );
-  /**
-   * Setting or clearing the target is dispatched to the craft and so is subject
-   * to signal delay, which is why both ride `useCommand`. A body, a vessel and
-   * a part all set through the one `vessel.target.set` command, keyed by the
-   * `TargetKind` ordinal each entry already carries as `entry.kind`.
-   */
+  /** Setting or clearing the target is subject to signal delay; every kind sets through `vessel.target.set`, keyed by `entry.kind`. */
   const setTargetCmd = useCommand("vessel.target.set");
   const clearTargetCmd = useCommand("vessel.target.clear");
   usePanelDelay(setTargetCmd);
@@ -256,11 +197,7 @@ function TargetPickerComponent({
     },
   });
 
-  // Pending state, which row is awaiting the `vessel.target` readback after
-  // a click. We render a spinner on that row until the readback confirms (or
-  // a 5 s safety net clears it). `id` is `entryId(entry)`, so a Suggested row
-  // and its category-section twin (the same underlying entry, rendered
-  // twice) both light up together.
+  // The row awaiting the `vessel.target` readback, spinning until it confirms or a 5 s safety net clears it; a Suggested row and its category twin light up together.
   const [pendingTarget, setPendingTarget] = useState<{
     id: string;
     expectedName: string;
@@ -280,9 +217,7 @@ function TargetPickerComponent({
     const id = entryId(entry);
     const label = `Target ${entry.name}`;
     if (entry.kind === TargetKind.Body) {
-      // `=== undefined` let `bodyIndex: null` through, and a null index is a real
-      // dispatched `vessel.target.set` built from an absence. Any non-number is a
-      // refusal now, because the alternative is commanding the craft on a guess.
+      // A null index is a refusal: never command the craft on a guess.
       if (typeof entry.bodyIndex !== "number") return;
       setPendingTarget({ id, expectedName: entry.name, since: Date.now() });
       void setTargetCmd.send(
@@ -297,9 +232,7 @@ function TargetPickerComponent({
         { label },
       );
     } else if (entry.kind === TargetKind.Part) {
-      /* `== null`: `partId` is a `uint?` and the wire keeps the key, so a part
-         the mod could not identify arrives as an explicit null and the strict
-         form put it in the command args. */
+      // `== null`: an unidentified part arrives as an explicit null.
       if (!entry.vesselId || entry.partId == null) return;
       setPendingTarget({ id, expectedName: entry.name, since: Date.now() });
       void setTargetCmd.send(
@@ -311,19 +244,13 @@ function TargetPickerComponent({
         { label },
       );
     }
-    // T1: an `Other`/unknown-kind entry (a modded ITargetable) has no id-based
-    // `tar.setTarget*` command to re-select it: the producer only surfaces one
-    // when it's ALREADY the current target: so a click is intentionally a
-    // graceful no-op here (the row still shows name + distance + the TARGET
-    // tag). Documented so this fall-through reads as deliberate, not an
-    // accidental missing branch.
+    // An `Other`-kind entry has no id-based set command, so a click is intentionally a no-op.
   };
   const clearTarget = () => {
     setPendingTarget(null);
     void clearTargetCmd.send(undefined, { label: "Clear target" });
   };
 
-  // ── target.available -> Suggested + categorised sections ─────────────────
   const entries = available?.entries ?? [];
   const filterText = filter.trim().toLowerCase();
   const isFiltering = filterText.length > 0;
@@ -343,9 +270,7 @@ function TargetPickerComponent({
     [nameFiltered],
   );
 
-  // Asteroid/comet toggle applies to Vessel-kind entries only (Bodies/Parts
-  // are unaffected, a Part's vesselType is its owning vessel's, but the
-  // toggle is scoped to the Vessels category + Suggested vessels per spec).
+  // The asteroid/comet toggle applies to Vessel-kind entries only.
   const visible = useMemo(
     () =>
       nameFiltered.filter(
@@ -371,11 +296,7 @@ function TargetPickerComponent({
     () => sortByDistance(visible.filter((e) => e.kind === TargetKind.Part)),
     [visible],
   );
-  // T1: anything that isn't a Body/Vessel/Part: `TargetKind.Other` (a modded
-  // ITargetable the producer surfaces as the current target) or any kind the
-  // consumer doesn't recognise: buckets here rather than falling into no list
-  // and rendering invisibly. Distance is kind-agnostic (every ITargetable has
-  // a transform), so it shows + distance-sorts like the others.
+  // Anything not a Body/Vessel/Part buckets here rather than rendering invisibly.
   const otherList = useMemo(
     () =>
       sortByDistance(
@@ -389,7 +310,7 @@ function TargetPickerComponent({
     [visible],
   );
 
-  // Suggested: 2 closest Bodies + 2 closest Vessels + ALL Parts (already off-vessel by construction): each source list is already closest-first.
+  // Suggested: 2 closest Bodies, 2 closest Vessels and all Parts.
   const suggested = useMemo(
     () => [...bodiesList.slice(0, 2), ...vesselsList.slice(0, 2), ...partsList],
     [bodiesList, vesselsList, partsList],
@@ -401,7 +322,7 @@ function TargetPickerComponent({
     partsList.length === 0 &&
     otherList.length === 0;
 
-  // Selective rendering: at very small sizes the picker doesn't have room, so collapse to a current-target readout (clear button if there's any width).
+  // At very small sizes, collapse to a current-target readout.
   const cols = w ?? 6;
   const rows = h ?? 11;
   const showFull = rows >= 6 && cols >= 4;
@@ -509,8 +430,7 @@ function TargetPickerComponent({
             aria-label="Filter targets"
           />
         </Section>,
-        /* The list is what the operator came for: it takes the height the
-           chips, the current target and the filter leave. */
+        /* The list takes the height the chips, the current target and the filter leave. */
         <Section key="list" fill>
           {available === undefined ? (
             <Hint>Waiting for target list...</Hint>
@@ -609,8 +529,7 @@ interface CategorySectionProps {
   children: ReactNode;
 }
 
-/** A real disclosure pattern: a `<button>` heading toggling the section,
- * `aria-expanded` + `aria-controls` wired to the collapsible body's id. */
+/** A disclosure: a `<button>` heading with `aria-expanded` and `aria-controls` on the collapsible body. */
 function CategorySection({
   id,
   label,
@@ -642,8 +561,6 @@ function CategorySection({
   );
 }
 
-// ── Config component ──────────────────────────────────────────────────────────
-
 function TargetPickerConfigComponent(
   _props: Readonly<ConfigComponentProps<TargetPickerConfig>>,
 ) {
@@ -661,10 +578,7 @@ function TargetPickerConfigComponent(
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
-/** Chip row that collapses to zero height when there's no encounter / apsis
- *  data: keeps the header tight in the common steady-orbit case. */
+/** Collapses when there is no encounter or apsis data. */
 const OrbitalEventChipsRow = styled.div`
   display: flex;
   &:empty {
@@ -672,9 +586,6 @@ const OrbitalEventChipsRow = styled.div`
   }
 `;
 
-/** Wraps the `target-picker.sections` augment slot. Collapses to zero height
- *  when no augment is bound (the slot renders no DOM), keeping the stock layout
- *  identical to before the slot existed. */
 const CurrentSummary = styled.div`
   margin-top: var(--gap-related-compact);
   display: flex;
@@ -896,8 +807,6 @@ registerComponent<TargetPickerConfig>({
   minSize: { w: 3, h: 3 },
   component: TargetPickerComponent,
   configComponent: TargetPickerConfigComponent,
-  // One host-owned augment slot: a body `.sections` slot for a fleet-management
-  // Uplink's filter/grouping view. Unfilled until an Uplink binds it.
   augmentSlots: ["target-picker.sections"],
   channels: topics.channels,
   defaultConfig: {},
@@ -906,10 +815,7 @@ registerComponent<TargetPickerConfig>({
   requires: ["flight"],
 });
 
-// Test-only surface for the T3 drift-guard (`enumLabelDrift.test.ts`), aliased
-// rather than exported bare, since LaunchDirector declares an identically-named
-// `VESSEL_TYPE_LABELS` const of its own and the package barrel (`src/index.ts`)
-// re-exports every widget's `*`, which would otherwise collide.
+// Aliased for `enumLabelDrift.test.ts`, since LaunchDirector declares its own `VESSEL_TYPE_LABELS`.
 export {
   SITUATION_LABELS as TARGET_PICKER_SITUATION_LABELS,
   TargetPickerComponent,

@@ -1257,12 +1257,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Core.Tests/UplinkActiveVesselScopeTests.cs",
 
       /*
-       * -- Widget-name mentions in doc comments, zero code coupling --
-       * "ManeuverPlanner, TargetPicker, RoboticsConsole, MechJeb, Navball,"
-       * lists sibling command widgets this shared list-item helper serves.
-       */
-      "packages/ui-kit/src/CommandDelay/toInFlightListItems.ts",
-      /*
        * Porkchop heatmap doc-comment: "(MechJeb/alexmoon style)" cites the
        * familiar visual convention it mirrors, not a dependency.
        */
@@ -1272,12 +1266,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * among them, and all three had since moved into Uplinks. It now states
        * the pattern without naming them, stale, ratcheted off.
        */
-      /*
-       * RoboticsConsole/RotorTachometer doc-comments cite MechJeb as a
-       * precedent for this widget's shape; no MechJeb import or coupling.
-       */
-      "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/index.tsx",
-      "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx",
 
       /*
        * -- Core-mod doc-comments citing MechJeb2 as prior art or a use case,
@@ -1585,21 +1573,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // map-topic.ts: a section header for the kerbalism Topic block.
 
       /*
-       * -- base-library widgets: SLOT DOCUMENTATION, not coupling --
-       * FleetReliability names the backend in prose while describing behaviour,
-       * which is text and not coupling: it reads no kerbalism Topic and imports
-       * no kerbalism type.
-       *
-       * The widgets that used to sit here alongside it named the mod in SLOT
-       * PROSE ("an augment (e.g. a Kerbalism EC-broker breakdown) renders
-       * here"), and that wording has since been rewritten to name the
-       * CAPABILITY rather than one backend, so their entries ratcheted off.
-       * FleetRoster's went the same way by a different route: it carried the
-       * mod as a registerComponent search TAG until it declared its augment
-       * slot, after which the tag is computed from whoever binds.
-       */
-      "packages/components/src/FleetReliability/index.tsx",
-      /*
        * systemEntities.ts: the `travelling-pulse` shape's doc comment names
        * Kerbalism's own storm-arrival UT/duration as the realistic EXAMPLE of
        * where a contribution's `arriveUt`/`clearUt` come from, while
@@ -1607,12 +1580,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * Kerbalism's CME entry) implements. No kerbalism Topic, type or import
        * is referenced.
        */
-      /*
-       * DivergingBar.tsx: the kit primitive credits the HTML prototype its
-       * design was ported from, which happens to be named after the Domain it
-       * was mocked for. A provenance citation.
-       */
-      "packages/ui-kit/src/DivergingBar.tsx",
 
       /*
        * -- sibling Uplinks + core mod: prose only --
@@ -1651,13 +1618,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/GonogoDevTools/GonogoDevKerbalismScience.cs",
       "mod/GonogoDevTools/GonogoDevCurrency.cs",
-      /*
-       * Sibling Uplink clients noting that a Kerbalism-shaped filler for one of
-       * their own slots is expected later, or recording that they share this
-       * Uplink's "no runtime-loader entry, plain static import" bootstrap path.
-       * Zero code or type coupling.
-       */
-      "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/index.tsx",
 
       /*
        * -- TEST-only --
@@ -1689,13 +1649,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/core/src/registry.replacement.test.ts",
       "packages/components/src/CrewStatus/index.test.tsx",
       "packages/components/src/FleetReliability/index.test.tsx",
-      "packages/components/src/FleetRoster/index.test.tsx",
-      /*
-       * unit-symbol-collision.test.ts: the guard for a real shipped bug, named
-       * after where it was seen (a death-clock badge reading "~4M" for four
-       * minutes). Provenance for a general unit-symbol rule.
-       */
-      "packages/ui-kit/src/unit-symbol-collision.test.ts",
     ],
   },
   /*
@@ -1806,7 +1759,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * Widgets that render the reliability domain and name TestFlight in prose
        * to explain which source a field came from.
        */
-      "packages/components/src/FleetReliability/index.tsx",
       "packages/components/src/FleetReliability/index.test.tsx",
       "packages/components/src/FleetReliability/composition.test.tsx",
     ],

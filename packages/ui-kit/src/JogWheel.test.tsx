@@ -76,11 +76,7 @@ describe("JogWheel", () => {
   });
 });
 
-/**
- * Sizing. The box is the ONLY thing these change: the drag runs on captured
- * pointer travel and the keyboard runs on `applyDelta`, and neither reads the
- * element's dimensions.
- */
+/** Sizing changes the box only: neither the drag nor the keyboard reads the element's dimensions. */
 describe("JogWheel sizing", () => {
   const box = (name: string) => {
     const cs = getComputedStyle(screen.getByRole("slider", { name }));
@@ -88,10 +84,8 @@ describe("JogWheel sizing", () => {
   };
 
   /**
-   * The declaration block styled-components wrote for this element. Needed for
-   * the inset: it is a `var()` with a fallback, and jsdom resolves an unknown
-   * custom property to the empty string rather than the fallback, so a
-   * `getComputedStyle` read of it says `0px` whatever the source says.
+   * The declaration block styled-components wrote for this element, since
+   * jsdom resolves a `var()` with a fallback to the empty string.
    */
   const declarations = (name: string): string => {
     const el = screen.getByRole("slider", { name });
@@ -236,18 +230,9 @@ describe("JogWheel sizing", () => {
   });
 });
 
-/**
- * Rate mode: displacement is a SPEED, not a position.
- *
- * <p>The mode exists because a position control cannot serve an instant. A UT is
- * legitimately years out, and no pair of bounds spans that while leaving useful
- * precision anywhere inside it. Displacement setting a rate needs no bounds at
- * all, which is how the producer's own planner drives time.</p>
- */
+/** Rate mode: displacement is a speed, not a position, and needs no bounds. */
 describe("JogWheel in rate mode", () => {
-  // jsdom implements neither, and the component calls both. Without these the
-  // handler THROWS partway through, React swallows it, and the drag half-works:
-  // the tests below passed that way, which is a pass for the wrong reason.
+  // jsdom implements neither; without them the handler throws partway and the drag only half-works.
   beforeAll(() => {
     Object.assign(HTMLElement.prototype, {
       setPointerCapture() {},
@@ -281,7 +266,7 @@ describe("JogWheel in rate mode", () => {
       drag(screen.getByRole("slider", { name: "Ignition" }), 80);
       expect(onChange).not.toHaveBeenCalled();
 
-      // Nothing moves on the pointer itself: the tick does the moving, so a value driven by both would advance twice.
+      // Nothing moves on the pointer itself: the tick does the moving.
       vi.advanceTimersByTime(600);
       expect(onChange).toHaveBeenCalled();
       expect(onChange.mock.calls[0][0]).toBeGreaterThan(1000);
@@ -312,7 +297,7 @@ describe("JogWheel in rate mode", () => {
 
       fireEvent.pointerUp(handle, { pointerId: 1 });
       vi.advanceTimersByTime(1000);
-      // A rate control left displaced would keep driving a value nobody is holding: for a burn instant that is a plan sliding unattended.
+      // Released, nothing keeps driving the value.
       expect(onChange.mock.calls.length).toBe(movedWhileHeld);
     } finally {
       vi.useRealTimers();
@@ -320,12 +305,7 @@ describe("JogWheel in rate mode", () => {
   });
 
   it("steps by one on an arrow key, with no bounds to measure from", () => {
-    // The keyboard is the whole of this control for anyone not using a pointer,
-    // so a mode that cannot be arrowed is a mode half the operators cannot use.
-    // Unbounded is exactly where it broke: the step grid was measured FROM the
-    // minimum, and a minimum of negative infinity makes every arrow press land
-    // on NaN. NaN does not throw, does not compare unequal to anything, and
-    // reaches the value as a burn instant that is not a number.
+    // An unbounded control must still be arrowable, without a grid from negative infinity producing NaN.
     const onChange = vi.fn();
     render(
       <JogWheel
@@ -346,10 +326,7 @@ describe("JogWheel in rate mode", () => {
   });
 
   it("moves an off-grid value by exactly one step, and snaps it to nothing", () => {
-    // The step grid is anchored at the minimum, and this mode has none. Snapping
-    // to a substituted anchor makes one arrow press on an instant that is not on
-    // the minute move by something other than a minute, so a nudge control
-    // cannot be trusted to nudge. Unbounded moves by what it says it moves by.
+    // With no minimum there is no grid anchor, so one press moves by exactly one step.
     const onChange = vi.fn();
     render(
       <JogWheel

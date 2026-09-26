@@ -6,16 +6,7 @@ import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { OrbitViewComponent } from "./index";
 
-/**
- * What the empty diagram says when the elements arrived and the conic withdrew.
- *
- * "packed" is a claim that the orbit exists and the craft is loaded. The conic
- * can withdraw for several reasons with the elements perfectly present, and
- * every one of them empties the diagram the same way, so the sentence is the
- * only thing on the panel that says which. It must come from the reason that
- * names the loaded case and from nothing else: each scene below withdraws for a
- * different reason, and only one of them is allowed to say "packed".
- */
+/** "packed" claims the orbit exists and the craft is loaded, so only the reason that names the loaded case may say it. */
 const CARRIED = [
   "vessel.orbit",
   "vessel.flight",

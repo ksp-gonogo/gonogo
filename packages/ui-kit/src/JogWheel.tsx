@@ -1,37 +1,16 @@
 /**
- * JogWheel: a fine-grain tape scrubber against a fixed centre caret. A
- * relative, focusable value input for dialling a bounded number by small
- * increments: pointer-drag along its orientation axis, or keyboard
- * arrows/Home/End. Purely presentational and vanilla-safe (props only, no
- * gonogo data hooks), so it stays inside `@ksp-gonogo/ui-kit`'s
- * react + styled-components peer surface.
+ * JogWheel: a fine-grain tape scrubber against a fixed centre caret, for
+ * dialling a number by small increments by pointer drag along its axis or by
+ * keyboard (Arrow +/- step, Home/End = min/max). A focusable `role="slider"`;
+ * all emits are suppressed while `disabled`. Sized with `width`/`height` in CSS
+ * px, as `Dial` and `Tape` are.
  *
- * Semantics: a real focusable `role="slider"` with
- * `aria-valuenow`/`aria-valuemin`/`aria-valuemax`/`aria-valuetext` +
- * `aria-orientation`; full keyboard operation (Arrow ±step, Home/End =
- * min/max). All emits are suppressed while `disabled`.
+ * Two known limits:
  *
- * Sized with `width`/`height` in CSS px, the same pair `Dial` and `Tape` take.
- * A corner-sized control (three wheels inside a 232px tile) wants about 72x24,
- * which reads at the scale of a video overlay's own 52x52 aim pad.
- *
- * Two known limits, undocumented before and worth knowing before reaching for
- * this control:
- *
- * - The visible caret label and `aria-valuetext` are the SAME computed string
- *   (`format(value)`, or the rounded value with no `format`). There is no way
- *   to give a screen reader a fuller value description (units, an axis name)
- *   while keeping the on-face text short enough for a compact wheel: shrink
- *   one and the other shrinks with it, since they are not two things, they
- *   are one string read twice. `ariaLabel` still names the control itself, so
- *   this only bites when the VALUE needs more context than a bare number.
- * - The drag axis is `e.clientX` / `e.clientY`, i.e. viewport-relative, not
- *   relative to the wheel's own element. A wheel styled with a CSS
- *   `transform: rotate(...)` therefore cannot be dragged along its own drawn
- *   axis: `orientation` still reads pointer travel against the SCREEN's X/Y,
- *   so a rotated horizontal wheel's tape runs at its drawn angle while a drag
- *   across the screen's X axis is what moves it. Do not rotate this control
- *   until the axis math is made element-relative.
+ * - The caret label and `aria-valuetext` are the same string, so a screen
+ *   reader cannot be given a fuller value description than the face shows
+ * - The drag axis is viewport-relative, so a wheel rotated with a CSS
+ *   transform cannot be dragged along its drawn axis. Do not rotate it
  */
 
 import type { KeyboardEvent, PointerEvent } from "react";
@@ -42,14 +21,10 @@ import { focusRing } from "./focusRing";
 /**
  * What displacement MEANS.
  *
- * <p><b>offset</b>: where the handle sits is the value. Needs bounds, and is the
- * original behaviour.</p>
- *
- * <p><b>rate</b>: where the handle sits is the SPEED the value changes at, and
- * it springs back to centre on release. Needs no bounds at all, which is the
- * whole reason it exists: an instant is legitimately years out, and no pair of
- * bounds spans that while leaving useful precision anywhere inside it. The
- * producer's own planner drives time and Δv this way.</p>
+ * - `offset`: where the handle sits is the value. Needs bounds
+ * - `rate`: where the handle sits is the speed the value changes at, and it
+ *   springs back to centre on release. Needs no bounds, for a value such as an
+ *   instant years out
  */
 export type JogWheelMode = "offset" | "rate";
 
@@ -64,9 +39,8 @@ interface JogWheelCommon {
   ariaLabel: string;
   disabled?: boolean;
   /**
-   * Box width in CSS px, as `Dial` and `Tape` take theirs. Defaults to 120
-   * horizontal / 40 vertical, so an existing call site keeps the size it has.
-   * Clamped up to {@link JOG_WHEEL_MIN_TARGET_PX}.
+   * Box width in CSS px. Defaults to 120 horizontal / 40 vertical. Clamped up
+   * to {@link JOG_WHEEL_MIN_TARGET_PX}.
    */
   width?: number;
   /**
@@ -109,21 +83,13 @@ const DEFAULT_STEPS_PER_SECOND = 30;
 
 /**
  * The floor either axis is clamped up to: WCAG 2.2 SC 2.5.8 (Target Size,
- * Minimum) at AA. A jog wheel is a pointer drag target with no spacing
- * exception to lean on, so a caller asking for less gets 24 rather than
- * something that looks right and cannot be grabbed.
- *
- * <p>Drag RANGE is unaffected by the box: the wheel captures the pointer, and
- * `SENSITIVITY_PX_PER_STEP` / `RATE_TRAVEL_PX` are measured against pointer
- * travel, which carries on outside the element. A small wheel is a smaller
- * thing to grab, not a shorter throw.</p>
+ * Minimum) at AA. Drag range is unaffected by the box, since the wheel captures
+ * the pointer.
  */
 export const JOG_WHEEL_MIN_TARGET_PX = 24;
 
 /**
- * Below this on the cross axis the 4px inset leaves less room than the caret
- * label's own line box needs, and `overflow: hidden` takes the difference off
- * the text. Wider than this nothing changes.
+ * Below this on the cross axis the 4px inset would clip the caret label.
  */
 const COMPACT_CROSS_AXIS_PX = 32;
 
@@ -136,14 +102,10 @@ const DEFAULT_SHORT_PX = 40;
  * deltaSteps welcome, for pointer drag), clamp to `[min,max]`, and snap to the
  * step grid.
  *
- * <p>The grid is anchored at `min`, and a control with no minimum has no anchor,
- * so an UNBOUNDED one moves by exactly the delta asked for and snaps to nothing.
- * Two reasons. Measuring the grid from negative infinity produces NaN, which
- * does not throw, does not compare unequal to anything, and reaches the value as
- * a burn instant that is not a number while the control merely appears not to
- * respond. And measuring it from a substituted zero would make one arrow press
- * on an off-grid instant move by something other than one step, which is a nudge
- * control that cannot be trusted to nudge.</p>
+ * The grid is anchored at `min`, so an unbounded control moves by exactly the
+ * delta asked for and snaps to nothing: a grid measured from negative infinity
+ * is NaN, and one from a substituted zero would make one press move by other
+ * than one step.
  */
 export function applyDelta(
   value: number,
@@ -182,16 +144,12 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
     height ?? (vertical ? DEFAULT_LONG_PX : DEFAULT_SHORT_PX),
   );
   const rate = props.mode === "rate";
-  // A rate control has no ends, so its arithmetic runs unbounded. `applyDelta`
-  // clamps, and clamping to an invented pair is exactly what this mode exists
-  // to avoid.
+  // A rate control has no ends, so its arithmetic runs unbounded rather than clamping to an invented pair.
   const lo = min ?? Number.NEGATIVE_INFINITY;
   const hi = max ?? Number.POSITIVE_INFINITY;
   const bounds = { min: lo, max: hi, step };
   const drag = useRef<{ start: number; startValue: number } | null>(null);
-  // The latest value, for the ticking effect below: it runs on an interval and
-  // would otherwise close over whatever `value` was when the drag began, so
-  // every tick would restate the same number.
+  // The latest value, so the interval does not close over the value the drag began at.
   const latest = useRef(value);
   latest.current = value;
   const [displacement, setDisplacement] = useState(0);
@@ -208,9 +166,8 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
   /**
    * While the handle is off centre, move the value at a speed set by how far.
    *
-   * <p>Cleaned up on release AND on unmount. A timer that outlived either would
-   * keep driving a value nobody is holding, which for a flight plan means a burn
-   * instant sliding while the operator is looking somewhere else.</p>
+   * Cleaned up on release and on unmount, so it never drives a value nobody is
+   * holding.
    */
   useEffect(() => {
     if (!rate || displacement === 0 || disabled) return;
@@ -271,9 +228,7 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
         ? drag.current.start - axisPos(e)
         : axisPos(e) - drag.current.start;
     if (rate) {
-      // Displacement sets the SPEED, so nothing is emitted here: the ticking
-      // effect does the moving, and a value that also jumped with the pointer
-      // would be driven by two things at once.
+      // Displacement sets the speed, so nothing is emitted here: the ticking effect does the moving.
       const fractionOfFull = travel / RATE_TRAVEL_PX;
       setDisplacement(Math.max(-1, Math.min(1, fractionOfFull)));
       return;
@@ -285,7 +240,7 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
   const endDrag = (e: PointerEvent<HTMLDivElement>): void => {
     if (!drag.current) return;
     drag.current = null;
-    // Springs back to centre: a rate control left displaced would keep moving the value after the operator let go of it.
+    // Springs back, so the value stops moving once the operator lets go.
     setDisplacement(0);
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);

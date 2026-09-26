@@ -17,12 +17,8 @@ import {
 } from "./railTags";
 
 /**
- * The claim the model rests on: each accessor reads ONE axis. An accessor that
- * quietly started consulting a second would be a special case wearing the
- * vocabulary of a model, and every combination would stop composing.
- *
- * Checked by holding one axis and sweeping the other two: if the answer moves
- * while the axis it names is fixed, something else is being read.
+ * Each accessor reads ONE axis. Checked by holding one axis and sweeping the
+ * other two: if the answer moves, something else is being read.
  */
 describe("each axis drives exactly one visual property", () => {
   const cases = [
@@ -44,7 +40,7 @@ describe("each axis drives exactly one visual property", () => {
           byAxisValue.set(key, answer);
         }
       }
-      // And it must actually DISCRIMINATE on that axis: an accessor returning one constant would satisfy the loop above while reading nothing.
+      // It must also DISCRIMINATE, since a constant would satisfy the loop above.
       expect(new Set(Array.from(byAxisValue.values())).size).toBe(2);
     });
   }
@@ -69,21 +65,12 @@ describe("the axis product", () => {
 });
 
 /**
- * The renderer table, asked the question that is worth asking of it: not "do
- * the four rows we know about work" but "which of the eight can nothing draw".
- *
- * A test that checked the known rows would pass forever while a declarable
- * combination silently rendered nothing, which is the failure this whole
- * vocabulary exists to make visible. So the assertion is on the WHOLE gap: the
- * unrepresented set is named exactly, and adding a renderer or a new axis value
- * fails here until the list is updated deliberately.
+ * The renderer table, asserted on the WHOLE gap: the unrepresented set is named
+ * exactly, so adding a renderer or an axis value fails here until the list is
+ * updated deliberately.
  */
 describe("which combinations have a renderer", () => {
-  /**
-   * The three the rail can draw today, and the one renderer each maps to. Named
-   * rather than derived from the table, so this is an independent statement of
-   * the same fact and not a copy of it agreeing with itself.
-   */
+  // Named rather than derived from the table, so it is an independent statement of the same fact.
   const DRAWN: ReadonlyArray<[RailTagKey, RailRenderer]> = [
     ["command/discrete/acked", "in-flight-row"],
     ["command/continuous/acked", "continuous-strip"],
@@ -104,19 +91,10 @@ describe("which combinations have a renderer", () => {
   }
 
   /*
-   * The five nothing draws, named so the gap is a fact on the record rather
-   * than an accident. Four of them are combinations no producer can currently
-   * make either: `Sitrep.Contract/CommandResult.cs` rules that a command's
-   * result is always delivered, so `command/*​/fire-and-forget` has no way to
-   * arise, and telemetry has no reply channel at all, so
-   * `telemetry/*​/acked` has none either.
-   *
-   * The FIFTH is the one that matters, and it is the fourth row of the table in
-   * `railTags.ts`: `telemetry/discrete/fire-and-forget`, a science result sent
-   * home. That is declarable today (`railTagsForTelemetry("discrete")` returns
-   * exactly it) and nothing draws it. That is deliberate: the arrival rail it
-   * would need is separately queued work, and until it exists an entry carrying
-   * these tags is reported and marked rather than quietly missing.
+   * The five nothing draws. Four no producer can make: a command's result is
+   * always delivered, and telemetry has no reply channel. The fifth,
+   * `telemetry/discrete/fire-and-forget` (a science result sent home), is
+   * declarable today and is reported and marked rather than quietly missing.
    */
   const UNDRAWN: readonly RailTagKey[] = [
     "command/discrete/fire-and-forget",
@@ -142,9 +120,7 @@ describe("which combinations have a renderer", () => {
       continuity: "discrete",
       delivery: "fire-and-forget",
     };
-    // Emphatically not `in-flight-row`. Falling back to the discrete queue is
-    // what the rail did before the axes had names, and it drew the entry as a
-    // discrete acked command: wrong in a way that looks right.
+    // Not `in-flight-row`: a discrete-queue fallback would look right and be wrong.
     expect(railRendererFor(scienceHome)).toBeNull();
   });
 });

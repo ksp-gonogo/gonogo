@@ -1,19 +1,8 @@
 /**
- * Categorical data palette: 24 vivid, distinct colours intended for
- * series in charts, telemetry rows, body markers, peer chips, and any
- * place where the role is "make this category visually distinct from
- * its neighbours".
- *
- * Distinct from the `--color-tag-*` family in `global.css`, which is
- * for *labeled state* (a purple prediction chip, a blue station badge).
- * Tag colours communicate meaning; data colours only communicate
- * "different category from that one".
- *
- * Consumed through `dataColor(i)`, index-based and JSX-side. Colour
- * identity follows the DATA, so a data-keyed index survives a reordering
- * where a DOM-order rule would reassign every colour.
+ * Categorical colours that only say "a different category from that one";
+ * the `--color-tag-*` family carries meaning instead. Indexed by the data, so
+ * a colour survives a reordering.
  */
-
 export const DATA_PALETTE = [
   "var(--color-data-1)",
   "var(--color-data-2)",

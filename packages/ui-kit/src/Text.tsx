@@ -4,8 +4,7 @@ import styled, { css } from "styled-components";
 /**
  * `faint` is the quietest tier, one step below `muted`: a secondary readout
  * that should recede rather than compete, like the numeric echo beside an
- * analog stick. Added because `VirtualDevice/AnalogPad` was keeping its own
- * `Value` for this one colour.
+ * analog stick.
  */
 export type TextTone =
   | "accent"
@@ -26,15 +25,11 @@ export interface TextProps extends HTMLAttributes<HTMLSpanElement> {
   spaced?: boolean;
   /**
    * Font size, snapped to the type scale. Omit to inherit the ambient
-   * font-size from wherever the value is mounted (the original behaviour),
-   * set it explicitly for dense list/grid rows (coverage %, sensor state,
-   * vessel meta) that need to stay off the 14px body-text size.
+   * font-size; set it for dense list or grid rows that need to stay off the
+   * body-text size.
    */
   size?: TextSize;
-  /**
-   * Font weight. Omit to inherit the ambient weight; set `semibold` to
-   * emphasise a key figure. Extracted from ScienceBench's chip/career values.
-   */
+  /** Font weight. Omit to inherit the ambient weight; set `semibold` to emphasise a key figure. */
   weight?: TextWeight;
   children?: ReactNode;
 }
@@ -55,12 +50,7 @@ const TONE_STYLES = {
   go: css`
     color: var(--color-status-go-fg);
   `,
-  /* The MUTED foreground, unlike its three neighbours, and the difference is
-     that `--color-status-warning-fg` is a near-black: a colour for text sitting
-     ON the amber badge, not beside it. On a panel it renders dark on dark, so
-     every `Text tone="warn"` in the tree was invisible rather than warning
-     anyone. The go, nogo and info foregrounds are already light and stay as
-     they are. */
+  // The plain warning foreground is near-black text for the amber badge, so prose on a panel takes the muted amber.
   warn: css`
     color: var(--color-status-warning-fg-muted);
   `,
@@ -99,16 +89,10 @@ const SIZE_STYLES = {
 /**
  * Inline text: tone, size, weight, spacing. `font-variant-numeric: tabular-nums`
  * is baked in so widgets never forget it and digits don't jitter as they update.
+ * It renders whatever it is given, with no magnitude, unit or formatting.
  *
- * Called `Value` until now, and the name was wrong twice over. It collided with
- * `@ksp-gonogo/sitrep-sdk`'s `Value<U>`, the unit-system's actual value type, so
- * two published packages exported one name for unrelated things and an author
- * importing either got no warning. And it oversold itself: this renders whatever
- * you give it, with no magnitude, no unit and no formatting anywhere in it.
- *
- * It does NOT merge into `Unit`, which is a different axis: `Unit` renders a
- * quantity and its symbol, this colours and sizes a span. They compose, and that
- * composition is the normal case:
+ * `Unit` renders a quantity and its symbol; this colours and sizes a span. They
+ * compose, and that composition is the normal case:
  *
  *     <Text tone="go"><Unit value={altitude} /></Text>
  */

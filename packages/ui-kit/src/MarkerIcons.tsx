@@ -9,22 +9,14 @@ import { forwardRef, type SVGProps } from "react";
  *
  * Two rules the set is built on:
  *
- * SHAPE carries the meaning, hue only confirms it. Every "towards" marker
- * carries a centre DOT and every "away" marker a centre CROSS, which is the
- * physics vector notation for out-of-page and into-page (⊙ and ⊗). Prograde and
- * retrograde, normal and anti-normal, radial-out and radial-in, target and
- * anti-target each share one hue in game and here, so the dot/cross is the
- * whole distinction and it survives greyscale and every colour-vision
- * deficiency. Across pairs the OUTLINE differs: ring, triangle, ring with
- * chevrons, diamond, square.
+ * Shape carries the meaning, hue only confirms it. Every "towards" marker
+ * carries a centre dot and every "away" marker a centre cross (⊙ and ⊗), so the
+ * two halves of a pair, which share a hue, survive greyscale. Across pairs the
+ * outline differs: ring, triangle, ring with chevrons, diamond, square.
  *
- * The glyph is legible on either ground. KSP's hues were picked for a
- * blue-and-brown sphere; on a near-black panel the maneuver blue has almost no
- * luminance contrast and on a light panel the prograde yellow has none. Each
- * marker is therefore drawn twice: first a wider keyline in `currentColor`,
- * which the theme guarantees contrasts with the surface because it is the text
- * colour, then the coloured stroke on top. The keyline is what a greyscale
- * reader sees; the colour is what a sighted operator recognises first.
+ * The glyph is legible on either ground: each marker is drawn first as a wider
+ * keyline in `currentColor`, which contrasts with the surface, then as the
+ * coloured stroke on top.
  *
  * Authoring follows `Icons.tsx`: a 24-unit viewBox drawn at 20px by default,
  * `strokeWidth` 1.8, decorative unless named.
@@ -37,9 +29,8 @@ export interface MarkerIconProps
   /** Width of the coloured stroke, in viewBox units. */
   strokeWidth?: number;
   /**
-   * Naming the icon makes it MEANINGFUL: it renders as `role="img"` with this as
-   * its accessible name. Without one it is decorative and hidden from assistive
-   * technology, so a marker beside its own text label costs a reader nothing.
+   * Naming the icon makes it meaningful: it renders as `role="img"` with this
+   * as its accessible name. Without one it is decorative and hidden.
    */
   label?: string;
 }
@@ -47,8 +38,7 @@ export interface MarkerIconProps
 /** Extra width of the keyline beyond the coloured stroke, split across both sides. */
 const KEYLINE_EXTRA = 1.4;
 const DOT_RADIUS = 1.7;
-/** Matches `Icons.tsx`, and for the same reason: the token reaches the glyph
- *  through the presentation attribute, so it steps on a coarse pointer. */
+/** As in `Icons.tsx`: the token reaches the glyph through the presentation attribute, so it steps on a coarse pointer. */
 const DEFAULT_SIZE = "var(--icon-size-standalone)";
 const DEFAULT_STROKE_WIDTH = 1.8;
 
@@ -67,19 +57,14 @@ const RING = "M12 6a6 6 0 1 0 0 12a6 6 0 1 0 0-12";
 const SMALL_RING = "M12 7a5 5 0 1 0 0 10a5 5 0 1 0 0-10";
 /**
  * The target square's four corner rays, carried onto the velocity ring: the
- * relative-velocity pair is prograde and retrograde expressed in the target's
- * frame, which is also how the game shows it (the velocity markers recolour to
- * the target hue in Target speed mode). The rays leave from the ring's
- * diagonals, so the outline reads as neither prograde's orthogonal spokes nor
- * retrograde's two-up-one-down.
+ * relative-velocity pair is prograde and retrograde in the target's frame.
+ * Diagonal, so it reads as neither prograde nor retrograde.
  */
 const RELATIVE_RAYS =
   "M7.76 7.76L4.2 4.2M16.24 7.76L19.8 4.2M16.24 16.24L19.8 19.8M7.76 16.24L4.2 19.8";
 /**
- * Two rails, the ∥ notation for parallel. The parallel pair points along the
- * target's own facing, so it is a target-frame direction like the relative
- * pair but about orientation rather than motion; an open outline with no ring
- * and no square keeps it from being mistaken for either.
+ * Two rails, the ∥ notation for parallel: along the target's own facing. An
+ * open outline, so it is mistaken for neither the ring nor the square.
  */
 const RAILS = "M7 4.5V19.5M17 4.5V19.5";
 /** The ⊗ half of the notation, centred on (cx, cy). */
@@ -280,11 +265,9 @@ export const ParallelMinusIcon = makeMarker(
 
 /**
  * The Frenet manoeuvring frame (tangent, normal, binormal) that n-body flight
- * plans are expressed in. Its axes are the same physical directions as
- * three of the navball markers, so they get the same glyphs rather than a
- * second set an operator would have to learn: tangent is the velocity
- * direction, the Frenet normal points at the centre of curvature (towards the
- * body, so radial-IN), and the binormal is the orbit normal.
+ * plans are expressed in reuses three navball glyphs: tangent is prograde, the
+ * Frenet normal points at the centre of curvature (radial-in), and the
+ * binormal is the orbit normal.
  */
 export const TangentIcon = ProgradeIcon;
 export const FrenetNormalIcon = RadialInIcon;

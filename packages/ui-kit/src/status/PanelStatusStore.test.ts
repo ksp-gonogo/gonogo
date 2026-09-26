@@ -33,7 +33,7 @@ describe("PanelStatusStore", () => {
   });
 
   it("second-topic-stale: a worse second contributor wins over a live-ish first", () => {
-    // The exact bug the single-status path could not catch: one topic reads fine, a second goes stale, and the panel must reflect the worst.
+    // One topic reads fine, a second goes stale, and the panel must reflect the worst.
     const store = createPanelStatusStore();
     store.register({ id: "topic-1", severity: "nominal", label: "" });
     store.register({ id: "topic-2", severity: "warning", label: "STALE" });
@@ -92,7 +92,7 @@ describe("PanelStatusStore", () => {
   });
 
   it("getSummary() is referentially stable while the result is unchanged", () => {
-    // The useSyncExternalStore no-loop guard: an identical snapshot must be the same object, or React tears.
+    // An identical snapshot must be the same object, or useSyncExternalStore loops.
     const store = createPanelStatusStore();
     store.register({ id: "a", severity: "warning", label: "STALE" });
     const first = store.getSummary();

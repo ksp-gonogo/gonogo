@@ -13,20 +13,8 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ActionGroupComponent } from "./index";
 
 /**
- * What ActionGroup does with a group whose state the backend could not read.
- *
- * `ActionGroupState.state` is three-valued (`bool?` in the contract) precisely
- * so a backend that reads each group separately can fail on ONE of them: AGX
- * reflects into its own scenario module per group, and the whole-tick null on
- * `actionGroups` cannot say "these nine answered and that one did not". While
- * the field was a plain bool the failure published as `false`, and `false` here
- * is a claim: the group is disengaged, the toggle draws OFF, and inverting that
- * reading commands the wrong way.
- *
- * Stock cannot produce this state (its indexer answers for all ten of its
- * groups whenever the vessel has an ActionGroups list at all), so the fixture
- * emits the payload directly rather than going through a backend. That is what
- * the widget sees on the wire either way.
+ * A group whose `state` is null (reported, but unreadable by a backend that
+ * reads each group separately) renders unknown, holds its toggle and says why.
  */
 
 const CARRIED = [
@@ -98,11 +86,7 @@ async function settle() {
 
 describe("ActionGroup when the backend could not read the group", () => {
   it("draws a readable group's state, so the withholding below is a decision", async () => {
-    /*
-     * The control. `false` is a real answer and must keep reading OFF on an
-     * operable toggle. Every assertion below would also pass on a widget that
-     * had simply stopped rendering group state at all.
-     */
+    // Control: `false` is a real answer and must keep reading OFF on an operable toggle.
     const { fixture } = mount("Radiators", "ag-unreadable-control");
     act(() => {
       fixture.emit("vessel.control", {
@@ -131,13 +115,7 @@ describe("ActionGroup when the backend could not read the group", () => {
       screen.getByRole("button", { name: "Toggle Radiators" });
     await waitFor(() => expect(toggle().textContent).toBe(NULL_DISPLAY));
 
-    /*
-     * The empty pill alone is not the fix. It is what this widget shows before
-     * anything arrives and while a link is stale, so the reason has to be
-     * legible from outside. Asserted through the TITLE, a sentence only this
-     * widget writes, rather than the badge's two words, which several widgets
-     * could plausibly render for their own absences.
-     */
+    // The empty pill is also the cold and stale render, so the reason must say which.
     const reason = screen.getByRole("status");
     expect(reason.textContent).toBe("State unreadable");
     expect(reason.getAttribute("title")).toBe(
@@ -160,7 +138,7 @@ describe("ActionGroup when the backend could not read the group", () => {
       screen.getByRole("button", { name: "Toggle Radiators" });
     await waitFor(() => expect(toggle().textContent).toBe("ON"));
 
-    // Proof the press reaches the wire while the state is readable, so the refusal below is a refusal and not a broken command path.
+    // The press reaches the wire while readable, so the refusal below is a refusal.
     act(() => {
       toggle().click();
     });
@@ -184,23 +162,11 @@ describe("ActionGroup when the backend could not read the group", () => {
       toggle().click();
     });
     await settle();
-    /*
-     * Nothing further on the wire. There is no boolean to invert, so a press
-     * here would have to guess a state, and a guessed absolute-set is a command
-     * to the wrong state rather than a late one.
-     */
+    // No boolean to invert, so no absolute-set may be guessed.
     expect(fixture.transport.sentCommands).toHaveLength(1);
   });
 
   it("explains the empty pill rather than yielding to Paused, which explains nothing about it", async () => {
-    /*
-     * Ordering pin. The reason ladder is read top-down and this arm sits
-     * immediately above the two game/link conditions, so those are exactly the
-     * cases it takes. "Paused" is true and irrelevant here: the game being
-     * paused is not why nobody knows what this group is doing, and putting it
-     * on the line leaves the operator reading a confident sentence about a
-     * different screen.
-     */
     const { fixture } = mount("Radiators", "ag-unreadable-paused");
     act(() => {
       fixture.emit("time.warp", { paused: true });
@@ -217,14 +183,7 @@ describe("ActionGroup when the backend could not read the group", () => {
   });
 
   it("leaves a group nobody reported on its own reason line", async () => {
-    /*
-     * The other ordering edge, and the one an arm placed too greedily would
-     * steal. A configured group missing from the reported list is
-     * `provenance: "assumed"`: the registry invented it out of the saved
-     * config, which is a different fact from a backend reporting a group and
-     * then failing to read it. Both leave the pill empty, so only the sentence
-     * separates them.
-     */
+    // An `assumed` group also leaves the pill empty, so only the sentence separates the two.
     const { fixture } = mount("Radiators", "ag-unreadable-assumed");
     act(() => {
       fixture.emit("vessel.control", {

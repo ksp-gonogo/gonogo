@@ -17,11 +17,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CommSignalComponent } from "./index";
 
-// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// augment registry. RTL auto-cleanup runs after this file's afterEach, so it
-// can't be relied on to unmount first, clearAugments() notifying a
-// still-mounted AugmentSlot's subscribers is a state update outside act(), the
-// documented anti-pattern in CLAUDE.md.
+// Unmounted before `clearAugments()`, which would otherwise notify a mounted slot outside act().
 const renderedTrees: Array<() => void> = [];
 
 function render(ui: ReactElement) {
@@ -35,20 +31,7 @@ function unmountAll() {
   renderedTrees.length = 0;
 }
 
-/**
- * CommSignal exposes one augment slot (locked map: comm-signal):
- * `comm-signal.sections`, in the body below the signal-bars readout.
- *
- * These tests prove the seat exists and composes an augment WITHOUT CommSignal
- * importing any backend-aware code. Only the slot is exposed here; a real
- * filler (e.g. a per-antenna breakdown from a comms Uplink) is a separate
- * concern.
- * So an empty slot rendering nothing is the correct steady state here.
- */
-
-// A flying craft's channels plus the delay channel, so the control-state and
-// delay fields resolve off the stream and the widget reaches its populated
-// readout.
+// The `comm-signal.sections` slot is empty by default and composes a registered augment.
 const CARRIED = [
   "vessel.orbit",
   "vessel.flight",
@@ -69,9 +52,6 @@ function renderWithSignal() {
   });
   const utils = render(
     <fixture.Provider>
-      {/* The identity the dashboard supplies: `Panel` completes
-          `${componentId}.${segment}` from it for the universal
-          `sections` and `actions` seams. */}
       <WidgetMetaContext.Provider
         value={{ componentId: "comm-signal", contributionSlots: [] }}
       >
@@ -113,7 +93,6 @@ describe("CommSignal: augment slots (Uplink spec §4)", () => {
 
     renderWithSignal();
 
-    // The stock readout is untouched by the (empty) slots.
     await waitFor(() => expect(visibleText()).toContain("87 %"));
     expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
     expect(screen.getByText("Full")).toBeTruthy();

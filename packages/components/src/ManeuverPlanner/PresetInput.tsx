@@ -14,9 +14,7 @@ import type { PlannerInputsApi } from "./usePlannerInputs";
 
 interface PresetInputProps {
   api: PlannerInputsApi;
-  /** Live telemetry values used by `match-target-*` and `hohmann-rendezvous-target`
-   *  description rows. Passed through unchanged from the orchestrator so this
-   *  component stays pure-presentational (no `useDataValue` calls of its own). */
+  /** Live values for the target-matching presets' description rows, passed in so this stays presentational. */
   telemetry: {
     currentUT: number | undefined;
     inclination: number | undefined;
@@ -226,8 +224,7 @@ const PRESET_DESC_STYLE = {
   paddingTop: "var(--gap-caption)",
 } as const;
 
-/** Stack carries the column; the gap is named rather than sized so the surface
- *  around these inputs can retune it, and the seam above them is set here. */
+/** The gap is named, not sized, so the surrounding surface can retune it. */
 const CUSTOM_INPUTS_STYLE = {
   gap: "var(--gap-related)",
   paddingTop: "var(--gap-planner-section)",

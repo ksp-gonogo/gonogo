@@ -23,8 +23,7 @@ describe("Badge severity vocabulary", () => {
   });
 
   it("keeps a decorative badge (no severity) visually distinct from nominal", () => {
-    // A neutral kind-chip must not turn nominal-green just because the scale
-    // gained a floor. Decorative stays grey.
+    // A neutral kind-chip stays grey, never nominal green.
     const { rerender } = render(<Badge>KOS</Badge>);
     const decorativeClass = screen.getByText("KOS").className;
     rerender(<Badge severity="nominal">KOS</Badge>);

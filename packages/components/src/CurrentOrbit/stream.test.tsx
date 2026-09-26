@@ -8,32 +8,8 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
 /**
- * The stream test-adapter proof for CurrentOrbit (mirrors
- * `ThermalStatus/stream.test.tsx`): genuinely running off the real
- * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport`: no legacy `DataSource` is registered anywhere in this
- * file. CurrentOrbit reads no `LEGACY_KEY_GAPS` key, so
- * every field it shows is `LEGACY_KEY_HOMES` and resolves off the
- * stream: what stays NULL_DISPLAY here does so only because its INPUT topic isn't
- * emitted in this file, never because it's gapped.
- *
- * `o.sma`/`o.eccentricity`/`o.inclination`/`o.argumentOfPeriapsis` are raw
- * fields on `vessel.orbit`; the period, the true anomaly, the two countdowns
- * and the apsis radii are SOLVED from those same elements at view time, so all
- * resolve to REAL values (ApR/PeR = sma·(1±ecc), so the mini diagram's
- * `canDrawDiagram` gate is satisfied and it renders). The two apsis ALTITUDES
- * stay `undefined`: they need the reference body's radius, and this scene's
- * orbit names no reference body.
- *
- * `system.bodies` IS emitted, empty. The conic behind the solve declares it as
- * an input, so a scene without it has no model at all and there would be
- * nothing to draw: an empty roster satisfies the input and still resolves no
- * radius, which is the state this test is about.
- *
- * `o.referenceBody`/`v.body` resolve their indices to names only once a body
- * matching the orbit's own reference index is in that roster; there is none
- * here, so they render nothing (no subtitle), exactly the graceful-degradation
- * this test asserts.
+ * CurrentOrbit on the real provider pipeline via `StubTransport`. The solved figures resolve off the elements alone; the two apsis altitudes stay absent because no body in the roster carries a radius.
+ * `system.bodies` is emitted empty because the conic declares it as an input: an empty roster satisfies the input and still resolves no radius.
  */
 describe("CurrentOrbit: genuinely runs off the stream (M3 batch 2)", () => {
   it("reads sma/eccentricity/inclination/argPe/period off the real stream pipeline, not legacy", async () => {
@@ -51,16 +27,13 @@ describe("CurrentOrbit: genuinely runs off the stream (M3 batch 2)", () => {
       </fixture.Provider>,
     );
 
-    // Nothing arrived yet: every field (mapped and gapped alike) is undefined, so every row shows its NULL_DISPLAY placeholder.
+    // Nothing arrived yet, so every row shows its placeholder.
     expect(screen.getAllByText(NULL_DISPLAY).length).toBeGreaterThanOrEqual(6);
 
-    // A real subscription must have happened for this to deliver at all, StubTransport.emit is subscription-gated (see its own doc comment).
+    // StubTransport.emit is subscription-gated, so a real subscription must exist for this to deliver.
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
-    // meanAnomalyAtEpoch: 0, epoch: pinnedUt (10) -> elapsed time is 0 at
-    // this frame, so trueAnomaly is exactly 0° (periapsis) regardless of
-    // eccentricity: a clean, hand-checkable value with no float-formatting
-    // ambiguity.
+    // Elapsed time is 0 at this frame, so trueAnomaly is exactly 0 (periapsis).
     const sma = 682500;
     const mu = 3.5316e12; // Kerbin's GM
     act(() => {
@@ -74,28 +47,18 @@ describe("CurrentOrbit: genuinely runs off the stream (M3 batch 2)", () => {
         meanAnomalyAtEpoch: 0,
         epoch: 10,
       });
-      // The conic's declared input, satisfied and carrying nothing: see this file's header for why an empty roster is the right shape here.
+      // The conic's declared input, satisfied and empty.
       fixture.emit("system.bodies", { bodies: [] });
     });
 
-    // Inclination renders off the mapped stream value.
     await waitFor(() => expect(visibleText()).toContain("0.3°"));
-    // Eccentricity (toFixed(4)) also renders off the mapped stream value.
     expect(visibleText()).toContain("0.0037");
-    // Period (T row, formatDuration) renders off the solve's period:
-    // 2π·sqrt(sma³/mu), floored to whole seconds.
-    // (Hand-checked: 2π·sqrt(682500³ / 3.5316e12) ≈ 1885.16s -> "31min 25s".)
+    // 2π·sqrt(682500³ / 3.5316e12) ≈ 1885.16s, floored.
     await waitFor(() => expect(visibleText()).toContain("31min 25s"));
-    // timeToAp/timeToPe (t-Ap/t-Pe rows) also render off the solve:
-    // meanAnomalyAtEpoch: 0, epoch: 10 ==
-    // pinnedUt means meanAnomaly is exactly 0 (periapsis) at this frame, so
-    // timeToPe is 0 and timeToAp is exactly half the period.
+    // At periapsis timeToPe is 0 and timeToAp is half the period.
     expect(visibleText()).toContain("0s");
     expect(visibleText()).toContain("15min 42s");
-    // Only Ap/Pe stay NULL_DISPLAY: their apsis-ALTITUDE derivation needs
-    // system.bodies (unemitted here). ApR/PeR resolved (sma·(1±ecc)), so the
-    // diagram renders; referenceBody/v.body render nothing (no subtitle)
-    // rather than a NULL_DISPLAY. Two dashes total, never a fabricated value.
+    // Only Ap/Pe dash, since their altitudes need a body radius; the absent subtitle renders nothing rather than a dash.
     expect(screen.getAllByText(NULL_DISPLAY).length).toBe(2);
   });
 });

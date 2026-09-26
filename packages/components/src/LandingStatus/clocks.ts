@@ -1,51 +1,21 @@
 /**
- * The two delay-native clocks and the regime classifier, the spine of a
- * DELAYED landing. Both clocks are trivially derivable client-side from the
- * one-way delay plus the burn solve, and (as far as the design survey found)
- * are unique to gonogo. They are expressed here as MARGINS in seconds rather
- * than absolute UTs, because the burn countdown and the time-to-impact are both
- * already measured against the operator's delayed view frame, so the arithmetic
- * needs no view clock:
+ * The two delay-native clocks and the regime classifier, as margins in seconds: the burn countdown and time-to-impact are already measured against the operator's delayed view, so no view clock is needed.
  *
- * - **Commit Clock**: `T_commit = T_ignition - N`. The last instant a human GO
- *   can still reach the vessel before ignition. Margin = `countdown - N`. Once
- *   <= 0 the burn either happens autonomously or not at all: COMMITTED.
- * - **Blind Clock**: `T_blind = T_impact - 2N`. The last instant you could send
- *   anything and still SEE the result before impact. Margin = `impact - 2N`.
- *   Once <= 0 the outcome is already determined and merely not yet visible.
- *   Surfaced in the UI as the **COMMIT POINT** (the spaceflight-standard term);
- *   the field names here stay `blind`/`blindInSeconds` as the internal spelling.
- *   Distinct from the Commit Clock above: that is the burn-START GO deadline
- *   (T_ignition − N); this is the impact-command deadline (T_impact − 2N).
+ * - Commit Clock, `T_ignition - N`: the last instant a human GO can still reach the vessel before ignition. At or below 0 the burn happens autonomously or not at all
+ * - Blind Clock, `T_impact - 2N`: the last instant a command's result could still be seen before impact. Surfaced as the COMMIT POINT; at or below 0 the outcome is fixed and merely unseen
  *
- * The regime classifier turns the round-trip delay into the operator's role
- * (pilot / flight director / mission planner), which is what changes under
- * delay: not just the numbers.
+ * The regime turns the round trip into the operator's role (pilot, flight director, mission planner).
  */
 
 export type LandingRegime = "live" | "staged" | "autonomous" | "no-path";
 
-/**
- * Round-trip at or below this is "effectively real-time", LAN, no-comms, or
- * Kerbin-local. The operator can close the control loop.
- */
+/** A round trip at or below this is effectively real time, so the operator can close the loop. */
 const LIVE_ROUND_TRIP_SEC = 1;
 
-/**
- * Fallback staged/autonomous cut when the descent window is unknown: a
- * round-trip past this is long enough that no in-descent decision fits.
- */
+/** The staged/autonomous cut when the descent window is unknown. */
 const AUTONOMOUS_ROUND_TRIP_SEC = 120;
 
-/**
- * Classify the operator's role from the one-way delay and the descent window.
- *
- * `null`/non-finite one-way => `no-path` (defensive: never silently treat a
- * lost path as live). `0` (LAN / `CommsDelaySource.None`) => `live`. Otherwise
- * a round-trip smaller than the descent means at least one decision fits inside
- * the descent (`staged`); a round-trip that swamps the descent means none does
- * (`autonomous`).
- */
+/** The operator's role from one-way delay and descent window: `null` or non-finite is `no-path`, never live; `0` is `live`; a round trip shorter than the descent is `staged`, otherwise `autonomous`. */
 export function classifyRegime(
   oneWaySeconds: number | null | undefined,
   descentSeconds: number | null | undefined,
@@ -78,7 +48,7 @@ export interface DelayClocks {
   blindInSeconds: number | null;
   /** True once past the blind point: the outcome is fixed and merely unseen. */
   blind: boolean;
-  /** True once the vessel has landed, every descent countdown is then void. */
+  /** True once the vessel has landed; every descent countdown is then void. */
   landed: boolean;
 }
 
@@ -86,9 +56,7 @@ export interface DelayClockInputs {
   oneWaySeconds: number | null | undefined;
   suicideBurnCountdown: number | null;
   timeToImpact: number | null;
-  /** True once the vessel has touched down. A landed vessel can still report a
-   * non-zero time-to-impact (residual CoM altitude, zero descent rate), so the
-   * descent clocks MUST be gated on this rather than on the impact figure. */
+  /** True once touched down; the clocks gate on this, since a landed vessel can still report a non-zero time-to-impact. */
   landed?: boolean;
 }
 
@@ -102,9 +70,7 @@ export function deriveDelayClocks(inp: DelayClockInputs): DelayClocks {
   const landed = inp.landed === true;
 
   const countdown = inp.suicideBurnCountdown;
-  // Once landed every descent countdown is void: the burn is over, there is no
-  // commit point left and no future blind moment. Gate on the landed STATE, not
-  // the impact figure (which can stay non-zero after touchdown).
+  // Once landed every descent countdown is void.
   const commitInSeconds =
     !landed &&
     countdown != null &&

@@ -21,22 +21,11 @@ const GAP = 12;
 const EDGE = 8;
 
 /**
- * Place an anchored menu against the VIEWPORT rather than the widget that owns
- * the anchor.
- *
- * <p>The Ship Map's action menu is portalled out of the widget (whose Panel
- * clips with `overflow: hidden`, so on a small tile a menu taller than the
- * canvas lost its bottom items with no way to reach them: the clip sat outside
- * the menu's own scroll box). Drawing outside the widget means the only real
- * bound left is the window, which is what this clamps against.</p>
- *
- * <p>Preferred placement is below-right of the anchor, the same offset the
- * in-widget version used. When that would cross an edge the menu FLIPS to the
- * other side of the anchor rather than sliding along the edge: a menu pinned to
- * the bottom of the screen covers the part it belongs to, whereas one flipped
- * above it still reads as attached. Flipping is only taken when it actually
- * fits; if neither side does (a menu taller than the window), the position
- * clamps so the menu starts on screen and its own scroll box carries the rest.</p>
+ * Place an anchored menu against the viewport, the only bound left once the
+ * menu is portalled out of its clipping widget. Below-right of the anchor by
+ * preference; across an edge it flips to the anchor's other side rather than
+ * sliding, so it still reads as attached. If neither side fits, it clamps on
+ * screen and its own scroll box carries the rest.
  */
 export function anchoredMenuPosition(
   anchor: AnchorPoint,

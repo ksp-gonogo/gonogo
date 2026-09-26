@@ -5,15 +5,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FleetReliabilityUpdates } from "./index";
 
 /**
- * The reliability augment consumes the ONE elected reliability.* topic pair
- * (source-agnostic: TestFlight or Kerbalism or a vanilla None fallback feed the
- * same shape) and is ACTIVE-VESSEL scoped (reliability.* carries no vesselId),
- * so it renders only on the row whose vesselId matches vessel.identity.vesselId
- * and nothing on every other row.
- *
- * The absence states get their own file (`coverage-matrix.test.tsx`), which
- * asserts they are all DIFFERENT from each other rather than each being null.
- * This file is about the content rows.
+ * The reliability augment's content rows: it consumes the one elected
+ * reliability.* pair and renders only on the active vessel's row. The absence
+ * states are `coverage-matrix.test.tsx`'s subject.
  */
 const CARRIED = [
   "reliability.summary",
@@ -129,16 +123,7 @@ const PILOT = {
 };
 
 describe("the repair control offers only crew the provider would accept", () => {
-  /**
-   * Asserted here rather than looked at, because a static render cannot show
-   * it: the crew list only exists once the operator has opened the control.
-   *
-   * The requirement is the PROVIDER's own, already elevated by it for a
-   * critical failure, so filtering on it is showing that judgement rather than
-   * pre-empting it. The point is to stop the console offering a choice it
-   * already knows will be refused, which under delay costs a round trip to find
-   * out.
-   */
+  /** The crew list shows only kerbals meeting the provider's own stated requirement, so a known refusal is never offered. */
   it("hides a kerbal of the wrong trait, however much they are carrying", async () => {
     const { fixture } = renderAugment("v-active");
     act(() => {
@@ -197,10 +182,7 @@ describe("the repair control offers only crew the provider would accept", () => 
       screen.getByRole("button", { name: /repair/i }).click();
     });
 
-    /*
-     * The reason has to be ON the disabled control, not discovered by
-     * dispatching: a refusal costs the same round trip a success does.
-     */
+    // The reason is ON the disabled control: a refusal costs the same round trip a success does.
     const confirm = screen.getByRole("button", { name: /repair/i });
     expect(confirm).toBeDisabled();
     expect(confirm.getAttribute("title")).toMatch(/Engineer level 2/);
@@ -227,23 +209,9 @@ describe("the repair control offers only crew the provider would accept", () => 
 });
 
 /**
- * What a repair consumes is the elected provider's statement, carried on
- * `reliability.parts`. This widget renders it and never derives it.
- *
- * <p>It used to derive it. A `kitsNeeded(condition)` here returned 2 for
- * "failed-critical" and 1 for "failed", which is Kerbalism's arithmetic read
- * off its `Repair()`, and it applied on every install. TestFlight emits
- * "failed" and models no consumable at all (see `TestFlightReliabilityMap`,
- * which never emits "failed-critical" and states neither repair trait nor
- * level), so on a TestFlight install the row asked for a repair kit the mod
- * never needs and DISABLED the command when none was aboard: a repairable
- * failure the operator could not act on, for want of an item irrelevant to
- * it.</p>
- *
- * <p>An ABSENT cost and a ZERO cost are different claims, which is why the two
- * cases below are separate tests rather than one. The verb comes from the
- * condition, never from the cost, so a serviceable part still reads "Service"
- * whatever its provider charges.</p>
+ * What a repair consumes is the elected provider's statement on
+ * `reliability.parts`, rendered and never derived. An ABSENT cost and a ZERO
+ * cost are different claims. The verb comes from the condition, never the cost.
  */
 describe("what a repair costs is the provider's statement", () => {
   /** As TestFlight actually reports one: a plain failure, no trait, no cost. */
@@ -256,15 +224,7 @@ describe("what a repair costs is the provider's statement", () => {
     },
   ];
 
-  /**
-   * Same part as Kerbalism reports it: critical, trait-gated, and a cost.
-   *
-   * THREE kits, deliberately not the two Kerbalism's own critical rule charges,
-   * because a fixture that agrees with the arithmetic this change deleted
-   * cannot tell the two apart: the old `kitsNeeded("failed-critical")` returned
-   * 2 and would have rendered an identical row. Only a number the widget could
-   * not have derived proves it is reading the provider's.
-   */
+  /** Same part as Kerbalism reports it: critical, trait-gated, and a cost of THREE kits, a number the widget could not derive. */
   const KERBALISM_CRITICAL = [
     {
       partId: "101:0",
@@ -304,12 +264,7 @@ describe("what a repair costs is the provider's statement", () => {
 
     // No ledger, because there is nothing to ledger: not "0 kits".
     expect(screen.queryByText(/kit/i)).toBeNull();
-    /*
-     * And the command is offered. TestFlight's own `Repair()` decides whether
-     * this succeeds (the contract requires a refusal rather than a throw from
-     * a backend that models none), so refusing it HERE for want of a kit is
-     * this widget substituting its own judgement for the provider's.
-     */
+    // The command is offered: the provider decides whether a repair with no stated cost succeeds.
     const confirm = screen.getByRole("button", { name: /repair/i });
     expect(confirm).toBeEnabled();
     await act(async () => {});
@@ -336,18 +291,11 @@ describe("what a repair costs is the provider's statement", () => {
       screen.getByRole("button", { name: /repair/i }).click();
     });
 
-    /*
-     * The ITEM is named too, by its display title where something aboard
-     * carries one, so the ledger says what is being spent rather than assuming
-     * every backend spends kits.
-     */
+    // The ledger names the item by its display title rather than assuming kits.
     expect(
       screen.getByText(/3 EVA Repair Kit · 2 carried · 0 aboard/),
     ).toBeVisible();
-    /*
-     * And it still refuses on the provider's number, not on a derived one: two
-     * carried against three needed is short, and the reason says so.
-     */
+    // Refuses on the provider's number: two carried against three needed is short.
     const confirm = screen.getByRole("button", { name: /repair/i });
     expect(confirm).toBeDisabled();
     expect(confirm.getAttribute("title")).toMatch(/Needs 3/);
@@ -377,28 +325,19 @@ describe("FleetReliabilityUpdates augment", () => {
     expect(screen.getByText("service due")).toBeInTheDocument();
   });
 
-  /**
-   * The two burn ratings are independent and diverge tenfold under RO, so the
-   * scope has to be IN the sentence: "23 s left" with no scope could be read as
-   * the cumulative figure, which here is more than eight times larger.
-   */
+  /** The two burn ratings diverge tenfold under RO, so the scope is IN the sentence. */
   it("names the scope of the burn budget it is quoting", async () => {
     const { fixture } = renderAugment("v-active");
     emit(fixture, MODELED, SCENE);
 
-    // Both figures go through `Unit`, so 255 s reads on the duration ladder as "4min 15s" exactly as every other interval on the dashboard does.
+    // Through `Unit`, so 255 s reads "4min 15s" on the duration ladder.
     const row = await screen.findByText(/continuous rated burn left/);
     expect(row).toHaveTextContent("23s of 4min 15s continuous rated burn left");
     // And the OTHER scope's numbers are not what is on screen.
     expect(row).not.toHaveTextContent("cumulative");
   });
 
-  /**
-   * A service-due badge beside "service due in 40 d" contradicts itself, and it
-   * would be the normal render: Kerbalism's NeedsMaintenance() has a second
-   * source unrelated to the clock, so a part inspected today and found worn is
-   * due NOW with its maintenance date far away.
-   */
+  /** Never a future countdown beside a "service due" badge: a part found worn is due NOW whatever its clock says. */
   it("never renders a future countdown beside a service-due badge", async () => {
     const { fixture } = renderAugment("v-active");
     emit(fixture, MODELED, [
@@ -435,23 +374,14 @@ describe("FleetReliabilityUpdates augment", () => {
       },
     ]);
 
-    /*
-     * The horizon is IN the sentence, never implied: exp(-rate*t) is
-     * uninterpretable without t, and two parts' fractions are not comparable
-     * unless both horizons are on screen. ("percent" is the unit symbol's
-     * accessible name, which textContent picks up alongside the glyph.)
-     */
+    // The horizon is IN the sentence ("percent" is the unit symbol's accessible name, which textContent picks up).
     const row = await screen.findByText(/to survive/);
     expect(row).toHaveTextContent(
       "82 % percent to survive 4min 15s of operation",
     );
   });
 
-  /**
-   * A condition string this build has never heard of is still a condition, and
-   * an open selection with a closed render would pick the part and then draw an
-   * empty line for it.
-   */
+  /** An unheard-of condition string still renders, never an empty line. */
   it("renders a condition it does not recognise rather than dropping the row", async () => {
     const { fixture } = renderAugment("v-active");
     emit(fixture, MODELED, [
@@ -482,11 +412,7 @@ describe("FleetReliabilityUpdates augment", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  /**
-   * The roster is too narrow for detail lines, so the augment sheds the WORDS
-   * and keeps the alarm. The slot used to be dropped wholesale below six
-   * columns, which is the normal width of a portrait station panel.
-   */
+  /** A narrow roster sheds the words and keeps the alarm. */
   it("keeps the badge and drops the detail rows when the row is compact", async () => {
     const { fixture } = renderAugment("v-active", true);
     emit(fixture, MODELED, SCENE);
@@ -505,19 +431,9 @@ describe("FleetReliabilityUpdates augment", () => {
 });
 
 /**
- * A refusal must not reach the operator on the confirmed path.
- *
- * <p>`vessel.repair` returned every outcome through
- * `CommandResult<RepairOutcome>.Ok(...)`, and `Ok` sets `Success` true
- * unconditionally, so the mod answered a refused repair with a SUCCESS
- * envelope carrying `repaired: false` in a payload nothing reads. The promise
- * resolved, `CommandButton` ran `settle("idle", null)`, and a repair that never
- * happened was byte-identical on screen to one that did.</p>
- *
- * <p>These drive the REAL wire shape through the real client, rather than
- * asserting on the mapping in isolation: the defect was entirely in the
- * envelope, and a test that built its own envelope would have passed
- * throughout.</p>
+ * A refusal must never reach the operator on the confirmed path. These drive
+ * the real wire envelope through the real client, since a test building its own
+ * envelope cannot see a refusal dressed as success.
  */
 describe("a refused repair is refused on screen", () => {
   const BROKEN = [
@@ -539,12 +455,7 @@ describe("a refused repair is refused on screen", () => {
     });
   }
 
-  /**
-   * Open the row's repair control, then ARM and CONFIRM it. The two presses are
-   * the control's own guard against a stray click spending a round trip, not
-   * ceremony: a single click only arms, and a test that stopped there would
-   * assert on a command it never sent.
-   */
+  /** Opens the row's repair control, then arms and confirms it: a single click only arms. */
   async function press(): Promise<HTMLElement> {
     await act(async () => {
       screen.getByRole("button", { name: /repair/i }).click();
@@ -562,11 +473,7 @@ describe("a refused repair is refused on screen", () => {
 
   it("lands in the refused phase, not back at rest", async () => {
     const { fixture } = renderAugment("v-active");
-    /*
-     * Exactly what RepairRefusal.ResultFor now puts on the wire for a crew that
-     * does not qualify: a failure code, with the finer token still on the
-     * payload.
-     */
+    // A failure code, with the finer token still on the payload.
     fixture.transport.setCommandHandler(() => ({
       success: false,
       errorCode: 16, // CommandErrorCode.CapabilityMismatch
@@ -595,13 +502,7 @@ describe("a refused repair is refused on screen", () => {
     await act(async () => {});
   });
 
-  /**
-   * The arm that shipped: `success: true` beside `repaired: false`. Nothing
-   * downstream reads the payload, so this is the exact envelope that made a
-   * refusal indistinguishable from a success, and it must not be what the mod
-   * sends. Pinned here so a regression to `Ok(outcome)` shows up as a widget
-   * that confirms a repair which did not happen.
-   */
+  /** `success: true` beside `repaired: false` reads as a confirmed repair, which is why the mod must never send it. */
   it("would have shown a refusal as a success on the old envelope", async () => {
     const { fixture } = renderAugment("v-active");
     fixture.transport.setCommandHandler(() => ({

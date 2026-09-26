@@ -50,9 +50,7 @@ import {
 } from "../shared/dockAngles";
 import { magnitudeOf } from "../shared/magnitude";
 
-// Side-effect import: registers the `vessel.target` reckoner (stubbed, so it
-// declines and the widget renders no modelled figure) plus the frame-memoised
-// processor its arithmetic will run through.
+// Side-effect import: registers the `vessel.target` reckoner (stubbed, so it declines) and its processor.
 
 const topics = defineTopicManifest({
   channels: ["vessel.target", "vessel.dock"],
@@ -61,66 +59,32 @@ const topics = defineTopicManifest({
 type DockingHudMode = "hud" | "hud-with-camera";
 
 interface TargetingConfig {
-  /**
-   * Auto-switch to the docking HUD when the target is a vessel or docking
-   * port and the distance drops under the approach threshold. Defaults to
-   * true so the feature is discoverable without configuration.
-   */
+  /** Auto-switch to the docking HUD when a vessel or port target closes under the approach threshold. Default true. */
   autoSwitch?: boolean;
   /** Which HUD variant auto-switch promotes to. Default "hud-with-camera". */
   hudMode?: DockingHudMode;
   /**
-   * Optional camera id pinning which feed backs the video backdrop. Unset →
-   * the filling augment chooses (a camera Uplink is far better placed to pick
-   * than this widget: it can see which camera is actually a docking camera).
-   * Meaningful only when `hudMode === "hud-with-camera"`. Kept as an opaque
-   * number so this widget stays camera-vendor-agnostic; it is passed straight
-   * through to the augment via `TargetingHudContext`.
+   * Camera id pinning the video backdrop, unset to let the filling augment
+   * choose. Opaque here and passed straight through via `TargetingHudContext`.
    */
   cameraFlightId?: number | null;
 }
 
-// ── Augment slots (Uplink architecture) ─────────────────────────────────────
-//
-// This widget owns three slots (`augment-slot-map.md`, Targeting row).
-// Two are OVERLAY slots on the docking HUD and so PASS slot-props, an
-// overlay augment must draw in the HUD's own reticle space, so it receives
-// the parent's coordinate frame:
-//
-//   • `targeting.camera`: a video backdrop behind the reticle/HUD.
-//     FILLED: a camera Uplink's augment draws the close-range docking view
-//     here (not a standalone CameraFeed instance). There is deliberately no
-//     built-in backdrop, because one would hard-wire a specific camera mod
-//     into the core widget, which is precisely what the slot exists to avoid.
-//     This widget does not know what a camera is: it decides WHETHER a
-//     backdrop should show (`hudMode`/viewport size) and passes its reticle
-//     frame down; the augment decides WHICH camera and renders it. An install
-//     with no camera Uplink composes the HUD with no video layer.
-//   • `targeting.overlay`: alignment markers layered on top of the
-//     crosshair/reticle. A precision-docking / laser-rangefinder Uplink draws
-//     into the reticle box using the passed context. Composable by priority
-//     so several rangefinder/marker augments coexist.
-
-/**
- * Coordinate/context the docking-HUD overlay slots pass down so an augment
- * can render in the HUD's own reticle space. Shared by both the camera
- * backdrop (`targeting.camera`) and the alignment-marker overlay
- * (`targeting.overlay`).
+/*
+ * Two docking-HUD overlay slots receive the HUD's reticle frame:
+ * `targeting.camera` (a camera Uplink's video backdrop; this widget decides
+ * WHETHER one shows, the augment WHICH camera, and there is deliberately no
+ * built-in) and `targeting.overlay` (alignment markers over the reticle,
+ * composable by priority).
  */
+
+/** The HUD's reticle-space context, passed to both the camera and overlay slots. */
 export interface TargetingHudContext {
   /** Half-range in degrees the reticle box maps to; the reticle clamps at the edge. */
   maxDeg: number;
-  /**
-   * Reticle-centre offset from HUD centre, each component in −1..1 (clamped
-   * alignment angle ÷ `maxDeg`; `y` already flipped for screen coords so
-   * positive is downward).
-   */
+  /** Reticle-centre offset from HUD centre, each component in -1..1; `y` is flipped so positive is downward. */
   reticleOffset: { x: number; y: number };
-  /**
-   * Percent of the half-box the reticle travels per unit of `reticleOffset`
-   * (the `40` in the reticle's `left: 50 + dx·40 %` positioning), an overlay
-   * places a marker at `50 + offset·reticleTravelPct` % to sit in the same space.
-   */
+  /** Percent of the half-box the reticle travels per unit of `reticleOffset`: a marker at `50 + offset·reticleTravelPct` % sits in the same space. */
   reticleTravelPct: number;
   /** True while the two ports are within docking-alignment tolerance. */
   aligned: boolean;
@@ -129,19 +93,11 @@ export interface TargetingHudContext {
   ay: number | undefined;
   /** Range to the target in metres; undefined until the stream reports position. */
   distance: number | undefined;
-  /**
-   * Camera id the operator pinned for the backdrop, or unset to let the
-   * augment choose. Opaque to this widget: the filling augment interprets it.
-   */
+  /** Camera id the operator pinned, or unset to let the augment choose. */
   cameraFlightId: number | null | undefined;
 }
 
-// Declaration-merge the slot ids → props types into core's `SlotRegistry` (a
-// hybrid, declaration-merging approach). Co-located here per-widget: no shared
-// central registry file: so parallel slot work in other widgets never collides.
-// This is what makes `registerAugment` / `<AugmentSlot props={...}>` type-check the
-// contexts above precisely, rather than the loose `Record<string, unknown>`
-// fallback an unmerged slot id would get.
+// Declaration-merge the slot ids onto their props types in core's `SlotRegistry`.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "targeting.camera": TargetingHudContext;
@@ -149,13 +105,7 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// The facade-sealed-client copy of this merge lives in
-// `mod/sitrep-sdk/src/api/slots.ts`, not a second `declare module
-// "@ksp-gonogo/sitrep-sdk"` block here: see MapView/index.tsx's identical
-// comment / that module's header for why
-// (docs/superpowers/plans/2026-07-19-facade-sealing.md §2.3).
-
-// Distances are in metres. Hysteresis prevents strobing at the thresholds.
+// Distances in metres; hysteresis prevents strobing at the thresholds.
 const HUD_ENTER_M = 100;
 const HUD_EXIT_M = 150;
 const APPROACH_ENTER_M = 5_000;
@@ -171,45 +121,17 @@ function TargetingComponent({
   const autoSwitch = config?.autoSwitch !== false;
   const hudMode: DockingHudMode = config?.hudMode ?? "hud-with-camera";
 
-  // `vessel.target` reads as a `Reading`, not a bare payload: this widget used
-  // to render "No target set in KSP" whenever `tar.name` was undefined, which
-  // is a positive claim about game state made from the absence of a frame. A
-  // dropped link said "no target set". The union is what makes that
-  // unrepresentable, because reaching a value at all now requires branching on
-  // how current it is. `vessel.target` is declared `absenceIsData: true`
-  // mod-side, so the confirmed-absence arm is a real wire state here, not a
-  // theoretical one.
-  //
-  // `vessel.dock` splits per FIELD, not per topic. The PAIRING is a fact: a
-  // docking scenario exists because the operator selected a port and our side
-  // has a free one, and no link outage can change that while nobody is looking.
-  // The GEOMETRY carried on the same record is the opposite kind of thing: a
-  // reticle, an alignment angle and a port-to-port closing rate are all read as
-  // "fly this, now", so they are read off the observation (overlaid with the
-  // model where the contract declares one, below) and stop being drawn the
-  // moment they stop being current. A reticle placed from a last-known relative
-  // position asserts an attitude it cannot know, which is the sharpest form of
-  // the failure the union exists to prevent.
-  //
-  // `absent` and `pending` stay indistinguishable here, exactly as they were
-  // before the migration. `vessel.dock` is declared `absenceIsData` mod-side, so
-  // a tombstone genuinely means "not a docking scenario", and never-arrived
-  // leaves the widget with the same nothing to draw. Neither one is a readout
-  // that could carry different wording: the only visible consequence is a HUD
-  // that does not open.
+  /*
+   * `vessel.target` is a Reading, so a dropped link can never render "No
+   * target set". `vessel.dock` splits per FIELD: the pairing is a fact, while
+   * the geometry (reticle, alignment, closing rate) is read as "fly this, now"
+   * and stops being drawn once it is not current. Its `absent` and `pending`
+   * both mean no HUD.
+   */
   const targetReading = topics.useTelemetry("vessel.target");
   const dockReading = topics.useTelemetry("vessel.dock");
-  /*
-   * `vessel.dock` is a topic the contract declares reckonable: `reckoned`
-   * carries the separation vector and its magnitude, which a closing velocity
-   * does move, and NOT the relative velocity itself or `forwardDot`, which
-   * nothing on that payload advances. The spread overlays the two on the
-   * observation, and it is written here rather than hidden in a helper because
-   * that overlay IS the judgement.
-   */
-  /* The observation is reached first because `reckoning.status` narrows the
-     reckoning and not the arm carrying it: a nested discriminant says nothing
-     about which state has a value. */
+  // `vessel.dock` is reckonable: the modelled separation overlays the observation, while relative velocity and `forwardDot` do not move.
+  // The observation first: `reckoning.status` narrows the reckoning, not the arm carrying it.
   const dockObserved =
     dockReading.state === "observed" || dockReading.state === "stale"
       ? dockReading.value
@@ -220,49 +142,25 @@ function TargetingComponent({
       : dockReading.state === "observed"
         ? dockReading.value
         : undefined;
-  /*
-   * Both of these ask about the OBSERVATION and never look at a model, so the
-   * model is dropped on the way in rather than the helper learning a second
-   * reading shape.
-   *
-   * Neither decides how what comes back is PRESENTED. They feed the scalars the
-   * widget computes client-side (distance, closing rate, dock angles) so that
-   * arithmetic stays in one place, and every readout branches on the reading's
-   * own state for the caption and the age. A value from here reaching a readout
-   * unchecked would reintroduce exactly the bug the union prevents.
+  /**
+   * Observation-only scalars for the client-side arithmetic (distance, closing
+   * rate, dock angles). Every readout still branches on the reading's own state
+   * for its caption and age.
    */
   const dockPairing = stillTrue(withoutReckoning(dockReading), undefined);
   const target = stillTrue(withoutReckoning(targetReading), undefined);
 
   const tarName = target?.name;
   const tarKind = target?.kind;
-  // Closest approach is MOD-side (the elected IPropagationProvider),
-  // carried on `vessel.target.closestApproach`.
-  // `t.universalTime` stays dropped: the "current time" IS the SDK view-UT the
-  // propagation is evaluated at, read directly via `useViewUt`.
-  // `.magnitude`: a UT the widget subtracts the view-UT from, so it wants a
-  // number. `Number.isFinite` on the wrapper answered "no approach" for every
-  // real one and the TCA readout was a permanent em dash.
+  // Closest approach is mod-side, off the elected propagation provider; the view-UT is "now".
   const closestApproachUT = magnitudeOf(target?.closestApproach?.time);
-  /**
-   * `.magnitude` at the read, and it matters more here than it reads.
-   *
-   * Two guards below test this with `typeof === "number"` and `Number.isFinite`.
-   * Both answer NO for a wrapped value, so leaving it an instant would silently
-   * null the TCA readout and the approach countdown, with no type error anywhere:
-   * a runtime type check is a third blind spot alongside an `unknown` parameter
-   * and an `as` cast.
-   */
+  // Unwrapped: the guards below use `typeof`/`Number.isFinite`, which answer NO for a wrapped value.
   const universalTime = useViewUt()?.magnitude;
 
   const tarRelPos = target?.relativePosition && bare(target.relativePosition);
   const tarRelVelVec =
     target?.relativeVelocity && bare(target.relativeVelocity);
-  // vessel.dock is null unless the target is a docking port with a free
-  // port on the active vessel: undefined here legitimately means "not a
-  // docking scenario right now", not "still loading". It also means "the
-  // geometry is no longer current", and `alignmentWithheld` below is what
-  // tells those two apart on screen.
+  // Undefined when there is no docking scenario OR the geometry is not current; `alignmentWithheld` tells those apart.
   const dockRelPos = dock?.relativePosition && bare(dock.relativePosition);
   const dockRelVelVec = dock?.relativeVelocity && bare(dock.relativeVelocity);
   const dockDistanceStream = dock?.distance?.magnitude;
@@ -273,10 +171,7 @@ function TargetingComponent({
     tarRelPos && tarRelVelVec
       ? radialSpeed(tarRelPos, tarRelVelVec)
       : undefined;
-  /* The plain numbers above are what the mode machine and the guards branch on;
-     these are what the readouts DRAW, so a range carried over from the last
-     contact is marked rather than passing for a live one. Same derivation off
-     the same fields, shared with TargetPicker. */
+  // The plain numbers drive the mode machine and guards; these are what the readouts draw, so a held range is marked.
   const rangeR = rangeReading(targetReading.relativePosition);
   const closingRateR = closingRateReading(
     targetReading.relativePosition,
@@ -287,9 +182,7 @@ function TargetingComponent({
     : undefined;
   const dockAx = derivedDockAngles?.ax;
   const dockAy = derivedDockAngles?.ay;
-  // Docking-port roll (az) misalignment isn't on the wire at all, vessel.dock
-  // carries only RelativePosition/RelativeVelocity/Distance + a scalar
-  // ForwardDot. The true third axis is unavailable and renders NULL_DISPLAY.
+  // Docking-port roll is not on the wire, so the third axis renders NULL_DISPLAY.
   const dockAz: number | undefined = undefined;
   const dockX = dockRelPos?.x;
   const dockY = dockRelPos?.y;
@@ -297,74 +190,39 @@ function TargetingComponent({
     dockRelPos && dockRelVelVec
       ? radialSpeed(dockRelPos, dockRelVelVec)
       : undefined;
-  // Docking HUD's Δv row prefers the port-to-port closing rate (more accurate at close range) over the general vessel-to-vessel figure.
+  // The docking HUD's Δv row prefers the port-to-port closing rate.
   const dockingRelVel = derivedDockRelVel ?? relVel;
   const dockingDistance = dockDistanceStream ?? tarDistance;
 
-  // Mode hysteresis: sticky so we don't strobe near a threshold, and the upgrade direction is asymmetric (smaller window to enter than to exit).
+  // Sticky, with a smaller window to enter than to exit.
   const [mode, setMode] = useState<ViewMode>("tracking");
 
-  // "Close-ops eligible" = a real target that isn't a celestial body, drives
-  // the mid-range APPROACH view (rendezvous distance/closing rate), valid for
-  // any Vessel/Part target. Read off the ORDINAL, never a type name string.
+  // A real non-body target, read off the ORDINAL: drives the APPROACH view.
   const dockable =
     tarKind !== undefined &&
     tarKind !== TargetKind.Body &&
     tarName !== undefined;
 
-  // The docking HUD's reticle + α/β alignment instrument only has signal when
-  // the mod is actually publishing `vessel.dock`, which it does ONLY for a
-  // docking-port target with a free "Ready" port on the active vessel
-  // (VesselDock.cs). A plain Vessel/Other target (or a port with no free port
-  // on our side) has no dock channel, so promoting it to the HUD on distance
-  // alone rendered a dead-centre reticle with every alignment row NULL_DISPLAY. Gate HUD
-  // entry on the dock channel actually carrying a relative position, NOT on
-  // "any non-body target under 100 m".
+  // The HUD needs `vessel.dock`, published only for a port target with a free port on our side; distance alone would draw a dead reticle.
   const dockingAvailable = dockRelPos !== undefined;
 
   /*
    * The pairing is still selected but its geometry is no longer current, so the
-   * reticle is being WITHHELD rather than never having existed. Worth its own
-   * flag because the two look identical from outside: the HUD simply is not
-   * there, and without this the operator would read a link that went quiet as a
-   * target that stopped being a docking port. The approach view names it.
-   *
-   * Withheld is the whole claim, so the reckoning arm is excluded: `dock` above
-   * overlays the modelled separation, `α`/`β` are a pure function of it, and the
-   * HUD draws them under a caption naming the basis. Captioning that HUD "no
-   * longer current" would deny an instrument the operator is looking straight
-   * at. What must never happen is the middle case, a modelled reticle with
-   * neither caption, which is why `modelledAlignment` below is derived from the
-   * same reading in the same place.
+   * reticle is WITHHELD, which looks identical to a target that stopped being a
+   * port. The reckoning arm is excluded: a modelled reticle is drawn under its
+   * own caption, and never with neither.
    */
   const alignmentWithheld =
     dockReading.state === "stale" &&
     dockReading.reckoning.status !== "available" &&
     dockPairing?.relativePosition !== undefined;
-  /*
-   * The other half of the same question: the separation IS being carried
-   * forward, so every geometry readout in the HUD is modelled rather than
-   * observed and the HUD has to say so. Only where the observation is not
-   * current: on a live reading core's dead reckoner declines, so a caption here
-   * could only ever describe a gap.
-   */
+  // The separation is being carried forward, so the HUD says its geometry is modelled.
   const modelledAlignment =
     dockReading.reckoning.status === "available" &&
     dockReading.state === "stale"
       ? dockReading.reckoning.basis
       : undefined;
-  /*
-   * The age, spelled out: an instant minus an instant is a duration, and the
-   * affine rules make that the type. The clamp is there because samples arrive
-   * out of order (`ClientTimeline` insert-sorts for it) so one can sit
-   * marginally ahead of the frame, and "-0.4 s ago" is never a thing to render.
-   *
-   * Every age on this widget renders as `value("s", ...)`, the GAME-time kind,
-   * because it is measured off the frame's view-UT and not a wall clock:
-   * `viewUt - atUt`. The `irl:s` kind would be a factor-of-four lie here (a KSP
-   * day is six hours), and it is the right kind only for an age taken from
-   * `Date.now()`, which this widget deliberately never does.
-   */
+  // Ages are game-time `value("s", ...)` off the frame's view-UT, clamped at zero since samples arrive out of order.
   const dockObservedUt = observedAt(dockReading);
   const dockAge =
     universalTime !== undefined && dockObservedUt
@@ -372,10 +230,7 @@ function TargetingComponent({
       : undefined;
 
   useEffect(() => {
-    // The specialised views assert something about NOW: a closing rate to act
-    // on, an alignment reticle to fly. Both are only honest off a current
-    // reading, so anything else falls back to the tracking panel, which is the
-    // one rendering that can state its own age.
+    // The specialised views assert something about NOW, so anything not current falls back to tracking, which can state its age.
     if (
       !autoSwitch ||
       !dockable ||
@@ -394,7 +249,7 @@ function TargetingComponent({
         setMode("docking-hud");
       else if (tarDistance > APPROACH_EXIT_M) setMode("tracking");
     } else if (mode === "docking-hud") {
-      // Left the docking scenario (port deselected / lost the free port) or backed out of HUD range: fall back to the approach view.
+      // Left the docking scenario or backed out of HUD range.
       if (!dockingAvailable || tarDistance > HUD_EXIT_M) setMode("approach");
     }
   }, [
@@ -406,10 +261,7 @@ function TargetingComponent({
     targetReading.state,
   ]);
 
-  // Age of the observation behind this reading, measured against the FRAME's
-  // view time and nothing else. `Date.now()` is the available wrong answer: it
-  // lets two reads within one frame disagree about how old the same sample is,
-  // which is the bug class `FrameToken` exists to prevent.
+  // Age measured against the FRAME's view time, never `Date.now()`, so two reads in one frame agree.
   const targetObservedUt = observedAt(targetReading);
   const age =
     universalTime !== undefined && targetObservedUt
@@ -424,10 +276,7 @@ function TargetingComponent({
     );
   }
 
-  // Separate from the wait above and from the confirmed absence below: this is
-  // neither "not yet" nor "no target set", it is "nothing here reports targets".
-  // Rendering it as the wait left the panel promising telemetry that no build
-  // was ever going to send.
+  // Neither "not yet" nor "no target set": nothing here reports targets.
   if (targetReading.state === "unowned") {
     return (
       <TargetPanel>
@@ -436,21 +285,13 @@ function TargetingComponent({
     );
   }
 
-  // Confirmed absence. The wire states it as a tombstone for the whole record
-  // (`absent`), which is what the mod sends when the target is cleared:
-  // `KspHost.BuildTarget` returns null before `name` is read, and `TargetTopic`
-  // is declared `absenceIsData`.
-  //
-  // `tarName === undefined` is kept alongside it as a belt-and-braces guard for a
-  // record that somehow arrives without a name. It is NOT a second encoding of
-  // absence: KSP has no "No Target Selected." sentinel, and nothing on this
-  // wire produces one.
-  //
-  // A confirmed absence can itself go old, which is what the age says: with the link down, "no target set" stops being a claim about now.
+  /*
+   * Confirmed absence: a cleared target arrives as a tombstone. `tarName ===
+   * undefined` guards a record without a name. A confirmed absence can itself
+   * go old, which the age says.
+   */
   if (targetReading.state === "absent" || tarName === undefined) {
-    // "Confirmed" only while we are still hearing from the craft. Once we are
-    // not, the absence is itself an old observation and saying "confirmed"
-    // would overstate it.
+    // "Confirmed" only while we are still hearing from the craft.
     const confirmedWord =
       targetReading.state === "observed" || targetReading.state === "absent"
         ? "confirmed"
@@ -458,10 +299,7 @@ function TargetingComponent({
     return (
       <TargetPanel>
         <EmptyState>
-          {/* Stacked, not inline: `ReadoutCaption` is a span, so as a sibling
-              of the bare text it ran together into one accessible string
-              ("No target set in KSPconfirmed 0s ago"), which is how a screen
-              reader would have read it out. */}
+          {/* Stacked: as siblings the text and caption ran into one accessible string. */}
           <Stack>
             <span>No target set in KSP</span>
             {age !== undefined && (
@@ -475,9 +313,7 @@ function TargetingComponent({
     );
   }
 
-  // Size-aware degrades: docking + approach modes ignore widget size when
-  // choosing which view to enter (distance-driven) but the rendered chrome
-  // needs to back off when the slot is small.
+  // View choice is distance-driven, but the chrome still backs off in a small slot.
   const rows = h ?? 5;
   const cols = w ?? 6;
 
@@ -523,27 +359,18 @@ function TargetingComponent({
     );
   }
 
-  // Tracking mode: selectively render auxiliary readouts as height shrinks.
   const showSubReadout =
     rows >= 5 && relVel !== undefined && Number.isFinite(relVel);
   const showTargetName = rows >= 4 || cols >= 5;
 
-  // Out of contact: the headline number is an observation rather than a reading
-  // of now, and the muted tone is what says so. Whether a model is on offer is a
-  // separate question, answered just below, and does not change this one.
+  // Out of contact the headline is an observation, not a reading of now, and the muted tone says so.
   const outOfContact = targetReading.state === "stale";
-  // Pulled here, in the branch that renders it, so a modelled number can only
-  // reach the screen through code that says it is modelling. `withoutReckoning`
-  // is the alternative and would be wrong for this widget: range to a target is
-  // exactly the quantity an approach is flown on.
+  // Pulled here so a modelled number reaches the screen only through code that says it is modelling.
   const reckoned =
     targetReading.reckoning.status === "available"
       ? targetReading.reckoning
       : undefined;
-  // Derived exactly as the observed distance is, from the same Vec3 field, so a
-  // modelled range and an observed one are the same quantity computed the same
-  // way. A model that returns a payload with no relative position has nothing
-  // to say about range, and renders nothing rather than a zero.
+  // Derived exactly as the observed distance is; a model with no relative position renders nothing, not a zero.
   const reckonedRelPos =
     reckoned?.value.relativePosition && bare(reckoned.value.relativePosition);
   const reckonedDistance = reckonedRelPos
@@ -568,10 +395,7 @@ function TargetingComponent({
             <Unit value={rangeR} />
           </Text>
         )}
-        {/* The caveat belongs on the value, not in the panel chrome: a header
-            badge beside a confident readout is what the operator reads past.
-            Only rendered out of contact, deliberately: under a light-time delay
-            every value is old, so a caveat on all of them would say nothing. */}
+        {/* The caveat sits on the value, and only out of contact: under light-time delay every value is old. */}
         {outOfContact && (
           <ReadoutCaption role="status">
             at last contact
@@ -605,23 +429,14 @@ function TargetingComponent({
   );
 }
 
-/**
- * The widget's own panel chrome, shared by every branch so the badges slot and
- * the title cannot drift between them. Extracted when the single absence branch
- * became four: three of them are absence-or-caveat renderings and one is the
- * ordinary body, and duplicating the header four times was how the copy would
- * have gone out of step.
- */
+/** The panel chrome shared by every branch, so the badges slot and title cannot drift. */
 function TargetPanel({ children }: { children: ReactNode }) {
   return (
     <Panel panelTitle="TARGET" sections={<Section full>{children}</Section>} />
   );
 }
 
-/* Display tier. The type scale deliberately stops at --font-size-lg (16px);
-   everything above it in this codebase is a fluid clamp, a JS-computed fit
-   or a size locked to a box width, so a fixed rung would freeze behaviour
-   rather than name it. DisplayDash below must stay equal to this. */
+// Display tier above the type scale; DisplayDash must stay equal to this.
 const DISPLAY_VALUE_STYLE = {
   fontSize: 22,
   fontWeight: 600,
@@ -629,10 +444,7 @@ const DISPLAY_VALUE_STYLE = {
   lineHeight: "var(--line-height-tight)",
 } as const;
 
-/**
- * Same display tier as the value it stands in for (see `DISPLAY_VALUE_STYLE`),
- * shown while a distance hasn't arrived yet.
- */
+/** Same display tier as the value it stands in for, shown while a distance has not arrived. */
 function DisplayDash() {
   return (
     <span
@@ -647,20 +459,13 @@ function DisplayDash() {
   );
 }
 
-// ── Approach HUD ──────────────────────────────────────────────────────────────
-
 interface ApproachHudProps {
   name: string;
   distance: number | undefined;
   relVel: number | undefined;
   closestApproachUT: number | null;
   universalTime: number | null;
-  /**
-   * Set when a docking pairing is still selected but its geometry stopped being
-   * current, so the docking HUD was withheld rather than never having been
-   * available. Carries the age of the last dock observation where there is one,
-   * so the notice can date itself.
-   */
+  /** A pairing is selected but its geometry is no longer current, with the age of the last dock observation. */
   alignmentWithheld?: { age: Value<"s"> | undefined };
   cols: number;
   rows: number;
@@ -702,14 +507,7 @@ function ReadoutRow({
   );
 }
 
-/**
- * Why the docking HUD is not on screen while a pairing is still selected.
- *
- * A missing reticle says nothing on its own: the HUD looks the same whether the
- * target stopped being a docking port or the dock channel went quiet, and only
- * the second is a link problem. So the withholding is stated in words, dated off
- * the last dock observation where there is one.
- */
+/** Why the docking HUD is not on screen while a pairing is still selected, dated where possible. */
 function AlignmentWithheldNotice({ age }: { age: Value<"s"> | undefined }) {
   return (
     <ReadoutCaption role="status">
@@ -724,14 +522,9 @@ function AlignmentWithheldNotice({ age }: { age: Value<"s"> | undefined }) {
 }
 
 /**
- * Approach mode: between the long-range tracking readout and the docking
- * HUD. Vessels in the 100 m – 5 km band are too close to be a "tracking"
- * problem and too far to align in the reticle. The relevant numbers are
- * closing rate + time to closest approach.
- *
- * `relVel` reads as positive when the gap is opening, negative when
- * closing: keep that convention so it matches `tar.o.relativeVelocity`'s
- * sign in the rest of the codebase.
+ * Approach mode, between long-range tracking and the docking HUD: the
+ * 100 m-5 km band, where closing rate and time to closest approach matter.
+ * `relVel` is positive when opening, negative when closing.
  */
 function ApproachHud({
   name,
@@ -743,19 +536,13 @@ function ApproachHud({
   cols,
   rows,
 }: ApproachHudProps) {
-  // Narrow widget: the "Closing rate" label wraps and the TCA value
-  // ("T−02:05") clips at the right edge in the auto/1fr grid. Stack
-  // labels above values so each value gets the full inner width.
-  // Threshold is `< 6`: at exactly 5 cols (the tall-narrow portrait
-  // extreme) the auto label column eats so much width that the closing
-  // -rate value "−4.7 m/s" loses its trailing "s" off the right edge.
-  // 6-col and wider keep the paired label/value layout.
+  // Below 6 cols the paired grid clips values, so labels stack above them.
   const stack = cols < 6;
   const closing = relVel !== undefined && Number.isFinite(relVel) && relVel < 0;
   const closingMagnitude =
     relVel !== undefined && Number.isFinite(relVel) ? Math.abs(relVel) : null;
 
-  // o.closestTgtApprUT can come back as NaN when no encounter is predicted.
+  // NaN when no encounter is predicted.
   const tcaSeconds =
     closestApproachUT !== null &&
     universalTime != null &&
@@ -763,19 +550,12 @@ function ApproachHud({
       ? closestApproachUT - universalTime
       : null;
 
-  // Tiniest reachable size (minSize h=4): the stacked label/value grid is
-  // six lines tall and overflows the box, the closing-rate value and TCA
-  // get clipped off the bottom edge. Mirror the tracking-tiny layout (the
-  // distance is the headline, since it's the widget's name) and fold
-  // closing rate into a one-line subreadout. TCA is the most derived value
-  // and is the cut space forces here.
+  // The smallest size cannot fit the stacked grid: distance is the headline and closing rate a subreadout; TCA is cut.
   if (rows < 5) {
     return (
       <Panel
         panelTitle="APPROACH"
-        /* Panel's own centring, where this hand-rolled the `flex: 1` +
-           `justify-content: center` pair. Panel measures before it centres, so
-           an overflowing readout still starts at the top. */
+        /* Panel measures before it centres, so an overflowing readout still starts at the top. */
         fitToSize
         sections={
           <Section full gap="related-dense">
@@ -870,8 +650,6 @@ function ApproachHud({
   );
 }
 
-// ── Docking HUD ───────────────────────────────────────────────────────────────
-
 interface DockingHudProps {
   name: string;
   distance: number | undefined;
@@ -881,19 +659,9 @@ interface DockingHudProps {
   az: number | undefined;
   x: number | undefined;
   y: number | undefined;
-  /**
-   * `vessel.dock.forwardDot`: cosine of the angle between the two ports'
-   * forward vectors (1 = perfectly aligned). When present this is a more
-   * direct alignment signal than the derived `ax`/`ay` angle heuristic
-   * below and takes priority for the reticle's aligned/misaligned tint.
-   */
+  /** Cosine of the angle between the two ports' forward vectors (1 = aligned); takes priority for the reticle tint. */
   forwardDot: number | undefined;
-  /**
-   * Present when the separation these readouts are drawn from was carried
-   * forward rather than observed, with the basis that carried it and how old the
-   * observation behind it is. The reticle is honest either way; what would not
-   * be is drawing it without saying which.
-   */
+  /** Present when the separation was carried forward rather than observed, with the basis and the observation's age. */
   modelled: { basis: ReckoningBasis; age: Value<"s"> | undefined } | undefined;
   showCamera: boolean;
   cameraFlightId: number | null | undefined;
@@ -955,12 +723,10 @@ function Reticle({
         border: `2px solid ${aligned ? "var(--color-accent-fg)" : "var(--color-status-warning-bg)"}`,
         borderRadius: "var(--radius-circle)",
         transform: "translate(-50%, -50%)",
-        // left/top are an instant telemetry chase (the reticle follows a live
-        // target), so they use --duration-instant/--ease-linear rather than an
-        // eased hover rung. Only the border-colour change is a slower UI cue.
+        // An instant telemetry chase for left/top; only the border colour eases.
         transition:
           "left var(--duration-instant) var(--ease-linear), top var(--duration-instant) var(--ease-linear), border-color var(--duration-base) var(--ease-linear)",
-        // Ring only: centre stays transparent so the crosshair stays visible.
+        // Ring only, so the crosshair stays visible.
         boxShadow: `0 0 6px ${aligned ? "rgba(0,255,136,0.6)" : "rgba(255,152,0,0.5)"}`,
         left,
         top,
@@ -969,11 +735,7 @@ function Reticle({
   );
 }
 
-/* The two tick helpers below are all derived geometry and stay off the
-   scales: the 1px is a hairline rule (a drawn line, not spacing), the 8px
-   is the tick's own length, and each translate is exactly half that length,
-   centring the tick on the crosshair. They must track the tick size, not a
-   spacing rung. */
+// Derived tick geometry, off the spacing scale: a hairline rule and half-length translates centring the tick.
 function HorizTick({ left }: { left: string }) {
   return (
     <div
@@ -1009,10 +771,8 @@ function VertTick({ top }: { top: string }) {
 }
 
 /**
- * Compact docking HUD: a fixed crosshair with the target reticle drifting
- * in proportion to the docking alignment angles. `dock.ax` / `dock.ay` are in
- * degrees; we map them into the visible box at ~8° = edge, so small angles
- * are visible but extreme misalignment clamps instead of sailing off-screen.
+ * Compact docking HUD: a fixed crosshair with the target reticle drifting in
+ * proportion to the alignment angles, clamped at ~8° to the box edge.
  */
 function DockingHud(props: DockingHudProps) {
   const {
@@ -1032,42 +792,26 @@ function DockingHud(props: DockingHudProps) {
     rows,
   } = props;
 
-  // Wide + short (e.g. 18×5): too few rows for the vertical
-  // viewport-over-overlay stack, but plenty of horizontal room. Flow to a
-  // row layout: reticle on the left, readout panel beside it on the right;
-  // instead of dropping the reticle entirely.
+  // Wide and short: reticle on the left, readouts beside it.
   const wideShort = cols >= 12 && rows < 6;
-  // Tiny widget: the viewport collapses to near-zero height after the
-  // overlay takes its share, so the reticle clips at the top edge and
-  // becomes useless. Drop it entirely and let the numeric readouts fill
-  // the slot. In the wide-short row layout the viewport gets its height
-  // from the full panel height, so it's kept there even at rows < 6.
+  // Too small for a useful reticle, except in the wide-short row layout.
   const showViewport = wideShort || (rows >= 6 && cols >= 4);
-  // Narrow widget: HudGrid auto/1fr columns can't hold "0.12 m / -0.07 m"
-  // or "0.3° · -0.2° · 0.8°" without wrapping. Stack so each readout
-  // owns the row width.
+  // Narrow: the paired grid cannot hold the readouts without wrapping.
   const stackReadouts = cols < 5;
-  // Tiniest reachable size (3×4 minSize): even stacked, "0.12 m / -0.07 m"
-  // still overflows a ~70 px content area. Drop the X/Y and α/β/γ
-  // detail rows here: Δv alone is the headline closing/opening cue and
-  // the precision-instruments view is reserved for compact and above.
+  // The smallest size keeps only Δv, the headline closing cue.
   const showAlignmentDetail = cols >= 4;
 
-  // Angular mapping to HUD coords. Clamp beyond ±8° so the reticle stays
-  // inside the visible box: past that the pilot isn't docking, they're
-  // reorienting.
+  // Past ±8° the pilot is reorienting, not docking, so the reticle clamps.
   const MAX_DEG = 8;
   const axClamped =
     ax === undefined ? 0 : Math.max(-MAX_DEG, Math.min(MAX_DEG, ax));
   const ayClamped =
     ay === undefined ? 0 : Math.max(-MAX_DEG, Math.min(MAX_DEG, ay));
-  // 0..1 offsets from centre, -1..1. -ay puts "nose up" at top.
+  // -ay puts "nose up" at top.
   const dx = axClamped / MAX_DEG;
   const dy = -ayClamped / MAX_DEG;
 
-  // forwardDot (cosine of port-forward-vector angle) is the more direct
-  // alignment signal when available: 0.9998 ~= within ~1° of dead-on,
-  // matching the derived-angle heuristic's < 1° threshold below.
+  // 0.9998 is within about 1° of dead-on, matching the derived-angle threshold.
   const aligned =
     forwardDot !== undefined
       ? forwardDot > 0.9998
@@ -1076,13 +820,9 @@ function DockingHud(props: DockingHudProps) {
         Math.abs(ax) < 1 &&
         Math.abs(ay) < 1;
 
-  // Closing if relVel is negative (standard KSP convention: positive = opening).
+  // Positive relVel is opening, the KSP convention.
   const closing = relVel !== undefined && Number.isFinite(relVel) && relVel < 0;
 
-  // Overlay/camera slot context: the reticle coordinate frame an augment needs
-  // to draw in the HUD's own space. `reticleTravelPct` (40) is the
-  // `50 + dx·40 %` factor the built-in reticle uses, so an augment marker at
-  // `50 + offset·reticleTravelPct` % lands in the same space.
   const hudContext: TargetingHudContext = {
     maxDeg: MAX_DEG,
     reticleOffset: { x: dx, y: dy },
@@ -1100,12 +840,7 @@ function DockingHud(props: DockingHudProps) {
       aria-label={`Docking HUD for ${name}`}
       panelTitle="DOCKING"
       sections={
-        /* One filling section holding both halves, rather than two sections.
-           Panel lifts a filling section into a full-width band, so a second
-           section could only ever land under this one; the wide-short layout
-           needs the readouts BESIDE the viewport, and only this widget knows
-           at which shape that flips. The direction is the whole reason for the
-           inline override. */
+        /* One filling section: the wide-short layout needs the readouts BESIDE the viewport, hence the inline direction. */
         <Section
           full
           fill
@@ -1113,20 +848,9 @@ function DockingHud(props: DockingHudProps) {
           style={{ flexDirection: wideShort ? "row" : "column" }}
         >
           {showViewport && (
-            /* The reticle is a drawing, so it gets a frame inside the ordinary
-               padded body rather than the body being unpadded around it: the
-               readouts below/beside it need that inset. The frame is also what
-               divides the two halves, so neither the bottom rule nor the
-               wide-short left rule the overlay used to draw is needed. */
+            /* A frame inside the padded body, which also divides the two halves. */
             <FramedDisplay style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
-              {/* Camera-backdrop slot: an augment draws a video layer behind
-                  the reticle, in the HUD's space. Gated on `showCamera` (the
-                  "HUD only (no video)" variant must stay video-free) and on
-                  `showViewport` (too small to be worth a backdrop), the same
-                  two conditions the built-in HudCamera this slot replaced was
-                  gated on. Inside the frame, which is the positioned box the
-                  augment's `inset: 0` video resolves against, so the video is
-                  clipped to the frame's own rounded edge. */}
+              {/* Gated like the video it hosts: not in the HUD-only variant, not when too small. The frame is what the augment's `inset: 0` resolves against. */}
               {showCamera && (
                 <AugmentSlot name="targeting.camera" props={hudContext} />
               )}
@@ -1136,20 +860,17 @@ function DockingHud(props: DockingHudProps) {
                   flex: 1,
                   minHeight: 0,
                   minWidth: 0,
-                  // Subtle green tint over the video to sell the instrument feel.
                   background:
                     "radial-gradient(circle at center, rgba(0, 255, 136, 0.08) 0%, rgba(0, 0, 0, 0.3) 70%)",
                 }}
               >
-                {/* Fixed centre crosshair */}
                 <Crosshair />
-                {/* Reticle driven by alignment angles */}
                 <Reticle
                   aligned={aligned}
                   left={`${50 + dx * 40}%`}
                   top={`${50 + dy * 40}%`}
                 />
-                {/* Axis ticks: give the pilot a sense of scale */}
+                {/* Axis ticks give the pilot a sense of scale. */}
                 <HorizTick left="10%" />
                 <HorizTick left="30%" />
                 <HorizTick left="70%" />
@@ -1158,8 +879,6 @@ function DockingHud(props: DockingHudProps) {
                 <VertTick top="30%" />
                 <VertTick top="70%" />
                 <VertTick top="90%" />
-                {/* Alignment-marker overlay slot: composable augments draw
-                    on top of the reticle in the same coordinate frame via `hudContext`. */}
                 <AugmentSlot name="targeting.overlay" props={hudContext} />
               </div>
             </FramedDisplay>
@@ -1167,10 +886,7 @@ function DockingHud(props: DockingHudProps) {
 
           <div
             style={
-              /* Wide-short row layout docks the readouts to the side: a
-                 fixed-width right column, centred vertically so it reads as a
-                 paired panel, instead of the full-width strip under the
-                 frame. */
+              /* Wide-short: a fixed-width right column, centred vertically. */
               wideShort
                 ? {
                     flex: "0 0 240px",
@@ -1326,8 +1042,6 @@ function DockingHud(props: DockingHudProps) {
   );
 }
 
-// ── Config component ──────────────────────────────────────────────────────────
-
 function TargetingConfigComponent({
   config,
   onSave,
@@ -1336,13 +1050,7 @@ function TargetingConfigComponent({
   const [hudMode, setHudMode] = useState<DockingHudMode>(
     config?.hudMode ?? "hud-with-camera",
   );
-  // Carried through untouched rather than edited here. There is no camera
-  // PICKER in this config form, because listing and labelling cameras needs a
-  // camera mod's SDK and this widget deliberately does not depend on one. The
-  // augment that fills `targeting.camera` selects the camera itself, and for a
-  // DOCKING HUD it can identify the actual docking camera, which no manual
-  // pick could. A pinned camera still round-trips through config and reaches
-  // the augment via `TargetingHudContext`, which honours it as an override.
+  // No camera picker: the augment filling `targeting.camera` picks, and a pinned id round-trips as an override.
   const pinnedCameraId = config?.cameraFlightId;
 
   const candidate = useMemo<TargetingConfig>(
@@ -1392,8 +1100,6 @@ function TargetingConfigComponent({
   );
 }
 
-// ── Registration ──────────────────────────────────────────────────────────────
-
 registerComponent<TargetingConfig>({
   id: "targeting",
   name: "Targeting",
@@ -1401,10 +1107,7 @@ registerComponent<TargetingConfig>({
     "Target name + distance, with an auto-switching docking HUD (crosshair + alignment reticle + optional camera backdrop) when closing on a vessel or docking port.",
   tags: ["telemetry", "rendezvous"],
   defaultSize: { w: 6, h: 9 },
-  /* Five rows, not four. At 3x4 the body scroller is 122px against 135px of
-     content, and the thirteen pixels that puts past the fold turn on an
-     overflow glow whose mask reaches seventeen, so "Waiting for target
-     telemetry" had its last word painted out where it stood. */
+  /* Five rows: at four the overflow glow painted out the waiting hint's last word. */
   minSize: { w: 3, h: 5 },
   component: TargetingComponent,
   configComponent: TargetingConfigComponent,

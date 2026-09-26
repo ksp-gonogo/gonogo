@@ -8,24 +8,13 @@ import {
 } from "./index";
 
 /**
- * T3 drift guard (producer-consumer-T3): TargetPicker's and LaunchDirector's
- * `VESSEL_TYPE_LABELS`/`SITUATION_LABELS` arrays are hand-ordered to match the
- * C# `VesselType`/`Situation` enum declaration order (`VesselEnums.cs`), with
- * no compile-time coupling to the generated SDK enums that ARE the source of
- * truth (`mod/sitrep-sdk/src/__generated__/contract.ts`, generated off the C#
- * contract). An inserted C# enum member would silently mis-label every row
- * here with nothing to catch it.
- *
- * This test locks that alignment: it walks the generated enum's own ordinal
- * order and asserts each label array has the matching entry at the matching
- * index. If a C# enum member is inserted, renamed, or reordered, this test
- * fails the same day the SDK is regenerated; instead of a silent label
- * drift discovered by an operator reading the wrong vessel type off a row.
+ * TargetPicker's and LaunchDirector's hand-ordered `VESSEL_TYPE_LABELS` and
+ * `SITUATION_LABELS` match the generated SDK enums ordinal for ordinal, so an
+ * inserted, renamed or reordered C# member fails here instead of mislabelling
+ * rows.
  */
 
-/** Forward `name -> ordinal` entries only: filters out the reverse
- * `ordinal -> name` entries TypeScript's numeric-enum runtime object also
- * carries, sorted into the enum's declared order. */
+/** Forward `name -> ordinal` entries only, in the enum's declared order. */
 function enumMembersByOrdinal(
   enumObject: Record<string, string | number>,
 ): string[] {
@@ -60,13 +49,7 @@ function expectIndexAligned(
   });
 }
 
-/**
- * A generated enum as the key/value record the walk reads.
- *
- * TypeScript types an enum object nominally, so the walk cannot be given one
- * without saying it is also a record. It always is: the emitter writes a plain
- * object of name/ordinal pairs both ways round.
- */
+/** A generated enum as the key/value record the walk reads; the emitter always writes a plain object. */
 function enumObject(members: object): Record<string, string | number> {
   return members as Record<string, string | number>;
 }
@@ -128,7 +111,7 @@ describe("T3: label arrays stay index-aligned with the generated SDK enums", () 
 
   it("fails if the label arrays and the enum diverge (self-check on the guard itself)", () => {
     const driftedLabels = [...TARGET_PICKER_VESSEL_TYPE_LABELS];
-    // Simulate a C# enum insertion shifting everything after it by one, this must NOT still pass the alignment check.
+    // A simulated C# enum insertion shifting everything after it by one must NOT pass.
     driftedLabels.splice(2, 0, "InsertedMember");
     expect(() =>
       expectIndexAligned(

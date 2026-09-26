@@ -17,32 +17,16 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { MapViewComponent } from "./index";
 
 /**
- * The predicted ground track samples `vessel.orbit.patches` as CONICS, one
- * Kepler solve per step. Those patches are the provider's own chain, so
- * drawing them is projection rather than
- * invention, and the sampler already refuses to run past each patch's stated
- * `endUT`.
- *
- * What was never asked is whether a conic is the right thing to solve them AS.
- * The shape statement for that sample is the `trajectoryKind` on the horizon
- * riding the very same `vessel.orbit` reading the patches came off, and the
- * patch shape on the wire carries none of its own. So an integrating provider
- * got a ground track laid out by two-body maths it does not use, drawn with the
- * same confidence as the real thing and with nothing on screen to say so.
- *
- * The MANEUVER overlay is not gated here. Those patches arrive on
- * `vessel.maneuver`, which names its own planner, and `vessel.orbit`'s horizon
- * says nothing about them.
+ * The predicted ground track solves `vessel.orbit.patches` as conics, which
+ * is right only when the horizon riding the same reading says the trajectory
+ * is a conic; an integrating provider must get no two-body track. The
+ * maneuver overlay is not gated here: `vessel.maneuver` names its own planner.
  */
 
 const KERBIN_MU = 3.5316e12;
 const PINNED_UT = 100;
 
-/**
- * Unmount before clearing the body registry. `getBody` is read through
- * `useSyncExternalStore`, so clearing it while a tree is still mounted notifies
- * that tree from teardown, outside `act`. Sibling files here do the same.
- */
+// Unmount before clearing the body registry, which would notify a mounted tree outside `act`.
 const trees: Array<() => void> = [];
 afterEach(() => {
   for (const unmount of trees.splice(0)) unmount();
@@ -153,13 +137,7 @@ function segments(container: HTMLElement): number {
   return Number(el?.getAttribute("data-prediction-segments") ?? "-1");
 }
 
-/**
- * Flush the provider's `beginFrame` rAF ticks so the stream-driven re-render
- * commits inside `act` rather than landing on a later frame. A `waitFor` alone
- * polls on timers and lets the rAF commit fall outside the scope, which reads as
- * a missing `act` in the body and is not; the widget's other test files use the
- * same helper for the same reason.
- */
+/** Flush the provider's frames so the stream-driven re-render commits inside `act`; a `waitFor` alone lets it land outside. */
 async function flushFrames(): Promise<void> {
   await act(async () => {
     await new Promise<void>((resolve) => {
@@ -181,19 +159,15 @@ describe("MapView predicts the ground track only in the shape the provider state
   });
 
   it("draws no track when the provider integrates, rather than a two-body one", async () => {
-    // The patches are exact at their own start instant and are not the path. A
-    // ground track solved from them as conics is a route the craft will not fly,
-    // laid over real terrain, which is the whole defect.
+    // Solved as conics, an integrated path is a route the craft will not fly.
     const container = await mountMap(integratedHorizon(PINNED_UT + 2_000));
     expect(segments(container)).toBe(0);
   });
 
   it("keeps the vessel marker and the position readouts when the track is refused", async () => {
-    // Where the craft IS is measured, not extrapolated. Only the forward track
-    // is in question, and blanking the position would report an outage that has
-    // not happened.
+    // The position is measured, not extrapolated, so only the forward track goes.
     const container = await mountMap(UNBOUNDED_HORIZON);
-    // Five canvases still mount: the map is drawn, only one layer is empty.
+    // The map is drawn: only one layer is empty.
     expect(container.querySelectorAll("canvas").length).toBe(5);
     expect(visibleText(container)).not.toContain("No position data");
     expect(visibleText(container)).not.toContain("Waiting for telemetry");

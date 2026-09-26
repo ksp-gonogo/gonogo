@@ -7,20 +7,12 @@ export interface RenderAttitudeDialOptions {
   pitch: number | null;
   roll: number | null;
   size?: number;
-  /** Background colour painted behind the dial. Defaults to the app
-   *  surface colour so the SVG matches the dashboard. */
+  /** Background painted behind the dial; defaults to the app surface colour. */
   background?: string;
   idPrefix?: string;
 }
 
-/**
- * Render the attitude dial to a self-contained SVG string.
- *
- * Output is portable: CSS-variable references are resolved via an embedded
- * `<style>` block carrying the dark-mode palette from
- * `packages/app/src/styles/global.css`. `AttitudeDialSvg` is plain inline SVG
- * (no styled-components), so no server-side style extraction is needed.
- */
+/** Renders the attitude dial to a self-contained SVG string, with its CSS variables resolved in an embedded style block. */
 export function renderAttitudeDialToSvg(
   opts: RenderAttitudeDialOptions,
 ): string {
@@ -43,12 +35,7 @@ export function renderAttitudeDialToSvg(
   );
 }
 
-/**
- * Resolved CSS variables: must stay in sync with
- * `packages/app/src/styles/global.css`. Inlined here so the SVG output is
- * standalone. Only the variables the dial actually references are
- * duplicated.
- */
+/** The dial's CSS variables, resolved; must stay in sync with the app's global stylesheet. */
 const SVG_STYLE_BLOCK = `<style><![CDATA[
 :root {
   --color-text-primary: #ccc;

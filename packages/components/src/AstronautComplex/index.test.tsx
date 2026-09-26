@@ -27,10 +27,7 @@ import {
 } from "../test/setupStreamFixture";
 import { AstronautComplexComponent } from "./index";
 
-// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// action-handler registry. RTL auto-cleanup runs after this file's afterEach,
-// so it can't be relied on to unmount first: clearActionHandlers() firing on
-// a still-mounted widget is a state update outside act().
+// Unmounted before clearActionHandlers(), whose notification on a mounted widget lands outside act().
 const renderedTrees: Array<() => void> = [];
 
 function render(ui: ReactElement) {
@@ -44,14 +41,7 @@ function unmountAll() {
   renderedTrees.length = 0;
 }
 
-/**
- * Real-provider integration test: the widget runs off a genuine stream
- * (`setupStreamFixture` = real `TelemetryProvider`/`TelemetryClient`/
- * `TimelineStore` over a `StubTransport`), reading the `spaceCenter.astronautComplex`
- * applicant pool and `career.status`'s funds, and dispatching the real
- * `career.crew.hire` command (asserted against `fixture.transport.sentCommands`).
- * No hooks are mocked.
- */
+/** Integration over a real stream: the applicant pool, funds, and the real `career.crew.hire` dispatch, with no hooks mocked. */
 const CARRIED = [
   "spaceCenter.astronautComplex",
   "spaceCenter.crewRoster",
@@ -60,7 +50,7 @@ const CARRIED = [
   "career.crew.fire",
 ];
 
-// A generous funds balance so affordability never blocks a hire unless a test deliberately lowers it.
+// Generous, so affordability blocks a hire only when a test lowers it.
 function emitFunds(fixture: StreamFixture, funds: number | null) {
   fixture.emit("career.status", { economy: { funds } });
 }
@@ -125,7 +115,7 @@ const APPLICANTS = [
     descriptionEffects: "Level 0: Can analyze Mystery Goo and Materials Bay.",
   },
   {
-    // No roleDescription/descriptionEffects on the wire: the popover's graceful empty state, exercised by a test below.
+    // No roleDescription/descriptionEffects: the popover's empty state, tested below.
     name: "Limmy Kerman",
     trait: "Pilot",
     experienceLevel: 0,
@@ -134,20 +124,15 @@ const APPLICANTS = [
   },
 ];
 const NEXT_HIRE_COST = 24000;
-// KSP's int.MaxValue: the sentinel GetActiveCrewLimit returns at the top Astronaut Complex tier, an unlimited roster.
+// KSP's int.MaxValue: GetActiveCrewLimit's unlimited roster.
 const UNLIMITED_CREW_CAP = 2_147_483_647;
 
-// Spans every stock standing plus a real RP-1 retiree, so tests can assert the
-// Active tab derives one sub-tab per CrewStanding present with no hardcoded
-// list.
-//
-// Gus is the shape that matters and the shape this fixture used to get wrong. It
-// gave him `situationOrdinal: 4`, a RosterStatus member KSP does not declare, on
-// the belief that RP-1 appends one. It does not: it writes stock's Dead, ordinal
-// 2, which is why every RP-1 retiree reached the Dead tab wearing a red fatality
-// badge. So he carries KSP's Dead ordinal AND a Retired standing, attributed to
-// the backend that corrected it, which is exactly what the wire carries on a
-// live RP-1 career.
+/*
+ * Spans every stock standing plus a real RP-1 retiree, so the Active tab must
+ * derive its sub-tabs. Gus carries KSP's Dead ordinal AND a Retired standing
+ * attributed to the backend that corrected it, exactly as a live RP-1 career
+ * sends it.
+ */
 const CREW_ROSTER = [
   {
     name: "Bill Kerman",
@@ -209,7 +194,7 @@ const CREW_ROSTER = [
     name: "Gus Kerman",
     trait: "Pilot",
     experienceLevel: 4,
-    // KSP's OWN ordinal is Dead, because that is what RP-1 wrote into it.
+    // KSP's own ordinal is Dead, which is what RP-1 writes.
     situation: "Retired",
     standing: CrewStanding.Retired,
     standingSource: "rp1",
@@ -250,12 +235,7 @@ describe("AstronautComplexComponent", () => {
     );
   }
 
-  /**
-   * The same widget with the contribution chrome a dashboard puts around it.
-   * `renderWidget` alone mounts no contribution store, so `useContributions`
-   * silently returns empty, exactly as it does for a bare widget with no
-   * dashboard around it. Only the core-stat contribution tests need this.
-   */
+  /** The widget inside a contribution store, which the core-stat contribution tests need. */
   function renderWidgetWithContributions(id = "astronaut-complex") {
     return render(
       <fixture.Provider>
@@ -276,9 +256,7 @@ describe("AstronautComplexComponent", () => {
   }
 
   it("renders the panel and a waiting-for-telemetry empty state before telemetry", () => {
-    // Before anything has arrived the widget says it is waiting, not that the
-    // save is off career: "career mode only" is reserved for the producer
-    // confirming there is no Astronaut Complex.
+    // Before anything arrives the widget says it is waiting; "career mode only" is reserved for a confirmed absence.
     renderWidget();
     expect(screen.getByText(/ASTRONAUT COMPLEX/i)).toBeInTheDocument();
     expect(screen.getByText(/waiting for telemetry/i)).toBeInTheDocument();
@@ -297,9 +275,9 @@ describe("AstronautComplexComponent", () => {
       });
     });
 
-    // Wait for the applicant pool to land (the only element unique to the post-emission render) before asserting on the rest of the header.
+    // The applicant pool is the only element unique to the post-emission render.
     await screen.findByText("Desdin Kerman");
-    // Funds readout is in-widget (CLAUDE.md funds rule): the "Funds" label.
+    // The funds readout is in-widget, beside the spend control.
     expect(screen.getByText("Funds")).toBeInTheDocument();
     expect(screen.getByText("Next Hire")).toBeInTheDocument();
     expect(screen.getByText("Active Kerbals")).toBeInTheDocument();
@@ -372,9 +350,7 @@ describe("AstronautComplexComponent", () => {
 
     await user.click(screen.getByRole("tab", { name: "Active" }));
 
-    // Dead and Missing get their own tabs (not folded into a "Lost" tab), and
-    // so does Retired, which is the whole point: Gus carries KSP's Dead ordinal
-    // and must not land in the Dead tab.
+    // Dead, Missing and Retired each get their own tab, and Gus must not land in Dead.
     for (const [standing, count] of [
       ["Available", 1],
       ["Assigned", 1],
@@ -386,14 +362,12 @@ describe("AstronautComplexComponent", () => {
         screen.getByRole("tab", { name: `${standing} (${count})` }),
       ).toBeInTheDocument();
     }
-    // No hardcoded "Lost" fold tab.
+    // No "Lost" fold tab.
     expect(
       screen.queryByRole("tab", { name: /lost/i }),
     ).not.toBeInTheDocument();
 
-    // The first-derived tab (Available) is active by default and shows its
-    // one member through the shared crew-stat row (rank + experience-toward-
-    // next-rank included, unlike the Applicants tab which withholds rank).
+    // The first tab (Available) is active by default, rank included, unlike Applicants.
     expect(screen.getByText("Bill Kerman")).toBeInTheDocument();
     const row = screen.getByText("Bill Kerman").closest("li") as HTMLElement;
     expect(within(row).getByText("L2")).toBeInTheDocument();
@@ -402,7 +376,7 @@ describe("AstronautComplexComponent", () => {
       within(row).getByTitle(/Experience toward next rank: 40 percent/),
     ).toBeInTheDocument();
 
-    // Switching sub-tabs swaps the visible slice of the ONE underlying list.
+    // Sub-tabs swap the visible slice of the ONE underlying list.
     await user.click(screen.getByRole("tab", { name: "Dead (1)" }));
     expect(screen.getByText("Val Kerman")).toBeInTheDocument();
     expect(screen.queryByText("Bill Kerman")).not.toBeInTheDocument();
@@ -430,14 +404,7 @@ describe("AstronautComplexComponent", () => {
     expect(within(row).getByText("MAX")).toBeInTheDocument();
   });
 
-  /**
-   * A rank, a courage and a stupidity are all nullable on the wire
-   * (`SnapshotDict.GetInt`/`GetDouble` return nothing when the capture had
-   * nothing), and a chip the operator can read as a real reading is the one
-   * thing they must not become. `L0` is a rookie every save has, so a rank
-   * that never arrived reading as one is indistinguishable from the truth;
-   * a courage chip that simply vanishes is the same claim made by omission.
-   */
+  /** A rank, courage or stupidity that never arrived must not read as a real score: `L0` is a rookie every save has. */
   it("says a rank, a courage and a stupidity it was never sent are missing, rather than passing them off as zero", async () => {
     const user = userEvent.setup();
     renderWidget();
@@ -479,11 +446,7 @@ describe("AstronautComplexComponent", () => {
     ).toBeInTheDocument();
   });
 
-  /**
-   * The same absence one level up: an applicant's rank is withheld by design,
-   * so only the two trait chips are on show, and neither may read as a real
-   * score the pool never quoted.
-   */
+  /** An applicant's rank is withheld, so only the two trait chips show, and neither may read as a score never quoted. */
   it("says an applicant's missing courage and stupidity are missing", async () => {
     renderWidget();
     act(() => {
@@ -515,7 +478,7 @@ describe("AstronautComplexComponent", () => {
         crewCapacity: 13,
         nextHireCost: NEXT_HIRE_COST,
       });
-      // Only Available crew this time: Assigned/Dead/Missing never appear.
+      // Only Available crew this time.
       emitCrewRoster(fixture, [CREW_ROSTER[0]]);
     });
     await user.click(await screen.findByRole("tab", { name: "Active" }));
@@ -543,7 +506,7 @@ describe("AstronautComplexComponent", () => {
       });
     });
 
-    // First click arms; the label flips to Confirm.
+    // The first click arms; the label flips to Confirm.
     const hire = await screen.findByRole("button", {
       name: /^Hire Desdin Kerman/,
     });
@@ -622,16 +585,7 @@ describe("AstronautComplexComponent", () => {
     }
   });
 
-  /**
-   * The two decisions on this panel that used to read a KSP enum's SPELLING.
-   * Both failures are silent and in the wrong direction: the Fire control
-   * disappears from every eligible kerbal, and a dead one's badge goes from
-   * critical to decorative grey.
-   *
-   * Every row below carries a `situation` label this build has never seen, with
-   * the STANDING saying what it actually is. The standing wins, and the tab
-   * labels come from it rather than from the producer's words.
-   */
+  /** Decisions read the STANDING, never a `situation` spelling this build has not seen; tab labels come from the standing too. */
   it("takes the Fire control, the tab label and the critical badge from the standing, not the situation name", async () => {
     const user = userEvent.setup();
     renderWidget();
@@ -648,7 +602,7 @@ describe("AstronautComplexComponent", () => {
           name: "Ludsy Kerman",
           trait: "Pilot",
           experienceLevel: 1,
-          // A word this build has never seen, with Available underneath.
+          // An unseen word with Available underneath.
           situation: "Ready",
           standing: CrewStanding.Available,
           situationOrdinal: 0,
@@ -666,9 +620,7 @@ describe("AstronautComplexComponent", () => {
           available: false,
           unavailableReason: "Deceased",
         },
-        // The neutral yardstick the critical badge has to differ from. Under
-        // the old name comparison "Deceased" matched neither "Dead" nor
-        // "Missing", so it read neutral and these two classes were equal.
+        // The neutral yardstick the critical badge has to differ from.
         {
           name: "Jeb Kerman",
           trait: "Pilot",
@@ -683,7 +635,7 @@ describe("AstronautComplexComponent", () => {
     });
     await user.click(await screen.findByRole("tab", { name: "Active" }));
 
-    // The tab labels are the STANDING's own words, not the producer's: a label taken from a spelling KSP owns is a label KSP can change.
+    // Tab labels are the standing's own words: a label taken from a spelling KSP owns is one KSP can change.
     await user.click(await screen.findByRole("tab", { name: "Available (1)" }));
     await screen.findByText("Ludsy Kerman");
     expect(
@@ -726,7 +678,7 @@ describe("AstronautComplexComponent", () => {
     await user.click(await screen.findByRole("tab", { name: "Missing (1)" }));
     const missingClass = (await screen.findByText("Missing")).className;
 
-    // Being on a mission is expected, not alarming: it must not share the critical badge's styling, while the two genuinely lost situations do.
+    // On a mission is expected, not alarming; only the two lost situations share the critical styling.
     expect(onMissionClass).not.toBe(deadClass);
     expect(deadClass).toBe(missingClass);
   });
@@ -747,10 +699,7 @@ describe("AstronautComplexComponent", () => {
         { ...CREW_ROSTER[0], name: "Val Kerman" },
       ]);
     });
-    // The action-driven highlight/fire path doesn't require the Active tab to
-    // be open (the highlighted index lives at the top of the widget, not
-    // inside the tab panel), but switching to it lets the test observe the
-    // row order the cycle walks over.
+    // The Active tab is opened only to observe the row order the cycle walks.
     await user.click(await screen.findByRole("tab", { name: "Active" }));
     await screen.findByText("Bill Kerman");
 
@@ -766,7 +715,7 @@ describe("AstronautComplexComponent", () => {
         value: true,
       });
     });
-    // The first press only arms, as the touch path's first tap does, and says so on the row.
+    // The first press only arms, and says so on the row.
     expect(await screen.findByText("ARMED")).toBeInTheDocument();
     expect(
       fixture.transport.sentCommands.find(
@@ -845,16 +794,7 @@ describe("AstronautComplexComponent", () => {
     );
   });
 
-  /**
-   * THE defect, at the widget. RP-1 retires a kerbal by writing stock's Dead
-   * into rosterStatus, so before the crew-standing capability every retiree sat
-   * in the Dead tab wearing the red fatality badge, and a mission-control board
-   * told an operator their astronauts had been killed.
-   *
-   * Gus is that kerbal: KSP's own ordinal says Dead, the standing says Retired.
-   * He belongs in his own tab, and his badge must NOT share the styling of the
-   * two standings that are worth alarming somebody over.
-   */
+  /** RP-1 writes stock's Dead into a retiree's roster status: Gus belongs in his own tab, never under a fatality badge. */
   it("puts an RP-1 retiree in a Retired tab and not in the Dead tab, with a badge that is not a fatality", async () => {
     const user = userEvent.setup();
     renderWidget();
@@ -879,15 +819,11 @@ describe("AstronautComplexComponent", () => {
     expect(await screen.findByText("Gus Kerman")).toBeInTheDocument();
     const retiredClass = (await screen.findByText("Retired")).className;
 
-    // Retiring is not dying, and the badge has to say so: the whole content of the defect was these two rendering identically.
+    // Retiring is not dying, and the badge says so.
     expect(retiredClass).not.toBe(deadClass);
   });
 
-  /**
-   * The Fire control is offered on the Available standing alone. A retiree
-   * carries KSP's Available-adjacent Dead ordinal, but the standing is what
-   * decides, and firing a retiree is not an action any operator meant.
-   */
+  /** The Fire control follows the standing, and firing a retiree is not an action any operator meant. */
   it("offers no Fire control on a Retired row", async () => {
     const user = userEvent.setup();
     renderWidget();
@@ -910,18 +846,7 @@ describe("AstronautComplexComponent", () => {
     ).not.toBeInTheDocument();
   });
 
-  /**
-   * A kerbal standing down gets their own tab, is not offered for a flight, and
-   * IS still fireable.
-   *
-   * This case used to assert the opposite, and the comment above it argued for
-   * it: "resting is not a standing", so the kerbal stayed in the Available tab
-   * wearing a bespoke RESTING badge. That was the third place the same false
-   * premise was written down, after a doc comment on the wire type and a
-   * provider test, all three green. The producer now derives the standing, so
-   * the tab and the unavailability come for free and this widget needed no
-   * knowledge of what a stand-down is.
-   */
+  /** A kerbal standing down gets their own tab, is not offered for a flight, and IS still fireable. */
   it("gives a kerbal standing down their own tab and no flight, but still lets them be fired", async () => {
     const user = userEvent.setup();
     renderWidget();
@@ -958,26 +883,18 @@ describe("AstronautComplexComponent", () => {
     const row = (await screen.findByText("Bill Kerman")).closest(
       "li",
     ) as HTMLElement;
-    // The one badge for every way a kerbal cannot fly, not a per-axis badge.
+    // One badge for every way a kerbal cannot fly.
     expect(within(row).getByText("Standing down")).toBeInTheDocument();
-    // Firing is not flying: the roster accepts a sacking here, so the control must still be offered.
+    // Firing is not flying, so the control is still offered.
     expect(
       within(row).getByRole("button", { name: /^Fire Bill Kerman/ }),
     ).toBeInTheDocument();
   });
 
   /**
-   * THE case for the whole capability, stated as an operator would hit it: this
-   * widget contains no reference to RP-1, no notion of a training course, and no
-   * knowledge of the `Training` standing beyond the enum it imports. Fed a kerbal
-   * mid-course, it must refuse to offer them for a flight and say why.
-   *
-   * <p>That works because the producer sends a DERIVED `available` /
-   * `unavailableReason` pair beside the raw standing, and because `available` is
-   * a whitelist: a standing this widget had never heard of would still read as
-   * unavailable. The failure this replaces is the one the branch shipped with,
-   * where a trainee reached the wire `available: true` and this widget would have
-   * cheerfully offered them.</p>
+   * A kerbal mid-course is refused for a flight with a reason, with no
+   * knowledge of training in this widget: the producer's derived `available`
+   * is a whitelist, so an unheard-of standing reads unavailable too.
    */
   it("refuses to fly a kerbal in training it knows nothing about, and says why", async () => {
     const user = userEvent.setup();
@@ -996,7 +913,7 @@ describe("AstronautComplexComponent", () => {
           standing: CrewStanding.Training,
           situation: "Training",
           standingSource: "rp1",
-          // KSP's own ordinal is Available throughout a course: the game field is not the answer, which is the premise of the whole capability.
+          // KSP's own ordinal reads Available throughout a course.
           situationOrdinal: 0,
           available: false,
           unavailableReason: "In training",
@@ -1013,16 +930,11 @@ describe("AstronautComplexComponent", () => {
       "li",
     ) as HTMLElement;
     expect(within(row).getByText("In training")).toBeInTheDocument();
-    // Not a fatality badge: an unavailable trainee is not an alarming state.
+    // An unavailable trainee is not an alarming state.
     expect(within(row).queryByText("Dead")).not.toBeInTheDocument();
   });
 
-  /**
-   * A standing with a scheduled end reads its WHEN off `standingEndsAtUt`, and
-   * the client formats the date. The producer never sends a formatted one: it
-   * would be formatted in the mod's calendar, and an RSS save does not count
-   * years the way a stock one does.
-   */
+  /** A scheduled end is read off `standingEndsAtUt` and formatted client-side, in the save's own calendar. */
   it("puts the when in the unavailable badge's title, formatted client-side", async () => {
     const user = userEvent.setup();
     renderWidget();
@@ -1050,15 +962,11 @@ describe("AstronautComplexComponent", () => {
     const badge = await screen.findByText("In training");
     const title = badge.getAttribute("title") ?? "";
     expect(title).toContain("In training until ");
-    // A rendered date rather than the raw UT the wire carried.
+    // A rendered date, not the raw UT.
     expect(title).not.toContain("9000000");
   });
 
-  /**
-   * Stock KSP has no crew training, so there is nothing to put behind a
-   * Training tab and the strip stays two wide. The tab is not empty-and-present,
-   * it does not exist: an unfillable tab is a promise the widget cannot keep.
-   */
+  /** With nothing claiming the training slot, the Training tab does not exist at all. */
   it("grows no Training tab until something claims the slot", async () => {
     renderWidget();
     act(() => {
@@ -1072,18 +980,14 @@ describe("AstronautComplexComponent", () => {
       emitCrewRoster(fixture, CREW_ROSTER);
     });
 
-    // Active is the positive signal that the strip rendered at all, so the absence below is about a tab that was not offered.
+    // Active proves the strip rendered, so the absence below is about the tab.
     expect(await screen.findByRole("tab", { name: "Active" })).toBeVisible();
     expect(
       screen.queryByRole("tab", { name: "Training" }),
     ).not.toBeInTheDocument();
   });
 
-  /**
-   * A whole TAB rather than a section under the roster, and beside Applicants
-   * and Active rather than nested under either: a course is a thing in its own
-   * right that several kerbals share, so it is not a footnote to any one row.
-   */
+  /** Training is a whole TAB beside Applicants and Active, not nested under either. */
   it("grows a Training tab an Uplink fills, beside Applicants and Active", async () => {
     registerAugment({
       id: "test-training-tab",
@@ -1106,21 +1010,12 @@ describe("AstronautComplexComponent", () => {
 
     await user.click(await screen.findByRole("tab", { name: "Training" }));
     expect(await screen.findByText("Two courses running")).toBeInTheDocument();
-    // Same strip, not a second one nested inside a tab.
+    // The same strip, not a second one nested inside a tab.
     expect(screen.getByRole("tab", { name: "Applicants" })).toBeVisible();
     expect(screen.getByRole("tab", { name: "Active" })).toBeVisible();
   });
 
-  /**
-   * A claimed slot is not the same as a filled one, and the tab strip cannot
-   * tell them apart: `useSlotBound` counts REGISTRATIONS, so an Uplink whose
-   * augments all decide they have nothing to say still grows the tab. That is
-   * the normal case rather than an edge one, and it is what a career Uplink
-   * installed on a stock save looks like from here: every augment guards on its
-   * own domain being present and returns null, and the operator gets a tab with
-   * an empty rectangle behind it. Applicants and Active both say when they are
-   * empty and this said nothing at all.
-   */
+  /** A claimed slot whose augments all render nothing still says the tab is empty, as Applicants and Active do. */
   it("says the tab is empty rather than showing a blank rectangle", async () => {
     registerAugment({
       id: "test-training-tab-silent",
@@ -1145,11 +1040,7 @@ describe("AstronautComplexComponent", () => {
     expect(await screen.findByText("No training right now")).toBeVisible();
   });
 
-  /**
-   * Nothing under stock, which has no career model with an opinion. The strip is
-   * three cells wide and stays that way, so an empty slot costs no pixels and no
-   * empty cell.
-   */
+  /** Nothing contributes under stock, so the strip stays three cells with no empty cell. */
   it("keeps the stat strip to its own three figures until something contributes", async () => {
     renderWidgetWithContributions();
     act(() => {
@@ -1167,16 +1058,7 @@ describe("AstronautComplexComponent", () => {
     expect(strip.children).toHaveLength(3);
   });
 
-  /**
-   * The extension the row exists for: a career overhaul puts what IT considers
-   * core beside the vanilla three, and the host draws it.
-   *
-   * A CONTRIBUTION rather than an augment, and the assertion is on what that
-   * buys: the contributed cell is a SIBLING of the vanilla ones in the host's
-   * own strip, in the host's own `Stat`, with its figure drawn through the
-   * host's own `Unit`. An augment renders its own React, so it could only ever
-   * have arrived as a block beside the row in a treatment of its own.
-   */
+  /** A contributed figure is a SIBLING cell in the host's own strip, drawn with the host's own `Stat` and `Unit`. */
   it("takes further core stats from an Uplink, in the same row and the same treatment", async () => {
     registerContribution({
       id: "test-crew-in-training",
@@ -1206,7 +1088,7 @@ describe("AstronautComplexComponent", () => {
     await waitFor(() =>
       expect(within(strip).getByText("In Training")).toBeInTheDocument(),
     );
-    // One row, four cells. Not three cells and a block.
+    // One row, four cells.
     expect(strip.children).toHaveLength(4);
     // The same cell treatment: a `dl` per stat, label as the `dt`.
     const contributed = within(strip).getByText("In Training");
@@ -1215,10 +1097,7 @@ describe("AstronautComplexComponent", () => {
   });
 
   it("renders a bound crew augment per row, carrying that kerbal's identity and standing", async () => {
-    // A test Uplink binds `astronaut-complex.crew` and echoes back the per-row
-    // props. Proves (a) the slot is exposed, (b) an augment composes into it
-    // once per crew row, and (c) the props carry the right kerbal and standing,
-    // so a career-overhaul Uplink can look up that kerbal's own schedule.
+    // A test Uplink echoes the per-row props: the slot composes once per crew row, with the right kerbal and standing.
     registerAugment<"astronaut-complex.crew">({
       id: "test-crew-schedule",
       augments: "astronaut-complex.crew",
@@ -1242,7 +1121,7 @@ describe("AstronautComplexComponent", () => {
       emitCrewRoster(fixture, CREW_ROSTER);
     });
 
-    // The Applicants list gets one too: RP-1 gives an applicant a retirement date and retires them out of the pool.
+    // The Applicants list gets one too.
     expect(
       await screen.findByText(
         `Desdin Kerman:${CrewStanding.Applicant}:applicant`,
@@ -1252,24 +1131,13 @@ describe("AstronautComplexComponent", () => {
     await user.click(await screen.findByRole("tab", { name: "Active" }));
     await user.click(await screen.findByRole("tab", { name: "Retired (1)" }));
 
-    // The augment is handed the CORRECTED standing, not KSP's Dead ordinal, so
-    // it never has to undo the conflation itself. Composed from the enum rather
-    // than spelled as a number: the ordinal written out here went stale the
-    // moment the contract inserted a member.
+    // The augment gets the CORRECTED standing, not KSP's Dead ordinal.
     expect(
       await screen.findByText(`Gus Kerman:${CrewStanding.Retired}:crew`),
     ).toBeInTheDocument();
   });
 
-  /**
-   * The card's top-right corner, which is a different question from the crew
-   * slot underneath it. That one is a BLOCK of readings under the name, so
-   * anything put in it is read after the identity; a corner mark is read WITH
-   * it, at a glance down a roster, without any of the rows having to be read at
-   * all. A career overhaul owns marks of that kind (a kerbal RP-1 has on a
-   * course still stands as Available on KSP's own roster, so the host's own
-   * unavailable badge cannot say it) and there was nowhere to put one.
-   */
+  /** The corner mark is read WITH the name while scanning a roster, for states KSP's own roster does not carry. */
   it("renders a bound corner augment in the identity line, beside the sack control", async () => {
     registerAugment<"astronaut-complex.crew-badge">({
       id: "test-crew-corner",
@@ -1297,17 +1165,11 @@ describe("AstronautComplexComponent", () => {
 
     const corner = await screen.findByText("Bill Kerman corner");
     const fire = screen.getByRole("button", { name: /^Fire Bill Kerman/ });
-    /* The corner mark and the sack control are in ONE group at the end of the
-       identity line: that group is the card's top right, and a mark placed
-       anywhere else is not the thing that was asked for. */
+    // The corner mark and the sack control share ONE group at the end of the identity line.
     expect(fire.parentElement).toContainElement(corner);
   });
 
-  /**
-   * A row whose standing did not arrive is bucketed as Unknown rather than
-   * dropped or quietly folded onto Available. Unknown is a third answer: the
-   * kerbal exists and where they stand is not known.
-   */
+  /** A row whose standing did not arrive is bucketed as Unknown, not dropped or folded onto Available. */
   it("buckets a row with no standing as Unknown, last", async () => {
     const user = userEvent.setup();
     renderWidget();
@@ -1553,15 +1415,8 @@ describe("AstronautComplexComponent", () => {
     await screen.findByText(/Scientists can analyze/);
 
     /**
-     * Two scans, because the popover portals to `document.body` and so sits
-     * outside the render container: the container covers the row and its
-     * trigger, the panel covers the content the portal moved.
-     *
-     * <p>One scan of `document.body` would cover both and brings axe's
-     * page-level "region" rule with it, which flags this harness's bare render
-     * root as content outside a landmark: page chrome this component test does
-     * not own. Two element-scoped scans ask the same question of the same
-     * nodes without arguing about the page.</p>
+     * Two element-scoped scans, because the popover portals to `document.body`;
+     * one body-wide scan would bring axe's page-level "region" rule with it.
      */
     await expectNoA11yViolations(container);
     await expectNoA11yViolations(

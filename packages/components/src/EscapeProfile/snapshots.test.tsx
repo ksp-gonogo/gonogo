@@ -9,12 +9,7 @@ import mun from "./__fixtures__/mun-surface-low-orbit.json";
 import unknown from "./__fixtures__/unknown-body-no-reference.json";
 import { EscapeProfileComponent } from "./index";
 
-/**
- * DOM snapshots off the stream pipeline, driven by each fixture's own
- * `_stream` block.
- *
- * The harness reports a measured size, so the escape curve renders.
- */
+/** DOM snapshots off the stream pipeline, driven by each fixture's own `_stream` block; the harness reports a measured size, so the escape curve renders. */
 
 const FIXTURES: Record<string, Record<string, unknown>> = {
   "kerbin-lko-well-below-escape": lko,

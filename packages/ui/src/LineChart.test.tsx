@@ -10,8 +10,6 @@ import {
   niceTicks,
 } from "./lineChartMath";
 
-// ── Pure helper tests ─────────────────────────────────────────────────────────
-
 describe("makeScale", () => {
   it("maps domain endpoints to range endpoints", () => {
     const s = makeScale(0, 100, 10, 110);
@@ -74,8 +72,6 @@ describe("buildPath", () => {
     expect(d).toBe("M0.00,100.00 L100.00,0.00");
   });
 });
-
-// ── Component snapshot ────────────────────────────────────────────────────────
 
 const SERIES: ChartSeries[] = [
   {
@@ -147,7 +143,6 @@ describe("LineChart", () => {
     const { container } = render(
       <LineChart series={dual} xDomain={[0, 2000]} width={400} height={200} />,
     );
-    // Expect two y-axis label groups
     const texts = Array.from(container.querySelectorAll("text"));
     const axisLabels = texts.filter(
       (t) =>
@@ -157,12 +152,7 @@ describe("LineChart", () => {
   });
 });
 
-// ── Provenance: observed vs reckoned ─────────────────────────────────────────
-//
-// Three states, and only two of them change the stroke. A replayed sample is a
-// sample the craft MEASURED, so it draws as live data draws; a hole draws as a
-// hole; a reckoned run is the only one nobody measured, so it is the only one
-// the chart mutes and dashes.
+// A replayed sample draws as live data, a break as a hole, and only a reckoned run is muted and dashed.
 
 const chartName = (container: HTMLElement): string =>
   container.querySelector("svg[role='img']")?.getAttribute("aria-label") ?? "";
@@ -175,13 +165,7 @@ const strokedPaths = (
     container.querySelectorAll<SVGPathElement>(`path[stroke='${color}']`),
   );
 
-/**
- * A chord across a gap nothing observed, against what the value's model says
- * happened there. The flat chord between two equal samples is contradicted by a
- * model that swung between them, so the chart draws the model's path instead,
- * reckoned, and marks the two samples it joins; the rising one beside it agrees
- * with its model and stays.
- */
+/** A chord the model contradicts is replaced by the model's path, reckoned, with the joined samples marked; an agreeing chord stays. */
 describe("LineChart bridges", () => {
   const swung = (to: number, lo: number, hi: number) => ({
     to,
@@ -331,7 +315,7 @@ describe("LineChart provenance", () => {
     );
     expect(reckoned).toHaveLength(1);
     expect(measured).toHaveLength(1);
-    // Both channels, deliberately: a dash survives greyscale, a mute is harder to miss on a dark ground, and neither invents a hue.
+    // A dash survives greyscale; the mute is the second channel.
     expect(reckoned[0].getAttribute("stroke-dasharray")).not.toBeNull();
     expect(Number(reckoned[0].getAttribute("stroke-opacity"))).toBeLessThan(1);
     expect(reckoned[0].getAttribute("stroke")).toBe("#00ff88");
@@ -369,11 +353,7 @@ describe("LineChart provenance", () => {
   });
 });
 
-/**
- * The shaded region behind a reckoned run: how well the model knew each point
- * it answered for. A fourth MARK, not a fourth state, so every case here also
- * checks the stroke is still drawn the way a reckoned run has always been.
- */
+/** The uncertainty band is an extra mark, not a state, so each case also checks the reckoned stroke is unchanged. */
 describe("LineChart uncertainty band", () => {
   const banded = (kind: "bound" | "sigma1"): ChartSeries[] => [
     {
@@ -443,11 +423,6 @@ describe("LineChart uncertainty band", () => {
     expect(regions(container)).toHaveLength(0);
   });
 
-  /*
-   * A hard bound's edge is a real limit and gets a hairline; a one-sigma
-   * region's edge is not a boundary the model claimed, so drawing one would
-   * assert exactly what `kind` exists to keep apart.
-   */
   it("edges a hard bound and leaves a one-sigma region unedged", () => {
     const { container: bound } = render(
       <LineChart
@@ -499,11 +474,7 @@ describe("LineChart uncertainty band", () => {
     expect(name).toMatch(/the value is inside/i);
   });
 
-  /*
-   * The same wording the meter speaks, from the same helper, because a reader
-   * who meets a band on a chart and a band on a bar is being told one thing
-   * and should hear it said one way.
-   */
+  // Chart and meter share one helper so a band is described the same way on both.
   it("names what the region claims without reaching for statistics vocabulary", () => {
     const { container } = render(
       <LineChart
@@ -553,11 +524,7 @@ describe("LineChart uncertainty band", () => {
   });
 });
 
-/**
- * A threshold drawn from a reading is a figure like any other: a held one wears
- * the dot on its label and says so in the chart's name, and a current one draws
- * exactly as a bare number does.
- */
+/** A held threshold reading marks its label and the chart name; a current one draws as a bare number. */
 describe("LineChart threshold currency", () => {
   const AT = value("ut", 1_000);
   const altitude = value("m", 30_000);

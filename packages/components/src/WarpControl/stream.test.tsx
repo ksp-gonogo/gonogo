@@ -7,29 +7,15 @@ import { WarpIntentProvider } from "../shared/WarpIntent";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { WarpControlComponent } from "./index";
 
-/**
- * Stream test-adapter proof: `WarpControl` genuinely running off the
- * stream: a real
- * `TelemetryProvider` + `TelemetryClient`/`TimelineStore` pipeline fed via
- * `StubTransport`: never the legacy `MockDataSource` registry (none is even
- * registered in this file). Green here means "works off streams", not
- * "green off the legacy fallback while the mapped read silently never
- * fires": the test-green-but-semantically-drifted risk this adapter
- * exists to close.
- */
-// Reset the action-handler registry at the START of each test, the prior
-// test's tree is already unmounted (RTL auto-cleanup) by then, so this never
-// fires against a live component.
+/** WarpControl running off a real stream pipeline fed via `StubTransport`, with no legacy source registered. */
+// Reset at the start of each test, once the prior test's tree is already unmounted.
 beforeEach(() => {
   clearActionHandlers();
 });
 
 describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
   it("reads the recorded time.warp state off the real stream pipeline, not legacy", async () => {
-    // No legacy "data" DataSource registered anywhere in this file, if the
-    // widget's reads were still secretly falling back to legacy, there
-    // would be nothing to fall back TO and the rate readout would stay NULL_DISPLAY
-    // forever, not resolve to "10×".
+    // With no legacy source registered, a read that fell back would stay NULL_DISPLAY rather than reach "10×".
     const fixture = setupStreamFixture({
       carriedChannels: ["time.warp"],
       pinnedUt: 10,
@@ -44,10 +30,9 @@ describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
       </fixture.Provider>,
     );
 
-    // Nothing arrived yet: the rate readout is the loading placeholder.
     expect(screen.getByText(NULL_DISPLAY)).toBeTruthy();
 
-    // A real subscription must have happened for this to deliver at all, StubTransport.emit is subscription-gated (see its own doc comment).
+    // StubTransport.emit is subscription-gated, so delivery proves a real subscription.
     expect(fixture.transport.isSubscribed("time.warp")).toBe(true);
 
     act(() => {
@@ -64,7 +49,7 @@ describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
         screen.getByRole("img", { name: "Time warp rate 10×" }),
       ).toBeTruthy(),
     );
-    // t.warpMode -> time.warp.warpMode, WarpMode enum 0 = High.
+    // WarpMode 0 is High.
     expect(screen.getByText("High")).toBeTruthy();
   });
 
@@ -108,15 +93,9 @@ describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
   });
 
   /**
-   * The screen watching the game's warp state cannot tell a deliberate press
-   * here from a warp nobody at this console asked for, so a widget that
-   * commands warp without saying so trips its own screen's unscheduled-warp
-   * alarm. Announcing is what tells the local watcher this one was meant.
-   *
-   * Local only, and the assertion below is deliberately about the announcer
-   * rather than about anything leaving this screen: a command centre flagging
-   * a pilot's warp IS wanted, so nothing here may suppress somebody else's
-   * alert.
+   * Announcing tells this screen's own warp watcher the warp was meant, so it
+   * does not trip its unscheduled-warp alarm. It is local only: a command centre
+   * flagging a pilot's warp is wanted.
    */
   it("announces warp intent to its own screen before commanding a warp", async () => {
     const fixture = setupStreamFixture({
@@ -154,11 +133,7 @@ describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
     await waitFor(() => expect(announce).toHaveBeenCalled());
   });
 
-  /**
-   * A station runs no warp watcher of its own, so there is nobody local to
-   * tell and the widget has to work with no provider above it. Pinned because
-   * the obvious implementation, announcing unconditionally, throws there.
-   */
+  /** A station runs no warp watcher, so the widget must work with no announcer provider above it. */
   it("commands a warp with no announcer mounted at all", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["time.warp"],
@@ -224,13 +199,7 @@ describe("WarpControl: genuinely runs off the stream (M3 pilot)", () => {
     });
     await waitFor(() => expect(visibleText()).toContain("1×"));
 
-    // The pause toggle button only renders in the "Flight" scene
-    // (`useGameContext`'s `kc.scene`, unmapped/legacy-only): no legacy
-    // source is registered in this stream-only test, so `scene` reads
-    // "Unknown" and the pause button doesn't render. Fire the command
-    // directly via the widget's own action instead (still exercises the
-    // exact same `useExecuteAction` command-shim path a real serial-input
-    // mapping would).
+    // Scene is unfed here, so the pause button does not render; the widget's own action sends the command instead.
     const { dispatchAction } = await import("@ksp-gonogo/core");
     await act(async () => {
       await dispatchAction("warp-stream", "togglePause", {

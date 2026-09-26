@@ -24,12 +24,7 @@ import {
   type ActionGroupSlotContext,
 } from "./index";
 
-// Rendered trees, tracked so afterEach can unmount them BEFORE disconnecting the
-// legacy source or clearing the action-handler/augment registries. RTL
-// auto-cleanup runs after this file's afterEach, so it can't be relied on to
-// unmount first: buffered.disconnect()/clearActionHandlers()/clearAugments()
-// firing on a still-mounted widget is a state update outside act(), the
-// documented anti-pattern in CLAUDE.md.
+// Unmounted before the registries clear, so the clear never updates a mounted tree outside act().
 const renderedTrees: Array<() => void> = [];
 
 function render(ui: ReactElement) {
@@ -43,13 +38,6 @@ function unmountAll() {
   renderedTrees.length = 0;
 }
 
-/**
- * The widget reads nothing off a legacy `data` source: group values come off
- * the canonical `vessel.control` / `vessel.structure` stream (see
- * `emitControl`), `isPaused` / `commConnected` off `time.warp` / `comms.link`,
- * and the toggle dispatch itself (delayed-command-ux migration) rides
- * `useCommand`, asserted against `fixture.transport.sentCommands`.
- */
 describe("ActionGroupComponent", () => {
   let fixture: ReturnType<typeof setupStreamFixture>;
 
@@ -72,11 +60,7 @@ describe("ActionGroupComponent", () => {
     clearActionHandlers();
   });
 
-  /**
-   * Emits a `vessel.control` payload carrying `patch`. Stock's ten customs are
-   * always present (all off unless `patch.actionGroups` overrides) so the
-   * registry's derived half exists, mirroring what the mod actually sends.
-   */
+  /** Emits a `vessel.control` payload carrying `patch`, with stock's ten custom groups present as the mod sends them. */
   function emitControl(patch: Record<string, unknown>) {
     act(() => {
       fixture.emit("vessel.control", {
@@ -121,7 +105,6 @@ describe("ActionGroupComponent", () => {
 
   it("shows the NULL_DISPLAY unknown indicator before telemetry arrives", () => {
     renderGroup({ actionGroupId: "SAS" });
-    // No emit yet: value is undefined → unknown state
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
   });
 
@@ -162,7 +145,6 @@ describe("ActionGroupComponent", () => {
   });
 
   it("suppresses the unavailability notice in the tiny size bucket (w<5)", async () => {
-    // At 3×4 the widget is in the tiny bucket, UnavailableNotice must not render.
     renderGroup({ actionGroupId: "SAS" }, { w: 3, h: 4 });
     emitControl({ sas: false });
     act(() => {
@@ -182,7 +164,6 @@ describe("ActionGroupComponent", () => {
   it("shows the official group name as secondary when a custom label is set (cols≥5)", async () => {
     renderGroup({ actionGroupId: "AG1", label: "Chutes" }, { w: 6, h: 6 });
     emitControl({ actionGroups: [{ index: 1, name: "AG1", state: false }] });
-    // OfficialName = "AG1", custom label = "Chutes"; at cols=6 both visible
     expect(await screen.findByText("Chutes")).toBeInTheDocument();
     await waitFor(() => expect(visibleText()).toContain("AG1"));
   });
@@ -197,10 +178,7 @@ describe("ActionGroupComponent", () => {
     renderGroup({ actionGroupId: "SAS" }, { w: 3, h: 3 });
     emitControl({ sas: false });
     const pill = await screen.findByRole("button", { name: /toggle sas/i });
-    // Wait for the CONTENT, not the button. The pill renders before any value
-    // arrives (as the null token), so awaiting the button alone resolves on the
-    // first tick and pumps no frame: the text assertion then races the sample
-    // and reads the placeholder under parallel load.
+    // Wait for the content: the pill renders before any value arrives.
     await waitFor(() => expect(pill).toHaveTextContent("OFF"));
     expect(pill).not.toBeDisabled();
   });
@@ -267,7 +245,6 @@ describe("ActionGroupComponent", () => {
   it("does not dispatch a toggle while the current value is still unknown", async () => {
     const user = userEvent.setup();
     renderGroup({ actionGroupId: "SAS" }, { w: 3, h: 3 });
-    // No emitControl: value is undefined, an ambiguous invert.
     await user.click(screen.getByRole("button", { name: /toggle sas/i }));
     expect(
       fixture.transport.sentCommands.find(
@@ -286,34 +263,20 @@ describe("ActionGroupComponent", () => {
   it("has no axe violations with the pill toggle button", async () => {
     const { container } = renderGroup({ actionGroupId: "SAS" });
     emitControl({ sas: true });
-    // Let the emitted frame settle BEFORE axe runs. `emitControl` delivers on a
-    // deferred `beginFrame` (a `queueMicrotask` under jsdom: see
-    // `setupStreamFixture`/`scheduleFrame`), so the render reflecting `sas:true`
-    // lands one microtask after the sync `act()` returns. Every other test here
-    // follows the emit with an RTL `findBy`/`waitFor`, which polls with the
-    // act-environment OFF and quietly absorbs that frame; this test alone went
-    // straight into `axe()`, whose long scan runs with the act-environment ON
-    // but no `act()` on the stack: so the deferred frame re-rendered
-    // `ActionGroupComponent` mid-scan, outside act (the load-dependent
-    // "not wrapped in act" warning). Settling on the rendered state first, the
-    // same guard the Navball/FleetComms axe tests use, drains it cleanly.
+    // The emitted frame lands a microtask later, so settle on it before axe or it re-renders mid-scan outside act().
     await screen.findByText("ON");
     expect(await axe(container)).toHaveNoViolations();
   });
 
   describe("augment slots", () => {
     beforeEach(() => clearAugments());
-    /*
-     * Unmount before clearAugments() notifies the augment registry's
-     * subscribers, else a still-mounted AugmentSlot re-renders outside act()
-     * (CLAUDE.md → Testing Philosophy, act() warning pattern).
-     */
+    // Unmount first, else clearAugments() re-renders a mounted AugmentSlot outside act().
     afterEach(() => {
       unmountAll();
       clearAugments();
     });
 
-    // Renders the slot props so the test proves the parent's group context flows through to the augment, not merely that it mounted.
+    // Renders the slot props, proving the group context reaches the augment.
     function TestSection({ groupId }: ActionGroupSlotContext) {
       return <span>section:{groupId}</span>;
     }
@@ -321,7 +284,6 @@ describe("ActionGroupComponent", () => {
     it("renders the widget with the sections slot empty when no augment is bound", async () => {
       renderGroup({ actionGroupId: "SAS" });
       emitControl({ sas: false });
-      // Widget renders normally; the empty slot contributes nothing.
       expect(
         screen.getByRole("button", { name: /toggle sas/i }),
       ).toBeInTheDocument();

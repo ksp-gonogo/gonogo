@@ -53,10 +53,7 @@ import {
   facilityLevelsFrom,
   KEY_TO_ENUM_FACILITY,
 } from "./facilities";
-// The widget's own reading of `career.facilities`, contributed into its own grid
-// at the band every other contributor outranks. Imported for the id as well as
-// for the registration side effect: the age caption below is only honest while
-// this is the contribution on screen.
+// Imported for its registration side effect too; the age caption is only honest while that contribution is on screen.
 import { STOCK_FACILITY_CONTRIBUTION_ID } from "./facilitiesContribution";
 import { parseLevelText } from "./levelText";
 
@@ -81,10 +78,7 @@ const topics = defineTopicManifest({
 
 type SpaceCenterStatusConfig = Record<string, never>;
 
-// `space-center-status.sections` appends extra facility-level rows to the body,
-// for a KSC-expansion Uplink's custom facilities or a ground-based life-support
-// depot. A plain marker carrying no slot props. The `SlotRegistry` merge is
-// co-located per widget so parallel slot work never collides on one shared file.
+// `space-center-status.sections` appends extra facility-level rows to the body.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "space-center-status.sections": Record<string, never>;
@@ -95,80 +89,32 @@ function SpaceCenterStatusComponent({
   w,
   h,
 }: Readonly<ComponentProps<SpaceCenterStatusConfig>>) {
-  // What this widget reads, all of it canonical:
-  //  - career.status, for the funds balance (economy.funds).
-  //  - career.facilities carries the tiers, and reaches the grid through the
-  //    `space-center-status.facilities` contribution slot, not from here.
-  //  - spaceCenter.scene, for the scene and the last launch site.
-  //  - spaceCenter.state, the DERIVED pad-occupancy channel
-  //    (space-center-state.ts, off spaceCenter.launchSites), read via
-  //    useStream rather than as a one-arg Topic read.
-  // The upgrade button spends through the `career.facility.upgrade` command.
   /**
-   * The balance is not a fact. It moves on its own (contract payouts, a
-   * recovery, a spend made elsewhere), and here it authorises spending:
-   * `canAfford` below is a verdict that arms a button. A held number is exactly
-   * the one that says yes to an upgrade the player can no longer pay for, so it
-   * is withheld, and `fundsNotCurrent` lets the widget say which of the two
-   * reasons the balance is missing for.
-   *
-   * The facility tiers are a different kind of thing and ride a different
-   * channel for it: see `facilitiesReading` below.
+   * The balance authorises spending, so a held one is withheld rather than
+   * shown: it is exactly the number that says yes to an upgrade the player can
+   * no longer pay for.
    */
   const careerReading = useTelemetry("career.status");
   /**
-   * The tiers' own channel, read here for its CURRENCY only. The values reach
-   * the grid through the contribution slot below; this read exists so the grid
-   * can be dated.
-   *
-   * KSP can only answer a facility's tier count from the live building objects,
-   * which exist at the space centre, in the editor and in flight near the KSC.
-   * Everywhere else there is nothing to read, so the channel goes quiet rather
-   * than reporting nulls, and this read lands on the `stale` arm carrying the
-   * last real observation and the UT it was made at. A tier count does not
-   * change during a save, so that reading is still true; what it needs is a
-   * date.
-   *
-   * The contribution cannot supply that date itself. A contribution's `compute`
-   * is fed topic PAYLOADS, never the readings behind them, so what it samples
-   * off a quiet channel is the last real value with nothing to say it is old.
-   * The two halves meet here.
+   * Read for its CURRENCY only, to date the grid: the values arrive through the
+   * contribution slot, whose `compute` sees payloads and never readings.
    */
   const facilitiesReading = useTelemetry("career.facilities");
-  /*
-   * A verdict may only be drawn from an observation, because the operator reads
-   * a band or a pill as the situation NOW and a judgement cannot be dated.
-   * `career.status` declares no reckonable value, so an observation is the whole
-   * of what a verdict here can rest on.
-   */
   const careerEconomy =
     careerReading.state === "observed"
       ? careerReading.value.economy
       : undefined;
-  // Magnitude: compared against an upgrade cost and rendered through this widget's own compact funds formatting, both of which want a number.
   const careerFunds = magnitudeOf(careerEconomy?.funds);
   const fundsNotCurrent = careerReading.state === "stale";
-  /**
-   * A balance is only half of what "can I afford this" asks. Under a career
-   * overhaul the programme runs a standing per-day cost against a subsidy, so a
-   * balance that covers an upgrade today need not cover it and next month's
-   * payroll. This is the other half, and it comes from whichever money model
-   * won the `economy` capability rather than from arithmetic invented here, so
-   * a stock career reports no such mechanism and this shows nothing at all.
-   */
+  // The standing per-day cost against a subsidy, from whichever money model won the `economy` capability; stock reports none.
   const netFunds = netFundsPerDay(careerEconomy);
-  /*
-   * Only claim a balance is being held when one actually arrived and is being
-   * refused. A career that never reported an `economy` block has nothing held,
-   * and saying "held" over a balance the operator can read would name the wrong
-   * reason for a row of buttons that are working.
-   */
+  // "Held" only when a balance actually arrived and is being refused.
   const heldFunds =
     fundsNotCurrent &&
     magnitudeOf(stillTrue(careerReading, undefined)?.economy?.funds) !== null;
   const { chargesFunds } = useGameContext();
   const sceneReading = useTelemetry("spaceCenter.scene");
-  // "Last site" is a claim about the past by construction: the site changes when a vessel launches from it, so the last one reported is still the answer.
+  // The site changes only when a vessel launches from it, so the last one reported is still the answer.
   const launchSite = stillTrue(sceneReading, undefined)?.launchSite;
   const scene =
     sceneReading.state === "observed" ? sceneReading.value.scene : undefined;
@@ -180,58 +126,27 @@ function SpaceCenterStatusComponent({
   );
   const padOccupied = spaceCenterState?.padOccupied;
   const padVesselTitle = spaceCenterState?.padVesselTitle ?? undefined;
-  // Facility upgrades are a KSC ground action with no vessel signal delay, so
-  // they dispatch at the meta-vantage (instant). The handle is contributed to
-  // the panel's delay rail by usePanelDelay below.
+  // A KSC ground action with no vessel signal delay, so it dispatches at the meta-vantage.
   const upgradeCmd = useCommand("career.facility.upgrade", {
     vantage: META_VANTAGE,
   });
   usePanelDelay(upgradeCmd);
   /**
-   * The game has already said it will refuse this command, and that outranks
-   * everything this widget works out about the balance.
-   *
-   * A career overhaul is where it bites, and RP-1 is the shipped case:
-   * `Rp1CareerProjectGate` blocks `career.facility.upgrade` outright, because
-   * under RP-1 a tier is not for sale. It is queued as a construction project,
-   * and `ConstructionProject.AddProgress` bills that AS IT BUILDS, spending
-   * whatever fraction of a tick the career can meet
-   * (`CurrencyUtils.GetAffordableFundsFraction`, read off the shipped RP-1
-   * v4.6.0.0 RP0.dll). A short career gets a SLOWER upgrade, never a refused
-   * one, so a shortfall drawn over that price tells the operator they cannot
-   * afford a tier RP-1 would have built for them.
-   *
-   * `undetermined` is deliberately not this. An authority that could not be
-   * asked is not the game's judgement, and silencing the verdict on it would
-   * take the honest one away from the stock career too.
+   * The game has already said it will refuse this command, which outranks any
+   * affordability verdict. Under RP-1 a tier is queued as a construction project
+   * billed as it builds, so a shortfall slows it rather than refusing it.
+   * `undetermined` is not a block.
    */
   const upgradeBlocked = upgradeCmd.gate?.blocked === true;
 
-  /**
-   * The grid's tiers, from whichever contribution won the slot rather than
-   * straight off a channel. The widget's own reading is one of the contributions
-   * (`./facilitiesContribution.ts`), registered at the band every other
-   * contributor outranks, so a career model that reads a tier LIVE where the
-   * stock channel can only hold its last one takes the grid over rather than
-   * repeating it below.
-   */
+  // Whichever contribution won the slot; the widget's own reading sits at the band every other contributor outranks.
   const facilities = facilityLevelsFrom(
     useContributions("space-center-status.facilities"),
   );
   /**
-   * How old the tiers ON SCREEN are, and nothing when they are current.
-   *
-   * Gated on the stock contribution actually holding the winning band, which is
-   * the whole reason this is not simply the age of `career.facilities`. The grid
-   * belongs to whoever won the slot; captioning it with a channel that lost
-   * would date a live reading with someone else's staleness, which is the exact
-   * failure the staleness type exists to prevent. `getContributionsForSlot`
-   * already answers with the winning band only, and the `useContributions` above
-   * subscribes to the registry, so this read is on the same frame as the grid it
-   * describes.
-   *
-   * Clamped at zero: samples arrive out of order, so one can sit marginally
-   * ahead of the frame, and "-0.4 s ago" is never a thing to render.
+   * How old the tiers ON SCREEN are, and nothing when they are current. Only
+   * while the stock contribution holds the winning band, so a live contributor's
+   * grid is never dated with the stock channel's staleness. Clamped at zero.
    */
   const viewUt = useViewUt();
   const stockHoldsTheGrid = getContributionsForSlot(
@@ -247,30 +162,11 @@ function SpaceCenterStatusComponent({
       : undefined;
 
   /**
-   * Upgrades work in the Space Center scene only, KSP's upgrade pipeline isn't
-   * safe to drive from elsewhere.
-   *
-   * An unknown scene does NOT enable them, however tempting the "it just means
-   * telemetry warmup, show the affordance immediately" reading is. That grants
-   * permission to spend from not knowing where the player is, and it reads the
-   * same on a dropped frame mid-session as on first paint. No scene means no
-   * permission.
-   *
-   * Which is why the scene is taken from the observation alone while the launch
-   * site beside it on the same record is not. The site is something this widget
-   * reports; the
-   * scene is nothing but a permission to spend, and a held scene is precisely "we
-   * do not know where the player is now". They may have walked out of the Space
-   * Center since. So a scene that is no longer current means no permission either,
-   * and `heldScene` names that on screen so a row of dead buttons is not mistaken
-   * for a KSC with nothing left to upgrade.
+   * Upgrades work in the Space Center scene only. An unknown or held scene
+   * grants no permission to spend: the player may have walked out since.
    */
   const upgradesEnabled = scene === "SpaceCenter";
-  /*
-   * Cite the scene only when withholding it actually cost the operator the
-   * affordance. A held "Flight" disables nothing that was ever enabled, so
-   * captioning it would name a reason for buttons that were never live.
-   */
+  // Cite the held scene only when withholding it actually disabled something.
   const heldScene =
     sceneReading.state === "stale" && lastScene === "SpaceCenter";
   const heldUpgradeInputs = [
@@ -281,61 +177,23 @@ function SpaceCenterStatusComponent({
   const cols = w ?? 6;
   const rows = h ?? 8;
   const showSubtitle = rows >= 4;
-  // 3-col grid only when the widget is wide enough for each cell to hold a
-  // facility name, its tier and its upgrade cost without clipping. At width 5
-  // (e.g. the tall-narrow portrait aspect) three columns squeeze each cell to
-  // ~115px and the facility names wrap into ribbons; two columns hold them.
+  // Two columns below width 6, where three would wrap facility names into ribbons.
   const compactGrid = cols < 6;
-  /**
-   * The tier lists need more width than the grid does. Three columns of a
-   * 6-wide widget are about 60px of usable cell, and "Unlimited" is one
-   * unbreakable word wider than that: the list lands on top of the facility
-   * beside it. Nine columns give roughly 90px, where a property and its
-   * setting sit on one line. Below that the cell keeps the tier and the cost,
-   * which is what the upgrade decision turns on, and the descriptions stay
-   * reachable through the cell's hover tooltip.
-   */
+  // Below 9 columns the tier lists do not fit a cell; the descriptions stay in the hover tooltip.
   const tierSpecsFit = cols >= 9;
   const sizeBucket = getSizeBucket(w, h);
-  /**
-   * Whether ANY facility described its tiers. A producer either emits these
-   * for every facility or for none, so nothing tells the operator apart the
-   * two silences at cell level: a facility that happens to have nothing to say
-   * and a build that never says anything. Answering it once for the grid lets
-   * a whole-grid silence be stated as one line, and leaves a lone empty cell
-   * inside an otherwise-populated grid to show its own explicit absence.
-   */
+  // A producer emits tier text for every facility or for none, so the whole-grid silence is stated once.
   const anyTierText = FACILITIES.some(({ key }) => {
     const f = facilities[key];
     return !!f && (f.currentLevelText !== "" || f.nextLevelText !== "");
   });
 
-  /**
-   * The facilities that answered. A facility whose tiers did not arrive is not
-   * a facility at tier 0: `parseFacilityLevels` only admits an entry once both
-   * ends of the pair are present, so anything that reaches this list has a
-   * reading to show, including a building sitting at the bottom of its ladder
-   * and one already at its ceiling.
-   *
-   * <para>Filtered rather than drawn as nine cells with the missing ones
-   * dashed, and the same argument the tier descriptions above already make:
-   * a non-answer written out nine times is one fact reported nine ways, and it
-   * buried the four buildings that did answer. The wire cannot in fact produce
-   * a mixed grid, `BuildCareerFacilities` reaches every facility through the
-   * same `protoUpgradeables` registration and gets all nine or none, so a
-   * partial grid is a producer this widget has not met; showing what it sent
-   * and stating nothing about what it did not is the honest reading of one.</para>
-   */
+  // A facility whose tiers did not arrive is not a facility at tier 0, so it gets no cell.
   const answeredFacilities = FACILITIES.filter(
     ({ key }) => facilities[key] !== undefined,
   );
 
-  /**
-   * "No vehicle on pad" is a claim about the pad, and this line is announced
-   * through `aria-live="polite"`, so it must not be reached from two absences
-   * (no `padOccupied` and no `launchSite`): that announces to a screen reader
-   * something nobody has established.
-   */
+  // Announced through aria-live, so "No vehicle on pad" must never be reached from two absences.
   const padKnown = padOccupied !== undefined && padOccupied !== null;
   const padLine = !padKnown
     ? "Pad state unknown"
@@ -362,9 +220,7 @@ function SpaceCenterStatusComponent({
               >
                 {formatTinyFunds(Math.round(careerFunds))}
                 <TinyFundsUnit>f</TinyFundsUnit>
-                {/* At this size the balance alone is the whole readout, so the
-                drain has to arrive as the one number that changes the answer:
-                how long the balance lasts. */}
+                {/* At this size the drain arrives as how long the balance lasts. */}
                 {reportsFundsDrain(netFunds) && (
                   <TinyDrain>
                     <FundsDrain
@@ -376,9 +232,7 @@ function SpaceCenterStatusComponent({
                 )}
               </TinyFunds>
             ) : (
-              /* No room for a sentence in a 2x3 box, but the reason still has to
-               leave the component: a held balance is titled, a balance that never
-               arrived is not, so the two are distinguishable from outside. */
+              /* A held balance is titled and a never-arrived one is not, so the two are distinguishable. */
               <TinyFunds
                 title={
                   heldFunds ? "Funds balance no longer current" : undefined
@@ -431,12 +285,7 @@ function SpaceCenterStatusComponent({
                   </DrainReadout>
                 )}
                 {careerFunds === null &&
-                  /* The balance is required beside a spend control, and an absent
-                 balance is the state that rule exists for: it is exactly when
-                 the affordability check below has nothing to judge against.
-                 Sandbox charges nothing, so there is no balance to be missing.
-                 Held and never-arrived are two different sentences: one accuses
-                 the link, the other only reports a cold start. */
+                  /* The balance is required beside a spend control; sandbox charges nothing. */
                   chargesFunds &&
                   (heldFunds ? (
                     <FundsReadout title="Funds balance no longer current">
@@ -450,51 +299,22 @@ function SpaceCenterStatusComponent({
               </PadStatusLine>
             )}
             {heldUpgradeInputs.length > 0 && (
-              /* Not a live region: the funds half of this already re-announces
-             through the pad line above, and telling the operator twice in one
-             frame is how a status line gets ignored. */
+              /* Not a live region: the funds half already announces through the pad line. */
               <UpgradesHeld>
                 {`Upgrades held: ${heldUpgradeInputs.join(" and ")} no longer current`}
               </UpgradesHeld>
             )}
             {tierSpecsFit && answeredFacilities.length > 0 && !anyTierText && (
-              /* Said once for the grid, because it is one fact about the producer
-             rather than nine about the facilities. Nine dashes down the cells
-             would report the same silence nine times and bury the tiers.
-
-             Not said at all when no facility answered: descriptions of tiers
-             that never arrived are not a second thing missing, and the marker
-             below already reports the one that is. */
+              /* Said once for the grid, and not at all when no facility answered. */
               <AbsenceLine>No tier detail</AbsenceLine>
             )}
             {tiersHeldFor !== undefined && answeredFacilities.length > 0 && (
-              /* The grid keeps its tiers when the channel stops arriving, and a
-                 reading that is being held has to say when it was taken or it
-                 reads as the state of the space centre now. A duration rather
-                 than a caveat: the count itself does not move at all, and what
-                 the operator judges is the tier they may have bought since.
-
-                 Not a live region, and the age is why: it grows every frame, so
-                 announcing it would read one fact out over and over. The pad
-                 line above is this widget's only live region. */
+              /* A held reading says when it was taken. Not a live region: the age changes every frame. */
               <ReadoutCaption>
                 Tiers read <Unit value={tiersHeldFor} /> ago
               </ReadoutCaption>
             )}
-            {/* ONE absence marker for the whole facilities area, and the area is
-                the grid plus whatever an Uplink appends below it.
-
-                The grid cannot simply vanish: a widget with no facilities in it
-                and a widget that failed to draw look the same, and an operator
-                away from the space centre is in that state for most of a
-                session. But the marker used to be keyed on THIS widget's own
-                channel, which reads the live `UpgradeableFacility` objects KSP
-                instantiates at the space centre only. RP-1 reads the same tiers
-                out of its own config in every scene, so an operator flying an
-                RP-1 career was shown "no facility tiers" directly above a list
-                of their facility tiers. Keyed on whether the area drew anything
-                at all, a section that answered takes the marker off screen and
-                the widget stops contradicting its own augment. */}
+            {/* ONE absence marker for the grid plus whatever an Uplink appends, so a section that answered takes it off screen. */}
             <AutoEmptyState
               gap="related-comfortable"
               fallback={<EmptyState>No facility tiers</EmptyState>}
@@ -503,19 +323,11 @@ function SpaceCenterStatusComponent({
                 <FacilityGrid $compact={compactGrid}>
                   {answeredFacilities.map(({ key, label }) => {
                     const f = facilities[key];
-                    // Live curl 2026-05-13 confirmed: the fork's `max` field is the
-                    // upgrade-count (KSP's `GetFacilityLevelCount`), not the
-                    // tier-count. VAB returns `{level:2, max:2}` at full tier 3,
-                    // launchPad returns `{level:1, max:2}` at tier 2. So the total
-                    // number of tiers is `max + 1` and the operator-facing "Lvl N
-                    // of M" should read `{level+1}/{max+1}`, matches KSP's stock
-                    // R&D dialog which calls VAB tier 3 "Level 3".
+                    // `max` is the top tier's zero-based index, so the display reads `{level+1}/{max+1}`.
                     const atMax = !!f && f.max > 0 && f.level >= f.max;
                     const displayLevel = f ? f.level + 1 : 0;
                     const displayMax = f && f.max > 0 ? f.max + 1 : 0;
-                    // An absent balance must NOT satisfy this check. It guards a button
-                    // that spends career funds, and not knowing the balance is not the
-                    // same as knowing the upgrade is affordable.
+                    // An absent balance must NOT satisfy this check: not knowing the balance is not knowing it is affordable.
                     const canAfford =
                       !!f &&
                       f.upgradeFunds > 0 &&
@@ -527,34 +339,18 @@ function SpaceCenterStatusComponent({
                       !atMax &&
                       f.upgradeFunds > 0 &&
                       canAfford;
-                    /* Whether money is what decides this control at all. A blocked
-                   command is refused for a reason the balance has no part in,
-                   so there is no affordability verdict to draw and the price
-                   goes back to being a plain figure: what it costs, which the
-                   operator still needs beside the control. */
+                    // A blocked command is refused for a reason the balance has no part in, so the price is a plain figure.
                     const moneyDecides = !upgradeBlocked;
-                    // Build a hover-tooltip body summarising the current tier's
-                    // bullet-list and (if available) the next-tier preview. The
-                    // newlines from the fork stay as \n, the browser's `title`
-                    // attribute renders them with native multi-line wrapping in
-                    // the OS-level tooltip on every major platform.
                     const tooltip = buildFacilityTooltip(label, f);
-                    // Gated on the whole grid rather than this one facility: a cell
-                    // whose own description is empty still has to say so, and it can
-                    // only say so inside a section that is on screen.
+                    // Gated on the whole grid: a cell whose own description is empty still has to say so.
                     const showTierSpecs = tierSpecsFit && anyTierText && !!f;
-                    // A tier the operator has already bought past is not missing, so
-                    // only a facility with somewhere left to go owes a NEXT block. An
-                    // unknown ceiling (`max === 0`) is not a claim that one exists.
+                    // Only a facility with somewhere left to go owes a NEXT block; `max === 0` is an unknown ceiling.
                     const hasNextTier = !!f && f.max > 0 && !atMax;
                     return (
                       <FacilityCell key={key} title={tooltip || undefined}>
                         <FacilityLabel>{label}</FacilityLabel>
                         <FacilityValue
-                          // role="img" + aria-label so AT announces a coherent
-                          // "Launch Pad tier 2 of 3" instead of the "2 / 3" spans
-                          // read as fragments (and makes aria-label valid on the
-                          // otherwise-roleless value container).
+                          // So AT announces "Launch Pad tier 2 of 3" rather than the "2 / 3" spans as fragments.
                           role="img"
                           aria-label={
                             f && f.max > 0
@@ -576,11 +372,7 @@ function SpaceCenterStatusComponent({
                           <UpgradeRow>
                             <UpgradeCost
                               $afford={moneyDecides ? canAfford : true}
-                              /* The verdict, reported so it can be seen from
-                             outside: it is otherwise a colour, and a colour is
-                             a claim nothing can assert against. Absent when
-                             money decides nothing, which is the whole of the
-                             difference this attribute exists to hold. */
+                              /* The verdict, observable from outside; absent when money decides nothing. */
                               data-afford={
                                 moneyDecides
                                   ? canAfford
@@ -625,12 +417,7 @@ function SpaceCenterStatusComponent({
                 </FacilityGrid>
               )}
 
-              {/* Appended to the facility-level list: a KSC-expansion Uplink can
-              render extra facility rows here. Placed rather than left to
-              `Panel`'s end-of-body default so the sections sit under the
-              facilities they extend rather than under the body's own padding,
-              and INSIDE the marker's content area so a section that draws tiers
-              answers the absence above. */}
+              {/* Inside the marker's content area, so a section that draws tiers answers the absence. */}
               <WidgetSections />
             </AutoEmptyState>
           </Body>
@@ -641,13 +428,8 @@ function SpaceCenterStatusComponent({
 }
 
 /**
- * One tier's description, as a list rather than as the game's own bulleted
- * blob. A property line becomes a label and a value; anything else becomes a
- * plain line carrying exactly what arrived.
- *
- * The value stays a string. It is game copy, so "140t" and "Unlimited" are
- * both legitimate settings of the same property, and reading a magnitude out
- * of the first would leave the second with nowhere to go.
+ * One tier's description as a list. The value stays a string: "140t" and
+ * "Unlimited" are both legitimate settings of the same property.
  */
 function TierBlock({ heading, text }: { heading: string; text: string }) {
   const specs = parseLevelText(text);
@@ -681,11 +463,9 @@ function TierBlock({ heading, text }: { heading: string; text: string }) {
 }
 
 /**
- * The facility cell's upgrade control. Behaviour (arm, confirm, in-flight,
- * refused, no reply) is the shared `useCommandButton`; the CHROME stays local because a
- * facility cell is roughly two grid columns wide and the label has to collapse
- * to an icon, which is `FitLabelButton`'s measured job and not something the
- * default `CommandButton` rendering does.
+ * The facility cell's upgrade control. Behaviour is the shared
+ * `useCommandButton`; the chrome is local because the label has to collapse
+ * to an icon in a cell about two grid columns wide.
  */
 function UpgradeButton({
   enabled,
@@ -739,7 +519,7 @@ function UpgradeButton({
     );
   }
   if (isLost) {
-    // Not the resting render, which is what a CONFIRMED upgrade returns to: an upgrade nobody answered may or may not be building.
+    // Not the resting render: an upgrade nobody answered may or may not be building.
     const sentence = commandLossSentence({ label: commandLabel });
     return (
       <ConfirmUpgradeButton
@@ -752,17 +532,10 @@ function UpgradeButton({
     );
   }
   if (isBlocked) {
-    /* The mod said no before anyone pressed, so the control says why. A dark
-       button with nothing on it reads the same as a fully-upgraded facility
-       and the same as a short balance, and only one of the three is what
-       happened here.
-
-       `aria-disabled` and NOT `disabled`: a disabled button is dropped from
-       some screen readers' walk entirely, and a gate verdict is advice rather than
-       permission, since it is sampled and the dispatch re-evaluates anyway.
-       The sentence travels in `title` and in the accessible name rather than in
-       the button's body, because a facility cell is about two grid columns wide
-       and `FitLabelButton` collapses a word that does not fit to an icon. */
+    /* A dark button with nothing on it reads like a maxed facility or a short
+       balance, so the control says why. `aria-disabled`, not `disabled`, so it
+       stays in the screen-reader walk; a gate verdict is advice, and the
+       dispatch re-evaluates anyway. */
     return (
       <UpgradeButtonStyled
         aria-disabled="true"
@@ -797,10 +570,7 @@ function UpgradeButton({
   );
 }
 
-// Multi-line tooltip body shown on cell hover. Combines current-tier
-// text with next-tier preview (when not at max) so the operator can
-// compare without opening anything. The browser renders \n natively
-// in title attributes on every major platform.
+// The current-tier text and next-tier preview, for the cell's native `title` tooltip.
 function buildFacilityTooltip(label: string, f?: FacilityLevel): string {
   if (!f) return label;
   if (!f.currentLevelText && !f.nextLevelText) {
@@ -816,12 +586,7 @@ function buildFacilityTooltip(label: string, f?: FacilityLevel): string {
   return parts.join("\n");
 }
 
-/**
- * The same lines the cell lays out, flattened for a `title` attribute, which
- * gets plain text and one newline per line and nothing else. A property line
- * keeps its colon because that is what makes it read as a pair without the
- * column the cell can give it.
- */
+/** The cell's tier lines flattened for a `title` attribute; a pair keeps its colon. */
 function plainTierSpecs(text: string): string {
   return parseLevelText(text)
     .map((spec) =>
@@ -830,10 +595,7 @@ function plainTierSpecs(text: string): string {
     .join("\n");
 }
 
-// Compact funds for the tiny (2x3) bucket where the box is only ~2 grid
-// columns wide. Drops to whole-number k/M so the string stays 3-4 chars
-// ("290k", "78k", "13k"): the decimal form ("289.8k") overflows the
-// narrowest box. The full value lives in the cell's `title` attribute.
+// Whole-number k/M so the string stays 3-4 chars in the narrowest box; the full value is in `title`.
 function formatTinyFunds(value: number): string {
   const abs = Math.abs(value);
   if (abs >= 1_000_000) return `${Math.round(value / 1_000_000)}M`;
@@ -841,8 +603,6 @@ function formatTinyFunds(value: number): string {
   return value.toFixed(0);
 }
 
-/* A status line, the held-reading notices and the facility grid are different
-   kinds of block, so the seam between them is --gap-section. */
 const Body = styled.div`
   display: flex;
   flex-direction: column;
@@ -974,10 +734,7 @@ const TierBlock__Absent = styled.span`
   color: var(--color-text-faint);
 `;
 
-/* Wraps rather than ellipsising, which is why this is not `RowName`: a facility
-   cell is under 100px wide at the widget's own default size, and "Max Active
-   Strategies" fits one line of it at no size worth reading. A rung below the
-   value it names, so the setting is the half that carries. */
+// Wraps rather than ellipsising: a cell is under 100px wide at the default size.
 const TierBlock__Label = styled.span`
   flex: 1;
   min-width: 0;
@@ -985,10 +742,7 @@ const TierBlock__Label = styled.span`
   color: var(--color-text-muted);
 `;
 
-/* "Unlimited" is one unbreakable word and a facility cell is narrow, so the
-   last resort is to break inside it. Spilling past the cell edge puts the
-   value on top of the facility beside it, which is the one outcome worse than
-   an ugly break. */
+// Breaking inside "Unlimited" beats spilling onto the facility beside it.
 const TierBlock__Value = styled(Text)`
   min-width: 0;
   overflow-wrap: anywhere;
@@ -1088,8 +842,6 @@ const FundsReadout = styled.span`
   margin-left: var(--gap-lead-figure);
 `;
 
-/* Spacing only. The drain readout carries its own colour and its own break
-   opportunities, so it needs no wrapper that decides either for it. */
 const DrainReadout = styled.span`
   margin-left: var(--gap-lead-figure);
 `;
@@ -1153,8 +905,5 @@ registerComponent<SpaceCenterStatusConfig>({
   pushable: true,
 });
 
-// The facility vocabulary moved to `./facilities.ts` so the built-in
-// contribution can reach it without importing this component. Re-exported so
-// this widget's tests keep their one import site.
 export { FACILITY_ORDINAL_KEYS, parseFacilityLevels } from "./facilities";
 export { SpaceCenterStatusComponent };

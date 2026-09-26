@@ -1,10 +1,4 @@
-// Components self-register on import. Themes live in @ksp-gonogo/ui (design
-// system primitives): see packages/ui/src/themes/.
-// Add new component imports here as they are built.
-//
-// DeployedScience/RoboticsConsole/RotorTachometer (Breaking Ground) moved to
-// @ksp-gonogo/gonogo-breaking-ground-uplink: a bundled, DLC-gated internal
-// uplink, not a base-package widget. Import that package to register them.
+// Components self-register on import. Themes live in @ksp-gonogo/ui.
 
 export * from "./ActionGroup";
 export * from "./AstronautComplex";

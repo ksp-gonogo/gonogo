@@ -1,25 +1,12 @@
 import { createContext, type ReactNode, useContext } from "react";
 
 /**
- * Lightweight contract for "open the alarms modal pre-populated to fire
- * this action": used by component widgets (e.g. ActionGroup)
- * to avoid the round trip of opening alarms manually and re-typing the
- * action key.
- *
- * The provider lives in `@ksp-gonogo/app` (it's the only layer that has the
- * AlarmHostService / AlarmClientService and the ModalProvider it needs to
- * portal the modal). Components stay framework-agnostic: they call the
- * launcher when present and hide the affordance otherwise. Defining the
- * contract here (rather than in app) keeps `@ksp-gonogo/components` from
- * having a circular import on `@ksp-gonogo/app`.
+ * Opens the alarms modal pre-filled to fire an action. The provider lives in
+ * the app; a widget hides the affordance when none is mounted.
  */
 export interface AlarmsLauncherOptions {
-  /** Pre-fills the alarm name. Optional. */
   name?: string;
-  /**
-   * Legacy action key, e.g. `f.ag1`, `f.stage`, `f.abort`. Absent opens the
-   * modal with no on-fire action pre-filled.
-   */
+  /** Action key, e.g. `f.ag1`, `f.stage`, `f.abort`; absent pre-fills no on-fire action. */
   action?: string;
 }
 
@@ -28,16 +15,8 @@ export type AlarmsLauncher = (opts: AlarmsLauncherOptions) => void;
 const Context = createContext<AlarmsLauncher | null>(null);
 
 /**
- * The Uplink that asked for an alarm, recorded on the alarm the app then
- * created. Absent on an alarm the operator made themselves.
- *
- * `uplinkName` is denormalised rather than looked up, and that is the point of
- * carrying it. The alarm is the app's own, so it outlives the Uplink: uninstall
- * the Uplink and the alarm stays in the list, keeps its trigger and keeps
- * firing, because a time or a threshold needs nothing from the Uplink to be
- * evaluated. A row that resolved the name through the client registry would go
- * blank at exactly that moment, which is the one moment the operator most needs
- * to be told where the row came from.
+ * The Uplink that asked for an alarm; absent on an alarm the operator made.
+ * `uplinkName` is denormalised because the alarm outlives an uninstalled Uplink.
  */
 export interface AlarmRequestedBy {
   /** The Uplink's id, as its client handle and its mod-side attribute spell it. */
@@ -49,26 +28,13 @@ export interface AlarmRequestedBy {
 }
 
 /**
- * Direct-create contract for "alarm me when X" affordances that don't
- * need the modal's free-form trigger editor, the trigger is fully
- * determined by where the operator clicked (e.g. Mission Director's
- * bell next to a contract parameter creates a contract-parameter
- * alarm with the contract id + parameter title baked in). Bypasses
- * the modal and creates the alarm directly via the host's onAdd
- * callback.
- *
- * Generic over the trigger type so this stays in
- * `@ksp-gonogo/components/shared` (no `@ksp-gonogo/app` import): the caller
- * supplies a trigger of whatever shape; the host bridge unwraps it.
+ * Creates an alarm directly, bypassing the modal, for an affordance whose
+ * trigger is fully determined by where the operator clicked.
  */
 export interface AlarmCreateRequest<TTrigger> {
   name?: string;
   trigger: TTrigger;
-  /**
-   * Set when an Uplink asked for this alarm rather than the operator. Carries
-   * the dedupe key: one `(uplinkId, key)` pair is one alarm, so a repeated
-   * request retargets the existing row instead of adding a near-duplicate.
-   */
+  /** One `(uplinkId, key)` pair is one alarm: a repeated request retargets the existing row. */
   requestedBy?: AlarmRequestedBy;
 }
 
@@ -78,15 +44,7 @@ export type AlarmCreator<TTrigger> = (
 
 const CreatorContext = createContext<AlarmCreator<unknown> | null>(null);
 
-/**
- * Lookup hook for "is there already an alarm matching this trigger?". Lets
- * a widget render a stateful bell (set / unset) and toggle off the existing
- * alarm rather than duplicating it. Returns the alarm id when one matches,
- * or null when no match (or the manager isn't mounted).
- *
- * `matcher` should be a stable function (memoised by the caller) since this
- * hook re-runs it on every alarm snapshot change.
- */
+/** Finds an existing alarm by trigger, so a bell can toggle it off instead of duplicating it. */
 export interface AlarmManagerLookup {
   find: (matcher: (trigger: unknown) => boolean) => string | null;
   remove: (alarmId: string) => void;
@@ -94,10 +52,7 @@ export interface AlarmManagerLookup {
 
 const ManagerContext = createContext<AlarmManagerLookup | null>(null);
 
-/**
- * An alarm that has yet to fire, as a widget outside the alarm pipeline sees
- * it: enough to name it and, when it has one, count down to it.
- */
+/** An alarm yet to fire, as a widget outside the alarm pipeline sees it. */
 export interface PendingAlarmSummary {
   id: string;
   name: string;
@@ -117,21 +72,12 @@ export function AlarmsLauncherProvider({
   children,
 }: {
   launcher: AlarmsLauncher;
-  /**
-   * Optional direct-create handler. When omitted, widgets that depend on
-   * direct-create (e.g. Mission Director's parameter bell) hide their
-   * affordance: same fallback as `useAlarmsLauncher` returning null.
-   */
+  /** Omitted hides every direct-create affordance. */
   creator?: AlarmCreator<unknown>;
-  /**
-   * Optional lookup + remove handler so widgets can render a "set / unset"
-   * bell state and toggle the alarm off without re-opening the modal.
-   */
   manager?: AlarmManagerLookup;
   /**
-   * Every alarm yet to fire, soonest first, with the ones that have no instant
-   * after every one that does. Omitted means this tree has no alarm pipeline
-   * to ask, which is a different answer from an empty list.
+   * Soonest first, alarms with no instant last. Omitted means no alarm
+   * pipeline, which is not the same answer as an empty list.
    */
   pending?: readonly PendingAlarmSummary[];
   children: ReactNode;
@@ -153,20 +99,12 @@ export function useAlarmManager(): AlarmManagerLookup | null {
   return useContext(ManagerContext);
 }
 
-/**
- * The alarms yet to fire, soonest first, or `null` when no alarm pipeline is
- * mounted. An empty list is a positive answer: the pipeline is there and
- * nothing is set.
- */
+/** `null` when no alarm pipeline is mounted; an empty list means nothing is set. */
 export function usePendingAlarms(): readonly PendingAlarmSummary[] | null {
   return useContext(PendingContext);
 }
 
-/**
- * Returns the launcher when one is mounted, or `null` (e.g. test environments
- * with no alarms wiring). Consumers should hide the "set alarm" affordance
- * when this returns null.
- */
+/** `null` when no launcher is mounted, and the "set alarm" affordance should hide. */
 export function useAlarmsLauncher(): AlarmsLauncher | null {
   return useContext(Context);
 }

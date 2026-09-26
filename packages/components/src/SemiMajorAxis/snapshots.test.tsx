@@ -11,20 +11,7 @@ import { SemiMajorAxisComponent } from "./index";
 
 /**
  * DOM snapshots off the stream pipeline, driven by each fixture's own
- * `_stream` block.
- *
- * This spec used to declare its five orbits inline as `{sma, ecc, bodyName}`
- * and build the stream around them. The five fixtures next door say the same
- * thing, are what the playwright probe renders, and additionally carry the
- * `vessel.identity` that resolves the reference body, so the inline copy is
- * gone.
- *
- * The sparkline is size-gated, and the hand-built render never installed a
- * `ResizeObserver` that reports one; the shared harness does, at the mode's own
- * pixel box.
- *
- * `no-data` carries no `_stream` block: no orbit to report is its subject, and
- * the un-fed gate lists it as empty by design.
+ * `_stream` block. `no-data` carries none by design: no orbit is its subject.
  */
 
 const FIXTURES: Record<string, Record<string, unknown>> = {

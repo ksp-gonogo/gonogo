@@ -16,9 +16,7 @@ export interface ManeuverPlannerConfig {
   defaultStandoffMeters?: number;
 }
 
-// A provider occasionally sends null / NaN for an orbit value that KSP
-// hasn't computed yet (landed vessel, fresh scene load). Treat those as
-// "not yet arrived" rather than propagating them into the math.
+// An orbit value KSP has not computed yet can arrive as null or NaN; it counts as not arrived.
 export function isFiniteNumber(v: unknown): v is number {
   return typeof v === "number" && Number.isFinite(v);
 }

@@ -7,13 +7,6 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import northLevel from "./__fixtures__/north-level.json";
 import { NavballComponent } from "./index";
 
-/**
- * Navball's stream render golden. Every read comes off the stream with no
- * legacy fallback: the attitude trio off `vessel.attitude.*`, and SAS/RCS/
- * precision/throttle and the SAS mode off `vessel.control`. This proves the
- * north-level attitude/control state renders correctly off the real stream
- * pipeline.
- */
 afterEach(() => {
   clearActionHandlers();
 });
@@ -35,7 +28,7 @@ describe("Navball: stream render golden (delay=0)", () => {
     );
 
     act(() => {
-      // The default config reads the root-part frame (*RootFrame); the base CoM fields are emitted too so the payload matches the contract shape.
+      // The default config reads the root-part frame; the CoM fields keep the payload contract-shaped.
       streamFixture.emit("vessel.attitude", {
         heading: northLevel["n.heading"],
         pitch: northLevel["n.pitch"],
@@ -46,7 +39,7 @@ describe("Navball: stream render golden (delay=0)", () => {
       });
       streamFixture.emit("vessel.control", {
         sas: northLevel["f.sasEnabled"],
-        // Numeric SasMode enum (0 = StabilityAssist), named off `SAS_MODE_NAMES` for the widget to render.
+        // 0 = StabilityAssist.
         sasMode: 0,
         rcs: northLevel["v.rcsValue"],
         precisionControl: northLevel["f.precisionControl"],
@@ -54,11 +47,7 @@ describe("Navball: stream render golden (delay=0)", () => {
       });
     });
 
-    // The SAS mode name resolves only off vessel.control, which is fed purely
-    // by the stream here: so its presence proves the stream leg landed (and the attitude readouts have left their NULL_DISPLAY
-    // placeholder). The caption is the only observable for it at this size,
-    // 8x11 being below the control surface's rows>=18 threshold, so there is no
-    // lit mode button to read instead.
+    // At 8x11 there is no control surface, so the SAS caption is the only observable for the mode.
     await waitFor(() => {
       const attitudeResolved = !visibleText(container).includes(NULL_DISPLAY);
       if (!attitudeResolved || !visibleText(container).includes("SAS: SAS")) {

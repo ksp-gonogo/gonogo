@@ -2,13 +2,7 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { commsLinkBadge } from "./badge";
 
-/**
- * The pure half of the comms link badge. `panel-badge.test.tsx` proves the
- * contribution actually reaches SystemView's header; this file only pins the
- * label/tone table, including the tone folding that has to match what the
- * augment's `Badge severity=` used to ask for (`go` -> nominal,
- * `nogo` -> critical, `neutral` -> no severity at all).
- */
+/** The label/tone table of the comms link badge; `panel-badge.test.tsx` proves it reaches the header. */
 describe("commsLinkBadge", () => {
   it("labels a live link GO-toned", () => {
     expect(commsLinkBadge(true)).toEqual([
@@ -28,9 +22,7 @@ describe("commsLinkBadge", () => {
     ]);
   });
 
-  // The aggregation hands `undefined` for a Processor dep it has not evaluated
-  // yet, which is the same "nothing known" the null arm covers: it must not
-  // fall through to a LINK claim.
+  // `undefined` is an unevaluated Processor dep: "nothing known", never a LINK claim.
   it("treats a not-yet-evaluated processor as unknown, not as a link", () => {
     expect(commsLinkBadge(undefined)).toEqual([
       { id: "fleet-comms-link", label: NULL_DISPLAY, tone: "neutral" },

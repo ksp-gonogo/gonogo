@@ -16,12 +16,7 @@ import {
 } from "./ControlDelayStream";
 import { resetUnrepresentedRailReports } from "./railTags";
 
-/*
- * The axes each fixture carries, asked of the same derivations production asks.
- * A held control axis is continuous and acked; a transmission is continuous,
- * telemetry and fire-and-forget. Written as calls rather than literals so a
- * fixture cannot go on drawing a picture the derivation stopped producing.
- */
+// The axes come from the production derivations, so the fixtures follow them rather than asserting stale literals.
 const AXIS_TAGS = railTagsForControlAxis("vessel.control.setThrottle");
 const VOICE_TAGS = railTagsForTelemetry("continuous");
 const DISCRETE_COMMAND_TAGS = railTagsForCommand("vessel.control.setSasMode");
@@ -116,7 +111,7 @@ describe("ControlDelayStream", () => {
     const opacities = Array.from(grad?.querySelectorAll("stop") ?? []).map(
       (s) => Number(s.getAttribute("stop-opacity")),
     );
-    // Fades downward: opaque at the top, gone at the bottom, like the shading.
+    // Fades downward, like the shading.
     expect(opacities[0]).toBeGreaterThan(0);
     expect(opacities[opacities.length - 1]).toBe(0);
   });
@@ -135,10 +130,7 @@ describe("ControlDelayStream", () => {
   });
 
   it("colours only the echo path from the first diverging sample onward, not the whole path", () => {
-    // Three confirmed samples: the first matches the commanded value (no
-    // deviation), the second and third diverge past the epsilon. The actual-
-    // orange treatment must stem FROM the divergence point (the second
-    // sample), not repaint the whole echo path orange.
+    // The first sample matches, the next two diverge: the warning treatment starts at the divergence, not the whole path.
     const partiallyDiverged = stream({
       inTransit: [
         { age: 0, value: 0.6 },
@@ -162,17 +154,15 @@ describe("ControlDelayStream", () => {
     expect(deviation).not.toBeNull();
     expect(expected).not.toBeNull();
 
-    // The pre-divergence segment covers exactly the first two samples (the
-    // matching one plus the shared vertex where it diverges): one "M" + one
-    // "L" = 2 draw commands. It must NOT extend into the diverged region.
+    // The pre-divergence segment is the matching sample plus the shared vertex: one "M" and one "L".
     const confirmedCommands = confirmed?.getAttribute("d")?.match(/[ML]/g);
     expect(confirmedCommands).toHaveLength(2);
 
-    // The deviation segment starts AT that same shared vertex and covers the remaining two samples: it must NOT reach back before the divergence.
+    // The deviation segment starts at that shared vertex and never reaches back before it.
     const deviationCommands = deviation?.getAttribute("d")?.match(/[ML]/g);
     expect(deviationCommands).toHaveLength(2);
 
-    // Deviation-actual gets the reserved warning treatment; the pre- divergence "echo" segment does not.
+    // Only the deviation segment gets the warning treatment.
     expect(deviation).toHaveAttribute("data-deviation", "true");
     expect(confirmed).not.toHaveAttribute("data-deviation");
     expect(deviation).toHaveAttribute(
@@ -186,9 +176,7 @@ describe("ControlDelayStream", () => {
   });
 
   it("begins the confirmed-echo line exactly at the 2T divider (shared boundary, not a stray data age)", () => {
-    // Echo's first sample is at age 1.5, BEFORE 2T (=2 for oneWay 1). The
-    // confirmed line must still begin at the 2T divider, both derived from the
-    // one boundary, so the last-stage transition lands ON the divider.
+    // The first echo sample precedes 2T, yet the confirmed line still begins on the 2T divider.
     const s = stream({
       oneWaySeconds: 1,
       inTransit: [
@@ -213,11 +201,7 @@ describe("ControlDelayStream", () => {
   });
 
   it("gives every instance its own gradient id, never colliding across mounted widgets", () => {
-    // Two independently-mounted streams (the same shape two Navball
-    // instances, or a Navball plus a second control widget, would produce):
-    // a hardcoded `cds-ramp-${index}` id collides across them, and one
-    // instance's <linearGradient> silently wins for both `url(#...)`
-    // references.
+    // Two mounted instances must not share a gradient id, or one wins both `url(#...)` references.
     const { container: a } = render(
       <ControlDelayStream streams={[stream()]} />,
     );
@@ -326,7 +310,7 @@ describe("ControlDelayStream", () => {
       "data-variant",
       "expanded",
     );
-    // Roomy HTML zone labels (not squashed svg text) + a per-axis legend.
+    // HTML zone labels and a per-axis legend.
     expect(container.textContent).toContain("outgoing");
     expect(container.textContent).toContain("echo");
     expect(container.textContent).toContain("confirmed");
@@ -342,9 +326,7 @@ describe("ControlDelayStream", () => {
   });
 
   it("bleeds the graph to the full width in rail mode (no horizontal inset)", () => {
-    // padX = 0 in rail, so the first zone divider sits at exactly 1/3 of the
-    // full viewBox width; the inline variant keeps a small inset, so its divider
-    // is nudged off the exact third.
+    // The rail bleeds to the edges, so its divider sits at exactly a third; inline keeps an inset.
     const { container: rail } = render(
       <ControlDelayStream
         streams={[stream({ oneWaySeconds: 1 })]}
@@ -390,12 +372,7 @@ function vertices(d: string): { x: number; y: number }[] {
   }));
 }
 
-/**
- * The RIBBON mark, on the one rail. What used to be a second component handed
- * the fire-and-forget row, with its own boundary at 98% of the widget; the
- * regression the operator named was that the second rail REPLACED the strip
- * they had asked to grow, and these are the ratchets on it not coming back.
- */
+// The RIBBON mark is drawn on the one rail, never a second one.
 describe("the ribbon mark", () => {
   it("draws a continuous entry with no readback on the ONE graph", () => {
     const { container } = render(
@@ -412,12 +389,7 @@ describe("the ribbon mark", () => {
   });
 
   it("keeps the trace inside the OUTGOING zone, the boundary staying on the T divider", () => {
-    /*
-     * The whole of the operator's complaint about the second rail: voice belongs
-     * to the leg out, and the divider sits a third of the way across whether or
-     * not anything comes back. A full ring at this separation therefore reaches
-     * the T divider and stops there, never 98% of the widget.
-     */
+    // Voice belongs to the leg out, so a full ring reaches the T divider and stops there.
     const { container } = render(
       <ControlDelayStream
         streams={[]}
@@ -443,12 +415,7 @@ describe("the ribbon mark", () => {
     const trace = container.querySelector('[data-role="ribbon"]');
     expect(trace?.getAttribute("fill")).toBe("none");
     expect(trace?.getAttribute("stroke")).toMatch(/^url\(#/);
-    /*
-     * The box is stretched to the widget's width AND scaled vertically into the
-     * plot band, so a scaled stroke would come out several times thicker across
-     * than it is tall: the pen the operator already objected to, back by another
-     * route.
-     */
+    // The box is stretched non-uniformly, so a scaled stroke would come out distorted.
     expect(trace?.getAttribute("vector-effect")).toBe("non-scaling-stroke");
   });
 
@@ -470,8 +437,7 @@ describe("the ribbon mark", () => {
       />,
     );
     expect(container.querySelector('[data-role="ribbon"]')).toBeNull();
-    /* And it is skipped as somebody else's to draw, not reported as a gap: a
-       discrete acked command HAS a renderer, it is just the queue's. */
+    // Not reported as a gap: a discrete acked command has a renderer, the queue's.
     expect(container.querySelector("[data-rail-unrepresented]")).toBeNull();
   });
 
@@ -486,10 +452,7 @@ describe("the ribbon mark", () => {
     );
     const [inX1, inX2] = span(inbound);
     expect(inX1).toBeGreaterThan(inX2);
-    // A command leaves this end clear and dissolves toward its target. Held as
-    // an axis rather than tagged by hand: the same combination a fly-by-wire
-    // entry carries, handed over as amplitude history instead of samples, which
-    // is a difference in the DATA and not in what the entry is.
+    // A command leaves this end clear and dissolves toward its target.
     const { container: out } = render(
       <ControlDelayStream
         streams={[]}
@@ -548,11 +511,7 @@ describe("the ribbon mark", () => {
   });
 });
 
-/**
- * DELIVERY decides whether a return leg is drawn, and nothing else. It does not
- * move a boundary and it does not pick a different component: that was the
- * regression, and `railTags.test.ts` has always said so in prose.
- */
+// DELIVERY decides whether a return leg is drawn, and nothing else: no boundary moves and no other component draws it.
 describe("delivery decides the return leg and nothing else", () => {
   it("gives a fire-and-forget stream the leg out and stops it on the T divider", () => {
     const { container } = render(
@@ -583,12 +542,7 @@ describe("delivery decides the return leg and nothing else", () => {
     expect(at(VOICE_TAGS)).toEqual(at(AXIS_TAGS));
   });
 
-  /**
-   * The operator's ask (#133): "the fire and forget category faded just beyond
-   * the target boundary, so there's a sense of the signal really reaching the
-   * target". A leg that stopped dead on the divider read as the signal halting
-   * AT the target, which is the opposite of arriving.
-   */
+  // A leg that stopped dead on the divider would read as the signal halting at the target rather than arriving.
   describe("the trailing hint past the divider", () => {
     it("continues the leg past the T divider and stops well short of 2T", () => {
       const { container } = render(
@@ -637,7 +591,7 @@ describe("delivery decides the return leg and nothing else", () => {
         .querySelector('[data-role="commanded-tail"]')
         ?.getAttribute("stroke");
       const id = /url\(#(.+)\)/.exec(ref ?? "")?.[1];
-      // By id rather than by selector: `useId()` spells one `:r4:`, which is a valid DOM id and not a valid CSS identifier.
+      // By id, since a `useId()` value is not a valid CSS identifier.
       const grad = Array.from(
         container.querySelectorAll("linearGradient"),
       ).find((g) => g.getAttribute("id") === id);
@@ -688,11 +642,9 @@ describe("delivery decides the return leg and nothing else", () => {
       };
       const acked = commanded(AXIS_TAGS);
       const fnf = commanded(VOICE_TAGS);
-      // Both legs start from the same sample at age 0, so it must land on the
-      // same x. A stretch of the fire-and-forget leg would have moved it.
+      // Both legs start from the same sample at age 0, so it lands on the same x.
       expect(fnf.solid[0].x).toBeCloseTo(acked.solid[0].x, 5);
-      // Ascending, and never doubling back: a tail that ran the other way
-      // would be a return leg drawn under another name.
+      // Ascending: a tail that doubled back would be a return leg.
       for (let i = 1; i < fnf.tail.length; i++) {
         expect(fnf.tail[i].x).toBeGreaterThan(fnf.tail[i - 1].x);
       }
@@ -724,16 +676,7 @@ describe("delivery decides the return leg and nothing else", () => {
   });
 });
 
-/**
- * A combination nothing draws, arriving anyway. The point of the renderer table
- * is that this case is LOUD rather than blank: an Uplink can declare a science
- * result sent home today (`railTagsForTelemetry("discrete")`) and the arrival
- * rail that would draw it is separately queued work.
- *
- * Reported AND marked, because the two failures are different. An operator sees
- * a widget with nothing on its rail; a developer needs to be told which
- * combination went undrawn and who declared it.
- */
+// A combination nothing draws is LOUD rather than blank: reported for the developer and marked in the DOM.
 describe("an entry nothing can draw", () => {
   afterEach(() => {
     resetUnrepresentedRailReports();
@@ -755,7 +698,7 @@ describe("an entry nothing can draw", () => {
       "telemetry/discrete/fire-and-forget",
     );
     expect(mark?.getAttribute("data-rail-entry")).toBe("science.result");
-    // Zero ink: no trace, and nothing that would move a pixel of a graph holding a represented entry beside it.
+    // Zero ink, so a represented entry beside it is unaffected.
     expect(container.querySelector('[data-role="ribbon"]')).toBeNull();
     expect(mark?.children).toHaveLength(0);
     expect(errors).toHaveBeenCalledOnce();

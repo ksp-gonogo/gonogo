@@ -14,9 +14,7 @@ import { THRESHOLD_OPS, type ThresholdOp } from "./triggerTypes";
 interface TriggerEditorProps {
   open: boolean;
   numericKeys: DataKey[];
-  /** True when arming would no-op for reasons external to the editor, kept
-   *  on the prop so the editor doesn't need to know which (no plan / etc.).
-   *  The "no key" / "non-finite value" cases are handled internally. */
+  /** Arming would no-op for a reason outside the editor; a missing key or non-finite value is handled inside. */
   externallyDisabled: boolean;
   onClose: () => void;
   onArm: (input: { dataKey: string; op: ThresholdOp; value: number }) => void;
@@ -95,8 +93,7 @@ export function TriggerEditor({
   );
 }
 
-/** The editor is a panel-tier card. Stack carries the column; the gap is named
- *  rather than sized so the surface around it can retune it. */
+/** The gap is named, not sized, so the surrounding surface can retune it. */
 const EDITOR_STYLE = {
   gap: "var(--gap-related)",
   padding: "var(--inset-surface)",
@@ -113,9 +110,7 @@ const EDITOR_TITLE_STYLE = {
   color: "var(--color-text-dim)",
 } as const;
 
-/** Each field takes an equal share of the operator row and may shrink below
- *  its content, which is what keeps a long telemetry key from pushing the
- *  value box off the card. */
+/** Fields may shrink below their content, so a long telemetry key cannot push the value box off the card. */
 const EDITOR_FIELD_STYLE = { flex: 1, minWidth: 0 } as const;
 
 /** Two fields side by side. Row's own space-between would push them apart. */

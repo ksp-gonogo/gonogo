@@ -6,11 +6,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import lkoKerbin from "./__fixtures__/lko-kerbin.json";
 import { SemiMajorAxisComponent } from "./index";
 
-/**
- * SemiMajorAxis renders entirely off the Uplink stream: this proves the full
- * readout (headline `sma` + the reference-body subtitle) with NO legacy source
- * registered anywhere in this file.
- */
+/** SemiMajorAxis renders its full readout, headline and reference-body subtitle, off the stream with no legacy source registered. */
 
 describe("SemiMajorAxis: renders off the stream alone (R6 Wave 1)", () => {
   it("renders sma and the reference-body subtitle purely off the stream", async () => {

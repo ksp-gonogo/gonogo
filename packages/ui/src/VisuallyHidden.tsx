@@ -1,3 +1,2 @@
-// Re-export: the implementation lives in @ksp-gonogo/ui-kit so a
-// third-party Uplink can reach it. See CLAUDE.md's UI Components rule.
+// App-side alias; the implementation lives in ui-kit so an Uplink can reach it, so add nothing here.
 export { VisuallyHidden } from "@ksp-gonogo/ui-kit";

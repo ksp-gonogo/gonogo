@@ -6,16 +6,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import contractsOnly from "./__fixtures__/contracts-only.json";
 import { ObjectivesComponent } from "./index";
 
-/**
- * Objectives's stream render golden. This began life as a legacy-`DataSource`
- * ↔ stream byte-identical dual-run; `contracts.active` now comes off
- * `career.status.contracts.active` (read canonically via
- * `useTelemetry("career.status")`) with NO legacy fallback, so the legacy leg
- * is gone. What remains proves the widget renders the same contract state off
- * the real stream pipeline. `contracts.active` (consumed via the shared
- * `parseContracts`/`contractObjectives` from `../ContractManager`) is the
- * widget's only read.
- */
+/** Proves Objectives renders contract state off the real stream pipeline. */
 afterEach(() => {
   clearActionHandlers();
 });

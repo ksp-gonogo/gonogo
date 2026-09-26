@@ -1,27 +1,13 @@
-// Types-only, emits no runtime code: but NOT removable. It pulls the
-// `DefaultTheme` augmentation into the declaration build's program, which is
-// built from this entry graph rather than tsconfig's `include`. Drop it and
-// `pnpm build` fails on `theme.space` in Box/Stack. See the file's own header.
+// Types-only but not removable: it pulls the `DefaultTheme` augmentation into the declaration build, which is built from this entry graph.
 import "./styledComponentsTheme";
 
-// ── Theme ────────────────────────────────────────────────────────────────────
-// Re-exported wholesale from `@ksp-gonogo/theme`, an internal `private: true`
-// package that is never published, the build inlines it into `dist` (JS and
-// `.d.ts` alike), so this is the theme's only public surface. It must stay a
-// devDependency so it can't leak into the published manifest. See
-// `tsup.config.ts`.
-//
-// Token convention for everything in this package: `@ksp-gonogo/ui-kit/tokens.css`
-// is the one way a host mounts the tokens, and it is a build-time copy of the
-// theme's `tokens.css`, so it cannot drift from it.
-//
-// Deliberately the ONLY route. A second one for hosts that build their global
-// styles in JS (a `GonogoTokens` styled-components sheet) means a hand-typed
-// copy of the same values that nothing checks: the one that existed fell 39
-// properties behind without anyone noticing. A consumer that can install this
-// package can import a stylesheet.
-//
-// Tokens are read bare, with no inline fallback, so the sheet is not optional: a host that mounts none gets every padding and gap at `0` and every corner square.
+/*
+ * The theme is re-exported from the private `@ksp-gonogo/theme`, which the build
+ * inlines into `dist`, so this is its only public surface. A host mounts the
+ * tokens through `@ksp-gonogo/ui-kit/tokens.css` and nothing else; tokens are
+ * read with no inline fallback, so a host that mounts none gets every padding
+ * and gap at `0`.
+ */
 export {
   DefaultThemeProvider,
   defaultDarkTheme,
@@ -40,11 +26,7 @@ export {
   type ActionMenuItem,
   type ActionMenuProps,
 } from "./ActionMenu";
-// ── Audio capture ────────────────────────────────────────────────────────────
-// Permission, device choice and the stream that comes out of them. The probe
-// and the state machine are exported beside the drawn control because a host
-// with its own chrome still needs the states, and a second hand-rolled copy of
-// them is how two surfaces come to disagree about what a refusal means.
+// Audio capture: the probe and state machine are exported beside the control, for a host with its own chrome.
 export {
   AudioInputPicker,
   type AudioInputPickerProps,
@@ -74,35 +56,20 @@ export {
   type AudioCaptureUnsupportedReason,
   audioCaptureSupport,
 } from "./audioCaptureSupport";
-// ── Augment seam ──────────────────────────────────────────────────────────────
-// The augment registry + declaration-merge type surface (`SlotRegistry`,
-// `SlotProps`, the segment seam, the setting types), the `<AugmentSlot>`
-// composition point, and the ui-kit-owned domain-availability store its
-// presence gate reads. Spine-free (sdk types only); the frame-batched evaluator
-// stays in core. `@ksp-gonogo/core` re-exports every symbol below, so an
-// importer may use either package and a `declare module "@ksp-gonogo/core"`
-// augmentation of `SlotRegistry` still merges.
+// The augment registry and declaration-merge type surface, and the domain-availability store its presence gate reads.
 export * from "./augments";
 export {
   Badge,
   type BadgeProps,
   type BadgeSize,
 } from "./Badge";
-// `Unit`'s interval twin: a quantity that arrived as a range stays one, because
-// the width of a mean orbital element is the number that says whether the orbit
-// is stable.
+// `Unit`'s interval twin: a quantity that arrived as a range stays one.
 export { Band, type BandProps, INTERVAL_DASH } from "./Band";
-/**
- * `Block` is the arrangement of a record and `Card` is that same arrangement on
- * a sunken surface. Both are compound, and their parts are ONE set of objects:
- * `Card.Title === Block.Title`, because `Card` is assembled from `BLOCK_PARTS`
- * rather than declaring parts of its own. `Notice` composes the same set.
- *
- * Only the compounds are published. `renderBlockAnatomy`, `Block__Root` and
- * `BLOCK_PARTS` are how the three surfaces share one implementation inside this
- * package, and a bare part on the barrel would freeze a DOM structure as API to
- * every Uplink, which is the failure `styleguide-panel-parts.test.ts` already
- * records for `Panel`.
+/*
+ * `Block` is the arrangement of a record and `Card` is the same arrangement on a
+ * sunken surface; their parts are one set of objects (`Card.Title ===
+ * Block.Title`). Only the compounds are published, so no bare part freezes a
+ * DOM structure as API.
  */
 export { Block, type BlockProps, type BlockTitleRowProps } from "./Block";
 export {
@@ -119,10 +86,7 @@ export {
   PrimaryButton,
   TextButton,
 } from "./Button";
-// How doubt is SPOKEN, in one place, the way `Meter` already holds how it is
-// drawn. Exported because the surfaces that need it are not all in this
-// package: a chart in the app and an augment in a bundled Uplink each had a
-// wording of their own before this did.
+// How doubt is spoken, in one place, for surfaces outside this package too.
 export { bandClaim } from "./bandClaim";
 export { Card, type CardProps } from "./Card";
 export {
@@ -259,28 +223,11 @@ export {
   waveformPath,
 } from "./CommandDelay/waveformPath";
 export { ComposerBar, type ComposerBarProps } from "./ComposerBar";
-/*
- * The COMPOSITION, and the only door to the console's parts: the frame it draws
- * in and the chip it hangs at the foot are reached through this and are not
- * exported bare, the same rule `Panel` follows for its own parts. Two consoles
- * assembling the arrangement themselves is how they drifted apart the first
- * time. `ComposerBar` above stays public because what goes ON the row is the
- * widget's, and a terminal's caret line has nothing in common with a message
- * input past the bordered row itself.
- */
+// The only door to the console's parts; `ComposerBar` stays public because what goes on the row is the widget's.
 export { Console, type ConsoleProps, type ConsoleTone } from "./Console";
 export { Countdown, type CountdownProps } from "./Countdown";
 export { configEqual } from "./configEqual";
-// ── Contribution seam ─────────────────────────────────────────────────────────
-// The type surface (re-exported from the sdk, which declares it), the read hooks
-// and per-widget store, AND the per-frame aggregation that writes into that store.
-// Both halves are here: the aggregation needs spine values, and every one of
-// those is on the sdk, which this package already imports. Only the
-// REGISTRATION registry is elsewhere, on the sdk.
-//
-// `@ksp-gonogo/core` re-exports every symbol below, so an importer may use
-// either package and a `declare module "@ksp-gonogo/core"` augmentation of
-// `ContributionRegistry`/`ComponentSlotRegistry` still merges.
+// The contribution type surface, read hooks, per-widget store and per-frame aggregation; registration lives on the sdk.
 export * from "./contributions";
 export {
   type ContributionSlotEntry,
@@ -318,7 +265,6 @@ export {
   useDomainAvailabilityStore,
   useDomainAvailable,
 } from "./domainAvailability";
-// ── Leaf components ──────────────────────────────────────────────────────────
 export {
   EmptyState,
   type EmptyStateLayout,
@@ -359,15 +305,7 @@ export {
 } from "./FramedDisplay";
 export { type FillQuantity, fillFraction } from "./fillQuantity";
 export { fitBox, fitMask } from "./fitBox";
-// `formatDuration` is NOT here, and that is the point. It was exported as a
-// narrow escape for a `title` or an `aria-label`, and eleven files took it as
-// a general one: `<Unit>` was documented as the only unit renderer while a
-// raw string ladder sat one import away. The escapes that remain are
-// `writeQuantity` and `speakQuantity` below, which take a Value and so cannot
-// be handed a bare number under the wrong ladder. The formatter itself now
-// leaves this package only through `<Unit>`, `<Countdown>` and
-// `<MissionDate>`, and `styleguide-unit-exclusive.test.ts` is the guard.
-// ── Formatters ───────────────────────────────────────────────────────────────
+// `formatDuration` is deliberately not exported: durations leave this package only through `<Unit>`, `<Countdown>` and `<MissionDate>`.
 export { Gauge, type GaugeProps, type GaugeZone } from "./Gauge";
 export {
   GraphNotice,
@@ -427,11 +365,7 @@ export {
   StopIcon,
 } from "./Icons";
 export { Inline, type InlineProps } from "./Inline";
-// A reading's currency in the form an SVG instrument can draw, where a span
-// cannot go: what the reading says about how current it is, the dot that marks
-// a figure, and the words its accessible name carries. The hue, shape and
-// wording are `<Unit>`'s, so a chart drawn outside this package marks a held
-// figure the same way a readout inside it does.
+// A reading's currency in a form an SVG instrument can draw, matching `<Unit>`'s mark and wording.
 export { InstrumentHeldMark, sayHeld } from "./instrumentCurrency";
 export {
   JOG_WHEEL_MIN_TARGET_PX,
@@ -445,7 +379,6 @@ export {
   STOCK_KERBIN_CALENDAR,
   setKspCalendar,
 } from "./kspTime";
-// ── Layout primitives ────────────────────────────────────────────────────────
 export { LabeledInput, type LabeledInputProps } from "./LabeledInput";
 export {
   LineGraph,
@@ -511,21 +444,13 @@ export {
   magnitudeOr,
   type Quantityish,
 } from "./magnitude";
-// ── Null-display token ──────────────────────────────────────────────────────
-// The one sanctioned em dash in the codebase; see NullValue.tsx's own header comment for the full rationale and the ratchet that enforces it.
 export { Notice, type NoticeProps } from "./Notice";
 export { NULL_DISPLAY, NullValue } from "./NullValue";
-/**
- * `Panel` is a compound component, and it is the ONLY door to its parts:
- * `Panel.Container`, `.Header`, `.Toolbar`, `.Footer`, `.Title`, `.Glow`,
- * `.Body`, `.Split`, `.Sidebar`, `.StatusDot`, `.Delay`, `.Context` and
- * `.Providers` all hang off it, so a widget needing a variant hand-composes
- * from there.
- *
- * The parts were once ALSO exported bare, which made the same objects reachable
- * without going through `Panel`. Two of them were plain `styled.div`, so the
- * bare form froze a DOM structure as published API. They are gone, and
- * `styleguide-panel-parts.test.ts` fails the build if one comes back.
+/*
+ * `Panel` is the only door to its parts (`Panel.Container`, `.Header`,
+ * `.Toolbar`, `.Footer`, `.Title`, `.Glow`, `.Body`, `.Split`, `.Sidebar`,
+ * `.StatusDot`, `.Delay`, `.Context`, `.Providers`), so a widget needing a
+ * variant hand-composes from there.
  */
 export {
   FRAMEWORK_AUGMENT_SEGMENTS,
@@ -577,9 +502,7 @@ export {
   type StatusIndicatorProps,
   type StatusTone,
 } from "./StatusIndicator";
-// The third member of the numeric-input vocabulary, beside `UnitInput` (a free
-// quantity) and `JogWheel` (a quantity tuned by feel): one of a small closed
-// set, where a value between two members is not a value at all.
+// Numeric input over a small closed set, beside `UnitInput` (a free quantity) and `JogWheel` (tuned by feel).
 export { Stepper, type StepperProps } from "./Stepper";
 export {
   formatStreamStatus,
@@ -600,7 +523,6 @@ export {
   type StatusSummary,
   usePanelStatusStore,
 } from "./status/PanelStatusStore";
-// ── Status system (canonical severity vocabulary + panel status store) ────────
 export {
   type Severity,
   severityFromBadgeEntryTone,
@@ -633,7 +555,7 @@ export {
   type TextWeight,
 } from "./Text";
 export { TextField, type TextFieldProps } from "./TextField";
-// Switch's sibling, and the other half of the toggle vocabulary: a row of alternatives is a ToggleButton, a single labelled setting is a Switch.
+// A row of alternatives is a ToggleButton; a single labelled setting is a Switch.
 export {
   ToggleButton,
   type ToggleButtonProps,
@@ -642,9 +564,6 @@ export {
 } from "./ToggleButton";
 export { Truncate } from "./Truncate";
 // `UnitValue` is the widened prop: a quantity, or a whole `Reading` of one.
-// Exported because a widget that assembles what it is about to draw wants to
-// name the thing it is assembling, and because an Uplink can reach nothing of
-// this package that is not on the root.
 export { Unit, type UnitValue } from "./Unit";
 export {
   type RateControl,
@@ -652,11 +571,7 @@ export {
   UnitInput,
   type UnitInputProps,
 } from "./UnitInput";
-// The group half of `<Unit>`: quantities inside one scope settle a single
-// format per kind, the rung and the digit count together, so two ends of an
-// interval and a column of one kind cannot print on terms of their own. The
-// members report, the group decides and `<Unit>` applies, so a caller wraps and
-// names nothing. See its module header.
+// The group half of `<Unit>`: quantities inside one scope settle a single format per kind.
 export {
   type SharedFormat,
   type UnitGroupPins,
@@ -667,42 +582,31 @@ export {
   type UnitSharedFormatProps,
   useSharedFormat,
 } from "./UnitSharedFormat";
-// ── Units ───────────────────────────────────────────────────────────────────
-// The contract declares what a field IS; these decide how to SHOW it. The wire
-// is canonical SI and never pre-scaled, so every ladder lives here.
-// Only the shapes a unit is checked and shown with: a unit is declared and
-// registered through the SDK, never here. Every formatter that used to live
-// here is gone: `<Unit value={...} />` is the one way to show a quantity, and a
-// second way is how eleven widgets each grew their own ladder.
+/*
+ * The contract declares what a field is; these decide how to show it. The wire
+ * is canonical SI and never pre-scaled, so every ladder lives here. A unit is
+ * declared and registered through the SDK, and `<Unit value={...} />` is the
+ * one way to show a quantity.
+ */
 export {
   type FormatsFor,
-  // The same rule asked of a KIND, for a pin addressed to a whole group: the group is the length ladder, not the metre, so there is no unit to check it against.
+  // `FormatsFor` asked of a kind, for a pin addressed to a whole group.
   type FormatsForKind,
   type KindOfGroup,
   type KnownQuantityKind,
   type LadderName,
-  // The `as` twin of `FormatsFor`: every unit of the same kind PLUS the
-  // presentation-only ones the conversion table reaches, which is where `°C`
-  // lives. The contract has no Celsius token on purpose.
+  // The `as` twin of `FormatsFor`: the same kind plus presentation-only units such as `°C`.
   type PresentableAs,
   type PresentableAsKind,
   type QuantityKind,
-  // A SCALE rather than a formatter: one rung settled once, every mark printed
-  // against it, and the symbol handed back APART so it can be shown at the head
-  // of the scale instead of on each mark. For a moving-scale instrument or a
-  // chart axis, the one shape `<Unit>`, `writeQuantity` and `speakQuantity` all
-  // miss, because each of those hands back a finished quantity. See its doc.
+  // A scale for an axis or moving-scale instrument: one rung, every mark printed against it, the symbol handed back apart.
   type QuantityScale,
   quantityScale,
   type Rung,
   STANDARD_GRAVITY,
-  // The locale every quantity is written in. One call at app boot changes
-  // every readout at once, which is what having one formatter buys.
+  // The locale every quantity is written in; one call at boot changes every readout.
   setQuantityLocale,
-  // The only string formatters this package exports, for the places a node
-  // cannot go: `speakQuantity` for an accessible name, `writeQuantity` for
-  // visible text that is measured (an SVG label, a canvas). See their doc
-  // comments; everywhere else renders `<Unit>`.
+  // String formatters for where a node cannot go: `speakQuantity` for an accessible name, `writeQuantity` for measured text.
   speakQuantity,
   // What a shared-format pin may be addressed to: a ladder, whose units settle one rung together, or a unit on no ladder, which groups alone.
   type UnitGroupKey,

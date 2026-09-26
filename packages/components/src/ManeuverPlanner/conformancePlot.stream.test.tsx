@@ -7,23 +7,7 @@ import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
 
-/**
- * The Conformance plot's PLANNED conic comes from the burn's own
- * `patches[0]`, the planner's statement of what the burn produces. This file
- * exists because that field had no producer at all: `Sitrep.Contract
- * .ManeuverNode.Patches` was documented, encoded onto the wire, and never
- * assigned, so every node arrived with an empty chain.
- *
- * Nothing caught it because nothing read it. The legacy reshape takes a node's
- * headline PeA/ApA/sma/eccentricity/referenceBody straight from `patches[0]`
- * and defaults them to 0/"" when it is absent, and no widget rendered those,
- * so the wire carried zeros with no visible symptom. The plot is the field's
- * first reader, which means it is also the first thing that would have drawn a
- * confident empty picture from it.
- *
- * So the assertion that matters here is the NEGATIVE one: an empty chain must
- * not silently produce a plot with one line in it that reads as a match.
- */
+// The planned conic comes from the burn's own `patches[0]`; an empty chain must never draw a lone line that reads as a match.
 afterEach(() => {
   clearActionHandlers();
 });
@@ -51,14 +35,10 @@ function emitOrbitReady(fixture: ReturnType<typeof setupStreamFixture>) {
     mu: 3.5316e12,
     meanAnomalyAtEpoch: 0,
     epoch: 1_000_000,
-    // What the stock producer sends. Without it the sample is one from a
-    // producer that dropped the field, the seam refuses the current orbit, and
-    // the plot this file is about never draws: see `provider-shape.test.tsx`
-    // for that case, which is its subject rather than a side effect.
+    // Without a horizon the seam refuses the current orbit (see provider-shape.test.tsx).
     horizon: ANALYTIC_UNBOUNDED_HORIZON,
     patches: [],
   });
-  // The other declared input of the conic over those elements.
   fixture.emit("system.bodies", {
     bodies: [{ index: 1, name: "Kerbin", radius: 600000 }],
   });
@@ -144,13 +124,7 @@ function plannedConics(container: HTMLElement): number {
   ).length;
 }
 
-/**
- * `mustBeVisible` in the render harness is scoped to `[data-burn-instant-row]`,
- * and its check is "nothing matching this is clipped", which a selector matching
- * NOTHING satisfies. That attribute appeared in exactly two places, the component
- * and the harness config, with no test asserting it renders, so renaming it would
- * have left the clipping gate passing forever on every size.
- */
+// The harness's clipping gate selects `[data-burn-instant-row]`, which a selector matching nothing would pass vacuously.
 describe("ManeuverPlanner: the render gate's selector still matches", () => {
   it("renders burn instant rows carrying the attribute the harness gate looks for", async () => {
     const fixture = setupStreamFixture({
@@ -188,13 +162,7 @@ describe("ManeuverPlanner: the conformance plot's planned conic", () => {
     });
   });
 
-  /**
-   * The node card outlives the node's own instant: a burn stopped short keeps
-   * its node while delta-v is still owed, which is exactly the conformance
-   * case. `Countdown` renders unsigned, so the elapsed reading used to say
-   * "burn in 1min 1s" about a burn a minute in the PAST, next to a panel
-   * reporting what was flown.
-   */
+  // A burn stopped short keeps its node past its own instant.
   it("says a passed burn is past, not that it is still to come", async () => {
     const view = await mountOnConformance([], { pinnedUt: 1_000_181 });
     await waitFor(() => {
@@ -209,9 +177,6 @@ describe("ManeuverPlanner: the conformance plot's planned conic", () => {
   });
 
   it("draws NO planned conic when the patch chain is empty", async () => {
-    // The state the wire was actually in before the stock backend was wired to
-    // KSP's nextPatch. The plot must not present the current orbit alone as
-    // though the vessel were sitting on its planned trajectory.
     const view = await mountOnConformance([]);
     await waitFor(() => {
       expect(

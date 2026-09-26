@@ -9,16 +9,8 @@ import {
 import { ObjectivesComponent } from "./index";
 
 /**
- * Characterisation: what Objectives DOES today when its one telemetry read is
- * `undefined`, recorded ahead of `useTelemetry` returning a `Reading`.
- *
- * The read is `useTelemetry("career.status")?.contracts?.active`, and the
- * source augment then does `parseContracts(contractsRaw) ?? []` followed by
- * `if (items.length === 0) return null`. Three different absences (topic never
- * arrived, topic tombstoned, `contracts` sub-tree null) and one presence
- * (`active: []`) all funnel into that one `[]`, so the frame's
- * "No active objectives" fallback is what the widget says for every one of
- * them. Pinned as observed, not endorsed.
+ * Characterisation: pins what Objectives does today when its one read is `undefined`, not what it should do.
+ * Never arrived, tombstoned, a null `contracts` sub-tree and `active: []` all render "No active objectives".
  */
 
 function newFixture() {
@@ -52,9 +44,7 @@ describe("Objectives: nothing has arrived at all", () => {
   it('states "No active objectives" as a live status, with no list at all', () => {
     renderObjectives(newFixture());
 
-    // `parseContracts(undefined) ?? []` yields no items, the source augment
-    // returns null, the `Sections` wrapper is genuinely empty, and the frame's
-    // fallback shows. A cold topic is reported as a confident absence.
+    // A cold topic is reported as a confident absence.
     const status = screen.getByRole("status");
     expect(status).toHaveTextContent("No active objectives");
     expect(objectivesList()).toBeNull();
@@ -80,8 +70,7 @@ describe("Objectives: the absence gates around `contracts.active`", () => {
     });
 
     await screen.findByText("career.status: observed");
-    // "KSP says you have no active contracts" and "we have heard nothing"
-    // produce the same DOM. This is the conflation the migration reassigns.
+    // "No active contracts" and "heard nothing" produce the same DOM.
     expect(screen.getByRole("status").textContent).toBe(beforeAnything);
     expect(objectivesList()).toBeNull();
   });
@@ -91,7 +80,6 @@ describe("Objectives: the absence gates around `contracts.active`", () => {
     renderObjectives(fixture, { probe: true });
 
     act(() => {
-      // The record arrived and the sub-tree the source reads did not.
       fixture.emit("career.status", {
         economy: { funds: 1000, reputation: 0, science: 0 },
         facilities: null,
@@ -113,7 +101,6 @@ describe("Objectives: the absence gates around `contracts.active`", () => {
     renderObjectives(fixture, { probe: true });
 
     act(() => {
-      // `parseContracts(null)` returns null, distinct from `[]`, and the `?? []` erases that distinction before the length check ever sees it.
       fixture.emit("career.status", {
         economy: null,
         facilities: null,
@@ -165,9 +152,7 @@ describe("Objectives: null versus undefined", () => {
     renderObjectives(fixture, { probe: true });
 
     act(() => {
-      // The hook hands back `null` for a tombstone rather than `undefined`, so
-      // the source COULD tell them apart. It does not: `null?.contracts?.active`
-      // is `undefined` and both land on the same empty state.
+      // A tombstone is `null`, not `undefined`, but lands on the same empty state.
       fixture.emit("career.status", null);
     });
 
@@ -185,10 +170,7 @@ describe("Objectives: partial payloads inside an arrived contract", () => {
     renderObjectives(fixture);
 
     act(() => {
-      // No `parameters` and no `agency`: `parseParameters(undefined)` gives `[]`,
-      // which routes to the whole-contract fallback item, and `c.agency ||
-      // "Contract"` fills the missing parent label with a generic word rather
-      // than marking it unknown.
+      // A missing agency is filled with a generic word rather than marked unknown.
       fixture.emit("career.status", {
         economy: null,
         facilities: null,
@@ -205,7 +187,6 @@ describe("Objectives: partial payloads inside an arrived contract", () => {
       expect(screen.getByText("Unspecified job")).toBeInTheDocument(),
     );
     expect(screen.getByText("Contract")).toBeInTheDocument();
-    // A parameterless contract is stated as `pending`, which is the same glyph and the same screen-reader word an Incomplete parameter gets.
     expect(screen.getByText("pending")).toBeInTheDocument();
   });
 
@@ -223,8 +204,6 @@ describe("Objectives: partial payloads inside an arrived contract", () => {
               id: "8003",
               title: "Stateless job",
               agency: "R&D",
-              // `state` absent: `parseParameters` defaults it to "Incomplete",
-              // which `contractParamState` maps to "pending".
               parameters: [{ title: "Do the thing" }],
             },
           ],

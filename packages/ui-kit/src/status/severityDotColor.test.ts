@@ -2,12 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Severity } from "./severity";
 import { severityDotColor } from "./severityDotColor";
 
-/**
- * The single saturated fill each `Severity` reads as on a panel surface: the
- * title ghost's dot and (for the severities where it is the same colour)
- * Badge's chip both read off this one function, so the two stop being two
- * hand-kept-in-step maps that can silently drift apart.
- */
+// The status dot and Badge's chip both read their severity colour off this one function.
 describe("severityDotColor", () => {
   it("returns the exact token each severity maps to", () => {
     const expected: Record<Severity, string> = {

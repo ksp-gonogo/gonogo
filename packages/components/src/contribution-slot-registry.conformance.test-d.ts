@@ -1,23 +1,7 @@
-// ---------------------------------------------------------------------------
-// Drift guard: the `@ksp-gonogo/sitrep-sdk` `ContributionRegistry` MIRROR
-// (`mod/sitrep-sdk/src/api/contribution-slots.ts`) vs core's real
-// `ContributionRegistry` (`packages/core/src/contributions.ts`).
-//
-// Same reasoning as `slot-registry.conformance.test-d.ts`'s own header: the
-// sdk leaf cannot import `@ksp-gonogo/components` or `@ksp-gonogo/core`
-// (would form a turbo `^build` cycle, components and core both already
-// depend on the sdk), so its `ContributionRegistry` is a hand-mirrored
-// declaration-merge, kept honest here (this package devDepends on the sdk
-// AND is where every first-party contribution slot will eventually be
-// owned, same split as the augment-slot mirror).
-//
-// `ship-map.part-meters` and `ship-map.part-meta`, this repo's
-// self-contribution flagship, are the first real slots to land here, so this
-// file grows real per-key bidirectional checks (mirrors ↔ core's real
-// registry, mirrors ↔ the real widget-owned entry types), exactly the same
-// two-directions-per-slot pattern `slot-registry.conformance.test-d.ts`
-// established for `SlotRegistry`.
-// ---------------------------------------------------------------------------
+/*
+ * Drift guard: the `@ksp-gonogo/sitrep-sdk` `ContributionRegistry` mirror (`mod/sitrep-sdk/src/api/contribution-slots.ts`) against core's real `ContributionRegistry`.
+ * The sdk cannot import core or components without a build cycle, so its registry is a hand-mirrored declaration merge, checked here in both directions per slot against core's registry and the widget-owned entry types.
+ */
 
 import type {
   ContributionEntry as CoreContributionEntry,
@@ -109,12 +93,7 @@ type _SystemViewEntitiesRealBack = Expect<
   Assignable<SystemEntity, SdkContributionEntry<"system-view.entities">>
 >;
 
-// `comm-signal.hop-rates`, checked both directions.
-//
-// Importing `CommSignalHopRateEntry` from `./CommSignal/commsRoute` above also
-// loads that module's `declare module "@ksp-gonogo/core"` merge, which is what
-// puts the slot on core's real registry for the keys check (same reason the
-// ship-map checks import `./ShipMap`).
+// `comm-signal.hop-rates`, checked both directions; importing from `./CommSignal/commsRoute` loads the merge that puts the slot on core's registry.
 
 type _CommSignalHopRates = Expect<
   Assignable<
@@ -141,11 +120,7 @@ type _CommSignalHopRatesRealBack = Expect<
   >
 >;
 
-// `experiments.instruments`, checked both directions.
-//
-// Importing `Instrument` from `./Experiments/instrument` above also loads that
-// module's `declare module "@ksp-gonogo/core"` merge, the same way the
-// hop-rates checks load CommSignal's.
+// `experiments.instruments`, checked both directions; importing from `./Experiments/instrument` loads its merge.
 
 type _ExperimentsInstruments = Expect<
   Assignable<

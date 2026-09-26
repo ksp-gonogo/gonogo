@@ -11,17 +11,8 @@ interface Tier {
 }
 
 /**
- * The game-time ladder, built PER CALL rather than at module load.
- *
- * A day is not a constant: `GameSettings.KERBIN_TIME` is a stock setting and a
- * planet pack replaces the calendar wholesale, so the mod publishes what the
- * running game uses and `setKspCalendar` adopts it. A tier table frozen at
- * import time would hold whatever was true before the stream connected, which
- * is exactly the bug this replaced.
- *
- * The minute and hour come off the calendar too. They have been 60 and 3600 in
- * every KSP anyone has seen, but the formatter exposes them, and assuming is
- * the habit this module is unlearning.
+ * The game-time ladder, built per call rather than at module load, since the
+ * calendar is whatever the running game reports and arrives after import.
  */
 function tiers(): readonly Tier[] {
   const calendar = kspCalendar();
@@ -29,46 +20,24 @@ function tiers(): readonly Tier[] {
     { symbol: "y", size: calendar.year },
     { symbol: "d", size: calendar.day },
     { symbol: "h", size: calendar.hour },
-    // "min", not "m": the generated unit model already declares `min` as
-    // the `time` kind's minute symbol (`__generated__/unit-kinds.ts`), and
-    // a bare "m" here both disagrees with that and collides with the
-    // `length` kind's metre. A duration composed of "4m" and rendered
-    // through a widget that uppercases its text (a severity Badge's
-    // `text-transform: uppercase`) reads as "4M", indistinguishable from
-    // four METRES. See `unit-symbol-collision.test.ts`.
+    // "min", not "m", which is the metre and reads as "4M" under an uppercasing badge.
     { symbol: "min", size: calendar.minute },
     { symbol: "s", size: SECOND },
   ];
 }
 
 /**
- * The game-time ladder's own symbols, kind `"time"`, exposed for
- * `unit-symbol-collision.test.ts`: the tier list above is the one place a
- * duration's displayed symbol is decided, so a collision guard has to read
- * it rather than keep a second copy that can drift out of sync.
+ * The game-time ladder's own symbols, kind `"time"`, for the symbol collision
+ * guard to read rather than copy.
  */
 export function durationTierSymbols(): readonly string[] {
   return tiers().map((tier) => tier.symbol);
 }
 
 /**
- * The same ladder on a REAL day.
- *
- * Every duration that comes off the wire is game time, measured on whatever
- * calendar the game is running. Two are not: how long ago a reading was seen,
- * and how long a flight recorder ran. Those are measured by the clock on the
- * desk, so a real day is always 24 hours for them, whatever Kerbin or a planet
- * pack is doing.
- *
- * Fixed on purpose, where {@link tiers} above is not. An earlier version of
- * this comment justified the split with "a KSP day is six hours", which got
- * the DISTINCTION right and the reason wrong: the two are separate because one
- * is game time and one is not, not because game time happens to be 6h. Game
- * time is whatever the game says; wall-clock time is 24h regardless.
- *
- * No year rung. The wall-clock durations this app shows are a staleness badge
- * and a recording length; neither is going to run to Christmas, and "428d"
- * says more than "1y 63d" about a record that old.
+ * The same ladder on a real day, for durations measured by the clock on the
+ * desk (how long ago a reading was seen, how long a recorder ran) rather than
+ * by the game. Fixed, since wall-clock time is 24h regardless. No year rung.
  */
 const IRL_TIERS: readonly Tier[] = [
   { symbol: "d", size: 24 * HOUR },
@@ -98,16 +67,9 @@ export interface FormatDurationOptions {
  * `1y 200d`). The smaller unit is only shown when non-zero at that scale
  * (exactly 2h renders as `2h`, not `2h 0min`).
  *
- * The smaller unit is *truncated*, not rounded. This is a deliberate choice
- * for the countdown use case this formatter primarily serves (an in-transit
- * command / event countdown): rounding up could display "1min 30s remaining"
- * when only 89.6s have actually elapsed/remain, i.e. show progress that
- * hasn't happened yet. Truncating means the displayed value has always
- * actually been reached. `89.9` -> `1min 29s`, not `1min 30s`.
- *
- * `undefined`-shaped sentinels aren't handled here (unlike `formatNumber`),
- * callers pass a definite `number`; only non-finite values (`NaN`,
- * `Infinity`) render as an em dash.
+ * The smaller unit is truncated, not rounded, so a countdown never shows
+ * progress that has not happened: `89.9` -> `1min 29s`. Non-finite values
+ * render as `NULL_DISPLAY`.
  */
 export function formatDuration(
   seconds: number,
@@ -119,15 +81,8 @@ export function formatDuration(
 /**
  * The wall-clock twin of {@link formatDuration}: same shape, real days.
  *
- * Reach for this when the seconds being formatted were measured by a clock on
- * the desk rather than by the game: how long ago a reading arrived, how long a
- * recorder ran. Everything else is game time and belongs in `formatDuration`.
- *
- * The distinction is a real one in the unit system (`irl:s` carries the
- * `irlTime` kind, separate from `time`), and it exists because collapsing the
- * two is a silent factor-of-four error that renders as a plausible number.
- * `styleguide-earth-day.test.ts` is the guard for the arithmetic form of the
- * same mistake.
+ * For seconds measured by a clock on the desk rather than by the game (the
+ * `irlTime` kind). Collapsing the two is a silent factor-of-four error.
  */
 export function formatIrlDuration(
   seconds: number,
@@ -154,10 +109,10 @@ function format(
     return `${signPrefix}0s`;
   }
 
-  // Never show a unit finer than seconds outside the opts.ms sub-1s path, truncate away any fractional second up front.
+  // Never a unit finer than seconds outside the `ms` path.
   const totalSeconds = Math.floor(abs);
 
-  // Below the finest tier this ladder has, the smallest rung is still the right answer: `findIndex` returning -1 would index off the end.
+  // Below the finest tier, the smallest rung is still the answer.
   const found = tiers.findIndex((tier) => totalSeconds >= tier.size);
   const majorIndex = found === -1 ? tiers.length - 1 : found;
   const major = tiers[majorIndex];

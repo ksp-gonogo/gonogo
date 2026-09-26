@@ -5,39 +5,17 @@ import { SendIcon } from "./Icons";
 
 /**
  * The input at the foot of a console: a bordered, non-growing row whose OWN
- * BORDER says whether input is being accepted.
+ * BORDER says whether input is being accepted. The accent lives here, not on
+ * the surrounding `Console`, so what is outlined is what the operator types
+ * into. The border takes `--console-tone-fg`, falling back to the primary
+ * accent.
  *
- * The border is the point, and it is this component's rather than the frame's.
- * `Console` around it stays subtle and the accent lives HERE, so what the
- * operator sees outlined is the thing they type into. Wrapping the scrollback
- * and the input in one loud outline was tried and taken back out: it read as a
- * sealed console with a bottom section instead of a widget with a control in
- * it.
+ * The border turns error-toned when input is refused (no comms path), so the
+ * operator sees it while typing rather than on pressing the key.
  *
- * The border takes `--console-tone-fg`, which `Console` declares from its
- * `tone`, so the input, its prompt glyph and its focus ring cannot come out in
- * different colours. Standing alone it falls back to the primary accent.
- *
- * ## The border turns when input is refused
- *
- * Both consumers refuse input at the input-acceptance step when there is no
- * comms path, before anything is cleared or dispatched, and a refusal the
- * operator only learns about by pressing the key is a refusal they read as a
- * bug. The error-toned outline says it on sight, while they are still typing,
- * and says it about the box they are looking at rather than in a badge
- * somewhere else on the widget.
- *
- * It styles the row and nothing inside it, with TWO exceptions: the send button
- * (`onSend`) and the prompt glyph (`prompt`). A terminal puts its composed text
- * and a blinking caret block in here, locked to the character pitch of the
- * emulator screen above; a message thread puts an input in. Neither font nor
- * pitch belongs to this component: an emulator's is a device-specific px
- * literal that has to equal the emulator's own JS font-size option, which is
- * one widget's problem and not the design system's.
- *
- * Whatever goes in sits FLUSH on the row. An `<input>` carrying its own outline
- * in here is a third box in a stack of three, which is what Commcast had and
- * what the alignment pass removed.
+ * It styles the row and nothing inside it except the send button (`onSend`)
+ * and the prompt glyph (`prompt`); font and character pitch belong to the
+ * caller. Whatever goes in sits FLUSH on the row, with no outline of its own.
  */
 export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
   /**
@@ -46,47 +24,26 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
    */
   blocked?: boolean;
   /**
-   * A short chip straddling the LEFT end of the row's top border, saying WHY,
-   * since an outline that has turned red states the fact and not the cause. The
-   * right end of that border belongs to the console's standing delay reading,
-   * which shares a column with its queue and cannot move; see the pin below.
-   *
-   * A string rather than a node: it is always a few upper-case words in the
-   * row's own state tone, and the two widgets that render one would otherwise
-   * each own a copy of the same chip. Pinned so it never changes the row's
-   * height, which is the property that keeps a composer inside a short tile.
+   * A short chip straddling the LEFT end of the row's top border, saying WHY
+   * the outline turned red. The right end belongs to the console's delay
+   * reading. A few upper-case words, pinned so it never changes the row's
+   * height.
    */
   flag?: string;
   /**
    * The glyph that says "type here", at the head of the row and in the
-   * console's tone.
-   *
-   * Here rather than in each console because it is the one thing both were
-   * going to draw and only one of them had. Optional, because a composer whose
-   * job is to CHOOSE rather than to type has nothing to prompt for: the
-   * recipient picker sends on the same bar and gets no glyph.
+   * console's tone. Optional: a composer that CHOOSES rather than types has
+   * nothing to prompt for.
    */
   prompt?: string;
   /**
    * Commit what is composed. Given, the row grows a send button at its far end;
-   * omitted, it draws none and the composer's only send is whatever key it
-   * binds.
+   * omitted, the only send is whatever key the composer binds.
    *
-   * The button is an ADDITION to that key, never a replacement for it. A
-   * console operator sends on Enter and always has; the button is for the one
-   * on a touch screen with no keyboard up, and for anybody who cannot see that
-   * a bordered box is waiting for Enter. So a caller wires this to the same
-   * entry point its key handler already calls, rather than to a second copy of
-   * the send path that can drift from it.
-   *
-   * It lives here rather than in each composer because the two that exist had
-   * grown different answers: one had a button, the other had none, and the
-   * operator moving between them had to remember which. It is also the one
-   * child whose SIZE the row has an opinion about, hence not just a `children`
-   * convention: a control that grows with the reading beside it reflows the
-   * composer, so it carries the caller's verb and nothing else, and the figure
-   * stays in the flag or in a badge. A console draws that verb as a glyph, see
-   * `sendVariant`, which is the same argument taken one step further.
+   * The button is an ADDITION to that key, for a touch screen with no keyboard
+   * up. Wire it to the same entry point the key handler calls, not a second
+   * copy of the send path. It carries the verb and nothing else, so it never
+   * reflows the composer.
    */
   onSend?: () => void;
   /**
@@ -96,23 +53,14 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
    */
   sendDisabled?: boolean;
   /**
-   * The verb. Defaults to "Send"; a console with a different one says so.
-   *
-   * It is the button's ACCESSIBLE NAME whichever way the button is drawn, so
-   * moving a composer to the glyph never changes what a screen reader hears or
-   * what a query for the control matches.
+   * The verb. Defaults to "Send". It is the button's ACCESSIBLE NAME whichever
+   * way the button is drawn.
    */
   sendLabel?: string;
   /**
-   * How to draw the verb. The glyph by default, because that is what a console
-   * gets: the word is the widest thing on the row and it repeats what the
-   * outlined box beside it already says.
-   *
-   * `"text"` is for a composer whose verb has no glyph, and it is the caller's
-   * to justify. The recipient picker's verb is "Open", and a send arrow on it
-   * would say the row transmits something. Defaulting the other way is what
-   * keeps the consoles from growing two answers again: neither of them passes
-   * this, so neither of them can drift.
+   * How to draw the verb: the glyph by default. `"text"` is for a composer
+   * whose verb has no glyph, such as "Open", where a send arrow would claim the
+   * row transmits something.
    */
   sendVariant?: "icon" | "text";
   children?: ReactNode;
@@ -147,8 +95,7 @@ export function ComposerBar({
         </ComposerBar__Send>
       )}
       {flag !== undefined && (
-        /* `role="status"`, never `alert`: a lost path is an ambient condition
-           to note, not an interruption. */
+        // `role="status"`, never `alert`: a lost path is ambient, not an interruption.
         <ComposerBar__Flag $blocked={blocked} role="status">
           {flag}
         </ComposerBar__Flag>
@@ -173,11 +120,7 @@ const ComposerBar__Row = styled.div<{ $blocked: boolean }>`
   border-radius: var(--radius-regular);
 `;
 
-/*
- * No gap after it: a terminal's caret block must sit flush against the trailing
- * character of the composed line, so the row's own gap cannot be what separates
- * the glyph from the text. Its own margin instead.
- */
+// Its own margin rather than the row's gap, since a terminal's caret block must sit flush against the composed line.
 const ComposerBar__Prompt = styled.span`
   flex: 0 0 auto;
   color: var(--console-tone-fg, var(--color-accent-fg));
@@ -186,15 +129,9 @@ const ComposerBar__Prompt = styled.span`
 `;
 
 /*
- * Pushed to the far end by its own auto margin rather than by a spacer the
- * caller has to remember: a terminal's composed line does not flex, so without
- * this the button sits against the last character typed and moves with every
- * keystroke.
- *
- * `font-size` is stated rather than inherited. The row is where a caller sets
- * an emulator's character pitch (a raw px literal locked to xterm's own option,
- * see the doc above), and a button drawn at the terminal's cell size is a
- * control sized by a device coincidence.
+ * Pushed to the far end by its own auto margin, so it never moves with each
+ * keystroke. `font-size` is stated, not inherited from a terminal's character
+ * pitch on the row.
  */
 const ComposerBar__Send = styled(Button)<{ $icon: boolean }>`
   flex: 0 0 auto;

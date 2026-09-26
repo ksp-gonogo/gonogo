@@ -4,12 +4,7 @@ import { describe, expect, it } from "vitest";
 import { emittedRuleFor } from "../test/emittedRule";
 import { PanelStatusDot } from "./PanelStatusDot";
 
-/**
- * The per-severity status dot for a Panel's collapsed header. Built fresh on the
- * canonical `Severity` + `severityDotColor` (the rebuild of the killed 3-tone
- * Dot draft). These assert the relationships and the accessible name, not the
- * pixels or the exact colour token (that is the visual gate's job).
- */
+// Asserts the relationships and the accessible name; pixels and colour tokens are the visual gate's job.
 describe("PanelStatusDot", () => {
   it("renders a severity dot with an accessible name and no number for a single contributor", () => {
     render(<PanelStatusDot severity="warning" count={1} />);

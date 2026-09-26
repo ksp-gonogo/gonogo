@@ -12,9 +12,7 @@ import {
   netFundsPerDayReading,
 } from "./FundsDrain";
 
-// Back to the stock Kerbin day after the one case that changes it. The
-// calendar is module state in the SDK, so a test that leaves it moved makes
-// every later cover figure in this file wrong by the calendar ratio.
+// The calendar is SDK module state, so one moved calendar skews every later cover figure.
 afterEach(() => setKspCalendar());
 
 describe("netFundsPerDay", () => {
@@ -37,7 +35,6 @@ describe("netFundsPerDay", () => {
   });
 
   it("withholds a net when only the upkeep half arrived", () => {
-    // Half an answer must not become a drain: an absent subsidy is unknown, not zero.
     expect(netFundsPerDay({ upkeepPerDay: value("f/day", 2180) })).toBe(null);
   });
 
@@ -54,11 +51,7 @@ describe("netFundsPerDayReading", () => {
     reckoning: { status: "none" },
   });
 
-  /**
-   * The two forms are one rate, so they are asserted against each other rather
-   * than each against its own expected number: a drift in either subtraction
-   * fails here even where both are self-consistent.
-   */
+  // Asserted against each other, so a drift in either subtraction fails.
   it("agrees with the bare form on the figure", () => {
     const economy = {
       subsidyPerDay: value("f/day", 1200),
@@ -72,12 +65,7 @@ describe("netFundsPerDayReading", () => {
     expect(reading.value?.magnitude).toBe(netFundsPerDay(economy));
   });
 
-  /**
-   * The both-halves rule, which `combineReadings` enforces rather than a second
-   * copy of the condition: an optional field the wire did not carry projects as
-   * `observed` with no value, and a net worked out from one half would report a
-   * drain the model never claimed.
-   */
+  // A field the wire did not carry projects as `observed` with no value.
   it("withholds the net when a half carries no value, as the bare form does", () => {
     const notCarried: Reading<Value<"f/day">> = {
       state: "observed",
@@ -115,28 +103,19 @@ describe("FundsDrain", () => {
   });
 
   it("renders nothing when the model reports no standing rate", () => {
-    // Stock career. A "0 f/day" chip would read as a programme that
-    // happens to break even rather than one with no such mechanism.
     const { container } = render(<FundsDrain funds={289848} netPerDay={0} />);
     expect(container).toBeEmptyDOMElement();
   });
 
   it("reports a drain and how long the balance covers it", () => {
     render(<FundsDrain funds={289848} netPerDay={-980} />);
-    // 289,848 funds against 980 a day. The cover figure goes through `Unit`
-    // like every other quantity, so the day rung is the formatter's choice.
-    // visibleText, not textContent: Unit ships a visually-hidden spoken word
-    // ("funds per day") that a screen reader wants and a sighted operator never
-    // sees, and textContent cannot tell the two apart.
+    // visibleText, not textContent: Unit also renders a visually hidden spoken unit.
     expect(visibleText()).toContain("980.0 f/day drain");
     expect(visibleText()).toContain("295d left");
   });
 
   it("reads the day off the running calendar, not off a baked constant", () => {
-    // The same 295 game-days. `f/day`'s denominator is the game's own day
-    // (SitrepUnitAttribute.FundsPerDay), so the division cancels it and the
-    // cover figure must stay 295 whatever a day is worth in seconds. A figure
-    // built on a hardcoded 86,400 would read 73d here and 1180d on stock.
+    // `f/day` is per game-day, so the cover stays 295 days whatever a day is worth in seconds.
     setKspCalendar({ day: 86_400, year: 365 * 86_400 });
     render(<FundsDrain funds={289848} netPerDay={-980} />);
     expect(visibleText()).toContain("295d left");

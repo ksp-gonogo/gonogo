@@ -13,15 +13,12 @@ describe("ReadOnlyField", () => {
     expect(term.closest("dt")).not.toBeNull();
     const definition = screen.getByText("Kerbin-centred");
     expect(definition.closest("dd")).not.toBeNull();
-    // The pairing is programmatic: both sit inside the same list, so a reader in browse mode gets one item rather than two adjacent strings.
+    // Both sit inside the same list, so a reader in browse mode gets one item.
     expect(term.closest("dl")).toBe(definition.closest("dl"));
   });
 
   it("lets a sentence wrap and holds a quantity on one line", () => {
-    // A read-only row's value is a health reason or a build string as often as
-    // it is a number. `nowrap` is right for the second (a quantity must never
-    // break between its number and its symbol) and squeezes the label beside
-    // the first into a ribbon two words wide, which is what this render showed.
+    // Prose may wrap; a quantity must never break between its number and its symbol.
     const { container: prose } = render(
       <ReadOnlyField
         label="Why reading stopped"
@@ -45,8 +42,7 @@ describe("ReadOnlyField", () => {
       <ReadOnlyField label="Prediction tolerance" value={value("m", 1)} />,
     );
 
-    // The whole point of the component. A disabled input would be skipped by
-    // some screen readers, and this is data rather than a dead control.
+    // Data, not a disabled control that some screen readers skip.
     expect(container.querySelector("input")).toBeNull();
     expect(container.querySelector("button")).toBeNull();
     expect(container.querySelector("[aria-disabled]")).toBeNull();
@@ -57,7 +53,7 @@ describe("ReadOnlyField", () => {
       <ReadOnlyField label="Prediction tolerance" value={value("m", 1)} />,
     );
 
-    // `Unit` hides the symbol from the accessibility tree and puts the word there instead, so the accessible name of the pair says "metres".
+    // `Unit` puts the word, not the symbol, in the accessibility tree.
     expect(screen.getByText("m")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByText(/metres/)).toBeInTheDocument();
   });

@@ -9,21 +9,9 @@ import {
 import { StrategiesComponent } from "./index";
 
 /**
- * What Strategies does when `career.status` stops being current.
- *
- * The record splits. The strategy roster is a fact and stays on screen: nothing
- * can activate or retire a strategy down a link that is not delivering, so the
- * Administration building still offers exactly what it offered. The BALANCES are
- * withheld, because this widget does not print them, it spends them: every
- * Activate button is armed or refused by comparing a cost against them, and
- * committing 500,000f against a figure from thirty seconds ago is the whole
- * hazard.
- *
- * The assertions that earn this file are the ones about legibility. A refusal
- * captioned "Insufficient funds" tells the operator to go earn money, which is
- * both wrong and unfixable when the real fault is the link. And a blank rail is
- * already what an absent economy renders, so "not current" has to say so in
- * words rather than by showing the same three dashes.
+ * What Strategies does when `career.status` stops being current: the roster is
+ * a fact and stays, the balances arm a spend and are withheld. The refusal
+ * names the link rather than calling the career short of funds.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -100,8 +88,7 @@ function goStale(fixture: StreamFixture): void {
 
 describe("Strategies when the career balances are no longer current", () => {
   it("shows the balances and arms Activate while the record is current", async () => {
-    // The control. Every assertion below would also pass on a widget that never
-    // manages to show a balance or enable a button at all.
+    // The control: the assertions below would also pass on a widget that never shows a balance or enables a button.
     const fixture = newFixture();
     renderStrategies(fixture);
     emitCareer(fixture);
@@ -124,9 +111,6 @@ describe("Strategies when the career balances are no longer current", () => {
     await waitFor(() =>
       expect(visibleText()).toContain("balances not current"),
     );
-    // The fact half of the same record. Withholding the roster too would swap
-    // the whole widget for "Awaiting career data...", which claims we never
-    // learned what the Administration building offers.
     expect(screen.getByText("Open Door Policy")).toBeInTheDocument();
     expect(screen.getByText("Admin Building")).toBeInTheDocument();
     expect(visibleText()).not.toContain("Awaiting career data");
@@ -143,7 +127,6 @@ describe("Strategies when the career balances are no longer current", () => {
     await waitFor(() =>
       expect(visibleText()).toContain("balances not current"),
     );
-    // Withheld, not merely gone: a figure held past its currency is what the Activate gate would then be computed from.
     expect(visibleText()).not.toContain("289,848");
     expect(visibleText()).not.toContain("420");
     expect(visibleText()).not.toContain("145");
@@ -159,9 +142,7 @@ describe("Strategies when the career balances are no longer current", () => {
 
     goStale(fixture);
 
-    // The hero assertion. Same disabled button as a genuinely short balance,
-    // deliberately NOT the same caption: one sends the operator to go earn
-    // money, the other to go look at the link.
+    // Same disabled button as a short balance, but a different caption: one wants funds, the other the link.
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Activate" })).toBeDisabled(),
     );
@@ -172,7 +153,7 @@ describe("Strategies when the career balances are no longer current", () => {
   });
 
   it("says 'not current' in the tiny bucket, where 'unknown' would blame the wrong thing", async () => {
-    // w=4 is the tiny bucket, whose single funds row is the only place the balance-visibility rule can be honoured at that size.
+    // w=4 is the tiny bucket.
     const fixture = newFixture();
     renderStrategies(fixture, { w: 4, h: 4 });
     emitCareer(fixture);
@@ -183,12 +164,12 @@ describe("Strategies when the career balances are no longer current", () => {
     await waitFor(() =>
       expect(visibleText()).toBe("Strategiesfunds not current· 0 active"),
     );
-    // "funds unknown" is the never-arrived wording and it is still reachable; reaching it from here would deny having ever been told a balance.
+    // "funds unknown" is the never-arrived wording.
     expect(visibleText()).not.toContain("funds unknown");
   });
 
   it("says nothing about currency before anything has ever arrived", () => {
-    // A cold mount is not a dropped link, and conflating them accuses the link on every first paint.
+    // A cold mount is not a dropped link.
     renderStrategies(newFixture());
 
     expect(visibleText()).not.toContain("not current");

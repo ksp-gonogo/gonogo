@@ -9,12 +9,7 @@ import { usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import type { PorkchopAxes } from "./transferData";
 
-/**
- * What this hook reads off a body, which is its identity and its parent and
- * nothing else. Declared rather than taking `CelestialBody` so the shape says
- * what is actually needed: the elements, the atmosphere and the rest belong to
- * the widget's own arithmetic, not to a question the game answers.
- */
+/** A body's identity and parent: all this hook needs to ask the game. */
 export interface BodyRef {
   index: number;
   name: string | null;
@@ -41,12 +36,8 @@ function sharedParentIndex(
 
 /**
  * The reply's states against the instants they were asked for, or null when
- * they do not line up one to one.
- *
- * Positional rather than matched on `ut`, which the contract promises and
- * which is the only way this can work: the UTs are floats that made a round
- * trip, and a map keyed on the value that came BACK would miss every lookup
- * the grid makes with the value it sent.
+ * they do not line up one to one. Positional, since a round-tripped float UT
+ * would miss every lookup keyed on the value sent.
  */
 function statesByUt(
   uts: number[],
@@ -66,13 +57,7 @@ function statesByUt(
   return byUt;
 }
 
-/**
- * The state for an instant nobody asked about, which `statesByUt`'s length
- * check means the grid cannot reach: it looks up only the UTs the map was
- * built from. Present because the lookup is typed total, at the origin so a
- * cell built from it is degenerate and scores no transfer rather than
- * inventing one.
- */
+/** Unreachable fallback for a total lookup: at the origin, so a cell built from it scores no transfer. */
 const ORIGIN_UNKNOWN: StateLike = {
   position: [0, 0, 0],
   velocity: [0, 0, 0],
@@ -80,29 +65,13 @@ const ORIGIN_UNKNOWN: StateLike = {
 
 /**
  * Where the two bodies are on a porkchop's own time axes, asked of the game's
- * elected propagation provider rather than solved in the browser.
+ * elected propagation provider rather than solved in the browser. Requests are
+ * `Unbounded`: a transfer search asks about instants nobody has reached. One
+ * batched dispatch per body.
  *
- * Every request names that it will read the answer past any horizon. A
- * transfer search is a two-body question about instants nobody has reached, so
- * a bound meant for how long osculating elements stand in for an integrated
- * path does not apply to it; saying so keeps the grid from silently acquiring
- * one when a default moves.
- *
- * Two dispatches per grid, one per body, each batching that body's whole axis:
- * a 32x32 grid is 64 body solves whichever side does them, and batching is
- * what keeps it from being 64 round trips.
- *
- * Answers null whenever it cannot deliver the WHOLE of both axes, which is
- * every case the caller falls back to the local conic for: no stream mounted,
- * no elected provider, the two bodies not sharing a parent, or a reply that
- * does not line up with what was asked. A half-provider, half-local grid would
- * put a seam through the middle of a Δv surface, so a partial answer is
- * treated as none.
- *
- * `axes` must be memoised by the caller, because a fresh object is a fresh
- * question: a new identity per render dispatches a pair of commands per frame.
- * `porkchopAxes` is already behind the same `useMemo` (on the same quantised
- * UTs) as the grid the axes describe, which is what makes that hold.
+ * Null unless it can deliver the WHOLE of both axes, since a half-provider,
+ * half-local grid would put a seam through the Δv surface. `axes` must be
+ * memoised by the caller: a new identity dispatches again.
  */
 export function useBodyStatePropagators(
   origin: BodyRef | null,
@@ -111,11 +80,7 @@ export function useBodyStatePropagators(
   axes: PorkchopAxes | null,
 ): BodyStatePropagators | null {
   const { solve, handle } = useBodyStates();
-  // The command is TrueNow and carries no delay, so this contributes nothing
-  // to the rail. It is still called, because `useCommand` asserts that every
-  // dispatching handle reaches it and offers no opt-out: a command that could
-  // skip the rail by claiming to be instant is how a delayed one eventually
-  // does too.
+  // TrueNow and delay-free, but `useCommand` asserts every dispatching handle reaches the rail.
   usePanelDelay(handle);
   const [resolved, setResolved] = useState<BodyStatePropagators | null>(null);
 
@@ -139,10 +104,7 @@ export function useBodyStatePropagators(
     const departureUts = axes.departureUts;
     const arrivalUts = axes.arrivalUts;
 
-    // The grid's axes are plain numbers because the whole porkchop arithmetic is,
-    // and the command declares its instants as `Value<"ut">`. This is the one
-    // place the two meet, so the lift happens here rather than making every cell
-    // of a 32x32 grid carry a unit it never computes with.
+    // The one place the plain-number axes meet the command's `Value<"ut">` instants.
     const asUts = (uts: number[]) => uts.map((ut) => value("ut", ut));
 
     const ask = async () => {
@@ -179,11 +141,7 @@ export function useBodyStatePropagators(
           propagateDest: (ut) => destStates.get(ut) ?? ORIGIN_UNKNOWN,
         });
       } catch {
-        /*
-         * A dispatch that never left is a network fact, not an answer about
-         * the solar system; the caller draws the local conic rather than
-         * putting an error over a chart.
-         */
+        // A dispatch that never left is a network fact; the caller draws the local conic.
         if (live) {
           setResolved(null);
         }

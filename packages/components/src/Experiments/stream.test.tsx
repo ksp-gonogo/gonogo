@@ -6,25 +6,12 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ExperimentsComponent } from "./index";
 
 /**
- * Experiments's stream test-adapter proof: genuinely running off the real
- * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport` for `science.lab`, `science.instruments` and
- * `science.experiments` (the derived vessel-wide data total). All three are
- * canonical one-arg Topics, and no legacy `DataSource` is registered anywhere
- * in this file.
- *
- * The `science.instruments` payload below uses the `InstrumentEntry` field
- * names (`partId` as a string, `partName`, `experimentId`,
- * `dataIsCollectable`), so it proves `parseInstruments` reads the current wire
- * and not only the older shape. The lab payload is a recorded one: an
- * OPERATIONAL, two-scientist, but IDLE Mobile Processing Lab with no data
- * loaded and `scienceRate` 0, which is a valid steady state rather than a
- * placeholder.
+ * Experiments off the real stream pipeline for `science.lab`,
+ * `science.instruments` (in its `InstrumentEntry` wire shape) and
+ * `science.experiments`. The recorded lab is operational but idle, a valid
+ * steady state.
  */
-// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// action-handler registry: clearActionHandlers() firing on a still-mounted
-// widget is a state update outside act(). RTL auto-cleanup runs after this
-// file's afterEach, too late to unmount first.
+// Unmounted before the registry clears, so the clear never updates a mounted tree outside act().
 const renderedTrees: Array<() => void> = [];
 
 afterEach(() => {
@@ -93,13 +80,8 @@ describe("Experiments: genuinely runs off the stream (M3 science.lab + P4a scien
     expect(screen.getByText("OPERATIONAL")).toBeTruthy();
     expect(visibleText()).toContain("2 scientists");
     expect(visibleText()).toContain("0/750 data");
-    // Idle, not processing: no PROCESSING badge for a lab with nothing loaded.
     expect(screen.queryByText("PROCESSING")).not.toBeInTheDocument();
 
-    // The new-shape science.instruments entry rendered too: proves
-    // parseInstruments's shape fix (string partId, partName/
-    // experimentId/dataIsCollectable renames) reads the new wire, not just
-    // the legacy shape.
     expect(screen.getByText("Mystery Goo™ Containment Unit")).toBeTruthy();
     expect(screen.getByText("mysteryGoo")).toBeTruthy();
     expect(screen.getByText("DATA")).toBeTruthy();

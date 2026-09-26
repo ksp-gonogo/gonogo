@@ -1,6 +1,4 @@
-// Re-export shim: `FilterList` moved to `@ksp-gonogo/ui-kit` (the published
-// design floor) once the contribution read seam it depends on moved there. Kept
-// here so `@ksp-gonogo/ui` importers stay unchanged.
+// App-side alias; the implementation lives in ui-kit so an Uplink can reach it, so add nothing here.
 export {
   FilterList,
   type FilterListProps,

@@ -24,62 +24,27 @@ function collectComponentSources(): Array<{ file: string; text: string }> {
   return out;
 }
 
-/**
- * Comments mention the retired read form to record that it is gone, so a scan
- * that read them would report every such note as an offender.
- */
+/** Comments mention the retired read form, so the scan reads code only. */
 function stripComments(text: string): string {
   return text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 }
 
 /**
- * Every `dataRequirements` entry every built-in widget declares must be
- * something the app can actually resolve. See `classifyRequirement` in
- * `@ksp-gonogo/core` for the four legal forms and why each is trusted.
+ * Every `dataRequirements` and `fields` entry every built-in widget declares
+ * must resolve to something real (`classifyRequirement` in
+ * `@ksp-gonogo/core` has the four legal forms). `isTopicCarried` resolves a
+ * path without checking the leaf, so a misspelt field would otherwise render
+ * as a permanent `undefined`. Reads the real registry, not source text.
  *
- * This gate exists because the two consumers of `dataRequirements`
- * (`useWidgetStreamStatus`, `alarmMatchesWidget`) were both widened to accept
- * field paths, which is what lets a migrated widget say
- * `career.status.economy.funds` instead of `career.funds`. `isTopicCarried`
- * resolves a path without checking the leaf names a real field, so that
- * widening also accepts `career.status.economy.notAField` and renders it as a
- * permanent `undefined`. Nothing at runtime can tell those apart. This is
- * where they are told apart.
- *
- * It reads the REAL registry rather than scanning source for
- * `dataRequirements:` arrays. A regex over call sites is how the same
- * vocabulary audit already went wrong once, in both directions at once:
- * matching mentions inside comments while missing every multi-line and
- * dynamically-built declaration. The registry is what the dashboard itself
- * reads, so there is no second thing to keep in sync.
- *
- * WHAT THIS DOES NOT COVER, stated because a gate that looks total and isn't
- * is worse than no gate: it sees the widgets THIS package registers, and
- * nothing else. An Uplink's widgets (`mod/*​/client/src`) register into the
- * same registry at runtime but from packages this one does not depend on, so
- * they are outside this file. The same assertion runs over them, and over the
- * separate augment registry, in
- * `packages/app/src/__tests__/uplink-widget-declarations.test.ts`: the app is
- * the one package that already depends on every Uplink client and can also see
- * `core`. That file's header says why the check does not live inside each
- * Uplink, which is a rule rather than an omission.
+ * Covers only the widgets this package registers. Uplink widgets and the
+ * augment registry are checked by
+ * `packages/app/src/__tests__/uplink-widget-declarations.test.ts`.
  */
 describe("widget dataRequirements resolve to something real", () => {
   /**
-   * `dataRequirements` and `fields`, which are the two arrays this package can
-   * resolve on its own. `fields` is where a widget's field-granular declaration
-   * lives, and it is exactly the vocabulary this gate was written to police, so
-   * reading only `dataRequirements` would let the whole check drain away as
-   * widgets migrate while still reporting green.
-   *
-   * `channels` and `optionalChannels` are deliberately NOT here, and the reason
-   * is a limit of this package rather than a gap in the idea. A built-in widget
-   * may mount on a channel an Uplink owns, and that topic id only becomes
-   * resolvable once the owning Uplink's client registers it. Classified from
-   * here that real channel reads as unresolvable, so widening this array would fail on
-   * correct code and teach the next person to loosen the classifier. The app
-   * gate named in the header does read all four, with every Uplink loaded,
-   * which is the context where the answer is meaningful.
+   * `channels` and `optionalChannels` are left out: a built-in widget may
+   * mount on an Uplink-owned channel that only resolves once that Uplink's
+   * client is loaded, which the app gate has.
    */
   const declared = getComponents().flatMap((def) =>
     [...(def.dataRequirements ?? []), ...(def.fields ?? [])].map(
@@ -91,7 +56,7 @@ describe("widget dataRequirements resolve to something real", () => {
   );
 
   it("found a non-trivial number of declarations (scan sanity check)", () => {
-    // An empty registry would make the assertion below vacuous, which is the exact way an allowlist-shaped gate passes while checking nothing.
+    // An empty registry would make the assertion below vacuous.
     expect(declared.length).toBeGreaterThan(100);
   });
 
@@ -107,7 +72,7 @@ describe("widget dataRequirements resolve to something real", () => {
   });
 
   it("rejects a plausible-looking field that does not exist", () => {
-    // The gate's own positive control: if this ever returns a kind, the classifier has gone permissive and the suite above is checking nothing.
+    // Positive control: a kind here means the classifier has gone permissive.
     expect(
       classifyRequirement("career.status.economy.notAField"),
     ).toBeUndefined();
@@ -117,26 +82,13 @@ describe("widget dataRequirements resolve to something real", () => {
     );
     expect(classifyRequirement("career.status")).toBe("wire-topic");
     expect(classifyRequirement("spaceCenter.state")).toBe("derived-channel");
-    // A key from the retired flat vocabulary. It resolved once, through a
-    // migration table that no longer exists, and a declaration naming one now
-    // has nothing to resolve against: exactly the answer a name nothing
-    // publishes should get.
+    // A retired flat-vocabulary key has nothing to resolve against.
     expect(classifyRequirement("career.funds")).toBeUndefined();
   });
 });
 
 describe("no built-in widget reads through the retired key vocabulary", () => {
-  // The registry check above sees what a widget DECLARES. This sees what it
-  // READS, which is a separate way to name a retired key: the two-arg
-  // `useTelemetry("data", key)` overload takes a string the type system never
-  // checks, so a key that resolves to nothing there is a permanent `undefined`
-  // with nothing to say so.
-  //
-  // Already at zero when this landed, and that is the point: the guarantee the
-  // retired migration table's coverage gate carried was that every such read
-  // resolved. With the table gone the only keys that form can still resolve are
-  // an Uplink's dynamic namespaces, which live outside this package, so for
-  // built-in widgets the honest rule is that the form is not used at all.
+  // What a widget reads, not declares: the two-arg `useTelemetry("data", key)` form takes an unchecked string, and for built-in widgets it is not used at all.
   const LEGACY_READ = /useTelemetry\(\s*"data"\s*,/g;
 
   const sources = collectComponentSources();

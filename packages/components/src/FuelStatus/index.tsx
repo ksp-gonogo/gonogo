@@ -44,19 +44,13 @@ import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 
-// ── Config ────────────────────────────────────────────────────────────────────
-
 type DeltaVMode = "vac" | "actual" | "asl";
 
 /** Stable empty stack: `useProcessor` answers undefined before the first frame. */
 const NO_STAGES: DeltaVStage[] = [];
 
 interface FuelStatusConfig {
-  /**
-   * Which ΔV / TWR column to display from `dv.stages`. Defaults to "actual",
-   * i.e. the value under current atmospheric conditions. "vac" is what you
-   * want for reference values; "asl" for ascent planning.
-   */
+  /** Which ΔV / TWR column to show: "actual" (current atmosphere, the default), "vac" for reference, "asl" for ascent planning. */
   deltaVMode?: DeltaVMode;
 }
 
@@ -72,13 +66,7 @@ const DELTA_V_MODE_SHORT: Record<DeltaVMode, string> = {
   asl: "ASL",
 };
 
-// ── Resource catalogue ────────────────────────────────────────────────────────
-
-/**
- * Resources we know how to render, with a fixed colour and which scope to
- * read (`"current"` = current-stage only; `"vessel"` = vessel-wide totals).
- * Resources absent from the active vessel (max === 0) are skipped at render.
- */
+/** A resource we render, with a fixed colour and a scope: `"current"` is the current stage, `"vessel"` the vessel-wide total. */
 interface ResourceDef {
   name:
     | "LiquidFuel"
@@ -124,18 +112,7 @@ const RESOURCES: readonly ResourceDef[] = [
   },
 ] as const;
 
-// ── Hooks ─────────────────────────────────────────────────────────────────────
-
-/**
- * One resource's amount and capacity, each still carrying the currency of the
- * reading it came in, so `Meter` can mark a held figure rather than the widget
- * deciding whether to draw it.
- *
- * Vessel totals are fields of `vessel.resources`; a stage's share is a field of
- * the derived `dv.currentStageResource` / `dv.currentStageResourceMax` pair. All
- * three reads happen unconditionally (Rules of Hooks) whichever scope this
- * resource uses.
- */
+/** One resource's amount and capacity as readings, so `Meter` marks a held figure. All three reads run unconditionally, whichever scope the resource uses. */
 function useResourceReading(def: ResourceDef): {
   amount: Reading<Value<"units">>;
   capacity: Reading<Value<"units">>;
@@ -152,23 +129,13 @@ function useResourceReading(def: ResourceDef): {
     : { amount: stageAmount, capacity: stageCapacity };
 }
 
-/**
- * Whether the craft carries this resource at all: a capacity that has been
- * reported, current or held, and is above zero. A tank's size is a fact of the
- * craft, so a held one still says the tank is there.
- */
+/** Whether the craft carries this resource: a reported capacity, current or held, above zero. A held tank size still says the tank is there. */
 function carries(capacity: Reading<Value<"units">>): boolean {
   if (capacity.state !== "observed" && capacity.state !== "stale") return false;
   return capacity.value?.isPositive() ?? false;
 }
 
-/**
- * One stage's ΔV as a reading of its own, dated as the budget it is a row of.
- *
- * The figure is part of the budget's observation, so it takes that
- * observation's arm, instant and grade. The model is dropped rather than
- * carried: the budget's reckoning speaks about the budget, not about one row.
- */
+/** One stage's ΔV as a reading dated as the budget it is a row of; the budget's model is dropped because it speaks about the whole budget. */
 function stageReading(
   budget: Reading<DeltaVBudget>,
   figure: Value<"m/s">,
@@ -205,13 +172,7 @@ function pickTWR(s: DeltaVStage, mode: DeltaVMode): number {
   }
 }
 
-/**
- * A provider occasionally hands us a stage row where TWR / ΔV is missing
- * (engine-less stage, decoupler-only, post-staging frame where the engine
- * has been ejected). The fix at 21:08 BST on 2026-05-17 was the absence
- * of this guard: `twr.toFixed` crashed the whole widget when twr was
- * undefined for one row.
- */
+/** A stage row can lack TWR or ΔV (engine-less stage, decoupler-only, a just-ejected engine). */
 function fmtFixed(value: unknown, digits: number): string {
   if (typeof value !== "number" || !Number.isFinite(value)) return NULL_DISPLAY;
   return value.toFixed(digits);
@@ -335,8 +296,6 @@ function StageStackSection({
   );
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 function FuelStatusComponent({
   config,
   w,
@@ -348,20 +307,9 @@ function FuelStatusComponent({
     useTelemetry("vessel.structure"),
     undefined,
   )?.currentStage;
-  /**
-   * The one ΔV derivation, shared. Every total below is the game's own figure off
-   * `dv.summary`, never a client-side sum of the stage rows: the two are built
-   * from different stage lists and disagree in flight (see `DELTA_V_BUDGET`).
-   *
-   * A dated budget is CARRIED and captioned rather than blanked. It only falls by
-   * burning and only rises by staging or docking, all events the operator caused,
-   * so the last figure is still the figure.
-   */
   /*
-   * Both value-bearing arms. A budget that has stopped being current is still
-   * the best figure available, and every readout drawn from it below is a
-   * FIGURE rather than a control: dropping it would blank the panel for a craft
-   * whose link merely went quiet.
+   * Every total is the game's own figure off `dv.summary`, never a sum of the stage rows, which are built from a different stage list (see `DELTA_V_BUDGET`).
+   * A dated budget is carried and captioned rather than blanked: it only falls by burning and rises by staging or docking, so the last figure is still the figure.
    */
   const budgetReading = useProcessor(DELTA_V_BUDGET);
   const budget =
@@ -369,35 +317,21 @@ function FuelStatusComponent({
       ? budgetReading.value
       : undefined;
   const budgetNotCurrent = budget?.budget.state === "stale";
-  /**
-   * The stock ΔV sim has answered about this craft, whatever it answered.
-   *
-   * Gates the totals row on the sim having ANSWERED, not on any total being
-   * present. A craft with no engines is a real answer of `null` for every
-   * total, and the row should render its labelled pair of em-dashes for it.
-   * Gating on the values instead would hang the row on a wire detail and blank
-   * it the day a total starts arriving absent rather than null.
-   */
+  // Gated on the sim having answered: a craft with no engines answers `null` for every total, and the row draws its labelled pair of dashes.
   const budgetReported =
     budget !== undefined &&
     budget.budget.state !== "pending" &&
-    // A build whose ΔV sim publishes nothing has not answered and never will,
-    // so the row stays away rather than showing a pair of em-dashes that read
-    // as "this craft has no ΔV" instead of "nothing here measures it".
+    // A build whose ΔV sim publishes nothing has not answered and never will, so the row stays away.
     budget.budget.state !== "unowned";
   const stageCount = budget?.stageCount ?? undefined;
   // Magnitudes: these feed `fmtFixed` and the per-stage bar scaling.
   const totalDVVac = magnitudeOf(budget?.totalVac) ?? undefined;
   const totalDVASL = magnitudeOf(budget?.totalAsl) ?? undefined;
   const totalDVActual = magnitudeOf(budget?.totalActual) ?? undefined;
-  // `null` when the sim reported no figure, which `Unit` renders as the em-dash:
-  // NOT collapsed to `undefined`, which would take the bare-string branch below
-  // and bypass the one unit renderer.
+  // `null` when the sim reported no figure, so it still goes through `Unit` rather than the bare-string branch.
   const totalBurnTime = budget?.totalBurnTime;
 
-  // Hooks unrolled explicitly: Rules of Hooks forbids hook calls inside any
-  // loop or `.map` callback (even ones that happen to iterate a constant
-  // tuple). The RESOURCES catalogue has a fixed order so these reads are 1:1.
+  // Rules of Hooks forbids calls in a `.map`; the RESOURCES catalogue has a fixed order so these reads are 1:1.
   const lf = useResourceReading(RESOURCES[0]);
   const ox = useResourceReading(RESOURCES[1]);
   const rcs = useResourceReading(RESOURCES[2]);
@@ -411,14 +345,9 @@ function FuelStatusComponent({
     { def: RESOURCES[4], ...ec },
   ];
 
-  // Entries arrive high → low (stage 3 first, stage 0 last), matching the
-  // stack-top-down render order, with either wire's field names already
-  // reconciled by the processor.
+  // Entries arrive high to low (stage 3 first), matching the top-down render order.
   const stages = budget?.stages ?? NO_STAGES;
-  /* The scale every stage bar is drawn against: the largest finite stage ΔV.
-     Filtered before Math.max, because one NaN entry would make the whole scale
-     NaN. A floor above zero keeps a stack of spent stages a stack of empty bars
-     rather than a stack with no axis. */
+  // The largest finite stage ΔV, floored above zero so a stack of spent stages still has an axis.
   const finiteDvs = stages
     .map((s) => pickDeltaV(s, mode))
     .filter((v): v is number => Number.isFinite(v));
@@ -427,20 +356,10 @@ function FuelStatusComponent({
   const totalDv =
     mode === "vac" ? totalDVVac : mode === "asl" ? totalDVASL : totalDVActual;
 
-  // Selective rendering: total ΔV is the headline. Resource bars and the
-  // per-stage stack drop bottom-up as height shrinks.
+  // Total ΔV is the headline; resource bars and the stage stack drop bottom-up as height shrinks.
   const cols = w ?? 8;
   const rows = h ?? 14;
-  /* Wide-short: width compensates for the height gates, so show the resource
-     list and the stage stack beneath the totals row instead of leaving the box
-     sparse. Panel flows them into columns from there.
-
-     This used to carry a `rows >= 6` guard as well, because below about six
-     rows even ONE section overflowed the tile and painted over what followed
-     it. The section grid takes its children at their natural height inside the
-     body's own scroller, so the same content now scrolls with a glow instead,
-     and an 18x5 tile showing a caption and a totals box over 600px of empty
-     width was the worse of the two. */
+  // Wide-short: width compensates for the height gates, so the resource list and stage stack show beneath the totals row.
   const isLandscape = getWidgetShape(w, h).shape === "landscape";
   const showSubtitle = rows >= 5;
   const showTotals = rows >= 4;
@@ -448,15 +367,7 @@ function FuelStatusComponent({
   const showStageStack = cols >= 5 && (rows >= 10 || isLandscape);
   const showHeroDv = !showTotals && totalDv !== undefined;
 
-  /* The breakdown columns, keyed by name rather than index, which is both what
-     the biome noArrayIndexKey rule wants and what keeps a column's identity
-     stable as the size gates add and drop them.
-
-     The engine-realism augment segment is NOT pushed here any more. Panel mounts
-     `${componentId}.sections` inside its own section grid, so an Uplink's
-     supplemental rows (ignitions remaining, propellant boil-off) already land
-     as a column beside these rather than in a block underneath them, which is
-     exactly what the hand-placed mount was for. */
+  // Keyed by name so a column keeps its identity as the size gates add and drop them.
   const columns: { key: string; node: ReactNode }[] = [];
   if (showResourceList) {
     columns.push({
@@ -484,23 +395,15 @@ function FuelStatusComponent({
       panelTitle="FUEL · ΔV"
       compactTitle={["FUEL"]}
       sections={[
-        /* The readouts above the breakdown span the row: the caption names the
-           stage the columns describe, and the totals are the headline they add
-           up to. Neither belongs beside a column as a peer of it. */
+        /* The caption and the totals span the row: they describe the columns rather than sit beside them. */
         showSubtitle && currentStage !== undefined && (
           <Section key="stage" full>
-            {/* Stage caption relocated out of the panel subtitle into the body
-                (staging change), carried by ui-kit's ReadoutCaption. */}
             <ReadoutCaption>
               Stage {currentStage}
               {stageCount !== null &&
                 stageCount !== undefined &&
                 ` / ${stageCount.minus(1).max(0).magnitude}`}
-              {/* A budget only falls by burning and rises by staging or
-                  docking, so a dated one is still the budget and gets said out
-                  loud rather than blanked. This caption existed as a variable
-                  and was never rendered, because the number it would have
-                  qualified was withheld instead. */}
+              {/* A dated budget is still the budget, so it is said out loud rather than blanked. */}
               {budgetNotCurrent && " · ΔV at last contact"}
             </ReadoutCaption>
           </Section>
@@ -521,10 +424,7 @@ function FuelStatusComponent({
             </BigReadout>
           </Section>
         ),
-        /* No engine data + no totals row to fall back on: render an em-dash so
-           the tiny widget does not appear blank. Without this branch the panel
-           shows only the title and a black void below (the no-engine-data
-           fixture at tiny-3x3 hit this state). */
+        /* No engine data and no totals row: draw a dash so the tiny widget is not blank. */
         !showHeroDv && !showTotals && totalDv === undefined && (
           <Section key="null" full>
             <BigReadout>{NULL_DISPLAY}</BigReadout>
@@ -618,8 +518,6 @@ function FuelStatusComponent({
   );
 }
 
-// ── Config component ──────────────────────────────────────────────────────────
-
 function FuelStatusConfigComponent({
   config,
   onSave,
@@ -659,20 +557,12 @@ function FuelStatusConfigComponent({
   );
 }
 
-// ── Augment slots ─────────────────────────────────────────────────────────────
-
-// Declaration-merge this widget's slot ids → their props types into core's
-// `SlotRegistry`. Both slots are plain
-// section/badge slots (not overlays), so they pass no coordinate/projection
-// context: an empty props object. Kept co-located here, not in a shared
-// central registry file, so parallel per-widget slot work never collides.
+// Both slots are plain section/badge slots, so they take an empty props object.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "fuel-status.sections": Record<string, never>;
   }
 }
-
-// ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<FuelStatusConfig>({
   id: "fuel-status",
@@ -684,11 +574,7 @@ registerComponent<FuelStatusConfig>({
   minSize: { w: 3, h: 3 },
   component: FuelStatusComponent,
   configComponent: FuelStatusConfigComponent,
-  // The three resource CHANNELS rather than twenty per-resource paths: the
-  // component reads each map whole and indexes it by resource name (see
-  // `useResourceReading`), so naming the cells would claim a precision it does
-  // not have. Alarms on a single resource still land here, because every
-  // `r.resource[X]`-family target is a path INSIDE one of these three.
+  // The three resource channels rather than per-resource paths: the component reads each map whole, and every `r.resource[X]` alarm target lies inside one of them.
   dataRequirements: [
     "vessel.structure.currentStage",
     "dv.summary.stageCount",

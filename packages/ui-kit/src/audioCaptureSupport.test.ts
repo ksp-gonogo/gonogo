@@ -1,12 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { audioCaptureSupport } from "./audioCaptureSupport";
 
-/**
- * The point under test is the ORDER of the two questions, not the media stack:
- * an insecure origin that still exposes `navigator.mediaDevices` has to be
- * blamed on the origin, because that is the browser state a station on a plain
- * http LAN address is actually in.
- */
+// The ORDER of the two checks is under test: an insecure origin that still exposes `navigator.mediaDevices` is blamed on the origin.
 
 const patched: Array<{ target: object; name: string }> = [];
 

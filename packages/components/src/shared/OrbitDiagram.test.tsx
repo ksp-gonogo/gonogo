@@ -38,11 +38,7 @@ describe("OrbitDiagram projected overlay", () => {
     expect(ellipses[1].getAttribute("stroke-dasharray")).toBeNull();
   });
 
-  /**
-   * The corridor exists to show the gap, so the assertion is that the fill has
-   * a HOLE in it: two subpaths under even-odd. A single closed path would be a
-   * filled blob covering the very region it was added to reveal.
-   */
+  // A single closed path would be a blob covering the gap the corridor exists to show.
   it("fills the region between the two conics as a two-subpath even-odd ring", () => {
     const { container } = render(
       <OrbitDiagram
@@ -80,11 +76,6 @@ describe("OrbitDiagram projected overlay", () => {
     expect(container.querySelector('path[fill-rule="evenodd"]')).toBeNull();
   });
 
-  /**
-   * An open hyperbola has no inside. Filling between one and an ellipse would
-   * draw a region whose area is an artefact of where the sampling stopped, so
-   * the corridor withholds rather than inventing a bounded shape.
-   */
   it("withholds the corridor when either conic is unbounded", () => {
     const { container } = render(
       <OrbitDiagram
@@ -97,12 +88,6 @@ describe("OrbitDiagram projected overlay", () => {
     expect(container.querySelector('path[fill-rule="evenodd"]')).toBeNull();
   });
 
-  /**
-   * Each conic carries its own argument of periapsis, and the strokes get
-   * theirs from a `<g transform>` the corridor cannot use. Baking the rotation
-   * per point is what keeps both curves in one frame; without it the fill is
-   * drawn between two curves that were never in the same place.
-   */
   it("bakes each conic's own argPe into the ring rather than a shared transform", () => {
     const projected = {
       sma: 800_000,
@@ -130,9 +115,6 @@ describe("OrbitDiagram projected overlay", () => {
   });
 
   it("expands the mini viewBox to contain an argPe-rotated orbit", () => {
-    // At argPe=0 the orbit's wide axis is x; at argPe=90° it's y. The mini
-    // viewBox used to assume argPe=0 and would clip rotated orbits, we
-    // now compute the rotated bbox so the orbit stays inside the frame.
     const { container } = render(
       <OrbitDiagram {...BASE} variant="mini" argPe={90} />,
     );
@@ -140,23 +122,21 @@ describe("OrbitDiagram projected overlay", () => {
     const [, , wStr, hStr] = vb.split(" ");
     const w = Number.parseFloat(wStr ?? "0");
     const h = Number.parseFloat(hStr ?? "0");
-    // After rotation the long axis (apoapsis + periapsis) is vertical; the bbox should be taller than wide.
+    // At argPe 90 the long axis is vertical.
     expect(h).toBeGreaterThan(w);
   });
 
   it("swaps the apoapsis label for its altitude on hover", async () => {
     const user = userEvent.setup();
-    // bodyRadius=600_000, apoapsis=770_000 → altitude = 170 km
+    // Apoapsis 770 km on a 600 km body is 170 km up.
     const { container } = render(
       <OrbitDiagram {...BASE} bodyRadius={600_000} />,
     );
-    // Find the Ap text label (outside the rotation group).
     const findApText = () =>
       Array.from(container.querySelectorAll("text")).find(
         (t) => t.textContent === "Ap",
       );
     expect(findApText()).toBeTruthy();
-    // The marker hit-target is the styled <circle> with cursor:help.
     const apMarker = container.querySelector(
       'circle[fill="var(--color-status-warning-bg)"]',
     );
@@ -177,9 +157,7 @@ describe("OrbitDiagram projected overlay", () => {
     const { container } = render(
       <OrbitDiagram {...BASE} bodyRadius={600_000} />,
     );
-    // Rotation marker is identifiable by the body-fill cross-line, a thin
-    // white-translucent line inside the body disc. No matching stroke on
-    // the default render.
+    // The rotation marker is the only translucent white line.
     const lines = Array.from(container.querySelectorAll("line"));
     const rotationLine = lines.find((l) =>
       (l.getAttribute("stroke") ?? "").includes("255, 255, 255"),
@@ -203,7 +181,6 @@ describe("OrbitDiagram projected overlay", () => {
     const withBand = render(
       <OrbitDiagram {...BASE} bodyRadius={600_000} atmosphereDepthM={70_000} />,
     );
-    // Atmosphere disc is a <circle> with the oxygen / non-oxygen rgba fill.
     const isAtmoCircle = (el: Element) =>
       (el.getAttribute("fill") ?? "").startsWith("rgba(220, 140, 60");
     expect(
@@ -261,10 +238,7 @@ describe("OrbitDiagram horizon mark", () => {
   });
 
   it("does NOT mark a path that merely reached its horizon", () => {
-    // An integrated path is always bounded, so a horizon cap appeared on almost
-    // every arc and annotated the fact that the curve stops where it stops.
-    // The curve's own end already says that, and a mark on every arc reads as
-    // meaning something specific to that arc.
+    // Every integrated path is bounded, so a horizon mark would sit on nearly every arc.
     const { container } = render(
       <OrbitDiagram
         {...BASE}
@@ -277,10 +251,7 @@ describe("OrbitDiagram horizon mark", () => {
   });
 
   it("draws it as a bar across the curve, not as a fade", () => {
-    // A fade would arrive as an opacity or a gradient on the path itself. The
-    // mark is a line element with two distinct endpoints and full opacity, and
-    // asserting the geometry is what tells the two apart: a zero-length mark or
-    // one drawn along the heading would pass a "does an element exist" check.
+    // Geometry, not existence: a zero-length mark or one along the heading would pass an existence check.
     const { container } = render(
       <OrbitDiagram
         {...BASE}
@@ -294,12 +265,9 @@ describe("OrbitDiagram horizon mark", () => {
     const x2 = Number.parseFloat(mark?.getAttribute("x2") ?? "0");
     const y1 = Number.parseFloat(mark?.getAttribute("y1") ?? "0");
     const y2 = Number.parseFloat(mark?.getAttribute("y2") ?? "0");
-    // Perpendicular to a path running along +x: no run in x, real extent in y.
     expect(x1).toBeCloseTo(x2, 6);
     expect(Math.abs(y2 - y1)).toBeGreaterThan(0);
-    // Sits at the far end, not at the start.
     expect(x1).toBeCloseTo(700_000, 6);
-    // And nothing on the drawn curve fades toward it.
     const path = container.querySelector('path[data-trajectory="supplied"]');
     expect(path?.getAttribute("stroke")).not.toMatch(/url\(#/);
     expect(path?.getAttribute("opacity")).toBeNull();

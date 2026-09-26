@@ -9,18 +9,7 @@ import reentryWarning from "./__fixtures__/reentry-warning.json";
 import solar from "./__fixtures__/solar-heating.json";
 import { ThermalStatusComponent } from "./index";
 
-/**
- * DOM snapshots off the stream pipeline, driven by each fixture's own
- * `_stream` block.
- *
- * This spec used to translate each fixture's flat `therm.*` keys into a
- * `vessel.thermal` emit by hand, on the reasoning that the shared harness
- * mounts no `TelemetryProvider` for a plain legacy fixture. It does for one
- * carrying a `_stream` block, and all six of these carry one saying the same
- * thing and a little more (`maxSkinTempRatio`, the part's internal temperatures
- * beside its skin ones), so the hand-built translation is gone and the fixture
- * is the single description of the scenario.
- */
+/** DOM snapshots off the stream pipeline, each driven by its fixture's own `_stream` block. */
 
 const FIXTURES: Record<string, Record<string, unknown>> = {
   "cruise-nominal": cruise,

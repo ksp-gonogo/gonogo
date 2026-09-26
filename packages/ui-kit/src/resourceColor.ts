@@ -1,111 +1,60 @@
-// ---------------------------------------------------------------------------
-// Resource-identity colour primitive. Deterministic
-// name -> colour mapping so the same resource always renders the same
-// colour everywhere it appears (ShipMap's per-part meters today, any future
-// resource widget). Pure and stateless: no registry, no memoisation needed,
-// same input always produces the same output.
-//
-// Two tiers:
-//   1. A curated substring map for resource names we know the real-world
-//      kind of (water, oxidizer, food, ...). Ordered MOST-SPECIFIC-FIRST so
-//      a longer/more specific alias always gets first refusal over a
-//      shorter one that would also match (see CURATED's own comment). Each
-//      family owns a single HUE (its neighbourhood on the wheel); members of
-//      a family (waste/wastewater/carbondioxide all share the co2/waste
-//      family) are told apart by LIGHTNESS, not hue: a crowded family's hue
-//      neighbourhood leaves too little room to keep members visually
-//      distinct, so they spread along the lightness axis instead,
-//      deterministically from a hash of each member's own full name, no
-//      per-member table entry required.
-//   2. A stateless golden-angle hash fallback for anything unrecognised
-//      (mod resources, future KSP resources, typos), so an unknown resource
-//      still gets a stable, well-spread, legible colour rather than one
-//      shared "unknown" grey. Its reserved-zone check avoids every curated
-//      family's hue neighbourhood, not just its exact centre point.
-//
-// Both tiers are normalised into the SAME saturation band and lightness
-// range, so a curated resource and a hashed one read as one system rather
-// than two. ShipMap takes resource identity from here, never from
-// `MeterTone`, which encodes severity and not identity.
-// ---------------------------------------------------------------------------
+/*
+ * Resource-identity colour: a deterministic name -> colour mapping, so the same
+ * resource renders the same colour everywhere. Identity, never severity.
+ *
+ * Two tiers, normalised into the same saturation and lightness range:
+ *   1. A curated substring map for known resource kinds, ordered most specific
+ *      first. Each family owns one hue; members of a family are told apart by
+ *      a lightness hashed from their full name
+ *   2. A golden-angle hash fallback for anything unrecognised, steered out of
+ *      every curated family's hue neighbourhood
+ */
 
-/** Fixed saturation shared by both tiers, tuned for the dark ShipMap canvas.
- *  A starting point, tuned by eye on operator review. The
- *  MECHANISM (two tiers, ordered curated match, hue = family identity,
- *  lightness = member identity, golden-angle hash, reserved-zone avoidance)
- *  is what must stay correct, not this number. */
+/** Fixed saturation shared by both tiers, tuned by eye for the dark canvas. */
 const SATURATION_PCT = 65;
 
-/** Legible lightness range every curated member and Tier 2 fallback is
- *  mapped into. Kept away from the extremes on purpose: below the floor a
- *  fill gets hard to read against the dark ShipMap canvas, above the
- *  ceiling it washes out against the same canvas's highlight chrome. Widened
- *  slightly past a starting 42-70 (by eye, on the waste
- *  family, the tightest three-member case): 42-70 gave the closest pair
- *  (CarbonDioxide/WasteWater) only ~5.3pts apart, legible but not quite the
- *  confident step the operator asked for; 38-72 pushes the same pair to
- *  ~6.4pts apart while staying inside the same dark-canvas/washed-out
- *  guardrails. */
+/**
+ * Legible lightness range every curated member and Tier 2 fallback is mapped
+ * into: below the floor a fill is hard to read on the dark canvas, above the
+ * ceiling it washes out against highlight chrome.
+ */
 const LIGHTNESS_MIN_PCT = 38;
 const LIGHTNESS_MAX_PCT = 72;
 const LIGHTNESS_RANGE_PCT = LIGHTNESS_MAX_PCT - LIGHTNESS_MIN_PCT;
 
-/** Midpoint of the legible lightness range. Used as Tier 2's fixed
- *  lightness (Tier 2 already gets its distinctness from hue spread, it
- *  doesn't need a second axis) and as the anchor lightness for a
- *  single-alias curated family: a family with exactly one alias has no
- *  distinct sibling to spread away from, so it sits at the neutral middle
- *  of the range rather than an arbitrary hash-derived point. */
+/** Tier 2's fixed lightness (it gets its distinctness from hue), and a single-alias family's, which has no sibling to spread from. */
 const LIGHTNESS_MID_PCT = 55;
 
 /** Golden angle in degrees: stepping a hash by this amount spreads hues
  *  maximally without ever having to track which hues are already in use. */
 const GOLDEN_ANGLE_DEG = 137.508;
 
-/** Default half-width, in degrees, of a curated family's Tier-2 reserved
- *  zone before it gets clamped down to fit the gap to its nearest
- *  neighbour (see `RESERVED_RADII_DEG` below). It does NOT size a
- *  member-placement band, since members share the family's exact centre hue;
- *  it only keeps an unknown resource's hashed hue from landing on top of a
- *  curated family's neighbourhood. */
+/** Default half-width, in degrees, of a curated family's Tier 2 reserved zone, before it is clamped to the gap to its nearest neighbour. */
 const RESERVED_ZONE_DEFAULT_DEG = 10;
 
-/** Minimum gap, in degrees, kept between two adjacent families' reserved
- *  zones. Small on purpose: it only has to stop zones touching, the halved
- *  nearest-neighbour-gap calculation already does the heavy lifting. */
+/** Minimum gap, in degrees, kept between two adjacent families' reserved zones. */
 const RESERVED_ZONE_MARGIN_DEG = 1.5;
 
-/** Hard stop on the reserved-zone rotation loop: 360 / GOLDEN_ANGLE_DEG
- *  cycles back to (very nearly) the starting hue, so this is already far
- *  more attempts than a real curated hue count could ever exhaust. Exists
- *  only so a pathological future CURATED table can't hang this function. */
+/** Hard stop on the reserved-zone rotation loop, so a pathological `CURATED` table cannot hang it. */
 const MAX_ROTATIONS = 64;
 
-/** The reserved-zone escape step is DERIVED FROM THE NAME (upper bits of the
- *  same FNV-1a hash), not the fixed golden angle, and mapped into this range.
- *  Two different unknowns that both land in the same reserved zone then
- *  rotate by DIFFERENT amounts and diverge, instead of converging on one hue
- *  the way a shared fixed step made them. 60..300deg: wide enough to clear a
- *  zone in a step or two, never a small step that crawls. Still fully
- *  deterministic per name. */
+/**
+ * The reserved-zone escape step is derived from the name and mapped into this
+ * range, so two unknowns escaping the same zone rotate by different amounts
+ * and diverge.
+ */
 const ESCAPE_STEP_MIN_DEG = 60;
 const ESCAPE_STEP_RANGE_DEG = 241;
 
-/** Fractional dither (~0.508deg, the golden angle's own fractional part) added
- *  to the name-derived step so it is NEVER a whole number. A whole-number step
- *  can orbit a small set of hues (step and 360 sharing a factor) that all sit
- *  in reserved zones, so the escape loop would run to its cap without ever
- *  clearing; a non-integer step's orbit never exactly repeats, so it always
- *  reaches a clear hue. */
+/**
+ * Fractional dither added to the escape step so it is never a whole number: a
+ * whole-number step can orbit a small set of hues that all sit in reserved
+ * zones.
+ */
 const ESCAPE_STEP_DITHER = GOLDEN_ANGLE_DEG - Math.floor(GOLDEN_ANGLE_DEG);
 
 /**
- * One curated family: every alias in `aliases` maps into the same `hue`,
- * shared exactly by every member (no per-family spread any more, see the
- * module header). Aliases within a family don't need internal ordering, but
- * FAMILIES must be ordered most-specific-first in `CURATED` below whenever
- * one family's alias could also be a substring of a different family's
- * alias, so the more specific family wins the match.
+ * One curated family: every alias in `aliases` maps into the same `hue`.
  */
 interface CuratedFamily {
   aliases: readonly string[];
@@ -113,15 +62,10 @@ interface CuratedFamily {
 }
 
 /**
- * Tier 1: curated substring matches, case-insensitive (callers normalise
- * to lower-case before matching), most-specific-first. Small and obvious on
- * purpose: extend it rather than widen an existing alias.
- *
- * `liquidfuel` is listed ahead of any future generic `fuel` alias, and
- * `electriccharge` ahead of `ec`, so a later addition of a broader alias
- * can never steal a match that a more specific one earned first; see
- * `resourceColor.test.ts`'s precedence-mechanism tests for the invariant
- * this ordering exists to protect.
+ * Tier 1: curated substring matches against a lower-cased name. The first
+ * match wins, so families are ordered most specific first: a family whose
+ * alias contains another family's alias must come before it. Extend it rather
+ * than widen an existing alias.
  */
 const CURATED: readonly CuratedFamily[] = [
   { aliases: ["liquidfuel"], hue: 40 }, // amber
@@ -146,13 +90,8 @@ function hueDistance(a: number, b: number): number {
 }
 
 /**
- * Each family's EFFECTIVE Tier-2 reserved-zone radius:
- * `min(RESERVED_ZONE_DEFAULT_DEG, halfGapToNearestOtherCentre -
- * RESERVED_ZONE_MARGIN_DEG)`, clamped to >= 0, computed once at module load
- * from `CURATED`'s own centres. Purely an exclusion zone for Tier 2's hash
- * fallback: member placement does not use it, since members share the family's
- * exact hue. The clamp keeps zones from ever overlapping without hand-tuning
- * any individual family.
+ * Each family's effective Tier 2 reserved-zone radius: the default, clamped to
+ * half the gap to its nearest neighbour less the margin, so zones never overlap.
  */
 const RESERVED_RADII_DEG: readonly number[] = CURATED.map((family, index) => {
   let nearestGap = Infinity;
@@ -171,10 +110,8 @@ const RESERVED_RADII_DEG: readonly number[] = CURATED.map((family, index) => {
 });
 
 /**
- * Every curated family's resolved Tier-2 reserved zone (centre + effective
- * radius), exported so tests can assert the non-overlap invariant and
- * per-family reserved-zone membership directly, without recomputing the
- * clamp logic above.
+ * Every curated family's resolved Tier 2 reserved zone (centre and effective
+ * radius).
  */
 export const CURATED_RESERVED_ZONES: ReadonlyArray<{
   aliases: readonly string[];
@@ -188,8 +125,7 @@ export const CURATED_RESERVED_ZONES: ReadonlyArray<{
 
 /**
  * Tier 1 family lookup: `key` must already be lower-cased. First alias match
- * wins, so `CURATED`'s ordering determines precedence (see the table's own
- * comment). `undefined` when no curated family matches.
+ * wins; `undefined` when no curated family matches.
  */
 function matchCuratedFamily(
   key: string,
@@ -201,12 +137,8 @@ function matchCuratedFamily(
 }
 
 /**
- * Tier 1 hue lookup, exported (module-local, not from the package index) so
- * the ordering/precedence mechanism can be unit-tested directly against
- * synthetic tables without going through the full `resourceColor` pipeline.
- * `key` must already be lower-cased. Returns the family's hue, shared
- * exactly by every member; `memberLightness` below is what actually tells
- * two members of the same family apart.
+ * Tier 1 hue lookup against a table (not exported from the package index).
+ * `key` must already be lower-cased.
  */
 export function matchCuratedHue(
   key: string,
@@ -216,11 +148,8 @@ export function matchCuratedHue(
 }
 
 /**
- * FNV-1a, 32-bit. Deliberately NOT `String.prototype`-derived hashing or
- * anything that could vary by engine/run: FNV-1a is a fixed arithmetic
- * definition, so `resourceColor` stays deterministic across processes,
- * browsers, and time, which is the whole point of Tier 2 (and of Tier 1's
- * member-lightness placement below).
+ * FNV-1a, 32-bit: a fixed arithmetic definition, so colours stay deterministic
+ * across engines and runs.
  */
 function fnv1a(str: string): number {
   let hash = 0x811c9dc5;
@@ -231,18 +160,14 @@ function fnv1a(str: string): number {
   return hash >>> 0;
 }
 
-/** Positive modulo: JS `%` keeps the sign of the dividend, which would
- *  otherwise hand back a negative "hue". */
+/** Positive modulo: JS `%` keeps the sign of the dividend. */
 function positiveMod(value: number, modulus: number): number {
   return ((value % modulus) + modulus) % modulus;
 }
 
 /**
  * Deterministic member lightness for a full resource name, hashed with a
- * namespaced key (`light:<name>`) so this placement and Tier 2's hue
- * fallback derive independently, mapped into
- * `[LIGHTNESS_MIN_PCT, LIGHTNESS_MAX_PCT]`. Same name -> same lightness
- * always. Exported for direct testing of the placement mechanism.
+ * namespaced key so it is independent of Tier 2's hue.
  */
 export function memberLightness(key: string): number {
   const hash = fnv1a(`light:${key}`);
@@ -251,14 +176,9 @@ export function memberLightness(key: string): number {
 }
 
 /**
- * Tier 1 resolved hue + lightness for a full resource name. `undefined`
- * when no curated family matches (falls through to Tier 2 in
- * `resourceColor`). A single-alias family (nothing else could plausibly
- * share its neighbourhood) sits at the neutral `LIGHTNESS_MID_PCT`; a
- * multi-alias family (waste/wastewater/carbondioxide, electriccharge/ec,
- * ...) spreads each matching full name to its own hash-derived lightness,
- * so members stay tellable apart even when the family's hue neighbourhood
- * is tightly boxed in by its neighbours. Exported for direct testing.
+ * Tier 1 hue and lightness for a full resource name, or `undefined` when no
+ * curated family matches. A single-alias family sits at the mid lightness; a
+ * multi-alias family spreads each member to its own hashed lightness.
  */
 export function placedColor(
   key: string,
@@ -271,10 +191,7 @@ export function placedColor(
 }
 
 /**
- * A hue is "reserved" for Tier 2 purposes when it falls inside any curated
- * family's reserved zone (centre +/- effective radius). This keeps an
- * unknown resource's hashed hue from landing on top of, or right next to, a
- * curated family's own neighbourhood.
+ * Whether a hue falls inside any curated family's reserved zone.
  */
 function isWithinReservedZone(hue: number): boolean {
   return CURATED_RESERVED_ZONES.some(
@@ -283,21 +200,13 @@ function isWithinReservedZone(hue: number): boolean {
 }
 
 /**
- * Tier 2: stateless golden-angle hash fallback, exported for the same
- * synthetic-table testing reason as `matchCuratedHue`.
- *
- * `hue = (stableHash(name) * goldenAngle) mod 360`, then, if it lands
- * inside a curated family's reserved zone, rotated by a NAME-DERIVED step
- * (deterministic, no randomness) as many times as it takes to clear every
- * zone. The step is per-name so two unknowns escaping the SAME zone
- * diverge, see `ESCAPE_STEP_MIN_DEG`'s comment.
+ * Tier 2: `hue = (stableHash(name) * goldenAngle) mod 360`, rotated by a
+ * name-derived step until it clears every reserved zone.
  */
 export function hashHue(key: string): number {
   const hash = fnv1a(key);
   let hue = positiveMod(hash * GOLDEN_ANGLE_DEG, 360);
-  // Escape step from the name's own hash (upper bits, decoupled from the
-  // initial-hue derivation above), so a different name escaping the same zone
-  // rotates by a different amount and lands somewhere else.
+  // Upper bits of the hash, decoupled from the initial hue.
   const escapeStep =
     ESCAPE_STEP_MIN_DEG +
     ((hash >>> 8) % ESCAPE_STEP_RANGE_DEG) +
@@ -311,12 +220,9 @@ export function hashHue(key: string): number {
 }
 
 /**
- * Resolve a resource name to a stable, legible fill colour. Same name ->
- * same colour always; curated names get a hue matching the real resource
- * kind (shared with every other member of that family) plus a lightness
- * that tells family members apart, unrecognised names get a well-spread
- * hashed hue at the neutral mid-lightness, never colliding with a curated
- * family's reserved zone.
+ * Resolve a resource name to a stable, legible fill colour. Curated names get
+ * their family's hue plus a lightness that tells members apart; unrecognised
+ * names get a hashed hue clear of every curated family.
  */
 export function resourceColor(name: string): string {
   const key = name.trim().toLowerCase();

@@ -10,18 +10,12 @@ import {
   useDelayRailStore,
 } from "./DelayRailContext";
 
-/*
- * The rail axes these fixtures carry, from the same derivations production uses
- * rather than written as literals: a fixture that spelled its own tags would go
- * on asserting the old picture after a derivation moved.
- */
+// The rail axes come from the production derivations, so the fixtures follow them rather than asserting stale literals.
 const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
 
 function makeHandle(id: string, effectiveDelaySeconds = 4): CommandHandle {
   return { id, inFlight: [], tags: RAIL_DISCRETE, effectiveDelaySeconds };
 }
-
-// ── store mechanics (no React), same style as PanelStatusStore.test.ts ────
 
 describe("createDelayRailStore", () => {
   it("is empty with no registrations", () => {
@@ -82,12 +76,7 @@ describe("createDelayRailStore", () => {
   });
 });
 
-// ── context wiring (React mount/unmount), same style as statusHooks.test.tsx ──
-
-/** A minimal fixture registrant: registers `handle` on mount, deregisters on
- * unmount, directly against the context (not via `useCommand`, which lives
- * in `@ksp-gonogo/sitrep-client` and is covered by that package's own
- * `use-command.test.tsx` integration test). */
+/** A minimal registrant: registers `handle` on mount and deregisters on unmount, directly against the context. */
 function Registrant({ handle }: { handle: CommandHandle }) {
   const store = useDelayRailStore();
   useEffect(() => {

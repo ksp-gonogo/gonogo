@@ -6,30 +6,16 @@ import { Unit } from "./Unit";
 
 expect.extend(unitMatchers);
 
-/*
- * The merge the kit documents on `UnitMatchers`, rather than a second copy of
- * the signature: a hand-written one drifted from it (no `opts`) and redeclared
- * vitest's own type parameter along the way.
- */
+// The merge documented on `UnitMatchers`, not a hand-written copy of the signature.
 declare module "vitest" {
   interface Assertion<T> extends UnitMatchers<T> {}
 }
 
-/**
- * The Uplink author's path, exercised as an Uplink author would hit it.
- *
- * These helpers exist because `<Unit>` splits a readout into a number, a
- * symbol and a hidden word, so the obvious assertion finds nothing. The first
- * test pins that surprise rather than describing it, so the helpers cannot
- * quietly stop being necessary (or stop working) without this failing.
- */
+/** The Uplink author's path. The first test pins why the helpers are needed, so it fails if they stop being. */
 describe("@ksp-gonogo/ui-kit/testing", () => {
   it("is needed: a readout is not one text node", () => {
     const { container } = render(<Unit value={value("m", 12400)} />);
-    // What an author reaches for first, and why it does not work. The
-    // separator is spelled \u2009 here deliberately: typing an ordinary space
-    // produces `expected "12.4 km kilometres" to be "12.4 km kilometres"`,
-    // which is the exact confusion `visibleText` exists to end.
+    // The separator is a thin space, spelled \u2009 so the expectation is legible.
     expect(container.textContent).toBe("12.4\u2009km kilometres");
     expect(
       [...container.querySelectorAll("*")].some(
@@ -45,26 +31,23 @@ describe("@ksp-gonogo/ui-kit/testing", () => {
 
   it("normalises the thin space so an expectation can be typed", () => {
     const { container } = render(<Unit value={value("m", 12400)} />);
-    // The rendered separator is U+2009; the assertion above uses a plain space and passes, which is the whole point of the normalisation.
     expect(container.textContent).toContain(" ");
     expect(visibleText(container)).not.toContain(" ");
   });
 
   it("toShowQuantity asserts the quantity, not its spelling", () => {
     const { container } = render(<Unit value={value("m", 12400)} />);
-    // 12400 metres, however this kit decides to spell it.
     expect(container).toShowQuantity(value("m", 12400));
     expect(container).not.toShowQuantity(value("m", 999));
   });
 
   it("follows the ladder, so a rung change does not break the test", () => {
-    // The same distance either side of the metres/kilometres handoff. A
-    // literal expectation has to name which rung it lands on; this does not.
+    // Either side of the metres/kilometres handoff.
     const near = render(<Unit value={value("m", 940)} />);
     expect(near.container).toShowQuantity(value("m", 940));
     const far = render(<Unit value={value("m", 94000)} />);
     expect(far.container).toShowQuantity(value("m", 94000));
-    // And they genuinely render differently, so the test above is not vacuous.
+    // They render differently, so the test above is not vacuous.
     expect(visibleText(near.container)).not.toBe(visibleText(far.container));
   });
 

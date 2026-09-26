@@ -5,32 +5,19 @@ import type {
   VesselTopology,
 } from "@ksp-gonogo/core";
 
-/** One part's live-data overlay: the shape `usePartsLive` merges on top of
- *  topology, now sourced straight off the `vessel.parts` wire like every
- *  other topology field. */
+/** One part's live-data overlay, the shape `usePartsLive` merges on top of topology. */
 export interface PartLiveWireInput {
   resources?: PartResources;
   partState?: PartState | null;
 }
 
 /**
- * Inverse of `@ksp-gonogo/data`'s `deriveTopologyFromVesselParts`: converts
- * one of ShipMap's existing `v.topology`-shaped fixtures (captured from a
- * live KSP session) into the `vessel.parts` wire shape, so a stream-fixture
- * test can drive the real `useTopology` hook off `StubTransport.emit`
- * instead of the retired legacy `v.topology`/`v.topologySeq` keys.
- *
- * Round-trips every field the diagram actually reads (see
- * `shipTopology.ts`'s `buildShipMapPart`); `persistentId`/`manufacturer`/
- * `crewCapacity`/`crashTolerance` have no `VesselPart` wire field (nothing
- * reads them back on the derive side either; see
- * `vesselPartsAdapter.ts`'s own doc comment) so they're simply dropped here.
- *
- * `liveByFlightId` (optional) overlays each part's `resources`/`moduleStates`,
- * the `usePartsLive` per-part slice, which now rides this SAME payload
- * instead of the retired `r.resourceFor[fid]`/`v.partState[fid]` keys. Pass
- * {@link extractLegacyPartLiveFromFixture}'s output when converting an
- * existing fixture that still carries those legacy keys.
+ * Inverse of `@ksp-gonogo/data`'s `deriveTopologyFromVesselParts`: converts a
+ * captured `v.topology`-shaped fixture into the `vessel.parts` wire, so a
+ * stream fixture can drive the real `useTopology`. Round-trips every field the
+ * diagram reads; fields with no `VesselPart` wire field are dropped.
+ * `liveByFlightId` overlays each part's `resources`/`moduleStates`, from
+ * {@link extractLegacyPartLiveFromFixture} for a fixture with legacy keys.
  */
 export function topologyToVesselPartsWire(
   topology: VesselTopology,
@@ -100,13 +87,9 @@ const RESOURCE_FOR_KEY = /^r\.resourceFor\[(\d+)\]$/;
 const PART_STATE_KEY = /^v\.partState\[(\d+)\]$/;
 
 /**
- * Scans a flat legacy fixture object (the `{ "r.resourceFor[1002]": {...},
- * "v.partState[1002]": {...}, ... }` shape captured off the old
- * `DataSource`) for per-flightId resource/module-state keys and collects
- * them into the `liveByFlightId` map {@link topologyToVesselPartsWire}
- * expects. Returns `undefined` (never an empty map) when the fixture
- * carries none of these keys, so a caller can `??` straight into "no
- * overlay" without an extra size check.
+ * Collects a flat legacy fixture's `r.resourceFor[fid]`/`v.partState[fid]`
+ * keys into the map {@link topologyToVesselPartsWire} expects, or `undefined`
+ * (never an empty map) when there are none.
  */
 export function extractLegacyPartLiveFromFixture(
   fixture: Record<string, unknown>,

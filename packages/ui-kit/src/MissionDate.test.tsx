@@ -23,18 +23,13 @@ describe("MissionDate time context", () => {
     expect(screen.getByText("AT KSC")).toBeInTheDocument();
   });
 
-  /* A frame can arrive before the roster naming its centre does. Saying the
-     time is an arrival time without saying whose still beats saying nothing,
-     so the unnamed form is a rendering rather than a reason to drop the
-     qualifier. */
+  // An arrival time without a named vantage still beats an unqualified instant.
   it("still qualifies an arrival time whose vantage has not been named", () => {
     render(<MissionDate value={9_201_600} context={{ frame: "received" }} />);
     expect(screen.getByText("RECEIVED")).toBeInTheDocument();
   });
 
-  /* The token is written for the eye: read aloud it is "ess see ee tee". The
-     phrase replaces it in the accessibility tree the same way `<Unit>`'s word
-     replaces a symbol, so the two are never announced together. */
+  // Read aloud the token is "ess see ee tee", so the phrase replaces it in the accessibility tree.
   it("announces the phrase rather than the token", () => {
     const { container } = render(
       <MissionDate value={9_201_600} context={{ frame: "scet" }} />,

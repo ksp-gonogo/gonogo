@@ -212,12 +212,7 @@ describe("projectOrbitRing", () => {
       CTX,
     );
     expect(ring).not.toBeNull();
-    // A polyline, not an `<ellipse cx cy rx ry>` in a rotate() group: the four
-    // attributes describe the shape a closed orbit has in its OWN plane, and
-    // once the projection is honest it has a centre they cannot express. So the
-    // assertions are on the drawn geometry: the focus is at the origin, the
-    // nearest point is a(1-e) away and the furthest a(1+e), and the nearest one
-    // lies along lan+argPe, which is what "rotated by 45 degrees" meant.
+    // A polyline, not an ellipse in a rotate() group, so assert the drawn geometry: focus at the origin, nearest point a(1-e) away along lan+argPe, furthest a(1+e).
     const points = pathPoints(ring as string);
     expect(points.length).toBe(97);
     const a = 1_000_000 * CTX.plotScale; // 10
@@ -323,7 +318,6 @@ describe("resolveSystemEntities", () => {
       "connection-line",
       "point",
     ]);
-    // Sanity: the default layer table itself is what the sort keyed off.
     expect(SYSTEM_ENTITY_DEFAULT_LAYER["orbit-path"]).toBeLessThan(
       SYSTEM_ENTITY_DEFAULT_LAYER.blob,
     );

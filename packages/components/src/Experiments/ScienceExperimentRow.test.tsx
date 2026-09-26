@@ -8,19 +8,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { Instrument } from "./instrument";
 import { ScienceExperimentRow } from "./ScienceExperimentRow";
 
-/**
- * What a confirmed dispatch resolves with, as the wire answers it: the result
- * envelope. These fixtures used to resolve `undefined`, a reply no command has
- * ever sent, which typechecked only while a bare handle's reply was `unknown`.
- */
 const OK: CommandReplyLike = { success: true };
 
-/*
- * The rail axes the fixture handle carries, read off the command this row
- * actually presses rather than written as a literal: the transmit command's own
- * declaration is what decides whether the rail draws a queue row or a strip, so
- * a fixture that spelled its own tags would stop tracking it.
- */
+// Read off the real command so the fixture tracks its declaration.
 const TRANSMIT_TAGS = railTagsForCommand("science.experiment.transmit");
 
 /** A structural command handle, the shape `useCommand` returns. */
@@ -28,9 +18,7 @@ function handle(send: CommandButtonHandle["send"]): CommandButtonHandle {
   return { send, inFlight: [], tags: TRANSMIT_TAGS, effectiveDelaySeconds: 0 };
 }
 
-// Rows read `theme.space` (via the kit's `Inline`), so every render needs a
-// theme in scope: the shared `render` mounts one by default. The `<ul>` is
-// here because a row is an `<li>` and needs its list parent to be valid.
+// A row is an `<li>` and needs its list parent to be valid.
 function renderRow(ui: ReactElement) {
   return render(<ul>{ui}</ul>);
 }
@@ -132,11 +120,7 @@ describe("ScienceExperimentRow", () => {
     expect(screen.queryByText("Deploy")).not.toBeInTheDocument();
   });
 
-  /**
-   * The full badge set is wider than the row it sits in, and the row's layout
-   * has to be the thing that gives: before this the name was squeezed to a
-   * glyph and the badges ran on over the neighbouring column.
-   */
+  // The full badge set is wider than the row, so the row must wrap rather than crush the name.
   it("lays the row and its badge cluster out to wrap, and keeps the whole name in reach", () => {
     renderRow(
       <ScienceExperimentRow
@@ -158,7 +142,6 @@ describe("ScienceExperimentRow", () => {
     expect(badges).not.toBeNull();
     expect(getComputedStyle(badges as Element).flexWrap).toBe("wrap");
   });
-  // Moved here with the component: this case lived in ui-kit's `axe.smoke.test.tsx` while the row did, and a11y coverage travels with the thing it covers.
   it("has no axe violations across instrument states", async () => {
     const { container } = renderRow(
       <>

@@ -11,12 +11,6 @@ import {
 import { type OrbitElements, solve } from "@ksp-gonogo/sitrep-client";
 import type { CelestialBody } from "../SystemView/useCelestialBodies";
 
-/*
- * Pure bridge between the streamed body model (`CelestialBody`, elements in
- * radians) and the core transfer math. No React, no side effects, the widget
- * calls these; tests exercise them directly.
- */
-
 const toDeg = (rad: number): number => (rad * 180) / Math.PI;
 const wrap360 = (deg: number): number => ((deg % 360) + 360) % 360;
 
@@ -42,9 +36,9 @@ export function bodyTrueLongitudeDeg(body: CelestialBody): number | null {
 }
 
 /**
- * Current phase angle (degrees, wrapped to (−180,180]) of `dest` relative to
- * `origin`: how far the destination leads (+) or trails (−) the origin as
- * seen from their shared parent. Compared against the Hohmann ideal.
+ * Current phase angle (degrees, wrapped to (-180,180]) of `dest` relative to
+ * `origin`: how far the destination leads (+) or trails (-) the origin as seen
+ * from their shared parent.
  */
 export function phaseAngleDeg(
   origin: CelestialBody,
@@ -140,22 +134,12 @@ export interface PorkchopBuildInput {
   departureSamples?: number;
   /** Arrival-axis samples. Default 32. */
   arrivalSamples?: number;
-  /**
-   * UT the grid centres its departure axis on, the ideal departure of the
-   * window being shown. Default `nowUt`. Set it (from a selected window's
-   * `departureUt`) to focus the chart on that window's Δv surface.
-   */
+  /** UT the grid centres its departure axis on; default `nowUt`. */
   centerDepUt?: number;
   /**
    * Where each body is, at an instant on the grid's own axes. Both default to
-   * the client's Keplerian `solve` over elements rebuilt from `system.bodies`,
-   * which is what a screen with no stream mounted, and every test here, gets.
-   *
-   * The pair exists so the widget can inject `system.bodies.statesAt` instead:
-   * the game's elected propagation provider answering from the model the rest
-   * of the mod reads, rather than this package's second copy of two-body
-   * motion. Injected as functions rather than fetched here because the answer
-   * arrives over the wire and this build is synchronous.
+   * the client's Keplerian `solve`; the widget injects `system.bodies.statesAt`
+   * so the grid uses the game's elected propagation provider.
    */
   propagateOrigin?: (ut: number) => StateLike;
   propagateDest?: (ut: number) => StateLike;
@@ -169,12 +153,8 @@ export interface PorkchopAxes {
 }
 
 /**
- * The grid's two time axes, without solving anything on them.
- *
- * Split out of `buildTransferPorkchop` rather than duplicated because a caller
- * that wants to pre-fetch the body states has to know which instants the grid
- * will ask about BEFORE it builds one, and two copies of this geometry would
- * drift into fetching one set of instants and plotting another.
+ * The grid's two time axes, without solving anything on them, so a caller can
+ * pre-fetch body states for exactly the instants the grid will plot.
  */
 export function porkchopAxes(input: PorkchopBuildInput): PorkchopAxes | null {
   const { origin, dest, bodies, nowUt } = input;
@@ -215,21 +195,11 @@ export function porkchopAxes(input: PorkchopBuildInput): PorkchopAxes | null {
 }
 
 /**
- * Build the porkchop grid for the origin→dest pair by wiring the streaming
- * Keplerian `solve` into core's `buildPorkchop`.
- *
- * The grid is a tight WINDOW around the transfer optimum, not a broad survey:
- * departure spans `centerDep ± 0.4·T_Hohmann`, arrival is centred on
- * `centerDep + T_Hohmann` and spans `± 0.4·T_Hohmann`. That keeps the time of
- * flight in `[0.2, 1.8]·T_Hohmann` across every cell; always positive, never
- * near-degenerate: so the whole grid solves and the Δv field is a smooth bowl
- * with a single central minimum (it contours to the canonical nested-bullseye
- * porkchop). A broad survey would fold in the arr≤dep triangle and the
- * long-TOF / multi-rev region, punching no-solution holes through the plot.
- *
- * Departures are never sampled before `nowUt` (you can't leave in the past); a
- * window whose ideal departure is "now" therefore shows the right half of the
- * bowl, which is correct rather than lopsided.
+ * The porkchop grid for the origin to dest pair. A tight WINDOW around the
+ * optimum (departure `centerDep ± 0.4·T_Hohmann`, arrival centred on
+ * `centerDep + T_Hohmann`), so time of flight stays in `[0.2, 1.8]·T_Hohmann`,
+ * every cell solves, and the Δv field is a single bowl. Departures are never
+ * sampled before `nowUt`.
  */
 export function buildTransferPorkchop(
   input: PorkchopBuildInput,
@@ -298,17 +268,10 @@ function makeWindow(
 }
 
 /**
- * The next `count` transfer windows to the destination. Window 0 is the next
- * one; each subsequent window is a synodic period later with the same repeating
- * geometry (Δv / transfer-time stay constant for near-circular orbits, so the
- * useful signal across rows is the date/countdown: "miss this one, the next is
- * in N years"). Empty when no transfer solves.
- *
- * Window TIMING comes from the phase solution (`departureUt` = the synodic
- * countdown to the ideal phase, so window 0 reads "now" when the phase is open),
- * NOT from the porkchop's global-min departure (which can land a synodic away).
- * The Δv MAGNITUDE comes from the porkchop optimum; ejection figures + transfer
- * time from the coplanar solution.
+ * The next `count` transfer windows, each a synodic period after the last.
+ * Window TIMING comes from the phase solution, not the porkchop's global-min
+ * departure (which can land a synodic away); the Δv magnitude comes from the
+ * porkchop optimum. Empty when no transfer solves.
  */
 export function upcomingWindows(
   solution: TransferSolution,
@@ -333,12 +296,7 @@ export function upcomingWindows(
   return out;
 }
 
-/**
- * The bodies eligible as transfer destinations from `origin`: every other body
- * sharing `origin`'s parent (siblings), with the elements needed to solve. For
- * an interplanetary transfer `origin` is the vessel's parent (a planet) and the
- * siblings are the other planets; for a lunar transfer it's a moon's siblings.
- */
+/** The bodies eligible as transfer destinations from `origin`: its solvable siblings. */
 export function transferDestinations(
   origin: CelestialBody,
   bodies: CelestialBody[],
@@ -357,14 +315,9 @@ export function transferDestinations(
 const CAPTURE_CLEARANCE_M = 10_000;
 
 /**
- * The radius to quote a capture burn at: clear of the atmosphere if there is one,
- * clear of the ground if there is not.
- *
- * A convention, and stated in the widget's footer rather than hidden, because any
- * choice here is arbitrary and an unstated arbitrary choice is worse than a stated
- * one. This one is chosen to agree with the low-orbit figures on the community Δv
- * map an operator is likely to already know: Kerbin to Duna reads ~620 m/s to
- * capture on that map, and this convention reproduces it.
+ * The radius to quote a capture burn at: clear of the atmosphere if there is
+ * one, clear of the ground if not. A convention stated in the widget's footer,
+ * chosen to agree with the community Δv map's low-orbit figures.
  */
 function captureRadiusOf(body: CelestialBody): number | null {
   if (body.radius == null || !Number.isFinite(body.radius)) return null;
@@ -398,18 +351,9 @@ export interface ReachComputeInput {
 
 /**
  * Every sibling destination with what it costs THIS craft and when it can go,
- * cheapest first.
- *
- * Closed-form throughout: one `keplerTransferSolver.solve` plus one `captureBurn`
- * per destination, and deliberately NO porkchop. The porkchop is 1024 Lambert
- * solves for a single destination and is rebuilt as the view time advances; running
- * one per sibling would multiply that by the system's planet count on the frame
- * path. It would also quote the wrong quantity: see `captureBurn` on why a
- * characteristic Δv is not a cost.
- *
- * A destination whose elements have not arrived keeps its row with null figures
- * rather than disappearing. A missing row and an unaffordable one look identical to
- * an operator, and they are not the same fact.
+ * cheapest first. Closed-form throughout, with no porkchop per destination. A
+ * destination whose elements have not arrived keeps its row with null figures:
+ * a missing row and an unaffordable one are not the same fact.
  */
 export function reachEntries(input: ReachComputeInput): ReachEntry[] {
   const { origin, bodies, parkingRadius, nowUt } = input;
@@ -471,9 +415,7 @@ export function reachEntries(input: ReachComputeInput): ReachEntry[] {
     },
   );
 
-  // Cheapest first, so "the nearest thing I can reach" is the top row. Rows with
-  // no cost sort last rather than to the front, where a null would otherwise read
-  // as free.
+  // Cheapest first; rows with no cost sort last, where a null cannot read as free.
   return entries.sort((a, b) => {
     if (a.totalDeltaV == null && b.totalDeltaV == null) return 0;
     if (a.totalDeltaV == null) return 1;
@@ -486,16 +428,10 @@ export function reachEntries(input: ReachComputeInput): ReachEntry[] {
  * How a destination's cost sits against the budget.
  *
  * - `go`: departure and capture are both covered
- * - `one-way`: departure is covered, capture is not. A flyby or an impactor is a
- *   real mission, so this is a DIFFERENT answer from unreachable rather than a
- *   softer way of saying no
- * - `marginal`: within a tenth of the departure threshold. The model behind these
- *   numbers is coplanar and ignores plane change entirely, which for a steeply
- *   inclined destination is the largest term it is missing, so a crisp boundary
- *   drawn on it would claim precision the arithmetic does not have
+ * - `one-way`: departure is covered, capture is not. A flyby is a real mission, so this is a different answer from `no`
+ * - `marginal`: within a tenth of the departure threshold, since the coplanar model ignores plane change
  * - `no`: departure is not covered
- * - `null`: no verdict is possible, because there is no budget or no cost. NOT a
- *   `no`: those are different sentences and only one of them is about the craft
+ * - `null`: no budget or no cost, which is not a `no`
  */
 export type ReachVerdict = "go" | "one-way" | "marginal" | "no";
 
@@ -519,25 +455,13 @@ export function reachVerdict(
   return spendable >= ejectionDeltaV ? "one-way" : "no";
 }
 
-/**
- * Fraction of the Hohmann transfer time the porkchop's UT inputs are rounded to.
- *
- * The departure axis spans `±0.4·T` across 32 samples, so one sample is about `0.026·T`.
- * `T/500` is roughly a thirteenth of a sample: below anything the chart can express,
- * which is what makes rounding to it invisible rather than a trade.
- */
+/** Fraction of the Hohmann transfer time the porkchop's UT inputs are rounded to, well below one grid sample. */
 const GRID_UT_QUANTUM_FRACTION = 500;
 
 /**
- * The quantum the porkchop's `nowUt` / `centerDepUt` are rounded to before they reach a
- * memo, or `null` when there is no transfer time to scale against.
- *
- * **Scaled to the chart, deliberately, not a fixed number of seconds.** A fixed quantum
- * is not warp-proof: at 100,000x, sixty UT-seconds elapse in well under a millisecond of
- * wall time, so a 60-second bucket changes every frame and a memo keyed on it rebuilds
- * every frame, which is the churn it was meant to stop. It fails exactly when the clock
- * is moving fastest. A quantum expressed in transfer times cannot fail that way, because
- * the axes are drawn in transfer times too.
+ * The quantum the porkchop's UT inputs are rounded to before they reach a memo,
+ * or `null` with no transfer time. Scaled to the chart rather than a fixed
+ * number of seconds, so it stays stable under high time warp.
  */
 export function porkchopGridQuantum(transferTimeSec: number): number | null {
   if (!Number.isFinite(transferTimeSec) || transferTimeSec <= 0) return null;

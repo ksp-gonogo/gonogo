@@ -63,7 +63,7 @@ describe("worstSeverity max-merge", () => {
   });
 });
 
-// One assertion per row of the spec mapping table (Scale B column), so the table and the code cannot drift.
+// One assertion per mapping row, so the mapping and the code cannot drift.
 describe("severityFromStreamStatus (mapping table)", () => {
   it("live -> nominal", () => {
     expect(severityFromStreamStatus("live")).toBe("nominal");

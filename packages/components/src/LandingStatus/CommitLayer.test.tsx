@@ -4,9 +4,7 @@ import { describe, expect, it } from "vitest";
 import { CommitLayer } from "./CommitLayer";
 
 const live = {
-  // These cases are all about WHICH instruction the hero shows, so they grant
-  // permission to instruct. The refusal itself is covered in `stale.test.tsx`,
-  // where the inputs are what goes stale.
+  // These cases are about which instruction the hero shows; the refusal is covered in `stale.test.tsx`.
   mayInstruct: true,
   regime: "live" as const,
   live: true,
@@ -65,17 +63,7 @@ describe("CommitLayer", () => {
     expect(screen.queryByText("NO LANDING VECTOR")).toBeNull();
   });
 
-  // COMMIT POINT and UNCOMMANDABLE used to be asserted here, and the slot that
-  // held them was asserted to reserve its own height so toggling it could not
-  // reflow the widget. Both lines are gone: they stated the same fact in two
-  // vocabularies (the round trip exceeds the window left), and the round trip
-  // itself is now in the panel header, where the operator reads the arithmetic
-  // rather than its conclusion twice. The reflow guarantee went with them,
-  // there being no slot left to toggle.
-  //
-  // What survives from those tests is the live region, which is the part that
-  // was never about the wording: a sustained delay state announces politely,
-  // and only the instantaneous ignition cue is allowed to interrupt.
+  // A sustained delay state announces politely; only the instantaneous ignition cue may interrupt.
   it("announces a sustained delay state politely, not assertively", () => {
     render(
       <CommitLayer
@@ -93,7 +81,7 @@ describe("CommitLayer", () => {
   });
 
   it("interrupts only for the ignition cue", () => {
-    // The one ABORT-class event in this widget, per the a11y rule that reserves assertive for events that must cut through.
+    // The one ABORT-class event in this widget.
     render(<CommitLayer {...live} suicideBurnCountdown={0} />);
     const region = screen.getByRole("alert");
     expect(region).toHaveAttribute("aria-live", "assertive");
@@ -115,7 +103,7 @@ describe("CommitLayer", () => {
   });
 
   it("shows a landed state instead of stale descent countdowns once down", () => {
-    // The same props as the descent above, countdown included: only `landed` differs, so the burn-GO line that test sees is one this must not.
+    // Same props as the descent above except `landed`, so the burn-GO line that test sees must be absent here.
     render(<CommitLayer {...delayedDescent} landed />);
     expect(screen.getByText("LANDED")).toBeInTheDocument();
     expect(screen.getByText(/touchdown confirmed/i)).toBeInTheDocument();

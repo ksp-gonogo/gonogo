@@ -5,14 +5,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { isGroundedSituation, LandingStatusComponent } from "./index";
 
-/**
- * Whether the vessel is ON THE GROUND, which is what voids every descent clock.
- *
- * The verdict comes off the `Situation` ORDINAL. It used to come off the enum
- * NAME, compared against the single literal "Landed", and a vessel that has not
- * launched yet is `PreLaunch`: it failed the test, so the pad ran a live
- * descent evaluation on a craft still on the clamps.
- */
+/** Whether the vessel is on the ground, which voids every descent clock, judged off the `Situation` ordinal so a `PreLaunch` craft on the clamps counts. */
 
 const KERBIN = { index: 1, name: "Kerbin", radius: 600_000, mu: 3.5316e12 };
 
@@ -27,24 +20,18 @@ const CARRIED = [
   "comms.delay",
 ];
 
-/**
- * Every `Situation` member, and whether it grounds the vessel. Written out in
- * full rather than as a set membership test, so that appending a member to the
- * C# enum without ruling on it here shows up as a missing row.
- */
+/** Every `Situation` member and whether it grounds the vessel, so a member added to the C# enum without an answer here is a missing row. */
 const CASES: ReadonlyArray<{ situation: Situation; grounded: boolean }> = [
   { situation: Situation.Landed, grounded: true },
   { situation: Situation.Splashed, grounded: true },
-  // On the clamps. Not descending, and the reason this file exists.
+  // On the clamps and not descending.
   { situation: Situation.PreLaunch, grounded: true },
   { situation: Situation.Orbiting, grounded: false },
   { situation: Situation.Escaping, grounded: false },
   { situation: Situation.Flying, grounded: false },
   { situation: Situation.SubOrbital, grounded: false },
   { situation: Situation.Docked, grounded: false },
-  // A situation this contract does not recognize is NOT a claim that the
-  // vessel is airborne, but it is not a claim that it is down either. The
-  // caller falls back to its other grounded signals.
+  // Unrecognised is neither airborne nor down; the caller falls back to its other grounded signals.
   { situation: Situation.Unknown, grounded: false },
 ];
 
@@ -81,11 +68,7 @@ describe("LandingStatus on the launchpad", () => {
     });
   });
 
-  /**
-   * A craft sitting on the pad: still on the clamps, not moving, and a few
-   * metres of vessel between its centre of mass and the terrain datum. Those
-   * few metres are what the descent solve turns into a free fall.
-   */
+  /** A craft on the pad: a few metres between its centre of mass and the terrain datum, which the descent solve would turn into a free fall. */
   function emitOnThePad() {
     act(() => {
       stream.emit("system.bodies", {
@@ -148,7 +131,7 @@ describe("LandingStatus on the launchpad", () => {
     );
     emitOnThePad();
 
-    // The pad is on the ground, so the widget owes the operator the grounded readout rather than a countdown to an impact that is not coming.
+    // On the ground, so the grounded readout rather than a countdown to an impact that is not coming.
     expect(await screen.findByText("LANDED")).toBeInTheDocument();
   });
 });

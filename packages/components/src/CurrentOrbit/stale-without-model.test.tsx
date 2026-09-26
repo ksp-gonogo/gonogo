@@ -8,24 +8,8 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
 /**
- * A stale orbit with NO model draws nothing, which is the widget's stated rule
- * and the case that regressed while `vessel.orbit` was being given a conic.
- *
- * The rule is in this widget's own header: it DRAWS the orbit and the craft's
- * place on it, so what it shows is a positive claim about where the craft is
- * NOW. An element that merely stopped arriving does not support that claim:
- * it would make no sense to reckon a dead link, nor really to share old
- * values, and it doesn't really say anything.
- *
- * Giving the topic a model briefly broke this. Taking the observation on
- * `observed` OR `stale` and then overlaying the model is right when a model is
- * on offer, and leaves a bare stale reading drawn as current when one is not.
- * Nothing caught it, because every test here fed a live stream.
- *
- * The sibling case, a stale reading WITH a model, is deliberately not this
- * test's subject and is legitimate: `sma`, `ecc` and `inc` are constants of the
- * orbit rather than figures that go out of date, so a conic that moves the
- * phase assembles a current answer rather than holding an old one.
+ * A stale orbit with no model draws nothing: the widget claims where the craft is now, and an element that stopped arriving does not support that.
+ * A stale reading with a model is a different case: the conic moves the phase over constants of the orbit, so the answer is current.
  */
 describe("CurrentOrbit: a stale orbit with no model", () => {
   it("draws nothing rather than holding the last elements", async () => {
@@ -43,12 +27,7 @@ describe("CurrentOrbit: a stale orbit with no model", () => {
       </fixture.Provider>,
     );
 
-    /*
-     * What "nothing to draw" looks like in THIS fixture, measured rather than
-     * guessed. A hard-coded count is a number that depends on how many channels
-     * the fixture carries, and asserting one told me 4 was not 6 while the
-     * behaviour under test was already correct.
-     */
+    // Measured rather than hard-coded, since the count depends on the channels the fixture carries.
     const placeholdersWhenEmpty = screen.getAllByText(NULL_DISPLAY).length;
 
     act(() => {
@@ -58,12 +37,7 @@ describe("CurrentOrbit: a stale orbit with no model", () => {
         inc: 0.3,
         argPe: 12.5,
         mu: 3.5316e12,
-        /*
-         * An unbounded reach with no stated shape, so nothing vouches for a
-         * conic and the model declines on the elements themselves. The fixture
-         * carries no body roster, and an absent roster is not a reason to
-         * decline.
-         */
+        // Unbounded reach and no stated shape, so the model declines on the elements themselves.
         horizon: UNBOUNDED_HORIZON,
         meanAnomalyAtEpoch: 0,
         epoch: 10,
@@ -80,39 +54,18 @@ describe("CurrentOrbit: a stale orbit with no model", () => {
 
     const reading = () => fixture.store.sampleReading("vessel.orbit");
 
-    // Both halves of the premise, asserted rather than assumed. Without the
-    // first this passes on a stream that never stopped; without the second it
-    // would pass for the wrong reason the day the reckoner starts answering
-    // here, which is exactly the case this test is NOT about.
+    // Both halves of the premise: the stream stopped, and no model answered.
     await waitFor(() => expect(reading().state).toBe("stale"));
     expect(reading().reckoning.status).not.toBe("available");
 
-    /*
-     * The ELEMENTS, which are what this widget takes from `vessel.orbit` and so
-     * what the rule above governs. Named individually rather than counted: a
-     * count over the whole widget conflates them with the solved rows, which
-     * are pinned by the count below.
-     */
+    // The elements, named individually; the solved rows are pinned by the count below.
     expect(visibleText()).not.toContain("0.3°"); // inclination
     expect(visibleText()).not.toContain("0.00367"); // eccentricity
     for (const row of ["Ap", "Pe", "Inc", "Ecc"]) {
       expect(visibleText(), `${row} row`).toContain(`${row}${NULL_DISPLAY}`);
     }
 
-    /*
-     * The SECOND path into the same falsehood, pinned shut.
-     *
-     * `t-Ap`, `t-Pe` and `T` are solved rather than read, so a fix confined to
-     * the elements would leave them showing figures after the orbit has
-     * stopped arriving: the same falsehood by a different route, in the same
-     * column. What withholds them is the orbit reading's own currency, gating
-     * the solve at the widget.
-     *
-     * So the whole grid nulls together and the count is EQUAL to the
-     * never-arrived baseline rather than short of it. Asserting equality is
-     * what stops the hole reopening: a row that goes back to drawing from the
-     * derived channel drops the count and fails here.
-     */
+    // The solved rows null with the elements, so the count equals the never-arrived baseline.
     expect(screen.getAllByText(NULL_DISPLAY).length).toBe(
       placeholdersWhenEmpty,
     );

@@ -86,12 +86,7 @@ describe("useAudioInput", () => {
     expect(result.current.stream).toBeNull();
     expect(onStream).toHaveBeenLastCalledWith(null);
     expect(media.opened[0].getTracks()[0].stopped).toBe(true);
-    /*
-     * The label survives the release, and that is the difference between this
-     * state and the one before the first request: a populated label is the
-     * browser's own evidence that access is granted, which is what the picker
-     * branches its copy on.
-     */
+    // A populated label is the browser's evidence that access is still granted, which the picker's copy branches on.
     expect(result.current.devices[0].label).toBe("Built-in Microphone");
   });
 

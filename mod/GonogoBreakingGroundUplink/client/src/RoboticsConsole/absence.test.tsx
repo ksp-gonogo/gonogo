@@ -17,15 +17,7 @@ import { parseServos } from "./index";
 import "./index";
 
 /**
- * What the Robotics Console does with a position the mod withheld.
- *
- * `BreakingGroundViewProvider` reads every servo field through
- * `SnapshotDict.GetDouble` (null for absent, non-numeric and non-finite alike)
- * and `ServoCapture` nulls the fields that do not apply to a joint of the kind
- * in hand, so a hinge carries no extension and a piston no angle. This file is
- * the client half: the withheld position must not become a zero, the AT TARGET
- * verdict must not be derived from two of them, and the target stepper must not
- * command from one.
+ * Proves a withheld servo figure never becomes a zero: no AT TARGET verdict is derived from it, and no stepper or toggle commands from it.
  */
 
 const CARRIED = ["robotics.servos", "robotics.available", "game.dlc"];
@@ -80,15 +72,13 @@ describe("parseServos: a withheld position is not a zero", () => {
     const [joint] = parseServos([{ partId: "11", type: "hinge" }]);
     expect(joint?.current).toBeNull();
     expect(joint?.target).toBeNull();
-    // Derived from the two above, so there is nothing to derive it from. This
-    // read `true` off `abs(0 - 0) < 0.5`: an AT TARGET badge for a joint whose
-    // position nobody measured.
+    // Derived from the two above, so there is nothing to derive it from.
     expect(joint?.atTarget).toBeNull();
     expect(joint?.torqueLimit).toBeNull();
   });
 
   it("withholds a piston's extension when only the angle fields arrived", () => {
-    // `ServoCapture` nulls what does not apply to the kind, so a piston carries no angle and the extension fields are the ones to read.
+    // A piston carries no angle; its extension fields are the ones to read.
     const [piston] = parseServos([
       { partId: "12", type: "piston", currentAngle: 30, targetAngle: 30 },
     ]);
@@ -127,7 +117,6 @@ describe("RoboticsConsole: a withheld position is withheld on screen", () => {
     mount(servo({ currentAngle: null, targetAngle: null }));
 
     await screen.findByText(/Position unknown/i);
-    // AT TARGET is the one the old code produced, off `abs(0 - 0) < 0.5`.
     expect(screen.queryByText(/AT TARGET/i)).toBeNull();
     expect(screen.queryByText(/MOVING/i)).toBeNull();
   });
@@ -161,7 +150,7 @@ describe("RoboticsConsole: a withheld position is withheld on screen", () => {
     const row = await screen.findByRole("button", { name: /Wrist Hinge/i });
     await waitFor(() => expect(visibleText(row)).toContain("unknown/unknown"));
     expect(visibleText(row)).not.toContain("0°/0°");
-    // And no tick, which is the list's own spelling of AT TARGET.
+    // No tick either, the list's spelling of AT TARGET.
     expect(visibleText(row)).not.toContain("✓");
   });
 
@@ -192,10 +181,7 @@ describe("RoboticsConsole: an unread target commands nothing", () => {
     const user = userEvent.setup();
     const { fixture } = mount(servo({ targetAngle: null }));
 
-    /* The wait is on the BUTTON, not on the "unknown" readout, so this test
-       reaches its dispatch assertion under the old coercion too and fails
-       naming what went to the craft: `{ partId: "11", value: 5 }`, sent to a
-       hinge whose real target was 60°. */
+    // Waits on the button, not the readout, so a regression fails naming what was sent to the craft.
     await user.click(
       await screen.findByRole("button", { name: /Increase target/i }),
     );
@@ -252,7 +238,6 @@ describe("RoboticsConsole: an unread flag is not a false one", () => {
     const [joint] = parseServos([
       { partId: "11", type: "hinge", currentAngle: 22, targetAngle: 60 },
     ]);
-    // Both read `false` off `=== true`, which the panel drew as "Motor off" and "Unlocked": two definite claims about a joint that reported neither.
     expect(joint?.motorEngaged).toBeNull();
     expect(joint?.locked).toBeNull();
   });
@@ -267,7 +252,7 @@ describe("RoboticsConsole: an unread flag is not a false one", () => {
     );
     expect(visibleText(container)).toContain("Lock unknown");
     expect(visibleText(container)).not.toContain("Motor off");
-    // "Unlocked" is the one that matters: it tells an operator the joint will move when commanded.
+    // "Unlocked" tells an operator the joint will move when commanded.
     expect(visibleText(container)).not.toContain("Unlocked");
   });
 
@@ -275,7 +260,6 @@ describe("RoboticsConsole: an unread flag is not a false one", () => {
     const user = userEvent.setup();
     const { fixture } = mount(servo({ servoIsLocked: null }));
 
-    // The click has to be REACHED under the old code, which sent `{ partId: "11", enabled: true }` computed by inverting a guessed false.
     await user.click(await screen.findByRole("button", { name: /Lock/i }));
     await act(async () => {});
 

@@ -17,13 +17,7 @@ import {
   CrewStatusComponent,
 } from "./index";
 
-/**
- * CrewStatus runs entirely off the stream: `vessel.crew`
- * (count/capacity/crew roster, read via the canonical one-arg `useTelemetry`)
- * plus the EVA flag off `vessel.identity.vesselType`. No legacy `MockDataSource` is registered, a real
- * `TelemetryProvider`/`TimelineStore` pipeline feeds the widget via
- * `fixture.emit`.
- */
+/** CrewStatus runs entirely off the stream, fed through a real `TelemetryProvider` pipeline via `fixture.emit`. */
 
 // `vessel.identity.vesselType === 7` is `VesselType.EVA`, the kerbal on EVA.
 const VESSEL_TYPE_EVA = 7;
@@ -53,11 +47,7 @@ function renderCrew(
 ) {
   const { unmount } = render(
     <fixture.Provider>
-      {/* The identity the dashboard supplies, plus a seeded contribution store:
-          the per-row survival meters arrive through the framework's universal
-          `crew-status.meters` segment, which resolves its slot id from this
-          meta. Seeded directly rather than through the aggregation, which would
-          mean standing up an Uplink to test a roster. */}
+      {/* The per-row meters resolve their `crew-status.meters` slot id from this meta; the store is seeded directly rather than through an Uplink. */}
       <WidgetMetaContext.Provider
         value={{ componentId: "crew-status", contributionSlots: [] }}
       >
@@ -89,18 +79,12 @@ function SeedMeters({
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
-  // Slot augments are registered globally, clear so an avatar/badges augment bound in one test can't leak into the "empty slot" assertions of the next.
+  // Augments and contributions are global, so one test's registrations must not leak into the next.
   clearAugments();
-  // Same reasoning for contributions (crew-status.row-tone): a tone registered in one test must not leak into the next.
   clearContributions();
 });
 
-/** `WidgetMetaContext` + `ContributionsProvider` mounted explicitly (mirrors
- *  ShipMap's own `contributions.test.tsx`): `renderCrew` alone has no
- *  contribution store at all, `useContributions` silently returns empty,
- *  same as a bare widget with no dashboard around it. Only the row-tone
- *  tests need this; every other describe block above renders through the
- *  plain `renderCrew`. */
+/** Mounts the widget meta and a contribution store, which the plain `renderCrew` lacks, so `useContributions` sees the row-tone entries. */
 const CREW_STATUS_META = {
   componentId: "crew-status",
   contributionSlots: ["crew-status.row-tone"] as const,
@@ -126,11 +110,7 @@ describe("CrewStatusComponent", () => {
   });
 
   it("lists crew names alongside count / capacity", async () => {
-    // The "N / M aboard" headcount no longer renders as body text here, it
-    // moved to the info-tone `crew-status.badges` panel-badge contribution
-    // (`./badge.ts`, `crewAboardBadge`'s own unit tests cover the label
-    // itself). This render tree mounts no `ContributionsProvider`/`Panel`
-    // badge chrome at all, so what's left to prove here is the roster body.
+    // The headcount is a panel badge (covered by `badge.test.ts`); this tree mounts no badge chrome, so only the roster body is asserted.
     const fixture = newFixture();
     renderCrew(fixture);
     act(() => {
@@ -166,8 +146,7 @@ describe("CrewStatusComponent", () => {
   it("does not flash Unmanned when capacity arrives before count", async () => {
     const fixture = newFixture();
     renderCrew(fixture);
-    // A partial payload, capacity present, count still undefined. The widget
-    // must not conclude "Unmanned" from a still-undefined count.
+    // Capacity present, count still undefined: the widget must not conclude "Unmanned".
     act(() => {
       fixture.emit("vessel.crew", { capacity: 4 });
     });
@@ -192,8 +171,7 @@ describe("CrewStatusComponent", () => {
     const fixture = newFixture();
     renderCrew(fixture);
     act(() => {
-      // Some mods return rich objects instead of plain strings, our guard
-      // should fish out the name and ignore the rest.
+      // Some sources send rich objects instead of plain strings; the guard fishes out the name.
       fixture.emit("vessel.crew", {
         count: 2,
         capacity: 2,
@@ -240,11 +218,7 @@ describe("CrewStatusComponent", () => {
     expect(screen.queryByText(/EVA/)).not.toBeInTheDocument();
   });
 
-  /**
-   * #384: on an EVA the active vessel IS the kerbal, so the meters belong to
-   * them and the header names them, heading the meters, rather than a bare
-   * "EVA" caption that leaves the name to a roster `Card` below.
-   */
+  /** On EVA the active vessel is the kerbal, so the header names them above their suit meters. */
   describe("EVA header names the kerbal (#384)", () => {
     function evaOnSuit(fixture: ReturnType<typeof newFixture>) {
       fixture.emit("vessel.crew", {
@@ -295,12 +269,6 @@ describe("CrewStatusComponent", () => {
     });
   });
 
-  /**
-   * The suit meters had exactly one assertion in the tree and it was the
-   * negative one, so nothing rendered them and nothing would have noticed if
-   * they stopped rendering. These are the two halves of what the keyed field
-   * property is supposed to do, stated as behaviour rather than as a shape.
-   */
   describe("EVA suit meters", () => {
     function evaOnSuit(fixture: ReturnType<typeof newEvaFixture>) {
       fixture.emit("vessel.crew", {
@@ -327,15 +295,7 @@ describe("CrewStatusComponent", () => {
       expect(o2).toHaveAttribute("aria-valuenow", "25");
     });
 
-    /**
-     * The one behaviour this migration deliberately changed.
-     *
-     * Reaching the halves off the payload meant an unreported level dropped the
-     * whole meter, so "this craft has no O2 tank" and "nobody has said what is
-     * in the O2 tank" drew the same nothing. The key's presence is structural
-     * per the contract, so the row now stands and the figure reads as absent,
-     * which is the distinction an operator on EVA actually needs.
-     */
+    /** A present key with an unreported level keeps the row with an absent figure: "no O2 tank" and "O2 level unknown" must not draw the same nothing. */
     it("keeps the row but draws no fraction when the level is unreported", async () => {
       const fixture = newEvaFixture();
       renderCrew(fixture);
@@ -355,7 +315,7 @@ describe("CrewStatusComponent", () => {
   });
 
   it("renders the per-crew badges slot with no bound augment (empty is fine)", async () => {
-    // No augment registered → the slot composes nothing and the roster renders exactly as before, one row per kerbal.
+    // No augment registered: the slot composes nothing and the roster renders one row per kerbal.
     const fixture = newFixture();
     renderCrew(fixture);
     act(() => {
@@ -373,10 +333,7 @@ describe("CrewStatusComponent", () => {
   });
 
   it("renders a bound augment once per crew row, carrying each kerbal's identity", async () => {
-    // A test Uplink binds `crew-status.row-badges` and echoes the slot props back.
-    // Proves (a) the slot is exposed, (b) an augment composes into it, and (c)
-    // the per-row props carry the right kerbal so the badge lands on the right
-    // one. `requires` is omitted so no Domain presence gate applies.
+    // A test Uplink binds `crew-status.row-badges` and echoes the slot props, so each badge must land on the right kerbal. No `requires`, so no Domain presence gate applies.
     registerAugment<"crew-status.row-badges">({
       id: "test-crew-badge",
       augments: "crew-status.row-badges",
@@ -417,17 +374,7 @@ describe("CrewStatusComponent", () => {
   });
 });
 
-/**
- * The leading `crew-status.avatar` slot, the SDK-independent shell of a
- * per-kerbal avatar/portrait. A per-kerbal square cell left of the name; an
- * Uplink can register an augment that fills it with a live face. The cell is
- * only reserved while at least one augment is actually bound to the slot
- * (operator feedback: a same-size cell showing nothing but a decorative
- * fallback dot was wasted width on every row, and the dot never signalled
- * anything). With no avatar augment bound, no cell renders at all and the
- * row's leading space goes back to the name. This suite builds ONLY the slot
- * + its presence gating; no facecam subscription (later task).
- */
+/** The leading `crew-status.avatar` cell, reserved only while an augment is bound to the slot. */
 describe("CrewStatusComponent, avatar slot", () => {
   it("renders no avatar cell in any row when no avatar augment is bound", async () => {
     const fixture = newFixture();
@@ -443,16 +390,14 @@ describe("CrewStatusComponent, avatar slot", () => {
     await waitFor(() =>
       expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
     );
-    // Roster renders as before; no leading cell is reserved on any row, and no augment content is present.
+    // No leading cell is reserved on any row, and no augment content is present.
     expect(screen.getByText("Bill Kerman")).toBeInTheDocument();
     expect(screen.queryByTestId("crew-avatar-cell")).not.toBeInTheDocument();
     expect(screen.queryByTestId("crew-avatar")).not.toBeInTheDocument();
   });
 
   it("composes a bound crew-status.avatar augment once per row, carrying each kerbal's identity", async () => {
-    // A test Uplink binds the avatar slot and echoes the slot props, proves the
-    // slot is exposed, an augment composes into it, and the per-row props carry
-    // the right kerbal. `requires` omitted so no Domain presence gate applies.
+    // A test Uplink binds the avatar slot and echoes the slot props, so each avatar must land on the right kerbal.
     registerAugment<"crew-status.avatar">({
       id: "test-crew-avatar",
       augments: "crew-status.avatar",
@@ -495,9 +440,7 @@ describe("CrewStatusComponent, avatar slot", () => {
   });
 
   it("keeps the roster + avatar cell at both small and large widget sizes when an avatar augment is bound", async () => {
-    // The avatar cell lives in the roster branch, which renders whenever the
-    // widget is at least 4x5. Assert it survives the min-roster size and a
-    // large size, once an Uplink actually binds the slot.
+    // The avatar cell lives in the roster branch, so it must survive both the 4x5 minimum and a large size.
     registerAugment<"crew-status.avatar">({
       id: "test-crew-avatar-sizes",
       augments: "crew-status.avatar",
@@ -531,9 +474,7 @@ describe("CrewStatusComponent, avatar slot", () => {
   });
 
   it("reclaims the leading cell's width when the widget is at roster size but no avatar augment is bound", async () => {
-    // Companion to the "no cell at all" assertion above, exercised at the
-    // same 4x5 minimum-roster size the previous test uses, proving the
-    // reclaimed-space behaviour holds across sizes too, not just the default.
+    // The unbound case at the same 4x5 minimum-roster size.
     const fixture = newFixture();
     const { unmount } = render(
       <fixture.Provider>
@@ -556,17 +497,8 @@ describe("CrewStatusComponent, avatar slot", () => {
 });
 
 /**
- * Per-kerbal survival (death clock, worst rule, degen) is a life-support
- * concept, not a vanilla one: it moved wholesale out of this widget into an
- * Uplink's own `crew-status-survival` augment, which fills the generic
- * `crew-status.survival` slot this widget exposes. This widget itself reads
- * ONLY the vanilla `vessel.crew` roster now, no Uplink-owned topic anywhere
- * in index.tsx, so it must render identically whichever backend is elected,
- * and it must NEVER subscribe to one even when it is carried on the stream.
- *
- * The two checks below pin that against one concrete namespace, `kerbalism.*`,
- * because an assertion needs a real topic to probe: the rule is the general
- * one above, this is the instance it is measured on.
+ * This widget reads only the vanilla `vessel.crew` roster and must never subscribe to an Uplink-owned topic, even one carried on the stream.
+ * `kerbalism.*` is the concrete namespace it is measured on.
  */
 describe("CrewStatusComponent, decoupled from the survival backend", () => {
   it("never subscribes to a kerbalism.* topic, even when one is carried", async () => {
@@ -594,7 +526,7 @@ describe("CrewStatusComponent, decoupled from the survival backend", () => {
       expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
     );
     expect(fixture.transport.isSubscribed("kerbalism.crew")).toBe(false);
-    // No leftover survival chrome (dose/stress meters, a meters toggle): that UI moved to the augment slot below, not rendered inline anymore.
+    // No inline survival chrome (dose/stress meters, a meters toggle).
     expect(
       screen.queryByRole("button", { name: /meters/i }),
     ).not.toBeInTheDocument();
@@ -602,9 +534,7 @@ describe("CrewStatusComponent, decoupled from the survival backend", () => {
   });
 
   it("does not import any kerbalism.* topic string in its own source", async () => {
-    // Belt-and-braces static check alongside the behavioural one above: the
-    // whole point of the decoupling is that this file's source never names an
-    // Uplink-owned topic. Reads the source file's own text directly.
+    // A static check beside the behavioural one: this widget's source never names an Uplink-owned topic.
     const path = await import("node:path");
     const fs = await import("node:fs/promises");
     const source = await fs.readFile(
@@ -615,15 +545,7 @@ describe("CrewStatusComponent, decoupled from the survival backend", () => {
   });
 });
 
-/**
- * Per-row survival meters. Not a widget-authored slot any more: each roster row
- * draws ui-kit's `WidgetMeters` for the framework-universal `crew-status.meters`
- * CONTRIBUTION segment, addressed at that kerbal by the entry's own `row`.
- *
- * The old `crew-status.survival` augment slot was filled by a component whose
- * entire render was a stack of the kit's own `Meter`, i.e. zero pixels this
- * widget did not already own; as data the host can count, order and place them.
- */
+/** Per-row survival meters: each roster row draws `WidgetMeters` for the `crew-status.meters` segment, addressed at that kerbal by `row`. */
 describe("CrewStatusComponent, per-row survival meters", () => {
   it("renders nothing extra per row when nothing is contributed", async () => {
     const fixture = newFixture();
@@ -673,9 +595,7 @@ describe("CrewStatusComponent, per-row survival meters", () => {
     await screen.findByRole("meter", { name: "Radiation dose" });
     const billRow = screen.getByText("Bill Kerman").closest("li");
     expect(billRow).not.toBeNull();
-    // Bill's row has HIS meter and not Jebediah's: a per-row extension that
-    // pooled every kerbal's meters into one stack would pass a "both rendered"
-    // assertion and be attributed to nobody.
+    // A per-row extension that pooled every kerbal's meters into one stack would pass a "both rendered" assertion and be attributed to nobody.
     expect(
       within(billRow as HTMLElement).getByRole("meter", { name: "Stress" }),
     ).toBeInTheDocument();
@@ -687,13 +607,7 @@ describe("CrewStatusComponent, per-row survival meters", () => {
   });
 });
 
-/**
- * The `crew-status.summary` slot: a WHOLE-WIDGET section, rendered once
- * above the roster rather than once per row, for a status that affects the
- * whole crew together (e.g. a vessel-wide radiation reading). Same
- * empty-composes-to-nothing contract as the other slots, just one instance
- * instead of one per kerbal.
- */
+/** The `crew-status.summary` slot: one whole-widget section above the roster, composing nothing when unbound. */
 describe("CrewStatusComponent, summary slot", () => {
   it("renders nothing extra when no summary augment is bound", async () => {
     const fixture = newFixture();
@@ -736,14 +650,7 @@ describe("CrewStatusComponent, summary slot", () => {
   });
 });
 
-/**
- * The `crew-status.row-tone` slot: a CONTRIBUTION (pure data, host renders
- * its own `Card` chrome), not an AugmentSlot, see that slot's own doc
- * comment in `index.tsx`. Proves the self-contribution unify end to end,
- * same shape as ShipMap's `contributions.test.tsx`: a test-registered
- * contribution reaches the right kerbal's row, and every other row stays
- * untinted.
- */
+/** The `crew-status.row-tone` contribution reaches the right kerbal's row, and every other row stays untinted. */
 describe("CrewStatusComponent, row tone contribution", () => {
   it("renders every row with Card's default (untinted) border when nothing contributes a tone", async () => {
     const fixture = newFixture();
@@ -758,13 +665,9 @@ describe("CrewStatusComponent, row tone contribution", () => {
     await waitFor(() =>
       expect(screen.getByText("Jebediah Kerman")).toBeInTheDocument(),
     );
-    // Each row is still a real roster `<li>`, Card's `as="li"` preserves list semantics (unchanged from the bare `<li>` this replaced).
+    // Card's `as="li"` preserves list semantics.
     expect(screen.getByText("Bill Kerman").closest("li")).not.toBeNull();
-    // No contribution registered at all: Card's alert-tone accent rule
-    // (jsdom can't validate an unresolved `var()` inside the `border-left`
-    // shorthand, `toHaveStyle` can't see it, so this asserts on the
-    // styled-components injected stylesheet text directly, the same
-    // workaround Card's own test suite uses) must not appear anywhere.
+    // jsdom cannot resolve `var()` inside the `border-left` shorthand, so this asserts on the injected stylesheet text: no alert-tone rule anywhere.
     const styleText = Array.from(document.querySelectorAll("style"))
       .map((s) => s.textContent)
       .join("\n");
@@ -794,9 +697,7 @@ describe("CrewStatusComponent, row tone contribution", () => {
     await waitFor(() =>
       expect(screen.getByText("Bill Kerman")).toBeInTheDocument(),
     );
-    // Proves the contribution actually reached the widget: Card's alert-tone
-    // border rule shows up in the injected stylesheet (same technique
-    // Card.test.tsx uses for the same jsdom var()-in-shorthand gap).
+    // The alert-tone border rule in the injected stylesheet proves the contribution reached the widget.
     const styleText = Array.from(document.querySelectorAll("style"))
       .map((s) => s.textContent)
       .join("\n");

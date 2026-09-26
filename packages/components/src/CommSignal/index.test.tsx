@@ -4,21 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CommSignalComponent } from "./index";
 
-/**
- * CommSignal runs entirely off the stream:
- *  - `comm.connected`      -> `comms.link.connected` (canonical `useTelemetry`)
- *  - `comm.signalStrength` -> `vessel.comms.signalStrength`
- *  - `comm.controlState` / `comm.controlStateName` -> `vessel.comms.controlState`,
- *    its `ControlState` ordinal collapsed to a level by
- *    `collapseControlStateLevel` and named off `CONTROL_STATE_NAMES`
- *  - `comm.signalDelay`    -> `comms.delay.oneWaySeconds`
- *
- * No legacy `MockDataSource` is registered, a real
- * `TelemetryProvider`/`TimelineStore` pipeline feeds the widget via
- * `fixture.emit`.
- */
-
-// `Sitrep.Contract.ControlState` ordinals (`CONTROL_STATE_NAMES`): 4 = Full (name "Full", collapsed level 2), 0 = None (name "None", level 0).
+// `ControlState` ordinals off the wire.
 const CONTROL_STATE_FULL = 4;
 const CONTROL_STATE_NONE = 0;
 
@@ -64,7 +50,6 @@ describe("CommSignalComponent", () => {
       });
     });
 
-    // ceil(0.82 * 4) = 4 lit bars
     await waitFor(() =>
       expect(screen.getByLabelText("Signal 4 of 4")).toBeInTheDocument(),
     );
@@ -100,7 +85,7 @@ describe("CommSignalComponent", () => {
         signalStrength: 0.5,
         controlState: CONTROL_STATE_FULL,
       });
-      fixture.emit("comms.delay", { oneWaySeconds: 135 }); // 2min 15s
+      fixture.emit("comms.delay", { oneWaySeconds: 135 });
     });
     await waitFor(() => expect(visibleText()).toContain("2min 15s"));
   });

@@ -42,9 +42,7 @@ export function ActionGroupConfigForm({
           value={actionGroupId}
           onChange={(e) => setActionGroupId(e.target.value as ActionGroupId)}
         >
-          {/* Labelled by name, VALUED by identity: a custom group a player
-              named after a stock singleton would otherwise save the stock
-              singleton's id, and resolve to it. */}
+          {/* Labelled by name, valued by identity, so a custom group named after a stock singleton keeps its own id. */}
           {groups.map((g) => (
             <option key={actionGroupIdOf(g)} value={actionGroupIdOf(g)}>
               {g.name}

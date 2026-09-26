@@ -11,16 +11,10 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { WarpControlComponent } from "./index";
 
 /**
- * WarpControl exposes one augment slot, `warp-control.stepper`: an Uplink
- * contributes a "Warp to <mod-event>" action alongside the widget's own warp
- * buttons. This only EXPOSES the slot; no built-in augment fills it, so an
- * unaugmented widget renders exactly as before and the slot composes nothing.
- * Header badges are not an augment slot: every widget gets an automatic
- * `warp-control.badges` CONTRIBUTION slot instead.
+ * WarpControl exposes one augment slot, `warp-control.stepper`, which no
+ * built-in augment fills, so an unaugmented widget composes nothing there.
  */
-// Reset the action-handler + augment registries at the START of each test,
-// the prior test's tree is already unmounted (RTL auto-cleanup) by then, so
-// these mutations never fire against a live component.
+// Reset at the start of each test, once the prior test's tree is already unmounted.
 beforeEach(() => {
   clearActionHandlers();
   clearAugments();
@@ -53,7 +47,6 @@ function renderWarp() {
 describe("WarpControl: augment slots", () => {
   it("renders with the slots empty when no augment is registered", async () => {
     renderWarp();
-    // The widget still renders its own output; the empty slots add nothing.
     await waitFor(() =>
       expect(
         screen.getByRole("img", { name: "Time warp rate 10×" }),

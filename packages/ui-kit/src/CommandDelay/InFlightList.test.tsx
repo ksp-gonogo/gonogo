@@ -97,7 +97,7 @@ describe("InFlightList", () => {
       const cxs = grads.map((g) => Number(g.getAttribute("cx")));
       // The lower-progress command sits left of the higher-progress one.
       expect(cxs[0]).toBeLessThan(cxs[1]);
-      // Every glow centres above the strip (cy < 0), so only the blur grazes the top edge and the disc itself is never visible.
+      // Every glow centres above the strip, so only the blur grazes the top edge.
       for (const g of grads) {
         expect(Number(g.getAttribute("cy"))).toBeLessThan(0);
       }
@@ -242,8 +242,7 @@ describe("signalDelayPresentation", () => {
   });
 
   it("shows nothing on a link with no delay to report", () => {
-    // 0 is a real reading, not an absence: a dashboard at the pad. A chip
-    // saying "one-way ~0 s" is noise, and neither is there anything to count.
+    // 0 is a real reading (a dashboard at the pad), with nothing to badge or count.
     expect(signalDelayPresentation({ oneWaySeconds: 0, canQueue: true })).toBe(
       "none",
     );
@@ -262,8 +261,7 @@ describe("signalDelayPresentation", () => {
   });
 
   it("never asks for both", () => {
-    // The property the whole function exists for: one reading of the delay,
-    // never two shapes of the same number on one console.
+    // One reading of the delay, never two shapes of the same number on one console.
     for (const oneWaySeconds of [0.01, 0.5, 1, 1.001, 12, 240, 4000]) {
       for (const canQueue of [true, false]) {
         for (const alwaysBadge of [true, false]) {
@@ -279,14 +277,14 @@ describe("signalDelayPresentation", () => {
   });
 
   it("gives a read-only viewer neither reading at a long delay", () => {
-    // It dispatches nothing, so there is no queue to draw, and a standing badge would quote a cost it never pays.
+    // It dispatches nothing, so there is no queue to draw and no cost to quote.
     expect(
       signalDelayPresentation({ oneWaySeconds: 240, canQueue: false }),
     ).toBe("none");
   });
 
   it("badges at any magnitude when the console cannot queue at all", () => {
-    // Character-mode terminal: every keystroke goes on its own, so there is no composed line for a strip to list however far away the craft is.
+    // A character-mode terminal sends every keystroke alone, so there is no composed line for a strip to list.
     expect(
       signalDelayPresentation({
         oneWaySeconds: 240,
@@ -297,13 +295,7 @@ describe("signalDelayPresentation", () => {
   });
 
   it("turns over on whatever boundary currentMode is using", () => {
-    /*
-     * Not a pin between two copies of a literal: there is one copy, and this
-     * reads the boundary OFF `currentMode` rather than restating it. Whatever
-     * `live` means today, that is what gets the badge, so a change to the
-     * staging threshold moves both readings together and cannot leave a badge
-     * beside a strip drawing the same number.
-     */
+    // Reads the boundary off `currentMode` rather than restating it, so the two can never disagree.
     for (const oneWaySeconds of [0.001, 0.5, 1]) {
       expect(currentMode({ oneWaySeconds: value("s", oneWaySeconds) })).toBe(
         "live",

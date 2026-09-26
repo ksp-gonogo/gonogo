@@ -6,19 +6,15 @@ import type { ReadoutTone } from "./Readout";
 
 export interface NoticeProps extends BlockProps {
   /**
-   * What kind of statement this is, drawn as the banner's whole border rather
-   * than a leading rule. A notice is read before it is read INTO, so the tone
-   * has to reach the eye from the edge of the block.
+   * What kind of statement this is, drawn as the banner's whole border so the
+   * tone reaches the eye from the edge of the block.
    */
   tone?: ReadoutTone;
   /**
    * Interrupt rather than announce: `role="alert"` and `aria-live="assertive"`.
    *
-   * For an event an operator must not finish their sentence before hearing,
-   * which in this app means ABORT and nothing softer. Everything else is
-   * `role="status" aria-live="polite"`, the default, because a banner that
-   * barges in for an ordinary warning spends the loud channel and makes the
-   * real one quieter.
+   * For ABORT and nothing softer. Everything else takes the default
+   * `role="status" aria-live="polite"`, so the loud channel stays meaningful.
    */
   assertive?: boolean;
   children?: ReactNode;
@@ -37,22 +33,12 @@ const Notice__Root = styled(Block__Root)<{ $tone: ReadoutTone }>`
 `;
 
 /**
- * A statement ABOUT the widget rather than a record inside it: what is limiting
- * the ship, which Uplinks were quarantined before import.
+ * A statement about the widget rather than a record inside it: what is
+ * limiting the ship, which Uplinks were quarantined before import.
  *
- * Composed from `Block`'s parts and carrying its own surface, so the type and
- * spacing are the family's and the announcement contract is this component's.
- * It is the third consumer of one set of parts, which is the better argument
- * for the compound model than the escape hatch it was first accepted on: the
- * parts belong to the arrangement and are shared by every surface that wants
- * them, rather than belonging to `Card` and being borrowed.
- *
- * It does NOT get its own part namespace. Two doors to one object is an alias;
- * a third is a habit, and `Block` and `Card` already cover hand-composition.
- *
- * The live region is the whole reason this is not a toned `Card`. A card is a
- * record and announcing every record would flood a screen reader; a notice
- * exists precisely to be announced when it appears.
+ * Composed from `Block`'s parts, with its own surface. It differs from a toned
+ * `Card` by being a live region: a notice exists to be announced when it
+ * appears, where announcing every record would flood a screen reader.
  */
 export function Notice({
   tone = "warning",

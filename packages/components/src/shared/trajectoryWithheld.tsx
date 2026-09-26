@@ -11,25 +11,9 @@ export type WithheldTrajectory = Extract<
 >;
 
 /**
- * What a widget says when the propagation seam declines to authorise a curve.
- *
- * A heading in the same vocabulary `TrajectoryCurrencyBridge` badges with, so
- * an operator reading a badge and a drawing sees one word for one fact, plus a
- * line saying what it means for this particular drawing. The six reasons stay
- * six sentences: "nobody stated a horizon" and "you have outrun a stated one"
- * have different remedies, and an integrator that has not computed this far
- * ahead yet resolves on its own where a producer that dropped a field does not.
- *
- * The last two arrived with the integrating provider and neither of the earlier
- * four could say them. A step budget exhausted is something the operator can act
- * on, by shortening the window, and it may also clear itself; a missing force
- * model is an install problem with no operator remedy at all. Collapsing either
- * into "past horizon" would have someone waiting for a curve that is not coming.
- *
- * One table, not one per widget. Six widgets draw a trajectory and every one of
- * them can now be refused; six copies of these sentences would drift, and an
- * operator seeing "SHAPE NOT STATED" on one panel and something else on the
- * next for the identical refusal would reasonably read them as two faults.
+ * What a widget says when the propagation seam refuses a curve, in the badge's
+ * vocabulary. Each reason keeps its own sentence because each has a different
+ * remedy; one table so no two panels word the same refusal differently.
  */
 export function trajectoryWithheldCopy(withheld: WithheldTrajectory): {
   heading: string;
@@ -83,16 +67,9 @@ export function trajectoryWithheldCopy(withheld: WithheldTrajectory): {
 }
 
 /**
- * The refusal as a block that stands in for the drawing it replaced.
- *
- * `role="status"` because it appears where a curve was: the drawing going away
- * is a state change an operator must not have to notice visually. It is
- * deliberately not `alert`, a provider declining to extrapolate is the system
- * working.
- *
- * `compact` drops the second line for the slots that are a strip beside a
- * readout rather than a panel body. The heading alone still names which of the
- * four happened, which is the part that cannot be dropped.
+ * The refusal standing in for the drawing. A status, not an alert: a provider
+ * declining to extrapolate is the system working. `compact` keeps the heading
+ * only, for a strip beside a readout.
  */
 export function TrajectoryWithheldNote({
   withheld,

@@ -38,15 +38,7 @@ import { useStreamBody } from "../shared/useStreamBody";
 
 const topics = defineTopicManifest({
   channels: ["vessel.orbit", "vessel.identity", "system.bodies"],
-  /*
-   * The diagram is drawn from apsis RADII, never the altitudes, and those are
-   * solved from the elements named here rather than being a field of anything.
-   * Body geometry comes off `system.bodies`, which is why that channel is
-   * carried: the pole marker's own orientation still uses the static table, for
-   * the texture correction no wire field replaces. Naming the fields drawn,
-   * rather than the whole of each channel this mounts on, is what keeps their
-   * alarms off a widget that does not draw them.
-   */
+  // Per field so alarms stay off a widget that does not draw them; `system.bodies` carries the body geometry.
   fields: [
     "vessel.orbit.sma",
     "vessel.orbit.ecc",
@@ -55,14 +47,7 @@ const topics = defineTopicManifest({
   ],
 });
 
-/**
- * Provider-optional read of a raw OR derived stream Topic, mirrors
- * `@ksp-gonogo/sitrep-client`'s `useStream`, but returns `undefined` when no
- * `TelemetryProvider` is mounted instead of throwing. OrbitView reads
- * `system.frame` and `vessel.identity` through this and stays crash-safe in a
- * provider-less render (the widget gallery / probe harness) by degrading to its
- * "No orbital data" empty state.
- */
+/** `useStream` that returns `undefined` when no `TelemetryProvider` is mounted, so a provider-less render degrades to the empty state. */
 function useStreamOptional<T>(topic: string): T | undefined {
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
@@ -91,24 +76,9 @@ interface OrbitViewConfig {
   showMarkers?: boolean;
 }
 
-// ---------------------------------------------------------------------------
-// Augment slots (Uplink architecture). OrbitView is a HOST that exposes
-// two slots; no first-party augment fills them here, so
-// each renders nothing until an Uplink registers an augment into it.
-// ---------------------------------------------------------------------------
-
 /**
- * Props for `orbit-view.overlay`: an OVERLAY slot, rendered in a
- * layer absolutely positioned over the orbit-ellipse diagram. The diagram draws
- * body-centric in SVG user-units that match these orbital elements: the body
- * sits at `center` (the SVG origin), +x runs along the apsis line before
- * `argPe` rotation, +y is up in the orbital frame, and the visible half-extent
- * is ~`scale` units, apoapsis-driven, matching the diagram's own scale
- * reference, EXCEPT on a hyperbolic orbit (`ecc >= 1`), where apoapsis is
- * meaningless and both this and the diagram itself scale off periapsis
- * instead (see `OrbitDiagram`'s `HYPERBOLIC_SCALE`). An overlay augment,
- * e.g. a future N-body / SOI-transition Uplink, builds a matching viewBox /
- * transform from these to draw markers in the diagram's coordinate space.
+ * Props for the `orbit-view.overlay` slot, in the diagram's body-centric SVG units: the body at `center`, +x along the apsis line before `argPe` rotation, +y up in the orbital frame.
+ * `scale` is the visible half-extent, apoapsis-driven except on a hyperbolic orbit, where it follows periapsis as `OrbitDiagram` does.
  */
 export interface OrbitOverlayContext {
   /** Semi-major axis, distance units (metres from body centre). */
@@ -134,9 +104,6 @@ export interface OrbitOverlayContext {
   scale: number;
 }
 
-// Co-located declaration-merge of this widget's slot ids → their props.
-// Kept next to the widget (not in a central registry file) so parallel
-// slot work on other widgets never collides on this seam.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "orbit-view.overlay": OrbitOverlayContext;
@@ -154,14 +121,7 @@ const orbitViewActions = [
 
 export type OrbitViewActions = typeof orbitViewActions;
 
-/**
- * What the panel says when the propagation seam declines to authorise a curve.
- *
- * The sentences come from the one shared table, so this panel and the five
- * other drawings that can now be refused name the same refusal the same way.
- * Only the container is local: OrbitView's refusal takes over the whole panel
- * body, where CurrentOrbit's takes over a strip beside the numbers.
- */
+/** The refusal copy comes from the shared table; only the container is local, and it takes over the whole panel body. */
 function TrajectoryWithheld({
   withheld,
 }: Readonly<{ withheld: WithheldTrajectory }>) {
@@ -182,13 +142,7 @@ function OrbitViewComponent({
   w,
   h,
 }: Readonly<ComponentProps<OrbitViewConfig>>) {
-  /**
-   * The apsis markers, gated on the operator's own view frame as well as their
-   * config. An apsis is defined against a centre, and the frames defined by a
-   * pair of bodies have none: drawing a dot labelled Ap in one of those puts a
-   * marker on a point that does not exist, next to a panel elsewhere on the
-   * dashboard saying so.
-   */
+  // Apsis markers are hidden in frames with no centre, where an apsis does not exist.
   const controlFrame = useStreamOptional<ControlFrame>("system.frame");
   const noApsidesHere = apsidesExist(controlFrame) === "invalid";
   const showMarkers = (config?.showMarkers ?? true) && !noApsidesHere;
@@ -202,30 +156,9 @@ function OrbitViewComponent({
     },
   });
 
-  // Every read rides the SDK stream directly, no legacy
-  // `useTelemetry("data", ...)` fallback.
-  //  - `vessel.orbit` (raw Topic) carries the elements `sma`/`ecc`/`argPe`.
-  //  - `trueAnomaly` and the apsis RADII are the solve over those elements at
-  //    view-UT, through `useOrbitSolve`.
-  //  - The body name is `vessel.identity`'s index resolved against the
-  //    `system.bodies` catalogue, through `useBodyName`.
-  //  - The apsis radii come from the solve rather than being computed here
-  //    (`sma·(1±ecc)`): that formula is meaningless for apoapsis on a
-  //    hyperbolic orbit (sma<0 makes it a finite but GARBAGE negative number),
-  //    where the solve answers `null`.
-  //  - `useBodyRotation` derives the pole marker client-side from the body's
-  //    `rotationPeriod` + view-UT; `useIsOrbiting` stays a shared hook.
-  // The elements come from the latest observation, current or held, overlaid
-  // by the model's phase where one is on offer. A held orbit keeps drawing; the
-  // diagram's own absent-value rendering takes over only when no orbit has
-  // arrived at all.
+  // The elements come from the latest observation, current or held, overlaid by the model's phase where one is on offer.
   const orbitReading = useTelemetry("vessel.orbit");
-  /*
-   * The observation OVERLAID by what the conic moved, which for `vessel.orbit`
-   * is the phase. Written here rather than in a helper because the spread IS
-   * the judgement (see `ReckonableReading`): taking `reckoning.value` alone
-   * gets the moved fields and nothing else, which is not an orbit.
-   */
+  // `reckoning.value` alone holds only the moved phase fields, which is not an orbit.
   const orbitObserved =
     orbitReading.state === "observed" || orbitReading.state === "stale"
       ? orbitReading.value
@@ -236,11 +169,7 @@ function OrbitViewComponent({
       : orbitReading.reckoning.status === "available"
         ? { ...orbitObserved, ...orbitReading.reckoning.value }
         : orbitObserved;
-  /**
-   * Where the craft has been, drawn behind it. Five minutes: long enough to
-   * read as a direction of travel on a low orbit, and short enough to stay
-   * within samples this frame can place.
-   */
+  // Five minutes reads as a direction of travel on a low orbit and stays within samples this frame can place.
   const trail = usePastTrack(300, orbit);
   const sma = orbit?.sma;
   const eccentricity = orbit?.ecc;
@@ -252,70 +181,32 @@ function OrbitViewComponent({
     orbitReading.reckoning.status === "declined"
       ? orbitReading.reckoning.declined
       : undefined;
-  /*
-   * Solved from the elements above, so the whole group is absent together
-   * wherever a conic through them would be wrong. `apoapsisRadius` is also
-   * `null` on a hyperbolic orbit, which has no apoapsis; `periapsisRadius` is
-   * real on any orbit there is a solve for at all, which is what makes it the
-   * `hasOrbit` signal below.
-   */
+  // `periapsisRadius` is real on any solved orbit; `apoapsisRadius` is `null` on a hyperbolic one.
   const solve = useOrbitSolve();
   const trueAnomaly = solve?.trueAnomaly ?? undefined;
   const apoapsisR = solve?.apoapsisRadius;
   const periapsisR = solve?.periapsisRadius;
 
-  // What the trajectory IS, asked of the propagation seam rather than decided
-  // here. The widget holds `sma` and `ecc` and could draw an ellipse from them
-  // without asking anything, which is exactly why it must not: a provider whose
-  // trajectories are integrated would then change nothing the operator sees.
-  // `useOrbitTrajectory` reads the horizon riding on this same sample and
-  // answers conic, arc, or a refusal, and the render below does as it is told.
+  // The trajectory shape comes from the propagation seam, never from `sma` and `ecc` here, so an integrating provider changes what is drawn.
   const trajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit);
 
-  /*
-   * The body the stream describes, not the stock table's namesake. The table
-   * is keyed by NAME and holds stock bodies only, so under a planet pack the
-   * lookup missed and this widget lost its radius, its atmosphere band and its
-   * oxygen shading together. The oxygen flag in particular used to be a
-   * comparison against the two stock breathable bodies, under a comment
-   * waiting for "the static body registry to grow a `hasOxygen` field": it
-   * never did, and never needed to, because `system.bodies` has carried the
-   * flag per body all along.
-   */
+  // Resolved from the stream rather than the stock table, so a planet pack keeps its radius, atmosphere and oxygen.
   const body = useStreamBody(bodyName);
   const { isOrbiting } = useIsOrbiting();
-  // Live rotation feed: single-body subscription so we don't pay the
-  // ~17-bodies-at-4Hz fanout cost of useCelestialBodies just for the
-  // marker. Atmosphere band sticks to the static body registry's
-  // `maxAtmosphere`, which already covers stock bodies.
+  // Single-body subscription, avoiding the all-bodies fanout of useCelestialBodies.
   const { angleDeg: rotationAngleDeg, rotates } = useBodyRotation(
     typeof bodyName === "string" ? bodyName : null,
   );
 
-  // Apoapsis is intentionally NOT required, it's `null` on a hyperbolic
-  // orbit (no apoapsis exists) by design, not an error. Periapsis is
-  // always real whenever there IS an orbit, so it (plus sma/eccentricity)
-  // is the true "do we have an orbit" signal. `!= null` catches both
-  // `null` and `undefined` (a naive `apoapsisRadius ?? undefined` upstream
-  // must not be able to flip this gate).
+  // Periapsis, not apoapsis, is the orbit signal: apoapsis is `null` on a hyperbolic orbit.
   const hasOrbit = sma != null && eccentricity != null && periapsisR != null;
 
-  // A withheld trajectory is not a missing orbit: the elements arrived, and the
-  // provider declined to authorise a curve through them. The two get different
-  // sentences because they have different remedies, the same reason
-  // `TrajectoryCurrencyBridge` refuses to collapse its own two refusals.
+  // A withheld trajectory is not a missing orbit; the two get different sentences because they have different remedies.
   const withheld =
     trajectory !== null && trajectory.shape === "withheld" ? trajectory : null;
   const hasTrajectory = hasOrbit && trajectory !== null && withheld === null;
 
-  // Selective rendering: at small sizes the SVG diagram doesn't have room
-  // to be readable, so collapse to a single status pill (the user's
-  // canonical example for "tiny mode"). Accept either:
-  //   - Square / portrait ≥ 5 cols × 5 rows (the original threshold), or
-  //   - Landscape ≥ 8 cols × 3 rows (wide-short, e.g. the dashboard's
-  //     header strip: the diagram + chrome render side-by-side so the
-  //     diagram gets a usable square slot at panel height instead of
-  //     being squeezed under the title.).
+  // Collapse to a status pill when the diagram has no room: portrait needs 5x5, landscape 8x3.
   const cols = w ?? 9;
   const rows = h ?? 18;
   const showDiagram = (rows >= 5 && cols >= 5) || (cols >= 8 && rows >= 3);
@@ -323,18 +214,9 @@ function OrbitViewComponent({
   const isLandscape = cols >= 8 && rows < 5;
   const showSubtitle = rows >= 4;
 
-  // 3×3 minSize panel is ~104 px wide; the multi-word pill labels wrap
-  // to two lines ("STABLE\nORBIT", "SUB-\nORBITAL"). At that size,
-  // abbreviate so the status fits on one line, abbreviations are the
-  // standard mission-control shorthand the operator already reads
-  // elsewhere (e.g. flight-plan annotations).
+  // At 3x3 the multi-word pill labels wrap, so use the mission-control abbreviations.
   const compactPill = cols < 4 || rows < 4;
-  // The header row gives the title a fixed reserved width and does not grow
-  // it into a chevron-collapsed aside's freed space, so a title that doesn't
-  // fit at this column count is squeezed far below what the row actually has
-  // room for. Same threshold and the same reasoning as `compactPill` above
-  // (only the COLUMN count matters here, not rows: a title truncates
-  // horizontally, so a wide-but-short landscape slot needs no shortening).
+  // The header reserves a fixed title width, so a narrow panel shortens the title.
   const compactTitle = cols < 4;
   const panelTitleText = compactTitle ? "OVIEW" : "ORBIT VIEW";
   let pillLabel = NULL_DISPLAY;
@@ -355,15 +237,13 @@ function OrbitViewComponent({
   const diagram = hasTrajectory ? (
     <OrbitDiagram
       variant="full"
-      // The seam's answer, drawn as given. `null` on the conic arm, where the diagram's own conic renderer is what the provider said is right.
+      // `null` on the conic arm, where the diagram draws its own conic.
       trajectoryPath={trajectory.shape === "arc" ? trajectory.points : null}
       trailPath={trail}
       trajectoryFarEnd={trajectory.shape === "arc" ? trajectory.farEnd : null}
       sma={sma.magnitude}
       ecc={eccentricity.magnitude}
-      // `apoapsisR` is `null` on a hyperbolic orbit, OrbitDiagram already
-      // detects that itself (`ecc >= 1 || sma <= 0`) and ignores this value
-      // in that branch, so the fallback is never actually rendered from.
+      // Ignored by OrbitDiagram on a hyperbolic orbit, so the fallback is never drawn.
       apoapsis={apoapsisR ?? 0}
       periapsis={periapsisR}
       trueAnomaly={trueAnomaly ?? 0}
@@ -378,14 +258,7 @@ function OrbitViewComponent({
     />
   ) : null;
 
-  // Slot props. `overlay` carries the diagram's body-centric projection so an
-  // augment can draw in the SVG's coordinate space. It is null until the
-  // elements resolve: the wrapper only mounts the slot once there's a diagram
-  // beneath.
-  // Mirrors `OrbitDiagram`'s own `HYPERBOLIC_SCALE` constant so the overlay
-  // slot's declared `scale` matches the diagram's ACTUAL bounds on a
-  // hyperbolic trajectory, where apoapsis is meaningless and the diagram
-  // scales off periapsis instead (see OrbitDiagram.tsx).
+  // Mirrors `OrbitDiagram`'s `HYPERBOLIC_SCALE` so the overlay's `scale` matches the diagram's bounds on a hyperbolic orbit.
   const HYPERBOLIC_OVERLAY_SCALE = 5;
   const overlayContext: OrbitOverlayContext | null =
     sma != null && eccentricity != null && periapsisR != null
@@ -405,9 +278,6 @@ function OrbitViewComponent({
         }
       : null;
 
-  // Compose the diagram with its overlay layer. The layer is absolutely
-  // positioned over the diagram and stays out of the diagram's pointer path
-  // (see `OverlayLayer`), so an empty slot is visually and interactively inert.
   const diagramWithOverlay =
     diagram && overlayContext ? (
       <DiagramOverlayWrap>
@@ -421,12 +291,7 @@ function OrbitViewComponent({
     );
 
   if (isLandscape && showDiagram && hasTrajectory) {
-    // Wide-short slot: chrome on the left, diagram on the right, via
-    // `panelSidebar`. Body name and status pill stack in the sidebar column;
-    // the panel's own header sits above the diagram (a non-floating header
-    // is scoped to the body track it precedes, not the sidebar beside it),
-    // which is still far cheaper than the portrait fallback below, where the
-    // title row runs the full width and the diagram gets whatever besides.
+    // Wide-short slot: chrome in the sidebar, diagram beside it.
     return (
       <Panel
         panelTitle={panelTitleText}
@@ -447,27 +312,14 @@ function OrbitViewComponent({
     );
   }
 
-  // The diagram runs under the title rather than beside it, and the title
-  // floats over it. In portrait a title row of its own eats most of the
-  // vertical space (the comment on the landscape branch above says so), and an
-  // orbit ellipse is the kind of content that wants the whole tile: the corner
-  // it loses to a backed title is far cheaper than a reserved row. Only when
-  // there IS a diagram, though. The no-data and pill-only branches are centred
-  // text, and floating a title over centred text just overlaps it.
+  // The title floats over the diagram only when there is one; over centred text it would overlap.
   const drawingFillsPanel = hasTrajectory && showDiagram;
-  // Where the body name goes follows the header. The floating case rides it
-  // along in the aside, beside the title, at zero cost to the body track; the
-  // non-floating case puts it in the body as a caption, gated on the same
-  // height tier (`showSubtitle`) as every other caption.
   const showBodyNameInAside = drawingFillsPanel && bodyName !== undefined;
   const showBodyNameInBody =
     !drawingFillsPanel && showSubtitle && bodyName !== undefined;
   return (
     <Panel
       panelTitle={panelTitleText}
-      // The stream badge is gone from here on purpose: the composed header
-      // renders the host-derived status, which watches every topic this widget
-      // declares rather than the one this hook picked by hand.
       panelAside={
         showBodyNameInAside ? (
           <Text tone="muted" size="xs">
@@ -482,31 +334,18 @@ function OrbitViewComponent({
           {bodyName}
         </Text>
       )}
-      {/* Which frame the drawing below is in. An orbit that closes in one frame
-          is a rosette in another, so the curve is only readable next to its
-          own frame's name. Gated on `showDiagram`: below that threshold there
-          is no drawing for the caption to be about, only the status pill,
-          which already says everything this size has room to say. */}
+      {/* An orbit that closes in one frame is a rosette in another, so the drawing needs its frame's name. */}
       {showDiagram && (
         <TrajectoryFrameCaption
           trajectory={trajectory}
           centreBodyIndex={orbit?.referenceBodyIndex}
         />
       )}
-      {/* A REFUSAL outranks the no-data sentence, and only when there is one.
-          When the provider declines to authorise a curve the solve behind
-          `hasOrbit` goes with it, so without this the panel would answer "no
-          orbital data" to a craft whose elements arrived perfectly well and
-          whose path nobody would vouch for: the wrong sentence, with the
-          wrong remedy, in place of the one that says what happened. */}
+      {/* A refusal outranks the no-data sentence: the elements arrived, and nobody vouches for the path. */}
       {!hasOrbit && withheld === null ? (
         <NoData>{noOrbitSentence(declined)}</NoData>
       ) : !showDiagram ? (
-        // Tiny mode, and the refusal does NOT displace the pill here. The pill
-        // reports the craft's state at this instant, which is a fact the
-        // osculating elements do carry whoever computed them; only the PATH is
-        // in question. A ~104 px cell has no room for both, and the one that
-        // survives should be the one still true.
+        // The pill survives a refusal in tiny mode: the craft's state is still true, only the path is in question.
         <PillFill>
           <StatusPill $tone={pillTone}>{pillLabel}</StatusPill>
         </PillFill>
@@ -526,15 +365,9 @@ registerComponent<OrbitViewConfig>({
     "SVG diagram of the current orbit ellipse with vessel position, apoapsis, and periapsis markers.",
   tags: ["telemetry"],
   defaultSize: { w: 9, h: 18 },
-  /* Four rows, not three. At 3x3 the body scroller is 89px against 99px of
-     content, and the ten pixels that puts past the fold turn on an overflow
-     glow whose mask reaches seventeen, so "No orbital data" lost its last line
-     to a cover four times the scroll it was advertising. The fourth row leaves
-     it a clear 23px. */
+  // Four rows, not three: at 3x3 the empty-state sentence overflows the body.
   minSize: { w: 3, h: 4 },
   component: OrbitViewComponent,
-  // Exposes an overlay slot, drawn over the SVG diagram and passed the
-  // diagram's projection. No first-party augment fills it yet.
   augmentSlots: ["orbit-view.overlay"],
   channels: topics.channels,
   fields: topics.fields,
@@ -546,14 +379,7 @@ registerComponent<OrbitViewConfig>({
 
 export { OrbitViewComponent };
 
-/**
- * What the empty state says, from WHY the conic withdrew.
- *
- * Every reason is named, so a new one is a compile error here rather than a
- * silent default: the defect this closes is a widget inferring a specific cause
- * from a general code, and an exhaustive switch is what makes a new cause a
- * decision instead of a guess.
- */
+/** The empty-state sentence, from why the conic withdrew; the switch is exhaustive so a new reason is a compile error. */
 function noOrbitSentence(declined: ReckoningDecline | undefined): string {
   if (declined === undefined) return "No orbital data";
   const reason = declined.reason;

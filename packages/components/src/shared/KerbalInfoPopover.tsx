@@ -11,18 +11,8 @@ import { createPortal } from "react-dom";
 import { anchoredMenuPosition } from "../ShipMap/anchoredMenuPosition";
 
 /**
- * A per-kerbal info toggle: a real `<button aria-expanded>` that reveals the
- * stock trait tooltip text (role description + current-rank effects) in a
- * portalled popover, keyboard-operable and Escape-dismissible.
- *
- * <p>Portalled to `document.body` rather than positioned in-flow: the crew
- * list scrolls inside a `ScrollArea` (`overflow: auto`), which clips a
- * same-stacking-context popover taller than the remaining tile space, the
- * same reasoning the Ship Map's part-action menu documents. The host div
- * carries `position: fixed` PLUS the popover z-index rung: a fixed element
- * is its own stacking context, so a rung declared one level in (on the panel
- * rather than the host) would be trapped there and painted under the
- * dashboard grid's own local z-index instead of clearing it.</p>
+ * A per-kerbal toggle revealing the stock trait text in a popover, portalled to
+ * the body because the crew list's scroll area would clip it.
  */
 export function KerbalInfoPopover({
   name,
@@ -45,11 +35,9 @@ export function KerbalInfoPopover({
     triggerRef.current?.focus();
   }, []);
 
-  // Re-place the portalled popover against the viewport once it can be
-  // measured. A layout effect, not a passive one, so the corrected position
-  // is the first one painted rather than a visible jump from 0,0. Re-runs on
-  // resize and on scroll: the dashboard scrolls an inner container, not the
-  // window, so the listener is capture-phase (those events don't bubble).
+  /* A layout effect so the first painted position is the corrected one. Scroll
+     is captured because the dashboard scrolls an inner container, whose scroll
+     events do not bubble. */
   useLayoutEffect(() => {
     if (!open || !host) return;
     const place = () => {
@@ -79,7 +67,6 @@ export function KerbalInfoPopover({
     };
   }, [open, host]);
 
-  // An outside pointer press dismisses, the same contract ActionMenu uses.
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (e: PointerEvent) => {
@@ -107,10 +94,7 @@ export function KerbalInfoPopover({
         aria-controls={panelId}
         aria-label={label}
         onClick={() => setOpen((v) => !v)}
-        // The panel is portalled outside this button's DOM subtree, so
-        // Escape pressed while focus sits on the trigger (where it stays
-        // after the opening click, this isn't a focus-stealing dialog)
-        // never reaches the portal's own handler below. Caught here too.
+        // Focus stays on the trigger, and Escape here never reaches the portalled panel's handler.
         onKeyDown={(e) => {
           if (e.key === "Escape" && open) {
             e.stopPropagation();
@@ -130,10 +114,6 @@ export function KerbalInfoPopover({
               top: pos?.top ?? 0,
             }}
           >
-            {/* Escape is caught on the GROUP rather than the positioning
-                wrapper around it: the wrapper draws nothing and holds no
-                focusable area, so a key event can only arrive here by
-                bubbling out of the group anyway. */}
             <Stack
               id={panelId}
               role="group"
@@ -166,11 +146,7 @@ export function KerbalInfoPopover({
   );
 }
 
-/**
- * An 18px round hit area for a 13px glyph: smaller than any kit control, and
- * deliberately so, because it sits inline in a crew row and must not push the
- * line height. The kit's IconButton is sized for a toolbar.
- */
+/** Smaller than any kit control, so it sits inline in a crew row without pushing the line height. */
 const INFO_TRIGGER_STYLE = {
   display: "inline-flex",
   alignItems: "center",
@@ -185,21 +161,13 @@ const INFO_TRIGGER_STYLE = {
   cursor: "pointer",
 } as const;
 
-/* Fixed to the viewport, because the coordinates come from
-   getBoundingClientRect. Carries the popover z rung itself: see the component
-   doc comment for why it cannot live on the panel one level in. */
+// A fixed element is its own stacking context, so the z rung must sit here and not on the panel inside it.
 const POPOVER_HOST_STYLE = {
   position: "fixed",
   zIndex: "var(--z-dropdown)",
 } as const;
 
-/**
- * The floating surface. Not a `Box`: its border is fixed at the subtle rung and
- * its padding snaps to the space scale, where this needs the strong edge a
- * surface floating over arbitrary content has to have, and the surface inset.
- * The layout half is the kit's Stack, with the gap still named rather than
- * sized so the surface it floats over can retune it.
- */
+// Not a Box: a surface floating over arbitrary content needs the strong border and the surface inset.
 const POPOVER_PANEL_STYLE = {
   gap: "var(--gap-related)",
   maxWidth: "320px",

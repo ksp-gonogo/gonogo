@@ -4,9 +4,7 @@ import { NULL_DISPLAY, NullValue } from "./NullValue";
 
 describe("NULL_DISPLAY", () => {
   it("is a single em dash (U+2014)", () => {
-    // Compared by code point, not by a literal em dash in this file, so
-    // NullValue.tsx stays the ratchet's one and only allowed occurrence
-    // (see packages/core/src/styleguide-emdash.test.ts).
+    // Compared by code point, so NullValue.tsx stays the one allowed literal occurrence.
     expect(NULL_DISPLAY).toHaveLength(1);
     expect(NULL_DISPLAY.codePointAt(0)).toBe(0x2014);
   });

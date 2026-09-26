@@ -7,30 +7,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LandingStatusComponent } from "./index";
 
 /**
- * What LandingStatus does when the telemetry the burn solve rests on is no longer
- * current.
+ * What LandingStatus does when the telemetry the burn solve rests on is no longer current.
  *
- * SUPERSEDED once, and the correction is the interesting part. The first version of
- * this file asserted that the whole board suspended. That was wrong for the reason
- * the case itself makes obvious: losing contact mid-descent is the EXPECTED case, and
- * a blank board during a descent nobody is tracking is the worst available answer.
- *
- * The rule now splits by what the operator DOES with a number, not by which field it
- * came from. A DESCRIPTION renders from the best value available and says it is
- * dated; an INSTRUCTION does not render from a reckoned state at all.
- *
- * The old decision, for the record: it stopped solving entirely. A suicide-burn countdown names an instant a few
- * seconds away, computed from a position, a velocity and a thrust. Recomputed from
- * readings taken some seconds ago it still counts down, still looks live, and
- * names the wrong instant. An operator would burn on it. There is no honest way to
- * caption that, unlike a dated altitude readout, because the number IS the
- * instruction.
- *
- * The second assertion in each case is the one that earns the file: an empty board
- * is the widget's own "No landing in progress" state, which is a reassuring
- * statement about a vessel in orbit. Suspended and not-descending have to be
- * distinguishable from outside the component, or the failure mode is a calm board
- * during a descent nobody is tracking.
+ * A DESCRIPTION renders from the best value available and says it is dated; an INSTRUCTION never renders from a reckoned state, since a countdown recomputed from old readings still looks live and names the wrong instant. Each case also proves the board is not the reassuring "No landing in progress" state, which would be a calm board during an untracked descent.
  */
 
 const CARRIED = [
@@ -129,8 +108,7 @@ describe("LandingStatus when the solve inputs are not current", () => {
   }
 
   it("solves the descent while its inputs are current", async () => {
-    // The control. Without it every assertion below would also pass on a widget
-    // that never solves at all.
+    // The control: without it every assertion below would pass on a widget that never solves.
     const { container } = renderWidget();
     emitDescent();
     await waitFor(() => {
@@ -154,17 +132,14 @@ describe("LandingStatus when the solve inputs are not current", () => {
     await waitFor(() => {
       expect(visibleText(container)).toContain("Described from last known");
     });
-    // Named, not merely captioned. Which reading went is the operator's first
-    // question and the widget already knows the answer.
+    // Named, not merely captioned: which reading went is the operator's first question.
     expect(visibleText(container)).toContain("flight");
-    // And the board is still THERE: the descent picture is the thing that stays.
+    // And the descent picture stays.
     expect(visibleText(container)).not.toContain("No landing in progress");
   });
 
   it("does not present the described board as a vessel with no descent", async () => {
-    // The distinction this file exists for. "No landing in progress" is what a
-    // vessel in orbit shows, and reaching it from stale telemetry would report a
-    // calm sky during an untracked descent.
+    // Reaching "No landing in progress" from stale telemetry would report a calm sky during an untracked descent.
     const { container } = renderWidget();
     emitDescent();
     await waitFor(() =>
@@ -183,9 +158,7 @@ describe("LandingStatus when the solve inputs are not current", () => {
   });
 
   it("refuses the INSTRUCTION while still describing everything around it", async () => {
-    // The hero is the instruction. A countdown recomputed from a stale position
-    // is not a stale number, it is a wrong one, so nothing in the suspended board
-    // may present an ignition clock.
+    // A countdown recomputed from a stale position is wrong, not stale, so no ignition clock may show.
     const { container } = renderWidget();
     emitDescent();
     await waitFor(() =>
@@ -197,24 +170,16 @@ describe("LandingStatus when the solve inputs are not current", () => {
       stream.store.beginFrame();
     });
 
-    // "NEEDS A LINK" rather than "NEEDS CURRENT TELEMETRY", and that is the arms
-    // working: this fixture drops the whole transport, so the link itself is the
-    // more specific answer and the operator can act on it. The currency wording is
-    // for a link that is delivering while these particular readings are not.
+    // The whole transport is dropped, so "needs a link" is the more specific answer than the currency wording.
     await waitFor(() =>
       expect(visibleText(container)).toContain("BURN TIMING NEEDS A LINK"),
     );
-    // The hero is the one number an operator acts on at a named moment, so it is
-    // the one number withheld. A modelled ignition instant is not a dated reading,
-    // it is a wrong instruction.
     expect(visibleText(container)).not.toContain("SUICIDE BURN");
     expect(visibleText(container)).not.toContain("IGNITE");
   });
 
   it("says nothing about dated readings before anything has ever arrived", async () => {
-    // A cold start is not a dated board. "Described from last known" is a lie when
-    // nothing has ever arrived, and conflating the two would accuse the link of
-    // dropping on first paint.
+    // A cold start is not a dated board: "described from last known" would be false with nothing ever arrived.
     const { container } = renderWidget();
     await waitFor(() => {
       expect(visibleText(container)).not.toContain("Described from last known");

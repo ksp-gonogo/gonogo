@@ -17,11 +17,7 @@ import {
 import { PanelDelayRail } from "./PanelDelayRail";
 import type { InFlightCommandLike } from "./toInFlightListItems";
 
-/*
- * The rail axes these fixtures carry, from the same derivations production uses
- * rather than written as literals: a fixture that spelled its own tags would go
- * on asserting the old picture after a derivation moved.
- */
+// The rail axes come from the production derivations, so the fixtures follow them rather than asserting stale literals.
 const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
 const RAIL_CONTINUOUS = railTagsForControlAxis("vessel.control.setAxes");
 
@@ -50,9 +46,7 @@ function railAnnouncer(): HTMLElement | null {
   return document.querySelector<HTMLElement>("[data-live-region]");
 }
 
-/** The rail with a store above it, which is all it needs now: the band it draws
- * in is the panel container's own top inset, so there is no measured height to
- * publish and no element to publish it onto. */
+/** The rail with a store above it, which is all it needs. */
 function inPanel(rail: JSX.Element, store = createDelayRailStore()) {
   return render(
     <DelayRailContext.Provider value={store}>{rail}</DelayRailContext.Provider>,
@@ -64,9 +58,7 @@ describe("PanelDelayRail", () => {
     const store = createDelayRailStore();
     store.register(handle("cmd"));
     const { container } = inPanel(<PanelDelayRail />, store);
-    // v3: the rail renders the discrete handle as the glow-band strip (an
-    // <svg role="img"> whose accessible name starts "In-flight commands"), not
-    // the pre-v3 monospace list.
+    // The rail renders a discrete handle as the glow-band strip, not the monospace list.
     expect(
       container.querySelector('[aria-label^="In-flight commands"]'),
     ).not.toBeNull();
@@ -147,9 +139,7 @@ describe("PanelDelayRail", () => {
   });
 
   it("renders nothing for a registered but idle/instant handle (empty inFlight, nothing to draw)", () => {
-    // A meta-vantage / not-yet-dispatched command registers (so its must-consume
-    // token is marked) but its CommandDelay would draw nothing, so the rail
-    // stays absent, exactly as the inline CommandDelay drew nothing before.
+    // An idle command registers but its CommandDelay would draw nothing, so the rail stays absent.
     const store = createDelayRailStore();
     store.register({
       id: "instant",
@@ -162,10 +152,7 @@ describe("PanelDelayRail", () => {
   });
 
   it("renders nothing for a delayed stream handle with no buffers to draw", () => {
-    // A stream-shaped command whose delay UX is drawn elsewhere (the Navball's
-    // trim command shares vessel.control.setAxes with the axes but has no
-    // readback channel of its own) registers with no `streams`. ControlDelayStream
-    // draws nothing from an empty array, so the rail must not mount an empty band.
+    // A stream-shaped command with no `streams` draws nothing, so the rail must not mount around it.
     const store = createDelayRailStore();
     store.register({
       id: "bufferless-stream",
@@ -177,18 +164,10 @@ describe("PanelDelayRail", () => {
     expect(container.querySelector("[data-panel-rail]")).toBeNull();
   });
 
-  /**
-   * The band is the widget's, not the traffic's. It stands at its reserved
-   * height whether or not anything is in flight, so a command going up moves
-   * nothing, and the rail never has to borrow the space from a neighbour: both
-   * earlier shapes did one or the other, one pushing every watching widget's
-   * title down on a data transition, the other drawing over the sticky header
-   * and taking the clicks that belonged to it.
-   *
-   * jsdom runs no layout, so the reservation is pinned structurally and through
-   * the two declarations that make it: the rail's box is there with no rail
-   * chrome in it, it is in NORMAL FLOW rather than lifted over anything, and it
-   * pulls up into the container's inset by exactly the band.
+  /*
+   * The band is the widget's, not the traffic's. jsdom runs no layout, so the
+   * reservation is pinned structurally: the box is there with no chrome in it,
+   * in normal flow, pulled up into the container's inset by exactly the band.
    */
   describe("the band is reserved, not taken", () => {
     function railButton(): HTMLButtonElement {
@@ -199,7 +178,7 @@ describe("PanelDelayRail", () => {
 
     it("stands the band up for a widget with nothing in flight at all", () => {
       const { container } = inPanel(<PanelDelayRail />);
-      // The band, with no rail chrome inside it: an empty strip that reads as the widget's top padding, which is exactly what it is.
+      // The band with no rail chrome inside it.
       expect(container.querySelector("[data-panel-rail-frame]")).not.toBeNull();
       expect(container.querySelector("[data-panel-rail]")).toBeNull();
     });
@@ -210,7 +189,7 @@ describe("PanelDelayRail", () => {
         "[data-panel-rail-frame]",
       ) as HTMLElement;
       const style = getComputedStyle(frame);
-      // The two halves of "reserved, not taken": the box is the band tall, and it sits in room the container already made, not room it added.
+      // Reserved, not taken: the box is the band tall and sits in room the container already made.
       expect(style.minHeight).toContain("--panel-rail-band");
       expect(style.marginTop).toContain("--panel-rail-band");
     });
@@ -219,7 +198,7 @@ describe("PanelDelayRail", () => {
       const store = createDelayRailStore();
       store.register(handle("cmd"));
       inPanel(<PanelDelayRail />, store);
-      // Not `absolute`: an out-of-flow band is one drawn over the sticky header, which is how it came to swallow the header's clicks.
+      // Not `absolute`: an out-of-flow band would draw over the sticky header and take its clicks.
       expect(getComputedStyle(railButton()).position).toBe("relative");
     });
   });
@@ -252,10 +231,7 @@ describe("PanelDelayRail", () => {
 
       await user.click(btn);
       expect(btn).toHaveAttribute("aria-pressed", "true");
-      // Grown: the fuller detail renders in place (the summary glow is replaced
-      // by the square-icon tile), inside the rail button, no separate overlay.
-      // The command's label rides the tile's accessible name (visible text is
-      // the icon + countdown).
+      // Grown: the queue square replaces the glow in place, inside the rail button.
       expect(container.querySelector('[data-role="glow"]')).toBeNull();
       // The command's label rides the queue square's accessible name.
       expect(container.querySelector('[aria-label*="Launch"]')).not.toBeNull();
@@ -302,13 +278,7 @@ describe("PanelDelayRail", () => {
     });
 
     it("un-pinning via click suppresses the CSS hover-preview immediately (data-suppress-hover), the pointer having never left", async () => {
-      // Regression test: the rail's hover-preview grows it on `:hover` alone.
-      // Clicking to un-pin while the pointer is still resting on the rail (the
-      // common case, userEvent's virtual pointer stays put across clicks the
-      // same as a real cursor) must not leave it visually stuck open. The
-      // resulting DOM attribute is the CSS escape hatch; jsdom doesn't run
-      // layout/paint so the visual collapse itself is covered by the browser
-      // probe, not here.
+      // Un-pinning with the pointer still resting on the rail must not leave it stuck open; jsdom sees only the attribute.
       const user = userEvent.setup();
       const store = createDelayRailStore();
       store.register(handle("cmd"));
@@ -336,9 +306,7 @@ describe("PanelDelayRail", () => {
       expect(btn).toHaveAttribute("data-suppress-hover", "true");
 
       await user.unhover(btn);
-      // Leaving does not clear it (that would race the same layout-only hover
-      // loss a real browser exhibits here, see the rail's own doc comment);
-      // only a fresh entry does.
+      // Only a fresh entry clears it, never leaving.
       expect(btn).toHaveAttribute("data-suppress-hover", "true");
 
       await user.hover(btn);
@@ -385,7 +353,7 @@ describe("PanelDelayRail", () => {
       });
       const { container } = inPanel(<PanelDelayRail />, store);
       await user.click(railButton());
-      // Both discrete commands render as queue squares (plus the stream graph above); their labels ride the squares' accessible names.
+      // Both discrete commands render as queue squares, labels on their accessible names.
       const labels = Array.from(
         container.querySelectorAll('[role="listitem"][data-phase]'),
       ).map((t) => t.getAttribute("aria-label") ?? "");
@@ -417,8 +385,7 @@ describe("PanelDelayRail", () => {
   ): CommandHandle {
     return {
       id,
-      // Nothing in flight: a refusal is terminal, so it has already left the
-      // pending queue. This is the case that used to render nothing at all.
+      // Nothing in flight: a refusal is terminal.
       inFlight: [],
       tags: RAIL_DISCRETE,
       effectiveDelaySeconds: 5,
@@ -464,15 +431,12 @@ describe("PanelDelayRail", () => {
 
       const sentence =
         "Upgrade Launch Pad refused: it is already at tier 3 of 3.";
-      // A hundred-character sentence cannot live in a 16px band. The rail's
-      // announcer carries it for assistive tech, off screen, so it is not
-      // what is being asked about here.
+      // The sentence cannot fit the band; the off-screen announcer carries it.
       const drawn = { ignore: "script, style, [data-live-region] *" };
       expect(screen.queryByText(sentence, drawn)).toBeNull();
 
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
       expect(screen.getByText(sentence, drawn)).toBeTruthy();
-      // And the count line gives way to the reason rather than doubling it.
       expect(screen.queryByText("1 command failed")).toBeNull();
     });
 
@@ -501,8 +465,7 @@ describe("PanelDelayRail", () => {
     });
 
     it("says nothing failed for a handle that only has commands in flight", () => {
-      // The negative. Without it the suite would pass just as well if the rail
-      // called every command a failure.
+      // The negative, so the suite fails if every command were called a failure.
       const store = createDelayRailStore();
       store.register(handle("cmd"));
       inPanel(<PanelDelayRail />, store);
@@ -510,9 +473,7 @@ describe("PanelDelayRail", () => {
     });
 
     it("never reads a lost command as refused", async () => {
-      // A lost command decided NOTHING and may well have executed. It belongs in
-      // the queue as lost, and saying the game refused it would be a confident
-      // wrong answer about something the game never said.
+      // A lost command may have executed; the game never refused it.
       const user = userEvent.setup();
       const store = createDelayRailStore();
       store.register({
@@ -542,12 +503,7 @@ describe("PanelDelayRail", () => {
   });
 
   describe("a command nothing ever answered", () => {
-    /**
-     * The comms-loss drop: the engine drops a command for an unreachable
-     * subject BEFORE it mints a pending-uplink entry, so there is nothing in
-     * flight and no refusal, and this rail used to render zero pixels for the
-     * command's entire life.
-     */
+    // The comms-loss drop happens before a pending entry exists, so there is nothing in flight and no refusal.
     function droppedHandle(
       id: string,
       count: number,
@@ -592,7 +548,7 @@ describe("PanelDelayRail", () => {
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
       const list = screen.getByRole("list", { name: /no reply/i });
       expect(list.textContent).toMatch(/no reply/i);
-      // The one thing it must not do is claim the game said no: nothing was decided, and the command may well have executed.
+      // Never "refused": nothing was decided, and the command may have executed.
       expect(list.textContent).not.toMatch(/refused/i);
     });
 
@@ -622,12 +578,7 @@ describe("PanelDelayRail", () => {
   });
 
   describe("a lost command that answered after all", () => {
-    /**
-     * The other side of the comms-loss drop. `lost` says WE DO NOT KNOW, never
-     * IT DID NOT HAPPEN: the correlation entry is retained and the transport
-     * re-sends what it queued, so a command the operator was told to give up on
-     * really can turn up executed.
-     */
+    // `lost` means unknown, not did-not-happen: the transport re-sends, so the command can turn up executed.
     function foundHandle(
       id: string,
       outcome: "ran" | "refused" | "errored",
@@ -665,9 +616,7 @@ describe("PanelDelayRail", () => {
     });
 
     it("counts a found APART from the failures, in its own words", () => {
-      // The count it must not join. A found is the one outcome that reverses a
-      // failure, so folding it into "N commands failed" would file the good
-      // news under the bad.
+      // A found reverses a failure, so it never joins the failure count.
       const store = createDelayRailStore();
       store.register(foundHandle("found", "ran"));
       store.register({
@@ -695,7 +644,7 @@ describe("PanelDelayRail", () => {
       inPanel(<PanelDelayRail />, store);
       const announcer = railAnnouncer();
       expect(announcer).toHaveTextContent(/found executed/i);
-      // Assertive is ABORT's, and this is news rather than an interruption.
+      // Polite: assertive is reserved for ABORT.
       expect(announcer).toHaveAttribute("aria-live", "polite");
     });
 
@@ -708,9 +657,7 @@ describe("PanelDelayRail", () => {
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
       const list = screen.getByRole("list", { name: /answered/i });
       expect(list.textContent).toMatch(/found executed/i);
-      // Confirmed means it worked as expected. Being told a command was lost
-      // and then that it ran is the opposite of expected, and an operator who
-      // re-sent it needs those to read differently.
+      // Not "confirmed": an operator who re-sent it needs the two to read differently.
       expect(list.textContent).not.toMatch(/confirmed/i);
     });
 
@@ -764,11 +711,7 @@ describe("PanelDelayRail", () => {
   });
 
   describe("a command that never left this machine", () => {
-    /**
-     * The other way a loss ends. The transport held the command for a link that
-     * never came back and has stopped retrying, so nothing over there ever saw
-     * it: the rail can say it did not run, which a loss can never say.
-     */
+    // The other way a loss ends: the transport gave up, so the rail can say the command did not run.
     function unsentHandle(
       id: string,
       count: number,
@@ -797,7 +740,7 @@ describe("PanelDelayRail", () => {
     });
 
     it("counts WITH the failures, so promoting a loss does not drop the count", () => {
-      // The opposite call from a found, and for the opposite reason: this one confirms the failure rather than reversing it.
+      // Counted with the failures, since it confirms one.
       const store = createDelayRailStore();
       store.register(unsentHandle("unsent", 1));
       store.register(refusedHandle("refused", 1));
@@ -816,7 +759,7 @@ describe("PanelDelayRail", () => {
       const list = screen.getByRole("list", { name: /never sent/i });
       expect(list.textContent).toMatch(/never sent/i);
       expect(list.textContent).toMatch(/safe to re-send/i);
-      // The one thing it must not repeat is the loss's doubt: this command provably did not run.
+      // No doubt carried over from the loss: this command provably did not run.
       expect(list.textContent).not.toMatch(/unknown/i);
     });
 
@@ -854,9 +797,7 @@ describe("PanelDelayRail", () => {
       screen.getByRole("button", { name: /signal-delay detail/i }),
     );
     expect(container.querySelector('[aria-label*="Launch"]')).not.toBeNull();
-    // Command completes: the rail chrome goes, and with it the height the open
-    // detail was taking, so the panel's content comes back up. The BAND stays,
-    // since it was never the command's to take.
+    // The rail chrome goes when the command completes; the band stays.
     act(() => deregister());
     expect(container.querySelector("[data-panel-rail]")).toBeNull();
     expect(container.querySelector("[data-panel-rail-frame]")).not.toBeNull();

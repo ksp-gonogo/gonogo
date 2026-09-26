@@ -29,12 +29,7 @@ describe("PowerSystems DOM snapshots", () => {
           Widget: PowerSystemsComponent,
           fixture,
           mode,
-          // PowerSystems uses useDataStreamStatus, connect the raw
-          // MockDataSource so the rendered status
-          // badge reflects "connected, streaming" rather than the shared
-          // harness's opt-out-by-default "disconnected" convention (see
-          // setupMockDataSource.ts's connectSource doc comment, and
-          // FuelStatus/snapshots.test.tsx for the precedent).
+          // Connected, so the status badge reflects a streaming source rather than the harness's disconnected default.
           connectSource: true,
         });
         expect(html).toMatchSnapshot();

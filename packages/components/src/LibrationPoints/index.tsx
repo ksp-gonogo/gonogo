@@ -63,36 +63,18 @@ const topics = defineTopicManifest({
 });
 
 /**
- * Libration points as PLACES: where a body pair's five of them are, and how far
- * off one of them a craft is.
- *
- * ## One control, because the pair IS the frame
- *
- * A libration point is a fixed location only in a frame co-rotating with a body
- * PAIR, and all five of one pair's points stand still in that pair's frame at
- * the same time. Kerbin-Mun's and Kerbol-Kerbin's cannot both stand still at
- * once, so the widget has exactly ONE choice in it: the pair. That choice is the
- * frame choice, there is no second picker anywhere here, and the two could not
- * be separated without offering a frame in which nothing this widget draws is
- * stationary.
- *
- * ## Why it does not live on the system diagram
- *
- * The system diagram plots in metres about a parent, which is right for
- * everything it draws. In metres a pair's separation breathes and the five
- * markers walk in and out once per orbit, and a marker that walks is not a
- * libration point. This diagram is in the pair's own units, so they do not.
+ * Libration points as places: where a body pair's five are, and how far off
+ * one of them a craft is. A libration point stands still only in a frame
+ * co-rotating with its pair, so the pair is the frame and the widget's one
+ * control. It is drawn in the pair's own units rather than on the metric
+ * system diagram, where the markers would walk in and out once per orbit.
  */
 
 interface LibrationPointsConfig {
   /**
-   * Which pair, by the SECONDARY body's name: the pair is `<that body's
-   * parent>-<that body>`, which is the way every libration pair is written and
-   * the way the arithmetic is parameterised.
-   *
-   * `"auto"` follows the craft: the pair whose points it is nearest to, measured
-   * as a fraction of that pair's own separation so the comparison is between
-   * like and like. Absent means `"auto"`.
+   * Which pair, by the secondary body's name (`<parent>-<body>`). `"auto"`,
+   * or absent, follows the craft: the pair it is nearest to as a fraction of
+   * that pair's own separation.
    */
   pair?: string;
 }
@@ -119,12 +101,9 @@ interface Resolved {
 }
 
 /**
- * The craft's root-centred inertial position, or null when it cannot be placed.
- *
- * Solved from the streamed elements about the body they are measured against,
- * then added to that body's own root-centred position, which is the same
- * catalogue solve the frame itself is built on. Doing it any other way would
- * place the craft in a frame the markers are not in.
+ * The craft's root-centred inertial position, or null when it cannot be
+ * placed: its elements solved about their body, plus that body's own position
+ * from the same catalogue solve the frame is built on.
  */
 function vesselInertialAt(
   elements: OrbitElements | null,
@@ -160,16 +139,10 @@ function resolveFor(
 }
 
 /**
- * The pair `"auto"` picks: whichever one the craft is nearest to, as a fraction
- * of that pair's own separation.
- *
- * Compared in frame units rather than metres deliberately. In metres the pair
- * with the widest separation would win almost everywhere, and "nearest" would
- * mean "biggest", which is not a question anyone asked.
- *
- * With no craft to go by it falls back to the craft's own body if that body can
- * be half of a pair, then to the first pair the catalogue offers, so the widget
- * has something real to draw before a vessel arrives.
+ * The pair `"auto"` picks: the nearest as a fraction of each pair's own
+ * separation, since in metres the widest pair would win almost everywhere.
+ * With no craft, the craft's own body if it can be half of a pair, then the
+ * catalogue's first pair.
  */
 function autoPair(
   facts: CelestialFacts | undefined,
@@ -225,11 +198,7 @@ function LibrationPointsComponent({
   config,
   id,
 }: Readonly<ComponentProps<LibrationPointsConfig>>) {
-  /*
-   * A catalogue is a FACT: it changes when the game changes, and nothing
-   * changes it down a link that is not delivering, so a held one is still the
-   * catalogue. Both value-bearing arms, deliberately.
-   */
+  /* A catalogue does not decay down a link, so a held one is still the catalogue. */
   const factsReading = useProcessor(CELESTIAL_FACTS);
   const facts =
     factsReading?.state === "observed" || factsReading?.state === "stale"
@@ -241,16 +210,9 @@ function LibrationPointsComponent({
     UT_BUCKET_SECONDS,
   );
 
-  // The craft's dot is a positive claim about where it is, so the elements come
-  // from a current reading or from a model that offers one, and otherwise from
-  // nothing: the diagram simply draws no craft.
+  // The craft's dot is a claim about now: a current reading or a model, else no craft.
   const orbitReading = topics.useTelemetry("vessel.orbit");
-  /*
-   * The observation OVERLAID by what the conic moved, which for `vessel.orbit`
-   * is the phase. Written here rather than in a helper because the spread IS
-   * the judgement (see `ReckonableReading`): taking `reckoning.value` alone
-   * gets the moved fields and nothing else, which is not an orbit.
-   */
+  /* The observation overlaid by what the conic moved (the phase). `reckoning.value` alone is not an orbit. */
   const orbitObserved =
     orbitReading.state === "observed" || orbitReading.state === "stale"
       ? orbitReading.value
@@ -269,11 +231,7 @@ function LibrationPointsComponent({
 
   const candidates = useMemo(() => librationPairsOf(facts), [facts]);
 
-  // The ONE control. Its value is the pair, and the pair is the frame: there is
-  // deliberately no second picker for the frame, because a frame chosen apart
-  // from the pair is one in which none of these five markers stands still. The
-  // saved config seeds it and an operator can switch it live without editing a
-  // dashboard.
+  // The one control: the pair is the frame. Seeded from config, switchable live.
   const [chosen, setChosen] = useState<string>(config?.pair ?? AUTO_PAIR);
   const chosenIndex =
     chosen === AUTO_PAIR ? null : (facts?.indexByName[chosen] ?? null);
@@ -300,9 +258,7 @@ function LibrationPointsComponent({
     [facts, ut],
   );
 
-  // Through the SDK's own wire-to-radians conversion, which is the one place
-  // the degree/radian mix on `vessel.orbit` is normalised. A second copy here
-  // would be a second chance to get the `meanAnomalyAtEpoch` quirk wrong.
+  // The SDK's conversion is the one place `vessel.orbit`'s degree/radian mix is normalised.
   const elements = useMemo<OrbitElements | null>(
     () => (orbit?.sma.isFinite() ? buildElements(orbit) : null),
     [orbit],
@@ -352,11 +308,7 @@ function LibrationPointsComponent({
 
   const drawn = answer.refusal === LIBRATION_REFUSALS.NotRefused;
 
-  // The craft's own path, asked for IN THIS FRAME. The seam samples a conic
-  // answer rather than handing back the instruction to draw an ellipse, because
-  // an ellipse is a shape in the orbit's own plane and a rosette in this one, so
-  // the curve is live on an ordinary install rather than only where something
-  // integrates.
+  // The craft's path sampled in this frame: an ellipse in the orbit's plane is a rosette in this one.
   const readFrame = useMemo(
     () =>
       facts !== undefined && drawn
@@ -386,9 +338,7 @@ function LibrationPointsComponent({
       panelTitle="LIBRATION"
       panelToolbar={
         <div style={PAIR_LABEL}>
-          {/* Scoped to the widget instance: a dashboard can hold two of these
-              and two controls sharing one id would leave the label pointing at
-              whichever mounted first. */}
+          {/* Scoped to the instance so two of these widgets never share a control id. */}
           <label htmlFor={`${id}-libration-pair`} style={PAIR_LABEL_TEXT}>
             Pair
           </label>
@@ -397,10 +347,7 @@ function LibrationPointsComponent({
             value={chosen}
             onChange={(e) => setChosen(e.target.value)}
           >
-            {/* The short form, because the toolbar shares its row with the
-                label: the long one could only ever show "Auto (n" at the
-                minimum. The pair Auto resolved to is named in the caption
-                below, and the config form says what Auto follows. */}
+            {/* The short form: the toolbar shares its row with the label, and the caption names the resolved pair. */}
             <option value={AUTO_PAIR}>Auto</option>
             {candidates.map((pair) => (
               <option
@@ -411,9 +358,7 @@ function LibrationPointsComponent({
               </option>
             ))}
             {chosenIsMissing && (
-              // The saved pair is still the choice even when this save has no
-              // such body: dropping it silently would make the control show a
-              // pair the widget is not drawing.
+              // The saved pair stays the choice when this save has no such body, so the control never shows a pair not being drawn.
               <option value={chosen}>{chosen} (not in this system)</option>
             )}
           </Select>
@@ -432,16 +377,11 @@ function LibrationPointsComponent({
               unitLength: answer.frame?.unitLength,
             }}
           />
-          {/* Beside the frame caption rather than over the picture: the five points
-            are still where they are and only the craft's own curve is missing, so
-            covering the diagram would overstate what was refused. */}
+          {/* Beside the caption, not over the picture: only the craft's curve is refused. */}
           {drawn && trajectoryWithheld && (
             <TrajectoryWithheldNote withheld={trajectoryWithheld} compact />
           )}
         </Section>,
-        /* The diagram is the drawing, and the refusal that replaces it is
-           centred in the same space, so either way this section takes what
-           the caption and the readouts leave. */
         <Section key="view" fill>
           {!drawn ? (
             <div style={REFUSAL} role="status" aria-live="polite">
@@ -475,9 +415,7 @@ function LibrationPointsComponent({
             <Row>
               <RowName>Mass ratio</RowName>
               <Text>
-                {/* The only parameter the five positions depend on, so it is
-                        worth showing: the same ratio always puts them in the same
-                        place, whatever the pair. */}
+                {/* The only parameter the five positions depend on. */}
                 <Unit value={value("%", answer.massRatio * 100)} decimals={3} />
               </Text>
             </Row>
@@ -513,11 +451,7 @@ function LibrationPointsConfigComponent({
   config,
   onSave,
 }: Readonly<ConfigComponentProps<LibrationPointsConfig>>) {
-  /*
-   * A catalogue is a FACT: it changes when the game changes, and nothing
-   * changes it down a link that is not delivering, so a held one is still the
-   * catalogue. Both value-bearing arms, deliberately.
-   */
+  /* A catalogue does not decay down a link, so a held one is still the catalogue. */
   const factsReading = useProcessor(CELESTIAL_FACTS);
   const facts =
     factsReading?.state === "observed" || factsReading?.state === "stale"

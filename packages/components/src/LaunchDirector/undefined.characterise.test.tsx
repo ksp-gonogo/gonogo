@@ -8,27 +8,11 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LaunchDirectorComponent } from "./index";
 
 /**
- * Characterisation, not specification: what this widget DOES today when its
- * telemetry reads come back `undefined`.
- *
- * Every topic the widget reads is carried by the fixture, so an un-emitted
- * topic reaches it as `undefined` by the production route rather than by a
- * missing legacy source.
- *
- * `undefined` carries at least five separate meanings inside this one file, and
- * the widget writes none of them down:
- *  - savedShips absent: the ENTIRE widget body is replaced by "Awaiting
- *    launch-pad telemetry", including the funds balance and the crew roster it
- *    already has in hand
- *  - funds absent: `?? Number.POSITIVE_INFINITY`, so every craft in the save is
- *    affordable
- *  - crewRoster absent: the crew section says the roster has no reading, and the
- *    launch control stands (it used to vanish with the section)
- *  - crash.hasRecent absent: `=== true` fails, recovery is NOT blocked
- *    (fail-open), while an absent `crash.lastCrash` in the same expression is
- *    read as fail-SAFE
- *  - target.available absent: the switcher reports "No other vessels in this
- *    save"
+ * Characterisation: what this widget does when its telemetry reads come back
+ * `undefined`, by the production route. Absent pads empty the widget; an
+ * absent balance refuses every priced craft; an absent roster is stated; an
+ * absent `crash.hasRecent` fails open while an absent `crash.lastCrash` fails
+ * safe; an absent target roster reads as no other vessels.
  */
 afterEach(() => {
   clearActionHandlers();
@@ -91,14 +75,12 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     });
     mount(fixture, "ld-cold");
 
-    // `parseLaunchSites(undefined)` is null, and the pre-flight body returns
-    // early. This is the one absence gate in the file that decides whether the
-    // widget exists at all, and it reads the PADS, which are the subject.
+    // The one absence gate that decides whether the widget exists at all, and it reads the PADS.
     await waitFor(() =>
       expect(screen.getByText("Awaiting launch-pad telemetry")).toBeTruthy(),
     );
 
-    // Named absences rather than an empty container: none of the widget's sections, controls or readouts exist behind that one line.
+    // Named absences: none of the sections, controls or readouts exist behind that one line.
     expect(screen.queryByText("Pads")).toBeNull();
     expect(screen.queryByText("Crew")).toBeNull();
     expect(screen.queryByTitle("Available funds")).toBeNull();
@@ -132,10 +114,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       });
     });
 
-    // The craft list is what ONE pad can take, so its absence narrows the open
-    // pad and nothing else: the pads are still listed, the balance is still
-    // beside the spend control, and the missing list says it is missing rather
-    // than reading as a pad with no craft.
+    // A missing craft list narrows the open pad and says so; the pads and the balance stay.
     await waitFor(() =>
       expect(screen.getByText("KSC Launch Pad")).toBeTruthy(),
     );
@@ -153,13 +132,11 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     mount(fixture, "ld-tombstone");
 
     act(() => {
-      // A tombstone: the subject confirms there is no launch-site list.
-      // `useTelemetry` hands back `null` here, not `undefined`, and
-      // `parseLaunchSites` collapses both to null on its first line.
+      // A tombstone: `useTelemetry` hands back `null`, and `parseLaunchSites` collapses it with `undefined`.
       fixture.emit("spaceCenter.launchSites", null);
     });
 
-    // Identical render to the cold case above: nothing in this widget can tell "confirmed no launch sites" from "nothing has arrived yet".
+    // Identical to the cold case: "confirmed no launch sites" is not distinguished from "nothing yet".
     await waitFor(() =>
       expect(screen.getByText("Awaiting launch-pad telemetry")).toBeTruthy(),
     );
@@ -180,9 +157,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       fixture.emit("spaceCenter.launchSites", []);
     });
 
-    // `[]` parses to `[]`, not null, so the gate passes and the widget renders
-    // its real body: an arrived-and-empty list is the ONLY thing today that
-    // distinguishes "we know there are no pads" from "we do not know yet".
+    // An arrived-and-empty list is the only thing that distinguishes "no pads" from "not known yet".
     await waitFor(() =>
       expect(screen.getByText("No launch sites reported")).toBeTruthy(),
     );
@@ -190,15 +165,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     expect(screen.getByRole("status").textContent).toContain("No pads");
   });
 
-  /**
-   * Recorded prior behaviour: "treats absent funds as infinite funds, so an
-   * unaffordable craft is launchable". `fundsAvailable = careerFunds ??
-   * Number.POSITIVE_INFINITY` made an absent balance the most permissive
-   * possible one, on a control that spends career funds, and the balance readout
-   * hid at the same time so nothing on screen said why the craft was launchable.
-   *
-   * It now refuses, and says what it does not know.
-   */
+  /** An absent balance refuses a priced craft, and says what it does not know. */
   it("treats absent funds as insufficient funds, and shows that the balance is unknown", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
@@ -214,22 +181,19 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       ]);
     });
 
-    // No career telemetry: the craft is not launchable, and it is tagged with the same "Insufficient funds" reason a real short balance produces.
+    // Tagged with the same "Insufficient funds" reason a real short balance produces.
     const row = await waitFor(() =>
       screen.getByRole("button", { name: /Kerbal X/ }),
     );
     expect(row.getAttribute("aria-disabled")).toBe("true");
     expect(screen.getByTitle("Insufficient funds")).toBeTruthy();
     expect(screen.getByText(/Craft · 0\/1 ready/)).toBeTruthy();
-    // And the refusal is explained: the readout stays on screen saying the
-    // balance is the thing missing, rather than vanishing and leaving a
-    // disabled button with no stated cause.
+    // The readout stays, saying the balance is the thing missing.
     expect(screen.queryByTitle("Available funds")).toBeNull();
     expect(screen.getByTitle("No funds balance has arrived")).toBeTruthy();
     expect(screen.getByRole("status").textContent).toContain("funds unknown");
 
-    // Contrast: a real balance below the cost reads the same way, which is the
-    // point. Absence and a short balance are both "cannot afford this".
+    // Absence and a short balance are both "cannot afford this".
     act(() => {
       fixture.emit("career.status", {
         economy: { funds: 100, reputation: 0, science: 0 },
@@ -239,8 +203,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
         tech: null,
       });
     });
-    // Wait on the readout, not on the disabled state: the row is already
-    // disabled, so waiting for that would return before the emit landed.
+    // Wait on the readout: the row is already disabled before the emit lands.
     await waitFor(() =>
       expect(screen.getByTitle("Available funds")).toBeTruthy(),
     );
@@ -272,9 +235,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     await waitFor(() => expect(screen.getByText("Kerbal X")).toBeTruthy());
     await user.click(screen.getByRole("button", { name: /^Kerbal X/ }));
 
-    // `parseCrew(undefined)` is null, and null is now a state the section
-    // reports rather than a reason to remove the section and the launch control
-    // with it. An unreadable roster says so and an unmanned launch stands.
+    // An unreadable roster says so, and an unmanned launch stands.
     expect(
       screen
         .getByRole("button", { name: /^Kerbal X/ })
@@ -286,7 +247,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       screen.getByRole("button", { name: "Launch Kerbal X unmanned" }),
     ).toBeTruthy();
 
-    // Contrast: an EMPTY roster is a roster, so the no-reading line goes and the launch control stays where it was.
+    // An EMPTY roster is a roster: the no-reading line goes and the launch control stays.
     act(() => {
       fixture.emit("spaceCenter.crewRoster", []);
     });
@@ -319,17 +280,14 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       });
     });
 
-    // `crashHasRecent === true` is false for undefined, so an absent crash
-    // channel reads as "no crash" and Recover stays live. Fail-open.
+    // An absent crash channel reads as "no crash": fail-open.
     const recover = await waitFor(() =>
       screen.getByRole("button", { name: /^Recover$/ }),
     );
     expect(recover).not.toBeDisabled();
     expect(screen.queryByText(/Crash in progress/)).toBeNull();
 
-    // The neighbouring absence reads the OTHER way: with hasRecent true and no
-    // snapshot to scope it, `lastCrash == null ? true` blocks recovery for the
-    // whole session. Two absences, two opposite defaults, one expression.
+    // With hasRecent true and no snapshot to scope it, recovery is blocked for the session: the opposite default.
     act(() => {
       fixture.emit("crash.hasRecent", true);
     });
@@ -352,9 +310,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       fixture.emit("spaceCenter.scene", { scene: "Flight" });
     });
 
-    // `canRevertToLaunch ?? false` / `canRevertToEditor ?? false`: absence is
-    // rendered as a positive claim that reverting is unavailable, which is the
-    // same thing KSP saying "you cannot revert" looks like.
+    // Absence renders as a positive claim that reverting is unavailable.
     const revertLaunch = await waitFor(() =>
       screen.getByRole("button", { name: "Revert to launch (n/a)" }),
     );
@@ -363,7 +319,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       screen.getByRole("button", { name: "Revert to VAB (n/a)" }),
     ).toBeDisabled();
 
-    // Contrast: the flags arriving flips both labels, so the `?? false` is what produced the (n/a) text.
+    // The flags arriving flips both labels.
     act(() => {
       fixture.emit("ksp.revertAvailability", {
         canRevertToLaunch: true,
@@ -390,21 +346,18 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       fixture.emit("spaceCenter.scene", { scene: "Flight" });
     });
 
-    // `vesselName ?? padVesselTitle ?? "(unnamed)"`: both absent, so the widget asserts a flight is in progress and names it as an unnamed craft.
+    // Both names absent, so the flight is named as an unnamed craft.
     await waitFor(() =>
       expect(screen.getByRole("status").textContent).toContain(
         "In flight: (unnamed)",
       ),
     );
 
-    // `missionTime ?? null` and `altitudeMeters ?? null` both reach the
-    // NULL_DISPLAY placeholder, which is the one place in the in-flight panel
-    // where absence is drawn as absence.
+    // Both reach NULL_DISPLAY, the one place in the in-flight panel where absence is drawn as absence.
     expect(visibleText()).toContain(`Mission time${NULL_DISPLAY}`);
     expect(visibleText()).toContain(`Altitude${NULL_DISPLAY}`);
 
-    // `availableVessels?.length ?? 0`: an absent target roster is reported as a
-    // save with no other vessels, in the button's own tooltip.
+    // An absent target roster reads as a save with no other vessels, in the tooltip.
     const switcher = screen.getByRole("button", { name: /Switch to vessel/ });
     expect(switcher).toBeDisabled();
     expect(switcher.getAttribute("title")).toBe(

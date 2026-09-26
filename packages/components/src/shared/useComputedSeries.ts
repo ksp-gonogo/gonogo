@@ -3,22 +3,10 @@ import { useMemo } from "react";
 import { toNumericSeries } from "../Graph/GraphSeries";
 
 /**
- * A series computed at the point of read from two wire series, for a quantity
- * the wire does not carry.
- *
- * Sampled on `primary`'s instants: each point combines `primary`'s value with
- * `secondary`'s most recent value at or before it, which is exact when both are
- * fields of one topic (they share instants) and a sample-and-hold otherwise.
- * `primary` also lends the result its annotations: its breaks, its status runs
- * and which of its points a model supplied. A reckoned run's BAND is dropped,
- * because an uncertainty on an operand is not an uncertainty on the result.
- *
- * `compute` answers `null` for an instant with no meaningful value, which drops
- * the point exactly as a non-numeric fetched sample is dropped.
- *
- * Both keys must name wire fields. A key on a derived channel would put back
- * the dependency this exists to remove: the day that channel goes, the series
- * would go empty with no error anywhere.
+ * A series computed from two wire series, on `primary`'s instants with
+ * `secondary` sample-and-held. `primary` lends its annotations, but a reckoned
+ * band is dropped: an operand's uncertainty is not the result's. `compute`
+ * answers `null` to drop a point.
  */
 export function useComputedSeries(
   primary: string,

@@ -1,14 +1,6 @@
 /**
- * AltitudeRail: the altimeter as a full-height rail down one edge of the
- * landing widget, rather than a strip crammed into the middle of the flight
- * picture. It is the spatial spine of the instrument: AGL falling toward the
- * ground line at the bottom, the suicide-burn ignition band shaded as a hot
- * zone the pointer descends into, and the ignition cue pinned beneath it.
- *
- * Presentational: `agl` is the reading it arrived in, handed to the `Tape` whole
- * so the rail marks a held height itself. `ignitionAltitude` and
- * `suicideBurnCountdown` are derived upstream by `solveSuicideBurn`. Before data
- * arrives the rail renders a safe empty scale.
+ * The altimeter as a full-height rail down one edge of the landing widget: AGL falling toward the ground line, the suicide-burn ignition band shaded as a hot zone, and the ignition cue beneath it.
+ * `agl` is handed to the `Tape` as a whole reading so the rail marks a held height itself; before data arrives it renders an empty scale.
  */
 
 import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
@@ -64,9 +56,7 @@ export function AltitudeRail({
         flexDirection: "column",
         alignItems: "center",
         height: "100%",
-        // Root-relative on purpose, so the rail's internal rhythm tracks the
-        // browser font size. The px spacing ladder would freeze it, which is
-        // an accessibility regression rather than a cleanup.
+        // Root-relative, so the rail's rhythm tracks the browser font size.
         gap: "0.25rem",
         minWidth: 0,
       }}
@@ -85,9 +75,7 @@ export function AltitudeRail({
           ariaLabel="Altitude above terrain"
         />
       </div>
-      {/* The scale reads inboard now (labelSide="right"), so the cue sits with
-          the numbers rather than against the panel border. Panel.Body supplies
-          the outer inset, so this needs none of its own. */}
+      {/* Panel.Body supplies the outer inset. */}
       <div style={{ alignSelf: "stretch" }}>
         <Text tone={near ? "accent" : "muted"} size="xs">
           {suicideBurnCountdown == null

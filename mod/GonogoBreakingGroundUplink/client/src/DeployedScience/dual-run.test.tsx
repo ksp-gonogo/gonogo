@@ -7,17 +7,10 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-// Side-effect import: the widget self-registers on module load, and `renderWidget` looks it up by id rather than importing the component.
+// Side-effect import: `renderWidget` looks the widget up by id.
 import "./index";
 
-/**
- * DeployedScience's stream render golden. Proves the widget renders the
- * full two-experiment Mun cluster correctly off the real stream pipeline,
- * from the flat `deployed.bases` wire shape grouped by `vesselName`
- * (`groupFlatDeployedEntries`, index.tsx): the cluster's own power-unit
- * balance drawn as produced-over-required (NOT an EC figure), progress
- * derived straight from `scienceCompletedPercentage`.
- */
+/** Proves a two-experiment Mun cluster renders off the real stream pipeline, grouped by `vesselName`, with its power-unit balance and progress. */
 describe("DeployedScience: stream render golden (delay=0)", () => {
   it("renders the full deployed-cluster state off the stream pipeline", async () => {
     const fixture = setupStreamFixture({
@@ -88,12 +81,10 @@ describe("DeployedScience: stream render golden (delay=0)", () => {
     });
 
     const scope = within(container);
-    // One card for the Mun cluster (grouped by vesselName), powered.
     expect(scope.getByText("Mun")).toBeInTheDocument();
     expect(scope.getByText(/Powered/i)).toBeInTheDocument();
-    // Both experiments render with their derived progress.
     expect(scope.getByText("Seismic Accelerometer")).toBeInTheDocument();
-    // The progress readout renders through `<Unit>`, so it is a number and a symbol rather than one text node.
+    // `<Unit>` renders a number and a symbol, not one text node.
     expect(visibleText(container)).toContain("75 %");
     expect(scope.getByText("Mystery Goo Experiment")).toBeInTheDocument();
     expect(visibleText(container)).toContain("100 %");

@@ -23,15 +23,7 @@ import {
 import type { MapOverlayContext } from "./index";
 import { MapViewComponent } from "./index";
 
-/**
- * What absence MEANS at each of MapView's telemetry reads.
- *
- * MapView reads `vessel.flight` for the surface-frame position and altitude,
- * and names the body off `vessel.identity` and `system.bodies`. Every consumer
- * of those reads spells absence as `=== undefined`, `?.` or `?? 0`, so this
- * file pins which of the four incompatible meanings each site actually gives
- * it.
- */
+/** What absence means at each of MapView's telemetry reads: `vessel.flight` for position and altitude, `vessel.identity` and `system.bodies` for the body. */
 
 const MAP_VIEW_CHANNELS = [
   "vessel.flight",
@@ -42,7 +34,7 @@ const MAP_VIEW_CHANNELS = [
 
 describe("MapView: what undefined telemetry means today", () => {
   let restoreResizeObserver: () => void = () => {};
-  // Unmount before the state-mutating teardown (clearBodies / clearAugments), which would otherwise re-render a still-mounted tree outside act().
+  // Unmount before the state-mutating teardown, which would otherwise re-render a mounted tree outside act().
   const trees: Array<() => void> = [];
 
   beforeEach(() => {
@@ -99,8 +91,7 @@ describe("MapView: what undefined telemetry means today", () => {
     return { ...result, fixture };
   }
 
-  /** Flush the provider's beginFrame rAF ticks so stream-driven re-renders
-   *  commit inside act rather than landing on a later frame. */
+  /** Flush the provider's frames so stream-driven re-renders commit inside act. */
   async function flushFrames(): Promise<void> {
     await act(async () => {
       await new Promise<void>((resolve) => {
@@ -109,9 +100,7 @@ describe("MapView: what undefined telemetry means today", () => {
     });
   }
 
-  /** Body-name inputs only: identity carries the index, system.bodies the
-   *  name. Deliberately WITHOUT vessel.flight, which is what several tests
-   *  below are about. */
+  /** Body-name inputs only, deliberately without vessel.flight. */
   function emitBodyOnly(fixture: StreamFixture): void {
     act(() => {
       fixture.emit("vessel.orbit", {}, { quality: Quality.Loaded });
@@ -129,18 +118,14 @@ describe("MapView: what undefined telemetry means today", () => {
     });
   }
 
-  // ── 1. Nothing has arrived at all ──────────────────────────────────────
-
   it("nothing emitted: the map reads undefined lat/lon as NOT YET ARRIVED and says so", async () => {
     const { container } = renderMap({}, { w: 14, h: 14 });
     await flushFrames();
 
-    // `targetBodyId === undefined` picks the pending wording over the
-    // no-fix wording: this one site is the only place MapView distinguishes
-    // "nothing has arrived" from "arrived without a position".
+    // The one site that tells "nothing has arrived" from "arrived without a position".
     expect(screen.getByText("Waiting for telemetry...")).toBeInTheDocument();
     expect(screen.queryByText("No position data")).toBeNull();
-    // `displayName` is undefined, so the body label is absent entirely rather than rendering a placeholder.
+    // No body name, so no body label at all rather than a placeholder.
     expect(visibleText(container)).toBe(
       "MAP VIEWFollowWaiting for telemetry...",
     );
@@ -150,9 +135,7 @@ describe("MapView: what undefined telemetry means today", () => {
     renderMap({}, { w: 14, h: 14 });
     await flushFrames();
 
-    // imagingStatus returns null on an unresolved body BEFORE it ever looks
-    // at altSea, so the "NO DATA" branch below is unreachable from a cold
-    // start and the chip is simply missing.
+    // An unresolved body returns no imaging chip before altitude is consulted, so "NO DATA" is unreachable from a cold start.
     expect(screen.queryByText("NO DATA")).toBeNull();
     expect(screen.queryByText("IMAGING")).toBeNull();
     expect(screen.queryByText("TOO LOW")).toBeNull();
@@ -162,24 +145,17 @@ describe("MapView: what undefined telemetry means today", () => {
     const { container } = renderMap({}, { w: 4, h: 4 });
     await flushFrames();
 
-    // `lat === undefined ? NULL_DISPLAY : <Unit/>`: pending reads as a dash,
-    // the same dash a confirmed-absent value would get. The notice underneath
-    // is what separates them, and the compact branch drew it for a HELD
-    // position only until the absence scenes photographed this tile.
+    // Pending reads as the same dash a confirmed absence gets; the notice underneath is what separates them.
     expect(visibleText(container)).toBe(
       `MAP VIEWLat${NULL_DISPLAY}Lon${NULL_DISPLAY}Waiting for telemetry...`,
     );
-    // `altSea !== undefined && rows >= 5` gates the whole row away, so an undefined altitude is NOT a dash here, it is a missing label.
+    // The Alt row is gated away entirely, so an undefined altitude is a missing label, not a dash.
     expect(screen.queryByText("Alt")).toBeNull();
     expect(screen.getByText("Lat")).toBeInTheDocument();
   });
 
-  // ── 2. Gates that test for absence ─────────────────────────────────────
-
   it("a pinned body with no telemetry at all: the SAME undefined lat/lon now reads as NO FIX", async () => {
-    // config.bodyOverride makes targetBodyId defined without any telemetry
-    // arriving, which flips the NoSignal wording. Both branches of that gate
-    // are reachable from an all-undefined stream; only the config differs.
+    // bodyOverride defines the target body with no telemetry, which flips the notice wording.
     renderMap({ bodyOverride: "Mun" }, { w: 14, h: 14 });
     await flushFrames();
 
@@ -193,15 +169,7 @@ describe("MapView: what undefined telemetry means today", () => {
     emitBodyOnly(fixture);
     await flushFrames();
 
-    // Which body a craft is at is a join of `vessel.identity`'s parent index
-    // against `system.bodies`, and neither of those is flight data. So the
-    // label stands on the two inputs that name it and does not wait on a third
-    // that cannot change the answer.
-    //
-    // Knowing the body is what lets the map draw at all, so the screen is no
-    // longer the bare cold-start notice: it names Kerbin, and says separately
-    // that it has no POSITION, which is the one thing vessel.flight carries and
-    // the one thing still missing.
+    // The body is a join of identity and system.bodies, neither of which is flight data, so the label and map stand without vessel.flight and only the position is missing.
     expect(screen.getByText(/Kerbin/)).toBeInTheDocument();
     expect(visibleText(container)).toBe(
       "MAP VIEWKerbinNO DATAFollowNo position data",
@@ -222,10 +190,7 @@ describe("MapView: what undefined telemetry means today", () => {
     const { container } = renderMap({}, { w: 14, h: 14 });
     await flushFrames();
 
-    // `vesselLat: vesselOnThisBody ? lat?.magnitude : undefined` and
-    // `bodyRadius: body?.radius`: an augment ranking anomalies by distance to
-    // the craft is handed undefined rather than 0,0, so the absence is at
-    // least visible to it.
+    // An augment is handed undefined rather than 0,0, so the absence is visible to it.
     expect(visibleText(container)).toContain(
       "lat=undefined lon=undefined radius=undefined body=undefined",
     );
@@ -241,8 +206,7 @@ describe("MapView: what undefined telemetry means today", () => {
     });
 
     const { container, fixture } = renderMap({}, { w: 14, h: 14 });
-    // A position but no surfaceSpeed field: enough to satisfy the follow
-    // effect's lat/lon gate and reach `followZoom(speed ?? 0, baseZoom)`.
+    // A position with no surfaceSpeed reaches `followZoom(speed ?? 0, baseZoom)`.
     act(() => {
       fixture.emit("vessel.orbit", {}, { quality: Quality.Loaded });
       fixture.emit("vessel.flight", {
@@ -259,9 +223,7 @@ describe("MapView: what undefined telemetry means today", () => {
     const zoomWithNoSpeed = visibleText(container);
     expect(zoomWithNoSpeed).toContain("zoom=1.1719");
 
-    // The same widget, told the craft is doing 2 km/s, zooms out. So the
-    // `?? 0` above is not a harmless default: it asserts "stationary" from a
-    // read that only ever said "I do not know".
+    // At 2 km/s it zooms out, so `?? 0` asserts "stationary" from a read that said "I do not know".
     act(() => {
       fixture.emit("vessel.flight", {
         latitude: 12,
@@ -275,28 +237,21 @@ describe("MapView: what undefined telemetry means today", () => {
     expect(visibleText(container)).toContain("zoom=0.4883");
   });
 
-  // ── 3. null versus undefined ───────────────────────────────────────────
-
   it("a CONFIRMED-ABSENT vessel (tombstoned vessel.flight) renders identically to nothing having arrived", async () => {
     const { fixture, container } = renderMap({}, { w: 14, h: 14 });
     emitBodyOnly(fixture);
     act(() => {
-      // A tombstone: the subject says there is no vessel.flight, which is a strictly stronger statement than "not yet".
+      // A tombstone: a strictly stronger statement than "not yet".
       fixture.emit("vessel.flight", null);
     });
     await flushFrames();
 
-    // MapView reaches every POSITION field through `flight?.x`, which flattens
-    // the null arm, so for position a confirmed absence and a cold start still
-    // render alike. What they no longer erase is the body: its two inputs
-    // arrived and name Kerbin whether or not a vessel.flight ever does.
+    // Position fields go through `flight?.x`, so a tombstone and a cold start render alike for position; the body still resolves.
     expect(screen.getByText("No position data")).toBeInTheDocument();
     expect(visibleText(container)).toBe(
       "MAP VIEWKerbinNO DATAFollowNo position data",
     );
   });
-
-  // ── 4. A partial payload: the record arrived, a field did not ──────────
 
   it("a vessel.flight WITHOUT altitudeAsl reports NO DATA, because the missing field now arrives as null", async () => {
     const { fixture } = renderMap({}, { w: 14, h: 14 });
@@ -307,11 +262,7 @@ describe("MapView: what undefined telemetry means today", () => {
     await flushFrames();
 
     expect(screen.getByText("Kerbin")).toBeInTheDocument();
-    // An unreported `altitudeAsl` reads as absent rather than as a number, so
-    // the "no altitude" gate fires and the widget says it does not know. Were it
-    // NaN, both `NaN < min` and `NaN > max` would be false and the widget would
-    // state positively that the craft was inside the imaging window, off a
-    // reading nobody had sent.
+    // An unreported `altitudeAsl` is absent, not NaN, which would pass both window comparisons and claim the craft was imaging.
     expect(screen.getByText("NO DATA")).toBeInTheDocument();
     expect(screen.queryByText("IMAGING")).toBeNull();
   });
@@ -324,12 +275,7 @@ describe("MapView: what undefined telemetry means today", () => {
     });
     await flushFrames();
 
-    // This rendered an `Alt` row with a null dash until 2026-08-25, because
-    // NaN passed `altSea !== undefined`. It was the one place the widget told a
-    // partial payload from an absent one, and it did so by accident. With null
-    // reaching it instead, the row is gone and the two read alike, which is the
-    // honest answer: an unreported altitude and an unreported flight record are
-    // both "no altitude to show".
+    // An unreported altitude and an unreported flight record both mean no altitude to show.
     expect(screen.queryByText("Alt")).toBeNull();
     expect(visibleText(container)).toBe("MAP VIEWLat12.00°Lon35.00°");
   });

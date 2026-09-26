@@ -14,26 +14,14 @@ import { usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 
 /**
- * Vanilla (stock KSP) map POI provider: registers into the generic
- * `registerMapPoiProvider` registry (`@ksp-gonogo/core`'s `mapPoi.ts`) off
- * the mod's `spaceCenter.pois` stream Topic: every launch site (`ksc`/
- * `launchSite` kinds: stock pad+runway both map to `"ksc"`, see
- * `SpaceCenterViewProvider.BuildPois`) plus every surface contract waypoint
- * currently Active or Offered (`contractTarget` kind). This is core vanilla
- * behaviour (KSC + stock contracts), not a mod, it lives alongside MapView
- * rather than in an Uplink package.
+ * Vanilla (stock KSP) map POI provider off the mod's `spaceCenter.pois`
+ * topic: every launch site (pad and runway both map to `"ksc"`) and every
+ * Active or Offered surface contract waypoint. Stock behaviour, so it lives
+ * beside MapView rather than in an Uplink.
  */
-
-/**
- * Resolve a body INDEX (`system.bodies`' stable index, never array
- * position) to its NAME. Reproduces the `bodyIndex -> name` lookup
- * `SystemView`'s `nameByIndex` builds (`SystemView/index.tsx`) rather than
- * importing `@ksp-gonogo/sitrep-client`'s same-named `resolveBodyName`:
- * that helper is module-private and shaped for a derived-channel
- * `DerivedGet` reader, not a plain React-hook call site like this one.
- */
+/** Resolve a `system.bodies` index (its stable index, never array position) to its name. */
 function useBodyNameByIndex(): Map<number, string> {
-  // A body catalogue: declared unmodellable because it changes when the GAME changes, never continuously, so a stale one is simply the catalogue.
+  // A body catalogue changes only when the game does, so a stale one is still the catalogue.
   const bodiesReading = useTelemetry("system.bodies");
   const systemBodies =
     bodiesReading.state === "observed" || bodiesReading.state === "stale"
@@ -50,9 +38,8 @@ function useBodyNameByIndex(): Map<number, string> {
 
 /**
  * Maps one wire entry to a `MapPoi`, or `null` when a required field is
- * absent (defensive: the wire POCO's fields are all nullable C#-side, even
- * though a real populated entry always carries them). `bodyId` is the
- * caller's already-resolved body NAME, not re-derived here.
+ * absent (every field is nullable C#-side). `bodyId` is the caller's resolved
+ * body name.
  */
 function toMapPoi(
   entry: SpaceCenterPoiEntry,
@@ -75,7 +62,7 @@ function toMapPoi(
       ? entry.status
       : "info";
 
-  // Capture the validated position as bare numbers here so the dispatch closure below carries plain values, not the nullable wire quantities.
+  // Bare numbers, so the dispatch closure carries plain values rather than nullable wire quantities.
   const bodyIndex = entry.bodyIndex;
   const latitude = entry.latitude.magnitude;
   const longitude = entry.longitude.magnitude;
@@ -102,10 +89,7 @@ function toMapPoi(
       {
         id: "set-target",
         label: "Set as Target",
-        // Rides `useCommand("vessel.target.set")` (a Position-kind SetTarget)
-        // instead of the legacy `useExecuteAction` string path. Instant today
-        // (the command is not delayed), so `usePanelDelay` consumes the handle
-        // and the widget stays behaviour-free.
+        // Instant today (the command is not delayed), so `usePanelDelay` consumes the handle.
         run: () =>
           void setTargetCmd.send(
             { kind: TargetKind.Position, bodyIndex, latitude, longitude },
@@ -118,17 +102,11 @@ function toMapPoi(
 
 registerMapPoiProvider({
   id: "vanilla:spaceCenter",
-  // no `requires`, core Sitrep data, always potentially present.
+  // No `requires`: core data, always potentially present.
   usePois: (ctx) => {
-    // Launch pads, runways and contract targets: fixed ground positions, so a
-    // stale list is still where they are. The one exception inside it is a
-    // contract DEADLINE, which is an absolute UT and is rendered against the
-    // frame's view time by whatever draws it.
+    // Fixed ground positions, so a stale list is still where they are; a contract deadline is rendered against the view time by whatever draws it.
     const poisReading = useTelemetry("spaceCenter.pois");
-    // A tombstoned POI list means the body has no points of interest, which the
-    // `raw === undefined ? undefined : []` return below already distinguishes from a
-    // wait. Collapsing the two would leave a body with genuinely no POIs waiting
-    // forever.
+    // A tombstone means no POIs on this body, which must not read as waiting forever.
     const raw = stillTrue(poisReading, EMPTY_POIS);
     const setTargetCmd = useCommand("vessel.target.set");
     usePanelDelay(setTargetCmd);

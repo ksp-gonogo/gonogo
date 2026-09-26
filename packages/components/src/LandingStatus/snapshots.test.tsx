@@ -9,19 +9,7 @@ import preBurn from "./__fixtures__/pre-burn-cruise.json";
 import suicideBurn from "./__fixtures__/suicide-burn-approaching.json";
 import { LandingStatusComponent } from "./index";
 
-/**
- * DOM snapshots off the stream pipeline, driven by each fixture's own
- * `_stream` block.
- *
- * This spec used to declare its six descents inline as `{body, descent,
- * availableThrust, oneWaySeconds, totalDvActual}` and replay them through a
- * stream it built. The six fixtures next door describe the same six scenarios,
- * are what the playwright probe renders, and carry one channel the inline
- * version had no way to express: `vessel.landing`, the whole predicted-site
- * payload (touchdown lat/lon, terrain elevation, slope). None of the 24
- * committed baselines contained any of it, so the landing board's own subject
- * was the part these snapshots did not cover.
- */
+/** DOM snapshots off the stream pipeline, driven by each fixture's own `_stream` block, including the `vessel.landing` predicted-site payload. */
 
 const FIXTURES: Record<string, Record<string, unknown>> = {
   "pre-burn-cruise": preBurn,

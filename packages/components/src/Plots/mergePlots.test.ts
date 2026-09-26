@@ -2,15 +2,7 @@ import type { Contributed, PlotEntry, PlotFrame } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mergePlots } from "./mergePlots";
 
-/**
- * What a set of contributions MEANS, which is the whole of the subject design
- * and is testable without a DOM.
- *
- * The cases that matter are the ones where two authors disagree, because those
- * are the ones a picture would show as "fine" while being wrong: a duplicate
- * corridor drawn twice, an enrichment stranded with nothing to enrich, two
- * authors both claiming to own one plot's axes.
- */
+/** What a set of contributions means, above all where two authors disagree: a picture of those would look fine while being wrong. */
 
 const FRAME: PlotFrame = {
   xDomain: [0, 100],
@@ -32,10 +24,7 @@ function entry(
 
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
-  // No host is installed in a unit test, so the conflict report takes its
-  // `console` fallback. Spied rather than silenced: the point of the rule is
-  // that the collision is LOUD, and a test that muted it would be asserting
-  // the opposite of the design.
+  // No host in a unit test, so the conflict report takes its console fallback. Spied, not silenced: the collision must be loud.
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 afterEach(() => {
@@ -64,9 +53,7 @@ describe("mergePlots", () => {
   });
 
   it("draws NOTHING for an enrichment whose subject nobody framed", () => {
-    // FAR with no landing envelope on the board: its model curve exists to part
-    // from the drag back-out, and with nothing to part from it has nothing to
-    // say. A rival corridor beside the real one would be worse than silence.
+    // FAR's model curve with no landing envelope has nothing to part from, so nothing is drawn.
     const merged = mergePlots([
       entry("aero:descent-envelope", { subject: "descent-envelope" }),
     ]);
@@ -74,7 +61,7 @@ describe("mergePlots", () => {
   });
 
   it("keeps a lone framed plot untouched, which is the no-atmosphere case", () => {
-    // The constraint the whole design has to hold: a descent with no aero model is a first-class plot drawn by the host alone, not a degraded merge.
+    // A descent with no aero model is a first-class plot drawn by the host alone.
     const merged = mergePlots([
       entry("core:touchdown-site", {
         subject: "touchdown-site",
@@ -99,16 +86,9 @@ describe("mergePlots", () => {
     ]);
   });
 
-  /**
-   * The case the rule exists for. Two authors both claim a subject's axes; the
-   * data cannot say whether they mean the same plot or collided on a word, so
-   * the arranger does not guess. First frame wins deterministically, the
-   * loser's marks still land, and somebody is told.
-   */
+  // Two authors claim one subject's axes: first frame wins, the loser's marks land, and somebody is told.
   it("takes the FIRST frame when two are supplied, and says so out loud", () => {
-    // Same units as FRAME, so this is a redundant frame rather than a
-    // different measure: the loser's marks stay. The DIFFERENT-measure case is
-    // its own test below.
+    // Same units, so a redundant frame rather than a different measure.
     const other: PlotFrame = {
       xDomain: [0, 5],
       xUnit: "m/s",
@@ -138,17 +118,13 @@ describe("mergePlots", () => {
 
     expect(warn).toHaveBeenCalledTimes(1);
     const message = String(warn.mock.calls[0][0]);
-    // Both owners named, so the collision can be chased to its authors rather than guessed at from a screenshot.
+    // Both owners named, so the collision can be chased to its authors.
     expect(message).toContain("core:first");
     expect(message).toContain("guest:second");
     expect(message).toContain("descent-envelope");
   });
 
-  /**
-   * The answer to "what if a contribution wants to overwrite a value in the
-   * frame". Domains merge and cannot lose data; units and scales are
-   * categorical and stay the frame-owner's.
-   */
+  // Domains merge and cannot lose data; units and scales stay the frame owner's.
   it("widens the frame to contain a guest's marks, so nothing is clipped", () => {
     const merged = mergePlots([
       entry("core:host", {
@@ -164,7 +140,7 @@ describe("mergePlots", () => {
     ]);
     expect(merged[0].frame.xDomain).toEqual([0, 800]);
     expect(merged[0].frame.yDomain).toEqual([0, 2000]);
-    // Categorical: untouched, and only ever the owner's.
+    // Categorical fields stay the owner's.
     expect(merged[0].frame.xUnit).toBe("m/s");
   });
 
@@ -185,9 +161,7 @@ describe("mergePlots", () => {
   });
 
   it("does not let CONTEXT set the scale the readings are drawn at", () => {
-    // A relief spans a footprint and a field is a wash; neither is a reading,
-    // so neither pulls the domain. `plotLayerExtent` is where that is decided
-    // and this is the case that would notice if it stopped being true.
+    // A relief and a field are not readings, so neither pulls the domain.
     const merged = mergePlots([
       entry("core:host", {
         subject: "s",
@@ -220,9 +194,7 @@ describe("mergePlots", () => {
   });
 
   it("DROPS the loser's layers when the two frames measure different things", () => {
-    // Metres and feet have no combination. Drawing a foot-stated curve against
-    // a metre axis does not clip it, it moves it: the marks would be somewhere
-    // the data never said. So they go, and somebody is told why.
+    // A foot-stated curve on a metre axis would be moved, not clipped, so it goes.
     const merged = mergePlots([
       entry("core:metres", {
         subject: "s",
@@ -242,8 +214,7 @@ describe("mergePlots", () => {
   });
 
   it("keeps the loser's layers when the two frames measure the SAME thing", () => {
-    // A redundant frame is not a wrong one. Same units, same scale: the second
-    // author is drawing the same plot and its marks belong on these axes.
+    // Same units and scale: the second author is drawing the same plot.
     const merged = mergePlots([
       entry("core:a", {
         subject: "s",
@@ -261,9 +232,7 @@ describe("mergePlots", () => {
   });
 
   it("never widens a SPATIAL frame, because its two axes are one scale", () => {
-    // A map's window is the map's window. Stretching one axis to reach a mark
-    // makes a circle an ellipse and a nine-degree slope draw at some other
-    // angle; a mark outside a map is off the map, which is a thing maps do.
+    // A map's window is fixed: stretching an axis to reach a mark would distort the map.
     const map: PlotFrame = {
       kind: "spatial",
       xDomain: [-100, 100],
@@ -294,7 +263,7 @@ describe("mergePlots", () => {
         layers: [{ kind: "marker", id: "theirs", at: { x: 2, y: 2 } }],
       }),
     ]);
-    // Marks meant for a chart, placed on a map, are placed wrongly: they go.
+    // Marks meant for a chart are misplaced on a map, so they go.
     expect(merged[0].layers.map((l) => l.id)).toEqual(["mine"]);
     expect(merged[0].frame.kind).toBe("spatial");
     expect(String(warn.mock.calls[0][0])).toContain("DROPPED");
@@ -323,8 +292,7 @@ describe("mergePlots", () => {
   });
 
   it("draws a framed plot carried entirely by someone else's marks", () => {
-    // A host stating axes it has nothing to draw on is still a plot, once a
-    // guest fills it. The frame is a policy, not a claim to have marks.
+    // A frame is a policy, not a claim to have marks: a guest can fill it.
     const merged = mergePlots([
       entry("core:frame-only", { subject: "s", frame: FRAME, layers: [] }),
       entry("guest:marks", {
@@ -337,7 +305,7 @@ describe("mergePlots", () => {
   });
 
   it("keys the plot by the framing contribution, not by the subject", () => {
-    // A subject is an author's free string; a contribution id is namespaced by its owner, so it is the half that cannot collide across two boards.
+    // A subject is a free string; a contribution id is namespaced by its owner.
     const merged = mergePlots([
       entry("core:descent-envelope", {
         subject: "descent-envelope",

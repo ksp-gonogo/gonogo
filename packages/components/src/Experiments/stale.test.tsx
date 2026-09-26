@@ -6,18 +6,8 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ExperimentsComponent } from "./index";
 
 /**
- * What this widget does when the science channels stop being current.
- *
- * It KEEPS the instrument list, which is right: an instrument joins or leaves
- * the vessel by an event, and no event reaches us down a link that is not
- * delivering, so the last list we were sent is still the list. What stops being
- * true is that the badges describe the vessel now, and that is what each row
- * says for itself.
- *
- * The controls are the half worth a file of its own. Transmit spends an
- * instrument's data, and against a held row it spends data that may already be
- * gone, on an instrument the operator cannot see the current state of. The
- * press would look exactly like a press that worked.
+ * When the science channels stop being current the widget keeps the instrument
+ * list, marks each held row and disables its controls.
  */
 
 const CARRIED = ["science.lab", "science.instruments", "science.experiments"];
@@ -95,26 +85,19 @@ describe("Experiments when the science channels are no longer current", () => {
     await waitFor(() =>
       expect(screen.getByText("Mystery Goo™ Containment Unit")).toBeTruthy(),
     );
-    /*
-     * The control for everything below. Without it the two assertions after
-     * `goStale` would pass just as well on a widget that marked and disabled
-     * unconditionally, which is the failure mode a staleness test is most
-     * likely to have.
-     */
+    // Control: without it a widget that always marked and disabled would pass.
     expect(screen.queryAllByText("OFFLINE")).toHaveLength(0);
     expect(screen.getByRole("button", { name: /Transmit/ })).toBeEnabled();
 
     goStale(fixture);
 
-    // The list is still the list.
     expect(screen.getByText("Mystery Goo™ Containment Unit")).toBeTruthy();
     expect(screen.getByText("DATA")).toBeTruthy();
     expect(screen.getByText("Mobile Processing Lab MPL-LG-2")).toBeTruthy();
     expect(screen.getByText("OPERATIONAL")).toBeTruthy();
     // One mark per row that carries held state: the instrument's and the lab's.
     expect(screen.getAllByText("OFFLINE")).toHaveLength(2);
-    // Still on screen, and inert. Hiding it would read as an instrument with
-    // nothing to send, which is a different and wrong statement.
+    // Inert but still shown: hiding it would say the instrument has nothing to send.
     expect(screen.getByRole("button", { name: /Transmit/ })).toBeDisabled();
     expect(visibleText(container)).toContain("Transmit");
   });
@@ -132,9 +115,7 @@ describe("Experiments when the science channels are no longer current", () => {
 
     goStale(fixture);
 
-    // The kit's own mark, on the quantity, with the caption that says when the
-    // number was last a reading of now. A mark with no caption is the one
-    // outcome worse than no mark: it looks marked and says nothing.
+    // The mark must carry its currency caption, or it looks marked and says nothing.
     const held = container.querySelector("[data-not-current]");
     expect(held).not.toBeNull();
     expect(held?.querySelector("[data-unit-currency]")).not.toBeNull();

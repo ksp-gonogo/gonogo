@@ -16,9 +16,7 @@ describe("DataLine", () => {
     );
 
     const label = screen.getByText("Retires");
-    // The label is the quiet half and the reading the loud one. Asserted as the
-    // two being DIFFERENT elements rather than on the computed colours, which
-    // are theme tokens: the defect being guarded is one run of identical grey.
+    // Asserted as two different elements rather than on computed colours, which are theme tokens.
     expect(label.tagName).toBe("SPAN");
     expect(container.querySelectorAll("span")).not.toHaveLength(1);
     expect(container.textContent).toContain("Retires");

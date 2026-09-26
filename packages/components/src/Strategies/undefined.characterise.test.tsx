@@ -11,22 +11,12 @@ import {
 import { StrategiesComponent } from "./index";
 
 /**
- * Characterisation: what Strategies DOES today when its telemetry reads are
- * `undefined`, recorded ahead of `useTelemetry` returning a `Reading`.
- *
- * One read, four fields off it: `career.status` supplies `strategies.all` plus
- * `economy.{funds,reputation,science}`. Two absence gates matter.
- *
- * - `if (strategies === null)` swaps the entire widget for a placeholder, and
- *   `parseStrategies` maps both `undefined` and `null` to that same `null`
- * - `overBudget` does `(balance ?? Number.POSITIVE_INFINITY) < cost`, so a
- *   balance nobody has told us yet is treated as UNLIMITED and the Activate
- *   button on a strategy the operator cannot afford is left enabled
- *
- * The second one is a fail-open. It is pinned here as observed behaviour.
+ * What Strategies does when its telemetry reads are absent. A missing strategy
+ * list swaps the widget for a placeholder; a missing balance fails closed, so
+ * Activate stays disabled.
  */
 
-// Unmount before clearing the action-handler registry: clearing against a live tree is a state update outside act(), and RTL auto-cleanup runs too late.
+// Unmounted before `clearActionHandlers()`, which would otherwise update a mounted widget outside act().
 const renderedTrees: Array<() => void> = [];
 
 afterEach(() => {
@@ -98,24 +88,19 @@ describe("Strategies: nothing has arrived at all", () => {
   it("swaps the whole widget for a placeholder, under a DIFFERENT panel title from the loaded one", () => {
     renderStrategies(newFixture());
 
-    // `parseStrategies(undefined) === null` reaches the early return, which
-    // renders a panel titled "Strategies". The loaded widget is titled
-    // "Admin Building", so the title itself is an observable of this gate.
+    // The placeholder is titled "Strategies" and the loaded widget "Admin Building", so the title observes the gate.
     expect(screen.getByText("Strategies")).toBeInTheDocument();
     expect(screen.getByText(/Awaiting career data\.\.\./)).toBeInTheDocument();
     expect(screen.queryByText("Admin Building")).toBeNull();
-    // None of the loaded chrome exists: no sections, no funds tally, no Activate control.
     expect(screen.queryByLabelText("Active")).toBeNull();
     expect(screen.queryByLabelText("Available")).toBeNull();
     expect(screen.queryByRole("button", { name: "Activate" })).toBeNull();
-    // The loaded header always renders three balance tallies (dashed when the figures are missing); none of them exist on this branch.
     expect(screen.queryAllByText(NULL_DISPLAY)).toHaveLength(0);
     expect(visibleText()).toBe("StrategiesAwaiting career data...");
   });
 
   it("says nothing at all in a short box, because the placeholder is itself gated on height", () => {
-    // `showSubtitle` is `(h ?? 8) >= 4`, so at h=3 the awaiting branch renders
-    // an empty panel body: the widget is silent rather than saying it waits.
+    // At h=3 the awaiting branch renders an empty body.
     renderStrategies(newFixture(), { w: 9, h: 3 });
 
     expect(screen.getByText("Strategies")).toBeInTheDocument();
@@ -135,7 +120,7 @@ describe("Strategies: the `strategies === null` absence gate", () => {
       strategies: { active: [], all: [], activeCount: 0 },
     });
 
-    // An empty array parses to `[]`, not `null`: the gate stops firing, the title changes, and the widget states "none available" with confidence.
+    // An empty array is not absence: the widget states "none available".
     await waitFor(() =>
       expect(screen.getByText("Admin Building")).toBeInTheDocument(),
     );
@@ -149,8 +134,7 @@ describe("Strategies: the `strategies === null` absence gate", () => {
     const fixture = newFixture();
     renderStrategies(fixture, undefined, { probe: true });
 
-    // The record arrived, carrying economy but not strategies. Today that is
-    // indistinguishable from the topic never having arrived.
+    // Economy without strategies is indistinguishable from the topic never having arrived.
     emitCareer(fixture, {
       economy: { funds: 289_848, reputation: 420, science: 145 },
       strategies: null,
@@ -158,7 +142,7 @@ describe("Strategies: the `strategies === null` absence gate", () => {
 
     await screen.findByText("career.status: observed");
     expect(screen.getByText(/Awaiting career data/)).toBeInTheDocument();
-    // The funds the payload DID carry are thrown away with the rest, even though this widget is required to keep a balance on screen.
+    // The funds the payload did carry are not shown.
     expect(visibleText()).not.toContain("289,848");
   });
 
@@ -181,9 +165,7 @@ describe("Strategies: null versus undefined", () => {
     renderStrategies(fixture, undefined, { probe: true });
 
     act(() => {
-      // The hook returns `null` for a tombstone rather than `undefined`, so the
-      // widget could tell them apart. `null?.strategies?.all` is `undefined`
-      // and `parseStrategies` folds both into the same placeholder.
+      // A tombstone folds into the same placeholder as never-arrived.
       fixture.emit("career.status", null);
     });
 
@@ -205,12 +187,7 @@ describe("Strategies: an absent balance beside a present strategy list", () => {
     await waitFor(() =>
       expect(screen.getByText("Expensive Gamble")).toBeInTheDocument(),
     );
-    /*
-     * `Balance` renders the null token beside each currency's own symbol, so
-     * the balance row reads as three labelled dashes rather than dropping the
-     * balances (or, as a bare `<Unit value>` would, dropping the symbol that
-     * says which dash is which).
-     */
+    // Three labelled dashes: each null token keeps its currency's symbol.
     const dashes = screen.getAllByText(NULL_DISPLAY);
     expect(dashes).toHaveLength(3);
     expect(dashes[0]?.parentElement?.textContent).toBe(
@@ -218,12 +195,7 @@ describe("Strategies: an absent balance beside a present strategy list", () => {
     );
   });
 
-  /**
-   * Recorded prior behaviour: "FAIL-OPEN: leaves Activate enabled on a 500,000f
-   * strategy while the balance is unknown". `overBudget` was
-   * `(balance ?? Number.POSITIVE_INFINITY) < cost`, so an absent balance read as
-   * unlimited money on a control that commits career funds.
-   */
+  // An absent balance is not unlimited money on a control that commits career funds.
   it("withholds Activate on a 500,000f strategy while the balance is unknown", async () => {
     const fixture = newFixture();
     renderStrategies(fixture);
@@ -236,7 +208,6 @@ describe("Strategies: an absent balance beside a present strategy list", () => {
     await waitFor(() =>
       expect(screen.getByText("Expensive Gamble")).toBeInTheDocument(),
     );
-    // An unknown balance cannot cover the cost, and it reads through the same tooltip a genuinely short balance produces.
     const activate = screen.getByRole("button", { name: "Activate" });
     expect(activate).toBeDisabled();
     expect(activate).toHaveAttribute(
@@ -254,7 +225,7 @@ describe("Strategies: an absent balance beside a present strategy list", () => {
       strategies: { active: [], all: [EXPENSIVE], activeCount: 0 },
     });
 
-    // The other side of the same gate, proving the test above records an absence rather than a button that is always enabled.
+    // The control for the test above: the refusal is the same whether the balance is short or absent.
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Activate" })).toBeDisabled(),
     );
@@ -266,14 +237,10 @@ describe("Strategies: an absent balance beside a present strategy list", () => {
 });
 
 describe("Strategies: tiny mode keeps the balance row", () => {
-  /**
-   * Recorded prior behaviour: "omits the funds row while economy is absent". The
-   * tiny bucket dropped the row entirely, not even a dash, at the same moment
-   * the Activate buttons went fail-open on that missing balance.
-   */
+  // The tiny bucket keeps its funds row while the economy is absent.
   it("says the funds balance is unknown while economy is absent, and shows it once funds arrive", async () => {
     const fixture = newFixture();
-    // w=4 lands in the `tiny` bucket (TINY_W is 5).
+    // w=4 is the tiny bucket.
     renderStrategies(fixture, { w: 4, h: 4 });
 
     emitCareer(fixture, {
@@ -281,9 +248,7 @@ describe("Strategies: tiny mode keeps the balance row", () => {
       strategies: { active: [], all: [EXPENSIVE], activeCount: 0 },
     });
 
-    // The tiny panel keeps the "Strategies" title the awaiting branch also
-    // uses, so wait on the active tally instead: that only exists once the
-    // strategy list has resolved off the stream.
+    // The tiny panel shares the awaiting branch's title, so wait on the active tally instead.
     await waitFor(() => expect(visibleText()).toContain("0 active"));
     expect(visibleText()).toBe("Strategiesfunds unknown· 0 active");
 
@@ -292,7 +257,6 @@ describe("Strategies: tiny mode keeps the balance row", () => {
       strategies: { active: [], all: [EXPENSIVE], activeCount: 0 },
     });
 
-    // The other side of the gate: the compact balance appears.
     await waitFor(() => expect(visibleText()).toBe("Strategies1kf· 0 active"));
   });
 });

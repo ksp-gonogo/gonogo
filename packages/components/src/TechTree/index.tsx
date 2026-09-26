@@ -61,22 +61,7 @@ export interface TechNode {
 }
 
 /**
- * Defensive parser for tech-node array payloads. Accepts BOTH the legacy
- * GonogoTelemetry `tech.nodes` shape (an explicit `state: "Available" |
- * "Researchable" | "Unavailable"` string) and the career-detail wire
- * shape (`career.status.tech.nodes`, CareerViewProvider.BuildTechNodes:
- * `unlocked: boolean`, no `state` at all: the server deliberately doesn't
- * compute the 3-state "Researchable" distinction). When `state` is absent,
- * derive it from `unlocked`
- * (`true` -> "Available", `false` -> "Unavailable"): `computeResearchable`
- * below already promotes some "Unavailable" nodes to researchable-now purely
- * from `state`/`parents`/`scienceCost`, exactly the client-side derivation
- * the extend session's doc comment anticipated. `description` is carried by
- * both wires (the new one since contract 14.1); `parts` stays empty on the
- * new wire, which has no equivalent field, and defaults gracefully. Drops
- * malformed entries; tolerates missing optional fields so an older provider
- * degrades gracefully, the operator still sees title + scienceCost + state +
- * parents even without the 2026-05-13 fork additions.
+ * Parses tech-node arrays in either wire shape: an explicit `state` string, or `career.status.tech.nodes`, which carries only `unlocked` (mapped to "Available" / "Unavailable"; researchable-now is derived by `computeResearchable`). Drops malformed entries and tolerates missing optional fields.
  */
 export function parseTechNodes(raw: unknown): TechNode[] | null {
   if (raw === null || raw === undefined) return null;
@@ -135,23 +120,11 @@ function notNull<T>(x: T | null): x is T {
   return x !== null;
 }
 
-// Switch to the tiered dependency graph only once the widget is wide enough
-// for columns + connectors to be legible. The KSP R&D tree is inherently
-// landscape; below this we keep the compact list. `mobile-9x8` (w=9) and the
-// `default-6x9` view both stay on the list. Undefined dims (e.g. the unit-test
-// render path, before the grid measures) also fall through to the list, which
-// keeps the behavioural tests exercising the unchanged list UI.
+// The tiered graph needs width to be legible; below this, and with unmeasured dims, the widget draws the compact list.
 const GRAPH_MIN_COLS = 10;
 
-// ── Researchable derivation ─────────────────────────────────────────────────
-
 /**
- * A node is *researchable-now* when it is not yet owned, every parent is
- * already unlocked, and its science cost is affordable. The plugin only emits
- * `Available` / `Unavailable`, so this status is computed here rather than read
- * off `state`: filtering on `state === "Researchable"` matches nothing a real
- * save produces, and paints an empty tree. Test fixtures that set an explicit
- * `"Researchable"` state are also honoured.
+ * A node is researchable-now when it is not owned, every parent is unlocked, and its cost is affordable. The plugin only emits `Available` / `Unavailable`, so this is computed; an explicit `"Researchable"` state is also honoured.
  */
 function computeResearchable(
   nodes: TechNode[],
@@ -177,10 +150,7 @@ function computeResearchable(
   return out;
 }
 
-/**
- * Longest-path depth from a root (a parentless node is tier 0). Variable-span
- * edges are fine, a tier-5 node may have a tier-0 parent. Cycle-guarded.
- */
+/** Longest-path depth from a root (a parentless node is tier 0); edges may span tiers. Cycle-guarded. */
 function computeTiers(nodes: TechNode[]): Map<string, number> {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const memo = new Map<string, number>();
@@ -215,8 +185,6 @@ function displayState(node: TechNode, researchable: Set<string>): DisplayState {
   return "locked";
 }
 
-// ── Graph layout ────────────────────────────────────────────────────────────
-
 interface PlacedNode {
   node: TechNode;
   tier: number;
@@ -231,11 +199,7 @@ const CARD_H = 48; // fits a 2-line clamped title + the cost/owned row
 const ROW_GAP = 12;
 const CANVAS_PAD = 16;
 
-/**
- * Assign each node a (tier, row) slot, then run a single barycenter pass to
- * order rows within a column by the mean row of their parents. This kills the
- * bulk of edge crossings without a full Sugiyama layout.
- */
+/** Assigns each node a (tier, row) slot, then orders rows within a column by the mean row of their parents to cut most edge crossings. */
 function layoutGraph(
   nodes: TechNode[],
   tiers: Map<string, number>,
@@ -306,37 +270,10 @@ function layoutGraph(
   return { placed, width, height };
 }
 
-// ── Component ─────────────────────────────────────────────────────────────
-
 function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
-  // Science reads canonically off `career.status.economy.science`; the tech
-  // nodes off `career.status.tech.nodes`: the wire carries
-  // id/title/scienceCost/unlocked/parents per node
-  // and parseTechNodes derives the
-  // Available/Unavailable state from `unlocked` client-side (no
-  // server-computed Researchable 3rd state: this widget's own
-  // computeResearchable already does that derivation). The scene reads off
-  // `spaceCenter.scene.scene` (already an enum-name string on the wire).
-  // tech.unlock[...] (the spend command) still has no command home
-  // (KNOWN_COMMAND_GAPS) and falls back to legacy automatically, only the
-  // reads migrate here.
-  // One read of the record, two fields off it: the tech list and the science
-  // balance are the same payload and cannot differ in how current they are.
-  /**
-   * One record, two fields, two different currency decisions.
-   *
-   * The node list is a fact. A node's state changes when the player spends on
-   * it, and nobody can spend down a link that is not delivering, so the last
-   * tree received is still the tree. Withholding it would blank a catalogue
-   * that is demonstrably still accurate and leave the operator unable even to
-   * browse what they own.
-   *
-   * The science balance is the input to a verdict, `canAfford` below, which
-   * arms a control that spends it. "You can afford this" is a claim about now,
-   * and a balance we can no longer vouch for cannot support one, so a stale
-   * balance is withheld and every Unlock refuses. `careerNotCurrent` is what
-   * lets the refusal say "no longer current" rather than accusing the link of
-   * never having delivered.
+  /*
+   * One record, two currency decisions. The node list is a fact (nobody can spend down a link that is not delivering), so a held tree is still the tree.
+   * The science balance feeds `canAfford`, a claim about now that arms a spend, so a stale balance is withheld and every Unlock refuses.
    */
   const career = topics.useTelemetry("career.status");
   const nodesRaw = stillTrue(career, undefined)?.tech?.nodes;
@@ -349,17 +286,10 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
     undefined,
   )?.scene;
   const { chargesScience } = useGameContext();
-  // Unlocking a tech node is an R&D-desk action with no vessel signal delay,
-  // so it dispatches at the meta-vantage (instant). The handle is contributed to
-  // the panel delay rail by usePanelDelay (draws nothing at meta-vantage).
+  // An R&D-desk action with no vessel signal delay, so it dispatches at the meta-vantage.
   const unlockCmd = useCommand("career.tech.unlock", { vantage: META_VANTAGE });
   usePanelDelay(unlockCmd);
-  /*
-   * Whether money decides this command at all. A career model that refuses
-   * `career.tech.unlock` (RP-1 researches through its own queue) refuses it for a
-   * reason the balance has no part in, so no affordability verdict is drawn: the
-   * price stays a plain figure beside the control.
-   */
+  // A career model that refuses `career.tech.unlock` (RP-1 researches through its own queue) refuses for a reason the balance has no part in, so no affordability verdict is drawn.
   const unlockBlocked = unlockCmd.gate?.blocked === true;
 
   const allNodes = parseTechNodes(nodesRaw);
@@ -374,7 +304,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const bucket = getSizeBucket(w, h);
   const rows = h ?? 8;
   const showSubtitle = rows >= 4;
-  // The Unlock button compares this against a node's cost, so it needs the number: left wrapped, every node read as unaffordable.
+  // Unwrapped because the Unlock button compares it against a node's cost.
   const sciAvailable = magnitudeOf(careerScience);
 
   const researchable = useMemo(
@@ -383,7 +313,6 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   );
   const tiers = useMemo(() => computeTiers(allNodes ?? []), [allNodes]);
 
-  // ── Loading / empty states ────────────────────────────────────────────
   if (allNodes === null) {
     return (
       <Panel
@@ -411,11 +340,9 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
     );
   }
 
-  // ── Counts (drive tiny mode + subtitle) ───────────────────────────────
   const counts = { unlocked: 0, researchable: researchable.size };
   for (const n of allNodes) if (n.state === "Available") counts.unlocked++;
 
-  // ── Tiny mode: single-glance summary ─────────────────────────────────
   if (bucket === "tiny") {
     return (
       <Panel
@@ -433,9 +360,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
                 <Unit>science</Unit>
               </TinySci>
             ) : (
-              /* Tiny mode has room for one short line, and a withheld balance
-               has to spend it saying so. Dropping the line silently would make
-               a suspended balance look like a save that never had one. */
+              /* A withheld balance spends tiny mode's one line saying so, or it looks like a save that never had one. */
               careerNotCurrent && <TinySci>SCIENCE NOT CURRENT</TinySci>
             )}
           </Section>
@@ -444,15 +369,12 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
     );
   }
 
-  // Unlocking is a Space Center action and it spends science, so an unknown
-  // scene WITHHOLDS the button: not knowing where the player is standing is not
-  // permission to spend on their behalf.
+  // Unlocking spends science at the Space Center, so an unknown scene withholds the button.
   const upgradesEnabled = scene === "SpaceCenter";
 
   const unlockHandlersFor = (n: TechNode) => {
     const isResearchable = researchable.has(n.id);
-    // Absent science reads as insufficient science, which is what the comment
-    // above `sciAvailable` already claimed this did. Sandbox charges nothing.
+    // Absent science reads as insufficient science; sandbox charges nothing.
     const moneyDecides = chargesScience && !unlockBlocked;
     const canAfford =
       !moneyDecides ||
@@ -489,10 +411,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
           <Unit>science</Unit>
         </SciReadout>
       ) : (
-        /* The balance the Unlock buttons are judged against has to stay on
-           screen when it is missing, since that is when they refuse. Which
-           kind of missing decides whether the operator distrusts the save or
-           the link, so the two get different words. */
+        /* The balance stays on screen when it is missing, since that is when the Unlocks refuse; a save without one and a link that stopped get different words. */
         chargesScience &&
         (careerNotCurrent ? (
           <SciReadout title="The science balance is no longer current">
@@ -507,7 +426,6 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
     </span>
   ) : undefined;
 
-  // ── Graph mode: tiered dependency view (wide enough only) ────────────
   const useGraph = w !== undefined && w >= GRAPH_MIN_COLS;
   if (useGraph) {
     const q = query.trim().toLowerCase();
@@ -545,8 +463,6 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
               />
             </GraphToolbar>
           </Section>,
-          /* The graph is the drawing: it takes the height the toolbar above and
-             the detail panel below it leave. */
           <Section key="graph" fill>
             <TechGraph
               nodes={allNodes}
@@ -578,7 +494,6 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
     );
   }
 
-  // ── List mode (default + small + mobile) ──────────────────────────────
   const q = query.trim().toLowerCase();
   const filtered = allNodes
     .filter((n) => {
@@ -601,10 +516,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
     <Panel
       panelTitle="TECH TREE"
       compactTitle={["TECH"]}
-      /* The filter pills and the search box are a full-width row of controls,
-         which is what `panelToolbar` is: pinned under the header, outside the
-         scroller. They used to sit above a `flex: 1` ScrollArea, which is the
-         only thing that kept them in view. */
+      /* The filter pills and search box are a full-width control row, pinned under the header outside the scroller. */
       panelToolbar={
         <Controls>
           <FilterBar role="group" aria-label="Filter tech nodes">
@@ -639,9 +551,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
           />
         </Controls>
       }
-      /* No `ScrollArea` around the list. Panel's body IS the scroller and owns
-         the glow, so a second one here drew its glow inside the outer body's
-         inset, which is the case the kit's own doc comment names. */
+      /* No ScrollArea here: Panel's body is already the scroller. */
       sections={[
         subtitle && (
           <Section key="meta" full>
@@ -682,9 +592,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   );
 }
 
-// Sort: researchable-now first, then owned, then locked; within a group by
-// science cost ascending then alphabetically. The cheapest researchable node
-// surfaces as the clear next-purchase.
+// Researchable-now first, then owned, then locked; within a group by cost then title, so the cheapest researchable node surfaces first.
 function sortNodes(nodes: TechNode[], researchable: Set<string>): TechNode[] {
   const rank = (n: TechNode) =>
     researchable.has(n.id) ? 0 : n.state === "Available" ? 1 : 2;
@@ -696,8 +604,6 @@ function sortNodes(nodes: TechNode[], researchable: Set<string>): TechNode[] {
     return a.title.localeCompare(b.title);
   });
 }
-
-// ── Graph view ──────────────────────────────────────────────────────────────
 
 interface TechGraphProps {
   nodes: TechNode[];
@@ -728,7 +634,7 @@ function TechGraph({
     return m;
   }, [placed]);
 
-  // Edges: parent → child, drawn from actual positions (variable span).
+  // Edges run parent to child, drawn from actual positions.
   const edges = useMemo(() => {
     const list: {
       key: string;
@@ -930,8 +836,6 @@ function DetailPanel({
   );
 }
 
-// ── List node row ─────────────────────────────────────────────────────────
-
 interface NodeRowProps {
   node: TechNode;
   display: DisplayState;
@@ -969,7 +873,7 @@ function NodeRow({
       : display === "researchable"
         ? "Researchable"
         : "Locked";
-  // Researchable but unaffordable: grey the row and recolour the cost so the scan is immediate (2026-05-17 session feedback).
+  // Researchable but unaffordable: grey the row and recolour the cost.
   const unaffordable = display === "researchable" && !canAfford;
 
   return (
@@ -987,7 +891,7 @@ function NodeRow({
           {display !== "owned" && (
             <Cost
               $insufficient={unaffordable}
-              // The verdict, reported so it can be asserted: otherwise it is only a colour. Absent where money decides nothing.
+              // Exposed so the verdict can be asserted rather than read off a colour; absent where money decides nothing.
               data-afford={
                 display === "researchable" && moneyDecides
                   ? canAfford
@@ -1071,8 +975,6 @@ function NodeRow({
   );
 }
 
-// ── Shared colour helpers ───────────────────────────────────────────────────
-
 function dsBorder(ds: DisplayState): string {
   return ds === "owned"
     ? "var(--color-status-go-fg)"
@@ -1080,8 +982,6 @@ function dsBorder(ds: DisplayState): string {
       ? "var(--color-accent-fg)"
       : "var(--color-text-faint)";
 }
-
-// ── Styles ────────────────────────────────────────────────────────────────
 
 const Controls = styled.div`
   display: flex;
@@ -1208,10 +1108,7 @@ const NodeTitle = styled.span`
   overflow: hidden;
 `;
 
-// The truncation lives on a flex child that is allowed to shrink: it needs
-// min-width:0 so it actually narrows (and ellipsises) within NodeTitle instead
-// of overflowing and colliding with the node id / meta, and a content basis so
-// it keeps its width until the id beside it has given way.
+// `min-width: 0` lets the title ellipsise inside NodeTitle instead of colliding with the id, and the basis holds its width until the id gives way.
 const NodeTitleText = styled.span`
   flex: 1 1 auto;
   min-width: 0;
@@ -1220,8 +1117,7 @@ const NodeTitleText = styled.span`
   white-space: nowrap;
 `;
 
-/* Gives way before the title does: the name is what a row is read by, and the
-   id is its footnote. */
+// Gives way before the title does: the name is what a row is read by.
 const NodeId = styled.span`
   font-size: var(--font-size-caption);
   font-family: var(--font-family-mono);
@@ -1264,9 +1160,7 @@ const StateBadge = styled.span<{ $tone: "go" | "accent" | "muted" }>`
     p.$tone === "go" ? "var(--color-status-go-bg)" : "transparent"};
 `;
 
-/* The expanded half of a node: a description, a requires list, a parts list
-   and the unlock control are four different kinds of block, so the seam
-   between them is --gap-section rather than the row rhythm above. */
+// Description, requires list, parts list and unlock control are different kinds of block, so the seam is --gap-section.
 const NodeBody = styled.div`
   display: flex;
   flex-direction: column;
@@ -1401,8 +1295,6 @@ const TechMeta = styled.div`
   margin-bottom: var(--gap-related-compact);
 `;
 
-// ── Graph styles ────────────────────────────────────────────────────────────
-
 const GraphToolbar = styled.div`
   display: flex;
   align-items: center;
@@ -1412,10 +1304,7 @@ const GraphToolbar = styled.div`
   flex-wrap: wrap;
 `;
 
-/* Two levels of seam, and the ratio between them is what makes the legend
-   readable: --gap-section between one entry and the next, --gap-related
-   inside an entry between its swatch and its word. Written as one gap the
-   three entries run together into six alternating marks. */
+// --gap-section between legend entries and --gap-related inside one, or the swatches and words run together.
 const Legend = styled.div`
   display: inline-flex;
   gap: var(--gap-section);
@@ -1504,15 +1393,7 @@ const GraphCard = styled.button<{
   }
 `;
 
-/* GraphCard's type stays off both scales. The card is laid out at a fixed
-   JS height (CARD_H = 48, applied as an inline style), and after borders,
-   padding and gap the content budget is 37px against a current 2 x 11 x
-   1.15 title plus a ~12px meta row, i.e. already flush. --line-height-tight
-   (1.2) alone overflows it, and on a coarse pointer --font-size-xs (12px)
-   plus --font-size-2xs (11px) need roughly 42px, which GraphCard's
-   overflow: hidden would clip mid-line. Moving any of these four values
-   means raising CARD_H in the same edit and re-checking the
-   -webkit-line-clamp: 2. */
+// Off both type scales: the fixed CARD_H of 48 leaves a 37px content budget that the title already fills; changing these means raising CARD_H.
 const GraphCardTitle = styled.span`
   font-size: 11px;
   font-weight: 600;
@@ -1547,11 +1428,7 @@ const GraphOwned = styled.span`
   letter-spacing: 0.04em;
 `;
 
-// ── Detail panel ─────────────────────────────────────────────────────────────
-
-/* A head, a description, a meta line, a parts list and the unlock control:
-   different kinds of block, so --gap-section, and a bordered box holding
-   content, so --inset-surface. */
+// Different kinds of block in a bordered box, so --gap-section and --inset-surface.
 const Detail = styled.div`
   flex-shrink: 0;
   display: flex;
@@ -1621,8 +1498,6 @@ const ParentsInline = styled.span`
   letter-spacing: 0.04em;
 `;
 
-// ── Tiny mode ──────────────────────────────────────────────────────────────
-
 const TinyCount = styled.div`
   /* Off the type scale: the scale stops at --font-size-lg (16px) and this
      is a display-tier readout. */
@@ -1649,8 +1524,6 @@ const TinySci = styled.span`
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 `;
-
-// ── Registration ──────────────────────────────────────────────────────────
 
 registerComponent<TechTreeConfig>({
   id: "tech-tree",

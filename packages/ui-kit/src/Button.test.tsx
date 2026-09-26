@@ -1,12 +1,4 @@
-/**
- * What a button does with an icon standing next to a word.
- *
- * An `<svg>` is inline content, so a button that lays its children out as text
- * puts the glyph on the BASELINE: it hangs below the middle of the word and
- * touches it. That is invisible to a role query and to every render assertion
- * in this suite, which is why it survived long enough to be spotted in a video
- * of the app rather than in CI.
- */
+// An inline `<svg>` beside a word sits on the text baseline unless the button centres it, which no role query can see.
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
@@ -37,11 +29,7 @@ describe("a kit button carrying an icon and a word", () => {
   });
 
   it("hands the same layout to the variants built on it", () => {
-    /*
-     * The variants restyle colour and nothing else, and an operator meets them
-     * in the same bar as the base: a Ghost "Inbox" beside a plain "New message"
-     * is exactly where the two answers were visibly different.
-     */
+    // Variants share a bar with the base, so they must restyle colour only.
     render(
       <>
         <GhostButton data-testid="ghost">

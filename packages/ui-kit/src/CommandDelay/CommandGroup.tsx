@@ -12,59 +12,37 @@ interface CommandGroupOwnProps<V extends Record<string, unknown>> {
   /** The group's own inputs (wheels/sliders/etc.): this component owns none of their rendering. */
   children: ReactNode;
   /**
-   * What the commit button draws. A string is the ordinary case and names the
-   * button by itself; a node is for an icon-only commit on a strip with no room
-   * for a word, and it MUST be paired with `commitAriaLabel`, because every
-   * icon in this kit is `aria-hidden` and a glyph alone leaves the button with
-   * no accessible name at all. The pairing is a compile error to omit, see
-   * `CommandGroupProps`. Defaults to "Commit".
-   *
-   * <p>A node also squares the button's inset, as `ComposerBar` does under
-   * `sendVariant="icon"`: the horizontal padding is a word's, and left on it a
-   * glyph commit is a word-shaped gap rather than the ~24px the strip that
-   * asked for it was trying to buy.</p>
+   * What the commit button draws. Defaults to "Commit". A string names the
+   * button by itself; a node (an icon-only commit) MUST be paired with
+   * `commitAriaLabel`, because every kit icon is `aria-hidden`, and omitting it
+   * is a compile error. A node also squares the button's inset.
    */
   commitLabel?: ReactNode;
   /**
    * The commit button's accessible name, for when `commitLabel` cannot be one.
-   * Always the ACTION and never the glyph ("Commit framing", not "Return
-   * arrow"), and it is the name whichever way the button is drawn, so moving a
-   * caller to the glyph never changes what a screen reader hears or what a
-   * query for the control matches.
+   * Always the ACTION, never the glyph ("Commit framing", not "Return arrow").
    */
   commitAriaLabel?: string;
   /** Why a gated commit is unavailable: the button's description, and its hover title. */
   gatedReason?: string;
   /**
    * Where the commit control sits relative to the inputs. `"column"` (default)
-   * keeps it on its own line under them; `"row"` puts it beside them, which is
-   * the ~30px of height a corner-sized control strip cannot spare. Named as
-   * `CommandDelay`'s own orientation prop is, in the same folder.
+   * puts it on its own line under them; `"row"` puts it beside them, for a
+   * corner-sized strip that cannot spare the height.
    */
   orientation?: "column" | "row";
   /**
    * Let the inputs break onto further lines. On by default, unlike the kit's
-   * other rows, because that is what this group has always done and turning it
-   * off under existing call sites would reflow them.
-   *
-   * <p>Turn it off for a strip that must stay one line. Without it, a caller
-   * needing a single row has to defeat the wrap from outside with an inner
-   * `width: max-content` track, which is a sideways-scrolling strip rather than
-   * a row of controls.</p>
+   * other rows. Turn it off for a strip that must stay one line.
    */
   wrap?: boolean;
 }
 
 /**
  * The commit control's two props, with the a11y pairing spelled as a type: a
- * `commitLabel` that is not a string has to come with a `commitAriaLabel`.
- *
- * <p>It is a compile error rather than a runtime warning because the failure it
- * guards is invisible: a nameless button looks finished to the person who wrote
- * it, renders fine, and reaches a screen reader as "button". Every consumer of
- * this kit typechecks (the extraction probe makes sure of it), so a compile
- * error is the one form of this rule that cannot ship. The component ALSO warns
- * in dev, for the caller who spreads a props bag past the check.</p>
+ * `commitLabel` that is not a string has to come with a `commitAriaLabel`. The
+ * component also warns in dev, for a caller who spreads a props bag past the
+ * check.
  */
 type CommandGroupCommitNaming =
   | { commitLabel?: string; commitAriaLabel?: string }
@@ -74,12 +52,11 @@ export type CommandGroupProps<V extends Record<string, unknown>> =
   CommandGroupOwnProps<V> & CommandGroupCommitNaming;
 
 /**
- * Grouped-confirm / select-then-commit primitive: N child inputs write into
- * the caller's controlled `value` as the operator dials them, and nothing
- * dispatches until the explicit commit action fires `onCommit`
- * once with the whole group's value: one delayed dispatch for the whole
- * group, not one per input. Vanilla-safe: no data hooks, no dispatch of its
- * own: the commit callback is the caller's own `useCommand().send`.
+ * Grouped-confirm (select-then-commit) primitive: child inputs write into the
+ * caller's controlled `value`, and nothing dispatches until the explicit commit
+ * fires `onCommit` once with the whole group's value. One delayed dispatch for
+ * the group, not one per input. It has no data hooks and no dispatch of its
+ * own.
  */
 export function CommandGroup<V extends Record<string, unknown>>({
   value,
@@ -92,12 +69,7 @@ export function CommandGroup<V extends Record<string, unknown>>({
   orientation = "column",
   wrap = true,
 }: CommandGroupProps<V>) {
-  /*
-   * A glyph commit with no name reaches a screen reader as "button" and looks
-   * finished to everyone else, so say so out loud. The types already refuse it;
-   * this is for the caller who assembled the props elsewhere and spread them,
-   * where there was no literal for the checker to look at.
-   */
+  // The types refuse a nameless glyph commit; this catches a spread props bag the checker could not see.
   const named =
     typeof commitLabel === "string" || typeof commitLabel === "number";
   useEffect(() => {

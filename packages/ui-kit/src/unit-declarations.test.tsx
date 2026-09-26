@@ -12,12 +12,10 @@ import {
 } from "./units";
 
 /**
- * A unit declared the way an Uplink declares one, read back through every
- * runtime surface a first-party unit reaches: kind lookup, rung choice, a pinned
- * format, the pin group a scope addresses, and the spoken word.
- *
- * Everything here goes through the one registration call on the SDK. Nothing
- * reaches for a second, kit-side registry, because there is none.
+ * A unit declared the way an Uplink declares one, through the SDK's one
+ * registration call, read back through every runtime surface a first-party unit
+ * reaches: kind lookup, rung choice, a pinned format, the pin group a scope
+ * addresses, and the spoken word.
  */
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface UnitDeclarations {
@@ -117,7 +115,6 @@ describe("a unit declared through the SDK", () => {
   });
 
   it("does not borrow the ladder of a kind it happens to share", () => {
-    // Its declaration names no ladder, so it is a group of its own and never climbs, whatever its kind's first-party units do.
     expect(formatQuantity(12_400, "snax:reach").symbol).toBe("snax:reach");
     expect(formatGroupKey("snax:reach")).not.toBe(formatGroupKey("m"));
   });

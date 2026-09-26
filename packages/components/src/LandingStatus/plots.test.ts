@@ -6,8 +6,7 @@ import {
   buildCrossSectionPlot,
   type CrossSectionInputs,
 } from "./crossSectionPlot";
-// Side-effect imports: the three contributions the last describe drives are
-// registered by these modules, exactly as the widget's own import does it.
+// Registers the three contributions the last describe drives, as the widget's own import does.
 import "./descentLayers";
 import {
   buildTouchdownReticlePlot,
@@ -15,35 +14,10 @@ import {
 } from "./touchdownReticlePlot";
 
 /**
- * The two site plots, as the pure functions they now are.
- *
- * The altitude rail is not here because it is not a plot. It was one for a day,
- * and a chart of a single scalar came out as one chevron on a ladder next to a
- * widget that already stated the same height. It is a `Tape` again; its own
- * spec is `AltitudeRail.test.tsx`.
- *
- * This spec exists because the migration moved these readings OUT of a rendered
- * SVG and into data, and a reading stated as data can be checked without a DOM,
- * a size, a resize observer or a contribution registry. The widget spec next
- * door proves the plots reach the screen; this one proves they say the right
- * thing, which used to be verifiable only by matching a regex against an
- * accessible name three layers down.
- *
- * Every case here is an ABSENCE case or a UNIT case, because those are the two
- * the conversion put at risk: the old components rendered a frame whatever they
- * were handed, and their geometry was in normalised box coordinates that no
- * assertion could have caught being wrong.
+ * The two site plots as pure functions, checked without a DOM.
+ * Every case is an absence case or a unit case: a plot must not build a frame from what it lacks, and its geometry must be in real units.
  */
-
-/**
- * The plot's own frame, asserted present.
- *
- * `PlotEntry.frame` is optional by design, because a contribution may carry
- * layers into a frame somebody else supplies. Both builders here OWN their
- * frame, so its absence is a failure rather than a case, and reading it through
- * `plot?.frame` with a `?? [0, 0]` fallback let an axis assertion pass on a plot
- * that was never built.
- */
+/** The plot's own frame, asserted present: both builders own their frame, so its absence is a failure rather than a case. */
 function frameOf(plot: PlotEntry | null): NonNullable<PlotEntry["frame"]> {
   if (!plot) throw new Error("expected a plot");
   if (!plot.frame) throw new Error("expected the plot to carry its own frame");
@@ -100,9 +74,7 @@ describe("cross-section plot", () => {
   });
 
   it("is a SPATIAL frame, SQUARE in data units, anchored on the ground", () => {
-    // Square both ways, because the box it is drawn in is square and equal
-    // scale has to survive that: a window taller than it is wide inside a
-    // square box stretches the picture, and a stretched slope is not the slope.
+    // Square both ways, so the square box never stretches the slope.
     const plot = buildCrossSectionPlot(crossSection({ aglMeters: 300 }));
     expect(frameOf(plot).kind).toBe("spatial");
     const [xLo, xHi] = frameOf(plot).xDomain;
@@ -150,9 +122,7 @@ describe("cross-section plot", () => {
   });
 
   it("contributes NOTHING without a ground extent to state the X axis in", () => {
-    // The case that used to "work": the old component drew the profile across
-    // the box at whatever scale the box happened to be, so the slope it showed
-    // was a picture rather than a reading.
+    // Without a ground extent the profile would be drawn at an unknown scale.
     expect(
       buildCrossSectionPlot(crossSection({ patchExtentMeters: null })),
     ).toBeNull();
@@ -206,8 +176,7 @@ describe("touchdown reticle plot", () => {
   });
 
   it("is a SPATIAL frame that BLEEDS: the relief fills it edge to edge", () => {
-    // No inset ring of empty ground around the map. The patch footprint IS the
-    // window, which is what makes this plot look like the one beside it.
+    // The patch footprint is the window: no inset ring of empty ground.
     const plot = buildTouchdownReticlePlot(reticle({ patchExtentMeters: 200 }));
     expect(frameOf(plot).kind).toBe("spatial");
     expect(frameOf(plot).xDomain).toEqual([-100, 100]);
@@ -223,9 +192,7 @@ describe("touchdown reticle plot", () => {
   });
 
   it("keeps the plot but drops the relief when the patch has no footprint", () => {
-    // The marks are metric without it; the grid is not, so the grid goes and
-    // the reticle stays. Dropping the whole plot would lose a reading it can
-    // still state honestly.
+    // Without an extent the grid goes and the metric reticle stays.
     const plot = buildTouchdownReticlePlot(
       reticle({ patchExtentMeters: null }),
     );
@@ -257,21 +224,9 @@ describe("touchdown reticle plot", () => {
   });
 });
 
-/**
- * The three plots, driven through the CONTRIBUTIONS the widget actually mounts.
- *
- * <p>Every case above hands `buildCrossSectionPlot` and its siblings a radius
- * and a gravity already in hand, so nothing above exercises where those numbers
- * came from: a pure function cannot see whether its argument was read off the
- * stream or looked up by name in a bundled table of stock bodies. That
- * resolution step lives in the contribution, and this is where it is checked.</p>
- */
+/** The three plots driven through the contributions the widget mounts, where the body's radius and gravity are actually resolved. */
 describe("the body a contribution resolves", () => {
-  /*
-   * The app registers these at startup. Without them a table hit and a table
-   * miss both come back empty, so a comparison between a stock name and a
-   * renamed one passes while proving nothing.
-   */
+  // Without the stock table registered, a table hit and a table miss both come back empty and the comparison proves nothing.
   registerStockBodies();
 
   /** RSS's name for Kerbin, and the physical facts the stream reports for it. */
@@ -287,12 +242,7 @@ describe("the body a contribution resolves", () => {
     },
   };
 
-  /*
-   * Low enough that the site plots' atmospheric gate is open either way: at
-   * 30 km an atmospheric body withholds them and a body read as airless does
-   * not, and a case that turns on that would be measuring the gate rather than
-   * the radius.
-   */
+  // Low enough that the atmospheric gate is open either way, so the case measures the radius and not the gate.
   const topicsFor = (body: Record<string, unknown>) => ({
     "vessel.identity": { parentBodyIndex: 1 },
     "system.bodies": { bodies: [body] },
@@ -334,20 +284,14 @@ describe("the body a contribution resolves", () => {
   const layerIds = (id: string, body: Record<string, unknown>) =>
     (compute(id, body)?.[0]?.layers ?? []).map((l) => l.id);
 
-  /* The integration cannot run without a gravity, so the projected trace is
-     the layer that says whether the body resolved at all. */
+  // The projected trace needs a gravity, so it says whether the body resolved.
   it("projects the descent for a body no table knows", () => {
     expect(layerIds("core:descent-envelope", EARTH)).toContain(
       "trace-estimate",
     );
   });
 
-  /*
-   * The vessel mark sits upwind of the site by its real downrange
-   * displacement, and that displacement is a great-circle arc on the body's
-   * radius. With no radius the mark sits ON the site, which is the plot
-   * quietly saying a thing it does not know.
-   */
+  // The downrange displacement is a great-circle arc on the body's radius; without one the mark would sit on the site.
   it("places the vessel downrange using the reported radius", () => {
     const out = compute("core:cross-section", EARTH);
     const vessel = out?.[0]?.layers.find((l) => l.id === "vessel");
@@ -361,8 +305,7 @@ describe("the body a contribution resolves", () => {
     expect(layerIds("core:touchdown-reticle", EARTH)).toContain("site");
   });
 
-  /* Nothing reported and nothing to look up: the reticle is withheld rather
-     than drawn against a radius nobody supplied. */
+  // With nothing reported or known, the reticle is withheld rather than drawn against an unsupplied radius.
   it("withholds the reticle when no source knows the body at all", () => {
     expect(
       compute("core:touchdown-reticle", { index: 1, name: "Erf" }),

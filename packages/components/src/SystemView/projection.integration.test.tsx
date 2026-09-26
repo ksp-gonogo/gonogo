@@ -17,23 +17,9 @@ import {
 } from "./projection";
 
 /**
- * Where the BODIES are drawn, which is the half of the picture every frame test
- * before this one left out.
+ * Where the BODIES are drawn under each frame: every case ends at a child body's own `cx`/`cy`, since reframing only the craft's curve would leave two frames in one picture.
  *
- * `readFrame.integration.test.tsx` ended at an attribute on the drawn `<path>`,
- * and the bodies are not on that path: so a frame option reframed the craft's
- * curve while every body stayed in parent-centred inertial coordinates, two
- * frames in one picture, and every assertion in the tree stayed green. Everything
- * here ends at a child body's own `cx`/`cy`, which is the only place that defect
- * is visible.
- *
- * <b>One mount per case, and that is not a style choice.</b>
- * `setupStreamFixture` calls `clearProcessorRuntime()`, which is module-global,
- * so a second fixture in one test body replaces the catalogue the first view is
- * reading and both views end up showing the LAST system emitted. A comparison
- * between two renders in one body therefore compares a picture with itself and
- * passes whatever the code does. Every case below asserts an absolute geometric
- * invariant of the frame instead, which is a stronger claim than a difference.
+ * One mount per case: `setupStreamFixture` clears the module-global processor runtime, so two fixtures in one body would both show the last system emitted. Each case asserts an absolute geometric invariant instead of a difference.
  */
 
 const KERBOL_MU = 1.1723328e18;
@@ -46,12 +32,7 @@ const MUN_INDEX = 2;
 
 const MUN_SMA = 12_000_000;
 
-/**
- * Kerbin's mean anomaly at epoch, radians, and Mun's. Neither is near a half
- * turn on purpose: at a half turn the bearing to Kerbol lands on `+x`, the
- * parent-direction basis comes out as the identity, and a test built on that
- * phase would compare a frame with itself.
- */
+/** Kerbin's and Mun's mean anomaly at epoch, radians, kept off a half turn, where the parent-direction basis is the identity and a frame would compare with itself. */
 const KERBIN_MEAN_ANOMALY = 1.0;
 const MUN_MEAN_ANOMALY = 1.7;
 
@@ -59,18 +40,7 @@ const MUN_MEAN_ANOMALY = 1.7;
 const MUN_QUARTER_PERIOD =
   (2 * Math.PI * Math.sqrt(MUN_SMA ** 3 / KERBIN_MU)) / 4;
 
-/**
- * The Kerbin-Mun pair's own rotating-pulsating frame, contributed from OUTSIDE
- * the host exactly as an Uplink would contribute one.
- *
- * <b>This is the case unit tests on `toFrame` cannot fail.</b> The arithmetic has
- * its own tests and they pass whether or not the diagram calls it. What this pins
- * is the diagram: in the pair's own frame the secondary sits on the first axis at
- * every instant, so Mun's drawn `cy` is zero and its `cx` is positive, and it
- * stays that way a quarter period later while every inertial position in the
- * picture has moved. Nothing but the real transform, applied to the real body
- * placement, produces that.
- */
+/** The Kerbin-Mun rotating-pulsating frame, contributed from outside the host as an Uplink would; in it Mun sits on the first axis at every instant, which only the real transform on the real placement produces. */
 CORE_UPLINK_CLIENT.registerContribution({
   id: "test-kerbin-mun-pulsating",
   contributes: "system-view.projection",
@@ -80,21 +50,14 @@ CORE_UPLINK_CLIENT.registerContribution({
       id: "test.kerbin-mun",
       label: "Hold the Mun still",
       choice: { kind: "rotating-pulsating", bodyIndex: MUN_INDEX },
-      // Coordinates are multiples of the pair's separation, so metres are not a
-      // unit this picture has: an auto-fit over apoapsis in metres would size
-      // the diagram by a quantity that is not on it.
+      // Coordinates are multiples of the pair's separation, so an auto-fit over apoapsis in metres would size by a quantity not on the diagram.
       extent: { kind: "fixed-units", units: 1.4 },
       frameBodyIndex: KERBIN_INDEX,
     },
   ],
 });
 
-/**
- * A moon at `inclination`, placed a quarter turn past its ascending node so it
- * sits at its greatest distance from the reference plane. A flat projection puts
- * it a full `sma` from the parent whatever the inclination is; an honest one puts
- * it `sma * cos(inclination)` away.
- */
+/** A moon a quarter turn past its ascending node, at its greatest depth: an honest projection puts it `sma * cos(inclination)` from the parent. */
 function inclinedMoon(inclination: number) {
   return {
     index: 3,
@@ -256,12 +219,7 @@ describe("SystemView body placement", () => {
     });
     const mun = await bodyAt(view, "Mun");
 
-    // A parent-direction frame on Kerbin points its first axis at Kerbol, so
-    // every drawn position turns by the bearing to Kerbol and nothing else: a
-    // rotation, so the distance from the frame body is unchanged, and the angle
-    // moves by exactly that bearing. Kerbin is on a circular orbit, so its own
-    // true anomaly IS its mean anomaly, and Kerbol's bearing from it is a half
-    // turn on from that.
+    // A parent-direction frame turns every position by the bearing to Kerbol, a half turn on from Kerbin's mean anomaly on its circular orbit, and leaves distances unchanged.
     const parentBearing = KERBIN_MEAN_ANOMALY + Math.PI;
     const munInertialAngle = MUN_MEAN_ANOMALY;
     expect(Math.hypot(mun.x, mun.y)).toBeGreaterThan(1);
@@ -277,8 +235,7 @@ describe("SystemView body placement", () => {
       config: { frame: "Kerbin", projection: "test.kerbin-mun" },
     });
     const mun = await bodyAt(view, "Mun");
-    // On the axis, at the far end of it: `cy` is zero and `cx` is positive. In
-    // the inertial picture Mun is at 1.7 radians and neither of those holds.
+    // On the far end of the axis: `cy` zero and `cx` positive, neither of which holds inertially.
     expect(Math.abs(mun.y)).toBeLessThan(0.01);
     expect(mun.x).toBeGreaterThan(1);
     await act(async () => {});
@@ -290,10 +247,7 @@ describe("SystemView body placement", () => {
       ut: MUN_QUARTER_PERIOD,
     });
     const mun = await bodyAt(view, "Mun");
-    // Every inertial position in this picture has moved a quarter turn since the
-    // case above, and this one has not moved at all. That is the whole reason to
-    // draw in a pair's own frame, and it is a claim about the DIAGRAM: the frame
-    // arithmetic's own tests pass whether or not the diagram calls it.
+    // Every inertial position has moved a quarter turn since the case above, and Mun has not moved at all.
     expect(Math.abs(mun.y)).toBeLessThan(0.01);
     expect(mun.x).toBeGreaterThan(1);
     await act(async () => {});
@@ -304,11 +258,7 @@ describe("SystemView body placement", () => {
     const minmus = await bodyAt(view, "Minmus");
     const mun = await bodyAt(view, "Mun");
 
-    // Both moons share a semi-major axis and a circular orbit, so in a flat
-    // projection they are drawn exactly the same distance from Kerbin. Minmus is
-    // a quarter turn past its ascending node, so the whole of its inclination
-    // shows: its projected distance is `sma * cos(inc)`, which at 60 degrees is
-    // half of Mun's.
+    // Same sma and circular orbits, but Minmus is at its greatest depth, so its projected distance is `sma * cos(60 deg)`, half of Mun's.
     const munRadius = Math.hypot(mun.x, mun.y);
     const minmusRadius = Math.hypot(minmus.x, minmus.y);
     expect(munRadius).toBeGreaterThan(1);
@@ -326,11 +276,7 @@ describe("SystemView body placement", () => {
       const dot = view.container.querySelector(`circle[data-body="${name}"]`);
       return Number(dot?.getAttribute("data-depth-px"));
     };
-    // Mun's orbit is equatorial, so it has no depth. Minmus is 60 degrees
-    // inclined AND a quarter turn from its node, which is where the whole of
-    // that inclination turns into depth. The distinction the old inclination
-    // gradient could not make is the other case: a body at its node has no depth
-    // however inclined its orbit, and this reading comes from the position.
+    // Mun is equatorial, so no depth; Minmus is inclined and a quarter turn from its node, where the whole inclination is depth.
     expect(await depthOf("Mun")).toBeCloseTo(0, 6);
     expect(Math.abs(await depthOf("Minmus"))).toBeGreaterThan(1);
     await act(async () => {});
@@ -343,7 +289,7 @@ describe("SystemView body placement", () => {
     await waitFor(() => {
       expect(view.container.querySelector("svg")).not.toBeNull();
     });
-    // The frame's name carries that its lengths pulsate: it is the name the operator selected the frame by.
+    // The frame's name, which the operator selected it by, carries that its lengths pulsate.
     expect(view.container.textContent).toContain("Lagrange");
     await expectNoA11yViolations(view.container);
   });

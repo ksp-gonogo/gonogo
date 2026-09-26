@@ -15,12 +15,7 @@ export interface SourceOfflineBannerProps {
   entries: SourceOfflineEntry[];
 }
 
-/**
- * Inline banner listing data / stream sources that have been disconnected
- * or erroring long enough to surface. Designed to be placed inside the
- * shared `<BannerStack />` in the bottom-right corner, no fixed
- * positioning of its own. Renders nothing when `entries` is empty.
- */
+/** Banner inside BannerStack listing sources offline long enough to surface; renders nothing when `entries` is empty. */
 export function SourceOfflineBanner({ entries }: SourceOfflineBannerProps) {
   if (entries.length === 0) return null;
 
@@ -41,10 +36,7 @@ export function SourceOfflineBanner({ entries }: SourceOfflineBannerProps) {
   );
 }
 
-// The kit's wall-clock ladder, not a fifth copy of the same s/m/h staircase.
-// `irl:s` rather than `s`: this is how long a source has been offline, timed
-// by the clock on the desk, and the game-time ladder would call four real
-// hours a Kerbin day.
+// Real time, not game time: this is how long a source has been offline on the desk clock.
 function formatElapsed(ms: number): string {
   return writeQuantity(quantity("irl:s", ms / 1000));
 }

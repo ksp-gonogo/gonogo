@@ -56,7 +56,7 @@ export function MapViewConfigComponent({
     [],
   );
 
-  // Stock bodies for the picker. Sorted by name for a predictable list.
+  // Stock bodies for the picker, sorted by name.
   const bodies = useMemo(
     () => [...getAllBodies()].sort((a, b) => a.name.localeCompare(b.name)),
     [],

@@ -10,22 +10,7 @@ import {
 import { TechTreeComponent } from "./index";
 
 /**
- * What TechTree does when `career.status` stops being current.
- *
- * Two fields off that one record, and the widget splits them:
- *
- * - the node list is KEPT. A node's state changes when the player spends on it,
- *   and nobody can spend down a link that is not delivering, so the tree on
- *   screen is still the tree and the operator can still browse what they own
- * - the science balance is WITHHELD, because the Unlock button turns it into
- *   "you can afford this", a claim about now that a balance we can no longer
- *   vouch for cannot support
- *
- * The assertions that earn this file are the ones separating withheld from
- * never-arrived. TechTree already refuses on an absent balance, with the words
- * "no science balance has arrived", so a widget that simply reused that path
- * would pass any test asserting only that Unlock is disabled, while telling the
- * operator their save has no balance at the moment their link dropped.
+ * When `career.status` stops being current, TechTree keeps the node list (nobody can spend down a dead link, so the tree is still the tree) and withholds the science balance, which Unlock would turn into a claim about now. The assertions that matter separate withheld from never-arrived.
  */
 
 const CARRIED = ["career.status", "spaceCenter.scene"];
@@ -92,8 +77,7 @@ describe("TechTree when the career record is no longer current", () => {
   }
 
   it("arms Unlock and prints the balance while the record is current", async () => {
-    // The control. Without it every assertion below would also pass on a widget
-    // that never arms Unlock at all.
+    // The control: without it every assertion below would pass on a widget that never arms Unlock.
     const user = userEvent.setup();
     renderTree();
     emitAffordableCareer();
@@ -116,7 +100,7 @@ describe("TechTree when the career record is no longer current", () => {
 
     goNotCurrent();
 
-    // Not the awaiting placeholder and not an empty tree: both would state something false about a save whose catalogue we hold.
+    // Not the awaiting placeholder and not an empty tree: both would misstate a catalogue we hold.
     await waitFor(() =>
       expect(screen.getByRole("status").textContent).toContain("not current"),
     );
@@ -142,9 +126,7 @@ describe("TechTree when the career record is no longer current", () => {
       expect(btn).toBeDisabled();
       return btn;
     });
-    // The scene is a fact and is still held, so the refusal cannot be blamed on
-    // not knowing where the player is standing: it is the balance, and the
-    // button says which kind of missing it is.
+    // The scene is still held, so the refusal is the balance, and the button says which kind of missing it is.
     expect(unlock.getAttribute("title")).toContain(
       "the science balance is no longer current",
     );
@@ -173,9 +155,7 @@ describe("TechTree when the career record is no longer current", () => {
   });
 
   it("spends its one tiny-mode line saying the balance is withheld", async () => {
-    // Tiny mode drops the science line entirely when no balance has arrived. A
-    // withheld balance reusing that would make a dropped link look like a save
-    // that never had science, on the size where there is least to read.
+    // A withheld balance must not reuse tiny mode's no-balance path, or a dropped link looks like a save with no science.
     const { container } = renderTree(4, 3);
     emitAffordableCareer();
     await waitFor(() => expect(visibleText(container)).toContain("5000"));
@@ -189,8 +169,7 @@ describe("TechTree when the career record is no longer current", () => {
   });
 
   it("says nothing about currency before anything has ever arrived", async () => {
-    // A cold start is not a suspension. Conflating them would accuse the link of
-    // dropping on first paint.
+    // A cold start is not a suspension, or first paint would accuse the link of dropping.
     const { container } = renderTree();
     await waitFor(() =>
       expect(visibleText(container)).toContain("Awaiting tech telemetry"),

@@ -14,22 +14,17 @@ import fuellinePostStage2 from "./__fixtures__/fuelline-tester-poststage2.json";
 import { ShipMapComponent, type ShipMapOverlayContext } from "./index";
 
 /**
- * ShipMap augment-slot exposure (Uplink architecture). The `ship-map.overlay`
- * slot is exposed but ships no filler here (that is an Uplink augment's job):
- * an empty slot must render cleanly, and a test augment registered into it must
- * appear, receiving the widget's projection context as typed slot props.
+ * The `ship-map.overlay` slot ships no filler: empty it renders cleanly, and a
+ * registered test augment appears with the projection context as typed props.
  */
 
 const TOPOLOGY = fuellinePostStage2["v.topology"] as VesselTopology;
 const VESSEL_PARTS_WIRE = topologyToVesselPartsWire(TOPOLOGY);
 
-// Unmount each rendered tree BEFORE clearing the action-handler/augment
-// registries: a clear firing on a still-mounted widget is a state update
-// outside act(). RTL auto-cleanup runs after this file's afterEach, too late
-// to unmount first.
+// Unmount each tree before clearing the registries: RTL's auto-cleanup runs after this afterEach, too late.
 const renderedTrees: Array<() => void> = [];
 
-// Drive the widget to its diagram layout (topology present with parts), where the `overlay` diagram slot renders.
+// Drive the widget to its diagram layout, where the overlay slot renders.
 async function renderDiagram() {
   const fixture = setupStreamFixture({
     carriedChannels: ["vessel.parts"],
@@ -56,20 +51,17 @@ describe("ShipMap: augment slots (spec §4)", () => {
     for (const unmount of renderedTrees) unmount();
     renderedTrees.length = 0;
     clearActionHandlers();
-    // Wipe any test augment so it never leaks into the snapshot suite.
     clearAugments();
   });
 
   it("exposes the slot (empty until an augment binds)", () => {
-    // The registry entry is asserted indirectly: the widget's own module-load
-    // registration declared the slot as its extension point.
-    // (See registerComponent `augmentSlots` in ./index.tsx.)
+    // The widget's own registration declared the slot.
     expect(getAugmentsForSlot("ship-map.overlay")).toEqual([]);
   });
 
   it("renders the diagram with no augment bound (an empty slot is inert)", async () => {
     await renderDiagram();
-    // An empty slot adds nothing: the stock diagram renders exactly as before.
+    // An empty slot adds nothing to the stock diagram.
     expect(screen.getByLabelText("Ship diagram")).toBeTruthy();
     expect(screen.queryByTestId("ship-map-overlay-augment")).toBeNull();
   });
@@ -98,7 +90,7 @@ describe("ShipMap: augment slots (spec §4)", () => {
     });
 
     const overlay = await screen.findByTestId("ship-map-overlay-augment");
-    // The slot passed the diagram's base-frame projection down: the fixture's part count, the measured canvas size, a positive scale.
+    // The fixture's part count, the measured canvas size and a positive scale reached the augment.
     expect(visibleText(overlay)).toContain(`${TOPOLOGY.parts.length}|`);
     expect(visibleText(overlay)).toContain("scaled");
   });

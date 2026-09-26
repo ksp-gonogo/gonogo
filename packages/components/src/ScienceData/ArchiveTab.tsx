@@ -18,12 +18,7 @@ export interface ArchiveTabProps {
   groups: ArchiveBodyGroup[];
 }
 
-/**
- * Deliberately the same column shape as Aboard's, so the two tabs read as
- * one table at two scopes rather than two widgets sharing a panel. What
- * differs is the row identity: Aboard names a subject on this vessel,
- * Archive names a situation-and-biome the career has visited.
- */
+/** Same column shape as Aboard's, but a row names a situation and biome the career has visited, not a subject aboard. */
 const COLUMNS: ReadonlyArray<DataTableColumn<ArchiveSubject>> = [
   {
     key: "situation",
@@ -58,12 +53,7 @@ const COLUMNS: ReadonlyArray<DataTableColumn<ArchiveSubject>> = [
   },
 ];
 
-/**
- * Flattens body → experiment → rows into the table's one level of section,
- * because a heading per body AND per experiment pushed every row two indents
- * off the left edge and cost more width than the figures did. "Kerbin ·
- * Crew Report" says the same thing on one line.
- */
+/** Flattens body, then experiment, into one level of section headed "Body · Experiment". */
 function sectionsOf(
   groups: ArchiveBodyGroup[],
   matches: (searchText: string) => boolean,
@@ -72,9 +62,8 @@ function sectionsOf(
   for (const body of groups) {
     for (const exp of body.experiments) {
       const title = `${body.body || "(unknown)"} · ${exp.expTitle || "(unknown)"}`;
-      // A career archive is the longest list in the app, so the heading text
-      // counts as searchable: typing a body name keeps that whole group
-      // rather than making the operator match every row individually.
+      // The heading is searchable, so typing a body name keeps that whole group.
+
       const rows = exp.rows.filter((r) =>
         matches(`${title} ${r.situation} ${r.biome}`),
       );

@@ -15,12 +15,7 @@ import {
 } from "@ksp-gonogo/core";
 import { isFiniteNumber, type PresetId } from "./presets";
 
-/**
- * Plan-dispatch helpers. Pure functions: same inputs → same result.
- * Lifted out of the widget so non-React surfaces (the trigger host
- * service, future tests) can reuse the math without dragging the React
- * tree along.
- */
+// Pure plan-dispatch helpers, shared with the non-React trigger services.
 
 export interface PlanInputs {
   preset: PresetId;
@@ -54,8 +49,7 @@ export interface PlanInputs {
   standoffMeters: number;
 }
 
-/** Either a single-burn plan (existing presets) or a multi-burn sequence
- *  (Hohmann). Render code branches on `"burns" in result`. */
+/** A single-burn plan or a multi-burn sequence (Hohmann). */
 export type PlanResult = ManeuverPlan | ManeuverSequence;
 
 export function isSequence(result: PlanResult): result is ManeuverSequence {
@@ -226,11 +220,7 @@ function planMatchTargetPlane(i: PlanInputs): ManeuverPlan | null {
   );
 }
 
-/**
- * All orbital scalars must be finite before we can construct a
- * CurrentOrbit: otherwise the propagator hits NaNs and downstream
- * widgets render garbage.
- */
+/** A CurrentOrbit, or null unless every scalar is finite (the propagator would otherwise hit NaNs). */
 export function buildCurrentOrbit(vals: {
   sma: number | undefined;
   ecc: number | undefined;
@@ -253,10 +243,7 @@ export function buildCurrentOrbit(vals: {
   return { sma, eccentricity: ecc, ApR, PeR, timeToAp, timeToPe };
 }
 
-/** Relative inclination (°) between two orbits given each one's
- *  inclination + LAN. Returns null if any input is missing. Used in the
- *  rendezvous preset description so the user can see whether the
- *  preset will prepend a plane-match burn (threshold 0.5°). */
+/** Relative inclination (°) between two orbits from each one's inclination and LAN, or null if any input is missing. */
 export function computeRelInc(
   inc1: number | undefined,
   lan1: number | undefined,
@@ -291,8 +278,7 @@ export interface BurnTrueAnomalyInputs {
   burnInSeconds: number;
 }
 
-/** True anomaly at the burn for drag-handle placement. Null outside the
- *  custom-* presets or when inputs aren't ready. */
+/** True anomaly at the burn, for the drag handle; null outside the custom presets or before inputs are ready. */
 export function computeBurnTrueAnomaly(
   i: BurnTrueAnomalyInputs,
 ): number | null {
@@ -306,7 +292,6 @@ export function computeBurnTrueAnomaly(
       ? i.burnAtUT
       : i.currentUT + Math.max(0, i.burnInSeconds);
   if (burnUT <= i.currentUT) return null;
-  // Null for an unbound trajectory, which joins the several "cannot answer" exits above rather than becoming a new kind of nothing.
   const state = stateAtUT(
     i.currentOrbit,
     i.trueAnomaly,
@@ -318,10 +303,9 @@ export function computeBurnTrueAnomaly(
 }
 
 /**
- * μ from live telemetry only: never the body-registry value. vis-viva
- * (v²·a·r/(2a−r)) is preferred; Kepler's 3rd (4π²a³/T²) is the fallback
- * for the brief window at scene load when orbitalSpeed/radius haven't
- * streamed yet. Returns 0 when neither formula has usable inputs.
+ * μ from live telemetry only, never the body registry: vis-viva
+ * (v²·a·r/(2a-r)), else Kepler's third law (4π²a³/T²) while speed and radius
+ * have not streamed yet. 0 when neither has usable inputs.
  */
 export function computeMu(
   orbitalSpeed: number | undefined,

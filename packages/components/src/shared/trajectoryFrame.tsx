@@ -9,23 +9,10 @@ import {
 import { Text } from "@ksp-gonogo/ui-kit";
 
 /**
- * Which frame a widget drew its curve in, said out loud beside the curve.
- *
- * <b>Every widget that draws a trajectory renders one of these.</b> The same
- * points are a different path in every frame: an orbit that closes in one is a
- * rosette in another, and a Lagrange point that sits still in one sweeps round
- * in the rest. A curve with no frame named is a picture whose meaning the
- * reader has to guess, and the guess it invites is whichever frame that widget
- * happened to draw in last time they looked.
- *
- * One component rather than four captions, for the reason the refusal copy is
- * one table: four widgets naming the same frame four ways is one problem
- * wearing four hats, and an operator comparing two panels would reasonably read
- * two names as two frames.
- *
- * Renders nothing when nothing was drawn. A refusal already says its own piece
- * where the curve would have been, and a frame name beside an absent curve is a
- * caption with no picture.
+ * Names the frame a widget drew its trajectory in; every trajectory widget
+ * renders one, since the same points are a different path in each frame. One
+ * component so two panels never name one frame two ways. Renders nothing when
+ * nothing was drawn.
  */
 export function TrajectoryFrameCaption({
   trajectory,
@@ -36,22 +23,12 @@ export function TrajectoryFrameCaption({
   trajectory?: OrbitTrajectory | null;
   /** The body the elements are measured against, which is the frame a drawn conic lands in. */
   centreBodyIndex?: number;
-  /**
-   * The frame outright, for a widget whose drawing is not the seam's own curve.
-   * A ground track is a body-fixed projection however the path was computed, so
-   * naming the path's frame there would caption the wrong picture.
-   */
+  /** The frame outright, for a drawing that is not the seam's own curve, such as a body-fixed ground track. */
   frame?: TrajectoryFrame | null;
   /** The centre body by name, for a widget that holds a name rather than an index. */
   centreBodyName?: string | undefined;
 }>) {
-  /*
-   * A catalogue is a FACT: it changes when the game changes, and nothing
-   * changes it down a link that is not delivering, so a held one is still the
-   * catalogue and is used as it arrived. Both value-bearing arms, and no
-   * caption: what this draws is a frame's NAME, which does not go out of date
-   * the way a figure does.
-   */
+  // A held catalogue is still the catalogue: a quiet link does not change it.
   const factsReading = useProcessor(CELESTIAL_FACTS);
   const facts =
     factsReading?.state === "observed" || factsReading?.state === "stale"
@@ -67,9 +44,6 @@ export function TrajectoryFrameCaption({
   if (frame == null) return null;
   const label = trajectoryFrameLabel(frame, facts);
   return (
-    // The frame's name and nothing else. The caption says WHICH frame the curve
-    // is in, because the same points are a different path in each; a frame's
-    // own properties are known to whoever selected it.
     <Text tone="muted" size="xs">
       {label}
     </Text>

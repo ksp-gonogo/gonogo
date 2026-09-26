@@ -10,30 +10,13 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { StrategiesComponent } from "./index";
 
 /**
- * What a strategy card may claim about what activating it costs.
- *
- * <para>The card prices a strategy from the three figures the stock record
- * carries: `initialCostFunds`, `initialCostScience`, `initialCostReputation`.
- * When all three are zero it said "No setup cost", which reads as free, and on
- * a stock career it is: the triple IS the whole price of a stock strategy.</para>
- *
- * <para>It is not the whole price under RP-1, and that is the shipped case. A
- * Program is a strategy on this same list and `Program.Accept()` charges
- * `confidenceCosts[speed]` in CONFIDENCE, a currency the stock record has no
- * field for, so the triple comes through as three zeros and the card announced
- * a 300-Confidence commitment as costing nothing. The RP-1 section directly
- * below it on the same screen was reading "300 at Normal speed, SHORT" at the
- * same moment.</para>
- *
- * <para>The fix is not to teach this widget about Confidence, which is a
- * currency it cannot read and has no channel for. It is to stop the card
- * asserting more than it read: three zeros mean those three are zero, and
- * nothing about a currency that is not on the record.</para>
+ * What a strategy card may claim about what activating it costs. Three zero
+ * stock cost fields say those three are zero and nothing more: an RP-1 Program
+ * is priced in Confidence, which the record has no field for.
  */
 
 const PROGRAM = {
-  /* An RP-1 Program, as `career.status.strategies.all` carries one. Priced in
-     Confidence, which is why every stock cost field is zero. */
+  // An RP-1 Program: priced in Confidence, so every stock cost field is zero.
   id: "EarlyXPlanes",
   title: "Early X-Planes",
   description: "Fly high and fast.",
@@ -105,29 +88,18 @@ describe("Strategies: what a card claims activating it costs", () => {
     });
   }
 
-  /**
-   * The control, and the half that must not change: a strategy the record CAN
-   * price still shows the figure and the currency.
-   */
+  // The control: a strategy the record can price still shows the figure and the currency.
   it("prices a strategy the record does carry a cost for", async () => {
     const { container } = renderWidget();
     emit([PRICED]);
 
     await screen.findByText("Fundraising Campaign");
     const text = container.textContent ?? "";
-    // 13.97 rendered at reputation's own precision, which is one decimal: the
-    // chip goes through `Unit` now, so the figure is rounded by the unit model
-    // rather than by a formatter this widget carried. The currency comes back
-    // as the spoken word beside the star glyph.
+    // Reputation's own precision is one decimal, and the currency reads as the word beside the glyph.
     expect(text).toContain("14.0");
     expect(text).toContain("reputation");
   });
 
-  /**
-   * The falsehood. Every stock cost field is zero because the price is in a
-   * currency this record has no field for, and "No setup cost" turns that
-   * silence into a claim that the commitment is free.
-   */
   it("does not call a strategy free just because the record priced none of the three", async () => {
     const { container } = renderWidget();
     emit([PROGRAM]);
@@ -136,11 +108,7 @@ describe("Strategies: what a card claims activating it costs", () => {
     expect(container.textContent).not.toContain("No setup cost");
   });
 
-  /**
-   * And says what it actually read, rather than nothing. A card with no cost
-   * line at all reads as free just as loudly, and the operator cannot tell it
-   * from a card whose figures had not arrived.
-   */
+  // A card with no cost line at all reads as free just as loudly.
   it("says which currencies it read, beside the control that spends them", async () => {
     const { container } = renderWidget();
     emit([PROGRAM]);

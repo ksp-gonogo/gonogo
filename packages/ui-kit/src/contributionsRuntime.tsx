@@ -37,36 +37,17 @@ import {
 import type { Store } from "./store/createStore";
 import { useWidgetMeta } from "./WidgetMetaContext";
 
-// ---------------------------------------------------------------------------
-// The contribution WRITE seam: the per-frame aggregation pipeline that pulls
-// each contribution's telemetry deps and fans the computed entries into the
-// per-widget `ContributionsPanelStore`. It lives in core (not the ui-kit design
-// floor) because it needs sitrep-client VALUES (`useTelemetryClientOptional`,
-// `activateProcessor`, ...) and a core-side `PerfBudget`. The READ half (the
-// store definition and the `useContributions` hooks) is spine-free and lives in
-// `@ksp-gonogo/ui-kit`; both halves share the one `ContributionsPanelStore`
-// imported above. The read hooks are re-exported at the bottom so
-// `@ksp-gonogo/core` importers are byte-identical.
-// ---------------------------------------------------------------------------
+/*
+ * The contribution WRITE seam: the per-frame aggregation that pulls each
+ * contribution's telemetry deps and fans the computed entries into the
+ * per-widget `ContributionsPanelStore` the read hooks share.
+ */
 
-// ---------------------------------------------------------------------------
-// Per-slot PerfBudget (CLAUDE.md: any sample-fanning wrapper registers one).
-// Slot ids are open-ended (third-party Uplinks declare their own), so a
-// single module-scope constant doesn't fit the existing per-source pattern;
-// instead one budget is lazily created and cached per slot id the first time
-// that slot is aggregated. Each still self-registers into PerfBudget's own
-// global registry (its constructor does that), so the dashboard's "Perf
-// Budgets" widget picks every one of them up automatically.
-//
-// What it counts is entry sets that actually MOVED, not aggregation passes.
-// The pipeline runs once per frame by design, on a `requestAnimationFrame`
-// clock, so counting passes measured the frame clock: 60/sec against a
-// threshold of 30 on a widget that was doing nothing at all, universal
-// segments with no contributions registered included. That is a budget that
-// fires on every widget, and it went red in CI on one whose only crime was
-// being slow. Steady state for a real recompute is the WIRE sample rate
-// (~10/sec), so 30 is the usual 3x headroom over the load that exists.
-// ---------------------------------------------------------------------------
+/*
+ * One PerfBudget per slot id, created lazily since slot ids are open-ended. It
+ * counts entry sets that actually MOVED, not aggregation passes, which run on
+ * every animation frame; 30 is about 3x the wire sample rate.
+ */
 const slotBudgets = new Map<string, PerfBudget>();
 function getSlotPerfBudget(slot: string): PerfBudget {
   let budget = slotBudgets.get(slot);
@@ -82,16 +63,10 @@ function getSlotPerfBudget(slot: string): PerfBudget {
   return budget;
 }
 
-// Stable empty snapshot for the no-`TelemetryProvider` case (a bare widget
-// or a test rendered without one). `useSyncExternalStore` requires a
-// referentially stable value between calls that haven't genuinely changed,
-// a fresh `{}` literal on every call would make React see a "changed"
-// snapshot on every render and error with "getSnapshot should be cached".
+// Stable empty snapshot with no `TelemetryProvider`: a fresh `{}` would make `useSyncExternalStore` see a change every render.
 const EMPTY_TOPIC_VALUES: Readonly<Record<string, unknown>> = Object.freeze({});
 
-// useSyncExternalStore requires a referentially-stable snapshot between
-// changes, so the registry's per-slot array is memoised the same way
-// AugmentSlot.tsx's getAugmentsForSlotCached is.
+// Memoised per slot, since useSyncExternalStore needs a referentially stable snapshot between changes.
 const slotCache = new Map<string, AnyContribution[]>();
 let cacheValid = false;
 onContributionsChange(() => {
@@ -113,20 +88,9 @@ function getContributionsForSlotCached(slot: string): AnyContribution[] {
 
 /**
  * True when the two entries carry the same value: the same reference, or two
- * objects shallow-equal over their own keys.
- *
- * Reference equality alone was never satisfiable for an object entry. The
- * aggregation stamps provenance onto every row it collects (`{...entry,
- * contributionId, owner}`), so even a `compute` returning one frozen constant
- * hands back a FRESH object every frame, and the guard below said "changed" on
- * every frame of every widget that contributes a row: the store was rewritten
- * and every consumer of the slot re-rendered at 60 Hz for a value that had not
- * moved.
- *
- * Shallow, not deep: the rows are flat, and a deep walk per frame would trade
- * the re-render for a traversal proportional to entry size. An entry holding a
- * nested object rebuilt per frame still reads as changed, which is honest, its
- * consumers do re-render.
+ * objects shallow-equal over their own keys. Reference equality alone would
+ * never hold, since the aggregation stamps provenance onto a fresh row every
+ * frame. Shallow, because the rows are flat.
  */
 function entryUnchanged(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true;
@@ -182,15 +146,10 @@ function declaredTopicsOf(def: AnyContribution): ReadonlySet<string> {
 
 /**
  * One slot's aggregation pipeline: bulk-reads the union of every gated-in
- * contribution's `deps` once per Sitrep frame, calls each contribution's
- * `compute()` in a plain loop (no hooks, no Rules-of-Hooks problem: the
- * registered set may change freely at runtime), isolates a throwing
- * contribution with try/catch, and writes the aggregated array into the
- * per-widget store under this slot's key.
- *
- * Isolated into its own component (mirrors AugmentSlot.tsx's AugmentEntry)
- * so each slot's own hooks have a stable position regardless of how many
- * sibling slots the widget declares.
+ * contribution's `deps` once per frame, calls each `compute()` in a plain loop
+ * (no hooks, so the registered set may change freely), isolates a throwing
+ * contribution, and writes the result under this slot's key. Its own
+ * component, so each slot's hooks have a stable position.
  */
 function SlotAggregator({
   slot,
@@ -208,24 +167,11 @@ function SlotAggregator({
   const unionDeps = useMemo(() => {
     const topics = new Set<TopicId>();
     const processors = new Map<string, ProcessorHandle<unknown>>();
-    // Every domain a contribution names via `requires` needs its own
-    // `<domain>.available` subscription too, NOT just a `client.getValue()`
-    // read: `getValue` returns whatever the store currently holds, but the
-    // stub/production transport alike only ever DELIVERS a sample for a
-    // topic something has subscribed to (see `StubTransport.emit`'s own
-    // subscription gate). Without this, `requires` silently depends on
-    // some UNRELATED widget elsewhere on the dashboard happening to
-    // already subscribe to that same `.available` topic (true almost
-    // always in the live app, since a domain-gated widget's own
-    // `RequiresGuard` does exactly that) and evaluates to "domain absent"
-    // whenever this slot's own widget is the only thing on screen, e.g.
-    // ShipMap hosting another Uplink's part-meters contribution with no
-    // other widget from that Uplink mounted. Found rendering the ShipMap
-    // self-contribution arc (spec §13.4) in isolation.
+    // A `requires` domain needs its own `.available` subscription: a transport only delivers a topic something subscribed to.
     for (const c of contribs) {
       for (const d of c.deps ?? []) {
         if (typeof d === "string") topics.add(d as TopicId);
-        // A reading dep names the same wire topic a bare id does; only what the consumer is HANDED differs, so it subscribes exactly the same way.
+        // A reading dep subscribes to the same wire topic a bare id does.
         else if ("reading" in d) topics.add(d.reading as TopicId);
         else processors.set(d.id, d);
       }
@@ -240,10 +186,7 @@ function SlotAggregator({
   const client = useTelemetryClientOptional();
   const telemetryStore = useTelemetryStoreOptional();
 
-  // Activate every Processor this slot's contributions dep on, for the slot's
-  // lifetime. Processor freshness rides the same `subscribeFrame` the Topic
-  // reads already use (the evaluator evaluates on that frame boundary), so no
-  // separate per-processor subscription is needed in `subscribe`.
+  // Processor freshness rides the same frame boundary as the Topic reads, so no per-processor subscription is needed.
   useEffect(() => {
     const deactivates = unionDeps.processors.map((p) =>
       activateProcessor(p.id),
@@ -256,23 +199,12 @@ function SlotAggregator({
   const subscribe = useCallback(
     (onChange: () => void) => {
       if (!client || !telemetryStore) return () => {};
-      // Through the shared read seam, exactly as `useStream` and the processor
-      // evaluator do. A derived channel is computed on this side and the server
-      // has never heard of its topic, so asking for the literal dep left the
-      // channel's inputs unsubscribed and the contribution reading `undefined`
-      // forever; the seam also holds each dep's elected reckoner's own declared
-      // inputs up, so a contribution reading a modelled value is not relying on
-      // some other widget to have asked for them.
+      // Through the shared read seam, which also holds up each dep's reckoner inputs.
       const unsubscribeInputs = unionDeps.topics.map((topic) =>
         subscribeTopicRead(client, telemetryStore, topic),
       );
       const unsubscribeFrame = telemetryStore.subscribeFrame(() => {
-        // Force this slot's Processor deps fresh for the just-begun frame
-        // BEFORE notifying React: a slot's own frame listener can fire before
-        // the evaluator's shared one (the evaluator connects on the parent
-        // provider's effect, after this child already subscribed), which would
-        // otherwise cache a pre-evaluation snapshot for the frame. Idempotent
-        // and skipped entirely for a slot with no Processor deps.
+        // Evaluate Processors BEFORE notifying React: this listener can fire before the evaluator's shared one. Idempotent.
         if (unionDeps.processors.length > 0) evaluateActiveProcessors();
         onChange();
       });
@@ -284,14 +216,7 @@ function SlotAggregator({
     [client, telemetryStore, unionDeps],
   );
 
-  // Caches the last-built topic-values object keyed on the `FrameToken` it
-  // was built from. `telemetryStore.currentFrame()` returns the SAME token
-  // object for the whole life of a frame (only `beginFrame()` mints a new
-  // one), so re-reading within one frame (e.g. React's own render-vs-commit
-  // tearing check inside `useSyncExternalStore`) hits the cache and returns
-  // the identical object; only a genuine new frame rebuilds it. Without
-  // this, `getSnapshot` would return a fresh object on every call and
-  // trigger React's "the result of getSnapshot should be cached" loop.
+  // Keyed on the `FrameToken`, which is stable for a whole frame, so re-reads within one frame return the identical object.
   const topicCacheRef = useRef<{
     token: FrameToken;
     values: Record<string, unknown>;
@@ -314,14 +239,9 @@ function SlotAggregator({
       values[p.id] = getProcessorValue(p.id);
     }
     /*
-     * A frame arrives on every animation tick whether or not anything moved.
-     * Handing React a fresh object for unchanged inputs re-renders the slot and
-     * re-runs every contribution each tick, so the previous object is kept
-     * while its contents are the same ones: the rule the processor evaluator
-     * applies to a processor's result one layer down (`processorEvaluator.ts`),
-     * applied here to the values a slot hands its contributions. Work that must
-     * advance with the clock belongs in a processor, which is evaluated every
-     * frame and still only notifies when its answer changes.
+     * A frame arrives every animation tick whether or not anything moved, so
+     * the previous object is kept while its contents are unchanged. Work that
+     * must advance with the clock belongs in a processor.
      */
     const next =
       cached && shallowEqualValues(cached.values, values)
@@ -358,9 +278,7 @@ function SlotAggregator({
                 owner: def.owner,
               });
             } else {
-              // A PRIMITIVE contribution (a `filters` segment's search terms):
-              // stored verbatim. It cannot carry the provenance stamp, and the
-              // segment's consumer (`FilterList`) reads plain values, not rows.
+              // A primitive contribution cannot carry the provenance stamp, so it is stored verbatim.
               collected.push(entry);
             }
           }
@@ -371,11 +289,10 @@ function SlotAggregator({
     }
     const current = store.getSnapshot().find((e) => e.id === slot);
     if (current && entriesUnchanged(current.entries, collected)) return;
-    // After the guard, so one record is one entry set that genuinely moved and
-    // reached the slot's consumers. See `getSlotPerfBudget`.
+    // After the guard, so one record is one entry set that genuinely moved.
     budget.record();
     store.update(slot, { entries: collected });
-    // register() is a no-op-safe upsert on first write: update() alone returns early on an unknown id, so seed the entry once.
+    // update() returns early on an unknown id, so the first write registers.
     if (!current) store.register({ id: slot, entries: collected });
   }, [contribs, topicValues, slot, store, budget, client]);
 
@@ -383,14 +300,9 @@ function SlotAggregator({
 }
 
 /**
- * A contribution threw, which is an Uplink author's bug and must never be silent.
- *
- * Through the host's logger when there is a host, so it reaches Axiom and the
- * shared `exportLogs()` buffer, and through `console.error` when there is not. The
- * fallback is not belt-and-braces: the sdk's `logger` is a Proxy over
- * `getHost().logger` and THROWS when nothing is installed, so an unguarded call
- * would turn one broken `compute` into a torn-down render tree, and would do it in
- * exactly the setting where a bare `render` is likeliest, a widget test.
+ * A contribution threw, which is an Uplink author's bug and must never be
+ * silent. Falls back to `console.error` without a host, because the sdk's
+ * `logger` throws when none is installed.
  */
 function reportContributionThrew(id: string, err: unknown): void {
   const error = err instanceof Error ? err : new Error(String(err));
@@ -411,24 +323,13 @@ export function ContributionsProvider({
   );
 }
 
-// Framework-universal segments aggregated for EVERY widget, on top of whatever
-// it declared, so a component that owns one of these slots (a mounted
-// `FilterList`, a badge, a meter stack) gets its contributions without the host
-// widget writing anything. `badges` is the original auto-slot (spec §13.2);
-// `filters` is the component-extension-slot generalisation and `meters` its
-// second instance, both completed the same `${componentId}.${segment}` way. A
-// widget that also lists one of these in `contributionSlots` is harmlessly
-// deduped below.
-//
-// The list is `COMPONENT_SLOT_SEGMENTS`, shared with the read half rather than
-// written out again here: a name one half completes and the other does not is a
-// slot written under one key and read under another, with nothing to say so.
-//
-// A universal segment is the right shape for something EVERY widget has, which
-// is why the three left are a header, a search box and a meter stack. `plots`
-// is not one of them and is deliberately not here: a widget hosts plots by
-// declaring the slot, so the sixty widgets that have none aggregate nothing.
-
+/*
+ * The framework-universal segments (`COMPONENT_SLOT_SEGMENTS`, shared with the
+ * read half) are aggregated for EVERY widget on top of what it declared, so a
+ * component owning one gets its contributions with nothing written by the
+ * host. Only something every widget has belongs here; any other slot is
+ * declared by the widget that hosts it.
+ */
 function ContributionsAggregation({ children }: { children?: ReactNode }) {
   const meta = useWidgetMeta();
   const store = ContributionsPanelStore.useStore();
@@ -455,8 +356,4 @@ function ContributionsAggregation({ children }: { children?: ReactNode }) {
   );
 }
 
-// The READ hooks are this package's too, one module over. Re-exported from here
-// so `@ksp-gonogo/core`'s barrel and every existing importer keep resolving
-// `useContributions` / `useContributionsBySlotId` through the runtime module
-// unchanged.
 export { useContributions, useContributionsBySlotId };

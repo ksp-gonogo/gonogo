@@ -14,77 +14,39 @@ import { Text } from "./Text";
 import type { FormatsFor } from "./units";
 
 /**
- * Bounds for a POSITION slider, refused on a point-like unit.
- *
- * <p>A position slider maps where the handle sits onto a value, so it needs
- * bounds, and an instant has no useful pair: a UT is legitimately years out, and
- * any range wide enough to reach offers no precision anywhere in it. An INTERVAL
- * positions fine once bounded, which is why this keys on the unit's own
- * point-ness rather than on a prop somebody has to remember.</p>
- *
- * <p><b>This is not the only shape a slider can have.</b> See {@link RateControl},
- * which needs no bounds and therefore takes the instants this cannot.</p>
+ * Bounds for a POSITION slider, refused on a point-like unit: an instant can be
+ * years out, and no range wide enough to reach it leaves useful precision. Use
+ * {@link RateControl} for instants.
  */
 export type SlidableRange<U extends string> = U extends PointUnit
   ? never
   : { min: number; max: number; step?: number };
 
 /**
- * A RATE wheel beside the field, on any unit at all.
- *
- * <p>Where the handle sits is the SPEED the value changes at, not the value, and
- * it springs back to centre when released. That is what lets it take a quantity
- * a position slider cannot: an instant is legitimately years out, and no pair of
- * bounds spans that while leaving useful precision anywhere inside it. The
- * producer's own planner drives both time and Δv this way, so an operator who
- * knows that gesture is not being retrained.</p>
+ * A RATE wheel beside the field, on any unit. The handle's displacement is the
+ * speed the value changes at, and it springs back to centre on release, so it
+ * needs no bounds.
  */
 export interface RateControl {
-  /**
-   * One notch, in the unit a value of this kind MOVES BY.
-   *
-   * <p>For an instant that is an INTERVAL: a `ut` moves by seconds, and a wheel
-   * claiming to step "60 ut" would be naming a quantity that does not exist. For
-   * everything else it is the field's own unit, because a speed moves by a
-   * speed. The control says which beside itself rather than leaving it to be
-   * inferred.</p>
-   */
+  /** One notch, in the unit a value of this kind MOVES BY: seconds for an instant, the field's own unit otherwise. */
   step: number;
   /** Notches per second at full displacement. The wheel's own default otherwise. */
   stepsPerSecond?: number;
 }
 
 export interface UnitInputProps<U extends string = string> {
-  /**
-   * The quantity being edited. It carries its own unit, exactly as `Unit`'s
-   * does, so nothing else needs passing and nothing else can disagree with it.
-   */
+  /** The quantity being edited. It carries its own unit, exactly as `Unit`'s does. */
   value: Value<NoInfer<U>> | null | undefined;
-  /**
-   * The unit an emitted value carries. Needed because there may be no value
-   * yet, and a control emitting a bare number until the first edit would put
-   * exactly the untyped number on the wire this component exists to stop.
-   */
+  /** The unit an emitted value carries, needed because there may be no value yet. */
   unit: U;
   /** Always a `Value`, never a number. */
   onChange: (next: Value<U>) => void;
-  /**
-   * The control's visible name. Not optional: a column of unlabelled boxes is
-   * unreadable, and an `aria-label` alone leaves everyone who can see the
-   * screen guessing.
-   */
+  /** The control's visible name. Required: an `aria-label` alone leaves sighted operators guessing. */
   label: string;
   /**
-   * Which RUNGS of this kind's ladder to type the value across, largest first.
-   *
-   * <p>One field per rung, combining into a single value: `["h", "min", "s"]`
-   * gives hours, minutes and seconds that add up. Omit it for one field in
-   * `unit` with its symbol beside it, which is the right shape for almost
-   * everything.</p>
-   *
-   * <p>Named for parts of the ladder rather than for the ladder, because that is
-   * what it is: `format` on `Unit` pins ONE rung for display; this names the
-   * several a value is typed across.</p>
+   * Which rungs of this kind's ladder to type the value across, largest first,
+   * one field per rung combining into a single value: `["h", "min", "s"]` gives
+   * hours, minutes and seconds that add up. Omit it for one field in `unit`.
    */
   rungs?: readonly FormatsFor<U>[];
   /** Supplying bounds adds a slider beside the field. See {@link SlidableRange}. */
@@ -94,34 +56,21 @@ export interface UnitInputProps<U extends string = string> {
   disabled?: boolean;
 }
 
-/**
- * How many of `unit` one `symbol` is worth, asked of the registry rather than
- * of a table.
- *
- * <p>Through the value algebra deliberately. The ladder tables do not carry
- * every kind: time is absent from them ON PURPOSE, because it does not climb by
- * thousands, and it is the kind most likely to want rungs. Converting instead
- * works for anything the registry knows, which is the same conversion `Unit`
- * itself displays through.</p>
- */
+/** How many of `unit` one `symbol` is worth, via the registry: the ladder tables do not carry time. */
 function worth(symbol: string, unit: string): number {
   try {
     return (value as (u: string, n: number) => Value)(symbol, 1).in(unit)
       .magnitude;
   } catch {
-    // Not the same dimension, or not a unit at all. NaN rather than 1: a wrong
-    // scale silently adds a number in the wrong unit to the total.
+    // NaN rather than 1: a wrong scale would silently add a number in the wrong unit to the total.
     return Number.NaN;
   }
 }
 
 /**
- * A total broken across rung sizes, largest first.
- *
- * <p>Every rung but the last takes a whole number and the last takes what is
- * left, fraction included. That is what makes the fields add back up exactly:
- * rounding the last one too would lose whatever fell below it, and the value
- * would drift a little every time it was rendered and typed back.</p>
+ * A total broken across rung sizes, largest first. Every rung but the last
+ * takes a whole number and the last takes the remainder, fraction included, so
+ * the fields add back up exactly.
  */
 function splitAcross(total: number, sizes: readonly number[]): number[] {
   let rest = total;
@@ -141,17 +90,9 @@ function splitAcross(total: number, sizes: readonly number[]): number[] {
  * <UnitInput label="Tangent" unit="m/s" value={dv} onChange={setDv} />
  * ```
  *
- * <p>The exact inverse of `Unit`, and built from the same declarations on
- * purpose: the same `Value<U>`, the same `FormatsFor<U>`, the same registry
- * conversions. Two parallel type sets would be free to drift, and the drifted
- * one would be whichever is read less.</p>
- *
- * <p><b>It emits a `Value`, never a number.</b> That is the whole point. A
- * widget handling bare magnitudes has to remember which unit each one is in and
- * where the wire wants it unwrapped, and forgetting either is invisible until
- * something a long way away binds the wrong thing. Keeping the unit attached
- * from the keystroke leaves the wire boundary as the only place a magnitude
- * exists.</p>
+ * The inverse of `Unit`, built from the same `Value<U>`, `FormatsFor<U>` and
+ * registry conversions. It emits a `Value`, never a number, so the unit stays
+ * attached from the keystroke to the wire boundary.
  */
 export function UnitInput<U extends string>({
   value: current,
@@ -167,13 +108,9 @@ export function UnitInput<U extends string>({
   const bounds = range as
     | { min: number; max: number; step?: number }
     | undefined;
-  // NaN, not zero, when nothing has been read. Every field below writes an
-  // absent value as an EMPTY box, and a zero standing in for one would read as a
-  // number the operator typed.
+  // NaN, not zero, when nothing has been read: an absent value renders as an empty box.
   const magnitude = current ? current.magnitude : Number.NaN;
-  // One entry per field: the single control has one, a rung row has one per
-  // rung, and the key is the rung's index there. Held whether or not the shape
-  // uses several, because hooks cannot be called per branch.
+  // Keyed by field index (0 for the single field, the rung index in a rung row).
   const [typing, setTyping] = useState<Readonly<Record<number, Typing>>>({});
   const typed = (index: number): Typing | null => typing[index] ?? null;
   const type = (index: number, next: Typing) =>
@@ -187,15 +124,12 @@ export function UnitInput<U extends string>({
         value={magnitude}
         step={rate.step}
         stepsPerSecond={rate.stepsPerSecond}
-        // Nothing to move. A wheel offered against a value that was never read
-        // would dial away from an instant nobody stated.
+        // A wheel against a value never read would dial away from an instant nobody stated.
         disabled={disabled || !Number.isFinite(magnitude)}
         format={isInstant(unit) ? caretDate : undefined}
         onChange={(next) => onChange(value(unit, next))}
       />
-      {/* Beside the wheel rather than inferred from it. A notch on an instant is
-          an INTERVAL, and the difference between "60 s" and "60 ut" is the
-          difference between a duration and a date. */}
+      {/* A notch on an instant is an interval, so the notch unit is stated rather than inferred. */}
       <Text
         tone="faint"
         size="sm"
@@ -204,12 +138,7 @@ export function UnitInput<U extends string>({
   ) : null;
 
   if (isInstant(unit)) {
-    // The calendar entry, because an operator holds an ignition as "day 12,
-    // about ten past four" and never as 4,633,000 seconds. One number box makes
-    // every edit an arithmetic problem about how long a day is on the calendar
-    // the game is running, which this kit already knows and this component would
-    // be making the caller work out. `rungs` have no meaning here: the calendar
-    // IS the rungs, and it is the game's rather than the ladder's.
+    // An instant is entered on the game calendar, which is its own rungs, so `rungs` is ignored here.
     return (
       <Control>
         <Stack gap="related-dense">
@@ -217,12 +146,7 @@ export function UnitInput<U extends string>({
             label={label}
             value={Number.isFinite(magnitude) ? magnitude : null}
             disabled={disabled}
-            // The wheel IS the nudge where there is one, so the coarse steps go.
-            // Two rows of nudge controls one above the other is one gesture
-            // offered twice, and on a panel it costs more vertical space than the
-            // whole rest of the field: eight buttons that wrap onto a second line
-            // at a panel's width, above a control that does the same job
-            // continuously and says its own notch size.
+            // The rate wheel replaces the coarse nudge steps where there is one.
             steps={rate ? [] : undefined}
             onChange={(ut) => onChange(value(unit, ut))}
           />
@@ -238,9 +162,7 @@ export function UnitInput<U extends string>({
     const emit = (index: number, text: string) => {
       const amount = readNumber(text);
       if (amount === undefined) {
-        // An unfinished edit. Held so the field shows what was typed into it,
-        // and nothing is committed: an emptied hours box is a box being retyped,
-        // and reading it as zero would quietly subtract four hours from a plan.
+        // An unfinished edit is shown but never committed: an emptied box is not zero.
         type(index, { text, against: parts[index] });
         return;
       }
@@ -311,10 +233,7 @@ export function UnitInput<U extends string>({
           step={bounds.step ?? (bounds.max - bounds.min) / 100}
           // Parked at the low end while nothing has been read, rather than showing a handle at a position no value put it at.
           value={Number.isFinite(magnitude) ? magnitude : bounds.min}
-          // A slider is never mid-edit: the handle is always somewhere, so every
-          // position it can be dragged to is a number. It goes straight to the
-          // value rather than through the typing buffer, which belongs to the
-          // field beside it.
+          // A slider is never mid-edit, so it bypasses the typing buffer.
           onChange={(event) =>
             onChange(value(unit, readNumber(event.target.value) ?? bounds.min))
           }
@@ -326,35 +245,16 @@ export function UnitInput<U extends string>({
 }
 
 /**
- * What is in a field while it is being typed in, and the magnitude it was typed
- * against.
- *
- * <p>The pair is what makes a half-finished edit survivable. A field carrying
- * nothing, or a minus sign on its own, is not a number and must not become one:
- * reading it as zero commits an instruction the operator never gave, at the
- * moment they are most obviously mid-edit, and it also makes the field
- * impossible to clear and retype because it refills itself between
- * keystrokes.</p>
- *
- * <p>`against` is what says when to stop showing the text. It holds the
- * magnitude the field's own value was when the text was typed, so a value moved
- * from ANYWHERE ELSE, another control, an arriving reading, a whole draft
- * reloaded, no longer matches and the field goes back to showing the value it
- * has. No effect, no subscription, no chance of the two disagreeing.</p>
+ * A field's in-progress text, and the magnitude it was typed against. Once the
+ * value moves from anywhere else it no longer matches `against`, and the field
+ * goes back to showing the value.
  */
 interface Typing {
   text: string;
   against: number;
 }
 
-/**
- * What a field shows: what is being typed into it, or the value it holds, or
- * NOTHING when it holds none.
- *
- * <p>A quantity that has not been read is not a quantity of zero. Writing one as
- * "0" is the claim `Unit` refuses to make on its output side, and on an input it
- * is worse, because it also reads as a number the operator typed.</p>
- */
+/** What a field shows: the text being typed, else the value it holds, else nothing. */
 function fieldText(typing: Typing | null, magnitude: number): string {
   if (typing !== null && Object.is(typing.against, magnitude)) {
     return typing.text;
@@ -362,37 +262,17 @@ function fieldText(typing: Typing | null, magnitude: number): string {
   return Number.isFinite(magnitude) ? String(round(magnitude)) : "";
 }
 
-/**
- * The unit a value of this kind is MOVED by: seconds for an instant, its own
- * unit for everything else.
- *
- * <p>Asked of the registry rather than decided by a table of special cases. The
- * unit system already declares which kinds are affine and what each one's
- * companion vector is, and a second answer here would be free to disagree with
- * the algebra that enforces it.</p>
- */
+/** The unit a value of this kind is moved by: its affine companion vector, else itself. */
 function movesBy(unit: string): string {
   return affineVectorUnitFor(unit) ?? unit;
 }
 
-/**
- * True when this kind names an INSTANT rather than an amount.
- *
- * <p>An instant is what the calendar entry below is for. Read off the companion
- * vector rather than off the symbol, so a second time-like point unit gets the
- * same treatment without this having to be told about it.</p>
- */
+/** True when this kind names an instant rather than an amount. */
 function isInstant(unit: string): boolean {
   return affineVectorUnitFor(unit) === "s";
 }
 
-/**
- * An instant on the wheel's caret: day and clock, not the calendar in full.
- *
- * <p>The caret sits in a 120px box, and the fields beside it already carry the
- * year. What is being dialled at this resolution is the day and the time within
- * it, so that is what the caret shows.</p>
- */
+/** An instant on the wheel's caret: day and clock only, since the fields beside it carry the year. */
 function caretDate(ut: number): string {
   if (!Number.isFinite(ut)) return "";
   const { day, hour, minute, second } = partsOfUt(ut);
@@ -400,14 +280,7 @@ function caretDate(ut: number): string {
   return `D${day} ${pad(hour)}:${pad(minute)}:${pad(second)}`;
 }
 
-/**
- * A typed field's number, or undefined when what is in it is not one yet.
- *
- * <p>A digit has to be there. `parseFloat` reads a lone minus as `NaN` and an
- * empty string as `NaN`, which the finite check already catches, but requiring a
- * digit is the rule stated positively rather than as the union of whatever that
- * function happens to reject.</p>
- */
+/** A typed field's number, or undefined while it holds no digit yet (empty, a lone minus). */
 function readNumber(text: string): number | undefined {
   const parsed = Number.parseFloat(text);
   return Number.isFinite(parsed) && /\d/.test(text) ? parsed : undefined;

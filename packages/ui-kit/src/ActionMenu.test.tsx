@@ -135,7 +135,7 @@ describe("ActionMenu", () => {
   });
 
   it("focuses the first item once an async list arrives after opening", async () => {
-    // The PAW case: the menu opens before its actions have travelled, so focus has to land when they show up, not only on mount.
+    // The menu can open before its actions arrive, so focus lands when they show up, not only on mount.
     const { view } = renderMenu({ items: [] });
     expect(screen.getByText("No actions")).toBeTruthy();
 

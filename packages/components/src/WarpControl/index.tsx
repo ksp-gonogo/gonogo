@@ -34,17 +34,7 @@ import {
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
-/*
- * One block left: `WarpButton` carries a `:focus-visible` ring, which inline
- * style cannot express and which a control must have.
- *
- * It is not exempt the way the SVG focus rings are, it is waiting on a kit
- * primitive that gives the ring and the disabled treatment at caller-chosen
- * geometry. `ToggleButton` cannot stand in: its padding is var(--inset-control)
- * at `md` and 2px 8px at `sm`, and these buttons are a dense grid of warp-rate
- * glyphs deliberately taller than wide, so either would blow out a
- * minmax(28px, 1fr) column.
- */
+/* `WarpButton` needs a `:focus-visible` ring, which inline style cannot express. */
 import styled from "styled-components";
 import {
   type PendingAlarmSummary,
@@ -67,18 +57,8 @@ const topics = defineTopicManifest({
 });
 
 /**
- * Time-warp control widget. Reads the current warp index/rate off the
- * stream and exposes a row of step buttons that fire the
- * `t.timeWarp[N]` actions. Manual warp (via the in-game keys or another
- * surface) is reflected here too, this widget is purely a thin UI over
- * the same telemetry the alarm banner reads.
- *
- * Layout is flex-flow + selective rendering rather than discrete bucket
- * branches: rate readout and button block sit side-by-side when there's
- * horizontal room, stack when narrow, and the full 8-button ladder yields
- * to a 3-button stepper when there's no longer room for both. The grid
- * inside the ladder uses `auto-fit` so 8 buttons reflow naturally between
- * 8×1 / 4×2 / 2×4 / 1×8 depending on body shape.
+ * Time-warp control: the current warp rate and a ladder of step buttons. The
+ * full 8-button ladder yields to a 3-button stepper when the tile is small.
  */
 
 interface WarpControlConfig {
@@ -98,10 +78,8 @@ const ALARM_REQUIRED_ABOVE_SECONDS = 5;
  * needs an alarm set: `"delay"` above the threshold, `"no-path"` for a craft
  * with no path home, null otherwise.
  *
- * No path is the far end of the same condition rather than an exemption from
- * it: nothing sent from command reaches the craft at all. A delay that has not
- * arrived answers null, because not knowing the delay is not the same claim as
- * the delay being high.
+ * No path is the far end of the same condition, and a delay that has not
+ * arrived answers null: not knowing the delay is not the delay being high.
  */
 export function delayRequiringAlarm(
   delay: Pick<CommsDelay, "oneWaySeconds"> | undefined,
@@ -115,16 +93,10 @@ export function delayRequiringAlarm(
     : null;
 }
 
-// Declaration-merge this widget's slot ids → props type into core's
-// `SlotRegistry` (Uplink architecture, declaration-merging base). Both
-// slots are plain composition points with no parent context to hand down, a
-// contributed action fires its OWN command via `useCommand`, a badge
-// reads its OWN Topics, so each passes empty props (`Record<string, never>`).
-// Co-located here (not in a shared central registry file) so parallel slot
-// work on other widgets never collides on the same module.
+// Both slots are plain composition points, so each passes empty props.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
-    // Footer action row: an Uplink contributes a warp-target action ("Warp to <mod-event>") alongside the widget's own warp buttons.
+    // An Uplink contributes a warp-target action alongside the widget's own warp buttons.
     "warp-control.stepper": Record<string, never>;
   }
 }
@@ -159,10 +131,9 @@ const warpActions = [
 export type WarpControlActions = typeof warpActions;
 
 /**
- * KSP HIGH-warp ladder. The numeric labels match the in-game tooltip and
- * the indices are what `t.timeWarp[N]` accepts. Physics warp (LOW) uses
- * a different ladder; for v1 we surface only HIGH because mission-screen
- * use of warp is overwhelmingly out-of-atmosphere.
+ * KSP HIGH-warp ladder: labels match the in-game tooltip, indices are what
+ * `time.setWarpIndex` takes. Physics warp uses a different ladder and is not
+ * surfaced.
  */
 const HIGH_LEVELS: ReadonlyArray<{ index: number; label: string }> = [
   { index: 0, label: "1×" },
@@ -180,48 +151,26 @@ function WarpControlComponent({
   w,
   h,
 }: Readonly<ComponentProps<WarpControlConfig>>) {
-  // Migrated: the whole warp state rides one native Topic,
-  // `time.warp` (`Sitrep.Contract.WarpState`), read canonically off the
-  // stream: no legacy `t.currentRate`/`t.timeWarp`/`t.warpMode`/`t.isPaused`
-  // reads and no legacy read-fallback. The commands migrated too:
-  // `time.setWarpIndex`/`time.setPaused` through `useCommand`, no legacy
-  // `t.timeWarp[N]`/`t.pause`/`t.unpause` action strings left in this widget.
-  //
-  // Every field on this record is a FACT, so all four go through `stillTrue`.
-  // Warp rate, warp index, warp mode and pause are discrete simulation MODES:
-  // they change when something sets them and cannot drift on their own between
-  // updates, exactly like the game scene. Nothing about warp decays while the
-  // link is quiet, so the last state received is still the state the simulation
-  // is in, and the panel's own stream-status badge already tells the operator
-  // how fresh that is.
-  //
-  // Withholding them would be actively worse than dating them. `currentIndex ??
-  // 0` feeds the stepper, so a withheld index does not render as "unknown": it
-  // renders as 1x pressed and warp-down disabled, which is a positive claim that
-  // the simulation is at realtime. Refusing to answer would make the widget
-  // assert something it had stopped knowing.
+  /*
+   * Every warp field is a discrete simulation mode that cannot drift between
+   * updates, so the last state received still holds. Withholding the index would
+   * be worse than dating it: the stepper would render 1x pressed, a positive claim
+   * of realtime.
+   */
   const warpReading = topics.useTelemetry("time.warp");
   const warp = stillTrue(warpReading, undefined);
   const rate = warp?.warpRate;
   const indexRaw = warp?.warpRateIndex;
   const mode = normalizeWarpMode(warp?.warpMode);
   const isPaused = warp?.paused;
-  // Time-warp + pause are sim-meta controls (they act on the simulation, not a
-  // vessel), so they dispatch at the meta-vantage and are never signal-delayed
-  // (`commandDelayed` is false for `time.*`); usePanelDelay below draws nothing
-  // in the panel rail but still consumes the handles per the must-consume invariant.
+  // Sim-meta controls dispatch at the meta-vantage and are never signal-delayed.
   const announceWarpIntent = useWarpIntent();
   const warpCmd = useCommand("time.setWarpIndex", { vantage: META_VANTAGE });
   const pauseCmd = useCommand("time.setPaused", { vantage: META_VANTAGE });
   usePanelDelay(warpCmd);
   usePanelDelay(pauseCmd);
 
-  // Optimistic pause state: tracks the operator's *intent* between click
-  // and the WS roundtrip that confirms `t.isPaused` flipped. Without this,
-  // a click before the ~250ms WS push lands sees stale `isPaused` and
-  // fires the wrong action key: explicitly observed as the "pause works,
-  // unpause doesn't" symptom on 2026-05-15. Cleared by the reconcile effect
-  // below once truth catches up.
+  // Optimistic pause intent, so a click before the confirming push lands still sends the right state.
   const [pauseIntent, setPauseIntent] = useState<boolean | null>(null);
   const effectivePaused = pauseIntent ?? isPaused;
   useEffect(() => {
@@ -229,11 +178,7 @@ function WarpControlComponent({
     if (isPaused === pauseIntent) setPauseIntent(null);
   }, [pauseIntent, isPaused]);
 
-  // Time warp works in Flight / SpaceCenter / TrackingStation but not
-  // Editor / MainMenu. Dim the body when KSP is in a no-warp scene so
-  // the operator doesn't click into a no-op. Wider gate than the
-  // shared `flight` requirement, so we apply it inline rather than via
-  // RequiresGuard.
+  // Warp works in Flight, SpaceCenter and TrackingStation: a wider gate than the shared `flight` requirement.
   const { scene, hasGameSignal } = useGameContext();
   const warpableScene =
     scene === "Flight" ||
@@ -251,11 +196,7 @@ function WarpControlComponent({
   const openAlarms = useAlarmsLauncher();
   const delayReading = topics.useTelemetry("comms.delay");
   const blockingDelay = delayRequiringAlarm(stillTrue(delayReading, undefined));
-  /*
-   * Only in flight, where there is a craft for command to be delayed to, and
-   * only with an alarm pipeline to satisfy it from: a tree with none has no
-   * way to set the alarm the gate would ask for.
-   */
+  // Only in flight, and only with an alarm pipeline that could satisfy the gate.
   const alarmRequired =
     config?.requireAlarmUnderDelay !== false &&
     scene === "Flight" &&
@@ -266,18 +207,13 @@ function WarpControlComponent({
 
   const setWarp = (idx: number) => {
     /*
-     * Before the command, so the watcher has heard of it by the time the
-     * game's warp state comes back changed. It suppresses only this screen's
-     * own unscheduled-warp alert; every other screen still sees a warp it did
-     * not ask for, which is what tells a command centre a pilot is warping.
+     * Announced before the command so the watcher knows of it when the warp state
+     * changes. It suppresses only this screen's unscheduled-warp alert; every other
+     * screen still sees the warp.
      */
     announceWarpIntent?.();
     void warpCmd.send({ index: idx });
   };
-  // The fork ships separate `t.pause` / `t.unpause` action keys, there's
-  // no toggle. Fire the inverse of the operator's last intent (or the
-  // current truth if no intent is in-flight). Optimistic so back-to-back
-  // clicks before the WS push catches up still pick the right action.
   const togglePause = () => {
     const next = !effectivePaused;
     setPauseIntent(next);
@@ -310,10 +246,7 @@ function WarpControlComponent({
     },
   });
 
-  // Content-priority decisions, not layout decisions: CSS handles the
-  // arrangement once we've decided what's in the body.
-  // Full ladder needs enough area for 8 buttons to wrap legibly. We only
-  // require the area; auto-fit handles whether it ends up 8×1, 4×2, 2×4...
+  // Content-priority decisions only: auto-fit handles whether the ladder ends up 8x1, 4x2 or 2x4.
   const cols = w ?? 6;
   const rows = h ?? 5;
   const showFullLadder = cols * rows >= 20 && cols >= 4 && rows >= 3;
@@ -321,10 +254,7 @@ function WarpControlComponent({
   const showModeCaption = rows >= 4;
 
   const rateLabel = formatRate(currentRate);
-  // Physics warp (atmospheric, ≤4×) and high warp (on-rails, ≥5×) feel
-  // very different to fly: physics keeps the aerodynamics live and
-  // is risky in atmosphere. Tint the Rate readout to differentiate
-  // without burying the cue in the small mode caption.
+  // Physics warp keeps aerodynamics live and is risky in atmosphere, so it gets its own tint.
   const rateTone: "physics" | "high" = mode?.toLowerCase().startsWith("phys")
     ? "physics"
     : "high";
@@ -335,10 +265,6 @@ function WarpControlComponent({
   return (
     <Panel
       panelTitle="WARP"
-      /* Panel's own centring, where `Body` hand-rolled the `flex: 1` +
-         `align-content: center` pair. A row of controls sized to the tile is
-         what `fitToSize` is for, and Panel measures before it centres so an
-         overflowing set of buttons still starts at the top. */
       fitToSize
       sections={
         <Section full>
@@ -361,10 +287,7 @@ function WarpControlComponent({
                 )}
               </div>
 
-              {/* Pause button only renders when there's room next to the
-              rate readout. At minimal-4x3 the pause button crowded
-              the stepper into the rate row; hide it at small grid
-              counts to give the warp-control buttons their own line. */}
+              {/* Hidden at small grid counts so the warp buttons keep their own line. */}
               {scene === "Flight" && cols >= 4 && rows >= 4 && (
                 <ToggleButton
                   active={effectivePaused === true}
@@ -450,10 +373,6 @@ function WarpControlComponent({
                 </div>
               )}
 
-              {/* Contributed-actions slot: an Uplink adds a warp-target action
-              ("Warp to <mod-event>") alongside the widget's own warp buttons.
-              Empty (renders nothing) until an augment binds
-              `warp-control.stepper`. */}
               <AugmentSlot name="warp-control.stepper" props={{}} />
 
               {alarmRequired ? (
@@ -543,13 +462,9 @@ function WarpControlConfigComponent({
 }
 
 /**
- * Maps the `time.warp` Topic's `warpMode` (`Sitrep.Contract.WarpMode`, a
- * NUMERIC enum: `0=High`, `1=Low`, `2=Unknown`; `mod/Sitrep.Contract/
- * WarpState.cs`: "only HIGH/LOW exist... no third mode") to the caption text
- * this widget renders. The contract's "Low" is surfaced as "Physics", the
- * vocabulary the caption + physics-tone detection (`rateTone` below) speak.
- * `2` (`Unknown`) and anything absent -> `null`: no caption, defaults to the
- * "high" tone.
+ * Maps the numeric `warpMode` (0 High, 1 Low, 2 Unknown) to the caption text.
+ * Low is surfaced as "Physics"; Unknown or absent gives no caption and the
+ * high tone.
  */
 function normalizeWarpMode(raw: number | undefined): string | null {
   if (raw === 0) return "High";
@@ -565,8 +480,6 @@ function formatRate(rate: number | null): string {
   return `${rate.toFixed(2)}×`;
 }
 
-/* The centring and the fill are `Panel fitToSize`'s now; what is left here is
-   the wrapping row itself. */
 const BODY_STYLE = {
   display: "flex",
   flexWrap: "wrap",
@@ -577,8 +490,8 @@ const BODY_STYLE = {
 } as const;
 
 /**
- * Physics warp (≤4×) tints amber: an operator at speed in atmosphere needs to
- * know it is NOT on-rails. High warp (≥5×) stays green.
+ * Physics warp tints amber: at speed in atmosphere the operator needs to know
+ * it is not on-rails.
  */
 function rateStyle(tone: "physics" | "high") {
   return {
@@ -596,10 +509,7 @@ function rateStyle(tone: "physics" | "high") {
   } as const;
 }
 
-/*
- * Off the type scale: the scale stops at --font-size-lg (16px) and this is a
- * display-tier readout.
- */
+/* Off the type scale, which stops at --font-size-lg: this is a display-tier readout. */
 const RATE_VALUE_STYLE = {
   fontSize: "24px",
   fontWeight: 700,
@@ -607,11 +517,7 @@ const RATE_VALUE_STYLE = {
   lineHeight: "var(--line-height-flush)",
 } as const;
 
-/*
- * Without minWidth 0 a flex child defaults to min-width:auto (min-content), so
- * the grid cannot shrink below its 8-button min-content and Panel's
- * overflow:hidden clips the rightmost column. Observed at mobile-9x8.
- */
+/* minWidth 0 lets the grid shrink below its 8-button min-content instead of clipping. */
 const FULL_LADDER_STYLE = {
   flex: "2 1 140px",
   minWidth: 0,
@@ -621,10 +527,6 @@ const FULL_LADDER_STYLE = {
   alignContent: "center",
 } as const;
 
-/*
- * Named for what it is rather than for the shape it takes: the kit's `Stepper`
- * is a spinbutton over a closed set, and this is three warp buttons in a row.
- */
 const STEP_LADDER_STYLE = {
   flex: "1 1 100px",
   minWidth: 0,

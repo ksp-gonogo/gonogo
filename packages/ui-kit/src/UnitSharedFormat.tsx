@@ -28,162 +28,9 @@ import {
 } from "./units";
 
 /**
- * A group of quantities that settles ONE format per kind, so the whole group
- * reads as one instrument.
+ * What a group settles, and what every member inside it is written at. The fields are the formatter's own, so applying one is a spread.
  *
- * ```tsx
- * <UnitSharedFormat separate>
- *   <Unit value={low} /> – <Unit value={high} />
- * </UnitSharedFormat>
- * ```
- *
- * The ladder is right for a value on its own and wrong for a value beside
- * another one. Two ends of an interval laddering independently print
- * `999 m – 1.0 km`: one interval, two units, and a width the reader has to
- * convert in their head before they can see it. A column of a table is the same
- * failure spread vertically, and the fix in both cases is that the members stop
- * deciding individually.
- *
- * ## Nobody threads anything
- *
- * The members REPORT and the group DECIDES. Every `<Unit>` inside a scope hands
- * over its reading, and is given back the format the group settled on; outside
- * a scope the hook is inert and each value answers for itself, exactly as it
- * did before this existed. So a caller WRAPS and is finished: it names no
- * reference value, no rung, no unit and no digit count, and it cannot forget to
- * at one of the sites.
- *
- * A report carries no formatted text, which is what keeps the ladder in one
- * place: `ladderPosition` in `units.ts` runs it, `separatingDecimals` in
- * `units.ts` answers the digit count, and this file only decides which answers
- * apply to whom.
- *
- * That is the difference from {@link quantityScale}, which is still the right
- * tool where it applies. A moving-scale instrument HAS a reference: the top of
- * the strip is the axis, and every mark on it is below that by construction. A
- * band has two ends and no axis, and a table column has N cells and no axis, so
- * there is nothing for a caller to nominate.
- *
- * ## A FORMAT, not just a rung
- *
- * A rung was the first thing a group had to settle and it is not the only one.
- * How many digits it takes for two readings to stop printing the same figure is
- * a function of ALL the members, exactly as the rung is, so it belongs to the
- * group too. A caller that computed it for itself would be a second formatter
- * standing beside `<Unit>`, which is the thing `<Unit>` exists to be the only
- * one of. {@link SharedFormat} is therefore open: what a group settles can grow
- * without a caller learning anything new.
- *
- * ## The rung is the LARGEST member's
- *
- * A group reads at the size of the thing it describes. A column whose biggest
- * reading is 3.4 Mm is a column about megametres, and writing it in metres
- * because one row happens to be small hands the reader six digits of the wrong
- * question in every other row.
- *
- * It costs the small end: `999 m` beside `1000 m` settles on kilometres and
- * reads `1.0 km – 1.0 km`, and a 500 m member of a group holding 3.4 Mm reads
- * `0.0 Mm`. Both need the two ends of one ladder to meet inside one group,
- * which the readings this
- * renders rarely do, and a group that must tell its members apart says
- * `separate` and is given the digits to do it.
- *
- * A member of exactly zero needs no clause of its own. It is the smallest
- * reading there is, so it can only carry the vote when every member is zero,
- * and a group of zeros reads the same at any rung.
- *
- * ## One format per KIND, and a PIN is addressed to one of them
- *
- * Grouping is per kind, so a mixed scope works: metres settle with metres and
- * kilograms with kilograms, in the same group, with no caller separating them.
- * The key is a FAMILY where a unit declares one, because bits and bytes share
- * the data dimension and must not share rungs, and it falls back to the unit
- * itself where nothing climbs at all: see `formatGroupKey` in `units.ts`.
- *
- * What a scope PINS is per group for the same reason. A scope told to read in
- * kilometres is saying something about its lengths and nothing about its
- * masses, so it names the group it is talking about and the pin reaches that
- * group alone. One group names it with `of`, in any unit of the group, and pins
- * flat; several name each group in a map keyed by the group:
- *
- * ```tsx
- * <UnitSharedFormat of="m" as="km">
- * <UnitSharedFormat pins={{ length: { as: "km" }, mass: { as: "t" } }}>
- * ```
- *
- * Naming the group is also the whole of how a pin comes to be TYPED. `of="m"`
- * makes `as` a length, and a key of `length` types its own entry, so `as="kg"`
- * over lengths is a compile error rather than a request dropped on the floor.
- *
- * A scope that pins without naming a unit is the one case left over, and its
- * pin reaches EVERY group, because an instruction that names no kind cannot be
- * addressed to one. That is what every pin did before, and it was not merely
- * ignored: a scope pinned to `format="km"` handed that rung to its KILOGRAMS
- * too, where the formatter refused the cross-kind pin but had already displaced
- * the rung the mass group settled for itself, and 500 kg beside 1 000 000 kg
- * rendered as `500.00 kg` and `1.00 kt`. One group, two units, which is the
- * failure this whole component exists to prevent.
- *
- * ## Nesting COMPOSES rather than divides
- *
- * A `<Band>` carries its own scope, and a column of bands wants its rung
- * settled down the column rather than per row. So a report reaches every scope
- * above it, the rung comes from the OUTERMOST one, and the digit count comes
- * from the nearest scope that asked for one. A band inside an aligned column
- * therefore reads in the column's unit while still separating its own two ends.
- * Splitting a group deliberately means not nesting: two scopes side by side are
- * two groups.
- *
- * ## Two passes, and why it cannot loop
- *
- * A member cannot know the group format on the first pass, because the group is
- * not assembled until its members have rendered. So the first pass draws each
- * member at its own ladder, the reports land in layout effects, and a changed
- * group format re-renders the scope. Layout effects run before the browser
- * paints, so the corrected format is in the first frame a reader sees and there
- * is no flicker.
- *
- * It settles in exactly one extra pass, and the reason is structural rather
- * than a matter of luck: **what a member reports is a function of its own props
- * alone.** The format pushed back is never an input to a report, so the second
- * pass reproduces the first pass's reports exactly, the settled format comes
- * out the same, and nothing further is scheduled. Three things keep that true
- * and are worth knowing before editing:
- *
- * - a member's report effect does NOT depend on the format it was given back.
- *   Its deps are the scope and its own reading, and the scope's identity never
- *   changes, which is why the answer reaches members through
- *   `useSyncExternalStore` rather than through the context value. A context
- *   value that changed identity per settle would re-run every member's effect,
- *   whose cleanup drops its entry and whose body puts it back, and a drop that
- *   moves the group format schedules another settle. That is an infinite loop,
- *   and it is the one this shape exists to make unwritable
- * - a scope's POLICY is its own props, so it is not derived from any answer
- *   either. It lands in a layout effect of the provider's, which React runs
- *   after its children's, so the reports are in before the policy that reads
- *   them and both are in before the browser paints
- * - the store notifies only when a settled format actually CHANGES, and hands
- *   back the SAME object until it does. A scope of thirty cells re-renders when
- *   the group's answer moves and stays still through every frame that does not
- *   move it
- *
- * Hysteresis is deliberately not wired in here. `formatQuantity` can hold a
- * rung across a boundary and doing that for a group would make the output an
- * input, which is exactly the property above. It is also not needed yet: a lone
- * `<Unit>` has no memory either, so a group that held one would behave unlike
- * every readout beside it.
- */
-
-/**
- * What a group settles, and what every member inside it is written at.
- *
- * The fields are exactly the formatter's own, so applying one is a spread
- * rather than a translation, and a field added to the group later needs no new
- * plumbing at the member.
- *
- * An ABSENT field is a group with no opinion, not an opinion of "default": the
- * member's own props fill it, and below them the kind's. That is what lets a
- * scope settle a rung for a column while leaving each cell's digits alone.
+ * An absent field is a group with no opinion: the member's own props fill it.
  */
 export interface SharedFormat {
   /** The rung every member is written at. */
@@ -199,24 +46,11 @@ interface Report {
   /** Its reading, in the unit it arrived in. */
   readonly reading: number;
   readonly unit: string;
-  /**
-   * Where it sits on the shared ladder, or undefined when its unit climbs
-   * nothing. A unit with no ladder still has a digit count to settle, which is
-   * why such a member reports at all.
-   */
+  /** Where it sits on the shared ladder, or undefined when its unit climbs nothing; such a member still reports for the digit count. */
   readonly position?: LadderPosition;
 }
 
-/**
- * What a scope pins for ONE group, as against what that group settles for
- * itself. The same three escapes a lone `<Unit>` has, stated once for every
- * member of the group instead of at each one.
- *
- * Typed by the unit the pin is addressed to, so `as` and `format` check against
- * that unit's kind: `of="m" as="km"` is a length re-expressed and `of="m"
- * as="kg"` is a compile error rather than a request the formatter would drop on
- * the floor.
- */
+/** What a scope pins for one group, typed by the unit it is addressed to: `of="m" as="kg"` is a compile error. */
 export interface UnitPins<U extends string = string> {
   /** The rung every member of the group is written at. */
   format?: FormatsFor<U>;
@@ -226,13 +60,7 @@ export interface UnitPins<U extends string = string> {
   decimals?: number;
 }
 
-/**
- * {@link UnitPins} addressed to a whole GROUP, checked against what that group
- * measures.
- *
- * The group is the thing with a format, so a group is what a pin names. There is
- * no metre-sized version of "the length ladder reads in kilometres".
- */
+/** {@link UnitPins} addressed to a whole group, checked against what that group measures. */
 export interface UnitGroupPins<G extends UnitGroupKey> {
   /** The rung every member of the group is written at. */
   format?: FormatsForKind<KindOfGroup<G>>;
@@ -243,13 +71,7 @@ export interface UnitGroupPins<G extends UnitGroupKey> {
 }
 
 /**
- * What each named group of a mixed scope is pinned to.
- *
- * Every entry optional, so a group that needs nothing is simply absent, and the
- * key set closed, so a key that is not a group is a compile error rather than a
- * pin that reaches nothing. A unit an Uplink declares reaches this type the way
- * it reaches every other one here, by merging into `UnitDeclarations` on its own
- * side.
+ * What each named group of a mixed scope is pinned to. Every entry is optional and a key that is not a group is a compile error. An Uplink's units reach this type by merging into `UnitDeclarations`.
  */
 export type UnitPinsByGroup = {
   [G in UnitGroupKey]?: UnitGroupPins<G>;
@@ -259,17 +81,9 @@ const NO_PINS: UnitPins = {};
 
 /** What a scope was ASKED for, as against what it settles. */
 interface Policy {
-  /**
-   * What each NAMED group was pinned to, by its {@link formatGroupKey}. A key
-   * missing from this is a group the scope said nothing about, and it settles
-   * for itself.
-   */
+  /** What each named group was pinned to, by its {@link formatGroupKey}. A missing key settles for itself. */
   readonly byKey: ReadonlyMap<string, UnitPins>;
-  /**
-   * A pin that named no unit, which reaches every group in the scope. See the
-   * module header: it is what a pin cannot avoid doing when it has no kind to
-   * be addressed to.
-   */
+  /** A pin that named no unit, which reaches every group in the scope. */
   readonly unaddressed: UnitPins | undefined;
   /** Widen digits until the members read apart. A property of the whole scope. */
   readonly separate: boolean;
@@ -283,11 +97,7 @@ const NO_POLICY: Policy = {
 
 /** Where every scope of one tree keeps what the whole tree shares. */
 interface Root {
-  /**
-   * Every scope of this tree, so a report landing in one of them can re-settle
-   * the others. A change at the outermost scope moves the answer a sibling
-   * subtree hears, which walking up from the reporter alone would never reach.
-   */
+  /** Every scope of this tree, so a report in one can re-settle the others, sibling subtrees included. */
   readonly family: Set<Scope>;
   /** Subscribe to every settle in the tree. A bound function, never a method. */
   readonly subscribe: (listener: () => void) => () => void;
@@ -303,25 +113,13 @@ interface Scope {
   hold(key: string, id: string, report: Report | undefined): void;
   /** What `key` settled on, or undefined while the group has no opinion. */
   settled(key: string): SharedFormat | undefined;
-  /**
-   * Whether `key`'s members all come out as the same text at what it settled
-   * on. Kept beside the format rather than inside it: it is a fact about the
-   * GROUP, and a format record that carried it would hand a non-format field
-   * to the formatter every time a member drew itself.
-   */
+  /** Whether `key`'s members all print as the same text at what it settled on. Kept apart from the format so the formatter is never handed a non-format field. */
   readsAsOneFigure(key: string): boolean;
   /** State what this scope was asked for. Its own props, never an answer. */
   setPolicy(next: Policy): void;
   /** Recompute this scope's answer for `key`. True when it moved. */
   resettle(key: string): boolean;
-  /**
-   * Join the tree, or leave it once unmounted so a dead scope is not swept for
-   * the rest of the tree's life.
-   *
-   * Both halves rather than a cleanup alone, because React's strict mode runs a
-   * layout effect's cleanup and then its body again on the same mount, and a
-   * scope that only knew how to leave would never come back.
-   */
+  /** Join the tree, or leave it once unmounted. Both halves, because strict mode runs a layout effect's cleanup and then its body again on one mount. */
   attach(): void;
   detach(): void;
 }
@@ -341,14 +139,7 @@ function samePolicy(a: Policy, b: Policy): boolean {
   return true;
 }
 
-/**
- * The policy a scope's props amount to.
- *
- * Built in the provider's layout effect rather than in render, so the map and
- * the pin objects it holds are never compared by identity: {@link samePolicy}
- * reads their fields, and a caller passing a fresh array literal every render
- * settles nothing extra.
- */
+/** The policy a scope's props amount to. {@link samePolicy} compares by field, so a fresh literal every render settles nothing extra. */
 function policyOf(
   of: string | undefined,
   pins: UnitPinsByToken | undefined,
@@ -358,12 +149,6 @@ function policyOf(
   const byKey = new Map<string, UnitPins>();
   if (of !== undefined) byKey.set(formatGroupKey(of), own);
   for (const [token, pin] of Object.entries(pins ?? {})) {
-    /*
-     * One entry per group, which the keys already guarantee: a repeated key is
-     * an error in an object literal, and two keys cannot name one group now
-     * that a ladder is keyed by its name. The runtime groups by the same
-     * declaration the key type is read from, so the two cannot disagree.
-     */
     if (pin !== undefined) byKey.set(pinGroupKey(token), pin);
   }
   return {
@@ -403,9 +188,7 @@ function createRoot(): Root {
       };
     },
     sweep(key) {
-      // Outermost first. A child's answer is built on its parent's, so a
-      // parent settled after its child would leave the child a generation
-      // behind for the frame nobody would notice it in.
+      // Outermost first: a child's answer is built on its parent's.
       const ordered = [...family].sort((a, b) => a.depth - b.depth);
       let moved = false;
       for (const member of ordered) {
@@ -420,11 +203,6 @@ function createRoot(): Root {
 function createScope(parent: Scope | undefined): Scope {
   const held = new Map<string, Map<string, Report>>();
   const settled = new Map<string, SharedFormat>();
-  /**
-   * The keys whose members all come out as one figure. A set rather than a
-   * field on the settled record, so nothing that formats a member can be
-   * handed a fact that is not a format.
-   */
   const oneFigure = new Set<string>();
   const root = parent?.root ?? createRoot();
   let policy = NO_POLICY;
@@ -457,9 +235,7 @@ function createScope(parent: Scope | undefined): Scope {
         if (forKey === undefined) held.set(key, new Map([[id, report]]));
         else forKey.set(id, report);
       }
-      // Up first, so the outermost scope holds every reading in the tree and
-      // the rung it settles is the one the whole tree is written at. Only that
-      // scope sweeps, once, for the whole family.
+      // Up first, so the outermost scope holds every reading in the tree; only it sweeps, once, for the whole family.
       if (parent === undefined) root.sweep(key);
       else parent.hold(key, id, report);
     },
@@ -471,19 +247,14 @@ function createScope(parent: Scope | undefined): Scope {
     setPolicy(next) {
       if (samePolicy(policy, next)) return;
       policy = next;
-      /*
-       * Every key, even though the PINS are addressed. `separate` is a property
-       * of the whole scope, and a pin moving off a key has to let that key go
-       * back to settling for itself.
-       */
+      // Every key, not only pinned ones: `separate` is scope-wide, and a pin moving off a key lets that key settle for itself again.
       for (const key of held.keys()) root.sweep(key);
     },
 
     resettle(key) {
       const members = [...(held.get(key)?.values() ?? [])];
       const inherited = parent?.settled(key);
-      // The pin for THIS group, and an unaddressed one only where no group was
-      // named at all. A scope that named `m` says nothing about its kilograms.
+      // An unaddressed pin applies only where no group was named.
       const pins = policy.byKey.get(key) ?? policy.unaddressed ?? NO_PINS;
       const format = pins.format ?? inherited?.format ?? ownRung(members);
       const as = pins.as ?? inherited?.as;
@@ -500,13 +271,7 @@ function createScope(parent: Scope | undefined): Scope {
               ...(as !== undefined && { as }),
               ...(decimals !== undefined && { decimals }),
             };
-      /*
-       * Asked AFTER the ladder, with what it settled on, because the question
-       * is about the figures that will actually be drawn: a group the ladder
-       * separated reads as two, and one it could not reads as one. Only a
-       * scope asked to `separate` has any business answering it, since that is
-       * the scope that promised its members would read differently.
-       */
+      // Asked after the ladder, about the figures that will actually be drawn, and only by a scope asked to `separate`.
       const oneFigureNow =
         policy.separate && readsAsOneFigure(members, { format, as, decimals });
       const oneFigureMoved = oneFigureNow !== oneFigure.has(key);
@@ -531,14 +296,7 @@ function createScope(parent: Scope | undefined): Scope {
   return scope;
 }
 
-/**
- * The scope a quantity is in, defaulting to one that holds nothing and never
- * answers.
- *
- * An inert default rather than `undefined` so the hook has no branch: a `<Unit>`
- * with no scope above it reports into this, hears nothing back, and renders off
- * the ladder as it always has.
- */
+/** The inert default: a `<Unit>` with no scope above it reports into this and hears nothing back. */
 const NO_SCOPE: Scope = {
   root: { family: new Set(), subscribe: () => () => {}, sweep: () => {} },
   depth: 0,
@@ -551,21 +309,13 @@ const NO_SCOPE: Scope = {
   detach: () => {},
 };
 
+// The scope's identity never changes, and answers reach members through `useSyncExternalStore`, so a settle never re-runs a member's report effect.
 const ScopeContext = createContext<Scope>(NO_SCOPE);
 
 /**
  * Whether there is a real `<UnitSharedFormat>` above this point.
  *
- * Separate from {@link useSharedFormat} because the two answer different
- * questions, and one was mistaken for the other. That hook answers "what did my
- * group SETTLE on", and it returns nothing for a unit that climbs no ladder and
- * whose scope pinned no digits: `rpm` has no rungs, so an rpm pair inside a
- * scope is a real group whose settled format is legitimately empty.
- *
- * So membership cannot be read off that answer. Anything gating on "am I in a
- * group" has to ask this, or it silently means "am I in a group that changed
- * something", which is a different set and excludes exactly the unladdered
- * units.
+ * Membership cannot be read off {@link useSharedFormat}: a group over a unit with no ladder (`rpm`) legitimately settles an empty format.
  */
 export function useInSharedFormat(): boolean {
   return useContext(ScopeContext) !== NO_SCOPE;
@@ -575,38 +325,15 @@ export function useInSharedFormat(): boolean {
 interface UnitSharedFormatBaseProps {
   children?: ReactNode;
   /**
-   * Widen the digit count until the members stop printing the same figure as
-   * each other.
-   *
-   * What an interval wants and what a column does not. A band of 6 700 km to
-   * 6 710 km lands on the megametre rung, where a length's default one decimal
-   * prints both ends as `6.7 Mm`: an interval rendered as a scalar, silently,
-   * exactly where the width was the point. A column of thirty altitudes has no
-   * such promise to keep, and widening it until its two closest cells read
-   * apart would print six decimals of noise in every row.
-   *
-   * So the group separates when it is ASKED to, and the asking is the whole of
-   * what a caller with an opinion about digits does. A property of the whole
-   * scope rather than of one group: a scope told its members must read apart is
-   * saying so about all of them.
+   * Widen the digit count until the members stop printing the same figure as each other. What an interval wants (6 700 km and 6 710 km both print `6.7 Mm` otherwise) and a column does not. Applies to the whole scope.
    */
   separate?: boolean;
 }
 
 /**
- * A scope that pins ONE kind, which is every scope with an opinion except a
- * deliberately mixed one.
+ * A scope that pins one kind. `of` names the unit the pins are addressed to and types them: `of="m"` makes `as` a length and `format` a rung on the length ladder, and `of={v.unit}` needs no annotation.
  *
- * `of` names the unit the pins are addressed to and is the whole of how they
- * come to be typed: `of="m"` makes `as` a length and `format` a rung on the
- * length ladder. It is a value rather than a type argument because the scope
- * needs it at runtime too, to know which of its groups the pin belongs to, and
- * because a caller already holding a `Value<U>` can pass `of={v.unit}` and
- * never annotate anything.
- *
- * Leaving `of` out is still allowed and still means what it always did: the
- * pins are unaddressed, they reach every group, and nothing checks them. See
- * the module header.
+ * Without `of` the pins are unaddressed: they reach every group and nothing checks them.
  */
 export interface UnitSharedFormatProps<U extends string = string>
   extends UnitSharedFormatBaseProps,
@@ -616,26 +343,13 @@ export interface UnitSharedFormatProps<U extends string = string>
 }
 
 /**
- * A scope that pins SEVERAL groups, each addressed by name.
- *
- * Keyed by the group rather than positional, and the key is what enforces the
- * three rules a mixed scope obeys. Any number of groups, because every group has
- * a key. A group that needs nothing is simply absent, because every entry is
- * optional. And a group is pinned at most once, because a repeated key is
- * already an error in an object literal, where a repeated entry in a parallel
- * pair of lists is not: `["m", "m"]` reads as two pins and quietly keeps one.
+ * A scope that pins several groups, each keyed by name, so a group is pinned at most once and one that needs nothing is simply absent.
  *
  * ```tsx
  * <UnitSharedFormat pins={{ length: { as: "km" }, mass: { as: "t" } }}>
  * ```
  *
- * The value is typed by its own key, so `{ length: { as: "kg" } }` is a compile
- * error at the entry that is wrong rather than at the scope.
- *
- * A laddered kind is keyed by the KIND because its whole kind settles together:
- * `{ m: ..., km: ... }` was one length group pinned twice with the later winning
- * silently, and it is now unwritable. A unit that climbs nothing keys itself, so
- * `s` and `min` stay the two separate groups they are. See {@link UnitGroupKey}.
+ * Each value is typed by its own key, so `{ length: { as: "kg" } }` is a compile error at that entry. A laddered kind is keyed by its kind; a unit that climbs nothing keys itself, so `s` and `min` stay separate groups. See {@link UnitGroupKey}.
  */
 export interface UnitSharedFormatMixedProps extends UnitSharedFormatBaseProps {
   /** What each named group is pinned to, checked against what it measures. */
@@ -652,15 +366,22 @@ interface UnitSharedFormatAnyProps extends UnitSharedFormatBaseProps, UnitPins {
 }
 
 /**
- * See the module header: the pseudo-component that holds the group.
+ * A group of quantities that settles one format per kind, so the whole group reads as one instrument. It renders nothing of its own, so it can wrap a row, a cell, a table or a widget body.
  *
- * It renders nothing of its own, so it can be dropped around a row, a cell, a
- * whole table or a widget body without touching the layout.
+ * ```tsx
+ * <UnitSharedFormat separate>
+ *   <Unit value={low} /> to <Unit value={high} />
+ * </UnitSharedFormat>
+ * ```
  *
- * `format`, `as` and `decimals` PIN what a group would otherwise settle, for
- * the cases where convention beats magnitude. They are the same escape a lone
- * `<Unit>` has, stated once here rather than at each member, and `of` says
- * which of the scope's groups they are addressed to.
+ * Every `<Unit>` inside reports its reading and is given back the settled format; outside a scope each value answers for itself. The caller names no rung, unit or digit count.
+ *
+ * - The rung is the largest member's, since a group reads at the size of the thing it describes: `999 m` beside `1000 m` reads `1.0 km`, and a group that must tell its members apart says `separate`
+ * - Grouping is per kind (per ladder family, else per unit), so metres settle with metres and kilograms with kilograms in one scope
+ * - `format`, `as` and `decimals` pin what a group would otherwise settle. `of` addresses them to one group (`of="m" as="km"`), `pins` to several (`pins={{ length: { as: "km" }, mass: { as: "t" } }}`), and a pin that names no unit reaches every group unchecked
+ * - Nested scopes compose: the rung comes from the outermost, the digit count from the nearest scope that asked for one. Two scopes side by side are two groups
+ *
+ * The first pass draws each member at its own ladder; reports land in layout effects and the settled format re-renders before paint. It settles in one extra pass because a member's report depends only on its own props, never on the format it was given back.
  */
 export function UnitSharedFormat<U extends string = string>(
   props: UnitSharedFormatProps<U> | UnitSharedFormatMixedProps,
@@ -675,8 +396,7 @@ export function UnitSharedFormat({
   separate = false,
 }: UnitSharedFormatAnyProps): ReactElement {
   const enclosing = useContext(ScopeContext);
-  // The inert default is not a parent. Adopting it would put this scope in a
-  // tree whose root never sweeps, so nothing it settled would ever be heard.
+  // The inert default is not a parent: its root never sweeps.
   const [scope] = useState(() =>
     createScope(enclosing === NO_SCOPE ? undefined : enclosing),
   );
@@ -694,21 +414,9 @@ export function UnitSharedFormat({
 }
 
 /**
- * Report a quantity to the enclosing {@link UnitSharedFormat} and hear back the
- * format its group settled on, or `undefined` when there is no group with an
- * answer for it.
+ * Report a quantity to the enclosing {@link UnitSharedFormat} and hear back the format its group settled on, or `undefined` when there is none.
  *
- * `<Unit>` calls this for every value it draws, so a readout needs nothing from
- * this module. It is published for the readouts `<Unit>` cannot draw: an SVG
- * axis renders measured text rather than nodes, and an `aria-valuetext` is an
- * attribute that can only hold a string, so both write their own figure and
- * both must write it at the format the `<Unit>`s beside them are written at.
- *
- * A quantity does NOT report, and gets nothing back, when the caller has
- * already decided its presentation (`format`, `as`, a non-auto `scale`). Those
- * are the cases where a group answer would either be ignored or be wrong, and
- * the hook is inert rather than clever about them. A scope's OWN pins are a
- * different thing and still apply: they are what the group settled.
+ * `<Unit>` calls this itself. It is published for readouts `<Unit>` cannot draw (SVG axis text, an `aria-valuetext`) that must be written at the same format as the `<Unit>`s beside them. A quantity whose caller already decided its presentation (`format`, `as`, a non-auto `scale`) neither reports nor hears back.
  */
 export function useSharedFormat<U extends string = string>(
   value: Value<U> | null | undefined,
@@ -723,10 +431,7 @@ export function useSharedFormat<U extends string = string>(
     opts.as !== undefined ||
     (opts.scale !== undefined && opts.scale !== "auto");
   const key = decided || reading === null ? undefined : formatGroupKey(unit);
-  // Where this member sits on the shared ladder, and undefined for a unit that
-  // climbs nothing. Two numbers rather than the value itself, so the effect
-  // below can depend on the READING instead of on the object carrying it,
-  // which is fresh on every render at most call sites.
+  // Two numbers rather than the value, so the effect depends on the reading and not on an object that is fresh every render.
   const position =
     key === undefined ||
     reading === null ||
@@ -746,8 +451,7 @@ export function useSharedFormat<U extends string = string>(
         rung !== undefined && { position: { base, rung } }),
     });
     return () => scope.hold(key, id, undefined);
-    // The format this hook RETURNS is deliberately absent from these deps. See
-    // the module header on why a report that depended on the answer would loop.
+    // The format this hook returns is deliberately absent from these deps: a report that depended on the answer would loop.
   }, [scope, id, key, reading, unit, base, rung]);
 
   return useSyncExternalStore(
@@ -758,19 +462,9 @@ export function useSharedFormat<U extends string = string>(
 }
 
 /**
- * Whether the group this value belongs to reads as ONE figure: every member
- * comes out as the same text at the format the group settled on.
+ * Whether the group this value belongs to reads as one figure at the format it settled on. Only a scope asked to `separate` answers true.
  *
- * Only a scope asked to `separate` ever answers true, because only that scope
- * promised its members would read differently; anywhere else, and outside a
- * scope entirely, this is false and a caller renders what it always did.
- *
- * READ-ONLY, unlike {@link useSharedFormat}: it reports nothing. A caller that
- * decides what to draw from this answer must keep reporting whatever it
- * reported before, or the group's membership becomes a function of the group's
- * own verdict and the two chase each other. `<Band>` holds both of its ends in
- * the group for exactly that reason, in the branch that draws one figure as
- * well as the branch that draws two.
+ * Read-only, unlike {@link useSharedFormat}: a caller that decides what to draw from this must keep reporting as before, or membership becomes a function of the verdict.
  */
 export function useReadsAsOneFigure<U extends string = string>(
   value: Value<U> | null | undefined,

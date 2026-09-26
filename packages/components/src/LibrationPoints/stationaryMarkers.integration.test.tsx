@@ -9,19 +9,11 @@ import {
 import { LibrationPointsComponent } from "./index";
 
 /**
- * The pair reaches the drawn frame, and the markers hold still in it.
- *
- * <b>Nothing here sets a flag or mocks a hook open.</b> Each case starts at a
- * saved config value, goes through the real catalogue processor, the real frame
- * arithmetic and the real diagram, and ends at an attribute on the drawn SVG. If
- * the pair control stopped reaching the frame, or the frame stopped reaching the
- * drawing, these fail while every unit test in the tree stays green. That is the
- * shape of check a previous slice did not have, and it shipped a feature that
- * never ran once with two thousand tests passing.
- *
- * The pair is ECCENTRIC on purpose. Over a circular pair the separation never
- * changes, so a diagram scaled in metres would hold its markers still too and
- * the central assertion would pass on the code it exists to reject.
+ * The pair reaches the drawn frame, and the markers hold still in it. Nothing
+ * is mocked: each case runs from a saved config value through the real
+ * catalogue processor, frame arithmetic and diagram to an attribute on the SVG.
+ * The pair is eccentric on purpose: over a circular pair a metre-scaled
+ * diagram would hold its markers still too.
  */
 
 const KERBOL_MU = 1.1723328e18;
@@ -123,10 +115,7 @@ function mount(
       meanAnomalyAtEpoch: 0,
       epoch: 0,
       mu: KERBIN_MU,
-      // What the stock closed-form solver really publishes: an unbounded horizon
-      // on an analytic answer. The seam samples that into points when a read
-      // frame is asked for, so the craft's curve is live here rather than only
-      // where something integrates.
+      // What the stock closed-form solver publishes: an unbounded horizon on an analytic answer.
       horizon: statesNoShape ? undefined : { kind: 1, trajectoryKind: 1 },
     });
   });
@@ -157,14 +146,9 @@ describe("LibrationPoints: the pair reaches the frame", () => {
     expect(svg.getAttribute("data-libration-frame")).toBe("rotating-pulsating");
     expect(svg.getAttribute("data-libration-pair")).toBe("Kerbin-Mun");
     expect(markerPositions(svg).size).toBe(5);
-    // And the widget says which frame it drew in, in the same words every other trajectory-drawing widget uses.
+    // The frame named in the same words every other trajectory-drawing widget uses.
     expect(view.container.textContent).toContain("Kerbin-Mun Lagrange");
-    // The frame's name is what carries that its lengths pulsate: it is the
-    // name the operator selected the frame by, and a pulsating frame is
-    // pulsating by definition to whoever chose one.
-    // And the craft's own curve arrived IN this frame rather than in metres: 5
-    // is `RotatingPulsating`, carried from the answer onto the drawing, so the
-    // assertion is against the picture and not against a value a test set.
+    // The craft's curve arrived in this frame: 5 is `RotatingPulsating`, carried from the answer onto the drawing.
     const path = svg.querySelector('[data-libration-path="arc"]');
     expect(path).not.toBeNull();
     expect(path?.getAttribute("data-trajectory-frame")).toBe("5");
@@ -179,15 +163,12 @@ describe("LibrationPoints: the pair reaches the frame", () => {
   });
 
   it("picks a pair itself on auto, and it is not the same one either saved value asks for", async () => {
-    // Measured, not assumed: the two explicit cases above have to STRADDLE
-    // whatever auto lands on, else one of them would pass on a widget that
-    // ignored its config entirely and fell through to auto.
+    // The two explicit cases must straddle whatever auto lands on, or one would pass on a widget ignoring its config.
     const { view } = mount({}, 0);
     const svg = await svgOf(view);
     const auto = svg.getAttribute("data-libration-pair");
     expect(auto).not.toBeNull();
     expect(["Kerbol-Kerbin", "Kerbin-Mun"]).toContain(auto);
-    // Whichever it chose, one of the two saved-value cases asks for the other, so at least one of them fails if the config stops being read.
     await act(async () => {});
   });
 
@@ -197,7 +178,7 @@ describe("LibrationPoints: the pair reaches the frame", () => {
       expect(view.container.textContent).toContain("orbits nothing");
     });
     expect(view.container.textContent).toContain("Kerbol");
-    // No diagram, because there is no frame: the sentence is the whole answer.
+    // No frame, so no diagram: the sentence is the whole answer.
     expect(view.container.querySelector("[data-libration-frame]")).toBeNull();
     await act(async () => {});
   });
@@ -234,9 +215,7 @@ describe("LibrationPoints: the markers hold still", () => {
       await act(async () => {});
     }
 
-    // The pair really did move, else the assertion below proves nothing: the
-    // separation swings between periapsis and apoapsis of a 0.4-eccentricity
-    // orbit, which is a factor of better than two.
+    // The separation really moved (a factor of more than two at 0.4 eccentricity), or the assertion below proves nothing.
     const lengths = drawn.map((d) => d.unitLength);
     expect(Math.min(...lengths)).toBeGreaterThan(
       MUN_SMA * (1 - MUN_ECC) * 0.99,
@@ -251,25 +230,19 @@ describe("LibrationPoints: the markers hold still", () => {
       expect([...sample.markers.entries()].sort()).toEqual(
         [...first.entries()].sort(),
       );
-      // The two bodies are one frame unit apart at every instant, whatever the
-      // separation is in metres. That is the property being drawn.
+      // The two bodies are one frame unit apart at every instant: the property being drawn.
       expect(sample.bodyGap).toBeCloseTo(drawn[0].bodyGap, 9);
     }
   });
 
   it("reports the pair's separation in metres beside a diagram whose units are ratios", async () => {
-    // The coordinates are multiples of the separation, so the separation is the
-    // only thing that turns them back into distances and the widget has to show
-    // it. Peri at UT zero.
+    // Coordinates are multiples of the separation, so the widget has to show it. Periapsis at UT zero.
     const { view } = mount({ pair: "Mun" }, 0);
     await svgOf(view);
     await waitFor(() => {
       expect(view.container.textContent).toContain("Separation");
     });
-    // 7.2 Mm is periapsis of a 12 Mm, 0.4-eccentricity orbit, laddered by the
-    // one unit renderer rather than formatted here.
-    // Whitespace-tolerant: the one unit renderer sets its own space between the
-    // number and the symbol, and it is not an ASCII one.
+    // 7.2 Mm is periapsis of a 12 Mm, 0.4-eccentricity orbit. Whitespace-tolerant: the unit renderer's space is not ASCII.
     expect(view.container.textContent).toMatch(/7\.2\s*Mm/);
     await act(async () => {});
   });
@@ -277,8 +250,7 @@ describe("LibrationPoints: the markers hold still", () => {
 
 describe("LibrationPoints: the craft's path", () => {
   it("still places the five points when the path itself is withheld, and says why", async () => {
-    // A producer that stated no shape. The five points are a property of the
-    // PAIR and are unaffected, so covering them would overstate the refusal.
+    // A producer that stated no shape: the five points belong to the pair and stay.
     const { view } = mount({ pair: "Mun" }, 0, 9_000_000, true);
     const svg = await svgOf(view);
     expect(svg.querySelectorAll("[data-libration-point]")).toHaveLength(5);
@@ -295,7 +267,7 @@ describe("LibrationPoints: the craft's offset", () => {
     await waitFor(() => {
       expect(view.container.textContent).toContain("Nearest");
     });
-    // A craft 9 Mm out from Kerbin, with Mun 7.2 Mm away, is close to the far collinear point and not on it.
+    // 9 Mm out from Kerbin with Mun 7.2 Mm away is near the far collinear point, not on it.
     expect(view.container.textContent).toContain("L2 · drifting off station");
     expect(view.container.textContent).toContain("Off station");
     await act(async () => {});

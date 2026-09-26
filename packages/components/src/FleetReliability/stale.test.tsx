@@ -4,29 +4,10 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FleetReliabilityUpdates } from "./index";
 
 /**
- * What the reliability augment does when the reliability read is no longer
- * current.
- *
- * The decision: it stops asserting conditions and says why, on the row. A
- * "critical failure" pill next to a part name is a claim about the craft now,
- * and a held part list makes that claim from evidence about the craft some
- * seconds ago: it would keep flagging a part the crew has since repaired, and
- * (the way round that matters) keep a craft that has since failed looking clean.
- *
- * Which is exactly why the withholding has to be VISIBLE here. A silent refusal
- * is indistinguishable from a healthy craft, from a non-active row, and from an
- * augment that crashed. The assertions below pair "the markers are gone" with
- * "the reason is on screen" for that reason; neither half alone would catch a
- * regression.
- *
- * The identity read is NOT withheld (see the module doc's per-topic split), and
- * one test is the proof: the notice still lands on the correct row after the
- * link drops, which it could not do if the active vessel had been withheld along
- * with the parts.
- *
- * Note the staleness gate now watches BOTH reliability topics, not just the
- * parts. They publish from one capture at one UT and go stale together, so
- * either one going stale is the same event.
+ * When the reliability read is no longer current, the augment stops asserting
+ * conditions and says why, on the row: a held list could keep a failed craft
+ * looking clean. The identity is a fact and is kept, so the notice still lands
+ * on the right row. Both reliability topics go stale together.
  */
 const CARRIED = ["reliability.summary", "reliability.parts", "vessel.identity"];
 
@@ -84,8 +65,7 @@ function dropTheLink(fixture: ReturnType<typeof setupStreamFixture>): void {
 
 describe("FleetReliability when the reliability read is not current", () => {
   it("flags the failing part while the read is current", async () => {
-    // The control. Without it every assertion below would also pass on an augment
-    // that never renders a failure at all.
+    // The control: without it the assertions below would pass on an augment that never renders a failure.
     const { fixture } = renderAugment("v-active");
     emitFailure(fixture);
 
@@ -118,9 +98,7 @@ describe("FleetReliability when the reliability read is not current", () => {
   });
 
   it("does not blank the row entirely, so withheld is distinguishable from healthy", async () => {
-    // The failure mode this file exists to prevent. A blank row is what a craft
-    // with nothing wrong with it renders, and reaching that state from a dropped
-    // link reports a healthy craft whose failures nobody is watching.
+    // A blank row is a healthy craft's render, and a dropped link must never reach it.
     const { fixture, container } = renderAugment("v-active");
     emitFailure(fixture);
     expect(await screen.findByText("LV-909 Terrier")).toBeInTheDocument();
@@ -132,9 +110,7 @@ describe("FleetReliability when the reliability read is not current", () => {
   });
 
   it("keeps the notice on the ACTIVE row only, because identity is held rather than withheld", async () => {
-    // vessel.identity is a fact and survives the drop, so the row-matching gate
-    // still works: the notice belongs to the craft the reliability feed was
-    // describing, and every other row stays blank.
+    // The identity survives the drop, so the notice lands on the craft being described and every other row stays blank.
     const active = renderAugment("v-active");
     emitFailure(active.fixture);
     expect(await screen.findByText("LV-909 Terrier")).toBeInTheDocument();
@@ -153,10 +129,7 @@ describe("FleetReliability when the reliability read is not current", () => {
   });
 
   it("does not call a cold start a dropped link", async () => {
-    // A cold start is not a dropped link, and conflating them would accuse the
-    // mod of going quiet on every first paint. Currency is the one thing this
-    // slot still speaks, so the assertion that matters is that it does NOT
-    // speak here: nothing has arrived, so there is no reading to call stale.
+    // A cold start is not a dropped link: there is no reading to call stale.
     const { fixture, container } = renderAugment("v-active");
     act(() => {
       fixture.emit("vessel.identity", ACTIVE_IDENTITY);
@@ -167,9 +140,7 @@ describe("FleetReliability when the reliability read is not current", () => {
   });
 
   it("still renders blank for the none backend after the link drops", async () => {
-    // The elected backend is a fact too. A vanilla install has no reliability
-    // model to lose currency on, so it must not start reporting a dropped link
-    // for data it was never going to publish.
+    // A vanilla install has no reliability model to lose currency on.
     const { fixture, container } = renderAugment("v-active");
     act(() => {
       fixture.emit("vessel.identity", ACTIVE_IDENTITY);

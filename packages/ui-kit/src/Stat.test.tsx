@@ -12,11 +12,7 @@ import { WidgetMetaContext } from "./WidgetMetaContext";
 
 const SLOT = "astronaut-complex.readouts";
 
-/**
- * Feeds the per-widget contribution store directly, the way `WidgetMeters`'s own
- * suite does: going through the per-frame aggregation would mean standing up a
- * telemetry client to test a renderer.
- */
+// Feeds the contribution store directly, so a renderer test needs no telemetry client.
 function WithStats({
   entries,
   children,
@@ -72,7 +68,7 @@ describe("Stat", () => {
     expect(container.textContent).toContain("across 3 courses");
 
     rerender(<Stat label="In training">4</Stat>);
-    // One `dd` rather than two: an absent detail leaves no empty line behind, which is what would otherwise change the height of every cell beside it.
+    // An absent detail leaves no empty line behind to change the height of every cell beside it.
     expect(container.querySelectorAll("dd")).toHaveLength(1);
   });
 
@@ -132,12 +128,7 @@ describe("StatContributions", () => {
       </WithStats>,
     );
 
-    /*
-     * Three siblings of the strip, not one vanilla cell beside a wrapper holding
-     * the contributed pair: a contributed figure has to be indistinguishable
-     * from a built-in one, and a wrapper is what would make the Uplink's stats
-     * read as a block bolted onto the end of the row.
-     */
+    // Siblings of the strip, not a wrapper: a contributed figure must be indistinguishable from a built-in one.
     const strip = screen.getByTestId("strip");
     expect(strip.children).toHaveLength(3);
     expect(container.querySelectorAll("dl")).toHaveLength(3);

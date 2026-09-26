@@ -20,11 +20,7 @@ describe("waveformPath", () => {
   });
 
   it("crosses the centre line, so an amplitude is a PEAK and not a pen width", () => {
-    /*
-     * The defect this replaces: a filled envelope, thin where the operator was
-     * quiet and fat where they were loud, which reads as a growing stroke
-     * rather than as a wave. A wave goes above the line and then below it.
-     */
+    // A wave goes above the line and then below it, never a thickening stroke.
     const ys = vertices(waveformPath(new Array(64).fill(1), 63, 100)).map(
       (v) => v.y,
     );
@@ -40,11 +36,7 @@ describe("waveformPath", () => {
   });
 
   it("holds one period whatever the sample density, so it always reads as a wave", () => {
-    /*
-     * 128 chunks of history and 50 draw the same number of vertices over the
-     * same distance: the period is the DRAWING's, not the capture rate's, so a
-     * dense ring does not collapse into a solid hatch.
-     */
+    // The period is the drawing's, not the capture rate's, so a dense ring never becomes a solid hatch.
     const dense = waveformPath(new Array(129).fill(0.5), 128, 100);
     const sparse = waveformPath(new Array(51).fill(0.5), 50, 100);
     expect(vertices(dense)).toHaveLength(vertices(sparse).length);
@@ -58,8 +50,7 @@ describe("waveformPath", () => {
   });
 
   it("drops samples that have already arrived rather than piling them up", () => {
-    // span 2 => ages 0,1,2 are still crossing; the three older ones are home,
-    // so the trace reaches the boundary and stops rather than folding them in.
+    // Ages 0-2 are still crossing and the older three are home, so the trace stops at the boundary.
     const wide = vertices(waveformPath([0.5, 0.5, 0.5, 0.5, 0.5, 0.5], 2, 100));
     expect(wide[wide.length - 1].x).toBe(100);
   });
@@ -80,12 +71,7 @@ describe("waveformPath", () => {
   });
 });
 
-/**
- * `x` is AGE, and the trace's reach is therefore a MEASUREMENT of how much of
- * the gap the caller can still account for. These are the ratchets against
- * widening the drawing to cover for a short ring, which would put recent audio
- * where older audio actually is.
- */
+// `x` is AGE, so the trace's reach is a MEASUREMENT; widening it would put recent audio where older audio is.
 describe("the trace reaches as far as the history it holds", () => {
   const lastX = (d: string): number => {
     const v = vertices(d);
@@ -93,12 +79,7 @@ describe("the trace reaches as far as the history it holds", () => {
   };
 
   it("puts each sample where that audio actually is in the gap", () => {
-    /*
-     * One loud chunk 600 samples back, in a gap 3000 samples wide, belongs a
-     * fifth of the way across, because that is where that sound is. Anywhere
-     * else is a false claim about position on a widget whose whole job is
-     * position.
-     */
+    // 600 samples back in a 3000-sample gap belongs a fifth of the way across.
     const ring = new Array(1201).fill(0);
     ring[ring.length - 1 - 600] = 1;
     const peak = vertices(waveformPath(ring, 3000, 100)).find(
@@ -108,12 +89,7 @@ describe("the trace reaches as far as the history it holds", () => {
   });
 
   it("stops where the held history stops rather than spreading it to fill the gap", () => {
-    /*
-     * 1200 samples back in a 3000-sample gap is 40% of the rail. The other 60%
-     * is audio equally in flight that the caller has discarded, and a trace
-     * ending here is what says so. Widening it to the boundary was proposed and
-     * rejected: the fix for a short trace is a longer ring at the caller.
-     */
+    // The rest of the rail is audio in flight the caller discarded, so the trace ends at 40%.
     expect(lastX(waveformPath(new Array(1201).fill(0.5), 3000, 100))).toBe(40);
   });
 
@@ -139,15 +115,7 @@ describe("the trace never draws more detail than it has", () => {
   };
 
   it("does not fabricate a full-width wave from a sub-chunk light-time", () => {
-    /*
-     * The second defect, and the same lie in the other direction: at low orbit
-     * the light-time is well under one 20 ms chunk, so the gap holds a fraction
-     * of a single sample. Floored to a span of 1 the rail drew a confident
-     * 50-point sawtooth off two samples, full width, perfectly legible,
-     * identical for every transmission at low orbit, and saying nothing. The
-     * gap IS full, so the reach is right; the ink implying fifty turning points
-     * of captured shape was not.
-     */
+    // At low orbit the gap holds a fraction of one sample: full reach, but no invented turning points.
     const d = waveformPath(new Array(128).fill(0.8), 0.035, 100);
     expect(lastX(d)).toBe(100);
     expect(turningPoints(d)).toBeLessThanOrEqual(3);
@@ -165,10 +133,7 @@ describe("the trace never draws more detail than it has", () => {
   });
 
   it("leaves the fixed drawing pitch alone once there is evidence for it", () => {
-    /*
-     * The pitch is the tighter of the two limits at every separation the ring
-     * can cover, so the cap changes nothing about how a normal trace reads.
-     */
+    // At every separation the ring covers, the pitch is the tighter limit.
     const near = waveformPath(new Array(129).fill(0.8), 128, 100);
     const far = waveformPath(new Array(3001).fill(0.8), 3000, 100);
     expect(turningPoints(near)).toBe(turningPoints(far));
@@ -176,12 +141,7 @@ describe("the trace never draws more detail than it has", () => {
   });
 
   it("still tells silence from voice at a sub-chunk light-time", () => {
-    /*
-     * Both halves, because the reading that separates them at three turning
-     * points is the HEIGHT and not the spread: a chevron of one amplitude and a
-     * flat line have the same spread, so a spread-only check would call the
-     * pair indistinguishable and be wrong.
-     */
+    // Both halves: at three turning points the HEIGHT separates them, not the spread.
     const quiet = waveformPath(new Array(128).fill(0), 0.035, 100);
     for (const v of vertices(quiet)) expect(v.y).toBe(MID_Y);
     const loud = waveformPath(new Array(128).fill(0.8), 0.035, 100);
@@ -189,11 +149,7 @@ describe("the trace never draws more detail than it has", () => {
   });
 
   it("draws the sub-chunk gap at the level being spoken NOW", () => {
-    /*
-     * A gap holding a fraction of one sample holds the sample the operator is
-     * speaking into it, so that is the one drawn. The ring's older samples have
-     * long since arrived.
-     */
+    // A gap holding a fraction of one sample draws the newest sample; the older ones have arrived.
     const ring = new Array(128).fill(0.2);
     ring[ring.length - 1] = 0.9;
     const heights = vertices(waveformPath(ring, 0.035, 100)).map((v) =>

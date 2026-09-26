@@ -6,28 +6,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LaunchDirectorComponent } from "./index";
 
 /**
- * LaunchDirector's stream test-adapter proof: genuinely running off the real
- * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport`: no legacy `DataSource` is registered anywhere in this
- * file. Every read this widget makes has a real wire home now:
- * `career.funds` (-> `career.status.economy.funds`, a funds spender per
- * CLAUDE.md's "always show the balance" rule), `kc.savedShips`/
- * `kc.crewRoster` (-> `spaceCenter.savedShips`/`spaceCenter.crewRoster`),
- * `kc.padOccupied`/`kc.padVesselTitle` (-> the `spaceCenter.state` derived
- * channel, itself derived off `spaceCenter.launchSites`),
- * `kc.launchSite`/`kc.scene` (-> `spaceCenter.scene`'s raw fields),
- * `kc.launchSites` (-> `spaceCenter.launchSites` directly),
- * `v.name` (-> `vessel.identity.name`), `v.missionTime` (-> the view time
- * less `vessel.identity.launchUt`), `v.altitude` (->
- * `vessel.flight.altitudeAsl`),
- * `ksp.canRevertToLaunch`/`ksp.canRevertToEditor` (->
- * `ksp.revertAvailability`), and `crash.hasRecent`/`crash.lastCrash` (->
- * themselves, whole-topic identity reads). The vessel-switcher reads
- * `target.available` directly (a canonical topic, no shim); see
- * `index.test.tsx`'s dedicated switcher test for coverage of that read.
- *
- * The in-flight scene below reports `launchUt: null`, so `missionTime` renders
- * the null-display placeholder.
+ * LaunchDirector running off the real stream pipeline via `StubTransport`,
+ * with no legacy `DataSource` registered. The in-flight scene reports
+ * `launchUt: null`, so `missionTime` renders the null-display placeholder.
  */
 afterEach(() => {
   clearActionHandlers();
@@ -50,8 +31,7 @@ describe("LaunchDirector: genuinely runs off the stream", () => {
     render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "ld-stream" }}>
-          {/* 18 rows: this leg asserts the crew ROSTER arrived, and the grid
-              only stands open on a tile tall enough to hold it. */}
+          {/* 18 rows, so the crew grid stands open. */}
           <LaunchDirectorComponent id="ld-stream" w={7} h={18} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
@@ -105,9 +85,7 @@ describe("LaunchDirector: genuinely runs off the stream", () => {
       ]);
     });
 
-    // The whole readout is <Unit> now: number, glyph and spoken word are
-    // three elements, so no single node holds "· 42,500". The grouping is
-    // the formatter's, where this widget used to call `toLocaleString`.
+    // Number, glyph and spoken word are three elements, so no single node holds "· 42,500".
     await waitFor(() => expect(visibleText()).toContain("· 42,500f"));
     expect(screen.getByText("Kerbal X")).toBeTruthy();
 

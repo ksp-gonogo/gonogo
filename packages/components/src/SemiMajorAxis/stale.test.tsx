@@ -6,20 +6,10 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SemiMajorAxisComponent } from "./index";
 
 /**
- * What this widget does when `vessel.orbit` stops being current.
- *
- * SMA DATES rather than blanks, and this file is what holds that choice in
- * place. A semi-major axis is a number beside a label, the one figure the tile
- * exists to show, and "2.87 Mm, at last contact 10s ago" is both honest and
- * usable: an operator can still tell a Kerbin sync orbit from a Mun orbit off a
- * ten-second-old reading. Blanking it would leave the tile saying "No orbit
- * data", which is the sentence for a craft with no orbit at all.
- *
- * So the assertions that earn the file are the ones about the WORDING. A held
- * number looks exactly like a live one, which is the failure this widget could
- * have quietly shipped, and the cold-start case is asserted alongside because a
- * caption that appears on first paint accuses the link of dropping every time
- * the page loads.
+ * What this widget does when `vessel.orbit` stops being current: SMA dates
+ * rather than blanks, since "No orbit data" is the sentence for a craft with
+ * no orbit at all. The assertions that matter are about wording: a held
+ * number must not look live, and a cold start must not be captioned.
  */
 
 const CARRIED = ["vessel.orbit", "system.bodies"];
@@ -36,7 +26,7 @@ function mount(
   instanceId: string,
   size: { w: number; h: number } = { w: 5, h: 6 },
 ) {
-  // w=5,h=6 clears the subtitle and sparkline size gates, so anything missing below is missing for a currency reason rather than a layout one.
+  // Clears the subtitle and sparkline size gates, so anything missing is a currency reason.
   const { container, unmount } = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId }}>
@@ -77,8 +67,7 @@ function goStale(fixture: ReturnType<typeof setupStreamFixture>): void {
 
 describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
   it("draws the value with no caveat while the orbit reading is current", async () => {
-    // The control. Without it, every assertion below would also pass on a
-    // widget that captioned every render.
+    // The control: without it every assertion below would pass on a widget that captioned every render.
     const fixture = newFixture();
     const container = mount(fixture, "sma-stale-control");
     emitOrbit(fixture);
@@ -98,13 +87,11 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
     await waitFor(() =>
       expect(visibleText(container)).toContain("at last contact"),
     );
-    // The number survives: this widget dates its readout instead of withholding it, and losing the figure would be losing the widget.
+    // The number survives: this widget dates its readout rather than withholding it.
     expect(visibleText(container)).toContain("675.0 km");
-    // The age is what makes the caveat actionable: "at last contact" alone does
-    // not say whether the link went quiet a second ago or a minute ago. Emitted
-    // at UT 0 against a view clock pinned at 10.
+    // The age makes the caveat actionable. Emitted at UT 0, view clock pinned at 10.
     expect(visibleText(container)).toMatch(/at last contact, .*10s ago/);
-    // Said out loud, not just coloured: the mute on the number is a glance-level hint and a screen reader cannot see it.
+    // Said in words, since the muted tone is invisible to a screen reader.
     expect(
       screen
         .getAllByRole("status")
@@ -113,10 +100,7 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
   });
 
   it("marks the NUMBER itself, and says the grade beside it", async () => {
-    // The widget's own caption says the observation is old; this says the
-    // number on screen is not a reading of now, on the number, where an
-    // operator scanning a wall of tiles is actually looking. It reaches a
-    // screen reader as the same word the panel badge uses.
+    // The number itself says it is not a reading of now, in the same word the panel badge uses.
     const fixture = newFixture();
     const container = mount(fixture, "sma-stale-marked");
     emitOrbit(fixture);
@@ -129,13 +113,13 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
       expect(container.querySelector("[data-not-current]")).not.toBeNull(),
     );
     expect(container.textContent).toContain("OFFLINE");
-    // And it costs the sighted readout nothing: the caption is spoken only.
+    // The caption is spoken only, so the sighted readout is unchanged.
     expect(visibleText(container)).toContain("675.0 km");
     expect(visibleText(container)).not.toContain("OFFLINE");
   });
 
   it("leaves the held mark alone to say it at 3x3, where the age has no room", async () => {
-    // A 3x3 body holds the figure and nothing under it, and a caption drawn there is cut off by the cell rather than read.
+    // A 3x3 body holds only the figure, and a caption there would be cut off.
     const fixture = newFixture();
     const container = mount(fixture, "sma-stale-tiny", { w: 3, h: 3 });
     emitOrbit(fixture);
@@ -152,8 +136,7 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
   });
 
   it("says nothing about last contact before an orbit has ever arrived", async () => {
-    // A cold start is not a held reading. Conflating the two would have the tile
-    // accusing the link on first paint, every paint.
+    // A cold start is not a held reading, and must not accuse the link on first paint.
     const fixture = newFixture();
     const container = mount(fixture, "sma-stale-cold");
 
@@ -163,13 +146,13 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
   });
 
   it("keeps the streaming figure and the ticking age out of every live region", async () => {
-    // A live region re-announces on every change, and both of these change every frame: only the transition to held is an event worth speaking.
+    // Both change every frame, so only the transition to held is worth announcing.
     const fixture = newFixture();
     const container = mount(fixture, "sma-stale-live-regions");
     emitOrbit(fixture);
     await waitFor(() => expect(visibleText(container)).toContain("675.0 km"));
     expect(screen.queryAllByRole("status")).toHaveLength(0);
-    // The panel's own status announcer is the one live region, and it is empty.
+    // The panel's status announcer is the one live region, and it is empty.
     expect(
       [...container.querySelectorAll("[aria-live]")].map(
         (el) => el.textContent,
@@ -186,9 +169,7 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
   });
 
   it("does not caption a confirmed tombstone, which is a claim about the craft", async () => {
-    // `absent` is the subject saying there is no orbit, not a link that went
-    // quiet, so the empty state stands on its own with no staleness caveat
-    // attached to it.
+    // `absent` says there is no orbit, not that the link went quiet, so no staleness caveat.
     const fixture = newFixture();
     const container = mount(fixture, "sma-stale-absent");
     emitOrbit(fixture);

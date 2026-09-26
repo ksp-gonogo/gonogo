@@ -1,14 +1,8 @@
 /**
- * A glyph commit has to carry a name, and `tsc` is what enforces it.
- *
- * Compiled by `tsconfig.test-d.json`, `@ts-expect-error` blocks included, so a
- * pairing that stopped biting fails the build rather than quietly becoming
- * documentation.
- *
- * The failure being pinned is invisible in every other instrument: every icon
- * in this kit is `aria-hidden`, so an icon-only commit with no `commitAriaLabel`
- * renders exactly as intended, passes a click test, and reaches a screen reader
- * as "button".
+ * A glyph commit has to carry a name, enforced by `tsc` via
+ * `tsconfig.test-d.json`. Every kit icon is `aria-hidden`, so an unnamed
+ * icon-only commit renders and clicks fine and reaches a screen reader as
+ * "button".
  */
 
 import { SendIcon } from "../Icons";
@@ -17,7 +11,7 @@ import { CommandGroup } from "./CommandGroup";
 const value = { pan: 0 };
 const noop = () => {};
 
-// ── A word names itself ─────────────────────────────────────────────────────
+// A word names itself.
 <CommandGroup value={value} onCommit={noop} commitLabel="Send">
   <input />
 </CommandGroup>;
@@ -27,7 +21,7 @@ const noop = () => {};
   <input />
 </CommandGroup>;
 
-// ── A glyph does not ────────────────────────────────────────────────────────
+// A glyph does not.
 // @ts-expect-error a non-text commitLabel must be paired with commitAriaLabel
 <CommandGroup
   value={value}

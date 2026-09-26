@@ -22,11 +22,11 @@ function Opener({ onOpen }: { onOpen: (id: string) => void }) {
 
 const SAVED_VALUE = { label: "saved" };
 
-// Config-like content that registers a sticky Save bar, so the tests exercise
-// the same path real config components use. The draft opens equal to the saved
-// value (clean baseline); "make dirty" diverges it, "mark clean" restores it,
-// driving the hook's value-vs-baseline-vs-saved comparison rather than a
-// hardcoded flag, exactly as a real config form does.
+/*
+ * Config-like content that registers a sticky Save bar, as real config forms
+ * do. "make dirty" diverges the draft and "mark clean" restores it, driving the
+ * hook's own comparison rather than a hardcoded flag.
+ */
 function SaveBarContent({ onSave }: { onSave: () => void }) {
   const [draft, setDraft] = useState(SAVED_VALUE);
   useModalSaveBar({ onSave, value: draft, saved: SAVED_VALUE });
@@ -55,11 +55,10 @@ function SaveBarOpener({ onSave }: { onSave: () => void }) {
   );
 }
 
-// Mirrors the real config-component shape that exposed the false-positive bug:
-// the persisted config is SPARSE ({}), but the form materializes it into a
-// DENSE object (defaults filled in). A naive `!configEqual(dense, sparse)`
-// would read as dirty on a clean open; the hook's baseline capture must keep it
-// clean. The "edit" button is the only thing that should make it dirty.
+/*
+ * A sparse persisted config ({}) that the form materialises into a dense one;
+ * the baseline capture must keep a clean open clean.
+ */
 function SparseDefaultContent({ onSave }: { onSave: () => void }) {
   // Persisted config is empty, every field comes from a default.
   const saved: Record<string, unknown> = {};
@@ -170,7 +169,7 @@ describe("Modal", () => {
       await user.click(screen.getByRole("button", { name: "open" }));
       const save = screen.getByRole("button", { name: "Save" });
       expect(save).toBeInTheDocument();
-      // Save button lives outside the scrollable body (the element with the config text), so it cannot scroll out of view.
+      // The Save button lives outside the scrollable body, so it cannot scroll out of view.
       const body = screen.getByText("config body");
       expect(body.contains(save)).toBe(false);
       await user.click(save);
@@ -285,7 +284,7 @@ describe("Modal", () => {
         </ModalProvider>,
       );
       await user.click(screen.getByRole("button", { name: "open" }));
-      // The draft is denser than the stored {} config, but nothing was edited, Escape must close silently, no discard prompt.
+      // Denser than the stored {} config but unedited, so Escape closes silently.
       await user.keyboard("{Escape}");
       expect(
         screen.queryByText("Discard unsaved changes?"),

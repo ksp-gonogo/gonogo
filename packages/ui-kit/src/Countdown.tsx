@@ -7,56 +7,31 @@ import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
  * A duration read as a CLOCK: `1m 20s`, or `T−1m 20s` on a launch clock.
+ * Which component renders a `Value<"s">` depends on what it MEANS:
  *
- * Three components render a `Value<"s">`, and which one to reach for is a
- * question about what the value MEANS rather than about how it should look.
- *
- * - `<Unit>` for a magnitude. A burn lasting 90 seconds is a minute and a
- *   half, and that is the whole of what the reader needs.
- * - `<Countdown>` for a clock, this component. It adds the two things a clock
- *   needs and a magnitude does not: the `T−` / `T+` prefix that says which
- *   side of the event the reader is on, and sub-second precision for a cue
- *   that would otherwise read `0s` for a whole second. Both are opt-in,
- *   because most countdowns want neither.
- * - `<MissionDate>` for an instant. A UT is not a length of time at all.
- *
- * These three are the whole of it. The string ladders behind them stay inside
- * this package and are not exported, so a call site picks a presentation
- * rather than assembling one out of a number and a hand-written suffix.
+ * - `<Unit>` for a magnitude: a burn lasting 90 seconds
+ * - `<Countdown>` for a clock, with the opt-in `T−` / `T+` prefix and
+ *   sub-second precision for a cue that would otherwise sit at `0s`
+ * - `<MissionDate>` for an instant: a UT is not a length of time
  */
 export interface CountdownProps {
   /**
    * A DURATION in seconds: how long until, or how long since. A bare number is
-   * as valid as a `Value<"s">` because plenty of durations are computed
-   * client-side and carry no declared unit.
+   * accepted for client-computed durations.
    *
-   * Deliberately NOT `Value<"ut">`. An instant on the universal-time clock is
-   * a different thing and this renders it as nonsense: `OrbitEncounter`'s
-   * absolute `transitionUt` would put a Mun encounter twenty minutes away on
-   * screen as "46d 2h". `"ut"` is its own token, so handing one to this is a
-   * type error. Subtract the
-   * frame's view time first (`useViewUt`), which is the operation that turns
-   * an instant into the duration this wants.
-   *
-   * A bare number is still the escape hatch, and it has to be: it is how every
-   * client-computed countdown reaches here. It is not a loophole worth
-   * closing, because the mistake this prevents is passing a WIRE field
-   * straight through, and a wire field always arrives as a `Value`.
+   * NOT `Value<"ut">`: an instant is a type error here. Subtract the frame's
+   * view time first (`useViewUt`) to turn an instant into a duration.
    */
   value: Value<"s"> | Reading<Value<"s">> | number | null | undefined;
   /**
    * Prefix the launch-clock sign: `T−` counting down to the event, `T+` once
-   * it has passed. Off by default, because a plain "how long until" readout
-   * beside its own caption is not a clock and reads worse with the prefix.
+   * it has passed. Off by default: a "how long until" readout is not a clock.
    */
   clock?: boolean;
   /**
-   * Count the last second in milliseconds rather than showing `0s`.
-   *
-   * For a cue the operator acts ON (an ignition countdown, a commit
-   * deadline), where a clock that sits at `0s` for a whole second reads as
-   * stopped. Off by default: a time-to-apoapsis of zero is `0s`, and `0 ms`
-   * there is false precision.
+   * Count the last second in milliseconds rather than showing `0s`, for a cue
+   * the operator acts ON, where `0s` for a whole second reads as stopped. Off by
+   * default, where it would be false precision.
    */
   precise?: boolean;
 }
@@ -66,11 +41,7 @@ export function Countdown({
   clock = false,
   precise = false,
 }: CountdownProps) {
-  /*
-   * A bare number never carries currency, and it is how every client-computed
-   * countdown arrives, so it is split off before the resolver rather than
-   * widened into it.
-   */
+  // A bare number never carries currency, so it is split off before the resolver.
   const carried = typeof value === "number" ? undefined : value;
   const { notCurrent, caption } = resolveCurrency(carried);
   const drawn = drawnDuration(value);
@@ -89,32 +60,18 @@ export function Countdown({
 }
 
 /**
- * The number this clock draws, and the one place it does something `<Unit>`
- * deliberately refuses to.
- *
- * A clock ADVANCES only where a model is carrying it, and FREEZES otherwise.
- * That decision is not the primitive's to make, so it is read off the
- * reckoning: `modelled` is what the model says the value is at the frame's
- * view time, which is what makes a carried countdown move, and the last
- * observation is what a countdown with no model has to sit still on.
- *
- * `<Unit>` never substitutes a modelled figure, because a magnitude quietly
- * replaced at hundreds of generic readouts is the substitution `Reading`
- * exists to prevent. A countdown is the case that earns the opposite rule: it
- * is a claim about a future instant, a frozen one is wrong the moment the
- * clock moves, and only a model can license advancing it. So the substitution
- * is the ruled behaviour here rather than a silent one.
+ * The number this clock draws. A clock ADVANCES only where a model is carrying
+ * it (the reckoning's `modelled` value at the frame's view time) and FREEZES on
+ * the last observation otherwise. Unlike `<Unit>`, which never substitutes a
+ * modelled figure, a countdown is a claim about a future instant and is wrong
+ * frozen.
  */
 function drawnDuration(
   value: Value<"s"> | Reading<Value<"s">> | number | null | undefined,
 ): number | null | undefined {
   if (typeof value === "number") return value;
   if (value == null) return undefined;
-  /*
-   * The quantity is CHOSEN first and unwrapped once, at the boundary
-   * `formatDuration` puts here: it takes a number of seconds, so the duration
-   * stops being a quantity exactly on the way into it and nowhere else.
-   */
+  // Chosen first, unwrapped once at the `formatDuration` boundary.
   const picked = !("state" in value)
     ? value
     : value.reckoning.status === "available"

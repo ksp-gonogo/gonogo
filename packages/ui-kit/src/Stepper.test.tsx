@@ -18,7 +18,7 @@ describe("Stepper", () => {
     );
     const spin = screen.getByRole("spinbutton", { name: "Max steps" });
     expect(spin).toHaveAttribute("aria-valuetext", "256");
-    // The index, not the value: the members are not evenly spaced, so a position on the set is the only thing a min/max pair can honestly bound.
+    // The index, not the value: the members are not evenly spaced.
     expect(spin).toHaveAttribute("aria-valuenow", "2");
     expect(spin).toHaveAttribute("aria-valuemax", "3");
   });
@@ -77,10 +77,7 @@ describe("Stepper", () => {
   });
 
   it("steps to an end from a value the set does not contain", () => {
-    // A producer may hold a value no control here offered, and the operator
-    // still has to be able to move it. Disabling both controls would strand
-    // them; guessing a neighbour would move the number somewhere they did not
-    // ask for.
+    // A producer may hold a value off the set, and the operator must still be able to move it.
     const onChange = vi.fn();
     render(
       <Stepper

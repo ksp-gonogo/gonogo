@@ -18,9 +18,6 @@ describe("burnInstantRows", () => {
     expect(rows.map((r) => r.atUt)).toEqual([980, 1000, 1025]);
   });
 
-  // The whole point of three rows. Two rows would read as a complete answer to
-  // a different question, and one countdown is true of whichever instant it
-  // came from and wrong about the other two.
   it("keeps the outer two present-but-absent for an impulsive plan, never collapsed onto the reference", () => {
     const rows = burnInstantRows({ ut: 1000 });
 
@@ -39,10 +36,7 @@ describe("burnInstantRows", () => {
     expect(new Set(questions).size).toBe(3);
   });
 
-  // Ignition is NOT the reference minus half the duration: the reference is the
-  // half-delta-v instant and the craft is heavier before it, so the mod-side
-  // rocket-equation timing puts it asymmetrically. The client must carry what
-  // it is told rather than re-deriving a midpoint.
+  // The reference is the half-delta-v instant, not the midpoint, so the window is asymmetric.
   it("carries an asymmetric window as given rather than re-centring it", () => {
     const rows = burnInstantRows({ ut: 1000, ignitionUt: 976, cutoffUt: 1021 });
 
@@ -67,11 +61,7 @@ describe("burnDurationSeconds", () => {
 });
 
 describe("burnAxis", () => {
-  /**
-   * `burnAxis` returns null for an impulsive plan, which is its own test below.
-   * Every fixture here describes a real burn, so a null is the derivation
-   * having stopped drawing one and is named as that rather than read through.
-   */
+  // Every fixture here is a real burn, so a null axis is a failure, not the impulsive case.
   const mustAxis = (axis: BurnAxis | null): BurnAxis => {
     if (axis === null) throw new Error("burnAxis drew nothing for a real burn");
     return axis;
@@ -87,14 +77,10 @@ describe("burnAxis", () => {
 
     const fractions = axis.marks.map((m) => m.fraction);
     expect(fractions).toEqual([...fractions].sort((a, b) => a - b));
-    // The span is the burn, so the outer two marks pin the ends and the whole width is spent on the thing being compared.
     expect(fractions[0]).toBe(0);
     expect(fractions[fractions.length - 1]).toBe(1);
   });
 
-  // The failure a render caught: including `now` in the span put a 45s burn
-  // four minutes out inside the last tenth of the axis, so the picture whose
-  // job is to show ordering showed one blob.
   it("does not let a distant clock compress the marks together", () => {
     const axis = mustAxis(
       burnAxis(
@@ -107,8 +93,6 @@ describe("burnAxis", () => {
     expect(Math.max(...fractions) - Math.min(...fractions)).toBe(1);
   });
 
-  // Out of range rather than clamped, so a renderer can omit it. Clamping would
-  // draw the clock at ignition while the burn is minutes away.
   it("reports a clock outside the burn as outside the axis", () => {
     const before = mustAxis(
       burnAxis(
@@ -127,8 +111,6 @@ describe("burnAxis", () => {
     expect(after.nowFraction).toBeGreaterThan(1);
   });
 
-  // A single mark shows no ordering, so an axis drawn for it is decoration
-  // dressed as information. The impulsive case must draw nothing.
   it("draws nothing for an impulsive plan", () => {
     expect(burnAxis(burnInstantRows({ ut: 1000 }), 900)).toBeNull();
   });
@@ -147,21 +129,7 @@ describe("burnAxis", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// The invariant that a fixture broke, expressed against the SHAPE rather than checked after the fact.
-//
-// A render once showed a burn window for a node the list beside it said did not
-// exist. The cause was two reads of one truth: the window came off
-// `vessel.maneuver` and the list off the derived legacy channel, and a fixture
-// that fed only the first made them disagree. The fix moved the instants onto
-// the parsed node, so both surfaces now iterate the same array.
-//
-// These pin the property that makes that fix load-bearing: a burn window is
-// derived from a node and cannot exist without one, and every node yields
-// exactly one window whether or not it has a duration. If a later change
-// reintroduces a second source, the first of these stops compiling and the
-// second starts failing.
-// ---------------------------------------------------------------------------
+// A burn window derives from a node and cannot exist without one; every node yields exactly one window.
 describe("a burn window and its node are the same node", () => {
   interface NodeLike {
     UT: number;
@@ -184,7 +152,7 @@ describe("a burn window and its node are the same node", () => {
     );
 
     expect(windows).toHaveLength(nodes.length);
-    // Every window's reference instant IS its node's UT, which is what makes a window traceable to the node it describes.
+    // A window's reference instant is its node's UT, which ties the window to its node.
     expect(windows.map((w) => w[1].atUt)).toEqual(nodes.map((n) => n.UT));
   });
 
@@ -203,9 +171,7 @@ describe("burnInstantRows: the framing is the caller's", () => {
   });
 
   it("takes a caller's whole table, not just its basis strings", () => {
-    // The point of injecting the table rather than one field: an integrating
-    // planner needs different words for where an instant came from AND for why
-    // one is missing, and the stock absent-detail names stock's own solver.
+    // An integrating planner needs its own words for both an instant's source and its absence.
     const integrated = {
       ignition: {
         label: "Ignition",

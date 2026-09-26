@@ -1,11 +1,6 @@
 import type { CSSProperties, KeyboardEvent } from "react";
 import { useMemo } from "react";
-// InteractiveMarker below is a styled.g whose keyboard focus ring
-// (`&:focus-visible .focus-ring`) is an SVG pseudo-class + descendant rule
-// that inline `style` cannot express, and no ui-kit primitive is an SVG <g>
-// focus wrapper. Same pattern as `ShipMap/ShipDiagramSvg.tsx`'s `PartGroup`.
-// Shared by both interactive shapes, point markers and vessel orbit-path
-// rings: the focus treatment is identical either way.
+// An SVG <g> keyboard focus ring (a pseudo-class plus descendant rule) that inline style cannot express, shared by point markers and vessel rings.
 // biome-ignore lint/style/noRestrictedImports: SVG <g> focus ring, no inline/primitive equivalent (see above)
 import { styled } from "styled-components";
 import {
@@ -17,25 +12,9 @@ import {
   type SystemEntityStyle,
 } from "./systemEntities";
 
-/**
- * Draws every `system-view.entities` contribution as an SVG primitive, in
- * its own absolutely-positioned layer matching the diagram's auto-fit
- * viewBox (same static, non-zoom-tracking projection contract as the
- * `system-view.overlay` augment slot: `ctx` is typically SystemView's own
- * `overlayContext`, reused rather than recomputed). Renders nothing (`null`)
- * when nothing projects, so an empty contribution set costs nothing.
- */
-
-/** A moving traffic highlight riding an ALREADY-drawn `connection-line`
- *  entity: never a second render of the graph geometry, purely a decoration
- *  keyed by that entity's own id (see `commsTraffic.ts`'s module doc
- *  comment). Rendered as a travelling gradient glow along the line rather
- *  than a discrete marker, deliberately: an earlier version drew this as a
- *  circle riding the line, which read as a second vessel dot sitting on its
- *  own orbit. A sweeping highlight can't be confused with a point marker. */
+/** A traffic highlight riding an already-drawn `connection-line` entity, keyed by its id: a sweeping glow, so it cannot be mistaken for a vessel dot. */
 export interface SystemEntityPulse {
-  /** Stable identity for this pulse (its `system.uplink.pending` entry's own
-   *  id): the React key, since two pulses can share an `edgeId` at once. */
+  /** The `system.uplink.pending` entry's id, used as the React key since two pulses can share an `edgeId`. */
   id: string;
   /** The `connection-line` entity id this pulse currently sits on. */
   edgeId: string;
@@ -51,41 +30,15 @@ export interface SystemEntitiesLayerProps {
   decorate?: (id: string) => SystemEntityStyle | undefined;
   /** Currently selected entity id, if any: drives `aria-pressed` on the matching marker. */
   selectedId?: string | null;
-  /**
-   * Fires when a vessel display object is activated (click, Enter, Space):
-   * a `point` marker, or an `orbit-path` ring that carries a `vesselId`
-   * that is selectable. Connection lines and blobs stay background
-   * geometry, never selectable targets, and an `orbit-path` with no
-   * `vesselId` (a hypothetical non-vessel ring) stays inert too. Omitted:
-   * every shape renders as a plain (non-interactive, non-focusable) marker.
-   */
+  /** Fires when a selectable vessel shape (a `point`, or an `orbit-path` carrying a `vesselId`) is activated; omitted, every shape is inert. */
   onEntityActivate?: (id: string) => void;
-  /**
-   * Command-traffic gradient sweeps: one travelling glow per in-flight
-   * `system.uplink.pending` entry, riding an already-resolved
-   * `connection-line`'s endpoints via an SVG `linearGradient` whose bright
-   * band is centred on the pulse's own `t`. A pulse whose `edgeId` doesn't
-   * match any resolved connection-line (off-frame, or the contribution
-   * hasn't drawn it) is silently skipped, the same "just doesn't render this
-   * frame" contract every other entity follows. Omitted or empty: renders
-   * nothing extra.
-   */
+  /** One travelling gradient glow per in-flight `system.uplink.pending` entry; a pulse whose `edgeId` matches no resolved connection line is skipped. */
   pulses?: readonly SystemEntityPulse[];
-  /**
-   * Real "now" UT, driving a `travelling-pulse` entity's single, non-looping
-   * pass (see `systemEntities.ts`'s own doc comment on that shape): SystemView
-   * owns reactivity here, a contribution supplies only the static `arriveUt`/
-   * `clearUt` timestamps. Typically `useUtNow()` (real-time bookkeeping, the
-   * same clock `system.uplink.pending`'s traffic pulses already use), not the
-   * delayed `useViewUt()`: a CME's `stormTime` is a real-UT fact stamped by
-   * the mod the instant the storm rolls, not delayed craft telemetry.
-   * Omitted or `undefined`: any `travelling-pulse` entity renders nothing
-   * this frame, the same "no data, no draw" contract every other entity
-   * follows on a missing input.
-   */
+  /** Real now UT driving a `travelling-pulse` entity's single pass: `useUtNow()`, not the delayed view UT, since a CME's storm time is a real-UT fact. Absent draws no pulse. */
   nowUt?: number;
 }
 
+/** Draws every `system-view.entities` contribution as an SVG primitive in its own layer, matching the diagram's static auto-fit viewBox; renders nothing when nothing projects. */
 export function SystemEntitiesLayer({
   entities,
   ctx,
@@ -214,16 +167,7 @@ function Primitive({
 }>) {
   switch (r.kind) {
     case "orbit-path": {
-      // Only a vessel's own ring is selectable (`vesselId` set): a body's
-      // orbit ring, drawn by `SystemDiagram` itself rather than this layer,
-      // never reaches here, but a future non-vessel `orbit-path`
-      // contribution shouldn't accidentally become clickable either.
-      // The ring is a closed path through samples the projection has already
-      // been applied to, and `dotX`/`dotY` came through the same placement, so
-      // both are absolute and neither sits inside a transform. An `<ellipse>`
-      // in a `rotate(lan + argPe)` group is the shape a closed orbit has in its
-      // own plane and only in that plane: projected honestly it has a centre
-      // `cx`/`cy` cannot express, and in a rotating frame it is a rosette.
+      // Only a vessel's own ring (`vesselId` set) is selectable. Ring and dot are both already projected, so neither sits inside a transform.
       const dot =
         r.dotX != null && r.dotY != null ? (
           <circle
@@ -271,10 +215,7 @@ function Primitive({
             }}
             style={POINT_INTERACTIVE_STYLE}
           >
-            {/* Traces the ring itself at a heavier weight rather than sitting
-                3px outside it: an offset curve of a projected rosette is not the
-                same curve scaled, so widening the stroke is the only outline that
-                stays on the shape it is outlining. */}
+            {/* Outlined by a heavier stroke on the same path: an offset curve of a projected rosette is not the same curve. */}
             <path
               className="focus-ring"
               d={r.ring}
@@ -284,8 +225,7 @@ function Primitive({
               strokeOpacity={0.9}
               pointerEvents="none"
             />
-            {/* Transparent, wider stroke: enlarges the click/tap hit target
-                past the thin visible ring without changing its drawn weight. */}
+            {/* A wider transparent stroke enlarges the hit target without changing the drawn weight. */}
             <path
               data-hit-target="true"
               d={r.ring}
@@ -299,10 +239,7 @@ function Primitive({
               fill="none"
               stroke={r.colour}
               strokeOpacity={r.opacity}
-              // Selected reads brighter (colour/opacity, via `decorate`'s
-              // "bright" emphasis override) AND thicker: two independent
-              // cues so selection is legible even where colour contrast
-              // alone is marginal.
+              // Selected is brighter and thicker, two cues so selection does not rely on colour contrast alone.
               strokeWidth={
                 selected
                   ? VESSEL_ORBIT_STROKE_WIDTH_SELECTED_PX
@@ -344,11 +281,9 @@ function Primitive({
         />
       );
     case "travelling-pulse": {
-      // No live UT: the same "no data, no draw" contract every other entity follows on a missing input (see this prop's own doc comment).
       if (nowUt === undefined) return null;
       const dx = r.x2 - r.x1;
       const dy = r.y2 - r.y1;
-      // Apex -> `to` (the shape's own tip, e.g. the CME's target body).
       const bodyPx = Math.hypot(dx, dy);
       if (!(bodyPx > 0)) return null;
       const angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
@@ -357,38 +292,19 @@ function Primitive({
       const crossingS = r.clearUt - r.arriveUt;
       if (!(crossingS > 0)) return null;
 
-      // ONE constant real rate for the whole journey, derived from the
-      // crossing phase (`segmentLengthPx` over `crossingS`, both exact):
-      // the apex->tip travel phase moves at this SAME rate, so a real-metres
-      // ratio (this shape's long-standing trick, `systemEntities.ts`'s own
-      // doc comment works the algebra) turns directly into the real-UT
-      // window the wave actually occupies, no separate phase/easing logic.
+      // One constant rate for the whole journey, from the crossing phase, so the real-metres ratio maps straight onto the real-UT window the wave occupies.
       const ratePxPerS = segmentLengthPx / crossingS;
       const travelS = bodyPx / ratePxPerS;
-      // Departure: derived, not carried on the wire (a contribution has no
-      // wall clock to compute "now" against, only `arriveUt`/`clearUt`
-      // themselves, see `systemEntities.ts`'s doc comment on this shape).
+      // Derived here: a contribution has no wall clock, only `arriveUt` and `clearUt`.
       const departUt = r.arriveUt - travelS;
-      // How far PAST the tip the pulse keeps going before this render treats
-      // it as fully cleared: the segment's own physical length again, the
-      // same "one more length of itself" decorative stand-in this shape has
-      // always used, fabricating no new number.
+      // The pulse keeps going one segment length past the tip before it counts as cleared.
       const exitPx = bodyPx + segmentLengthPx;
       const leadingPx = ratePxPerS * (nowUt - departUt);
-      // Hasn't departed yet, or has already fully cleared (the real event's
-      // own data should have dropped this entity by `clearUt`; this is a
-      // defensive bound, not the primary "when does it end" signal).
+      // A defensive bound; the event's own data should drop this entity by `clearUt`.
       if (!(leadingPx > 0) || leadingPx > exitPx) return null;
 
       const startPx = leadingPx - segmentLengthPx;
-      // Fades the portion of the wave that has passed BEYOND the target
-      // (local x > bodyPx) rather than leaving it full-strength: this render
-      // only ever knows real speed/distance, not "how far past the target
-      // has it actually travelled", so a hard cutoff (or no fade at all)
-      // would overstate a precision the underlying data doesn't carry.
-      // Scales with the pulse's own length so a long pulse fades over a
-      // proportionally long tail and a short one over a short one, floored
-      // so a near-zero-length pulse still gets a visible fade band.
+      // Past the target the wave fades rather than cutting off, since the data carries no precise overshoot; the band scales with the pulse length, floored.
       const fadeDistancePx = Math.max(
         segmentLengthPx * TRAVELLING_PULSE_FADE_FRACTION,
         TRAVELLING_PULSE_MIN_FADE_PX,
@@ -402,11 +318,7 @@ function Primitive({
           data-entity-id={r.id}
         >
           <defs>
-            {/* Fixed in the apex-anchored local frame, so the segment
-                doesn't render before it has departed the apex (a real UT-
-                driven render has no CSS animation to compose with, so this
-                is just a static bound, not a moving-target sync problem the
-                old looping version had to solve). */}
+            {/* Fixed in the apex-anchored frame, so the segment never renders before it departs. */}
             <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
               <rect
                 x={-TRAVELLING_PULSE_CLIP_PAD_PX}
@@ -415,9 +327,7 @@ function Primitive({
                 height={TRAVELLING_PULSE_CLIP_HALF_HEIGHT_PX * 2}
               />
             </clipPath>
-            {/* Pinned to the TARGET's own local x (`bodyPx`), not to the
-                wave's current position: the wave's polyline points move
-                frame to frame, this band stays put over the target. */}
+            {/* Pinned over the target, not to the wave's moving position. */}
             <linearGradient
               id={gradientId}
               gradientUnits="userSpaceOnUse"
@@ -431,12 +341,7 @@ function Primitive({
             </linearGradient>
           </defs>
           <g clipPath={`url(#${clipId})`}>
-            {/* A sine-wave polyline rather than a plain line: reads as
-                wavy, energetic ejecta instead of a smooth static dash.
-                Points are computed directly at the wave's CURRENT position
-                (`startPx`) each render: a single real-UT-driven pass has no
-                animation to compose with, so it needs no separate
-                static/animated `<g>` split. */}
+            {/* Points are computed at the wave's current position each render. */}
             <polyline
               points={travellingPulseWavePoints(segmentLengthPx, startPx)}
               fill="none"
@@ -499,80 +404,38 @@ function Primitive({
   }
 }
 
-/** Radius of the small marker `SystemEntitiesLayer` draws at an `orbit-path`
- *  entity's own declared position (its anomaly), alongside the ring itself:
- *  the ring shows the orbit's SHAPE, this marks WHERE on it the entity's
- *  data actually points (e.g. the same point a `connection-line` joins to),
- *  so a linked vessel reads as "here", not just "somewhere on this ring". */
+/** Radius of the marker at an `orbit-path` entity's own anomaly, showing where on the ring its data points. */
 const ORBIT_DOT_RADIUS_PX = 2.5;
 
-/**
- * Every `orbit-path` entity this layer draws is a VESSEL orbit (the
- * contribution-slot's only source of that shape, `vesselOrbitsContribution.ts`):
- * deliberately THINNER than a body orbit ring (`SystemDiagram.tsx`'s own
- * `BODY_ORBIT_STROKE_WIDTH`, drawn in the same diagram), so the two classes
- * read as visually distinct rather than identical lines. This layer's own SVG
- * is the diagram's static auto-fit projection (zoom=1, no live pan/zoom, see
- * `SystemEntitiesContext`'s doc comment), so unlike `SystemDiagram.tsx`'s
- * `/zoom`-divided strokes, a plain constant here already stays screen-constant.
- */
+/** Vessel rings draw thinner than a body orbit ring; this layer's SVG never zooms, so a constant width is already screen-constant. */
 const VESSEL_ORBIT_STROKE_WIDTH_PX = 1;
-/** Selected: brighter (via `decorate`'s "bright" emphasis, unrelated to this
- *  file) AND thicker than its own unselected width, so selection reads as a
- *  clear step up rather than a colour change alone. */
+/** Selected rings are thicker as well as brighter. */
 const VESSEL_ORBIT_STROKE_WIDTH_SELECTED_PX = 2;
 
-/** Half-width, in `t` units along the edge, of the pulse's bright band: a
- *  travelling gradient highlight rather than a discrete marker, so command
- *  traffic can't be mistaken for a vessel point riding the line. */
+/** Half-width, in `t` units along the edge, of the pulse's bright band. */
 const PULSE_BAND_T = 0.14;
-/** Gradient band ends: same faint grey the CommNet lines themselves already
- *  draw in (`EMPHASIS_COLOUR.faint`, `systemEntities.ts`), so the sweep
- *  reads as a highlight moving along the line rather than a new colour. */
+/** The faint grey the CommNet lines draw in, so the sweep reads as a highlight moving along the line. */
 const PULSE_BASE_COLOUR = "var(--color-text-faint)";
-/** Gradient band peak: a dim, desaturated white (`--color-text-primary`,
- *  the body-text token), brighter than the faint base so the sweep still
- *  reads as a highlight, but deliberately NOT the bright accent green:
- *  that colour is reserved for "selected/active" state elsewhere in this
- *  layer (focus rings, the active vessel's own marker), and traffic riding
- *  the same hue read as a second selection signal rather than motion. */
+/** Brighter than the base but not the accent green, which this layer reserves for selection. */
 const PULSE_PEAK_COLOUR = "var(--color-text-primary)";
-/** Thin: a light sweep riding the line, not a fat marker that could be
- *  mistaken for a vessel point or an orbit ring (`connection-line`'s own
- *  1.4px, `orbit-path`'s 1.2px). */
+/** Thin enough that the sweep cannot be mistaken for a vessel point or an orbit ring. */
 const PULSE_STROKE_WIDTH_PX = 1.2;
 
 const TRAVELLING_PULSE_STROKE_WIDTH_PX = 2;
-/** Left padding on the static exit clip, so anti-aliasing at the segment's
- *  own trailing edge never gets a hard crop right at its start position. */
+/** Left padding on the exit clip so anti-aliasing at the trailing edge is not hard-cropped. */
 const TRAVELLING_PULSE_CLIP_PAD_PX = 4;
-/** Half-height of the static exit clip: comfortably clears the sine wave's
- *  amplitude plus stroke width, since the clip only needs to bound the
- *  travel AXIS (x), never the wave's own y excursion. */
+/** Half-height of the exit clip; it only bounds the travel axis, so this just clears the wave's amplitude. */
 const TRAVELLING_PULSE_CLIP_HALF_HEIGHT_PX = 40;
-/** Sine-wave texture along the pulse's own length: reads as wavy, energetic
- *  ejecta rather than a smooth dash. Wavelength/amplitude are fixed pixel
- *  constants (not scaled to the segment's length) so a long pulse reads as
- *  many small ripples and a short one as a couple, never stretched thin or
- *  bunched tight. */
+/** Fixed pixel ripple constants, so a long pulse reads as many ripples rather than a stretched one. */
 const TRAVELLING_PULSE_WAVELENGTH_PX = 12;
 const TRAVELLING_PULSE_AMPLITUDE_PX = 3;
 const TRAVELLING_PULSE_SAMPLE_STEP_PX = 2;
-/** How far past the target (as a fraction of the pulse's own on-screen
- *  length) the fade band extends before the trailing portion is fully
- *  invisible: see `Primitive`'s "travelling-pulse" case. */
+/** How far past the target, as a fraction of the pulse's on-screen length, the fade band extends. */
 const TRAVELLING_PULSE_FADE_FRACTION = 0.6;
-/** Floor on the fade distance, so a very short (near-clamped) pulse still
- *  gets a visible fade band rather than an effectively-instant cutoff. */
+/** Floor on the fade distance so a near-clamped pulse still gets a visible fade. */
 const TRAVELLING_PULSE_MIN_FADE_PX = 2;
 
-/** `points` for a `<polyline>` sine wave, `lengthPx` long, shifted by
- *  `offsetPx` (default 0): the wave's TEXTURE (ripple phase) is always
- *  computed from the segment's own local x in `[0, lengthPx]`, so it stays
- *  rigidly painted on the segment rather than sliding independently of it;
- *  `offsetPx` only moves where that whole textured segment sits, letting a
- *  caller position the CURRENT wave without regenerating its ripple phase.
- *  Exported for testing. */
+/** `points` for a sine-wave polyline `lengthPx` long; the ripple phase is painted on the segment's local x, and `offsetPx` only moves the whole segment. */
 export function travellingPulseWavePoints(
   lengthPx: number,
   offsetPx = 0,
@@ -596,9 +459,7 @@ const LAYER_SVG: CSSProperties = {
   position: "absolute",
   inset: 0,
   display: "block",
-  // Empty space between markers stays click-through to the diagram beneath
-  // (pan/zoom, body hover); each interactive point re-enables pointer events
-  // on itself.
+  // Empty space stays click-through to the diagram beneath; each interactive point re-enables pointer events.
   pointerEvents: "none",
 };
 
@@ -609,9 +470,6 @@ const POINT_INTERACTIVE_STYLE: CSSProperties = {
 
 const POINT_STATIC_STYLE: CSSProperties = { pointerEvents: "none" };
 
-// The one styled block that stays: an SVG <g> keyboard focus ring. See the
-// justified biome-ignore on the styled-components import at the top of the
-// file.
 const InteractiveMarker = styled.g`
   outline: none;
   .focus-ring {

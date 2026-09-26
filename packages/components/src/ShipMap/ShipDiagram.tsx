@@ -17,13 +17,7 @@ import type {
 const NO_METERS: readonly ShipMapPartMeterEntry[] = [];
 const NO_META: readonly ShipMapPartMetaEntry[] = [];
 
-/**
- * `ShipMapPartMeterEntry.status` -> an outline colour, the SAME split as
- * `ShipDiagramSvg`'s own `STATUS_BORDER`: a resource meter's fill is its
- * identity colour (`resourceColor`) regardless of level, status is drawn as
- * a separate ring around the compact meter rather than blended into the
- * fill hue.
- */
+/** Status as an outline around the compact meter, never the fill hue: the same split as `ShipDiagramSvg`'s `STATUS_BORDER`. */
 const STATUS_OUTLINE: Record<"low" | "critical", string> = {
   low: "var(--color-status-warning-bg)",
   critical: "var(--color-status-nogo-bg)",
@@ -31,33 +25,21 @@ const STATUS_OUTLINE: Record<"low" | "critical", string> = {
 
 interface Props {
   parts: readonly ShipMapPart[];
-  /**
-   * `ShipMapPart.flightId`, stringified, of the one part to ring (the hottest
-   * part's id off `vessel.thermal`). An id rather than a name because a
-   * symmetric craft carries several parts under one name.
-   */
+  /** Stringified flightId of the one part to ring. An id, not a name: a symmetric craft has several parts under one name. */
   highlightPartId?: string | null;
   highlightColor?: string;
   width: number;
   height: number;
-  /** Current `f.throttle` (0..1+). Forwarded to ShipDiagramSvg so
-   *  engine-flame overlays gate on actual thrust. */
+  /** Current throttle (0..1+), gating engine flames. */
   throttle?: number;
-  /** Per-part resource meters, keyed by
-   *  `ShipMapPart.flightId` (stringified). Forwarded to `ShipDiagramSvg`
-   *  for the compact in-body fill bars, and read here to render the SAME
-   *  entries as real `<Meter>`s in the hover tooltip. */
+  /** Per-part resource meters keyed by stringified flightId: in-body bars in the SVG, real `<Meter>`s in the tooltip. */
   partMeters?: ReadonlyMap<string, readonly ShipMapPartMeterEntry[]>;
-  /** Per-part status/metadata rows, same keying as
-   *  `partMeters`. Rendered only in the hover tooltip, ShipDiagramSvg has
-   *  no compact-body equivalent for these. */
+  /** Per-part status rows, same keying as `partMeters`. Tooltip only. */
   partMeta?: ReadonlyMap<string, readonly ShipMapPartMetaEntry[]>;
   /**
-   * Fires one PAW action on one part. Supplied by the widget (which owns the
-   * `useCommand` handle so it outlives this popover, see
-   * `PartActionMenuProps.onInvoke`). Omitted in the harness / snapshot renders,
-   * which pass no command surface at all: without it the part-action affordances
-   * simply do not appear, so a static render is unchanged.
+   * Fires one PAW action on one part. The widget owns the `useCommand` handle
+   * so it outlives this popover. Omitted, the part-action affordances do not
+   * appear.
    */
   onInvokePartAction?: (
     flightId: number,
@@ -80,30 +62,19 @@ export function ShipDiagram({
 }: Readonly<Props>) {
   const [hovered, setHovered] = useState<ShipMapPart | null>(null);
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
-  // The part whose action menu is open, plus where to anchor it. Held together
-  // so the menu can never render without a position. The anchor is kept in BOTH
-  // spaces: canvas-local (what the diagram reports, and what re-placement
-  // recomputes from when the page scrolls) and viewport (what the portalled
-  // menu is actually positioned with, so its first paint already lands on the
-  // part rather than at the corner of the window).
+  // The open part and its anchor, held together so the menu never renders without a position. Canvas-local for re-placement, viewport for the portalled menu's first paint.
   const [openPart, setOpenPart] = useState<{
     part: ShipMapPart;
     anchor: { x: number; y: number };
     viewportAnchor: { x: number; y: number };
   } | null>(null);
-  // The portalled menu's host box, and where it sits. `null` until the first
-  // measurement, which happens in a layout effect (so before paint) and then
-  // again whenever the menu's own size changes: the action list arrives a
-  // light-time after the menu opens, so the menu it was first placed for is
-  // shorter than the one the operator ends up reading.
+  // Measured before paint and again when the menu resizes: the action list arrives a light-time after it opens.
   const [menuHost, setMenuHost] = useState<HTMLDivElement | null>(null);
   const [menuPos, setMenuPos] = useState<{
     left: number;
     top: number;
   } | null>(null);
-  // Whatever had focus when the menu opened (the part's own <g>, when opened by
-  // keyboard). Restored on dismiss so Escape returns the operator to the part
-  // they were on instead of dropping focus to the document body.
+  // Restored on dismiss so Escape returns focus to the part.
   const triggerRef = useRef<Element | null>(null);
 
   const dismissMenu = () => {
@@ -123,10 +94,7 @@ export function ShipDiagram({
     pointerHandlers,
   } = useZoomPan<HTMLDivElement>();
 
-  // Re-place the portalled menu against the viewport once it can be measured.
-  // A layout effect, not a passive one: it runs before the browser paints, so
-  // the corrected position is the first one on screen rather than a visible
-  // jump from the unmeasured guess the render above starts with.
+  // A layout effect so the measured position is the first on screen, not a visible jump.
   useLayoutEffect(() => {
     if (!openPart || !menuHost) return;
     const place = () => {
@@ -147,8 +115,7 @@ export function ShipDiagram({
       );
     };
     place();
-    // The menu grows when its actions land; the window and the dashboard both
-    // move the part out from under a fixed-position menu. All three re-place.
+    // The menu grows when its actions land, and the window and dashboard both scroll the part away: all three re-place.
     const observer =
       typeof ResizeObserver === "undefined" ? null : new ResizeObserver(place);
     observer?.observe(menuHost);
@@ -167,32 +134,20 @@ export function ShipDiagram({
     setMouse({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
-  // The hovered part's contributed rows: rendered here through
-  // the real ui-kit `<Meter>`, the SAME component ShipSystems and every other
-  // meter-bearing widget uses, so a contributed reading and a built-in one
-  // look like one system rather than two. `ShipDiagramSvg`'s compact in-body
-  // bars read the identical `partMeters` map (passed straight through
-  // above); this is the OTHER rendering of that one aggregated list, not a
-  // second data path.
+  // The same `partMeters` list the in-body bars read, rendered through ui-kit's `<Meter>` like every other meter-bearing widget.
   const hoveredMeters = hovered
     ? (partMeters?.get(String(hovered.flightId)) ?? NO_METERS)
     : NO_METERS;
   const hoveredMeta = hovered
     ? (partMeta?.get(String(hovered.flightId)) ?? NO_META)
     : NO_META;
-  // Resources with no contributed meter still get the plain raw row they
-  // always had, full transparency isn't lost just because a resource didn't
-  // earn a bar.
+  // Resources with no contributed meter still get a plain raw row.
   const meteredResourceNames = new Set(hoveredMeters.map((m) => m.resource));
   const otherResources =
     hovered?.resources?.filter((r) => !meteredResourceNames.has(r.n)) ?? [];
 
   return (
-    // Mouse pan/zoom surface only (drag to pan, wheel to zoom): a progressive
-    // enhancement over the keyboard-accessible content, which is the focusable
-    // SVG parts inside (each a <g> with its own focus ring). No semantic role
-    // fits a bare pan canvas, so the interaction stays on the div. The styled.div
-    // this replaced hid it from this a11y lint.
+    // Mouse-only pan/zoom enhancement; keyboard access is via the focusable SVG parts, and no semantic role fits a bare pan canvas.
     // biome-ignore lint/a11y/noStaticElementInteractions: mouse-only pan/zoom enhancement; keyboard access is via the focusable SVG parts
     <div
       ref={wrapperRef}
@@ -203,9 +158,6 @@ export function ShipDiagram({
         cursor: panMoved.current ? "grabbing" : "grab",
       }}
     >
-      {/* TextButton for its :focus-visible ring (identical to the styled
-          ResetButton's); the bordered look is inline. The styled hover also
-          swapped the background, which inline can't express. */}
       <TextButton
         type="button"
         onClick={resetView}
@@ -224,7 +176,7 @@ export function ShipDiagram({
         throttle={throttle}
         onPartHover={setHovered}
         onPartFocus={(_, center) => setMouse(center)}
-        // Only offered when the widget supplied a command surface: a harness / snapshot render passes none, so parts stay non-activating there.
+        // Only with a command surface; a static render passes none.
         onPartActivate={
           onInvokePartAction
             ? (part, anchor) => {
@@ -278,9 +230,7 @@ export function ShipDiagram({
             <span>stage</span>
             <span style={TOOLTIP_ROW_VALUE}>{hovered.stage}</span>
           </div>
-          {/* The WW spec's discoverability line. Mounted only when the widget
-              can actually act, and only for the hovered part: mounting IS the
-              subscription that makes the mod enumerate that part's PAW. */}
+          {/* Mounting is the subscription that makes the mod enumerate the part's PAW, so only for the hovered part. */}
           {onInvokePartAction ? (
             <PartActionCount flightId={hovered.flightId} />
           ) : null}
@@ -288,11 +238,7 @@ export function ShipDiagram({
             <Meter
               key={`meter-${m.resource}`}
               label={m.displayName}
-              /* Handed over as they arrived. A contributor may send the whole
-                 reading, and `Meter` is what marks a held figure and places a
-                 band; minting a bare quantity here would strip both. A
-                 non-positive capacity is the primitive's own case too: it
-                 draws the absent form rather than a full bar. */
+              /* Handed over as they arrived: `Meter` marks a held figure and places a band, which a bare quantity would strip. */
               value={m.amount}
               capacity={m.capacity}
               fillColor={resourceColor(m.resource)}
@@ -335,22 +281,13 @@ export function ShipDiagram({
       )}
 
       {openPart && onInvokePartAction
-        ? // Portalled to the document body, the same mechanism the app's Modal
-          // uses, because the menu has to draw OUTSIDE this widget: the Panel
-          // around it clips with `overflow: hidden`, so on a small tile a menu
-          // taller than the canvas lost its lower items, and the clip sat
-          // outside the menu's own scroll box so nothing could reveal them.
-          // Drawn at the popover rung of the z-index ladder (the same rung the
-          // menu declares for itself in-flow), which clears the dashboard grid
-          // while staying under the FAB column and any modal.
+        ? // Portalled to the body because the Panel clips with overflow hidden, at the popover rung of the z-index ladder.
           createPortal(
             <div
               ref={setMenuHost}
               style={{
                 ...MENU_HOST,
-                // The unmeasured first guess: the anchor plus the same offset
-                // the in-widget version used. The layout effect above replaces
-                // it with the measured, viewport-clamped position before paint.
+                // The unmeasured first guess, replaced by the measured, clamped position before paint.
                 left: menuPos?.left ?? openPart.viewportAnchor.x + 12,
                 top: menuPos?.top ?? openPart.viewportAnchor.y + 12,
               }}
@@ -367,7 +304,7 @@ export function ShipDiagram({
                   )
                 }
                 onDismiss={dismissMenu}
-                // Positioning belongs to the host box now: the menu itself goes back in flow so the host wraps it and can be measured.
+                // The host box positions; the menu goes back in flow so the host can be measured.
                 style={MENU_IN_HOST}
               />
             </div>,
@@ -377,11 +314,6 @@ export function ShipDiagram({
     </div>
   );
 }
-
-// Structural inline styles (CSS-var tokens): a bespoke pan/zoom diagram frame +
-// tooltip, no reusable ui-kit primitive fits, so the layout stays local. The
-// tooltip's `.title` / `.row` / `.row span:last-child` descendant rules lift
-// inline onto each element at the call site.
 
 // `cursor` (grab/grabbing) is applied at the call site from the pan state.
 const WRAPPER: CSSProperties = {
@@ -396,8 +328,7 @@ const RESET_BUTTON: CSSProperties = {
   position: "absolute",
   top: "6px",
   left: "6px",
-  // Off the app z-index ladder: local ordering inside Root, paired with the
-  // Tooltip's 20 below. Only the relative order matters.
+  // Local ordering inside Root, below the Tooltip's 20.
   zIndex: 10,
   fontSize: "var(--font-size-compact)",
   padding: "var(--inset-control)",
@@ -408,20 +339,14 @@ const RESET_BUTTON: CSSProperties = {
   textDecoration: "none",
 };
 
-// The portalled action menu's host box: fixed to the viewport, since its coordinates come from `getBoundingClientRect`, which is viewport-relative.
+// Fixed to the viewport, since the coordinates come from `getBoundingClientRect`.
 const MENU_HOST: CSSProperties = {
   position: "fixed",
-  // The popover rung of the app's ladder, and it has to sit HERE rather than on
-  // the menu: `position: fixed` makes this host its own stacking context, so a
-  // rung declared inside it is trapped there, and any widget's own local
-  // `z-index` (the ship diagram's svg carries 1) then paints over the menu.
-  // Held as the token rather than its value so the ladder stays stated once.
+  // `position: fixed` makes this host its own stacking context, so the rung must sit here or the diagram svg's local z-index paints over the menu.
   zIndex: "var(--z-dropdown)",
 };
 
-// Positioning is the host's job now, and so is the rung. Static rather than the
-// menu's own `absolute` so it stays in the host's flow: an out-of-flow menu
-// would collapse the very box there is to measure.
+// Static, not the menu's own absolute, so it stays in the host's flow and the host can be measured.
 const MENU_IN_HOST: CSSProperties = { position: "static" };
 
 const TOOLTIP: CSSProperties = {
@@ -434,7 +359,7 @@ const TOOLTIP: CSSProperties = {
   borderRadius: "var(--radius-regular)",
   pointerEvents: "none",
   minWidth: "140px",
-  // Off the app z-index ladder: the upper half of the local pair with ResetButton above, both inside Root.
+  // Local pair with ResetButton, both inside Root.
   zIndex: 20,
 };
 
@@ -452,5 +377,4 @@ const TOOLTIP_ROW: CSSProperties = {
   color: "var(--color-text-muted)",
 };
 
-// The `.row span:last-child` highlight, applied to each row's value span.
 const TOOLTIP_ROW_VALUE: CSSProperties = { color: "var(--color-text-primary)" };

@@ -11,21 +11,11 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TargetingComponent } from "./index";
 
 /**
- * Targeting's stream test-adapter proof: genuinely running off the real
- * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport`. The widget derives EVERY scalar/angle it renders
- * client-side from the `vessel.target`/`vessel.dock` Vec3 fields
- * (`tar.relativePosition`/`tar.relativeVelocityVec`/`dock.relativePosition`/
- * `dock.relativeVelocityVec`/`dock.distanceScalar`/`dock.forwardDot`):
- * `vecMagnitude`/`radialSpeed`/`deriveDockAngles` in index.tsx: with no
- * legacy `tar.distance`/`tar.o.relativeVelocity`/`dock.x`/`dock.y`/`dock.ax`/
- * `dock.ay` scalar reads at all, and the docking roll/az axis dropped
- * outright (renders the null-display placeholder). `tar.name` and `tar.type`
- * ride `vessel.target.name` and `vessel.target.kind`; the small
- * `setupMockDataSource` AUX carries their flat keys, which the widget does not
+ * Targeting running off the real stream pipeline via `StubTransport`. Every
+ * scalar and angle is derived client-side from the `vessel.target` and
+ * `vessel.dock` Vec3 fields; docking roll is not on the wire and renders the
+ * null placeholder. The small aux source carries flat keys the widget does not
  * read.
- * The TCA test additionally reads the SDK view-UT via `useViewUt`, the
- * replacement for the dropped `t.universalTime` data key.
  */
 afterEach(() => {
   clearActionHandlers();
@@ -52,15 +42,14 @@ describe("Targeting: genuinely runs off the stream (M3 vessel-gap batch)", () =>
       </fixture.Provider>,
     );
 
-    // Pending, not a confirmed absence: nothing has arrived on the topic yet.
+    // Pending, not a confirmed absence.
     expect(screen.getByText("Waiting for target telemetry")).toBeTruthy();
     expect(fixture.transport.isSubscribed("vessel.target")).toBe(true);
 
     act(() => {
       legacyAux.source.emit("tar.name", "Stream Station");
       legacyAux.source.emit("tar.type", "Vessel");
-      // Magnitude of (6000, 0, 8000) = 10000 m; dot((6000,0,8000),(30,0,40))
-      // = 500000 > 0 -> opening, relVel = 500000 / 10000 = 50.
+      // |(6000, 0, 8000)| = 10000 m; the dot product is positive, so opening at 50 m/s.
       fixture.emit("vessel.target", {
         name: "Stream Station",
         kind: 0,
@@ -100,7 +89,7 @@ describe("Targeting: genuinely runs off the stream (M3 vessel-gap batch)", () =>
     act(() => {
       legacyAux.source.emit("tar.name", "Docking Port Mk2");
       legacyAux.source.emit("tar.type", "Vessel");
-      // Close range (< HUD_ENTER_M) to force docking-hud mode.
+      // Under HUD_ENTER_M, forcing docking-hud mode.
       fixture.emit("vessel.target", {
         name: "Docking Port Mk2",
         kind: 0,
@@ -124,16 +113,9 @@ describe("Targeting: genuinely runs off the stream (M3 vessel-gap batch)", () =>
         }),
       ).toBeTruthy(),
     );
-    // atan2(2, 40) * 180/π ≈ 2.9°; atan2(-1.5, 40) * 180/π ≈ -2.1°; no az
-    // stream field exists at all -> stays the null-display placeholder.
-    // Three separate readouts now: each angle renders through `<Unit>`, so
-    // the row is no longer one text node.
+    // atan2(2, 40) ≈ 2.9° and atan2(-1.5, 40) ≈ -2.1°, each through `<Unit>`; no roll field exists.
     expect(visibleText()).toContain(`2.9° · -2.1° · ${NULL_DISPLAY}`);
-    // vessel.dock.distance (62) headlines the HUD in preference to the
-    // general tar.distance figure.
-    // One decimal: distances go through the shared `length` ladder now,
-    // which is what lets a final-approach gap read "0.4 m" instead of
-    // rounding to "0 m".
+    // The dock distance headlines the HUD, on the `length` ladder.
     expect(visibleText()).toContain("62.0 m");
 
     teardownMockDataSource(legacyAux);
@@ -160,12 +142,7 @@ describe("Targeting: genuinely runs off the stream (M3 vessel-gap batch)", () =>
     );
 
     act(() => {
-      // `tar.name` is itself mapped (-> vessel.target.name, a raw-field
-      // subtopic of the SAME `vessel.target` record `tar.relativePosition`
-      // reads), so this legacy emit is a decoy: once the stream carries a
-      // real `vessel.target` payload, it wins. It stays here, unchanged,
-      // for the rest of the test: proving the widget does NOT fall back
-      // to this stale legacy name once the target is cleared on the wire.
+      // A decoy legacy emit: the widget must not fall back to it once the target is cleared on the wire.
       legacyAux.source.emit("tar.name", "Rendezvous Target");
       legacyAux.source.emit("tar.type", "Vessel");
       fixture.emit("vessel.target", {
@@ -181,7 +158,7 @@ describe("Targeting: genuinely runs off the stream (M3 vessel-gap batch)", () =>
     await waitFor(() => expect(visibleText()).toContain("10.0 km"));
     expect(screen.getByText("Rendezvous Target")).toBeTruthy();
 
-    // Target cleared in KSP: the mod publishes a tombstone (payload: null) for the whole `vessel.target` record, not merely an absent field.
+    // Target cleared: a tombstone for the whole `vessel.target` record.
     act(() => {
       fixture.emit("vessel.target", null);
     });
@@ -192,10 +169,7 @@ describe("Targeting: genuinely runs off the stream (M3 vessel-gap batch)", () =>
       }
       expect(screen.getByText("No target set in KSP")).toBeTruthy();
     });
-    // Must NOT still show the stale distance/name from before the clear,
-    // a real regression here would silently keep rendering "10.0 km" /
-    // "Rendezvous Target" forever (the tombstone read as "not arrived yet"
-    // instead of "confirmed absence", or the stale legacy value winning).
+    // The stale distance and name must not survive the clear.
     expect(screen.queryByText("10.0 km")).toBeNull();
     expect(screen.queryByText("Rendezvous Target")).toBeNull();
 
@@ -203,7 +177,7 @@ describe("Targeting: genuinely runs off the stream (M3 vessel-gap batch)", () =>
   });
 
   it("renders approach-mode TCA from o.closestTgtApprUT and the SDK view-UT", async () => {
-    // pinnedUt fixes the view clock at UT 1000, the value `useViewUt` returns in place of the dropped `t.universalTime` data key.
+    // The pinned view clock is UT 1000.
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.target"],
       pinnedUt: 1000,
@@ -226,12 +200,7 @@ describe("Targeting: genuinely runs off the stream (M3 vessel-gap batch)", () =>
     act(() => {
       legacyAux.source.emit("tar.name", "Rendezvous Target");
       legacyAux.source.emit("tar.type", "Vessel");
-      // 2000 m puts the widget in approach mode (100 m – 5 km); z-only Vec3
-      // so |relPos| = 2000 and the radial rate is −5 (closing). Closest
-      // approach at UT 1125 → 125 s from the pinned view-UT (1000) →
-      // T−2min 5s: now carried inside vessel.target.closestApproach (the
-      // MOD-side IPropagationProvider output) rather than a separate
-      // o.closestTgtApprUT key.
+      // 2000 m is approach mode, closing at 5 m/s; closest approach at UT 1125 is 125 s from the view-UT.
       fixture.emit("vessel.target", {
         name: "Rendezvous Target",
         kind: 0,

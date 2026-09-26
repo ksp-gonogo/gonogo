@@ -9,17 +9,7 @@ interface FabProps
   children: ReactNode;
 }
 
-/**
- * Secondary floating action button. Collapses into invisibility when no
- * FabClusterProvider is active, so the host + and existing FABs appear
- * as a single hoverable cluster. Used for the flight-history, serial,
- * and station-link buttons.
- *
- * When the cluster is active a persistent text label (Material Speed Dial
- * `tooltipOpen` style) slides in to the LEFT of the round button. The label
- * text is derived from `aria-label` (falling back to `title`) and is marked
- * `aria-hidden` since the button already carries the accessible name.
- */
+/** Secondary floating action button, hidden until its FabCluster is active; its visible label comes from `aria-label` or `title`. */
 export function Fab({ bottom, children, ...rest }: Readonly<FabProps>) {
   const cluster = useFabCluster();
   const visible = cluster?.active ?? true;
@@ -48,13 +38,7 @@ export function Fab({ bottom, children, ...rest }: Readonly<FabProps>) {
   );
 }
 
-/**
- * Fixed-position row holding the round button and its label. The row does not
- * move the button: it is the tallest item, so `align-items: center` plus
- * `bottom`-anchoring places its bottom edge at `$bottom` and its right edge at
- * `right: 24px` regardless of the label. The label sits to its left and never
- * affects the button's position.
- */
+/** The button is the row's tallest item, so the label beside it never moves the button. */
 const FabRow = styled.div<{ $visible: boolean; $bottom: number }>`
   position: fixed;
   bottom: calc(${({ $bottom }) => $bottom}px + env(safe-area-inset-bottom, 0px));

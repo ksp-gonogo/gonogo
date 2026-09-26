@@ -5,14 +5,10 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import "./vanillaPoiProvider";
 
 /**
- * What `undefined` MEANS inside the vanilla POI provider today, ahead of
- * `useTelemetry` returning a `Reading`.
- *
- * This module is the one place in MapView that deliberately forwards a
- * three-state answer: `undefined` for "spaceCenter.pois has not arrived",
- * `[]` for "arrived, nothing here". `MapPoiLayer` then renders nothing for
- * either, so the distinction is only observable at this hook's return value,
- * which is what these tests read.
+ * What `undefined` means inside the vanilla POI provider, the one MapView
+ * site forwarding a three-state answer: `undefined` for not arrived, `[]` for
+ * arrived with nothing here. MapPoiLayer renders both as nothing, so this reads
+ * the hook's return value.
  */
 
 function getProvider() {
@@ -23,11 +19,7 @@ function getProvider() {
   return provider;
 }
 
-// Unmount BEFORE clearRegistry() notifies the DataSource-registry subscribers:
-// useTelemetry keeps its legacy subscription wired unconditionally, so clearing
-// on a still-mounted tree is a state update outside act(). Note this file does
-// NOT clear the MapPoi registry, the provider under test registers itself once
-// at module load.
+// Unmount before clearRegistry() notifies subscribers, which would be a state update outside act(). The provider registers itself once, so the MapPoi registry is not cleared.
 const renderedTrees: Array<() => void> = [];
 
 afterEach(() => {
@@ -58,15 +50,11 @@ async function flushFrames(): Promise<void> {
 }
 
 describe("vanillaPoiProvider: what undefined telemetry means today", () => {
-  // ── 1. Nothing has arrived at all ──────────────────────────────────────
-
   it("nothing emitted: undefined is forwarded as undefined, the provider's own PENDING signal", async () => {
     const { result } = renderPois("Kerbin");
     await flushFrames();
 
-    // `raw === undefined ? undefined : []`: the one absence distinction this
-    // file makes, and the only reason MapPoiLayer's `if (!pois)` has two
-    // reachable inputs.
+    // The one absence distinction this file makes.
     expect(result.current).toBeUndefined();
   });
 
@@ -74,13 +62,9 @@ describe("vanillaPoiProvider: what undefined telemetry means today", () => {
     const { result } = renderPois(undefined);
     await flushFrames();
 
-    // `if (!raw || !ctx.bodyId) return raw === undefined ? undefined : []` is
-    // one gate with two conditions and a return that only consults `raw`, so
-    // an absent body cannot produce `[]` while the topic is still pending.
+    // The gate's return consults only `raw`, so an absent body cannot produce `[]` while the topic is pending.
     expect(result.current).toBeUndefined();
   });
-
-  // ── 2. Gates that test for absence ─────────────────────────────────────
 
   it("POIs arrived but the mapped body is undefined: reads as EMPTY, not as pending", async () => {
     const { result, fixture } = renderPois(undefined);
@@ -99,9 +83,7 @@ describe("vanillaPoiProvider: what undefined telemetry means today", () => {
     });
     await flushFrames();
 
-    // The `!ctx.bodyId` half of the gate fires here and the return says `[]`,
-    // so a real POI the operator could act on is reported as "no POIs on this
-    // body" rather than "no body chosen yet".
+    // No body chosen reads as "no POIs on this body".
     expect(result.current).toEqual([]);
   });
 
@@ -121,17 +103,14 @@ describe("vanillaPoiProvider: what undefined telemetry means today", () => {
     });
     await flushFrames();
 
-    // `useBodyNameByIndex` spells the absent body table as `?? []`, giving an
-    // EMPTY index→name map, and the filter then matches nothing. There is no
-    // gate for "the table has not arrived", so the pending state of one topic
-    // is reported as a confirmed fact about another.
+    // An absent body table gives an empty index-to-name map, so one topic's pending state reads as a confirmed fact about another.
     expect(result.current).toEqual([]);
   });
 
   it("a system.bodies entry with no name is dropped from the index, taking its POIs with it", async () => {
     const { result, fixture } = renderPois("Kerbin");
     act(() => {
-      // Body 1 arrived without a name, body 2 named. `if (body.name != null)` silently skips the first, so its POI can never match any bodyId.
+      // Body 1 arrived without a name, so its POI can never match a bodyId.
       fixture.emit("system.bodies", {
         bodies: [{ index: 1 }, { index: 2, name: "Mun" }],
       });
@@ -151,27 +130,20 @@ describe("vanillaPoiProvider: what undefined telemetry means today", () => {
     expect(result.current).toEqual([]);
   });
 
-  // ── 3. null versus undefined: this site DOES distinguish them ──────────
-
   it("a TOMBSTONED spaceCenter.pois reads as EMPTY, not pending: null and undefined mean different things here", async () => {
     const { result, fixture } = renderPois("Kerbin");
     await flushFrames();
     expect(result.current).toBeUndefined();
 
     act(() => {
-      // A confirmed tombstone: the subject says there is no POI record.
+      // A confirmed tombstone.
       fixture.emit("spaceCenter.pois", null);
     });
     await flushFrames();
 
-    // `!raw` is true for null, `raw === undefined` is false, so the tombstone
-    // takes the `[]` branch. This is the CORRECT reading of the two: a
-    // confirmed absence is a load that found nothing. It is the only site
-    // across these three files that gets it this way round.
+    // The tombstone takes the `[]` branch: a confirmed absence is a load that found nothing.
     expect(result.current).toEqual([]);
   });
-
-  // ── 4. A partial payload: the record arrived, a field did not ──────────
 
   it("a POI entry missing any required field vanishes entirely rather than rendering partially", async () => {
     const { result, fixture } = renderPois("Kerbin");
@@ -186,9 +158,7 @@ describe("vanillaPoiProvider: what undefined telemetry means today", () => {
           longitude: -74.7,
           label: "Runway",
         },
-        // Each of these trips one clause of `toMapPoi`'s six-way `== null`
-        // gate. All of them return null and are filtered out, so a partially
-        // populated POI is indistinguishable from one the server never sent.
+        // Each trips one clause of `toMapPoi`'s `== null` gate; a partial POI is indistinguishable from one never sent.
         {
           id: "no-label",
           kind: "ksc",
@@ -241,7 +211,7 @@ describe("vanillaPoiProvider: what undefined telemetry means today", () => {
     });
     await flushFrames();
 
-    // `entry.bodyIndex != null` in the filter: an unplaceable POI reads as "not on this body" rather than as an error or a warning.
+    // An unplaceable POI reads as "not on this body" rather than an error.
     expect(result.current).toEqual([]);
   });
 
@@ -262,10 +232,7 @@ describe("vanillaPoiProvider: what undefined telemetry means today", () => {
     });
     await flushFrames();
 
-    // The `== null` gate covers only the six positional/identity fields, so a
-    // contract whose economics never arrived is still a marker, with its meta
-    // bag's values undefined. MapPoiLayer then filters those rows out of the
-    // hover card, so the operator sees a contract with no terms at all.
+    // The gate covers only positional and identity fields, so a contract with no economics is a marker whose hover card shows no terms.
     expect(result.current).toHaveLength(1);
     expect(result.current?.[0].meta).toEqual({
       agent: undefined,

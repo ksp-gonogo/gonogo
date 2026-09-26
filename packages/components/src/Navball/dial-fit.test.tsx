@@ -8,19 +8,9 @@ import {
 import { NavballComponent } from "./index";
 
 /**
- * The dial is drawn on a MEASURED fit, not on the tile's grid units alone.
- *
- * jsdom lays nothing out, so these drive the widget's own ResizeObserver with
- * the sizes a browser reported: the attitude column each tier actually gets,
- * taken off the render harness. What they pin is the rule, not the pixels.
- *
- * The rule exists because grid units stopped predicting the pixels the moment
- * the SAS/RCS row moved into the body. A 5x8 tile clears `rows >= 6` by two and
- * has 91px of attitude column; the indicator is never shorter than
- * `MIN_DIAL_PX + ATTITUDE_CHROME_PX` = 154, and its wrap centres it, so it
- * painted 31px past both ends of that column and the heading tape landed on the
- * toggles below. The overlap gate is the instrument that sees the paint; this is
- * the one that sees the decision.
+ * The dial is drawn on a measured fit, not on grid units: these feed the
+ * widget's ResizeObserver the attitude-column sizes a browser reported for each
+ * tier, and pin the rule rather than the pixels.
  */
 
 /** The one entry a real observer delivers, shaped as the widget reads it. */
@@ -31,13 +21,7 @@ function entryFor(el: Element, width: number, height: number) {
   } as ResizeObserverEntry;
 }
 
-/**
- * A ResizeObserver that reports one size to every box observed, replacing the
- * no-op `installDomStubs` leaves in place. Held in a module-level list so a
- * test can re-report after a change, which is what proves the dial comes BACK:
- * the widget stops rendering a dial box when the fit says no, so an observer
- * attached to that box would go quiet exactly when it mattered.
- */
+/** A ResizeObserver reporting one size to every box, kept in a list so a test can re-report after a resize. */
 const observers: Array<{ el: Element; cb: ResizeObserverCallback }> = [];
 const pristineObserver = globalThis.ResizeObserver;
 
@@ -100,17 +84,10 @@ function emitAttitude(fixture: StreamFixture): void {
 
 const dial = () => screen.queryByRole("img", { name: "Attitude indicator" });
 
-/**
- * How many LINES the numeric readout lays its three cells out on, read off the
- * DOM rather than off a style: jsdom lays nothing out, so an assertion on
- * `grid-template-columns` would pass against a row that had been handed no
- * width at all. The two presentations differ in their container, so the
- * container is what says which one rendered.
- */
+/** Which presentation the numeric readout rendered, read off its container since jsdom lays nothing out. */
 function readoutShape(): "three-across" | "stacked" | "absent" {
   const hdg = screen.queryByText("HDG");
   if (!hdg) return "absent";
-  // HDG's cell: three-across is a BigReadout carrying the reading with the label as a caption UNDER it, stacked is a label-beside-value pair.
   const row = hdg.parentElement?.parentElement;
   if (!row) throw new Error("readout row not found above the HDG label");
   return getComputedStyle(row).display === "grid" ? "three-across" : "stacked";
@@ -118,16 +95,14 @@ function readoutShape(): "three-across" | "stacked" | "absent" {
 
 describe("Navball dial fit", () => {
   it("draws the dial when the measured column can hold one", () => {
-    // mobile 9x8's column, measured: 318x163. 163 - 74 of indicator chrome
-    // leaves 89, over the 80px floor, and that is the size the ball gets.
+    // mobile 9x8's column: 163 - 74 of indicator chrome leaves 89, over the 80px floor.
     installSizedObserver(318, 163);
     renderAt({ w: 9, h: 8 }, emitAttitude);
     expect(dial()).toHaveAttribute("width", "89");
   });
 
   it("falls back to the numeric readout on a column too short for a legible dial", () => {
-    // wide 5x8's column, measured: 158x91. Clears `rows >= 6` by two rows and
-    // still holds no ball: 91 - 74 = 17.
+    // wide 5x8's column: 91 - 74 = 17, far below a legible ball.
     installSizedObserver(158, 91);
     renderAt({ w: 5, h: 8 }, emitAttitude);
     expect(dial()).not.toBeInTheDocument();
@@ -140,18 +115,13 @@ describe("Navball dial fit", () => {
     installSizedObserver(158, 91);
     renderAt({ w: 5, h: 8 }, emitAttitude);
     expect(dial()).not.toBeInTheDocument();
-    // The measured box is the attitude column, which renders either way, so a
-    // tile that grows is still being observed and the dial can return. Pinned
-    // because measuring the DIAL's own box instead would go quiet here for
-    // good.
+    // The measured box is the attitude column, which renders either way, so the dial can return.
     reportSize(158, 200);
     expect(dial()).toHaveAttribute("width", "116");
   });
 
   it("lays the numeric readout three across once the column can hold three", () => {
-    // full 7x20's column on the control-delay scene, measured: 238x146. Well
-    // over the 158px three-across minimum on width, and 8px short of a ball on
-    // height, so the readout is what draws and it draws on one line.
+    // full 7x20's column: over the 158px three-across minimum, 8px short of a ball.
     installSizedObserver(238, 146);
     renderAt({ w: 7, h: 20 }, emitAttitude);
     expect(dial()).not.toBeInTheDocument();
@@ -159,10 +129,7 @@ describe("Navball dial fit", () => {
   });
 
   it("lays it three across on the 5-column tier the complaint came from", () => {
-    // wide 5x8's column, measured: 158x91. Too short for a ball by 63px, and
-    // this is the tier that was stacking: 158 did not clear the 190 the
-    // threshold used to carry, so all three went on their own lines in a column
-    // that had room for one row of them the whole time.
+    // wide 5x8's column: exactly the 158px three-across minimum.
     installSizedObserver(158, 91);
     renderAt({ w: 5, h: 8 }, emitAttitude);
     expect(dial()).not.toBeInTheDocument();
@@ -170,11 +137,7 @@ describe("Navball dial fit", () => {
   });
 
   it("holds the three-across minimum where the measurement put it", () => {
-    /* The number is measured, so pin both sides of it rather than one: 158 is
-       three readings at their widest (`359`, `-90`, `-180`) plus two
-       `--gap-related` gaps, with the coarse-pointer type bump applied, and a
-       threshold nobody can see the far side of is one that can drift up for
-       free. */
+    // 158 is three readings at their widest plus two gaps on a coarse pointer; both sides are pinned so it cannot drift.
     installSizedObserver(158, 91);
     renderAt({ w: 5, h: 8 }, emitAttitude);
     expect(readoutShape()).toBe("three-across");
@@ -183,15 +146,7 @@ describe("Navball dial fit", () => {
   });
 
   it("stacks all three rather than two-and-one on a column too narrow for three", () => {
-    // tiny 3x4's column, measured: 78px, against a 158px minimum. Half the
-    // width three readings need at any legible size, so this tier keeps the
-    // one-per-line fallback and is the only one that does.
-    //
-    // Three lines and not two is the whole assertion. The wrap this replaces
-    // fitted whatever the width allowed, so the same tile laid out two cells
-    // with the third slung underneath or all three stacked depending on how
-    // many digits the vessel's attitude happened to have: `north-level` got
-    // two-and-one and `gravity-turn-east`, one degree of pitch later, got three.
+    // tiny 3x4's column is 78px; the layout must never depend on how many digits the attitude has.
     installSizedObserver(78, 85);
     renderAt({ w: 3, h: 4 }, emitAttitude);
     expect(readoutShape()).toBe("stacked");
@@ -201,18 +156,12 @@ describe("Navball dial fit", () => {
     installSizedObserver(78, 85);
     renderAt({ w: 3, h: 4 }, emitAttitude);
     expect(readoutShape()).toBe("stacked");
-    /* Same reasoning as the dial coming back: the measured box is the attitude
-       column, which renders either way, so the decision is not sealed by
-       having been taken. */
     reportSize(300, 85);
     expect(readoutShape()).toBe("three-across");
   });
 
   it("reserves the throttle column's width wherever a tile is wide enough for one", () => {
-    /* 5 columns is where the throttle column appears, so its 42px comes off the
-       width whether or not one is on screen: read off `showDial` instead, a
-       width that fits a dial without the column and not with it would add the
-       column, lose the dial, drop the reserve and fit again. */
+    // Reserved by tile width, not by `showDial`, which would otherwise oscillate between fitting and not.
     installSizedObserver(150, 400);
     renderAt({ w: 5, h: 20 }, emitAttitude);
     expect(dial()).toHaveAttribute("width", "108");

@@ -9,27 +9,14 @@ import { getWidget } from "../../scripts/widgets";
 import { stripVolatile } from "../test/widgetDomSnapshot";
 import rotors from "./__fixtures__/rotors.json";
 import unavailable from "./__fixtures__/rotors-dlc-absent.json";
-// Side-effect import: the widget self-registers on module load, and `renderWidget` looks it up by id rather than importing the component.
+// Side-effect import: the widget self-registers on module load.
 import "./index";
 
 /**
- * DOM-snapshot regression tests for RotorTachometer.
- *
- * `index.tsx` reads `robotics.servos`/`robotics.available` canonically off the
- * stream (`useTelemetry`), with NO legacy fallback: so the shared
- * `snapshotWidgetMode` helper (which feeds a legacy `MockDataSource`) can't
- * reach it. This file builds its own per-fixture stream render instead,
- * emitting the fixture's `robotics.servos` array verbatim and its bare
- * `robotics.available` boolean reshaped onto the wire `{ available }` record.
- *
- * If the widget output intentionally changes, regenerate with
- * `pnpm --filter @ksp-gonogo/components exec vitest run src/RotorTachometer/snapshots -u`.
+ * DOM snapshots of RotorTachometer off the stream, one per fixture; the bare `robotics.available` boolean is reshaped onto the wire `{ available }` record.
+ * Regenerate an intended change with `pnpm --filter @ksp-gonogo/components exec vitest run src/RotorTachometer/snapshots -u`.
  */
-/**
- * A fixture may carry either presence fact, or neither. The DLC-absent scenes
- * withhold `robotics.available` on purpose, because without the expansion the
- * Uplink never emits on that channel at all, and carry `game.dlc` instead.
- */
+/** Without the expansion the Uplink never emits `robotics.available`, so the DLC-absent scenes carry `game.dlc` instead. */
 interface RotorFixture {
   "robotics.available"?: boolean;
   "game.dlc"?: { breakingGround: boolean; makingHistory: boolean };
@@ -68,9 +55,7 @@ async function snapshotStream(
   });
 
   act(() => {
-    /* Each presence fact is emitted only when the fixture carries it, so a
-       scene that withholds one is rendered with it genuinely absent rather
-       than with an `undefined` pushed onto the channel. */
+    // A presence fact the fixture withholds stays genuinely absent, never an emitted `undefined`.
     const availability = fixture["robotics.available"];
     if (availability !== undefined) {
       streamFixture.emit("robotics.available", { available: availability });

@@ -29,43 +29,24 @@ const topics = defineTopicManifest({
   ],
 });
 
-// Empty config: room to add a "hide heat shield" toggle later.
 type ThermalStatusConfig = Record<string, never>;
 
-// Readings near absolute zero (~2 K) stand in for "no real value", typically
-// when the corresponding part isn't fitted (e.g. early-career rocket with no
-// thermometer or heat shield) or the science instrument hasn't been unlocked
-// yet. Treat anything below this threshold as "no data" rather than rendering
-// bogus CRITICAL bars. 50 K is well below any operational KSP part max (parts
-// melt at thousands of K) and well below any meaningful in-game temperature.
-//
-// ONE threshold, because `vessel.thermal` is uniformly Kelvin. A Celsius twin
-// beside it is what hides a unit error: `hottestPart.skinTemp` is Kelvin on the
-// contract, and read as Celsius it renders ~273° high while its own guard
-// (< −223 °C) can never fire on a kelvin sentinel. One unit on the channel
-// removes the choice.
+// Readings below 50 K are KSP's placeholder for an unfitted part, not a real temperature; the whole channel is Kelvin.
 const THERMAL_SENTINEL_K = 50;
 
 const isSentinelK = (k: number | undefined): boolean =>
   typeof k === "number" && Number.isFinite(k) && k < THERMAL_SENTINEL_K;
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 /**
- * Thermal severity bands. Mirrors KSP's in-game thermal overlay:
+ * Thermal severity bands, mirroring KSP's thermal overlay:
  * - nominal   < 75% max
- * - warm      75–90%
- * - hot       90–97%
- * - critical  ≥ 97% (overheat imminent)
+ * - warm      75-90%
+ * - hot       90-97%
+ * - critical  >= 97% (overheat imminent)
  */
 type Band = "unknown" | "nominal" | "warm" | "hot" | "critical";
 
-/**
- * `unknown` exists so an unarrived ratio never answers "nominal". A green
- * NOMINAL pill is a positive claim that nothing is overheating, and an absent
- * ratio is not evidence of that: collapsed onto `nominal` it reads identically
- * to a part measured at 40% of its maximum.
- */
+/** An absent ratio is `unknown`, never `nominal`: a green pill is a positive claim that nothing is overheating. */
 function bandFromRatio(ratio: number | undefined): Band {
   if (ratio === undefined || !Number.isFinite(ratio)) return "unknown";
   if (ratio >= 0.97) return "critical";
@@ -74,10 +55,7 @@ function bandFromRatio(ratio: number | undefined): Band {
   return "nominal";
 }
 
-// Heat escalation: green → yellow → orange → red, and warm and hot are
-// DIFFERENT colours. Mapped to one orange, an operator at 94% sees the same
-// colour as at 80% and cannot tell they are approaching critical. The
-// yellow/orange split gives a visible step at the 90% gate.
+// Warm and hot are different colours so the 90% step is visible.
 const BAND_COLOR: Record<Band, string> = {
   unknown: "var(--color-text-faint)",
   nominal: "var(--color-accent-fg)",
@@ -98,20 +76,13 @@ const BAND_TONE: Record<Band, ReadoutTone> = {
   // Neutral, not `go`: a green pill would be the very claim this band exists to stop the widget making.
   unknown: "default",
   nominal: "go",
-  // `warm` keeps `warning` tone for the StatusPill / inline alert layer
-  // even though its bar colour is yellow, the alert taxonomy stays
-  // binary (go/warning/alert) while the colour gradient is finer.
+  // The alert taxonomy stays go/warning/alert while the bar colour gradient is finer.
   warm: "warning",
   hot: "warning",
   critical: "alert",
 };
 
-/**
- * Used only to pick the worst of two bands for the summary pill. `unknown` sits
- * below `nominal` so any real measurement wins the pill: reporting a known warm
- * part matters more than reporting that a second reading is missing, and the
- * per-row band tags say which one is unknown.
- */
+/** Ranks bands for the summary pill; `unknown` ranks lowest so any real measurement wins. */
 const BAND_RANK: Record<Band, number> = {
   unknown: -1,
   nominal: 0,
@@ -120,10 +91,7 @@ const BAND_RANK: Record<Band, number> = {
   critical: 3,
 };
 
-// Takes Kelvin (what the channel carries) and shows Celsius (what an operator
-// reads). The conversion is a presentation choice made here, via the shared
-// unit layer, rather than something the wire pre-applies: see the note on
-// `Units.Kelvin` in the contract.
+// Takes Kelvin from the channel and shows Celsius.
 function Temp({ kelvin }: { kelvin: number | undefined }) {
   if (kelvin === undefined || !Number.isFinite(kelvin)) return NULL_DISPLAY;
   return (
@@ -136,15 +104,7 @@ function Temp({ kelvin }: { kelvin: number | undefined }) {
   );
 }
 
-/**
- * A temperature over its rated maximum, the figure a thermal meter carries.
- *
- * The temperature is drawn through its reading, so one held over from a record
- * that stopped arriving is marked as such. The maximum is a rating of the part
- * and is drawn as a plain figure, so the phrase carries one mark rather than
- * two. A half the sentinel guard dropped arrives as `undefined` and draws the
- * null token.
- */
+/** A temperature over its rated maximum; only the temperature is drawn as a reading, the maximum is a plain rating. */
 function TempOverMax({
   temp,
   max,
@@ -183,39 +143,16 @@ function TempReading({
   );
 }
 
-// Heat-shield flux arrives in kW and climbs to MW at reentry peak. Both rungs
-// live in the shared `energyRate` ladder.
 function Flux({ kw }: { kw: number | undefined }) {
   if (kw === undefined || !Number.isFinite(kw)) return NULL_DISPLAY;
   return <Unit value={value("kW", kw)} />;
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 function ThermalStatusComponent({
   w,
   h,
 }: Readonly<ComponentProps<ThermalStatusConfig>>) {
-  // ONE read of the record, then fields off it. This was ten separate
-  // `useTelemetry("vessel.thermal")` calls, one per field, which is ten
-  // subscriptions and ten reads of the same memoized record for one payload,
-  // and would shortly have been ten branches on the same currency. A record is
-  // read once and destructured; nothing about these ten fields can disagree
-  // about how current it is, so nothing should ask ten times.
-  /**
-   * The BAND TAGS and the summary pill are judgements: each converts a
-   * temperature ratio into "nominal" or "critical", and none of them can be
-   * dated, because the operator reads a band as the situation now. So a stale
-   * record lands them on the `unknown` band rather than on a green one.
-   *
-   * <p>The temperatures themselves are not judgements. The heat-shield
-   * temperature and flux, the hottest part's name and its skin figures are
-   * MEASUREMENTS, and a measurement can be dated: an operator who has lost the
-   * link during re-entry is better served by the last heat-shield reading,
-   * marked, than by a panel that has thrown it away. So the record is held and
-   * only the ratios and the overheat flag are withheld, which is what
-   * `datedJudgements` does.</p>
-   */
+  // Temperatures are measurements and survive a stale record, dated; the bands are judgements about now and drop to `unknown`.
   const thermalReading = topics.useTelemetry("vessel.thermal");
   const thermal =
     thermalReading.state === "observed" || thermalReading.state === "stale"
@@ -235,18 +172,7 @@ function ThermalStatusComponent({
   const rawShieldTempK = thermal?.heatShieldTemp;
   const rawShieldFluxKw = thermal?.heatShieldFlux;
 
-  // Connectivity indicator (mirroring the WarpControl pilot).
-  // `therm.hottestPartTemp` is the widget's one representative MAPPED key
-  // (-> `vessel.thermal.hottestPart.skinTemp`). The heat-shield rows are
-  // mapped too (`vessel.thermal.heatShieldTemp`/`heatShieldFlux`), but
-  // the engine rows still read GAPPED keys (map-topic.ts's
-  // LEGACY_KEY_GAPS "thermal detail beyond headline ratios") and stay on
-  // legacy regardless, so a single representative mapped key drives this badge
-  // rather than conflating "stream carried" with "legacy connected".
-
-  // Sentinel guard: drop the whole group when its max (or temp) is at the
-  // absolute-zero floor. The ratio is meaningless in that case and rendering
-  // it lights up CRITICAL on a rocket with no thermometer / engine fitted.
+  // A group whose temperature or max sits at the sentinel floor is dropped whole, or it lights up CRITICAL with no part fitted.
   const hottestSentinel =
     isSentinelK(rawHottestMaxK?.magnitude) ||
     isSentinelK(rawHottestTempK?.magnitude);
@@ -264,11 +190,7 @@ function ThermalStatusComponent({
   // anyEnginesOverheating is independent telemetry, but it's nonsense if no engine is fitted at all, so honour the same guard.
   const engineOverheat = engineSentinel ? undefined : rawEngineOverheat;
 
-  /*
-   * The same fields as readings, for what the meters draw: each still carries
-   * whether it is current, so a held temperature or fill is marked by the
-   * meter rather than drawn as now. `null` is the sentinel guard's verdict.
-   */
+  // `null` is the sentinel guard's verdict; otherwise the meters draw readings so a held value is marked.
   const hottestRatioReading = hottestSentinel
     ? null
     : thermalReading.maxInternalTempRatio;
@@ -291,13 +213,6 @@ function ThermalStatusComponent({
   const shieldTempK = shieldSentinel ? undefined : rawShieldTempK;
   const shieldFluxKw = shieldSentinel ? undefined : rawShieldFluxKw;
 
-  /* The judgements, and only the judgements, are withheld once the record stops
-     arriving. A band is read as the situation NOW, and a craft that has since
-     flown deeper into re-entry would keep showing "nominal" for as long as the
-     link stayed down, so feeding the ratios through drops both bands to
-     `unknown` exactly as a never-read ratio does. The temperatures they were
-     derived from are still drawn, dated, because a dated measurement is the
-     operator's best information and a blank one is nothing at all. */
   const hottestBand = thermalNotCurrent
     ? bandFromRatio(undefined)
     : bandFromRatio(hottestRatio?.magnitude);
@@ -312,15 +227,7 @@ function ThermalStatusComponent({
     BAND_RANK[engineBand] > BAND_RANK[hottestBand] ? engineBand : hottestBand;
   const anyCritical = worstBand === "critical";
 
-  /**
-   * "No thermal data" replaces the whole body, so it has to mean that nothing at
-   * all is known, not that the four named fields are missing.
-   *
-   * Checking only the names and temperatures makes a payload carrying a
-   * `maxInternalTempRatio` of 0.99 and nothing else render "No thermal data": a
-   * part at 99% of its maximum, present on the wire, suppressed by the absence
-   * of readings around it. The ratios and the overheat flag are readings too.
-   */
+  // The ratios and the overheat flag are readings too, so any one of them present means there is data.
   const noData =
     hottestName === undefined &&
     hottestTempK === undefined &&
@@ -338,21 +245,10 @@ function ThermalStatusComponent({
   const showEngineRow = rows >= 6;
   const hasShieldData = shieldTempK !== undefined || shieldFluxKw !== undefined;
   const showShieldRow = rows >= 7 && hasShieldData;
-  // Inline alert fires at hot (90-97%) and critical (≥97%), the
-  // hot band is the "still time to act" warning; without an alert at
-  // 94% the operator only got the colour change in the bar and a
-  // small "hot" tag, no headline cue. Critical keeps the louder
-  // wording and aria-live.
+  // The inline alert fires from hot, the band that still leaves time to act.
   const anyHotOrAbove = worstBand === "hot" || worstBand === "critical";
   const showInlineAlert = anyHotOrAbove && cols >= 6;
 
-  /*
-   * Only "none reported" empties the panel now. A record that has merely stopped
-   * arriving still has every temperature in it, so replacing the body with a
-   * sentence threw away the heat-shield reading an operator who has just lost
-   * the link most wants. That case gets a dated caption over a live body
-   * instead, and the bands above have already dropped to `unknown`.
-   */
   const absence = noData ? "No thermal data" : null;
 
   return (
@@ -389,9 +285,7 @@ function ThermalStatusComponent({
             </div>
           </Section>
         ),
-        /* No `ScrollArea` around the rows. Panel's body IS the scroller and
-           owns the glow, so a second one here drew its glow inside the outer
-           body's inset, which is the case the kit's own doc comment names. */
+        /* No ScrollArea here: Panel's body is already the scroller. */
         absence === null &&
           (showHottestRow || showEngineRow || showShieldRow) && (
             <Section key="rows" full>
@@ -463,8 +357,6 @@ function ThermalStatusComponent({
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
 const PILL_ROW_STYLE = {
   display: "flex",
   flexWrap: "wrap",
@@ -472,21 +364,7 @@ const PILL_ROW_STYLE = {
   gap: "var(--gap-related)",
 } as const;
 
-/*
- * The shared StatusPill sizes itself to its label at a fixed padding, fine
- * everywhere it is used except this widget's narrowest pill-only mode (minSize
- * is 3 columns wide), where "CRITICAL" does not fit and overflows past the
- * panel's right edge under Panel's overflow:hidden. `minWidth: 0` lets the flex
- * item shrink below its intrinsic content width, which the flexbox default of
- * `auto` blocks; the tighter padding and letter-spacing buy back room so common
- * labels still render whole, and the ellipsis is a legible fallback.
- *
- * The padding pair is off the spacing grid: the only meaning those numbers
- * carry is their delta from the base StatusPill, whose own padding is
- * --inset-pill. The nearest grid steps either erase the tightening or erase
- * the delta outright, so the pair stays literal until it is retuned against
- * the base in one edit across both packages.
- */
+/* `minWidth: 0` lets the pill shrink so "CRITICAL" ellipsises instead of overflowing at the 3-column minimum; the padding is deliberately tighter than the base StatusPill. */
 const COMPACT_PILL_STYLE = {
   minWidth: 0,
   maxWidth: "100%",
@@ -503,22 +381,10 @@ const CRITICAL_NOTE_STYLE = {
   letterSpacing: "0.04em",
 } as const;
 
-/*
- * The space between consecutive readout groups, owned by the parent so a group
- * that does not render leaves no gap behind it.
- *
- * 10px rather than the 8px it reads as: each group is a `Section`, and the
- * `Section` around them contributes its own 2px on top. The two numbers were
- * never added up while the spacing lived on the groups themselves.
- */
+// Owned by the parent so a group that does not render leaves no gap.
 const READOUT_GROUPS_STYLE = { gap: "var(--gap-readout-groups)" } as const;
 
-/*
- * Label and band badge share the row's top line so the band reads as a
- * top-right badge and the value readout below stays short. At the narrowest
- * sizes the readout no longer wraps the band tag onto a second line that then
- * gets clipped.
- */
+// Label and band badge share the top line so the band reads as a top-right badge.
 const ROW_HEADER_STYLE = {
   display: "flex",
   alignItems: "baseline",
@@ -572,8 +438,6 @@ function bandTagStyle(band: Band) {
     color: BAND_COLOR[band],
   } as const;
 }
-
-// ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<ThermalStatusConfig>({
   id: "thermal-status",

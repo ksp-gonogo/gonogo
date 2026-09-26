@@ -21,15 +21,6 @@ import {
   SpaceCenterStatusComponent,
 } from "./index";
 
-/**
- * Every value this widget reads is canonical: `career.status`
- * (`?.economy?.funds`), `career.facilities`, `spaceCenter.scene`
- * (`?.scene`/`?.launchSite`) and the derived `spaceCenter.state` channel (pad
- * occupancy off `spaceCenter.launchSites`), so every assertion drives real
- * stream emits through `setupStreamFixture`. The upgrade spend is canonical
- * too: `career.facility.upgrade` is a mapped command and the arm-then-confirm
- * case reads it off `transport.sentCommands`.
- */
 const CARRIED = [
   "career.status",
   "career.facilities",
@@ -51,9 +42,7 @@ describe("SpaceCenterStatusComponent", () => {
   function renderWidget(id = "ksc") {
     return render(
       <stream.Provider>
-        {/* The identity the dashboard supplies: `Panel` completes
-            `${componentId}.${segment}` from it for the universal
-            `sections` and `actions` seams. */}
+        {/* `Panel` completes `${componentId}.${segment}` from this identity for the `sections` and `actions` seams. */}
         <WidgetMetaContext.Provider
           value={{ componentId: "space-center-status", contributionSlots: [] }}
         >
@@ -73,8 +62,7 @@ describe("SpaceCenterStatusComponent", () => {
   it("renders the panel title and an unknown pad line before any telemetry", () => {
     renderWidget();
     expect(screen.getByText(/SPACE CENTER/i)).toBeInTheDocument();
-    // Not "No vehicle on pad": that is a claim about the pad, and this line is
-    // announced through aria-live. Nothing has said anything about the pad yet.
+    // Nothing has said anything about the pad yet, so no claim about it.
     expect(screen.getByText(/Pad state unknown/i)).toBeInTheDocument();
     expect(screen.queryByText(/No vehicle on pad/i)).toBeNull();
   });
@@ -82,10 +70,7 @@ describe("SpaceCenterStatusComponent", () => {
   it("shows facility tiers when telemetry arrives", async () => {
     renderWidget();
     act(() => {
-      // The wire's enum-keyed currentTier/maxTier is 0-based (KSP's
-      // GetFacilityLevelCount is "upgrades available", not total tiers), so a
-      // 3-tier building arrives as {currentTier: 0..2, maxTier: 2}. Widget
-      // renders 1-indexed: `(tier+1) / (max+1)`.
+      // Tiers are 0-based on the wire; the widget renders `(tier+1) / (max+1)`.
       stream.emit("career.facilities", {
         facilities: {
           LaunchPad: { currentTier: 1, maxTier: 2 },
@@ -99,9 +84,6 @@ describe("SpaceCenterStatusComponent", () => {
         tech: null,
       });
     });
-    // launchPad: tier 2 of 3, vab: tier 3 of 3 (at max). The tier value
-    // exposes an accessible label so we assert on that rather than
-    // walking the DOM to stitch the split "2 / 3" spans back together.
     expect(
       await screen.findByLabelText("Launch Pad tier 2 of 3"),
     ).toBeInTheDocument();
@@ -234,31 +216,13 @@ describe("SpaceCenterStatusComponent", () => {
     expect((upgradeButtons[0] as HTMLButtonElement).disabled).toBe(true);
   });
 
-  // Augment slot: the widget exposes
-  // `space-center-status.sections` (body, appended to the facility list). With
-  // no augment registered the slot renders nothing and the widget is
-  // unchanged; once an augment binds it its component appears in the widget's
-  // space.
   it("renders with an empty augment slot when nothing is registered", () => {
     const { container } = renderWidget();
     expect(screen.getByText(/SPACE CENTER/i)).toBeInTheDocument();
     expect(container.textContent).not.toContain("LS DEPOT");
   });
 
-  /**
-   * The only registration in this file, and it is deliberately LAST.
-   *
-   * There is no `afterEach(clearAugments)` here on purpose. Clearing the
-   * registry fires `useSyncExternalStore` subscribers while the tree is still
-   * mounted, and every one of those updates lands outside `act`: it was worth
-   * 18 act warnings across all 16 tests, measured, and removing it took them to
-   * 0 with all 16 still passing. Nothing needed the clear, because the
-   * empty-slot case above runs BEFORE this one and the registry does not
-   * outlive the file (vitest isolates per file).
-   *
-   * So the ordering IS load-bearing now: a test added AFTER this one that
-   * expects an empty slot would see this augment. Add it above, not below.
-   */
+  /** Registers an augment with no clear afterwards, so a test expecting an empty slot must go ABOVE this one. */
   it("renders an augment bound to the sections slot", () => {
     registerAugment({
       id: "test-ksc-section",
@@ -286,16 +250,7 @@ describe("parseFacilityLevels", () => {
       : { upgradeCost: value("funds", upgradeCost) }),
   });
 
-  /**
-   * The short-code table has to cover KSP's whole `SpaceCenterFacility` enum.
-   *
-   * The abbreviations are ours, so the pairing is written down; the enum side is
-   * not, so this is what catches a rename or an addition. Before the ordinal
-   * existed the wire's map KEY was matched against a nine-entry name table and a
-   * key that missed was `continue`d past, so a renamed facility did not error,
-   * did not warn, and simply stopped being displayed. Nothing in the tree would
-   * have caught that.
-   */
+  /** The short-code table covers KSP's whole `SpaceCenterFacility` enum, so a rename or addition is caught. */
   it("facilityOrdinalTableIsComplete: every SpaceCenterFacility member has a short code", () => {
     const members = [...KSP_SPACE_CENTER_FACILITY_NAMES.keys()].sort(
       (a, b) => a - b,
@@ -311,10 +266,7 @@ describe("parseFacilityLevels", () => {
     expect(extra).toEqual([]);
   });
 
-  /**
-   * A facility identified by its ORDINAL, arriving under a map key this build
-   * has never seen. It is still displayed, under the right short code.
-   */
+  /** A facility arriving under an unseen map key is still displayed, via its ordinal. */
   it("resolves a facility from its ordinal, not from the map key", () => {
     const parsed = parseFacilityLevels({
       // What a future KSP might rename VehicleAssemblyBuilding to.
@@ -335,9 +287,7 @@ describe("parseFacilityLevels", () => {
   });
 
   it("returns an empty object for non-object input", () => {
-    /* The two ways "no facilities" actually arrives: the channel carries the
-       key with nothing under it, or `BuildFacilities` returned null for the
-       whole group because the capture had none. */
+    // The two ways "no facilities" arrives: an empty key, or a null group.
     expect(parseFacilityLevels(undefined)).toEqual({});
     expect(parseFacilityLevels(null)).toEqual({});
   });
@@ -345,15 +295,13 @@ describe("parseFacilityLevels", () => {
   it("retains valid facility entries and drops malformed ones", () => {
     const parsed = parseFacilityLevels({
       VehicleAssemblyBuilding: tier(1, 3, 75000),
-      /* Half an answer is not an answer: both ends have to read or the
-         building is not carried, because a building that said nothing is not
-         a building at tier 0. */
+      // Both tiers have to read or the building is not carried.
       MissionControl: { currentTier: value("count", 1) },
       // Neither an ordinal nor a name this build knows.
       Cafeteria: tier(1, 3),
       LaunchPad: tier(0, 3),
     });
-    // Tier text has no stock equivalent, so it is empty for every entry off this channel; a career model that has its own contributes it instead.
+    // Tier text has no stock equivalent, so it is empty for every entry off this channel.
     expect(parsed).toEqual({
       vab: {
         level: 1,
@@ -372,13 +320,7 @@ describe("parseFacilityLevels", () => {
     });
   });
 
-  /**
-   * The shape the widget used to accept and nothing has ever sent.
-   * `CareerFacility` declares `facilityOrdinal`, `currentTier`, `maxTier` and
-   * `upgradeCost`, and `CareerViewProvider.BuildFacilities` emits those four and
-   * nothing else, so a `level`/`max`/`upgradeFunds` entry keyed by one of this
-   * widget's own short codes cannot arrive. It is not carried.
-   */
+  /** A `level`/`max`/`upgradeFunds` entry keyed by a short code is not the contract's shape and is not carried. */
   it("does not admit a shape the contract cannot express", () => {
     expect(
       parseFacilityLevels({

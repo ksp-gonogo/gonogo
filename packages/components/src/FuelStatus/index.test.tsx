@@ -22,24 +22,10 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FuelStatusComponent } from "./index";
 
 /**
- * FuelStatus runs genuinely off the real `TelemetryProvider`/`TelemetryClient`/
- * `TimelineStore` pipeline via `StubTransport`: every read is canonical
- * (`useTelemetry`/`useStream`), with no legacy `DataSource` anywhere:
- * - `v.currentStage` -> `vessel.structure.currentStage`
- * - `dv.stageCount`/`dv.totalDV*`/`dv.totalBurnTime` -> `dv.summary.*`
- * - `dv.stages` -> the whole `dv.stages` topic (new `StageDeltaVEntry` shape;
- *   `parseStages` reconciles it with the legacy `StageInfo` field names, so
- *   these fixtures keep emitting the legacy names as a shape-tolerance proof)
- * - vessel-total resources (RCS/Xe/Power) -> `vessel.resources`
- * - stage-scoped resources (LiquidFuel/Oxidizer) -> the derived
- *   `dv.currentStageResource`/`dv.currentStageResourceMax` channels
- *   (`dv-stage-resources.ts`), registered on the fixture store below since a
- *   `providedStore` doesn't auto-register the production derived channels.
+ * FuelStatus off the real stream pipeline. The `dv.stages` fixtures here emit the legacy `StageInfo` field names on purpose, as a shape-tolerance proof, and the stage-scoped resource channels are registered on the fixture store because a `providedStore` does not register the production derived channels.
  */
 
-// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// augment registry: clearAugments() firing on a still-mounted AugmentSlot is
-// a state update outside act() (CLAUDE.md → Testing Philosophy).
+// Tracked so afterEach unmounts them before clearing the augment registry; clearing under a mounted AugmentSlot is an update outside act().
 const renderedTrees: Array<() => void> = [];
 
 function render(ui: ReactElement) {
@@ -67,7 +53,6 @@ function makeFixture() {
     pinnedUt: 10,
     suspendFrames: true,
   });
-  // A providedStore doesn't inherit the production derived-channel set, so the stage-scoped resource channels this widget reads must be registered here.
   fixture.store.registerDerivedChannel(dvCurrentStageResourceChannel);
   fixture.store.registerDerivedChannel(dvCurrentStageResourceMaxChannel);
   return fixture;
@@ -79,9 +64,7 @@ function renderFuel(
 ) {
   return render(
     <fixture.Provider>
-      {/* The identity the dashboard supplies: `Panel` completes
-          `${componentId}.${segment}` from it for the universal
-          `sections` and `actions` seams. */}
+      {/* `Panel` completes `${componentId}.${segment}` from this identity for the `sections` and `actions` seams. */}
       <WidgetMetaContext.Provider
         value={{ componentId: "fuel-status", contributionSlots: [] }}
       >
@@ -93,8 +76,7 @@ function renderFuel(
   );
 }
 
-/** A `dv.stages` entry carrying a per-stage resource breakdown, the shape the
- * `dv.currentStageResource(Max)` derivation reads. */
+/** A `dv.stages` entry carrying the per-stage resource breakdown that the `dv.currentStageResource(Max)` derivation reads. */
 function stageWithResources(
   stage: number,
   resources: Record<string, { current: number; max: number }>,
@@ -129,8 +111,7 @@ describe("FuelStatusComponent", () => {
 
     act(() => {
       fixture.emit("vessel.structure", { currentStage: 0 });
-      // LiquidFuel + Oxidizer are stage-scoped, carried on the active stage's
-      // slice of dv.stages. RCS and friends stay absent (no vessel.resources).
+      // LiquidFuel and Oxidizer are stage-scoped, carried on the active stage's slice of dv.stages; RCS and friends stay absent.
       fixture.emit("dv.stages", [
         stageWithResources(0, {
           LiquidFuel: { current: 600, max: 1200 },
@@ -139,7 +120,7 @@ describe("FuelStatusComponent", () => {
       ]);
     });
 
-    // 600/1200 on LF → a half-full meter.
+    // 600/1200 on LF is a half-full meter.
     const lf = await screen.findByRole("meter", {
       name: "Liquid Fuel · stage",
     });
@@ -147,7 +128,7 @@ describe("FuelStatusComponent", () => {
     expect(
       screen.getByRole("meter", { name: "Oxidizer · stage" }),
     ).toBeInTheDocument();
-    // RCS / Xenon / Power are not reported at all → rows hidden.
+    // RCS, Xenon and Power are not reported at all, so their rows are hidden.
     expect(screen.queryByRole("meter", { name: /^RCS/ })).toBeNull();
     expect(screen.queryByRole("meter", { name: /^Xenon/ })).toBeNull();
     expect(screen.queryByRole("meter", { name: /^Power/ })).toBeNull();
@@ -253,9 +234,6 @@ describe("FuelStatusComponent", () => {
     });
   });
 
-  // Regression: at 21:08 BST on 2026-05-17 the widget crashed with
-  // `twr.toFixed is not a function` on a stage row whose TWR/ΔV fields were
-  // null instead of numbers. The crash took the whole widget down.
   it("survives a stage row with non-numeric TWR / ΔV", async () => {
     const fixture = makeFixture();
     const { container } = renderFuel(fixture);
@@ -306,21 +284,14 @@ describe("FuelStatusComponent", () => {
       ]);
     });
 
-    // No error boundary fallback, the panel rendered. The non-numeric stage
-    // falls back to the null-display placeholder rather than crashing (wait
-    // for the stage stack to land off the stream, since the panel title
-    // alone renders before any data).
+    // Wait for the stage stack: the panel title alone renders before any data.
     await waitFor(() =>
       expect(
         screen.queryAllByText(new RegExp(`TWR\\s+${NULL_DISPLAY}`)).length,
       ).toBeGreaterThan(0),
     );
     expect(visibleText(container)).toContain("FUEL · ΔV");
-    // The stage's ΔV is a BARE placeholder, where this used to look for the
-    // placeholder followed by "m/s". `<Unit>` renders no symbol beside an
-    // absent value on purpose: a null with a unit after it claims a reading
-    // in metres per second that was never taken. The column header still
-    // says what the column is.
+    // A bare placeholder: `<Unit>` draws no symbol beside an absent value, since a null followed by "m/s" claims a reading that was never taken.
     expect(screen.queryAllByText(NULL_DISPLAY).length).toBeGreaterThan(0);
   });
 
@@ -366,9 +337,7 @@ describe("FuelStatusComponent", () => {
     expect(screen.queryByText("VAC")).not.toBeNull();
     expect(screen.queryByText("2min 5s")).not.toBeNull();
 
-    // Per-stage ΔV picks the vacuum column.
-    // `visibleText`, not `.textContent`: a readout carries a hidden word for
-    // screen readers, so the raw text reads "2500 m/s metres per second".
+    // `visibleText`, not `.textContent`: a readout carries a hidden word for screen readers.
     const stageValueTexts = Array.from(container.querySelectorAll("span")).map(
       (el) => visibleText(el),
     );
@@ -376,9 +345,7 @@ describe("FuelStatusComponent", () => {
     expect(stageValueTexts).toContain("1700 m/s");
   });
 
-  // Augment slot: the widget exposes
-  // `fuel-status.sections` (body). With no augment registered the slot renders
-  // nothing and the widget is unchanged.
+  // With no augment registered the `fuel-status.sections` slot renders nothing.
   it("renders with an empty augment slot when nothing is registered", async () => {
     const fixture = makeFixture();
     const { container } = renderFuel(fixture);

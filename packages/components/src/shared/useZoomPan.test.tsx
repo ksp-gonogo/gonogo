@@ -72,7 +72,6 @@ describe("useZoomPan", () => {
         pointerEvent({ pointerId: 2, clientX: 120, clientY: 50 }, el),
       );
     });
-    // Spread fingers further apart: should zoom in.
     act(() => {
       onPointerMove(
         pointerEvent({ pointerId: 1, clientX: 40, clientY: 50 }, el),
@@ -90,7 +89,6 @@ describe("useZoomPan", () => {
     const before = hook.result.current.cam;
     const sx = 73;
     const sy = 41;
-    // World point under (sx, sy) before the zoom, must remain pinned after.
     const worldX = (sx - before.panX) / before.zoom;
     const worldY = (sy - before.panY) / before.zoom;
 
@@ -100,7 +98,6 @@ describe("useZoomPan", () => {
 
     const after = hook.result.current.cam;
     expect(after.zoom).toBeCloseTo(before.zoom * 2);
-    // Same world point should still sit under (sx, sy).
     expect((sx - after.panX) / after.zoom).toBeCloseTo(worldX);
     expect((sy - after.panY) / after.zoom).toBeCloseTo(worldY);
   });
@@ -148,11 +145,7 @@ describe("useZoomPan", () => {
   });
 });
 
-/**
- * A real DOM element carrying the hook's ref, the way ShipDiagram does, so the
- * native wheel listener is on the node the test dispatches to. `makeEl` above
- * has a no-op `addEventListener` and cannot see this path.
- */
+/** A real element carrying the ref, so the native wheel listener sits on the node the test dispatches to. */
 function WheelHarness() {
   const { ref, cam } = useZoomPan<HTMLDivElement>();
   return <div ref={ref} data-zoom={cam.zoom} />;

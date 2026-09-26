@@ -68,9 +68,8 @@ export const ReadoutCaption = styled.span`
 `;
 
 /**
- * Status pill: single-token badge ("NOMINAL", "GO", "ABORT"). Designed for
- * tiny-mode widgets that boil their state down to one indicator (thermal
- * band, landing hazard grade, gonogo state).
+ * Status pill: single-token badge ("NOMINAL", "GO", "ABORT"), for tiny-mode
+ * widgets that boil their state down to one indicator.
  */
 export const StatusPill = styled.div<{ $tone: ReadoutTone }>`
   ${fitBox("status-pill")}

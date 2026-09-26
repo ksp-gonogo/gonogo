@@ -1,36 +1,14 @@
 /**
- * Presentational "Connect to Mission Control" screen used by the station
- * pre-connection state. Extracted from `@ksp-gonogo/app`'s StationScreen so the
- * exact same markup the operator sees can be driven through the component
- * render-harness at multiple mobile breakpoints, single-source, no
- * probe-only copy that can drift from production.
- *
- * Pure presentational: depends only on `@ksp-gonogo/ui` primitives plus injected
- * slots. The station name editor (which needs app-scoped React context) and
- * the download-logs action arrive as props/slots so this view carries no
- * `@ksp-gonogo/app` dependency, that would be a reverse edge in the workspace
- * graph. State (host input value, connection status) is owned by the caller;
- * the harness exercises the idle / error / reconnecting states purely by
- * varying the props, so no PeerClientService ever has to be mocked.
+ * The station's presentational "Connect to Mission Control" screen, driven through the render harness at mobile breakpoints with the same markup production uses.
+ * The name editor and download-logs action arrive as slots and all state as props, so it carries no `@ksp-gonogo/app` dependency.
  */
 import { StatusIndicator } from "@ksp-gonogo/ui";
 import type { ReactNode } from "react";
-/*
- * Exempted wholesale, on the same grounds the token ladder already exempts this
- * file: it needs a page-scale decision rather than a widget-ladder one.
- *
- * It is a full-page route, not a dashboard widget, and its CSS says so: a
- * viewport-height centred card, safe-area insets on all four sides, phone
- * breakpoints, coarse-pointer tap targets, `::placeholder`, `:disabled` and
- * descendant heading rules. None of that is expressible as a style object, and
- * no ui-kit primitive is page-scale.
- */
+// A full-page route, not a widget: viewport-height layout, safe-area insets, breakpoints, coarse-pointer targets and pseudo-class rules that no style object or page-scale primitive expresses.
 // biome-ignore lint/style/noRestrictedImports: page-scale route, not a widget (see above)
 import styled from "styled-components";
 
-/** Connection lifecycle states surfaced on the connect screen. Mirrors the
- *  `ConnStatus` union the PeerClientService emits: duplicated here as a
- *  plain string union so the view stays free of any app/peer import. */
+/** Connection lifecycle states on the connect screen, mirroring PeerClientService's `ConnStatus` as a plain union so the view imports nothing from the peer layer. */
 export type StationConnStatus =
   | "idle"
   | "connecting"
@@ -45,12 +23,7 @@ export interface StationConnectViewProps {
   connStatus: StationConnStatus;
   /** Broker couldn't resolve the code on the most recent attempt. */
   hostNotFound: boolean;
-  /**
-   * This browser can't reach the PeerJS broker at all. A different fault
-   * from `hostNotFound`, and it wants the opposite advice: nothing about the
-   * code or the main screen is wrong, this device has no route to the
-   * internet service both ends meet on.
-   */
+  /** This browser cannot reach the PeerJS broker at all: unlike `hostNotFound`, nothing about the code is wrong, and the device has no route to the service both ends meet on. */
   brokerUnreachable?: boolean;
   /** This station reached "connected" at least once this session. */
   everConnected: boolean;
@@ -159,9 +132,7 @@ export function describeConnStatus(
   everConnected: boolean,
   brokerUnreachable = false,
 ): string {
-  /* Ranked above hostNotFound: a station that never reached the broker also
-     never learned anything about the host, so "that code isn't there" would
-     be a guess dressed as a finding. */
+  // Ranked above hostNotFound: a station that never reached the broker learned nothing about the host.
   if (brokerUnreachable) {
     return "Can't reach the peer broker: this device needs internet access.";
   }
@@ -191,7 +162,7 @@ export function statusTone(
   brokerUnreachable = false,
 ): "neutral" | "info" | "go" | "nogo" {
   if (brokerUnreachable) return "nogo";
-  // A reclaim window (previously connected) is a transient "info" state, not the hard "nogo" of a wrong/dead code.
+  // A reclaim window after a prior connection is transient info, not the hard nogo of a wrong code.
   if (hostNotFound) return everConnected ? "info" : "nogo";
   switch (status) {
     case "idle":
@@ -206,19 +177,10 @@ export function statusTone(
   }
 }
 
-// Everything below stays off the design-token scales, deliberately, as one
-// decision for the whole file. This is a full-page route rather than a
-// dashboard tile, so it is on a page scale the widget ladders do not model:
-//   - The 40px/48px desktop inset and the 20px/24px inset in the <=480px
-//     block are one choice at two breakpoints, currently in the same 1:1.2
-//     ratio. The map exempts the desktop pair by name and would snap only
-//     the mobile one, giving 16px/24px on phones against 40px/48px on
-//     desktop, which is the opposite of what the media query is for.
-//   - The 20px headings are above the top of the type scale, and the 13px
-//     body copy is deliberately one step larger than the 12px !important
-//     error text below it. --font-size-sm covers both, which would collapse
-//     that distinction and make the !important inert.
-// Migrate this file only alongside a decision about the page scale itself.
+/*
+ * This file stays off the design-token scales as one decision: a full-page route sits on a page scale the widget ladders do not model.
+ * The 40px/48px desktop and 20px/24px phone insets are one choice at two breakpoints, and the 20px headings and 13px body copy (a step above the 12px error text) have no token equivalent.
+ */
 const ConnectLayout = styled.div`
   display: flex;
   align-items: center;

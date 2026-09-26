@@ -11,24 +11,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SpaceCenterStatusComponent } from "./index";
 
 /**
- * The funds rule, in the one place it is now met.
- *
- * The repo rule is that a spend control is never visible without a balance
- * visible in the same WIDGET. `space-center-status.sections` made that rule read
- * as per-SECTION: three RP-1 augments land in this panel, two of them drew their
- * own "Funds" row, and one widget ended up printing the same balance three times
- * under three headings. The operator read the repetition as a defect, and it was
- * one.
- *
- * So the augments dropped their copies, and everything now rests on the host: if
- * this panel can ever mount the sections slot without also drawing a balance,
- * the rule is broken for every augment at once and no augment's own tests can
- * see it. That is what this file holds.
- *
- * The two facts asserted are DIFFERENT KINDS on purpose. Presence of the
- * balance is one; that the augment is on screen at the same moment is the other,
- * because a size at which the sections slot renders nothing would satisfy a
- * presence check while proving nothing at all.
+ * The host draws the one funds balance every contributed section relies on: the
+ * sections slot never mounts without a balance in the same widget, and the
+ * balance is drawn exactly once however many sections contribute.
  */
 
 const CARRIED = [
@@ -67,9 +52,7 @@ function mount(
 ) {
   const { unmount } = render(
     <fixture.Provider>
-      {/* The segment form of the slot completes `${componentId}.sections` from
-          this meta, so a tree without it mounts no augments at all and every
-          assertion below would pass on a widget that never opened the slot. */}
+      {/* The segment form of the slot completes `${componentId}.sections` from this meta; without it no augment mounts. */}
       <WidgetMetaContext.Provider
         value={{ componentId: "space-center-status", contributionSlots: [] }}
       >
@@ -110,12 +93,7 @@ function emitCareer(fixture: ReturnType<typeof setupStreamFixture>): void {
   });
 }
 
-/**
- * Every shape the dashboard can give this widget above its tiny floor: the two
- * squeezed extremes, the compact-grid width, the default, and a wide one. A
- * balance drawn only at the roomy sizes would pass a single-size check and
- * still leave an Uplink's spend control unaccompanied on a narrow screen.
- */
+/** Every shape above the tiny floor, so a balance drawn only at roomy sizes fails. */
 const SIZES: ReadonlyArray<readonly [number, number]> = [
   [5, 4],
   [5, 18],
@@ -135,10 +113,7 @@ describe("SpaceCenterStatus draws the balance wherever a contributed section can
       mount(fixture, `scs-funds-once-${w}x${h}`, w, h);
       emitCareer(fixture);
 
-      // Waited on the BALANCE, asserted on the section: the augment mounts off
-      // the registry and is on screen from the first frame, so waiting on it
-      // would let the balance be checked a tick before the career record lands
-      // and fail every size for a reason that is not the one under test.
+      // Waited on the balance, since the augment is on screen before the career record lands.
       await waitFor(() =>
         expect(screen.getByTitle("Available funds")).toBeTruthy(),
       );
@@ -147,8 +122,6 @@ describe("SpaceCenterStatus draws the balance wherever a contributed section can
   }
 
   it("draws exactly one balance, however many sections contribute", async () => {
-    // The defect itself. Three augments in this slot is the shipped
-    // configuration, and the count is what a second copy shows up in.
     registerAugment({
       id: "funds-once-probe-b",
       augments: "space-center-status.sections",

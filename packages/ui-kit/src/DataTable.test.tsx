@@ -115,7 +115,7 @@ describe("DataTable", () => {
   });
 
   it("puts row detail on its own full-width row, leaving the columns aligned", () => {
-    // The per-row controls case: rendering them inside a cell would widen one column and break the alignment the table exists for.
+    // Per-row controls inside a cell would widen one column and break the alignment.
     render(
       <DataTable
         caption="Science aboard"

@@ -11,7 +11,7 @@ describe("greatCircle", () => {
   it("bears due north when the target is at a higher latitude, same longitude", () => {
     const gc = greatCircle(0, 0, 1, 0, R);
     expect(gc.bearingDeg).toBeCloseTo(0, 3);
-    // 1° of latitude ≈ R * (π/180) metres.
+    // 1 degree of latitude is R * (pi/180) metres.
     expect(gc.distanceMeters).toBeCloseTo(R * (Math.PI / 180), 0);
   });
 

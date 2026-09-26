@@ -15,13 +15,7 @@ import {
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { KeplerPeriodComponent } from "./index";
 
-// The graph's `o.sma`/`o.period` scatter series still ride
-// `useDataSeries("data", ...)` (`@ksp-gonogo/data`) unconditionally, that
-// hook has no stream awareness at all, so a legacy `MockDataSource`
-// registered under "data" is still required for `GraphView` to mount
-// without erroring, even though neither test below emits onto these keys
-// (the dashed reference curve these tests assert on is drawn purely from
-// the resolved `BodyDefinition`, not from streamed samples).
+// GraphView's series read `useDataSeries("data", ...)`, so a "data" source must exist for it to mount.
 const GRAPH_KEYS: DataKey[] = [{ key: "o.sma" }, { key: "o.period" }];
 
 const KEPLER_PERIOD_CHANNELS = [
@@ -30,12 +24,6 @@ const KEPLER_PERIOD_CHANNELS = [
   "system.bodies",
 ];
 
-/**
- * `o.referenceBody`/`v.body` are body indices named against `system.bodies`
- * (see `stream.test.tsx`'s doc comment). There's no legacy fallback, so both tests below mount a real
- * `TelemetryProvider` and feed `vessel.orbit`/`vessel.identity`/
- * `system.bodies` rather than emitting the old legacy keys directly.
- */
 describe("KeplerPeriodComponent", () => {
   let restoreResizeObserver: () => void = () => {};
   let fixture: MockDataSourceFixture;
@@ -124,9 +112,7 @@ describe("KeplerPeriodComponent", () => {
           },
         ],
       });
-      // referenceBodyIndex points at an index `system.bodies` doesn't carry,
-      // so `referenceBodyName` resolves to undefined and the widget falls
-      // back to `parentBodyName`: same precedence `index.tsx` documents.
+      // An unresolvable reference body index falls back to the parent body.
       stream.emit("vessel.orbit", {
         referenceBodyIndex: 999,
         sma: 700000,
@@ -148,14 +134,7 @@ describe("KeplerPeriodComponent", () => {
     });
   });
 
-  /**
-   * The curve is Kepler's third law, so it needs the body's radius (the floor
-   * of the SMA sweep) and its gravitational parameter. Both used to come from a
-   * table of stock bodies keyed by NAME, so under a planet pack the widget said
-   * the body was unknown and drew nothing at all. Rendered rather than run
-   * through `buildPeriodCurve`, which takes the body as an argument and cannot
-   * see where it came from.
-   */
+  // Radius and gravitational parameter come from the streamed roster, so a planet-pack body still draws.
   it("draws the curve for a body the stock table has never heard of", async () => {
     const { container } = renderKepler();
 

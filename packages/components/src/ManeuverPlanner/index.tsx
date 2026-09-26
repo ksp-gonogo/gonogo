@@ -68,21 +68,13 @@ import {
 import type { FrozenPlanInputs, ThresholdOp } from "./triggerTypes";
 import { usePlannerInputs } from "./usePlannerInputs";
 
-// Actions are stubbed at [] for now, the widget is mouse-driven. Hardware
-// bindings (commit from a physical button) can be added later.
 const maneuverActions = [] as const satisfies readonly ActionDefinition[];
 
 /**
- * One whole-widget append slot, a broad escape hatch carrying no per-item
- * datum, so its props are empty. `maneuver-planner.sections` sits below the
- * live preview and feasibility check, for alternate transfer-strategy
- * comparisons such as a porkchop or optimal-transfer Uplink.
- *
- * The slot id and its props type are declaration-merged into core's
- * `SlotRegistry` here rather than in a shared central file, so that
- * `<AugmentSlot>` and `registerAugment` see the precise (empty) prop shape
- * rather than the loose `Record<string, unknown>` an unmerged slot id gets,
- * and so parallel per-widget slot work never collides in one file.
+ * The whole-widget append slot below the preview and feasibility check, for
+ * alternate transfer strategies such as a porkchop or an optimal-transfer
+ * Uplink. Declaration-merged into `SlotRegistry` so the slot carries its exact
+ * empty prop shape.
  */
 export type ManeuverPlannerSectionsSlotProps = Record<string, never>;
 
@@ -93,14 +85,9 @@ declare module "@ksp-gonogo/core" {
 }
 
 /**
- * A measurement this widget can present with its age attached, and whether it
- * needs that label, for a topic the CONTRACT declares reckonable, where the model moves
- * only the named fields.
- *
- * `vessel.target` publishes a relative position a velocity carries forward and,
- * beside it, the target's NAME and its conic elements, which no model moves.
- * Taking `reckoned.value` alone would hand the planner a target with no name and
- * no orbit, so the modelled fields are overlaid on the observation instead.
+ * A reckonable reading's value, and whether it needs an age label. The model
+ * moves only its named fields, so they are overlaid on the observation:
+ * `reckoned.value` alone would be a target with no name and no orbit.
  */
 function dateableReckonable<T, K extends keyof T>(
   reading: ReckonableReading<T, K>,
@@ -108,9 +95,7 @@ function dateableReckonable<T, K extends keyof T>(
   value: T | undefined;
   needsDating: boolean;
 } {
-  /* The state is asked first because `reckoning.status` narrows the reckoning
-     and not the arm carrying it: a nested discriminant says nothing about which
-     state has a value. */
+  // The state is asked first: `reckoning.status` narrows the reckoning, not the arm carrying it.
   if (
     (reading.state === "observed" || reading.state === "stale") &&
     reading.reckoning.status === "available"
@@ -149,78 +134,33 @@ function ManeuverPlannerComponent({
   const [committing, setCommitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Live orbit state: everything we need for the preset math + preview.
-  // Magnitudes, because all of it feeds the solver and the finite-number
-  // readiness checks below, both of which take plain numbers.
-  //
-  // ONE read per record, then fields off it: two currencies that cannot differ
-  // within a frame are branched on once each. Read once, destructure, and the
-  // orbital elements visibly arrive together, which is what they are.
-  /**
-   * A maneuver plan is not an instruction for right now. Unlike a suicide-burn
-   * countdown, whose number IS the instruction and which `LandingStatus` therefore
-   * refuses, a node sits minutes or hours out and the operator reviews it before
-   * committing. A plan computed from elements a few seconds old is still a good
-   * plan, so this widget dates its inputs rather than withholding them.
-   *
-   * `dateableReckonable` overlays the modelled fields on the observation where a
-   * reckoner has one to offer, and an orbit is propagatable, so in the common
-   * case the elements are current rather than dated and `needsDating` is false.
-   * The caption only appears when nothing could model them forward.
-   *
-   * Do NOT compute the age as `viewUt - orbit.epoch`.
-   * `epoch` is the mean-anomaly REFERENCE epoch, not an observation time, so that
-   * difference looks like an age and is not one, and the `ut` token cannot catch it
-   * because both operands are correctly instants. The age comes off the reading's
-   * own `asOfUt`, which is the only thing that knows when the sample was taken.
+  /*
+   * A plan is reviewed before it is committed, so elements a few seconds old
+   * still make a good plan: inputs are dated, never withheld. Never take the age
+   * as `viewUt - orbit.epoch`, since `epoch` is the mean-anomaly reference
+   * epoch, not an observation time; the age comes off the reading's `asOfUt`.
    */
   const orbitReading = useTelemetry("vessel.orbit");
   const targetReading = useTelemetry("vessel.target");
-  /*
-   * `vessel.orbit` carries a mark, so it takes the OVERLAYING read like
-   * `vessel.target` below: the conic moves the phase and says nothing about
-   * the elements, and `reckoned.value` alone is not an orbit.
-   */
   const { value: orbit, needsDating: orbitNeedsDating } =
     dateableReckonable(orbitReading);
   const { value: target, needsDating: targetNeedsDating } =
     dateableReckonable(targetReading);
   const elementsNeedDating = orbitNeedsDating || targetNeedsDating;
-  /**
-   * The thrust latch, for conformance. Undefined until the propulsion channel
-   * arrives, which is NOT "engines off": see ThrustLatchReading.
-   *
-   * `stillTrue`, because the latch is a FACT and was built to be one: the start
-   * instant is nulled on cessation and set on ignition precisely so it survives a
-   * dropped frame the way an instantaneous thrust reading does not. Withholding it
-   * when the reading goes stale would undo the thing the latch exists for.
-   *
-   * A confirmed absence reads as no latch, same as never having arrived. That is a
-   * decision rather than a default: a vessel whose propulsion channel says there is
-   * nothing has no burn to latch, and the two are the same statement here.
-   */
+  // The thrust latch is held on stale: it is built to survive a dropped frame, and undefined is not "engines off".
   const propulsion = stillTrue(useTelemetry("vessel.propulsion"), undefined);
   const thrustLatch = propulsion
     ? {
-        // Latched, not `currentThrust > 0`: the start instant is nulled on
-        // cessation and set on ignition, so it survives a dropped frame the way
-        // an instantaneous thrust reading does not.
+        // Latched, not `currentThrust > 0`, so it survives a dropped frame.
         thrusting: magnitudeOf(propulsion.thrustStartedUt) != null,
         lastThrustEndUt: magnitudeOf(propulsion.lastThrustEndUt),
       }
     : undefined;
-  // What the CURRENT orbit's curve is, asked of the propagation seam rather than
-  // decided by whichever of this widget's two diagrams is drawing it. Both put
-  // the live orbit on screen as a conic and neither asked, so electing a
-  // provider that integrates changed nothing an operator saw in either.
+  // The current orbit's curve is the propagation seam's answer, never a diagram's own choice.
   const currentTrajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit);
   const sma = magnitudeOf(orbit?.sma) ?? undefined;
   const ecc = magnitudeOf(orbit?.ecc) ?? undefined;
-  /*
-   * The craft's own orbit solved for the view instant, the same call the target
-   * orbit goes through below. It answers nothing at all wherever a conic
-   * through these elements would be wrong, which is what withholds the plan.
-   */
+  // Answers nothing wherever a conic through these elements would be wrong, which is what withholds the plan.
   const solve = useOrbitSolve();
   const ApR = solve?.apoapsisRadius ?? undefined;
   const PeR = solve?.periapsisRadius ?? undefined;
@@ -228,16 +168,8 @@ function ManeuverPlannerComponent({
   const timeToPe = solve?.timeToPe ?? undefined;
   const argPe = magnitudeOf(orbit?.argPe) ?? undefined;
   const trueAnomaly = solve?.trueAnomaly ?? undefined;
-  // t.universalTime is dropped as a data key, it was never a stream, it IS
-  // the SDK view-UT the propagation is evaluated at, so read that directly.
-  // `.magnitude` at the read: this widget threads the view time through geometry and
-  // solver code typed on plain numbers, and the instant type earns nothing there.
   const currentUT = useViewUt()?.magnitude;
-  /*
-   * Off `vessel.flight`'s own field reading. It feeds `computeMu`, which only
-   * wants a number that is true of the craft NOW, so the modelled speed is
-   * taken where a model is on offer and the observation otherwise.
-   */
+  // computeMu wants a number true of the craft now: modelled where on offer, else observed.
   const orbitalSpeedReading = useTelemetry("vessel.flight").orbitalSpeed;
   const orbitalSpeed =
     magnitudeOf(
@@ -267,12 +199,7 @@ function ManeuverPlannerComponent({
   const targetLanLive = magnitudeOf(target?.orbit?.lan) ?? undefined;
   const targetSma = target?.orbit?.sma;
   const targetArgPe = target?.orbit?.argPe;
-  /*
-   * The target's own orbit, solved from the elements this widget already
-   * holds. The altitude needs the
-   * TARGET's reference body, not the craft's, so the radius comes from its own
-   * `referenceBodyIndex`.
-   */
+  // The target's altitude needs the target's own reference body, not the craft's.
   const targetSolved =
     target?.orbit == null || currentUT === undefined
       ? undefined
@@ -289,22 +216,11 @@ function ManeuverPlannerComponent({
   const period = solve?.period ?? undefined;
 
   const nodes = useManeuverNodes();
-  /**
-   * The shared ΔV budget: the game's own vessel total off `dv.summary`, never a
-   * client-side sum of the stage rows. The two are built from different stage
-   * lists (`OperatingStageInfo` versus `WorkingStageInfo`), so summing the rows
-   * here lets the planner and the fuel panel disagree about the same craft.
-   *
-   * Carried when it goes stale rather than blanked, which matters here more than
-   * anywhere: `feasible === false` is the ONLY thing that disables the commit, so
-   * a budget vanishing mid-blackout turns a craft that is demonstrably short
-   * into one we have no opinion about, and re-enables the button.
-   */
   /*
-   * Both value-bearing arms. A budget that has stopped being current is still
-   * the best figure available, and every readout drawn from it below is a
-   * FIGURE rather than a control: dropping it would blank the panel for a craft
-   * whose link merely went quiet.
+   * The game's own vessel ΔV total, never a sum of the stage rows, which come
+   * from a different stage list and would disagree with the fuel panel. Held on
+   * stale: `feasible === false` is the only thing that disables the commit, so a
+   * budget vanishing mid-blackout would re-enable it for a craft known to be short.
    */
   const budgetReading = useProcessor(DELTA_V_BUDGET);
   const availableDeltaV = magnitudeOf(
@@ -313,7 +229,7 @@ function ManeuverPlannerComponent({
       : undefined,
   );
 
-  // Adding, updating and removing a node all actuate the craft's flight plan, so each is subject to signal delay and rides `useCommand`.
+  // Node commands actuate the flight plan, so each is subject to signal delay.
   const addNodeCmd = useCommand("vessel.maneuver.add");
   const updateNodeCmd = useCommand("vessel.maneuver.update");
   const removeNodeCmd = useCommand("vessel.maneuver.remove");
@@ -321,11 +237,7 @@ function ManeuverPlannerComponent({
   usePanelDelay(updateNodeCmd);
   usePanelDelay(removeNodeCmd);
 
-  // The node carries the id the remove command addresses it by, so there is
-  // nothing to resolve and nothing to keep in a ref. `removeNode` stays
-  // referentially stable, which it must: `useBurnCompletionTracker` puts it in
-  // a `useEffect` dependency array that schedules the 10 s hold, and a callback
-  // rebuilt on every 1 UT sample would tear the timers down before it elapsed.
+  // Must stay referentially stable: the tracker's hold timers depend on it and would reset every sample.
   const removeNode = useCallback(
     (nodeId: string) => {
       void removeNodeCmd.send(
@@ -340,11 +252,7 @@ function ManeuverPlannerComponent({
     removeNode,
   );
 
-  // Armed conditional triggers come from a service, host service on the
-  // main screen (see @ksp-gonogo/app/src/maneuverTriggers), client service on
-  // station screens. When the widget is rendered without a provider (legacy
-  // tests, standalone embeds) we fall back to an in-process LocalService so
-  // the feature still works for the local user.
+  // A host service on the main screen, a client service on stations, an in-process one without a provider.
   const providedTriggerService = useManeuverTriggerService();
   const [fallbackTriggerService] = useState<ManeuverTriggerService | null>(
     () => (providedTriggerService ? null : new LocalManeuverTriggerService()),
@@ -362,22 +270,12 @@ function ManeuverPlannerComponent({
   const triggerSnapshot = useTriggerSnapshot(triggerService);
   const armedTriggers = triggerSnapshot.triggers;
 
-  // Editor visibility: the picker's draft fields live inside `TriggerEditor`.
   const [triggerEditorOpen, setTriggerEditorOpen] = useState(false);
 
-  // Value-restricted keys: see `useValueKeys`'s doc comment. A trigger's
-  // `dataKey` now reads off the stream (`LocalManeuverTriggerService`'s
-  // `getValue`), so this also excludes any legacy key with no stream home.
+  // Value keys only, since a trigger's dataKey is read off the stream.
   const numericKeys = useValueKeys("data");
 
-  /*
-   * The radius comes off the wire, resolved by INDEX; only the colour the
-   * diagram paints the body still comes from the static table, and only because
-   * nothing reports one. Looking the whole body up by NAME meant that under a
-   * planet pack a transfer never planned at all (`planHohmann` bails on its own
-   * `bodyRadius === undefined` guard) and the projected apsides printed a
-   * radius under an altitude's label.
-   */
+  // Radius by index off the wire; only the body colour comes from the static table, since nothing reports one.
   const body = useMemo(
     () =>
       bodyFromStream({
@@ -463,18 +361,13 @@ function ManeuverPlannerComponent({
   if (plan) {
     requiredDeltaV = isSequence(plan) ? plan.totalDeltaV : plan.requiredDeltaV;
   }
-  // `null` when we cannot judge, which is NOT the same as a vessel that cannot afford
-  // it. This read `=== 0` and so treated a spent craft as unknown: no SHORT chip, and
-  // `feasible === false` is the only thing that disables the commit, so an out-of-fuel
-  // vessel would accept a plan it could not fly. A real 0 now compares like any other
-  // number and comes out short.
+  // `null` when we cannot judge; a real zero budget compares like any number and comes out short.
   const feasible =
     plan === null || availableDeltaV === null
       ? null
       : availableDeltaV >= requiredDeltaV;
 
-  // True anomaly at the burn, for drag-handle placement on the preview.
-  // Apsis presets are exact (0° / 180°); custom-ut re-uses our propagator.
+  // True anomaly at the burn, placing the preview's drag handle.
   const burnTrueAnomaly: number | null = useMemo(
     () =>
       computeBurnTrueAnomaly({
@@ -503,7 +396,6 @@ function ManeuverPlannerComponent({
     const burns = isSequence(toDispatch) ? toDispatch.burns : [toDispatch];
     let dispatched = 0;
     for (const b of burns) {
-      // Same RADIAL, NORMAL, PROGRADE wire order as before (see handleCommit's own comment): only the transport changed, not the arg shape.
       try {
         await addNodeCmd.send(
           {
@@ -515,10 +407,7 @@ function ManeuverPlannerComponent({
           { label: "Add maneuver node" },
         );
       } catch (err) {
-        // Both counts exist HERE and nowhere above: `dispatched` is what actually
-        // landed in KSP and `burns.length` is the plan. Rethrowing a bare reason would
-        // reach `handleCommit` with no way to recover either, and a wrong count is
-        // worse than none because it is a confident claim about vessel state.
+        // Only here are both counts known: what landed in KSP and what the plan asked for.
         throw new Error(
           describePartialDispatch({
             dispatched,
@@ -536,21 +425,6 @@ function ManeuverPlannerComponent({
     setCommitting(true);
     setError(null);
     try {
-      /*
-       * The legacy command passed `[ut,x,y,z]` straight to KSP's
-       * `ManeuverNode.OnGizmoUpdated(new Vector3d(x,y,z), ut)`, and KSP's
-       * node-local frame is `Vector3d(radialOut, normal, prograde)`,
-       * established by decompiling `ManeuverNode.DeltaV` itself and written
-       * down where the assignment happens (`KspVesselActuator`'s
-       * AddManeuverNode). So the on-wire order is RADIAL, NORMAL, PROGRADE:
-       * *not* prograde-first. Sending pure prograde in the first slot turns it
-       * into pure radial-out and the burn points straight up.
-       *
-       * The ordering is checkable against KSP's own API, which is the
-       * authority here and is core's own dependency rather than a mod's. It
-       * used to cite a third-party mod's source as corroboration, which put a
-       * mod name in core to confirm something KSP already states.
-       */
       await dispatchPlanBurns(plan);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -590,13 +464,7 @@ function ManeuverPlannerComponent({
     triggerService.cancel(id);
   }
 
-  /**
-   * A node the craft cannot be asked about. Nothing on the live wire omits an
-   * id, so this is an off-contract payload rather than a wait, and saying so
-   * beats dispatching a command that cannot resolve. Falling back to the node's
-   * array POSITION is the tempting substitute, and the actuator answers
-   * NotFound to it every time, with the refusal reaching nobody.
-   */
+  // An id-less node is off-contract; its array position is not an address the actuator resolves.
   const UNADDRESSABLE =
     "This node arrived without an id, so there is nothing to address the command to.";
 
@@ -617,9 +485,6 @@ function ManeuverPlannerComponent({
       setError(UNADDRESSABLE);
       return;
     }
-    // Same vector convention as `o.addManeuverNode`: KSP's node-local frame is
-    // `Vector3d(radialOut, normal, prograde)`, so the on-wire arg order is
-    // RADIAL, NORMAL, PROGRADE: *not* prograde-first.
     try {
       await updateNodeCmd.send(
         {
@@ -639,9 +504,7 @@ function ManeuverPlannerComponent({
   }
 
   async function handleClearAll() {
-    // Last node first. Each node is addressed by its own id, so the order does
-    // not decide whether this works, but the craft loses its plan from the far
-    // end inward, which is the order an operator watching the list expects.
+    // Last node first, so the plan empties from the far end inward as the operator expects.
     for (let i = nodes.length - 1; i >= 0; i--) {
       await removeNodeCmd.send(
         { nodeId: nodes[i].id },
@@ -650,26 +513,11 @@ function ManeuverPlannerComponent({
     }
   }
 
-  // Whether there is enough of an orbit to plan against. Values can land null
-  // or NaN mid-scene-load, so this is a positive check rather than a
-  // `!== undefined` one.
   /*
-   * The plan is WITHHELD wherever the four apsis figures are absent, and that
-   * is one condition rather than several: they are solved together off
-   * `vessel.orbit`, and the solve refuses as a whole.
-   *
-   * It is withheld on a STALE reading too, which is stricter than this widget's
-   * neighbours are and deliberately so. Elsewhere a conic that moves the phase
-   * makes a stale orbit current enough to draw. A burn is the one thing the
-   * conic states it cannot bound: a craft out of contact is exactly one whose
-   * burns nobody saw, so elements carried across the gap may be describing an
-   * orbit the craft has already left. Reading them is fine; committing a burn
-   * against them is not, and `waiting` is honest and recoverable.
-   *
-   * The refusal governs this ADDITIONAL reasoning only: it must not reach the
-   * diagram's own reckoning of basic motion, and it does not.
-   * `currentTrajectory` is `useOrbitTrajectory(orbit)`, fed from the
-   * `vessel.orbit` READING rather than from any of these.
+   * Positive finite checks, since values can land NaN mid-scene-load. Withheld
+   * on a stale orbit too: a craft out of contact may have burned unseen, so its
+   * carried elements can describe an orbit it has left. This gates planning
+   * only, never the diagram's own trajectory.
    */
   const planReady =
     orbitReading.state === "observed" &&
@@ -683,18 +531,9 @@ function ManeuverPlannerComponent({
     mu > 0;
   const waiting = !planReady;
 
-  // O5: a hyperbolic/escape orbit (ecc >= 1) has no apoapsis, so
-  // `buildCurrentOrbit` legitimately returns null (ApR/timeToAp are NaN),
-  // that reads as `waiting` above, which is indistinguishable from genuinely
-  // no telemetry at all. Read the raw `vessel.orbit.ecc` directly (always
-  // present once the orbit topic lands, unlike the derived `currentOrbit`)
-  // so we can tell the operator "escaping, planner N/A" instead of showing
-  // the generic empty/no-data panel.
+  // An escape orbit has no apoapsis and reads as waiting, so raw ecc tells it apart from no telemetry.
   const hyperbolic = isFiniteNumber(ecc) && ecc >= 1;
 
-  // Render split into nested helpers so the component's cognitive
-  // complexity stays below Sonar's S3776 threshold. Each helper is
-  // measured independently by the rule.
   function renderNodesSection() {
     return (
       <PaddedSection>
@@ -713,20 +552,9 @@ function ManeuverPlannerComponent({
   }
 
   /**
-   * The three instants of each queued burn, off `nodes`: THE SAME LIST the
-   * node-list section above renders.
-   *
-   * It first read `vessel.maneuver` directly, because the instants were new
-   * contract fields the legacy reshape predated. That is what let a render show
-   * a burn window for a node the list beside it said did not exist: two reads of
-   * one truth, free to disagree, and a fixture that fed only one of them made
-   * them. The instants now travel on the parsed node itself, so the two sections
-   * are structurally incapable of disagreeing rather than merely tested for it.
-   *
-   * Its own section rather than inside each node row: three rows plus an axis
-   * per burn is more than a row can hold at the sizes this widget is used at,
-   * and the whole reason the instants are separate is that they must not be
-   * squeezed back onto one line.
+   * The three instants of each queued burn, off the same `nodes` list the node
+   * section renders, so the two cannot disagree. Its own section, since three
+   * rows and an axis per burn do not fit inside a node row.
    */
   function renderBurnWindowsSection() {
     if (nodes.length === 0) return null;
@@ -736,7 +564,7 @@ function ManeuverPlannerComponent({
         <Stack>
           {nodes.map((burn) => (
             <BurnWindowRows
-              // UT, the same key the burn tracker uses: stable across KSP renumbering the list on a removal, which an index is not.
+              // UT survives KSP renumbering the list on a removal; an index does not.
               key={burn.UT}
               burn={{
                 ut: burn.UT,
@@ -752,13 +580,9 @@ function ManeuverPlannerComponent({
   }
 
   /**
-   * Tier-1 conformance: what each burn was planned with against what it has
-   * delivered. Model-agnostic, so it reads the same whoever planned the burn.
-   *
-   * Reads `maxDvByUt` off the completion tracker rather than watching the burns
-   * itself, because a single sample cannot tell a 300 m/s burn with 300 to go
-   * from a 1000 m/s burn with 300 to go, and two independent watchers of that
-   * one quantity could disagree about whether the same burn finished.
+   * What each burn was planned with against what it has delivered, whoever
+   * planned it. The planned figure is the tracker's `maxDvByUt`, since one sample
+   * cannot tell a 300 m/s burn with 300 to go from a 1000 m/s one.
    */
   function renderConformanceSection() {
     if (nodes.length === 0) return null;
@@ -768,11 +592,7 @@ function ManeuverPlannerComponent({
         <Stack>
           {nodes.map((node) => {
             const first = node.orbitPatches[0];
-            // ONE conformance reading feeding both the row and the plot's
-            // regime. They are two views of the same burn and a render caught
-            // them contradicting each other when each worked it out for itself:
-            // the row said "not started, 0 of 300" beside a chip saying "flown,
-            // the gap is the deviance".
+            // One conformance reading feeds both the row and the plot's regime, so they cannot contradict.
             const conformance = burnConformance(
               node.deltaVMagnitude,
               maxDvByUt.get(node.UT) ?? null,
@@ -799,9 +619,7 @@ function ManeuverPlannerComponent({
                       : null
                   }
                   currentTrajectory={currentTrajectory}
-                  // Patches[0] ONLY, the immediate post-burn conic. See the
-                  // component's own doc for why a downstream patch cannot be
-                  // compared at all.
+                  // Patches[0] only: a downstream patch cannot be compared (see ConformancePlot).
                   planned={
                     first
                       ? {
@@ -829,7 +647,7 @@ function ManeuverPlannerComponent({
                       : null,
                     period,
                   )}
-                  // The CURRENT orbit follows the observation rules; the planned conic is authored and never dims.
+                  // The planned conic is authored and never dims; only the current orbit follows the observation rules.
                   currentIsObserved={!elementsNeedDating}
                 />
               </Stack>
@@ -844,9 +662,7 @@ function ManeuverPlannerComponent({
     return (
       <PaddedSection>
         <SectionTitle as="h4">New maneuver</SectionTitle>
-        {/* The plan still renders, because a node is reviewed before it is
-            committed and elements a few seconds old still make a good plan. What
-            the operator must not do is read the resulting Δv as measured now. */}
+        {/* The plan still renders; the caption stops its Δv being read as measured now. */}
         {elementsNeedDating && (
           <ReadoutCaption>
             Planned from the last known orbit, which is no longer current
@@ -869,13 +685,7 @@ function ManeuverPlannerComponent({
   }
 
   function renderWaitingPanel() {
-    /*
-     * A REFUSAL is a different sentence with a different remedy. The elements
-     * arrived and nobody would vouch for a conic through them, so there is no
-     * orbit to plan against and "awaiting telemetry" would send an operator
-     * looking at their link when the answer is about their propagation
-     * provider. Same distinction OrbitView draws between its two empty states.
-     */
+    // A withheld trajectory is a propagation refusal, not missing telemetry, and has a different remedy.
     if (currentTrajectory !== null && currentTrajectory.shape === "withheld") {
       return (
         <WaitingPanel>
@@ -883,11 +693,6 @@ function ManeuverPlannerComponent({
         </WaitingPanel>
       );
     }
-    // An ordinary empty state rather than a per-field checklist of the wire
-    // keys being waited on: no other widget exposes its plumbing that way, and
-    // a named key is a thing an operator can be sent looking for and cannot
-    // act on. This says the one thing they can: there is no orbit to plan
-    // against yet.
     return <EmptyState>Awaiting orbit telemetry.</EmptyState>;
   }
 
@@ -919,32 +724,20 @@ function ManeuverPlannerComponent({
   return (
     <Panel
       panelTitle="MANEUVER PLANNER"
-      /* Stays. The seam is placed inside the PLAN tab (see `renderPlanTab`), so
-         Panel's own end-of-body mount would show it on every tab. */
+      // The sections seam is placed inside the Plan tab instead of on every tab.
       panelSections={false}
-      /* Every section spans. The node list is the SUBJECT the tabs are two
-         views of, and a tab strip beside anything reads as two widgets. */
       sections={[
         refBody !== undefined && (
           <Section key="body" full>
             <RefBodyCaption data-ref-body-caption="">{refBody}</RefBodyCaption>
           </Section>
         ),
-        /* The node list sits ABOVE the tabs and shows on both, because it is
-           the SUBJECT and the tabs are two views of it. Inside PLAN, switching
-           to CONFORMANCE lost sight of the thing being conformed to. */
+        // The node list sits above the tabs: it is the subject both tabs are views of.
         <Section key="nodes" full>
           {renderNodesSection()}
         </Section>,
         <Section key="views" full>
-          {/* Two tabs, PLAN and CONFORMANCE.
-            PLAN is everything about authoring and flying the next burn: the
-            queued nodes' windows, the armed triggers, and NEW MANEUVER with its
-            preview. CONFORMANCE is the retrospective: what each burn delivered
-            against what it was planned with, and the two-conic plot. They are
-            separated because they answer different questions at different
-            times, and stacking them made the operator scroll past a preview to
-            reach a verdict. */}
+          {/* Plan authors the next burn; Conformance is the retrospective on flown ones. */}
           <Tabs
             tabs={[
               { id: "plan", label: "Plan", content: renderPlanTab() },
@@ -1006,11 +799,7 @@ function ManeuverPlannerComponent({
             onArm={handleArmTrigger}
           />
         )}
-        {/* Below the preview + feasibility check: an alternate-transfer-strategy
-            Uplink (porkchop / optimal transfer) binds here. Placed rather than
-            left to `Panel`'s end-of-body default because this is the PLAN tab;
-            the default mount would sit outside the tabs and show on every one
-            of them. */}
+        {/* The sections slot, below the preview and feasibility check. */}
         <WidgetSections />
       </>
     );
@@ -1021,10 +810,6 @@ function ManeuverPlannerComponent({
   }
 }
 
-// ---------------------------------------------------------------------------
-// Registration
-// ---------------------------------------------------------------------------
-
 registerComponent<ManeuverPlannerConfig>({
   id: "maneuver-planner",
   name: "Maneuver Planner",
@@ -1032,28 +817,15 @@ registerComponent<ManeuverPlannerConfig>({
     "Plan maneuver nodes: circularise / custom ΔV at next apsis, with live preview + feasibility check against vessel ΔV.",
   tags: ["telemetry", "planning"],
   defaultSize: { w: 10, h: 18 },
-  /**
-   * Seven columns so the preset picker reads its longest label, "Hohmann
-   * rendezvous (target)", in full: at six even the default preset ends under
-   * the picker's arrow.
-   */
+  // Seven columns so the preset picker shows its longest label in full.
   minSize: { w: 7, h: 9 },
   component: ManeuverPlannerComponent,
-  // A body `sections` slot for alternate-transfer-strategy comparisons, empty until an augment binds.
   augmentSlots: ["maneuver-planner.sections"],
-  // The craft's own apsides, countdowns, true anomaly, radius and period are
-  // SOLVED here too, from the `vessel.orbit` elements already named below at
-  // the frame's view time, so none of them is a field to declare either.
-  //
-  // The target's quantities are SOLVED the same way, from the elements on `vessel.target`.
-  //
-  // The raw target-orbit field subtopics are deliberately not named. Nothing
-  // targeted is the common case, and the wire tombstones the whole
-  // `vessel.target` topic for it, which a badge reads as a confirmed absence:
-  // declaring them badged this panel NO DATA whenever no target was selected,
-  // drowning out nodes, burn windows and a preview that were all populated.
-  // The widget reads the topic through `useTelemetry("vessel.target")`, which
-  // subscribes on its own account, so naming it here buys nothing.
+  /*
+   * Apsides, countdowns and period are solved from these elements, so are not
+   * declared. `vessel.target` is not declared either: with nothing targeted the
+   * wire tombstones it, and a badge would mark the whole panel NO DATA.
+   */
   dataRequirements: [
     "vessel.orbit.sma",
     "vessel.orbit.ecc",
@@ -1075,14 +847,7 @@ registerComponent<ManeuverPlannerConfig>({
 
 export { ManeuverPlannerComponent };
 
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
-
-// forwardedAs, not as: styled-components CONSUMES `as` and renders that
-// element in place of the wrapped component, so `as: "section"` would silently
-// drop Stack entirely and leak `gap` to the DOM as an attribute. forwardedAs
-// passes it down to Stack, which has its own `as` prop for exactly this.
+// forwardedAs, not as: styled-components consumes `as` and would replace Stack outright.
 const PaddedSection = styled(Stack).attrs({
   forwardedAs: "section" as const,
   gap: "related-dense" as const,

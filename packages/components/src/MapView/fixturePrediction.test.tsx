@@ -6,23 +6,10 @@ import "../index";
 import { renderWidgetMode } from "../test/widgetDomSnapshot";
 
 /**
- * MapView's predicted ground track, rendered from the fixtures rather than from
- * a hand-built sample.
- *
- * The track is drawn to a `<canvas>`, so nothing about it is inspectable except
- * the segment count the layer publishes. That is the whole reason the count is
- * on the element: a fixture that starves the prediction and a widget that
- * refuses to draw one produce the same blank canvas, and every check that could
- * only see pixels read both as fine.
- *
- * Which is what happened. Every fixture reached the widget with an empty patch
- * chain, so the prediction path had no coverage at all here, in the a11y sweep
- * or in the playwright probe: three harnesses reading the same four files, none
- * of them able to say the track was missing.
- *
- * `_meta.patchesAbsent` is the way a fixture says it means to have no chain,
- * and the reason lives in the fixture rather than in a list here so that the
- * next person to look at the file finds it there.
+ * MapView's predicted ground track, rendered from the fixtures. The track is
+ * on a canvas, so the published segment count is the only inspectable trace:
+ * a starved prediction and a refused one are otherwise the same blank canvas.
+ * A fixture meaning to have no chain says so in `_meta.patchesAbsent`.
  */
 
 const FIXTURES = import.meta.glob<{ default: Record<string, unknown> }>(
@@ -40,7 +27,7 @@ const MODE = { name: "default-12x18", w: 12, h: 18 };
 
 function segments(container: HTMLElement): number {
   const el = container.querySelector("[data-prediction-segments]");
-  // -1 rather than 0 for an absent layer: "the layer drew nothing" and "no layer mounted" are different failures and must not share a number.
+  // -1 for an absent layer: "drew nothing" and "no layer mounted" are different failures.
   return Number(el?.getAttribute("data-prediction-segments") ?? "-1");
 }
 
@@ -76,7 +63,7 @@ describe("MapView predicts a ground track from its fixtures", () => {
       fixture._stream?.emits?.some((e) => e?.channel === "vessel.orbit") ??
       false;
     if (!emitsOrbit) continue;
-    /* A live prediction is this test's subject; a scene the link drops out of is judged by `staleScenes.test.tsx`. */
+    /* A scene the link drops out of is judged by `staleScenes.test.tsx`. */
     if (fixture._stream?.stopsArriving === true) continue;
 
     const absent = fixture._meta?.patchesAbsent;
@@ -88,7 +75,7 @@ describe("MapView predicts a ground track from its fixtures", () => {
       });
       try {
         await settle();
-        // Zero and "no layer" are both failures for a fixture carrying a chain, and `toBeGreaterThan(0)` catches the -1 too.
+        // `toBeGreaterThan(0)` catches both zero and the -1 of no layer.
         if (absent === undefined)
           expect(segments(container)).toBeGreaterThan(0);
         else expect(segments(container)).toBe(0);

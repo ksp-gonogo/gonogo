@@ -9,24 +9,13 @@ import {
   devianceIsAttributable,
 } from "./conformanceRegime";
 
-// ---------------------------------------------------------------------------
-// Two conics on one drawing: the PLANNED post-burn orbit and where the vessel
-// actually is. The geometry never changes; what changes is what the GAP means.
-//
-// The second line is always "where the vessel is". Before ignition the gap is
-// the INTENDED CHANGE and is at its largest when nothing is wrong; during the
-// burn neither reading is true; only after cutoff is the gap a DEVIANCE. A plot
-// that called the first of those deviation would show its worst-looking state at
-// the moment everything is correct.
-//
-// It draws against Patches[0], the IMMEDIATE post-burn conic, and never a
-// downstream patch. That is a hard limit rather than something unfinished: the
-// impulsive-vs-finite residual compounds through an SOI transition, and a Deck
-// capture of one real burn showed the same delta-v at the same UT on two
-// barely-different starting orbits producing a final Kerbin periapsis of 10.9 km
-// against 365.1 km. Against a downstream patch the gap cannot be attributed to
-// anything; against Patches[0] the residual is a computable percentage.
-// ---------------------------------------------------------------------------
+/*
+ * Two conics on one drawing: the planned post-burn orbit and where the vessel
+ * is. Before ignition the gap is the intended change, during the burn it is
+ * neither, and only after cutoff is it a deviance. Drawn against Patches[0]
+ * only: the impulsive-vs-finite residual compounds through an SOI transition,
+ * so a gap against a downstream patch cannot be attributed to anything.
+ */
 
 const CAPTION: CSSProperties = {
   fontSize: "var(--font-size-caption)",
@@ -41,11 +30,7 @@ const REGIME_CHIP: CSSProperties = {
   textTransform: "uppercase",
 };
 
-/**
- * What the gap is, in the operator's words, per regime. Hues come off the
- * CATEGORICAL ramp: the plot describes a state and does not rank it, and a
- * status colour would imply the intended change is a problem.
- */
+/** What the gap means per regime; categorical hues, since a status colour would call the intended change a problem. */
 const REGIME: Record<
   ConformanceRegime,
   { chip: string; gap: string; colour: string }
@@ -67,11 +52,7 @@ const REGIME: Record<
   },
   missed: {
     chip: "Missed",
-    // Deliberately the SAME sentence as intended-change, because it is the same
-    // gap: nothing was delivered, so nothing has changed about what the burn
-    // would still do. Only the chip differs, and it is the chip that reports the
-    // window has closed. Saying so again in the caption cost the end of the
-    // sentence to truncation at the default width.
+    // Nothing was delivered, so this is the same gap as intended-change; the chip says the window closed.
     gap: "the gap is still the intended change",
     colour: "var(--color-status-warning-fg-muted)",
   },
@@ -93,13 +74,9 @@ export interface ConformancePlotProps {
     argPe: number;
   } | null;
   /**
-   * The propagation seam's answer for the CURRENT orbit: whether a conic is the
-   * right renderer for it at all, or a sampled arc is, or nothing may be drawn.
-   * `null` means the question could not be put (no elements, no clock).
-   *
-   * The planned conic beside it is never gated this way. It arrives as the
-   * planner's own `Patches[0]`, so it is a statement rather than this client's
-   * extrapolation, and the seam was never asked about it.
+   * The propagation seam's answer for the current orbit (conic, sampled arc or
+   * withheld), `null` when it could not be asked. The planned conic is the
+   * planner's own statement and is never gated.
    */
   currentTrajectory: OrbitTrajectory | null;
   /** The planned post-burn conic, from the burn's own `Patches[0]`. */
@@ -119,23 +96,10 @@ export interface ConformancePlotProps {
 }
 
 /**
- * Where the two conics are furthest apart, and how far apart they are there.
- *
- * <p>SAMPLED rather than reasoned to. The obvious shortcut is the far apsis,
- * on the argument that a burn changes the orbit most opposite the point it was
- * made at. That holds only for a burn AT an apsis: a burn made elsewhere
- * leaves two conics that can share an apoapsis almost exactly and diverge at
- * the other end, and assuming the apsis then reports a gap of about a metre
- * for a pair visibly far apart.</p>
- *
- * <p>Both radii are taken in the same inertial frame, each against its OWN
- * argument of periapsis, because a burn rotates the apsides and a difference
- * measured against one orbit's line of apsides is not a difference in space.
- * </p>
- *
- * <p>Null when either conic is unbounded, or when they never separate: a frame
- * around a gap of zero has no extent to choose, which is what drew a frame six
- * metres across and filled the panel with it.</p>
+ * Where the two conics are furthest apart, and by how much. Sampled, because
+ * the far apsis is the widest point only for a burn made at an apsis. Each
+ * radius is taken against its own argument of periapsis, since a burn rotates
+ * the apsides. Null when either conic is unbounded or they never separate.
  */
 export function widestSeparation(
   current: { sma: number; ecc: number; argPe: number },
@@ -177,19 +141,10 @@ export function widestSeparation(
 const INSET_GAP_MULTIPLE = 6;
 
 /**
- * The widest gap, as a share of the orbit, that still needs a closer look.
- *
- * <p>Derived rather than chosen: `OrbitDiagram`'s mini variant strokes a conic
- * at 0.012 of the drawn extent, so a gap bounded by two of those needs to be
- * appreciably wider than three strokes before it reads as a gap at all. Below
- * that the main frame cannot show it and the detail frame earns its place;
- * above it the main frame already does, and a second picture of the same fact
- * is just a bigger one.</p>
- *
- * <p>This is also what keeps the detail frame from degenerating. Its extent is
- * six half-gaps, so a gap that is itself a large fraction of the orbit asks for
- * a frame LARGER than the orbit, drawn with strokes scaled to match: the
- * operator saw that as "a large orange blob with little to read".</p>
+ * The widest gap, as a share of the orbit, that still needs a closer look. A
+ * mini-variant conic strokes at 0.012 of the extent, so the main frame cannot
+ * show a gap narrower than about three strokes; above that, the detail frame
+ * (six half-gaps across) would outgrow the orbit.
  */
 const INSET_SHOWN_BELOW_EXTENT_FRACTION = 0.036;
 
@@ -203,20 +158,11 @@ export function ConformancePlot({
   bodyRadius,
 }: ConformancePlotProps) {
   const r = REGIME[regime];
-  /*
-   * Only where there is a flown-versus-planned gap to look closely AT. The
-   * corridor's own regime gate applies here for the same reason, and a gap of
-   * zero gets no frame rather than an infinitely magnified one.
-   */
   const separation =
     regime === "deviance" && current && planned
       ? widestSeparation(current, planned)
       : null;
-  /*
-   * Only where the main frame cannot already show it. A gap the operator can
-   * read off the orbit above needs no second picture, and asking for one is
-   * what produced a frame wider than the orbit itself.
-   */
+  // Only where the main frame cannot already show the gap.
   const inset =
     separation &&
     current !== null &&
@@ -231,37 +177,20 @@ export function ConformancePlot({
       : null;
   return (
     <Stack data-conformance-plot="">
-      {/* The chip alone, with what the gap means carried as its title rather
-          than as a second line. PLANNED / BURNING / FLOWN / MISSED already say
-          which reading applies, and the sentence spelling it out was the widest
-          thing in the section at the sizes this is used at. */}
       <span style={{ ...REGIME_CHIP, color: r.colour }} title={r.gap}>
         {r.chip}
       </span>
       {withheld ? (
-        // The plot's whole content is a comparison against where the vessel is.
-        // Drawing the planned conic on its own would put a single line on screen
-        // with nothing to read it against, which is what "on plan" looks like,
-        // so the drawing goes and the reason takes its place.
+        // A lone planned conic, with nothing to read it against, would look like "on plan".
         <TrajectoryWithheldNote withheld={withheld} compact />
       ) : current ? (
         <div
-          // Dimmed, not hidden, when the current orbit is a description rather
-          // than an observation: the shape is still the best picture available.
-          // The planned conic underneath is unaffected.
+          // Dimmed, not hidden, when the current orbit is described rather than observed.
           style={{ opacity: currentIsObserved ? 1 : 0.55 }}
         >
-          {/*
-            Framed like every other visual in the app. It matters more here
-            than usual because a second diagram follows: without an edge each
-            one bleeds into the text around it, and the two read as one
-            run-on picture rather than a plot and a detail of it.
-          */}
           <FramedDisplay>
             <OrbitDiagram
-              // The seam's answer, drawn as given. `null` on the conic arm, where
-              // the diagram's own conic renderer is what the provider said is
-              // right.
+              // The seam's arc when it gave one; null lets the diagram draw its own conic.
               trajectoryPath={
                 currentTrajectory?.shape === "arc"
                   ? currentTrajectory.points
@@ -279,15 +208,7 @@ export function ConformancePlot({
               trueAnomaly={current.trueAnomaly}
               argPe={current.argPe}
               projected={planned}
-              /*
-               * ONLY under `deviance`, which is the one regime where the two
-               * conics are a flown-versus-planned comparison. The others all
-               * mean the opposite, in this file's own words: `intended-change`
-               * and `missed` say "the gap is the intended change" and
-               * `in-progress` says it "is closing as it burns". Filling those
-               * would colour the burn itself and call it conformance before
-               * there is a post-burn reading to give.
-               */
+              // Only a deviance is a flown-versus-planned comparison; filling any other regime would colour the burn itself.
               corridor={regime === "deviance"}
               bodyRadius={bodyRadius ?? undefined}
               variant="mini"
@@ -299,33 +220,13 @@ export function ConformancePlot({
       )}
       {inset && current ? (
         <div style={{ opacity: currentIsObserved ? 1 : 0.55 }}>
-          {/*
-            Named, because a second orbit picture directly under the first
-            reads as another plot rather than as a closer look at the one
-            above it. The border says where the picture ENDS, this says what
-            it IS, and the caption below carries the distance.
-          */}
+          {/* Named, so it reads as a closer look at the plot above rather than another plot. */}
           <span style={CAPTION}>detail: widest gap, true scale</span>
-          {/*
-            A strip rather than a square. The frame's WIDTH carries the
-            separation; its height only decides how much arc runs through it,
-            and left square it took as much room as the orbit it is a detail
-            of. `OrbitDiagram` fits its viewBox to whatever aspect it is
-            measured at, so constraining the box here is the whole mechanism,
-            and `FramedDisplay` sizes itself to nothing, so the aspect still
-            belongs on it rather than fighting it.
-          */}
+          {/* A strip: the width carries the separation, and OrbitDiagram fits its viewBox to the box's aspect. */}
           <FramedDisplay
             style={{ width: "100%", aspectRatio: "5 / 2", display: "flex" }}
           >
-            {/*
-            The same two curves, framed on the widest part of the gap instead
-            of on the orbit that contains it. Nothing is redrawn and nothing is
-            stretched: every distance inside this frame is in true proportion
-            to every other, which is what separates a closer look from an
-            exaggeration. The frame's SIZE is derived from the gap, so it reads
-            whether the burn missed by kilometres or by metres.
-          */}
+            {/* The same two curves framed on the widest gap, in true proportion; the frame size derives from the gap. */}
             <OrbitDiagram
               sma={current.sma}
               ecc={current.ecc}
@@ -335,23 +236,13 @@ export function ConformancePlot({
               argPe={current.argPe}
               projected={planned}
               corridor
-              /*
-               * The apsis markers are suppressed here: at this framing the
-               * apoapsis dot sits exactly where the separation is, and a marker
-               * scaled to the frame covers the thing the frame exists to show.
-               */
+              // At this framing the apoapsis marker would cover the separation.
               showMarkers={false}
               focus={{
                 x: inset.x,
                 y: inset.y,
                 halfExtent: inset.gap * INSET_GAP_MULTIPLE,
-                /*
-                 * Lay the arc along the strip. At the apsis the separation is
-                 * radial and the arc runs perpendicular to it, so without this
-                 * a frame wide enough to read is also tall enough to dominate
-                 * the panel. Derived from where the frame is rather than
-                 * fixed: the apsis direction is the focus point's own bearing.
-                 */
+                // Lays the arc along the strip, using the focus point's own bearing as the apsis direction.
                 rotationDeg:
                   90 - (Math.atan2(inset.y, inset.x) * 180) / Math.PI,
               }}
@@ -364,10 +255,7 @@ export function ConformancePlot({
           </span>
         </div>
       ) : null}
-      {/* The model's own limit, stated where the output is read rather than in a
-          doc, and COMPUTED for this burn: the same sentence would be wrong at
-          both ends of the range (0.03% of the delta-v for a burn spanning 2.4
-          degrees of orbit, 36% for one spanning 90). */}
+      {/* Computed per burn: 0.03% of the delta-v across 2.4 degrees of orbit, 36% across 90. */}
       <span style={CAPTION}>
         {residual == null ? (
           "impulsive plan, burn duration not modelled"

@@ -15,9 +15,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { PowerSystemsComponent } from "./index";
 
-// Unmount tracked trees BEFORE clearActionHandlers() (same rationale as
-// stream.test.tsx: clearing the registry on a mounted widget is a state
-// update outside act()).
+// Unmount before clearActionHandlers(): clearing the registry on a mounted widget updates state outside act().
 const renderedTrees: Array<() => void> = [];
 function render(ui: ReactElement) {
   const result = rtlRender(ui);
@@ -58,10 +56,7 @@ function part(id: string, title: string, resources: PartResources) {
   };
 }
 
-// Two resources with live flow: EC (from a panel) + LiquidFuel (from a tank
-// draining into an engine). resourcesWithFlow => ["ElectricCharge","LiquidFuel"].
-// NOTE: part `id` must be numeric, the topology adapter does `Number(p.id)`
-// for the flightId key (vesselPartsAdapter.ts), so non-numeric ids collide.
+// Part ids must be numeric: the topology adapter keys flightId on `Number(p.id)`, so non-numeric ids collide.
 const TWO_RESOURCE_WIRE = {
   parts: [
     part("1", "Solar Panel", {
@@ -150,7 +145,6 @@ describe("PowerSystems: states + resource pick", () => {
     act(() => fixture.emit("vessel.parts", TWO_RESOURCE_WIRE));
     await waitFor(() => expect(screen.getByLabelText("Resource")).toBeTruthy());
 
-    // Operator deliberately picks LiquidFuel (via the action = an explicit pick).
     act(() => {
       dispatchAction("ps-sticky", "cycleResource", {
         kind: "button",
@@ -163,10 +157,8 @@ describe("PowerSystems: states + resource pick", () => {
       ).toBe("LiquidFuel"),
     );
 
-    // Engine cuts off: LiquidFuel stops flowing (only EC flows now).
     act(() => fixture.emit("vessel.parts", EC_ONLY_WIRE));
 
-    // The pick MUST survive: it stays LiquidFuel (with a no-flow note), rather than silently resetting to ElectricCharge.
     await waitFor(() =>
       expect(screen.getByText(/No active Liquid Fuel flow/)).toBeTruthy(),
     );

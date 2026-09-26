@@ -11,17 +11,8 @@ import { CommSignalComponent } from "./index";
 
 /**
  * DOM snapshots off the stream pipeline, driven by each fixture's own
- * `_stream` block.
- *
- * This spec used to build that stream itself, carrying four channels and
- * emitting `vessel.comms`/`comms.link`/`comms.delay`/`vessel.orbit` from the
- * fixtures' flat keys. Each fixture already declares those and two more, the
- * `vessel.identity` and `system.bodies` the reference-body name resolves
- * against, so the hand-built copy is gone.
- *
- * `no-signal-data` carries no `_stream` block at all: loss of signal is its
- * subject, and its render is the empty state by design (it is named in the
- * un-fed gate's `EMPTY_BY_DESIGN` for exactly that reason).
+ * `_stream` block. `no-signal-data` has none: its render is the empty state
+ * by design.
  */
 
 const FIXTURES: Record<string, Record<string, unknown>> = {

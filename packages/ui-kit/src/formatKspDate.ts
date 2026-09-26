@@ -7,47 +7,20 @@ const pad = (n: number) => String(n).padStart(2, "0");
  * Formats a KSP universal time (UT, seconds) as a date, in whichever of the
  * two calendars the running game actually has.
  *
- * ## Two renderings, one function
+ * - No epoch (stock): `Y<year> D<day> HH:MM:SS`, 1-based, so UT 0 is
+ *   `Y1 D1 00:00:00`, as KSP's own UI prints it
+ * - An epoch: `14 Mar 1957 03:22:37`, the real instant that many seconds after
+ *   the anchor, which the mod reports only for a game with a real calendar.
+ *   The Gregorian calendar then governs, as the game's own formatter does
  *
- * **No epoch**: `Y<year> D<day> HH:MM:SS`. UT 0 is Year 1, Day 1, 00:00:00,
- * years and days are 1-based (`floor(ut / YEAR) + 1`, `floor(rem / DAY) + 1`),
- * matching `formatDuration`'s KSP-time unit sizes. This is stock KSP, and it
- * is what KSP's own UI prints there.
- *
- * **An epoch**: `14 Mar 1957 03:22:37`, the real instant that many seconds
- * after the anchor. A game running a real calendar is one where the offset
- * form says nothing an operator can cross-reference: RP-1 schedules a career
- * against history, and "day 2,341" does not appear anywhere in it. Which form
- * applies is a property of the game, never a choice: the mod reports an
- * anchor only when the running game's date formatter models a real calendar,
- * and every screen of that game reads the same one.
- *
- * The day and year lengths, and whether there is an anchor at all, come from
- * the calendar the GAME reported rather than from constants: a planet pack or
- * the stock KERBIN_TIME setting changes both lengths, and a date rendered on
- * the wrong calendar is wrong in a way that still looks like a date. See
- * `kspTime.ts`.
- *
- * Once an epoch is in force the Gregorian calendar governs the rendering, and
- * the four reported lengths stop bearing on it. That is not an inconsistency:
- * a formatter that models a real calendar builds its own strings by adding the
- * UT to that same anchor, so following it is agreeing with the game rather
- * than departing from it. Durations elsewhere still measure in the reported
- * lengths, because a duration is not a date.
- *
- * `ut` is expected to be non-negative, KSP UT never goes negative during
- * normal play: but a stray negative value (e.g. a not-yet-initialized
- * feed) is clamped to the epoch rather than surfacing a nonsensical
- * `Y0`/negative-day reading, or a date before the anchor. Non-finite values
- * (`NaN`, `Infinity`) render as an em dash, and so does a UT so large that no
- * real date exists for it.
+ * The lengths and the anchor come from the calendar the game reported. A
+ * negative UT is clamped to the epoch; a non-finite one, or one too large for
+ * any real date, renders as `NULL_DISPLAY`.
  */
 export function formatKspDate(ut: number): string {
   if (!Number.isFinite(ut)) return NULL_DISPLAY;
 
-  // Read per call, not at module load: the calendar arrives from the game
-  // after this module is imported, and a date frozen on the stock fallback is
-  // the bug this replaced. See `kspTime.ts`.
+  // Read per call: the calendar arrives from the game after this module is imported.
   const {
     day: DAY,
     year: YEAR,
@@ -76,14 +49,8 @@ export function formatKspDate(ut: number): string {
 }
 
 /**
- * Month names in English, spelled out here rather than taken from
- * `toLocaleDateString`.
- *
- * A locale-dependent readout renders differently on the operator's machine
- * than in the visual gate, which pins neither locale nor timezone, and a
- * mission board whose dates change shape by machine is worse than one that
- * only ever speaks one language. The rest of the console's readouts are in the
- * same position and answer it the same way.
+ * Month names in English rather than from `toLocaleDateString`, so dates do not
+ * change shape by machine.
  */
 const MONTHS = [
   "Jan",
@@ -103,9 +70,8 @@ const MONTHS = [
 /**
  * A real instant as `14 Mar 1957 03:22:37`, read in UTC.
  *
- * UTC rather than the viewer's zone deliberately: the epoch is a property of
- * the game, and shifting it by whichever side of Greenwich the operator sits
- * on would put two stations on the same mission a day apart at the boundary.
+ * UTC, not the viewer's zone, so two stations on one mission never read a day
+ * apart.
  */
 function formatRealDate(ms: number): string {
   const at = new Date(ms);

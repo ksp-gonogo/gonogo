@@ -9,24 +9,14 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { SystemViewComponent } from "../SystemView";
-// Side-effect import: registers the real `system-view-vessel-orbits`
-// contribution (the fleet plus the comms.network relay graph), the same
-// shape-contribution model the Commlinks/Traffic toggles below now gate,
-// matching `commsNetworkContribution.integration.test.tsx` and
-// `commsTraffic.integration.test.tsx`'s own style.
+// Side-effect import: registers the real `system-view-vessel-orbits` contribution the toggles gate.
 import "../SystemView/vesselOrbitsContribution";
 import { UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-// Importing the augment module registers it ONCE, at this file's first
-// import (module-load self-registration, same lifecycle as
-// `registerComponent`): deliberately NOT cleared with `clearAugments()`
-// between tests the way `SystemView/slot.test.tsx` clears its ad-hoc,
-// per-test test-augments: there is nothing here to re-register between
-// tests, so clearing would just permanently empty the slot after the
-// first `it()`.
+// The augment self-registers once at import, so it is deliberately not cleared between tests.
 import "./index";
 import { __resetFleetCommsTogglesForTests } from "./toggles";
 
@@ -38,18 +28,9 @@ const META = {
 };
 
 /**
- * Integration coverage for the Fleet/Comms augment after its comms drawing
- * moved onto the contribution model. The `system-view.overlay` fill that used
- * to draw its own straight-line comms path and command-traffic pulse is gone,
- * superseded by the CommNet relay graph, the selected-path highlight and the
- * graph-routed traffic pulses `SystemView`'s own `SystemEntitiesLayer` draws.
- *
- * This file proves what is left: the augment registers `.actions` and
- * nothing else, the two toggles gate that model's connection-line and pulse
- * entities rather than a second draw of their own, and the route and pulse
- * each render EXACTLY ONCE with the toggles on, which is what would catch
- * the duplicate draw coming back. The header link badge is a contribution
- * now, covered end to end by `./panel-badge.test.tsx`.
+ * The Fleet/Comms augment registers `.actions` and nothing else, its toggles
+ * gate SystemView's own connection-line and pulse entities, and the route and
+ * pulse each render EXACTLY ONCE with the toggles on.
  */
 describe("FleetComms: actions augment on SystemView, comms drawing on the contribution model", () => {
   let fixture: StreamFixture;
@@ -71,10 +52,7 @@ describe("FleetComms: actions augment on SystemView, comms drawing on the contri
     });
   });
 
-  /** Mounts SystemView framed on Kerbin with one active vessel directly
-   *  linked to home over one edge: the minimal scene a comms line needs a
-   *  route to draw on, wrapped in the real contribution providers the
-   *  shape-contribution model requires. */
+  /** SystemView framed on Kerbin with one active vessel linked directly home: the minimal scene a comms line can draw on. */
   async function renderDiagram() {
     const result = render(
       <fixture.Provider>
@@ -86,9 +64,7 @@ describe("FleetComms: actions augment on SystemView, comms drawing on the contri
       </fixture.Provider>,
     );
     act(() => {
-      // Kerbin carries `isHome`, which is what the graph's `"home"` node
-      // resolves against: without a flagged body there is no honest position
-      // for the ground station and the edge is omitted rather than guessed.
+      // Without an `isHome` body the ground station has no honest position and the edge is omitted.
       fixture.emit("system.bodies", {
         bodies: [
           {
@@ -182,11 +158,9 @@ describe("FleetComms: actions augment on SystemView, comms drawing on the contri
     expect(getAugmentsForSlot("system-view.badges")).toEqual([]);
   });
 
-  // The contribution IS registered, by importing `./index` above (which
-  // side-effect imports `./badge`). Proves the two halves stay wired together
-  // without this file having to import the badge module itself.
+  // Registered by importing `./index`, which proves the badge stays wired to the augment module.
   it("registers the badge as a contribution on the same slot id", () => {
-    // `core:`-prefixed: a contribution id is stamped with its owning client, and the built-in half registers through `CORE_UPLINK_CLIENT`.
+    // A contribution id is stamped with its owning client.
     expect(
       getContributionsForSlot("system-view.badges").map((c) => c.id),
     ).toContain("core:fleet-comms-badge");
@@ -201,7 +175,7 @@ describe("FleetComms: actions augment on SystemView, comms drawing on the contri
         ),
       ).toHaveLength(1);
     });
-    // No second, FleetComms-drawn line anywhere in the tree: the only `<line>` element is the one contributed edge.
+    // The only `<line>` element is the one contributed edge.
     expect(container.querySelectorAll("line")).toHaveLength(1);
   });
 

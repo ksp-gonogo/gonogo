@@ -5,15 +5,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SemiMajorAxisComponent } from "./index";
 
 /**
- * The frame as a qualifier on a LENGTH, which is a different rule from the one
- * that governs an apsis.
- *
- * A rotating-pulsating frame holds its two primaries' separation fixed, so its
- * length unit varies with time. A semi-major axis in that frame still EXISTS,
- * it is simply measured in units that move, so it is labelled rather than
- * suppressed. An apsis in the same frame does not exist at all and must show no
- * number. Getting those two the same way round is the point of the rule living
- * in one place.
+ * A rotating-pulsating frame's length unit moves with time, so a semi-major
+ * axis in it is labelled rather than suppressed; an apsis in the same frame
+ * does not exist and shows no number.
  */
 const CARRIED = [
   "vessel.orbit",
@@ -56,7 +50,7 @@ function setup() {
 
 describe("SemiMajorAxis: what a pulsating frame does to a length", () => {
   it("still shows the number, and names the frame its units move with", async () => {
-    // Labelled, NOT suppressed: the quantity exists, and an operator who knows the units move can still read it.
+    // Labelled, not suppressed: the quantity exists.
     const fixture = setup();
     act(() => {
       fixture.emit("system.frame", {
@@ -69,13 +63,12 @@ describe("SemiMajorAxis: what a pulsating frame does to a length", () => {
     await waitFor(() =>
       expect(screen.getByText(/Kerbol-Kerbin Lagrange/)).toBeTruthy(),
     );
-    // The frame is named, so the caveat points at something the operator can change rather than reading as an unexplained warning.
+    // The frame is named, so the caveat points at something the operator can change.
     expect(screen.getByText(/Kerbol-Kerbin Lagrange/)).toBeTruthy();
   });
 
   it("says nothing about units in a frame whose lengths are lengths", async () => {
-    // The contrast case. Without it, the assertion above could pass because the
-    // caption rendered unconditionally.
+    // The contrast case, so the caption above cannot be unconditional.
     const fixture = setup();
     act(() => {
       fixture.emit("system.frame", { kind: 1, centreBody: "Kerbin" });
@@ -88,8 +81,7 @@ describe("SemiMajorAxis: what a pulsating frame does to a length", () => {
   });
 
   it("says nothing before any frame has been reported", async () => {
-    // Unknown is not invalid. A caption on every install for the moment before
-    // the first frame sample lands would be a warning about nothing.
+    // Unknown is not invalid: no caption before the first frame sample lands.
     setup();
 
     await waitFor(() => expect(screen.getByText(/682/)).toBeTruthy());

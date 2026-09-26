@@ -4,32 +4,20 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 
 /**
- * The horizon a live `vessel.orbit` sample carries today.
- *
- * `VesselOrbit.Horizon` is not nullable on the wire: a producer states how far
- * its elements may be propagated, and the only elected provider is the analytic
- * two-body solver, which has no limit and says so. A fixture that omits the
- * field is simulating a producer that dropped it, which the client gate treats
- * as unpropagatable, so any test wanting an arc to render has to state one.
- *
- * Spelled out here rather than defaulted inside the fixture helper on purpose:
- * defaulting it would put the permissive answer back, one layer down, in the
- * only place nobody would look for it.
+ * The reach a live `vessel.orbit` sample carries from the analytic two-body
+ * solver: unbounded. The wire field is not nullable, and a fixture omitting it
+ * simulates a producer that dropped it, which the client gate treats as
+ * unpropagatable. Stated explicitly rather than defaulted in the fixture
+ * helper, where a permissive default would hide.
  */
 export const UNBOUNDED_HORIZON = {
   kind: PropagationHorizonKindLike.Unbounded,
 } as const;
 
 /**
- * The FULL horizon the stock producer sends: `AnalyticHorizon()` in
- * `VesselViewProvider.cs` states both halves, reach and shape.
- *
- * Separate from {@link UNBOUNDED_HORIZON} because the two say different things
- * and a widget may consult either. Reach alone leaves the shape `Unspecified`,
- * which is what a producer that forgot the field sends, and a widget deciding
- * whether a conic is the right renderer must read that as "unknown" rather than
- * "conic". Tests that want a conic drawn need this one; tests exercising the
- * forgot-the-shape case want the other.
+ * The full horizon the stock producer sends (`AnalyticHorizon()` in
+ * `VesselViewProvider.cs`), reach and shape. Reach alone leaves the shape
+ * `Unspecified`, which a widget must read as unknown, not conic.
  */
 export const ANALYTIC_UNBOUNDED_HORIZON = {
   kind: PropagationHorizonKindLike.Unbounded,
@@ -37,13 +25,9 @@ export const ANALYTIC_UNBOUNDED_HORIZON = {
 } as const;
 
 /**
- * What a provider that INTEGRATES sends: an osculating element set, exact at
- * the sample instant, good until `untilUt` and no further.
- *
- * `untilUt` is a UT rather than a duration, per `PropagationHorizon.UntilUt`.
- * The default is a few minutes past UT 0, in the range a low orbit's provider
- * vouches for; the real number is per craft and comes from whoever propagates
- * it, so pass an explicit one when a test cares where the arc stops.
+ * What an integrating provider sends: an osculating element set, good until
+ * `untilUt` (a UT, not a duration) and no further. Pass one explicitly when a
+ * test cares where the arc stops.
  */
 export function integratedHorizon(untilUt = 500) {
   return {

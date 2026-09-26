@@ -19,55 +19,33 @@ export type SignalDelayPresentation = "badge" | "strip" | "none";
 export interface SignalDelayPresentationInput {
   /**
    * One-way separation in seconds, `null` when there is no measurable path.
-   * `null` and a measured zero are different readings and neither gets a badge:
-   * `null` is no path at all, zero is a link with no delay to report, and a
-   * chip saying "one-way ~0 s" is noise on a dashboard sitting at the pad.
+   * Neither `null` nor a measured zero gets a badge.
    */
   oneWaySeconds: number | null;
   /**
    * Whether this console can put something in the strip. A read-only viewer
-   * dispatches nothing, so at a long delay it gets NEITHER reading: there is no
-   * queue to draw and a standing badge would be quoting a cost it never pays.
+   * gets NEITHER reading at a long delay: no queue, and no cost it ever pays.
    */
   canQueue: boolean;
   /**
-   * Force the badge whatever the magnitude. A terminal emulator in CHARACTER
-   * mode sets this: every keystroke goes to the wire on its own and the round
-   * trip shows as the emulator's own latency, so there is no composed line to
-   * queue and the strip has nothing to list at any delay.
+   * Force the badge whatever the magnitude, for a terminal in CHARACTER mode:
+   * every keystroke goes on its own, so the strip has nothing to list.
    */
   alwaysBadge?: boolean;
 }
 
 /**
  * Which ONE of the two delay readings a console shows, given how far away the
- * other end is.
+ * other end is:
  *
- * A console that composes something and sends it has two ways to say what the
- * delay costs, and they answer different questions:
+ *   - a BADGE is a standing readout of the separation, useful before anything
+ *     has been sent
+ *   - a STRIP (`InFlightList`) is one row per thing actually crossing, useful
+ *     once something is out
  *
- *   - a BADGE is a standing readout of the separation itself, useful before
- *     anything has been sent and worthless as a countdown
- *   - a STRIP, which is `InFlightList` below, is one row per thing actually
- *     crossing, with the instant it lands, useful only once something is out
- *
- * They are MUTUALLY EXCLUSIVE, which is the whole reason this is a function and
- * not two booleans at the call site. Drawn together they say the same number
- * twice in two different shapes, and the operator has to work out which one is
- * about the message they just sent.
- *
- * It lives beside the strip rather than beside the console, because what it
- * decides is which READING to draw and this file is what draws one of them. No
- * console calls it: `Console` does, once, and a widget says only how far away
- * the other end is and whether it can queue.
- *
- * The boundary is `currentMode`'s and is not restated here, which is why the
- * seconds are re-wrapped to ask it: "is the delay big enough to be worth a
- * countdown" is the same question the engine already answers when it decides to
- * STAGE a dispatch rather than send it live. It was for a while a second
- * function carrying its own copy of the one-second literal, with a test pinning
- * the two together; a pin is what you need when there are two, and there is one
- * now.
+ * They are MUTUALLY EXCLUSIVE: drawn together they say the same number twice
+ * in two shapes. The boundary is `currentMode`'s, the same one the engine uses
+ * to stage a dispatch rather than send it live.
  */
 export function signalDelayPresentation({
   oneWaySeconds,
@@ -83,13 +61,9 @@ export function signalDelayPresentation({
 }
 
 /**
- * Vanilla-safe display shape for one delayed command, a deliberate LOCAL
- * redeclaration, not an import of `@ksp-gonogo/sitrep-client`'s
- * `InFlightCommand`: this package carries no data hooks and no gonogo-type
- * imports (design: "InFlightList"/"CommandGroup" stay props-driven only).
- * `etaSeconds` is the caller's choice of which clock to show (reach vs.
- * reply): `null` renders as "no ETA" (e.g. an already-`overdue`/`lost`
- * entry, or a `no-path` mode with nothing to count toward).
+ * Display shape for one delayed command, declared locally. `etaSeconds` is the
+ * caller's choice of clock (reach or reply); `null` renders as "no ETA" (an
+ * `overdue` or `lost` entry, or `no-path` mode).
  */
 export interface InFlightListItem {
   id: string;
@@ -97,19 +71,15 @@ export interface InFlightListItem {
   etaSeconds: number | null;
   phase: "in-transit" | "awaiting-reply" | "due" | "overdue" | "lost";
   /**
-   * True position along the 3-stage delay axis, 0 (just sent) .. 1 (end of the
-   * 3T span), from the command's reach/reply geometry (`journeyProgress` in
-   * `toInFlightListItems`). Only the `variant="rail"` glow reads it; the inline
-   * list ignores it. Optional so a hand-built item (tests, non-`useCommand`
-   * sources) need not supply it, the glow then anchors by phase.
+   * True position along the 3-stage delay axis, 0 (just sent) to 1 (end of the
+   * 3T span). Only the `variant="rail"` glow reads it; without it the glow
+   * anchors by phase.
    */
   progress?: number;
   /**
-   * The command's OWN terse glyph, the issuing button's label/icon ("PRO",
-   * "RET", "WARP"), shown in the `variant="expanded"` queue square. Phase is
-   * conveyed by colour, never by this glyph (it stays the command's identity
-   * throughout its life). Optional: a caller that supplies none falls back to a
-   * short abbreviation derived from `label`.
+   * The command's OWN terse glyph ("PRO", "RET", "WARP"), shown in the
+   * `variant="expanded"` queue square. Phase is conveyed by colour, never by
+   * the glyph. Defaults to an abbreviation of `label`.
    */
   glyph?: string;
 }
@@ -121,16 +91,12 @@ export type InFlightListMode = "live" | "staged" | "no-path";
  * which is about WHAT is being counted; this is about how much space there is
  * to count it in.
  *
- *   - `full`    arrow, label and countdown per command, one per line.
- *   - `compact` arrow and countdown only. The label moves to the row's
- *               accessible name and its tooltip, because at this size a label
- *               would truncate to two characters and tell nobody anything.
- *   - `badge`   one chip for the whole set: count plus the nearest arrival.
+ *   - `full`    arrow, label and countdown per command, one per line
+ *   - `compact` arrow and countdown only; the label moves to the accessible
+ *               name and tooltip
+ *   - `badge`   one chip for the whole set: count plus the nearest arrival
  *
- * `auto` (the default) measures the rendered width and picks. Widgets are
- * small and shrink further, and a caller passing this by hand is one more
- * thing twenty call sites can get wrong, so the component decides from the
- * room it actually has rather than from what the caller guessed.
+ * `auto` (the default) measures the rendered width and picks.
  */
 export type InFlightListDensity = "auto" | "full" | "compact" | "badge";
 
@@ -147,14 +113,11 @@ export interface InFlightListProps {
   /** Accessible label for the list region. Defaults to "In-flight commands". */
   ariaLabel?: string;
   /**
-   * `"inline"` (default) is the monospace row/badge list every existing
-   * consumer gets. `"rail"` is the v3 16px strip the Panel rail uses: each
-   * in-flight command is a soft glow grazing the top edge (its blip sits off the
-   * widget, above the edge, only the blur reaches down), positioned by true
-   * journey progress so it sweeps left -> right as the command travels the 3
-   * signal stages. `"expanded"` is the grown/pinned detail: a rich pill per
-   * command (label, phase, countdown, and a leg-coloured progress bar tracking
-   * its journey). `mode` / `density` / `orientation` apply to `"inline"` only.
+   * `"inline"` (default) is the monospace row/badge list. `"rail"` is the
+   * Panel rail's 16px strip: each command is a soft glow grazing the top edge,
+   * sweeping left to right by journey progress. `"expanded"` is the pinned
+   * detail: a queue square per command. `mode`, `density` and `orientation`
+   * apply to `"inline"` only.
    */
   variant?: "inline" | "rail" | "expanded";
   /**
@@ -176,31 +139,17 @@ const PHASE_ARROW: Record<InFlightListItem["phase"], string> = {
 const ERROR_PHASES = new Set<InFlightListItem["phase"]>(["overdue", "lost"]);
 
 /**
- * Width thresholds for `auto`, in px, comment-locked to what the content
- * needs rather than to a device size.
- *
- * `full` needs an arrow (~10px), a countdown (~48px at the monospace xs
- * size), the 6px gaps and the 16px of horizontal padding, plus enough left
- * over for a label to be worth printing. Below ~100px of label room it
- * ellipsises to noise, so 180 is the floor.
- *
- * `compact` needs only arrow plus countdown, about 80px with padding. Below
- * that even one entry does not fit on a line, so the whole set collapses to
- * the badge.
+ * Width thresholds for `auto`, in px, set by what the content needs. `full`
+ * needs arrow, countdown, gaps and padding plus about 100px of label room;
+ * `compact` needs arrow plus countdown. Below that the set collapses to the
+ * badge.
  */
 const FULL_MIN_WIDTH = 180;
 const COMPACT_MIN_WIDTH = 96;
 
-/** Phase ranking for the badge's summary: the nearest real arrival wins. */
-
 /**
- * The countdown a strip SPEAKS, for the two places a node cannot go: this
- * list's own accessible name and a row's `title`.
- *
- * Clamped at zero deliberately, which is the whole of what the retired
- * `formatCountdown` added over the raw ladder: a strip shows time REMAINING,
- * and an overdue item counting past the event reads as a negative duration
- * rather than as arrival.
+ * The countdown a strip SPEAKS, for the accessible name and a row's `title`.
+ * Clamped at zero: a strip shows time REMAINING, never a negative duration.
  */
 function clampedCountdown(seconds: number): string {
   return writeQuantity(value("s", Math.max(0, seconds)));
@@ -215,21 +164,14 @@ function nearestEta(items: InFlightListItem[]): number | null {
   return best;
 }
 
-/** Re-seed the local countdown only on a jump this large (seconds), the
- * caller's own `etaSeconds` reads (e.g. `useCommand`'s synchronous
- * `nowUt`) drift by fractions of a second on every unrelated re-render;
- * resyncing on every one of those would fight the local tick below and
- * tear its interval down constantly instead of letting it run. */
+/** Re-seed the local countdown only on a jump this large (seconds): the caller's `etaSeconds` drifts by fractions on every re-render. */
 const RESYNC_THRESHOLD_SECONDS = 1;
 
 /**
- * A pure, local-ticking countdown value: seeds from `etaSeconds`, resyncs
- * only on a real jump (a fresh dispatch, a phase transition), and otherwise
- * decrements once per second on its OWN mount-once interval, so the
- * displayed number stays smooth even when the caller only recomputes
- * `etaSeconds` on a slower (or noisier) cadence. Pure in the sense the
- * design calls for: it operates ONLY on the value passed in, no data
- * source, no clock import.
+ * A local-ticking countdown: seeds from `etaSeconds`, resyncs only on a real
+ * jump, and otherwise decrements once per second on its own interval, so the
+ * number stays smooth whatever the caller's cadence. Reads only the value
+ * passed in.
  */
 export function useCountdown(etaSeconds: number | null): number | null {
   const [value, setValue] = useState(etaSeconds);
@@ -248,10 +190,7 @@ export function useCountdown(etaSeconds: number | null): number | null {
     }
   }, [etaSeconds]);
 
-  // Mount-once local tick: deliberately NOT keyed on `etaSeconds` (see
-  // `RESYNC_THRESHOLD_SECONDS`'s doc): tying this interval's lifetime to a
-  // value that drifts on every render would tear it down and recreate it
-  // constantly instead of ever letting a full second elapse.
+  // Mount-once and not keyed on `etaSeconds`, which drifts every render and would never let a full second elapse.
   useEffect(() => {
     const id = setInterval(() => {
       setValue((prev) => (prev === null ? null : Math.max(0, prev - 1)));
@@ -263,10 +202,9 @@ export function useCountdown(etaSeconds: number | null): number | null {
 }
 
 /**
- * Presentational set-renderer for `InFlightCommand`-shaped items (0/1/N):
- * a stack of in-flight rows with per-entry countdowns and phase-appropriate
- * styling. Renders nothing for an empty set. No data hooks, a widget feeds
- * it `useCommand().inFlight` or `useRouteCommands(topic).items` directly.
+ * Presentational set-renderer for in-flight commands: rows with per-entry
+ * countdowns and phase styling. Renders nothing for an empty set. No data
+ * hooks; a widget feeds it `useCommand().inFlight` directly.
  */
 export function InFlightList({
   items,
@@ -277,12 +215,10 @@ export function InFlightList({
   variant = "inline",
   onDismiss,
 }: InFlightListProps) {
-  // Seeded wide so the first paint is the full form and `auto` only ever
-  // shrinks from it. Seeding narrow would flash a badge on every mount.
+  // Seeded wide so `auto` only ever shrinks from the full form, never flashing a badge on mount.
   const { ref, size } = useElementSize({ w: 320, h: 0 });
 
-  // v3 rail / expanded renderings bypass the density/badge logic entirely (that
-  // is the inline list's story). Hook above still runs unconditionally.
+  // The rail and expanded renderings bypass density entirely.
   if (variant === "rail") {
     if (items.length === 0) return null;
     return <InFlightRailStrip items={items} ariaLabel={ariaLabel} />;
@@ -307,10 +243,7 @@ export function InFlightList({
           ? "compact"
           : "badge";
 
-  // Nothing in flight renders nothing, as before. The measurement survives:
-  // the hook keeps its last size across the empty render, and the observer
-  // re-fires as soon as a real box mounts again, so at worst one frame shows
-  // the seeded full form before settling.
+  // The size hook keeps its last measurement across an empty render.
   if (items.length === 0) return null;
 
   if (resolved === "badge") {
@@ -344,19 +277,13 @@ export function InFlightList({
   );
 }
 
-// v3 rail strip geometry (operator's v3 design). Each in-flight command is a
-// blip that renders effectively OFF the widget, its centre sitting ABOVE the
-// top edge (cy negative, outside the 0..RAIL_VB_H viewBox, so the disc itself is
-// never drawn), and only its soft radial BLUR grazes down onto the top edge. The
-// glow's x tracks the command's TRUE journey progress (0 left .. 1 right across
-// the 3 signal stages), so it sweeps the edge as the command travels. Drawn with
-// preserveAspectRatio="none" (viewBox stretched to the full widget width). No
-// baseline or dividers: a grazing glow, not markers on a line.
+/*
+ * Rail strip geometry: each command is a glow centred ABOVE the top edge, so
+ * only its blur grazes the strip, with x tracking true journey progress. No
+ * baseline or dividers.
+ */
 const RAIL_VB_W = 100;
 const RAIL_VB_H = 16;
-// The blip centre sits this far ABOVE the top edge; only the lower falloff of a
-// radius-GLOW_R glow reaches into the strip, so the disc is unseen and the edge
-// gets a soft graze that fades downward.
 const GLOW_CY = -4;
 const GLOW_R = 9;
 const GLOW_PEAK_ALPHA = 0.22;
@@ -379,9 +306,7 @@ function InFlightRailStrip({
     >
       <defs>
         {items.map((item, i) => {
-          // Ext 2: a failed command is represented in the collapsed summary by
-          // its glow going amber (overdue) or red (lost), the same ramp the
-          // expanded queue uses, so a failure is never invisible here.
+          // A failed command's glow goes amber (overdue) or red (lost), so a failure is never invisible here.
           const colour =
             item.phase === "lost"
               ? "var(--color-status-nogo-bg)"
@@ -428,11 +353,7 @@ function InFlightRailStrip({
   );
 }
 
-/**
- * The whole queue as one chip: how many are out, and when the next one
- * arrives. Those are the two facts that change what an operator does next;
- * everything else is detail they can get by making the widget bigger.
- */
+/** The whole queue as one chip: how many are out, and when the next one arrives. */
 const InFlightBadge = function InFlightBadge({
   ref,
   items,
@@ -492,11 +413,7 @@ function InFlightRow({
       ? `${item.label}, ${item.phase}`
       : `${item.label}, ${clampedCountdown(countdown)}`;
   return (
-    // Compact drops the visible label, so the row carries it as its own
-    // accessible name instead: a screen reader hears the same thing at every
-    // density. `title` is the sighted equivalent, and only that: it is not
-    // keyboard reachable, so it is a convenience on top of the accessible
-    // name rather than the thing carrying the information.
+    // Compact drops the visible label, so the row carries it as its accessible name; `title` is only a convenience.
     <InFlightList__Row
       $phase={item.phase}
       role="listitem"
@@ -523,16 +440,14 @@ const InFlightRailStrip__Svg = styled.svg`
   height: 16px;
 `;
 
-// v3 discrete-rebuild expanded view: the "compact mode" command queue. Each
-// in-flight command is a SQUARE showing the command's OWN glyph (the issuing
-// button's label, "PRO"/"RET"/...), NEVER a status-icon set. Phase is COLOUR
-// (accent green in flight -> amber overdue -> red lost), progress is a thin BAR.
-// The queue has no size of its own: a fixed box that never grows/reflows the
-// widget, overflow past what fits becomes a `+N` count (never scroll, never
-// growth). The axis is slot-derived, a ROW in a wide box, a COLUMN in a narrow
-// one, via container-query, one square thick, `--thick` the single number that
-// sets it. A lost/overdue square is a real clear button (dismiss).
-const QUEUE_THICK = 54; // px, the rail's square strip (down from a first-cut 64)
+/*
+ * The expanded command queue: a SQUARE per command showing its own glyph,
+ * never a status icon. Phase is colour, progress a thin bar. A fixed box that
+ * never grows the widget: overflow becomes a `+N` count, never a scroll. A row
+ * in a wide box, a column in a narrow one. A lost or overdue square is a clear
+ * button.
+ */
+const QUEUE_THICK = 54; // px
 const QUEUE_BAR = 5;
 const QUEUE_GAP = 3;
 const QUEUE_SQUARE = QUEUE_THICK - 8 - QUEUE_BAR; // less border+padding and bar
@@ -556,9 +471,7 @@ function InFlightQueue({
   onDismiss?: (id: string) => void;
 }) {
   const { ref, size } = useElementSize({ w: 320, h: QUEUE_THICK });
-  // The queue runs as a row when its box is wide, a column when narrow (the
-  // same container-query CSS decides the visual axis); capacity is measured on
-  // that main axis so a full queue caps at `+N` rather than scrolling.
+  // Capacity is measured on the main axis, so a full queue caps at `+N` rather than scrolling.
   const row = size.w >= QUEUE_ROW_MIN;
   const main = row ? size.w : size.h;
   const capacity = Math.max(

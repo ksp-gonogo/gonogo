@@ -6,17 +6,7 @@ import {
   descentFrame,
 } from "./descentLayers";
 
-/**
- * The descent envelope's own marks, tested as the DATA they now are.
- *
- * These assertions used to be read back out of rendered SVG attributes: a
- * `points` string, a `stroke-dasharray`, a `cx`. That was always testing the
- * shadow rather than the claim, and it is why so much of the old file was about
- * pixel arithmetic the shared chart now owns. What the widget actually decides
- * is WHICH layers exist and what they say, and that is what is checked here.
- * How a layer is drawn belongs to `packages/ui/src/plotLayers.tsx`, and whether
- * they reach the chart at all to `DescentEnvelope.test.tsx`.
- */
+/** The descent envelope's own marks, tested as data: which layers exist and what they say, not how they are drawn. */
 
 const KERBIN_G = 9.81;
 
@@ -58,7 +48,7 @@ describe("descentFrame", () => {
     expect(frame?.yDomain[0]).toBe(0);
     expect(frame?.yDomain[1]).toBeGreaterThan(28_000);
     expect(frame?.xDomain[0]).toBe(0);
-    // The vessel is the fastest thing in play here, so it sets the span, and it must not end up sat on the frame.
+    // The vessel is the fastest thing in play, so it sets the span and must not sit on the frame.
     expect(frame?.xDomain[1]).toBeGreaterThan(2200);
   });
 });
@@ -98,7 +88,7 @@ describe("action urgency", () => {
 
 describe("buildDescentLayers", () => {
   it("contributes NOTHING at all when the plot cannot be drawn", () => {
-    // Not an empty plot with zeroed marks: no layers, so nothing is drawn and nothing is spoken.
+    // No layers, so nothing is drawn and nothing is spoken.
     expect(buildDescentLayers({ ...ENTRY, terminalVelocity: null })).toEqual(
       [],
     );
@@ -110,7 +100,7 @@ describe("buildDescentLayers", () => {
     const points = (curve as Extract<PlotLayer, { kind: "series" }>).points;
     expect(points[0]).toEqual({ x: 95, y: 0 });
     expect(points[points.length - 1].y).toBeGreaterThan(28_000);
-    // Bold, so it reads at a glance against the trace laid over it.
+    // Bold, so it reads against the trace laid over it.
     expect(
       (curve as Extract<PlotLayer, { kind: "series" }>).weight,
     ).toBeGreaterThan(1);
@@ -125,7 +115,7 @@ describe("buildDescentLayers", () => {
   it("shades the DECELERATING half-plane to the right of the curve", () => {
     const region = byId(buildDescentLayers(ENTRY), "decelerating");
     expect(region).toMatchObject({ kind: "region", side: "right" });
-    // The wash is named rather than left as an unexplained tone: it is the boundary the whole plot is built around.
+    // The wash is named: it is the boundary the plot is built around.
     expect((region as Extract<PlotLayer, { kind: "region" }>).label).toBe(
       "DECELERATING",
     );
@@ -164,11 +154,7 @@ describe("buildDescentLayers", () => {
   });
 
   it("fades the haze to NOTHING once the plot spans thin enough air", () => {
-    // The bands are density halvings and stop below a floor rather than
-    // stepping forever, so a plot whose two anchors are far apart (a steep
-    // density column) ends in clear air rather than a permanent faint tint.
-    // The span that decides this is the RATIO of the anchors, not the
-    // altitude: a taller plot of the same column is the same column.
+    // The halving bands stop below a floor, so a steep density column ends in clear air; the anchors' ratio decides it, not the altitude.
     const field = byId(
       buildDescentLayers({ ...ENTRY, terminalVelocity: 600 }),
       "atmosphere-bands",
@@ -177,8 +163,7 @@ describe("buildDescentLayers", () => {
   });
 
   it("draws NO trace at all without the body's surface gravity", () => {
-    // The one input the integration cannot do without. An absent body renders
-    // as an absent trace, never as a trace against a guessed one.
+    // An absent gravity renders as an absent trace, never one against a guessed body.
     const layers = buildDescentLayers({ ...ENTRY, surfaceGravity: null });
     expect(ids(layers)).not.toContain("trace-estimate");
     expect(ids(layers)).not.toContain("settle");
@@ -244,7 +229,7 @@ describe("buildDescentLayers", () => {
   });
 
   it("says so when the descent never settles before the ground", () => {
-    // A vessel that arrives still slowing is the reading the plot exists for, and an absent tick must not be the only way to learn it.
+    // Arriving still slowing is the reading the plot exists for, so it must not be told by an absent tick alone.
     const layers = buildDescentLayers({
       currentSpeed: 2200,
       currentAltitude: 900,
@@ -279,7 +264,7 @@ describe("buildDescentLayers", () => {
     it("is an OPEN chevron above the mark, never a filled arrow through it", () => {
       const chevron = withRatio(1.6);
       expect(chevron).toMatchObject({ shape: "chevron-up" });
-      // Drag pulls the vessel back, the opposite intuition from a shaft growing out of the mark, so it sits above rather than trailing.
+      // Drag pulls the vessel back, so the chevron sits above rather than trailing.
       expect(chevron?.offsetPx).toBeLessThan(0);
     });
 
@@ -316,9 +301,7 @@ describe("buildDescentLayers", () => {
     expect(new Set(anchors).size).toBe(anchors.length);
     expect(anchors).toContain("bottom-left");
     expect(anchors).toContain("bottom-right");
-    // NOT the altitude: the chart labels its own Y axis and the vessel mark
-    // sits against it, so a corner readout would be the same number a third
-    // time, printed where the terminal curve passes.
+    // Not the altitude: the vessel mark against the labelled Y axis already states it.
     expect(anchors).not.toContain("top-left");
   });
 });

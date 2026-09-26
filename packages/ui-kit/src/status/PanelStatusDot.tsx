@@ -14,18 +14,13 @@ export interface PanelStatusDotProps {
 
 /**
  * One per-severity status dot for a Panel's collapsed header: a small coloured
- * disc (filled via `severityDotColor`) carrying the count when more than one
- * contributor sits at that severity, and growing sideways into a pill when the
- * count takes more than one digit. Keyed on the canonical `Severity`,
- * this is the rebuild of the killed 3-tone `Dot` draft on the real vocabulary,
- * NOT a harvest of it.
+ * disc carrying the count when more than one contributor sits at that
+ * severity, growing sideways into a pill when the count takes more than one
+ * digit.
  *
- * It is a meaningful graphic, so it carries `role="img"` + an accessible name
- * ("warning", "3 caution") rather than being hidden: in a collapsed header the
- * dot row IS the status display (the summary badge is gone), so a screen reader
- * must reach it. The count colour reads OUT of the dot as the panel surface, so
- * it stays legible on every saturated severity fill (verified by the visual
- * gate, not asserted in jsdom).
+ * It carries `role="img"` and an accessible name ("warning", "3 caution")
+ * rather than being hidden: in a collapsed header the dot row is the status
+ * display, so a screen reader must reach it.
  */
 export function PanelStatusDot({ severity, count = 1 }: PanelStatusDotProps) {
   const withCount = count > 1;
@@ -43,13 +38,7 @@ export function PanelStatusDot({ severity, count = 1 }: PanelStatusDotProps) {
   );
 }
 
-/* 8px: sized to the TITLE's cap-height, not the title's full font-size
-   (--font-size-xs, 11px). PanelTitle is small uppercase, and an 11px dot next
-   to 11px uppercase text reads a touch big, it wants to sit IN the title's
-   text line rather than beside it at the same nominal size. 8px is roughly an
-   11px font's cap-height, so the dot now visually fits the glyphs rather than
-   overshooting them. (Was 16px originally, then 11px; this is the third and
-   title-anchored cut, not a further arbitrary trim.) */
+// Sized to the panel title's cap-height, not its font-size, so the dot sits inside the title's text line.
 const DOT_DIAMETER = "8px";
 
 const PanelStatusDot__Root = styled.span<{

@@ -7,21 +7,9 @@ import {
 } from "../test/setupStreamFixture";
 import { NavballComponent } from "./index";
 
-/**
- * Proof for the throttle axis's delayed control-stream strip. The ONLY
- * continuous axis wired onto
- * `useControlStream` today is throttle, `vessel.control.throttle` being the
- * only channel `getControlChannel` resolves (`VesselControl` has no pitch/
- * yaw/roll READ fields or `[SitrepControlChannel]` declarations yet, see
- * the follow-on note on `throttleStream` in index.tsx). So this file proves
- * ONE thing: `<ControlDelayStream>` renders once a one-way delay is known,
- * fed by the throttle stream, and renders nothing at (or near) zero delay.
- *
- * Sized to clear `showControlSurface`'s gate (rows>=18, cols>=7), same
- * `CONTROL_SIZE` shape `command-stream.test.tsx` uses, so the real control
- * surface (and the graph inside it) mounts.
- */
+/** Proves the throttle-fed control-delay graph renders once a one-way delay is known, and not at zero delay. */
 const CONTROL_MODE_CONFIG = { controlMode: true };
+// Large enough to clear the control surface's size gate.
 const CONTROL_SIZE = { w: 10, h: 20 };
 
 afterEach(() => {
@@ -53,7 +41,6 @@ describe("Navball control-delay stream (throttle)", () => {
 
     renderControlNavball("nav-cds-throttle", fixture);
 
-    // No graph before any delay is known.
     expect(
       screen.queryByRole("img", { name: /controls in flight/i }),
     ).toBeNull();
@@ -84,12 +71,7 @@ describe("Navball control-delay stream (throttle)", () => {
       fixture.emit("vessel.control", { throttle: 0.4 });
     });
 
-    // Give the coalesce interval a tick to prove this is a genuine steady-state check, not just "hasn't rendered yet".
-    //
-    // Inside act(), because the interval keeps firing state updates into a
-    // mounted component for the whole wait: un-wrapped, this one line produced 24
-    // of the tree's ~103 act warnings, the largest single cluster in it. The wait
-    // itself is the point of the test and stays.
+    // Waits past the coalesce interval, inside act() since it keeps updating, so this is a steady state and not "not yet".
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 150));
     });

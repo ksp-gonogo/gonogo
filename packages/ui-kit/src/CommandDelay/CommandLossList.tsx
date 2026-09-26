@@ -2,14 +2,7 @@ import { commandRefusalSubject } from "@ksp-gonogo/sitrep-sdk";
 import { CommandOutcomeList } from "./CommandOutcomeList";
 import type { RailTags } from "./railTags";
 
-/**
- * One dispatch nothing answered, as much of it as this text needs.
- *
- * Structurally the spine's `CommandLoss`, declared as a parameter shape rather
- * than imported wholesale for the same reason `CommandRefusalLike` is: ui-kit
- * stays the vanilla design system, and a hand-built loss (a test, a
- * peer-relayed one) can be rendered without pretending it came off a handle.
- */
+/** One dispatch nothing answered, as much of it as this text needs. Structurally the spine's `CommandLoss`. */
 export interface CommandLossLike {
   /** The command id that was dispatched, e.g. `vessel.control.setSas`. */
   command?: string;
@@ -19,34 +12,21 @@ export interface CommandLossLike {
   label?: string;
 }
 
-/** A loss a surface can render: the text's inputs plus the dispatch's own
- *  `requestId`, which keys the box and is what `dismiss` takes. */
+/** A loss a surface can render: the text's inputs plus the dispatch's `requestId`, which keys the box and is what `dismiss` takes. */
 export interface CommandLossEntry extends CommandLossLike {
   id: string;
 }
 
-/** One lost dispatch as the rail renders it, plus its command's rail axes:
- *  a point in time or a span of one (which only the registering handle knows). */
+/** One lost dispatch as the rail renders it, plus its command's rail axes. */
 export interface RailLoss extends CommandLossEntry {
   tags: RailTags;
 }
 
 /**
- * What the operator is told about a command that went quiet.
- *
- * Two words and a verdict the operator can act on. "May have run" is the whole
- * content of this state: the engine drops a command for an unreachable subject
- * without executing it, but a reply can also simply be lost on the way home, and
- * nothing on this side can tell those apart, so pressing again may do the thing
- * twice.
- *
- * What came out was everything the operator does not act on. "By the predicted
- * round trip" is the mechanism that decided the command was late, and "whether
- * it ran is unknown" is the definition of `lost` read back to someone already
- * looking at a box labelled lost.
- *
- * Deliberately never the word "refused": that is the game's verdict, and the
- * game never gave one here.
+ * What the operator is told about a command that went quiet. "May have run":
+ * a dropped command and a reply lost on the way home look the same from here,
+ * so pressing again may do the thing twice. Never "refused", which is the
+ * game's verdict.
  */
 export function commandLossSentence(loss: CommandLossLike): string {
   const subject = commandRefusalSubject(loss);
@@ -56,8 +36,7 @@ export function commandLossSentence(loss: CommandLossLike): string {
 
 export interface CommandLossListProps {
   losses: readonly RailLoss[];
-  /** Clear one loss. Omitted when no handle can dismiss, and the boxes then
-   *  carry no clear control rather than an inert one. */
+  /** Clear one loss. Omit it and the boxes carry no clear control rather than an inert one. */
   onDismiss?: (id: string) => void;
   /**
    * Announce each entry as it arrives (the default). Off only where something
@@ -69,19 +48,11 @@ export interface CommandLossListProps {
 
 /**
  * The unanswered dispatches under the rail's two queues, beside the refusals.
+ * A loss can have no in-flight entry at all, so only this shows it.
  *
- * It exists because these can have nothing in the in-flight queue to show. The
- * engine drops a command for an unreachable subject before it mints a pending
- * entry, so the whole delay UI, derived from that queue, drew nothing for the
- * command's entire life while the issuing control settled exactly as it does on
- * success.
- *
- * `role="status"` by default, which is `aria-live="polite"`: an entry arrives
- * on its own, a round trip after the press, when the operator may be looking
- * elsewhere. Never assertive, which is reserved for ABORT.
- *
- * An empty set draws nothing. A live list keeps its empty region mounted, so
- * the first entry to arrive is announced.
+ * `role="status"` (polite) by default: an entry arrives a round trip after the
+ * press. An empty set draws nothing, but a live list keeps its empty region
+ * mounted so the first entry is announced.
  */
 export function CommandLossList({
   losses,

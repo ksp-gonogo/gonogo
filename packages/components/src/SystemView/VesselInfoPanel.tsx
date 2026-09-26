@@ -2,14 +2,7 @@ import { Grid } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 import type { SystemEntityMeta } from "./systemEntities";
 
-/**
- * The `system-view.entities` info panel's selection payoff: swaps
- * into `AlmanacPanel`'s slot in `panelSidebar` when a vessel is selected,
- * showing the roster fields `vesselOrbitsContribution.ts`'s `metaFor`
- * already carries on every vessel entity (name/type/situation/body/crew/
- * comms), rather than re-reading the roster itself. Deselecting falls back
- * to the frame body's own `AlmanacPanel` (`index.tsx` owns that swap).
- */
+// Swaps into AlmanacPanel's sidebar slot while a vessel is selected, rendering the roster fields `metaFor` already carries on each vessel entity.
 
 const FIELD_LABELS: Readonly<Record<string, string>> = {
   type: "Type",
@@ -19,9 +12,7 @@ const FIELD_LABELS: Readonly<Record<string, string>> = {
   comms: "Comms",
 };
 
-/** Row order for the meta fields `metaFor` produces; anything outside this
- *  set (a future contribution's extra field) still renders, appended after,
- *  in whatever order `Object.entries` yields it. */
+/** Row order for the fields `metaFor` produces; any other field still renders, appended after. */
 const FIELD_ORDER = ["type", "situation", "body", "crew", "comms"];
 
 export interface VesselInfoPanelProps {
@@ -60,18 +51,11 @@ function Wrap({ children }: { children: ReactNode }) {
   return <aside style={WRAP}>{children}</aside>;
 }
 
-// Same token-driven styling as AlmanacPanel's own local constants (that
-// panel's are module-private, and the two panels occupy the same slot at
-// different times, not simultaneously, so duplicating the handful of
-// tokens here is cheaper than exporting/sharing them across a slot swap).
-
 const WRAP: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: "var(--gap-related)",
-  /* Same gutter as AlmanacPanel's WRAP and held for the same reason: the two
-     panels occupy one slot and have to line up, and neither draws a box, so
-     neither is a surface. */
+  // Matches AlmanacPanel's gutter: the two panels share one slot and must line up.
   padding: "var(--inset-frame-panel)",
   minWidth: 0,
   minHeight: 0,

@@ -15,20 +15,10 @@ import {
 
 installDomStubs();
 
-// Soft-cap regression gate: any test that pushes a registered PerfBudget over
-// its threshold fails. See PerfBudget.installTestGate for opt-out.
+// Any test that pushes a registered PerfBudget over its threshold fails.
 PerfBudget.installTestGate();
 
-// Bridge the sitrep-sdk facade's fail-loud shims to the real singletons this
-// suite exercises. Every member, not the subset this client happens to call
-// today: a test gains nothing from the host lacking members, and a partial host
-// fails as `getHost().<member> is not a function` the first time a widget is
-// re-pointed at the facade.
-//
-// The four augment members come from `@ksp-gonogo/ui-kit` because that is where
-// the augment registry and `<AugmentSlot>` live, and ui-kit imports the sdk, so
-// the sdk cannot import them back. Everything else in the host is the sdk's own
-// implementation, reached directly.
+// The augment members come from ui-kit, which imports the sdk, so the sdk cannot supply them itself.
 installRealTestHost({
   AugmentSlot,
   clearAugments,
@@ -36,9 +26,7 @@ installRealTestHost({
   registerAugment,
 });
 
-// Pin the locale every quantity is written in. It defaults to the READER's
-// locale, which is right for an operator and wrong for a snapshot: a render on
-// a French machine has to match one on an American CI runner.
+// Quantities default to the reader's locale, so snapshots pin one.
 setQuantityLocale("en-GB");
 
 // Inert unless the act-warning gate sets its variable. Last, so its afterEach is

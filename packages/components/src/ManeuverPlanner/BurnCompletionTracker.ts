@@ -54,35 +54,19 @@ interface UseBurnCompletionTrackerResult {
   /** Map keyed by UT: entries here render with the green-flash banner. */
   completedNodes: ReadonlyMap<number, CompletedEntry>;
   /**
-   * The largest delta-v magnitude seen for each burn, keyed by UT: what the plan
-   * asked for before any of it was spent.
-   *
-   * Exposed because conformance needs the same observation this hook already
-   * makes, and a second watcher of one quantity is a second thing that can
-   * disagree about whether the same burn finished. Read-only: the tracker owns
-   * the accumulation.
+   * Largest delta-v seen per burn, keyed by UT: what the plan asked for before
+   * any was spent. Shared with conformance so the two cannot disagree about
+   * whether a burn finished.
    */
   maxDvByUt: ReadonlyMap<number, number>;
 }
 
 /**
- * Tracks which maneuver nodes have crossed below the completion threshold
- * (`computeCompletionUpdate`) and schedules an auto-removal of each one
- * after `COMPLETED_HOLD_MS` of wall-clock time.
- *
- * The auto-removal calls `removeNode(<position>)` with the node's position in
- * the *latest* list, re-looked-up at fire time because KSP re-numbers on every
- * removal. A POSITION, not an id: this hook only ever sees the legacy parsed
- * list, whose `id` is the array index, so resolving that to the stream guid the
- * `vessel.maneuver.remove` command needs is the caller's job and the caller is
- * the only one who can do it. Passing the index through as though it were an id
- * is what made this path silently dead.
- *
- * Fire-and-forget by design (an auto-cleanup, not an operator action with
- * somewhere to surface an error): the caller owns catching its own `.send(...)`
- * rejection, same as the legacy `execute(...)` call this replaces already
- * swallowed it. That is also why the defect survived: the command answered
- * NotFound every time and nothing was listening.
+ * Tracks nodes crossing below the completion threshold and removes each after
+ * `COMPLETED_HOLD_MS` of wall-clock time. `removeNode` receives the node's
+ * POSITION in the latest list, re-looked-up at fire time because KSP renumbers
+ * on every removal; mapping it to the stream guid, and catching the send's
+ * rejection, is the caller's job.
  */
 export function useBurnCompletionTracker(
   nodes: readonly ParsedManeuverNode[],
@@ -92,7 +76,7 @@ export function useBurnCompletionTracker(
     ReadonlyMap<number, CompletedEntry>
   >(() => new Map());
   const maxDvByUt = useRef<Map<number, number>>(new Map());
-  // Latest `nodes` for use inside the auto-removal timeout, without this ref the timeout would close over a stale list and look up the wrong id.
+  // Read inside the removal timeout, which would otherwise close over a stale list.
   const nodesRef = useRef(nodes);
   useEffect(() => {
     nodesRef.current = nodes;

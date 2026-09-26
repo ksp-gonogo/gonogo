@@ -9,12 +9,7 @@ import { createElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { compositeCoverage, useCoverageGate } from "./useCoverageGate";
 
-// Rendered hook trees, tracked so afterEach can unmount them BEFORE
-// clearCoverageSources() notifies the coverage-source registry's subscribers,
-// a still-mounted useCoverageGate instance re-rendering off that
-// notification is a state update outside act() (CLAUDE.md -> Testing
-// Philosophy). RTL auto-cleanup runs after this file's afterEach, too late
-// to unmount first.
+// Unmounted in afterEach before clearCoverageSources() notifies subscribers, which would be a state update outside act(); RTL's auto-cleanup runs too late.
 const renderedTrees: Array<() => void> = [];
 
 afterEach(() => {
@@ -91,11 +86,7 @@ describe("useCoverageGate: hook integration", () => {
   });
 
   it("picks up a coverage source registered before ANY hook instance is mounted", () => {
-    // Regression for the stale module-level cache: a coverage source can
-    // register (e.g. an Uplink SDK bundle loading) before the user ever
-    // navigates to a MapView layout, so no useCoverageGate instance is
-    // mounted yet to catch the change. cachedSources must still be fresh
-    // by the time the first instance mounts.
+    // A source registered before any instance mounts must still be in the cache when the first one does.
     registerCoverageSource({
       id: "example-uplink:altimetry-hi",
       weight: 255,
@@ -116,10 +107,7 @@ describe("useCoverageGate: hook integration", () => {
   });
 
   it("reports fully-open (hasAnySource false), not a null-data gated state, when no CoverageMaskCacheProvider is mounted", async () => {
-    // A missing cache provider must never blank the map. With a source
-    // registered but no provider in the tree, cache is null forever, the
-    // gate must degrade to vanilla-open, not stay stuck reporting a source
-    // is present while data can never arrive.
+    // A source with no cache provider must degrade to open, never blank the map.
     registerCoverageSource({
       id: "example-uplink:altimetry-hi",
       weight: 255,

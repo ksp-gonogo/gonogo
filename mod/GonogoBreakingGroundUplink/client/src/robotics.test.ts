@@ -1,26 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { emptyStateText } from "./robotics";
 
-/**
- * The empty-state sentence, against the two cases it exists to tell apart.
- *
- * It was one ternary on `robotics.available`, and it read backwards in BOTH of
- * them: each sentence appeared in exactly the case the other one was written
- * for, which is why nothing caught it. See `robotics.ts` for the full account.
- */
+/** Proves the empty-state sentence tells a missing expansion from a craft carrying no joints, and waits when neither is known. */
 describe("emptyStateText", () => {
   it("names the missing expansion off the DLC fact, with nothing on the craft channel", () => {
-    /* Breaking Ground absent: the Uplink goes Unavailable, so
-       `robotics.available` never emits and the reading stays pending. This
-       said "No rotors on this vessel". */
+    // Without Breaking Ground the Uplink is unavailable, so `robotics.available` never emits.
     expect(emptyStateText(false, undefined, false, "rotors")).toBe(
       "Breaking Ground not installed",
     );
   });
 
   it("names the craft off robotics.available, with the expansion installed", () => {
-    // Breaking Ground present, craft simply carrying none: a definite `false`.
-    // This said "Breaking Ground not installed".
     expect(emptyStateText(true, false, false, "robotic parts")).toBe(
       "No robotic parts on this vessel",
     );
@@ -33,7 +23,7 @@ describe("emptyStateText", () => {
   });
 
   it("takes an observed but empty list as the craft answer", () => {
-    // `robotics.available` is true for a craft with hinges and no rotor, so the Rotor Tachometer needs the observed list to say there are none.
+    // `robotics.available` is true for a craft with hinges and no rotor, so the read list says there are none.
     expect(emptyStateText(true, true, true, "rotors")).toBe(
       "No rotors on this vessel",
     );

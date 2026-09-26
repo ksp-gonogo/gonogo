@@ -1,25 +1,11 @@
 import { createContext, type ReactNode, useContext, useMemo } from "react";
 
-// ---------------------------------------------------------------------------
-// Augment settings, as a framework capability rather than a widget's prop.
-//
-// `registerAugment({ settings })` (spec §4.7) is the framework's: any augment
-// on any widget may declare settings, `AugmentSettingsPanel` renders them all
-// the same way, and the values live in the HOST WIDGET INSTANCE's saved config
-// under `augmentSettings[<augmentId>]`. Nothing about that is MapView's, and
-// yet MapView is where it was: two of its slots threaded
-// `augmentSettings` down as slot props and one threaded a `setAugmentShow`
-// writer alongside it, because there was nowhere else for a framework
-// capability to live.
-//
-// That cost more than duplication. A slot passing the settings system down is
-// a slot only augments of THAT widget can reach it through, so the capability
-// stopped at whichever widget had bothered to thread it; and it made the
-// props of `map-view.actions` different from `system-view.actions`, which is
-// the whole reason the two could not be one universal segment.
-//
-// Here instead: the host provides once, any augment reads with a hook, and a segment slot stays propless.
-// ---------------------------------------------------------------------------
+/*
+ * Augment settings are a framework capability: any augment may declare them,
+ * the values live in the HOST WIDGET INSTANCE's config under
+ * `augmentSettings[<augmentId>]`, the host provides once and any augment reads
+ * with a hook, so segment slots stay propless.
+ */
 
 export interface AugmentSettingsContextValue {
   /**
@@ -41,10 +27,9 @@ const AugmentSettingsContext =
   createContext<AugmentSettingsContextValue | null>(null);
 
 /**
- * Publishes the mounting widget instance's augment settings. Mounted by the
- * dashboard for every widget, so a widget wires nothing; a widget rendered
- * outside the dashboard (a test, a probe, the settings modal) simply has no
- * provider and its augments read the absent case.
+ * Publishes the mounting widget instance's augment settings. The dashboard
+ * mounts it for every widget; outside the dashboard there is no provider and
+ * augments read the absent case.
  */
 export function AugmentSettingsProvider({
   settings,
@@ -64,14 +49,10 @@ export function AugmentSettingsProvider({
 
 /**
  * One augment's own settings for the widget instance it is mounted in, plus a
- * writer scoped to that augment. Pass the augment's registered id, the same id
- * `registerAugment` was called with and the same one the settings are
- * namespaced under: an augment reading another's settings is not a thing this
- * exists to allow.
+ * writer scoped to that augment. Pass the id `registerAugment` was called with.
  *
- * Outside a provider the values read empty and the writer is a no-op, so an
- * augment rendered in isolation behaves as one whose operator has saved
- * nothing, which is the state it must already handle.
+ * Outside a provider the values read empty and the writer is a no-op, the same
+ * as an operator having saved nothing.
  */
 export function useAugmentSettings(augmentId: string): {
   /** This augment's saved fields; empty when nothing has been saved. */

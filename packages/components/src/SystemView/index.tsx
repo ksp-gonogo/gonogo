@@ -34,8 +34,7 @@ import {
 import { FramedDisplay, NULL_DISPLAY, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-// FleetComms's `.actions` toggles gate the graph, highlight and pulse entities drawn here.
-// Each SystemView instance reads its own toggles from that augment's store.
+// FleetComms's toggles gate the graph, highlight and pulse entities drawn here, per instance.
 import { useFleetCommsToggles } from "../FleetComms/toggles";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
@@ -49,20 +48,12 @@ import {
 import { deriveTraffic, NO_TRAFFIC } from "./commsTraffic";
 import { inertialFrameFor, resolveProjection } from "./projection";
 import { createUtBucketThrottle } from "./utBucketThrottle";
-/*
- * Side-effect import: the host's own entries on `system-view.projection`, so the
- * picker, the filter and the resolver are all travelled on a bare stock install
- * with no Uplinks at all.
- */
+// The host's own `system-view.projection` entries, so the picker and resolver run on a bare install.
 import "./projectionContribution";
 import { SystemDiagram, vesselPlotStateFromStatus } from "./SystemDiagram";
 import { SystemEntitiesLayer } from "./SystemEntitiesLayer";
 import type { SystemEntityStyle } from "./systemEntities";
-/*
- * Side-effect import: the built-in vessel-orbits contribution self-registers
- * against `system-view.entities` on module load (same pattern as ShipMap's
- * `./partMetersContribution`).
- */
+// Registers the built-in vessel-orbits contribution.
 import "./vesselOrbitsContribution";
 import {
   angleDelta,
@@ -73,19 +64,11 @@ import {
 import { type CelestialBody, useCelestialBodies } from "./useCelestialBodies";
 import { usePhaseAngles } from "./usePhaseAngles";
 import { VesselInfoPanel } from "./VesselInfoPanel";
-/*
- * Side-effect import: registers the `system-view.vessel-status` built-in
- * contribution (the comms-derived silence reckoning for the plotted
- * vessel), on equal footing with any third-party Uplink contribution to the
- * same slot.
- */
+// Registers the built-in `system-view.vessel-status` contribution.
 import "./vesselStatusContribution";
 import type { SystemViewVesselStatusEntry } from "./vesselStatusContribution";
 
-// The CommNet path derivation reads comms.network directly, on top of the
-// built-in contribution's own subscription through the SlotAggregator. Command
-// traffic on system.uplink.pending is read directly via useLatestValue, for the
-// same reason.
+// comms.network and system.uplink.pending are also read directly, for the host-side path highlight and traffic.
 const topics = defineTopicManifest({
   channels: ["system.bodies"],
   optionalChannels: [
@@ -98,52 +81,17 @@ const topics = defineTopicManifest({
 });
 
 interface SystemViewConfig {
-  /**
-   * Body to render the diagram around. "auto" follows the vessel's
-   * current body (`v.body`) so a Kerbin-launch shows Mun/Minmus and a
-   * Mun-orbit shows Mun's neighbourhood. "root" walks up to the topmost
-   * parent (Kerbol from anywhere in the Kerbin system). An explicit body
-   * name pins the frame regardless of vessel state.
-   */
+  /** Body the diagram centres on: "auto" follows the vessel's body, "root" walks to the topmost parent, a name pins it. */
   frame?: "auto" | "root" | string;
-  /**
-   * Which frame the WHOLE picture is drawn in: the bodies, their rings, the
-   * craft and its curve alike. The id of an entry on `system-view.projection`.
-   *
-   * <b>This replaced a `readFrame` option that reframed the craft's curve
-   * only.</b> That option's own label promised to hold the parent still and it
-   * held nothing still: `readFrame` reached `useOrbitTrajectory` and appeared
-   * nowhere in the diagram, so every body stayed in parent-centred inertial
-   * coordinates while the curve became a rosette, and the picture had two frames
-   * in it. The two are the same concept at two scopes and the smaller scope was
-   * the incoherent one.
-   *
-   * Absent means the inertial entry for whichever body the diagram is centred on,
-   * which is the picture this widget always drew.
-   */
+  /** The id of the `system-view.projection` entry the whole picture is drawn in; absent is the inertial entry for the centred body. */
   projection?: string;
 }
 
-// ── Augment slots (Uplink architecture) ─────────────────────────────────────────
-// SystemView is a HOST that exposes three slots; no first-party augment fills them
-// here, so each renders nothing until an Uplink registers.
-// The `.actions` + `.overlay` pair is designed to be driven by ONE coordinated
-// augment: e.g. a "show commlinks" toggle contributed into `.actions` drives a
-// commlink overlay contributed into `.overlay`, sharing state through the
-// augment's OWN context: no cross-Uplink coupling, the host only exposes the
-// two extension points.
+// The `.actions` and `.overlay` slots are designed for one augment to drive both through its own context.
 
 /**
- * Props for `system-view.overlay`: an OVERLAY slot, rendered in
- * a layer absolutely positioned over the solar-system body diagram. The diagram
- * draws parent-centric in SVG user-units: the frame body sits at `center` (the
- * SVG origin) and a distance of `d` metres from it projects to `d · plotScale`
- * user-units, over a `width`×`height` px, origin-centred viewBox. An overlay
- * augment: e.g. a comms Uplink's relay-network or range-ring visualiser,
- * builds a matching viewBox / transform from these to draw in the diagram's
- * coordinate space. The projection describes the diagram's auto-fit view (zoom=1,
- * no pan); live pan/zoom is internal to `SystemDiagram` and not reflected here,
- * matching `orbit-view.overlay`'s static-projection contract.
+ * Props for `system-view.overlay`, a layer over the body diagram. The frame body sits at `center`, and `d` metres projects to `d * plotScale` user units in a `width` by `height` origin-centred viewBox.
+ * It describes the auto-fit view only (zoom 1, no pan), like `orbit-view.overlay`.
  */
 export interface SystemOverlayContext {
   /** Name of the parent body the diagram is centred on. */
@@ -158,28 +106,14 @@ export interface SystemOverlayContext {
   center: { x: number; y: number };
 }
 
-// Co-located declaration-merge of this widget's slot ids → their props. Kept
-// next to the widget (not in a central registry file) so parallel slot work
-// on other widgets never collides on this seam.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
-    /*
-     * Rendered by `Panel`'s universal `actions` segment, not by this widget:
-     * the id is declared here only so a binder's component still types against
-     * the propless contract rather than the loose fallback.
-     */
+    // Rendered by Panel's universal actions segment; declared so a binder types against the propless contract.
     "system-view.actions": Record<string, never>;
     "system-view.overlay": SystemOverlayContext;
   }
 
-  /**
-   * `system-view.vessel-status`: the plotted vessel's node decoration, fed
-   * by the built-in comms-derived contribution
-   * (`./vesselStatusContribution.ts`) and open to any other Uplink
-   * contributing SEMANTIC status for the same vessel (severity/emphasis/
-   * label/tooltip, never a colour: the host owns the palette, see
-   * `SystemDiagram.vesselPlotStateFromStatus`).
-   */
+  /** The plotted vessel's semantic status (never a colour: the host owns the palette), fed by the built-in comms contribution and open to any Uplink. */
   interface ContributionRegistry {
     "system-view.vessel-status": {
       entry: SystemViewVesselStatusEntry;
@@ -192,9 +126,7 @@ declare module "@ksp-gonogo/core" {
  * projection matches the diagram's metres → px scale. */
 const DIAGRAM_PAD = 20;
 
-/** Case/whitespace-insensitive body-name match: mirrors `SystemDiagram`'s
- * `nameMatches`, used to decide whether the vessel's orbit contributes to the
- * overlay's auto-fit extent. */
+/** Mirrors SystemDiagram's `nameMatches`. */
 function frameNameMatches(a: string, b: string): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
@@ -204,19 +136,8 @@ const TRANSITION_TYPE_ENCOUNTER = 2;
 const TRANSITION_TYPE_ESCAPE = 3;
 
 /**
- * What the diagram is telling the operator about a craft it cannot see,
- * rendered straight from `system-view.vessel-status`'s contributed entry:
- * SystemView never interprets silence state itself, it only decides the
- * ANNOUNCEMENT POLICY (which severities interrupt) for whatever a
- * contributor said.
- *
- * Announcement is scoped to what each severity warrants. `critical` is
- * assertive (`role="alert"`): the decision has been made and it should cut
- * through. `warning` is polite (`role="status"`): the craft is late, there
- * is still time for it, and interrupting would overstate the case. `info`
- * (an expected-reacquisition countdown, or plain silence) is announced by
- * NEITHER, because a countdown changes every tick and a live region would
- * read it aloud indefinitely.
+ * Renders the contributed `system-view.vessel-status` entry; SystemView only decides which severities are announced.
+ * `critical` is assertive, `warning` polite, and `info` (often a countdown) is announced by neither, since a live region would read a ticking clock aloud forever.
  */
 function ContactCaption({
   status,
@@ -258,34 +179,15 @@ function SystemViewComponent({
 }: Readonly<ComponentProps<SystemViewConfig>>) {
   const frameSetting = config?.frame ?? "auto";
   const bodies = useCelestialBodies();
-  // The same catalogue the list above comes from, kept whole because a read frame needs the index lookups and the parent links, not just the bodies.
-  /*
-   * A catalogue is a FACT: it changes when the game changes, and nothing
-   * changes it down a link that is not delivering, so a held one is still the
-   * catalogue. Both value-bearing arms, deliberately.
-   */
+  // The whole catalogue, for the read frame's index lookups; a held catalogue is still the catalogue.
   const factsReading = useProcessor(CELESTIAL_FACTS);
   const facts =
     factsReading?.state === "observed" || factsReading?.state === "stale"
       ? factsReading.value
       : undefined;
-  // Streamed Topics: raw `vessel.*` records read straight off the Uplink
-  // store via the canonical `useTelemetry(TopicId)` hook: no legacy
-  // `DataSource` fallback. The trueAnomaly / next-apsis / encounter scalars
-  // are not on the wire: they are reconstructed client-side below from
-  // `vessel.orbit`'s elements + the SDK view-UT.
-  // The vessel's dot and its drawn orbit are MARKERS: positive claims about
-  // where the craft is now. So the elements come from a CURRENT reading, or from
-  // a model if one is on offer, and otherwise from nothing at all, and the
-  // "just don't draw it" contract this diagram's own marker already follows
-  // takes over. Same decision as MapView and FleetComms, for the same reason.
+  // The dot and orbit are markers, claims about now, so the elements come from a current reading or a model, and otherwise nothing is drawn.
   const orbitReading = topics.useTelemetry("vessel.orbit");
-  /*
-   * The observation OVERLAID by what the conic moved, which for `vessel.orbit`
-   * is the phase. Written here rather than in a helper because the spread IS
-   * the judgement (see `ReckonableReading`): taking `reckoning.value` alone
-   * gets the moved fields and nothing else, which is not an orbit.
-   */
+  // The observation overlaid by what the conic moved (the phase); `reckoning.value` alone is not an orbit.
   const orbitObserved =
     orbitReading.state === "observed" || orbitReading.state === "stale"
       ? orbitReading.value
@@ -304,19 +206,8 @@ function SystemViewComponent({
       : undefined;
 
   /*
-   * Contact state for the plotted craft. `connected` is core (this widget
-   * has no need of it directly); the reckoned states (predicted/overdue/
-   * lost) arrive as `system-view.vessel-status` contributions instead of a
-   * direct sitrep-client import, so the diagram never hard-codes the comms
-   * model. `useFleetVesselSilence` still has to run somewhere so the
-   * per-vessel `silence.<guid>.state` topic stays subscribed (a genuinely
-   * dynamic topic no contribution's static deps can name), and mirrors what
-   * it reads into the bridge `system-view-vessel-silence-status` reads from;
-   * SystemView keeps this ONE raw subscription, but never interprets the
-   * value itself. `fleet.<guid>.contact`/`silence.<guid>.state` are both
-   * freeze-EXEMPT in the engine precisely so they keep reporting while the
-   * craft is dark, which is the only reason a diagram can say anything at
-   * all about a vessel it has lost.
+   * Reckoned contact states arrive as `system-view.vessel-status` contributions, but this one raw subscription keeps the dynamic `silence.<guid>.state` topic subscribed for them.
+   * That topic and `fleet.<guid>.contact` are freeze-exempt, so they keep reporting while the craft is dark.
    */
   const vesselGuid =
     typeof identity?.vesselId === "string" ? identity.vesselId : null;
@@ -337,66 +228,28 @@ function SystemViewComponent({
     targetReading.state === "observed" || targetReading.state === "stale"
       ? targetReading.value.name
       : undefined;
-  // Raw CommNet graph, read directly rather than through the contribution:
-  // the selection highlight walks it host-side to derive the SELECTED
-  // vessel's route home, a generic traversal over the same topic
-  // `vesselOrbitsContribution.ts` already draws as faint connection lines.
-  // A relay graph does not decay into meaninglessness, so a stale one still
-  // says what the topology last was, which is what the faint lines already
-  // assert.
+  // Read directly for the host-side selection path; a stale relay graph still says what the topology last was.
   const commsNetworkReading = topics.useTelemetry("comms.network");
   const commsNetwork =
     commsNetworkReading.state === "observed" ||
     commsNetworkReading.state === "stale"
       ? commsNetworkReading.value
       : undefined;
-  // View-UT: the SDK view time the propagation already evaluates at
-  // (`t.universalTime` was never a stream; it IS `sdk.view.ut()`).
-  // `.magnitude` at the read. Everything below is geometry on a bare UT, and two
-  // guards further down test it with `Number.isFinite` and `typeof === "number"`,
-  // which both answer NO for a wrapped value and would silently stop drawing the
-  // arc with no type error at all.
+  // Unwrapped at the read: the finiteness guards below answer no for a wrapped value and would silently stop drawing the arc.
   const universalTime = useViewUt()?.magnitude;
-  /*
-   * Command traffic: TrueNow command-centre bookkeeping, same
-   * `useLatestValue`/`useUtNow` split `FleetComms` already rides for this
-   * exact topic (see that widget's class doc for why: dispatch-time facts,
-   * not delayed craft telemetry).
-   */
+  // True-now command-centre bookkeeping, as FleetComms reads it: dispatch-time facts, not delayed telemetry.
   const pendingQueue = useLatestValue<PendingUplinkQueue>(
     "system.uplink.pending",
   );
   const utNow = useUtNow();
-  /*
-   * FleetComms's Commlinks/Traffic toggles for this instance: they gate the
-   * relay-graph `connection-line` entities and the command-traffic pulses
-   * below.
-   */
   const { showCommlinks, showCommandTraffic } = useFleetCommsToggles();
 
-  // Shape-contribution foundation: every `system-view.entities` contribution
-  // (vessel orbits, the CommNet graph, a future CME front, ...), aggregated
-  // and z-ordered by `SystemEntitiesLayer`, projected through the SAME
-  // auto-fit `overlayContext` an overlay augment already draws against
-  // (built further down). SystemView owns the one piece of dynamic state a
-  // contribution can't: which entity, if any, is selected.
+  // SystemView owns the one piece of dynamic state a contribution cannot: which entity is selected.
   const rawEntities = useContributions("system-view.entities");
-  // Suppress the active/framed vessel's own entry, but only while
-  // `SystemDiagram` actually has a dedicated bright ring to draw in its
-  // place: that ring comes from `vessel.orbit` (`vesselOrbit` below), a
-  // separate topic from `vessel.identity`. Gating on identity alone strands a
-  // hop endpoint with no marker at all whenever a caller carries identity
-  // (needed so command traffic, further down, knows which vessel it's routing
-  // to) without also carrying orbit: neither the dedicated ring nor the
-  // contributed faint one would render. Host state, not contribution
-  // data: matched by `vesselId`, not by parsing a contribution-private `id`
-  // string.
-  //
-  // `showCommlinks` off drops every `connection-line` entity (the CommNet
-  // relay graph, `vesselOrbitsContribution.ts`'s `comms-edge:*` entries, and
-  // with them the selected-path highlight, since that's the SAME line
-  // decorated bright rather than a separate shape): the Commlinks toggle's
-  // new home.
+  /*
+   * The active vessel's own entry is suppressed only while SystemDiagram draws its dedicated ring from `vessel.orbit`, so identity without an orbit never strands a hop endpoint.
+   * `showCommlinks` off drops every `connection-line` entity, and the selected-path highlight with them.
+   */
   const entities = useMemo(() => {
     const withoutActiveVessel =
       identity?.vesselId != null && orbit != null
@@ -406,24 +259,13 @@ function SystemViewComponent({
       ? withoutActiveVessel
       : withoutActiveVessel.filter((e) => e.shape.kind !== "connection-line");
   }, [rawEntities, identity?.vesselId, orbit, showCommlinks]);
-  // `selectedVesselId` is keyed by the ACTIVATED ENTITY's own `id` (e.g.
-  // `vessel-orbit:<vesselId>`), not the bare vesselId: that's what the
-  // click/keyboard handler on `SystemEntitiesLayer` reports, and it's also
-  // exactly what `decorate` needs to match below. The selected entity's own
-  // `vesselId` field (read back via `selectedEntity`) is what CommNet path
-  // derivation needs instead, since a graph node's id IS a vessel's
-  // `vesselId`, not the contribution's own entity id string.
+  // Keyed by the activated entity's own id, which the layer reports and `decorate` matches; path derivation reads its `vesselId` instead.
   const [selectedVesselId, setSelectedVesselId] = useState<string | null>(null);
   const handleEntityActivate = useCallback((id: string) => {
     setSelectedVesselId((prev) => (prev === id ? null : id));
   }, []);
   const handleDeselect = useCallback(() => setSelectedVesselId(null), []);
-  // Escape-to-deselect: a DOCUMENT-level listener (same idiom as
-  // ActionMenu.tsx's outside-pointer dismiss), not a keydown handler on the
-  // diagram's own container, since that container is a plain layout `<div>`
-  // with no interactive role of its own (`noStaticElementInteractions`).
-  // Only live while something is actually selected, so it never intercepts
-  // Escape elsewhere on the dashboard.
+  // Document-level, and live only while something is selected, since the diagram container has no interactive role.
   useEffect(() => {
     if (selectedVesselId === null) return;
     const onKeyDown = (e: globalThis.KeyboardEvent) => {
@@ -436,11 +278,7 @@ function SystemViewComponent({
     () => entities.find((e) => e.id === selectedVesselId) ?? null,
     [entities, selectedVesselId],
   );
-  // The selected vessel's CommNet route to home,
-  // a generic BFS over `comms.network`'s already-contributed graph (no
-  // per-vessel path ships on the wire). Falls back to `NO_COMMS_PATH` when
-  // nothing is selected or the selected entity carries no `vesselId` (e.g.
-  // a hypothetical future non-vessel selectable entity).
+  // NO_COMMS_PATH when nothing is selected or the selection carries no vesselId.
   const commsPath = useMemo(
     () =>
       selectedEntity?.vesselId != null
@@ -452,28 +290,12 @@ function SystemViewComponent({
     () => new Set(commsPath.edgeIds),
     [commsPath],
   );
-  // The highlighted path's colour: the SELECTED VESSEL'S own roster comms
-  // control state (`meta.comms`, the same label the info panel shows), not
-  // `commsPath.quality` (that field governs traversal only, see
-  // `commsPath.ts`'s module doc comment). Keeps the line's colour in
-  // agreement with the info panel's "Comms: ..." row even when the BFS
-  // happened to find an all-active edge chain through another vessel's
-  // relay.
+  // Coloured by the selected vessel's roster control state, not the traversal quality, so the line agrees with the info panel.
   const commsPathColour = useMemo(
     () => COMMS_PATH_COLOUR[commsControlQuality(selectedEntity?.meta?.comms)],
     [selectedEntity],
   );
-  // Command traffic: `system.uplink.pending` has no vessel-target
-  // field (a hard contract invariant, see `commsTraffic.ts`'s module doc), so
-  // every pending entry is implicitly addressed to the ACTIVE vessel, routed
-  // over the SAME `comms.network` graph the selection path above walks.
-  // Independent of selection: traffic keeps animating on the active vessel's
-  // route whether or not the operator has anything else selected.
-  //
-  // `showCommandTraffic` off (the Traffic toggle's new home)
-  // short-circuits straight to `NO_TRAFFIC` rather than deriving then
-  // discarding: same "don't do the work if nothing will render" discipline
-  // `entities`' own `showCommlinks` filter follows above.
+  // Every pending entry is addressed to the active vessel (see commsTraffic.ts), independent of selection.
   const traffic = useMemo(
     () =>
       showCommandTraffic
@@ -486,16 +308,7 @@ function SystemViewComponent({
         : NO_TRAFFIC,
     [pendingQueue, commsNetwork, identity?.vesselId, utNow, showCommandTraffic],
   );
-  // The id-keyed decoration hook: brightens the selected vessel's own
-  // orbit/point entity (faint -> bright, no colour override needed, the
-  // `bright` emphasis token already reads prominent) and colours the derived
-  // CommNet path's edges by the selected vessel's control state. Command
-  // traffic deliberately does NOT decorate the edge itself: the moving
-  // gradient pulse (`SystemEntitiesLayer`'s `pulses` prop, below) is the
-  // sole traffic indicator, riding a plain grey/white CommNet line, so an
-  // ambient "this route carries traffic" wash never sits underneath and
-  // dilutes the travelling glow into an always-bright line. Never touches
-  // the contribution's data, purely a style override keyed by id.
+  // Brightens the selected entity and colours its path edges; traffic never decorates an edge, since the moving pulse is the only traffic indicator.
   const decorate = useCallback(
     (id: string): SystemEntityStyle | undefined => {
       if (id === selectedVesselId) return { emphasis: "bright" };
@@ -507,7 +320,7 @@ function SystemViewComponent({
     [selectedVesselId, commsPathEdgeIds, commsPathColour],
   );
 
-  // Stable body-index → NAME map (from `system.bodies`' stable `index`, never array position): the display-map behind `v.body` / `o.encounterBody`.
+  // Keyed by `system.bodies`' stable index, never array position.
   const nameByIndex = useMemo(() => {
     const m = new Map<number, string>();
     for (const b of systemBodies?.bodies ?? []) {
@@ -516,22 +329,14 @@ function SystemViewComponent({
     return m;
   }, [systemBodies]);
 
-  // Vessel's current body NAME: parentBodyIndex resolved against `system.bodies`.
   const vesselBody =
     identity?.parentBodyIndex != null
       ? (nameByIndex.get(identity.parentBodyIndex) ?? null)
       : null;
 
-  /*
-   * The self vessel's solve at the viewed instant, through the same seam every
-   * other widget reads, so a craft the orbit model refuses to advance (under
-   * physics, past an SOI transition, below the atmosphere interface, past the
-   * provider's reach, or with no provider vouching for a conic) is refused here
-   * too rather than drawn from elements nothing is propagating.
-   */
+  // The orbit model's solve at the viewed instant, so a craft it refuses to advance is refused here too.
   const derived = useOrbitSolve();
 
-  // Next SOI transition, from the streamed `vessel.orbit.encounter` record.
   const encounter = orbit?.encounter ?? null;
   const encounterExists =
     encounter?.transitionType === TRANSITION_TYPE_ENCOUNTER
@@ -549,25 +354,10 @@ function SystemViewComponent({
 
   const parentName = resolveFrame(bodies, frameSetting, vesselBody);
 
-  // What the vessel's trajectory IS, asked once and handed to the diagram,
-  // which draws whichever answer arrives. This widget held TWO independent
-  // conic implementations of it, the ellipse the diagram draws from
-  // `sma`/`ecc` and the `OrbitPatch` fabricated below, and neither asked
-  // whether a conic was the right renderer at all.
-  //
-  // <b>Asked with NO read frame, deliberately, and the projection does the
-  // framing instead.</b> The obvious wiring is to hand the projection's own
-  // choice to this hook, and it is measurably wrong here: `useOrbitTrajectory`
-  // has no memoisation, this widget re-renders at requestAnimationFrame rate
-  // because `useUtNow` sets state on `clock.onFrame`, and a read frame turns
-  // every conic answer into 128 reframed points, so the default path would put
-  // ~7,700 points/sec through `Trajectory points transformed/sec` against its
-  // 5,000 threshold. It would also delete a feature: the predicted multi-SOI
-  // chain below is fabricated on a CONIC answer, and reframing makes that answer
-  // an arc, so the SOI encounter markers would silently stop being drawn. So the
-  // seam answers in the frame it computed in, says which, and the diagram lifts
-  // it into the frame the bodies are in, which is where curve and bodies come to
-  // share one frame.
+  /*
+   * Asked with no read frame; the diagram lifts the answer into the projection's frame.
+   * A read frame would reframe every conic into points at animation-frame rate, past the trajectory transform budget, and would turn the conic answer the predicted SOI chain needs into an arc.
+   */
   const vesselTrajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit);
   const trajectoryWithheld =
     vesselTrajectory !== null && vesselTrajectory.shape === "withheld"
@@ -589,11 +379,7 @@ function SystemViewComponent({
         }
       : null;
 
-  // Predicted trajectory input for the diagram, throttled so the patch
-  // projection re-runs about once a REAL second rather than once per game
-  // second: the orbit shape doesn't change between ticks, and a game-second
-  // bucket stops throttling at 60x warp because a whole second then passes
-  // inside one frame. See `createUtBucketThrottle`.
+  // Throttled to about one real second: a game-second bucket stops throttling at high warp (see `createUtBucketThrottle`).
   const utBucketThrottle = useRef<ReturnType<
     typeof createUtBucketThrottle
   > | null>(null);
@@ -604,25 +390,10 @@ function SystemViewComponent({
     typeof universalTime === "number" ? universalTime : undefined,
     performance.now(),
   );
-  // Client-propagated predicted trajectory: with only the current elements +
-  // the next transition on the wire, the honestly-drawable
-  // chain is a single conic, the current orbit sampled from the view-UT to the
-  // encounter (an arc terminated at the SOI boundary) or, with no encounter,
-  // over one full period (a closed ellipse). Built as the core `OrbitPatch`
-  // shape so `SystemDiagram`'s existing Keplerian projection samples it
-  // unchanged. The post-encounter conic's elements aren't on the wire, so the
-  // chain never fabricates a second patch; the encounter is surfaced separately
-  // from the derived `encounter*` scalars above (subtitle + almanac).
-  //
-  // Fabricated only on the CONIC answer, and the shape gate is load-bearing on
-  // its own. The `derived` scalars this leans on come from the orbit model,
-  // which refuses past the provider's reach, so an out-of-horizon sample cannot
-  // arrive here, but reach says nothing about
-  // SHAPE: without the gate a provider that integrates would be handed a
-  // confident one-period conic prediction plus, where an encounter is on the
-  // wire, an SOI crossing predicted by maths it does not use. On the arc answer
-  // the diagram draws the sampled path the provider vouched for instead, which
-  // is the same curve honestly bounded.
+  /*
+   * The only honestly drawable chain is one conic, to the encounter or over one period; the post-encounter elements are not on the wire, so no second patch is fabricated.
+   * Built only on the CONIC answer: an integrating provider must not be handed a conic prediction, so on an arc answer the diagram draws the sampled path instead.
+   */
   const orbitPatches = useMemo<OrbitPatch[]>(() => {
     if (!orbit || vesselBody == null || utBucket == null) return [];
     if (vesselTrajectory?.shape !== "conic") return [];
@@ -646,7 +417,7 @@ function SystemViewComponent({
           : "FINAL",
         PeA: 0,
         ApA: 0,
-        // `OrbitPatch` is the diagram's projection input: every element is sampled into plot coordinates, so it stays plain numbers.
+        // Plain numbers: every element is sampled into plot coordinates.
         inclination: orbit.inc.magnitude,
         eccentricity: orbit.ecc.magnitude,
         epoch: orbit.epoch.magnitude,
@@ -679,9 +450,7 @@ function SystemViewComponent({
     [orbitPatches, utBucket],
   );
 
-  // Children of the chosen frame: the only bodies actually drawn. Phase
-  // angles only get subscribed for these, so the b.o.phaseAngle[i] sub
-  // count tracks what's on screen, not the whole solar system.
+  // Only the drawn children subscribe to phase angles, so the subscription count tracks what is on screen.
   const children = useMemo(() => {
     if (parentName === null) return [] as readonly CelestialBody[];
     return bodies.filter(
@@ -690,9 +459,7 @@ function SystemViewComponent({
   }, [bodies, parentName]);
   const phaseAngles = usePhaseAngles(children);
 
-  // Transfer-window highlighting. Only meaningful when the rendered frame is
-  // the same parent the vessel orbits: otherwise the bodies aren't co-orbital
-  // with the vessel and the Hohmann formula doesn't apply.
+  // Hohmann only applies when the rendered frame is the vessel's own parent.
   const transferStatuses = useMemo(() => {
     const out = new Map<number, "go" | "soon">();
     if (typeof vesselBody !== "string") return out;
@@ -713,7 +480,7 @@ function SystemViewComponent({
   }, [children, phaseAngles, vesselBody, parentName, vSma]);
 
   const [focusedBody, setFocusedBody] = useState<CelestialBody | null>(null);
-  // Default focus to the vessel's body when nothing is hovered, gives the panel useful content out of the box.
+  // Default focus to the vessel's body when nothing is hovered.
   const vesselBodyRecord = useMemo(
     () =>
       typeof vesselBody === "string"
@@ -752,33 +519,17 @@ function SystemViewComponent({
         })()
       : null;
 
-  // Diagram size: feeds the SVG viewBox aspect. It measures the diagram's own
-  // box inside the panel body, so it legitimately shrinks when the almanac
-  // mounts beside it. It does NOT choose the almanac's side: that is Panel's
-  // job, and `sidebarSide="auto"` measures the split container, whose border
-  // box does not move when the arrangement flips, and picks the axis from it.
+  // Measures the diagram's own box, which shrinks when the almanac mounts; Panel chooses the almanac's side.
   const { ref: wrapRef, size } = useElementSize({ w: 360, h: 280 });
 
-  // Selective rendering: the diagram needs real area. At small sizes collapse
-  // to a text "Frame: X" summary, with no almanac beside it.
+  // Below a size threshold the diagram collapses to a text summary with no almanac.
   const cols = w ?? 10;
   const rows = h ?? 12;
   const showDiagram = rows >= 5 && cols >= 5;
-  // The almanac needs room of its own ON TOP of the diagram's. Panel picks the
-  // AXIS, and correctly refuses to put a 14rem sidebar beside a 232px tile, but
-  // it cannot know that at that size the widget would rather be a diagram than
-  // a squashed diagram over a clipped table. So the widget decides whether to
-  // offer one at all. One threshold covers both arrangements: either axis
-  // having room is enough, since Panel chooses which.
+  // The almanac needs room on top of the diagram's; either axis having room is enough, since Panel picks which.
   const showAlmanac = showDiagram && (cols >= 9 || rows >= 12);
 
-  // The frame the whole picture is drawn in.
-  //
-  // Every entry anyone offers for any body, filtered to the body this diagram is
-  // centred on. The host's own stock entries arrive through the same slot as a
-  // third party's, so the filter and the resolver are exercised on a bare install
-  // and there is no absence to branch on: the diagram always has a frame, and the
-  // question is only which one.
+  // Every projection entry offered for the centred body; the host's own stock entries always exist, so there is always a frame.
   const projectionEntries = useContributions("system-view.projection");
   const frameBodyIndex =
     parentName === null ? undefined : facts?.indexByName[parentName];
@@ -792,30 +543,18 @@ function SystemViewComponent({
   const chosenProjectionEntry = useMemo(() => {
     const pinned = projectionOptions.find((p) => p.id === config?.projection);
     if (pinned !== undefined) return pinned;
-    // Falling back to the FIRST entry for this body rather than to nothing. The
-    // host contributes the inertial one first, so an absent or stale saved id
-    // lands on the picture this widget always drew.
+    // The host contributes the inertial entry first, so an absent or stale saved id lands on it.
     return projectionOptions[0] ?? null;
   }, [projectionOptions, config?.projection]);
 
-  /*
-   * Resolved on the one-second UT bucket, never per render. `frameInstantAt`
-   * solves every body's parent chain and the diagram places a few thousand points
-   * through the result, and this widget re-renders every animation frame, so
-   * rebuilding here is the regression `SystemView body placements/sec` exists to
-   * catch.
-   */
+  // Resolved on the one-second UT bucket, never per render: it solves every body's parent chain and the diagram places thousands of points through it.
   const projection = useMemo(
     () =>
       resolveProjection(facts, frameBodyIndex, chosenProjectionEntry, utBucket),
     [facts, frameBodyIndex, chosenProjectionEntry, utBucket],
   );
 
-  // Slot props. `overlay` carries the diagram's parent-centric projection so an
-  // augment can draw in the SVG's coordinate space: the metres → px `plotScale`
-  // is reconstructed exactly as `SystemDiagram` derives it (auto-fit over the
-  // drawn children + the vessel's own orbit when it shares the frame). It is
-  // null until there is a frame and a measured diagram to overlay.
+  // Reconstructs SystemDiagram's plotScale exactly so an augment draws in the SVG's coordinate space; null until there is a frame and a measured diagram.
   const overlayContext = useMemo<SystemOverlayContext | null>(() => {
     if (parentName === null || size.w <= 0 || size.h <= 0) return null;
     let maxRadius = 0;
@@ -844,19 +583,13 @@ function SystemViewComponent({
       width: size.w,
       height: size.h,
       plotScale,
-      // The frame body's own drawn position, which is the origin only in a frame
-      // centred on it. A contributed entity is positioned relative to the frame
-      // body, so this is what its metres are measured from.
+      // A contributed entity's metres are measured from the frame body's drawn position.
       center: { x: 0, y: 0 },
       placement: projection ?? undefined,
     };
   }, [parentName, children, vesselOrbit, size, projection]);
 
-  // The info panel: the selected vessel's own roster fields (name/type/
-  // situation/body/crew/comms, carried on its entity's `meta`) when
-  // something is selected, else the frame body's almanac unchanged.
-  // Deselecting (Escape / click again, both drive `selectedVesselId` back
-  // to null) falls back here automatically, no separate reset needed.
+  // The selected vessel's roster fields while something is selected, else the frame body's almanac.
   const almanac = (
     <AlmanacPanel
       body={panelBody}
@@ -904,12 +637,7 @@ function SystemViewComponent({
   return (
     <Panel
       panelTitle="SYSTEM"
-      /*
-       * The almanac is a second scrolling region, not more body content:
-       * reading it must not scroll the diagram it describes off the tile.
-       * `auto` measures the tile and picks the axis: a right-hand column on a
-       * wide tile, a bottom strip on a tall one.
-       */
+      // A second scrolling region, so reading it never scrolls the diagram off the tile.
       panelSidebar={showAlmanac ? sidebarContent : undefined}
       sections={[
         <Section key="captions" full>
@@ -930,21 +658,11 @@ function SystemViewComponent({
               typeof identity?.name === "string" ? identity.name : "Vessel"
             }
           />
-          {/* Beside the frame caption rather than over the diagram: the bodies are
-            still being drawn correctly and only the vessel's own curve is
-            missing, so covering the picture would overstate what was refused. */}
+          {/* Beside the caption rather than over the diagram: only the vessel's curve is missing. */}
           {trajectoryWithheld && (
             <TrajectoryWithheldNote withheld={trajectoryWithheld} compact />
           )}
-          {/* Which frame the PICTURE is in, which is not the same fact as the
-            "Frame:" caption above: that one is which body sits in the middle, and
-            this one is what the axes do. The frame is passed outright rather than
-            taken off the drawn path, because the diagram does its own framing: the
-            seam answers in whatever frame it computed in and the diagram lifts the
-            answer, so captioning the path's frame would name a frame this picture
-            is not in. Absent means the catalogue could not form the chosen frame,
-            and the picture is in the parent-centred inertial coordinates it
-            already had. */}
+          {/* Which frame the picture is in (what the axes do), distinct from the "Frame:" body caption; passed outright because the diagram does its own framing. */}
           <TrajectoryFrameCaption
             frame={
               projection?.frame ??
@@ -955,9 +673,6 @@ function SystemViewComponent({
             centreBodyName={parentName ?? undefined}
           />
         </Section>,
-        /* The diagram is the drawing this widget is, and the compact readout
-           that replaces it below the size threshold is centred in the same
-           space, so both want whatever the captions leave. */
         <Section key="diagram" fill>
           {showDiagram ? (
             <FramedDisplay style={DIAGRAM_FRAME}>
@@ -983,10 +698,7 @@ function SystemViewComponent({
                     height={size.h}
                   />
                 )}
-                {/* Shape-contribution entities: host-drawn (not an augment), same
-                  auto-fit projection as the overlay slot below it. Renders
-                  nothing when the slot is empty or nothing on it projects onto
-                  the current frame. */}
+                {/* Host-drawn contribution entities, on the same auto-fit projection as the overlay slot. */}
                 {overlayContext !== null && (
                   <SystemEntitiesLayer
                     entities={entities}
@@ -995,21 +707,11 @@ function SystemViewComponent({
                     selectedId={selectedVesselId}
                     onEntityActivate={handleEntityActivate}
                     pulses={traffic.pulses}
-                    /*
-                     * Real-time bookkeeping clock, same one command traffic
-                     * above already rides: a CME's `arriveUt`/`clearUt` are
-                     * real-UT facts the mod stamps the instant a storm rolls,
-                     * not delayed craft telemetry, so this drives its single,
-                     * non-looping travelling-pulse pass (see
-                     * `SystemEntitiesLayer.tsx`'s own `nowUt` doc comment).
-                     */
+                    // Real-UT bookkeeping clock: a CME's arrive and clear times are real-UT facts, not delayed telemetry.
                     nowUt={utNow}
                   />
                 )}
-                {/* Overlay slot: layered over the body diagram, passed the diagram's
-                  parent-centric projection so an augment draws in its coordinate
-                  space. The layer is pointer-transparent so an empty slot is
-                  visually + interactively inert. */}
+                {/* Pointer-transparent, so an empty overlay slot is inert. */}
                 {overlayContext !== null && (
                   <div style={OVERLAY_LAYER}>
                     <AugmentSlot
@@ -1040,10 +742,7 @@ function resolveFrame(
   vesselBody: string | null,
 ): string | null {
   if (setting === "auto") {
-    // Follow the vessel's current body. On the launchpad / in Kerbin
-    // orbit this is Kerbin (so the diagram shows Mun/Minmus); from Mun
-    // orbit it's Mun. If we don't have v.body yet, fall back to the
-    // root so something useful renders.
+    // Follow the vessel's current body, falling back to the root until it arrives.
     if (vesselBody) return vesselBody;
     const root = bodies.find((b) => !b.referenceBody);
     return root?.name ?? null;
@@ -1065,23 +764,17 @@ function resolveFrame(
     }
     return cursor;
   }
-  // Back-compat: previous default was "current"; treat as "auto".
+  // "current" is the old name for "auto".
   if (setting === "current") return vesselBody;
   return setting; // explicit body name
 }
-
-// ── Config ────────────────────────────────────────────────────────────────────
 
 function SystemViewConfigComponent({
   config,
   onSave,
 }: Readonly<ConfigComponentProps<SystemViewConfig>>) {
   const bodies = useCelestialBodies();
-  /*
-   * A catalogue is a FACT: it changes when the game changes, and nothing
-   * changes it down a link that is not delivering, so a held one is still the
-   * catalogue. Both value-bearing arms, deliberately.
-   */
+  // A held catalogue is still the catalogue.
   const factsReading = useProcessor(CELESTIAL_FACTS);
   const facts =
     factsReading?.state === "observed" || factsReading?.state === "stale"
@@ -1090,12 +783,7 @@ function SystemViewConfigComponent({
   const [frame, setFrame] = useState(config?.frame ?? "auto");
   const [projection, setProjection] = useState(config?.projection ?? "");
 
-  /*
-   * The projections that apply to the body this config's own frame setting
-   * resolves to. "auto" cannot be resolved here (it follows the live vessel), so
-   * the list falls back to the root body's, which is the one a whole-system view
-   * is centred on.
-   */
+  // "auto" follows the live vessel and cannot be resolved here, so this lists the root body's projections.
   const frameBodyName =
     frame === "auto" || frame === "root"
       ? (bodies.find((b) => b.referenceBody === null)?.name ?? null)
@@ -1173,13 +861,6 @@ function SystemViewConfigComponent({
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
-// Structural inline styles (CSS-var tokens): a bespoke diagram frame + compact
-// fallback, no reusable ui-kit primitive fits, so the layout stays local. The
-// one kit piece it reuses (FramedDisplay) takes only this widget's flex sizing
-// inline.
-
 const FRAME_CAPTION: CSSProperties = {
   fontSize: "var(--font-size-caption)",
   color: "var(--color-text-muted)",
@@ -1210,14 +891,9 @@ const COMPACT_SUB: CSSProperties = {
   letterSpacing: "0.05em",
 };
 
-// The frame around the diagram. It replaces the widget's old grid border AND
-// the almanac's divider rule: with the visual framed, the frame's own edge is
-// what separates it from the sidebar, whichever edge the sidebar lands on.
-// Flush because SystemDiagram already reserves its own padding inside the
-// viewBox, so an inner gutter here reads as a double border.
+// Flush: SystemDiagram reserves its own padding inside the viewBox, and the frame's edge separates it from the sidebar.
 const DIAGRAM_FRAME: CSSProperties = { flex: 1, minWidth: 0, minHeight: 0 };
 
-// The `svg { display:block; flex:1 }` descendant rule (not inline-expressible) moves onto SystemDiagram's own root <svg>.
 const DIAGRAM_WRAP: CSSProperties = {
   position: "relative",
   flex: 1,
@@ -1235,8 +911,6 @@ const OVERLAY_LAYER: CSSProperties = {
   pointerEvents: "none",
 };
 
-// ── Registration ──────────────────────────────────────────────────────────────
-
 registerComponent<SystemViewConfig>({
   id: "system-view",
   name: "System View",
@@ -1244,44 +918,18 @@ registerComponent<SystemViewConfig>({
     "Solar-system diagram of every body orbiting a chosen parent, highlighting the vessel's current body and any selected target.",
   tags: ["telemetry", "navigation"],
   defaultSize: { w: 10, h: 12 },
-  // Three columns is below what this widget can draw. It carries a diagram, a
-  // row of view pills and a column of body facts, and at that width the pills
-  // clip and the labels collide with the values. Six is where the two-column
-  // layout it is built around actually fits.
+  // Below six columns the view pills clip and the labels collide with the values.
   minSize: { w: 6, h: 8 },
   component: SystemViewComponent,
   configComponent: SystemViewConfigComponent,
-  /*
-   * Exposes a coordinated `.actions` + `.overlay` pair: one augment can drive
-   * an overlay from a header control, sharing its own context. `.actions` is
-   * the framework's universal header segment (`Panel` mounts it for every
-   * widget) and is listed here because this is where an author looks to find
-   * what a widget opens up; `.overlay` is this widget's own, and passes the
-   * diagram's projection as typed slot props.
-   */
+  // One augment can drive an overlay from a header control; `.actions` is Panel's universal segment, listed so authors find it here.
   augmentSlots: ["system-view.actions", "system-view.overlay"],
-  /*
-   * Two contribution slots. `system-view.vessel-status` is the plotted
-   * vessel's node decoration, fed by the built-in comms-derived contribution
-   * (`./vesselStatusContribution.ts`) and open to any Uplink contributing
-   * SEMANTIC status for the same vessel. `system-view.entities` is the shape
-   * foundation: a flat list of positioned display objects anyone can add to,
-   * aggregated by `ContributionsAggregation` via `WidgetMetaContext`
-   * (`GridItemContent.tsx` reads this list to build that context) and read
-   * back here through `useContributions`.
-   */
   contributionSlots: [
     "system-view.vessel-status",
     "system-view.entities",
     "system-view.projection",
   ],
-  // The body table + phase angles fan out over the shared `b.*` hooks
-  // (`useCelestialBodies`/`usePhaseAngles`); everything else reads the streamed
-  // `vessel.*`/`system.bodies` Topics below. The widget walks the body ARRAY
-  // (`systemBodies?.bodies`) and never reads a count, so it declares the array
-  // and deliberately NOT `system.state.bodyCount`: declaring a value this
-  // widget does not render would point body-count alarms here on the strength
-  // of a key nothing reads.
+  // Declares the body array it walks and not `system.state.bodyCount`, which it never reads.
   channels: topics.channels,
   optionalChannels: topics.optionalChannels,
   defaultConfig: { frame: "auto" },

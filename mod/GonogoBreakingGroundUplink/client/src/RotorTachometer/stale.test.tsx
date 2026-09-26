@@ -55,8 +55,7 @@ function mountWithRotor(instanceId: string) {
 
 describe("RotorTachometer: a rotor list that has stopped arriving", () => {
   it("drives the needle while the readings are current", async () => {
-    // The control. Without it every assertion below would also pass on a
-    // tachometer that never drew a needle at all.
+    // The control: without it the assertions below would pass on a tachometer that never drew a needle.
     const { container } = mountWithRotor("rt-stale-control");
 
     await waitFor(() => expect(visibleText(container)).toContain("130"));

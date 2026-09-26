@@ -1,19 +1,9 @@
 import { asQuantityish, magnitudeOr } from "./magnitude";
 
 /**
- * Client-side science aggregation off the `science.experiments` array.
- * The raw per-experiment array is a clean home on the new wire
- * (`ScienceViewProvider`'s `ExperimentEntry[]`: mirrored here defensively as
- * `unknown`), so the two legacy pre-aggregated scalars ScienceData/
- * Experiments read (`sci.count` / `sci.dataAmount`) and the
- * GonogoTelemetry-only `sci.experimentBreakdown` enrichment are all derivable
- * client-side from that ONE array: no separate mod field. This shared helper
- * is the single source of that derivation so both widgets drop the legacy
- * reads.
- *
- * Every function parses defensively (same discipline as ScienceData's own
- * `parseExperiments`): non-arrays / non-object entries are skipped, missing
- * numeric fields contribute 0, never `NaN`.
+ * Science aggregates derived from the `science.experiments` array, parsed
+ * defensively: non-object entries are skipped and missing numbers count as 0,
+ * never `NaN`.
  */
 
 /** The subset of a `science.experiments` entry these aggregations read. */
@@ -54,13 +44,7 @@ export interface ScienceAggregate {
   dataAmount: number;
 }
 
-/**
- * Sum the experiment count + total data amount from a `science.experiments`
- * array. Nothing on the wire carries these pre-aggregated. Returns
- * `null` when `raw` isn't an array at all (nothing to sum, the caller falls
- * back / renders empty), distinct from an empty array (`{ count: 0,
- * dataAmount: 0 }`, a real "no experiments aboard").
- */
+/** `null` for a non-array, unlike an empty array, which is a real "no experiments aboard". */
 export function scienceAggregate(raw: unknown): ScienceAggregate | null {
   if (raw === null || raw === undefined || !Array.isArray(raw)) return null;
   const entries = asRecordArray(raw);
@@ -75,28 +59,13 @@ export interface DerivedBreakdownEntry {
   biome: string;
   situation: string;
   expTitle: string;
-  /** Data amount (mits) for this experiment: old breakdown `dataMits`. */
+  /** Data amount in mits. */
   dataMits: number;
-  /**
-   * How much science is still recoverable from this subject, as a 0..1 ratio
-   * (`scienceValueRatio` off the wire). The old GonogoTelemetry breakdown
-   * carried an ABSOLUTE `remainingPotential` (subjectScienceCap −
-   * subjectScience); the new wire exposes only the ratio, so this is that
-   * ratio: enough to sort "most science left first", which is all the
-   * breakdown view used it for.
-   */
+  /** Science still recoverable from the subject, as a 0-1 ratio, not an absolute amount. */
   remainingPotential: number;
 }
 
-/**
- * Derive the per-subject breakdown client-side from the `science.experiments`
- * array, dropping the precomputed `sci.experimentBreakdown` enrichment in
- * favour of deriving it from the raw inputs. `biome` comes from each entry's
- * `location`, `situation` from `situation`, `remainingPotential` from
- * `scienceValueRatio`. Sorted by `remainingPotential` descending (subjects
- * with the most science left to extract first), matching the old breakdown's
- * ordering. `null` when `raw` isn't an array.
- */
+/** Per-subject rows, most science left first; `null` for a non-array. */
 export function deriveExperimentBreakdown(
   raw: unknown,
 ): DerivedBreakdownEntry[] | null {

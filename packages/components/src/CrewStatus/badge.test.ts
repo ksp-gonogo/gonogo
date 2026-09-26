@@ -12,11 +12,7 @@ function crew(overrides: Partial<VesselCrew> = {}): VesselCrew {
   };
 }
 
-/*
- * A reading with a declared field ABSENT, which is what the mod sends on a
- * partial frame and what these two cases exist to characterise. The type says
- * the field is there, so reproducing its absence has to say otherwise.
- */
+// A partial frame omits a declared field, so the fixture has to override the type.
 function withoutCount(): Partial<VesselCrew> {
   return { count: undefined };
 }

@@ -2,24 +2,17 @@ import styled from "styled-components";
 
 export interface LineGraphSeries {
   id: string;
-  /** Accessible name for this line; not rendered on screen (callers show the
-   *  live value beside the graph via `Value`/`Unit`, this only labels the
-   *  trace for the summary below). */
+  /** Accessible name for this line, used in the chart's summary; not rendered on screen. */
   label: string;
   /** CSS colour for the stroke, e.g. `var(--color-status-nogo-bg)`. */
   color: string;
   /** Ascending by `x`. Fewer than two points renders no line for this series. */
   points: ReadonlyArray<{ x: number; y: number }>;
   /**
-   * Indices into `points` that OPEN a known hole: no data between the previous
-   * point and that one, and missing rather than merely not sampled (a comms
-   * blackout, or a recording whose oldest span overran the recorder). The
-   * stroke breaks there instead of joining across, because a line drawn through
-   * a span with no readings is indistinguishable from data.
-   *
-   * The `"sparkline"` variant's area fill breaks with it, for the stronger
-   * version of the same reason: shading under a gap claims a quantity had a
-   * value throughout it.
+   * Indices into `points` that open a known hole: no data between the previous
+   * point and that one (a comms blackout, a recording that overran). The stroke
+   * and the sparkline fill break there, since a line through a span with no
+   * readings is indistinguishable from data.
    */
   breaks?: readonly number[];
 }
@@ -28,8 +21,7 @@ export interface LineGraphThreshold {
   id: string;
   label: string;
   value: number;
-  /** Defaults to a muted warning colour: a reference line reads as "the line
-   *  to watch", distinct from either data series. */
+  /** Defaults to a muted warning colour, distinct from the data series. */
   color?: string;
   /**
    * Short text drawn beside a `"marker"`-style threshold (e.g. `"0.5"`),
@@ -49,32 +41,23 @@ export interface LineGraphProps {
   /** Chart height in pixels. Width always fills the parent. */
   height?: number;
   /**
-   * Accessible name for the whole chart (`role="img"`). Omit when the trend
-   * is decorative alongside a live numeric readout that already carries the
-   * reading (the usual case: pair this with `Value`/`Unit` text, not a
-   * restated aria-label), in which case the chart renders `aria-hidden`.
+   * Accessible name for the whole chart (`role="img"`). Omit when the trend is
+   * decorative beside a readout that already carries the reading, and the chart
+   * renders `aria-hidden`.
    */
   ariaLabel?: string;
   className?: string;
   /**
-   * `"chart"` (default): the original instrument look, quarter gridlines,
-   * bare strokes. `"sparkline"`: drops the gridlines and area-shades under
-   * each series down to the frame's bottom edge, reading as a compact glance
-   * trend rather than a technical instrument. Threshold lines and series
-   * strokes render identically in both, this only changes the frame
-   * decoration and whether a fill sits under the lines.
+   * `"chart"` (default): quarter gridlines and bare strokes. `"sparkline"`: no
+   * gridlines, and each series area-shaded down to the frame's bottom edge, for
+   * a compact glance trend.
    */
   variant?: "chart" | "sparkline";
   /**
-   * How a threshold draws at its y-height. `"full"` (default) is the
-   * original dashed rule spanning the whole frame, which reads as "this
-   * chart is about staying under this line". `"marker"` draws a short FIXED
-   * ~24px tick anchored at the frame's left edge instead, with the
-   * threshold's `valueText` beside it: an axis annotation, not a rule. It
-   * renders as an HTML overlay rather than inside the stretched viewBox, so
-   * its length is genuinely fixed on screen at every width. Use it where
-   * the threshold is context for a glance trend, not the subject of the
-   * chart.
+   * How a threshold draws at its y-height. `"full"` (default) is a dashed rule
+   * spanning the frame. `"marker"` is a fixed ~24px tick at the left edge with
+   * the threshold's `valueText` beside it, for a threshold that is context
+   * rather than the subject of the chart.
    */
   thresholdStyle?: LineGraphThresholdStyle;
 }
@@ -108,16 +91,13 @@ function computeDomain(
 }
 
 /**
- * One series' points cut into unbroken runs at its `breaks` indices. Empty or
- * absent breaks yield the whole series as a single run, which is the shape
- * every caller had before holes could exist.
+ * One series' points cut into unbroken runs at its `breaks` indices.
  */
 function splitAtBreaks(
   points: ReadonlyArray<{ x: number; y: number }>,
   breaks: readonly number[] | undefined,
 ): Array<ReadonlyArray<{ x: number; y: number }>> {
-  /* A sample that is not a finite number is a hole, the same as a stated
-     break: the stroke stops before it and resumes after it. */
+  // A sample that is not a finite number is a hole, the same as a stated break.
   const holes = points.flatMap((p, i) =>
     Number.isFinite(p.x) && Number.isFinite(p.y) ? [] : [i],
   );
@@ -159,27 +139,14 @@ function computeXDomain(series: readonly LineGraphSeries[]): [number, number] {
 }
 
 /**
- * A minimal multi-series time-trend chart: a set of coloured lines against a
- * shared domain, plus optional dashed horizontal reference lines. Built for
- * readings that need a TREND (is this climbing, is it staying under a line)
- * rather than a precise value, which is what the adjacent `Value`/`Unit`
- * readout is for.
+ * A minimal multi-series time-trend chart: coloured lines against a shared
+ * domain, plus optional reference lines. For readings that need a trend rather
+ * than a precise value, which the adjacent `<Unit>` readout is for.
  *
- * Deliberately spare: no axis ticks, no legend, no interaction. A widget
- * pairs this with its own labelled current-value readouts and belt/state
- * badges; this component only draws the shape of the trend. In `"chart"`
- * variant, grid lines are fixed quarter-marks (25/50/75%) rather than
- * data-derived ticks, since nothing here knows the quantity's kind well
- * enough to pick a sensible round-number tick; `"sparkline"` drops them
- * entirely and area-shades under each series instead, for a reading that
- * wants to look like a glance trend rather than an engineering instrument.
- *
- * SVG rather than a canvas/library dependency: matches the rest of the kit's
- * hand-drawn primitives (`Dial`, `Tape`, `DivergingBar`), keeps ui-kit's zero
- * runtime dependency, and a `viewBox`-scaled `<polyline>` needs no imperative
- * redraw on resize. `vector-effect="non-scaling-stroke"` keeps every stroke a
- * constant on-screen width regardless of how the `viewBox` gets stretched to
- * its container, rather than needing to divide by zoom by hand.
+ * No axis ticks, no legend, no interaction. Gridlines are fixed quarter-marks,
+ * since nothing here knows the quantity's kind well enough to pick round ticks.
+ * `vector-effect="non-scaling-stroke"` keeps strokes a constant width however
+ * the `viewBox` is stretched.
  */
 export function LineGraph({
   series,
@@ -227,11 +194,9 @@ export function LineGraph({
 
         {isSparkline &&
           series.map((s) => {
-            // Same "fewer than two points draws nothing" rule as the stroke
-            // below: an area under a single point is not a shape, it is a
-            // triangle standing in for data that was never there.
+            // Fewer than two points draws nothing, as for the stroke.
             if (s.points.length < 2) return null;
-            // One polygon per unbroken run, so a hole leaves unshaded ground rather than a filled block standing in for readings nobody has.
+            // One polygon per unbroken run, so a hole leaves unshaded ground.
             return splitAtBreaks(s.points, s.breaks).map((run) => {
               if (run.length < 2) return null;
               const first = run[0];
@@ -246,10 +211,6 @@ export function LineGraph({
                   key={`${s.id}-area-${first.x}`}
                   points={areaPoints}
                   fill={s.color}
-                  // Subtler than a chart-style fill: operator feedback on the
-                  // second pass still read the sparkline as too instrument-like,
-                  // a lighter shade reads as a glance trend rather than a
-                  // filled-in area chart.
                   fillOpacity={0.12}
                   stroke="none"
                 />
@@ -274,15 +235,9 @@ export function LineGraph({
 
         {series.map((s) => {
           if (s.points.length < 2) return null;
-          /**
-           * One polyline per unbroken run rather than one per series: a single
-           * stroke cannot express a gap, and joining across one draws a line
-           * the operator cannot tell from a reading.
-           *
-           * Each run is keyed on its own first x, never its position: the run
-           * COUNT and boundaries move as data slides through the window, so an
-           * index would have React reuse one run's element for a different
-           * span.
+          /*
+           * One polyline per unbroken run, keyed on its own first x, since run
+           * boundaries move as data slides through the window.
            */
           return splitAtBreaks(s.points, s.breaks).map((run) => {
             if (run.length < 2) return null;
@@ -293,9 +248,6 @@ export function LineGraph({
                 points={points}
                 fill="none"
                 stroke={s.color}
-                // Thinner in the sparkline variant: a glance trend reads as a
-                // fine line, not the same weight an engineering `"chart"`
-                // instrument uses.
                 strokeWidth={isSparkline ? 1 : 1.4}
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -306,16 +258,11 @@ export function LineGraph({
         })}
       </svg>
 
-      {/* "marker" thresholds live OUTSIDE the stretched viewBox: an HTML
-          overlay at the threshold's own height, so the tick's ~24px length
-          and the label's type size stay genuinely fixed on screen instead of
-          scaling with the frame. Decorative beside the labelled readouts, so
-          it is hidden from the accessibility tree like the rest of the
-          drawing. */}
+      {/* "marker" thresholds are an HTML overlay outside the stretched viewBox, so their size stays fixed on screen. */}
       {thresholdStyle === "marker" &&
         thresholds.map((t) => {
           const topPct = ((yMax - t.value) / ySpan) * 100;
-          // A threshold outside the pinned domain has no honest place to draw; skip it rather than pinning it to an edge it isn't at.
+          // A threshold outside the pinned domain is skipped rather than pinned to an edge it is not at.
           if (topPct < 0 || topPct > 100) return null;
           return (
             <LineGraph__ThresholdMarker
@@ -350,8 +297,7 @@ const LineGraph__ThresholdMarker = styled.div`
   line-height: var(--line-height-flush);
 `;
 
-/** The fixed tick: ~24px, matching the length the identity tab on `Card`
- *  uses for the same "a mark, not a rule" reading. */
+/** The fixed ~24px tick, the length `Card`'s identity tab uses for a mark rather than a rule. */
 const LineGraph__ThresholdTick = styled.span`
   display: inline-block;
   width: var(--size-mark);

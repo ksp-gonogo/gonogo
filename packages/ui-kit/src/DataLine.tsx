@@ -21,18 +21,8 @@ export interface DataLineProps extends HTMLAttributes<HTMLDivElement> {
   tone?: StatTone;
   /**
    * Give the label a fixed column so the readings on consecutive lines line up
-   * down their left edge.
-   *
-   * <para>A GRID rather than a flex basis, which is what the first version used
-   * and what did not work: a reading longer than the space left beside its label
-   * wrapped the whole flex item onto the next LINE, so the label sat alone above
-   * its own reading and the column it was supposed to establish was gone exactly
-   * where it was needed. Two columns, and a long reading wraps inside its
-   * own.</para>
-   *
-   * <para>Off by default: a line whose label is much longer than its neighbours'
-   * would set a column that wastes width on every other line, and one line on
-   * its own has nothing to align with.</para>
+   * down their left edge; a long reading wraps inside its own column. Off by
+   * default, since one long label would waste width on every other line.
    */
   aligned?: boolean;
 }
@@ -40,25 +30,12 @@ export interface DataLineProps extends HTMLAttributes<HTMLDivElement> {
 /**
  * One labelled reading on a line: what it is, then what it says.
  *
- * <para>This exists because the alternative was a whole sentence in
- * `ReadoutCaption`, and that primitive is uppercase and `--color-text-muted` by
- * construction. Three consecutive lines of it are three lines of identical
- * shouted grey, which is how a retirement date, a course and a lapse deadline
- * came to read as one undifferentiated block: nothing in the run was drawn as
- * more important than anything else, and the dates, the part of the line an
- * operator is actually looking for, were the same colour as the words
- * introducing them.</para>
+ * The label is quiet uppercase; the reading takes the primary foreground with
+ * tabular figures, so a run of lines never reads as one block of grey. `tone`
+ * colours the reading and never the label.
  *
- * <para>So the two halves are drawn differently on purpose. The label keeps the
- * quiet uppercase treatment; the reading takes the primary foreground at the
- * body rung with tabular figures, which is a 2.4x contrast step up from the
- * label on a sunken card. `tone` colours the reading and never the label,
- * because it is the reading that is alarming.</para>
- *
- * <para>Not `ReadOnlyField`, which is the same pairing for a SETTINGS row: that
- * one pushes its value to the right edge of a full-width row at 14px, which is
- * right for a column of switches and wrong inside a list row, where the reading
- * belongs beside its label rather than a card's width away from it.</para>
+ * For a settings row, where the value sits at the row's right edge, use
+ * `ReadOnlyField` instead.
  */
 export function DataLine({
   label,
@@ -80,12 +57,8 @@ export function DataLine({
 }
 
 /**
- * The label column's width.
- *
- * In `ch` so it tracks whatever font the theme is set in, and measured against
- * the ROOT's font size rather than the label's: `ch` resolves on the grid
- * container, and the label renders four rungs below it, so seven of these is
- * room for about ten of the label's own characters.
+ * The label column's width, in `ch` of the grid container's font: room for
+ * about ten of the smaller label's characters.
  */
 const LABEL_COLUMN = "7ch";
 

@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { deriveBoard } from "./board";
 
-// Characterization of the landing board state machine, pins the exact
-// precedence the widget shipped with inline, so the presentation redesign
-// cannot silently change which readouts are shown. Extracted 2026-07-24.
+// Pins the landing board's precedence, so a presentation change cannot silently change which readouts show.
 
 describe("deriveBoard", () => {
   it("not-descending wins over everything, regardless of atmosphere", () => {
@@ -16,7 +14,7 @@ describe("deriveBoard", () => {
   });
 
   it("an atmospheric body suppresses the vacuum solve, showing an honest estimate while descending", () => {
-    // Descending in atmosphere with body data but no mod terminal velocity: an honest partial read (atmospheric-estimate), never a silent "unmodelled".
+    // Descending in atmosphere with body data but no terminal velocity: a partial read, never a silent "unmodelled".
     expect(
       deriveBoard({ solutionState: "vacuum-solved", atmospheric: true }),
     ).toBe("atmospheric-estimate");

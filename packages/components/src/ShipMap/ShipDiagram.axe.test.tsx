@@ -4,13 +4,7 @@ import { describe, it } from "vitest";
 import { ShipDiagram } from "./ShipDiagram";
 import type { ShipMapPart } from "./shipTopology";
 
-/**
- * Baseline a11y smoke for the Ship Map diagram across the visible
- * overlay paths: engine flame, parachute canopy, deploy chevron,
- * highlight ring. The `aria-label` per part-group is composed in
- * `partAriaLabel`; a regression to that path is the most likely
- * accessibility issue this catches.
- */
+/** A11y smoke for the Ship Map diagram across its overlay paths, chiefly the per-part `aria-label` from `partAriaLabel`. */
 
 function half(size: { x: number; y: number; z: number }) {
   return {

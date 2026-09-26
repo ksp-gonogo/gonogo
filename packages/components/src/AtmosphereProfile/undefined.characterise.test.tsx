@@ -13,24 +13,17 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AtmosphereProfileComponent } from "./index";
 
 /**
- * What AtmosphereProfile does when its telemetry reads are absent.
+ * What AtmosphereProfile does when its telemetry reads are absent:
  *
- * Four absence-shaped sites, three different meanings:
- *  - `bodyName = useBodyName(useParentBodyIndex())`, then
- *    `showNoBodyNotice = bodyName !== undefined && body === undefined`: the ONE
- *    place in this widget that distinguishes absent from present-but-unusable,
- *    and it distinguishes them on `undefined` specifically. The body itself now
- *    resolves off the `system.bodies` roster rather than the bundled table of
- *    stock bodies, so "unknown" means neither authority could build one
- *  - `altitude = magnitudeOf(flight.altitudeAsl) ?? undefined`, gated by
- *    `altitude === undefined` inside the threshold memo. A flight record that
- *    omits the altitude drops the current-pressure marker with no on-screen
- *    trace, while the rest of the chart draws
- *  - `magnitudeOf(flight?.atmDensity)` gated by `liveDensity !== null &&
- *    liveDensity > 1e-9`: absent, non-finite and a genuine vacuum zero all
- *    suppress the HUD chip identically
- *  - `liveAirTemp !== null` / `liveSkinTemp !== null` per chip row: a partial
- *    flight record drops rows individually
+ *  - `showNoBodyNotice = bodyName !== undefined && body === undefined` is the
+ *    one place that tells absent from present but unusable (neither the
+ *    `system.bodies` roster nor the bundled table can build the body)
+ *  - a flight record without altitude drops the current-pressure marker with
+ *    no trace, while the rest of the chart draws
+ *  - `liveDensity > 1e-9` suppresses the HUD chip identically for absent,
+ *    non-finite and a genuine vacuum zero
+ *  - each chip row has its own `!== null` gate, so a partial record drops rows
+ *    individually
  */
 
 const CARRIED = ["vessel.flight", "vessel.identity", "system.bodies"];
@@ -51,11 +44,7 @@ function renderAtmo() {
   return { fixture, ...rendered };
 }
 
-/**
- * The body-name resolution chain: `vessel.identity.parentBodyIndex` against a
- * `system.bodies` entry, plus the `vessel.flight` record the chip and the
- * altitude marker read.
- */
+/** The body-name chain (`vessel.identity.parentBodyIndex` against `system.bodies`), plus the `vessel.flight` record. */
 function emitBody(
   fixture: ReturnType<typeof setupStreamFixture>,
   name: string,
@@ -88,25 +77,21 @@ describe("AtmosphereProfile: what undefined means today", () => {
   it("shows the waiting-for-body empty state and NO notices when nothing has arrived", () => {
     const { container } = renderAtmo();
 
-    // `body === undefined` picks the GraphView empty state. This is the widget's
-    // only honest never-arrived surface, and it comes from the body read alone.
+    // The widget's only honest never-arrived surface, from the body read alone.
     expect(visibleText(container)).toContain("Waiting for body telemetry...");
 
-    // Named absences rather than an empty container: no unknown-body notice (its gate needs `bodyName !== undefined`), no no-model notice, and no HUD chip.
+    // Named absences: no unknown-body notice, no no-model notice, no HUD chip.
     expect(screen.queryByRole("status")).toBeNull();
     expect(visibleText(container)).not.toContain("Unknown body");
     expect(visibleText(container)).not.toContain("ρ");
-    // No current-pressure threshold: its label is the only thing that renders the word, `speakQuantity` spells the unit out.
+    // No current-pressure threshold: only its label renders the spelled-out unit.
     expect(visibleText(container)).not.toMatch(/pascals/);
   });
 
   it("takes a body the bundled table has never heard of as known, because the stream described it", async () => {
     const { fixture, container } = renderAtmo();
 
-    /* A name the stock table cannot resolve used to be the unknown-body case,
-       which made every planet pack's bodies unknown. The roster the name came
-       from states the radius, so the body IS known and the widget goes on to
-       say the honest thing about it, that this one reports no air. */
+    /* The roster states the radius, so a name the stock table cannot resolve is still a known body, one reporting no air. */
     act(() => {
       emitBody(fixture, "Definitely-Not-A-Body");
     });
@@ -123,9 +108,7 @@ describe("AtmosphereProfile: what undefined means today", () => {
   it("distinguishes a body it cannot build at all from no body name at all", async () => {
     const { fixture, container } = renderAtmo();
 
-    /* The gate's surviving half: a name arrived and neither authority can
-       describe the body behind it, the roster because it reported no radius
-       and the bundled table because it has never heard the name. */
+    /* A name arrived and neither the roster (no radius) nor the bundled table can describe the body. */
     act(() => {
       fixture.emit("vessel.flight", {});
       fixture.emit("vessel.identity", { parentBodyIndex: 1 });
@@ -147,22 +130,19 @@ describe("AtmosphereProfile: what undefined means today", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "Definitely-Not-A-Body",
     );
-    // The chart's own empty state is NOT exclusive with the notice: `body` is
-    // still undefined, so GraphView keeps saying "waiting" underneath a notice
-    // that says the wait is over and hopeless. Both render at once today.
+    // Not exclusive: GraphView keeps saying "waiting" under a notice saying the wait is hopeless.
     expect(visibleText(container)).toContain("Waiting for body telemetry...");
   });
 
   it("silently omits the current-pressure marker while the flight record carries no altitude", async () => {
     const { fixture, container } = renderAtmo();
 
-    // The flight record arrives with a density and no altitude. The threshold
-    // memo's `altitude === undefined` gate drops the marker.
+    // Density and no altitude: the marker drops.
     act(() => {
       emitBody(fixture, "Kerbin", { flight: { atmDensity: 1.217 } });
     });
 
-    // The pressure curve draws, so the chart is fully live and the operator has no cue that the "you are flying through this pressure" line is missing.
+    // The curve draws, so the operator has no cue the "flying through this pressure" line is missing.
     await waitFor(() => {
       expect(
         container.querySelectorAll("path[stroke-dasharray]").length,
@@ -170,7 +150,7 @@ describe("AtmosphereProfile: what undefined means today", () => {
     });
     expect(visibleText(container)).not.toMatch(/pascals/);
 
-    // The same record with an altitude does draw the marker: the omission above is the missing field and nothing else.
+    // With an altitude the marker draws: the missing field is the only cause.
     act(() => {
       fixture.emit(
         "vessel.flight",
@@ -184,9 +164,7 @@ describe("AtmosphereProfile: what undefined means today", () => {
   it("suppresses the whole HUD chip when the flight record has no density", async () => {
     const { fixture, container } = renderAtmo();
 
-    // Body resolves, altitude resolves, only `atmDensity` is absent. The chip is
-    // an all-or-nothing render keyed on the density read, so the air and skin
-    // temperatures that DID arrive are withheld with it.
+    // Only `atmDensity` absent: the all-or-nothing chip withholds the temperatures that did arrive.
     act(() => {
       emitBody(fixture, "Kerbin", {
         flight: {
@@ -206,7 +184,7 @@ describe("AtmosphereProfile: what undefined means today", () => {
   it("suppresses the HUD chip for a genuine vacuum zero exactly as for an absent density", async () => {
     const { fixture, container } = renderAtmo();
 
-    // Start from a live chip so the disappearance below is caused by the zero.
+    // Start from a live chip, so the disappearance is caused by the zero.
     act(() => {
       emitBody(fixture, "Kerbin", {
         flight: { altitudeAsl: 5_600, atmDensity: 1.217 },
@@ -214,9 +192,7 @@ describe("AtmosphereProfile: what undefined means today", () => {
     });
     await waitFor(() => expect(visibleText(container)).toContain("ρ"));
 
-    // An observed 0 kg/m³ is a real measurement, and `liveDensity > 1e-9`
-    // discards it with the same test that discards an absent field: the chip
-    // vanishes rather than reading zero.
+    // An observed 0 kg/m³ is discarded by the same test as an absent field: the chip vanishes rather than reading zero.
     act(() => {
       fixture.emit(
         "vessel.flight",
@@ -232,9 +208,7 @@ describe("AtmosphereProfile: what undefined means today", () => {
   it("drops individual chip rows for the temperatures the flight record omits", async () => {
     const { fixture, container } = renderAtmo();
 
-    // Partial payload: density present, air temperature present, skin
-    // temperature absent. Each row has its own `!== null` gate, so this is the
-    // one place absence is rendered per field rather than per record.
+    // Skin temperature absent: the one place absence renders per field.
     act(() => {
       emitBody(fixture, "Kerbin", {
         flight: {
@@ -249,7 +223,7 @@ describe("AtmosphereProfile: what undefined means today", () => {
       expect(visibleText(container)).toContain("1.217 kg/m³"),
     );
     expect(visibleText(container)).toContain("Air");
-    // No placeholder for the missing row, it is simply not there.
+    // No placeholder: the row is simply not there.
     expect(visibleText(container)).not.toContain("Skin");
   });
 });

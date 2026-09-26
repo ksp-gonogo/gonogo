@@ -1,23 +1,10 @@
 /**
- * CommitLayer: the delay-native "soul" of the landing widget, and what makes it
- * gonogo's rather than a re-skinned KER. Under signal delay a landing cannot be
- * hand-flown, so the job shifts from "cue the burn" to "did I commit correctly
- * before I went blind":
+ * The delay-native layer of the landing widget: under signal delay a landing cannot be hand-flown, so the question becomes whether the burn was committed before the vessel went blind.
  *
- * - Regime pill (LIVE / STAGED / AUTONOMOUS / LINK, ) + round-trip.
- * - Hero: live → the ignition countdown; delayed → the burn-GO clock (the last
- *   instant a GO can still reach the vessel to START the burn, T_ignition − N) →
- *   BURN LOCKED once past it.
- * - No separate UNCOMMANDABLE or COMMIT POINT banner: both would just restate
- *   round trip vs. remaining burn window, which the panel header already says
- *   once, in the header's own vocabulary of round trip beside regime. See the
- *   comment at the foot of this component for why.
+ * - Regime pill and round trip
+ * - Hero: live, the ignition countdown; delayed, the burn-GO clock (the last instant a GO can still reach the vessel, T_ignition - N), then BURN LOCKED
  *
- * Landing is an INSTRUMENT, not a command surface, gear/brakes are fired from
- * the operator's own action-group widgets placed alongside, so this layer holds
- * only decision-support (clocks, ignition cue), no commands.
- *
- * Presentational: the clocks are derived upstream by `deriveDelayClocks`.
+ * An instrument, not a command surface: gear and brakes are fired from the operator's own action-group widgets.
  */
 
 import { value } from "@ksp-gonogo/sitrep-sdk";
@@ -54,30 +41,16 @@ export interface CommitLayerProps {
    * link takes its own hero arm below rather than borrowing this one.
    */
   live: boolean;
-  /**
-   * Whether an INSTRUCTION may be named at all: every input the burn solve rests on
-   * is current.
-   *
-   * The hero is the one part of this widget an operator acts on at a named moment,
-   * so it is the one part that must not render from a modelled or last-known state.
-   * The board around it describes from the best value available and says so; this
-   * refuses instead, because a suicide-burn instant computed from a propagated
-   * position is not a dated number, it is a wrong one.
-   */
+  /** Whether an instruction may be named: every input the burn solve rests on is current. A burn instant from a propagated position is wrong, not dated, so the hero refuses rather than describes. */
   mayInstruct: boolean;
   suicideBurnCountdown: number | null;
   commitInSeconds: number | null;
   committed: boolean;
-  /** True once the vessel has touched down, the descent clocks are then void
-   * and the hero shows a settled LANDED state instead of a stale countdown. */
+  /** True once the vessel has touched down: the descent clocks are void and the hero shows LANDED. */
   landed?: boolean;
-  /** True when no viable descent trajectory reaches a safe touchdown (an optimal
-   * burn still can't arrest the vessel in the remaining altitude): the hero
-   * reads NO LANDING VECTOR. Distinct from a nominal committed burn (which HAS a
-   * vector); never set that case. */
+  /** True when even an optimal burn cannot arrest the vessel in the remaining altitude; distinct from a nominal committed burn. */
   noLandingVector?: boolean;
-  /** The unavoidable touchdown speed (`bestSpeedAtImpact`, m/s): the killer fact
-   * led under a NO LANDING VECTOR hero. Ignored unless `noLandingVector`. */
+  /** The unavoidable touchdown speed (`bestSpeedAtImpact`, m/s), led under a NO LANDING VECTOR hero. */
   impactSpeed?: number | null;
 }
 
@@ -99,33 +72,21 @@ export function CommitLayer({
   let heroTone: ReadoutTone;
   let urgent = false;
   if (landed) {
-    // Settled on the surface: the descent is over, so no commit / blind / burn countdown: a confident touchdown confirmation instead.
     heroValue = "LANDED";
     heroCaption = "TOUCHDOWN CONFIRMED";
     heroTone = "go";
   } else if (noLandingVector) {
-    // No descent trajectory reaches a safe touchdown: the vessel is committed
-    // to a hard impact whatever it does now. Distinct from a nominal commit.
+    // Committed to a hard impact whatever it does now.
     heroValue = "NO LANDING VECTOR";
     heroCaption = "";
     heroTone = "alert";
   } else if (regime === "no-path") {
-    // Neither hero is answerable without a link. The ignition countdown assumes
-    // a closed real-time loop and the burn-GO clock assumes a known delay, so
-    // picking either one states something about the link that nothing has told
-    // us. Falling through to the live arm here reads "SUICIDE BURN", which is
-    // exactly that unearned claim.
+    // Both heroes assume something about the link (a closed loop, a known delay) that nothing has told us.
     heroValue = NULL_DISPLAY;
     heroCaption = "BURN TIMING NEEDS A LINK";
     heroTone = "default";
   } else if (!mayInstruct) {
-    // Described, not instructed. The board beside this still carries the descent
-    // picture from the best values available; this is the number an operator would
-    // ACT on at a named moment, so it is the one that is withheld.
-    //
-    // After the `no-path` arm deliberately: when there is no link at all, "needs a
-    // link" is the more specific answer and the operator can act on it. This arm is
-    // for a link that is delivering while these particular readings are not current.
+    // The number an operator acts on is withheld while the board describes; after `no-path`, since "needs a link" is the more specific answer.
     heroValue = NULL_DISPLAY;
     heroCaption = "BURN TIMING NEEDS CURRENT TELEMETRY";
     heroTone = "default";
@@ -144,15 +105,12 @@ export function CommitLayer({
       heroTone = urgent ? "alert" : "warning";
     }
   } else {
-    // The burn-GO deadline: the last instant a human GO can still reach the
-    // vessel in time to START the suicide burn (T_ignition − N). Named apart
-    // from the COMMIT POINT (the impact-command deadline below) to avoid a
-    // "COMMITTED vs commit point" clash.
+    // The last instant a human GO can still reach the vessel to start the burn (T_ignition - N).
     heroCaption = "BURN GO IN";
     if (committed) {
       heroValue = "BURN LOCKED";
       heroTone = "alert";
-      // Past the deadline a GO can no longer arrive in time, the burn plan is locked in (autonomous), so the "BURN GO IN" caption is dropped.
+      // Past the deadline a GO cannot arrive in time, so the burn plan is locked.
       heroCaption = "";
     } else if (commitInSeconds == null) {
       heroValue = NULL_DISPLAY;
@@ -163,10 +121,7 @@ export function CommitLayer({
     }
   }
 
-  // The instantaneous ignition cue AND a no-landing-vector (imminent unavoidable
-  // impact) interrupt (assertive): both are ABORT-class. Every other state here
-  // is sustained and announced politely, per the a11y rule that reserves
-  // assertive for ABORT-class events.
+  // The ignition cue and a no-landing-vector are ABORT-class, so assertive; every other state is polite.
   const alarmed = urgent || noLandingVector;
 
   return (
@@ -179,10 +134,7 @@ export function CommitLayer({
         {heroCaption && <ReadoutCaption>{heroCaption}</ReadoutCaption>}
       </Readout>
 
-      {/* Lead with the killer fact: under NO LANDING VECTOR the vessel is
-            committed to a hard impact, so the unavoidable touchdown speed is the
-            single number that matters, everything else (fuel, thrust, site) is
-            moot. */}
+      {/* Under NO LANDING VECTOR the unavoidable touchdown speed is the one number that matters. */}
       {noLandingVector && impactSpeed != null && (
         <Readout $tone="alert">
           <Unit value={value("m/s", impactSpeed)} format="m/s" decimals={0} />
@@ -190,12 +142,7 @@ export function CommitLayer({
         </Readout>
       )}
 
-      {/* Deliberately no UNCOMMANDABLE or PAST COMMIT POINT banner here. Both
-            say the same thing as each other, and as the header: the round trip
-            is longer than the window left, so nothing you send now lands in
-            time. The round trip IS the instrument datum and it sits in the
-            panel header beside the regime, so the operator reads the
-            arithmetic rather than its conclusion twice in two vocabularies. */}
+      {/* No UNCOMMANDABLE or COMMIT POINT banner: the round trip in the panel header already states it. */}
     </Section>
   );
 }

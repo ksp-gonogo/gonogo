@@ -24,22 +24,13 @@ describe("fittedTitleIndex", () => {
     expect(fittedTitleIndex(0, 20, widths)).toBe(2);
   });
 
-  /**
-   * The oscillation this hook was rewritten to close. Once compacted, the box
-   * has exactly the room the SHORT form needs, so a longer form that would fit
-   * "at" the available width is a form that stops fitting the moment it is
-   * shown.
-   */
+  // Once compacted the box has exactly the short form's room, so a longer form that fits "at" that width stops fitting once shown.
   it("does not step back up without room to spare", () => {
     expect(fittedTitleIndex(1, 130, widths)).toBe(1);
     expect(fittedTitleIndex(1, 145, widths)).toBe(0);
   });
 
-  /**
-   * jsdom lays nothing out, so every width is zero, and a hook that shortened
-   * on that would make every `getByText` in the tree depend on layout no test
-   * can see.
-   */
+  // jsdom lays nothing out, and shortening on a zero width would make every `getByText` depend on layout no test can see.
   it("holds the full title when nothing has been measured", () => {
     expect(fittedTitleIndex(1, 0, widths)).toBe(0);
     expect(fittedTitleIndex(1, 200, [0, 0, 0])).toBe(0);

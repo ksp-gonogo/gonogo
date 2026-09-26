@@ -11,24 +11,7 @@ import {
 import { TechTreeComponent } from "./index";
 
 /**
- * Characterisation: what TechTree DOES today when its telemetry reads are
- * `undefined`, recorded ahead of `useTelemetry` returning a `Reading`.
- *
- * Three reads, and TWO of them fail open on absence:
- *
- * - `career.status.tech.nodes` feeds `parseTechNodes`, which maps `undefined`
- *   and `null` alike to `null`, and the widget branches on `allNodes === null`.
- *   That one fails closed (placeholder)
- * - `spaceCenter.scene`: `upgradesEnabled = scene === undefined || scene ===
- *   "SpaceCenter"`. An unknown scene ENABLES spending
- * - `career.status.economy.science`: `canAfford = sciAvailable === null ||
- *   sciAvailable >= n.scienceCost`, and `computeResearchable` skips its own
- *   cost check on `science !== null`. An unknown balance makes every node
- *   affordable AND researchable
- *
- * Both fail-opens leave the Unlock button live on a node the operator may not
- * be able to buy, from a screen where KSP will not accept the spend. Pinned as
- * observed, not endorsed.
+ * Pins what TechTree renders when its reads are `undefined`: absent nodes draw a placeholder, and an unknown scene or an unknown science balance withholds Unlock with a stated reason rather than leaving a spend control live on an absence.
  */
 
 const CARRIED = ["career.status", "spaceCenter.scene"];
@@ -55,12 +38,7 @@ function renderTree(
   );
 }
 
-/**
- * An explicitly-Researchable node costing far more than any test balance.
- * `state: "Researchable"` is trusted by `computeResearchable` regardless of
- * science, which is what isolates the `canAfford` gate from the researchable
- * gate.
- */
+/** An explicitly Researchable node costing more than any test balance; the explicit state isolates the `canAfford` gate from the researchable gate. */
 const PRICEY_RESEARCHABLE = {
   id: "pricey",
   title: "Pricey Tech",
@@ -138,9 +116,7 @@ describe("TechTree: the `allNodes === null` absence gate", () => {
       fixture.emit("career.status", careerStatus([], null));
     });
 
-    // An empty array parses to `[]`: the widget switches to a second, distinct
-    // placeholder. Waiting and confirmed-empty ARE separated here, unlike in
-    // this widget's sibling career widgets.
+    // An empty array parses to `[]`, a placeholder distinct from waiting.
     await waitFor(() =>
       expect(screen.getByText(/No tech nodes loaded/i)).toBeInTheDocument(),
     );
@@ -184,9 +160,7 @@ describe("TechTree: null versus undefined", () => {
     renderTree(fixture, { probe: true });
 
     act(() => {
-      // The hook hands back `null` for a tombstone rather than `undefined`, so
-      // the widget could tell them apart. `null?.tech?.nodes` is `undefined`
-      // and `parseTechNodes` folds both into the same placeholder.
+      // A tombstone and a never-arrived record fold into the same placeholder.
       fixture.emit("career.status", null);
     });
 
@@ -196,12 +170,6 @@ describe("TechTree: null versus undefined", () => {
 });
 
 describe("TechTree: the spaceCenter.scene absence gate", () => {
-  /**
-   * Recorded prior behaviour: "FAIL-OPEN: leaves Unlock enabled while the scene
-   * is unknown". `scene === undefined || scene === "SpaceCenter"` read "we have
-   * not been told" as "we are in the Space Center", leaving a control that spends
-   * science live on the strength of an absence.
-   */
   it("withholds Unlock while the scene is unknown, for the stated reason", async () => {
     const user = userEvent.setup();
     const fixture = newFixture();
@@ -224,7 +192,7 @@ describe("TechTree: the spaceCenter.scene absence gate", () => {
     );
     await user.click(screen.getByText("Pricey Tech"));
 
-    // No scene means no permission, and the button says which scene it wants rather than being inert without explanation.
+    // The button names the scene it wants rather than being inert without explanation.
     const unlock = screen.getByRole("button", { name: "Unlock" });
     expect(unlock).toBeDisabled();
     expect(unlock).toHaveAttribute(
@@ -255,7 +223,7 @@ describe("TechTree: the spaceCenter.scene absence gate", () => {
     );
     await user.click(screen.getByText("Pricey Tech"));
 
-    // The other side of the same gate, proving the test above records an absence rather than a control that is always live.
+    // The other side of the same gate, so the test above records an absence rather than an always-live control.
     const unlock = screen.getByRole("button", { name: "Unlock" });
     expect(unlock).toBeDisabled();
     expect(unlock).toHaveAttribute(
@@ -266,12 +234,6 @@ describe("TechTree: the spaceCenter.scene absence gate", () => {
 });
 
 describe("TechTree: the economy.science absence gate", () => {
-  /**
-   * Recorded prior behaviour: "FAIL-OPEN: leaves Unlock enabled on a 500-science
-   * node while the balance is unknown". `sciAvailable === null || ...` read an
-   * unknown balance as sufficient for any cost, which is the opposite of what
-   * the comment above `sciAvailable` in the widget already claimed it did.
-   */
   it("withholds Unlock on a 500-science node while the balance is unknown", async () => {
     const user = userEvent.setup();
     const fixture = newFixture();
@@ -323,11 +285,6 @@ describe("TechTree: the economy.science absence gate", () => {
     expect(unlock.getAttribute("title")).toContain("(have 10)");
   });
 
-  /**
-   * Recorded prior behaviour: "omits the science readout from the subtitle while
-   * the balance is unknown". The balance the Unlock buttons are judged against
-   * disappeared exactly when they had nothing to judge against.
-   */
   it("reports the science balance as unknown in the subtitle rather than omitting it", async () => {
     const fixture = newFixture();
     renderTree(fixture);
@@ -347,17 +304,7 @@ describe("TechTree: the economy.science absence gate", () => {
 });
 
 describe("TechTree: computeResearchable's own science gate", () => {
-  /**
-   * `computeResearchable` skips its cost filter entirely when the balance is
-   * absent, and that is left alone deliberately.
-   *
-   * The count is a claim about the shape of the tree, not an offer to spend. A
-   * node whose parents are unlocked IS reachable; whether the operator can pay
-   * for it is a separate question, and the Unlock button now answers that one by
-   * refusing with a stated reason. Zeroing the count instead would hide the
-   * reachable node and make a warming-up widget look like an empty tree, while
-   * the button, which is the thing that spends, is already closed.
-   */
+  // The count is a claim about the tree's shape, not an offer to spend: a node with unlocked parents is reachable, and the Unlock button refuses the spend on its own.
   it("still counts a 500-science node as researchable while the balance is unknown", async () => {
     const fixture = newFixture();
     renderTree(fixture);

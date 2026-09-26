@@ -7,17 +7,8 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
 /**
- * The frame as a qualifier on the boards.
- *
- * The active frame is shown where the numbers it governs are, and a readout
- * the frame invalidates SAYS SO rather than showing a number. An apsis is
- * defined against a centre, so in a frame defined by a pair of bodies an
- * apoapsis does not exist at all.
- *
- * The distinction under test is the one an em-dash cannot carry. This widget
- * already renders `NULL_DISPLAY` for a hyperbolic orbit's absent apoapsis, and
- * that means "absent on this trajectory". Rendering the frame case the same way
- * would tell an operator their ORBIT had changed when only their FRAME had.
+ * A readout the view frame invalidates says so instead of showing a number.
+ * The null dash already means "absent on this trajectory"; showing the frame case the same way would tell an operator their orbit changed when only their frame did.
  */
 const CARRIED = [
   "vessel.orbit",
@@ -73,8 +64,7 @@ describe("CurrentOrbit: what the view frame does to the apsis readouts", () => {
   });
 
   it("still renders the numbers in a frame that has a centre", async () => {
-    // The contrast case. Without it the assertion above could pass because the
-    // widget stopped rendering apsides at all.
+    // The contrast case, so the test above cannot pass by never rendering apsides.
     const fixture = mount({ probe: true });
     emitOrbit(fixture);
     act(() => {
@@ -87,9 +77,7 @@ describe("CurrentOrbit: what the view frame does to the apsis readouts", () => {
   });
 
   it("does not claim the apsides are missing before any frame has been reported", async () => {
-    // "We have not been told what frame this is" is not "this frame has no
-    // apsides". Blanking the boards on an unreported frame would suppress good
-    // numbers on every install for the moment before the first sample lands.
+    // An unreported frame is not a frame without apsides.
     const fixture = mount();
     emitOrbit(fixture);
 
@@ -134,10 +122,7 @@ describe("CurrentOrbit: naming the frame that took the numbers away", () => {
 
 describe("CurrentOrbit: the countdowns to an apsis the frame does not have", () => {
   it("suppresses the time-to-apsis rows too, not just the apsis values", async () => {
-    // Found on a render, not by a test. Suppressing AP and PE while leaving
-    // T-AP and T-PE counting is a countdown to an event that does not happen,
-    // sitting directly under a row saying it does not exist. The widget is
-    // 9x18 here because the progress rows only render at six rows or more.
+    // A countdown to an apsis that does not exist counts to an event that never happens; the progress rows need six rows or more.
     const fixture = mount();
     emitOrbit(fixture);
     act(() => {

@@ -2,20 +2,10 @@ import type { PlotEmphasis, PlotLayer, PlotTone } from "@ksp-gonogo/sitrep-sdk";
 import type { ReactElement } from "react";
 
 /**
- * Draws the `PlotLayer` vocabulary inside `LineChart`'s own plot rect.
- *
- * Every layer arrives in the plot's DATA SPACE and is scaled here, so a
- * contributor never learns the plot's pixels, its margins, its clip or its
- * paint order. That is the whole point of the seam: the host's own marks go
- * through this renderer too, so there is no geometry a first-party widget can
- * reach that a guest cannot.
- *
- * Paint order is by KIND rather than by contribution order, because the kinds
- * are a depth stack and not a list: a field is context, a region is a division
- * of the plot, a series is the reading, and a marker is where you are. Ordering
- * them by who registered first would let one Uplink's wash bury another's
- * curve. `z` orders WITHIN a kind, which is the only place a contributor has an
- * opinion worth honouring.
+ * Draws the `PlotLayer` vocabulary inside `LineChart`'s plot rect. Layers arrive in data space, so a
+ * contributor never sees pixels, margins, clip or paint order, and the host's own marks take the same
+ * path. Paint order is by kind (field, region, series, marker), with `z` ordering only within a kind,
+ * so one contributor's wash cannot bury another's curve.
  */
 
 const TONE_COLOR: Record<PlotTone, string> = {
@@ -32,21 +22,17 @@ const EMPHASIS_OPACITY: Record<PlotEmphasis, number> = {
   bright: 1,
 };
 
-/** Series weight 1, matching `LineChart`'s own live traces. */
 const BASE_STROKE_WIDTH = 1.5;
-/** Marker scale 1: a dot a little larger than a scatter point, so a single
- *  "you are here" mark reads as a mark and not as one sample of a series. */
+/** Larger than a scatter point, so a lone mark does not read as one sample of a series. */
 const BASE_MARKER_RADIUS = 5;
 const ANNOTATION_HALF = 7;
 const CAPTION_PAD = 6;
-/** Every font size here stays off the type scale for the reason LineChart's
- *  own do: this `<svg>` carries no viewBox, so its user units ARE CSS px. */
+/** This svg has no viewBox, so font sizes are CSS px and stay off the type scale. */
 const CAPTION_SIZE = 10;
 const CAPTION_LABEL_SIZE = 9;
 const CAPTION_LINE = 12;
 const REGION_LABEL_SIZE = 9;
-/** Width a rotated edge word takes out of the plot, for a corner readout to
- *  clear. One line of 9 px type plus its letter spacing. */
+/** Width a rotated edge word takes, for a corner readout to clear. */
 const EDGE_STRIP_PX = 13;
 const DEFAULT_REGION_OPACITY = 0.1;
 const DEFAULT_FIELD_OPACITY = 0.5;
@@ -69,25 +55,17 @@ export interface PlotLayerFrame {
   plotY1: number;
   /** Unique per chart instance: every `<defs>` id below is suffixed with it. */
   uid: string;
-  /**
-   * Whether the plot is big enough to carry a layer's text at all. False drops
-   * every label and caption, the same thinning the axis tick labels already do,
-   * and nothing is lost that a reader needs: a layer's `description` carries
-   * its reading to the accessible name whatever the tile is doing.
-   */
+  /** False drops every label and caption; each layer's description still reaches the accessible name. */
   labels: boolean;
 }
 
-/** Y scale for a layer, honouring its declared axis. */
 function scaleYOf(frame: PlotLayerFrame, layer: PlotLayer) {
   return layer.axis === "secondary"
     ? frame.scaleYSecondary
     : frame.scaleYPrimary;
 }
 
-/** Data-space extents of everything a layer draws, for domain expansion.
- *  A caption has no position and a rule constrains one axis only, so both
- *  return partial extents rather than pretending to a point. */
+/** Data-space extents for domain expansion; a rule constrains one axis only. */
 export function plotLayerExtent(layer: PlotLayer): {
   xs: number[];
   ys: number[];
@@ -114,26 +92,13 @@ export function plotLayerExtent(layer: PlotLayer): {
     case "marker":
     case "annotation":
       return { xs: [layer.at.x], ys: [layer.at.y], axis };
-    // A field and a relief are context over whatever the plot already spans:
-    // letting either pull the domain would let context decide the scale the
-    // readings are drawn at.
+    // Context must never decide the scale the readings are drawn at.
     default:
       return { xs: [], ys: [], axis };
   }
 }
 
-/**
- * Where a mark's own label goes, once the labels already on the plot are taken
- * into account.
- *
- * Two marks at nearly the same height print two labels in the same place, and
- * on this plot that is the COMMON case rather than the edge one: the whole
- * point of a second contributor is that its settle tick sits near the host's,
- * and two ticks saying different heights that overprint each other say neither.
- *
- * Placement is the host's job for the same reason the scales are: a contributor
- * states a point and a string, and cannot know what else has been contributed.
- */
+/** A label already on the plot. Placement is the host's job, since a contributor cannot know what else was contributed. */
 interface PlacedLabel {
   x0: number;
   x1: number;
@@ -157,10 +122,7 @@ function placeLabel(
 ): { x: number; y: number; anchor: "start" | "end" } {
   const width = opts.text.length * LABEL_CHAR_PX;
   const { frame } = opts;
-  // Prefer the right of the mark, and flip when the WHOLE label would not fit
-  // rather than when the mark is merely near the edge: a long label on a mark
-  // two thirds across still runs off, and a `β 210 kg/m²` running under the
-  // region's own edge caption is what that mistake looks like.
+  // Flip to the left when the whole label would not fit, not merely when the mark is near the edge.
   const rightX = opts.anchorX + opts.gap;
   const anchor: "start" | "end" =
     rightX + width <= frame.plotX1 - 4 ? "start" : "end";
@@ -206,16 +168,7 @@ function stepPathFrom(points: readonly { x: number; y: number }[]): string {
   return parts.join(" ");
 }
 
-/**
- * Close a half-plane along the plot's own edges. Exported for its own test:
- * the winding is the whole correctness of a region and reading it back out of
- * a rendered `points` attribute is not a test of it.
- *
- * The two corners are appended in the order the boundary's own direction
- * implies (its END first), which is what keeps the ring from crossing itself.
- * Closing it the other way draws a bow tie, which fills two triangles that mean
- * nothing, and it is the mistake every hand-rolled version of this makes once.
- */
+/** Close a half-plane along the plot edges, appending the boundary's end corner first so the ring never crosses itself. */
 export function closeHalfPlane(
   pts: readonly { x: number; y: number }[],
   side: "left" | "right" | "above" | "below",
@@ -302,30 +255,14 @@ function FieldLayer({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Relief: the one layer that carries a surface.
-//
-// Hypsometric colour IS the reading (colour means altitude, nothing else), and
-// the band edges are the iso-lines that make slope legible. No lighting model
-// anywhere: a shaded relief invents a sun, and a sun's direction is a bias in
-// which slopes look steep.
-//
-// Drawn as one `<rect>` per CELL OF A FIXED SAMPLING GRID rather than per cell
-// of the contributed data, and that indirection is the whole legibility of it:
-// a terrain patch ships nine or sixteen samples a side, and painting those
-// directly gives hard squares an operator reads as a mosaic rather than as
-// ground. The values are bilinearly resampled up to `RELIEF_RESOLUTION` first,
-// so the bands follow the shape of the terrain and the iso-lines between them
-// are curves.
-//
-// Not a canvas. A canvas would be sharper and would also make this renderer
-// stateful (a ref, an effect, a `document` it cannot have in every host) and
-// non-deterministic for the visual gate, which diffs pixels per engine.
-// ---------------------------------------------------------------------------
+/*
+ * Relief: hypsometric colour is the reading and band edges are the iso-lines; no lighting model, since
+ * a sun direction biases which slopes look steep. Values are bilinearly resampled to a fixed grid first
+ * so bands follow the terrain instead of the coarse data cells. Rects rather than a canvas keep the
+ * renderer stateless and deterministic for the visual gate.
+ */
 
 const DEFAULT_RELIEF_BANDS = 6;
-/** Cells a side the grid is resampled to before banding. Fine enough that the
- *  band edges read as contours, coarse enough to stay a few thousand rects. */
 const RELIEF_RESOLUTION = 56;
 
 /** Bilinear sample of a row-major grid at continuous (col, row). */
@@ -350,8 +287,7 @@ function sampleGrid(
   return top + (bottom - top) * fy;
 }
 
-/** Dimmed, desaturated low-to-high ramp. Low-key on purpose: this is context
- *  under the marks, and a harsh top band would out-shout them. */
+/** Low-key on purpose: this is context under the marks. */
 const HYPSO: ReadonlyArray<
   readonly [number, readonly [number, number, number]]
 > = [
@@ -379,11 +315,7 @@ function hypso(t: number): readonly [number, number, number] {
   return HYPSO[HYPSO.length - 1][1];
 }
 
-/**
- * A resampled cell's colour: its band's hypsometric tone, darkened where the
- * band differs from the neighbour above or to the left, which draws the band
- * boundary as an iso-line without a second pass over the grid.
- */
+/** Darkened where the band differs from the neighbour above or left, drawing iso-lines without a second pass. */
 function fillFor(
   bandAt: Int16Array,
   grid: number,
@@ -413,9 +345,7 @@ function ReliefLayer({
   let hi = Number.NEGATIVE_INFINITY;
   for (let i = 0; i < size * size; i++) {
     const v = values[i];
-    // A hole would move every other cell when the range is taken across it, so
-    // a grid with one is not a field and draws nothing rather than a field with
-    // a plausible-looking wrong range.
+    // A grid with a hole draws nothing rather than a field with a wrong range.
     if (!Number.isFinite(v)) return null;
     if (v < lo) lo = v;
     if (v > hi) hi = v;
@@ -424,9 +354,7 @@ function ReliefLayer({
   const bands = Math.max(2, layer.bands ?? DEFAULT_RELIEF_BANDS);
   const scaleY = scaleYOf(frame, layer);
 
-  // The grid's own corners in screen space. `bounds` need not be given
-  // min-first, and a plot's Y axis runs the other way from the screen's, so
-  // both are normalised here rather than assumed.
+  // `bounds` need not be min-first, and the plot Y axis may run either way.
   const sx0 = frame.scaleX(bounds.x0);
   const sx1 = frame.scaleX(bounds.x1);
   const sy0 = scaleY(bounds.y0);
@@ -437,12 +365,8 @@ function ReliefLayer({
   const cellW = Math.abs(sx1 - sx0) / grid;
   const cellH = Math.abs(sy1 - sy0) / grid;
   if (!(cellW > 0) || !(cellH > 0)) return null;
-  // Row 0 of a row-major grid is the FIRST row in the data, which sits at
-  // `y0`. Whether that is the top of the screen depends on which way the plot's
-  // Y axis runs, and `sy0 > sy1` is that question asked rather than assumed.
   const flipRows = sy0 < sy1;
 
-  // Resampled once, then banded, so the iso-lines below compare RESAMPLED neighbours and follow the terrain rather than the data grid's own seams.
   const bandAt = new Int16Array(grid * grid);
   for (let row = 0; row < grid; row++) {
     for (let col = 0; col < grid; col++) {
@@ -460,15 +384,7 @@ function ReliefLayer({
     }
   }
 
-  // One rect per RUN of same-looking cells along a row, not per cell.
-  //
-  // A terrain patch bands into a handful of regions, so a row of 56 cells is
-  // usually eight or ten stretches of one colour, and emitting a node per cell
-  // put three thousand of them in the document per plot. That is not a
-  // rendering cost, it is a RE-rendering one: the layer array is rebuilt every
-  // frame, so React reconciled the lot four times a second and an accessibility
-  // sweep timed out at thirty seconds on a widget that draws two of these.
-  // Merging runs is visually identical and cuts it by an order of magnitude.
+  // One rect per run of same-coloured cells, not per cell, to keep the node count reconcilable every frame.
   const cells: ReactElement[] = [];
   for (let row = 0; row < grid; row++) {
     const screenRow = flipRows ? row : grid - 1 - row;
@@ -486,7 +402,7 @@ function ReliefLayer({
           key={`${row}-${runStart}`}
           x={left + runStart * cellW}
           y={top + screenRow * cellH}
-          // A hairline overlap, so neighbouring runs and rows do not leave seams the rasteriser paints the background through.
+          // A hairline overlap stops the rasteriser painting seams between runs.
           width={(col - runStart) * cellW + 0.5}
           height={cellH + 0.5}
           fill={runFill}
@@ -503,11 +419,6 @@ function ReliefLayer({
       data-plot-layer={layer.id}
       data-plot-layer-kind="relief"
       opacity={toneOpacity(layer)}
-      // A thousand cells of ground, and not one of them is a node a screen
-      // reader should walk: the relief's MEANING is its `description`, which the
-      // plot's accessible name already carries as a clause. Hiding it is the
-      // decorative-SVG rule, and it also keeps an accessibility sweep from
-      // crawling a grid per plot per fixture, which is what it was doing.
       aria-hidden="true"
     >
       {cells}
@@ -535,9 +446,7 @@ function RegionLayer({
       : closeHalfPlane(boundary, layer.side, frame);
   if (layer.side === "between" && !layer.boundaryHigh) return null;
 
-  // The label runs up the region's own free edge: the half-plane's outer edge
-  // for a half-plane, the boundary's far end for a band. That strip is the only
-  // part of a shaded area reliably clear of what is drawn over it.
+  // The region's free edge is the only part reliably clear of what is drawn over it.
   const labelX =
     layer.side === "right"
       ? frame.plotX1 - 4
@@ -763,9 +672,7 @@ function MarkerLayer({
         strokeLinecap="round"
       />
     ) : (
-      // An OPEN chevron, never a filled triangle: a filled arrowhead reads as a
-      // direction of travel, and on a plot whose axes are already two
-      // directions that is one meaning too many. Its size carries the reading.
+      // An open chevron: a filled arrowhead would read as a direction of travel.
       <polyline
         {...common}
         points={
@@ -799,8 +706,7 @@ function MarkerLayer({
   );
 }
 
-/** Stacks captions that share an anchor, so two contributors aiming at one
- *  corner read as a list rather than as one illegible overprint. */
+/** Captions sharing an anchor stack as a list rather than overprinting. */
 function CaptionLayer({
   layer,
   frame,
@@ -810,8 +716,7 @@ function CaptionLayer({
   layer: Extract<PlotLayer, { kind: "caption" }>;
   frame: PlotLayerFrame;
   row: number;
-  /** Which vertical edge strips are already spoken for by rotated text. A
-   *  corner readout that runs under one is two words in one place. */
+  /** Edge strips already taken by rotated text, which a corner readout must step inboard of. */
   edges: { left: boolean; right: boolean };
 }) {
   const color = toneColor(layer);
@@ -881,7 +786,6 @@ function CaptionLayer({
 }
 
 const KIND_ORDER: Record<PlotLayer["kind"], number> = {
-  // Under everything, the field included: a relief is the ground the rest of the plot is drawn over.
   relief: -1,
   field: 0,
   region: 1,
@@ -892,15 +796,7 @@ const KIND_ORDER: Record<PlotLayer["kind"], number> = {
   caption: 6,
 };
 
-/**
- * Which of the chart's three passes a kind belongs to.
- *
- * `background` goes UNDER the gridlines, because a field and a region are the
- * plot's context and a chart whose axes are buried by a guest's wash has stopped
- * being a chart. `foreground` goes over them, with the live series. `caption`
- * goes outside the clip entirely, so a corner readout is never trimmed by the
- * frame's rounded edge.
- */
+/** `background` sits under the gridlines, `foreground` over them with the series, and `caption` outside the clip. */
 export type PlotLayerPass = "background" | "foreground" | "caption";
 
 const KIND_PASS: Record<PlotLayer["kind"], PlotLayerPass> = {
@@ -934,12 +830,7 @@ export function PlotLayers({
     );
 
   const captionRows = new Map<string, number>();
-  // Shared across every label in this pass, so a second contributor's tick steps clear of the first's rather than overprinting it.
   const placedLabels: PlacedLabel[] = [];
-  // A rotated word up an edge and a corner readout running into it are two
-  // readings printed on top of each other, and the corner one always loses,
-  // because the rotated word is drawn later. So the corner steps inboard of any
-  // strip that is spoken for, by whoever contributed it.
   const edges = {
     left: layers.some(
       (l) =>
@@ -1000,9 +891,7 @@ export function PlotLayers({
   );
 }
 
-/** The clauses a plot's accessible name gains from its layers, in the order
- *  they are drawn. A layer with nothing to say adds nothing, which is what
- *  keeps an absent reading from being spoken as a zero. */
+/** Accessible-name clauses in draw order; a layer with nothing to say adds nothing. */
 export function plotLayerDescriptions(layers: readonly PlotLayer[]): string[] {
   return layers
     .map((l) => l.description)

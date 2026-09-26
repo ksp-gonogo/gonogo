@@ -5,11 +5,7 @@ import { Band, INTERVAL_DASH } from "./Band";
 import { NULL_DISPLAY } from "./NullValue";
 
 describe("Band", () => {
-  /**
-   * The failure this widens digits for: both ends land on the megametre rung,
-   * a length's default single decimal prints each as `6.7 Mm`, and an interval
-   * renders as a scalar exactly where its width was the point.
-   */
+  // At a length's default single decimal both ends would print `6.7 Mm`.
   it("widens the digits until the two ends read differently", () => {
     const { container } = render(
       <Band min={value("m", 6_700_000)} max={value("m", 6_710_000)} />,
@@ -19,14 +15,7 @@ describe("Band", () => {
     expect(container.textContent).toContain("Mm");
   });
 
-  /**
-   * The same failure from the other side, and the one a narrow reckoned band
-   * walks into. A one-sigma interval of 47.471 to 47.529 units prints `47.5`
-   * twice at the kind's default single decimal, and `47` and `48` at NO
-   * decimals, which separates. Taking the coarser count because it happened to
-   * separate would state an interval seventeen times the width the model was
-   * prepared to defend.
-   */
+  // `47` to `48` also separates, but states an interval far wider than the model claims.
   it("widens rather than coarsens when a coarser count would also separate", () => {
     const { container } = render(
       <Band
@@ -39,16 +28,11 @@ describe("Band", () => {
     expect(container.textContent).not.toContain("48 units");
   });
 
-  /**
-   * The bug that motivated the unit scale: two ends either side of a rung
-   * boundary ladder independently, and one interval comes out written in two
-   * units, with a width the reader has to convert before they can see it.
-   */
   it("writes both ends in one unit when they straddle a rung boundary", () => {
     const { container } = render(
       <Band min={value("m", 999)} max={value("m", 1000)} />,
     );
-    // The larger end's rung, and a band separates its own two ends, so the digits come back to say what the shared kilometres would have flattened.
+    // Both on the larger end's rung, with digits widened so the ends still differ.
     expect(container.textContent).toContain("0.999");
     expect(container.textContent).toContain("1.000");
     expect(screen.queryAllByText("kilometres")).toHaveLength(2);
@@ -62,10 +46,6 @@ describe("Band", () => {
     expect(container.textContent).toContain("8.4");
   });
 
-  /**
-   * An element that did not move over the window should print as one figure
-   * twice, not as six decimals of noise nobody can read.
-   */
   it("does not widen a band of zero width", () => {
     const { container } = render(
       <Band min={value("m", 6_700_000)} max={value("m", 6_700_000)} />,
@@ -73,12 +53,6 @@ describe("Band", () => {
     expect(container.textContent).not.toContain("6.7000");
   });
 
-  /**
-   * The operator's rule, 2026-09-15: "anytime we'd shown the same numbers on
-   * each side, we show a single value with a tilde instead". Two ends that
-   * come out as the same text offer a width and then print none, and the
-   * reader cannot see the difference they are being shown.
-   */
   it("draws ONE approximate figure when both ends would print the same text", () => {
     const { container } = render(
       <Band min={value("m", 6_700_000)} max={value("m", 6_700_000)} />,
@@ -86,16 +60,10 @@ describe("Band", () => {
 
     expect(container.textContent).toContain("~");
     expect(container.textContent).not.toContain(INTERVAL_DASH);
-    // Once, not twice: the whole point is that the second figure said nothing.
     expect(container.textContent?.match(/6\.7/g)).toHaveLength(1);
   });
 
-  /**
-   * The same rendering for float residue, which is what the ladder's floor
-   * (#253) already treats as indistinguishable. Two ends one ULP apart are
-   * genuinely different doubles and no decimal count here can show it, so the
-   * rule catches them without naming them as a case.
-   */
+  // Two ends one ULP apart are different doubles that no decimal count can show apart.
   it("draws one approximate figure for ends a single ULP apart", () => {
     const nextAfter = (v: number): number => {
       const buf = new Float64Array([v]);
@@ -147,11 +115,6 @@ describe("Band", () => {
     expect(container.textContent).toContain("6.71");
   });
 
-  /**
-   * The mark is a mark: a screen reader announcing "tilde" is not what a
-   * sighted reader takes from it, so the tilde is hidden and the word beside
-   * it is what is spoken.
-   */
   it("says the approximation in words for the accessibility tree", () => {
     const { container } = render(
       <Band min={value("m", 6_700_000)} max={value("m", 6_700_000)} />,
@@ -162,10 +125,7 @@ describe("Band", () => {
     expect(hidden?.textContent).toBe("~");
   });
 
-  /**
-   * One end alone reads as a scalar, and a scalar is the one thing an operator
-   * must not take away from an interval whose other end could not be read.
-   */
+  // One end alone would read as a scalar.
   it("shows a half-read band as absent rather than as a number", () => {
     const { container } = render(<Band min={value("m", 100)} max={null} />);
     expect(container.textContent).toBe(NULL_DISPLAY);
@@ -176,12 +136,7 @@ describe("Band", () => {
     expect(container.textContent).toBe(NULL_DISPLAY);
   });
 
-  /**
-   * A circular quantity spanning half the turn or more has no interval left:
-   * every value is inside it, and `0° - 359°` states the opposite of what is
-   * true. The renderer decides this, not the caller, because three different
-   * formatters would otherwise each have to know the rule.
-   */
+  // Spanning half the turn or more, every angle is inside the band, so there is no interval left.
   it("says a modular quantity precessed instead of printing a full turn", () => {
     render(<Band min={value("°", 0)} max={value("°", 359)} wrapsAt={360} />);
     expect(screen.getByText("(precesses)")).toBeInTheDocument();

@@ -6,18 +6,10 @@ import {
   setupStreamFixture,
 } from "../test/setupStreamFixture";
 import { SystemViewComponent } from "./index";
-// Side-effect import: registers the real `system-view-vessel-orbits`
-// contribution (fleet + comms.network graph), same as `index.tsx` does for
-// the live app, matching `selection.integration.test.tsx`'s own style.
+// Registers the real contribution (fleet plus comms.network graph).
 import "./vesselOrbitsContribution";
 
-/**
- * Command traffic: `system.uplink.pending` entries render as pulses
- * riding the ACTIVE vessel's `comms.network` route, end to end against a
- * real `SystemViewComponent`, a real stream, and the real DOM
- * `SystemEntitiesLayer` renders (not `deriveTraffic` in isolation, that's
- * `commsTraffic.test.ts`).
- */
+/** `system.uplink.pending` entries render as pulses riding the active vessel's `comms.network` route, through a real `SystemViewComponent` and stream. */
 
 const KERBOL_MU = 1.1723328e18;
 const KERBIN_MU = 3.5316e12;
@@ -60,10 +52,7 @@ const META = {
   contributionSlots: ["system-view.entities"] as const,
 };
 
-/** Mounts SystemViewComponent framed on Kerbin, with a single active vessel
- *  directly linked to home over one edge: the minimal scene a traffic pulse
- *  needs a route to travel on. `pending` is the `system.uplink.pending`
- *  queue to emit, or omitted to exercise the no-traffic case. */
+/** Mounts SystemViewComponent on Kerbin with one active vessel linked to home over one edge; omit `pending` for the no-traffic case. */
 function mountScene(pending?: unknown[]) {
   const fixture: StreamFixture = setupStreamFixture({
     carriedChannels: [
@@ -172,10 +161,7 @@ describe("SystemView command traffic: system.uplink.pending as edge pulses", () 
   });
 
   it("renders a gradient pulse on the active vessel's route, riding a plain (not brightened) CommNet line", async () => {
-    // A huge oneWaySeconds means the round trip (2 * oneWaySeconds) safely
-    // covers any utNow the fake wall clock produces at dispatchedAt: 0, so
-    // this proves the WIRING (pending -> route -> pulse) without pinning
-    // down the exact clock formula (that's `commsTraffic.test.ts`'s job).
+    // A huge oneWaySeconds keeps the pulse in flight at any fake-clock utNow, so this proves the wiring without pinning the clock formula.
     const { container } = mountScene([
       {
         id: "cmd-1",
@@ -208,10 +194,7 @@ describe("SystemView command traffic: system.uplink.pending as edge pulses", () 
       "var(--color-text-primary)",
     );
 
-    // The traversed edge itself stays the same plain grey/white every other
-    // CommNet line renders in: the gradient pulse is the ONLY traffic
-    // indicator, deliberately never a whole-edge brighten (that would dilute
-    // the travelling glow into a permanently-bright line).
+    // The traversed edge keeps the plain CommNet colour: the travelling gradient is the only traffic indicator.
     const edge = container.querySelector(
       '[data-entity-id="comms-edge:home:v-active"]',
     );

@@ -68,17 +68,15 @@ describe("reliability augment composed into FleetRoster", () => {
       </fixture.Provider>,
     );
 
-    // First the fleet, so the rows (and their per-row augment slots) mount and
-    // the augment actually subscribes...
+    // First the fleet, so the rows and their per-row augment slots mount and subscribe.
     act(() => {
       fixture.emit("system.bodies", BODIES);
       fixture.emit("system.vessels", FLEET);
     });
-    // ...await the rows so the per-row augments are mounted + subscribed
-    // (StubTransport is subscription-gated and does not replay; the real mod re-emits periodically, so a late subscriber gets it on the next tick).
+    // StubTransport is subscription-gated and does not replay, so wait for the augments to subscribe.
     expect(await screen.findByText("Active Craft")).toBeInTheDocument();
     expect(screen.getByText("Other Craft")).toBeInTheDocument();
-    // ...then the reliability stream, which the now-subscribed augments receive.
+    // Then the reliability stream, which the now-subscribed augments receive.
     act(() => {
       fixture.emit("vessel.identity", {
         vesselId: "v-active",

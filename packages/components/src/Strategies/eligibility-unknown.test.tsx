@@ -12,26 +12,9 @@ import {
 import { parseStrategies, StrategiesComponent } from "./index";
 
 /**
- * Eligibility is a THREE-valued reading and the widget has to draw all three.
- *
- * The career model publishes `canActivate` as a nullable flag on purpose. A
- * null is an account of a question nobody could put, and a false is a judgement
- * the game made about the strategy. Collapsing the first into the second puts a
- * whole roster under a heading reading LOCKED while every card underneath says
- * the state is unknown, which is what a live career showed.
- *
- * So the assertions that earn this file are the ones separating the two: an
- * unanswered strategy must not be in the Locked list, must say in the
- * operator's view WHY it is unanswered, and must still show its price, because
- * the operator's next move is to open the facility and spend.
- *
- * The null used to be EVERY inactive row whenever that building was shut, since
- * asking KSP was the model's only route to an answer. It has a second route now
- * and the verdict carries a SOURCE to say which was taken, so the last block
- * here is about what that source is for: a refusal reached off-screen is the
- * game's own and belongs in Locked, and no derived verdict arms a control. What
- * CAN arm off-screen is a row with no verdict at all, on a career whose
- * activation is the game's own: the command then puts the missing checks itself.
+ * Eligibility is three-valued and the widget draws all three. A null
+ * `canActivate` is a question nobody could put, not a refusal: an unanswered
+ * strategy stays out of Locked, says why on screen, and still shows its price.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -62,14 +45,7 @@ function renderStrategies(fixture: StreamFixture) {
   return result;
 }
 
-/**
- * Verbatim what the career model publishes beside a null eligibility.
- *
- * It used to name the Administration Building, because that screen was the only
- * route to an answer and so the whole roster arrived unanswered whenever it was
- * shut. The arms are asked one at a time now, so this reason means what it says:
- * a reading that genuinely failed.
- */
+/** Verbatim what the career model publishes beside a null eligibility. */
 const UNANSWERED_REASON =
   "unknown: this career's strategy limits could not be read";
 
@@ -133,7 +109,7 @@ describe("parseStrategies carries the third eligibility state", () => {
   });
 
   it("reads an unanswerable eligibility as null, not as a refusal", () => {
-    // Both spellings the wire can carry: an explicit null, and the field simply not being written because the value behind it was absent.
+    // Both spellings the wire can carry: an explicit null and an absent field.
     const { canActivate: _omitted, ...withoutTheField } = UNANSWERED;
     const parsed = parseStrategies([UNANSWERED, withoutTheField]);
     expect(parsed?.[0].canActivate).toBeNull();
@@ -143,8 +119,7 @@ describe("parseStrategies carries the third eligibility state", () => {
 
 describe("Strategies with an eligibility it could not read", () => {
   it("puts a genuine refusal in Locked", async () => {
-    // The control. Every assertion below would also pass on a widget that had
-    // simply lost its Locked list.
+    // The control: the assertions below would also pass on a widget with no Locked list.
     const fixture = newFixture();
     renderStrategies(fixture);
     emitCareer(fixture, [REFUSED]);
@@ -157,11 +132,6 @@ describe("Strategies with an eligibility it could not read", () => {
   });
 
   it("keeps an unanswered strategy OUT of Locked", async () => {
-    /*
-     * The hero assertion, and the defect verbatim: an unread eligibility filed
-     * beside the game's own refusals asserts a fact about the career that
-     * nobody established.
-     */
     const fixture = newFixture();
     renderStrategies(fixture);
     emitCareer(fixture, [UNANSWERED, REFUSED]);
@@ -172,7 +142,7 @@ describe("Strategies with an eligibility it could not read", () => {
   });
 
   it("keeps an unanswered strategy out of Available too", async () => {
-    // The opposite falsehood, and just as reachable: an unread eligibility is not permission either.
+    // An unread eligibility is not permission either.
     const fixture = newFixture();
     renderStrategies(fixture);
     emitCareer(fixture, [UNANSWERED]);
@@ -190,13 +160,12 @@ describe("Strategies with an eligibility it could not read", () => {
       name: "Eligibility unknown",
     });
     expect(within(unknown).getByText("Orbital Logistics")).toBeInTheDocument();
-    // The career model's own wording, on screen rather than in a tooltip: a title attribute is invisible to a keyboard and to a glance.
+    // On screen rather than in a tooltip, which is invisible to a keyboard and to a glance.
     expect(within(unknown).getByText(UNANSWERED_REASON)).toBeInTheDocument();
     expect(visibleText()).not.toContain("Locked");
   });
 
   it("states one shared reason once rather than on all of them", async () => {
-    // A closed facility makes every strategy unanswerable at once, so the per-card spelling is the same sentence down the whole screen.
     const fixture = newFixture();
     renderStrategies(fixture);
     emitCareer(fixture, [
@@ -235,9 +204,6 @@ describe("Strategies with an eligibility it could not read", () => {
   });
 
   it("still shows the price, because opening the facility is the next move", async () => {
-    // The card is a spend control the operator is about to be able to use. A
-    // roster that hides what everything costs until the facility is open makes
-    // them go and look, which is the errand the widget exists to save.
     const fixture = newFixture();
     renderStrategies(fixture);
     emitCareer(fixture, [UNANSWERED]);
@@ -253,9 +219,7 @@ describe("Strategies with an eligibility it could not read", () => {
     renderStrategies(fixture);
     emitCareer(fixture, [UNANSWERED]);
 
-    /* No word on whether the career's activation is the game's own, so the
-       command may refuse it, and a control that arms only to refuse is worse
-       than a dark one. */
+    // No word on whether activation is the game's own, so the command may refuse and the control stays dark.
     const activate = await screen.findByRole("button", { name: "Activate" });
     expect(activate).toBeDisabled();
     expect(activate).toHaveAttribute("title", UNANSWERED_REASON);
@@ -276,26 +240,12 @@ describe("Strategies with an eligibility it could not read", () => {
 });
 
 /**
- * A verdict is now a pair: the answer, and who gave it.
- *
- * With the Administration Building shut the career model puts the arms one at a
- * time, off the same members KSP reads them from, and reaches two of the three
- * answers. A refusal survives, because stock returns on its FIRST refusal, so an
- * arm that fires off-screen would have fired on-screen too. A pass does not:
- * arm 1 compares a counter living on the shut screen, and permission is owed to
- * every arm.
- *
- * So this model cannot emit a derived YES, and the last two cases here are
- * defence in depth rather than a description of our own wire. The published type
- * admits the pair, an Uplink could send it, and the rule that matters if one ever
- * arrives is that it must not arm a spend: a yes nobody screened is not an
- * answer.
+ * A verdict is a pair: the answer, and who gave it. A derived refusal is the
+ * game's own and belongs in Locked; a derived yes must never arm a spend,
+ * because a yes nobody screened is not an answer.
  */
 describe("Strategies with a verdict derived off-screen", () => {
-  /**
-   * A pair our career model never sends. Kept because the widget must refuse it
-   * anyway, and because the refusal is about the SOURCE rather than the verdict.
-   */
+  /** A pair our career model never sends, but the published type admits it. */
   const DERIVED_YES = {
     ...REFUSED,
     id: "DerivedYes",
@@ -316,19 +266,12 @@ describe("Strategies with a verdict derived off-screen", () => {
   };
 
   it("reads the source off the wire, defaulting to screened when absent", () => {
-    /*
-     * An older career model wrote no source at all, and every verdict it sent
-     * was the game's own, so the absent case is the screened one rather than a
-     * third unknown to draw.
-     */
     const parsed = parseStrategies([DERIVED_YES, REFUSED]);
     expect(parsed?.[0].activateVerdictSource).toBe("derived");
     expect(parsed?.[1].activateVerdictSource).toBe("screened");
   });
 
   it("files a derived refusal in Locked, with the game's own reason", async () => {
-    // The whole gain. This strategy used to sit in Eligibility unknown beside
-    // the entire rest of the roster, under a sentence about a building.
     const fixture = newFixture();
     renderStrategies(fixture);
     emitCareer(fixture, [DERIVED_NO]);
@@ -351,11 +294,7 @@ describe("Strategies with a verdict derived off-screen", () => {
   });
 
   it("does NOT arm Activate on a derived yes, and says what stands in the way", async () => {
-    /*
-     * The hero assertion of this block, on the career most able to commit it:
-     * the game's activation is its own, and the derived yes still does not arm,
-     * because nobody screened it.
-     */
+    // Even on a career whose activation is the game's own.
     const fixture = newFixture();
     renderStrategies(fixture);
     emitCareer(fixture, [DERIVED_YES], { activationPatched: false });
@@ -368,9 +307,7 @@ describe("Strategies with a verdict derived off-screen", () => {
   });
 
   it("DOES arm Activate on the same yes once the game itself screened it", async () => {
-    // The control for the assertion above: identical verdict, identical costs,
-    // and the only difference is who answered. Without this pair the test would
-    // also pass on a widget that had simply stopped arming anything.
+    // The control for the test above: the only difference is who answered.
     const fixture = newFixture();
     renderStrategies(fixture);
     emitCareer(fixture, [
@@ -383,14 +320,9 @@ describe("Strategies with a verdict derived off-screen", () => {
 });
 
 /**
- * With the building shut, a strategy nobody could fully judge can still be
- * committed from the console: `career.strategy.activate` puts the checks that
- * could not be made here when it runs, and refuses in the game's words.
- *
- * That holds only where the career's activation is the game's own. Where another
- * mod has changed it (RP-1) the command refuses, so the roster says which, and
- * the control arms on an explicit `false` and nothing else: arming a button that
- * then refuses spends the operator's attention before telling them no.
+ * An unanswered strategy can still be committed where the career's activation
+ * is the game's own, because the command re-runs the checks. The control arms
+ * on an explicit `activationPatched: false` and nothing else.
  */
 describe("Strategies committing a strategy the roster left unanswered", () => {
   it("arms Activate on an unanswered row when the career's activation is the game's own", async () => {

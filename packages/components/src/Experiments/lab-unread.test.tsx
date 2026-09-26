@@ -5,17 +5,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ExperimentsComponent } from "./index";
 
 /**
- * A lab entry whose operational and processing flags the provider could not
- * read.
- *
- * Both are `bool?` on `science.lab` and the parse coerced each with `=== true`,
- * so a lab a backend could see but not interrogate rendered a red OFFLINE
- * badge: a definite verdict about hardware, drawn from a failed read. A backend
- * that reaches these through a reflected status string loses both together, so
- * this is the ordinary failure rather than a corner.
- *
- * Its own file so the timeline store carries no other test's `science.lab`
- * sample into this one.
+ * A lab whose operational and processing flags could not be read renders
+ * UNREAD, never an OFFLINE verdict. Its own file so no other test's
+ * `science.lab` sample carries into it.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -69,7 +61,6 @@ describe("Experiments: a lab whose status never arrived", () => {
     expect(screen.getByText("UNREAD")).toBeInTheDocument();
     expect(screen.queryByText("OFFLINE")).not.toBeInTheDocument();
     expect(screen.queryByText("OPERATIONAL")).not.toBeInTheDocument();
-    // And no positive claim about the backlog either.
     expect(screen.queryByText("PROCESSING")).not.toBeInTheDocument();
   });
 });

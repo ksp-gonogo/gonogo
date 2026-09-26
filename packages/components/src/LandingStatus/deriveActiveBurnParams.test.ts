@@ -2,15 +2,8 @@ import { describe, expect, it } from "vitest";
 import { deriveActiveBurnParams } from "./index";
 
 /**
- * The suicide-burn solve must use the ACTIVE engine's specific impulse, not a
- * whole-vessel multi-stage average. `dv.summary.totalDvActual` is the total
- * across ALL stages, so deriving ve from it is wrong on a multi-stage craft;
- * these tests pin that the active stage (`DELTA_V_BUDGET.activeStage`) is
- * preferred and that the whole-vessel path is only a fallback.
- *
- * Rows are the normalised `DeltaVStage` shape, so an absent figure is `NaN`
- * rather than missing: that is what the wire means by "the sim had no figure",
- * and the guards under test read it with `Number.isFinite`.
+ * The suicide-burn solve uses the ACTIVE engine's specific impulse, with the whole-vessel multi-stage total only as a fallback.
+ * Rows are the normalised `DeltaVStage` shape, so an absent figure is `NaN`.
  */
 /** A normalised row with `NaN` everywhere the case does not care about. */
 function row(fields: {
@@ -28,18 +21,17 @@ function row(fields: {
 }
 describe("deriveActiveBurnParams", () => {
   it("uses the ACTIVE stage, not the whole-vessel total", () => {
-    // A weak lander stage (active) sitting on a big spent booster. The vessel
-    // total ΔV is huge, but only the active stage flies the landing burn.
+    // A weak active lander stage on a big spent booster: only the active stage flies the landing burn.
     const params = deriveActiveBurnParams(
       row({ deltaVActual: 200, startMass: 5, endMass: 3 }),
       { totalMass: 5, dryMass: 3 },
       3200, // whole-vessel total, must NOT be used
       undefined,
     );
-    // ve from the ACTIVE stage: 200 / ln(5/3) ≈ 391.5 m/s.
+    // ve from the active stage: 200 / ln(5/3), about 391.5 m/s.
     expect(params.exhaustVelocity).toBeCloseTo(200 / Math.log(5 / 3), 3);
     expect(params.burnoutMass).toBe(3);
-    // A whole-vessel derivation off totalDvActual would be far higher, prove we're nowhere near it (that would grossly over-state the landing engine).
+    // A whole-vessel derivation would be far higher.
     expect(params.exhaustVelocity as number).toBeLessThan(1000);
   });
 
@@ -70,7 +62,7 @@ describe("deriveActiveBurnParams", () => {
     expect(
       deriveActiveBurnParams(null, undefined, undefined, undefined),
     ).toEqual({});
-    // Active stage present but malformed (no masses) → no rocket params.
+    // Active stage present but malformed (no masses): no rocket params.
     expect(
       deriveActiveBurnParams(
         row({ deltaVActual: 200 }),

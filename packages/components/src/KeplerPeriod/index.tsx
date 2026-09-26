@@ -6,7 +6,7 @@ import {
 } from "@ksp-gonogo/core";
 
 const topics = defineTopicManifest({
-  // `system.bodies` is read directly: the period curve is Kepler's third law and needs the body's own radius and gravitational parameter, both reported there.
+  // The reference curve needs the body's radius and gravitational parameter from `system.bodies`.
   channels: ["vessel.orbit", "vessel.identity", "system.bodies"],
   fields: [
     "vessel.orbit.sma",
@@ -45,11 +45,7 @@ function periodOf(sma: number, mu: number): number | null {
 }
 
 export interface KeplerPeriodConfig {
-  /**
-   * Seconds of trace history retained. Kept short by default, the SMA
-   * doesn't change between manoeuvres, so a long buffer just stacks
-   * thousands of redundant dots on top of each other.
-   */
+  /** Seconds of trace history retained; short, since the SMA is constant between manoeuvres. */
   windowSec?: number;
   /** Override the auto-derived upper SMA bound for the reference curve (metres). */
   smaCeiling?: number;
@@ -57,9 +53,7 @@ export interface KeplerPeriodConfig {
 
 const REFERENCE_SAMPLES = 60;
 
-// Sample log-spaced SMAs from just above the surface up to a few-tens-of-radii
-// ceiling. The body's actual SOI isn't in BodyDefinition, but radius × 50 is
-// well above any realistic resonant-constellation orbit.
+// BodyDefinition carries no SOI; radius x 50 is well above any realistic resonant orbit.
 function defaultCeiling(body: BodyDefinition): number {
   return Math.max(body.radius * 50, 10_000_000);
 }
@@ -102,15 +96,7 @@ function KeplerPeriodComponent({
       ? orbitReading.value.referenceBodyIndex
       : undefined,
   );
-  /*
-   * o.referenceBody is the authoritative answer for the body the orbit is
-   * around (matters during SOI transitions); fall back to v.body for cases
-   * where the orbital reference hasn't been published yet. Both names are
-   * matched against the roster the stream itself reports, never against the
-   * bundled stock table: under a planet pack the table has no entry, and this
-   * widget's whole output is a curve that needs the body's radius and
-   * gravitational parameter.
-   */
+  // The orbit's reference body wins over the vessel's parent body, which lags during an SOI transition.
   const body = useStreamBody(referenceBody, bodyName);
 
   const windowSec = config?.windowSec ?? 60;
@@ -136,10 +122,7 @@ function KeplerPeriodComponent({
     return buildPeriodCurve(body, ceiling);
   }, [body, config?.smaCeiling]);
 
-  // Plot current period vs current SMA as scatter dots, one fresh dot per
-  // sample, all stacked at the live position. Anything other than scatter
-  // would draw misleading lines connecting consecutive samples that share
-  // the same SMA.
+  // Scatter, never a line: consecutive samples share an SMA and a line would join them misleadingly.
   const graphConfig: GraphConfig = useMemo(
     () => ({
       series: [

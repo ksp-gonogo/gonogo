@@ -12,18 +12,8 @@ import {
 import { type OrbitScenario, renderOrbitViewStream } from "./streamHarness";
 
 /**
- * The widget must not decide what shape an orbit is.
- *
- * `vessel.orbit` carries a `PropagationHorizon` whose `trajectoryKind` is the
- * elected provider's own statement of what its elements describe: a closed-form
- * conic, or a snapshot of an integrated path. A widget that reads `sma`/`ecc`
- * and emits an ellipse regardless has answered that question for itself, which
- * means electing a different provider changes nothing the operator sees.
- *
- * These tests are written against the RENDERED SHAPE rather than against a
- * helper's return value on purpose. A unit test of the decision function would
- * pass whether or not the widget consulted it, so it could not express the
- * failure it is being asked about.
+ * The widget draws the shape the provider states in `PropagationHorizon.trajectoryKind`, never its own, so electing a different provider changes what the operator sees.
+ * Asserted on the rendered shape, since a unit test of the decision function would pass whether or not the widget consulted it.
  */
 
 const LKO: Omit<OrbitScenario, "horizon"> = {
@@ -62,9 +52,7 @@ describe("OrbitView draws the shape the provider states", () => {
       { ...LKO, horizon: integratedHorizon(500) },
     );
     await waitForDiagram(container);
-    // The osculating conic on the wire is exact at the sample instant and is
-    // not the path. A closed ellipse drawn from it is a curve the craft will
-    // not fly, and drawing one is the whole defect.
+    // The osculating conic is exact at the sample instant and is not the path.
     expect(closedConics(container)).toBe(0);
   });
 
@@ -87,9 +75,7 @@ describe("OrbitView draws the shape the provider states", () => {
       { w: 9, h: 18 },
       { ...LKO, horizon: UNBOUNDED_HORIZON },
     );
-    // `Unspecified` is what a producer that dropped the field sends. Reading it
-    // as "conic" would put the permissive default back, which is the failure
-    // the enum's own zero-value ordering exists to prevent.
+    // `Unspecified` is what a producer that dropped the field sends, so it must not read as conic.
     await waitFor(() => {
       if (!visibleText(container).includes("SHAPE NOT STATED")) {
         throw new Error("shape-refusal has not rendered yet");
@@ -114,9 +100,7 @@ describe("OrbitView draws the shape the provider states", () => {
   });
 
   it("keeps the status pill in a tiny cell rather than the refusal text", async () => {
-    // The pill reports the craft's state at this instant, which the osculating
-    // elements carry whoever computed them. Only the PATH is in question, and a
-    // 3x3 cell has no room for a two-line refusal.
+    // The pill's state is still true under a refused path, and a 3x3 cell has no room for the refusal.
     const { container } = renderOrbitViewStream(
       { w: 3, h: 3 },
       { ...LKO, horizon: integratedHorizon(500) },

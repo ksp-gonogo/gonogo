@@ -5,21 +5,11 @@ import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TwrComponent } from "./index";
 
-/**
- * Twr's stream test: the widget genuinely runs OFF THE STREAM (a
- * real `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport`): no legacy `DataSource` is registered anywhere in this
- * file, so a rendered TWR value can only have come from `vessel.propulsion`,
- * as currentThrust/(totalMass·g).
- */
 const STANDARD_GRAVITY = 9.80665;
 
 const TWR_CHANNELS = ["vessel.propulsion"];
 
-/**
- * Emit a `vessel.propulsion` payload whose TWR (currentThrust / (totalMass · g),
- * totalMass = 1 tonne) is exactly `twr`.
- */
+/** Emits a one-tonne `vessel.propulsion` payload whose TWR is exactly `twr`. */
 function emitTwr(fixture: ReturnType<typeof setupStreamFixture>, twr: number) {
   const thrust = twr * STANDARD_GRAVITY;
   fixture.emit("vessel.propulsion", {
@@ -49,7 +39,6 @@ describe("TwrComponent: genuinely runs off the stream (R6 Wave 2)", () => {
     });
     renderTwr(fixture);
     expect(await screen.findByText(/no engine data/i)).toBeInTheDocument();
-    // A real subscription must have happened for a value to ever arrive, StubTransport.emit is subscription-gated (see its own doc comment).
     expect(fixture.transport.isSubscribed("vessel.propulsion")).toBe(true);
   });
 
@@ -78,11 +67,7 @@ describe("TwrComponent: genuinely runs off the stream (R6 Wave 2)", () => {
     });
     await waitFor(() => expect(visibleText()).toContain("1.83"));
 
-    /*
-     * Negative rather than zero: a zero mass divides to Infinity, which the
-     * headline refuses on its own, but a negative one divides to a finite
-     * figure that only the positive-mass rule keeps off the gauge.
-     */
+    // Negative, not zero: zero divides to Infinity, which the headline already refuses.
     act(() => {
       fixture.emit("vessel.propulsion", {
         totalMass: -1,
@@ -118,7 +103,7 @@ describe("TwrComponent: genuinely runs off the stream (R6 Wave 2)", () => {
     act(() => {
       emitTwr(fixture, 1.5);
     });
-    // Wait for the gauge to render the new value, then count the zone arcs (1 track + 3 zones = 4 paths inside the gauge svg).
+    // One track plus three zones.
     const gauge = await screen.findByLabelText("TWR 1.50");
     await waitFor(() => expect(gauge.querySelectorAll("path")).toHaveLength(4));
   });

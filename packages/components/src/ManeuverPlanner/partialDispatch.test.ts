@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { describePartialDispatch } from "./partialDispatch";
 
-/**
- * The operator-facing half of the dropped-command fix. Settling the promise stops the
- * commit loop hanging; this stops the resulting error leaving them in the same
- * epistemic position as the hang did, knowing something failed and not knowing what is
- * on the vessel.
- */
 describe("describePartialDispatch", () => {
   it("leads with what landed, then why it stopped", () => {
     expect(
@@ -21,7 +15,7 @@ describe("describePartialDispatch", () => {
   });
 
   it("names the burn that failed as the one AFTER those dispatched", () => {
-    // Off-by-one here is a confident lie about which node is missing, so it is worth pinning at the boundaries rather than only in the middle.
+    // An off-by-one here misnames the missing node, so the boundaries are pinned.
     expect(
       describePartialDispatch({ dispatched: 0, total: 4, reason: "x" }),
     ).toContain("Burn 1 failed");
@@ -37,11 +31,6 @@ describe("describePartialDispatch", () => {
     ).toContain(reason);
   });
 
-  /*
-   * A single-burn plan has nothing to count: nothing landed and nothing was abandoned,
-   * so "0 of 1 burns dispatched" is noise in front of the only fact there is. The
-   * count earns its place only when it tells the operator something.
-   */
   it("says only the reason for a single-burn plan", () => {
     expect(
       describePartialDispatch({ dispatched: 0, total: 1, reason: "timed out" }),

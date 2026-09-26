@@ -13,17 +13,10 @@ export interface FillProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * Fill container, a `position: relative` flex column that occupies
- * exactly the space its parent gives it, and can host an
- * absolutely-positioned overlay on top of its content (e.g. a canvas
- * graph plus a corner notice pill).
- *
- * Default (`grow` omitted): `height: 100%; width: 100%`, the outermost
- * shell of a widget, sized to its dashboard grid cell.
- *
- * `grow`: `flex: 1 1 auto` instead, a slot nested inside another flex
- * column, taking the remaining space alongside sibling content (e.g. a
- * degraded-state notice rendered below the graph rather than over it).
+ * Fill container: a `position: relative` flex column that occupies exactly the
+ * space its parent gives it, and can host an absolutely positioned overlay
+ * (e.g. a graph plus a corner notice pill). Full width and height by default;
+ * `grow` for a slot nested in another flex column.
  */
 export function Fill({ grow = false, children, ...rest }: FillProps) {
   return (

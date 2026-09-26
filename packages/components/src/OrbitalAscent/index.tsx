@@ -34,7 +34,7 @@ export function horizontalOf(
 }
 
 const topics = defineTopicManifest({
-  // `system.bodies` is read directly: the reference curve needs the body's own radius and gravitational parameter, and both are reported there.
+  // The reference curve needs the body's radius and gravitational parameter from `system.bodies`.
   channels: ["vessel.flight", "vessel.identity", "system.bodies"],
   fields: [
     "vessel.flight.altitudeAsl",
@@ -54,12 +54,9 @@ export interface OrbitalAscentConfig {
 const REFERENCE_SAMPLES = 60;
 
 /**
- * Pick a sensible upper bound for the reference curve. We want the curve to
- * extend at least as high as a typical parking orbit so the live trace stays
- * within the plot, with a small headroom margin.
- *
- * Atmospheric bodies: 1.5× the atmosphere ceiling (Kerbin: 105 km).
- * Airless bodies  : max(20% of radius, 30 km) (Mun: 40 km, Minmus: 30 km).
+ * Reference-curve ceiling, high enough to hold a typical parking orbit:
+ * 1.5x the atmosphere ceiling on an atmospheric body (Kerbin: 105 km), else
+ * max(20% of radius, 30 km) (Mun: 40 km, Minmus: 30 km).
  */
 function defaultCeiling(body: BodyDefinition): number {
   if (body.hasAtmosphere) return body.maxAtmosphere * 1.5;
@@ -92,12 +89,6 @@ function buildReferenceCurve(
 function OrbitalAscentComponent({
   config,
 }: Readonly<ComponentProps<OrbitalAscentConfig>>) {
-  /*
-   * Both axes come off `vessel.flight`'s own buffered history: the altitude as
-   * a fetched series, and the horizontal speed computed here from the surface
-   * and vertical speeds on the same samples, because the wire carries no
-   * horizontal speed of its own.
-   */
   const bodyName = useBodyName(useParentBodyIndex());
   const body = useStreamBody(bodyName);
 
@@ -128,8 +119,6 @@ function OrbitalAscentComponent({
     return buildReferenceCurve(body, ceiling);
   }, [body, config?.altitudeCeiling]);
 
-  // Locked Graph config: phase-space plot of horizontal velocity vs altitude.
-  // The user can't reconfigure axes here; that's the point of a preset widget.
   const graphConfig: GraphConfig = useMemo(
     () => ({
       series: [

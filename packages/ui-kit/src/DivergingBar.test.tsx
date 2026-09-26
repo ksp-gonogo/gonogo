@@ -4,7 +4,7 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { DivergingBar } from "./DivergingBar";
 
-/** The bar's own kind: a signed rate, the shape it was built for. */
+/** A signed rate. */
 const rate = (perSecond: number) => value("units/s", perSecond);
 
 describe("DivergingBar", () => {
@@ -58,7 +58,7 @@ describe("DivergingBar", () => {
   });
 
   it("scales against a value expressed on another rung of its own kind", () => {
-    // The comparison is dimensional, not textual: the scale arrives in kilowatts and the term in watts, and the bar still reads half.
+    // Dimensional, not textual: 500 W against 1 kW reads half.
     render(<DivergingBar value={value("W", 500)} maxAbs={value("kW", 1)} />);
     const fill = screen.getByTestId("diverging-bar")
       .lastElementChild as HTMLElement;

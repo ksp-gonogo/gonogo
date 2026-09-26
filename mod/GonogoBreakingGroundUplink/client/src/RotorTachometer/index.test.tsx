@@ -12,15 +12,7 @@ import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseRotors } from "./index";
 
-/**
- * RotorTachometer runs genuinely off the real `TelemetryProvider`/
- * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`:
- * `robotics.servos` is its whole identity list (filtered to `type === "rotor"`)
- * and `robotics.available` its DLC-presence flag (canonical stream reads,
- * `useTelemetry`), and `robotics.rotor.*` command dispatch (delayed-command-
- * ux robotics migration) rides the same stream via `useCommand`, asserted
- * against `fixture.transport.sentCommands`.
- */
+/** Proves RotorTachometer reads and commands over the real stream pipeline via `StubTransport`, asserted against `sentCommands`. */
 
 const renderedTrees: Array<() => void> = [];
 
@@ -65,16 +57,7 @@ function renderRotor(fixture: ReturnType<typeof setupStreamFixture>) {
 }
 
 describe("RotorTachometerComponent", () => {
-  /**
-   * The DLC sentence comes off `game.dlc.breakingGround`, not off
-   * `robotics.available`.
-   *
-   * This test used to emit `robotics.available: false` and expect
-   * "Breaking Ground not installed", which is the inversion itself written down
-   * as a test: without the expansion the Uplink goes Unavailable and never
-   * emits on that channel at all, so a definite `false` there means the craft
-   * carries no robotic part. See `robotics.ts`.
-   */
+  /** The DLC sentence comes off `game.dlc.breakingGround`; `robotics.available: false` means the craft carries no robotic part. */
   it("names the missing DLC off game.dlc, not off robotics.available", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
@@ -121,9 +104,7 @@ describe("RotorTachometerComponent", () => {
   });
 
   it("says it is waiting when neither presence fact has arrived", async () => {
-    // The third rung. This expected "No rotors on this vessel", which is the
-    // sentence a player WITHOUT the expansion used to get: a positive claim
-    // about a craft nothing has reported on yet.
+    // Nothing reported yet is waiting, not a craft with no rotors.
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
@@ -246,11 +227,10 @@ describe("parseRotors", () => {
     expect(parsed).toHaveLength(1);
     expect(parsed[0]?.partId).toBe("1");
     expect(parsed[0]?.rpm).toBe(50);
-    // The entry carries no `servoMotorIsEngaged`, so there is no flag to
-    // report. This read `false`, which claims the motor is off.
+    // No `servoMotorIsEngaged` on the entry, so there is no flag to report.
     expect(parsed[0]?.motorEngaged).toBeNull();
     expect(parsed[0]?.name).toBe("Rotor 1");
-    // The entry carries `currentRPM` and nothing else, so every other figure is withheld rather than zero: a cap of 0 is a rotor commanded to stop.
+    // Only `currentRPM` arrived, so every other figure is withheld: a cap of 0 is a rotor commanded to stop.
     expect(parsed[0]?.rpmLimit).toBeNull();
     expect(parsed[0]?.torqueLimit).toBeNull();
     expect(parsed[0]?.brakePercentage).toBeNull();
@@ -267,9 +247,7 @@ describe("parseRotors", () => {
   });
 
   it("withholds a non-finite figure the same as an absent one", () => {
-    /* `SnapshotDict.GetDouble` already withholds on non-finite input, so this
-       is the client half of the same rule: a NaN reaching `Math.round` drew
-       "NaN" on the dial and a stepper computed from it sent NaN to the rotor. */
+    // The client half of the mod's non-finite rule: a NaN must never reach the dial or a stepper.
     const [rotor] = parseRotors([
       {
         partId: "9",

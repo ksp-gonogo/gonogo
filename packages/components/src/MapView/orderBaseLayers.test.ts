@@ -20,15 +20,13 @@ describe("groupBaseLayersByUplink", () => {
   });
 
   it("clusters an interleaved priority-sorted list by Uplink, preserving each cluster's relative order", () => {
-    // Simulates getAugmentsForSlot's global priority sort interleaving two
-    // Uplinks' layers: uplink-1's two layers (a1, a2) straddle uplink-2's
-    // single layer (b1) because their priority numbers happen to interleave.
+    // A global priority sort interleaves uplink-1's two layers around uplink-2's one.
     const a1 = { id: "a1", requires: "uplink-1" };
     const b1 = { id: "b1", requires: "uplink-2" };
     const a2 = { id: "a2", requires: "uplink-1" };
     const input = [a1, b1, a2];
 
-    // uplink-1's cluster (a1, a2) keeps its relative order and occupies the position of its first member (index 0); uplink-2's b1 follows.
+    // uplink-1's cluster keeps its order at its first member's position; b1 follows.
     expect(groupBaseLayersByUplink(input)).toEqual([a1, a2, b1]);
   });
 
@@ -38,7 +36,7 @@ describe("groupBaseLayersByUplink", () => {
     const noDomain2 = { id: "solo-2" };
     const input = [noDomain1, grouped, noDomain2];
 
-    // No two ungated augments share an id, so each stays its own group, net effect on this input is a no-op, but proves the fallback key path.
+    // Each ungated augment is its own group, so this input is unchanged, through the fallback key path.
     expect(groupBaseLayersByUplink(input)).toEqual(input);
   });
 

@@ -4,15 +4,7 @@ import { describe, expect, it } from "vitest";
 import { LineChart } from "./LineChart";
 import { closeHalfPlane, type PlotLayerFrame } from "./plotLayers";
 
-/**
- * The `PlotLayer` renderer: what a contributed layer becomes once the host
- * has scaled it.
- *
- * The point of every assertion here is that the contributor supplied DATA and
- * nothing else. Nothing below passes a pixel in, and the checks are about the
- * host's decisions: the depth stack, the clip, the palette, and what it drops
- * when there is no room.
- */
+/** A contributor supplies data only; these check the host's decisions: depth stack, clip, palette, and what it drops without room. */
 
 const SIZE = { width: 420, height: 320 };
 
@@ -56,7 +48,6 @@ describe("plot layers", () => {
       { kind: "marker", id: "corner", at: { x: 0, y: 0 } },
     ]);
     const mark = drawn(container, "corner") as SVGCircleElement;
-    // The domain's origin lands on the plot's bottom-left, wherever the margins put that: the layer said `{x: 0, y: 0}` and nothing more.
     expect(Number(mark.getAttribute("cx"))).toBeGreaterThan(0);
     expect(Number(mark.getAttribute("cy"))).toBeLessThan(SIZE.height);
     expect(Number(mark.getAttribute("cy"))).toBeGreaterThan(SIZE.height / 2);
@@ -72,7 +63,7 @@ describe("plot layers", () => {
   });
 
   it("paints context under the readings, whatever order they were contributed", () => {
-    // A guest's wash must never bury another's curve, so the depth stack is by KIND rather than by who registered first.
+    // Depth is by kind, never by registration order.
     const { container } = chart([
       {
         kind: "series",
@@ -193,7 +184,7 @@ describe("closeHalfPlane", () => {
   } as PlotLayerFrame;
 
   it("returns along the far edge, END corner first, so the ring cannot cross itself", () => {
-    // The other order draws a bow tie: two filled triangles that mean nothing, and the mistake every hand-rolled version of this makes once.
+    // Closing the other way draws a self-crossing bow tie.
     const ring = closeHalfPlane(
       [
         { x: 100, y: 300 },

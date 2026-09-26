@@ -5,19 +5,7 @@ import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { OrbitViewComponent } from "./index";
 
-/**
- * Whether a craft counts as ORBITING, which is a claim about its atmosphere.
- *
- * <p>`useIsOrbiting` compares periapsis altitude against the top of the
- * atmosphere, and took that height from the static table of stock bodies. Under
- * a planet pack the lookup missed, the threshold collapsed to zero, and the
- * test became "is the periapsis above sea level", which a craft on its way
- * down passes.</p>
- *
- * <p>The verdict is drawn as the trace's colour: green for orbiting, orange-red
- * for not. So the failure was a confident green ellipse around a vessel about
- * to reenter, which is worse than drawing nothing.</p>
- */
+/** ORBITING means the periapsis clears the atmosphere, whose height comes off the stream so a planet-pack body keeps its threshold. */
 const CARRIED = [
   "vessel.orbit",
   "vessel.flight",
@@ -38,11 +26,6 @@ const EARTH = {
   atmosphere: { depth: 140000, hasOxygen: true, seaLevelPressure: 101.3 },
 };
 
-/**
- * `sma`/`ecc` chosen so the periapsis sits INSIDE the 140 km atmosphere and the
- * apoapsis well outside it: rp = 6371+60 km, ra = 6371+400 km. A craft on a
- * decaying pass, not one in orbit.
- */
 function setup(sma: number, ecc: number, meanAnomalyAtEpoch = 0) {
   const fixture = setupStreamFixture({
     carriedChannels: CARRIED,
@@ -86,12 +69,7 @@ const verdict = () =>
 
 describe("OrbitView orbiting threshold", () => {
   it("does not call a craft orbiting when its periapsis is inside the air", async () => {
-    // rp = 6_431 km (60 km altitude, under the 140 km atmosphere), ra = 6_771 km
-    //
-    // Sampled at APOAPSIS, 400 km up. The craft has to be outside the air for
-    // there to be a conic at all, and that is the state this question is asked
-    // in: the periapsis it is falling towards is the part inside the air, and
-    // the verdict is about where it is going rather than where it is.
+    // rp = 6_431 km (60 km up, inside the air), ra = 6_771 km; sampled at apoapsis, since the verdict is about where the craft is going.
     setup(6_601_000, 0.0257, Math.PI);
     await waitFor(() => expect(verdict()).toBeDefined());
     expect(verdict()).toBe("no");

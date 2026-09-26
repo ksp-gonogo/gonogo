@@ -66,11 +66,7 @@ export const CompactValue = styled.span`
   }
 `;
 
-/**
- * Row container for the map canvas: a plain flex row with one child. Nothing
- * else claims layout space beside the map, because the anomaly panel is an
- * `AnomalyOverlay` augment floating over the canvas via `map-view.overlay`.
- */
+/** Row container for the map canvas: one child, since augment panels float over the canvas via `map-view.overlay`. */
 export const MapBody = styled.div`
   flex: 1;
   min-height: 0;
@@ -79,13 +75,9 @@ export const MapBody = styled.div`
 `;
 
 /**
- * The frame around the map itself. Visual content gets an edge rather than the
- * panel losing its inset: the augment sections below the map are text, and they
- * need the inset that unpadding the whole body would take from them. See
- * `FramedDisplay`'s own note on why the all-or-nothing flag was rejected.
- *
- * `flush`: the map is letterboxed to 2:1 inside this box, so it already carries
- * dead space on one axis, and a gutter on top of that reads as a double border.
+ * The frame around the map: visual content gets an edge while the augment
+ * sections below keep the body inset. `flush` because the map is letterboxed
+ * to 2:1 and already carries dead space; a gutter would read as a double border.
  */
 export const MapFrame = styled(FramedDisplay)`
   flex: 1;
@@ -93,10 +85,7 @@ export const MapFrame = styled(FramedDisplay)`
   min-width: 0;
 `;
 
-/**
- * Fills leftover space. The ResizeObserver measures this element's actual
- * content rect and computes letterboxed pixel dimensions for CanvasContainer.
- */
+/** Fills leftover space; the ResizeObserver measures it to letterbox CanvasContainer. */
 export const MapOuter = styled.div`
   flex: 1;
   min-height: 0;
@@ -106,13 +95,7 @@ export const MapOuter = styled.div`
   overflow: hidden;
 `;
 
-/**
- * Below-content panel host for the `map-view.sections` slot, one panel per
- * registered augment, composed additively by priority exactly like
- * `objectives.source`/`power-systems.sections`. Renders nothing (adds no
- * DOM) when the slot is empty; augments that return `null` add no DOM
- * either, so this stays visually inert until something registers.
- */
+/** Host for the `map-view.sections` slot; adds no DOM when the slot is empty. */
 export const MapSections = styled.div`
   flex-shrink: 0;
   display: flex;
@@ -120,10 +103,7 @@ export const MapSections = styled.div`
   gap: var(--gap-related);
 `;
 
-/**
- * Sized explicitly via inline style (width/height in px) so the canvas is
- * always exactly 2:1 regardless of which dimension is the bottleneck.
- */
+/** Sized by inline width/height in px so the canvas is exactly 2:1 whichever dimension binds. */
 export const CanvasContainer = styled.div`
   position: relative;
   flex-shrink: 0;
@@ -151,13 +131,7 @@ export const DataCanvas = CanvasBase;
 export const PersistentDataCanvas = CanvasBase;
 export const PredictionCanvas = CanvasBase;
 
-/**
- * Absolutely-positioned layer stacked over the map canvases for the
- * `map-view.overlay` augment slot. Sits on
- * top of every canvas (last DOM child) yet stays out of the map's pointer
- * path, so an empty slot is visually and interactively inert; an overlay
- * augment re-enables pointer events on its own elements when it needs them.
- */
+/** The `map-view.overlay` layer, over every canvas and pointer-inert; an augment re-enables pointer events on its own elements. */
 export const OverlayAugmentLayer = styled.div`
   position: absolute;
   inset: 0;

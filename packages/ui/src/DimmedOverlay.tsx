@@ -2,38 +2,16 @@ import type { ReactNode } from "react";
 import styled from "styled-components";
 
 export interface DimmedOverlayProps {
-  /**
-   * When true, the children render dimmed and an overlay banner appears
-   * on top with the message. When false, children render unchanged and
-   * the wrapper is otherwise transparent, no DOM cost beyond a single
-   * positioned div.
-   */
+  /** Dims the children under a banner; when false they render with no wrapper at all. */
   show: boolean;
   /** Centered banner text. Required when `show` is true. */
   message?: string;
-  /**
-   * Optional secondary line, rendered smaller below the message. Use for
-   * actionable hints (e.g. "Launch from a station to see this").
-   */
+  /** Smaller secondary line for an actionable hint. */
   hint?: string;
   children: ReactNode;
 }
 
-/**
- * Wraps any widget with a state-aware dim layer. Used to soften
- * "dead values" when a widget's underlying telemetry isn't live,
- * the existing render is preserved (last-good values, current layout)
- * but visibly de-emphasised, with a small banner explaining why.
- *
- * Live (`show=false`):  children render at full opacity, no overlay.
- * Inactive (`show=true`): children render at ~35% opacity (still
- * legible enough that the operator can verify shape but clearly not
- * authoritative); a centered banner identifies the missing context.
- *
- * Banner is `role="status" aria-live="polite"` so screen readers
- * announce the change without interrupting flow. The dimmed layer is
- * `aria-hidden` so its values don't compete with the banner.
- */
+/** Keeps a non-live widget's last render visible but de-emphasised, with a banner naming the missing context. */
 export function DimmedOverlay({
   show,
   message,
@@ -41,7 +19,6 @@ export function DimmedOverlay({
   children,
 }: DimmedOverlayProps) {
   if (!show) {
-    // Render children directly, no wrapper means no styling drift on the live path (avoids accidentally affecting layout / focus).
     return <>{children}</>;
   }
   return (

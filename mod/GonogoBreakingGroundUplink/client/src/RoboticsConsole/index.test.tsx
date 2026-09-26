@@ -12,20 +12,9 @@ import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseServos } from "./index";
 
-/**
- * RoboticsConsole runs genuinely off the real `TelemetryProvider`/
- * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`:
- * `robotics.servos` is its whole identity list and `robotics.available` its
- * DLC-presence flag (canonical stream reads, `useTelemetry`), and
- * `robotics.servo.*` command dispatch (delayed-command-ux robotics
- * migration) rides the same stream via `useCommand`, asserted against
- * `fixture.transport.sentCommands` rather than a legacy `MockDataSource`.
- */
+/** Proves RoboticsConsole reads and commands over the real stream pipeline via `StubTransport`, asserted against `sentCommands`. */
 
-// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// action-handler registry: clearActionHandlers() firing on a still-mounted
-// widget is a state update outside act(). RTL auto-cleanup runs after this
-// file's afterEach, too late to unmount first.
+// Unmounted in afterEach before the action-handler registry is cleared, since RTL's own cleanup runs too late.
 const renderedTrees: Array<() => void> = [];
 
 function _render(ui: ReactElement) {
@@ -65,16 +54,7 @@ function renderConsole(fixture: ReturnType<typeof setupStreamFixture>) {
 }
 
 describe("RoboticsConsoleComponent", () => {
-  /**
-   * The DLC sentence comes off `game.dlc.breakingGround`, not off
-   * `robotics.available`.
-   *
-   * This test used to emit `robotics.available: false` and expect
-   * "Breaking Ground not installed", which is the inversion itself written down
-   * as a test: without the expansion the Uplink goes Unavailable and never
-   * emits on that channel at all, so a definite `false` there means the craft
-   * carries no robotic part. See `robotics.ts`.
-   */
+  /** The DLC sentence comes off `game.dlc.breakingGround`; `robotics.available: false` means the craft carries no robotic part. */
   it("names the missing DLC off game.dlc, not off robotics.available", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
@@ -121,9 +101,7 @@ describe("RoboticsConsoleComponent", () => {
   });
 
   it("says it is waiting when neither presence fact has arrived", async () => {
-    // The third rung. This expected "No robotic parts on this vessel", which
-    // is the sentence a player WITHOUT the expansion used to get: a positive
-    // claim about a craft nothing has reported on yet.
+    // Nothing reported yet is waiting, not a craft with no robotic parts.
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
@@ -179,13 +157,7 @@ describe("RoboticsConsoleComponent", () => {
       ]);
     });
     expect(await screen.findByText(/MOVING/i)).toBeInTheDocument();
-    // This test used to assert "60 %", which pinned a real bug: the contract
-    // declares CurrentExtension/TargetExtension in METRES, and a decompile of
-    // ModuleRoboticServoPiston confirms the value is a Vector3.Dot along the
-    // servo axis. The old fixture numbers (40 and 60) were percentages, so the
-    // test agreed with the widget and both were wrong together.
-    // The number and its unit are separate text nodes in one element, so match
-    // on the combined textContent and take the innermost hit.
+    // Piston extension is in metres. The number and unit are separate text nodes, so match the innermost combined textContent.
     const withUnit = screen
       .getAllByText((_content, el) => el?.textContent === "0.60m")
       .at(-1);
@@ -259,9 +231,7 @@ describe("RoboticsConsoleComponent", () => {
 
     await user.click(await screen.findByRole("button", { name: /Piston B/i }));
     await user.click(screen.getByRole("button", { name: /Increase target/i }));
-    // Metre scale, and a metre-scale step. This asserted 0.65 from a target
-    // of 0.6, which is a piston 0.6 METRES long being nudged 5 CENTIMETRES:
-    // the percent reading the widget's label used to imply.
+    // A metre-scale step on a metre-scale target.
     await waitFor(() => {
       const sent = fixture.transport.sentCommands.find(
         (c) => c.command === "robotics.servo.setTarget",

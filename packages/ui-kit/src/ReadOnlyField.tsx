@@ -7,14 +7,9 @@ import { Unit } from "./Unit";
 /**
  * What a read-only field can be handed. `null`/`undefined` show a placeholder.
  *
- * A NUMBER is not one of them, and that is the whole shape of this type. A bare
- * number reaching a readout has lost the only thing that says how to write it,
- * so the field would have to guess, and this one used to guess by calling a
- * formatter behind `Unit`'s back. A caller holding a measurement hands over
- * `value("m", 1)`; one holding a plain quantity of things hands over
- * `value("count", 3)`, and `value("1", x)` is the dimensionless reading that
- * genuinely has no unit. All three go through {@link Unit}, which is the only
- * thing in the app that turns a quantity into text.
+ * Not a bare number, which has lost the unit that says how to write it: hand
+ * over `value("m", 1)`, `value("count", 3)`, or `value("1", x)` for a
+ * dimensionless reading. All go through {@link Unit}.
  */
 export type ReadOnlyFieldValue = boolean | string | Value | null | undefined;
 
@@ -28,28 +23,12 @@ export interface ReadOnlyFieldProps {
 }
 
 /**
- * A labelled value the reader cannot change.
+ * A labelled value the reader cannot change: data, not a disabled control,
+ * which some screen readers skip and which promises it would work otherwise.
  *
- * This exists because the alternative kept being a disabled control, and a
- * disabled control is the wrong answer twice. Some screen readers skip
- * `aria-disabled`/`disabled` elements entirely, so the value goes missing for
- * the reader who most needs it read aloud; and a greyed-out switch says "this
- * would work if something were different", which is a promise nothing here
- * intends to keep. A plotting frame, a build string, a prediction tolerance and
- * a health state are not controls that happen to be off. They are data.
- *
- * So it renders a **description list**: the term is the label, the definition
- * is the value. That pairing is programmatic rather than positional, so a
- * reader in browse mode gets "Prediction tolerance, one metre" as one unit
- * instead of two adjacent strings it has to associate by luck. One `<dl>` per
- * field, deliberately: a field has to be valid wherever it is dropped, and a
- * shared list would make a lone field emit a `<dt>` with no list around it.
- *
- * A quantity goes through {@link Unit}, so the unit is drawn as a symbol and
- * announced as a word. Hand it `value("m", 1)`, never a bare `1`: this is the
- * one place a settings row can pick up the same unit rendering every readout in
- * the app has, and {@link ReadOnlyFieldValue} says why a number alone is not
- * something it can render.
+ * Renders a description list, one `<dl>` per field so a lone field stays valid,
+ * so a reader gets the label and value as one unit. A quantity goes through
+ * {@link Unit}.
  */
 export function ReadOnlyField({
   label,
@@ -73,12 +52,8 @@ export function ReadOnlyField({
 }
 
 /**
- * The value half on its own, for a caller that already owns its label.
- *
- * Split out so the three cases (quantity, text, flag) and the null placeholder
- * are decided ONCE. A second call site formatting a
- * `boolean | string | Value` by hand is how one surface ends up showing "true"
- * where another shows "On".
+ * The value half on its own, for a caller that already owns its label, so the
+ * three cases and the placeholder are decided in one place.
  */
 export function ReadOnlyFieldContent({
   value,
@@ -87,7 +62,7 @@ export function ReadOnlyFieldContent({
 }): ReactNode {
   if (value === null || value === undefined) return <NullValue />;
   if (isValue(value)) return <Unit value={value} />;
-  // A read-only flag is a state, not a checkbox: "On"/"Off" is what the game's own settings windows say, and "true" is a serialisation.
+  // "On"/"Off", as the game's own settings windows say.
   if (typeof value === "boolean") return value ? "On" : "Off";
   return value;
 }
@@ -110,8 +85,7 @@ const ReadOnlyField__Term = styled.dt`
   flex: 1 1 auto;
 `;
 
-/* Deliberately the same rungs a writable row's label and description take, so
-   a column mixing the two reads as one list rather than as two treatments. */
+/* The same rungs a writable row's label and description take, so a mixed column reads as one list. */
 const ReadOnlyField__Label = styled.span`
   font-size: var(--font-size-value);
   color: var(--color-text-primary);

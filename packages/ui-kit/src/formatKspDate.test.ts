@@ -41,11 +41,8 @@ describe("formatKspDate", () => {
 });
 
 /**
- * The epoch half: a game that has a real calendar renders real dates, and a
- * game that has none renders offsets, which is what it has always done.
- *
- * The anchor is RP-1's own (1951-01-01), because that is the one an operator
- * running that career will actually see.
+ * A game with a real calendar renders real dates; one with none renders
+ * offsets. The anchor is RP-1's own (1951-01-01).
  */
 describe("formatKspDate with an epoch", () => {
   const RSS = {
@@ -72,11 +69,7 @@ describe("formatKspDate with an epoch", () => {
     expect(formatKspDate(ut)).toBe("14 Mar 1957 03:22:37");
   });
 
-  /**
-   * Leap years are the tell that the Gregorian calendar is governing and not
-   * the 365-day year the same payload reported. A renderer dividing by
-   * `yearSeconds` lands a day out here, every four years, silently.
-   */
+  /** Leap years show the Gregorian calendar governs, not the reported 365-day year. */
   it("follows the real calendar rather than the reported year length", () => {
     setKspCalendar(RSS);
     const ut = (Date.UTC(1956, 1, 29) - Date.UTC(1951, 0, 1)) / 1000;
@@ -93,11 +86,7 @@ describe("formatKspDate with an epoch", () => {
     expect(formatKspDate(1e18)).toBe(NULL_DISPLAY);
   });
 
-  /**
-   * No anchor is the stock game, and the stock game's own UI prints Y1 D1.
-   * Inventing a date for it would be the fabrication this field exists to
-   * avoid.
-   */
+  /** No anchor is the stock game, whose own UI prints Y1 D1. */
   it("keeps the offset form when the game reported no epoch", () => {
     setKspCalendar({ minute: 60, hour: 3600, day: 86_400, year: 365 * 86_400 });
     expect(formatKspDate(0)).toBe("Y1 D1 00:00:00");
@@ -109,10 +98,7 @@ describe("formatKspDate with an epoch", () => {
     expect(kspCalendar().day).toBe(86_400);
   });
 
-  /**
-   * The anchor alone decides. Real dates are what having a real calendar
-   * means, so an anchor on the wire restyles every date without being asked.
-   */
+  /** The anchor alone decides. */
   it("renders a real date as soon as the game reports an anchor", () => {
     setKspCalendar({ minute: 60, hour: 3600, day: 86_400, year: 365 * 86_400 });
     expect(formatKspDate(0)).toBe("Y1 D1 00:00:00");

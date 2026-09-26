@@ -5,12 +5,7 @@ import { describe, expect, it } from "vitest";
 import { Meter } from "./Meter";
 import { NULL_DISPLAY } from "./NullValue";
 
-/**
- * The row layout: label, bar and figure on one line, for a dense list of
- * meters. Everything a meter says is the same in both layouts; these pin that
- * the arrangement changes and nothing else does.
- */
-
+// The row layout changes the arrangement and nothing else a meter says.
 const AT = value("ut", 12_000);
 
 function held<U extends string>(figure: Value<U>): Reading<Value<U>> {

@@ -22,26 +22,12 @@ import type { ArmedTrigger } from "./triggerTypes";
 import { compareThreshold } from "./triggerTypes";
 
 /**
- * In-process trigger service. Used when the widget is rendered without a
- * `<ManeuverTriggerProvider>` (legacy tests, standalone embeds). Every
- * fixed-field read (vessel/target orbit elements, apo/peri/time-to-apsis,
- * true anomaly, vessel name/body) rides the non-hook `getVesselOrbit()`/
- * `getVesselTarget()`/`getVesselIdentity()`/`getViewUt()` accessors
- * (`@ksp-gonogo/sitrep-client`): the same `TimelineStore` a mounted widget's
- * `useTelemetry` would read, sampled on demand and re-evaluated on
- * `onActiveTimelineFrame` instead of a per-key subscription.
- *
- * The ARMED TRIGGER's own `dataKey` is an operator-picked key too, but no
- * longer an ARBITRARY one: the widget's `DataKeyPicker` only offers keys
- * `@ksp-gonogo/data`'s `useValueKeys` resolves: the Value-restricted,
- * stream-mapped set (per the Uplink Domain/Topic/Value/Stream/Asset vocab).
- * That bounds `dataKey` to what `getValue` (the generic non-hook Value
- * accessor, `@ksp-gonogo/sitrep-client`) can actually read, so the threshold
- * read and the maneuver-node fire (`dispatchActiveCommand`) both ride the
- * stream now: no `getDataSource(this.sourceId)` dependency left.
- *
- * No persistence, no peer broadcast: see the host/client services in
- * @ksp-gonogo/app for the cross-station-aware version.
+ * In-process trigger service, used when the widget renders without a
+ * `<ManeuverTriggerProvider>`. It reads the active `TimelineStore` through the
+ * non-hook sitrep-client accessors and re-evaluates on every frame; an armed
+ * `dataKey` is one of the Value keys `getValue` can read. No persistence and no
+ * peer broadcast: the app's host and client services are the cross-station
+ * version.
  */
 export class LocalManeuverTriggerService implements ManeuverTriggerService {
   private triggers: ArmedTrigger[] = [];
@@ -54,7 +40,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
   constructor(opts: { sourceId?: string; nowMs?: () => number } = {}) {
     this.sourceId = opts.sourceId ?? "data";
     this.nowMs = opts.nowMs ?? (() => Date.now());
-    // No frame subscription here: a service holding no triggers has nothing to re-evaluate, so `arm()` takes it out on the first one.
+    // The frame subscription starts on the first arm: with no triggers there is nothing to evaluate.
   }
 
   dispose(): void {
@@ -76,7 +62,6 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
   }
 
   arm(input: ArmTriggerInput): void {
-    // Re-evaluates every armed trigger's dataKey threshold, plus the vessel-swap auto-clear check, on every subsequent stream frame.
     this.vesselUnsub ??= onActiveTimelineFrame(() => this.evaluate());
     const id = generateId();
     const trigger: ArmedTrigger = {
@@ -102,14 +87,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
     if (this.triggers.length !== before) this.emit();
   }
 
-  /**
-   * Drops every `fired` id that no longer names a listed trigger.
-   *
-   * The guard only has to stop a second fire while its trigger is still
-   * listed, which is only the case when a dispatch left it there. Ids are
-   * minted per arm and never reused, so anything else in the set is dead
-   * weight held for as long as the widget is mounted.
-   */
+  /** Drops fired ids that no longer name a listed trigger; ids are never reused, so those guard nothing. */
   private pruneFired(): void {
     if (this.fired.size === 0) return;
     const listed = new Set(this.triggers.map((t) => t.id));
@@ -156,9 +134,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
     if (!plan) return;
     const burns = isSequence(plan) ? plan.burns : [plan];
     for (const b of burns) {
-      // Named directly, with the burn's own numbers as arguments, so the full
-      // precision reaches the command rather than being rounded into a key
-      // string for something downstream to parse back out.
+      // The burn's own numbers as arguments, so full precision reaches the command.
       const outcome = dispatchActiveCommandTopic("vessel.maneuver.add", {
         ut: b.ut,
         prograde: b.prograde,
@@ -173,12 +149,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
     const orbit = getVesselOrbit();
     const target = getVesselTarget();
     const targetOrbit = target?.orbit;
-    /*
-     * The target's own orbit, solved here: the same `solveOrbit` the craft's
-     * orbit goes through, on the target's elements at the same view time. The altitude
-     * needs the TARGET's reference body, not the craft's, which is why the
-     * radius is resolved from its own `referenceBodyIndex`.
-     */
+    // The target's altitude needs the target's own reference body, not the craft's.
     const currentUT = getViewUt();
     const targetSolved =
       targetOrbit == null || currentUT === undefined
@@ -188,14 +159,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
             currentUT,
             bodyRadiusOf(getSystemBodies(), targetOrbit.referenceBodyIndex),
           );
-    /*
-     * The craft's own orbit through the same `solveOrbit` the target's goes
-     * through, reached here by the non-hook `getOrbitSolve` because the model's
-     * refusal is what says whether these figures exist at all, and a payload
-     * read carries no model. `null` from it leaves every figure below
-     * `undefined`, which `buildCurrentOrbit` already treats as nothing to plan
-     * against.
-     */
+    // The model's refusal says whether these figures exist at all, which a payload read cannot.
     const solve = getOrbitSolve();
     return {
       currentOrbit: buildCurrentOrbit({
@@ -206,9 +170,6 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
         timeToAp: solve?.timeToAp ?? undefined,
         timeToPe: solve?.timeToPe ?? undefined,
       }),
-      // Not a data-source key: `t.universalTime` was DROPPED, this is the
-      // SDK's own view time (`getViewUt`, the non-hook `useViewUt`
-      // equivalent plain classes need), never a legacy `"data"` read.
       currentUT,
       // The parent body's GM as the orbit carries it; 0 is the planner's own "no mu" and plans nothing.
       mu: orbit?.mu?.magnitude ?? 0,
@@ -227,13 +188,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
     };
   }
 
-  /**
-   * Off the wire, by index, never by name against the bundled stock bodies:
-   * under a planet pack the names do not match, the lookup misses, and a
-   * transfer that needs a radius quietly plans nothing. The craft's parent
-   * body answers first and the orbit's reference body behind it, which is the
-   * same order the host-side twin (`ManeuverTriggerHostService`) reads them.
-   */
+  /** By body index off the wire, never by name: the craft's parent body first, then the orbit's reference body, as the host twin reads them. */
   private readBodyRadius(): number | undefined {
     const bodies = getSystemBodies();
     return (

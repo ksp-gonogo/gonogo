@@ -1,9 +1,7 @@
 import { registerAugment } from "@ksp-gonogo/core";
 import { ToggleButton } from "@ksp-gonogo/ui";
 import { Cluster } from "@ksp-gonogo/ui-kit";
-// The header link badge is not an augment: it is a CONTRIBUTION to
-// SystemView's automatic `system-view.badges` slot. Side-effect imported so
-// registering this augment set registers the badge with it.
+// Side-effect import: the header link badge is a contribution registered alongside this augment.
 import "./badge";
 import {
   setShowCommandTraffic,
@@ -13,25 +11,11 @@ import {
 } from "./toggles";
 
 /**
- * Fleet/Comms on `SystemView`: the Commlinks and Traffic controls, plus the
- * link-status badge its sibling `./badge` contributes.
- *
- * This deliberately draws NOTHING into the diagram, and must not: an overlay
- * fill can only work in the diagram's own coordinate space, which buys a
- * straight segment from the origin to the active vessel's dot regardless of
- * the relay topology the signal actually took. SystemView's
- * `system-view.entities` contributions answer the same three questions off the
- * real graph instead: the CommNet relay edges
- * (`vesselOrbitsContribution.ts`), the selected vessel's highlighted route
- * home (`commsPath.ts`), and the pending-command pulses riding that route
- * (`commsTraffic.ts`). A second, disagreeing answer drawn over the top of
- * those is what a duplicate pulse looks like on screen.
- *
- * The toggles stay an AUGMENT, deliberately: they add controls to the
- * diagram's action area rather than drawing over it, which is what an augment
- * is for. Their store (`./toggles`) is read by `SystemView/index.tsx`
- * directly, to gate the connection-line entities and command-traffic pulses it
- * draws.
+ * Fleet/Comms on `SystemView`: the Commlinks and Traffic toggles. It draws
+ * NOTHING into the diagram: SystemView's `system-view.entities` contributions
+ * draw relay edges, the route home and pending-command pulses off the real
+ * graph, and a second answer over them would disagree. `SystemView` reads the
+ * toggles' store directly.
  */
 function FleetCommsActions() {
   const instanceId = useFleetCommsInstanceId();

@@ -13,15 +13,7 @@ import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { LocalManeuverTriggerService } from "./LocalManeuverTriggerService";
 import type { FrozenPlanInputs } from "./triggerTypes";
 
-/**
- * The in-process trigger service, driven over a real `TimelineStore`.
- *
- * <p>The host twin in `@ksp-gonogo/app` has this coverage already; this is the
- * copy the widget falls back to when it is rendered without a
- * `<ManeuverTriggerProvider>`, and it resolved the body radius the same wrong
- * way. `computePlan` takes a `bodyRadius` and cannot see where it came from, so
- * the case has to go through the service.</p>
- */
+// Driven through the service over a real TimelineStore, since computePlan cannot see where its body radius came from.
 const PINNED_UT = 1_000_000;
 
 function fixture() {
@@ -35,7 +27,7 @@ function fixture() {
   clock.scrubTo(PINNED_UT);
   const store = new TimelineStore(clock);
   client.attachStore(store);
-  // `StubTransport.emit` is subscription-gated: without these it delivers nothing and the store never sees a body at all.
+  // StubTransport delivers only to subscribed channels.
   client.subscribe("vessel.orbit", () => {});
   client.subscribe("vessel.identity", () => {});
   client.subscribe("system.bodies", () => {});
@@ -55,12 +47,7 @@ function fixture() {
     store.beginFrame();
   };
 
-  /*
-   * An Earth-sized body under a name no stock table carries, which is what RSS
-   * hands RP-1. Real `Value`s, because `wrap-units` hydrates every declared
-   * quantity as the payload is decoded and a bare `{ magnitude, unit }` is a
-   * shape the stream never delivers.
-   */
+  // An Earth-sized body no stock table carries, as real Values because the stream hydrates every declared quantity.
   emit("system.bodies", {
     bodies: [{ index: 1, name: "Earth", radius: value("m", 6_371_000) }],
   });
@@ -75,8 +62,7 @@ function fixture() {
     epoch: PINNED_UT,
     mu: 3.986e14,
     patches: [],
-    // The reach and shape a live sample states. The service reads the conic
-    // over these elements, so without them it has no orbit to plan against.
+    // Without a stated horizon the service has no conic to plan against.
     horizon: ANALYTIC_UNBOUNDED_HORIZON,
   });
   emit("vessel.identity", {
@@ -111,14 +97,7 @@ function remountWithoutIdentity(): () => void {
   return () => store.beginFrame();
 }
 
-/**
- * Every id the service is still guarding against a second fire whose trigger
- * is no longer listed.
- *
- * Reaches into `fired` on purpose: the guard only has an observable effect
- * while its trigger is still listed, so a set that has been accumulating all
- * session behaves exactly like a pruned one from outside.
- */
+/** Fired ids whose trigger is no longer listed, read privately because such a guard is unobservable from outside. */
 function strandedFiredIds(svc: LocalManeuverTriggerService): string[] {
   const listed = svc.snapshot().triggers.map((t) => t.id);
   // biome-ignore lint/complexity/useLiteralKeys: `fired` is private, so dot access does not compile

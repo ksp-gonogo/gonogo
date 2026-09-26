@@ -10,12 +10,7 @@ import {
   type ShipMapPart,
 } from "./shipTopology";
 
-/**
- * Fixture-driven scaffolding for Ship Map snapshot tests. Each fixture is a raw
- * topology payload captured from a live KSP session, and the tests below assert
- * the invariants those fixtures encode rather than rendering them: they pin the
- * wire shape, so a future fixture capture can be validated against it.
- */
+/** Invariants encoded by raw topology payloads captured from live KSP sessions, pinning the wire shape a future capture must match. */
 
 interface Fixture {
   "v.topology": VesselTopology;
@@ -31,12 +26,11 @@ describe("Ship Map fixtures", () => {
   it("rover-b-alone: 28 parts, vertical Y stack, classifyable", () => {
     const parts = loadParts(roverBAlone as Fixture);
     expect(parts).toHaveLength(28);
-    // KSP convention: Y is vessel stack axis. Parts span a non-zero
-    // axial range; lateral range may also be non-zero due to radial bits.
+    // Y is the stack axis, so parts span a non-zero axial range.
     const axials = parts.map((p) => p.axial);
     const axialSpan = Math.max(...axials) - Math.min(...axials);
     expect(axialSpan).toBeGreaterThan(1);
-    // Every part has a classified type (no raw passthroughs).
+    // Every part has a classified type.
     expect(parts.every((p) => typeof p.type === "string")).toBe(true);
   });
 
@@ -47,9 +41,7 @@ describe("Ship Map fixtures", () => {
       p.name.toLowerCase().includes("docking"),
     );
     expect(dockingPorts).toHaveLength(2);
-    // T-shape signature: pickLateralAxis should detect spread on
-    // both X and Z; the wider one wins. Confirm the picker doesn't
-    // crash and the chosen lateral isn't all zeros.
+    // A T-shape spreads on both X and Z; the chosen lateral is not all zeros.
     const lats = parts.map((p) => p.lat);
     const latSpan = Math.max(...lats) - Math.min(...lats);
     expect(latSpan).toBeGreaterThan(0);
@@ -62,9 +54,7 @@ describe("Ship Map fixtures", () => {
       (p.modules ?? []).includes("CModuleFuelLine"),
     );
     expect(fuelLines).toHaveLength(2);
-    // Each fuel line's parentFlightId points at its
-    // "from" tank. The "to" tank isn't in the topology yet, fork
-    // extension needed. Lock the current contract.
+    // Each fuel line's parentFlightId points at its "from" tank; the "to" tank is not in the topology.
     for (const line of fuelLines) {
       expect(line.parentFlightId).not.toBeNull();
     }
@@ -72,17 +62,14 @@ describe("Ship Map fixtures", () => {
 
   it("fuelline-tester-poststage2: minimum-survival craft renders", () => {
     const parts = loadParts(fuellinePostStage2 as Fixture);
-    // Pod + parachute + 2 antennas: edge-case for tiny vessels.
+    // Pod, parachute and two antennas: the tiny-vessel edge case.
     expect(parts).toHaveLength(4);
     expect(parts.some((p) => p.name === "mk1pod.v2")).toBe(true);
     expect(parts.some((p) => p.name === "parachuteSingle")).toBe(true);
   });
 
   it("axis fix: every fixture renders with Y as the axial axis", () => {
-    // Regression guard for the 2026-05-15 rotation bug
-    // (shipTopology.ts:191-242). If the picker reverts to comparing
-    // X-vs-Y as lateral candidates, the axial direction becomes Z
-    // and stacks lose their vertical orientation.
+    // The lateral candidates are X and Z, never Y, or stacks lose their vertical orientation.
     for (const fixture of [
       roverBAlone,
       roverMerged,
@@ -91,10 +78,8 @@ describe("Ship Map fixtures", () => {
     ]) {
       const topo = (fixture as Fixture)["v.topology"];
       const { useX } = pickLateralAxis(topo.parts);
-      // useX is the lateral choice (X or Z); never Y. If the bug
-      // returns, the picker would have to be modified directly.
       expect(typeof useX).toBe("boolean");
-      // Every part's axial should be orgPos[1] (Y) per the fix.
+      // Every part's axial is orgPos[1] (Y).
       const sample = topo.parts[0];
       const built = buildShipMapPart(sample, undefined, undefined, useX);
       expect(built.axial).toBe(sample.orgPos[1]);

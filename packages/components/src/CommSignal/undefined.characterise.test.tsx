@@ -7,25 +7,12 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CommSignalComponent } from "./index";
 
 /**
- * What CommSignal does when its telemetry reads are absent.
- *
- * Four reads, each with its own undefined-meaning:
- *  - `useTelemetry("comms.link")?.connected` and
- *    `useTelemetry("vessel.comms")?.signalStrength`: `undefined` covers both
- *    "no record yet" and "record arrived without the field"
- *  - `collapseControlStateLevel(comms.controlState)`: a tombstoned record and a
- *    never-arrived one both leave the level `undefined`, so this site flattens
- *    the two
- *  - `useTelemetry("comms.delay")?.oneWaySeconds`, gated by `delay == null`,
- *    which also flattens tombstone and never-arrived
- *
- * The `hasData` gate (`connected !== undefined || strength !== undefined ||
- * controlState !== undefined`) is the highest-value site in the file: after the
- * migration a `Reading` is always truthy, so a gate written against `undefined`
- * stops gating.
+ * What CommSignal does when its telemetry reads are absent. The empty state
+ * is gated on three reads (connected, strength, control level); the delay is
+ * not one of them.
  */
 
-// `Sitrep.Contract.ControlState` ordinals: 4 = Full (collapses to level 2), 11 = Unknown (name resolves, level collapses to `undefined`).
+// `ControlState` ordinals: Unknown (11) names a state but collapses to no level.
 const CONTROL_STATE_FULL = 4;
 const CONTROL_STATE_UNKNOWN = 11;
 
@@ -59,15 +46,12 @@ describe("CommSignal: what undefined means today", () => {
   it("renders the no-signal empty state and NO readout when nothing has arrived", () => {
     const { container } = renderComm();
 
-    // The `hasData` absence gate firing: this is the whole widget body being withheld because three reads are `undefined`.
     expect(screen.getByText("No signal data")).toBeInTheDocument();
-    // Specifically absent, not merely "an empty container": the bars chart, the Control/Delay rows and the connection announcement are all suppressed.
     expect(screen.queryByLabelText(/^Signal \d of 4$/)).toBeNull();
     expect(screen.queryByText("Control")).toBeNull();
     expect(screen.queryByText("Delay")).toBeNull();
     expect(screen.queryByText("Signal to KSC")).toBeNull();
     expect(screen.queryByText("No signal")).toBeNull();
-    // The panel title still renders, so the widget is present, not unmounted.
     expect(visibleText(container)).toContain("COMMNET");
   });
 
@@ -78,17 +62,13 @@ describe("CommSignal: what undefined means today", () => {
       fixture.emit("comms.delay", { oneWaySeconds: 1.2 });
     });
 
-    // `comms.delay` is not one of the three reads `hasData` consults, so a live
-    // measured delay does not lift the empty state: the delay value is simply
-    // never drawn. Pins that the gate is a three-read gate, not an any-read one.
+    // The delay alone does not lift the empty state.
     await waitFor(() =>
       expect(screen.getByText("No signal data")).toBeTruthy(),
     );
     expect(visibleText()).not.toContain("1s");
 
-    // The delay really was in the store the whole time, so the assertion above
-    // records a firing gate rather than a dropped emit: lifting `hasData` with
-    // one unrelated read reveals the value that was already there.
+    // Proves the delay was in the store all along, not dropped.
     act(() => {
       fixture.emit("comms.link", { connected: true });
     });
@@ -102,16 +82,14 @@ describe("CommSignal: what undefined means today", () => {
       fixture.emit("comms.link", { connected: true });
     });
 
-    // `hasData` passes on `connected` alone and every other read is still `undefined`, so there is nothing to count bars from: "0 of 4" would be a verdict about signal strength made from no reading of it.
+    // "0 of 4" would be a verdict about strength made from no reading of it.
     await waitFor(() =>
       expect(screen.getByLabelText("Signal unknown")).toBeTruthy(),
     );
     expect(screen.queryByLabelText("Signal 0 of 4")).toBeNull();
     expect(screen.getByText("Signal to KSC")).toBeTruthy();
     expect(screen.getByText("Signal connected")).toBeTruthy();
-    // `describeControl(undefined, undefined)` resolves to NULL_DISPLAY, which
-    // falls through its name tests to the "ok" tone. Headline and the Control
-    // row are both the em dash, and the Delay row is a third.
+    // Headline, Control row and Delay row.
     expect(screen.getAllByText(NULL_DISPLAY).length).toBe(3);
     expect(screen.queryByText("LOS")).toBeNull();
   });
@@ -120,13 +98,10 @@ describe("CommSignal: what undefined means today", () => {
     const { fixture } = renderComm();
 
     act(() => {
-      // ControlState.Unknown: the name resolves to "Unknown", the level collapses to `undefined`.
       fixture.emit("vessel.comms", { controlState: CONTROL_STATE_UNKNOWN });
     });
 
-    // Only the ORDINAL feeds `hasData`, so the widget withholds its whole body
-    // even though a control-state string is available to render. The name read
-    // being `undefined`-or-not is invisible to the gate.
+    // Only the level feeds the gate, so a resolved name alone does not lift it.
     await waitFor(() =>
       expect(screen.getByText("No signal data")).toBeTruthy(),
     );
@@ -136,7 +111,6 @@ describe("CommSignal: what undefined means today", () => {
   it("collapses a live readout back to the never-arrived empty state on a vessel.comms tombstone", async () => {
     const { fixture } = renderComm();
 
-    // Start from a live readout, so the collapse below is observably caused by the tombstone rather than by nothing ever having arrived.
     act(() => {
       fixture.emit("vessel.comms", {
         signalStrength: 0.9,
@@ -148,15 +122,10 @@ describe("CommSignal: what undefined means today", () => {
     );
 
     act(() => {
-      // A whole-topic tombstone: the subject says there is no comms record, and
-      // the control level reads `undefined` exactly as it does before anything
-      // arrives.
       fixture.emit("vessel.comms", null);
     });
 
-    // So a CONFIRMED "this vessel has no comms" is rendered as "nothing has come
-    // through yet". The tombstone is the only thing that could have produced
-    // this, which is what makes it a null-vs-undefined pin and not a no-op emit.
+    // A confirmed "no comms" renders as "nothing has come through yet".
     await waitFor(() =>
       expect(screen.getByText("No signal data")).toBeTruthy(),
     );
@@ -167,16 +136,13 @@ describe("CommSignal: what undefined means today", () => {
     const { fixture } = renderComm();
 
     act(() => {
-      // Partial payload: the record exists, the strength field within it does
-      // not. Distinct from the record being absent, and rendered differently:
-      // the bars come off the control state instead of the percentage.
+      // The record exists without a strength field, so the bars come off the control state.
       fixture.emit("vessel.comms", { controlState: CONTROL_STATE_FULL });
     });
 
     await waitFor(() =>
       expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy(),
     );
-    // Headline is the control label, not a percentage, because `pct` is null.
     expect(screen.getAllByText("Full").length).toBeGreaterThanOrEqual(1);
     expect(visibleText()).not.toContain("%");
   });
@@ -185,14 +151,13 @@ describe("CommSignal: what undefined means today", () => {
     const { fixture } = renderComm();
 
     act(() => {
-      // `strengthValid` requires `raw > 0`, so an observed zero is discarded by the same test that discards an absent field: 0 % is never rendered.
+      // An observed zero strength is discarded like an absent one.
       fixture.emit("vessel.comms", {
         signalStrength: 0,
         controlState: CONTROL_STATE_FULL,
       });
     });
 
-    // Four bars from the control-state fallback, not zero bars from the zero strength: the observed zero is invisible to the readout.
     await waitFor(() =>
       expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy(),
     );
@@ -207,11 +172,11 @@ describe("CommSignal: what undefined means today", () => {
     });
     await waitFor(() => expect(screen.getByText("Delay")).toBeTruthy());
 
-    // 1. No `comms.delay` record at all.
+    // No `comms.delay` record at all.
     const rowsWithNoRecord = screen.getAllByText(NULL_DISPLAY).length;
     expect(rowsWithNoRecord).toBe(3);
 
-    // 2. The record arrives WITHOUT the field (partial payload).
+    // The record arrives without the field.
     act(() => {
       fixture.emit("comms.delay", {});
     });
@@ -219,10 +184,7 @@ describe("CommSignal: what undefined means today", () => {
       expect(screen.getAllByText(NULL_DISPLAY).length).toBe(3),
     );
 
-    // 3. The field arrives as an explicit `null` (no measurable ControlPath).
-    // `delay == null` catches all three, so the widget's own comment is right
-    // that null and undefined read identically here: nothing distinguishes a
-    // confirmed "no path" from "nothing has arrived".
+    // An explicit null (no measurable path) reads the same as nothing arrived.
     act(() => {
       fixture.emit("comms.delay", { oneWaySeconds: null });
     });

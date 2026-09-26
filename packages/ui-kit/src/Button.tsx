@@ -2,24 +2,12 @@ import styled from "styled-components";
 import { focusRing } from "./focusRing";
 
 /**
- * Default action button: neutral dark style.
+ * Default action button: neutral dark style, sentence case. Uppercase is
+ * reserved for headings and state tokens, so case tells an instrument from a
+ * control; the label text is the caller's.
  *
- * Sentence case, and no uppercase tracking with it. A button says what pressing
- * it does, and a wall of shouted verbs competes with the readings it sits among.
- * Uppercase stays where it marks a heading or a state token (`SectionTitle`,
- * `Panel.Title`, `Badge`, `StatusPill`, table headers), so case is one of the
- * things that tells an instrument from a control.
- *
- * The label text is the caller's: this changes how a button is drawn, never what
- * it says, so a caller that wants a word capitalised writes it that way.
- *
- * ## Why it is a flex row rather than a run of inline text
- *
- * A caller that puts an icon beside the word (`<Button><PlusIcon />New
- * message</Button>`) gets an inline `<svg>`, which would sit on the TEXT
- * BASELINE and hang a couple of pixels below the middle of the word, touching
- * it. Centring here keeps every extension of this button aligned, and it
- * changes nothing for a text-only button.
+ * A flex row, so an icon beside the word (`<Button><PlusIcon />New
+ * message</Button>`) centres rather than sitting on the text baseline.
  */
 export const Button = styled.button`
   /* Centres an icon against the word beside it; see the note above. */
@@ -98,9 +86,11 @@ export const GhostButton = styled(Button)`
   }
 `;
 
-/** Inline subtle link-style button: tertiary actions placed inline with
- *  surrounding copy (e.g. "Clear all", "Cancel" inside a list row). For a
- *  paired Cancel / Confirm action row, prefer GhostButton + PrimaryButton. */
+/**
+ * Inline subtle link-style button for tertiary actions inside copy (e.g.
+ * "Clear all" in a list row). For a paired Cancel / Confirm row, prefer
+ * GhostButton + PrimaryButton.
+ */
 export const TextButton = styled.button`
   background: none;
   border: none;

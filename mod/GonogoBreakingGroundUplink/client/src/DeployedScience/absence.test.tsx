@@ -16,14 +16,8 @@ import { parseBases } from "./index";
 import "./index";
 
 /**
- * What the Deployed Base Monitor does with a science figure the mod withheld.
- *
- * `BreakingGroundViewProvider` reads all four through `SnapshotDict.GetDouble`,
- * so each is null when absent, non-numeric or non-finite, and zero is a real
- * reading: a freshly planted experiment reports 0%. The substituted zero drew
- * the card at "0%" with an empty bar AND lit the collecting dot, because
- * `collecting` was `pct < 100` and 0 satisfies it, so an experiment nobody had
- * heard from presented as one gathering nothing while hard at work.
+ * Proves a withheld science figure, power state or roster is never drawn as a zero, unpowered or empty.
+ * Zero is a real reading: a freshly planted experiment reports 0%.
  */
 
 const CARRIED = ["deployed.bases", "game.dlc"];
@@ -84,7 +78,6 @@ describe("parseBases: a withheld science figure is not a zero", () => {
     ]);
     const exp = parsed?.[0]?.experiments[0];
     expect(exp?.progress).toBeNull();
-    // Derived as `pct < 100`, which the substituted zero satisfied: the card claimed the experiment was actively collecting.
     expect(exp?.collecting).toBeNull();
   });
 
@@ -97,7 +90,6 @@ describe("parseBases: a withheld science figure is not a zero", () => {
   });
 
   it("keeps a genuine 0% as the reading it is", () => {
-    // The distinction the null exists for: a freshly planted experiment.
     const parsed = parseBases([
       flatEntry({ scienceCompletedPercentage: 0, scienceValue: 0 }),
     ]);
@@ -163,10 +155,10 @@ describe("DeployedScience: a progress held over a dropped link", () => {
     const { fixture } = mount([flatEntry()]);
     const meter = await screen.findByRole("meter", { name: "Seismometer" });
     const root = () => meter.parentElement?.parentElement;
-    // The control: a current roster is not marked
+    // The control: a current roster is not marked.
     expect(root()?.querySelector("[data-fill-not-current]")).toBeNull();
 
-    // Drop the link, then run a frame: nothing else re-derives the readings
+    // Drop the link, then run a frame: nothing else re-derives the readings.
     act(() => {
       fixture.store.setTransportConnected(false);
       fixture.store.beginFrame();
@@ -191,9 +183,6 @@ describe("DeployedScience: an unstated power state is not unpowered", () => {
     mount([flatEntry({ power: null, powerState: "Powered" })]);
 
     await screen.findByText("Mun");
-    /* `power === DeployedPowerState.Powered` answered false for an absent
-       `power`, and `POWER_TONE.unpowered` is `nogo`, so an unread cluster drew
-       the same red pill as a genuinely dark one. */
     expect(screen.queryByText(/Unpowered/i)).toBeNull();
     const pill = screen.getByRole("status");
     expect(pill.textContent).toContain("Power unknown");
@@ -227,9 +216,7 @@ describe("DeployedScience: an unread roster is not an empty one", () => {
     });
     renderedTrees.push(result.unmount);
     act(() => {
-      // The DLC is present, so the widget cannot blame a missing expansion.
-      // Nothing lands on `deployed.bases`, which is what a mod that does not
-      // carry the channel looks like, and `parseBases` answers null for it.
+      // The DLC is present and nothing lands on `deployed.bases`, as with a mod that does not carry the channel.
       fixture.emit("game.dlc", { breakingGround: true, makingHistory: false });
     });
 
@@ -238,7 +225,6 @@ describe("DeployedScience: an unread roster is not an empty one", () => {
         screen.getByText(/Waiting for the deployed-base roster/i),
       ).toBeInTheDocument(),
     );
-    // The `?? []` turned that null into an empty array, and the panel then told an operator with four bases on Duna that they had none.
     expect(screen.queryByText(/No deployed bases/i)).toBeNull();
   });
 

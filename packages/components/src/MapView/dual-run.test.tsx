@@ -8,14 +8,9 @@ import kerbinLaunchpad from "./__fixtures__/kerbin-launchpad.json";
 import { MapViewComponent } from "./index";
 
 /**
- * MapView's stream render golden. The kinematics read off `vessel.flight`,
- * the body off `vessel.identity` and `system.bodies`, and the patch chain,
- * encounter and impact off `vessel.orbit`, with no legacy fallback. This
- * proves the compact (`!showMap`) Lat/Lon/Alt readout renders the pre-launch
- * state off the real stream pipeline.
- *
- * Mode `4x5` selects the compact branch: the one MapView render path whose
- * Lat/Lon/Alt readout is plain DOM text rather than canvas drawing.
+ * MapView's stream render golden: the compact Lat/Lon/Alt readout (mode
+ * `4x5`, plain DOM text rather than canvas) renders the pre-launch state off
+ * the real stream pipeline, with no legacy fallback.
  */
 describe("MapView: stream render golden (delay=0)", () => {
   it("renders the compact Lat/Lon/Alt readout off the stream for the launchpad state", async () => {
@@ -51,9 +46,9 @@ describe("MapView: stream render golden (delay=0)", () => {
       });
     });
 
-    // altSea lands off vessel.flight.altitudeAsl: waiting on the altitude readout proves the stream leg rendered.
+    // Waiting on the altitude readout proves the stream leg rendered.
     await waitFor(() => {
-      // 80 m at the pad: see the note in stream.test.tsx on the rung.
+      // 80 m at the pad, on the metre rung.
       if (!visibleText(container).includes("80.0 m")) {
         throw new Error("stream leg has not rendered altitude yet");
       }

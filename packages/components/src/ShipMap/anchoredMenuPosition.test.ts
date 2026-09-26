@@ -13,9 +13,7 @@ describe("anchoredMenuPosition", () => {
   });
 
   it("flips above the anchor rather than sliding up the bottom edge", () => {
-    // 700 + 12 + 300 overruns the 800-high viewport; flipping up fits, and a
-    // menu above the part still reads as attached to it, where one pinned to the
-    // bottom of the screen would cover the part it belongs to.
+    // 700 + 12 + 300 overruns the 800-high viewport, so it flips above the part and still reads as attached.
     expect(anchoredMenuPosition({ x: 100, y: 700 }, MENU, VIEWPORT).top).toBe(
       700 - 12 - 300,
     );
@@ -28,16 +26,14 @@ describe("anchoredMenuPosition", () => {
   });
 
   it("clamps into the viewport when neither side fits", () => {
-    // Taller than the window: no flip can fit it, so it starts on screen and its
-    // own scroll box carries the rest. The alternative (a negative top) puts the
-    // first items above the top edge, where nothing can scroll them back.
+    // Taller than the window: it starts on screen and its own scroll box carries the rest; a negative top would be unreachable.
     const tall = { w: 200, h: 900 };
     const { top } = anchoredMenuPosition({ x: 100, y: 400 }, tall, VIEWPORT);
     expect(top).toBe(8);
   });
 
   it("keeps an unmeasured menu at the anchor", () => {
-    // The first render happens before the menu can be measured; a zero box must resolve to the plain anchor offset rather than to some clamped corner.
+    // The first render is unmeasured; a zero box resolves to the plain anchor offset.
     expect(
       anchoredMenuPosition({ x: 300, y: 300 }, { w: 0, h: 0 }, VIEWPORT),
     ).toEqual({ left: 312, top: 312 });

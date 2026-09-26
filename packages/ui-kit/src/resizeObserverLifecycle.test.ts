@@ -4,19 +4,10 @@ import {
   installFixedSizeResizeObserver,
 } from "./testing";
 
-/**
- * The ResizeObserver installers hand back the ONLY uninstall, and dropping it
- * used to be silent.
- *
- * They assign `globalThis.ResizeObserver` directly rather than through
- * `vi.stubGlobal`, so `vi.unstubAllGlobals()` does not undo them. Two test
- * files dropped the closure the same way: a local `const restore = () => {}`
- * inside a `describe` shadowing the module-scope binding that held it, so
- * teardown called the shadow, and the only symptom was a `noUnusedVariables`
- * warning indistinguishable from a dead import.
- *
- * <p>What is asserted here is the SHAPE that occurred, twice, rather than a
- * tidier stand-in for it.</p>
+/*
+ * The ResizeObserver installers hand back the only uninstall: they assign
+ * `globalThis.ResizeObserver` directly, so `vi.unstubAllGlobals()` does not undo
+ * them. Dropping the uninstall must fail the next install loudly.
  */
 
 const installed: Array<() => void> = [];
@@ -34,12 +25,7 @@ function install(): () => void {
 
 describe("a dropped ResizeObserver uninstall fails the next install", () => {
   it("catches the shadowed-binding shape that actually occurred", () => {
-    /*
-     * `Graph/stream.test.tsx` as it stood: a module-scope binding assigned by
-     * `beforeEach`, shadowed by a no-op const inside the describe, so the
-     * afterEach restored nothing and the second test's beforeEach installed
-     * over a live stub.
-     */
+    // A module-scope binding shadowed by a no-op const, so the afterEach restores nothing.
     let restoreResizeObserver: () => void = () => {};
     const stubForOneTest = () => {
       restoreResizeObserver = install();
@@ -52,7 +38,7 @@ describe("a dropped ResizeObserver uninstall fails the next install", () => {
     expect(() => stubForOneTest()).toThrowError(
       /already held by installFixedSizeResizeObserver/,
     );
-    // The real one is still reachable; the diagnosis is the point, not a wedge.
+    // The real one is still reachable.
     restoreResizeObserver();
   });
 
@@ -69,7 +55,7 @@ describe("a dropped ResizeObserver uninstall fails the next install", () => {
   });
 
   it("guards the global rather than either installer", () => {
-    // Different function, same resource: a drivable one over a fixed-size one is the same mistake and must not slip through.
+    // A drivable installer over a fixed-size one is the same mistake.
     install();
     expect(() => installDrivableResizeObserver()).toThrowError(
       /already held by installFixedSizeResizeObserver/,
@@ -86,13 +72,7 @@ describe("the legitimate shapes still work", () => {
   });
 
   it("allows a single module-scope install that is never restored", () => {
-    /*
-     * Two Uplink client suites install once at module scope for the whole file
-     * and drop the closure deliberately, because the widget under test needs a
-     * sized container before any test runs. Vitest isolates per file, so
-     * nothing outlives it, and a guard that failed this would have broken both
-     * of them.
-     */
+    // A file-wide install at module scope, dropped deliberately, is legitimate: vitest isolates per file.
     install();
     expect(globalThis.ResizeObserver).toBeDefined();
   });

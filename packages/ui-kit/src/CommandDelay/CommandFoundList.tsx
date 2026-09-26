@@ -9,23 +9,13 @@ import type { RailTags } from "./railTags";
 
 /**
  * One dispatch that was called lost and then answered after all, as much of it
- * as this text needs.
- *
- * Structurally the spine's `CommandFound`, declared as a parameter shape rather
- * than imported wholesale for the same reason `CommandRefusalLike` and
- * `CommandLossLike` are: ui-kit stays the vanilla design system, and a
- * hand-built found (a test, a peer-relayed one) can be rendered without
- * pretending it came off a handle.
- *
- * `outcome` is the one field a loss did not have, and it is required, because
- * every sentence below turns on it. A found with no outcome is a found that
- * cannot say the only new thing it knows.
+ * as this text needs. Structurally the spine's `CommandFound`, so a hand-built
+ * found can be rendered too. `outcome` is required: every sentence turns on it.
  */
 export interface CommandFoundLike {
   /**
-   * What the late reply turned out to say. Three outcomes because they send the
-   * operator in three directions: the command executed, the game refused it, or
-   * the machinery broke on the far side.
+   * What the late reply turned out to say: the command executed, the game
+   * refused it, or the machinery broke on the far side.
    */
   outcome: "ran" | "refused" | "errored";
   /** The command id that was dispatched, e.g. `vessel.control.setSas`. */
@@ -44,61 +34,34 @@ export interface CommandFoundLike {
   error?: { code: string; message: string };
 }
 
-/** A found a surface can render: the text's inputs plus the dispatch's own
- *  `requestId`, which keys the box and is what `dismiss` takes. */
+/** A found a surface can render: the text's inputs plus the dispatch's `requestId`, which keys the box and is what `dismiss` takes. */
 export interface CommandFoundEntry extends CommandFoundLike {
   id: string;
 }
 
-/** One found dispatch as the rail renders it, plus its command's rail axes:
- *  a point in time or a span of one (which only the registering handle knows). */
+/** One found dispatch as the rail renders it, plus its command's rail axes. */
 export interface RailFound extends CommandFoundEntry {
   tags: RailTags;
 }
 
 /**
  * What the operator is told about a command they were told was lost, which then
- * answered.
+ * answered. Never "confirmed": the operator may already have re-sent it, and
+ * "found" carries that reversal.
  *
- * Deliberately never the word "confirmed". Confirmed means it worked as
- * expected; this is the opposite of expected. The operator was given permission
- * to stop waiting, may well have re-sent the command on the strength of that,
- * and is now being told the first one arrived. "Found" is the word that carries
- * that reversal, and it is the only line the rail draws that has one.
+ * - `ran`: it executed. If they re-sent it, it executed twice
+ * - `refused`: it arrived and the game said no, in the refusal composer's words
+ * - `errored`: it arrived and the machinery broke over there; a retry may work
  *
- * "After being lost" trailed every one of these and said what "found" already
- * means, so it went the same way as the loss sentence's "whether it ran is
- * unknown".
- *
- * The verdict beside it differs by outcome because what the operator does next
- * does:
- *
- * - `ran`: it executed. If they re-sent it, it executed twice, and this is the
- *   only place that fact exists
- * - `refused`: it arrived and the game said no, in the same words a refusal
- *   would have used had it come back on time. A re-send is refused again until
- *   the world changes
- * - `errored`: it arrived and the machinery broke over there. It got through,
- *   which is the found part, and a retry may genuinely work
- *
- * No imperative anywhere in it. The rail is instrumentation: it says what
- * happened and lets the operator decide, the same way the loss sentence beside
- * it stops at "may have run".
+ * No imperative: the rail says what happened and lets the operator decide.
  */
 export function commandFoundSentence(found: CommandFoundLike): string {
   const subject = commandRefusalSubject(found);
   const what = subject || found.command || "The command";
-  /*
-   * Two words: the reversal and the verdict. Nothing else survived the cut,
-   * because nothing else changes what the operator does next.
-   */
+  // The reversal and the verdict, nothing else.
   const opening = (state: string) => `${what}: found ${state}.`;
   if (found.outcome === "refused") {
-    /*
-     * The refusal composer, not a second table of reasons. A late refusal is
-     * the same verdict with the same numbers, and writing it out again here is
-     * how the two would end up disagreeing about what LimitReached says.
-     */
+    // The refusal composer, not a second table of reasons.
     const clause =
       found.errorCode === undefined
         ? ""
@@ -123,12 +86,9 @@ export function commandFoundSentence(found: CommandFoundLike): string {
 
 /**
  * `Hire Valentina Kerman refused: the Astronaut Complex holds 16 of 16 active
- * crew.` -> `the Astronaut Complex holds 16 of 16 active crew.`
- *
- * The subject is already the opening of the found sentence, so leaving it in
- * would name the command twice in one line. The clause comes out cased exactly
- * as the refusal composer wrote it, which is what keeps a proper noun the game
- * supplied (`Craft is over the mass limit`) from losing its capital.
+ * crew.` -> `the Astronaut Complex holds 16 of 16 active crew.`, since the
+ * found sentence already opens with the subject. Case is kept, so the game's
+ * proper nouns survive.
  */
 function stripSubject(sentence: string): string {
   const at = sentence.indexOf(": ");
@@ -137,8 +97,7 @@ function stripSubject(sentence: string): string {
 
 export interface CommandFoundListProps {
   founds: readonly RailFound[];
-  /** Clear one found. Omitted when no handle can dismiss, and the boxes then
-   *  carry no clear control rather than an inert one. */
+  /** Clear one found. Omit it and the boxes carry no clear control rather than an inert one. */
   onDismiss?: (id: string) => void;
   /**
    * Announce each entry as it arrives (the default). Off only where something
@@ -149,22 +108,13 @@ export interface CommandFoundListProps {
 }
 
 /**
- * The recovered dispatches under the rail's two queues, beside the losses they
- * used to be.
+ * The recovered dispatches under the rail's two queues. The same box as a
+ * refusal and a loss, in a different tone: news about something that happened,
+ * not a warning.
  *
- * It is the same box as a refusal and a loss, and deliberately a DIFFERENT
- * tone: those two are warnings about something that did not happen, and this is
- * news about something that did. Drawing it in the warning colour would put it
- * in the same bucket as the loss it replaced, which is the one reading it must
- * not have.
- *
- * `role="status"` on the list, which is `aria-live="polite"` by implication: a
- * command turning up executed is a mission-state change and it must reach an
- * operator who is looking somewhere else. Politely, never assertive: assertive
- * is reserved for ABORT, and this is news, not an interruption.
- *
- * An empty set draws nothing. A live list keeps its empty region mounted, so
- * the first entry to arrive is announced.
+ * `role="status"` (polite): a command turning up executed is a mission-state
+ * change. An empty set draws nothing, but a live list keeps its empty region
+ * mounted so the first entry is announced.
  */
 export function CommandFoundList({
   founds,

@@ -16,56 +16,35 @@ import { useElementSize } from "./useElementSize";
 import { VisuallyHidden } from "./VisuallyHidden";
 
 export interface TabDescriptor {
-  /**
-   * Stable identity for the tab. Falls back to the tab's position in the
-   * array when omitted, so a caller can hand in bare `{ label, content }`
-   * pairs and never think about ids.
-   */
+  /** Stable identity for the tab. Falls back to the tab's position in the array. */
   id?: string;
   label: string;
   content: ReactNode;
-  /**
-   * When true, an attention dot is shown beside the tab label, used to
-   * point the operator at a tab whose subsystem needs attention (e.g. an
-   * offline data source). Aggregating these across tabs is the caller's job.
-   */
+  /** Shows an attention dot beside the label, for a tab whose subsystem needs attention. */
   indicator?: boolean;
   /**
-   * The tab's subsystem does not apply right now, so there is nothing behind
-   * it to read: an active-vessel panel with nothing flying, a per-target view
-   * with no target. It cannot be selected by pointer or keyboard, the roving
-   * navigation steps over it, and if it is the active tab when it turns off,
-   * selection falls through to the first tab that still applies. Reach for it
-   * rather than rendering an empty panel or dimming the content, both of which
-   * leave the operator to work out why the tab is blank.
+   * The tab's subsystem does not apply right now (nothing flying, no target).
+   * It cannot be selected, roving navigation steps over it, and an active tab
+   * that turns off falls through to the first tab that still applies. Prefer it
+   * to an empty or dimmed panel.
    */
   disabled?: boolean;
 }
 
 export interface TabsProps {
   tabs: TabDescriptor[];
-  /**
-   * Controlled selection. Omit together with `onChange` to let `Tabs` track
-   * its own selection internally, starting on the first tab.
-   */
+  /** Controlled selection. Omit with `onChange` for internal selection starting on the first tab. */
   activeId?: string;
   onChange?: (id: string) => void;
   /**
-   * Lay every panel out side by side, each still under its own label, once
-   * the container measures wide enough to give each one a legible column;
-   * collapses back to single-panel switch mode (a tablist plus one visible
-   * panel) below that width. Default `false`: a tab strip is often the
-   * better read even with room to spare (content meant to be consumed one
-   * section at a time), so this is an opt-in per instance.
+   * Lay every panel out side by side, each under its own label, once the
+   * container is wide enough for a legible column each; below that, a tablist
+   * and one panel. Opt-in, default `false`.
    */
   expandWhenRoomy?: boolean;
   /**
-   * Accessible name for the tab strip itself, not for any one tab. A bare
-   * tablist announces only as "tab list", which is enough while a screen has
-   * one and ambiguous the moment it has two: the operator lands on a strip
-   * with no way to tell which region it switches without reading the tabs and
-   * inferring. Applied to the `tablist`; the side-by-side layout has no strip
-   * to name and ignores both.
+   * Accessible name for the tab strip itself, needed once a screen has more
+   * than one. Ignored by the side-by-side layout, which has no strip.
    */
   "aria-label"?: string;
   /** As `aria-label`, when the name is already on screen as an element. */
@@ -76,17 +55,10 @@ export interface TabsProps {
 /** Minimum width a side-by-side panel needs to stay legible. */
 export const TABS_PANEL_MIN_WIDTH = 240;
 
-/**
- * Gap between side-by-side panels. Matches `Grid`'s `md` space token (8px)
- * as a literal, so the pure width check below needs no theme context.
- */
+/** Gap between side-by-side panels: `Grid`'s `md` token as a literal, so the width check needs no theme. */
 const TABS_PANEL_GAP = 8;
 
-/**
- * Pure decision backing `expandWhenRoomy`: true once the measured container
- * can fit every panel at its minimum legible width, side by side. A single
- * tab never expands, there is nothing to lay out beside it.
- */
+/** True once the container fits every panel side by side at its minimum legible width. A single tab never expands. */
 export function shouldExpandTabs(
   containerWidth: number,
   panelCount: number,
@@ -117,11 +89,7 @@ export function Tabs({
     () => activeId ?? resolved[0]?.id ?? "",
   );
   const currentId = isControlled ? (activeId as string) : internalActiveId;
-  // A disabled tab is never the one on screen, even when the caller still
-  // names it: a panel that cannot be reached by click or key must not be
-  // reachable by going stale either. First tab that still applies wins, and
-  // the whole set being disabled falls back to the caller's choice rather
-  // than rendering nothing.
+  // A disabled tab is never the one on screen, even when named; if every tab is disabled, the caller's choice stands.
   const named = resolved.find((t) => t.id === currentId);
   const active =
     named && !named.disabled
@@ -136,7 +104,7 @@ export function Tabs({
     [isControlled, onChange],
   );
 
-  // Side-by-side mode lays out panels, and a disabled tab has no panel worth laying out, so it is measured and rendered against the tabs that apply.
+  // Side-by-side mode measures and renders only the tabs that apply.
   const selectable = useMemo(
     () => resolved.filter((t) => !t.disabled),
     [resolved],
@@ -148,42 +116,22 @@ export function Tabs({
 
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const barRef = useRef<HTMLDivElement>(null);
-  // Tighter padding and tracking once the tabs stop fitting.
-  //
-  // Decided against the row's UNCOMPACTED width, which is cached rather than
-  // re-read, because reading it while compacted would read a width that
-  // compacting had already changed: it would compact, then fit, then uncompact,
-  // then not fit. The cache is only ever written while uncompacted, so
-  // uncompacting happens when the bar grows past the natural width and not
-  // before.
-  //
-  // Do NOT replace this with a hidden ghost row, which looks tidier and was the
-  // first attempt: it measured 188px against the real row's 208px, so min-6x9
-  // never compacted at all. A mirror of a styled component has to reproduce it
-  // exactly, and an instrument that silently fails to reproduce its subject
-  // does not report an error, it reports a plausible number. Caching the real
-  // element deletes that possibility rather than correcting one instance of it.
+  /*
+   * Tighter padding and tracking once the tabs stop fitting, decided against the
+   * row's uncompacted width. It is cached, and only written while uncompacted,
+   * because re-reading it while compacted would oscillate.
+   */
   const naturalWidthRef = useRef<number | null>(null);
   const [compact, setCompact] = useState(false);
   const [overflow, setOverflow] = useState({ left: false, right: false });
-  /**
-   * The last edges handed to `setOverflow`. React's same-value bailout is not
-   * guaranteed once the fiber has other work queued, so an unchanged
-   * measurement still schedules a render unless it is filtered here first.
-   */
+  // React's same-value bailout is not guaranteed with other work queued, so an unchanged measurement is filtered here.
   const overflowRef = useRef(overflow);
-  // Where the selection blob sits. Measured rather than derived from flex
-  // order: labels are different widths, and the blob has to land exactly on
-  // whichever one is active, including after a resize or a font swap.
+  // Measured, since labels differ in width and the blob must land exactly on the active one.
   const [blob, setBlob] = useState<{ left: number; width: number } | null>(
     null,
   );
 
-  // `expanded` isn't read in the body below, but toggling it swaps the tab
-  // bar out of the tree entirely (the side-by-side layout has no bar to
-  // scroll); re-running the effect on that flip is what lets it re-attach to
-  // a freshly mounted bar when it collapses back, rather than holding a
-  // stale ref to a detached node.
+  // `expanded` swaps the bar in and out of the tree, so the effect re-runs to attach to the fresh bar.
   // biome-ignore lint/correctness/useExhaustiveDependencies: expanded is an intentional recompute trigger, see the comment above.
   useEffect(() => {
     const el = barRef.current;
@@ -227,10 +175,7 @@ export function Tabs({
     const bar = barRef.current;
     if (!bar) return;
     const measure = () => {
-      // scrollWidth is the row's content width, so while nothing is compacted
-      // it IS the natural width. Recording it on every uncompacted pass also
-      // picks up a font swap, which changes the labels' width without resizing
-      // the bar.
+      // Recorded on every uncompacted pass, so a font swap is picked up too.
       setCompact((wasCompact) => {
         if (!wasCompact) naturalWidthRef.current = bar.scrollWidth;
         const natural = naturalWidthRef.current;
@@ -243,11 +188,6 @@ export function Tabs({
     return () => ro.disconnect();
   }, [expanded, resolved.length]);
 
-  /**
-   * Move `step` tabs from `from`, wrapping, and keep going while the landing
-   * tab is disabled. Bounded by the tab count, so a set with nothing
-   * selectable simply does not move rather than spinning.
-   */
   // biome-ignore lint/correctness/useExhaustiveDependencies: re-measure when the active tab or the tab set changes, which is exactly what moves the blob.
   useLayoutEffect(() => {
     const bar = barRef.current;
@@ -259,7 +199,7 @@ export function Tabs({
     const measure = () => {
       const el = buttonRefs.current.get(active?.id ?? "");
       if (!el) return;
-      // offsetLeft is relative to the scrolling bar's content box, so the blob travels with the tabs when the bar scrolls instead of detaching.
+      // offsetLeft is relative to the scrolling bar's content box, so the blob scrolls with the tabs.
       setBlob((prev) =>
         prev && prev.left === el.offsetLeft && prev.width === el.offsetWidth
           ? prev
@@ -273,6 +213,11 @@ export function Tabs({
     return () => ro.disconnect();
   }, [active?.id, resolved.length, expanded]);
 
+  /**
+   * Move `step` tabs from `from`, wrapping, and keep going while the landing
+   * tab is disabled. Bounded by the tab count, so a set with nothing
+   * selectable does not move.
+   */
   const activateByIndex = useCallback(
     (from: number, step: number) => {
       const n = resolved.length;
@@ -302,7 +247,7 @@ export function Tabs({
           e.preventDefault();
           activateByIndex(currentIdx, -1);
           break;
-        // Home/End start one step OUTSIDE the strip so the search lands on the first (or last) tab itself, then walks inward past any disabled ones.
+        // Home/End start one step outside the strip, so the search lands on the end tab and walks inward past disabled ones.
         case "Home":
           e.preventDefault();
           activateByIndex(-1, 1);
@@ -380,9 +325,6 @@ export function Tabs({
                 $active={isActive}
                 onClick={() => select(tab.id)}
                 onKeyDown={handleKeyDown}
-                /* The label survives being shortened: a tab narrowed to an
-                   ellipsis still has to say which tab it is. The accessible
-                   name is unaffected, being the button's own text. */
                 title={tab.label}
                 $compact={compact}
               >
@@ -426,16 +368,12 @@ const Tabs__Root = styled.div`
   min-height: 0;
 `;
 
-/* Positioned wrapper so the left/right overflow glows can sit over the tab
-   bar's edges. No rule under the bar: the track IS the boundary, and a line
-   under it reads as a second one. */
+// Positioned wrapper so the overflow glows can sit over the bar's edges.
 const Tabs__BarShell = styled.div`
   position: relative;
 `;
 
-/* The track: one dark rounded rectangle holding every tab, so the strip reads
-   as a single control rather than a row of loose words. `position: relative`
-   is what the blob measures and travels inside. */
+// The track holding every tab; the blob measures and travels inside it.
 const Tabs__Bar = styled.div`
   position: relative;
   display: flex;
@@ -484,9 +422,7 @@ const Tabs__OverflowGlow = styled.div<{
   }
 `;
 
-/* The selection blob. Painted before the buttons and left unpositioned in the
-   stacking sense: the buttons are `position: relative`, so DOM order alone
-   puts the labels over it and no z-index is needed. */
+// The selection blob. The buttons are `position: relative`, so DOM order alone puts the labels over it.
 const Tabs__Blob = styled.span`
   position: absolute;
   top: var(--inset-tab-track);

@@ -12,26 +12,7 @@ import {
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
 
-/**
- * Stream test-adapter proof for ManeuverPlanner's maneuver-node id
- * round-trip: `o.maneuverNodes` (behind `useManeuverNodes`) reads the
- * `vessel.maneuver` wire topic, and the id round-trips via the SAME raw
- * `vessel.maneuver` read (`resolveNodeId` in index.tsx) to feed the real
- * guid into the update/remove commands instead of a positional array
- * index. This is what "un-gapping o.updateManeuverNode/
- * o.removeManeuverNode" (map-command.ts) actually proves end-to-end: a real
- * button click, correlated across the two independently-timed reads,
- * dispatching the right id.
-
- *
- * Every OTHER telemetry read this widget makes (`o.sma`/`o.eccentricity`/
- * `o.ApR`/`o.PeR`/`o.timeToAp`/`o.timeToPe`/`o.orbitalSpeed`/`o.radius` off
- * `vessel.orbit` or solved from its elements, `t.universalTime` off
- * `useViewUt()`) has moved to a canonical Topic read with NO legacy
- * fallback (see `index.tsx`): there is no `setupMockDataSource` leg left
- * in this file at all; `emitOrbitReady` feeds the real
- * `vessel.orbit` wire topic instead.
- */
+// A real button click dispatches the node's real guid, resolved from `vessel.maneuver`, not its list position.
 afterEach(() => {
   clearActionHandlers();
 });
@@ -49,15 +30,7 @@ const CARRIED_ORBIT = [
 
 const REAL_NODE_ID = "3aabdda0-9d2a-4931-8511-d9bfa4be4b4e";
 
-/**
- * Feeds `vessel.orbit` in the default (OnRails) quality, with the horizon and
- * the body roster a live sample carries beside it, so the conic over those
- * elements is available and the apsides/countdowns/radius/period solved from
- * them all resolve: everything `ManeuverPlannerComponent`'s `telemetryStatus`
- * gate needs to clear the "Waiting for telemetry" panel. `epoch` == `pinnedUt`
- * so `trueAnomaly` lands exactly at periapsis (0°), matching the legacy
- * fixture's `o.trueAnomaly: 0`.
- */
+/** Feeds everything the telemetry gate needs; `epoch` equals `pinnedUt`, so the true anomaly is 0. */
 function emitOrbitReady(fixture: ReturnType<typeof setupStreamFixture>) {
   fixture.emit("vessel.orbit", {
     referenceBodyIndex: 1,
@@ -77,15 +50,9 @@ function emitOrbitReady(fixture: ReturnType<typeof setupStreamFixture>) {
 }
 
 /**
- * `TelemetryProvider` coalesces `beginFrame()` to a microtask in jsdom (no
- * `requestAnimationFrame`, see `context.tsx`'s own doc comment): a plain
- * `act()` around `transport.emit` doesn't guarantee that microtask has
- * actually run by the time a synchronous `.click()` fires right after. The
- * "Delete node" button itself appears as soon as the streamed
- * `vessel.maneuver.legacy` read lands (a separate, synchronous path), so
- * it's not a reliable proxy for "the raw `vessel.maneuver` frame carrying
- * the real node id has committed too." Wait on the store directly instead
- * of racing it.
+ * Waits on the store for the frame carrying the real node id. The provider
+ * coalesces frames to a microtask in jsdom, and the Delete button can appear
+ * before that frame commits.
  */
 async function waitForManeuverStreamFrame(
   fixture: ReturnType<typeof setupStreamFixture>,
@@ -109,9 +76,7 @@ function emitManeuverNode(fixture: ReturnType<typeof setupStreamFixture>) {
         dvNormal: 0,
         dvPrograde: 30,
         dvTotal: 30,
-        // Stated, because `StockManeuverPlanBackend` states it: a node with no
-        // basis is a shape the stock producer never sends, and the editor
-        // rightly declines to put stock's words on one.
+        // The stock producer always states a basis.
         frame: ManeuverFrame.RadialNormalPrograde,
         patches: [],
       },
@@ -162,12 +127,7 @@ describe("ManeuverPlanner: maneuver-node id round-trip (M3 vessel-gap batch)", (
   });
 
   it("Delete still dispatches vessel.maneuver.remove with the REAL id even when the command topic isn't in the carried allowlist", async () => {
-    // useCommand (delayed-command-ux migration) dispatches unconditionally
-    // via the client, no carried-channels gate and no legacy DataSource
-    // fallback: the allowlist below deliberately omits
-    // "vessel.maneuver.remove" (the READ, "vessel.maneuver", still is, so
-    // the real id resolves) to prove the command topic being un-carried no
-    // longer matters.
+    // useCommand dispatches regardless of the carried list, which here omits the command topic.
     const fixture = setupStreamFixture({
       carriedChannels: [...CARRIED_ORBIT, "vessel.maneuver"],
       pinnedUt: 1_000_000,
@@ -215,12 +175,7 @@ describe("ManeuverPlanner: maneuver-node id round-trip (M3 vessel-gap batch)", (
       },
     });
 
-    // No TelemetryProvider mounted at all: `vessel.maneuver.legacy` never
-    // resolves, so `useManeuverNodes` returns an empty list and no node row
-    // (hence no "Delete node" button) renders. This case is now covered by
-    // the plain-index unit path on `resolveNodeId` directly instead (see
-    // `index.test.tsx`): nothing left to exercise here now that
-    // `o.maneuverNodes` has no legacy fallback of its own to fall back to.
+    // With no provider mounted there are no nodes, so no row renders.
     render(
       <DashboardItemContext.Provider value={{ instanceId: "mnv-no-stream" }}>
         <ManeuverPlannerComponent id="mnv-no-stream" config={{}} />
@@ -266,9 +221,7 @@ describe("ManeuverPlanner: maneuver-node id round-trip (M3 vessel-gap batch)", (
     await waitForManeuverStreamFrame(fixture);
     await user.click(editBtn);
 
-    // Default preset -> the "New maneuver" section's own Prograde field
-    // isn't rendered, so only the node editor's is on screen (same
-    // established pattern as index.test.tsx's own maneuver-edit test).
+    // The default preset renders no Prograde field, so this one is the node editor's.
     const progradeLabel = screen.getByText("Prograde");
     const progradeInput = progradeLabel.parentElement?.querySelector(
       'input[type="number"]',
@@ -293,17 +246,9 @@ describe("ManeuverPlanner: maneuver-node id round-trip (M3 vessel-gap batch)", (
 });
 
 /**
- * The planner's "Available" figure comes off the wire's own `dv.summary` total,
- * through the shared `DELTA_V_BUDGET` processor, and NOT from adding up
- * `dv.stages`.
- *
- * The case emits three stage rows adding to 1800 alongside a summary that
- * says 1900, and demands 1900 on screen.
- *
- * The processor also has to SUBSCRIBE its own deps, since the widget no longer
- * reads either topic itself; `isSubscribed` below is what says so. The ΔV total
- * only renders once `!waiting` (`telemetryStatus` all-clear), so
- * `emitOrbitReady` feeds the rest of the widget's telemetry too.
+ * "Available" is the wire's own `dv.summary` total through the shared budget
+ * processor, never the sum of `dv.stages`; the processor subscribes its own
+ * dependencies.
  */
 describe("ManeuverPlanner: the ΔV budget rides the stream", () => {
   it("shows the wire's own dv.summary total, not the sum of the stage rows", async () => {
@@ -321,15 +266,12 @@ describe("ManeuverPlanner: the ΔV budget rides the stream", () => {
       </fixture.Provider>,
     );
 
-    // Subscribed by the processor's own dep walk, not by the widget: nothing in ManeuverPlanner reads either topic directly any more.
     expect(fixture.transport.isSubscribed("dv.stages")).toBe(true);
     expect(fixture.transport.isSubscribed("dv.summary")).toBe(true);
 
     act(() => {
       emitOrbitReady(fixture);
-      // The mod's real StageDeltaVEntry field names (contract.ts:491),
-      // `dvVac`/`dvAsl`, NOT the legacy `deltaVVac`/`deltaVASL`. These add to
-      // 1800, which must NOT be what the widget shows.
+      // These add to 1800, against a summary of 1900.
       fixture.emit("dv.stages", [
         { stage: 1, dvVac: 1200, dvAsl: 1000, dvActual: 1100 },
         { stage: 0, dvVac: 600, dvAsl: 500, dvActual: 550 },

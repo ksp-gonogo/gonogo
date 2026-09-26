@@ -17,17 +17,9 @@ import charging from "./__fixtures__/03-solar-charging-sunlight.json";
 import { PowerSystemsComponent } from "./index";
 
 /**
- * PowerSystems' behavior-preservation golden
- * dual-run (mirrors `Targeting/dual-run.test.tsx`): the SAME
- * solar-charging scenario, rendered once via `vessel.parts`-carried
- * resources (both legs now: `usePartsLive` reads the per-part `resources`
- * join off `vessel.parts`, not the legacy `DataSource`) and once with
- * `parts.power` ALSO carried (`totalProductionEc` wins the merge), must
- * produce byte-identical DOM at `delay=0`. `03-solar-charging-sunlight`'s
- * three producers sum to exactly 49.55 EC/s (24.4 + 24.4 + 0.75), the
- * stream leg's `totalProductionEc` is chosen to match that exactly (NET
- * nets that against the fixture's own -0.05 consumer either way), proving
- * the merge is a genuine no-op parity case, not a coincidence of rounding.
+ * The same solar-charging scenario rendered with and without `parts.power` carried must produce identical DOM at `delay=0`.
+ *
+ * The fixture's three producers sum to exactly 49.55 EC/s and the streamed `totalProductionEc` matches it, so an agreeing measurement adds nothing.
  */
 
 describe("PowerSystems: behavior-preservation golden dual-run (delay=0)", () => {
@@ -75,13 +67,7 @@ describe("PowerSystems: behavior-preservation golden dual-run (delay=0)", () => 
         }
         legacyAux.source.emit(key, value);
       }
-      // v.topology now streams via vessel.parts (useTopology reads it
-      // canonically): the same topology payload, reshaped to the wire
-      // shape, instead of the legacy AUX emission above. The fixture's
-      // r.resourceFor[fid] rows ride the SAME payload now too (usePartsLive
-      // reads resources off vessel.parts, not the legacy DataSource),
-      // extracted and folded in here rather than left on the now-inert
-      // legacyAux emission a few lines up.
+      // Topology and per-part resources both ride the one `vessel.parts` payload.
       streamFixture.emit(
         "vessel.parts",
         topologyToVesselPartsWire(

@@ -5,20 +5,8 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ObjectivesComponent } from "./index";
 
 /**
- * What this widget does when `career.status` stops being current: it KEEPS the
- * objective list, and this file is what stops that being quietly reversed.
- *
- * An objective list is a set of facts. A contract parameter goes from Incomplete
- * to Complete because something HAPPENED, and nothing happens down a link that
- * has stopped delivering, so the last list we were sent is still what the
- * programme is trying to achieve. The alternative is worse than useless: this
- * frame's only other rendering is "No active objectives", a positive claim about
- * the career, so withholding would have a quiet link read as a mission with
- * nothing left to do.
- *
- * The empty state is also what a withheld list would look like from outside,
- * which is exactly why the assertions below are about what is still on screen
- * rather than about the absence of an error.
+ * Proves the objective list is kept when `career.status` stops being current: it changes only on events.
+ * Withholding it would render "No active objectives", a claim about the career rather than the link.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -98,24 +86,15 @@ describe("Objectives when career telemetry is no longer current", () => {
 
     expect(screen.getByText("Reach the Mun")).toBeInTheDocument();
     expect(screen.getByText("Return home safely")).toBeInTheDocument();
-    // The reached/pending split survives too. Each of those is an event on the
-    // record, not a quantity that decayed between frames, so holding it makes no
-    // claim the link cannot support.
     expect(screen.getByText("reached")).toBeInTheDocument();
     expect(screen.getByText("pending")).toBeInTheDocument();
-    // The list itself is what says the source still yielded content: the frame's
-    // "No active objectives" fallback is hidden by an `:empty` sibling CSS rule
-    // rather than unmounted, and jsdom does not evaluate that rule, so its
-    // presence in the DOM is not evidence of what is on screen either way.
+    // The fallback is hidden by a CSS rule jsdom does not evaluate, so the list is the evidence.
     expect(
       screen.getByRole("list", { name: "Objectives" }).children,
     ).toHaveLength(2);
   });
 
   it("still says there are no objectives when none ever arrived", async () => {
-    // The control for the sentence above: that empty state belongs to a career
-    // we have heard nothing about, and it must not become the rendering for a
-    // link that stopped after telling us plenty.
     const fixture = newFixture();
     mount(fixture);
     goStale(fixture);

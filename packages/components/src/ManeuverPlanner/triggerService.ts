@@ -21,8 +21,7 @@ export interface ArmTriggerInput {
 
 export interface TriggerSnapshot {
   triggers: readonly ArmedTrigger[];
-  /** Name of the vessel the host is currently observing. Triggers
-   *  associated with a different vessel are auto-cleared by the host. */
+  /** The vessel the host is observing; the host clears triggers armed for any other. */
   vesselName: string | null;
 }
 
@@ -32,11 +31,9 @@ export const EMPTY_TRIGGER_SNAPSHOT: TriggerSnapshot = {
 };
 
 /**
- * Surface every consumer of the maneuver-trigger feature uses. Two
- * implementations: the host service on the main screen (owns the
- * canonical list, evaluates conditions, dispatches burns) and the client
- * service on stations (mirrors the host snapshot, sends arm/cancel
- * commands over PeerJS).
+ * The maneuver-trigger surface. The main screen's host service owns the list,
+ * evaluates conditions and dispatches burns; a station's client service
+ * mirrors it and sends arm and cancel over PeerJS.
  */
 export interface ManeuverTriggerService {
   snapshot(): TriggerSnapshot;
@@ -63,9 +60,7 @@ export function ManeuverTriggerProvider({
   );
 }
 
-/** Returns the trigger service if one is wired up, or null when the
- *  widget is rendered outside any provider (legacy main-screen test
- *  harness, storybook, etc.). Widgets fall back to local-only state. */
+/** The provided trigger service, or null outside any provider, where widgets fall back to local state. */
 export function useManeuverTriggerService(): ManeuverTriggerService | null {
   return useContext(ManeuverTriggerContext);
 }

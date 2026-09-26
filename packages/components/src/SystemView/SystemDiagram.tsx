@@ -39,36 +39,6 @@ import {
 } from "./projection";
 import type { CelestialBody } from "./useCelestialBodies";
 
-/**
- * Every body orbiting a chosen parent, drawn in one frame.
- *
- * <b>The arithmetic is three-dimensional and the projection to two dimensions
- * happens once, at the last step.</b> Flattening any earlier makes a frame
- * transform impossible: a rotation into a pair-rotating frame is a rotation
- * about an arbitrary axis, and a plane the third component has already been
- * dropped from has no such rotation to perform. Every position here is a
- * parent-centred three-vector in metres, put through the projection in force,
- * and only then multiplied into plot units and written into an SVG attribute.
- *
- * The component that gets dropped is what the colour means. A body's marker
- * carries a cue from its OWN depth at this instant, and a drawn path carries a
- * gradient along the axis its own depth varies on, which is a different reading
- * from inclination: a body at its ascending node has no depth however inclined
- * its orbit is.
- *
- * Layered affordances on top of the schematic:
- *
- *   - The active vessel renders as a green dot on its own orbit when
- *     the chosen frame matches the vessel's parent.
- *   - Hover any body for a mouse-tracked tooltip with the canonical
- *     orbital parameters; the SVG `<title>` had a 500ms delay and
- *     a 3.5px hit target.
- *
- * Pan + wheel-zoom let users dig into nested systems without changing
- * the configured frame. Reset button in the bottom-right snaps back to
- * the auto-fit view.
- */
-
 export interface VesselOrbit {
   parentName: string;
   sma: number;
@@ -93,39 +63,13 @@ export interface SystemDiagramProps {
   targetName?: string | null;
   /** If set and `parentName` matches, plot the vessel on its orbit. */
   vessel?: VesselOrbit | null;
-  /**
-   * What the propagation seam says the vessel's trajectory IS: a conic the
-   * elements themselves draw, a sampled arc to draw as given, or a refusal.
-   *
-   * No default, and `null`/absent draws NO curve, which is the only honest
-   * reading: `sma` and `ecc` are enough to emit an ellipse without asking
-   * anything, so a permissive default here would be the whole defect restored
-   * one layer down, in the place nobody would look for it. The vessel's MARKER
-   * is unaffected: where the craft is comes from the elements at the sample
-   * instant and is true whoever computed them.
-   */
+  /** What the propagation seam says the vessel's trajectory is; absent draws no curve, while the marker still comes from the elements. */
   vesselTrajectory?: OrbitTrajectory | null;
-  /**
-   * How the vessel's plotted position is KNOWN. Defaults to `observed`, which
-   * is the only honest default for a diagram that has not been told otherwise:
-   * a caller that omits it is drawing a live craft.
-   */
+  /** How the vessel's plotted position is known; a caller that omits it is drawing a live craft. */
   vesselPlotState?: VesselPlotState;
-  /**
-   * Whether the read the vessel's position was plotted from is being HELD.
-   *
-   * Separate from `vesselPlotState`, which says how the position was ARRIVED
-   * at (observed, reckoned, overdue, lost) and is contributed from the comms
-   * graph. This says whether the read behind it is still a read of now, and the
-   * two are orthogonal: an observed position can be minutes old.
-   */
+  /** Whether the read behind the vessel's position is held; orthogonal to `vesselPlotState`, since an observed position can be minutes old. */
   vesselPositionHeld?: boolean;
-  /**
-   * Live phase angles (deg, to active vessel) keyed by body index. When
-   * provided, each body gets a tiny numeric label rendered next to its
-   * orbit dot. The vessel's own parent body (if any) should be excluded
-   * by the caller: the angle is meaningless there.
-   */
+  /** Live phase angles (deg, to the active vessel) keyed by body index; the caller excludes the vessel's own parent. */
   phaseAngles?: ReadonlyMap<number, number>;
   /**
    * Hohmann transfer-window state per body: `"go"` when the live phase
@@ -133,31 +77,11 @@ export interface SystemDiagramProps {
    * colour of the phase-angle label.
    */
   transferStatuses?: ReadonlyMap<number, "go" | "soon">;
-  /**
-   * Fires whenever the hovered body changes. Lets the surrounding widget
-   * mirror the focus into a side panel; passes `null` when the cursor
-   * leaves all dots.
-   */
+  /** Fires when the hovered body changes, with `null` when the cursor leaves all dots. */
   onFocusBodyChange?: (body: CelestialBody | null) => void;
-  /**
-   * Multi-SOI predicted trajectory from `o.orbitPatches`. When supplied, each
-   * patch orbiting the rendered frame body (or a drawn child) is sampled and
-   * projected onto the diagram: the live patch is drawn solid green, upcoming
-   * patches dashed and de-emphasised, and SOI crossings get an encounter
-   * marker. `ut` is the current universal time, used to find the live patch.
-   */
+  /** Multi-SOI predicted trajectory from `o.orbitPatches`; `ut` locates the live patch. */
   predicted?: { orbitPatches: readonly OrbitPatch[]; ut: number } | null;
-  /**
-   * The frame the WHOLE picture is drawn in: the bodies, their rings, the craft
-   * and its curve alike.
-   *
-   * `null` is the catalogue refusing to form the frame that was asked for, not
-   * the absence of a frame. The diagram then draws in the coordinates its own
-   * positions already arrive in, which is the parent-centred inertial frame the
-   * host's own stock entry registers, and the caller names that frame beside the
-   * picture. There is one coalesce for this, at the top of the component, so no
-   * draw site below it asks whether a projection exists.
-   */
+  /** The frame the whole picture is drawn in. `null` means the catalogue refused the requested frame, so the diagram draws parent-centred inertial and the caller names that frame. */
   projection?: ResolvedProjection | null;
   width: number;
   height: number;
@@ -167,23 +91,16 @@ const PAD = 20;
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 25;
 
-/**
- * Body orbit rings (child bodies orbiting the framed parent) render
- * THICKER than the active vessel's own orbit ring
- * (`ACTIVE_VESSEL_ORBIT_STROKE_WIDTH` below) and than a contributed vessel
- * orbit ring (`SystemEntitiesLayer.tsx`'s `VESSEL_ORBIT_STROKE_WIDTH_PX`):
- * the three classes have to stay far enough apart in width to be told apart,
- * a few tenths of a pixel reads as visually identical. Screen-constant
- * (divided by `zoom`, like
- * every dot/marker/label in this diagram): `strokeWidth={1.2}` alone would
- * balloon to 30px at the 25x zoom cap (board #28, `soiZoomStroke.test.tsx`).
- */
+/** Body orbit rings stay visibly thicker than both vessel ring classes; every stroke is divided by zoom to stay screen-constant. */
 const BODY_ORBIT_STROKE_WIDTH = 2;
-/** The active vessel's own dedicated ring (`VesselOrbitPath`): thinner than
- *  a body orbit, so the two classes read as visually distinct. It keeps its
- *  own dashed pattern + inclination gradient as further differentiators. */
+/** The active vessel's own ring, thinner than a body orbit so the two classes read apart. */
 const ACTIVE_VESSEL_ORBIT_STROKE_WIDTH = 1;
 
+/**
+ * Every body orbiting a chosen parent, drawn in one frame.
+ *
+ * Positions stay three-dimensional until the last step, because a rotation into a pair-rotating frame needs the component a flattened plane has dropped. That dropped depth is what the colour cues show.
+ */
 export function SystemDiagram({
   bodies,
   parentName,
@@ -206,19 +123,10 @@ export function SystemDiagram({
     [bodies, parentName],
   );
 
-  // The ONE coalesce. Below this line nothing asks whether a projection is in
-  // force, only which one, and the fallback is the named frame the diagram's own
-  // coordinates already sit in rather than the absence of one.
+  // The one coalesce: nothing below asks whether a projection is in force.
   const placement: Placement = projection ?? INERTIAL_PLACEMENT;
 
-  // Plot scale. Independent of zoom/pan, which are applied via the SVG viewBox,
-  // so it only changes when the frame, geometry, projection or tile size do.
-  //
-  // <b>The auto-fit is the first thing a projection changes the meaning of.</b>
-  // Fitting the outermost apoapsis in metres is right for a frame whose origin
-  // is this body and whose lengths are metres, and meaningless for one whose
-  // coordinates are multiples of a separation. So the projection states which,
-  // and states it as a value rather than by omission.
+  // Independent of zoom and pan, which the viewBox applies; the projection states how its coordinates auto-fit.
   const plotScale = useMemo(() => {
     const baseRadius = Math.min(width, height) / 2 - PAD;
     if (placement.extent.kind === "fixed-units") {
@@ -235,12 +143,7 @@ export function SystemDiagram({
     return effectiveMax > 0 ? baseRadius / effectiveMax : 1;
   }, [width, height, maxRadius, vessel, parentName, placement]);
 
-  // Every drawn position, placed once. Memoised on the projection (which the
-  // caller rebuilds on the one-second UT bucket) rather than recomputed per
-  // render, because this widget re-renders at requestAnimationFrame rate:
-  // `useUtNow` sets state on `clock.onFrame` and UT advances every tick. Zoom is
-  // deliberately NOT a dependency, so a wheel gesture repaints without replacing
-  // 3,000 placements.
+  // Memoised on the projection and not on zoom: this re-renders every frame, and a wheel gesture must not replace thousands of placements.
   const placed = useMemo(
     () =>
       placeDiagram({
@@ -253,11 +156,7 @@ export function SystemDiagram({
     [children, vessel, parentName, placement, plotScale],
   );
 
-  // Predicted multi-SOI trajectory. Same memo discipline, and the child offsets
-  // it carries are parent-centred METRES rather than drawn positions: a frame
-  // transform is affine, so offsetting a moon-local arc after placing it would
-  // add a translation the frame had already accounted for. Composing in metres
-  // and placing the sum once is exact in every frame.
+  // Child offsets compose in parent-centred metres and are placed once, because offsetting after placement would add a translation the frame already accounted for.
   const trajectory = useMemo<PredictedTrajectory | null>(() => {
     if (!predicted || predicted.orbitPatches.length === 0 || plotScale <= 0) {
       return null;
@@ -284,10 +183,7 @@ export function SystemDiagram({
     });
   }, [predicted, plotScale, children, parentName]);
 
-  // The predicted arcs, placed into the frame in force. Split from the
-  // propagation above so a projection change replaces the placement without
-  // re-solving Kepler, and a new patch set re-solves without a second pass over
-  // the frame arithmetic.
+  // Split from the propagation so a projection change does not re-solve Kepler.
   const placedPatches = useMemo(
     () =>
       trajectory === null
@@ -305,8 +201,6 @@ export function SystemDiagram({
     [trajectory, placement],
   );
 
-  // Zoom + pan state: kept above the empty-state return so the hook
-  // count stays stable across renders.
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const dragRef = useRef<{
@@ -334,9 +228,6 @@ export function SystemDiagram({
     },
     [zoom],
   );
-  // `isDragging` drives the grab -> grabbing cursor that was a `:active` rule
-  // on the styled Container (inline `style` can't express `:active`). The drag
-  // already re-renders per pointer-move (setPan), so this adds no real cost.
   const [isDragging, setIsDragging] = useState(false);
   const onPointerUp = useCallback(() => {
     dragRef.current = null;
@@ -352,21 +243,12 @@ export function SystemDiagram({
     };
   }, [onPointerMove, onPointerUp]);
 
-  // Mirror hover into the surrounding widget so it can drive a side panel.
-  // Only the body identity matters, cursor-position changes don't propagate.
   const focusedBody = hover?.body ?? null;
   useEffect(() => {
     onFocusBodyChange?.(focusedBody);
   }, [focusedBody, onFocusBodyChange]);
 
-  // Wheel zoom, on the pinch gesture only: see `useWheelZoom` for why a plain
-  // wheel has to reach the page. The React `onWheel` this replaces was passive
-  // and so never blocked the page, but it did zoom the diagram out from under
-  // anyone scrolling past it.
-  //
-  // Unbound while the diagram is empty: that branch returns before the element
-  // carrying `containerRef` is rendered, so the callback has to change identity
-  // when bodies arrive or the listener would never bind to it.
+  // Pinch-only wheel zoom (see `useWheelZoom`); the callback changes identity when bodies arrive so the listener binds once the container renders.
   const emptyDiagram = !parent || children.length === 0;
   useWheelZoom(
     containerRef,
@@ -374,8 +256,7 @@ export function SystemDiagram({
       () =>
         emptyDiagram
           ? null
-          : // Zoom is about the diagram's centre, not the pointer, so the
-            // position the hook offers is not used here.
+          : // Zoom is about the diagram's centre, so the hook's pointer position is unused.
             (deltaY: number) => {
               const factor = deltaY < 0 ? 1.15 : 1 / 1.15;
               setZoom((z) =>
@@ -406,11 +287,7 @@ export function SystemDiagram({
   }, []);
 
   if (emptyDiagram) {
-    // Diagnostic: list distinct referenceBody values across the whole
-    // body set so the user can see whether the parent names arriving
-    // actually match `parentName`. A common cause
-    // of the empty state is a name mismatch (e.g. "Sun" vs "Kerbol")
-    // or referenceBody not arriving at all.
+    // Lists the distinct referenceBody values so a parent-name mismatch is visible in the empty state.
     const distinctParents = Array.from(
       new Set(
         bodies
@@ -457,15 +334,12 @@ export function SystemDiagram({
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label={`System view around ${parentName}`}
-        // `display:block` + `flex:1` were the `svg {}` descendant rules on the styled Container / DiagramWrap; they belong on the element they size.
         style={SVG_ROOT}
       >
         <title>
           System view around {parentName} ({children.length} bodies)
         </title>
 
-        {/* Depth-gradient defs. One per drawn curve, along the axis that
-            curve's own depth varies on. */}
         <defs>
           {placed.bodies.map((p) =>
             p.ringDepth === null ? null : (
@@ -486,11 +360,7 @@ export function SystemDiagram({
           )}
         </defs>
 
-        {/* Orbit rings, as sampled polylines rather than SVG ellipses. An
-            ellipse is the shape a closed orbit has in its own plane; projected
-            honestly it has a centre `cx`/`cy` cannot express, and in a rotating
-            frame it is a rosette. One rendering strategy, so the only one there
-            is stays exercised. */}
+        {/* Rings are sampled polylines: a projected orbit has a centre an ellipse cannot express, and in a rotating frame it is a rosette. */}
         {placed.bodies.map((p) =>
           p.ring === null ? null : (
             <path
@@ -503,10 +373,7 @@ export function SystemDiagram({
                   ? DEPTH_LEVEL_COLOUR
                   : `url(#${tiltGradId}-${p.body.index})`
               }
-              // Screen-constant, like every dot/marker/label below: the SVG
-              // viewBox magnifies user-units by `zoom`, so a user-unit stroke
-              // would otherwise balloon at the 25x cap, swallowing a
-              // near-parent orbit into an unreadable blob at SOI zoom.
+              // Screen-constant: the viewBox magnifies user units by zoom.
               strokeWidth={BODY_ORBIT_STROKE_WIDTH / zoom}
               strokeOpacity={p.ringDepth === null ? 0.45 : undefined}
               pointerEvents="none"
@@ -514,9 +381,7 @@ export function SystemDiagram({
           ),
         )}
 
-        {/* Predicted multi-SOI trajectory: patch arcs. Drawn under the body
-            dots and vessel marker so they read as background path. The live
-            patch is solid green; upcoming patches are dashed + de-emphasised. */}
+        {/* Patch arcs sit under the body dots and the vessel marker. */}
         {placedPatches?.patches.map(({ patch, points }) => (
           <PredictedPatchArc
             key={`pred-${patch.patchIndex}`}
@@ -527,8 +392,6 @@ export function SystemDiagram({
           />
         ))}
 
-        {/* Vessel orbit (if any): whichever form the propagation seam
-            authorised, lifted into the frame the rest of the picture is in. */}
         {showVessel && (
           <VesselOrbitPath
             vessel={vessel}
@@ -542,9 +405,6 @@ export function SystemDiagram({
           />
         )}
 
-        {/* Parent body. Placed like everything else: it sits at the origin under
-            the inertial projection and somewhere else under any frame whose
-            origin is not this body. */}
         <circle
           data-body={parent.name ?? ""}
           cx={placed.parent.x}
@@ -564,7 +424,6 @@ export function SystemDiagram({
           {parent.name}
         </text>
 
-        {/* Child bodies */}
         {placed.bodies.map((p) => {
           const c = p.body;
           if ((c.semiMajorAxis ?? 0) <= 0) return null;
@@ -607,16 +466,7 @@ export function SystemDiagram({
                 : prev,
             );
           };
-          // The parent's own name label sits 18 screen px below the parent's
-          // DRAWN position: a child close enough to it at this zoom that its own
-          // label lands in the same few-px neighbourhood renders name-on-name
-          // unreadable, e.g. a close-in moon like Mun labelled right under
-          // Kerbin's own "Kerbin" text at a zoomed-out default view. Measured
-          // from where the parent is drawn rather than from the origin, because
-          // under a frame whose origin is not this body those are two different
-          // places and it is the drawn one the labels can collide at. The dot
-          // alone still marks its position; zooming in separates it enough for
-          // its label to clear.
+          // Measured from the parent's drawn position: a child this close would print its label over the parent's.
           const screenDistFromParent =
             Math.hypot(pos.x - placed.parent.x, pos.y - placed.parent.y) * zoom;
           const labelWouldCollideWithParent = screenDistFromParent < 30;
@@ -684,8 +534,6 @@ export function SystemDiagram({
           );
         })}
 
-        {/* Encounter / escape markers: SOI crossings on the predicted path.
-            Drawn above the arcs and body dots so they're unmistakable. */}
         {placedPatches?.encounters.map(({ enc, at }) => (
           <EncounterMarker
             key={`enc-${enc.patchIndex}`}
@@ -697,7 +545,7 @@ export function SystemDiagram({
           />
         ))}
 
-        {/* Vessel marker: drawn last so it's always on top. */}
+        {/* Drawn last so it stays on top. */}
         {placed.vessel && (
           <VesselMarker
             at={placed.vessel}
@@ -713,9 +561,7 @@ export function SystemDiagram({
         <div
           style={{
             ...TOOLTIP,
-            // Offset by ~12px so the cursor doesn't sit on top of the
-            // tooltip and break hover; flip to the other side if the
-            // tooltip would clip the right/bottom edges.
+            // Offset from the cursor so it does not break hover, and flipped away from clipping edges.
             left: clampTooltipX(
               hover.px + 12,
               containerRef.current?.clientWidth,
@@ -730,8 +576,6 @@ export function SystemDiagram({
           {tooltipRows(hover.body).map((row) => (
             <div key={row.label} style={TOOLTIP_ROW}>
               <span>{row.label}</span>
-              {/* The value span is the styled `span:last-child` (a highlighted
-                  reading); its colour lifts inline. */}
               <span style={{ color: "var(--color-text-primary)" }}>
                 {row.value}
               </span>
@@ -741,10 +585,6 @@ export function SystemDiagram({
       )}
 
       {(zoom !== 1 || pan.x !== 0 || pan.y !== 0) && (
-        // TextButton for its :focus-visible ring (identical to the styled
-        // ResetButton's) plus its hover colour lift; the bordered control look
-        // is inline. The one nuance dropped: the styled hover also strengthened
-        // the border, which no inline style can express.
         <TextButton type="button" onClick={resetView} style={RESET_BUTTON}>
           Reset view
         </TextButton>
@@ -752,8 +592,6 @@ export function SystemDiagram({
     </div>
   );
 }
-
-// ── Placement ─────────────────────────────────────────────────────────────────
 
 /** One drawn thing, in plot units, with the depth the projection dropped. */
 export interface PlacedPoint {
@@ -786,19 +624,9 @@ interface PlacedDiagram {
 }
 
 /**
- * Every position the diagram draws, taken from orbital elements in three
- * dimensions, put through the projection, and scaled into plot units.
+ * Every position the diagram draws, from orbital elements in three dimensions, projected and scaled into plot units.
  *
- * A pure function of its arguments so the component can memoise it whole. The
- * elements come from the wire and the frame comes from a Kepler solve at the view
- * instant, which is worth stating because it is a real seam: a body's position
- * here is the MEASUREMENT the stream carried, and the frame it is rotated into is
- * a MODEL of where the pair was. Under the inertial projection the two never
- * meet, since the origin is added and immediately subtracted. Under a rotating
- * one, any disagreement between the wire's true anomaly and the solve at the same
- * instant shows up as a small rotation, and preferring the solve for the
- * positions as well would move every body in the ordinary picture to satisfy a
- * frame nobody had selected.
+ * Body positions are the wire's measurement while a rotating frame is a Kepler model at the same instant, so any disagreement shows as a small rotation of the frame rather than moving every body.
  */
 function placeDiagram({
   children,
@@ -892,24 +720,7 @@ function closedPath(
   return `${d} Z`;
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-/**
- * How far a drawn curve leaves the projection's reference plane, as a stroke
- * gradient along the axis its own depth varies on.
- *
- * <b>This is a depth reading, not an inclination one, and the two are not
- * interchangeable.</b> A gradient run perpendicular to the line of nodes at a
- * strength taken from the inclination ANGLE describes the ORBIT: it paints
- * Moho's seven degrees at full colour on a whole-system view where the tilt
- * amounts to a pixel, and paints a body sitting exactly on its ascending node
- * as steeply inclined. This one runs between the projected positions of the
- * curve's own deepest and highest samples at a strength taken from how far
- * apart they are ON SCREEN, so it describes the CURVE: a path that dives below
- * the plane and returns reads that way, a path that never leaves it reads
- * neutral, and zooming in on a mild tilt reveals it because at that zoom it is
- * genuinely visible.
- */
+/** A stroke gradient for how far a drawn curve leaves the reference plane, scaled by its on-screen depth span: a depth reading, not an inclination one. */
 function DepthGradient({
   id,
   axis,
@@ -940,15 +751,7 @@ function DepthGradient({
   );
 }
 
-/**
- * A body's own depth right now, as a ring around its dot.
- *
- * Its own current position rather than its orbit's shape, which is the
- * distinction the path gradient above makes at the level of a whole curve: a
- * body at a node reads level, and the same body a quarter turn later reads as
- * high or low as its orbit takes it. Invisible at zero depth rather than
- * suppressed, so a flat system draws no rings at all without a case for it.
- */
+/** A body's own current depth as a ring around its dot, invisible at zero depth. */
 function DepthRing({
   cx,
   cy,
@@ -979,33 +782,13 @@ function DepthRing({
 }
 
 /**
- * The vessel's own trajectory, drawn as the propagation seam authorised it, in
- * the frame the rest of the picture is in.
+ * The vessel's trajectory, drawn as the propagation seam authorised it, through the same placement as the bodies so both share one frame.
  *
- * <b>No `rotate()` group, deliberately.</b> Wrapping the arms in a single
- * `rotate(lan + argPe)` is the zero-inclination case of taking a curve from the
- * orbit's own plane into the diagram's, and agrees with the bodies only if they
- * have been flattened by the same approximation. Every arm goes through the same
- * placement the bodies do, so the curve and the bodies are in ONE frame by
- * construction rather than by agreement.
+ * - CONIC: the elements are the curve, sampled in three dimensions like a body's ring
+ * - PERIFOCAL: lifted from the orbit's plane to parent-centred metres by the elements' rotation
+ * - BODY-CENTRED-INERTIAL: already in parent-centred metres
  *
- * Three arms, and each is a different question about where the points already
- * are:
- *
- *   - a CONIC answer says the elements are the curve, so the diagram samples the
- *     ring itself in three dimensions and places it, exactly as it does a body's
- *     ring
- *   - a PERIFOCAL arc is measured in the orbit's own plane, so the elements'
- *     three-dimensional rotation lifts it to parent-centred metres first
- *   - a BODY-CENTRED-INERTIAL arc is already in parent-centred metres
- *
- * Anything else arrived in a frame this diagram cannot lift from, and draws
- * nothing rather than a curve turned by an angle that means nothing.
- *
- * A refusal renders nothing at all rather than an empty path: "here is a
- * trajectory with no points in it" and "there is no trajectory to draw" look
- * identical on a diagram and mean opposite things. The reason is on screen
- * beside the frame caption, where the widget puts it.
+ * Any other frame, or a refusal, draws nothing: an empty path and no trajectory look identical and mean opposite things.
  */
 function VesselOrbitPath({
   vessel,
@@ -1027,7 +810,7 @@ function VesselOrbitPath({
   zoom: number;
 }>) {
   if (trajectory === null || trajectory.shape === "withheld") return null;
-  // Screen-constant stroke + dashes (see the child-orbit ring note): user-unit line metrics would balloon with the viewBox at SOI zoom.
+  // Screen-constant stroke and dashes.
   const strokeW = ACTIVE_VESSEL_ORBIT_STROKE_WIDTH / zoom;
   const dashes = `${4 / zoom} ${3 / zoom}`;
   const stroke = hasGradient ? `url(#${gradId})` : DEPTH_LEVEL_COLOUR;
@@ -1092,11 +875,7 @@ function liftArc(
   }
 }
 
-/**
- * An OPEN polyline through placed points, in plot units. No `Z`: it stops where
- * the provider stopped, and closing it would assert the one thing a bounded arc
- * cannot promise.
- */
+/** An open polyline through placed points, in plot units: a bounded arc is never closed. */
 function openPath(
   points: readonly (readonly [number, number, number])[],
   plotScale: number,
@@ -1121,15 +900,7 @@ function openPath(
  */
 export type VesselPlotState = "observed" | "predicted" | "overdue" | "lost";
 
-/**
- * The palette mapping from a contributor's SEMANTIC severity to this
- * diagram's own `VesselPlotState`. A contributor (e.g. `system-view.vessel-
- * status`) supplies severity/emphasis, never a colour or a plot state
- * directly: SystemDiagram, the host, is the only thing that decides what
- * "warning" looks like here. `emphasis: "observed"` (a directly-measured
- * fact, not a model's reckoning) maps back to the plain `observed` marker;
- * every reckoned severity maps onto the matching plot state one-for-one.
- */
+/** Maps a contributor's semantic severity onto this diagram's plot state; the host alone decides what a severity looks like, and `emphasis: "observed"` maps to the plain marker. */
 export function vesselPlotStateFromStatus(
   status: {
     severity: "info" | "warning" | "critical";
@@ -1148,13 +919,8 @@ export function vesselPlotStateFromStatus(
 }
 
 /**
- * Stroke colour per plot state. Exported so a test can check each one is a
- * token that actually exists: `var()` on an undefined property paints nothing
- * and says nothing, which is how the lost marker went missing entirely.
- *
- * <p>These are the ON-DARK variants. The `*-fg` tokens are foregrounds meant to
- * sit on their matching `*-bg` fill, so `--color-status-warning-fg` is #1a1a1a
- * and strokes as near-black against the panel.</p>
+ * Stroke colour per plot state, exported so a test can check each token exists: an undefined `var()` paints nothing.
+ * These are the on-dark variants; the `*-fg` tokens are meant for their `*-bg` fills.
  */
 export const MARKER_STATE_COLOURS: Record<VesselPlotState, string> = {
   observed: "var(--color-accent-fg)",
@@ -1178,14 +944,7 @@ function markerStyle(state: VesselPlotState) {
   }
 }
 
-/**
- * Screen-px distance below which a vessel marker starts overlapping its
- * parent body's own dot: drawn at a fixed screen radius (independent of
- * zoom, like every other diagram element), so a craft in low orbit around a
- * body plotted at system scale has an orbit that projects to a handful of
- * screen px, and its marker lands directly on the parent's. Exported so a
- * test can pin the exact value the offset logic reacts to.
- */
+/** Screen-px distance below which a vessel marker overlaps its parent body's dot. */
 export const MARKER_CROWD_THRESHOLD_PX = 18;
 
 /** How far outside the crowd threshold an offset marker is pushed, screen px. */
@@ -1203,25 +962,9 @@ export interface VesselMarkerPlacement {
 }
 
 /**
- * Where a vessel marker actually renders, and whether it needs a leader
- * line back to its true position.
+ * Where a vessel marker renders, and whether it needs a leader line back to its true position.
  *
- * Pushing the marker out to a minimum screen distance along the SAME
- * direction from `anchor` keeps whatever contact treatment it carries
- * (colour/dash/ring) legible without lying about where the craft actually
- * is: the leader line is what says "the true position is back here".
- *
- * <b>`anchor` is the DRAWN position of the body the craft orbits, not the
- * origin.</b> It was the origin, which assumed the two were the same place, and
- * they are the same place only in a frame centred on that body. In a pulsating
- * frame the origin is the pair's mass centre, so pushing away from it would push
- * a craft in low orbit around the secondary straight through the body it is
- * trying not to sit on. The thing the marker must not be confused with is the
- * body, so the body is what it moves away from.
- *
- * Falls back to a fixed direction (up-and-right) only when the vessel sits
- * exactly on the anchor (a zero, or effectively zero, screen-space orbit
- * radius): there is no real direction to preserve at that point.
+ * A crowded marker is pushed out along its own direction from `anchor`, the DRAWN position of the body it orbits, not the origin (in a pulsating frame the origin is the pair's mass centre). A vessel exactly on the anchor falls back to up-and-right.
  */
 export function resolveVesselMarkerPlacement(
   pos: { x: number; y: number },
@@ -1269,13 +1012,7 @@ function VesselMarker({
   const r = 5 / zoom;
   const style = markerStyle(state);
   const { colour, opacity } = style;
-  /*
-   * Hollow and dashed, the language the diagram already uses for a position
-   * that was computed rather than reported: a held dot is the same claim, that
-   * the craft is drawn where it was last seen rather than where it is. Shape
-   * and not shade, because a dimmed dot says nothing to an operator who cannot
-   * tell the two apart (WCAG 1.4.1), and the marker carries no text of its own.
-   */
+  // Held draws hollow and dashed like a reckoned position: shape rather than shade, so it does not rely on colour alone (WCAG 1.4.1).
   const filled = style.filled && !held;
   return (
     <g
@@ -1283,10 +1020,7 @@ function VesselMarker({
       opacity={opacity}
       data-vessel-position={held ? "held" : "current"}
     >
-      {/* SVG's own naming element rather than an `aria-label`, which needs a
-          `role` to be honoured and cannot have one here: a `<g>` takes no
-          non-interactive role. This is also the half of the mark that is not
-          shape, so a reader who cannot see the ring still gets the statement. */}
+      {/* A <g> takes no non-interactive role, so SVG's own title names it rather than aria-label. */}
       <title>
         {held ? "Vessel position, no longer current" : "Vessel position"}
       </title>
@@ -1347,9 +1081,7 @@ function PredictedPatchArc({
 }>) {
   if (points.length < 2) return null;
   const d = openPath(points, plotScale);
-  // Live patch: solid bright green (matches the vessel accent). Upcoming
-  // patches: dashed, dimmer info-blue, colour-coded by event so an
-  // encounter (warm) reads differently from an escape (cool/faint).
+  // Live patch solid green; upcoming patches dashed info-blue, warm for an encounter and faint for an escape.
   const stroke = patch.isCurrent
     ? "var(--color-accent-fg)"
     : patch.startEncounter === "escape"
@@ -1360,7 +1092,7 @@ function PredictedPatchArc({
       d={d}
       fill="none"
       stroke={stroke}
-      // Screen-constant stroke + dashes (see the child-orbit ellipse note): user-unit line metrics would balloon with the viewBox at SOI zoom.
+      // Screen-constant stroke and dashes.
       strokeWidth={(patch.isCurrent ? 1.6 : 1.2) / zoom}
       strokeDasharray={patch.isCurrent ? undefined : `${5 / zoom} ${4 / zoom}`}
       opacity={patch.isCurrent ? 0.95 : 0.7}
@@ -1478,9 +1210,7 @@ function organise(
   children: CelestialBody[];
   maxRadius: number;
 } {
-  // Case + whitespace insensitive match: body names have historically
-  // arrived with slightly different casings across versions ("Sun" vs
-  // "Sun ", and a stray "Kerbol" alias floating around).
+  // Case- and whitespace-insensitive: body names arrive with inconsistent casing and padding.
   const target = parentName.trim().toLowerCase();
   const norm = (s: string | null) => (s ? s.trim().toLowerCase() : null);
   const parent = bodies.find((b) => norm(b.name) === target) ?? null;
@@ -1494,12 +1224,6 @@ function organise(
   return { parent, children, maxRadius };
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
-// Structural inline styles (CSS-var tokens): a bespoke pan/zoom SVG diagram, no
-// reusable ui-kit primitive fits, so the layout stays local. `cursor` is set at
-// the call site (grab/grabbing by drag state); the `svg {}` descendant rules
-// move onto SVG_ROOT.
 const CONTAINER: CSSProperties = {
   position: "relative",
   width: "100%",
@@ -1540,9 +1264,7 @@ const TOOLTIP: CSSProperties = {
   minWidth: "140px",
   maxWidth: "240px",
   boxShadow: "0 4px 16px rgba(0, 0, 0, 0.5)",
-  // Off the app z-index ladder: the only z-index in this file, so its value is
-  // meaningless in isolation. Its contract is above-versus-auto against the
-  // diagram beneath it, not a place on the app ladder.
+  // Only stacks above the diagram beneath it; not a place on the app z-index ladder.
   zIndex: 10,
 };
 
@@ -1552,7 +1274,6 @@ const TOOLTIP_TITLE: CSSProperties = {
   color: "var(--color-status-go-fg)",
 };
 
-// The `span:last-child` highlight moves inline onto the value span at the call site.
 const TOOLTIP_ROW: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",

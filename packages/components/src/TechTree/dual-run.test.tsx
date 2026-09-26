@@ -8,27 +8,7 @@ import smallCareerDetail from "./__fixtures__/small-career-detail.json";
 import { TechTreeComponent } from "./index";
 
 /**
- * TechTree's reads (`index.tsx`: `useTelemetry("career.status")?.tech
- * ?.nodes`, `?.economy?.science`, and `useTelemetry("spaceCenter.scene")
- * ?.scene`) are ALL ONE-ARG canonical reads now, none of them has a
- * legacy fallback at all. The original version of this test rendered the
- * SAME tech-tree state once off a legacy `DataSource` (`snapshotWidgetMode`,
- * which mounts no `TelemetryProvider`) and once off the stream, asserting
- * byte-identical DOM; that comparison is no longer possible, the legacy
- * leg now renders nothing but "Awaiting tech telemetry", since every one
- * of its reads is stream-only. Same underlying cause (full canonical
- * migration, not a test bug) as `ScienceBench`/`ScienceOfficer`/
- * `SpaceCenterStatus`/`TargetPicker`'s own `dual-run.test.tsx` files
- * dropping their now-impossible legacy legs.
- *
- * What remains, and is still worth its own file: the small hand-authored
- * tech-tree fixture (5 nodes, a multi-parent node, 3 unlocked), run
- * genuinely through the stream pipeline in the shape the real wire
- * actually sends. `career.status.tech.nodes` (CareerViewProvider
- * .BuildTechNodes) carries a `description` as of contract 14.1, so the
- * node body's description line is exercised here off the wire; `parts` is
- * still absent from it, so the per-node part detail stays the preserve of
- * `index.test.tsx`'s rich `early-career-63-nodes.json`.
+ * Renders a small hand-authored tech tree (5 nodes, one multi-parent, 3 unlocked) through the stream pipeline in the real wire shape, including each node's `description`.
  */
 describe("TechTree: real small career-detail fixture render off the stream (delay=0)", () => {
   it("renders science, unlocked/researchable counts, and every node off the stream, no legacy leg", async () => {
@@ -77,18 +57,14 @@ describe("TechTree: real small career-detail fixture render off the stream (dela
     });
 
     await waitFor(() => {
-      // Science reads as a microscope glyph rather than a "sci" suffix, so
-      // the number is the whole of what a sighted reader sees and the word
-      // rides the hidden label beside it.
+      // Science reads as a glyph rather than a "sci" suffix, so the number is all a sighted reader sees.
       if (!visibleText(container).includes("4854")) {
         throw new Error("stream leg has not rendered science yet");
       }
     });
     expect(container.textContent).toContain("4854 science");
 
-    // 3 unlocked (basicRocketry/engineering101/survivability), 2
-    // researchable-now (advRocketry/stability, both parent-unlocked and
-    // affordable at 4854 sci): every node from the fixture rendered.
+    // 3 unlocked and 2 researchable-now (parents unlocked, affordable at 4854): every fixture node rendered.
     expect(
       screen.getByText(/3\/5 unlocked · 2 researchable/i),
     ).toBeInTheDocument();

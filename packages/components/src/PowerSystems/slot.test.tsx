@@ -23,10 +23,7 @@ import {
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { PowerSystemsComponent } from "./index";
 
-// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// action-handler / augment registries: clearActionHandlers()/clearAugments()
-// firing on a still-mounted widget is a state update outside act(). RTL
-// auto-cleanup runs after this file's afterEach, too late to unmount first.
+// Unmount before clearing the registries: RTL's auto-cleanup runs after afterEach, and clearing a mounted widget updates state outside act().
 const renderedTrees: Array<() => void> = [];
 
 function render(ui: ReactElement) {
@@ -35,13 +32,7 @@ function render(ui: ReactElement) {
   return result;
 }
 
-/**
- * PowerSystems augment-slot exposure (this widget
- * is THE worked example). The `power-systems.sections` slot is exposed but
- * ships no filler here (that is an Uplink augment's job): an empty slot must
- * render cleanly, and a test augment registered into it must appear, reading
- * the widget's resource focus from its published scope.
- */
+/** An empty `power-systems.sections` slot renders cleanly, and a registered augment appears and reads the widget's resource focus from its scope. */
 
 const KEYS: DataKey[] = [
   { key: "r.resource[ElectricCharge]" },
@@ -71,13 +62,7 @@ const VESSEL_PARTS_WIRE = {
   ],
 };
 
-// Drive the widget to its full-list layout (topology present + a live EC flow),
-// where the `sections` body slot renders.
-// Everything (topology AND per-part resources) streams off the single
-// `vessel.parts` payload now (`useTopology`/`usePartsLive` both read it
-// canonically); the legacy AUX source only still carries the vessel-wide
-// sparkline reservoir key and `parts.power`'s measured-total reading,
-// neither of which is part of this per-part live-data migration.
+// Drives the widget to its full-list layout, where the `sections` body slot renders.
 async function renderFullList() {
   const streamFixture = setupStreamFixture({
     carriedChannels: ["vessel.parts"],
@@ -91,9 +76,7 @@ async function renderFullList() {
   });
   render(
     <streamFixture.Provider>
-      {/* The identity the dashboard supplies: `Panel` completes
-          `${componentId}.${segment}` from it for the universal
-          `sections` and `actions` seams. */}
+      {/* `Panel` completes `${componentId}.${segment}` from this identity for its universal seams. */}
       <WidgetMetaContext.Provider
         value={{ componentId: "power-systems", contributionSlots: [] }}
       >
@@ -115,20 +98,15 @@ describe("PowerSystems: augment slots (spec §4)", () => {
     for (const unmount of renderedTrees) unmount();
     renderedTrees.length = 0;
     clearActionHandlers();
-    // Wipe any test augment so it never leaks into the snapshot suite.
     clearAugments();
   });
 
   it("exposes its slot on the component definition", () => {
-    // The registry entry is asserted indirectly: the widget's own module-load
-    // registration declared the slot as its extension point.
-    // (See registerComponent `augmentSlots` in ./index.tsx.)
     expect(getAugmentsForSlot("power-systems.sections")).toEqual([]);
   });
 
   it("renders the full list with no augment bound (an empty slot is inert)", async () => {
     const fixture = await renderFullList();
-    // An empty slot adds nothing: the stock readout renders exactly as before.
     expect(screen.getByText("Producers")).toBeTruthy();
     expect(screen.getByText("Consumers")).toBeTruthy();
     expect(screen.queryByTestId("ps-section-augment")).toBeNull();
@@ -136,9 +114,7 @@ describe("PowerSystems: augment slots (spec §4)", () => {
   });
 
   it("renders a test augment bound to the sections slot, which reads the focused resource from the widget's scope", async () => {
-    // `power-systems.sections` is the framework's universal segment now and
-    // carries no props; the resource the operator is looking at reaches the
-    // augment through the widget's published SCOPE instead.
+    // The slot is propless; the focused resource reaches the augment through the widget's scope.
     function SectionAugment() {
       const resource = useWidgetScope("power-systems")?.resource;
       return <div data-testid="ps-section-augment">EC-BROKER: {resource}</div>;
@@ -155,7 +131,6 @@ describe("PowerSystems: augment slots (spec §4)", () => {
 
     const augment = await screen.findByTestId("ps-section-augment");
     expect(augment).toBeTruthy();
-    // The widget published its current resource focus, and the augment read it.
     expect(augment.textContent).toBe("EC-BROKER: ElectricCharge");
     teardownMockDataSource(fixture);
   });

@@ -51,12 +51,7 @@ describe("ui-kit foundation", () => {
   });
 
   it("points every size handle at a token the stylesheet declares", () => {
-    /*
-     * The mapping above is a string, and a string still matches after its
-     * token is renamed or deleted. A `var()` naming nothing makes the whole
-     * declaration invalid at computed-value time, so the gap or the corner
-     * silently falls back to nothing and no render throws.
-     */
+    // A `var()` naming a deleted token invalidates the declaration silently, so each must exist in the sheet.
     const tokens = readFileSync(
       resolve(
         dirname(fileURLToPath(import.meta.url)),
@@ -82,7 +77,6 @@ describe("ui-kit foundation", () => {
   });
 
   it("exports the form-primitive + icon surface moved from @ksp-gonogo/ui", () => {
-    // Form primitives
     expect(ConfigForm).toBeDefined();
     expect(Field).toBeDefined();
     expect(FieldHint).toBeDefined();
@@ -92,14 +86,11 @@ describe("ui-kit foundation", () => {
     expect(Switch).toBeDefined();
     expect(DataKeyPicker).toBeDefined();
 
-    // Hook
     expect(typeof useModalSaveBar).toBe("function");
 
-    // Buttons
     expect(GhostButton).toBeDefined();
     expect(PrimaryButton).toBeDefined();
 
-    // Icons
     expect(ArrowLeftIcon).toBeDefined();
     expect(ArrowUpIcon).toBeDefined();
     expect(ChevronDownIcon).toBeDefined();
@@ -107,7 +98,6 @@ describe("ui-kit foundation", () => {
     expect(CheckIcon).toBeDefined();
     expect(CloseIcon).toBeDefined();
 
-    // Layout hook
     expect(typeof useElementSize).toBe("function");
   });
 });

@@ -11,34 +11,16 @@ import styled from "styled-components";
 
 export interface RequiresGuardProps {
   requires?: readonly ComponentRequirement[];
-  /**
-   * The widget's declared REQUIRED `channels`. When any of these resolves to a
-   * non-healthy owning Uplink (via
-   * `useUplinkHealthFor`), the gate blocks with that Uplink's
-   * `health.detail`: this check runs BEFORE the `requires` game-context
-   * check, since there's no point reporting "needs flight scene" when the
-   * widget's own data isn't flowing anyway. `optionalChannels` are
-   * deliberately never passed here: they always render through.
-   */
+  /** The widget's required channels only; optional channels never gate. */
   channels?: readonly string[];
   children: ReactNode;
 }
 
 /**
- * Wraps a dashboard widget with the framework's unified "can this widget
- * render meaningfully now" gate, merges two independent checks into ONE
- * reason line, in priority order:
- *
- * 1. a REQUIRED `channels` topic's owning Uplink is unhealthy -> that
- *    Uplink's own `health.detail`.
- * 2. a `requires` game-context precondition (`flight`/`career`) is unmet ->
- *    the existing scene/career-mode message.
- *
- * No requirements/channels = pass-through (no wrapper DOM, no styling
- * drift). Used by the dashboard orchestrator (`GridItemContent`,
- * `MobileDashboard`, `PushedDashboardOverlay`) so per-widget code stays in
- * `registerComponent({ requires: [...], channels: [...] })`, widgets
- * don't import this file directly.
+ * The orchestrator's "can this widget render meaningfully now" gate, one
+ * reason line in priority order: no telemetry host, an unhealthy Uplink owning
+ * a required channel, then an unmet `requires` game context. With nothing to
+ * check it adds no wrapper DOM.
  */
 export function RequiresGuard({
   requires,
@@ -49,12 +31,7 @@ export function RequiresGuard({
   const uplinkHealth = useUplinkHealthFor(channels ?? []);
   const ctx = useGameContext();
 
-  // Host-down outranks a per-uplink health reading: with no telemetry host
-  // at all, "resolved: unhealthy" vs. "unresolved: still booting" is a
-  // distinction without a difference: say so plainly instead. Only gates
-  // when the widget actually declared REQUIRED channels; a channel-less
-  // widget (e.g. a purely local Serial Devices control) has nothing to
-  // block on here.
+  // A channel-less widget has nothing a missing host can block.
   if (hostDown && channels && channels.length > 0) {
     return <GuardPlaceholder message={NO_TELEMETRY_HOST_MESSAGE} />;
   }
@@ -71,28 +48,11 @@ export function RequiresGuard({
     return <>{children}</>;
   }
 
-  // Suppress the overlay until we have at least one game-context signal.
-  // First page load has neither `kc.scene` nor `career.mode` populated;
-  // dimming everything immediately would flash on every refresh while
-  // the WS subscription warms up.
+  // Without any game-context signal yet, gating would flash every widget on each refresh.
   if (!ctx.hasGameSignal) {
     return <>{children}</>;
   }
 
-  // Find the first unmet requirement and use it to drive the message.
-  // Order matters: `flight` checks first because it's the more common
-  // gate; a career-only-but-not-flight widget would still want the
-  // career message even if flight is also missing (a sandbox flight
-  // can't satisfy a career requirement either way).
-  //
-  // We render a compact placeholder (not the dimmed children) when a
-  // requirement is unmet. The previous behaviour was DimmedOverlay
-  // around the widget's full content, which on first load (no
-  // telemetry) showed an empty-but-tall card per widget, the dashboard
-  // looked broken. The placeholder collapses to just the banner;
-  // outer flex parents (Panel etc.) constrain to the natural content
-  // height. Last-good telemetry isn't preserved across the gate, but
-  // on first load there isn't any anyway.
   for (const req of requires) {
     if (req === "flight" && !ctx.inFlight) {
       return (
@@ -120,12 +80,9 @@ export function RequiresGuard({
 }
 
 /**
- * The one placeholder every orchestrator-side gate renders.
- *
- * Exported so `SeatGuard` renders the identical chrome rather than a second
- * copy of it: two gates that look different are read as two different KINDS of
- * problem, and the four literal sizes below would then have to be kept in step
- * across two files by hand.
+ * The one placeholder every orchestrator-side gate renders, since two gates
+ * that look different read as two kinds of problem. It collapses to its own
+ * height rather than holding the widget's size.
  */
 export function GuardPlaceholder({
   message,
@@ -134,10 +91,6 @@ export function GuardPlaceholder({
   message: string;
   hint?: string;
 }) {
-  // Wrapped in DimmedOverlay-equivalent chrome but without any underlying
-  // dimmed content. The flex parent (Panel) can collapse to the banner's
-  // natural height rather than reserving the widget's default size for
-  // an empty stub.
   return (
     <PlaceholderWrap role="status" aria-live="polite">
       <PlaceholderMessage>{message}</PlaceholderMessage>
@@ -173,9 +126,6 @@ const PlaceholderHint = styled.span`
   color: var(--color-text-faint);
 `;
 
-// Re-export DimmedOverlay binding so the existing ergonomic stays, older
-// callers that explicitly wrapped their content in DimmedOverlay keep
-// working. RequiresGuard no longer uses it internally.
 export { DimmedOverlay };
 
 function hintForScene(scene: string): string | undefined {

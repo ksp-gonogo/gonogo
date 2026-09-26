@@ -17,8 +17,7 @@ export interface AboardTabProps {
   body: string | undefined;
   situation: string | undefined;
   situationLocale: string;
-  /** Whether the locale was withheld because `vessel.surface` stopped being
-   *  current, as opposed to never having carried a biome at all. */
+  /** The locale was withheld because `vessel.surface` stopped being current, not because it never carried a biome. */
   localeNotCurrent: boolean;
   breakdown: ExperimentBreakdownEntry[] | null;
   experiments: ParsedExperiment[] | null;
@@ -27,12 +26,6 @@ export interface AboardTabProps {
   compact: boolean;
 }
 
-/**
- * Columns for the full breakdown: subject, where it was taken, what is
- * aboard, and what is still out there. Both figures right-align so a scan
- * down the column answers "which of these is worth transmitting first"
- * without reading a single label.
- */
 const BREAKDOWN_COLUMNS: ReadonlyArray<
   DataTableColumn<ExperimentBreakdownEntry>
 > = [
@@ -40,9 +33,7 @@ const BREAKDOWN_COLUMNS: ReadonlyArray<
     key: "subject",
     header: "Subject",
     width: "1fr",
-    // KSP's own subject title is a whole sentence ("Crew Report while flying
-    // low over Kerbin's grasslands"), so without a floor this column shrinks
-    // to one word per line in a narrow panel.
+    // KSP subject titles are whole sentences, so without a floor this column wraps a word per line.
     minWidth: "22ch",
     render: (b) => b.expTitle,
   },
@@ -72,19 +63,13 @@ const BREAKDOWN_COLUMNS: ReadonlyArray<
   },
 ];
 
-/**
- * The fallback list, used when the breakdown channel has nothing but raw
- * stored results do. Same first and third columns as the breakdown so the
- * two shapes read as one table with less detail, not as a different widget.
- */
+/** The fallback list, used when the breakdown channel has nothing but raw stored results do. */
 const EXPERIMENT_COLUMNS: ReadonlyArray<DataTableColumn<ParsedExperiment>> = [
   {
     key: "subject",
     header: "Subject",
     width: "1fr",
-    // KSP's own subject title is a whole sentence ("Crew Report while flying
-    // low over Kerbin's grasslands"), so without a floor this column shrinks
-    // to one word per line in a narrow panel.
+    // KSP subject titles are whole sentences, so without a floor this column wraps a word per line.
     minWidth: "22ch",
     render: (e) => e.title,
   },
@@ -102,11 +87,7 @@ const EXPERIMENT_COLUMNS: ReadonlyArray<DataTableColumn<ParsedExperiment>> = [
   },
 ];
 
-/**
- * The active vessel's onboard ledger. The situation line lives here rather
- * than above the tab strip: it describes what THIS tab is showing, and a
- * career-wide Archive beside it is not "at" a situation at all.
- */
+/** The active vessel's onboard ledger, with the situation line it was taken in. */
 export function AboardTab({
   body,
   situation,
@@ -118,11 +99,8 @@ export function AboardTab({
   sciDataAmount,
   compact,
 }: Readonly<AboardTabProps>) {
-  // Nothing registered on the slot means every row would carry an empty
-  // detail row: dead vertical space and a rule under each one. A stock save
-  // gets the plain table instead.
+  // An unbound slot gets no detail row at all, rather than an empty one under every row.
   const slotFilled = getAugmentsForSlot("science-data.aboard-row").length > 0;
-  // Searchable text is the subject plus where it was taken, which is what an operator types when hunting a row: "goo", "grasslands", "flying".
   const filter = useRowFilter({ placeholder: "Filter subjects..." });
   const shownBreakdown = (breakdown ?? []).filter((b) =>
     filter.matches(`${b.expTitle} ${b.biome} ${b.situation}`),
@@ -130,12 +108,7 @@ export function AboardTab({
   const shownExperiments = (experiments ?? []).filter((e) =>
     filter.matches(e.title),
   );
-  /**
-   * A vessel that never reported a biome and a vessel whose biome we can no
-   * longer vouch for both leave the locale off the line, and the two say
-   * opposite things about the science below it, so the withheld case names
-   * itself here instead of quietly shortening the line.
-   */
+  // A withheld locale names itself so it does not read like a vessel that never reported a biome.
   const localeSuffix = situationLocale
     ? ` · ${situationLocale}`
     : localeNotCurrent
@@ -176,7 +149,6 @@ export function AboardTab({
             columns={BREAKDOWN_COLUMNS}
             rows={shownBreakdown}
             rowKey={(b) => b.subjectId}
-            // The File Manager's controls land here, full width beneath their own row, so a bound augment cannot disturb the columns above it.
             rowDetail={
               slotFilled
                 ? (b) => (

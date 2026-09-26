@@ -10,11 +10,7 @@ import type { InFlightCommandLike } from "./CommandDelay/toInFlightListItems";
 import { usePanelDelay } from "./CommandDelay/usePanelDelay";
 import { Panel, PanelProviders } from "./Panel";
 
-/*
- * The rail axes these fixtures carry, from the same derivations production uses
- * rather than written as literals: a fixture that spelled its own tags would go
- * on asserting the old picture after a derivation moved.
- */
+// Rail axes from the production derivations, so a fixture cannot drift from them.
 const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
 
 const IN_FLIGHT: InFlightCommandLike[] = [
@@ -34,26 +30,15 @@ const HANDLE: CommandDelayHandle = {
   effectiveDelaySeconds: 5,
 };
 
-/** A command widget's body: contributes its delay handle with usePanelDelay
- * (as a real widget hands `useCommand(...)`'s handle across), no explicit prop
- * to the rail. */
+/** A command widget's body: contributes its delay handle with usePanelDelay, no explicit prop to the rail. */
 function CommandBody() {
   usePanelDelay(HANDLE);
   return <div>controls</div>;
 }
 
 /**
- * The rail travels WITH the header, rather than merely being pinned at the same
- * edge by a mechanism of its own.
- *
- * Both were always visible at the panel's top, the rail in the container's own
- * band and the header sticky inside the scroller, and they stayed adjacent by
- * arithmetic: two pinned boxes that happened to add up. These pin the thing that
- * makes it structural instead, one sticky element holding both, so nothing can
- * move one without moving the other.
- *
- * jsdom runs no layout, so what is asserted is the containment and the
- * declaration. The pixels are in the scroll render.
+ * The rail travels with the header: one sticky element holds both. jsdom runs
+ * no layout, so this asserts the containment and the declaration.
  */
 describe("the rail travels with the header", () => {
   it("puts the rail and the header in ONE sticky element inside the scroller", () => {
@@ -81,10 +66,7 @@ describe("the rail travels with the header", () => {
   });
 
   it("keeps the band on a HEADLESS panel, where there is no header to travel with", () => {
-    // The delay rail is a property of being a widget, not of having migrated to
-    // `panelTitle`. An unmigrated widget has no header and no scroller of the
-    // panel's own, so the rail stays the container's first child and the band
-    // stays the container's top inset, exactly as before.
+    // A headless panel still gets the rail, as the container's first child in its top band.
     render(
       <DelayRailProvider>
         <Panel>
@@ -101,10 +83,7 @@ describe("the rail travels with the header", () => {
   });
 
   it("does not let body content read through the rail", () => {
-    // The sticky HEADER is transparent on purpose and the scroll glow is its
-    // backing, which is fine for a title. The rail is a reading, and content
-    // ghosting through a reading is a reading that can be misread, so its band
-    // carries a fully opaque base of its own.
+    // The header is transparent over the glow, but the rail is a reading, so its band is opaque.
     render(
       <DelayRailProvider>
         <Panel panelTitle="Nav">
@@ -123,9 +102,7 @@ describe("the rail travels with the header", () => {
 
 describe("Panel.Delay wiring", () => {
   it("renders the delay rail as the first in-flow child of the body, above the header", () => {
-    // The delay store is provided ABOVE the Panel (as GridItemContent does in
-    // the app), so usePanelDelay in the widget body reaches it and the rail reads
-    // it back.
+    // The delay store is provided above the Panel, so usePanelDelay in the widget body reaches it.
     render(
       <DelayRailProvider>
         <Panel panelTitle="Nav">
@@ -133,7 +110,7 @@ describe("Panel.Delay wiring", () => {
         </Panel>
       </DelayRailProvider>,
     );
-    // v3: the rail renders the discrete handle as the height-graph strip, whose accessible name starts "In-flight commands" (with an "N in flight" tail).
+    // The discrete handle renders as the height-graph strip, named "In-flight commands".
     const rail = screen.getByLabelText(/^In-flight commands/);
     const title = screen.getByText("Nav");
     // Rail precedes the header/title in DOM order (first child of the scroller).
@@ -162,10 +139,7 @@ describe("Panel.Delay wiring", () => {
       const active = useActiveHandles();
       return <output data-testid="count">{active.length}</output>;
     }
-    // The delay store lives ABOVE the widget (app-side GridItemContent), NOT in
-    // Panel.Providers: usePanelDelay runs in the widget body, above the Panel it
-    // returns, so a Panel-held store would be unreachable. A contributor and a
-    // reader under the same DelayRailProvider see the handle.
+    // A contributor and a reader under the same DelayRailProvider, above the Panel, see the handle.
     render(
       <DelayRailProvider>
         <CommandBody />

@@ -59,8 +59,7 @@ describe("computeCompletionUpdate", () => {
   });
 
   it("does not mark a freshly-planned tiny correction burn as complete", () => {
-    // Node arrives below the threshold from the start; never observed above.
-    // Should not be treated as a completion.
+    // Below the threshold from the start, so never observed above it.
     const current = new Map<number, CompletedEntry>();
     const max = new Map<number, number>();
     const result = computeCompletionUpdate(

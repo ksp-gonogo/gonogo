@@ -13,21 +13,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SystemViewComponent } from "./index";
 
 /**
- * SystemView had TWO independent conic implementations of the vessel's
- * trajectory: the ellipse `VesselOrbitPath` draws from `sma`/`ecc`, and the
- * `OrbitPatch` the widget fabricates from the same elements for the predicted
- * arc. Neither asked whether a conic was the right renderer. The patch chain
- * was gated on REACH, through the derived scalars it depends on, and on shape
- * not at all, so an integrating provider still got a closed ellipse plus a
- * confident one-period prediction through it.
+ * The vessel's trajectory is drawn in whatever shape its provider says it is, so an integrating provider gets neither a closed ellipse nor a one-period conic prediction.
  *
- * The bodies around it are a separate matter and are deliberately not gated
- * here. `system.bodies` now carries a `PropagationHorizon` OF ITS OWN, per body,
- * and that is exactly why the vessel's is the wrong thing to ask: refusing to
- * draw the Mun because the VESSEL's provider integrates would be inventing a
- * refusal nobody stated about the Mun. A body's own horizon is honoured where
- * its position is computed, in `systemInstantAt`, which withdraws a body past
- * the instant its provider vouched for and leaves the rest in place.
+ * The bodies are not gated on the vessel's horizon: `system.bodies` carries a horizon per body, honoured in `systemInstantAt`.
  */
 
 const CONTRIBUTIONS_META = {
@@ -146,10 +134,7 @@ describe("SystemView draws the vessel trajectory the provider states", () => {
         throw new Error("the vessel curve has not rendered yet");
       }
     });
-    // A closed path rather than an `<ellipse>`: the conic ARM is unchanged (the
-    // elements are still the curve), and the diagram draws it by sampling and
-    // placing the ring like any other, since a projected inclined orbit has a
-    // centre `cx`/`cy` cannot express.
+    // A closed sampled path, not an `<ellipse>`: a projected inclined orbit has a centre `cx`/`cy` cannot express.
     const conic = container.querySelector(
       'path[data-vessel-trajectory="conic"]',
     );
@@ -166,7 +151,7 @@ describe("SystemView draws the vessel trajectory the provider states", () => {
     });
     const arc = container.querySelector('path[data-vessel-trajectory="arc"]');
     expect(arc).not.toBeNull();
-    // Open by construction: it stops where the provider stopped.
+    // Open: it stops where the provider stopped.
     expect(arc?.getAttribute("d") ?? "").not.toMatch(/z/i);
     expect(
       container.querySelector('[data-vessel-trajectory="conic"]'),
@@ -184,9 +169,7 @@ describe("SystemView draws the vessel trajectory the provider states", () => {
   });
 
   it("keeps drawing the bodies when the vessel's trajectory is refused", async () => {
-    // The bodies come off `system.bodies`, which states its own horizon per
-    // body. Refusing to draw the Mun because the VESSEL's provider integrates
-    // would be inventing a refusal nobody stated about the Mun.
+    // The bodies' own per-body horizon governs them, not the vessel's provider.
     const container = await mount(UNBOUNDED_HORIZON);
     await waitFor(() => {
       if (!visibleText(container).includes("SHAPE NOT STATED")) {
@@ -199,8 +182,7 @@ describe("SystemView draws the vessel trajectory the provider states", () => {
   });
 
   it("keeps the vessel marker when its trajectory is refused", async () => {
-    // Where the craft IS comes from the osculating elements at the sample
-    // instant and is true whoever computed them. Only the CURVE is in question.
+    // Where the craft is comes from the elements at the sample instant, whoever computed them; only the curve is in question.
     const container = await mount(UNBOUNDED_HORIZON);
     await waitFor(() => {
       if (container.querySelectorAll(VESSEL_DOT).length === 0) {

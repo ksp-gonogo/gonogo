@@ -3,25 +3,15 @@ import { ActionMenu } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { usePartActions } from "./usePartActions";
 
-/**
- * The mod command that fires one PAW button. MUST match
- * `PartActionCommandProvider.InvokePartActionCommand`
- * (mod/Sitrep.Host/PartActionCommandProvider.cs); `partActions.cs-sync.test.ts`
- * reads it out of the C# source.
- */
+/** The mod command that fires one PAW button. Must match `PartActionCommandProvider.InvokePartActionCommand`, which `partActions.cs-sync.test.ts` reads out of the C# source. */
 export const INVOKE_PART_ACTION_COMMAND = "vessel.invokePartAction";
 
 /**
- * How many actions a part currently offers, as the WW spec's discoverability
- * line ("N actions available") on the hover tooltip: the operator learns a part
- * is actionable before committing to opening anything.
- *
- * <p>Its own component, mounted only while a part is hovered, because MOUNTING is
- * what subscribes, and subscribing is what makes the mod enumerate that part (see
- * `usePartActions`). Hovering one part therefore enumerates exactly one part.</p>
- *
- * <p>Under signal delay the count itself arrives a light-time after the hover, so
- * the pending state says so rather than showing a confident "0".</p>
+ * How many actions a part offers ("N actions available") on the hover
+ * tooltip. Mounted only while a part is hovered, because mounting subscribes
+ * and subscribing makes the mod enumerate that part. Under signal delay the
+ * count arrives a light-time late, so the pending state says so rather than
+ * showing "0".
  */
 export function PartActionCount({ flightId }: Readonly<{ flightId: number }>) {
   const { actions, pending } = usePartActions(flightId);
@@ -44,13 +34,7 @@ export interface PartActionMenuProps {
   flightId: number;
   /** The part's display title, for the menu's accessible name and each item's. */
   partTitle: string;
-  /**
-   * Fires one action. Owned by the widget rather than this menu because the
-   * `useCommand` handle must OUTLIVE the popover: the menu closes on fire (like
-   * a real PAW click), and a handle that unmounted with it would take its
-   * in-flight delay row along with it. The widget holds the handle and feeds the
-   * Panel's delay rail, so a fired action stays visible while it travels.
-   */
+  /** Fires one action. The widget owns the `useCommand` handle so it outlives the popover, which closes on fire. */
   onInvoke: (eventName: string, actionLabel: string) => void;
   /** Escape, Tab, an outside press, or a fired action: the caller restores focus to the part. */
   onDismiss: () => void;
@@ -59,17 +43,10 @@ export interface PartActionMenuProps {
 }
 
 /**
- * A part's right-click Part Action Window, as an anchored APG menu.
- *
- * <p><b>Nothing here flips state optimistically.</b> A fired action is reported
- * by the widget's delay rail, and the button set itself re-renders when the
- * part's live action list changes (Extend becoming Retract, one light-time
- * later). Guessing the outcome locally would show the operator a state the craft
- * has not reached.</p>
- *
- * <p>An inactive action (`active: false`) renders disabled rather than being
- * dropped: KSP greys an inert PAW button rather than removing it, and a list that
- * reshuffled itself as craft state changed would be harder to use, not easier.</p>
+ * A part's right-click Part Action Window, as an anchored APG menu. Nothing
+ * flips optimistically: the delay rail reports a fired action and the list
+ * re-renders when the part's live actions change. An inactive action renders
+ * disabled rather than dropped, as KSP greys it.
  */
 export function PartActionMenu({
   flightId,
@@ -85,9 +62,7 @@ export function PartActionMenu({
     label: action.label || action.name,
     group: action.group ?? undefined,
     disabled: !action.active,
-    // The part title is not in the item's own text, so a screen-reader user
-    // hearing just "Extend Solar Panel" would not know which part it acts on.
-    // The accessible name carries both.
+    // The accessible name carries the part, which the item's own text does not.
     ariaLabel: `${action.label || action.name} on ${partTitle}`,
   }));
 
@@ -96,16 +71,12 @@ export function PartActionMenu({
       items={items}
       ariaLabel={`${partTitle} actions`}
       style={style}
-      // Two different empty states: a subscription that has not been answered
-      // yet (a real wait under signal delay) versus a part that genuinely has no
-      // buttons. Collapsing them would report "none" for a part still in transit.
+      // An unanswered subscription (a real wait under delay) is not a part with no buttons.
       emptyLabel={pending ? "Awaiting actions..." : "No actions"}
       onSelect={(eventName) => {
         const action = actions?.find((a) => a.name === eventName);
         onInvoke(eventName, action?.label || eventName);
-        // Dismiss on fire, matching a real PAW click. Re-opening re-reads the
-        // live list, so the operator sees the post-command state rather than a
-        // stale snapshot held open.
+        // Dismiss on fire, like a PAW click; re-opening re-reads the live list.
         onDismiss();
       }}
       onDismiss={onDismiss}

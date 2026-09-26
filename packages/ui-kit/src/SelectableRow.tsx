@@ -25,9 +25,6 @@ export interface SelectableRowProps
  * vertically and go-tones its background/border when `selected`; text inherits
  * the row's own colour so children stay unstyled spans that pick up the
  * selected tint. Sets `aria-pressed` from `selected` automatically.
- *
- * Converged from RoboticsConsole's `ServoRow` and RotorTachometer's `RotorRow`,
- * which had each hand-rolled the same shape.
  */
 export function SelectableRow({
   selected,

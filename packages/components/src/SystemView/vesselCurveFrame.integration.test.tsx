@@ -7,18 +7,7 @@ import {
 } from "../test/setupStreamFixture";
 import { SystemViewComponent } from "./index";
 
-/**
- * The craft's own curve, in the frame the rest of the picture is in.
- *
- * This file used to drive a `readFrame` config option from a saved value to an
- * attribute on the drawn `<path>`, and it passed while the option's own label
- * ("hold the parent still") was false: the option reached `useOrbitTrajectory`
- * and never reached the bodies, so the picture had two frames in it and no
- * assertion here could see the second one. `projection.integration.test.tsx`
- * covers where the bodies land; what stays here is the other half, which is that
- * whatever shape the propagation seam authorises is lifted into that same frame
- * rather than turned by a rotation built from the elements.
- */
+/** The craft's own curve is lifted into the same frame as the bodies, whatever shape the propagation seam authorises, rather than turned by a rotation built from the elements. */
 
 const KERBOL_MU = 1.1723328e18;
 const KERBIN_MU = 3.5316e12;
@@ -75,8 +64,7 @@ function kerbolSystem() {
 
 function mount(options: {
   config: { frame: string };
-  /** `2` is an integrating provider, which sends a sampled arc; `1` is analytic,
-   *  which says the elements ARE the curve. */
+  /** `2` is an integrating provider sending a sampled arc; `1` is analytic, where the elements are the curve. */
   trajectoryKind: number;
 }) {
   const fixture: StreamFixture = setupStreamFixture({
@@ -141,9 +129,7 @@ describe("SystemView vessel curve", () => {
     await waitFor(() => {
       expect(view.container.querySelector("svg")).not.toBeNull();
     });
-    // The frame the DIAGRAM is in, not the frame the seam happened to compute
-    // in. The two used to be captioned as one thing, and under the option this
-    // file was written for they were two different frames in one picture.
+    // The frame the diagram is in, not the frame the seam happened to compute in.
     expect(view.container.textContent).toContain("Kerbin-Centred Inertial");
     await act(async () => {});
   });
@@ -157,17 +143,12 @@ describe("SystemView vessel curve", () => {
       if (found === null) throw new Error("no conic drawn yet");
       return found;
     });
-    // The ring is sampled and placed, so `<ellipse cx cy rx ry>` in a
-    // `rotate(lan + argPe)` group is gone: those four attributes describe the
-    // shape a closed orbit has in its own plane, and this orbit is inclined 40
-    // degrees so the projected shape has a centre they cannot express.
+    // The ring is sampled and placed rather than an ellipse in a rotate() group: inclined 40 degrees, its projected centre is not one cx/cy can express.
     expect(
       view.container.querySelector('ellipse[data-vessel-trajectory="conic"]'),
     ).toBeNull();
     expect(path.getAttribute("transform")).toBeNull();
-    // Inclined 40 degrees with periapsis a quarter turn from the node, so the
-    // apsis line lands on the foreshortened axis: the drawn ring is narrower
-    // across it than a flat projection of the same elements would be.
+    // Periapsis a quarter turn from the node puts the apsis line on the foreshortened axis, so the ring is narrower across it than a flat projection.
     const points = pathPoints(path.getAttribute("d") ?? "");
     expect(points.length).toBeGreaterThan(50);
     const spanY =
@@ -187,10 +168,7 @@ describe("SystemView vessel curve", () => {
       if (found === null) throw new Error("no arc drawn yet");
       return found;
     });
-    // 1 is `Perifocal`: the seam answers in the orbit's own plane, and the
-    // diagram lifts those points with the elements' full three-dimensional
-    // rotation rather than wrapping them in a `rotate(lan + argPe)` group, which
-    // is that rotation's zero-inclination case and nothing else.
+    // `Perifocal`: the diagram lifts the points with the elements' full three-dimensional rotation.
     expect(path.getAttribute("data-trajectory-frame")).toBe("1");
     expect(path.getAttribute("transform")).toBeNull();
     expect(path.parentElement?.getAttribute("transform")).toBeNull();

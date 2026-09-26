@@ -12,30 +12,13 @@ import preLaunchMixed from "./__fixtures__/pre-launch-mixed.json";
 import { LaunchDirectorComponent } from "./index";
 
 /**
- * The same pre-launch scene under a stock career and under RP-1, which is the
- * claim this widget's rekey rests on: **vanilla is not a degraded mode.**
- *
- * A pad list needs two things from the wire, and stock carries both. Which pads
- * exist is `spaceCenter.launchSites`; whether one is holding a vessel is
- * `padOccupied`/`padVesselTitle` on the same entries. So an install with no
- * launch-complex mod running renders the SAME widget off the SAME reads, with a
- * different set of pads on it, rather than a stripped-down fallback that an RP-1
- * install replaces.
- *
- * What changes between the two cases below is only the install: the craft, the
- * crew and the balance are one scene. Under RP-1 the `rp1.*` channels are live
- * and the widget does not read one of them: what RP-1 knows about a pad reaches
- * the row through `launch-director.pad`, and this package cannot load that
- * Uplink's client, so the two renders here differ ONLY in the pads themselves.
+ * The same pre-launch scene under a stock career and under RP-1: vanilla is not
+ * a degraded mode. Stock carries the pads and their occupancy, so both installs
+ * render the same widget off the same reads and differ ONLY in the pads.
  */
 const SCENE = preLaunchMixed._stream as InstallProfileStreamBlock;
 
-/**
- * Replays a profiled block one topic at a time, holding each until something has
- * subscribed: `StubTransport` drops a sample for a topic nobody is reading and
- * does not replay it, and the craft list only mounts once the pads have landed
- * and a pad row has opened.
- */
+/** Replays a block one topic at a time, holding each until subscribed: `StubTransport` drops samples nobody reads. */
 async function replay(
   fixture: ReturnType<typeof setupStreamFixture>,
   block: InstallProfileStreamBlock,
@@ -102,7 +85,7 @@ describe("LaunchDirector across declared installs", () => {
       "KSC Runway",
       "Woomerang",
     ]);
-    // Stock answers pad occupancy, so the widget's subject is fully served here: the KSC pad says it is clear and the sites that report nothing say that.
+    // Stock answers pad occupancy: the KSC pad says clear and the silent sites say that.
     expect(screen.getByText("Clear")).toBeInTheDocument();
     expect(screen.getAllByText("Occupancy unreported")).toHaveLength(2);
     // And the whole launch flow is behind the open pad, not a stripped fallback.
@@ -120,9 +103,7 @@ describe("LaunchDirector across declared installs", () => {
       "Cape Canaveral LC-5",
       "KSC Runway",
     ]);
-    // Every RP-1 pad is silent about stock occupancy (the mod derives it on the
-    // stock VAB pad alone), and the row says so rather than claiming it is
-    // clear. What RP-1 knows arrives through the per-pad slot instead.
+    // RP-1 pads are silent about stock occupancy, and the row says so rather than claiming clear.
     expect(screen.getAllByText("Occupancy unreported")).toHaveLength(3);
     expect(screen.queryByText("Clear")).not.toBeInTheDocument();
     // Same shape, same controls, same funds rule.
@@ -132,9 +113,7 @@ describe("LaunchDirector across declared installs", () => {
   });
 
   it("reads nothing off rp1.* even where those channels are live", async () => {
-    // The widget's capability is the stock one. An Uplink adds to a pad row; it
-    // is not what makes the row exist, and a subscription here would be the
-    // first step back towards a widget that only works under one mod.
+    // An Uplink adds to a pad row; the widget subscribes to no `rp1.*` channel.
     const { fixture } = await renderUnder("rp1-testflight");
 
     for (const channel of ["rp1.pads", "rp1.operations", "rp1.complexes"]) {

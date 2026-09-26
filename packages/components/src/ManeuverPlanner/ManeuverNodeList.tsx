@@ -9,10 +9,9 @@ interface ManeuverNodeListProps {
   nodes: readonly ParsedManeuverNode[];
   completedNodes: ReadonlyMap<number, CompletedEntry>;
   currentUT: number | undefined;
-  /** Vessel ΔV available, or null when there is no usable reading (NOT the same as zero). */
+  /** Vessel ΔV available, or null when there is no usable reading. */
   availableDv: number | null;
-  /** Resolves to a no-op the operator can ignore, we only surface the error
-   *  via the orchestrator's `error` state. */
+  /** Failures surface through the orchestrator's `error` state, not here. */
   onDelete: (nodeId: string) => Promise<void> | void;
   onEdit: (nodeId: string, patch: NodeEditPatch) => Promise<void> | void;
   onClearAll: () => Promise<void> | void;
@@ -33,10 +32,7 @@ export function ManeuverNodeList({
   onEdit,
   onClearAll,
 }: ManeuverNodeListProps) {
-  // Live nodes + phantom entries for completed nodes that have already
-  // disappeared from `o.maneuverNodes` (e.g. user manually deleted before the
-  // 10 s hold elapsed). The phantom is rendered inert, no Delete button
-  // wiring beyond letting the timer drop it on schedule.
+  // A completed node already gone from the live list stays as an inert phantom until its hold expires.
   const displayedNodes = useMemo<DisplayedNode[]>(() => {
     const liveUts = new Set<number>();
     const live = nodes.map<DisplayedNode>((n) => {
@@ -87,9 +83,7 @@ export function ManeuverNodeList({
   );
 }
 
-/** A list that is a Stack: the bullets and the browser's own list insets go,
- *  the semantic `ul` stays. The gap is named rather than sized so a card
- *  around this list tightens it the way it tightens everything else. */
+/** The gap is named, not sized, so a surrounding card tightens it like everything else. */
 const NODE_LIST_STYLE = {
   gap: "var(--gap-related)",
   listStyle: "none",

@@ -42,57 +42,18 @@ const topics = defineTopicManifest({
  * In-situ resource operations: every drill and every chemical converter on the
  * active vessel, at live rates.
  *
- * SOURCE-AGNOSTIC BY DESIGN, mod-side. `isru.*` is ONE Kernel-elected capability
- * publishing a single `isru.drills` / `isru.converters` pair, filled by whichever
- * backend won the election (stock, or a mod that replaces stock ISRU wholesale).
- * So this widget consumes ONE shape and renders identically whichever backend
- * answered. It never branches on which mod is installed, and it never imports a
- * provider's package.
+ * Renders one shape whichever ISRU backend the mod elected, and never reads a
+ * provider's extension bag: that detail belongs to an augment in the provider's
+ * own package. Filters are contributed search terms matched against `searchText`
+ * baked from the shared fields alone, so the widget holds no taxonomy.
  *
- * <b>The provider extension bag is deliberately not read here.</b> Each entry can
- * carry a provider-namespaced sub-tree (a blocking-reason string, an asteroid's
- * remaining mass, a process throttle), and reading it means importing the
- * provider's own typed accessor, which is exactly what a base widget must not do.
- * Every row below is complete from the shared fields alone, so there is no
- * empty-looking provider-shaped hole to explain on a stock install. Layering that
- * detail on is an augment's job, in the provider's own package.
+ * Both channels are active-vessel scoped, so an empty list means this vessel has
+ * no drills or converters. The header's location comes from `vessel.identity`
+ * and `system.bodies` because the entries carry no vessel or body field.
  *
- * FILTERS ARE CONTRIBUTED, NEVER HARDCODED. The list is filtered by a mounted
- * `FilterList`, which owns its own `filters` contribution slot: a provider that
- * knows how these rows divide up (a mod's per-process axis) contributes
- * pre-filled SEARCH TERMS to that slot from its own Uplink, and they filter
- * against the `searchText` this widget bakes from its SHARED fields alone
- * (`partTitle`, kind, resource names). The widget holds no taxonomy: it could
- * not assert a life-support-versus-ISRU split even if it wanted to, and the
- * operator can always type a resource or part name into the same box.
- *
- * ACTIVE-VESSEL SCOPED: both channels capture off the active vessel only, the same
- * carry-gap `reliability.*` has. An empty list means this vessel has no drills or
- * converters, never that ISRU is untracked: stock genuinely models ISRU, so the
- * elected backend always has a real answer.
- *
- * LOCATION: neither `IsruDrillEntry` nor `IsruConverterEntry` carries a vessel or
- * body field, so a process can never say WHICH vessel it is on beyond the
- * active-vessel-scoped guarantee above. Since every entry on this stream is
- * necessarily the active vessel's, the header below answers "is this all in one
- * place, on a vessel, on Duna" honestly with data the shared shape already has
- * elsewhere: `vessel.identity` (name) resolved against `system.bodies`
- * (current body), both optional so a vanilla install with neither still renders
- * the list untouched. A genuine per-process location (e.g. a future multi-vessel
- * view) is NOT representable today; that needs a contract change adding a
- * `vesselId`/`vesselName` field to both entry types, mod-side.
- *
- * CURRENCY IS PER FIELD, AND EACH ENTRY CARRIES BOTH KINDS. What hardware is
- * bolted to the vessel is a fact: a drill does not leave the craft, a converter's
- * recipe is fixed at design time, and a deploy animation only moves when something
- * moves it. Those keep their last value, because no event that changes them can
- * reach us down a link that stopped delivering, and blanking them would erase a
- * rig that is demonstrably still bolted on. What each process is DOING is not a
- * fact of that kind: `running` stops on its own when a tank fills or the ore runs
- * out, and rates and ore abundance drift with load and location. So a channel that
- * goes stale keeps its cards and withholds every rate, abundance and run badge on
- * them, with the header naming which channel went, because a green "running" card
- * is a claim about the vessel now.
+ * The hardware on a card is a fact and survives a stale channel; what it is
+ * doing (run state, rates, abundance) is withheld, with the header naming which
+ * channel went.
  */
 
 type ResourceOpsConfig = Record<string, never>;
@@ -109,26 +70,13 @@ const resourceOpsActions = [
 
 export type ResourceOpsActions = typeof resourceOpsActions;
 
-/** Resource | rate | flow-direction, shared by every process card's table. */
-/**
- * The tombstone answer for both harvester lists: the producer saying "this vessel
- * has no drills" is an empty list, not a missing one. One shared frozen array so a
- * confirmed-none does not hand a fresh identity to `useMemo` every frame.
- */
+/** Shared so a confirmed-none does not hand a fresh identity to `useMemo` every frame. */
 const EMPTY_LIST: never[] = [];
 
+/** Resource | rate | flow-direction, shared by every process card's table. */
 const RESOURCE_TABLE_COLS = "minmax(0, 1fr) auto auto";
 const RIGHT_ALIGN = { textAlign: "right" } as const;
-/**
- * `Value`-equivalent typography for the resource-name cell, applied to
- * `Truncate` (which carries no size/tone props of its own). A long resource
- * name (`ElectricCharge`, `CarbonDioxide`) needs to ellipsize rather than
- * overflow into the rate column: the track alone (`minmax(0, 1fr)`) is not
- * enough, a grid item's own implicit `min-width: auto` still refuses to
- * shrink below its content unless the item itself carries `min-width: 0`,
- * which is exactly what `Truncate` sets (mirrors `FleetRoster`'s identical
- * fix on its own name column).
- */
+/** `Value` typography for `Truncate`, which a long resource name needs to ellipsize inside a grid cell. */
 const RESOURCE_NAME_STYLE = {
   fontSize: "var(--font-size-value)",
   color: "var(--color-text-primary)",
@@ -136,9 +84,8 @@ const RESOURCE_NAME_STYLE = {
 
 /**
  * Enough decimal places to show a rate as nonzero: `base` for an ordinary
- * magnitude, widened to two significant digits below it. Life-support rates
- * genuinely sit at 0.0002 units/s, and a fixed precision flattens that to
- * "0.000", which reads as a dead process rather than a slow one.
+ * magnitude, widened to two significant digits below it, since life-support
+ * rates sit around 0.0002 units/s and "0.000" reads as a dead process.
  */
 function rateDecimals(rate: Quantityish, base: number): number {
   const magnitude = magnitudeOf(rate);
@@ -153,12 +100,8 @@ function rateDecimals(rate: Quantityish, base: number): number {
  * carry no EC field of their own. A positive number draws power; negative
  * means the fleet is a net generator (e.g. a running fuel cell).
  *
- * The two halves of the answer are separate because they fail separately.
- * `moves` is whether anything aboard touches ElectricCharge, which is a
- * property of the RECIPES and so stays a fact whatever the rates do; `net` is
- * the figure, and it is `null` the moment one contributing rate cannot be
- * read. A total assembled from the rates it happened to get understates the
- * draw, and an operator sizes a battery off that number.
+ * `moves` is a property of the recipes; `net` is `null` the moment one
+ * contributing rate cannot be read, because a partial sum understates the draw.
  */
 function netElectricChargeDraw(converters: readonly IsruConverterEntry[]): {
   moves: boolean;
@@ -186,11 +129,9 @@ function netElectricChargeDraw(converters: readonly IsruConverterEntry[]): {
 }
 
 /**
- * One row of a process's resource table: resource name, its rate, and which
- * way it flows ("in" / "out" / "extract"). Returns a FRAGMENT of three flat
- * cells, not its own row wrapper: the enclosing `Grid` is what turns a run of
- * these into aligned columns across every row in the card (CSS grid
- * auto-flow), so a row wrapper here would break the alignment.
+ * One row of a process's resource table: resource name, rate, and direction.
+ * Returns three flat cells, not a row wrapper, so the enclosing `Grid` aligns
+ * columns across every row in the card.
  */
 function ResourceCells({
   flow,
@@ -199,12 +140,7 @@ function ResourceCells({
 }: Readonly<{
   flow: IsruResourceFlow;
   direction: "in" | "out" | "extract";
-  /**
-   * The rate went stale rather than never arriving, so the cell reads as
-   * held-back rather than as "unknown", which the backend says when it has a
-   * recipe but no figure for it. The resource name beside it stays: which
-   * resource a process moves is a design fact.
-   */
+  /** Stale rather than never arrived: the cell reads as held back, not "unknown". */
   ratesNotCurrent: boolean;
 }>) {
   return (
@@ -227,12 +163,8 @@ function ResourceCells({
 }
 
 /**
- * The run-state chip for a rig whose channel is CURRENT, shared by both card
- * kinds because both fields are the same three-valued flag.
- *
- * "stopped" is a diagnosis: an operator reads it as a rig they can start. The
- * truthiness form this replaced gave that answer for a field the provider never
- * filled, so a harvester whose module could not be read looked switched off.
+ * The run-state chip for a rig whose channel is current. An unread flag is not
+ * "stopped": the operator reads "stopped" as a rig they can start.
  */
 function RunStateBadge({ running }: Readonly<{ running?: boolean | null }>) {
   if (running === null || running === undefined) {
@@ -258,26 +190,18 @@ function DrillCard({
   return (
     <Card
       aria-current={highlighted ? "true" : undefined}
-      // A `go` card is read as "extracting, right now". Held-back run state gets
-      // the neutral tone instead of the last green one.
       tone={!drillNotCurrent && drill.running ? "go" : "default"}
       identityColor={drill.resource ? resourceColor(drill.resource) : undefined}
       title={drill.partTitle ?? drill.partId ?? "Drill"}
       titleRight={
-        /* Wraps rather than clips: an unbreakable run cut badges off at the
-           default tile width, and the deployed chip is conditional. */
         <Inline wrap>
-          {/* Deployed is genuinely absent on a harvester with no deploy
-              animation, so the chip is omitted rather than shown as a false
-              "retracted". */}
+          {/* Absent on a harvester with no deploy animation, which is not "retracted". */}
           {drill.deployed !== null && drill.deployed !== undefined && (
             <Badge severity={drill.deployed ? "nominal" : "info"}>
               {drill.deployed ? "deployed" : "retracted"}
             </Badge>
           )}
-          {/* A harvester stops itself when its tank fills or the ore runs out, so
-              "running" is a statement about now and is withheld rather than held
-              over. The header says which channel it was withheld for. */}
+          {/* A harvester stops itself when its tank fills or the ore runs out, so run state is never held over. */}
           {drillNotCurrent ? (
             <Badge severity="info">run state held</Badge>
           ) : (
@@ -296,13 +220,7 @@ function DrillCard({
         </Grid>
         <Inline>
           <ReadoutCaption>abundance</ReadoutCaption>
-          {/* Ore abundance is a property of where the drill is standing, and the
-              drill can be driven somewhere else while the link is down.
-
-              No `as="%"` on the readout: a ratio and a percent are different
-              kinds, so the conversion was refused and the prop did nothing. A
-              ratio already renders as a percentage, which is why nothing here
-              ever read wrong. */}
+          {/* Abundance belongs to where the drill stands, and it can be driven elsewhere while the link is down. */}
           {drillNotCurrent ? (
             <Text tone="muted">{NULL_DISPLAY}</Text>
           ) : drill.abundance !== null && drill.abundance !== undefined ? (
@@ -323,38 +241,21 @@ function ConverterCard({
 }: Readonly<{
   converter: IsruConverterEntry;
   highlighted: boolean;
-  /**
-   * The converter channel went stale: the recipe still holds, the rates and the
-   * run state do not, and the starved diagnostic derived from them cannot be
-   * claimed either.
-   */
+  /** The recipe still holds; the rates, run state and starved diagnostic do not. */
   notCurrent: boolean;
 }>) {
-  // A converter that is on but moving nothing is a starved recipe. That is the
-  // derived diagnostic the shared shape is meant to carry, rather than a string
-  // no engine actually reports, so it is spelled out here rather than on the wire.
-  // A process with NO outputs is exempt: a scrubber or waste processor consumes
-  // and dumps by design, and an empty output side is its healthy state, not a
-  // stall.
-  //
-  // A stall is diagnosed from rates and a run flag, so a stale record cannot
-  // support it: the fault it names would be one the vessel had some seconds ago.
-  // Neither can an ABSENT rate, for the same reason one step earlier: a backend
-  // whose part capacity failed to resolve reports the recipe with its resources
-  // named and no rates at all, so every output
-  // reading as an unread rate is a failed read of a converter that may be
-  // running perfectly. The card's own rate cells print "unknown" for those very
-  // values; a warning tone and a "no output" badge in the same render would
-  // contradict them. Only a rate that arrived AS zero is a stall.
+  /*
+   * A running converter whose every output arrived as zero is starved. A process
+   * with no outputs (a scrubber) is exempt, and an absent rate is an unread one,
+   * not a stall.
+   */
   const starved =
     !converterNotCurrent &&
     converter.running === true &&
     converter.outputs.length > 0 &&
     converter.outputs.every((flow) => flow.rate?.isZero() === true);
 
-  // The card's identity colour: what it MAKES if it makes anything, else what
-  // it consumes. Purely a "what kind of thing is this" mark (Card's top tab),
-  // never a status signal, that's `tone` below.
+  // Identity colour, never status: what it makes if it makes anything, else what it consumes.
   const primaryResource =
     converter.outputs[0]?.resource ?? converter.inputs[0]?.resource;
 
@@ -384,12 +285,7 @@ function ConverterCard({
       }
     >
       <Stack>
-        {/* The recipe table is the card's core content: every input then every
-            output, one row each, columns aligned by the shared Grid template
-            rather than the old wrapping inline runs. Either side can be
-            genuinely empty (a scrubber has no output; a hypothetical pure
-            generator would have no input), and reads as that fact via a
-            "none" row rather than a blank gap in the table. */}
+        {/* Either recipe side can be genuinely empty, and reads as a "none" row. */}
         <Grid cols={RESOURCE_TABLE_COLS} rowGap="readout-row" align="baseline">
           {converter.inputs.length > 0 ? (
             converter.inputs.map((flow, index) => (
@@ -415,7 +311,6 @@ function ConverterCard({
               />
             ))
           ) : (
-            // A consume-and-dump process (a scrubber) has no output side by design: this reads as a fact, not a blank row.
             <Text tone="faint" size="sm">
               none
             </Text>
@@ -433,13 +328,7 @@ function converterResources(converter: IsruConverterEntry): string {
     .join(" ");
 }
 
-/**
- * Whole-widget summary: process count, how many are running, and any cheap
- * aggregate the shared shape supports (net EC draw), plus the vessel/body
- * this whole list is scoped to when that telemetry happens to be mounted.
- * Sits above the scrollable list so it stays visible while the cards scroll
- * underneath it.
- */
+/** Whole-widget summary: process count, active count, net EC draw, and location. */
 function ResourceOpsStats({
   total,
   activeCount,
@@ -464,12 +353,7 @@ function ResourceOpsStats({
       wrap
       role="group"
       aria-label="Resource ops summary"
-      /*
-       * Section rather than related: every child is an `Inline` pairing a
-       * caption with its figure, and those pair at the related gap. The strip
-       * only reads as several stats instead of one long run while the gap
-       * between stats is the larger of the two.
-       */
+      // Each stat pairs at the related gap inside, so stats separate at the section gap.
       style={{ gap: "var(--gap-section)" }}
     >
       <Inline>
@@ -484,15 +368,10 @@ function ResourceOpsStats({
         </Text>
         <ReadoutCaption>active</ReadoutCaption>
       </Inline>
-      {/* The stat stays mounted while the figure is withheld: WHETHER the vessel
-          moves ElectricCharge is a property of the recipes, which is a fact, so
-          dropping the row would say "nothing here draws power". */}
+      {/* Stays mounted while the figure is withheld: whether the vessel moves ElectricCharge is a recipe fact. */}
       {netEc.moves && (
         <Inline>
           <ReadoutCaption>net EC</ReadoutCaption>
-          {/* Withheld for either reason, and they read the same to an operator:
-              the channel stopped being current, or one rate in the sum never
-              arrived. Both mean the draw is unknown right now, not zero. */}
           {netEcNotCurrent || netEc.net === null ? (
             <Text tone="muted">{NULL_DISPLAY}</Text>
           ) : (
@@ -523,19 +402,13 @@ function ResourceOpsStats({
 function ResourceOpsComponent(
   _props: Readonly<ComponentProps<ResourceOpsConfig>>,
 ) {
-  /**
-   * The roster of processes is a fact and stays drawn (see the class doc's
-   * CURRENCY note), so these two reads keep their last list. Each channel carries
-   * its own currency: a stale drill channel says nothing about the converters, and
-   * hollowing out both because one went would withhold figures that are current.
-   */
+  // Each channel carries its own currency: a stale drill channel says nothing about the converters.
   const drillsReading = topics.useTelemetry("isru.drills");
   const convertersReading = topics.useTelemetry("isru.converters");
   const drillsNotCurrent = drillsReading.state === "stale";
   const convertersNotCurrent = convertersReading.state === "stale";
 
   const allDrills = useMemo(
-    // A confirmed no-drills IS an empty list, not a wait, so it is named here rather than left to the `??` below (which also has to cover pending).
     () => stillTrue(drillsReading, EMPTY_LIST) ?? EMPTY_LIST,
     [drillsReading],
   );
@@ -552,17 +425,13 @@ function ResourceOpsComponent(
     ...(convertersNotCurrent ? ["converters"] : []),
   ];
 
-  // Drills then converters, read end to end, so one "next" button walks the
-  // whole vessel. The index is into this full order, not the currently-shown
-  // subset: a hardware walk-through and an active text filter are not usually
-  // driven at the same time, and the returned unit name stays correct either way.
+  // One "next" walks drills then converters, indexing the full order rather than the filtered subset.
   const total = allDrills.length + allConverters.length;
   const [highlighted, setHighlighted] = useState(0);
   const current = total > 0 ? highlighted % total : 0;
 
   useActionInput<ResourceOpsActions>({
     next: (payload) => {
-      // Fire on the press edge only, so one tap steps one unit.
       if (payload.kind === "button" && payload.value !== true) return undefined;
       if (total === 0) return undefined;
 
@@ -577,11 +446,7 @@ function ResourceOpsComponent(
     },
   });
 
-  /**
-   * How many processes are running right now, so it is withheld the moment either
-   * side of the sum stops being current: "3 active" counted partly from held run
-   * flags is a number with no moment attached to it.
-   */
+  // Withheld the moment either side of the sum stops being current.
   const activeCount = useMemo(() => {
     if (drillsNotCurrent || convertersNotCurrent) return undefined;
     return (
@@ -594,14 +459,7 @@ function ResourceOpsComponent(
     [allConverters],
   );
 
-  // Optional, additive vessel/body context (see the class doc's LOCATION
-  // note): both reads are `optionalChannels`, so a mount with neither still
-  // renders the list untouched, just without this header line.
-  //
-  // Both are facts. A vessel's name and the body it is orbiting change on an
-  // event (a rename, an SOI change), and the body table is the solar system
-  // itself, so the last answer is still the answer and dropping "at Prospector
-  // One · Duna" would lose a caption that is still true.
+  // A vessel's name and parent body change only on an event, so the last answer still holds.
   const identity = stillTrue(topics.useTelemetry("vessel.identity"), undefined);
   const systemBodies = stillTrue(
     topics.useTelemetry("system.bodies"),
@@ -619,11 +477,7 @@ function ResourceOpsComponent(
       : identity.name
     : undefined;
 
-  // The row list handed to FilterList. `searchText` is baked from the SHARED
-  // fields only (part title, kind, resource names), which is the widget's whole
-  // say over searchability: a contributed term (a mod's process title, itself
-  // a substring of the shared part title) matches against this without the
-  // widget ever reading a provider's extension bag.
+  // `searchText` comes from the shared fields only, which contributed filter terms match against.
   const rows = useMemo<FilterRow[]>(() => {
     const drillRows = allDrills.map((drill, index) => ({
       id: drill.partId ?? `drill-${index}`,
@@ -683,7 +537,6 @@ function ResourceOpsComponent(
       panelTitle="RESOURCE OPS"
       compactTitle={["RES OPS", "RES"]}
       sections={[
-        /* The summary strip spans: the list below it is what it counts. */
         <Section key="summary" full>
           <ResourceOpsStats
             total={total}
@@ -694,9 +547,7 @@ function ResourceOpsComponent(
             staleChannels={staleChannels}
           />
         </Section>,
-        /* No `ScrollArea` around the list. Panel's body IS the scroller and
-           owns the glow, so a second one here drew its glow inside the outer
-           body's inset, which is the case the kit's own doc comment names. */
+        /* No `ScrollArea` here: Panel's body is already the scroller. */
         <Section key="processes" full>
           <FilterList
             rows={rows}
@@ -718,9 +569,6 @@ registerComponent<ResourceOpsConfig>({
   minSize: { w: 3, h: 4 },
   component: ResourceOpsComponent,
   channels: topics.channels,
-  // Additive vessel/body context for the header's "at" readout (see the
-  // class doc's LOCATION note); the core drill/converter list works fully
-  // without either, so these never gate the widget's mount.
   optionalChannels: topics.optionalChannels,
   defaultConfig: {},
   actions: resourceOpsActions,

@@ -3,22 +3,7 @@ import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { renderOrbitViewStream } from "./streamHarness";
 
-/**
- * OrbitView genuinely runs OFF THE STREAM, a real
- * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport`, no legacy `DataSource` anywhere.
- *
- * Every read is stream-native:
- * - `vessel.orbit` (raw Topic) → `sma`/`ecc`/`argPe`.
- * - the orbit solve over those elements → `trueAnomaly` (propagated at
- *   view-UT) and the apsis radii (`apoapsisRadius`/`periapsisRadius`: `null`
- *   on a hyperbolic orbit, real as soon as `vessel.orbit` lands otherwise).
- * - the parent body name → `vessel.identity.parentBodyIndex` named against
- *   `system.bodies`.
- *
- * Because the periapsis radius resolves as soon as `vessel.orbit` lands
- * (OnRails), `hasOrbit` goes true and the diagram renders.
- */
+/** OrbitView on the real provider pipeline via `StubTransport`: the periapsis radius resolves as soon as `vessel.orbit` lands, so the diagram renders. */
 
 describe("OrbitView: genuinely runs off the stream (R6)", () => {
   it("renders the orbit diagram off the real stream pipeline, not legacy", async () => {
@@ -27,7 +12,7 @@ describe("OrbitView: genuinely runs off the stream (R6)", () => {
       { bodyName: "Kerbin", sma: 681_500, ecc: 0.003, argPe: 12 },
     );
 
-    // A real subscription must have happened for StubTransport to deliver at all (its emit is subscription-gated; see its own doc comment).
+    // StubTransport.emit is subscription-gated, so a real subscription must exist for this to deliver.
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
     await waitFor(() => {
@@ -36,11 +21,10 @@ describe("OrbitView: genuinely runs off the stream (R6)", () => {
       }
     });
 
-    // The diagram is up, the widget left its empty state purely from stream-derived data.
     expect(container.querySelector("svg")).not.toBeNull();
     expect(visibleText(container)).toContain("Kerbin");
 
-    // White-box: the index the body name is resolved from is the one that streamed into the real TimelineStore, not fabricated.
+    // The body name resolves from the index that streamed into the store.
     const identity = fixture.store.sample<{ parentBodyIndex: number }>(
       "vessel.identity",
       fixture.store.currentFrame(),

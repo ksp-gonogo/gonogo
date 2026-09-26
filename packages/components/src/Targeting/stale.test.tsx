@@ -7,25 +7,12 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TargetingComponent } from "./index";
 
 /**
- * The withholding of the docking alignment, asserted from outside the component.
- *
- * `reading.test.tsx` already covers the whole link going quiet, where the TARGET
- * reading is what drops the HUD and the tracking panel states its own age. This
- * file covers the case that reading cannot see: `vessel.dock` alone stops being
- * current while `vessel.target` keeps arriving.
- *
- * Two outcomes, and which one is right turns on whether a MODEL can answer.
- * `vessel.dock.relativePosition` is declared reckonable, so a separation that
- * went quiet seconds ago is carried forward by its closing velocity and the
- * reticle draws from the modelled geometry under a caption naming the basis.
- * With nothing to carry it, the reticle is withheld instead, and a withheld
- * reticle is invisible: the HUD's absence looks identical to a target that
- * stopped being a docking port. So the assertions here are on the stated REASON
- * in both cases, never on the absence.
- *
- * A per-topic staleness is server-stamped rather than transport-wide, which is
- * why these emit `Staleness.HeldStale` on the dock point instead of dropping the
- * transport: that is the wire shape for "this specific channel is not current".
+ * `vessel.dock` alone stops being current while `vessel.target` keeps
+ * arriving. With a model the reticle draws from reckoned geometry under a
+ * caption naming the basis; without one it is withheld. The assertions are on
+ * the stated reason in both cases, never on the absence. Emits stamp
+ * `Staleness.HeldStale` on the dock point, the wire shape for one channel not
+ * being current.
  */
 afterEach(() => {
   clearActionHandlers();
@@ -93,13 +80,11 @@ describe("Targeting: the dock channel alone stops being current", () => {
         screen.getByRole("region", { name: "Docking HUD for Port Mk2" }),
       ).toBeTruthy(),
     );
-    // The notice must carry information, so it cannot be on screen while the alignment is current.
+    // The notice cannot be on screen while the alignment is current.
     expect(visibleText()).not.toMatch(/no longer current/i);
 
     act(() => {
-      // Same geometry, now stamped as held-stale: the channel is not being
-      // updated, and the numbers on it are the ones the mod last managed to
-      // send. The target keeps arriving, so this is the dock channel alone.
+      // Same geometry, now held-stale; the target keeps arriving.
       fixture.emit(
         "vessel.dock",
         {
@@ -113,30 +98,19 @@ describe("Targeting: the dock channel alone stops being current", () => {
       emitTarget(PINNED_UT);
     });
 
-    // Carried, and SAID so. `vessel.dock.relativePosition` is declared
-    // reckonable, so core dead-reckons the separation across a gap this short
-    // and the alignment angles derived from it are a model's answer rather than
-    // a measurement. The reticle stays on screen, which is the improvement the
-    // mark is for, and the caption is what stops it reading as an observation.
+    // The reticle stays, drawn from the reckoned separation, and the caption says it is modelled.
     await waitFor(() =>
       expect(screen.getByText(/Alignment reckoned/)).toBeTruthy(),
     );
     expect(visibleText()).toContain("linear-dead-reckoning");
     expect(visibleText()).toMatch(/last seen .+ ago/);
-    /*
-     * A modelled reticle is not a withheld one, so the withheld notice must not
-     * also be on screen: two captions saying opposite things about one
-     * instrument is worse than either.
-     */
+    // A modelled reticle is not a withheld one: two opposite captions on one instrument is worse than either.
     expect(visibleText()).not.toMatch(/no longer current/i);
     expect(visibleText()).toContain("α/β/γ");
   });
 
   it("withholds the reticle, and says why, once the model declines too", async () => {
-    // The withholding this file was written for, reached the only way it still
-    // can: with no model on offer. A first-order advance of a separation is
-    // honest for seconds, so the store hands the widget a decline rather than a
-    // reckoning, and there is nothing left to draw an attitude from.
+    // With no model on offer there is nothing left to draw an attitude from.
     const { fixture, emitTarget } = mountAtDockingRange();
 
     await waitFor(() =>
@@ -146,10 +120,7 @@ describe("Targeting: the dock channel alone stops being current", () => {
     );
 
     act(() => {
-      // No closing velocity on the record, so the dead reckoner has no rate to
-      // advance the separation by and declines naming it. Same visible outcome
-      // as a gap past the horizon, and reachable at this fixture's pinned view
-      // time, which a horizon of minutes is not.
+      // No closing velocity, so the dead reckoner has no rate and declines.
       fixture.emit(
         "vessel.dock",
         {
@@ -162,31 +133,26 @@ describe("Targeting: the dock channel alone stops being current", () => {
       emitTarget(PINNED_UT);
     });
 
-    // Withheld, not frozen: an alignment reticle drawn from data we know we have missed updates on asserts an attitude it cannot know.
+    // Withheld, not frozen.
     await waitFor(() =>
       expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull(),
     );
-    // And the operator can tell withheld from broken from out here, which is the whole point: the reason is named and dated.
+    // The reason is named and dated, so withheld reads differently from broken.
     expect(
       screen.getByText(/Docking alignment no longer current/),
     ).toBeTruthy();
     expect(visibleText()).toMatch(/last seen .+ ago/);
-    // The alignment row itself is gone with the HUD rather than lingering as placeholders that look like a partial record.
+    // The alignment row goes with the HUD rather than lingering as placeholders.
     expect(visibleText()).not.toContain("α/β/γ");
 
-    // Still a working widget: the target-derived figures are current and keep
-    // being drawn, so this is one instrument withheld rather than the widget
-    // giving up. A render that failed outright would pass the assertions above.
+    // The target-derived figures keep being drawn: one instrument withheld, not the widget giving up.
     expect(screen.getByText("APPROACH")).toBeTruthy();
     expect(visibleText()).toContain("62.0 m");
     expect(visibleText()).toMatch(/−0\.4 m\/s/);
   });
 
   it("blames nothing when the pairing is genuinely gone rather than not current", async () => {
-    // The distinction the notice exists for. A tombstone means the pairing is
-    // genuinely gone (the operator deselected the port, or our side lost its
-    // free one), and that is a fact about the craft with no reason to caption.
-    // Staleness is a fact about the link. Same missing HUD, different statement.
+    // A tombstone means the pairing is genuinely gone, with nothing to caption; staleness is about the link.
     const { fixture, emitTarget } = mountAtDockingRange();
     await waitFor(() =>
       expect(

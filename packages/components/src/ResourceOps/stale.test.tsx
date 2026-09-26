@@ -12,28 +12,10 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ResourceOpsComponent } from "./index";
 
 /**
- * What ResourceOps withholds when an `isru.*` channel stops being current, and how
- * the operator can tell from outside the component.
- *
- * The decision, per field: the RIG stays drawn and every FIGURE on it goes. Which
- * drills and converters are bolted to the vessel is a fact that only an event can
- * change, and no event reaches us down a link that has stopped delivering, so
- * blanking the list would erase hardware that is demonstrably still there. What
- * each unit is doing is the opposite: a harvester stops itself when its tank
- * fills, a converter starves when the ore runs out, and ore abundance changes the
- * moment the rover drives somewhere else. A green "running" card is a claim about
- * the vessel now.
- *
- * Which is why the withholding has to be VISIBLE. A card with no rate and no run
- * badge looks like a backend that publishes a thin payload, and the widget's own
- * "No drills or converters on this vessel" is a confident statement about the
- * craft. Every case below pairs "the figure is gone" with "the reason is on
- * screen", because neither half alone would catch a regression.
- *
- * A per-topic staleness is server-stamped rather than transport-wide, which is why
- * the one-channel case emits `Staleness.HeldStale` on `isru.drills` instead of
- * dropping the transport: that is the wire shape for "this channel alone is not
- * current".
+ * When an `isru.*` channel goes stale the rigs stay drawn and every figure on
+ * them is withheld, and each case pairs "the figure is gone" with "the reason
+ * is on screen". A single-channel staleness is server-stamped, so that case
+ * emits `Staleness.HeldStale` on `isru.drills` rather than dropping the transport.
  */
 
 const CARRIED = ["isru.drills", "isru.converters"];
@@ -123,8 +105,7 @@ function statsHeader(): HTMLElement {
 
 describe("ResourceOps when an isru channel is not current", () => {
   it("draws every figure while both channels are current", async () => {
-    // The control. Without it every assertion below would also pass on a widget
-    // that never draws a rate or a run badge at all.
+    // The control: without it every withheld assertion would pass on a widget that never draws a rate.
     const { fixture } = renderWidget();
     emitBoth(fixture);
 
@@ -133,9 +114,6 @@ describe("ResourceOps when an isru channel is not current", () => {
     expect(screen.getByText("no output")).toBeInTheDocument();
     expect(screen.queryAllByText("run state held")).toHaveLength(0);
     expect(visibleText()).not.toMatch(/no longer current/i);
-    // Three of the four processes are running, counted from live run flags, and
-    // the 30 units/s of ElectricCharge they draw is on the header. Both are here
-    // so the "withheld" assertions further down are assertions about something.
     expect(within(statsHeader()).getByText("3")).toBeInTheDocument();
     expect(visibleText(statsHeader())).toContain("30");
     expect(visibleText()).toContain("0.0037");
@@ -155,7 +133,7 @@ describe("ResourceOps when an isru channel is not current", () => {
         ),
       ).toBeInTheDocument(),
     );
-    // The rig is a fact and survives: every unit is still on the board, which is the half of this that a blanket withholding would get wrong.
+    // The rigs survive: which units are bolted on only changes on an event.
     expect(screen.getByText("Drill-O-Matic")).toBeInTheDocument();
     expect(screen.getByText("Drill-O-Matic Junior")).toBeInTheDocument();
     expect(screen.getByText("Convert-O-Tron 250")).toBeInTheDocument();
@@ -171,13 +149,12 @@ describe("ResourceOps when an isru channel is not current", () => {
     dropTheLink(fixture);
     await waitFor(() => expect(visibleText()).toMatch(/no longer current/i));
 
-    // No claim about what any unit is doing, in either direction: "stopped" is as much a statement about now as "running" is.
+    // "stopped" is as much a statement about now as "running".
     expect(screen.queryAllByText("running")).toHaveLength(0);
     expect(screen.queryAllByText("stopped")).toHaveLength(0);
     expect(screen.getAllByText("run state held")).toHaveLength(4);
-    // The stall diagnostic is derived from rates and a run flag, so it goes with them rather than accusing a converter of starving some seconds ago.
     expect(screen.queryByText("no output")).not.toBeInTheDocument();
-    // Rates read as held back, not as the "unknown" the backend says when it has a recipe and no figure for it.
+    // Held back, not the "unknown" the backend sends for a recipe with no figure.
     expect(screen.queryAllByText("unknown")).toHaveLength(0);
     expect(screen.queryAllByText(NULL_DISPLAY).length).toBeGreaterThan(0);
     expect(visibleText()).not.toContain("0.0037");
@@ -192,21 +169,16 @@ describe("ResourceOps when an isru channel is not current", () => {
     await waitFor(() => expect(visibleText()).toMatch(/no longer current/i));
 
     const header = statsHeader();
-    // "3 active" summed partly from held run flags is a number with no moment attached to it.
     expect(within(header).queryByText("3")).not.toBeInTheDocument();
     expect(within(header).getByText("active")).toBeInTheDocument();
-    // WHETHER this vessel moves ElectricCharge is a property of the recipes, so
-    // the stat stays mounted while its figure is withheld: dropping the row
-    // would say nothing here draws power.
+    // Whether the vessel moves ElectricCharge is a recipe fact, so the stat stays mounted.
     expect(within(header).getByText("net EC")).toBeInTheDocument();
     expect(visibleText(header)).toContain(NULL_DISPLAY);
     expect(visibleText(header)).not.toContain("30");
   });
 
   it("does not present the withheld board as a vessel with no ISRU hardware", async () => {
-    // The failure mode this file exists to prevent. "No drills or converters on
-    // this vessel" is a confident statement about the craft, and reaching it from
-    // a dropped link would report an unequipped vessel that is in fact mining.
+    // A dropped link must never read as an unequipped vessel.
     const { fixture } = renderWidget();
     emitBoth(fixture);
     expect(await screen.findByText("Drill-O-Matic")).toBeInTheDocument();
@@ -220,9 +192,7 @@ describe("ResourceOps when an isru channel is not current", () => {
   });
 
   it("withholds only the channel that went, and says which one", async () => {
-    // The case a transport drop cannot see: the drills stop being current while
-    // the converters keep arriving. Hollowing out both would withhold figures
-    // that are current.
+    // Only the drills go stale, so the current converter figures must survive.
     const { fixture } = renderWidget();
     emitBoth(fixture);
     expect(await screen.findByText("Drill-O-Matic")).toBeInTheDocument();
@@ -237,17 +207,15 @@ describe("ResourceOps when an isru channel is not current", () => {
         screen.getByText("Rates and run state no longer current: drills"),
       ).toBeInTheDocument(),
     );
-    // Two drills held, two converters still reporting.
     expect(screen.getAllByText("run state held")).toHaveLength(2);
     expect(screen.getAllByText("running")).toHaveLength(2);
     expect(screen.getByText("no output")).toBeInTheDocument();
-    // The converter recipe's own figures are untouched.
     expect(visibleText()).toContain("0.45");
     expect(visibleText()).not.toContain("0.0037");
   });
 
   it("says nothing about currency before anything has arrived", async () => {
-    // A cold start is not a dropped link: a never-fed mount says it has no ISRU data, and accuses nothing.
+    // A never-fed mount says it has no ISRU data and accuses nothing.
     renderWidget();
 
     expect(await screen.findByText("No ISRU data")).toBeInTheDocument();

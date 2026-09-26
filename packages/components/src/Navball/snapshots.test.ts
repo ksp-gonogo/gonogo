@@ -10,25 +10,13 @@ import steepDive from "./__fixtures__/steep-dive-west.json";
 import uncontrollableDrift from "./__fixtures__/uncontrollable-drift.json";
 import { renderAttitudeDialToSvg } from "./render";
 
-/**
- * Attitude-dial SVG snapshots. The same `renderAttitudeDialToSvg` helper
- * drives the CLI harness (`pnpm --filter @ksp-gonogo/components render-navball`)
- * so the snapshot reflects exactly what a reviewer would see when opening
- * the SVG in a browser.
- *
- * Floating-point coordinates are rounded to 2dp before snapshotting so
- * unrelated numeric refactors don't produce noisy diffs. If you change
- * the dial and these snapshots break, eyeball the rendered SVGs the
- * render-navball script produces. If the visual change is intended, run
- * `vitest -u`.
- */
-
 interface Fixture {
   "n.heading": number;
   "n.pitch": number;
   "n.roll": number;
 }
 
+// Coordinates are rounded to 2dp so a numeric refactor does not churn the snapshots.
 function normalise(svg: string): string {
   return svg.replace(/-?\d+\.\d+/g, (m) => Number.parseFloat(m).toFixed(2));
 }

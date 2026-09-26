@@ -3,36 +3,15 @@ import styled from "styled-components";
 import { Unit } from "../Unit";
 
 /**
- * How long it takes to REACH the other end, as one small chip.
+ * How long it takes to REACH the other end, as one small chip: the badge half
+ * of `signalDelayPresentation`, shown when the separation is too short for a
+ * readable countdown.
  *
- * The badge half of `signalDelayPresentation`: `InFlightList` is the strip half
- * and this is what shows in its place when the separation is too short for a
- * countdown to be readable. Presentational, props-driven, no data hooks, the
- * same rule its neighbour in this folder follows.
+ * ONE-WAY, because the operator's question is when their words land; the
+ * round trip is what the strip draws for a message actually crossing.
  *
- * ## Why the ONE-WAY figure
- *
- * The operator's question is when their words land, not when the
- * acknowledgement gets back. A crew four light-minutes out starts acting on
- * an instruction the moment it reaches them, and the four minutes after that
- * are the console waiting to hear about it, not the craft waiting to be told.
- * The round trip would double the number that matters here.
- *
- * The round trip has not gone anywhere: it is what the strip draws, in two
- * legs, for a message that is actually crossing. That is where a two-leg figure
- * belongs, because there it names a specific message and an instant it lands.
- *
- * ## Placement is the CONSOLE's, not this chip's and not each caller's
- *
- * An inline chip with no position of its own: `Console` owns the placement for
- * it, so this stays free of `position` and neither console gets to pick. It
- * renders at the foot, over the composer's top border, in the same column as
- * the queue's countdowns.
- *
- * Not on the barrel for the same reason: `Console` is the only thing that draws
- * one, and a widget reaching this directly would be a widget deciding for
- * itself whether a chip or a queue is the right reading, which is `Console`'s
- * call to make.
+ * `Console` owns its placement and is the only thing that draws one, so it is
+ * not on the barrel.
  */
 export interface SignalDelayBadgeProps {
   /** One-way separation in seconds. Rendered as-is; the caller decides IF. */
@@ -47,18 +26,14 @@ export function SignalDelayBadge({
 }: SignalDelayBadgeProps) {
   const oneWay = value("s", oneWaySeconds);
   return (
-    /* Not a live region: the delay changes with every sample of the
-       separation, and announcing each one would flood a screen reader. */
+    // Not a live region: the delay changes with every sample.
     <SignalDelayBadge__Chip
       className={className}
       role="group"
       aria-label="Signal delay"
     >
       one-way ~
-      {/* `scale: "never"` and a decimal, because a delay is a READOUT rather
-          than a countdown: the time ladder truncates to whole units, so 7.6 s
-          would read as "7s". Above a minute the decimal is noise and the ladder
-          takes over. */}
+      {/* A delay is a READOUT, not a countdown, so under a minute it keeps a decimal the ladder would truncate. */}
       <Unit
         value={oneWay}
         {...(oneWay.lessThan(60)

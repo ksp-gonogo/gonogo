@@ -8,31 +8,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FuelStatusComponent } from "./index";
 
 /**
- * What `undefined` MEANS at each of this widget's telemetry reads, as the code
- * stands today.
- *
- * Recorded before `useTelemetry` becomes a `Reading` union. This widget has the
- * widest spread of undefined-meanings of any in the set: one read coerces to
- * ZERO, one renders a placeholder, one omits a whole section, one omits a whole
- * BOX, and one renders a confident "0s".
- *
- * The gates:
- * - `magnitudeOr(vesselResources?.[name]?.current, 0)` and the same for `max`
- *   (index.tsx:134-135) coerce absence to zero, and the row is then dropped by
- *   `.filter(({ max }) => max > 0)` (index.tsx:277). So an unknown capacity is
- *   rendered as a resource the vessel does not carry, and an unknown amount is
- *   rendered as an empty tank
- * - `currentStage !== undefined` (index.tsx:585) gates the stage caption, and
- *   `s.stage === currentStage` (index.tsx:374) leaves NO stage highlighted
- * - `stageCount !== undefined` (index.tsx:588) gates the " / N" suffix
- * - `showTotals && (totalDv !== undefined || totalBurnTime !== undefined)`
- *   (index.tsx:612) drops the entire totals box when both are absent, while a
- *   partial pair renders the box with an em dash in the missing half
- * - `!showHeroDv && !showTotals && totalDv === undefined` (index.tsx:608)
- *   renders an em dash, but ONLY at sizes too small for the totals box
- * - `DELTA_V_BUDGET`'s stage loop turns a cold `dv.stages` into the same empty
- *   stack an empty array gives, and `normaliseStage`'s `Number.NaN` fallback is
- *   what every per-stage placeholder below comes from
+ * Pins what FuelStatus renders for `undefined` at each of its reads: an absent capacity drops the resource row, the stage caption and its " / N" suffix are gated separately, the totals box drops only when both halves are absent, and a missing per-stage figure is NaN and draws a placeholder.
  */
 
 const CARRIED = [
@@ -50,8 +26,7 @@ function makeFixture() {
   });
 }
 
-/** Default size: cols 8, rows 14, so every section's SIZE gate is open and
- *  anything missing below is missing because of a data gate. */
+/** Default size, 8x14: every size gate is open, so anything missing below is missing because of a data gate. */
 function renderFuel(
   fixture: ReturnType<typeof setupStreamFixture>,
   size: { w?: number; h?: number } = {},
@@ -74,10 +49,7 @@ function renderFuel(
 
 describe("FuelStatus: what undefined means today", () => {
   it("renders the panel title and nothing else at full size before anything arrives", async () => {
-    // The nothing-has-arrived case at the default 8x14. Named absences rather
-    // than an empty container: at this size the em-dash fallback is gated OFF
-    // (it needs `!showTotals`), so a fully-sized widget fed nothing shows a
-    // titled frame with no readout, no placeholder, and no caption saying why.
+    // At 8x14 the dash fallback is gated off (it needs `!showTotals`), so a widget fed nothing shows a titled frame and no readout.
     const fixture = makeFixture();
     const { container } = renderFuel(fixture);
 
@@ -92,18 +64,14 @@ describe("FuelStatus: what undefined means today", () => {
     expect(screen.queryByText("Oxidizer")).not.toBeInTheDocument();
     expect(screen.queryByText("RCS")).not.toBeInTheDocument();
     expect(screen.queryByText("Power")).not.toBeInTheDocument();
-    // Stage stack section: parseStages([]) of a cold topic, so no caption.
+    // Stage stack section: a cold topic, so no caption.
     expect(screen.queryByText(/Stages ·/)).not.toBeInTheDocument();
     // And no placeholder either: the em dash belongs to the small-size branch.
     expect(screen.queryByText(NULL_DISPLAY)).not.toBeInTheDocument();
   });
 
   it("renders an em dash instead, at a size too small for the totals box", async () => {
-    // Same data (none), different size, different meaning shown: at 3x3
-    // `showTotals` is false so the explicit `totalDv === undefined` branch
-    // fires and the widget prints a placeholder. The comment on that branch
-    // says it exists so "the tiny widget doesn't appear blank", which is the
-    // clearest statement in the file that undefined means "no data yet" here.
+    // Same data at 3x3: `showTotals` is false, so the `totalDv === undefined` branch prints a placeholder.
     const fixture = makeFixture();
     const { container } = renderFuel(fixture, { w: 3, h: 3 });
 
@@ -112,14 +80,11 @@ describe("FuelStatus: what undefined means today", () => {
   });
 
   it("reads a resource with no reported capacity as a resource the vessel does not have", async () => {
-    // A row needs a capacity above zero. The vessel genuinely carries 120 units
-    // of monoprop and says so; only the capacity is missing from the frame. The
-    // row disappears entirely, which is the same rendering as a vessel with no
-    // RCS tank at all.
+    // The capacity is missing though the amount arrived; the row disappears, the same as a vessel with no RCS tank.
     const fixture = makeFixture();
     renderFuel(fixture);
 
-    // Xenon is the positive control from the SAME frame: it proves the frame landed and was read, and RCS proves the missing-max row was dropped.
+    // Xenon is the positive control from the same frame; RCS proves the missing-max row was dropped.
     act(() => {
       fixture.emit("vessel.resources", {
         resources: {
@@ -154,9 +119,7 @@ describe("FuelStatus: what undefined means today", () => {
   });
 
   it("hides the stage caption while vessel.structure has not arrived, even with a stage count in hand", async () => {
-    // `currentStage !== undefined` gates the whole caption, so the stage COUNT
-    // the widget already knows is not shown either. Absence of the line is the
-    // only signal that the current stage is unknown.
+    // `currentStage` gates the whole caption, so the known stage count is not shown either.
     const fixture = makeFixture();
     renderFuel(fixture);
 
@@ -187,9 +150,7 @@ describe("FuelStatus: what undefined means today", () => {
   });
 
   it("highlights no stage at all when the current stage is unknown", async () => {
-    // `s.stage === currentStage` with currentStage undefined matches nothing,
-    // so the stack renders with every row unmarked rather than defaulting the
-    // marker onto stage 0. Pinning it because "no marker" is easy to lose.
+    // An undefined currentStage marks no row, rather than defaulting the marker onto stage 0.
     const fixture = makeFixture();
     renderFuel(fixture);
 
@@ -210,9 +171,7 @@ describe("FuelStatus: what undefined means today", () => {
   });
 
   it("shows an em dash for the missing half of the totals box and a real number for the other", async () => {
-    // Partial payload: `dv.summary` arrived, `totalDvActual` did not. The box
-    // renders because ONE of the pair is present, and the missing half reads as
-    // a placeholder, so here undefined means "unknown" and is drawn as such.
+    // One half of the pair present renders the box, with a placeholder in the missing half.
     const fixture = makeFixture();
     renderFuel(fixture);
 
@@ -229,7 +188,7 @@ describe("FuelStatus: what undefined means today", () => {
   });
 
   it("shows an em-dash burn and TWR for a stage row whose fields never arrived", async () => {
-    // `normaliseStage` returns NaN for a field the wire did not carry. A "0s" burn here would claim the stage has a known zero burn, from the same absence the TWR placeholder admits to.
+    // `normaliseStage` returns NaN for an uncarried field; a "0s" burn would claim a known zero.
     const fixture = makeFixture();
     const { container } = renderFuel(fixture);
 
@@ -248,16 +207,13 @@ describe("FuelStatus: what undefined means today", () => {
   });
 
   it("gives no stage row for undefined or null, the same as an empty array", () => {
-    // The absence gate. `undefined` (nothing has arrived) and `null` (a
-    // confirmed tombstone) both fail `normaliseStage`'s object check, so neither
-    // is distinguishable from `[]`, a vessel with genuinely no stages.
+    // Neither `undefined` nor a `null` tombstone is distinguishable from `[]`, a vessel with no stages.
     expect(normaliseStage(undefined)).toBeNull();
     expect(normaliseStage(null)).toBeNull();
   });
 
   it("spells a field the wire did not carry NaN, never 0", () => {
-    // 0 m/s is a spent stage and NaN is a stage the sim had no figure for. The
-    // per-stage placeholders above are `Number.isFinite` checks reading this.
+    // 0 m/s is a spent stage and NaN is a stage the sim had no figure for.
     const row = normaliseStage({ stage: 0, dryMass: 3 });
     expect(row?.dryMass).toBe(3);
     expect(row?.deltaVVac).toBeNaN();

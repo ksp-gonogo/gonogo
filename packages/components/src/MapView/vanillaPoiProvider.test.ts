@@ -13,12 +13,7 @@ function getProvider() {
   return provider;
 }
 
-// Rendered trees, tracked so afterEach can unmount them BEFORE clearRegistry()
-// notifies the DataSource-registry subscribers: every useTelemetry call
-// keeps its legacy useDataSourceSubscription wired unconditionally (see that
-// hook's own doc comment), so clearRegistry() firing on a still-mounted hook
-// tree is a state update outside act(). RTL auto-cleanup runs after this
-// file's afterEach, so it can't be relied on to unmount first.
+// Unmounted in afterEach before clearRegistry() notifies subscribers, which would be a state update outside act(); RTL's auto-cleanup runs too late.
 const renderedTrees: Array<() => void> = [];
 
 afterEach(() => {
@@ -100,7 +95,7 @@ describe("vanillaPoiProvider: KSC/launch-site/contract-target POIs", () => {
           contractFundsCompletion: 5000,
           contractDateDeadline: 12345,
         },
-        // Different body: must be filtered out of the Kerbin-scoped result.
+        // Different body: filtered out of the Kerbin-scoped result.
         {
           id: "launchSite:Woomerang",
           kind: "launchSite",
@@ -136,24 +131,19 @@ describe("vanillaPoiProvider: KSC/launch-site/contract-target POIs", () => {
       kind: "contractTarget",
       label: "Recover the flag",
       status: "active",
-      // The provider carries the declared quantities through rather than
-      // stripping them: `meta` is rendered by MapPoiLayer, which gives a
-      // `Value` the same readout every other quantity gets.
+      // Declared quantities pass through, so MapPoiLayer gives each `Value` the standard readout.
       meta: {
         agent: "Kerbin Space Agency",
         fundsAdvance: value("funds", 1000),
         fundsCompletion: value("funds", 5000),
-        // An INSTANT the contract expires at, not a countdown.
+        // The instant the contract expires, not a countdown.
         deadline: value("ut", 12345),
       },
     });
   });
 
   it("a POI's set-target action dispatches vessel.target.set with its own bodyIndex/lat/lon", async () => {
-    // Migrated off the legacy `useExecuteAction`/`tar.setTargetPosition[...]`
-    // string path: the action now rides `useCommand("vessel.target.set")`, so
-    // the dispatch is asserted against the command client's recorded envelope
-    // (`fixture.transport.sentCommands`), same as TargetPicker's migrated test.
+    // The dispatch is asserted against the command client's recorded envelope.
     const fixture = setupStreamFixture({
       carriedChannels: [
         "spaceCenter.pois",

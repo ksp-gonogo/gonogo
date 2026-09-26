@@ -58,11 +58,7 @@ function ScienceDataComponent({
 }: Readonly<ComponentProps<ScienceDataConfig>>) {
   const [tab, setTab] = useState<"aboard" | "archive">("aboard");
 
-  // Partial-gate rather than a hard `requires: ["flight"]`: the banked SCI
-  // readout stays meaningful at the Space Center (banked science persists
-  // across vessels), and so does the Archive tab (career-wide, held at the home
-  // command). Only Aboard is vessel-scoped, and with nothing flying it has no
-  // vessel to be about, so the tab itself turns off.
+  // Banked science and the Archive are career-wide and stay meaningful at the Space Center; only Aboard is vessel-scoped.
   const { inFlight, hasGameSignal, isCareerLike } = useGameContext();
   const noVessel = hasGameSignal && !inFlight;
 
@@ -70,41 +66,22 @@ function ScienceDataComponent({
     useStream<VesselIdentity>("vessel.identity"),
     undefined,
   );
-  // Collapsed deliberately: the Aboard tab names the body or names nothing, with no third rendering for a tombstoned catalogue.
   const body = useBodyName(identity?.parentBodyIndex) ?? undefined;
   const situation = enumNameOf<SituationName>(
     SITUATION_NAMES,
     identity?.situation,
   );
-  /**
-   * The locale is the one reading here that drifts on its own. It names the
-   * biome a sample would be taken from, and a vessel that is flying moves
-   * between biomes with nobody touching anything, so a held locale states the
-   * wrong provenance for the science on the line beside it. Withheld when it
-   * stops being current, with `surfaceNotCurrent` carrying the reason through
-   * to the situation line: an omitted locale is what a vessel with no biome
-   * reading also shows, and the two must not read alike.
-   */
+  // A flying vessel drifts between biomes, so a held locale is withheld and flagged rather than shown as current.
   const surfaceReading = useTelemetry("vessel.surface");
   const surface =
     surfaceReading.state === "observed" ? surfaceReading.value : undefined;
   const surfaceNotCurrent = surfaceReading.state === "stale";
   const landedAt = surface?.landedAt;
-  // Live biome from `ScienceUtil.GetExperimentBiome`, works in flight +
-  // space scenes (e.g. "FlyingHigh", "Splashed - OceanWater"), unlike
-  // `landedAt` which is only populated on the surface. Falls back to
-  // landedAt when blank.
+  // `biome` is populated in flight and in space; `landedAt` only on the surface.
   const liveBiome = surface?.biome;
   const situationLocale = liveBiome ?? landedAt ?? "";
 
-  /**
-   * All three ledgers are facts. A record aboard appears when a crew runs an
-   * experiment and leaves when they transmit or discard it, and the R&D archive
-   * moves on recovery: events, every one, and no event reaches us down a link
-   * that is not delivering. So the last ledger received is still the ledger,
-   * and blanking it would report an empty vessel and a Sandbox save on a career
-   * that is demonstrably carrying science.
-   */
+  // The ledgers change only on events, so the last one received is still the ledger.
   const experimentsRaw = stillTrue(
     useTelemetry("science.experiments"),
     undefined,
@@ -122,24 +99,14 @@ function ScienceDataComponent({
   const experiments = parseExperiments(experimentsRaw);
   const breakdown = parseExperimentBreakdown(breakdownRaw);
   const archive = parseArchive(archiveRaw);
-  // No pre-aggregated fields on the wire, derive both from the same already-parsed experiments array.
   const sciCount = experiments ? experiments.length : undefined;
-  // Summed only when at least one entry actually carries a figure. A provider
-  // whose model is not mits leaves `dataAmount` null on every entry (a backend
-  // storing megabytes says so through `valueModel`), and summing those to a
-  // confident "0.0 mits collected" states something false about a vessel that
-  // may be carrying plenty. No figure means the line simply omits it.
+  // A non-mits provider leaves every `dataAmount` null, and that is no figure, not zero mits.
   const collected = experiments?.filter((e) => e.dataAmount !== null) ?? [];
   const sciDataAmount = collected.length
     ? collected.reduce((sum, e) => sum + (e.dataAmount ?? 0), 0)
     : undefined;
 
-  // Banked science is a balance, not a measurement: it moves when science is
-  // transmitted, recovered or spent, and it cannot drift between those. This
-  // widget only reports it, it arms nothing that spends it (TechTree does, and
-  // reads the same field off the observation alone for that reason), so the last
-  // balance received is still the balance and the panel's stream badge beside
-  // it already tells the operator how fresh the panel is.
+  // A balance moves only on events, and nothing here spends it, so the last one received is still shown.
   const careerScience = magnitudeOf(
     asQuantityish(
       stillTrue(useTelemetry("career.status"), undefined)?.economy?.science,
@@ -149,17 +116,12 @@ function ScienceDataComponent({
   const archiveGroups = archive ? groupArchiveByExperiment(archive) : [];
 
   const cols = w ?? 8;
-  // The narrowest tile the widget can be put in, where the record count and collected total give way to the situation line and the ledger itself.
   const compact = cols < 6;
 
   const tabs: TabDescriptor[] = [
     {
       id: "aboard",
       label: "Aboard",
-      // Off, not dimmed: a dimmed panel still invites a click and then
-      // explains itself. With nothing flying there is no onboard ledger to
-      // show, so the tab says so by being unselectable and Tabs lands the
-      // operator on Archive, which does have something to say.
       disabled: noVessel,
       content: (
         <AboardTab
@@ -178,9 +140,6 @@ function ScienceDataComponent({
     {
       id: "archive",
       label: "Archive",
-      // Never dimmed by dimNonFlight: this is career-wide and held at the home
-      // command, meaningful at the Space Center with nothing flying, unlike
-      // Aboard's active-vessel onboard ledger.
       content: <ArchiveTab archive={archive} groups={archiveGroups} />,
     },
   ];
@@ -188,17 +147,8 @@ function ScienceDataComponent({
   return (
     <Panel
       panelTitle="SCIENCE DATA"
-      /* Through the prop rather than a hand-rolled badge in the aside. The host
-         now contributes the two blackout grades on its own, so a badge drawn
-         here as well put the same word in the header twice; a `panelStatus`
-         merges with it into one summary instead. What this still adds is the
-         grades the host does not derive (`held-stale`, `absent`) for the ONE
-         topic this widget's readings actually hang on. */
       panelStatus={breakdownStreamStatus}
-      /* ONE section: the body is a tab strip, and a tab strip beside anything
-         reads as two widgets rather than as one panel. The balance sits above
-         the strip inside that section rather than in the header aside, which
-         folds away at narrow widths. */
+      /* The balance sits in the body, not the aside, which folds away at narrow widths. */
       sections={
         <Section full>
           {isCareerLike && careerScience !== null && (
@@ -206,9 +156,6 @@ function ScienceDataComponent({
           )}
           <Tabs
             tabs={tabs}
-            // Kept in step with the disabled tab so this component's own state
-            // never disagrees with the panel on screen. Tabs falls through on its
-            // own too; this is what stops `tab` going stale behind it.
             activeId={noVessel && tab === "aboard" ? "archive" : tab}
             onChange={(id) => setTab(id as "aboard" | "archive")}
           />
@@ -218,25 +165,12 @@ function ScienceDataComponent({
   );
 }
 
-// ---------------------------------------------------------------------------
-// The `science-data.aboard-row` slot contract
-//
-// A per-subject section slot, directly below each Aboard breakdown row: the
-// generic home for a File Manager-style enrichment (files/samples, drive
-// capacity, transmit/delete/flag controls). This widget carries no drive
-// concept itself, and only some elected models have one; a save whose model
-// does not leaves the slot unbound and the row renders exactly as it does
-// today. The
-// `subjectId` is identity only, matching `crew-status.row-badges`'s per-row
-// keying: the filling augment reads its own data (`science.experiments`)
-// and joins by this id rather than being handed the row's fields directly.
-// ---------------------------------------------------------------------------
-
-/** Props passed to every `science-data.aboard-row` augment, one per subject. */
+/**
+ * Props passed to every `science-data.aboard-row` augment, one per subject, rendered below each Aboard breakdown row.
+ * The augment reads its own data and joins by `subjectId`.
+ */
 export interface ScienceDataAboardRowContext {
-  /** The subject this Aboard row represents. An augment joins its own
-   *  `science.experiments` read against this id to find the file and/or
-   *  sample backing it (a subject can hold both at once). */
+  /** The subject this Aboard row represents; a subject can hold a file and a sample at once. */
   subjectId: string;
 }
 
@@ -253,21 +187,12 @@ registerComponent<ScienceDataConfig>({
     "Science ledger in two tabs: Aboard is the active vessel's onboard record (collected science per subject, remaining potential, and a 'you are here' situation line; requires flight). Archive is the whole career's R&D archive, every subject ever collected or recovered across every mission and body, grouped by body then experiment × situation × biome; it renders at the Space Center with nothing flying. Read-only on its own; an installed Uplink can enrich each Aboard row with File Manager controls (drive capacity, transmit/delete/flag/analyze/move-to-lab) through the science-data.aboard-row augment slot.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 8, h: 10 },
-  // Five columns is what the Aboard and Archive tabs need side by side. Below
-  // that the second tab sits off the end of a strip nobody thinks to drag
-  // sideways, so half the widget is a widget the operator cannot reach.
+  // Below five columns the Archive tab falls off the end of the strip.
   minSize: { w: 5, h: 4 },
   component: ScienceDataComponent,
-  // `career.mode` is gone rather than translated: it appeared only in this
-  // list, never in the component. The widget branches on `hasGameSignal` /
-  // `inFlight`, not on the career mode.
   channels: topics.channels,
   fields: topics.fields,
   defaultConfig: {},
-  // Both tabs are read-only on the base widget itself, no dispatchable
-  // action of its own (deploy/transmit live on Experiments; File Manager
-  // controls are the augment noted above, dispatched from within
-  // the slot rather than through this widget's own action list).
   actions: [],
   augmentSlots: ["science-data.aboard-row"],
   pushable: true,

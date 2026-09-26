@@ -9,17 +9,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
 /**
- * CurrentOrbit integration test: the widget runs entirely off the SDK stream.
- * `sma`/`eccentricity`/`inclination`/`argPe` are raw `vessel.orbit` elements;
- * `trueAnomaly`/`period` and the Ap/Pe/ApR/PeR/timeToAp/timeToPe figures are
- * solved from those elements (`useOrbitSolve`), and the reference/parent body
- * names are `vessel.orbit`/`vessel.identity` indices named against
- * `system.bodies`. No legacy `MockDataSource` is registered anywhere in this
- * file.
- *
- * The apsis ALTITUDES are solved (`sma·(1±ecc) − bodyRadius`), so the orbit
- * elements below are chosen to reproduce a ~85 km / ~78 km apoapsis /
- * periapsis: sma 681 500 m, ecc 0.005135, Kerbin radius 600 000 m.
+ * CurrentOrbit off the SDK stream alone. The elements solve to a ~85 km / ~78 km apoapsis / periapsis over Kerbin's 600 km radius.
  */
 const CURRENT_ORBIT_CHANNELS = [
   "vessel.orbit",
@@ -100,17 +90,12 @@ describe("CurrentOrbitComponent", () => {
 
     emitLko();
 
-    // Apoapsis/periapsis shown as distance (derived off the orbit elements).
-    // Stream values land on the store's next frame, so await the settle.
+    // Stream values land on the store's next frame.
     await waitFor(() => expect(visibleText(container)).toMatch(/85\.\d+\s*km/));
     expect(visibleText(container)).toMatch(/78\.\d+\s*km/);
-    // Eccentricity displayed with 4 decimals
     expect(visibleText(container)).toContain("0.0051");
-    // Inclination rounded to 1 decimal with degree suffix
     expect(visibleText(container)).toContain("0.0°");
-    // Reference body shown as subtitle
     expect(visibleText(container)).toContain("Kerbin");
-    // Mini diagram renders by default (showDiagram true)
     expect(container.querySelector("svg")).not.toBeNull();
   });
 

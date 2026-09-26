@@ -15,27 +15,14 @@ import {
 import { type SystemOverlayContext, SystemViewComponent } from "./index";
 
 /**
- * SystemView augment-slot exposure (Uplink architecture). The widget is a
- * HOST exposing two slots: `system-view.actions` (header control row) and
- * `system-view.overlay` (layered over the body diagram, passed the diagram's
- * projection as typed slot props). No first-party augment fills them here
- * (that's an Uplink augment): an empty slot must render cleanly, and a test
- * augment registered into one must appear, the overlay augment receiving the
- * diagram projection. Header BADGES are not an augment slot on this widget:
- * they arrive through the automatic `system-view.badges` CONTRIBUTION slot,
- * covered by `../FleetComms/panel-badge.test.tsx`.
- *
- * Everything (the body tree included) rides the stream, `useCelestialBodies`
- * reads `system.bodies`, no legacy `MockDataSource` leg.
+ * SystemView's augment slots: `system-view.actions` (header controls) and `system-view.overlay` (over the diagram, passed its projection). An empty slot renders cleanly, and a registered test augment appears, the overlay one receiving the projection.
  */
 
 const KERBIN_MU = 3.5316e12;
 
 describe("SystemView: augment slots (spec §4)", () => {
   let fixture: StreamFixture;
-  // Unmount each rendered tree BEFORE clearing the augment registry, a clear
-  // firing on a still-mounted widget is a state update outside act(). RTL
-  // auto-cleanup runs after this file's afterEach, too late to unmount first.
+  // Unmount each tree before clearing the augment registry: RTL's auto-cleanup runs after this afterEach, and a clear on a mounted widget updates outside act().
   const renderedTrees: Array<() => void> = [];
 
   beforeEach(() => {
@@ -59,13 +46,11 @@ describe("SystemView: augment slots (spec §4)", () => {
     clearAugments();
   });
 
-  // Drive the widget into its diagram layout (frame = Kerbin, children present) so both the header slots AND the diagram-overlay slot render.
+  // Frame = Kerbin with children present, so the header slots and the overlay slot all render.
   async function renderDiagram() {
     const { unmount } = render(
       <fixture.Provider>
-        {/* The identity the dashboard supplies: `Panel` completes
-            `${componentId}.${segment}` from it for the universal `sections`
-            and `actions` seams. */}
+        {/* The identity the dashboard supplies, from which `Panel` completes its universal seam ids. */}
         <WidgetMetaContext.Provider
           value={{ componentId: "system-view", contributionSlots: [] }}
         >
@@ -127,16 +112,13 @@ describe("SystemView: augment slots (spec §4)", () => {
         parentBodyIndex: 0,
       });
     });
-    // The frame label confirms the diagram mounted.
     await waitFor(() =>
       expect(screen.getAllByText("Kerbin").length).toBeGreaterThanOrEqual(1),
     );
   }
 
   it("exposes both slots on its component definition", () => {
-    // The registry entries are asserted indirectly: the widget's own module-load
-    // registration declared the two slots as its extension points.
-    // (See registerComponent `augmentSlots` in ./index.tsx.)
+    // The widget's module-load registration declared these slots, so each resolves to an empty augment list.
     expect(getAugmentsForSlot("system-view.actions")).toEqual([]);
     expect(getAugmentsForSlot("system-view.overlay")).toEqual([]);
   });
@@ -194,9 +176,7 @@ describe("SystemView: augment slots (spec §4)", () => {
     });
 
     const overlay = await screen.findByTestId("sv-overlay-augment");
-    // The overlay slot passed the parent-centric projection down (§4.4): the frame
-    // name, the measured diagram px size, a positive metres→px scale, and the
-    // origin-centred body position.
+    // The overlay received the frame name, the measured diagram size, a positive plot scale and the origin-centred body position.
     expect(visibleText(overlay)).toContain("Kerbin:");
     expect(visibleText(overlay)).toContain(":scaled:");
     expect(visibleText(overlay)).toContain(":0,0");

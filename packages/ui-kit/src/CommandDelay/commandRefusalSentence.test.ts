@@ -2,17 +2,7 @@ import { CommandErrorCode, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { commandRefusalSentence } from "./commandRefusalSentence";
 
-/**
- * The three worked examples from
- * `local_docs/design/2026-08-21-refusal-text-examples.md`, asserted as whole
- * sentences rather than as fragments.
- *
- * Whole sentences on purpose: every part of this text is composed from a
- * different source (the command id and args name the subject, the error code
- * picks the clause, the breach supplies the numbers, `units.ts` writes them),
- * and asserting `toContain("16")` would pass on a sentence with the cap and the
- * count the wrong way round.
- */
+// Asserted as whole sentences: `toContain("16")` would pass with the cap and the count the wrong way round.
 describe("what an operator reads when the game says no", () => {
   it("names the applicant and the complex that is full", () => {
     expect(
@@ -96,8 +86,7 @@ describe("what an operator reads when the game says no", () => {
   });
 
   it("still says what happened when the numbers did not arrive", () => {
-    // An older mod, or a refusal with nothing to compare. The arm alone cannot
-    // say "16 of 16", so it says the general thing instead of inventing one.
+    // With nothing to compare, the arm says the general thing rather than inventing numbers.
     expect(
       commandRefusalSentence({
         errorCode: CommandErrorCode.LimitReached,
@@ -108,7 +97,7 @@ describe("what an operator reads when the game says no", () => {
   });
 
   it("never renders a limit of zero out of a breach that carries none", () => {
-    // The trap the contract's own doc names: an absent limit written as 0 reads as a real limit of 0, which is a plausible number and so a silent lie.
+    // An absent limit written as 0 would read as a real limit of 0.
     const sentence = commandRefusalSentence({
       errorCode: CommandErrorCode.InsufficientFunds,
       command: "career.facility.upgrade",
@@ -128,12 +117,7 @@ describe("what an operator reads when the game says no", () => {
   });
 
   it("says nothing about the craft when the mod could not read the answer", () => {
-    // `Unreadable` means the provider was asked and could not answer, so the
-    // one thing this sentence must not do is describe the vehicle. Both arms
-    // this was split out of do exactly that: `CapabilityMismatch` renders "this
-    // craft cannot do it" and `ModeUnavailable` renders "the game would not say
-    // why", which reads as a reason that was withheld rather than an answer
-    // that never arrived.
+    // `Unreadable` means no answer arrived, so the sentence must not describe the vehicle or imply a withheld reason.
     const sentence = commandRefusalSentence({
       errorCode: CommandErrorCode.Unreadable,
       command: "vessel.control.stage",
@@ -144,8 +128,7 @@ describe("what an operator reads when the game says no", () => {
   });
 
   it("prefers what the mod named over the general unreadable sentence", () => {
-    // The general row is the floor. A producer that knows WHICH read failed
-    // says so, and that clause wins the same way it does for every other arm.
+    // The general row is the floor; a producer's own clause wins.
     expect(
       commandRefusalSentence({
         errorCode: CommandErrorCode.Unreadable,
@@ -159,10 +142,7 @@ describe("what an operator reads when the game says no", () => {
   });
 
   it("falls back to the reason's own name for an arm it has no sentence for", () => {
-    // Only `Unknown` and `None` get here now: every arm the mod actually
-    // refuses with has prose. The fallback stays because a NEWER mod can send
-    // an arm this client has never heard of, and the enum member is still the
-    // mod's own word for what happened.
+    // A newer mod can send an arm this client has never heard of.
     expect(
       commandRefusalSentence({
         errorCode: CommandErrorCode.Unknown,
@@ -172,9 +152,7 @@ describe("what an operator reads when the game says no", () => {
   });
 
   it("quotes the game rather than the sentence written here", () => {
-    // ClearToSaveStatus has seven arms and KSP words each of them. Inferring
-    // "not clear" from the mechanism throws away which one, and the arm is the
-    // whole of what an operator does about it.
+    // KSP words each ClearToSaveStatus arm, and which arm it was is what the operator acts on.
     expect(
       commandRefusalSentence({
         errorCode: CommandErrorCode.NotClearToProceed,
@@ -234,9 +212,7 @@ describe("what an operator reads when the game says no", () => {
     );
   });
 
-  // NotReady is its own arm precisely so it does not read as a limit: the
-  // vehicle is not over anything, it has not been built yet, and an operator
-  // does something entirely different about each.
+  // NotReady must not read as a limit: the vehicle has not been built yet.
   it("says the general thing for a not-ready refusal that carried no reason", () => {
     expect(
       commandRefusalSentence({
@@ -258,8 +234,7 @@ describe("what an operator reads when the game says no", () => {
   });
 
   it("prefers the comparison over the game's words when it has both", () => {
-    // The numbers are the actionable half. A breach that also carried prose
-    // must not lose the numbers to it.
+    // A breach that also carries prose keeps its numbers.
     expect(
       commandRefusalSentence({
         errorCode: CommandErrorCode.InsufficientScience,

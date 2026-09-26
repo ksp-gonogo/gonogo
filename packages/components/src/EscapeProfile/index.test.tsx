@@ -16,13 +16,7 @@ const ESCAPE_PROFILE_CHANNELS = [
   "system.bodies",
 ];
 
-/**
- * Names the parent body: `vessel.identity.parentBodyIndex` resolved against a
- * single-entry `system.bodies` roster. `facts` are the physical ones that
- * roster reports; the defaults are Kerbin's radius with no gravitational
- * parameter, which leaves the curve to whatever the static table knows about
- * the name.
- */
+/** Names the parent body via `vessel.identity.parentBodyIndex` against a single-entry `system.bodies` roster; the default facts are Kerbin's radius with no gravitational parameter. */
 function emitBody(
   fixture: ReturnType<typeof setupStreamFixture>,
   name: string,
@@ -118,14 +112,7 @@ describe("EscapeProfileComponent", () => {
     expect(await screen.findByText(/no reference data/i)).toBeInTheDocument();
   });
 
-  /**
-   * `escapeVelocity` is `sqrt(2·GM / (r + h))`, so the curve needs the body's
-   * radius and gravitational parameter. Both used to come from a table of stock
-   * bodies keyed by NAME, so under a planet pack nothing resolved and the
-   * widget's entire reference curve disappeared. Rendered rather than run
-   * through `buildEscapeCurve`, which takes the body as an argument and cannot
-   * see where it came from.
-   */
+  /** `escapeVelocity` is `sqrt(2 * GM / (r + h))`, so the curve needs the reported radius and GM; rendered, since `buildEscapeCurve` takes the body as an argument. */
   it("draws the curve for a body the stock table has never heard of", async () => {
     const { fixture, container } = renderEscape();
 

@@ -1,8 +1,6 @@
 import type { PresetId } from "./presets";
 
-/** Comparison operator for an armed-trigger's threshold. Mirrors the
- *  alarms module's `ThresholdOp` so the operator set stays consistent
- *  across both surfaces. */
+/** An armed trigger's comparison, the same set the alarms module's `ThresholdOp` offers. */
 export type ThresholdOp = ">" | ">=" | "<" | "<=" | "==" | "!=";
 
 export const THRESHOLD_OPS: ThresholdOp[] = [">", ">=", "<", "<=", "==", "!="];
@@ -28,9 +26,7 @@ export function compareThreshold(
   }
 }
 
-/** User-input fields captured at arm time. Live orbit data is *not* frozen,
- *  the trigger fires "compute the burn against current orbit when the
- *  condition holds", which requires fresh `currentOrbit` / `mu` / etc. */
+/** Form inputs frozen at arm time; the burn is computed against the live orbit when the trigger fires. */
 export interface FrozenPlanInputs {
   preset: PresetId;
   prograde: number;
@@ -46,13 +42,12 @@ export interface FrozenPlanInputs {
 
 export interface ArmedTrigger {
   id: string;
-  /** Legacy key whose value drives the comparison (e.g. `o.ApA`). */
+  /** The key whose value drives the comparison (e.g. `o.ApA`). */
   dataKey: string;
   op: ThresholdOp;
   value: number;
   inputs: FrozenPlanInputs;
-  /** Vessel name at arm time. Triggers auto-clear when the active vessel
-   *  changes, a circularize armed for vessel A shouldn't fire on vessel B. */
+  /** Vessel name at arm time; the trigger clears when the active vessel changes. */
   vesselName: string | null;
   /** Wall-clock ms when armed. */
   createdAt: number;

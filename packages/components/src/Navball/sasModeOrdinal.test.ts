@@ -2,16 +2,7 @@ import { SasMode } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { SAS_MODES, sasModeOrdinal } from "./index";
 
-/**
- * The SAS grid sends an ORDINAL, and reads a NAME back.
- *
- * `vessel.control.setSasMode` takes `Sitrep.Contract.SasMode`'s integer, and
- * the button list used to supply it with `SAS_MODES.indexOf(mode)`: a
- * hand-ordered local array standing in for the C# declaration order, with
- * nothing checking the two still agree. TargetPicker's label tables have a
- * drift guard for exactly this; this array had none, and it is a control
- * surface, so drift here means pressing Prograde and burning Retrograde.
- */
+// The SAS grid sends the contract's ordinal: drift here means pressing Prograde and burning Retrograde.
 
 /** Enum member names in ordinal order, off the generated enum's reverse map. */
 function declaredModes(): string[] {
@@ -23,7 +14,7 @@ function declaredModes(): string[] {
 
 describe("SAS mode dispatch", () => {
   it("can read the SasMode members at all", () => {
-    // Guards the guard: an extractor returning nothing would make every assertion below vacuous and report success.
+    // An extractor returning nothing would make every assertion below vacuous.
     expect(declaredModes()).toEqual([
       "StabilityAssist",
       "Prograde",
@@ -45,12 +36,7 @@ describe("SAS mode dispatch", () => {
     }
   });
 
-  /**
-   * `Unknown` is the contract's graceful fallback for a mode this build does
-   * not recognize, never something an operator asks for, so it is the one
-   * member with no button. Every other member must have one: a mode the grid
-   * cannot show is a SAS state the operator cannot read off the navball.
-   */
+  // `Unknown` is a fallback, never commanded, so it alone has no button.
   it("offers a button for every commandable member", () => {
     expect([...SAS_MODES].sort()).toEqual(
       declaredModes()

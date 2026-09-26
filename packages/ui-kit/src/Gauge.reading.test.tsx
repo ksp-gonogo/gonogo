@@ -12,13 +12,8 @@ import { NULL_DISPLAY } from "./NullValue";
 
 /**
  * The reckoning slot: what `<Gauge>` draws when it is handed a whole `Reading`
- * rather than a bare quantity.
- *
- * The same three things the meter takes off a reading, in the medium an
- * instrument draws in: whether the figure is a reading of NOW, the model's two
- * bounds, and whether there is a number at all. An instrument cannot hold a
- * span, so the mark is a tspan and the bound is a line, but a gauge and a
- * readout on one panel say the same thing the same way.
+ * rather than a bare quantity: whether the figure is current, the model's two
+ * bounds, and whether there is a number at all.
  */
 
 const AT = value("ut", 12_000);

@@ -10,20 +10,8 @@ import {
 import { ScienceDataComponent } from "./index";
 
 /**
- * What ScienceData does when its reads stop being current.
- *
- * The split here is between a ledger and a position. The science aboard, the
- * per-subject breakdown, the R&D archive and the banked balance all move on
- * events (a crew runs an experiment, a capsule is recovered, a node is bought),
- * and no event reaches us down a link that is not delivering, so all four keep
- * their last value. The locale does not: it names the biome a sample would come
- * from, and a vessel that is flying crosses biomes with nobody touching
- * anything, so a held locale would attribute the science on screen to the wrong
- * place.
- *
- * The assertion that earns this file is the locale's replacement wording. An
- * omitted locale is also what a vessel that never reported a biome shows, and
- * those two say opposite things about the records listed under the line.
+ * Proves the ledgers and banked balance keep their last value when reads stop being current, while the locale is withheld and names itself.
+ * An omitted locale would read like a vessel that never reported a biome.
  */
 
 const CARRIED = [
@@ -35,9 +23,7 @@ const CARRIED = [
   "science.archive",
   "career.status",
   "career.mode",
-  // Emitting career.mode gives the widget a game signal, and without a scene to
-  // go with it `useGameContext` reads "not in flight" and turns the Aboard tab
-  // off. The locale line lives on that tab.
+  // Without a scene, the game signal from career.mode reads as not in flight and turns off the Aboard tab.
   "spaceCenter.scene",
 ] as const;
 
@@ -113,8 +99,7 @@ describe("ScienceData when its reads are no longer current", () => {
   }
 
   it("names the locale on the situation line while the surface read is current", async () => {
-    // The control. Without it every assertion below would also pass on a widget
-    // that never renders a locale.
+    // The control: without it the assertions below would pass on a widget that never renders a locale.
     const { container } = renderData();
     emitLandedWithScience();
 
@@ -139,9 +124,7 @@ describe("ScienceData when its reads are no longer current", () => {
         "Mun · Landed · locale no longer current",
       ),
     );
-    // The biome itself is gone from the line, not merely captioned: an operator
-    // reading "Northwest Crater" would take the records below it as sampled
-    // there.
+    // The biome is gone, not merely captioned.
     expect(visibleText(container)).not.toContain("Landed · Northwest Crater");
   });
 
@@ -157,16 +140,12 @@ describe("ScienceData when its reads are no longer current", () => {
     await waitFor(() =>
       expect(visibleText(container)).toContain("locale no longer current"),
     );
-    // Blanking these would report an empty vessel, which is a statement about the craft rather than about the link.
     expect(screen.getByText("Crew Report")).toBeInTheDocument();
     expect(visibleText(container)).not.toContain("No science data aboard");
     expect(visibleText(container)).toContain("1234");
   });
 
   it("does not turn a dropped link into a Sandbox save on the Archive tab", async () => {
-    // The archive's absence gate says "No R&D archive in this save", a claim
-    // about the save file. Reaching it from a stale read would tell a career
-    // player they are in Sandbox.
     renderData();
     emitLandedWithScience();
     await waitFor(() =>
@@ -183,8 +162,7 @@ describe("ScienceData when its reads are no longer current", () => {
   });
 
   it("says nothing about currency before anything has ever arrived", async () => {
-    // A cold start is not a withheld locale. Conflating them would accuse the
-    // link of dropping on first paint.
+    // A cold start is not a withheld locale.
     const { container } = renderData();
     await waitFor(() =>
       expect(visibleText(container)).toContain("Awaiting situation telemetry"),

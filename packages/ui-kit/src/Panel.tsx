@@ -1,4 +1,4 @@
-import type { StreamStatusValue } from "@ksp-gonogo/sitrep-sdk"; // erased at build; no runtime edge
+import type { StreamStatusValue } from "@ksp-gonogo/sitrep-sdk";
 import {
   Children,
   type ComponentPropsWithoutRef,
@@ -48,14 +48,9 @@ interface PanelContextValue {
 const PanelCtx = createContext<PanelContextValue | null>(null);
 
 /**
- * Coordination between the panel's parts. `Panel.Body` registers the element
- * that scrolls; `Panel.Glow` observes it.
- *
- * This exists so neither subcomponent has to reach into the other, and so the
- * pieces do not depend on nesting order. Keep it to the scroll element: a
- * context that accrues speculative fields becomes the same kind of unowned
- * contract that the glow-pad CSS vars were, which is the bug this rework
- * removes.
+ * Coordination between the panel's parts: `Panel.Body` registers the element
+ * that scrolls and `Panel.Glow` observes it, so neither depends on nesting
+ * order. Keep it to the scroll element.
  */
 export function PanelContextProvider({ children }: { children?: ReactNode }) {
   const [scroller, setScroller] = useState<HTMLElement | null>(null);
@@ -67,38 +62,20 @@ export function PanelContextProvider({ children }: { children?: ReactNode }) {
 }
 
 /**
- * The per-panel providers a `Panel` mounts. Currently just the scroller-
- * coordination context, kept as a named seam so later per-panel providers have
- * one place to join. The delay-rail store is deliberately NOT here: a widget
- * calls `usePanelDelay` in its body, ABOVE the `<Panel>` it returns, so a
- * Panel-held store would be unreachable from there. The delay store is provided
- * ABOVE the widget instead (app-side `GridItemContent`, exactly like
- * `PanelStatusStoreProvider`); the rail, inside the Panel, reads that
- * above-store via `useActiveHandles()`. `Panel.Root` renders this; a
- * hand-composed panel can too.
+ * The per-panel providers a `Panel` mounts. `Panel.Root` renders this; a
+ * hand-composed panel can too. The delay-rail store is not here: a widget calls
+ * `usePanelDelay` above the `<Panel>` it returns, so that store is provided
+ * above the widget.
  */
 export function PanelProviders({ children }: { children?: ReactNode }) {
   return <PanelContextProvider>{children}</PanelContextProvider>;
 }
 
 /**
- * What a `Section fill` resolves to once Panel has made it a flex child of the
- * box that owns the leftover height.
- *
- * `flex: 1 1 auto`, not the zero-basis `flex: 1` a filling box usually gets.
- * With ONE filling section the two agree: a single flexible item among
- * inflexible siblings lands on exactly the free space whatever its basis is.
- * They part company at two, where a content basis lets each keep its own height
- * and divide only what is genuinely spare, and a zero basis would halve the
- * body between them however little is in either.
- *
- * It still SHRINKS, deliberately. That is what these sections did as plain body
- * children before this prop existed, and what a drawing sized from a
- * ResizeObserver needs: one that refused to shrink would hold whatever height
- * its content last measured at and never give the room back.
- *
- * A plain string interpolated into the styled templates below, so the body and
- * the headerless container state it once.
+ * What a `Section fill` resolves to inside the box that owns the leftover
+ * height. A content basis (not `flex: 1`) lets two filling sections keep their
+ * own heights and split only the spare room. It still shrinks, so a drawing
+ * sized from a ResizeObserver can give room back.
  */
 const SECTION_FILL_RULE = `
   & > [${SECTION_FILL_ATTR}] {
@@ -178,9 +155,6 @@ export const PanelContainer = styled.div<{ $railTravels?: boolean }>`
   ${SECTION_FILL_RULE}
 `;
 
-/* The header IS text, so it carries its own inset rather than relying on the
-   container's. Rendered as a direct child by ~every widget, so self-padding
-   here keeps all headers readable with no per-widget change. */
 const PanelTitle__Box = styled.h3`
   margin: 0;
   /* No top inset: PanelHeader__Row carries the header's, so a panel whose
@@ -218,36 +192,17 @@ export interface PanelTitleProps
    * Shorter forms of this title, longest first, for tiles the full one will not
    * fit in.
    *
-   * The widest form that FITS is the one drawn, measured against the box rather
-   * than guessed from a grid-column count, so a short form is never a permanent
-   * loss the way `SpaceCenterStatus`'s "KSC" was. Ordinary strings, so the
-   * author decides what the abbreviation is: nothing here truncates on their
-   * behalf, and a machine-shortened title is exactly the ellipsis this replaces.
-   *
-   * When a shorter form is showing, the full title stays available as the
-   * accessible name and as the hover tooltip. A screen reader hearing "KSC" has
-   * lost something a sighted operator only gave up because the tile is small.
+   * The widest form that fits the box is drawn. When a shorter form is
+   * showing, the full title stays the accessible name and the hover tooltip.
    */
   compact?: string | readonly string[];
 }
 
-/**
- * A panel's title, in the longest form that fits.
- *
- * A component rather than the bare styled `h3` it used to be, so `compact` has
- * somewhere to live for the six widgets that render `<Panel.Title>` as a child
- * instead of passing `panelTitle`. Two of those six are the worst offenders in
- * the whole tree at their own declared minimum size, so an affordance the child
- * form could not reach would have missed the widgets it was written for.
- */
+/** A panel's title, in the longest form that fits. */
 export const PanelTitle = forwardRef<HTMLHeadingElement, PanelTitleProps>(
   function PanelTitle({ compact, children, ...rest }, forwarded) {
     const own = useRef<HTMLHeadingElement | null>(null);
-    // Fitting needs the FULL title as text, because every candidate including
-    // that one is measured by substituting its text into a clone. A title that
-    // is markup rather than a string therefore cannot take part, and renders
-    // exactly as it did before: silently, since a widget whose title is an
-    // element has not asked for this.
+    // Candidates are measured by substituting their text into a clone, so only a string title can be compacted.
     const full = typeof children === "string" ? children : "";
     const forms =
       compact === undefined || full === ""
@@ -273,8 +228,7 @@ export const PanelTitle = forwardRef<HTMLHeadingElement, PanelTitleProps>(
   },
 );
 
-/** One frozen empty list, so a title with no compact forms does not hand the
- *  fit hook a fresh array on every render. */
+/** Stable, so a title with no compact forms does not hand the fit hook a fresh array each render. */
 const EMPTY_COMPACT: readonly string[] = [];
 
 const PanelHeader__Row = styled.div<{ $overlay?: boolean }>`
@@ -337,28 +291,17 @@ const PanelHeader__Row = styled.div<{ $overlay?: boolean }>`
       : ""}
 `;
 
-/* Applied to the two header boxes (not to the row) when the header floats over
-   the content. Backing only the boxes is the point: the gap between the titles
-   and the aside stays transparent, so the drawing underneath shows through
-   between them rather than behind a full-width bar. The surface matches the
-   panel's own so the text reads as panel chrome that the content runs beneath,
-   not as a card sitting on top of it.
-
-   `pointer-events: auto` restores what the row gives up: the row spans the full
-   width invisibly, so it takes them away to keep drags reaching the map, and
-   each box takes them back for the controls it actually holds. */
+/**
+ * Backing for the two header boxes (not the row) when the header floats, so the
+ * drawing shows through the gap between them. Each box takes back the pointer
+ * events the full-width row gives up to keep drags reaching the content.
+ */
 const OVERLAY_BOX = `
   background: var(--color-surface-panel);
   pointer-events: auto;
 `;
 
-/**
- * The top inset the row carries for every in-flow header, given back to the two
- * title-row boxes when the header FLOATS. There the inset is not spacing, it is
- * how far the opaque backing reaches above the glyphs, and a row-level one
- * leaves that strip transparent for the drawing to read through. Not on the
- * toolbar, which sits on its own line and never had one.
- */
+/** A floating header's top inset lives on the boxes, so the opaque backing reaches above the glyphs. */
 const OVERLAY_TITLE_ROW_INSET = `padding-top: var(--inset-panel-header-top);`;
 
 const PanelHeader__Titles = styled.div<{ $overlay?: boolean }>`
@@ -393,21 +336,11 @@ const PanelHeader__Aside = styled.div<{ $overlay?: boolean }>`
 `;
 
 /**
- * The aside's collapse box (Task 9, reworked for operator review: the
- * collapse trigger itself). At the panel's full width, or wherever
- * `useHeaderAsideFit` reports content that genuinely fits, the aside shows
- * inline (the default rules below, and what jsdom sees, since it never runs a
- * real `ResizeObserver` cycle). Once `$collapsed` is true, it swaps to the
- * summary, the per-severity status dots plus a chevron, and the FULL aside
- * (badges AND controls) floats open in a glow-backed box on toggle.
- *
- * `$collapsed` is JS state (`useHeaderAsideFit`, in usePanelAsideSize.ts),
- * deliberately not a `@container` condition on a fixed panel-width threshold:
- * a fixed breakpoint is content-blind by construction, and collapses a
- * short-title widget with room to spare for its aside just because the PANEL
- * is narrow. The measured fit and its hysteresis (why collapsing
- * and re-expanding use different thresholds) are documented on
- * `nextAsideCollapsed`.
+ * The aside's collapse box. While the aside fits it shows inline; once
+ * `$collapsed` is true it swaps to the per-severity status dots plus a chevron,
+ * and the full aside (badges and controls) floats open on toggle. `$collapsed`
+ * is a measured fit from `useHeaderAsideFit`, not a width breakpoint, so a
+ * short title keeps its aside on a narrow panel.
  */
 const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
   position: relative;
@@ -561,21 +494,9 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
 /**
  * Title and an optional right-hand aside on one row.
  *
- * The aside is why this exists. Twenty-seven of forty-three widgets had grown a
- * bespoke title-row styled div for exactly this, and what went in
- * it was not varied: a stream-status badge (37 occurrences), an `AugmentSlot`
- * for Uplink badges (19), the odd state `Badge` or `Select`. Twenty-seven
- * hand-rolled rows for two recurring things is a missing name, so this is the
- * name.
- *
- * Wherever `useHeaderAsideFit` finds the title + aside no longer fit the
- * header row side by side, the aside collapses to the panel's own
- * per-severity status DOTS (one `PanelStatusDot` per `useStatusBreakdown`
- * entry, worst-first) plus a chevron, and the FULL aside (badges AND
- * controls) floats open in a glow-backed `<details>` box on toggle. This is
- * generic `PanelHeader` behaviour, not specific to `Panel`/`PanelRoot`: a
- * hand-composed header gets it too, which is why the breakdown read lives
- * here rather than in `PanelRoot`.
+ * When the title and aside no longer fit side by side, the aside collapses to
+ * the panel's per-severity status dots (worst first) plus a chevron, and the
+ * full aside floats open on toggle. A hand-composed header gets this too.
  */
 export function PanelHeader({
   title,
@@ -601,33 +522,17 @@ export function PanelHeader({
 }) {
   const breakdown = useStatusBreakdown();
 
-  // The measured-fit collapse: `rowRef` is the room available to title +
-  // aside together, `titleRef` + `asideFullRef` are what they actually need.
-  // See `useHeaderAsideFit` for the measurement and its hysteresis. `jsdom`
-  // never fires a real ResizeObserver cycle or gives `<canvas>` a 2D backend,
-  // so it always sees `collapsed === false`, the wide default every existing
-  // widget test already renders.
+  // `rowRef` is the room available to title and aside together; `titleRef` and `asideFullRef` are what they need. jsdom never measures, so it always sees the wide default.
   const rowRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const asideFullRef = useRef<HTMLDivElement>(null);
   const collapsed = useHeaderAsideFit(rowRef, titleRef, asideFullRef);
 
   /**
-   * The `<details>` below is a disclosure only while the aside is COLLAPSED:
-   * that is the one state with a summary to click and content genuinely behind
-   * it. Inline, the summary is `display: none` and the full aside renders
-   * whatever `[open]` says, so a closed `<details>` would claim that badges
-   * sitting on screen are collapsed behind a trigger that does not exist. A
-   * screen reader believes that claim, and so does Playwright's webkit
-   * visibility check, which reads the `[open]` structure rather than the CSS
-   * (that disagreement is why `e2e (webkit)` called a rendered header badge
-   * hidden while chromium and firefox, which consult `checkVisibility()`,
-   * called it visible).
-   *
-   * So `open` is forced while inline and owned by the operator while
-   * collapsed. Leaving the collapsed state drops whatever they had popped
-   * open, so a panel that narrows again starts closed rather than springing
-   * its box back over the body.
+   * The `<details>` is a disclosure only while collapsed. Inline it is forced
+   * open, so assistive tech is never told that badges on screen are hidden
+   * behind a trigger that does not exist. Leaving the collapsed state drops the
+   * operator's open choice, so a panel that narrows again starts closed.
    */
   const [openWhileCollapsed, setOpenWhileCollapsed] = useState(false);
   useEffect(() => {
@@ -635,9 +540,7 @@ export function PanelHeader({
   }, [collapsed]);
 
   return (
-    /* `data-panel-header` is a stable targeting hook, the same contract as
-       ScrollArea's `data-scroll-area-inner`. The row splits titles and aside
-       into two boxes so they can align independently. */
+    /* `data-panel-header` is a stable targeting hook. */
     <PanelHeader__Row
       ref={rowRef}
       data-panel-header=""
@@ -653,23 +556,13 @@ export function PanelHeader({
       </PanelHeader__Titles>
       {aside !== undefined && (
         <PanelHeader__Aside $overlay={overlay}>
-          {/* The aside lives in a measured-fit collapse box: while it fits it
-              shows inline; once it does not it collapses to the summary (the
-              per-severity status dots + a chevron) and the FULL aside, badges
-              AND controls, floats open on toggle. jsdom never completes a
-              measurement cycle, so it sees the wide default (the aside inline
-              in the box). */}
-          {/* A native `<details>`: it carries an implicit `role="group"`, so a
-              widget aside that itself uses `getByRole("group")` must scope that
-              query to its own subtree (this box is the panel-level group). */}
+          {/* A native `<details>` carries an implicit `role="group"`, so an aside's own `getByRole("group")` query must scope to its subtree. */}
           <PanelAsideExpand
             data-panel-aside-expand=""
             $collapsed={collapsed}
             open={collapsed ? openWhileCollapsed : true}
             onToggle={(e) => {
-              // Guarded on `collapsed` so the forced-open inline state does not
-              // record itself as an operator choice and reopen the box on the
-              // next collapse.
+              // The forced-open inline state is not an operator choice.
               if (collapsed) setOpenWhileCollapsed(e.currentTarget.open);
             }}
           >
@@ -710,16 +603,10 @@ export function PanelHeader({
  * A full-width row of controls under the header, pinned like the header and
  * outside the scrolling body.
  *
- * Distinct from `panelAside`, which is the small slot BESIDE the title: a chip,
- * a badge, one select. A toolbar is for widgets whose controls are a row in
- * their own right (a map's layer and projection pickers, a graph's series
- * toggles and time window). Putting those in the aside squeezes the title at
- * every realistic tile width; putting them in the body scrolls them away from
- * the content they steer.
- *
- * It wraps rather than scrolls, so a narrow tile gets a taller toolbar and the
- * controls stay reachable. If a widget's toolbar is tall enough at tile width
- * for that to hurt, the controls belong behind a disclosure, not in a row.
+ * `panelAside` is the small slot beside the title (a chip, a badge, one
+ * select); a toolbar is for controls that are a row in their own right, such as
+ * a map's layer pickers or a graph's series toggles. It wraps rather than
+ * scrolls, so a narrow tile gets a taller toolbar.
  */
 export const PanelToolbar = styled.div<{ $overlay?: boolean }>`
   ${fitBox("panel-toolbar")}
@@ -745,27 +632,9 @@ export const PanelToolbar = styled.div<{ $overlay?: boolean }>`
 `;
 
 /**
- * A panel body is the app's DEFAULT density tier, and it says so by
- * re-declaring both steppable gap names at the values `tokens.css`
- * already gives them at `:root`.
- *
- * Numerically that is a no-op on a panel sitting at the top level, and it is
- * meant to be: the point is that the canonical rhythm is now WRITTEN
- * somewhere a reader can find it, beside the surface that owns it, rather than
- * being a property of nothing in particular. `Card` states the compact tier
- * the same way (`Card.tsx`), and the two together are the whole ladder the
- * semantic names step along.
- *
- * It also makes the tier RECOVERABLE. Card's compact tier inherits into every
- * descendant, which is correct for a card's own contents and wrong for a panel
- * nested inside one: a panel is a panel wherever it is mounted, and without
- * this it would silently render at a card's density. Nothing composes that way
- * today; declaring the default is what keeps it from being a latent bug when
- * something does.
- *
- * The insets do not appear because the body's own three-value padding is one
- * of the shapes the inset names deliberately cannot express (`tokens.css` says
- * which, and why).
+ * A panel body is the default density tier, and re-declares both steppable gap
+ * names so a panel nested inside a compact `Card` does not inherit the card's
+ * density.
  */
 const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
   --gap-related: var(--gap-related-comfortable);
@@ -864,11 +733,7 @@ export function PanelBody({
     [register],
   );
   return (
-    /* `data-panel-body` is a stable targeting hook, the same contract as
-       PanelHeader's `data-panel-header`. A widget with a full-height element
-       beside scrolling content needs the SCROLLER's visible height, which is
-       this box, and walking up by ancestor count would break the moment the
-       composition changed. */
+    /* `data-panel-body` is a stable targeting hook for the scroller's visible height. */
     <PanelBody__Box
       ref={ref}
       data-panel-body=""
@@ -883,48 +748,19 @@ export function PanelBody({
 
 /**
  * The default narrowest a section column may be before the panel stops offering
- * a second one. 13rem (208px) puts two columns in a panel about 470px wide,
- * which is a 12-column tile: the shape the complaint was about, wide enough to
- * read two label/value columns side by side and currently running everything
- * down one.
- *
- * A string rather than a number so a widget can override it with `100%`, which
- * is how a widget whose sections are each already a wide table opts out of
- * columns entirely without having to guess a pixel value large enough.
+ * a second one: two columns in a panel about 470px wide. A string so a widget
+ * can pass `100%` to opt out of columns entirely.
  */
 const DEFAULT_SECTION_MIN_WIDTH = "13rem";
 
 /**
- * Where the wide-layout decision actually lives.
+ * Where the wide-layout decision lives: `auto-fit` + `minmax` takes as many
+ * columns of at least `$min` as the panel's width allows, so sections flow
+ * across a landscape tile and stack in a portrait one.
  *
- * `auto-fit` + `minmax` is the whole mechanism: the grid takes as many columns
- * of at least `$min` as the panel's own width allows and collapses to one when
- * it does not, so a widget's sections flow horizontally in a landscape tile and
- * stack in a portrait one with the widget saying nothing about either. That is
- * the point of the sections prop, and the reason the decision belongs to Panel:
- * a widget cannot see the width it was given, and Panel already answers two
- * other questions of exactly this shape (the compacted title, the aside
- * collapse).
- *
- * No JS and no measurement, unlike those two. Both of those are content-blind
- * questions the CSS cannot answer (does this TEXT fit), where this one is pure
- * geometry the layout engine already computes. A ResizeObserver here would buy
- * nothing and would put a state update on every panel resize.
- *
- * `min($min, 100%)` rather than a bare `$min` is load-bearing: a bare minimum
- * wider than the panel makes the single track overflow, so a narrow tile scrolls
- * sideways instead of stacking. The guard clamps the track to the panel and the
- * column simply becomes narrower than the nominal minimum, which is what a
- * single-column stack has always looked like.
- *
- * The `max(..., one-Nth-of-the-panel)` half was put there by a render, and would
- * not have been guessed from the CSS. `auto-fit` promises to collapse tracks
- * nothing lands in, and it does, but a track a FULL-WIDTH section spans is not
- * empty. So a panel with a full-width totals row over two columns laid out three
- * tracks, filled two, and left the last third of an 18-column tile blank, which
- * is the exact waste the sections prop exists to end. Giving each track a floor
- * of one Nth of the panel (N being the sections that actually flow) makes more
- * than N tracks arithmetically impossible, so the collapse is never relied on.
+ * `min($min, 100%)` keeps a narrow tile stacking instead of scrolling sideways.
+ * The `max(..., 1/N of the panel)` floor makes more than N tracks impossible,
+ * because a track a full-width section spans is not collapsed by `auto-fit`.
  */
 const PanelSections__Grid = styled.div<{ $min: string; $columns: number }>`
   display: grid;
@@ -956,11 +792,7 @@ const PanelSections__Grid = styled.div<{ $min: string; $columns: number }>`
 /**
  * The tiny-tile layout: fills the space left under the header and centres the
  * widget's content in it, but only while measurement says the content fits.
- *
- * Wraps the widget's children ALONE. The header is a child of the body too, so
- * centring at the body level centres the title along with the reading and makes
- * the header part of what is measured, which is not what a tiny presentation
- * means by centred.
+ * Wraps the children alone, so the header is neither centred nor measured.
  */
 function PanelFitBody({ children }: { children?: ReactNode }) {
   const outerRef = useRef<HTMLDivElement | null>(null);
@@ -1018,23 +850,13 @@ const PanelBody__FitContent = styled.div<{ $fits?: boolean }>`
 
 /**
  * Whether the content currently fits its box, so a tiny tile can centre only
- * when centring cannot push the first line out of reach.
+ * when centring cannot push the first line out of reach. Measured because
+ * Firefox clips `safe center` in practice.
  *
- * Measured rather than expressed in CSS because the CSS answer, `safe center`,
- * is honoured by all three engines in isolation and still clipped the real
- * widget on Firefox. Comparing the two heights asks no engine to agree about
- * anything.
- *
- * Centred content taller than its box overflows it by the same amount above
- * and below. Below is scrollable. Above, it may spend only the empty room
- * between the box and whatever sits over it (see `roomAbove`). Past that it
- * runs under the title, or out of the scroller's top, where no scroll can
- * reach it. So the content fits while it is no taller than the box plus that
- * room twice over.
- *
- * Answers true when there is nothing to measure, which is what a test
- * environment with no layout gets: at zero measured height content trivially
- * fits, and no layout is being asserted there anyway.
+ * Centred overflow splits evenly above and below; the part above may use only
+ * `roomAbove` before it becomes unscrollable, so content fits while it is no
+ * taller than the box plus twice that room. True when there is nothing to
+ * measure.
  */
 function useContentFits(
   boxRef: { current: HTMLElement | null },
@@ -1140,10 +962,8 @@ const ScrollAreaRoot = styled.div`
 `;
 
 /**
- * Inner scroll element. Rendered with a stable `data-scroll-area-inner`
- * attribute (set inline below) so consumers can target it from
- * `styled(ScrollArea)\`& [data-scroll-area-inner] { ... }\`` to apply padding
- * or layout (display:flex/gap) to the scrolling children.
+ * Inner scroll element. Carries a stable `data-scroll-area-inner` attribute so
+ * a `styled(ScrollArea)` can target it to lay out the scrolling children.
  */
 const ScrollAreaInner = styled.div`
   flex: 1;
@@ -1163,15 +983,7 @@ const ScrollAreaInner = styled.div`
 const ScrollOverflowGlow = styled.div<{
   $position: "top" | "bottom";
   $visible: boolean;
-  /**
-   * How far below the scroller's top edge the TOP glow starts. Non-zero exactly
-   * when the delay rail travels with the header inside the scroller: the rail
-   * band is opaque and has no scrolled content to mask, so a glow drawn behind
-   * it would spend its solid half on a strip that does not need one and hand
-   * the transparent header only the faded tail. Offsetting by the band puts the
-   * header back at the glow's own top, which is where it sat when the band was
-   * the container's padding.
-   */
+  /** How far below the scroller's top edge the top glow starts: the rail band's height when the rail travels inside the scroller. */
   $topOffset?: string;
 }>`
   position: absolute;
@@ -1239,17 +1051,11 @@ const ScrollOverflowGlow = styled.div<{
 `;
 
 /**
- * Scrolling region with subtle white glow indicators at the top/bottom edges
- * when there's scroll content in that direction. Use anywhere an internal
- * region of a widget can overflow (e.g. lists, terminal output, file trees).
+ * Scrolling region with glow indicators at the top and bottom edges when there
+ * is content to scroll to. A panel body already scrolls and glows; use this for
+ * a second scrolling region inside a widget (a sidebar list, a terminal log).
  *
- * A whole panel body does NOT need this: `Panel` already scrolls and glows.
- * Reach for it for a SECOND scrolling region inside a widget (a sidebar list
- * beside a diagram, a terminal log above a prompt).
- *
- * Forwards its ref to the inner scroll element so consumers can imperatively
- * scroll. Accepts standard div props on the root; pass className via
- * `styled(ScrollArea)` to apply layout to the root.
+ * Forwards its ref to the inner scroll element; `className` styles the root.
  */
 export const ScrollArea = forwardRef<
   HTMLDivElement,
@@ -1282,42 +1088,18 @@ export const ScrollArea = forwardRef<
   );
 });
 
-// Sidebar: a second region beside (or below) the body
-
 /**
- * Where the sidebar sits relative to the body, in LOGICAL terms rather than
- * left/right/top/bottom.
- *
- * One prop covers both axes that way, and `end` is the right edge in LTR and
- * the left edge in RTL for free, because grid tracks and `order` both flow in
- * the inline direction the writing mode defines.
- *
- * `end` is the default because a sidebar is secondary content: an almanac
- * annotating a diagram should not precede the diagram in reading order, and
- * placing it at `start` would put it there visually while the DOM says
- * otherwise.
- *
- * There is deliberately no `auto`. The AXIS is always derived (see
- * `Panel.Split`), so an `auto` side would only ever have meant `end`, and a
- * value that is identical to another value is a promise the API is not
- * keeping. Dropping it says what actually happens; it can be added later if
- * the panel ever gains a real reason to pick a side.
+ * Where the sidebar sits relative to the body, in logical terms: `end` is the
+ * right edge in LTR and the left in RTL, and the trailing edge when the sidebar
+ * sits under the body. `end` is the default because a sidebar is secondary
+ * content and should follow the body in reading order.
  */
 export type PanelSidebarSide = "start" | "end";
 
 /** Sidebar beside the body (inline) or under it (block). Derived, never passed. */
 type PanelSidebarAxis = "inline" | "block";
 
-/* Defaults differ per axis because the two arrangements are not the same
-   measurement. A column beside a diagram wants an absolute width, wide enough
-   for a label/value pair and no wider whatever the tile does. A strip under it
-   is competing with the diagram for the tile's height, so it wants a share
-   rather than a number, or a short tile loses the diagram entirely. */
-/**
- * Resolve a CSS length to pixels, for the two units a sidebar size is realistically
- * written in. Returns undefined for anything else (percentages, ch, clamp), and
- * the caller then falls back to the aspect reading rather than guessing.
- */
+/** Resolve a `px` or `rem` length to pixels; undefined for any other unit. */
 function resolveCssLength(value: string): number | undefined {
   const n = Number.parseFloat(value);
   if (!Number.isFinite(n)) return undefined;
@@ -1334,6 +1116,7 @@ function resolveCssLength(value: string): number | undefined {
   return undefined;
 }
 
+// A column beside the body wants an absolute width; a strip under it competes for the tile's height, so it takes a share.
 const SIDEBAR_INLINE_SIZE = "14rem";
 const SIDEBAR_BLOCK_SIZE = "40%";
 
@@ -1343,8 +1126,7 @@ function sidebarTracks(side: "start" | "end", size: string): string {
     : `minmax(0, 1fr) minmax(0, ${size})`;
 }
 
-/* Positioning context for a floating header that must cover the body track
-   only. Carries no visual style of its own. */
+/* Positioning context for a floating header that must cover the body track only. */
 const PanelFloatHost = styled.div`
   position: relative;
   display: flex;
@@ -1437,33 +1219,16 @@ export interface PanelSplitProps extends ComponentPropsWithoutRef<"div"> {
    * block axis. Defaults to `14rem` and `40%` respectively.
    */
   size?: string;
-  /**
-   * The body track holds the delay rail's band inside its own scroller (the
-   * rail travels with the header), so give the SIDEBAR track a matching top
-   * inset. Without it the sidebar is the one region of the panel starting flush
-   * against the border while every other region keeps the widget's band.
-   */
+  /** The body track holds the delay rail's band inside its scroller, so give the sidebar a matching top inset. */
   railBand?: boolean;
 }
 
 /**
  * The grid that holds `Panel.Body` and `Panel.Sidebar`.
  *
- * It exists as a named part because `Panel` is exclusively a composition of
- * named parts: a sidebar arrangement a widget could not reproduce by hand
- * would be the one arrangement in this file that is not reachable.
- *
- * The axis is MEASURED rather than queried. A container query would express
- * "wider than tall" more directly, but two things argue against it: jsdom
- * evaluates no container queries at all, so the axis switch, the one piece of
- * behaviour here that is a decision rather than a rule, could not be tested;
- * and `container-type: size` imposes size containment in both axes on a box
- * whose whole job is to hand its height to two scrolling children.
- *
- * Measuring THIS box is deliberate: its border box is fixed by `flex: 1` and
- * does not change when the grid template flips between axes. Measuring the
- * body instead would shrink it when the sidebar mounts, flip the reading, and
- * oscillate.
+ * The axis is measured on this box, whose size does not change when the grid
+ * flips axes; measuring the body instead would oscillate. A container query
+ * would impose size containment on a box that must hand its height down.
  */
 export function PanelSplit({
   side = "end",
@@ -1472,24 +1237,16 @@ export function PanelSplit({
   children,
   ...rest
 }: PanelSplitProps) {
-  // Seeded square, which the `>=` below resolves to the inline axis: an
-  // unmeasured panel (first paint, and jsdom forever) gets the side-by-side
-  // arrangement, the one that suits the tile shapes widgets default to.
+  // Seeded square, so an unmeasured panel gets the side-by-side arrangement.
   const { ref, size: measured } = useElementSize<HTMLDivElement>({
     w: 1,
     h: 1,
   });
-  // Aspect alone is not enough, and a render proved it: a 6x6 tile is square,
-  // so `w >= h` chose the inline axis, and a 14rem sidebar on a ~232px tile
-  // left about 8px for the body. The diagram vanished entirely.
-  //
-  // So the inline axis also needs absolute room: the body must keep at least as
-  // much as the sidebar takes. Below that the sidebar goes under, where it has
-  // the full width and the body keeps its own.
-  //
-  // Only applied once really measured. The seed is 1x1, and treating that as
-  // "no room" would flip every unmeasured panel (first paint, and jsdom, which
-  // runs no layout) to the block axis.
+  /*
+   * The inline axis also needs absolute room: the body must keep at least as
+   * much width as the sidebar takes, or the sidebar goes under. Applied only
+   * once measured, so the 1x1 seed does not read as "no room".
+   */
   const sidebarInline = resolveCssLength(size ?? SIDEBAR_INLINE_SIZE);
   const roomBeside =
     measured.w <= 1 ||
@@ -1501,9 +1258,7 @@ export function PanelSplit({
   const resolvedSize =
     size ?? (axis === "inline" ? SIDEBAR_INLINE_SIZE : SIDEBAR_BLOCK_SIZE);
   return (
-    /* `data-panel-split` is a stable targeting hook, the same contract as
-       `data-panel-header` and `data-panel-body`, and it carries the resolved
-       axis so the decision is inspectable from outside. */
+    /* `data-panel-split` is a stable targeting hook carrying the resolved axis. */
     <PanelSplit__Box
       ref={ref}
       data-panel-split={axis}
@@ -1518,15 +1273,7 @@ export function PanelSplit({
   );
 }
 
-/**
- * The sidebar's own scroller, named so the inset below can reach the element
- * that actually scrolls.
- *
- * The inset goes INSIDE the scroller for the reason `PanelBody__Box` states
- * about its own: padding on the box outside a scrolling element clips whatever
- * scrolls under it, so an almanac longer than its track would lose its last
- * line to the gutter instead of scrolling through it.
- */
+/** The sidebar's scroller. The inset goes inside it, since padding outside a scroller clips what scrolls under it. */
 const PanelSidebar__Scroll = styled(ScrollArea)`
   /* Longhands, not the shorthand the body writes. jsdom's CSS parser drops a
      shorthand whose parts are var() calls, so the shorthand form computes to 0
@@ -1553,22 +1300,10 @@ const PanelSidebar__Box = styled.div`
  * Secondary content beside or below the body: an almanac for the diagram, a
  * legend for the plot, a detail pane for the selected row.
  *
- * It carries its OWN `ScrollArea` and is never inside `Panel.Body`, which is
- * the whole point of it being a region rather than more body content:
- * scrolling an almanac must not scroll the diagram it annotates off the tile.
- *
- * It carries the BODY'S INSET too, which it did not until a render of
- * OrbitView's landscape arrangement was read closely: the split's tracks are
- * flush (`gap: 0`) and nothing here had padding, so the body name and the
- * status pill sat 0px from the panel's border while every other region in the
- * same panel was inset 16px. A sidebar was the one region of a panel with no
- * inset at all.
- *
- * Full inset on both inline edges is the hand-composed default, which is right
- * for a sidebar with nothing beside it. Inside a `Panel.Split` the edge FACING
- * THE BODY is given back (see `PanelSplit__Box`), because the body already pays
- * a 16px inset of its own there and two of them read as a gutter twice the
- * width of the one between two sections.
+ * It carries its own `ScrollArea` and is never inside `Panel.Body`, so
+ * scrolling it does not scroll the drawing it annotates. It carries the body's
+ * inset too; inside a `Panel.Split` the edge facing the body gives its inset
+ * back, since the body already pays one there.
  */
 export function PanelSidebar({
   children,
@@ -1612,9 +1347,7 @@ function useScrollerMetric<T>(
   initial: T,
 ): T {
   const [value, setValue] = useState<T>(initial);
-  // Latest closures without re-subscribing: the effect keys off `el` alone, so
-  // a caller passing a fresh `compute`/`isEqual` each render does not tear down
-  // and rebuild the observers every time.
+  // Latest closures without re-subscribing: the effect keys off `el` alone.
   const computeRef = useRef(compute);
   computeRef.current = compute;
   const equalRef = useRef(isEqual);
@@ -1655,36 +1388,16 @@ const PanelGlow__Root = styled.div`
 `;
 
 /**
- * Owns the overflow glow and NOTHING else. It does not scroll; it decorates
- * whatever does.
- *
- * It finds the scroller through the panel context rather than by inspecting
- * its children, which means it does not depend on nesting order: it can wrap
- * the body or sit beside it and still work. That is what keeps hand-composed
- * panels behaving identically to `Panel`.
- *
- * The previous arrangement passed `--scroll-glow-pad-*` between Panel,
- * PanelBody and ScrollArea: three participants, no owner, and an invalid
- * unitless zero sat in it unnoticed so the glow never rendered at all. Giving
- * it an owner left the vars behind as an escape hatch, and they then sat with
- * NO PUBLISHER anywhere in the repo, permanently resolving to their `0px`
- * fallback while one widget carried a comment describing a bleed that
- * therefore never happened. They are gone entirely now. A widget that appears
- * to need one is nesting a second scroller as its whole body; delete that
- * instead.
+ * Owns the overflow glow and nothing else. It does not scroll; it decorates
+ * whatever does, found through the panel context, so it can wrap the body or
+ * sit beside it.
  */
 export function PanelGlow({
   children,
   railBandAbove,
   ...rest
 }: ComponentPropsWithoutRef<"div"> & {
-  /**
-   * The scroller's first row is the delay rail's opaque band, because the rail
-   * travels with the header (see `PanelStickyTop`). Starts the TOP glow below
-   * that band, so the transparent header sits at the glow's own top edge and
-   * keeps the backing it had when the band was the container's padding. Off for
-   * every other panel shape, where the band is not inside the scroller at all.
-   */
+  /** The scroller's first row is the delay rail's opaque band, so start the top glow below it. */
   railBandAbove?: boolean;
 }) {
   const ctx = useContext(PanelCtx);
@@ -1692,7 +1405,7 @@ export function PanelGlow({
 
   useEffect(() => {
     if (!ctx && process.env.NODE_ENV !== "production") {
-      // Loud rather than silent: without a context this renders correctly and does nothing, which is precisely how the last glow bug survived.
+      // Without a context this renders correctly and does nothing, so say so.
       console.warn(
         "Panel.Glow rendered outside a Panel.Context, so it has no scroller " +
           "to observe and will never show. Wrap it in Panel.Context (or use " +
@@ -1721,70 +1434,29 @@ export function PanelGlow({
   );
 }
 
-// ---------------------------------------------------------------------------
-// The compound Panel
-//
-// Governing principle: `Panel` is EXCLUSIVELY the composition of named
-// subcomponents, with no bespoke markup or styling of its own. If it grew a
-// `<div>`, a widget needing a variant could no longer reproduce it by hand.
-// Every piece below is reachable as `Panel.Container` / `.Title` / `.Glow` /
-// `.Body`.
-//
-// `Panel.Glow` WRAPS the scrolling region rather than sitting beside it, so the
-// glow's behaviour has one owner and no CSS custom property is shared between
-// components to position it.
-//
-// Title and toolbar sit inside the glow but BESIDE the body rather than in
-// it, and the body is the scroller, so the header stays pinned while the
-// content scrolls under the glow. A wrapper that put all its children in the
-// scroll area instead would scroll the title away.
-// ---------------------------------------------------------------------------
-
+/*
+ * `Panel` is exclusively a composition of the named subcomponents, with no
+ * markup of its own, so a widget can reproduce any variant by hand. Title and
+ * toolbar sit beside the scrolling body, so the header stays pinned.
+ */
 export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
   /**
-   * Panel heading. Supplying it opts into the composed model: the panel
-   * renders its own title and pads its body.
-   *
-   * Named `panelTitle` rather than `title` so it cannot collide with the div's
-   * own `title` attribute, which HTML types as a tooltip string. Taking that
-   * name would have meant omitting the real attribute, silently removing the
-   * ability to give a panel a tooltip.
-   *
-   * Widgets that instead render `Panel.Title` as a child get the older unpadded
-   * passthrough, so the migration can move one widget at a time and each
-   * render change is attributable to that widget.
+   * Panel heading. Supplying it opts into the composed model: the panel renders
+   * its own title and pads its body. Named so it does not collide with the
+   * div's own `title` tooltip attribute.
    */
   panelTitle?: ReactNode;
   /**
-   * The panel's body, as one or more sections. THE PREFERRED WAY to give a
-   * panel content: passing children instead is the retiring form.
+   * The panel's body, as one or more sections: the preferred way to give a
+   * panel content. Each entry is normally a `Section`; Panel owns how they
+   * flow, down one column in a portrait tile and across two or three in a
+   * landscape one. A single node is fine, and a conditional `null` entry does
+   * not render.
    *
-   * Each entry is normally a `Section`, which carries its own `title`, so a
-   * widget stops hand-rolling the heading-plus-`Stack` pair it used to write
-   * per group. Panel then owns how those sections FLOW: they run down one
-   * column in a portrait tile and across two or three in a landscape one, which
-   * is the width a widget cannot see for itself. See `PanelSections__Grid`.
-   *
-   * An array OR a single node, and a single section is not an abuse of it: a
-   * widget whose body is one list says `sections={<Section>...</Section>}` and
-   * pays nothing for the shape. Read through `Children.toArray`, so entries are
-   * keyed for you and a conditional `null` section simply does not render.
-   *
-   * The exception, and the only one, is a widget that is WHOLLY a drawing: a
-   * map, a globe, an orbit view. Its content is the panel rather than a section
-   * of it, and it already has its own prop in `floatingHeader`, which bleeds the
-   * body to the chrome. Those keep children.
-   *
-   * Distinct from `panelSections`, which is a boolean and is about the augment
-   * SLOT, not about content. The two share a word and nothing else.
-   *
-   * Booleans are excluded on purpose, and that is not tidiness. `ReactNode`
-   * admits `boolean`, and `Children.toArray` strips it, so `sections={false}`
-   * used to typecheck and render an EMPTY PANEL. The two prop names are one
-   * word apart and the reverse typo is already caught, so the hole ran in one
-   * direction only. A conditional section still works: `cond && <Section/>`
-   * yields `false`, which is why the exclusion sits on the outer type and the
-   * array entries keep the full `ReactNode`.
+   * A widget that is wholly a drawing (a map, a globe) keeps children and uses
+   * `floatingHeader` instead. Not to be confused with the boolean
+   * `panelSections`, which is about the augment slot. A bare boolean is
+   * rejected so `sections={false}` cannot render an empty panel.
    */
   sections?: Exclude<ReactNode, boolean> | readonly ReactNode[];
   /**
@@ -1797,58 +1469,32 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
   sectionMinWidth?: string;
   /**
    * Shorter forms of `panelTitle`, longest first, for tiles the full one will
-   * not fit in. See {@link PanelTitleProps.compact}, which this forwards to.
-   *
-   * A widget declares a `minSize`, and the dashboard enforces it as a floor, so
-   * that size is a promise the widget's own title has to keep. Sixteen widgets
-   * were breaking it. This is what they reach for.
+   * not fit in, including the widget's own `minSize`. See
+   * {@link PanelTitleProps.compact}.
    */
   compactTitle?: string | readonly string[];
   /**
    * Content for the right of the header row, beside the stream-status badge:
    * state chips, an `AugmentSlot` for Uplink badges, a small control such as a
-   * select or a show/hide button.
-   *
-   * Named `aside` rather than `badges` because it is not only badges. It began
-   * as a badge slot and immediately started carrying PowerSystems' resource
-   * select and CrewStatus's meters toggle, which is the normal case rather
-   * than an abuse: whatever a widget puts next to its title belongs here.
-   *
-   * Keep it small all the same. This is a header slot, not a second body;
-   * anything that wants real layout should be in the body or in a
-   * hand-composed `Panel.Header`.
+   * select or a show/hide button. Keep it small: anything that wants real
+   * layout belongs in the body or a hand-composed `Panel.Header`.
    */
   panelAside?: ReactNode;
   /**
    * Standard badge pills rendered in the header aside, sourced from the
-   * widget's automatic `<id>.badges` contribution slot unless explicitly set
-   * here. Renders through the kit's own
-   * `Badge`, so every widget's badges share one visual vocabulary instead of
-   * each widget hand-rolling a pill. An explicit value here REPLACES the
-   * ambient context value rather than merging with it (same relationship
-   * `panelStatus` has to the derived stream status): a panel that wants both
-   * concatenates them itself before passing the prop.
-   *
-   * Distinct from `panelAside`, which stays the escape hatch for non-badge
-   * content (a select, a toggle, a headline readout): the two compose, badges
-   * render alongside whatever `panelAside` supplies, never instead of it.
+   * widget's automatic `<id>.badges` contribution slot unless set here. An
+   * explicit value replaces the ambient one rather than merging with it. Badges
+   * render alongside whatever `panelAside` supplies.
    */
   panelBadges?: readonly BadgeEntry[];
   /**
    * This panel's own stream status, for the grades the host does not derive.
    *
-   * Leave it unset for a blackout: the dashboard host contributes `recorded`
-   * and `last-before-blackout` across the widget's declared channels on its
-   * own, because both are stamped per SUBJECT rather than per topic, so a
-   * widget-wide reading of them loses nothing. Every other
-   * grade stays opt-in and always will: `absent` means opposite things per
-   * topic and `held-stale` belongs to one producer, so a worst-of summary of
-   * those reads as a fault where there is none.
-   *
-   * So set this for a panel whose staleness genuinely is not its widget's (a
-   * sub-panel reading one specific topic), or to `"none"` to suppress the badge
-   * entirely. A value here does not replace the host's contribution; the two
-   * merge worst-first through the status store.
+   * The host already contributes the blackout grades (`recorded`,
+   * `last-before-blackout`), which are stamped per subject. Every other grade is
+   * opt-in, because `absent` means opposite things per topic. Set this for a
+   * panel reading one specific topic, or to `"none"` to suppress the badge. It
+   * merges worst-first with the host's contribution.
    */
   panelStatus?: StreamStatusValue | "none";
   /**
@@ -1862,33 +1508,19 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * The header floats over the content rather than reserving a row above it,
    * and the body bleeds to the panel chrome and stops scrolling.
    *
-   * For a widget that is WHOLLY a drawing: an orbit view, a globe. Its content
-   * wants the whole tile, and cropping it to leave room for a title is the
-   * wrong trade at the sizes these run at. The title and the aside keep a
-   * panel-coloured backing so they stay legible over whatever passes beneath.
-   *
-   * Wholly is the load-bearing word. A widget with a diagram AND readouts
-   * wants `FramedDisplay` around the diagram inside the ordinary padded body,
-   * not this: the body inset it cancels is the one those readouts need. That
-   * this prop also floats the header is what keeps it honest, because a widget
-   * with readouts in it would never ask for a title floating over them.
-   *
-   * Deliberately NOT folded into `fitToSize`, though they do go together. That
-   * prop is already set by widgets which want their content sized to the tile
-   * and still want an ordinary header, and every one of them would sprout a
-   * floating title the day the two merged. Two questions, two props: does the
-   * content scroll, and does the header sit above it or on it.
+   * For a widget that is wholly a drawing (an orbit view, a globe). The title
+   * and aside keep a panel-coloured backing so they stay legible. A widget with
+   * a diagram and readouts wants `FramedDisplay` inside the ordinary body
+   * instead. Independent of `fitToSize`, which keeps an ordinary header.
    */
   floatingHeader?: boolean;
   /**
    * Content is sized to fit and never scrolls. Forwarded to `Panel.Body`
    * rather than handled here, so manual composition stays reproducible.
    *
-   * Beats `fill` on a section, and the two are asking for different things: this
-   * measures the content against the tile and centres it only while it fits,
-   * where a filling section takes whatever height is spare. Honouring both would
-   * centre a box that had already eaten the space the centring is measured
-   * against, so under this prop every section stays an ordinary grid item.
+   * Beats `fill` on a section: under this prop every section stays an ordinary
+   * grid item, since a filling section would eat the space the centring is
+   * measured against.
    */
   fitToSize?: boolean;
   /**
@@ -1905,13 +1537,8 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * an almanac for a diagram, a legend for a plot, a detail pane for the
    * selected row.
    *
-   * Leaving it unset changes nothing at all. There is no grid, no extra box,
-   * and the body is the same element it has always been, so a widget that
-   * does not ask for a sidebar cannot be affected by one existing.
-   *
-   * The sidebar is a REGION, not a column of body content. Content that
-   * scrolls with the body belongs in the body; this is for content whose
-   * scrolling must not move what it annotates.
+   * It is a region, not a column of body content: for content whose scrolling
+   * must not move what it annotates. Unset, the panel renders no split at all.
    */
   panelSidebar?: ReactNode;
   /**
@@ -1930,22 +1557,16 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * universal: an author binds `${componentId}.sections` for any widget without
    * that widget having declared, named, or positioned a slot.
    *
-   * Set false ONLY when the widget renders `<WidgetSections>` itself because
-   * end-of-body is the wrong place for it (inside a tab, inside a named
-   * section, as a column of a landscape split). Both mounts firing would render
-   * every bound augment twice, silently, so a widget that places its own must
-   * say so here.
+   * Set false only when the widget renders `<WidgetSections>` itself (inside a
+   * tab, a named section, a column of a split); both mounts would otherwise
+   * render every bound augment twice.
    */
   panelSections?: boolean;
 }
 
-// The augment segments `Panel` mounts for EVERY widget, the augment-side
-// counterpart of `contributionsRuntime`'s `FRAMEWORK_SEGMENTS`. Recorded as a
-// list so the two universal segments are greppable from one place even though
-// they mount in two different parts of the panel.
+/** The augment segments `Panel` mounts for every widget. */
 export const FRAMEWORK_AUGMENT_SEGMENTS = ["sections", "actions"] as const;
 
-// Frozen so the empty props object handed to both segment slots is one stable reference rather than a fresh literal per render.
 const NO_SEGMENT_PROPS: Record<string, never> = Object.freeze({});
 
 /**
@@ -1954,24 +1575,16 @@ const NO_SEGMENT_PROPS: Record<string, never> = Object.freeze({});
  *
  * `Panel` mounts one at the end of its body already, so a widget renders this
  * itself only to put the seam somewhere else, and must then pass
- * `panelSections={false}` so the two mounts do not both fire. Outside a widget
- * context it renders nothing, same as any segment slot.
- *
- * A component owning its own extension point, rather than the orchestrator
- * owning it on the component's behalf: the shape `FilterList` established for
- * the `filters` contribution segment.
+ * `panelSections={false}`. Outside a widget context it renders nothing.
  */
 export function WidgetSections(): ReactElement {
   return <AugmentSlot segment="sections" props={NO_SEGMENT_PROPS} />;
 }
 
 /**
- * The winning status contribution, rendered as the header aside badge and given
- * a brief transition cue when its severity changes: the summary pulses once on a
- * severity change then settles quiet, so an operator's eye is drawn to a panel
- * that just got worse (or recovered) without a persistent animation nagging.
- * Reduced-motion guarded. The change is announced by the panel's own status
- * region, not by this badge, which comes and goes with the summary.
+ * The winning status contribution, rendered as the header aside badge. It
+ * pulses once when its severity changes, then settles (reduced-motion
+ * guarded). The panel's own status region announces the change, not this badge.
  */
 function PanelSummaryBadge({ summary }: { summary: StatusSummary }) {
   /*
@@ -2043,30 +1656,9 @@ export const PanelFooter = styled.div`
 `;
 
 /**
- * The delay rail and the header, as ONE sticky unit at the top of the body
- * scroller.
- *
- * The rail used to be the panel CONTAINER's first child, outside this scroller
- * and permanently at the panel's top edge, which put it in the right place at
- * every scroll offset without ever being attached to the header. That is
- * always-visible-at-the-top, and it is not the same thing as travelling with
- * the header: the two were pinned by different mechanisms in different boxes
- * and stayed adjacent by arithmetic. Holding both in one sticky element makes
- * "the rail sits on the header" true by construction, so nothing can move one
- * without moving the other.
- *
- * It also retires the last reason the deleted `--panel-rail-height` machinery
- * existed. That variable, its `ResizeObserver` and the `PanelRailTarget`
- * context were all there so a rail inside the scroller could tell a SEPARATE
- * sticky header how far down to start. With one element there is no second
- * offset to publish: the rail is the unit's first row and the header is its
- * second, and a growing rail simply makes the unit taller.
- *
- * Only for the in-flow header. A `floatingHeader` paints over a non-scrolling
- * bleed body and there is no scroller for a sticky unit to stick in, and a
- * headless panel has no header to travel with; both keep the rail as the
- * container's first child, in the band the container reserves. The rule is
- * that the rail goes wherever the header is.
+ * The delay rail and the header, as one sticky unit at the top of the body
+ * scroller, so the rail always sits on the header. Only for the in-flow
+ * header: a floating or headless panel keeps the rail in the container's band.
  */
 const PanelStickyTop = styled.div`
   position: sticky;
@@ -2091,13 +1683,7 @@ const PanelStickyTop = styled.div`
   }
 `;
 
-/* The standard header, reparented into the sticky unit above as the FIRST
-   in-flow child of the scroller, so rail, title and body scroll as one unit.
-   The unit's negative margins cancel the body's own top/side inset for the
-   header alone, so `PanelTitle`'s own inset governs and the title lands exactly
-   where the pinned band put it (top-left, same inset); only the body content
-   below keeps the body's padding. `PanelHeader` itself is untouched, this is
-   purely how `PanelRoot` assembles it. */
+/* The standard header inside the sticky unit. The unit's negative margins cancel the body's inset for the header alone. */
 const PanelStickyHeader = styled(PanelHeader)`
   /* The sticky position, the z lift and the inset cancellation all live on
      PanelStickyTop, which is the box that carries the rail as well. What stays
@@ -2149,31 +1735,20 @@ function PanelRoot({
   children,
   ...rest
 }: PanelProps) {
-  // A panel only shows a status badge if it ALREADY has a header. An
-  // unmigrated widget (children only, its own bespoke title row inside) must
-  // not sprout a header and a padded body the moment its stream degrades:
-  // that would restructure the widget on a data transition, which is both a
-  // layout surprise and impossible to see coming in review. Such a widget
-  // simply keeps showing no badge until it moves to `panelTitle`.
-  // Standard badge pills for this widget: an explicit `panelBadges` prop wins,
-  // else the ambient `PanelBadgesProvider` the orchestrator mounts (Task 2.4),
-  // else none. Rendered through the kit's own `Badge` so every widget's badges
-  // share one vocabulary. Computed before `hasHeader` because badges alone are
-  // enough to give an otherwise-headerless panel a header.
+  /*
+   * A status change never gives a headerless panel a header: that would
+   * restructure the widget on a data transition. Badges alone do, so they are
+   * resolved first: an explicit `panelBadges` wins, else the ambient provider.
+   */
   const contextBadges = usePanelBadgesContext();
-  // The universal `${componentId}.actions` augment segment renders in the
-  // header aside. Asked as a boolean first because an aside that exists at all
-  // is a box with padding: splicing an always-mounted slot in would give every
-  // headed panel in the app an empty one.
+  // Asked as a boolean first, because an aside that exists at all is a padded box.
   const hasActionAugments = useWidgetSegmentBound("actions");
   const badges = panelBadges ?? contextBadges ?? [];
   const badgePills =
     badges.length === 0
       ? null
       : badges.map((b) => {
-          /* An absent or `neutral` entry tone is a decorative kind-chip, so
-             it gets NO severity rather than the nominal floor: a contributed
-             label with nothing to report must not paint itself go-green. */
+          /* An absent or `neutral` tone is a decorative chip with no severity, so it never paints itself nominal. */
           const severity =
             b.tone === undefined || b.tone === "neutral"
               ? undefined
@@ -2182,10 +1757,7 @@ function PanelRoot({
             <Badge
               key={b.id}
               severity={severity}
-              /* A decorative kind-chip has no severity to assert, so it stays
-                 out of the collapsed header's dot summary entirely: only a
-                 badge carrying a real severity is the widget-level assertion
-                 that summary consolidates. */
+              /* A decorative chip stays out of the collapsed header's dot summary. */
               report={severity === undefined ? undefined : { id: b.id }}
             >
               {b.label}
@@ -2199,29 +1771,14 @@ function PanelRoot({
     badgePills !== null ||
     hasActionAugments;
 
-  // The panel's header status comes from the per-item PanelStatusStore, so an
-  // active alarm and any `report` badge merge into ONE summary rather than
-  // each splicing a single value into the aside.
-  //
-  // Most of the stream half is the WIDGET'S own to supply, via `panelStatus`.
-  // The host deliberately does NOT derive one across every topic a widget
-  // declares: one worst-of pill for five topics cannot say which of them is
-  // degraded, and "absent" means opposite things per topic (an empty
-  // `vessel.maneuvers` is a normal state, an absent `vessel.orbit` is not).
-  // Stale and reckoned Values ride the wire per Value, so currency is already
-  // carried at a finer granularity than a panel-wide summary could express, and
-  // a lossy summary that can read as a fault when there is none is worse than
-  // none.
-  //
-  // The two BLACKOUT grades are the exception, and arrive through the store
-  // rather than through this prop (`WidgetStreamStatusBridge`). They are
-  // stamped per subject, not per topic, so "one of this widget's channels is
-  // recorded" and "this craft was out of contact" are one fact, and none of the
-  // reasoning above applies to them.
+  /*
+   * The header status merges alarms, `report` badges and the stream status
+   * into one summary through the per-item status store. The stream half is the
+   * widget's own `panelStatus`: "absent" means opposite things per topic, so
+   * the host derives only the per-subject blackout grades.
+   */
   const status = panelStatus ?? null;
-  // Live/none/absent-of-status contribute nothing (the floor), so a healthy
-  // stream keeps today's "no green pill" rule. A degraded status folds in as
-  // the "stream" contribution; `panelStatus="none"` suppresses it outright.
+  // A healthy stream contributes nothing, so it never draws a green pill.
   const streamStatus: StreamStatusValue | null =
     hasHeader && status !== null && status !== "none" && status !== "live"
       ? status
@@ -2236,17 +1793,11 @@ function PanelRoot({
       : null,
   );
   const summary = useStatusSummary();
-  /* A badge that already draws its own pill above (any entry with a real
-     severity, via `report`) must not ALSO win the merged summary: the two
-     would show the identical label twice. `stream`/an alarm id never
-     collides with a badge id, so this only ever suppresses a badge's own
-     win. */
+  /* A badge that already draws its own pill must not also win the summary, or its label shows twice. */
   const summaryDuplicatesABadgePill =
     summary !== null && badges.some((b) => b.id === summary.id);
 
-  // With a store in the tree the header renders the winning contribution; with
-  // none (a standalone panel in the settings modal or the station connect view)
-  // it falls back to the stream badge.
+  // With no status store in the tree, fall back to the stream badge.
   const streamLabel =
     streamStatus === null ? null : formatStreamStatus(streamStatus);
   const statusBadge =
@@ -2257,9 +1808,7 @@ function PanelRoot({
         {streamLabel}
       </Badge>
     );
-  /* What the header's status says to assistive tech, prefixed with the title
-     when there is a plain one, so a change is heard as belonging to a widget.
-     Empty while there is nothing to report. */
+  /* Prefixed with a plain title, so a change is heard as belonging to a widget. */
   const statusLabel = summary?.label ?? streamLabel;
   const statusAnnouncement =
     statusLabel === null || statusLabel === ""
@@ -2267,7 +1816,7 @@ function PanelRoot({
       : typeof panelTitle === "string"
         ? `${panelTitle}: ${statusLabel}`
         : `Status: ${statusLabel}`;
-  // `undefined`, not `null`: PanelHeader treats undefined as "no aside at all" and skips the box, where a null child would still render the padded slot.
+  // `undefined`, not `null`: a null child would still render the padded aside box.
   const aside =
     panelAside === undefined &&
     statusBadge === null &&
@@ -2275,11 +1824,7 @@ function PanelRoot({
     !hasActionAugments ? undefined : (
       <>
         {panelAside}
-        {/* The universal `actions` segment: header controls an Uplink adds to
-            ANY widget, in the same place the universal `badges` contribution
-            lands. Ahead of the badges and the status badge, which are readouts;
-            a control the operator can press should not be the last thing to
-            find. */}
+        {/* Controls come ahead of the readout badges. */}
         {hasActionAugments && (
           <AugmentSlot segment="actions" props={NO_SEGMENT_PROPS} />
         )}
@@ -2288,32 +1833,19 @@ function PanelRoot({
       </>
     );
 
-  /* The section grid, and nothing at all when no sections were passed: a widget
-     still on children renders exactly the DOM it rendered before, so a
-     conversion is the only thing that can move a render.
-
-     The universal `sections` augment segment moves INSIDE the grid when the
-     widget has one, which is the whole reason the segment is called that: an
-     Uplink's appended section is a section, and it should flow into a column
-     beside the host's own rather than always landing in a full-width block
-     underneath them. `AugmentSlot` renders a fragment, so each bound augment
-     becomes its own grid item. The mount below is skipped in that case, since
-     both firing would render every bound augment twice. */
+  /*
+   * With sections, the universal `sections` augment segment moves inside the
+   * grid, so an Uplink's section flows into a column beside the host's own.
+   * `AugmentSlot` renders a fragment, so each bound augment is its own grid item.
+   */
   const sectionNodes = Children.toArray(sections as ReactNode);
   const hasSections = sectionNodes.length > 0;
-  /* A filling section is lifted OUT of the grid and rendered as a child of the
-     body, which is the box that knows what height is left over. It cannot stay
-     a grid item: a grid track is sized to its contents, and which row a section
-     lands in is not knowable from here, since `auto-fit` decides the column
-     count from the panel's own width. There is no `1fr` to put on a row nobody
-     can name.
-
-     Ordinary sections either side of it still columnise: a run of them becomes
-     a grid of its own, so a filling section keeps its authored position instead
-     of being hoisted somewhere the widget did not write it.
-
-     Off under `fitToSize`, where the fit wins and every section stays a grid
-     item, exactly as before this existed. See the `fill` prop on `Section`. */
+  /*
+   * A filling section is lifted out of the grid into the body, the box that
+   * knows the leftover height, since no grid row can be named for it. The
+   * ordinary sections either side become grids of their own, keeping authored
+   * order. Off under `fitToSize`.
+   */
   const runs: { fill: boolean; nodes: ReactNode[] }[] = [];
   for (const node of sectionNodes) {
     const fill =
@@ -2324,21 +1856,14 @@ function PanelRoot({
     if (!fill && open !== undefined && !open.fill) open.nodes.push(node);
     else runs.push({ fill, nodes: [node] });
   }
-  /* The universal segment lands in the LAST grid, so an Uplink's appended
-     section still flows beside the host's own. A body whose every section fills
-     has no grid to put it in, so one is opened for it: dropping the segment
-     because the host happened to draw something would make the seam depend on a
-     layout choice the augment author cannot see. */
+  /* The universal segment lands in the last grid; a body whose every section fills gets one opened for it. */
   if (panelSections && hasSections && !runs.some((run) => !run.fill)) {
     runs.push({ fill: false, nodes: [] });
   }
   const augmentRun = panelSections
     ? runs.reduce((last, run, i) => (run.fill ? last : i), -1)
     : -1;
-  /* How many sections take a column, which is every section in the run that is
-     not full-width. The grid needs the count to floor its track width (see
-     PanelSections__Grid); a full-width section spans them all and so is not one
-     of the things being flowed. */
+  /* How many sections take a column, which floors the grid's track width. */
   const flowingIn = (nodes: ReactNode[]) =>
     Math.max(
       1,
@@ -2353,15 +1878,11 @@ function PanelRoot({
   for (const run of runs) {
     const index = sectionRuns.length;
     if (run.fill) {
-      /* Exactly one node: a filling section is never coalesced with anything,
-         so it reaches the body as itself, keyed by `Children.toArray`. */
+      /* A filling section is never coalesced, so its run is exactly one node. */
       sectionRuns.push(run.nodes[0]);
       continue;
     }
     sectionRuns.push(
-      /* Keyed by the run's position, which is the grid's identity here: the
-         runs are derived from the order the widget wrote its sections in, so a
-         given grid stays the same grid for as long as that order does. */
       <PanelSections__Grid
         key={`sections-${index}`}
         $min={sectionMinWidth}
@@ -2384,16 +1905,8 @@ function PanelRoot({
   if (!hasHeader) {
     return (
       <PanelContainer {...rest}>
-        {/* The same band an unmigrated widget gets as every other one: the
-            delay rail is a property of being a widget, not of having migrated
-            to `panelTitle`. */}
         <PanelDelayRail />
         {content}
-        {/* Same universal seam as the headed path below: an unmigrated widget
-            (its own title row inside its children) is still a widget, and an
-            author binding `${componentId}.sections` has no way to know which
-            panel shape it renders. A panel WITH sections mounted it inside the
-            grid already. */}
         {panelSections && !hasSections && <WidgetSections />}
         {panelFooter !== undefined && <PanelFooter>{panelFooter}</PanelFooter>}
       </PanelContainer>
@@ -2401,21 +1914,13 @@ function PanelRoot({
   }
 
   /**
-   * Whether the delay rail travels with the header inside the body scroller.
-   * True for every in-flow header, which is every headed panel but the floating
-   * one; that one paints over a bleed body with nothing to scroll, so its rail
-   * stays in the container's band. Four boxes read it and they have to agree:
-   * the container gives its band back, the split hands the band to the sidebar
-   * track instead, the glow starts below it, and the sticky unit holds it.
+   * Whether the delay rail travels with the header inside the body scroller:
+   * every headed panel but the floating one. The container, the split, the glow
+   * and the sticky unit all read it and must agree.
    */
   const railTravels = !floatingHeader;
 
-  // A `floatingHeader` is the one overlay case: it paints over a non-scrolling
-  // `bleed` body (a map/globe/plot fills the tile) rather than sticking above
-  // scrolling content. Every OTHER header, standard or with a `panelToolbar`, is
-  // ONE sticky header inside the scroller (see `body` below): it sticks at the
-  // scroller's own top so title + aside (+ toolbar) stay in view
-  // while the body scrolls under it. One mechanism, and no scroll-away ghost.
+  // A floating header paints over a non-scrolling bleed body; every other header is one sticky header inside the scroller.
   const header = floatingHeader ? (
     <PanelHeader
       title={panelTitle}
@@ -2435,11 +1940,6 @@ function PanelRoot({
 
   const body = (
     <PanelBody fitToSize={fitToSize} bleed={floatingHeader}>
-      {/* The rail and the header, as one sticky unit and the scroller's first
-          in-flow child: it sticks at the scroller's top so the band, the title
-          and the aside (+ toolbar) stay in view together while the body scrolls
-          under them. Only a floating (overlay) header lives outside the
-          scroller, and its rail stays outside with it. */}
       {!floatingHeader && (
         <PanelStickyTop data-panel-sticky-top="">
           <PanelDelayRail />
@@ -2447,22 +1947,11 @@ function PanelRoot({
         </PanelStickyTop>
       )}
       {fitToSize ? <PanelFitBody>{content}</PanelFitBody> : content}
-      {/* The universal `${componentId}.sections` augment segment: body sections
-          an Uplink appends to ANY widget, with the widget declaring, naming and
-          positioning nothing. Renders no DOM until something binds. A widget
-          that needs the seam elsewhere renders `<WidgetSections>` itself and
-          turns this off, so the two mounts never both fire; a widget passing
-          `sections` mounted it inside the grid, for the same reason. */}
       {panelSections && !hasSections && <WidgetSections />}
     </PanelBody>
   );
 
-  // A floating header is absolutely positioned against the nearest positioned
-  // ancestor. With no sidebar that is the glow, which is what a drawing widget
-  // wants: the title paints over the whole tile. With a sidebar it would paint
-  // over the SIDEBAR too, hiding its first item behind the title box, so the
-  // header is re-hosted against the body track alone and the sidebar keeps its
-  // full height. This is what lets a drawing widget have both.
+  // With a sidebar, a floating header is re-hosted against the body track alone so it does not cover the sidebar.
   const floatingBody =
     floatingHeader && panelSidebar !== undefined ? (
       <PanelFloatHost>
@@ -2477,15 +1966,10 @@ function PanelRoot({
     panelSidebar === undefined ? (
       body
     ) : (
-      // No sidebar means no split either: the body stays a direct child of the
-      // glow, the exact element tree every existing widget already renders. The
-      // header rides the body scroller here exactly as the standard case, so
-      // the sidebar's own ScrollArea is untouched, and `railBand` hands the
-      // sidebar track the band the rail is holding open inside that scroller.
+      // `railBand` hands the sidebar track the band the rail holds open inside the body scroller.
       <PanelSplit side={sidebarSide} size={sidebarSize} railBand={railTravels}>
         {floatingBody}
-        {/* Written after the body on purpose; `sidebarSide` moves it visually
-            and never in the DOM. */}
+        {/* After the body in the DOM; `sidebarSide` moves it visually only. */}
         <PanelSidebar>{panelSidebar}</PanelSidebar>
       </PanelSplit>
     );
@@ -2493,30 +1977,14 @@ function PanelRoot({
   return (
     <PanelProviders>
       <PanelContainer $railTravels={railTravels} {...rest}>
-        {/* A FLOATING header only. It paints over a bleed body that does not
-            scroll, so there is no sticky unit for the rail to join and it draws
-            in the container's own reserved top band instead: above the header,
-            above the bleed body, and outside the box that would clip it. Every
-            other headed panel puts the rail in the sticky unit with the header
-            (see `body`). */}
+        {/* A floating header has no sticky unit, so its rail draws in the container's band. */}
         {floatingHeader && <PanelDelayRail />}
         <PanelGlow railBandAbove={railTravels}>
-          {/* Only a floating (overlay) header sits outside the scroller, as a
-              sibling above it painting over the bleed body. Every other header
-              is a sticky child of the scroller (in `body`), so there is no
-              scroll-away ghost to re-surface. */}
-          {/* Only when there is no sidebar: with one, the header is hosted
-              inside the body track instead (see `floatingBody`). */}
           {floatingHeader && panelSidebar === undefined && header}
           {bodyRegion}
         </PanelGlow>
-        {/* After the glow region, so it sits below the scroller and stays
-            pinned while the body scrolls. */}
         {panelFooter !== undefined && <PanelFooter>{panelFooter}</PanelFooter>}
-        {/* The header status, for assistive tech. Mounted with the header and
-            empty while there is nothing to report, so the first status to
-            arrive is a change to a region already being watched. Outside the
-            aside, so a collapsed aside does not take it out of the tree. */}
+        {/* Mounted empty, so the first status is a change to a region already watched; outside the aside, so collapsing does not unmount it. */}
         <LiveRegion visuallyHidden>{statusAnnouncement}</LiveRegion>
       </PanelContainer>
     </PanelProviders>
@@ -2534,16 +2002,9 @@ export const Panel = Object.assign(PanelRoot, {
   Title: PanelTitle,
   Glow: PanelGlow,
   Body: PanelBody,
-  /* The same `Section` the kit exports, reachable from the component whose
-     `sections` prop consumes it. An alias, never a second implementation:
-     `styleguide-duplicate-primitives.test.ts` exists because `Panel` itself was
-     once copied rather than aliased. */
   Section,
   Split: PanelSplit,
   Sidebar: PanelSidebar,
-  /* The per-severity dot a collapsed header draws. It lives under `status/`
-     rather than in this file, but it is a Panel part like any other and
-     `Panel.StatusDot` is the only way to reach it. */
   StatusDot: PanelStatusDot,
   useStatusSummary,
 });

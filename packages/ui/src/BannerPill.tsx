@@ -4,24 +4,11 @@ import styled, { css } from "styled-components";
 export interface BannerPillProps {
   /** CSS color (or var) driving border, text, and dot color. */
   accent: string;
-  /**
-   * Where to anchor the pill in the viewport. "top" is the legacy
-   * top-center placement; "inline" lets the pill flow inside whatever
-   * positioned parent it's placed in (used by BannerStack to lay
-   * banners out as a vertical column in the bottom-right corner of
-   * the viewport, just left of the FAB).
-   *
-   * Default: "inline": every new caller should use the stack.
-   */
+  /** "top" pins the pill top-center of the viewport; "inline" (the default) flows inside a BannerStack. */
   anchor?: "top" | "inline";
   /** Top offset in px when anchor === "top". Default: 12. */
   top?: number;
-  /**
-   * Stack order (z-index). Default: 999. Only reaches the DOM through the
-   * `anchor="top"` FixedPill. Off the z-index ladder because it is a TS prop
-   * default rather than CSS, so a caller can pass anything; the ladder governs
-   * the styled rules, not this escape hatch.
-   */
+  /** Stack order, applied only when anchor is "top". Default: 999. */
   zIndex?: number;
   /** Optional box-shadow glow override. */
   glow?: string;
@@ -36,12 +23,7 @@ export interface BannerPillProps {
   children: ReactNode;
 }
 
-/**
- * Fixed-position pill anchored to the top-center of the viewport. The shared
- * chrome for status banners, coloured dot + caller-supplied text, with a
- * severity colour driving border/text. Callers control top offset and z-index
- * so multiple pills can stack.
- */
+/** Shared chrome for status banners: a coloured dot and caller-supplied text, with the accent driving border and text colour. */
 export function BannerPill({
   accent,
   anchor = "inline",

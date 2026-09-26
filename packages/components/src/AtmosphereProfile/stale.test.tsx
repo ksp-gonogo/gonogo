@@ -14,21 +14,12 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AtmosphereProfileComponent } from "./index";
 
 /**
- * What AtmosphereProfile does when `vessel.flight` stops being current.
- *
- * The decision: the HUD chip is withheld. Density, air temperature and skin
- * temperature are quantities that move as the craft climbs or dives, and the
- * chip states them undated, in three cramped rows pinned over the plot, where
- * the only possible reading is "this is the air outside right now". A held
- * sea-level density under a craft that has since left the atmosphere is not an
- * old reading, it is a wrong one.
- *
- * The chip already disappears for two innocent reasons, though: nothing has
- * arrived yet, and a confirmed vacuum. So the tests that earn this file are the
- * ones proving the withheld case is DISTINGUISHABLE from those two from outside
- * the component. The vessel's pressure line carries that: it stays on the held
- * altitude and wears the held-reading mark, in the drawing and in the chart's
- * accessible name, and no widget-level sentence repeats it.
+ * What AtmosphereProfile does when `vessel.flight` stops being current: the
+ * HUD chip is withheld, since it states the air outside right now, undated,
+ * and a held sea-level density under a craft that left the atmosphere is
+ * wrong, not old. The chip also vanishes before first arrival and in vacuum,
+ * so these tests prove the withheld case is distinguishable from outside: the
+ * pressure line stays on the held altitude and wears the held mark.
  */
 
 const CARRIED = [
@@ -62,7 +53,7 @@ describe("AtmosphereProfile when the flight reading is not current", () => {
       pinnedUt: 10,
       suspendFrames: true,
     });
-    // The chart measures itself before it draws anything, and the live chip is gated on the widget being big enough to carry it.
+    // The chart measures itself before drawing, and the chip is size-gated.
     restoreResizeObserver = installFixedSizeResizeObserver({
       width: 400,
       height: 300,
@@ -119,8 +110,7 @@ describe("AtmosphereProfile when the flight reading is not current", () => {
   }
 
   it("draws the chip and an unmarked pressure line while the reading is current", async () => {
-    // The control. Without it every assertion below also passes on a widget
-    // that never draws a chip or a line at all.
+    // The control: without it every assertion below passes on a widget that never draws a chip or line.
     const { container } = renderWidget();
     emitInAtmosphere();
 
@@ -140,13 +130,11 @@ describe("AtmosphereProfile when the flight reading is not current", () => {
     loseTheLink();
 
     await waitFor(() => expect(heldMark(container)).not.toBeNull());
-    // All three rows go together: they are one statement about one air mass,
-    // and holding the temperatures beside a withheld density would read as a
-    // partial payload rather than a dropped link.
+    // All three rows go together, one statement about one air mass.
     expect(visibleText(container)).not.toContain("ρ");
     expect(visibleText(container)).not.toContain("Air");
     expect(visibleText(container)).not.toContain("Skin");
-    // The line stays on the altitude it last knew, and a screen reader hears that it is held, since the dot is a shape it cannot see.
+    // The line stays on the last altitude, and a screen reader hears that it is held.
     expect(visibleText(container)).toMatch(PRESSURE_LINE);
     expect(chartName(container)).toMatch(/pascals @ 6 km, .+/);
   });
@@ -163,14 +151,12 @@ describe("AtmosphereProfile when the flight reading is not current", () => {
   });
 
   it("does not present a withheld chip as a vacuum", async () => {
-    // The distinction the file exists for. A missing chip is what a craft in
-    // vacuum shows, and reaching it from a dropped link would report clear
-    // space around a craft that is very possibly on fire.
+    // A missing chip from a dropped link must not read as the clear vacuum a craft that may be on fire would show.
     const { container } = renderWidget();
     emitInAtmosphere();
     await waitFor(() => expect(visibleText(container)).toContain("ρ"));
 
-    // A confirmed zero: the chip goes, and nothing marks the line, because nothing is wrong with the link.
+    // A confirmed zero: the chip goes and the line stays unmarked.
     act(() => {
       fixture.emit(
         "vessel.flight",
@@ -181,13 +167,13 @@ describe("AtmosphereProfile when the flight reading is not current", () => {
     await waitFor(() => expect(visibleText(container)).not.toContain("ρ"));
     expect(heldMark(container)).toBeNull();
 
-    // The same empty chip from a lost link, which does mark it.
+    // The same empty chip from a lost link, which does mark the line.
     loseTheLink();
     await waitFor(() => expect(heldMark(container)).not.toBeNull());
   });
 
   it("keeps drawing the pressure curve beside the held line", async () => {
-    // The curve is a body model, not telemetry: it is still true, and it stays.
+    // The curve is a body model, not telemetry, so it stays.
     const { container } = renderWidget();
     emitInAtmosphere();
     await waitFor(() => expect(visibleText(container)).toContain("ρ"));
@@ -200,7 +186,7 @@ describe("AtmosphereProfile when the flight reading is not current", () => {
   });
 
   it("marks nothing before anything has ever arrived", () => {
-    // A cold start is not a dropped link, and conflating them would accuse the link on every first paint.
+    // A cold start is not a dropped link, and must not accuse it on first paint.
     const { container } = renderWidget();
 
     expect(visibleText(container)).toContain("Waiting for body telemetry...");

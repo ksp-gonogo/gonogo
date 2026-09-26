@@ -95,9 +95,7 @@ describe("WidgetMeters", () => {
       </WithMeters>,
     );
 
-    // `Meter` reports 0..100 on the ARIA scale and speaks the entry's own
-    // `valueLabel`, so a contribution's 0..1 fraction lands as the kit's own
-    // meter semantics rather than as a second convention beside them.
+    // A contribution's 0..1 fraction lands on the kit Meter's 0..100 ARIA scale, spoken with the entry's own `valueLabel`.
     const meter = screen.getByRole("meter", { name: "Radiation dose" });
     expect(meter).toHaveAttribute("aria-valuenow", "40");
     expect(meter).toHaveAttribute("aria-valuetext", "40%");
@@ -148,9 +146,7 @@ describe("WidgetMeters", () => {
   });
 
   it("carries a contributed reading's band through to the marks on the track", () => {
-    // The contributor hands over the reading it holds and nothing else: no
-    // band lookup, no path, no unit. Everything drawn below is the primitive's
-    // decision, which is what keeps one Uplink's meters looking like another's.
+    // The contributor hands over only its reading; everything drawn is the primitive's decision, so one Uplink's meters look like another's.
     const { container } = render(
       <WithMeters entries={[BANDED_DOSE]}>
         <WidgetMeters row="Jebediah Kerman" />

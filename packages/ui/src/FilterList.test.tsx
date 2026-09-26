@@ -9,9 +9,7 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { FilterList, type FilterRow } from "./FilterList";
 
-// A real contribution, registered once at module load exactly as an Uplink's
-// would be. No `requires`, so it runs with no TelemetryProvider in the tree.
-// The terms are plain strings, the whole point of the `filters` segment.
+// Registered at module load as an Uplink would; no `requires`, so no TelemetryProvider is needed.
 registerContribution({
   id: "filterlist-test-terms",
   contributes: "test-widget.filters",
@@ -23,7 +21,7 @@ const META: WidgetMetaContextValue = {
   contributionSlots: [],
 };
 
-// Row node text is deliberately distinct from the chip labels ("Scrubber", "Water Recycler") so a query can tell a rendered row from its toggle.
+// Row text differs from the chip labels so a query can tell a row from its toggle.
 const ROWS: FilterRow[] = [
   {
     id: "co2",
@@ -62,7 +60,6 @@ describe("FilterList", () => {
     expect(
       screen.getByRole("button", { name: "Water Recycler" }),
     ).toBeInTheDocument();
-    // Nothing selected, nothing typed: the whole list shows.
     expect(screen.getByText("Scrubber unit")).toBeInTheDocument();
     expect(screen.getByText("Recycler unit")).toBeInTheDocument();
     expect(screen.getByText("Ore drill unit")).toBeInTheDocument();
@@ -109,7 +106,6 @@ describe("FilterList", () => {
     expect(screen.getByText("Scrubber unit")).toBeInTheDocument();
     expect(screen.getByText("Recycler unit")).toBeInTheDocument();
     expect(screen.getByText("Ore drill unit")).toBeInTheDocument();
-    // The search box is the base control and is always present.
     expect(screen.getByLabelText("Search")).toBeInTheDocument();
   });
 

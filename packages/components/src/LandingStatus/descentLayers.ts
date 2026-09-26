@@ -10,45 +10,22 @@ import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { parentBodyFromTopics } from "../shared/streamBody";
 
 /**
- * The descent envelope, as a CONTRIBUTED PLOT.
- *
- * A velocity-height instrument: speed on X, height above ground on Y, the
- * ground at the bottom edge, so the plot's bottom edge IS the ground and there
- * is no touchdown marker. The bold curve is the terminal-velocity line, the
- * equilibrium glide the vessel settles onto, which is the canonical reentry
- * corridor view.
- *
- * The whole thing is a contribution to the `plots` slot: its axes, its marks
- * and the decision that it is worth drawing at all. LandingStatus mounts the
- * slot and arranges what comes back; it does not know this plot exists, cannot
- * name it, and holds no route to a projection an outside author lacks. That is
- * what makes the seam adequate BY CONSTRUCTION rather than adequate for the
- * marks somebody happened to try: the widget would lose its own envelope the
- * moment the seam stopped carrying one.
+ * The descent envelope as a contributed plot: a velocity-height instrument with speed on X and height above ground on Y, so the bottom edge is the ground. The bold curve is the terminal-velocity line, the equilibrium glide the vessel settles onto.
+ * LandingStatus cannot name this plot and holds nothing an outside author lacks, so the widget would lose its own envelope the moment the seam stopped carrying one.
  */
-
-// --- Action-urgency thresholds ----------------------------------------------
-// Urgency is driven ENTIRELY by the do-nothing outcome
-// (`projectedTouchdownSpeed`) plus how much altitude is left to do something
-// about it, never by the vessel's current speed, which only sets its X.
-//
-// A do-nothing touchdown at/under this speed is a soft, walkable-away landing
-// (stock landing legs shrug off single-digit-to-low-teens m/s): ride it down,
-// no action needed, whatever the altitude.
+/**
+ * Urgency is driven entirely by the do-nothing outcome (`projectedTouchdownSpeed`) and the altitude left, never the current speed.
+ * At or under this speed the do-nothing touchdown is soft enough to ride down at any altitude.
+ */
 const SURVIVABLE_TOUCHDOWN_MPS = 12;
 /** A do-nothing touchdown at/over this speed is lethal to hull and crew. */
 const LETHAL_TOUCHDOWN_MPS = 45;
-/** Below this altitude a lethal-range touchdown has no room left to burn,
- *  deploy or correct, so caution escalates. Above it there is still time. */
+/** Below this altitude a lethal-range touchdown has no room left to correct, so caution escalates. */
 const CRITICAL_ALTITUDE_M = 1500;
 
 export type EnvelopeUrgency = "safe" | "caution" | "urgent";
 
-/**
- * Classify the do-nothing touchdown outcome into an action-urgency tier.
- * Exported (alongside the constants above) so the thresholds are directly
- * testable without reverse-engineering them out of rendered SVG attributes.
- */
+/** The do-nothing touchdown outcome as an action-urgency tier, exported with its thresholds for testing. */
 export function classifyUrgency(
   touchdownSpeed: number,
   altitude: number,
@@ -63,8 +40,7 @@ export function classifyUrgency(
   return "caution";
 }
 
-/** Urgency in the framework's own severity words, which is all a layer may
- *  name: the palette that answers them belongs to whoever draws the plot. */
+/** Urgency in the framework's severity words, the only thing a layer may name; the palette belongs to the drawing host. */
 const URGENCY_TONE: Record<EnvelopeUrgency, PlotTone> = {
   safe: "go",
   caution: "warn",
@@ -78,44 +54,33 @@ const URGENCY_WORD: Record<EnvelopeUrgency, string> = {
   urgent: "URGENT",
 };
 
-/** Fuller phrase for the accessible name: colour is never the only channel
- *  carrying urgency (WCAG 1.4.1 use-of-color). */
+/** The accessible phrase, so colour is never the only channel carrying urgency (WCAG 1.4.1). */
 const URGENCY_COPY: Record<EnvelopeUrgency, string> = {
   safe: "SAFE, no action needed",
   caution: "CAUTION, action needed soon",
   urgent: "URGENT, slow now",
 };
 
-// --- Atmosphere haze ---------------------------------------------------------
-// Rendered as a HANDFUL of soft "atmosphere levels" rather than one smooth
-// gradient (it should read like the in-game altimeter's banded blue). Bands are
-// density HALVINGS (1, 1/2, 1/4, ...), since density decays exponentially with
-// altitude, so halving-bands land compressed near the ground and spread out
-// higher up, the same shape as the real atmosphere.
+// Haze bands are density halvings, compressed near the ground and spread higher up like the real atmosphere, to read like the in-game altimeter's banded blue.
 const HAZE_STOPS = 48;
 const HAZE_MAX_OPACITY = 0.45;
-/** A flat wash of the same body colour under the banded one, so the haze still
- *  reads as this body's sky up where the banding has faded toward nothing. */
+/** A flat wash of the body colour under the bands, so the sky keeps its hue where banding has faded. */
 const HAZE_BASE_OPACITY = 0.12;
 /** Below this density fraction there is no band left; it fades to nothing. */
 const HAZE_BAND_FLOOR_DENSITY = 0.03;
 const HAZE_BAND_BLUR = 3;
-/** Used when the body is unknown or carries no `atmosphereColor`. Kept to a
- *  single muted hue so it reads as texture, not a second legend. */
+/** For an unknown body or one with no `atmosphereColor`; a single muted hue, so it reads as texture rather than a legend. */
 const HAZE_DEFAULT_TINT = "var(--color-status-info-fg)";
 
-// --- Curve, trace and marks --------------------------------------------------
 /** Points sampled along the terminal curve. */
 const CURVE_STEPS = 28;
-/** Headroom above the vessel, so the mark that says where you are is not sat
- *  on the frame. Also the top the terminal curve is sampled to. */
+/** Headroom above the vessel so its mark is not on the frame; also the top the terminal curve is sampled to. */
 const ALTITUDE_HEADROOM = 1.12;
 const SPEED_HEADROOM = 1.12;
-/** Bold like the terrain plots' key strokes, so it reads at a glance. */
+/** Bold like the terrain plots' key strokes. */
 const CURVE_WEIGHT = 2.7;
 const TRACE_WEIGHT = 1.5;
-/** The drag chevron: size, not length, carries the drag-to-weight ratio, and it
- *  is clamped so a huge reading never runs away. */
+/** The drag chevron's size carries the drag-to-weight ratio, clamped so a huge reading cannot run away. */
 const DRAG_MAX_RATIO = 3;
 const DRAG_MIN_SCALE = 0.2;
 const DRAG_MAX_SCALE = 1.4;
@@ -134,25 +99,13 @@ export interface DescentEnvelopeInputs {
   atmosphereColor?: string | null;
   /** Aggregate drag force divided by vessel weight: >1 decelerating. */
   dragToWeight?: number | null;
-  /**
-   * Surface gravity, m/s². The predicted trace is an integration of the descent
-   * and this sets its rate, so without it there is no trace AT ALL rather than
-   * a trace drawn against a guessed body.
-   */
+  /** Surface gravity, m/s^2; without it there is no predicted trace at all rather than one against a guessed body. */
   surfaceGravity?: number | null;
-  /** True airspeed as a Mach number. Above Mach 1 the projection still has the
-   *  transonic drag rise to cross, so it is drawn as an estimate. */
+  /** True airspeed as a Mach number; above Mach 1 the transonic drag rise is still to come, so the projection is an estimate. */
   mach?: number | null;
 }
 
-/**
- * The frame the plot is drawn in: the axes, and the two model functions every
- * layer on it is derived from.
- *
- * Null when the plot cannot be drawn at all, which is both terminal anchors
- * positive and a positive current altitude to span. Absent inputs remove the
- * plot rather than collapsing it onto a guessed body.
- */
+/** The plot's axes and the two model functions every layer derives from, or null unless both terminal anchors and the current altitude are positive. */
 export function descentFrame(inputs: Readonly<DescentEnvelopeInputs>): {
   xDomain: [number, number];
   yDomain: [number, number];
@@ -196,16 +149,13 @@ export function descentFrame(inputs: Readonly<DescentEnvelopeInputs>): {
   };
 }
 
-/** Snap continuous density down to the nearest density-HALVING level, floored
- *  to nothing at the top rather than stepping forever. */
+/** Snaps density down to the nearest halving level, floored to nothing at the top. */
 function bandLevel(density: number): number {
   if (density < HAZE_BAND_FLOOR_DENSITY) return 0;
   return Math.min(1, 2 ** Math.floor(Math.log2(density)));
 }
 
-// `writeQuantity`, not a hand-written suffix: these land in SVG `<text>`, which
-// cannot contain a `<span>`, so `<Unit>` will not go in one. The symbol and the
-// ladder still come from the unit registry.
+// `writeQuantity` rather than `<Unit>`: SVG `<text>` cannot contain a `<span>`.
 function fmtSpeed(v: number): string {
   return writeQuantity(value("m/s", v), { decimals: 0 });
 }
@@ -214,13 +164,7 @@ function fmtAlt(m: number): string {
   return writeQuantity(value("m", m), { decimals: 0 });
 }
 
-/**
- * Every mark the descent envelope draws, in the plot's own data space.
- *
- * Returns an empty list when the plot cannot be drawn, which is what makes
- * absence render as absence: there is no branch here that substitutes a zero
- * for a reading it does not have.
- */
+/** Every mark the descent envelope draws in the plot's data space; empty when the plot cannot be drawn, never a substituted zero. */
 export function buildDescentLayers(
   inputs: Readonly<DescentEnvelopeInputs>,
 ): PlotLayer[] {
@@ -240,7 +184,7 @@ export function buildDescentLayers(
       ? inputs.atmosphereColor
       : HAZE_DEFAULT_TINT;
 
-  // A flat base wash of this body's sky, under the banded one, so the haze still carries a colour cue up where the banding has faded toward nothing.
+  // A flat base wash of the body's sky under the banded one.
   layers.push({
     kind: "field",
     id: "atmosphere-base",
@@ -253,9 +197,7 @@ export function buildDescentLayers(
     ],
   });
 
-  // The banded haze itself: density halvings, blurred into gentle transitions
-  // rather than hard stripes. It is drawn from the SAME model as the curve
-  // (v_t ∝ 1/√ρ), so the haze and the curve can never disagree.
+  // Drawn from the same model as the curve (v_t proportional to 1/sqrt(rho)), so the haze and the curve cannot disagree.
   layers.push({
     kind: "field",
     id: "atmosphere-bands",
@@ -274,10 +216,7 @@ export function buildDescentLayers(
     return { x: terminalVelocityAt(y), y };
   });
 
-  // Right of the terminal curve the vessel is faster than terminal, so drag
-  // exceeds weight and it is slowing. Neutral rather than a status hue on
-  // purpose: colour on this plot is spoken for by action urgency, and a second
-  // coloured region would read as a second signal.
+  // Right of the curve the vessel is faster than terminal and slowing; neutral, since colour on this plot means action urgency.
   layers.push({
     kind: "region",
     id: "decelerating",
@@ -290,9 +229,7 @@ export function buildDescentLayers(
       "the region right of the terminal curve is decelerating: drag exceeds weight there",
   });
 
-  // The terminal-velocity line, the equilibrium glide. A neutral reference
-  // tone, deliberately NOT the accent green a SAFE mark carries, so the mark
-  // always reads as a distinct element sat on the line rather than in it.
+  // A neutral reference tone, not the accent green of a SAFE mark, so the mark reads as sitting on the line.
   layers.push({
     kind: "series",
     id: "terminal-curve",
@@ -305,7 +242,7 @@ export function buildDescentLayers(
     )}, projected touchdown ${fmtSpeed(vtGround)}`,
   });
 
-  // Surface gravity is the one input the integration cannot do without, so its absence removes the trace rather than substituting a body.
+  // Without surface gravity there is no trace, rather than a trace against a substituted body.
   const gravity =
     inputs.surfaceGravity != null &&
     Number.isFinite(inputs.surfaceGravity) &&
@@ -332,11 +269,7 @@ export function buildDescentLayers(
       x: p.speed,
       y: p.altitude,
     });
-    // Above Mach 1 the projection still has the transonic drag rise to cross,
-    // and the constant-drag-coefficient assumption behind the curve is at its
-    // worst there. Split at the settle point so the estimate and the settled
-    // part read differently; with no settle point the whole trace carries the
-    // doubt.
+    // Above Mach 1 the constant-drag-coefficient assumption is at its worst, so the trace splits at the settle point and the estimate reads differently.
     const supersonic =
       inputs.mach != null && Number.isFinite(inputs.mach) && inputs.mach > 1;
     const upper =
@@ -368,7 +301,7 @@ export function buildDescentLayers(
         weight: TRACE_WEIGHT,
       });
       const settle = projection.points[splitIndex];
-      // A bar sitting UNDER the altitude the vessel has left is a vehicle that arrives fast, and that is the read the whole plot exists for.
+      // A bar under the altitude the vessel has left is a vehicle that arrives fast: the read the plot exists for.
       layers.push({
         kind: "annotation",
         id: "settle",
@@ -393,9 +326,7 @@ export function buildDescentLayers(
       } terminal; ${URGENCY_COPY[urgency]}`,
     });
 
-    // Drag is "pulling the vessel back", the opposite intuition from a shaft
-    // growing out of the mark, so the chevron sits ABOVE the dot and carries no
-    // direction of travel, only a size.
+    // Drag pulls the vessel back, so the chevron sits above the dot and carries only a size, not a direction.
     const ratio = inputs.dragToWeight;
     if (ratio != null && Number.isFinite(ratio) && ratio > 0) {
       layers.push({
@@ -416,10 +347,7 @@ export function buildDescentLayers(
     }
   }
 
-  // No altitude readout in a corner any more. The hand-rolled plot needed one
-  // because it drew no axes at all; the shared chart labels its Y axis, and the
-  // vessel mark's own position against it IS the height. A caption repeating it
-  // was a third copy of the number, sitting where the terminal curve passes.
+  // The vessel mark's position against the labelled Y axis is the height, so no corner readout repeats it.
   layers.push(
     {
       kind: "caption",
@@ -442,26 +370,9 @@ export function buildDescentLayers(
 }
 
 /**
- * The descent envelope, contributed as a WHOLE PLOT.
+ * The descent envelope, contributed as a whole plot through `CORE_UPLINK_CLIENT`, the same route a third party uses.
  *
- * It reads the same Topics the widget does and re-derives the burn datum the
- * same way (`vessel.surface`'s lowest-point height, falling back to the
- * centre-of-mass radar altitude), because a contribution is handed Topic values
- * and nothing else. That is the constraint a guest works under, and the host
- * working under it too is the whole point.
- *
- * Registered through `CORE_UPLINK_CLIENT` because that is the only route there
- * is. A third party writes `defineUplinkClient({...}).registerContribution` and
- * gets `<their-id>:descent-envelope`; this writes the framework's own handle and
- * gets `core:descent-envelope`. The owner stamp is the entire difference, and it
- * is used for blame rather than for privilege.
- *
- * Relevance is the `null` return and nothing else. There is no atmosphere check
- * here and no board-state check: `descentFrame` already declines to produce a
- * frame unless the mod's terminal-velocity model has shipped a reading, which is
- * exactly the condition under which this plot has something true to say. A
- * separate predicate would be a second copy of that judgement, free to disagree
- * with the one the marks are actually built from.
+ * It re-derives the burn datum from Topic values as the widget does, since a contribution gets nothing else. Relevance is the `null` return alone: `descentFrame` produces a frame only once the mod's terminal-velocity model has a reading, so no second predicate can disagree with the marks.
  */
 CORE_UPLINK_CLIENT.registerContribution({
   id: "descent-envelope",
@@ -484,9 +395,7 @@ CORE_UPLINK_CLIENT.registerContribution({
       | TopicPayload<"vessel.landing">
       | undefined;
     const body = parentBodyFromTopics(topics);
-    // The burn datum, derived exactly as the widget does: the vessel's LOWEST
-    // point above terrain, falling back to the centre-of-mass radar altitude
-    // when `vessel.surface` is nulled by the capture guard.
+    // The burn datum as the widget derives it: the lowest point above terrain, falling back to CoM radar altitude when `vessel.surface` is null.
     const height =
       surface?.heightFromTerrain?.magnitude ??
       flight?.altitudeTerrain?.magnitude ??
@@ -499,12 +408,7 @@ CORE_UPLINK_CLIENT.registerContribution({
         landing?.projectedTouchdownSpeed?.magnitude ?? null,
       atmosphereColor: body?.atmosphereColor ?? null,
       dragToWeight: landing?.dragToWeightRatio?.magnitude ?? null,
-      /*
-       * The gravity the stream reported, and only then the one the elements
-       * imply. Both come off `system.bodies` now; what neither is any more is
-       * a name looked up in a table of stock bodies, which under a planet pack
-       * matched nothing and took the projection off the plot silently.
-       */
+      // The reported gravity first, then the one the elements imply, both off `system.bodies` so planet packs resolve.
       surfaceGravity:
         body?.surfaceGravity ??
         (body?.gm != null && body.radius > 0

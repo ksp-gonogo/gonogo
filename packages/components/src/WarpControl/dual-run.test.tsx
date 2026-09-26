@@ -17,25 +17,11 @@ import rails from "./__fixtures__/rails-warp-1000x.json";
 import { WarpControlComponent } from "./index";
 
 /**
- * WarpControl's stream render golden. This began life as a byte-identical
- * dual-run against the retired legacy read path; the widget no longer has one,
- * so there is nothing to compare against and the `id='data'` MockDataSource leg
- * is gone.
- *
- * What remains proves the widget renders the full warp state correctly off
- * the real stream pipeline (`TelemetryProvider` + `TelemetryClient`/
- * `TimelineStore`).
- *
- * `rails-warp-1000x` exercises every branch worth covering: an active
- * on-rails warp rate (formatRate's `k×` branch), the highlighted ladder
- * button, AND the Flight-scene pause toggle. Scene now streams too,
- * `useGameContext` reads `spaceCenter.scene` off the canonical stream
- * (migrated off the `kc.scene` shim), so the whole render is one wire.
+ * WarpControl's stream render golden: the full warp state and the Flight scene
+ * render correctly off the real stream pipeline. `rails-warp-1000x` covers the
+ * `k×` rate branch, the highlighted ladder button and the pause toggle.
  */
-// Reset the action-handler registry at the START of each test, the prior
-// test's tree is already unmounted (RTL auto-cleanup, plus each test's own
-// inline teardownMockDataSource) by then, so this never fires against a live
-// component.
+// Reset at the start of each test, once the prior test's tree is already unmounted.
 beforeEach(() => {
   clearActionHandlers();
 });
@@ -59,9 +45,8 @@ describe("WarpControl: stream render golden (delay=0)", () => {
     );
 
     act(() => {
-      // Scene rides the canonical stream (useGameContext reads spaceCenter.scene): a Flight scene renders the pause toggle.
       streamFixture.emit("spaceCenter.scene", { scene: rails["kc.scene"] });
-      // The full warp state on the new wire: one "time.warp" record. warpMode 0 = High: see normalizeWarpMode's doc comment in index.tsx.
+      // warpMode 0 is High.
       streamFixture.emit("time.warp", {
         warpRate: rails["t.currentRate"],
         warpRateIndex: rails["t.timeWarp"],
@@ -77,27 +62,20 @@ describe("WarpControl: stream render golden (delay=0)", () => {
     });
 
     const scope = within(container);
-    // Rate readout formats the on-rails k× branch.
     expect(
       scope.getByRole("img", { name: "Time warp rate 1.0k×" }),
     ).toBeTruthy();
-    // warpMode 0 -> "High" caption.
     expect(scope.getByText("High")).toBeTruthy();
-    // warpRateIndex 5 -> the "1k×" ladder button is the highlighted one.
     expect(
       scope.getByRole("button", { name: "1k×" }).getAttribute("aria-pressed"),
     ).toBe("true");
-    // Flight scene (streamed) -> the pause toggle renders.
     expect(scope.getByRole("button", { name: "Pause game" })).toBeTruthy();
   });
 });
 
 /**
- * The render golden taken off a real recording's wire, with
- * `TelemetryProvider` fed the captured frames directly. The recording is
- * local-only and gitignored, so this skips when absent, mirroring
- * `reference-wire-fixture.test.ts`'s discipline: CI never has the file, which
- * makes this a local gate rather than a CI one.
+ * The render golden off a real recording's wire. The recording is local-only
+ * and gitignored, so this skips when absent and is a local gate, not a CI one.
  */
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const realFixturePath = path.join(
@@ -117,19 +95,12 @@ describe.skipIf(!realFixtureExists)(
     it("renders the recorded rate/mode readout off the real recording's wire", async () => {
       const realFixture = JSON.parse(readFileSync(realFixturePath, "utf-8"));
 
-      // The recording carries 3 rewinds (epochsSeen [0,1,2,3],
-      // reference-wire-fixture.test.ts's own assertion), each of which
-      // resets validAt back near 0 in its own epoch and drops every
-      // PRIOR-epoch point from the store's timelines (TimelineStore's
-      // cross-topic sweep, which is what stops a client ghost):
-      // so replaying the WHOLE recording and then pinning
-      // viewUt at 0 would resolve against whatever epoch-3 frame happens to
-      // sit at validAt<=0, not the true first frame of the session (a real
-      // trap the first draft of this test fell into: RED with a mismatched
-      // mode caption AND highlighted ladder button). Trimmed here to only
-      // the frames up to and including the FIRST "time.warp" sample (still
-      // entirely within epoch 0), so there is nothing later to cross an
-      // epoch boundary with.
+      /*
+       * Trimmed to the frames up to the first "time.warp" sample, inside epoch 0:
+       * the recording carries rewinds, and each drops every prior-epoch point from
+       * the store, so a view pinned at 0 over the whole recording resolves against a
+       * later epoch.
+       */
       const recorded: string[] = realFixture.frames;
       const orderedFrames = recorded
         .map((raw) => ({ raw, message: JSON.parse(raw) }))
@@ -145,9 +116,7 @@ describe.skipIf(!realFixtureExists)(
       expect(firstWarpIndex).toBeGreaterThanOrEqual(0);
       const firstWarpFrame = orderedFrames[firstWarpIndex].message;
 
-      // Asserted so a future fixture regeneration that changes this frame
-      // fails loudly instead of silently comparing against a stale
-      // assumption.
+      // Fails loudly if a fixture regeneration changes this frame.
       expect(firstWarpFrame.payload).toEqual(
         expect.objectContaining({
           warpRate: 1,
@@ -164,13 +133,7 @@ describe.skipIf(!realFixtureExists)(
 
       const mode = { name: "default-6x5", w: 6, h: 5 };
 
-      // A "schedule" clock that QUEUES deliveries instead of firing them,
-      // ReplayTransport's constructor arms every frame's delivery
-      // immediately, before `TelemetryClient` (built from `transport`,
-      // necessarily AFTER it) has had a chance to `onMessage`-subscribe. A
-      // clock whose `schedule` fires synchronously would lose every frame to
-      // no listener; queueing lets the test flush them explicitly, once,
-      // after the widget has mounted, deterministic, no real timers.
+      // Queues deliveries: ReplayTransport arms every frame before `TelemetryClient` can subscribe, so the test flushes them after mount.
       const pending: (() => void)[] = [];
       const queueingClock = {
         now: () => 0,
@@ -187,17 +150,7 @@ describe.skipIf(!realFixtureExists)(
       });
       const client = new TelemetryClient(transport);
 
-      // Pinned to UT 0 (the FIRST time.warp frame's own validAt, asserted
-      // above) via `clock.scrubTo`, a fixed view clock. Belt-and-suspenders alongside the
-      // trim above (not load-bearing on its own; see that comment for why
-      // trimming, not just pinning, is what actually fixes the epoch trap):
-      // pinning ALONE, against the untrimmed full recording, advances the
-      // confirmed edge to the LATEST
-      // observed sample across the entire session, and the widget would
-      // render the flight's FINAL warp state instead of the one frame this
-      // test means to compare, a real trap the first draft of this test
-      // fell into (RED: mismatched mode caption AND highlighted ladder
-      // button once the full recording was flushed unpinned).
+      // Pinned to the first time.warp frame's validAt; the trim above is what keeps later epochs out.
       const store = new TimelineStore(
         new ViewClock({
           nowWall: () => 0,
@@ -219,17 +172,13 @@ describe.skipIf(!realFixtureExists)(
         for (const fn of pending.slice()) fn();
       });
 
-      // Specifically the rate READOUT, not just any "1×" text, the static
-      // ladder always renders a "1×" button regardless of whether data has
-      // arrived, which would otherwise satisfy a looser text check before
-      // the real state has actually settled.
+      // The rate readout specifically: the static ladder always renders a "1×" button.
       await waitFor(() =>
         within(container).getByRole("img", {
           name: "Time warp rate 1×",
         }),
       );
 
-      // warpMode 0 -> "High" caption, from the recorded frame asserted above.
       expect(within(container).getByText("High")).toBeTruthy();
     });
   },

@@ -12,25 +12,9 @@ import { registerStockFacilityContribution } from "./facilitiesContribution";
 import { SpaceCenterStatusComponent } from "./index";
 
 /**
- * The facility grid away from the space centre.
- *
- * `career.facilities` is read off the live `UpgradeableFacility` MonoBehaviours,
- * which KSP instantiates in the SPACECENTER and EDITOR scenes and in flight near
- * the KSC, so no tier can be READ anywhere else: `ProtoUpgradeable.GetLevel()`
- * parses the persisted `lvl` when the scene is empty, but its sibling
- * `GetLevelCount()` returns -1 there, so the normalised level cannot be turned
- * back into a tier.
- *
- * What stock does have is the last reading it took, held and dated (see
- * `held-ladder.test.tsx`): a tier count does not change during a save. What it
- * does not have is a CURRENT one. A career model keeping its own tier table
- * does, and `space-center-status.facilities` is how it hands that answer to the
- * grid.
- *
- * Priority is what stops the two answers being drawn twice: the widget
- * contributes its own reading at 0, everything else defaults to 1, and only the
- * highest band present renders. So a live answer displaces a held one, which is
- * the right way round.
+ * The facility grid away from the space centre, where stock can hold its last
+ * tier reading but never a current one. A contributor at a higher band than the
+ * widget's own 0 displaces the held grid; only the highest band present renders.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -38,9 +22,7 @@ const renderedTrees: Array<() => void> = [];
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
-  /* The widget's own contribution registers as a module side effect, so
-     emptying the registry takes it too; put it back rather than leave every
-     case after the first with no stock reading. */
+  // Emptying the registry takes the widget's own module-side-effect contribution too.
   clearContributions();
   registerStockFacilityContribution();
 });
@@ -71,14 +53,7 @@ function mount() {
   return { ...fixture, container };
 }
 
-/**
- * Nine keys with nothing to say.
- *
- * NOT what the producer sends any more: it leaves an unreadable facility out
- * entirely and goes silent when none answered. Kept because it is still the
- * shape a client must survive, from an older mod or a hand-written wire, and the
- * parser's absent-is-not-zero rule is what these cases lean on.
- */
+/** Nine keys with nothing to say: a shape a client must still survive. */
 const NINE_SILENT = Object.fromEntries(
   [
     "LaunchPad",
@@ -109,11 +84,6 @@ function emit(
       strategies: null,
       tech: null,
     });
-    /**
-     * The tiers ride their own channel now, and it speaks only when it has a
-     * reading, so what a case passes here is the answer the space centre gave
-     * rather than a payload the producer has to fill in nine times.
-     */
     fixture.emit("career.facilities", { facilities });
   });
 }
@@ -138,10 +108,6 @@ function contributeTiers(
 }
 
 describe("SpaceCenterStatus: the facility grid away from the space centre", () => {
-  /**
-   * The case the operator has been shown twice: in flight, with a career model
-   * answering, the grid above it was empty.
-   */
   it("draws a contributed tier while the stock channel is silent in flight", async () => {
     contributeTiers("career-model-tiers", [
       { facility: "VehicleAssemblyBuilding", currentTier: 1, maxTier: 4 },
@@ -160,11 +126,7 @@ describe("SpaceCenterStatus: the facility grid away from the space centre", () =
     );
   });
 
-  /**
-   * Equal priority is not a tie to break. Only a strictly higher band
-   * displaces, so the widget's own rows step aside for a contributor and two
-   * contributors at the same band both draw.
-   */
+  /** Only a strictly higher band displaces. */
   it("lets a contributed tier displace the stock one at the space centre", async () => {
     contributeTiers("career-model-tiers", [
       { facility: "VehicleAssemblyBuilding", currentTier: 3, maxTier: 4 },
@@ -196,10 +158,7 @@ describe("SpaceCenterStatus: the facility grid away from the space centre", () =
     );
   });
 
-  /**
-   * Absent and zero stay different. A contributed tier 0 keeps its cell; a
-   * facility nobody answered for gets none.
-   */
+  /** A contributed tier 0 keeps its cell; a facility nobody answered for gets none. */
   it("keeps a contributed tier 0 and gives no cell to a facility nobody answered", async () => {
     contributeTiers("career-model-tiers", [
       { facility: "Administration", currentTier: 0, maxTier: 8 },

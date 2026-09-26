@@ -16,19 +16,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import "./index";
 
-/**
- * What the Rotor Tachometer does with a figure the mod withheld.
- *
- * `BreakingGroundViewProvider` reads every rotor field through
- * `SnapshotDict.GetDouble`, which returns null for absent, non-numeric and
- * non-finite input alike, and `ServoCapture` nulls the fields that do not apply
- * to a rotor. This file is the client half: that null must reach the operator as
- * an absence, and must never reach the ROTOR as a commanded value.
- *
- * The `__fixtures__/rotors-dlc-absent.json` scene already states the principle
- * for the whole widget: "A dial parked at 0 RPM would read as a rotor that is
- * stopped, which is a reading".
- */
+/** Proves a withheld rotor figure reaches the operator as an absence and never reaches the rotor as a commanded value. */
 
 const CARRIED = ["robotics.servos", "robotics.available", "game.dlc"];
 
@@ -140,21 +128,10 @@ describe("RotorTachometer: a withheld figure is not a zero", () => {
     });
 
     const row = await screen.findByRole("button", { name: /Tail Rotor/i });
-    /*
-     * The null TOKEN rather than the word "unknown": the row draws through
-     * `<Unit>` now, and an absent quantity is the kit's null token everywhere
-     * else in the app. The guarantee this test exists for is the line below,
-     * and it is unchanged.
-     */
     await waitFor(() =>
       expect(visibleText(row)).toContain(`${NULL_DISPLAY}/${NULL_DISPLAY}`),
     );
-    /*
-     * Matched WITHOUT the unit, deliberately. This read `0/0 RPM` and the
-     * symbol is lowercase now, so leaving it would have made the one assertion
-     * that carries the guarantee trivially true: a withheld figure could come
-     * back as a zero and nothing here would have said so.
-     */
+    // Matched without the unit, so a withheld figure coming back as zero cannot pass on a case mismatch.
     expect(visibleText(row)).not.toContain("0/0");
   });
 });
@@ -169,7 +146,6 @@ describe("RotorTachometer: an unread cap commands nothing", () => {
     const lower = screen.getByRole("button", { name: /Lower RPM cap/i });
     expect(raise).toBeDisabled();
     expect(lower).toBeDisabled();
-    // The reason is text, not just a greyed pixel.
     expect(raise.getAttribute("aria-label")).toContain("not reported");
     expect(lower.getAttribute("aria-label")).toContain("not reported");
   });
@@ -178,10 +154,7 @@ describe("RotorTachometer: an unread cap commands nothing", () => {
     const user = userEvent.setup();
     const { fixture } = mount(rotor({ rpmLimit: null }));
 
-    /* The wait is on the BUTTON, not on the "unknown" readout, so this test
-       reaches its dispatch assertion under the old coercion too and fails
-       naming what went to the craft: `{ partId: "101", value: 10 }`, sent to a
-       rotor really capped at 300 RPM. */
+    // Waits on the button, not the readout, so a regression fails naming what was sent to the craft.
     await user.click(
       await screen.findByRole("button", { name: /Raise RPM cap/i }),
     );
@@ -213,7 +186,7 @@ describe("RotorTachometer: an unread cap commands nothing", () => {
         (c) => c.command === "robotics.rotor.setRpmLimit",
       ),
     ).toEqual([]);
-    // And the handler returns nothing, so a bound device's render style shows no cap either: the figure was computed, never measured.
+    // A bound device's render style shows no cap either.
     expect(returned).toBeUndefined();
   });
 
@@ -266,15 +239,12 @@ describe("RotorTachometer: an unread flag is not a false one", () => {
     const { container } = mount(rotor({ counterClockwise: null }));
 
     await waitFor(() => expect(visibleText(container)).toContain("Reverse"));
-    // "↻ CW" is a definite claim, and it was what `=== true` produced.
     expect(visibleText(container)).not.toContain("CW");
     expect(visibleText(container)).not.toContain("CCW");
   });
 
   it("omits Direction from the reverse action rather than guessing it", async () => {
-    // `reverse` carries no value, so the COMMAND still goes: it flips whatever
-    // the rotor is doing. What must not happen is reporting "CW" back to the
-    // device's render style off a flag nobody read.
+    // Reverse carries no value, so the command still goes; only the reported heading is withheld.
     const { fixture } = mount(rotor({ counterClockwise: null }));
     await screen.findByRole("button", { name: /Reverse/i });
 
@@ -288,7 +258,6 @@ describe("RotorTachometer: an unread flag is not a false one", () => {
     await act(async () => {});
 
     expect(returned).toBeUndefined();
-    // The command itself is unaffected.
     expect(
       fixture.transport.sentCommands.filter(
         (c) => c.command === "robotics.rotor.reverse",
@@ -369,7 +338,7 @@ describe("RotorTachometer: an unread flag is not a false one", () => {
 
     const row = await screen.findByRole("button", { name: /Tail Rotor/i });
     await waitFor(() => expect(visibleText(row)).toContain("Tail Rotor"));
-    // " · off" is what `r.motorEngaged ? "" : " · off"` printed for an unread flag: the row said the motor was off.
+    // An unread motor flag is not "off".
     expect(visibleText(row)).not.toContain("off");
   });
 });

@@ -2,19 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 /**
- * The `__render_handover__` set, read and CHECKED on the way in.
- *
- * Extracted when a second reader appeared (`carried-altitude.test.tsx`): the
- * generator writes these files, so the shape is ours on both sides, and two
- * readers each asserting their own version of it out of `unknown` is how the
- * two would come to disagree about what a fixture is.
- *
- * Validated rather than asserted, for the reason the first reader gave: a
- * fixture that has drifted out of shape must fail HERE, naming itself, and not
- * two frames later as an unreadable `expectedBasis`. Built field by field off
- * `isRecord` rather than with one cast at the top, because an assertion out of
- * `unknown` is what `unknown-cast.test.ts` is for and the whole value of a
- * check here is that it looked.
+ * The `__render_handover__` set, validated field by field on the way in, so a fixture that has drifted out of shape fails here naming itself rather than frames later.
  */
 
 export const HANDOVER_FIXTURES_DIR = join(__dirname, "__render_handover__");
@@ -106,12 +94,7 @@ export function loadHandoverFixture(file: string): HandoverFixture {
   );
 }
 
-/**
- * Every frame, in order.
- *
- * Walks the DIRECTORY rather than a list, so a frame added to the set is
- * covered without being remembered anywhere.
- */
+/** Every frame in order, walked from the directory so a new frame is covered without being listed. */
 export function loadHandoverFixtures(): HandoverFixture[] {
   return readdirSync(HANDOVER_FIXTURES_DIR)
     .filter((f) => f.endsWith(".json"))

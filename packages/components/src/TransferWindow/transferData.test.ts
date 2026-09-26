@@ -41,7 +41,7 @@ function mkBody(
     argumentOfPeriapsis: null,
     meanAnomalyAtEpoch: null,
     epoch: null,
-    // These fixtures are about geometry, not about how far anyone will vouch for it, so every body here is unbounded and analytic.
+    // Geometry fixtures: every body here is unbounded and analytic.
     horizon: ANALYTIC_BODY_HORIZON,
     period: null,
     trueAnomaly: null,
@@ -128,7 +128,7 @@ describe("transferData bridge", () => {
     expect(transferDestinations(earth, bodies).map((b) => b.name)).toEqual([
       "Mars",
     ]);
-    // Sun (no parent) has no siblings here
+    // Sun (no parent) has no siblings here.
     expect(transferDestinations(sun, bodies)).toEqual([]);
   });
 
@@ -163,12 +163,11 @@ describe("transferData bridge", () => {
     expect(grid.best && grid.best.deltaV > 0).toBe(true);
   });
 
-  // Correctness oracle (main's brief): a correct Earth→Mars window is a fully
-  // solved SMOOTH BOWL with a single central minimum, that, and only that,
-  // contours to the canonical nested-bullseye porkchop. Holes, edge minima or
-  // corners that beat the centre would mean the grid (not the visuals) is wrong.
-  // `nowUt` sits well before the window so the departure axis isn't clamped and
-  // the bowl is symmetric around its known optimum (Earth→Mars ideal at UT 0).
+  /*
+   * A correct Earth to Mars window is a fully solved SMOOTH BOWL with a single
+   * central minimum. `nowUt` sits well before the window so the departure axis
+   * is not clamped and the bowl is symmetric around its known optimum (UT 0).
+   */
   it("buildTransferPorkchop is a hole-free bowl with an interior minimum", () => {
     const N = 16;
     const grid = buildTransferPorkchop({
@@ -183,20 +182,19 @@ describe("transferData bridge", () => {
     expect(grid).not.toBeNull();
     if (!grid?.best) return;
 
-    // 1. No holes: every cell solved (a smooth field, not scattered blocks).
+    // No holes: every cell solved.
     const nulls = grid.cells
       .flat()
       .filter((c) => c.deltaV == null || !Number.isFinite(c.deltaV));
     expect(nulls).toHaveLength(0);
 
-    // 2. Single central minimum: the best cell is in the interior, not on an
-    //    edge (an edge minimum means the window missed the optimum).
+    // The best cell is interior; an edge minimum means the window missed the optimum.
     expect(grid.best.i).toBeGreaterThan(0);
     expect(grid.best.i).toBeLessThan(N - 1);
     expect(grid.best.j).toBeGreaterThan(0);
     expect(grid.best.j).toBeLessThan(N - 1);
 
-    // 3. Bowl shape: all four corners cost strictly more than the centre.
+    // All four corners cost strictly more than the centre.
     const corner = (i: number, j: number) => grid.cells[i][j].deltaV ?? 0;
     const best = grid.best.deltaV;
     expect(corner(0, 0)).toBeGreaterThan(best);
@@ -205,10 +203,7 @@ describe("transferData bridge", () => {
     expect(corner(N - 1, N - 1)).toBeGreaterThan(best);
   });
 
-  // The whole point of exporting the axes separately is that a caller can fetch
-  // the body states for a grid BEFORE building it. That only works while the
-  // instants it pre-fetches are the instants the grid then asks about, so the
-  // two are pinned against each other rather than each against a literal.
+  // The instants a caller pre-fetches must be the instants the grid then asks about.
   it("porkchopAxes names exactly the instants the grid it describes asks about", () => {
     const input = {
       origin: earth,
@@ -229,11 +224,7 @@ describe("transferData bridge", () => {
     expect(grid.cells[0].map((cell) => cell.arrUt)).toEqual(axes.arrivalUts);
   });
 
-  // The injection is what carries comment 306: the grid must read the game's
-  // elected propagation provider when one answered, not this package's own
-  // conic. Asserted by feeding states that are NOT the conic's and seeing them
-  // come back out, because a builder that quietly ignored the argument would
-  // pass every other test here unchanged.
+  // The grid must read the injected provider states, not its own conic: fed states the conic cannot produce, they must come back out.
   it("buildTransferPorkchop propagates through injected states, not its own solve", () => {
     const base = {
       origin: earth,
@@ -265,17 +256,10 @@ describe("transferData bridge", () => {
     expect(local?.best).toBeTruthy();
     if (!injected?.best || !local?.best) return;
 
-    /*
-     * Once per axis line rather than once per cell: `buildPorkchop` caches per
-     * UT, and a grid that asked 64 times for 16 instants would spend 4x the
-     * round trips the batched fetch exists to avoid.
-     */
+    // Once per axis line rather than once per cell: `buildPorkchop` caches per UT.
     expect(asked.origin).toHaveLength(8);
     expect(asked.dest).toHaveLength(8);
 
-    // The answer actually came from them. A builder that accepted the argument
-    // and quietly solved its own conic anyway would pass every other assertion
-    // in this file unchanged.
     expect(injected.best.deltaV).not.toBeCloseTo(local.best.deltaV, 0);
   });
 });
@@ -350,7 +334,7 @@ describe("upcomingWindows", () => {
     const windows = upcomingWindows(sol, mkGrid(0, 5600), 0, 4);
     expect(windows).toHaveLength(4);
     expect(windows.map((w) => w.index)).toEqual([0, 1, 2, 3]);
-    // window 0 departs at solution.departureUt (the phase-based next window)
+    // Window 0 departs at the phase-based next window.
     expect(windows[0].departureUt).toBeCloseTo(100 * DAY, 6);
     expect(windows[1].departureUt).toBeCloseTo(100 * DAY + SYNODIC, 6);
     expect(windows[3].departureUt).toBeCloseTo(100 * DAY + 3 * SYNODIC, 6);
@@ -424,22 +408,14 @@ describe("reachEntries: what this craft can get to, and on what", () => {
       nowUt: 0,
     });
 
-  /**
-   * The row this fixture guarantees. A `find` that misses is a broken fixture,
-   * so it says which destination went missing rather than failing later as a
-   * property read on undefined.
-   */
+  /** The row this fixture guarantees, failing by name if it is missing. */
   const rowFor = (rows: readonly ReachEntry[], name: string): ReachEntry => {
     const row = rows.find((r) => r.body.name === name);
     if (!row) throw new Error(`no reach entry for ${name}`);
     return row;
   };
 
-  /**
-   * A cost these fixtures are chosen to produce. `null` means the derivation
-   * declined, which is a failure of the fixture and not a figure to compare, so
-   * it is named here rather than coerced into a comparison.
-   */
+  /** A cost these fixtures produce; `null` is a fixture failure, not a figure. */
   const cost = (v: number | null): number => {
     if (v === null) throw new Error("expected a delta-v figure, got null");
     return v;
@@ -451,13 +427,7 @@ describe("reachEntries: what this craft can get to, and on what", () => {
     expect(cost(rows[0].totalDeltaV)).toBeLessThan(cost(rows[1].totalDeltaV));
   });
 
-  /*
-   * The case that justifies quoting capture at all, and it is not a contrived one.
-   * Venus is CHEAPER to depart for than Mars and more expensive to arrive at, so a
-   * list ranked on ejection alone would order these two backwards and call Venus
-   * the nearer destination. Insertion into Venus orbit is famously costly: a deep
-   * well and a high arrival excess.
-   */
+  // Venus is cheaper to depart for than Mars and dearer to arrive at, so ranking on ejection alone would order them backwards.
   it("ranks on the whole trip, which reverses the departure-only order here", () => {
     const rows = entries();
     const mars_ = rowFor(rows, "Mars");
@@ -486,11 +456,7 @@ describe("reachEntries: what this craft can get to, and on what", () => {
     expect(mars_.transferTimeSec).toBeCloseTo(258.9 * DAY, -4);
   });
 
-  /*
-   * A destination whose elements have not arrived is a row with no numbers, NOT a
-   * row that vanishes. An operator who cannot see that Mars exists cannot tell the
-   * difference between "unreachable" and "we have not been told about it".
-   */
+  // A destination whose elements have not arrived is a row with no numbers, NOT a row that vanishes.
   it("keeps a destination whose elements are incomplete, with null figures", () => {
     const halfSynced = mkBody({
       index: 4,
@@ -545,11 +511,7 @@ describe("reachVerdict: the band, not a boolean", () => {
     expect(reachVerdict(cost, 500, 0)).toBe("no");
   });
 
-  /*
-   * The model is coplanar and ignores plane change entirely, so a hard boundary
-   * drawn on it would be more confident than the arithmetic supports. Within 10%
-   * of the ejection threshold reads MARGINAL rather than a crisp yes or no.
-   */
+  // The model is coplanar, so within 10% of the ejection threshold reads MARGINAL rather than a crisp answer.
   it("reads marginal within a tenth of the ejection threshold, either side", () => {
     expect(reachVerdict(cost, 1000 * 1.05, 0)).toBe("marginal");
     expect(reachVerdict(cost, 1000 * 0.95, 0)).toBe("marginal");
@@ -581,12 +543,7 @@ describe("porkchop grid quantisation: why it scales with the chart", () => {
     expect(buckets.size).toBe(1);
   });
 
-  /*
-   * The property a fixed quantum does not have, and the reason this is expressed in
-   * transfer times. At 100,000x warp a frame advances UT by ~1,670 seconds, so a
-   * 60-second bucket changes on EVERY frame and a memo keyed on it rebuilds on every
-   * frame: the churn returns exactly when the clock is fastest.
-   */
+  // At 100,000x warp a frame advances UT by ~1,670 seconds, so a fixed 60-second bucket changes every frame.
   it("still holds at 100,000x warp, where a fixed 60-second bucket would not", () => {
     const q = porkchopGridQuantum(T_EARTH_MARS);
     const base = 1_000_000;
@@ -604,7 +561,7 @@ describe("porkchop grid quantisation: why it scales with the chart", () => {
       ),
     );
 
-    // The scaled quantum still collapses a second of frames into a handful of rebuilds; the fixed one collapses nothing at all.
+    // The scaled quantum collapses a second of frames into a handful of rebuilds; the fixed one collapses nothing.
     expect(fixed60.size).toBe(60);
     expect(scaled.size).toBeLessThan(5);
   });
@@ -625,9 +582,7 @@ describe("porkchop grid quantisation: why it scales with the chart", () => {
 });
 
 describe("reach list recompute quantum: derived from what the column can show", () => {
-  // The widget quantises `nowUt` to one Kerbin day before the reach memo (see
-  // `REACH_RECOMPUTE_UT`). Kept as a literal here rather than imported from the widget,
-  // so a change to the widget's constant fails this rather than silently agreeing.
+  // The widget's one-Kerbin-day `REACH_RECOMPUTE_UT`, kept literal so a change to the widget's constant fails this.
   const KERBIN_DAY = 21_600;
 
   it("holds under warp, where the old 60-second bucket did not", () => {
@@ -645,14 +600,13 @@ describe("reach list recompute quantum: derived from what the column can show", 
       Array.from({ length: 60 }, (_, f) => bucket(base + f * utPerFrame, 60)),
     );
 
-    // The old bucket changed on every frame at this warp, which is the whole defect.
+    // A 60-second bucket changes on every frame at this warp.
     expect(sixtySeconds.size).toBe(60);
     expect(day.size).toBeLessThanOrEqual(5);
   });
 
   it("does not move the delta-v columns at all, which is why coarsening it is safe", () => {
-    // The costs are functions of radii and μ, so the same destination priced at two very
-    // different UTs must give identical Δv. Only the timing columns may differ.
+    // The costs are functions of radii and μ, so only the timing columns may differ across UTs.
     const mk = (nowUt: number) =>
       reachEntries({ origin: earth, bodies, parkingRadius: 6.571e6, nowUt });
     const early = mk(0).find((r) => r.body.name === "Mars");

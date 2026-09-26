@@ -51,19 +51,7 @@ const topics = defineTopicManifest({
 
 type CommSignalConfig = Record<string, never>;
 
-// ── Augment slots (Uplink architecture) ─────────────────────────────────────
-//
-// CommSignal exposes two slots so a comms Uplink can extend the readout WITHOUT this widget ever importing backend-aware code (locked map: comm-signal):
-//
-//  - `comm-signal.sections` (body, below the signal-bars readout): the primary
-//    HIGH-value seat. A comms Uplink elected via capability contributes a
-//    per-antenna breakdown table (which antenna carries the link, its SNR) here,
-//    reading only its OWN Topics. CommSignal stays backend-agnostic.
-//
-// The slot passes no parent coordinates/projection (it is not an overlay slot),
-// so the props contract is empty and an augment renders from its own Topics. The
-// declaration-merge below keeps the slot id co-located here rather
-// than in a shared central registry, so parallel widget work never collides.
+// A comms Uplink contributes a per-antenna breakdown below the readout from its own Topics, so this widget stays backend-agnostic.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "comm-signal.sections": Record<string, never>;
@@ -71,19 +59,10 @@ declare module "@ksp-gonogo/core" {
 }
 
 /**
- * What to call the control state, and how to paint it.
- *
- * The TONE comes off the ordinal, never off the name.
- * `collapseControlStateLevel` collapses all twelve `ControlState` enum members
- * onto this 0/1/2 level scheme, and that collapse is the verdict. Substring-matching the English enum name
- * instead would read `ProbeNone` and `KerbalNone` as healthy links, because
- * neither is the literal string "None", and a vessel with no control would
- * paint green in both the Control row and the signal bars. The name is a
- * display label and nothing else.
- *
- * `undefined` is not a link failure: `Unknown` (11) carries no level by design,
- * and neither does a channel that has yet to arrive. Painting either `lost`
- * would assert a failure the wire never reported.
+ * What to call the control state, and how to paint it. The tone comes off the
+ * collapsed ordinal, never the name: `ProbeNone` and `KerbalNone` are not the
+ * string "None" and would otherwise paint green. An undefined level is not a
+ * link failure, so it paints neutral rather than lost.
  */
 function describeControl(
   name: string | undefined,
@@ -117,41 +96,13 @@ function CommSignalComponent({
   w,
   h,
 }: Readonly<ComponentProps<CommSignalConfig>>) {
-  // Every read has a clean stream home now:
-  //  - `comm.connected`     -> `comms.link.connected` (the freeze-EXEMPT link
-  //    channel: vessel.comms freezes at last-known through a blackout, so the
-  //    disconnect edge only fires off comms.link; see map-topic.ts)
-  //  - `comm.signalStrength`-> `vessel.comms.signalStrength`
-  //  - `comm.controlState`  -> `vessel.comms.controlState`, collapsed onto this
-  //    widget's 0/1/2 level scheme by `collapseControlStateLevel`, and resolved
-  //    to its enum NAME string by `enumNameOf`
-  //  - `comm.signalDelay`   -> `comms.delay.oneWaySeconds` (gonogo's own
-  //    SignalDelay authority, live via CommsCoreUplink)
-  //  - `comm.commandCentre` -> `comms.commandCentre` (which centre the active
-  //    vessel's own ControlPath terminates at this tick: KSC, or a crewed
-  //    control-source vessel under the stock six-kerbal rule). Every other read
-  //    above is ALREADY relative to that centre, because stock prefers a route
-  //    home and falls back to the nearest control source only when no home is
-  //    reachable. This is only the LABEL, and it has to name the centre those
-  //    numbers are actually relative to, never a hardcoded "KSC".
-  //  - `comms.path`         -> the ordered hop list the route schedule draws
-  /**
-   * A link indicator is the one instrument where withholding is not merely honest
-   * but informative: silence IS evidence about a link. A held "connected: true"
-   * from before the gap is the single most misleading thing this widget could
-   * draw, because the operator uses it to decide whether the vessel is hearing
-   * them at all.
-   */
+  // A held "connected: true" from before a gap is the most misleading thing this widget could draw: silence is evidence about a link.
   const linkReading = useTelemetry("comms.link");
   const commsReading = useTelemetry("vessel.comms");
   /*
-   * Every reading below is a VERDICT, so each is taken from the observation
-   * alone: the operator reads a bar or a pill as the situation NOW, and a
-   * judgement cannot be dated. `comms.delay` is the one that declares a
-   * reckonable value, and it is still read observed-only here, because it is
-   * drawn in the same block and the same styling as the verdicts: a modelled
-   * number that looks exactly like a measured one is read as measured. Drawing
-   * it reckoned is a presentation change rather than a change of read.
+   * Every reading below is a verdict about now, so each is taken from the
+   * observation alone. `comms.delay` is reckonable but is read observed-only
+   * too, because it is drawn in the same styling as the verdicts.
    */
   const connected =
     linkReading.state === "observed" ? linkReading.value.connected : undefined;
@@ -162,23 +113,9 @@ function CommSignalComponent({
   const linkNotCurrent =
     linkReading.state === "stale" || commsReading.state === "stale";
   /*
-   * The FIGURES read through their own field readings, while the verdicts above
-   * stay observation-only. The split is the paragraph above this one taken at
-   * its word: a bar count and a pill are judgements about now and cannot be
-   * dated, but a percentage and a light-time are measurements, and a
-   * measurement whose instant has passed is still the best number there is.
-   *
-   * `.in("%")` rather than `* 100`: strength is a declared ratio and `%` is
-   * declared at `ratio: 0.01`, so the conversion is the unit system's and
-   * nothing here unwraps a magnitude to do it.
-   */
-  /*
-   * The control state is HELD through a stale reading rather than taken from
-   * the observation alone, because the pill it draws has no absence to show:
-   * the empty state below is what a screen with no comms at all renders, and a
-   * pill that blanked between frames would read as a control loss. A held one
-   * is withheld on screen by `noSignal`, which the same reading's staleness
-   * sets.
+   * The control state is held through a stale reading because a pill that
+   * blanked between frames would read as a control loss; `noSignal` withholds
+   * it on screen.
    */
   const commsHeld =
     commsReading.state === "observed" || commsReading.state === "stale"
@@ -198,13 +135,7 @@ function CommSignalComponent({
       ? delayReading.value.oneWaySeconds
       : undefined;
 
-  /**
-   * The centre's NAME falls back to "KSC" when the channel is absent or empty,
-   * which is the honest default: KSC is the only centre the game itself ever
-   * creates without a mod, or without a crewed vessel meeting the
-   * control-source threshold. Every fixture recorded before the channel existed
-   * therefore keeps reading exactly as it did.
-   */
+  // KSC is the only centre the game creates without a mod or a qualifying crewed vessel, so it is the default.
   const centreReading = useTelemetry("comms.commandCentre");
   const commandCentreName =
     centreReading.state === "observed"
@@ -221,12 +152,6 @@ function CommSignalComponent({
     [];
   const relayCount = commsRouteRelayCount(hops);
 
-  /**
-   * Gonogo is the experience FROM the command centre, so the route's source
-   * stop is NAMED for the active vessel rather than addressed as "you". Falls
-   * back to a generic label on the rare tick `vessel.identity` has not resolved
-   * yet (scene load), same shape as the `centreLabel` fallback above.
-   */
   const identityReading = useTelemetry("vessel.identity");
   const vesselName =
     identityReading.state === "observed"
@@ -235,12 +160,7 @@ function CommSignalComponent({
   const vesselLabel =
     vesselName && vesselName.length > 0 ? vesselName : "Vessel";
 
-  // Per-hop bitrate comes from a `comm-signal.hop-rates` contribution, NOT from
-  // the core hop: `comms.path` stays provider-agnostic. A comms Uplink reads its
-  // OWN per-hop-rate Topic and yields an entry keyed by the same node ids these
-  // hops carry, and the schedule joins them by `commsHopId`. No contribution
-  // means no bitrate and an otherwise unchanged schedule, which is what bare
-  // CommNet gets. CommSignal only ever names the slot id.
+  // Per-hop bitrate comes from a contribution, never the core hop; bare CommNet has none and the schedule is otherwise unchanged.
   const hopRateEntries = useContributions("comm-signal.hop-rates");
   const rateByHopId = useMemo(() => {
     const map = new Map<string, number>();
@@ -250,16 +170,7 @@ function CommSignalComponent({
     return map;
   }, [hopRateEntries]);
 
-  /*
-   * The whole panel's answer when the link state has stopped arriving: every
-   * line nulls and one badge carries the reason.
-   *
-   * Named for what the operator calls it rather than for the reading's state.
-   * "not current" is wording they objected to specifically, and it was never
-   * the right frame here anyway: the subject of this widget IS the link, so a
-   * link that has stopped reporting is the widget reporting its subject, not
-   * apologising for its data.
-   */
+  // When the link state stops arriving, every line nulls and one badge carries the reason.
   const noSignal = linkNotCurrent;
   const nothingHasArrived =
     connected === undefined &&
@@ -267,22 +178,9 @@ function CommSignalComponent({
     controlState === undefined;
 
   /*
-   * The collapse survives for NEVER-ARRIVED and dies for NOT-CURRENT, which is
-   * the whole of the distinction here.
-   *
-   * A panel that HAS something must not hide it. Replacing the whole widget
-   * with "Link state no longer current" the moment its verdicts go stale takes
-   * the light-time and the whole route with it, and whatever an Uplink had
-   * contributed to the segment underneath withholds in parallel for the same
-   * reason. So the panel renders, every line shows its null state, and one
-   * badge carries the reason.
-   *
-   * Never-arrived is a different statement and keeps its empty state: there is
-   * nothing to show a null state FOR, and a panel of null tokens reads as a
-   * fault rather than as "nothing yet". A `vessel.comms` TOMBSTONE renders
-   * here too, which `undefined.characterise.test.tsx` pins as a known
-   * conflation of "confirmed no comms" with "nothing has come through"; that
-   * conflation is untouched here and is out of this widget's scope.
+   * The empty state is for never-arrived only. A panel that has something
+   * must not hide it when its verdicts go stale: it renders with null lines
+   * and the badge instead.
    */
   if (nothingHasArrived && !noSignal) {
     return (
@@ -297,18 +195,7 @@ function CommSignalComponent({
     );
   }
 
-  // KSP returns signal strength ∈ [0, 1]. Map to 4 discrete bars; this is
-  // familiar, readable at a glance, and robust to telemetry jitter at the
-  // edges of a connection.
-  //
-  // Some KSP installs don't publish comm.signalStrength at all (mod load
-  // order, RemoteTech overrides, vanilla CommNet variants): in that case
-  // we derive bars from comm.controlState so the widget still shows
-  // something useful: Full → 4, Partial → 2, None → 0.
-  // `.magnitude`: strength is a declared ratio and arrives WRAPPED, so the bar
-  // count and the headline percentage both do their arithmetic on the unwrapped
-  // number. Testing `typeof strength === "number"` against the wrapper instead
-  // answers "no strength reading" for every live link, silently.
+  // With no strength reading, bars derive from the control state (Full 4, Partial 2, None 0).
   const raw = strength?.magnitude;
   const strengthValid =
     typeof raw === "number" && Number.isFinite(raw) && raw > 0;
@@ -317,12 +204,9 @@ function CommSignalComponent({
   let bars: number | null;
   if (noSignal) {
     /*
-     * WITHHELD, not zero-as-a-verdict. The bar count is a judgement and the
-     * caption below says it cannot be made, so the glyph must not go on
-     * asserting one: `controlState` is read off the held `vessel.comms`, which
-     * keeps its last value through a gap, so without this the bars would paint
-     * a confident "Full" directly above the caption saying the verdict is not
-     * current.
+     * Withheld: `controlState` is read off the held `vessel.comms`, so the
+     * bars would otherwise paint a confident "Full" above a caption saying the
+     * verdict is not current.
      */
     bars = 0;
   } else if (connected === false) {
@@ -340,20 +224,13 @@ function CommSignalComponent({
   }
   const control = describeControl(controlStateName, controlState);
 
-  // Selective rendering: bars + headline value always show; subtitle and detail grid drop as height shrinks.
   const cols = w ?? 6;
   const rows = h ?? 5;
   // Wide-short: put the bars/headline cluster and the detail grid side-by-side so the width is used instead of clustering top-left.
   const isLandscape = getWidgetShape(w, h).shape === "landscape";
   const showSubtitle = rows >= 4;
   const showDetailGrid = rows >= 4 && cols >= 4;
-  // The vertical train schedule needs more room than the detail grid alone: in
-  // landscape it is a whole extra column beside the readout, so it only needs
-  // the detail grid's own rows floor; portrait stacks it BELOW the readout and
-  // needs real headroom above that, or the schedule is clipped at the
-  // registered default (6x5) with nothing to show for it. Below the threshold
-  // the caption still names the centre, with a hop-count hint instead of the
-  // schedule, so a cramped tile loses the route's detail and never the route.
+  // Portrait stacks the route below the readout and needs more rows; below the threshold the caption keeps a hop-count hint.
   const showFullPath = cols >= 5 && (isLandscape ? rows >= 4 : rows >= 6);
   const hopHint =
     connected !== false && hops.length > 0 && !showFullPath
@@ -361,20 +238,7 @@ function CommSignalComponent({
         ? " (direct)"
         : ` (${relayCount} relay${relayCount === 1 ? "" : "s"})`
       : "";
-  // "LOS" (loss of signal) vs NULL_DISPLAY (no telemetry), both render zero
-  // bars, so the headline label is the only differentiator at tiny
-  // sizes where subtitle + detail grid are suppressed. Without this
-  // split, an occluded vessel and a connection-lost probe looked
-  // identical in the min-3x3 mode.
-  /*
-   * NULLED when the link is not current, and that includes NOT falling back to
-   * `control.label`: the control state is read off the held `vessel.comms`, so
-   * that fallback would print a confident "Full" for a link that has stopped
-   * arriving.
-   *
-   * Every line shows its null state: a not-current mark does not withdraw
-   * what a number asserts.
-   */
+  // Nulled when the link is not current, including the `control.label` fallback, which is read off the held `vessel.comms`.
   const headline = noSignal ? (
     NULL_DISPLAY
   ) : connected === false ? (
@@ -385,14 +249,7 @@ function CommSignalComponent({
     control.label
   );
 
-  // A11y: the visible readout updates on every telemetry tick (percentage,
-  // bar count), so it must NOT be a live region, that would flood the screen
-  // reader (see CLAUDE.md: "Don't live-region streaming telemetry"). Instead a
-  // dedicated visually-hidden status node announces only the connection-state
-  // transition: its text changes between "Signal connected" / "Signal lost",
-  // which fires at most once per LOS/regain. The loud role=alert is owned by
-  // the separate SignalLossBanner primitive at the page level, we don't
-  // duplicate it here.
+  // Announces only the connection-state transition; the streaming readout must not be a live region.
   const liveAnnouncement =
     connected === false
       ? "Signal lost"
@@ -403,8 +260,6 @@ function CommSignalComponent({
     <Panel
       panelTitle="COMMNET"
       sections={[
-        /* The caption spans the row rather than taking a column of its own: it
-           names the link the columns under it are all about. */
         <Section key="caption" full>
           <VisuallyHidden role="status" aria-live="polite">
             {liveAnnouncement}
@@ -420,20 +275,7 @@ function CommSignalComponent({
                 letterSpacing: "0.04em",
               }}
             >
-              {/*
-                "Signal to <centre>" ASSERTS a signal, so it cannot stand for a
-                link this widget cannot vouch for: the caption nulls with every
-                other line and the badge carries the reason. The
-                `connected === false` wording is untouched, because a CONFIRMED
-                disconnection is an observation rather than an absence.
-
-                Both ways of not being able to vouch, not just the one. The rule
-                above was written for a link that HAD reported and stopped, and
-                a link that has never reported at all passed straight through it
-                on `connected === undefined`: the strength beside it comes off
-                its own topic and keeps arriving, so the panel asserted a signal
-                to KSC on the strength of a verdict nothing had given.
-              */}
+              {/* "Signal to <centre>" asserts a signal, so it nulls whenever the link verdict is absent or not current. */}
               {noSignal || connected === undefined
                 ? NULL_DISPLAY
                 : connected === false
@@ -484,30 +326,19 @@ function CommSignalComponent({
   );
 }
 
-// ── Comms-path route: a vertical train-schedule (vessel at top, centre at
-//    bottom) ───────────────────────────────────────────────────────────────
-
 const ROUTE_LABEL_STYLE = {
   color: "var(--color-text-dim)",
   letterSpacing: "0.1em",
   textTransform: "uppercase" as const,
 };
 
-// Rail geometry: a dashed vertical line down the left edge with a circle at
-// each stop, train-schedule style. The line is a `borderLeft` on every row's
-// rail slot (stop rows AND leg rows): adjoining slots share an edge, so the
-// dash pattern reads as one continuous rail down the column rather than a
-// broken segment per row.
 const RAIL_WIDTH_PX = 20;
 const RAIL_STOP_DIAMETER_PX = 10;
 
 /**
- * The vertical train-schedule: the source vessel at the top, each relay as a
- * circle on the rail, the command centre at the bottom. Each leg's distance AND
- * light-time (and the per-hop bitrate a `comm-signal.hop-rates` contributor
- * supplies, when present, with the bottleneck hop flagged) sit in the gap
- * between its two stops, against the rail. Renders nothing for an empty `hops`
- * list (no path home is already covered by the LOS headline).
+ * The vertical train-schedule: vessel at the top, command centre at the
+ * bottom, each leg's distance, light-time and contributed bitrate between its
+ * two stops. Renders nothing for an empty `hops` list.
  */
 function CommsPathRoute({
   hops,
@@ -519,13 +350,9 @@ function CommsPathRoute({
   hops: readonly CommsHop[];
   vesselLabel: string;
   centreLabel: string;
-  /** The path's total one-way delay: apportioned across legs by distance, see
-   *  `commsLegTime`. `null` as well as absent, because `oneWaySeconds` is a
-   *  `double?` and the wire keeps the key: a path with no measurable delay
-   *  arrives as an explicit null, which is NOT a delay of zero. */
+  /** The path's total one-way delay; an explicit null is not a delay of zero. */
   pathDelay: Value<"s"> | null | undefined;
-  /** Per-hop forward bitrate (bits/sec) keyed by `commsHopId`, joined from the
-   *  `comm-signal.hop-rates` contribution. Empty under bare CommNet / no RA. */
+  /** Per-hop forward bitrate (bits/sec) keyed by `commsHopId`. */
   rateByHopId: ReadonlyMap<string, number>;
 }) {
   const nodes = buildCommsRouteNodes(hops, vesselLabel, centreLabel);
@@ -594,15 +421,9 @@ function CommsPathStop({
 }
 
 /**
- * One leg's distance AND light-time, plus, when a `comm-signal.hop-rates`
- * contribution supplied one, this hop's forward bitrate: the slowest hop in
- * the path (the bottleneck that caps end-to-end throughput) is flagged by
- * tinting its rate amber, since that is the number an operator reads to know
- * the real ceiling. No label word: a leg is a fixed-width row in the
- * schedule, and spelling the flag out as text was overflowing it. Colour
- * alone is never the only signal (WCAG 2.1 AA), so a `VisuallyHidden` hint
- * and a hover `title` carry the same meaning to screen readers and mouse
- * users respectively.
+ * One leg's distance, light-time and, when contributed, forward bitrate. The
+ * bottleneck hop's rate is tinted amber, with a hidden hint and a hover title
+ * so colour is never the only signal.
  */
 function CommsPathLeg({
   hop,
@@ -639,17 +460,11 @@ function CommsPathLeg({
             </Text>
           )}
           {legTime !== undefined && (
-            // nowrap: `Countdown`'s "0 ms" is plain text with a breaking
-            // space, unlike `Unit`'s own number+symbol pairing (which
-            // carries its own nowrap), so a narrow column could otherwise
-            // split it mid-value across two lines.
+            // `Countdown` renders a breaking space, unlike `Unit`, so it needs its own nowrap.
             <Text tone="muted" size="xs" style={{ whiteSpace: "nowrap" }}>
               <Countdown value={legTime} precise />
             </Text>
           )}
-          {/* Per-hop bitrate, joined from the `comm-signal.hop-rates`
-              contribution (never a core hop field): absent under bare CommNet /
-              no RA, so it simply never renders there. */}
           {rate !== undefined && (
             <Text
               tone="muted"
@@ -662,11 +477,7 @@ function CommsPathLeg({
               }
               style={{
                 whiteSpace: "nowrap",
-                // `TONE_TEXT_COLOR` below explains the choice of the MUTED
-                // warning foreground: the bare `-fg` token is near-black,
-                // meant for the orange chip rather than standalone text on
-                // this panel. `Text`'s own `warn` tone resolves to that bare
-                // token, so it cannot serve here.
+                // `Text`'s warn tone is the near-black chip foreground, so standalone warning text uses the muted token.
                 color: isBottleneck
                   ? "var(--color-status-warning-fg-muted)"
                   : undefined,
@@ -687,11 +498,8 @@ function CommsPathLeg({
 }
 
 /**
- * One row's slice of the dashed vertical rail: the line itself (a
- * `borderLeft` stretched the row's full height) plus, at a stop row, the
- * circle marker centred on it. Purely decorative, the stop label beside it
- * already carries the same information, so this is hidden from assistive
- * tech rather than duplicated into it.
+ * One row's slice of the dashed rail, plus the circle marker at a stop row.
+ * Adjoining slots share an edge so the dashes read as one continuous rail.
  */
 function RailSlot({ stop }: { stop: boolean }) {
   return (
@@ -722,10 +530,7 @@ function RailSlot({ stop }: { stop: boolean }) {
             transform: "translateY(-50%)",
             width: RAIL_STOP_DIAMETER_PX,
             height: RAIL_STOP_DIAMETER_PX,
-            // border-box: the 2px border must be INCLUDED in the diameter,
-            // not added on top of it. Content-box (the default) rendered a
-            // 14px circle (10px content + 2px border each side) whose centre
-            // sat 2px right of the rail's dashed line, off-centre.
+            // The border is inside the diameter, or the circle sits off the rail's centre line.
             boxSizing: "border-box",
             borderRadius: "50%",
             background: "var(--color-surface-panel)",
@@ -737,13 +542,8 @@ function RailSlot({ stop }: { stop: boolean }) {
   );
 }
 
-// ── Signal-bar chart + detail grid rows ──────────────────────────────────────
-
-// `neutral` is the no-verdict tone: the control channel said nothing this tick,
-// so the readout says nothing either. It is deliberately not a fourth severity
-// between ok and warn, and deliberately not lost.
+// `neutral` is the no-verdict tone, not a severity between ok and warn.
 type Tone = "ok" | "warn" | "lost" | "neutral";
-// Bright fills for the signal bars (non-text UI, full-brightness chips).
 const TONE_COLOR: Record<Tone, string> = {
   ok: "var(--color-accent-fg)",
   warn: "var(--color-status-warning-bg)",
@@ -751,9 +551,7 @@ const TONE_COLOR: Record<Tone, string> = {
   neutral: "var(--color-text-muted)",
 };
 
-// Foreground text variants for the same tones, legible on the dark panel.
-// Warning uses the muted cream (`-fg` is near-black, meant for the orange
-// chip, not standalone text); nogo's `-fg` is already a light pink.
+// Warning text uses the muted token: the bare warning `-fg` is near-black, meant for the chip.
 const TONE_TEXT_COLOR: Record<Tone, string> = {
   ok: "var(--color-accent-fg)",
   warn: "var(--color-status-warning-fg-muted)",
@@ -761,16 +559,9 @@ const TONE_TEXT_COLOR: Record<Tone, string> = {
   neutral: "var(--color-text-primary)",
 };
 
-// Staircase heights (short to tall), sat at the bottom of the bar chart.
 const BAR_HEIGHT_PCT = [30, 50, 75, 100];
 
-/**
- * The four-bar signal chart. A bespoke little visual (per-bar computed
- * height/colour, not a chrome shape ui-kit hosts), so it composes plain
- * elements with inline styles rather than a primitive: no styled-components
- * import, same pixel values (6px bars, 24px height) the original off-scale
- * styled.div/span pair used.
- */
+/** The four-bar signal chart. */
 function SignalBars({
   bars,
   tone,
@@ -783,10 +574,7 @@ function SignalBars({
   return (
     <div
       role="img"
-      /* "0 of 4" is itself a verdict, so a withheld glyph must not announce
-         one. An aria-label IS operator-facing copy, so it matches the badge a
-         sighted reader sees rather than describing the link as merely "not
-         current". */
+      /* "0 of 4" is itself a verdict, so a withheld glyph announces the badge's wording instead. */
       aria-label={
         noSignal
           ? "No signal"
@@ -797,8 +585,6 @@ function SignalBars({
       style={{
         display: "flex",
         alignItems: "flex-end",
-        /* Glyph geometry, not a seam between siblings: this is the kerf between
-           the four bars of a signal-strength icon inside a 24px box. */
         gap: "var(--gap-signal-bars)",
         height: 24,
       }}
@@ -813,9 +599,7 @@ function SignalBars({
               width: 6,
               background: color,
               border: `1px solid ${color}`,
-              // Off-scale on purpose: optical corner softening at the pixel
-              // limit on a 6px-wide bar. --radius-regular (2px) rounds this into
-              // a lozenge.
+              // Off-scale on purpose: the 2px radius token rounds a 6px bar into a lozenge.
               borderRadius: 1,
               height: `${BAR_HEIGHT_PCT[i - 1]}%`,
             }}
@@ -857,11 +641,7 @@ function CommSignalDetailRows({
 }: {
   control: { label: string; tone: Tone };
   delay: Parameters<typeof Countdown>[0]["value"];
-  /*
-   * The CONTROL row is a verdict like the bars, read off the held
-   * `vessel.comms`: left alone it would paint a bright green "Full" directly
-   * under the caption saying the verdict is not current.
-   */
+  /** Withholds the control row, which is read off the held `vessel.comms`. */
   noSignal?: boolean;
 }) {
   const labelStyle = {
@@ -887,16 +667,11 @@ function CommSignalDetailRows({
         Delay
       </Text>
       <Text tone="default" size="sm">
-        {/* null (no measurable ControlPath) reads the same as undefined
-            (nothing arrived yet): comms-delay-nullable-when-no-path fix:
-            neither is a duration to show. */}
         {delay == null ? NULL_DISPLAY : <Countdown value={delay} precise />}
       </Text>
     </>
   );
 }
-
-// ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<CommSignalConfig>({
   id: "comm-signal",
@@ -907,21 +682,10 @@ registerComponent<CommSignalConfig>({
   defaultSize: { w: 6, h: 5 },
   minSize: { w: 3, h: 3 },
   component: CommSignalComponent,
-  // Two seats for a comms Uplink to extend the readout without CommSignal ever
-  // importing backend-aware code (locked map: comm-signal). See the
-  // `SlotRegistry` declaration-merge above for the slot props contracts.
   augmentSlots: ["comm-signal.sections"],
-  // The per-hop bitrate slot the route reads (`useContributions` above).
-  // `ContributionsAggregation` mounts a runner only for a widget's DECLARED
-  // slots, and the runner is what subscribes a contribution's deps, so leaving
-  // this off meant no contribution to this slot ever computed and the route
-  // rendered without rates in any real app. The stream tests missed it because
-  // they mount the widget under a hand-written meta that declares the slot
-  // itself, so the test supplied the very thing that was absent.
+  // A contribution only computes for a slot its widget declares.
   contributionSlots: ["comm-signal.hop-rates"],
-  // Three Topics, not one: connectivity is the freeze-exempt `comms.link`,
-  // the observation and the control state are the frozen `vessel.comms`
-  // struct, and the delay is gonogo's own authority. The `comm.` prefix made them look like one source.
+  // Connectivity is the freeze-exempt `comms.link`; `vessel.comms` holds its last value through a blackout.
   channels: topics.channels,
   fields: topics.fields,
   defaultConfig: {},

@@ -10,21 +10,11 @@ import { StrategiesComponent } from "../Strategies";
 import { setupStreamFixture } from "./setupStreamFixture";
 
 /**
- * CLAUDE.md's rule is that a widget exposing a funds-spending action shows the
- * balance in the same widget, so the operator is never sent elsewhere to find
- * out whether they can afford the thing they are about to confirm. Every widget
- * below satisfied that literally and still misled: under a career overhaul the
- * programme runs a continuous per-day cost, so a balance that covers a purchase
- * today need not cover it and the month after it, and the balance alone does
- * not say which.
- *
- * This is the same scenario put through all four in one file, because the rule
- * is deliberately duplicative (per-widget, not per-dashboard) and the failure it
- * guards against is one widget quietly not carrying what the others do.
- *
- * The two cases are the whole point and are asserted as a pair: a stock career,
- * whose economy provider answers with two honest zeros, must look exactly as it
- * did, and an overhaul career must not. Neither may render a drain of zero.
+ * A widget with a funds-spending action shows the balance beside it, and
+ * under a career overhaul a balance alone misleads: the programme runs a
+ * continuous per-day cost. The same scenario goes through all four widgets,
+ * since the rule is per widget. A stock career (two honest zeros) must look
+ * as it did, an overhaul career must not, and neither may render a zero drain.
  */
 const renderedTrees: Array<() => void> = [];
 
@@ -71,14 +61,7 @@ function mount(id: string, ui: ReactElement) {
   renderedTrees.push(unmount);
 }
 
-/**
- * Every widget under test, mounted at its registered default size against one
- * career economy, returning the text the operator can read.
- *
- * Each takes only the channels it needs to reach its funds readout. The point
- * of the test is what happens beside the balance, so no widget is fed a scenario
- * beyond the one that puts a balance on screen.
- */
+/** Every widget under test at its default size against one career economy, fed only what puts a balance on screen. */
 async function textFor(
   widget:
     | "space-center-status"
@@ -157,9 +140,7 @@ async function textFor(
     fixture.emit("career.status", career);
   });
 
-  // The balance is the last thing to land, and it is the anchor for every
-  // assertion below: reading before it arrives would let a "renders nothing"
-  // case pass against a widget that had simply not rendered yet.
+  // The balance lands last; reading before it would let a "renders nothing" case pass.
   await waitFor(() => expect(visibleText()).toContain("289,848f"));
   return visibleText();
 }
@@ -181,14 +162,12 @@ describe("every funds-spending widget reports the standing drain beside the bala
     });
 
     it(`${widget}: says nothing at all when the career has no such mechanism`, async () => {
-      // Stock reports zeros rather than staying silent, and a zero rate must
-      // not become a "0f/day" chip: that reads as a programme that happens to
-      // break even rather than one with no upkeep to break even against.
+      // A zero rate must not become a "0f/day" chip, which reads as breaking even against an upkeep that does not exist.
       const text = await textFor(widget, STOCK_ECONOMY);
       expect(text).not.toContain("/day");
       expect(text).not.toContain("drain");
       expect(text).not.toContain("left");
-      // The balance is still there: the rule this readout serves is that a spender always shows one.
+      // A spender always shows its balance.
       expect(text).toContain("289,848f");
     });
 

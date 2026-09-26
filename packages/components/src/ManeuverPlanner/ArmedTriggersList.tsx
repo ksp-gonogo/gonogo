@@ -44,9 +44,7 @@ export function ArmedTriggersList({
   );
 }
 
-/** A list that is a Stack: the bullets and the browser's list insets go, the
- *  semantic `ul` stays. The gap is named rather than sized so a card around
- *  this list tightens it the way it tightens everything else. */
+/** The gap is named, not sized, so a surrounding card tightens it like everything else. */
 const LIST_STYLE = {
   gap: "var(--gap-related)",
   listStyle: "none",
@@ -54,12 +52,7 @@ const LIST_STYLE = {
   padding: 0,
 } as const;
 
-/**
- * An armed trigger is a warned card rather than a plain row, so the surface
- * rides on the kit's Row: Row brings the flex, the space-between and the gap,
- * and the padding here replaces its own because a card needs the surface inset
- * rather than a row's hairline.
- */
+/** A warned card on the kit's Row, with the surface inset in place of a row's hairline padding. */
 const ARMED_ROW_STYLE = {
   padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",

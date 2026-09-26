@@ -179,10 +179,7 @@ describe("DataKeyPicker: a saved key that is no longer offered", () => {
         onChange={() => undefined}
       />,
     );
-    // The failure this prevents: the raw key rendered as the display value,
-    // indistinguishable from a real label, while the read behind it returned
-    // nothing. A graph drew a flat line and an alarm never fired, and both
-    // read as a measurement of zero.
+    // The raw key must not render as though it were a real label.
     expect(screen.getByText(/no longer available/i)).toBeInTheDocument();
   });
 
@@ -242,7 +239,6 @@ describe("DataKeyPicker: a saved key that is no longer offered", () => {
 
   it("says nothing while the vocabulary has not arrived", () => {
     // An empty key list is a catalogue that has not loaded, not a retired key.
-    // Judging it as retired would report every widget broken on mount.
     render(
       <DataKeyPicker keys={[]} value="v.altitude" onChange={() => undefined} />,
     );

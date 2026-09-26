@@ -2,11 +2,7 @@ import { useEffect } from "react";
 import styled, { css } from "styled-components";
 
 interface FabPromptProps {
-  /**
-   * Distance from the bottom of the viewport in px, when the prompt is
-   * rendered standalone. Omit to render in-flow (e.g. as a child of
-   * BannerStack) so the parent owns positioning.
-   */
+  /** Distance from the viewport bottom in px; omit to render in-flow inside a parent such as BannerStack. */
   bottom?: number;
   /** Main label: what the action will do. */
   label: string;
@@ -20,22 +16,7 @@ interface FabPromptProps {
   acceptLabel?: string;
 }
 
-/**
- * Sausage-shaped action prompt that sits next to a FAB stack. Same
- * height as the FABs from `@ksp-gonogo/ui/Fab`, wider, with a primary
- * tap-target on the left and a small dismiss × on the right.
- *
- * Designed for transient "Switch to X?" suggestions, auto-dismisses
- * after a configurable timeout so a user who never sees it isn't left
- * with a stuck UI element. Uses role="status" + aria-live so screen
- * readers pick it up without interrupting urgent alerts.
- *
- * Positioning is fixed bottom-right when `bottom` is supplied, offset
- * enough to clear a 40px (or 48px coarse-pointer) FAB at the same
- * `bottom`. Omit `bottom` to render in-flow, the prompt becomes a
- * regular flex child and the parent (e.g. `BannerStack`) owns
- * positioning.
- */
+/** Transient action prompt beside the FAB stack, with an accept target and a dismiss button; it auto-dismisses so an unseen prompt never sticks. */
 export function FabPrompt({
   bottom,
   label,

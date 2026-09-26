@@ -6,12 +6,9 @@ import { SECTION_FILL_ATTR, SECTION_FULL_ATTR, Section } from "./Section";
 import { WidgetMetaContext } from "./WidgetMetaContext";
 
 /**
- * `sections` is the preferred way to give a panel a body, and the shape a
- * `body` (children) is being retired in favour of. What is asserted here is the
- * CONTRACT rather than the layout: jsdom runs no layout at all, so the number
- * of columns the grid resolves to is not observable from a test and is checked
- * by rendering instead. What IS observable is that the sections are all there,
- * in order, in one grid box, with their titles as real headings.
+ * jsdom runs no layout, so the column count is not observable here. What is
+ * asserted is the contract: the sections are all there, in order, in one grid
+ * box, with their titles as real headings.
  */
 describe("Panel sections", () => {
   it("takes a single section without an array around it", () => {
@@ -73,9 +70,7 @@ describe("Panel sections", () => {
     const a = screen.getByText("a");
     const b = screen.getByText("b");
     expect(a.parentElement).toBe(b.parentElement);
-    /* The grid is a box of its own inside the body, not the body itself: the
-       body also carries the header and the delay rail, and columnising those is
-       exactly what a grid on the body would do. */
+    // The grid is its own box, so the header and rail in the body are not columnised.
     expect(a.parentElement).not.toBe(
       container.querySelector("[data-panel-body]"),
     );
@@ -114,11 +109,8 @@ describe("Panel sections", () => {
 });
 
 /**
- * Same contract-not-layout footing as the block above: jsdom resolves no
- * heights, so what is asserted is WHERE a filling section lands in the tree,
- * which is the whole mechanism. The grid cannot give a section the body's
- * leftover height, so Panel makes it a child of the body instead, and that
- * parentage is observable without layout.
+ * jsdom resolves no heights, so what is asserted is where a filling section
+ * lands: as a child of the body, the box with the leftover height.
  */
 describe("Panel sections that fill", () => {
   it("makes a filling section a child of the body rather than a grid item", () => {
@@ -185,7 +177,6 @@ describe("Panel sections that fill", () => {
       />,
     );
     // Two grids, because a run on each side of the filling section is its own.
-    // One grid holding both would have had to put the drawing in a track.
     expect(screen.getByText("above").parentElement).not.toBe(
       screen.getByText("below").parentElement,
     );
@@ -244,7 +235,7 @@ describe("Section", () => {
     );
     const box = container.querySelector("section");
     expect(box).not.toBeNull();
-    // Still the Stack, so it still lays its children out as a column with the kit's gap rather than becoming a bare unstyled element.
+    // Still the Stack, laying its children out as a column with the kit's gap.
     expect(getComputedStyle(box as Element).flexDirection).toBe("column");
   });
 });
@@ -264,11 +255,7 @@ describe("Panel sections and the universal augment segment", () => {
     );
   }
 
-  /**
-   * An Uplink's appended section is a section, so it joins the flow rather than
-   * always landing in a full-width block under the host's own. That is the
-   * whole reason the segment is named `sections`.
-   */
+  /** An Uplink's appended section joins the flow rather than landing in a full-width block under the host's own. */
   it("puts a bound augment inside the grid, beside the host's sections", () => {
     registerAugment({
       id: "sections-aug",

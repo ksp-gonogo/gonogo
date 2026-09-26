@@ -10,9 +10,7 @@ interface Entry {
 
 const PanelStore = createPanelStore(() => createStore<Entry>());
 
-/** Captures whatever `useStore` returns on each render into `seen`. Identity is
- * what these tests assert, so double-invocation (StrictMode) is harmless: the
- * same instance captured twice is still one distinct value. */
+/** Captures whatever `useStore` returns on each render into `seen`. */
 function Probe({ seen }: { seen: unknown[] }) {
   seen.push(PanelStore.useStore());
   return null;

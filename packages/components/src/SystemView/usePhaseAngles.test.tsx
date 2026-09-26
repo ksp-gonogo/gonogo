@@ -13,18 +13,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import type { CelestialBody } from "./useCelestialBodies";
 import { usePhaseAngles } from "./usePhaseAngles";
 
-/**
- * `usePhaseAngles` derives each body's phase angle to the active vessel
- * CLIENT-SIDE, from elements the stream already carries.
- * Phase angle = `wrap360(bodyLon − vesselLon)` in [0, 360), where a body's true
- * longitude is `wrap360(lan + argPe + trueAnomaly)`. The bodies arrive with those
- * elements already on `CelestialBody` (view-UT-derived `trueAnomaly`); the vessel
- * side is read off the `vessel.orbit` Topic through a real `TelemetryProvider`
- * (its true anomaly solved at the view-UT via the shared Kepler path).
- *
- * Positive = body ahead of the vessel in the prograde direction, matching
- * `hohmannPhaseAngle`'s "+ = target ahead" so `angleDelta(live, ideal)` lines up.
- */
+/** `usePhaseAngles` derives each body's phase angle to the active vessel from streamed elements, read through a real `TelemetryProvider`. */
 
 const KERBIN_MU = 3.5316e12;
 
@@ -48,7 +37,7 @@ function makeBody(
     argumentOfPeriapsis: null,
     meanAnomalyAtEpoch: null,
     epoch: null,
-    // These fixtures are about geometry, not about how far anyone will vouch for it, so every body here is unbounded and analytic.
+    // About geometry, not how far anyone vouches for it, so every body is unbounded and analytic.
     horizon: ANALYTIC_BODY_HORIZON,
     period: null,
     trueAnomaly: null,
@@ -70,14 +59,7 @@ function makeBody(
   };
 }
 
-/**
- * A circular vessel orbit whose true longitude is exactly `lonDeg` at UT 0.
- *
- * The horizon is what the stock analytic producer sends unless a test states
- * otherwise. It has to be stated: the hook propagates these elements to the
- * view instant, and a sample carrying no horizon is one from a producer that
- * dropped the field, which is not a licence to extrapolate.
- */
+/** A circular vessel orbit at true longitude `lonDeg` at UT 0, carrying the stock analytic horizon; a sample with no horizon is not a licence to extrapolate. */
 function vesselAtLongitude(
   lonDeg: number,
   horizon: PropagationHorizonLike = ANALYTIC_UNBOUNDED_HORIZON,
@@ -85,7 +67,7 @@ function vesselAtLongitude(
   return {
     referenceBodyIndex: 0,
     sma: 700_000,
-    ecc: 0, // circular → ν = mean anomaly = 0 at epoch, so lon = lan
+    ecc: 0, // circular, so lon = lan at epoch
     inc: 0,
     lan: lonDeg,
     argPe: 0,
@@ -206,24 +188,14 @@ describe("usePhaseAngles", () => {
     await waitFor(() => expect(result.current.size).toBe(0));
   });
 
-  /**
-   * A phase angle is these elements propagated to the instant on screen, which
-   * is the one thing the elected provider gets to bound. SystemView's own
-   * `derived` memo puts exactly this question to `canPropagate`; this read did
-   * not, so an operator scrubbed past an integrator's horizon lost the vessel
-   * dot and kept a transfer-window highlight computed from where the craft
-   * would have been.
-   *
-   * SHAPE is not consulted, and the last case says so: a position at one instant
-   * needs no shape, only a curve does.
-   */
+  /** A phase angle is the elements propagated to the instant on screen, so the provider's horizon bounds it; shape is not consulted, as the last case shows. */
   describe("asks the provider before propagating to the view instant", () => {
     it("is empty when no horizon was stated at all", async () => {
       const { fixture, result } = renderPhaseAngles([
         makeBody(1, "Mun", { lan: 90, argumentOfPeriapsis: 0, trueAnomaly: 0 }),
       ]);
       act(() => {
-        // `horizon` absent entirely: a producer predating the field or one that dropped it, and neither is a licence to extrapolate.
+        // No `horizon` at all is not a licence to extrapolate.
         const { horizon: _dropped, ...noHorizon } = vesselAtLongitude(0);
         fixture.emit("vessel.orbit", noHorizon);
       });
@@ -235,7 +207,7 @@ describe("usePhaseAngles", () => {
         makeBody(1, "Mun", { lan: 90, argumentOfPeriapsis: 0, trueAnomaly: 0 }),
       ]);
       act(() => {
-        // The fixture pins the clock at UT 0, so a horizon at -100 is already behind the instant being asked about.
+        // The clock is pinned at UT 0, so a horizon at -100 is already behind it.
         fixture.emit(
           "vessel.orbit",
           vesselAtLongitude(0, integratedHorizon(-100)),
@@ -258,8 +230,7 @@ describe("usePhaseAngles", () => {
     });
 
     it("answers when reach is stated and shape is not", async () => {
-      // Where the craft IS does not depend on whether a conic is the right
-      // renderer for its path. Refusing here would be a refusal nobody stated.
+      // Where the craft is does not depend on whether a conic is the right renderer for its path.
       const { fixture, result } = renderPhaseAngles([
         makeBody(1, "Mun", { lan: 90, argumentOfPeriapsis: 0, trueAnomaly: 0 }),
       ]);

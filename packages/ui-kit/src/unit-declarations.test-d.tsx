@@ -1,14 +1,9 @@
 /**
- * An Uplink's unit, checked through every surface a first-party unit is, beside a
- * first-party unit of the same shape.
- *
- * Two pairs, one per shape. `fuel:u` sits on a ladder of its own the way `m` sits
- * on `length`; `fuel:mix` climbs nothing the way `rad` climbs nothing. Each
- * assertion is written for both members of its pair, so a surface that treats the
- * Uplink unit differently fails here rather than in an Uplink's build.
- *
- * Compiled by `tsconfig.test-d.json`, `@ts-expect-error` lines included: a line
- * that stops erroring fails the build.
+ * An Uplink's unit, checked through every surface a first-party unit is, beside
+ * a first-party unit of the same shape: `fuel:u` sits on a ladder the way `m`
+ * does, and `fuel:mix` climbs nothing the way `rad` does. Compiled by
+ * `tsconfig.test-d.json`; a `@ts-expect-error` line that stops erroring fails
+ * the build.
  */
 
 import {
@@ -57,7 +52,7 @@ type Equal<A, B> =
     : false;
 type Expect<T extends true> = T;
 
-// ── Registration is typed from the declaration ──────────────────────────────
+// Registration is typed from the declaration.
 registerUnit({
   symbol: "fuel:u",
   kind: "fuelAmount",
@@ -95,11 +90,11 @@ registerUnit({
 // @ts-expect-error: nothing declares `fuel:drum`
 registerUnit({ symbol: "fuel:drum", kind: "x", dimension: {}, ratio: 1 });
 
-// ── Kind lookup: a format's accepted set is the unit's kind ─────────────────
+// A format's accepted set is the unit's kind.
 export type _formatsLaddered = Expect<
   Equal<FormatsFor<"fuel:u">, "fuel:u" | "fuel:ku">
 >;
-// Written as an inclusion and an exclusion rather than an equality, because a unit test elsewhere in this package declares a length of its own.
+// An inclusion and an exclusion rather than an equality: another test in this package declares a length of its own.
 type Lengths = "m" | "km" | "Mm" | "Gm" | "Tm";
 export type _formatsLadderedFirstParty = Expect<
   Equal<Extract<FormatsFor<"Mm">, Lengths>, Lengths>
@@ -117,7 +112,6 @@ export type _presentableFlat = Expect<
   Equal<PresentableAs<"fuel:pct">, "fuel:mix" | "fuel:pct">
 >;
 
-// ── Ladders and pin groups ──────────────────────────────────────────────────
 export type _ladderNamed = Expect<Equal<Extract<LadderName, "fuel">, "fuel">>;
 export type _ladderNamedFirstParty = Expect<
   Equal<Extract<LadderName, "length">, "length">
@@ -138,7 +132,6 @@ export type _flatUnitIsAKey = Expect<
   Equal<Extract<UnitGroupKey, "fuel:mix" | "rad">, "fuel:mix" | "rad">
 >;
 
-// ── <Unit> ──────────────────────────────────────────────────────────────────
 const fuel = value("fuel:u", 2_400);
 const mix = value("fuel:mix", 0.4);
 const altitude = value("m", 12_400);
@@ -158,7 +151,6 @@ export const _unitWrongAs = <Unit value={mix} as="m" />;
 // @ts-expect-error: a mixture is not a plane angle
 export const _unitWrongAsFirstParty = <Unit value={angle} as="fuel:pct" />;
 
-// ── <UnitSharedFormat> ──────────────────────────────────────────────────────
 export const _pins = (
   <UnitSharedFormat
     pins={{
@@ -217,7 +209,6 @@ export const _scopeOfWrongKind = (
   </UnitSharedFormat>
 );
 
-// ── <Band> and <Meter> ──────────────────────────────────────────────────────
 export const _band = (
   <Band
     min={value("fuel:u", 900)}
@@ -263,7 +254,6 @@ export const _meterWrongKind = (
   />
 );
 
-// ── speakQuantity and arithmetic ────────────────────────────────────────────
 export const _spoken: string = speakQuantity(fuel);
 export const _spokenFirstParty: string = speakQuantity(altitude);
 
@@ -272,10 +262,11 @@ export const _sumFirstParty: Value<"m"> = altitude.plus(value("km", 1));
 // @ts-expect-error: fuel does not add to a length
 export const _sumWrongDimension = fuel.plus(altitude);
 
-// ── The runtime table says what the declarations say ────────────────────────
-// ui-kit's generated table is the RUNTIME copy of the first-party declarations.
-// Every symbol in it is declared, with the same kind and the same ladder, and its
-// ladders are exactly the ones the kit carries rungs for.
+/*
+ * ui-kit's generated table is the runtime copy of the first-party declarations:
+ * every symbol in it is declared with the same kind and ladder, and its ladders
+ * are exactly the ones the kit carries rungs for.
+ */
 type Generated = typeof GENERATED_UNIT_KINDS;
 type LadderOf<T> = T extends { ladder: infer L } ? L : never;
 type Disagreements = {

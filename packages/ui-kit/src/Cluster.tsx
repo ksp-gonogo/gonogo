@@ -9,11 +9,8 @@ export interface ClusterProps extends HTMLAttributes<HTMLDivElement> {
   /** `justify-content` shorthand. Defaults to `between`. */
   justify?: ClusterJustify;
   /**
-   * `align-items` shorthand. Defaults to `center`, which is right for a row of
-   * single-line items and wrong the moment one side is taller than the other:
-   * a settings row whose control wraps to two lines wants its label at the
-   * TOP, not floating in the middle of it. Added for that case rather than
-   * leaving the widget with its own flex row.
+   * `align-items` shorthand. Defaults to `center`; use `start` when one side
+   * can be taller than the other, such as a label beside a wrapping control.
    */
   align?: ClusterAlign;
   /**
@@ -24,10 +21,8 @@ export interface ClusterProps extends HTMLAttributes<HTMLDivElement> {
    */
   gap?: GapToken;
   /**
-   * Let children wrap onto further lines. Off by default: a cluster that wraps
-   * silently is how a row of controls turns into a ragged block at a narrow
-   * width without anyone noticing, so wrapping is opted into by the chip strips
-   * and tag lists that actually want it.
+   * Let children wrap onto further lines. Off by default, so a row of controls
+   * never silently turns into a ragged block; chip strips and tag lists opt in.
    */
   wrap?: boolean;
   children?: ReactNode;
@@ -36,9 +31,6 @@ export interface ClusterProps extends HTMLAttributes<HTMLDivElement> {
 const JUSTIFY_CONTENT: Record<ClusterJustify, string> = {
   between: "space-between",
   start: "flex-start",
-  // Added when Navball's "Dial" turned out to be a centring box and nothing
-  // else. Centring is the most basic justification there is and the kit
-  // simply did not offer it.
   center: "center",
   end: "flex-end",
 };
@@ -50,10 +42,8 @@ const ALIGN_ITEMS: Record<ClusterAlign, string> = {
 };
 
 /**
- * The single most-repeated block in the dashboard: a horizontal row with
- * centred items, spread-out justification, and a `min-width: 0` so a
- * truncating child inside actually truncates instead of overflowing the flex
- * item. Verbatim source: ScienceOfficer's `TitleRow` and `LabHeader`.
+ * A horizontal row with centred items, spread-out justification, and
+ * `min-width: 0` so a truncating child truncates instead of overflowing.
  */
 export const Cluster = forwardRef<HTMLDivElement, ClusterProps>(
   function Cluster(

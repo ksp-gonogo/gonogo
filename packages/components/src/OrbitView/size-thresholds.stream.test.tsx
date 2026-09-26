@@ -3,17 +3,7 @@ import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { renderOrbitViewStream } from "./streamHarness";
 
-/**
- * Two defects a live render surfaced at the smallest widget sizes:
- *
- * - the panel title truncated to "O..." (2 of 10 characters) despite room in the
- *   header row for far more; a short size-gated title uses that room instead.
- * - the "orbit plane" frame caption rendered alongside the tiny-mode status
- *   pill, captioning a diagram that at that size does not exist. Both were
- *   visible at once, which is what made the caption read as noise: it
- *   answered a question ("which frame is the drawing in") for a drawing that
- *   was not on screen.
- */
+/** At tiny size the title shortens rather than ellipsis-truncating, and the frame caption drops with the diagram it captions. */
 const SCENARIO = { bodyName: "Kerbin", sma: 681500, ecc: 0.003, argPe: 12 };
 
 async function waitForSettled(container: HTMLElement) {

@@ -5,12 +5,7 @@ import { focusRing } from "./focusRing";
  * A vertical form body.
  *
  * `$boxed` puts it on a panel surface with a border and its own padding, and
- * tightens the gap, because a boxed form is a denser thing than a section of a
- * settings page. It exists so `SitrepConnection` and `DataSourceStatus` share
- * it rather than each declaring the identical five properties under a local
- * `ConfigForm` of its own, in two packages, shadowing this one. Two
- * independent copies of the same block is a variant, the same argument that
- * gave `SectionTitle` its `$rule`.
+ * tightens the gap, since a boxed form is denser than a settings section.
  */
 export const ConfigForm = styled.div<{ $boxed?: boolean }>`
   display: flex;
@@ -27,14 +22,14 @@ export const ConfigForm = styled.div<{ $boxed?: boolean }>`
       : ""}
 `;
 
-/** Vertical stack: label on top, input below */
+/** Vertical stack: label on top, input below. */
 export const Field = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-field-label);
 `;
 
-/** Horizontal: label left, input right */
+/** Horizontal: label left, input right. */
 export const FieldRow = styled.div`
   display: flex;
   align-items: center;

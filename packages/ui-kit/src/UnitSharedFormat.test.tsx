@@ -7,11 +7,7 @@ import { Unit } from "./Unit";
 import { UnitSharedFormat, useSharedFormat } from "./UnitSharedFormat";
 
 describe("UnitSharedFormat", () => {
-  /**
-   * The failure that started this: two readings either side of a rung boundary
-   * print in two different units, and the reader has to convert one of them
-   * before the pair means anything.
-   */
+  // Two readings either side of a rung boundary print in one unit.
   it("settles one rung across readings that straddle a boundary", () => {
     const { container } = render(
       <UnitSharedFormat>
@@ -23,11 +19,7 @@ describe("UnitSharedFormat", () => {
     expect(container.textContent).not.toContain("999");
   });
 
-  /**
-   * The rung the LARGEST member would pick, because the group is a group about
-   * its biggest reading: 3400 m reads `3.4 km`, so the 500 m beside it reads
-   * `0.5 km` rather than dragging the pair down to a four-digit `3400.0 m`.
-   */
+  // The largest member picks the rung: 500 m beside 3400 m reads `0.5 km`, not `3400.0 m`.
   it("takes the largest member's rung rather than the smallest", () => {
     const { container } = render(
       <UnitSharedFormat>
@@ -40,10 +32,6 @@ describe("UnitSharedFormat", () => {
     expect(screen.queryAllByText("kilometres")).toHaveLength(2);
   });
 
-  /**
-   * `hideUnitInGroup`, which exists so a part-and-whole pair in a dense row can
-   * read `1234/2000 rpm` instead of drawing the symbol on both halves.
-   */
   describe("hideUnitInGroup", () => {
     it("draws the symbol once when the first member hides it", () => {
       const { container } = render(
@@ -58,14 +46,7 @@ describe("UnitSharedFormat", () => {
       expect(container.textContent).toContain("2.0");
     });
 
-    /**
-     * The point of the prop, and the half that could silently not work.
-     *
-     * The HIDDEN member is the larger one here, so it is the one whose scale
-     * decides the rung. If hiding it dropped its vote, the visible 500 m would
-     * be alone and read `500` in metres; because it still reports, the pair
-     * settles on km and the visible half reads `0.5`.
-     */
+    // The hidden member is the larger, so this fails if hiding it also dropped its vote on the rung.
     it("still lets a hidden member's scale decide the group's rung", () => {
       const { container } = render(
         <UnitSharedFormat>
@@ -78,16 +59,7 @@ describe("UnitSharedFormat", () => {
       expect(screen.queryAllByText("kilometres")).toHaveLength(1);
     });
 
-    /**
-     * A unit with NO LADDER, which is the case the other tests here cannot see
-     * and the case this prop was written for.
-     *
-     * `m` climbs to km, so a group of metres settles a rung and the hook that
-     * reports it answers. `rpm` climbs nothing, so an rpm group settles nothing
-     * and that hook answers `undefined` even though the scope is right there.
-     * Gating the hiding on its answer therefore drew the symbol on both halves
-     * of the exact row this was built for, while every laddered test passed.
-     */
+    // `rpm` climbs no ladder, so its group settles nothing; membership, not a settled answer, must gate the hiding.
     it("hides the symbol for a unit that climbs no ladder", () => {
       const { container } = render(
         <UnitSharedFormat>
@@ -100,21 +72,14 @@ describe("UnitSharedFormat", () => {
       expect(container.textContent).toContain("200/300");
     });
 
-    /**
-     * A number with no unit anywhere near it is not a readout, so the prop is
-     * inert on its own. Otherwise it would be a way to write one.
-     */
+    // A number with no unit anywhere near it is not a readout, so the prop is inert on its own.
     it("does nothing on a lone Unit with no scope above it", () => {
       render(<Unit value={value("m", 1200)} hideUnitInGroup />);
       expect(screen.queryAllByText("kilometres")).toHaveLength(1);
     });
   });
 
-  /**
-   * A zero is the smallest reading there is, so the largest-member rule leaves
-   * it out of the choice on its own: no clause excludes it, and it still cannot
-   * drag a group to the bottom of its ladder.
-   */
+  // A zero is the smallest reading, so the largest-member rule already keeps it from dragging the group down.
   it("does not let a zero member drag the group to the base unit", () => {
     const { container } = render(
       <UnitSharedFormat>
@@ -127,13 +92,7 @@ describe("UnitSharedFormat", () => {
     expect(screen.queryAllByText("megametres")).toHaveLength(2);
   });
 
-  /**
-   * The case the deleted zero-exclusion clause used to reach, and the reason it
-   * could go: a group of nothing but zeros has a winner like any other, and its
-   * members read alike because a zero is a zero at every rung. Excluding them
-   * left the group unsettled and each member answering for itself, so two
-   * readings of the same nothing printed in two units.
-   */
+  // A group of zeros still settles, so two readings of the same nothing print in one unit.
   it("settles a group whose every member is zero", () => {
     render(
       <UnitSharedFormat>
@@ -145,11 +104,7 @@ describe("UnitSharedFormat", () => {
     expect(screen.queryAllByText("kilometres")).toHaveLength(0);
   });
 
-  /**
-   * The operator's requirement that a MIXED set works. Grouping is per kind, so
-   * one scope settles metres and kilograms separately with nobody separating
-   * them at the call site.
-   */
+  // Grouping is per kind, so one scope settles metres and kilograms separately.
   it("settles a format per kind rather than one for the whole scope", () => {
     const { container } = render(
       <UnitSharedFormat>
@@ -163,14 +118,7 @@ describe("UnitSharedFormat", () => {
     expect(container.textContent).toContain("kg");
   });
 
-  /**
-   * The group settles a FORMAT and not just a rung. Both readings land on the
-   * megametre rung, where a length's default single decimal prints each of them
-   * as `6.7 Mm`, and no member can see that on its own: how many digits it
-   * takes to tell two readings apart is a fact about the whole group.
-   *
-   * The caller here does what every caller does, which is wrap.
-   */
+  // How many digits it takes to tell two readings apart is a fact about the whole group, not any one member.
   it("settles the digit count too, when the scope asks its members to read apart", () => {
     const { container } = render(
       <UnitSharedFormat separate>
@@ -183,11 +131,7 @@ describe("UnitSharedFormat", () => {
     expect(container.textContent).toContain("Mm");
   });
 
-  /**
-   * A column of thirty cells has no promise to keep about the two closest of
-   * them, and widening it until they read apart would print six decimals of
-   * noise in every row. So separating is asked for, never assumed.
-   */
+  // Separating is asked for, never assumed: a column would otherwise print decimals of noise in every row.
   it("leaves the digits alone in a group that did not ask to read apart", () => {
     const { container } = render(
       <UnitSharedFormat>
@@ -198,7 +142,6 @@ describe("UnitSharedFormat", () => {
     expect(container.textContent).not.toContain("6.70");
   });
 
-  /** Nothing to separate, and six decimals of noise is not an improvement. */
   it("does not widen a group whose members agree", () => {
     const { container } = render(
       <UnitSharedFormat separate>
@@ -209,11 +152,7 @@ describe("UnitSharedFormat", () => {
     expect(container.textContent).not.toContain("6.7000");
   });
 
-  /**
-   * The escape the operator kept: a caller may still PIN what the group would
-   * otherwise settle. Stated once, on the scope, rather than at each member,
-   * which is the difference between pinning and threading an answer back down.
-   */
+  // A pin on the scope overrides what the group would otherwise settle.
   it("lets the scope pin the digits the group would have settled", () => {
     const { container } = render(
       <UnitSharedFormat separate decimals={4}>
@@ -237,15 +176,7 @@ describe("UnitSharedFormat", () => {
     expect(screen.queryAllByText("kilometres")).toHaveLength(0);
   });
 
-  /**
-   * The defect `of` exists to close, and it broke the one promise this whole
-   * component makes. A flat pin reached every group, so a scope pinned to
-   * kilometres handed `format: "km"` to its KILOGRAMS as well; the formatter
-   * refused the cross-kind rung, but the pin had already displaced the rung the
-   * kilogram group settled for itself, and the two masses rendered as
-   * `500.00 kg` and `1.00 kt`. One group, two units, which is exactly what a
-   * shared format is for.
-   */
+  // A pin addressed with `of` reaches only its own group, so the masses still settle one unit between them.
   it("leaves a group the pin does not name settling for itself", () => {
     render(
       <UnitSharedFormat of="m" format="km">
@@ -258,11 +189,7 @@ describe("UnitSharedFormat", () => {
     expect(screen.queryAllByText("kilograms")).toHaveLength(0);
   });
 
-  /**
-   * A mixed scope pins each group under its own name, which is the only honest
-   * way to pin two of them at once: one flat set of props cannot say two
-   * things.
-   */
+  // A mixed scope pins each group under its own name.
   it("pins each named group in the unit it is keyed to", () => {
     render(
       <UnitSharedFormat
@@ -276,10 +203,7 @@ describe("UnitSharedFormat", () => {
     expect(screen.queryAllByText("tonnes")).toHaveLength(1);
   });
 
-  /**
-   * Entries are opt-in: a group the map does not mention settles for itself,
-   * which is what makes the map the whole statement a mixed scope has to make.
-   */
+  // A group the map does not mention settles for itself.
   it("leaves a group the pin map omits settling for itself", () => {
     render(
       <UnitSharedFormat pins={{ length: { format: "km" } }}>
@@ -292,12 +216,7 @@ describe("UnitSharedFormat", () => {
     expect(screen.queryAllByText("kilotonnes")).toHaveLength(2);
   });
 
-  /**
-   * The key names the GROUP, so one pin reaches every unit that settles with
-   * it. A unit-keyed record made this ambiguous rather than wrong: `{ m: ... }`
-   * and `{ km: ... }` addressed one length group by two names, and whichever
-   * was written last silently won.
-   */
+  // The key names the group, so one pin reaches every unit that settles with it.
   it("reaches every unit of the laddered kind it names", () => {
     render(
       <UnitSharedFormat pins={{ length: { format: "km" } }}>
@@ -308,12 +227,7 @@ describe("UnitSharedFormat", () => {
     expect(screen.queryAllByText("kilometres")).toHaveLength(2);
   });
 
-  /**
-   * A pin that names no unit cannot be addressed to one, so it still reaches
-   * every group, exactly as every pin did before `of` existed. Kept because the
-   * scope is also a plain grouping mechanism and a caller holding a
-   * `Value<string>` has no kind to name.
-   */
+  // A pin that names no unit reaches every group.
   it("hands an unaddressed pin to every group in the scope", () => {
     const { container } = render(
       <UnitSharedFormat decimals={3}>
@@ -325,11 +239,7 @@ describe("UnitSharedFormat", () => {
     expect(container.textContent).toContain("500.000");
   });
 
-  /**
-   * The group is assembled from what is mounted, not from what has ever been
-   * mounted, so a member leaving re-settles the rest. A high-water mark would
-   * pin a stale rung for the life of the scope.
-   */
+  // The group is what is mounted now, so a member leaving re-settles the rest.
   it("re-settles when the member that was holding the rung unmounts", async () => {
     function Pair() {
       const [showLarge, setShowLarge] = useState(true);
@@ -365,11 +275,7 @@ describe("UnitSharedFormat", () => {
     expect(container.textContent).toContain("km");
   });
 
-  /**
-   * A caller who pinned the rung on the MEMBER has already answered the question
-   * the group exists to answer, so the pin wins and the value is not in the
-   * group at all.
-   */
+  // A member that pins its own rung is not in the group at all.
   it("leaves a pinned rung alone", () => {
     const { container } = render(
       <UnitSharedFormat>
@@ -384,11 +290,7 @@ describe("UnitSharedFormat", () => {
     expect(container.textContent).toContain("km");
   });
 
-  /**
-   * A group rung changes the symbol, and a symbol is read out loud as a word.
-   * The word is derived from the symbol actually rendered, so a spoken reading
-   * cannot describe a rung the reader is not looking at.
-   */
+  // The spoken word follows the symbol actually rendered at the group's rung.
   it("speaks the rung the group settled on", () => {
     render(
       <UnitSharedFormat>
@@ -401,29 +303,17 @@ describe("UnitSharedFormat", () => {
   });
 
   /**
-   * The whole engineering risk of a reporting context: a member cannot know the
-   * group format until the group is assembled, so there is a second pass, and a
-   * second pass that feeds itself never stops.
-   *
-   * What makes it stop is structural: a report is a function of the member's own
-   * props, never of the format it was handed back, so the second pass reproduces
-   * the first pass's reports exactly and settles on the same answer. This counts
-   * the passes. A design that fed itself would not merely count higher here, it
-   * would exceed React's update depth and throw.
+   * A report depends only on the member's own props, never on the format handed back, so the group settles in one extra pass.
+   * A design that fed itself would exceed React's update depth and throw.
    */
   it("settles in one extra pass and schedules nothing after it", async () => {
     let renders = 0;
-    /** A member as `Unit` is one: it reports, and it reads the answer back. */
     function Counted({ magnitude }: { magnitude: number }) {
       renders += 1;
       const shared = useSharedFormat(value("m", magnitude));
       return <span>{shared?.format ?? "unsettled"}</span>;
     }
-    /*
-     * Built fresh each time rather than held in a constant: React bails out of
-     * re-rendering a subtree handed back the identical element, so a reused one
-     * would prove nothing about the second render.
-     */
+    // Built fresh each time: React bails out of re-rendering an identical element, so a reused one would prove nothing.
     const members = () => (
       <UnitSharedFormat separate>
         <Counted magnitude={500} />
@@ -441,18 +331,12 @@ describe("UnitSharedFormat", () => {
     await act(async () => {});
     expect(renders).toBe(afterMount);
 
-    // An unchanged re-render reports the same readings, so the group's answer
-    // does not move and no member is rendered a second time for it. A fresh
-    // `Value` per render is deliberate: what a member reports is its magnitude
-    // and its unit, so an equal reading in a new object is not a change.
+    // An equal reading in a fresh `Value` is not a change, so an unchanged re-render renders no member a second time.
     rerender(members());
     expect(renders).toBe(afterMount + 3);
   });
 
-  /**
-   * A band inside an aligned column wants the COLUMN's rung, so a scope inside
-   * a scope inherits it instead of settling one of its own.
-   */
+  // A scope inside a scope inherits the outer rung instead of settling its own.
   it("takes the rung from the outermost scope rather than starting a new one", () => {
     const { container } = render(
       <UnitSharedFormat>
@@ -467,12 +351,7 @@ describe("UnitSharedFormat", () => {
     expect(container.textContent).not.toContain("500.0");
   });
 
-  /**
-   * And the other half of the same rule: the column decides the unit, the band
-   * inside it still decides how many digits its own two ends need. Both ends
-   * here would print `1.0 Mm` at the column's rung, and the inner scope widens
-   * them without dragging the column's other cell along.
-   */
+  // The outer scope decides the unit; the inner one still widens the digits its own two ends need.
   it("keeps a nested scope's own digit count while inheriting the rung", () => {
     const { container } = render(
       <UnitSharedFormat>

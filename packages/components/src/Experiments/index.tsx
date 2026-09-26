@@ -37,42 +37,18 @@ import { ScienceExperimentRow } from "./ScienceExperimentRow";
 
 type ExperimentsConfig = Record<string, never>;
 
-// `Instrument` moved to `./instrument` when it became THREE things at once: the
-// parser's output, the row component's prop, and the `experiments.instruments`
-// contribution entry. Re-exported here so every existing import site keeps
-// reading it off the widget it belongs to. That module also carries the
-// `ContributionRegistry` merge, beside the type it declares, the same way
-// CommSignal carries theirs.
 export type { Instrument } from "./instrument";
 
 /**
- * Slot context for `experiments.instrument`: the per-instrument-row slot.
- * Named for the row it addresses, not for a segment: a once-per-widget
- * segment (`sections`, `actions`) cannot express "once per instrument", so
- * this stays a widget-authored slot and must not borrow a segment's name.
- * The row slot passes down the `Instrument` it sits beside so an augment
- * (e.g. an on-vessel-lab experiment table from a science Uplink, the locked
- * alternate to `deployed-science`) can render a per-instrument extension scoped to
- * exactly that instrument (a slot-parameterised augment).
+ * Slot context for `experiments.instrument`, the per-instrument-row slot. It
+ * passes down the `Instrument` it sits beside so an augment can extend exactly
+ * that row. A once-per-widget segment cannot express "once per instrument".
  */
 export interface ExperimentsInstrumentSlotContext {
   /** The instrument the augmented row is rendering. */
   instrument: Instrument;
 }
 
-// `experiments.actions` is the framework's universal header segment, mounted by
-// `Panel` for every widget, so this widget declares no props type for it: a
-// universal segment is propless. It was `science-officer.badges` with a context
-// carrying the instrument list and total science; the one binder ignored both
-// (`_props`) and reads its own Topic instead, which is what an augment is for.
-
-// Declaration-merge the slot ids → props types into core's `SlotRegistry`.
-// Co-located here so parallel slot work on other widgets never collides on
-// a shared central file. This is what types
-// `registerAugment({ augments: "experiments.instrument", ... })` and
-// `<AugmentSlot name="experiments.instrument" props={...} />` against the
-// widget's own context types rather than the loose `Record<string, unknown>`
-// fallback an unmerged slot id would receive.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "experiments.instrument": ExperimentsInstrumentSlotContext;
@@ -81,24 +57,16 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// The facade-sealed-client copy of this merge lives in `mod/sitrep-sdk/src/api/slots.ts` rather than as a second `declare module "@ksp-gonogo/sitrep-sdk"` block here; MapView's identical comment and that module's header both say why.
+// The sitrep-sdk copy of this merge lives in `mod/sitrep-sdk/src/api/slots.ts`.
 
-/** Confirmed-none tombstones for the three science reads: present, and empty. */
+/** Confirmed-none values for the science reads: present, and empty. */
 const EMPTY_INSTRUMENTS = { instruments: [] as unknown[] };
 const EMPTY_EXPERIMENTS = { experiments: [] as unknown[] };
 
 /**
- * Two wire shapes for the instrument list land here, so every field reads
- * through a fallback pair. `ScienceViewProvider`'s `InstrumentEntry` names them
- * `partName`, `experimentId` and `dataIsCollectable`; the older shape called the
- * same three `partTitle`, `expId` and `hasData`, and `dataIsCollectable` carries
- * the "instrument currently holds collectable data" meaning `hasData` always
- * had.
- *
- * `partId` arrives as a number in one shape and a string in the other and
- * normalises to a string, which is safe because every consumer below only ever
- * interpolates it into a key or a command string and never compares it
- * numerically.
+ * Two wire shapes land here, so each field reads through a fallback pair:
+ * `partName`/`experimentId`/`dataIsCollectable` or `partTitle`/`expId`/`hasData`.
+ * `partId` normalises to a string.
  */
 export function parseInstruments(raw: unknown): Instrument[] | null {
   if (raw === null || raw === undefined) return null;
@@ -144,7 +112,7 @@ export function parseInstruments(raw: unknown): Instrument[] | null {
   return out;
 }
 
-// Sums `dataAmount` across every entry of `science.experiments`, deriving the vessel-wide aggregate rather than reading it, because the wire carries no pre-aggregated field.
+// The wire carries no vessel-wide data total, so it is summed here.
 export function sumExperimentDataAmount(raw: unknown): number {
   if (!Array.isArray(raw)) return 0;
   let total = 0;
@@ -166,33 +134,23 @@ export interface LabStatus {
   dataStored: number | null;
   dataStorage: number | null;
   storedScience: number | null;
-  /** Null when the provider could not read it. Not false: a lab that is not
-   *  known to be processing and one known to be idle are different rows. */
+  /** Null when the provider could not read it; not the same as idle. */
   processingData: boolean | null;
   statusText: string | null;
   scientistCount: number | null;
   scienceRate: number | null;
-  /** Null when the provider could not read it. OFFLINE is a diagnosis, and it
-   *  was the answer a failed read gave. */
+  /** Null when the provider could not read it; OFFLINE is a diagnosis, not a failed read. */
   isOperational: boolean | null;
 }
 
-/** A wire bool with its absence kept: `=== true` reported the reassuring answer
- *  for a field the provider never filled, which is what the three-valued
- *  contract shape exists to prevent. */
+/** A wire bool with its absence kept as null. */
 function asFlag(value: unknown): boolean | null {
   return typeof value === "boolean" ? value : null;
 }
 
 /**
- * Parses `science.lab`, built by `ScienceViewProvider.BuildLab`, as a
- * whole-topic raw-array read on the same "key is the topic" footing as
- * `parts.power` and `parts.robotics`.
- *
- * Each entry is a lab part on the active vessel, and an idle-but-operational lab
- * (crewed, nothing loaded) is a normal state: `dataStored`, `processingData` and
- * `scienceRate` all at zero means a lab with nothing to process yet, not the
- * absence of a lab.
+ * Parses `science.lab`, one entry per lab part. A lab with everything at zero is
+ * idle, not absent.
  */
 export function parseLab(raw: unknown): LabStatus[] | null {
   if (raw === null || raw === undefined) return null;
@@ -221,29 +179,11 @@ function ExperimentsComponent({
   w,
   h,
 }: Readonly<ComponentProps<ExperimentsConfig>>) {
-  // Deploy and transmit are dispatched to the craft and so are subject to signal delay, which is why both ride `useCommand`.
-  /**
-   * These three feed parsers typed `(raw: unknown)`, so the migration produced no
-   * type error here at all: a `Reading` object went into `parseInstruments`, failed
-   * its shape checks, and the widget rendered as though the vessel carried no
-   * instruments. `tsc` cannot see this class, which is why it is called out here.
-   *
-   * All three are facts. An instrument list, a science archive and a lab's state
-   * change when an event changes them, and a confirmed-none is an empty list rather
-   * than a wait.
-   */
+  // The parsers take `unknown`, so passing them a Reading instead of its value compiles and renders "no instruments".
   const instrumentsReading = useTelemetry("science.instruments");
   const instrumentsRaw = stillTrue(instrumentsReading, EMPTY_INSTRUMENTS);
-  /*
-   * The list is kept and marked rather than dropped. An instrument's badges are
-   * the last thing KSP said about it, which is still the best answer available;
-   * what stops being true is that they describe the vessel NOW, and that is what
-   * the mark on each row says, and why the row's controls go dead with it.
-   */
+  // A held list is kept and marked per row, and the row's controls go dead with it.
   const instrumentsHeld = heldGrade(instrumentsReading);
-  // No pre-aggregated data field on the wire, so the vessel-wide total is
-  // derived client-side from the same `science.experiments` Topic ScienceData
-  // reads, on the same aggregate semantics.
   const experimentsReading = useTelemetry("science.experiments");
   const experimentsRaw = stillTrue(experimentsReading, EMPTY_EXPERIMENTS);
   const instruments = parseInstruments(instrumentsRaw);
@@ -253,41 +193,18 @@ function ExperimentsComponent({
   usePanelDelay(transmitCmd);
   const totalDataMits = sumExperimentDataAmount(experimentsRaw);
 
-  /**
-   * `science.lab` is read independently of the instrument list above, because
-   * the Mobile Processing Lab is a different part from the crew-report, goo and
-   * barometer instruments `science.instruments` tracks.
-   *
-   * Declared with the other reads so it sits above every early return: a hook
-   * after a conditional return is a hooks-order bug waiting to happen.
-   */
   const filter = useRowFilter({ placeholder: "Filter instruments..." });
   const labReading = useTelemetry("science.lab");
   const labRaw = stillTrue(labReading, undefined);
   const labs = parseLab(labRaw);
   const labHeld = heldGrade(labReading);
 
-  /**
-   * Instruments aboard that this widget cannot observe for itself, off the
-   * `experiments.instruments` contribution slot (`./instrument` carries the
-   * slot's own doc comment).
-   *
-   * Declared up here with the other hooks for the same reason `science.lab` is:
-   * every early return below is beneath it. Read after them, a vessel whose
-   * only science hardware is contributed would be told "No instruments
-   * aboard", which is the reading this slot exists to stop the widget giving.
-   */
   const contributedInstruments = useContributions("experiments.instruments");
 
   const rows = h ?? 8;
   const cols = w ?? 6;
   const showSubtitle = rows >= 4;
-  // At the narrowest tested width (min-3x4, cols === 3) the lab name column
-  // has nothing left after the status badge claims its `flex-shrink: 0`
-  // width, and the freed-up wrapped line pushes the meta row (scientist
-  // count / data amount) past Panel's overflow:hidden bottom edge, clipping
-  // it mid-glyph. Require the same cols >= 4 floor as the header badge above
-  // rather than just a row count.
+  // Below four columns the lab's meta row wraps past the panel's bottom edge.
   const showLab = rows >= 4 && cols >= 4;
 
   const waiting = (message: string) => (
@@ -311,12 +228,7 @@ function ExperimentsComponent({
 
   const contributed = ownContributed(contributedInstruments, instruments);
 
-  /*
-   * Both waits are conditional on there being no contributed instruments
-   * either: "awaiting" and "none aboard" are claims about the whole vessel, and
-   * the stock list pending or empty says nothing about an instrument another
-   * provider has already reported.
-   */
+  // "Awaiting" and "none aboard" are claims about the whole vessel, contributed instruments included.
   if (instruments === null && contributed.length === 0)
     return waiting("Awaiting instrument telemetry");
   if ((instruments?.length ?? 0) === 0 && contributed.length === 0)
@@ -325,28 +237,17 @@ function ExperimentsComponent({
   const matchesFilter = (inst: Instrument) =>
     filter.matches(`${inst.expId} ${inst.partTitle}`);
 
-  // Group by expId so a vessel with three thermometers shows them in
-  // one cluster rather than scattered.
-  // Filter before grouping so a group that loses every instrument disappears
-  // with its heading, rather than leaving an empty section behind.
+  // Filtered before grouping so a group that loses every instrument loses its heading too.
   const grouped = groupByExpId((instruments ?? []).filter(matchesFilter));
   const contributedGroups = groupContributed(contributed.filter(matchesFilter));
 
-  // Contributed instruments are counted: they are aboard, and a header total
-  // that omitted them would disagree with the rows underneath it. Summarised
-  // off the unfiltered lists, same as before, so the total is the vessel's and
-  // not the filter's.
+  // The vessel's totals, not the filter's, contributed instruments included.
   const totals = summarise([...(instruments ?? []), ...contributed]);
 
   const sectionNodes = grouped.map(({ expId, items }) => (
     <Section key={expId}>
       <SectionTitle>{expId || "(unknown)"}</SectionTitle>
-      {/* `ScienceExperimentRow` is a kit `Row`, which renders an `<li>`, so
-          the container has to be a real list or every instrument row is an
-          orphaned list item. An augment registered into the per-instrument
-          slot below renders as a sibling inside this `<ul>` and would need
-          to be a list item itself; nothing registers there yet, and the axe
-          sweep over this widget's fixtures is what would say so. */}
+      {/* A real list, because the row renders an `<li>`; an augment in the slot below must be a list item too. */}
       <Stack as="ul" style={INSTRUMENT_LIST}>
         {items.map((inst) => (
           <Fragment key={inst.partId}>
@@ -356,12 +257,6 @@ function ExperimentsComponent({
               transmitCmd={transmitCmd}
               heldGrade={instrumentsHeld}
             />
-            {/* Per-instrument section slot: passes this instrument
-                down so an on-vessel-lab augment can extend the row.
-                Empty until an Uplink registers into it. Kept here in
-                the widget rather than inside the kit row: the slot is
-                a framework concern and the row stays
-                data/framework-free. */}
             <AugmentSlot
               name="experiments.instrument"
               props={{ instrument: inst }}
@@ -372,17 +267,7 @@ function ExperimentsComponent({
     </Section>
   ));
 
-  /**
-   * Contributed rows, in their own sections headed by whoever supplied them.
-   *
-   * Beside the stock groups rather than folded into them, because the
-   * provenance is the operator's answer to why these rows carry no Deploy or
-   * Transmit control: the host's commands reach a part through the stock
-   * science module, and a part the stock list never mentioned is not one they
-   * can act on. A section headed with the contributor's name says where the
-   * rows came from; the same rows interleaved with the stock ones would read as
-   * rows whose buttons had gone missing.
-   */
+  // Contributed rows sit in sections headed by their supplier, which is why they carry no stock commands.
   const contributedNodes = contributedGroups.map(({ ownerLabel, groups }) => (
     <Section
       key={`contributed-${ownerLabel}`}
@@ -393,8 +278,6 @@ function ExperimentsComponent({
       {groups.map(({ expId, items }) => (
         <Stack key={expId}>
           <SectionTitle as="h5">{expId || "(unknown)"}</SectionTitle>
-          {/* A real `<ul>`, for the same reason the stock list above needs
-              one: the row is a kit `Row`, which renders an `<li>`. */}
           <Stack as="ul" style={INSTRUMENT_LIST}>
             {items.map((inst) => (
               <ScienceExperimentRow key={inst.partId} instrument={inst} />
@@ -406,16 +289,10 @@ function ExperimentsComponent({
   ));
 
   return (
-    /* The header escape-hatch slot is `Panel`'s universal `actions` segment,
-       so there is nothing to render here: an augment composing next to the
-       title binds `experiments.actions` and `Panel` places it. */
     <Panel
       panelTitle="EXPERIMENTS"
       compactTitle={["EXPTS"]}
-      /* The filter used to sit under a ScrollArea holding the instrument
-         groups, which is what kept it in view while they scrolled. With the
-         groups in Panel's section grid the body itself is the scroller, so the
-         control moves to the footer, which is the pinned strip outside it. */
+      // The footer is pinned outside the scrolling body, so the filter stays in view.
       panelFooter={filter.control}
       sections={[
         showSubtitle && (
@@ -429,9 +306,6 @@ function ExperimentsComponent({
               {totalDataMits > 0 && (
                 <Text spaced title="Total stored science data (mits)">
                   ·{" "}
-                  {/* The whole reading, not the bare number: an archive that
-                      stopped arriving draws the same total with the staleness
-                      mark and the instant it was last a reading of now. */}
                   <Unit
                     value={readingOf(experimentsReading, () =>
                       value("Mit", totalDataMits),
@@ -461,12 +335,7 @@ function ExperimentsComponent({
   );
 }
 
-/**
- * Mobile Processing Lab status, from `science.lab`. Renders nothing when
- * there's no lab data yet (`null`, still loading) or the vessel carries no
- * lab (`[]`): same "silent until real content" contract as the rest of the
- * widget, so a lab-less vessel's layout is unaffected.
- */
+/** Mobile Processing Lab status. Renders nothing while loading or when the vessel carries no lab. */
 function LabSection({
   labs,
   heldGrade: labGrade,
@@ -480,7 +349,6 @@ function LabSection({
     <>
       <Stack>
         {labs.map((lab, i) => (
-          // A `science.lab` entry carries no stable id, unlike an instrument's `partId`. The list is never reordered within a render, so the index only has to disambiguate two labs that happen to share a `partName`.
           // biome-ignore lint/suspicious/noArrayIndexKey: no stable id on science.lab entries
           <Stack key={`${lab.partName}-${i}`}>
             <Cluster>
@@ -552,13 +420,8 @@ function groupByExpId(instruments: Instrument[]): InstrumentGroup[] {
 }
 
 /**
- * The contributed entries this widget will actually draw.
- *
- * First entry per `partId` wins, the same convention ShipMap's `groupByPart`
- * uses for its own slots. A `partId` the stock list already carries is dropped
- * outright: a contributor naming a part `science.instruments` also reports is
- * describing an instrument the host can already COMMAND, so the host's own row
- * is the better of the two and a second one would be the same instrument twice.
+ * The contributed entries this widget draws: first per `partId` wins, and a
+ * `partId` the stock list carries is dropped, since the stock row can be commanded.
  */
 function ownContributed(
   entries: readonly Contributed<Instrument>[],
@@ -581,13 +444,8 @@ interface ContributedInstrumentGroup {
 }
 
 /**
- * Contributed instruments, by WHO supplied them and then by experiment, both in
- * first-seen order so the sections do not reshuffle between frames.
- *
- * The label falls back to the contribution id when a contribution carries no
- * owner, which is what a registration made without an Uplink handle looks like.
- * A heading that named nobody would leave the operator with rows they cannot
- * attribute, and the id is at least something to blame.
+ * Contributed instruments by supplier, then by experiment, in first-seen order so
+ * sections do not reshuffle. An ownerless contribution is labelled by its id.
  */
 function groupContributed(
   entries: readonly Contributed<Instrument>[],
@@ -639,11 +497,7 @@ registerComponent<ExperimentsConfig>({
   defaultConfig: {},
   actions: [],
   augmentSlots: ["experiments.instrument", "experiments.actions"],
-  /*
-   * Declared, not decorative: the per-frame aggregation only runs for the slots
-   * a widget lists here, so a contribution to an undeclared slot is computed by
-   * nobody and read as an empty array with nothing to say so.
-   */
+  // Aggregation only runs for declared slots; an undeclared one silently reads empty.
   contributionSlots: ["experiments.instruments"],
   pushable: true,
   requires: ["flight"],

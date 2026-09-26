@@ -7,18 +7,9 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const read = (p: string) => readFileSync(resolve(HERE, p), "utf8");
 
 /**
- * An icon's default size is written as a `var()` inside the SVG `width`/`height`
- * presentation attribute, which looks wrong enough that someone will want to put
- * a number back. It is not wrong, and these are the two reasons.
- *
- * It RESOLVES. Measured in chromium, firefox and webkit, with negative controls
- * so the measurement can show a failure: `width="banana"` is rejected by all
- * three and `width="var(--absent, 33px)"` renders at 33.
- *
- * It STEPS. `tokens.css` raises both icon sizes under `@media (pointer: coarse)`,
- * and a `size={20}` prop is a JS number that cannot read a media query. Replacing
- * the token with a number leaves the glyph behind on a touch screen while the
- * control around it grows, which is the defect the family exists to fix.
+ * An icon's default size is a `var()` inside the SVG `width`/`height`
+ * presentation attribute. It resolves in all three engines, and it steps under
+ * `@media (pointer: coarse)`, which a JS number cannot.
  */
 describe("icon size tokens", () => {
   it("the kit's icon defaults reach for the token, not a number", () => {
@@ -40,7 +31,7 @@ describe("icon size tokens", () => {
   });
 
   it("the icon family stays off the type scale", () => {
-    // A type name offered for a box dimension gets reached for as text, which is the whole reason these two are not --font-size-*.
+    // A type token offered for a box dimension gets reached for as text.
     expect(read("./Icons.tsx")).not.toMatch(/size:\s*"var\(--font-size-/);
     expect(read("./MarkerIcons.tsx")).not.toMatch(
       /DEFAULT_SIZE\s*=\s*"var\(--font-size-/,

@@ -10,22 +10,11 @@ import {
 import { beforeAll, describe, expect, it } from "vitest";
 
 /**
- * Whether each MapView fixture describes a scene that can exist.
- *
- * The DOM snapshots cannot answer this and never could. Everything the map
- * draws goes onto a `<canvas>`, so the only orbit-shaped thing the committed
- * HTML carries is a segment count, and a segment count is the same number for
- * an equatorial track and a polar one. Four fixtures shared one pasted
- * `vessel.orbit` (sma 700000, ecc 0.1, inc 0, and Kerbin's mu even on the Mun)
- * and every snapshot, a11y sweep and prediction check passed on all four: a
- * craft on the launchpad carried a 30x170 km orbit, `mun-polar-orbit` was
- * equatorial, and its ground track ran 65 degrees of latitude away from its own
- * vessel marker.
- *
- * So this reads the numbers rather than the render. It re-propagates each
- * fixture's own elements with the same `patchStateAt`/`predictGroundTrack` the
- * widget uses and asks whether the answer is the position the fixture claims,
- * which is the one question that separates the four scenarios.
+ * Whether each MapView fixture describes a scene that can exist. The map
+ * draws on a canvas, so a DOM snapshot carries only a segment count, which is
+ * the same for an equatorial track and a polar one. This re-propagates each
+ * fixture's own elements with the widget's `patchStateAt`/`predictGroundTrack`
+ * and checks the answer is the position the fixture claims.
  */
 
 interface WirePatch {
@@ -102,11 +91,7 @@ interface Scene {
 
 const scenes: Scene[] = [];
 for (const [path, mod] of Object.entries(MODULES)) {
-  /*
-   * A stale twin is its live twin's scene, staged later, so it is not a
-   * scenario of its own. `staleScenes.test.tsx` is what judges it. A held scene
-   * that has no live twin is its own scenario and is checked here.
-   */
+  // A stale twin is its live twin's scene staged later, judged by `staleScenes.test.tsx`.
   if (path.endsWith("-stopped-arriving.json")) continue;
   const emits = mod.default._stream?.emits;
   const ut = mod.default._stream?.pinnedUt;
@@ -115,14 +100,9 @@ for (const [path, mod] of Object.entries(MODULES)) {
     | WireOrbit
     | undefined;
   /*
-   * The NEWEST flight sample, and the instant IT was taken.
-   *
-   * A scene whose link is down lays down several samples and pins the view
-   * past the last of them, so `pinnedUt` is where the operator is looking and
-   * not where the craft was measured. Propagating the conic to the view
-   * instant and comparing it against a sample taken seconds earlier calls a
-   * coherent scene incoherent: at 210 m/s the two are hundreds of metres
-   * apart. The sample and the instant have to come from the same emit.
+   * The newest flight sample and the instant it was taken, from the same emit:
+   * a scene whose link is down pins the view past its last sample, and at
+   * 210 m/s a few seconds is hundreds of metres.
    */
   const flightEmit = [...emits]
     .filter((e) => e.channel === "vessel.flight")
@@ -195,16 +175,9 @@ function orbitAsPatch(s: Scene, radius: number, mu: number): WirePatch {
 }
 
 /**
- * The elements without the bookkeeping that varies between two copies of one
- * pasted orbit: epoch and the patch window move with the fixture's own UT, so
- * comparing those would call two identical orbits different.
- *
- * The planned burns are in it because they are the other half of what the map
- * draws. `kerbin-plane-change-node` is deliberately the `kerbin-lko-equator`
- * parking orbit with a node on it, and the pair is the point: the amber track
- * is identical in both and the cyan one exists in only one, so what the burn
- * changes is the only difference on screen. Fingerprinting the elements alone
- * would call those two the same picture, which is exactly backwards.
+ * The elements without the epoch and patch window, which move with the
+ * fixture's own UT. The planned burns are included: `kerbin-plane-change-node`
+ * is `kerbin-lko-equator` plus a node, and the burn is the only difference.
  */
 function elementFingerprint(s: Scene): string {
   return JSON.stringify([
@@ -222,12 +195,7 @@ function elementFingerprint(s: Scene): string {
   ]);
 }
 
-/**
- * The registered body, with the `gm` these checks propagate against asserted
- * present. `BodyDefinition.gm` is optional, and the period and state-vector
- * arithmetic below cannot be done without it, so a body that states none is a
- * failure of the fixture rather than a case to skip.
- */
+/** The registered body, with `gm` asserted present: the arithmetic needs it, so a body stating none fails the fixture. */
 function bodyOf(name: string) {
   const b = getBody(name);
   if (!b) throw new Error(`no registered body ${name}`);
@@ -307,7 +275,7 @@ describe("MapView fixtures describe scenes that can exist", () => {
         const b = bodyOf(s.bodyName);
         const patch = toLegacy(s.patches[0] ?? orbitAsPatch(s, b.radius, b.gm));
         const g = geoFromInertial(patchStateAt(patch, s.ut), b.radius);
-        // A tenth of a degree is finer than the map can draw, and coarse enough to survive the fixtures' rounded decimals.
+        // A tenth of a degree is finer than the map draws and survives the fixtures' rounded decimals.
         expect(g.lat).toBeCloseTo(s.flight.latitude, 1);
         expect(g.alt / 1000).toBeCloseTo(s.flight.altitudeAsl / 1000, 2);
       });
@@ -371,9 +339,7 @@ describe("MapView fixtures describe scenes that can exist", () => {
     expect(pad.flight.altitudeAsl).toBeLessThan(1000);
     expect(pad.flight.surfaceSpeed).toBe(0);
     expect(pad.flight.verticalSpeed).toBe(0);
-    // Co-rotating rather than orbiting: apoapsis is the pad's own altitude and
-    // periapsis is deep inside the planet, which is why there is no forward
-    // ground track to draw.
+    // Co-rotating, not orbiting: periapsis is inside the planet, so there is no forward ground track.
     expect(pad.orbit.sma * (1 - pad.orbit.ecc) - b.radius).toBeLessThan(0);
     expect(pad.orbit.sma * (1 + pad.orbit.ecc) - b.radius).toBeCloseTo(
       pad.flight.altitudeAsl,

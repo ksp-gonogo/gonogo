@@ -17,7 +17,7 @@ describe("MapView prediction throttle", () => {
       1001.873, // next second
     ];
     const buckets = ticks.map((t) => quantiseUt(t, 1));
-    // Eight ticks → just two distinct bucket values.
+    // Eight ticks, two distinct buckets.
     expect(new Set(buckets).size).toBe(2);
   });
 
@@ -29,12 +29,7 @@ describe("MapView prediction throttle", () => {
     if (!budget) return;
     budget.reset();
 
-    // Simulate the MapView re-rendering at the producer's 4 Hz rate for
-    // 5 wall-clock seconds. With the quantise(ut, 1) throttle in place,
-    // the *quantised* ut only changes once per second; useMemo's
-    // identity check sees the same value and skips the recompute. We
-    // approximate that here by recording exactly once per quantisation
-    // bucket transition.
+    // 5 seconds at the producer's 4 Hz, recording once per bucket transition as useMemo's identity check would.
     const tStart = 1_000_000;
     let lastBucket: number | null = null;
     for (let i = 0; i < 20; i++) {
@@ -45,15 +40,12 @@ describe("MapView prediction throttle", () => {
         lastBucket = bucket;
       }
     }
-    // 5 seconds wall-clock → at most 5 calls in the rolling window.
+    // 5 seconds: at most 5 calls in the rolling window.
     expect(budget.rate(tStart * 1000 + 4750)).toBeLessThanOrEqual(5);
   });
 
   it("baseline (no throttle) would record one call per tick, the regression we're avoiding", () => {
-    // Sanity check: confirms the budget IS instrumented and would catch
-    // a regression. Recording once per tick at 4 Hz over 5 sec = 20
-    // events in a 1-sec rolling window the threshold is 30 → still
-    // under, but visibly higher than the throttled rate.
+    // Positive control: the budget is instrumented, and unthrottled 4 Hz reads visibly higher.
     const budget = PerfBudget.getAll().find((b) =>
       b.name.startsWith("predictGroundTrack"),
     );

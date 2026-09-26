@@ -19,7 +19,6 @@ import {
   parseExperiments,
 } from "./parsers";
 
-// Body and situation come off vessel.identity (the parent body index named against system.bodies, and the situation ordinal).
 const CARRIED = [
   "vessel.identity",
   "system.bodies",
@@ -119,7 +118,7 @@ describe("ScienceDataComponent", () => {
     await waitFor(() =>
       expect(screen.getByText(/1234 SCI/)).toBeInTheDocument(),
     );
-    // In the body, where a narrow tile cannot fold it away behind the header's expand box.
+    // Not in the header, which folds away at narrow widths.
     expect(
       screen.getByText(/1234 SCI/).closest("[data-panel-header]"),
     ).toBeNull();
@@ -136,7 +135,6 @@ describe("ScienceDataComponent", () => {
     await waitFor(() =>
       expect(screen.getByRole("tab", { name: "Aboard" })).toBeInTheDocument(),
     );
-    // Sandbox banks no career science, the "<n> SCI" readout is suppressed.
     expect(screen.queryByText(/42 SCI/)).not.toBeInTheDocument();
   });
 
@@ -158,11 +156,8 @@ describe("ScienceDataComponent", () => {
     await waitFor(() =>
       expect(screen.getByText(/Mystery Goo Observation/)).toBeInTheDocument(),
     );
-    // Read through the kit's helper rather than getByText: `<Unit>` renders
-    // the number, the symbol and the spoken word as separate elements, so a
-    // readout is not one text node.
+    // `<Unit>` splits a readout across elements, so it is not one text node.
     expect(visibleText()).toContain("8.0 mits");
-    // The figure sits under a named column now, so the row carries the number and the header carries what it means, instead of a per-row "left".
     expect(
       screen.getByRole("columnheader", { name: "Remaining" }),
     ).toBeInTheDocument();
@@ -187,9 +182,7 @@ describe("ScienceDataComponent", () => {
     await waitFor(() =>
       expect(screen.getByText(/Mystery Goo Observation/)).toBeInTheDocument(),
     );
-    // No Uplink client is imported anywhere in this package's test
-    // tree, so the slot has nothing bound: the row renders exactly as it
-    // did before the slot existed, no Send/Delete/Analyze/Dump control.
+    // No Uplink is imported here, so the slot is unbound and the row carries no File Manager controls.
     expect(
       screen.queryByRole("button", { name: /send|delete|analyze|dump/i }),
     ).not.toBeInTheDocument();
@@ -217,8 +210,6 @@ describe("ScienceDataComponent", () => {
     const fixture = newFixture();
     renderData(fixture);
     await userEvent.click(screen.getByRole("tab", { name: "Archive" }));
-    // Nothing emitted onto science.archive: the read stays undefined, which
-    // parseArchive maps to null (no R&D instance, i.e. Sandbox).
     await waitFor(() =>
       expect(
         screen.getByText(/No R&D archive in this save/i),
@@ -274,7 +265,6 @@ describe("ScienceDataComponent", () => {
       ]);
     });
     await userEvent.click(screen.getByRole("tab", { name: "Archive" }));
-    // Body and experiment share one section heading: two levels of indent cost more width than the figures they were pushing off the edge.
     await waitFor(() =>
       expect(
         screen.getByRole("rowheader", { name: "Kerbin · Crew Report" }),
@@ -285,7 +275,7 @@ describe("ScienceDataComponent", () => {
         name: "Mun · Mystery Goo Observation",
       }),
     ).toBeInTheDocument();
-    // Kerbin crew report is capped out: renders "complete" rather than a zero.
+    // A capped-out subject reads "complete" rather than zero.
     expect(screen.getByText("complete")).toBeInTheDocument();
     expect(visibleText()).toContain("9.0");
   });

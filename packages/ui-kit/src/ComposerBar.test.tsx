@@ -24,7 +24,7 @@ describe("ComposerBar", () => {
   });
 
   it("announces the flag politely rather than as an alert", () => {
-    // A lost path is an ambient condition. `alert` would interrupt whatever a screen reader was saying, on a condition that persists for minutes.
+    // A lost path is ambient and persists for minutes, so `alert` would be wrong.
     render(
       <ComposerBar blocked flag="NO PATH">
         <input aria-label="Message" />
@@ -35,7 +35,7 @@ describe("ComposerBar", () => {
   });
 
   it("keeps the flag out of the bar's own layout", () => {
-    // The whole reason the flag is pinned: a composer in a tile at its declared minSize has no spare height, so the flag must cost none.
+    // A composer at its tile's minSize has no spare height, so the flag must cost none.
     render(
       <ComposerBar blocked flag="NO PATH">
         <input aria-label="Message" />
@@ -48,21 +48,10 @@ describe("ComposerBar", () => {
 
   it("takes the LEFT end of the top border, leaving the right for the console", () => {
     /*
-     * A console pins its standing delay reading over this same border,
-     * right-aligned to the column its queue's countdowns end in, and the two
-     * CAN be up together: a terminal reads its refusal off `comms.link`
-     * (Delayed) and its separation off `comms.delay` (TrueNow), so on a link
-     * coming back the separation is measurable again before the refusal
-     * clears. Opposite ends is what keeps them from landing on each other
-     * without either having to know about the other, and the chip is the half
-     * that cannot move, because its column is shared.
-     *
-     * Read off the emitted rule: jsdom resolves neither a `var()` inset nor a
-     * box it never laid out, so a computed-style assertion here would report
-     * "auto" for both edges whichever way the stylesheet ran. Both halves are
-     * asserted, because a rule that grew a `left` while keeping its `right`
-     * stretches the flag across the whole row and the positive half alone reads
-     * green on it.
+     * The console's delay reading takes the right end of this border and both
+     * can show at once, so the flag takes the left. Read off the emitted rule,
+     * since jsdom resolves no `var()` inset; both halves are asserted, because
+     * a flag with both `left` and `right` would stretch across the row.
      */
     render(
       <ComposerBar blocked flag="NO PATH">
@@ -75,11 +64,7 @@ describe("ComposerBar", () => {
   });
 
   it("draws the prompt glyph the caller asks for, and hides it from readers", () => {
-    /*
-     * Here rather than in each console because it is the one thing both were
-     * going to draw and only one of them had. Decorative: "❯" announced as a
-     * character is noise on a control a screen reader already names.
-     */
+    // Decorative: the glyph announced as a character would be noise.
     const { container } = render(
       <ComposerBar prompt="❯">
         <input aria-label="Message" />
@@ -122,11 +107,7 @@ describe("ComposerBar", () => {
   });
 
   it("refuses the press without blocking the bar", () => {
-    /*
-     * The two states are different: a composer with nothing typed is perfectly
-     * able to accept input and still has nothing to send, so the outline must
-     * not turn on it.
-     */
+    // Nothing typed still accepts input, so the outline must not turn.
     render(
       <ComposerBar onSend={() => {}} sendDisabled>
         <input aria-label="Message" />
@@ -146,12 +127,7 @@ describe("ComposerBar", () => {
   });
 
   it("sends on a glyph rather than on the word, and still names itself", () => {
-    /*
-     * The word is the widest thing on the row and it repeats what the outlined
-     * box beside it already says. What a screen reader gets is unchanged: the
-     * verb moves from the button's text to its accessible name, so every query
-     * for it still resolves and the control is still announced as "Send".
-     */
+    // The verb moves from the button's text to its accessible name, so it is still announced as "Send".
     render(
       <ComposerBar onSend={() => {}}>
         <input aria-label="Message" />
@@ -163,11 +139,7 @@ describe("ComposerBar", () => {
   });
 
   it("draws the word for a composer whose verb has no glyph", () => {
-    /*
-     * The recipient picker's verb is "Open", and a send arrow on it would say
-     * the row transmits something. A console gets the glyph by DEFAULT, so the
-     * two that exist cannot drift apart again; text is the stated exception.
-     */
+    // A send arrow on "Open" would claim the row transmits something.
     render(
       <ComposerBar onSend={() => {}} sendLabel="Open" sendVariant="text">
         <input aria-label="Message" />
@@ -190,11 +162,7 @@ describe("ComposerBar", () => {
   });
 
   it("pushes the button to the far end without a spacer from the caller", () => {
-    /*
-     * A terminal's composed line does not flex, so without the button's own
-     * auto margin it sits against the last character typed and moves with
-     * every keystroke.
-     */
+    // A terminal's composed line does not flex, so without its own auto margin the button would move with every keystroke.
     render(
       <ComposerBar onSend={() => {}}>
         <span>&gt; run boot.</span>

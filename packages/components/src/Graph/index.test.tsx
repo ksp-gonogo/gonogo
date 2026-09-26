@@ -6,15 +6,7 @@ import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GraphComponent } from "./index";
 
-/**
- * The LEGACY half of `useDataSeries`: a `BufferedDataSource` (which registers
- * itself under the id `"data"`) driving the retired flat keys. Nothing
- * registers a `"data"` source in production and nothing translates those keys
- * any more, so this file covers a branch a running dashboard never reaches; it
- * retires with the shim at M4. The production path, and anything that depends
- * on a key's UNIT (which these keys do not have, since `useDataSchema` answers
- * from the topic-field catalog), is in `stream.test.tsx` beside it.
- */
+/** The buffered `"data"` source half of `useDataSeries`, driving flat keys that carry no unit. The streamed path and anything unit-dependent is in `stream.test.tsx`. */
 describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
   let restoreResizeObserver: () => void = () => {};
   let source: MockDataSource;
@@ -83,13 +75,6 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
   });
 
   it("plots series with no axis field inside the chart bounds (defaults to auto)", async () => {
-    // Persisted configs from programmatic writes / older saves omit `axis`
-    // entirely: the config form writes "auto" explicitly, so only these
-    // configs hit the undefined branch. The regression: resolveAxes passed
-    // `undefined` through, the domain computation saw no primary/secondary
-    // series (fell back to [0,1]) while the path builder plotted real
-    // values against that degenerate scale: curves landed millions of
-    // pixels off-canvas and the chart looked empty.
     const config = {
       series: [
         { id: "alt", key: "v.altitude" },
@@ -130,13 +115,6 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
     });
   });
 
-  // The axis-split case lives in `stream.test.tsx`. It cannot be made here:
-  // `resolveAxes` splits on a key's unit, `useDataSchema` answers from the
-  // topic-field catalog, and `v.altitude`/`v.verticalSpeed` are not in it, so
-  // both series get "raw" and land on ONE axis. The version that used to sit
-  // here asserted `text[text-anchor="start"]` was non-empty and passed on the
-  // X-axis time label, with no secondary axis rendered and no data needed.
-
   it("renders a path when X axis is a data key instead of time", async () => {
     const config = {
       series: [{ id: "vs", key: "v.verticalSpeed", axis: "auto" as const }],
@@ -146,7 +124,6 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
 
     render(<GraphComponent config={config} id="graph-test" />);
 
-    // Emit two ticks so alignment has prior-x pairs on both.
     act(() => {
       source.emit("v.name", "Kerbal X");
       source.emit("v.missionTime", 0);
@@ -181,7 +158,6 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
     act(() => {
       source.emit("v.name", "Kerbal X");
       source.emit("v.missionTime", 0);
-      // Emit a value way outside the pinned domain, ticks should stay anchored to [0, 1000] regardless.
       source.emit("v.altitude", 500_000);
     });
 
@@ -197,7 +173,6 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
       );
       // niceTicks over [0, 1000] with 5 ticks produces 0, 250, 500, 750, 1000; formatYTick renders 1000 as "1.0k".
       expect(texts).toContain("1.0k");
-      // And no tick should be near 500_000 ("500.0k"), the pin is respected.
       expect(texts.some((t) => t === "500.0k")).toBe(false);
     });
   });
@@ -220,9 +195,7 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
     });
 
     await waitFor(() => {
-      // Big readout shows the formatted latest value (12.3k for 12_345).
       expect(container.textContent ?? "").toMatch(/12\.3k/);
-      // No <LineChart> rect / axis text: the readout doesn't render the chart.
       const axisTicks = container.querySelectorAll('text[text-anchor="end"]');
       expect(axisTicks.length).toBe(0);
     });
@@ -230,12 +203,10 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
 
   it("auto variant downgrades to readout when widget is tiny and one series is configured", async () => {
     const config = {
-      // variant omitted → defaults to "auto"
       series: [{ id: "alt", key: "v.altitude", axis: "auto" as const }],
       windowSec: 300,
     };
 
-    // tiny size bucket: w < 5 OR h < 4
     const { container } = render(
       <GraphComponent config={config} id="graph-test" w={3} h={3} />,
     );
@@ -259,7 +230,6 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
       windowSec: 300,
     };
 
-    // small size bucket: 5 <= w < 8 OR 4 <= h < 7, chart axes get squashed, readout is preferred.
     const { container } = render(
       <GraphComponent config={config} id="graph-test" w={6} h={6} />,
     );
@@ -298,9 +268,7 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
         container.querySelectorAll('text[text-anchor="end"]'),
       ).map((t) => t.textContent ?? "");
       expect(axisTicks.length).toBeGreaterThan(0);
-      // And a drawn curve. Axis ticks are present on an EMPTY chart too, so on
-      // their own they say the variant is a chart and nothing about whether the
-      // data reached it.
+      // Axis ticks render on an empty chart too, so a drawn curve is what proves the data arrived.
       expect(
         container.querySelector(
           'svg[aria-label="Telemetry line chart"] path[d][fill="none"]',
@@ -331,9 +299,7 @@ describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
     });
 
     await waitFor(() => {
-      // The chart, specifically: its labelled svg and one plotted curve per
-      // series. A bare `text` count is satisfied by the readout variant too,
-      // which is the thing this asserts did NOT happen.
+      // A bare `text` count is satisfied by the readout too, so assert the chart's own curves.
       expect(
         container.querySelectorAll(
           'svg[aria-label="Telemetry line chart"] path[d][fill="none"]',

@@ -4,15 +4,6 @@ import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TwrComponent } from "./index";
 
-/**
- * What the dial does once its telemetry stops arriving.
- *
- * Without the reading's currency the gauge would go on drawing a confident
- * TWR after telemetry stopped. The figure is HELD, and the gauge marks it,
- * rather than withheld: this widget's whole content is the one number, and its
- * empty state says there is no engine, so nulling a dated TWR would say something false
- * about the craft rather than about the link.
- */
 const STANDARD_GRAVITY = 9.80665;
 
 const TWR_CHANNELS = ["vessel.propulsion"];
@@ -48,11 +39,7 @@ describe("Twr when vessel.propulsion is no longer current", () => {
     const gauge = await screen.findByRole("img", { name: /^TWR \d/ });
     expect(gauge).toHaveAccessibleName(/^TWR [\d.]+$/);
     expect(gauge).not.toHaveAttribute("data-not-current");
-    /*
-     * The ResizeObserver that picks the variant settles after the body
-     * returns, so holding the scope open across that microtask is what keeps
-     * the update inside `act`.
-     */
+    // The ResizeObserver that picks the variant settles after the body returns.
     await act(async () => {});
   });
 
@@ -65,11 +52,10 @@ describe("Twr when vessel.propulsion is no longer current", () => {
       fixture.store.beginFrame();
     });
 
-    // The figure survives: it is the last real one and still the best known.
     const gauge = screen.getByRole("img", { name: /^TWR \d/ });
     expect(gauge).toHaveAttribute("data-not-current");
     expect(gauge).toHaveAccessibleName(/^TWR [\d.]+, \S/);
-    // And it must NOT claim the craft has no engine, which is what this widget's empty state means.
+    // The empty state would claim the craft has no engine.
     expect(screen.queryByText(/no engine data/i)).toBeNull();
     await act(async () => {});
   });

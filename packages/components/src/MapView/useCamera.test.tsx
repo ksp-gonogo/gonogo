@@ -3,10 +3,7 @@ import { describe, expect, it } from "vitest";
 import { pointerEvent } from "../test/pointerStubs";
 import { useCamera } from "./useCamera";
 
-/**
- * Renders the hook with a fixed container size and attaches a fake element to
- * interactionRef so the pinch path (which reads getBoundingClientRect) works.
- */
+/** Renders the hook with a fixed container size and a fake element on interactionRef, for the pinch path's getBoundingClientRect. */
 function setup() {
   const el = {
     setPointerCapture() {},
@@ -95,7 +92,7 @@ describe("useCamera", () => {
         }),
       );
     });
-    // Spread the fingers further apart: should zoom in (larger zoom value)
+    // Fingers further apart zoom in.
     act(() => {
       hook.result.current.onPointerMove(
         pointerEvent({
@@ -169,12 +166,7 @@ describe("useCamera", () => {
   });
 });
 
-/**
- * A real DOM element carrying `interactionRef`, the way MapView's
- * CanvasContainer does, so the native wheel listener the hook attaches is
- * actually on the node the test dispatches to. The fake element the pointer
- * tests use has a no-op `addEventListener`, so it cannot see this path.
- */
+/** A real DOM element carrying `interactionRef`, so the native wheel listener is on the node the test dispatches to. */
 function WheelHarness() {
   const { interactionRef, camera } = useCamera({ w: 200, h: 100 });
   return <div ref={interactionRef} data-zoom={camera.zoom} />;

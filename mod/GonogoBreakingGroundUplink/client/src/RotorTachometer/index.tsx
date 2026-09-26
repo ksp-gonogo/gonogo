@@ -34,14 +34,8 @@ import { BREAKING_GROUND } from "../uplink";
 import { boolOrNull, numOrNull } from "../wire";
 
 /**
- * Rotor Tachometer (Breaking Ground). Lists the active vessel's robotic
- * rotors and shows live RPM against the commanded cap, with motor / lock /
- * brake / direction controls. The selected rotor (first by default) gets a
- * tachometer dial and is the target of the serial-mappable actions.
- *
- * Reads `robotics.servos` (the rotor identity list, filtered by `type ===
- * "rotor"`) + `robotics.available`; degrades to a muted empty state without
- * Breaking Ground or when no rotor is present.
+ * The active vessel's robotic rotors, with live RPM against the commanded cap and motor, lock, brake and direction controls.
+ * The selected rotor (first by default) gets the dial and the serial actions.
  */
 
 type RotorTachometerConfig = Record<string, never>;
@@ -52,28 +46,14 @@ const TORQUE_STEP = 10;
 
 /**
  * One rotor as this widget draws it.
- *
- * Every measured field is `number | null`, and the null carries the weight:
- * `BreakingGroundViewProvider` puts each of them through
- * `SnapshotDict.GetDouble`, which withholds on absent, non-numeric AND
- * non-finite input, and `ServoCapture` nulls every field that does not apply to
- * a servo of this kind. A zero here is a READING: a rotor at 0 RPM is stopped,
- * and a cap of 0 is a rotor commanded to stop. Substituting a zero for absence
- * states something definite about the craft that nobody measured, and the RPM
- * and torque steppers compute their next value from these numbers, so the
- * substitution does not stay on screen: it goes up to the rotor.
+ * Every figure is `null` when withheld: zero RPM is a stopped rotor, and the steppers command from these numbers.
  */
 export interface RotorInfo {
   /**
-   * Position in `robotics.servos` AS DELIVERED, which is not this rotor's
-   * position in the parsed list: the parse drops non-rotor servos and any
-   * entry without a `partId`, so the two indices diverge on the first mixed
-   * craft.
-   *
-   * It is here so a DISPLAYED figure can be read back as a field reading and
-   * arrive at `Unit` with its currency intact. The numeric fields below stay
-   * because the steppers compute the next commanded value from them, and a
-   * command wants a bare number.
+   * Position in `robotics.servos` as delivered, not in the parsed list (the parse
+   * drops non-rotor servos and entries without a `partId`), so a displayed figure
+   * can be read back as a field reading with its currency. The numeric fields
+   * below stay bare because the steppers command from them.
    */
   srcIndex: number;
   partId: string;
@@ -83,25 +63,14 @@ export interface RotorInfo {
   torqueLimit: number | null;
   maxTorque: number | null;
   brakePercentage: number | null;
-  /**
-   * The three flags, `boolean | null` because every one of them is declared
-   * nullable on `ServoEntry` and `SnapshotDict.GetBool` withholds rather than
-   * defaulting. A `=== true` read collapsed unknown into false, and each false
-   * is a definite claim: "Motor off", "Unlocked", and a direction button
-   * reading "↻ CW" for a rotor whose heading nobody reported.
-   */
+  /** Unknown is never false: each false is a definite claim about the rotor. */
   motorEngaged: boolean | null;
   locked: boolean | null;
   counterClockwise: boolean | null;
   output: number | null;
 }
 
-/**
- * The value of a FACT: something that stays true until an event changes it, and no
- * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
- * what an `absent` tombstone means here, which is a different answer from `pending`
- * and must not collapse into it.
- */
+/** A fact's value, held through stale; `whenConfirmedNothing` is what an `absent` tombstone means, distinct from `pending`. */
 function stillTrue<T, A>(
   reading: TopicReading<T>,
   whenConfirmedNothing: A,
@@ -113,18 +82,14 @@ function stillTrue<T, A>(
 }
 
 /**
- * Parses the `robotics.servos` bare array (`mod/Sitrep.Host/PartsViewProvider.cs`)
- * down to `type === "rotor"` entries (hinges/pistons are Robotics Console's
- * domain). `partId` is `Part.flightID` stringified, stable per-part for the
- * life of the flight and, unlike `partName`, unique even among symmetric
- * same-named parts (multirotors, coaxial helis). Entries with no string
- * `partId` are dropped, they can't be selected or targeted safely.
+ * Parses `robotics.servos` down to its rotors.
+ * `partId` is the stringified `Part.flightID`, unique even among symmetric same-named parts; an entry without one cannot be targeted and is dropped.
  */
 export function parseRotors(raw: unknown): RotorInfo[] {
   if (!Array.isArray(raw)) return [];
   const entries: unknown[] = raw;
   const out: RotorInfo[] = [];
-  // Indexed, because `srcIndex` must be the position in the DELIVERED array and the two `continue`s below make that differ from the output position.
+  // `srcIndex` is the position in the delivered array, which the `continue`s make differ from the output position.
   for (const [srcIndex, entry] of entries.entries()) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
@@ -151,11 +116,7 @@ export function parseRotors(raw: unknown): RotorInfo[] {
 const clamp = (v: number, lo: number, hi: number) =>
   Math.max(lo, Math.min(hi, v));
 
-/**
- * A relative stepper's accessible name, carrying WHY it is disabled when the
- * figure it steps from was never read. A `disabled` attribute on its own is
- * announced as "unavailable" with no reason, and the greying is visual only.
- */
+/** A relative stepper's accessible name, carrying why it is disabled when the figure it steps from was never read. */
 const stepperLabel = (action: string, from: number | null): string =>
   from === null ? `${action} (unavailable, not reported)` : action;
 
@@ -203,11 +164,7 @@ function RotorTachometerComponent({
 }: Readonly<ComponentProps<RotorTachometerConfig>>) {
   const roboticsReading = useTelemetry("robotics.servos");
   const roboticsRaw = stillTrue(roboticsReading, undefined);
-  // Two DIFFERENT facts, and the empty state needs both. `robotics.available`
-  // is "this craft carries a robotic part", a per-vessel reading that rides the
-  // delay clock. `game.dlc.breakingGround` is "the install has the expansion",
-  // a ground-side fact that is true or false independent of any vessel. See
-  // `emptyStateText`.
+  // Two different facts: whether this craft carries a robotic part (delayed, per vessel), and whether the install has the expansion (ground-side).
   const available = stillTrue(
     useTelemetry("robotics.available"),
     undefined,
@@ -217,10 +174,6 @@ function RotorTachometerComponent({
     undefined,
   )?.breakingGround;
 
-  // Rotor RPM, torque, brake, motor, lock and direction are all actuated on the
-  // craft and so are subject to signal delay. Each dispatches over
-  // `useCommand`, which carries per-command in-flight state, the same shape
-  // RoboticsConsole and MechJeb use.
   const rpmCmd = useCommand("robotics.rotor.setRpmLimit");
   const torqueCmd = useCommand("robotics.rotor.setTorqueLimit");
   const brakeCmd = useCommand("robotics.rotor.setBrake");
@@ -234,7 +187,7 @@ function RotorTachometerComponent({
   usePanelDelay(lockCmd);
   usePanelDelay(reverseCmd);
 
-  // Measure the gauge slot so the dial follows the column width instead of a fixed 180px that clips in a narrow slot.
+  // The dial follows the column width so it does not clip in a narrow slot.
   const { ref: gaugeRef, size: gaugeSize } = useElementSize({ w: 180, h: 104 });
 
   const rotors = parseRotors(roboticsRaw);
@@ -274,10 +227,7 @@ function RotorTachometerComponent({
     void reverseCmd.send({ partId: id }, { label: "Reverse" });
 
   useActionInput<RotorTachometerActions>({
-    // Both steppers dispatch NOTHING while the cap is unread. They are
-    // relative: `cap + 10` off a substituted zero sends `setRpmLimit value=10`
-    // to a rotor really capped at 300, so one press of a mapped button
-    // collapses the real limit and the operator sees only their own nudge.
+    // The steppers are relative, so they dispatch nothing while the cap is unread.
     rpmUp: (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
       if (!selected || selected.rpmLimit === null) return undefined;
@@ -292,7 +242,7 @@ function RotorTachometerComponent({
       setRpmLimit(selected.partId, next);
       return { RPM: next };
     },
-    // Motor and lock send an ABSOLUTE `enabled`, chosen by inverting the state read back, so an unread flag would command the inverse of a guess.
+    // Motor and lock send an absolute state inverted from the one read back, so an unread flag dispatches nothing.
     toggleMotor: (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
       if (!selected || selected.motorEngaged === null) return undefined;
@@ -308,10 +258,7 @@ function RotorTachometerComponent({
     reverse: (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
       if (!selected) return undefined;
-      // `reverse` carries no value, so it stays available on an unread
-      // heading: it flips whatever the rotor is doing. What it must NOT do is
-      // report the heading back, because `counterClockwise === true` made an
-      // unread rotor answer "CW" and a bound device's render style drew that.
+      // Reverse carries no value, so it stays available on an unread heading, but reports no heading back.
       reverse(selected.partId);
       return selected.counterClockwise === null
         ? undefined
@@ -342,15 +289,10 @@ function RotorTachometerComponent({
 
   const showGauge = (h ?? 8) >= 6;
   const rpmReading = roboticsReading[selected.srcIndex].currentRPM;
-  // The go-toned "within cap" arc needs a cap to end at. With the cap unread
-  // the dial still shows live RPM, it just draws no zones: an arc running to a
-  // substituted 1 rpm paints the whole dial as over-cap.
+  // With the cap unread the dial draws no zones rather than an arc ending at a substitute.
   const cap =
     selected.rpmLimit === null ? null : Math.max(selected.rpmLimit, 1);
-  // Size the dial to the column width, but also cap it by a slice of the
-  // widget's height so the controls (steppers + the full toggle row) stay
-  // visible without scrolling; the rotor list below may scroll. Kept modest
-  // so a short/wide slot doesn't let the gauge crowd the toggles off-bottom.
+  // Capped by a slice of the widget's height so the controls stay visible without scrolling.
   const gaugeMaxH = Math.max(64, (h ?? 9) * 25 * 0.32);
   const gaugeW = Math.min(
     gaugeSize.w || 180,
@@ -402,11 +344,7 @@ function RotorTachometerComponent({
           </Section>
         ),
         <Section key="controls" gap="related-dense">
-          {/* Both steppers are RELATIVE to the value beside them, so an unread
-              figure disables them rather than stepping off a substituted zero.
-              The reason rides the accessible NAME rather than a visual-only
-              greying, so a screen reader hears why the control will not act,
-              and the readout beside it says the same thing on screen. */}
+          {/* Relative to the value beside them, so an unread figure disables them. */}
           <Cluster justify="between" wrap>
             <ReadoutCaption>RPM cap</ReadoutCaption>
             <Inline>
@@ -464,11 +402,7 @@ function RotorTachometerComponent({
                 −
               </ActionButton>
               <Text size="sm" tone="default">
-                {/* "Torque unknown" stays a WORDED absence rather than a null
-                    token, because this line sits between two steppers and a
-                    bare placeholder there reads as a figure that failed to
-                    render. The figure itself is a field reading, so when it IS
-                    present it carries its own currency. */}
+                {/* A worded absence, since a bare placeholder between two steppers reads as a render failure. */}
                 {selected.torqueLimit === null ? (
                   "Torque unknown"
                 ) : (
@@ -500,9 +434,7 @@ function RotorTachometerComponent({
           </Cluster>
 
           <Cluster justify="start" wrap>
-            {/* Motor and lock each send an ABSOLUTE `enabled` chosen by
-                inverting the state read back, so an unread flag gets a third,
-                disabled rung rather than defaulting to off/unlocked. */}
+            {/* An unread flag gets a third, disabled state rather than defaulting to off or unlocked. */}
             <ToggleButton
               size="sm"
               active={selected.motorEngaged === true}
@@ -538,9 +470,7 @@ function RotorTachometerComponent({
                   ? "Locked"
                   : "Unlocked"}
             </ToggleButton>
-            {/* The brake toggle sends an ABSOLUTE percentage chosen by
-                inverting the current one, so an unread brake would read "off"
-                and then command 100% to a rotor already fully braked. */}
+            {/* The brake sends an absolute percentage inverted from the current one, so an unread brake disables it. */}
             <ToggleButton
               size="sm"
               active={
@@ -569,10 +499,7 @@ function RotorTachometerComponent({
                   ? "on"
                   : "off"}
             </ToggleButton>
-            {/* Reverse carries no value, so it stays available: it flips
-                whatever the rotor is doing. Only the HEADING it prints is
-                withheld, because "↻ CW" was a definite claim off an unread
-                flag. */}
+            {/* Reverse stays available on an unread heading; only the heading it prints is withheld. */}
             <ToggleButton size="sm" onClick={() => reverse(selected.partId)}>
               {selected.counterClockwise === null
                 ? "Reverse"
@@ -592,15 +519,7 @@ function RotorTachometerComponent({
               >
                 <span>{r.name}</span>
                 <span>
-                  {/* One scope around the pair, so the two halves cannot land
-                      on different rungs, and the symbol is drawn once at the
-                      end rather than on both figures in a row this dense.
-
-                      Both figures are read as FIELD READINGS off the delivered
-                      servo, so each arrives carrying its own currency and
-                      `Unit` draws its own null state. The parsed numbers beside
-                      them are what the steppers command from, and those stay
-                      numbers. */}
+                  {/* One shared scope, so both halves land on the same rung and the symbol is drawn once. */}
                   <UnitSharedFormat>
                     <Unit
                       value={roboticsReading[r.srcIndex].currentRPM}

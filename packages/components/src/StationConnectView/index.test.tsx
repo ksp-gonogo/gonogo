@@ -84,8 +84,7 @@ describe("StationConnectView", () => {
         everConnected
       />,
     );
-    // The reconnect notice is a polite live region. Both it and the
-    // StatusIndicator expose role=status, so match by text.
+    // Both the reconnect notice and the StatusIndicator are role=status, so match by text.
     expect(
       screen.getByText(/Host reconnecting... The main screen is restarting/i),
     ).not.toBeNull();
@@ -107,7 +106,7 @@ describe("StationConnectView", () => {
     expect(
       screen.getByText(/this device needs internet access/i),
     ).not.toBeNull();
-    // The code-is-wrong copy would send the operator to the main screen for a fault that is entirely on this device's network.
+    // The code-is-wrong copy would send the operator to the main screen for a fault on this device's network.
     expect(screen.queryByText(/Couldn't find code/i)).toBeNull();
     expect(screen.queryByText(/Check the host ID/i)).toBeNull();
   });

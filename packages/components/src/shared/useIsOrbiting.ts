@@ -11,25 +11,13 @@ type OrbitInfo = {
 };
 
 export function useIsOrbiting(): OrbitInfo {
-  // The two apsis altitudes are solved from `vessel.orbit`'s own elements, so
-  // they are absent together whenever the conic behind them has withdrawn:
-  // under physics, past an SOI transition, below the atmosphere interface.
-  // "Not orbiting" is the right answer in all three, and it is what the guard
-  // below already returns for an absent apsis. `apoapsisAlt` is also absent on
-  // a hyperbolic/escape orbit, which has no apoapsis, and that case reaches the
-  // same guard.
+  // An absent apsis (no conic, or an escape with no apoapsis) means not orbiting.
   const solve = useOrbitSolve();
   const bodyName = useBodyName(useParentBodyIndex());
   const PeA = solve?.periapsisAlt ?? undefined;
   const ApA = solve?.apoapsisAlt ?? undefined;
 
-  /*
-   * The atmosphere height comes off `system.bodies`, so a caller must carry
-   * that channel. It used to be a `getBody(name)` lookup in the table of STOCK
-   * bodies: under a planet pack that missed, the threshold fell to zero, and
-   * the question silently became "is the periapsis above sea level", which a
-   * craft on its way down answers yes to.
-   */
+  // The atmosphere height comes off `system.bodies`, so a caller must carry that channel.
   const body = useStreamBody(bodyName);
 
   return useMemo(() => {

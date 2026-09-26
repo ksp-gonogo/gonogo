@@ -10,16 +10,8 @@ import circularLko from "./__fixtures__/circular-lko.json";
 import { CurrentOrbitComponent } from "./index";
 
 /**
- * CurrentOrbit renders entirely off the Uplink stream.
- *
- * The full stream render with no legacy source registered anywhere in this
- * file: the complete grid (raw `vessel.orbit` elements plus the apsis
- * altitudes, period and time-to-apsis solved from them), the reference-body
- * subtitle (`vessel.orbit.referenceBodyIndex` named against `system.bodies`),
- * and the default mini orbit diagram, all from one emit.
- *
- * Expected values use the same two-body formulas as the solve, so the
- * assertions track it rather than hand-picked magic numbers.
+ * The complete grid, the reference-body subtitle and the mini diagram all render off one stream emit.
+ * Expected values use the same two-body formulas as the solve.
  */
 const CURRENT_ORBIT_CHANNELS = [
   "vessel.orbit",
@@ -27,10 +19,7 @@ const CURRENT_ORBIT_CHANNELS = [
   "system.bodies",
 ];
 
-// meanAnomalyAtEpoch 0 with epoch == pinned view UT means the vessel sits at
-// periapsis (trueAnomaly 0°, timeToPe 0s) at capture time. The reference-body
-// radius (600 km) lands ApA/PeA close to the original fixture's illustrative
-// 85 / 80 km.
+// meanAnomalyAtEpoch 0 at the pinned UT puts the vessel at periapsis.
 const PINNED_UT = 10;
 const SMA = 682500;
 const ECC = 0.00367;
@@ -94,7 +83,7 @@ describe("CurrentOrbit: full render off the stream (R6 Wave 1)", () => {
       });
     });
 
-    // Inclination is raw off vessel.orbit; period is solved from its elements, waiting on both proves the whole mixed raw+solved surface has landed.
+    // Inclination is raw and period is solved, so waiting on both proves the mixed surface has landed.
     await waitFor(() => {
       if (!visibleText(container).includes("0.3°")) {
         throw new Error("stream leg has not rendered inclination yet");
@@ -111,9 +100,7 @@ describe("CurrentOrbit: full render off the stream (R6 Wave 1)", () => {
     expect(visibleText(container)).toMatch(/85\.\d+\s*km/);
     expect(visibleText(container)).toMatch(/80\.\d+\s*km/);
     expect(visibleText(container)).toContain("Kerbin");
-    // Default mini orbit diagram renders (hasOrbit satisfied off derived ApR/PeR).
     expect(container.querySelector("svg")).not.toBeNull();
-    // Period sanity: the fixture's orbit is a real one.
     expect(PERIOD).toBeGreaterThan(1800);
   });
 });

@@ -79,12 +79,7 @@ function computeValueDomain(values: readonly number[]): [number, number] {
   return min === max ? [min - 1, min + 1] : [min, max];
 }
 
-/**
- * X domain for non-time graphs. Combines the live X buffer with any reference
- * curves so an empty / partial trace doesn't squash a wide reference curve
- * into a sliver, and so a reference curve always defines a sensible plot
- * window even before the first telemetry sample arrives.
- */
+/** X domain for non-time graphs: the live X buffer plus every reference curve and contributed layer, so no curve is clipped off the edge before a sample arrives. */
 function computeXDomain(
   liveXs: readonly number[],
   overlays: readonly ChartSeries[],
@@ -92,43 +87,14 @@ function computeXDomain(
 ): [number, number] {
   const all = [...liveXs];
   for (const o of overlays) all.push(...o.data.x);
-  // Contributed layers join the X domain on the same terms a reference curve
-  // does, for the same reason: a plot scaled only to its own marks clips a
-  // guest's curve off the edge and shows nothing to say it had.
   for (const layer of layers) all.push(...plotLayerExtent(layer).xs);
   return computeValueDomain(all);
 }
 
 /**
- * X domain for a TIME graph: the span the plotted samples actually cover.
+ * X domain for a time graph: the span the plotted samples cover, read off the data because samples may be stamped in UT seconds or wall-clock milliseconds. `windowSec` sets the span only for a chart with no marks.
  *
- * Read off the data rather than off the wall clock, because the widget cannot
- * know which clock its samples are stamped against. `useDataSeries` hands the
- * STREAMED half back in UT seconds and the legacy buffered half in wall-clock
- * milliseconds, and this used to be `[Date.now() - windowSec * 1000,
- * Date.now()]`, which is only in the same basis as the second of the two.
- * Nothing registers the legacy `"data"` source in production, so every
- * time-axis graph on a running dashboard scaled its trace against wall time
- * and drew it hundreds of millions of units off the left edge, under a
- * complete set of axes, ticks and legend for the series it was not showing.
- *
- * `windowSec` still bounds how much history is FETCHED (`useDataSeries` reads
- * `[viewUt - windowSec, viewUt]`); it is the span of the axis only when there
- * is nothing to measure one from, which is a chart with no marks on it.
- *
- * ## Except where a model stopped short, which the extent alone cannot show
- *
- * A reckoned tail ends where the model declines. On an extent-fitted axis that
- * decline is invisible: the series shortens, the axis shrinks with it, and a
- * conic that withdrew at the atmosphere is drawn identically to one that ran
- * to the view time. The blank between the last modelled point and now IS the
- * statement, and an axis that crops it deletes the statement while leaving the
- * line that prompted it, which is the worse of the two failures.
- *
- * So a series carrying a reckoned run extends the right edge to the instant it
- * was asked for (`SeriesRange.windowEndAt`). Only that case: a purely measured
- * series has made no claim about the stretch after its last sample, and
- * stretching ITS axis to now would draw an emptiness that means nothing.
+ * A series carrying a reckoned run extends the right edge to `windowEndAt`, so the blank where a model declined stays visible; a purely measured series claims nothing past its last sample.
  */
 function computeTimeDomain(
   series: readonly ChartSeries[],
@@ -156,19 +122,7 @@ function formatReadoutValue(value: number): string {
   return value.toFixed(2);
 }
 
-/**
- * An axis tick on a KNOWN unit, written by the unit registry rather than by the
- * k/M suffixer below.
- *
- * The suffixer concatenates: 2000 on an `m/s` axis came out "2.0km/s", which
- * reads as kilometres per second and is a different quantity. Its own prefix
- * and a unit symbol cannot both be in one string, so where the axis knows its
- * unit token, the ladder does the work and the axis says "2000 m/s".
- *
- * `writeQuantity` rather than `<Unit>` for the reason every SVG readout in this
- * repo takes that route: a `<text>` element cannot contain a `<span>`. The
- * symbol and the ladder still come from the registry.
- */
+/** An axis tick on a known unit, written by the unit registry: the k/M suffixer would turn 2000 m/s into "2.0km/s", a different quantity. A string because SVG `<text>` cannot hold a `<Unit>` span. */
 function unitTick(unit: string, magnitude: number): string {
   return writeQuantity(value(unit as never, magnitude), { decimals: 0 });
 }
@@ -183,18 +137,11 @@ function formatNumericTick(value: number, unit?: string): string {
   return unit ? `${text}${unit}` : text;
 }
 
-// ── Axis resolution ───────────────────────────────────────────────────────────
-
 function resolveAxes(
   configs: GraphSeriesConfig[],
   metaMap: Map<string, DataKeyMeta>,
 ): Array<"primary" | "secondary"> {
-  // A missing axis field means "auto": the config form writes "auto"
-  // explicitly, but programmatic / imported / older persisted configs omit
-  // the field entirely. Passing the raw undefined through put the series on
-  // NEITHER axis: the domain computation saw no data (fell back to [0,1])
-  // while the path builder still plotted real values against that
-  // degenerate scale, blasting the curves off-canvas.
+  // An undefined axis must read as "auto", or the series lands on neither axis.
   const axisOf = (c: GraphSeriesConfig) => c.axis ?? "auto";
   if (configs.every((c) => axisOf(c) !== "auto")) {
     return configs.map((c) => c.axis as "primary" | "secondary");
@@ -211,89 +158,41 @@ function resolveAxes(
   });
 }
 
-// ── GraphView ────────────────────────────────────────────────────────────────
-//
-// The shared rendering engine. Takes a resolved GraphConfig and optional
-// reference curves (pre-computed by the caller: typically a domain-specific
-// preset widget like OrbitalAscent that wants to overlay an ideal curve on top
-// of live telemetry). Curves are injected as synthetic ChartSeries entries
-// alongside the live ones; the X domain expands to cover them.
-
-/**
- * A pre-computed reference curve to overlay on the chart. The caller is
- * responsible for sampling whatever function it wants to display (e.g.
- * `circularOrbitVelocity` over an altitude range) and producing the parallel
- * `xs` / `ys` arrays. No data subscription happens for these, they are
- * static for the lifetime of the prop.
- */
+/** A caller-sampled static curve overlaid on a non-time chart, as parallel `xs` / `ys` arrays; nothing is subscribed for it. */
 export interface ReferenceCurve {
   /** Stable ID; must not collide with any series ID. */
   id: string;
-  /** Legend label / debug name. */
   label: string;
   xs: number[];
   ys: number[];
-  /** CSS color. Defaults to a dim accent if omitted. */
+  /** CSS color, a dim accent when omitted. */
   color?: string;
-  /** Which Y axis the curve belongs to. Defaults to "primary". */
+  /** Which Y axis the curve belongs to, `"primary"` when omitted. */
   axis?: "primary" | "secondary";
 }
 
 interface GraphViewProps {
   config: GraphConfig | undefined;
   referenceCurves?: ReadonlyArray<ReferenceCurve>;
-  /**
-   * Override the panel header. Omit it and the header names what is actually
-   * plotted, e.g. "GRAPH VELOCITY x ALTITUDE & APOAPSIS". A widget built ON
-   * GraphView (EscapeProfile, AtmosphereProfile) plots one fixed thing and
-   * passes its own name instead.
-   */
+  /** Overrides the panel header, which otherwise names the plotted units. */
   title?: string;
-  /** Replaces the empty-state copy when no series are configured. */
   emptyState?: string;
-  /**
-   * Right-aligned slot in the panel header, beside the title. Forwarded
-   * straight to `panelAside`, so it takes whatever that slot takes: a state
-   * chip, a small control, an `AugmentSlot`.
-   *
-   * Not the place for a stream-status badge any more. The panel renders one
-   * itself from the status the host derived across the whole widget's
-   * `dataRequirements`, which is both less wiring and more accurate than a
-   * hand-picked representative key; a badge passed in here would sit beside
-   * that one rather than instead of it.
-   */
+  /** Forwarded to `panelAside`. Not for a stream-status badge: the panel already renders one. */
   headerActions?: ReactNode;
-  /**
-   * Everything drawn on the plot beyond its series, in the plot's own data
-   * space. A `PlotEntry` contributed to the `plots` slot hands its `layers`
-   * straight through here, so a chart the arranger builds out of a contribution
-   * and a chart a widget builds by hand reach the renderer identically.
-   */
+  /** Everything drawn on the plot beyond its series, in the plot's own data space. */
   layers?: readonly PlotLayer[];
-  /**
-   * Series the WIDGET computed rather than ones a key names on the wire, each
-   * with the metadata a schema entry would have given it. A series whose `key`
-   * appears here is drawn from `data` and never fetched, which is how a
-   * quantity the wire does not carry reaches the chart without an address on a
-   * derived channel standing in for it. See `useComputedSeries`.
-   */
+  /** Series the widget computed, each with the metadata a schema entry would give it; a series whose `key` appears here is drawn from `data` and never fetched. */
   computedSeries?: readonly ComputedSeries[];
-  /**
-   * Drop the panel chrome and render the framed chart alone, for a plot
-   * composed inside another widget's own layout. The title and header actions
-   * are then that widget's business rather than this one's.
-   */
+  /** Drop the panel chrome and render the framed chart alone, for a plot composed inside another widget's layout. */
   chrome?: "panel" | "bare";
-  /** Names what the chart IS, before its layers add their own clauses. Only
-   *  consulted while `chrome` is `"bare"`; a panel names itself. */
+  /** Names what the chart is, before its layers add their own clauses. Only read while `chrome` is `"bare"`. */
   ariaLabel?: string;
-  /** Current widget grid size: used to resolve the `"auto"` display variant. */
+  /** Widget grid size, which resolves the `"auto"` display variant. */
   w?: number;
   h?: number;
 }
 
-/** Referentially stable, so an unlayered chart does not remount its layer
- *  renderer on every parent render. */
+/** Referentially stable, so an unlayered chart does not remount its layer renderer every render. */
 const EMPTY_LAYERS: readonly PlotLayer[] = Object.freeze([]);
 
 export function GraphView({
@@ -317,15 +216,10 @@ export function GraphView({
 
   const windowSec = config?.windowSec ?? 300;
   const xKey = config?.xKey ?? TIME_AXIS;
-  // A pinned X domain means the axis is fed by NOTHING: no data key, no wall clock, just the numbers the curves and layers are stated in.
   const xPinned = config?.xDomain !== undefined;
   const xIsTime = !xPinned && xKey === TIME_AXIS;
 
   const schema = useDataSchema("data");
-  // Schema is ~150 entries today; rebuilding the lookup map every render
-  // (Graph re-renders on each child's onData callback ≈ 4 Hz) was
-  // ~600 hash inserts/sec for no reason. Memo against the schema array
-  // identity (stable thanks to useDataSchema's own memo).
   const metaMap = useMemo(() => {
     const map = new Map(schema.map((k) => [k.key, k]));
     for (const c of computedSeries ?? []) map.set(c.meta.key, c.meta);
@@ -333,31 +227,10 @@ export function GraphView({
   }, [schema, computedSeries]);
   const xMeta = xIsTime || xPinned ? null : (metaMap.get(xKey) ?? null);
 
-  /**
-   * A header that names what the chart MEASURES: "GRAPH m x m/s". "GRAPH"
-   * alone made every graph on a dashboard look identical until you read its
-   * legend.
-   *
-   * Units rather than series names, and this is the reason: units dedupe where
-   * names do not. Altitude plotted against apoapsis is two names but one unit,
-   * so the title says "m" once and is telling the truth about the axis; naming
-   * both would spend the header restating the legend. It also degrades well,
-   * since a graph gains series far more often than it gains units.
-   *
-   * A series whose key carries no unit in the schema contributes nothing, and
-   * if NOTHING carries one the header stays "GRAPH" and the legend does the
-   * work. (Several real keys are in this position: `v.horizontalVelocity` has
-   * no schema entry, so a chart of it alone is titled "GRAPH".)
-   */
+  /** The header names the plotted units, not the series, because units dedupe where names do not; with no known unit it stays "GRAPH". */
   const units = useMemo(() => {
     if (title !== undefined) return "";
-    // Units belong to AXES, not to the series list. Two units on one axis are
-    // two things measured against the same scale, so they read "m & m/s"; two
-    // AXES are two scales plotted against each other, so they read "m x m/s".
-    // Flattening both into one separator lost that distinction, which is the
-    // whole information the header carries. Uses the same resolveAxes the plot
-    // does, so the header cannot describe a different arrangement than the one
-    // drawn (a series left on "auto" is assigned by unit, not by position).
+    // Units on one axis join with "&", axes join with "x", through the same resolveAxes the plot uses.
     const axes = resolveAxes(series, metaMap);
     const byAxis: Record<"primary" | "secondary", string[]> = {
       primary: [],
@@ -377,8 +250,7 @@ export function GraphView({
     return `${against}${sides.join(" x ")}`;
   }, [title, series, metaMap, xIsTime, xMeta, xKey]);
 
-  /** The series themselves, as a tooltip: the header says what is measured,
-   *  this says which readings are on the chart. */
+  /** The series names, as the header's tooltip. */
   const fullTitle = useMemo(
     () =>
       title !== undefined
@@ -389,18 +261,12 @@ export function GraphView({
     [title, series, metaMap],
   );
 
-  // Resolve variant up-front so the ResizeObserver below knows which element
-  // to observe: chart and readout render different children behind the same
-  // ref, so we re-bind the observer when the variant flips.
   const requestedVariant: GraphVariant = config?.variant ?? "auto";
   const hasReferenceCurves = !!referenceCurves && referenceCurves.length > 0;
   const sizeBucket = getSizeBucket(w, h);
   const canReadout =
     series.length === 1 && !hasReferenceCurves && layers.length === 0;
-  // Auto downgrades to readout for both `tiny` and `small`, at "small" the
-  // chart axes/legend get squashed enough that a number + sparkline reads
-  // better. Mobile half-width cells land in `tiny`, mobile full-width and
-  // desktop-shrunk widgets land in `small`.
+  // At `small` the chart's axes and legend squash enough that a number and sparkline read better.
   const autoShouldReadout = sizeBucket === "tiny" || sizeBucket === "small";
   const resolvedVariant: "chart" | "readout" = canReadout
     ? requestedVariant === "readout"
@@ -425,10 +291,6 @@ export function GraphView({
     return () => ro.disconnect();
   }, [resolvedVariant]);
 
-  // Collected numeric series data from child GraphSeries components.
-  // Contains Y-series data keyed by their data-key. When xKey is a data key
-  // (not time), xData is fetched in parallel and held separately so we can
-  // re-pair samples at render time.
   const [fetchedData, setSeriesData] = useState<
     Map<string, SeriesRange<number>>
   >(new Map());
@@ -471,18 +333,7 @@ export function GraphView({
   const liveSeries: ChartSeries[] = series.map((cfg, i) => {
     const meta = metaMap.get(cfg.key);
     const raw = seriesData.get(cfg.key) ?? { t: [], v: [] };
-    // On a time X axis the series indices ARE the plot's, so the break indices carry straight over; alignXY reindexes its own (see its doc).
-    /*
-     * On a time X axis the series indices ARE the plot's, so the status spans
-     * and the reckoned runs carry over with the break indices; alignXY drops
-     * them, because a parametric plot has no run of consecutive samples to
-     * shade (its X can double back) and a run reindexed onto a re-paired axis
-     * would name the wrong part of the curve. The reckoned run is dropped there
-     * for a sharper reason than the status one: it CHANGES how the curve is
-     * stroked, so landing on the wrong part of it would mark measured samples
-     * as never observed. Bridges go with them, for the reason reckoned runs do:
-     * a chord on a re-paired axis joins different samples.
-     */
+    // Only a time axis keeps spans, reckoned runs and bridges: on a re-paired parametric axis they would name the wrong part of the curve.
     const baseData = xIsTime
       ? {
           x: raw.t,
@@ -494,30 +345,20 @@ export function GraphView({
         }
       : alignXY(raw as SeriesRange<number>, xData);
 
-    // Band series pair `key` (lower bound) with `keyHigh` (upper bound).
-    // The upper-bound samples are fetched in parallel via a second
-    // GraphSeries below, then paired here against the same X values.
     let data: ChartSeriesData = baseData;
     if (cfg.type === "band" && cfg.keyHigh) {
       const rawHigh = seriesData.get(cfg.keyHigh) ?? { t: [], v: [] };
       const highData = xIsTime
         ? { x: rawHigh.t, y: rawHigh.v as number[] }
         : alignXY(rawHigh as SeriesRange<number>, xData);
-      // Pair by index, both are clipped to the shared window already, and
-      // for time-X both fetchers share the same windowSec so lengths align.
-      // Mismatched lengths fall through to LineChart's safe band builder
-      // which clamps to the shortest array.
+      // Paired by index; LineChart's band builder clamps mismatched lengths to the shortest.
       data = {
         x: baseData.x,
         y: baseData.y,
         y2: highData.y,
         breaks: baseData.breaks,
       };
-      /* Neither `spans` nor `reckoned`: a band's polygon has no stroke to dash,
-         and shading half an envelope differently would read as a different
-         quantity rather than a different provenance. A projection with a band
-         states its own decay through the band's width, which is the more
-         honest render of the two and the one it already has. */
+      // A band carries no spans or reckoned runs: its polygon has no stroke to dash.
     }
 
     return {
@@ -530,16 +371,11 @@ export function GraphView({
     };
   });
 
-  // Extra data keys that need their own fetchers, band upper bounds.
-  // Series order is stable so duplicate keys (band low + line elsewhere)
-  // are deduped at render-time by the seriesData map keying on data-key.
   const extraFetchKeys = series
     .filter((cfg) => cfg.type === "band" && cfg.keyHigh)
     .map((cfg) => cfg.keyHigh as string);
 
-  // Reference curves only make sense on a non-time X axis (they're a
-  // function of the X dimension, not time). Silently skip them on time-X
-  // graphs rather than silently corrupting the time domain.
+  // Reference curves are functions of X, so a time-axis graph skips them.
   const overlaySeries: ChartSeries[] =
     !xIsTime && referenceCurves
       ? referenceCurves.map((curve) => ({
@@ -555,11 +391,6 @@ export function GraphView({
 
   const chartSeries: ChartSeries[] = [...liveSeries, ...overlaySeries];
 
-  /*
-   * The furthest instant any MODELLED series was asked for. Only a series that
-   * carries a reckoned run contributes one, so an ordinary chart's axis is the
-   * extent of its data exactly as before; see `computeTimeDomain`.
-   */
   const reckonedWindowEnd = series.reduce<number | undefined>(
     (furthest, cfg) => {
       const raw = seriesData.get(cfg.key);
@@ -577,24 +408,7 @@ export function GraphView({
       ? computeTimeDomain(liveSeries, windowSec, reckonedWindowEnd)
       : computeXDomain(xData.v as number[], overlaySeries, layers);
 
-  /*
-   * Which clock the plotted samples are stamped against, as the FETCHER
-   * declared it (`SeriesRange.basis`) rather than as the widget guesses.
-   *
-   * `computeTimeDomain` above fixed where the trace is drawn and left the
-   * ladder under it reading a UT-seconds domain as unix milliseconds, so a
-   * twenty-minute window was labelled `0:00 ... 0:01`: a chart whose whole
-   * question is WHEN, unable to answer it. Guessing from the magnitudes is not
-   * available (both bases are large monotonic counts), and switching the
-   * formatter wholesale would put the legacy buffered path out by the same
-   * factor the other way, so the producer states it and this reads it.
-   *
-   * The first series that actually HAS samples decides. Every series in one
-   * graph goes through the same hook, so a mixed basis would be two clocks on
-   * one axis, which is a broken chart rather than a formatting choice; and a
-   * graph with nothing plotted falls back to `computeTimeDomain`'s wall-clock
-   * window, which is what an undeclared basis already means.
-   */
+  // The clock the samples are stamped against, as the fetcher declared it; the first series with samples decides.
   const timeBasis: SeriesTimeBasis =
     series
       .map((cfg) => seriesData.get(cfg.key))
@@ -624,16 +438,12 @@ export function GraphView({
     const seriesLabel = cfg.label ?? meta?.label ?? cfg.key;
     const unit = meta?.unit;
 
-    // Drop the subtitle when it would only repeat the title. Naming a
-    // one-series graph after its series is the obvious thing to do, so
-    // "Altitude / Altitude" was the common case rather than the edge one.
+    // The series label is dropped when it would only repeat the title.
     const readoutTitle = title ?? "GRAPH";
     return (
       <Panel
         panelTitle={readoutTitle}
         panelAside={headerActions}
-        /* The readout and its sparkline are the drawing here: the value is set
-           against the tile, not against its own line height. */
         sections={
           <Section fill>
             <div ref={containerRef} style={READOUT_BODY}>
@@ -661,8 +471,6 @@ export function GraphView({
                 )}
               </div>
             </div>
-            {/* Reuse the standard fetcher so live samples and queryRange backfill
-                stay consistent with the chart variant. */}
             {!computedKeys.has(cfg.key) && (
               <GraphSeries
                 key={cfg.id}
@@ -679,10 +487,6 @@ export function GraphView({
 
   const chartBody = (
     <>
-      {/* ChartArea is always rendered so the ResizeObserver effect (deps:
-          []) attaches once and never has to re-attach when the chart's
-          data state flips. The empty-state text overlays when there's no
-          data to plot. */}
       <FramedDisplay style={CHART_FRAME}>
         <div ref={containerRef} style={CHART_AREA}>
           {size && (
@@ -714,7 +518,6 @@ export function GraphView({
             )}
         </div>
       </FramedDisplay>
-      {/* Invisible data-fetcher components, one per series + one for X when non-time */}
       {series
         .filter((cfg) => !computedKeys.has(cfg.key))
         .map((cfg) => (
@@ -748,10 +551,6 @@ export function GraphView({
 
   return (
     <Panel
-      // PanelTitle uppercases, which is right for a word and WRONG for a unit
-      // symbol: "m" and "M" are metre and mega, "mm" and "MM" are not the same
-      // quantity. So the word is uppercased by the panel and the units opt out.
-      // A consumer passing its own title gets it through unchanged.
       panelTitle={
         title !== undefined ? (
           title
@@ -767,14 +566,10 @@ export function GraphView({
         )
       }
       panelAside={headerActions}
-      /* The chart is the whole widget: it takes every pixel the header leaves,
-         which is what it did as the body's one flexing child. */
       sections={<Section fill>{chartBody}</Section>}
     />
   );
 }
-
-// ── Registered widget ────────────────────────────────────────────────────────
 
 function GraphComponent({
   config,
@@ -783,8 +578,6 @@ function GraphComponent({
 }: Readonly<ComponentProps<GraphConfig>>) {
   return <GraphView config={config} w={w} h={h} />;
 }
-
-// ── Config component ──────────────────────────────────────────────────────────
 
 function GraphConfigComponent({
   config,
@@ -821,12 +614,8 @@ function GraphConfigComponent({
   );
 
   const schema = useDataSchema("data");
-  // A graph axis orders its values, so it needs the same magnitude a threshold
-  // does. Shared with the alarm and trigger pickers rather than re-tested here:
-  // this call site used to compare against unit spellings the contract does not
-  // emit, and so admitted every flag and enum it meant to exclude.
+  // A graph axis orders its values, so it admits the same keys a threshold does.
   const numericKeys = schema.filter(isThresholdSubject);
-  // X-axis picker: time is an always-present pseudo-key; numeric data keys below.
   const xKeyOptions = [
     { key: TIME_AXIS, label: "Time", group: "Axis" },
     ...numericKeys,
@@ -1130,22 +919,7 @@ function parseDomain(
   return [min, max];
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
-// Structural inline styles (CSS-var tokens): a bespoke plot frame + config
-// form, no reusable ui-kit primitive fits the layout, so it stays local. The
-// two hover-bearing config buttons reuse ui-kit GhostButton / IconButton (the
-// only inline-inexpressible bit is `:hover`); the plot slots that need a ref
-// for the ResizeObserver stay plain divs (ui-kit Fill is not forwardRef).
-
-// The plot is visual content, so it gets a frame rather than an argument with
-// the body inset. `flush`: LineChart already draws inside its own MARGIN, so
-// the frame's gutter would read as a double border. A frame rather than
-// `floatingHeader`, even though the chart variant's body holds nothing but the
-// drawing: LineChart stamps its series legend top-left INSIDE the plot, which
-// is exactly where a floating title would land. The readout variant is mixed
-// content anyway (a big number and a sparkline), and one widget wants one kind
-// of header across both its variants.
+// A frame, not `floatingHeader`: LineChart draws its legend top-left inside the plot, where a floating title would land.
 const CHART_FRAME: CSSProperties = { flex: 1, minHeight: 0 };
 
 const CHART_AREA: CSSProperties = {
@@ -1214,10 +988,6 @@ const DOMAIN_ROW: CSSProperties = {
   gap: "var(--gap-related)",
 };
 
-// GhostButton override: a full-width dashed "add" affordance, not uppercase.
-// GhostButton supplies the hover (colour lift) `:hover` inline can't; the rest
-// is inline. The styled hover also shifted the border to --color-text-dim;
-// GhostButton's own hover lifts it to --color-text-faint, a close brighten.
 const ADD_BUTTON: CSSProperties = {
   width: "100%",
   borderStyle: "dashed",
@@ -1231,8 +1001,6 @@ const ADD_BUTTON: CSSProperties = {
   marginTop: "var(--gap-actions)",
 };
 
-// IconButton override: the "×" remove control. IconButton supplies the hover
-// colour lift; the size/colour are inline.
 const REMOVE_BUTTON: CSSProperties = {
   color: "var(--color-text-dim)",
   fontSize: "var(--font-size-lg)",
@@ -1244,8 +1012,6 @@ const REMOVE_BUTTON: CSSProperties = {
 // Unit symbols are case-sensitive, so they opt out of the header's uppercase.
 const GRAPH_UNITS: CSSProperties = { textTransform: "none" };
 
-// ── Registration ──────────────────────────────────────────────────────────────
-
 registerComponent<GraphConfig>({
   id: "graph",
   name: "Graph",
@@ -1253,7 +1019,7 @@ registerComponent<GraphConfig>({
   tags: ["telemetry", "graph"],
   defaultSize: { w: 10, h: 8 },
   minSize: { w: 5, h: 4 },
-  // Plot area collapses below ~240px tall: give graphs extra room on mobile.
+  // The plot area collapses below about 240px tall.
   mobileHeight: 280,
   component: GraphComponent,
   configComponent: GraphConfigComponent,

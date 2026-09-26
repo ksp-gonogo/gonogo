@@ -23,12 +23,7 @@ export interface FileInputProps {
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
 }
 
-/**
- * Native `<input type="file">` styled to match the dark theme. The OS-painted
- * "No file chosen" + filename text is unstyleable on most browsers and renders
- * black-on-dark, so we visually hide the input and surface the filename in
- * theme-aware text instead.
- */
+/** File input with the native control visually hidden, because its OS-painted filename text renders black-on-dark. */
 export const FileInput = forwardRef<HTMLInputElement, FileInputProps>(
   function FileInput(
     {

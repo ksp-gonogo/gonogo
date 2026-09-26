@@ -84,13 +84,7 @@ function setup(targetBodyIndex?: number, opts?: { budgetDvVac?: number }) {
     pinnedUt: 0,
     suspendFrames: true,
   });
-  /*
-   * The widget asks the game where the two bodies are, and a stub that never
-   * answers leaves the dispatch hanging until its loss timer rejects it, after
-   * the test body has returned. Refusing it is the honest answer for a fixture
-   * carrying no propagation provider, and it is the path every assertion below
-   * was written against: the grid falls back to the client's own conic.
-   */
+  // A fixture with no propagation provider refuses the body-state ask, so the grid falls back to the client's own conic without a hanging dispatch.
   fixture.transport.setCommandHandler(() => ({
     solved: false,
     refusal: "this fixture elects no propagation provider",
@@ -105,11 +99,7 @@ function setup(targetBodyIndex?: number, opts?: { budgetDvVac?: number }) {
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
-  /*
-   * Inside `act`, because the fixture's clock is suspended and each emit
-   * therefore publishes on the spot rather than on some later frame: the render
-   * it causes happens here, in this scope, and has to be allowed to.
-   */
+  // Inside `act`: the fixture's clock is suspended, so each emit publishes and renders on the spot.
   act(() => {
     fixture.emit("system.bodies", { bodies: [SUN, EARTH, MARS, VENUS] });
     // Vessel in a 700 km-ish LEO around Earth (index 1).
@@ -147,12 +137,7 @@ function setup(targetBodyIndex?: number, opts?: { budgetDvVac?: number }) {
   return { fixture, view };
 }
 
-// Rendered trees, tracked so afterEach can unmount them BEFORE clearRegistry()
-// notifies the DataSource-registry subscribers: every useTelemetry call
-// keeps its legacy useDataSourceSubscription wired unconditionally, so
-// clearRegistry() firing on a still-mounted widget is a state update outside
-// act(). RTL auto-cleanup runs after this file's afterEach, too late to
-// unmount first.
+// Unmounted before clearRegistry, whose notification on a mounted widget lands outside act().
 const renderedTrees: Array<() => void> = [];
 
 afterEach(() => {
@@ -188,7 +173,7 @@ describe("TransferWindow widget", () => {
     await waitFor(() =>
       expect(screen.getByText(/^Windows to$/)).toBeInTheDocument(),
     );
-    // one selectable row per upcoming window (WINDOW_COUNT of them)
+    // One selectable row per upcoming window.
     expect(
       screen.getAllByRole("button", { name: /in |now/i }).length,
     ).toBeGreaterThanOrEqual(2);
@@ -209,17 +194,12 @@ describe("TransferWindow widget", () => {
     await waitFor(() =>
       expect(screen.getByText(/^Windows to$/)).toBeInTheDocument(),
     );
-    // window 0 is expanded by default; the rest are collapsed window-row buttons
+    // Window 0 is expanded by default; the rest are collapsed window-row buttons.
     const collapsed = screen.getAllByRole("button", { expanded: false });
     expect(collapsed.length).toBeGreaterThan(0);
     fireEvent.click(collapsed[0]);
     expect(collapsed[0]).toHaveAttribute("aria-expanded", "true");
-    /*
-     * Selecting a window re-centres the grid, which asks the game for the two
-     * bodies again; the stub answers on a later microtask, after this body has
-     * returned. Holding the scope open across it is CLAUDE.md's second cause,
-     * and the alternative is a settle that lands in teardown.
-     */
+    // Selecting a window re-asks for the body states, answered after the body returns, so the scope is held open across it.
     await act(async () => {});
   });
 
@@ -279,19 +259,13 @@ describe("TransferWindow reach list", () => {
     expect(names.some((t) => t.includes("Venus"))).toBe(true);
   });
 
-  /*
-   * The load-bearing assertion. With a budget on the wire the verdict column must
-   * appear AND carry a real verdict: a test that only checked the no-budget branch
-   * would pass against a widget that never rendered a verdict at all.
-   */
+  // With a budget on the wire the verdict column must appear AND carry a real verdict.
   it("renders a verdict per destination once a budget is on the wire", async () => {
     setup(undefined, { budgetDvVac: 6000 });
     await waitFor(() =>
       expect(screen.getByText("Affords")).toBeInTheDocument(),
     );
-    // The band, not a boolean, and this budget straddles it. Mars costs less to
-    // arrive at than Venus despite Venus being cheaper to depart for, so one reads
-    // GO and the other ONE WAY: reachable, but not with a capture burn.
+    // This budget straddles the band: Mars reads GO and Venus ONE WAY (reachable, but not with a capture burn).
     expect(screen.getByText("GO")).toBeInTheDocument();
     expect(screen.getByText("ONE WAY")).toBeInTheDocument();
     expect(visibleText()).toMatch(/Budget/);
@@ -303,8 +277,7 @@ describe("TransferWindow reach list", () => {
     await waitFor(() =>
       expect(screen.getByText("Affords")).toBeInTheDocument(),
     );
-    // 500 m/s affords no departure at all, so every row reads NO. That is a
-    // COMPUTED answer and it renders as one.
+    // A computed NO renders as one.
     expect(screen.getAllByText("NO").length).toBeGreaterThanOrEqual(1);
   });
 
@@ -340,12 +313,7 @@ describe("TransferWindow reach list", () => {
 });
 
 describe("TransferWindow reach list: the absent budget", () => {
-  /*
-   * The state the design exists for, and the one a fixture has to be able to
-   * express: stock will not compute Δv for a vessel it is not simulating, so
-   * `dv.summary` tombstones for a real craft. That is a DIFFERENT sentence from
-   * "we have not heard", and neither is "cannot afford".
-   */
+  // Stock computes no Δv for a vessel it is not simulating, so `dv.summary` tombstones: neither "not heard" nor "cannot afford".
   it("says the sim has no figure, and still shows the costs", async () => {
     const { fixture } = setup();
     await waitFor(() =>
@@ -377,12 +345,7 @@ describe("TransferWindow reach list: the absent budget", () => {
 });
 
 describe("TransferWindow layout: origin-based, not destination-based", () => {
-  /*
-   * The reach list answers "where can I go" and has to come BEFORE the widget
-   * commits to one destination. Asserted on document order rather than on styling,
-   * because the complaint was that reach read as an afterthought tucked at the
-   * bottom while the destination picker sat at the top.
-   */
+  // The reach list answers "where can I go", so it comes BEFORE the destination picker in document order.
   it("puts REACH above the windows list in document order", async () => {
     setup(undefined, { budgetDvVac: 6000 });
     await waitFor(() =>

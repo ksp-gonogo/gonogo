@@ -6,16 +6,7 @@ import {
 } from "../test/orbitScenario";
 import { OrbitViewComponent } from "./index";
 
-/**
- * OrbitView mounted on the shared orbit-stream fixture.
- * OrbitView reads exclusively off the SDK stream (`vessel.orbit`'s elements,
- * with the body named and sized off `vessel.identity` and `system.bodies`), so
- * every test drives it through a real `TelemetryProvider`/`TimelineStore` via
- * `setupStreamFixture` rather than the retired legacy `MockDataSource` path.
- *
- * The scenario emitter itself lives in `test/orbitScenario` because the widgets
- * that draw a trajectory must all be drivable from the same one; see there.
- */
+/** OrbitView mounted on the shared orbit-stream fixture, which every trajectory-drawing widget is driven from. */
 
 export { emitScenario, type OrbitScenario, type RenderStreamResult };
 

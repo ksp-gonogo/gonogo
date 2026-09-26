@@ -17,8 +17,7 @@ describe("computeUplinkPulse", () => {
 
   it("reaches progress 1 on the outbound leg exactly at dispatchedAt + oneWaySeconds", () => {
     const pulse = computeUplinkPulse(ENTRY, 1010);
-    // At the exact boundary it's still classified outbound-complete, not yet
-    // return: the return leg begins strictly after this instant.
+    // The return leg begins strictly after the boundary instant.
     expect(pulse?.leg).toBe("outbound");
     expect(pulse?.progress).toBeCloseTo(1);
   });

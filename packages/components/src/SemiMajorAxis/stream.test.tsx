@@ -6,25 +6,10 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SemiMajorAxisComponent } from "./index";
 
 /**
- * The stream test-adapter proof for SemiMajorAxis (mirrors
- * `ThermalStatus/stream.test.tsx`): genuinely running off the real
- * `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport`: no legacy `DataSource` is registered anywhere in this
- * file.
- *
- * SemiMajorAxis's keys are both clean-home stream Topics now (no gaps left,
- * `map-topic.ts`):
- * - `o.sma` -> the raw `vessel.orbit.sma` field-subtopic (the headline value).
- * - `o.referenceBody` -> `vessel.orbit.referenceBodyIndex` named against
- *   `system.bodies`. The subtitle body suffix therefore streams too, so this
- *   fixture emits `system.bodies`.
- *
- * `useDataSeries` (sparkline history, `@ksp-gonogo/data`) now carries its own
- * stream shim, behind the same `mapTopic`/carried-channels gate, reading its window off
- * `TimelineStore.sampleRange` once `vessel.orbit` is carried. The second
- * `it` below is the end-to-end proof: since NO legacy `DataSource` is
- * registered anywhere in this file, a rendered sparkline `<path>` can only
- * have come from the stream.
+ * SemiMajorAxis running off the real `TelemetryProvider`/`TelemetryClient`/
+ * `TimelineStore` pipeline via `StubTransport`, with no legacy `DataSource`
+ * registered, so a rendered headline, body suffix or sparkline `<path>` can
+ * only have come from the stream.
  */
 
 describe("SemiMajorAxis: genuinely runs off the stream (M3 batch 2)", () => {
@@ -43,14 +28,14 @@ describe("SemiMajorAxis: genuinely runs off the stream (M3 batch 2)", () => {
       </fixture.Provider>,
     );
 
-    // Nothing arrived yet: sma is undefined, so the empty state renders.
+    // Nothing arrived yet: the empty state.
     expect(screen.getByText("No orbit data")).toBeTruthy();
 
-    // A real subscription must have happened for this to deliver at all, StubTransport.emit is subscription-gated (see its own doc comment).
+    // StubTransport.emit is subscription-gated, so a real subscription must exist.
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
     act(() => {
-      // referenceBodyIndex 1 -> resolved to "Kerbin" against system.bodies.
+      // referenceBodyIndex 1 resolves to "Kerbin" against system.bodies.
       fixture.emit("vessel.orbit", { sma: 680000, referenceBodyIndex: 1 });
       fixture.emit("system.bodies", {
         bodies: [
@@ -66,7 +51,7 @@ describe("SemiMajorAxis: genuinely runs off the stream (M3 batch 2)", () => {
     });
 
     await waitFor(() => expect(visibleText()).toContain("680.0 km"));
-    // The subtitle body suffix streams off the named reference body, with NO legacy source present.
+    // The body suffix streams off the named reference body.
     await waitFor(() =>
       expect(screen.getByText("Semi-major axis · Kerbin")).toBeTruthy(),
     );
@@ -89,17 +74,12 @@ describe("SemiMajorAxis: genuinely runs off the stream (M3 batch 2)", () => {
       </fixture.Provider>,
     );
 
-    // No sparkline can render yet, Sparkline draws nothing for fewer than 2
-    // finite values (@ksp-gonogo/ui's Sparkline.test.tsx), and nothing has
-    // arrived at all.
+    // Sparkline draws nothing for fewer than 2 finite values.
     expect(
       container.querySelector("svg[aria-label='SMA trend'] path"),
     ).toBeNull();
 
-    // Three points inside the SPARK_WINDOW_SEC=300 window ending at the
-    // pinned viewUt=10 ([-290, 10]): with NO legacy 'data' DataSource
-    // registered anywhere in this file, this is the only possible source
-    // for a rendered trend line.
+    // Three points inside the 300 s window ending at the pinned viewUt=10.
     act(() => {
       fixture.emit("vessel.orbit", { sma: 679_400 }, { validAt: -200 });
       fixture.emit("vessel.orbit", { sma: 679_800 }, { validAt: -100 });
@@ -108,24 +88,15 @@ describe("SemiMajorAxis: genuinely runs off the stream (M3 batch 2)", () => {
 
     await waitFor(() => expect(visibleText()).toContain("680.0 km"));
     await waitFor(() => {
-      // Sparkline renders TWO <path>s (a gradient-filled area, then the
-      // stroked trend line itself, `fill="none"`: @ksp-gonogo/ui's
-      // Sparkline.tsx): target the stroke path specifically so its
-      // point-count isn't padded by the fill path's baseline-closing
-      // segments.
+      // The stroke path, not the fill, whose baseline-closing segments would pad the count.
       const path = container.querySelector(
         "svg[aria-label='SMA trend'] path[fill='none']",
       );
       expect(path).not.toBeNull();
       const d = path?.getAttribute("d") ?? "";
-      // One "M" (moveto) + 2 "L" (lineto) commands, all 3 streamed points made it into the plotted path, not just the latest one.
+      // One M and two L: all three points were plotted, not just the latest.
       expect(d.match(/L/g)?.length).toBe(2);
-      // Rising series (679_400 -> 679_800 -> 680_000) draws a
-      // monotonically DEscending y (SVG y grows downward), proves the
-      // point ORDER came through correctly too, not just the count.
-      // Inset by half the stroke's width at each extreme, so the highest and
-      // lowest points plot INSIDE the box rather than centred on its edge,
-      // where an SVG clips half the ink away.
+      // A rising series draws descending y, so order came through too. Extremes are inset by half the stroke so they are not clipped.
       expect(d).toBe("M0.00,27.25 L60.00,9.58 L120.00,0.75");
     });
   });

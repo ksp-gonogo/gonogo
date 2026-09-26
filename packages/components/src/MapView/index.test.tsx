@@ -57,10 +57,7 @@ interface VesselScenario {
   atmosphere?: { depth: number };
 }
 
-/**
- * The per-augment settings block of a widget config, and `undefined` when the
- * config carries none.
- */
+/** The per-augment settings block of a widget config, or `undefined`. */
 function augmentSettingsOf(
   config: Record<string, unknown> | undefined,
 ): Record<string, Record<string, unknown>> | undefined {
@@ -73,7 +70,7 @@ function augmentSettingsOf(
 describe("MapViewComponent", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
-  // Unmount before the state-mutating teardown (buffered.disconnect / clearBodies / clearAugments), which would otherwise re-render a still-mounted tree.
+  // Unmount before the state-mutating teardown, which would otherwise re-render a mounted tree.
   const trees: Array<() => void> = [];
   let restoreResizeObserver: () => void = () => {};
 
@@ -102,19 +99,10 @@ describe("MapViewComponent", () => {
     clearBodies();
   });
 
-  /**
-   * Minimal stand-in for `ui`'s `ModalDialog` chrome: renders whatever
-   * footer `useModalSaveBar` registers so a config component's Save button
-   * is reachable in an isolated render (see `ModalSaveBar.test.tsx` for the
-   * same pattern in `ui-kit`).
-   */
+  /** Stand-in for `ModalDialog` chrome: renders the footer `useModalSaveBar` registers, so Save is reachable. */
   function ModalChromeHost({ children }: { children: ReactNode }) {
     const [footer, setFooter] = useState<ReactNode>(null);
-    // Memoized exactly like the real `ModalDialog` (`ui/src/Modal.tsx`),
-    // an unstable `chrome` object here would make every consumer re-render
-    // on every footer update via context propagation, which (combined with
-    // a config component's `onSave: () => onSave(candidate)` closure being
-    // recreated each render) loops forever.
+    // Memoized like the real `ModalDialog`: an unstable `chrome` object loops forever against a config component's recreated onSave.
     const chrome = useMemo<ModalChromeValue>(
       () => ({ setFooter, setDirty: () => {} }),
       [],
@@ -128,11 +116,9 @@ describe("MapViewComponent", () => {
   }
 
   /**
-   * The provider pair the dashboard puts round every widget:
-   * `DashboardItemContext` for the instance (MapView reads it via
-   * `useActionInput`), and `WidgetMetaContext` for the identity `Panel`
-   * completes `${componentId}.${segment}` from. Without the latter the
-   * universal `sections` and `actions` seams have no slot id to resolve.
+   * The provider pair the dashboard puts round every widget: the instance for
+   * `useActionInput`, and the identity `Panel` resolves its universal
+   * `sections` and `actions` slot ids from.
    */
   function Wrap({
     config,
@@ -197,9 +183,7 @@ describe("MapViewComponent", () => {
     return { ...result, fixture };
   }
 
-  /** Emit the vessel kinematics/body onto the stream, then flush the provider's
-   * beginFrame rAF ticks inside act so the stream-driven re-renders (widget +
-   * any AugmentSlot) commit inside act rather than landing on a later frame. */
+  /** Emit the vessel kinematics and body, then flush the provider's frames inside act. */
   async function emitVessel(
     fixture: StreamFixture,
     s: VesselScenario,
@@ -260,14 +244,9 @@ describe("MapViewComponent", () => {
   });
 
   /**
-   * The imaging window is a function of the body's radius and its atmosphere,
-   * and the chip is where an operator reads it. Both used to come from a table
-   * of stock bodies keyed by NAME, so under a planet pack the body resolved
-   * nowhere and the chip did not render at all.
-   *
-   * <p>The pair is the point: 100 km is inside Kerbin's imaging window and well
-   * below Earth's, so a case that only checked the chip appeared would pass on
-   * a Kerbin-sized window wearing Earth's name.</p>
+   * The imaging window comes from the body's radius and atmosphere off the
+   * stream, not a stock table keyed by name. 100 km is inside Kerbin's window
+   * and well below Earth's, so a Kerbin-sized window wearing Earth's name fails.
    */
   describe("a body the stock table has never heard of", () => {
     const EARTH = {
@@ -315,9 +294,7 @@ describe("MapViewComponent", () => {
     await expectNoA11yViolations(container);
   }, 20000);
 
-  // axe traversal of the body picker (a select carrying every stock body) is
-  // slow enough to blow vitest's 5s default under CI load, give the a11y
-  // smoke a generous margin so it doesn't flake (it passes fast locally).
+  // axe over the body picker is slow, so the a11y smoke gets a generous timeout.
   it("a11y smoke: config component (body picker + toggles) has no violations", async () => {
     const { container } = render(
       <MapViewConfigComponent config={{}} onSave={() => {}} />,
@@ -330,7 +307,6 @@ describe("MapViewComponent", () => {
     const select = screen.getByLabelText("Body") as HTMLSelectElement;
     expect(select).toBeInTheDocument();
     expect(within(select).getByText("Follow vessel")).toBeInTheDocument();
-    // Stock bodies are registered in beforeEach.
     expect(
       within(select).getByRole("option", { name: "Kerbin" }),
     ).toBeInTheDocument();
@@ -345,15 +321,9 @@ describe("MapViewComponent", () => {
     expect(screen.queryByText("Altimetry HiRes")).toBeNull();
   });
 
-  // MapView exposes an OVERLAY slot over the map canvases (passing the live
-  // equirectangular projection) and a BADGES escape-hatch in the header. No
-  // first-party augment fills them, so these register throwaway augments
-  // (cleared after each) to prove the slots compose and pass their props, and
-  // that the empty slots are inert when nothing is registered.
+  // Throwaway augments prove the slots compose and pass their props, and that empty slots are inert.
   describe("augment slots", () => {
-    // This inner afterEach runs BEFORE the outer one, so unmount the trees here
-    // first: otherwise clearAugments() notifies a still-mounted AugmentSlot's
-    // subscribers and it re-renders outside act() (CLAUDE.md → act() pattern).
+    // Runs before the outer afterEach, so the trees unmount before clearAugments() notifies them.
     afterEach(() => {
       for (const unmount of trees) unmount();
       trees.length = 0;
@@ -459,9 +429,7 @@ describe("MapViewComponent", () => {
     });
 
     it("composes a fake map-view.sections augment below the map", async () => {
-      // The mapped body reaches the augment through the widget's published
-      // SCOPE: `map-view.sections` is the framework's universal segment now and
-      // a universal segment carries no props.
+      // The mapped body reaches the augment through the widget's published scope; a universal segment carries no props.
       function SectionsAugment() {
         const bodyName = useWidgetScope("map-view")?.bodyName;
         return <div>Sections for {bodyName}</div>;
@@ -568,10 +536,7 @@ describe("MapViewComponent", () => {
     });
 
     it("map-view.actions: a registered augment can toggle a base layer's show, writing the SAME augmentSettings the settings panel reads", async () => {
-      // The augment writes through the framework's own settings loop, not
-      // through a handle MapView threaded down: `useAugmentSettings` writes
-      // under the augment's own id, so a quick toggle and the settings-panel
-      // checkbox are the same value by construction.
+      // `useAugmentSettings` writes under the augment's own id, so a quick toggle and the settings checkbox are one value.
       function ToggleAugment() {
         const settings = useAugmentSettings("scan-layer");
         return (
@@ -632,22 +597,13 @@ describe("MapViewComponent", () => {
     });
   });
 
-  // Regression guard (2026-07-20): vanilla-base suppression must respect the
-  // SAME Domain-presence gate `<AugmentSlot>` itself applies before ever
-  // rendering an augment's component: NOT merely that the augment is
-  // registered. An earlier version of this fix suppressed off registry
-  // presence alone, which (since a client bundle registers its augments
-  // unconditionally at import time, whether or not the mod is running in
-  // KSP) blacked out the map for every user without that Uplink installed.
-  // `VanillaSuppressionProbe` is the piece that must get this right, it
-  // reports a `suppressesVanillaBase` augment's live availability up to
-  // MapView independently of whether that augment's own component ever
-  // mounts (it CAN'T report anything itself while ungated, since it never
-  // renders). Tested directly (white-box) rather than through MapView's own
-  // canvas paint, which jsdom can't exercise (`installDomStubs` stubs
-  // `getContext` to null): the pure combination of this signal with
-  // `suppressesVanillaBase` is covered separately in
-  // vanillaSuppression.test.ts.
+  /*
+   * Vanilla-base suppression must respect the same Domain-presence gate
+   * `<AugmentSlot>` applies, not mere registration: a client bundle registers
+   * its augments unconditionally. Tested on the probe directly because jsdom
+   * cannot exercise the canvas paint; the pure combination is covered in
+   * vanillaSuppression.test.ts.
+   */
   describe("VanillaSuppressionProbe (regression guard: suppression must respect Domain availability)", () => {
     const probeTrees: Array<() => void> = [];
     afterEach(() => {
@@ -657,9 +613,7 @@ describe("MapViewComponent", () => {
 
     it("case 1: reports available=false while the augment's required Domain has not announced (vanilla base would still paint)", () => {
       const calls: Array<[string, boolean]> = [];
-      // The gate reads ui-kit's availability store (fed from telemetry by the
-      // app), never the spine directly, so drive it store-first: an unannounced
-      // Domain reads unavailable.
+      // The gate reads ui-kit's availability store, so drive it store-first: an unannounced Domain reads unavailable.
       const store = createDomainAvailabilityStore();
 
       const result = render(
@@ -678,7 +632,7 @@ describe("MapViewComponent", () => {
       );
       probeTrees.push(result.unmount);
 
-      // The regression: registered + suppressesVanillaBase alone must NOT report available: the Domain was never announced.
+      // Registered with suppressesVanillaBase alone must not report available: the Domain was never announced.
       expect(calls).toEqual([["fake-suppressing-base", false]]);
     });
 
@@ -715,12 +669,7 @@ describe("MapViewComponent", () => {
     });
   });
 
-  // Proves T10's read-back loop end to end: an augment's `settings` block
-  // reaches the config UI via `AugmentSettingsPanel`, a saved edit lands in
-  // the widget's persisted config namespaced by augment id, and a subsequent
-  // render of the widget itself surfaces that value back on
-  // `ctx.augmentSettings`: the same object `useCoverageGate` and any
-  // augment's own settings already know how to read.
+  // An augment's `settings` reach the config UI, a saved edit lands namespaced by augment id, and the widget surfaces it back on `ctx.augmentSettings`.
   describe("augment settings read-back", () => {
     afterEach(() => {
       for (const unmount of trees) unmount();

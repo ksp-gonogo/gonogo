@@ -24,15 +24,8 @@ import {
 } from "./topologyToVesselPartsWire";
 
 /**
- * Fixtures authored before the `t.universalTime` client migration
- * (`useTelemetry("data", "t.universalTime")` → `useViewUt()`) still carry a
- * `"t.universalTime"` key: it's harmless to leave (widgets that don't read
- * it just ignore the emit), but a migrated widget's `useViewUt()` needs a
- * mounted `TelemetryProvider` to resolve to anything at all. Pin one from
- * the fixture's own value so these fixtures keep rendering exactly as they
- * did when the read came straight off the legacy `DataSource`, no
- * per-fixture/per-test opt-in needed. Fixtures with no such key are
- * unaffected (`pinnedUt` stays `undefined`, no `TelemetryProvider` mounted).
+ * A legacy fixture's `"t.universalTime"` key pins the view clock, since
+ * `useViewUt()` resolves only under a mounted `TelemetryProvider`.
  */
 function resolvePinnedUt(fixture: Fixture): number | undefined {
   const raw = fixture["t.universalTime"];
@@ -40,22 +33,9 @@ function resolvePinnedUt(fixture: Fixture): number | undefined {
 }
 
 /**
- * Same story as {@link resolvePinnedUt}, for the `v.topology`/`v.topologySeq`
- * retirement: `useTopology` (ShipMap/PowerSystems) now reads `vessel.parts`
- * canonically with NO legacy fallback at all, so a ShipMap/PowerSystems
- * fixture that still carries a `v.topology` payload (every existing fixture
- * does, captured before this migration) needs it reshaped onto the wire
- * shape and streamed through the SAME mounted `TelemetryProvider`, or the
- * "legacy" snapshot leg would render nothing but the "Waiting for vessel
- * topology..." empty state. Fixtures with no `v.topology` key are unaffected.
- *
- * Also overlays any `r.resourceFor[fid]`/`v.partState[fid]` legacy keys the
- * fixture carries: `usePartsLive`'s per-part `resources`/`partState` join
- * rides this SAME `vessel.parts` payload now (no more legacy `DataSource`
- * subscription), so a PowerSystems fixture with those keys (e.g.
- * `03-solar-charging-sunlight`) needs them folded in here or the "legacy"
- * leg would render an empty Producers/Consumers list instead of the
- * fixture's real PROD/NET numbers.
+ * Reshapes a legacy `v.topology` payload, plus any `r.resourceFor[fid]` and
+ * `v.partState[fid]` keys, onto the `vessel.parts` wire, which `useTopology`
+ * and `usePartsLive` read with no legacy fallback.
  */
 function resolveVesselPartsWire(fixture: Fixture): unknown {
   const raw = fixture["v.topology"];
@@ -67,19 +47,9 @@ function resolveVesselPartsWire(fixture: Fixture): unknown {
 }
 
 /**
- * Same story as {@link resolvePinnedUt}/{@link resolveVesselPartsWire}, for the
- * `ActionGroup` canonical-read migration: that widget dropped its legacy
- * `useTelemetry("data", group.value)` shim entirely and now reads
- * `vessel.control` / `vessel.structure` one-arg, so a fixture carrying the old
- * `v.sasValue`/`v.ag1Value`/... keys needs them reshaped onto the wire or the
- * widget would render the null-display placeholder for every group instead
- * of the fixture's real state.
- *
- * Reshapes only the keys a fixture actually carries: an absent key stays absent
- * (`undefined`), which is the contract's own "not available this tick" and
- * exactly what the `unknown-state` fixture is asserting. Custom groups are
- * rebuilt as the NAMED list the mod now sends, sourced from whichever
- * `v.ag{n}Value` keys are present.
+ * Reshapes legacy `v.sasValue`/`v.ag{n}Value`/... keys onto the
+ * `vessel.control` wire. Only the keys a fixture carries: an absent key stays
+ * absent, which the `unknown-state` fixture asserts.
  */
 function resolveVesselControlWire(fixture: Fixture): unknown {
   const bool = (key: string): boolean | undefined =>
@@ -104,8 +74,7 @@ function resolveVesselControlWire(fixture: Fixture): unknown {
     actionGroups: actionGroups.length > 0 ? actionGroups : undefined,
   };
 
-  // Nothing this widget reads => no payload at all, so the provider isn't
-  // mounted for fixtures that have nothing to say about control state.
+  // Nothing this widget reads means no payload, so no provider is mounted.
   return Object.values(control).some((v) => v !== undefined)
     ? control
     : undefined;
@@ -117,30 +86,22 @@ function resolveVesselStructureWire(fixture: Fixture): unknown {
   return typeof raw === "number" ? { currentStage: raw } : undefined;
 }
 
-/**
- * `t.isPaused` -> `time.warp.paused`: the same story as
- * {@link resolveVesselControlWire}, for the OTHER canonical-read migration that
- * landed on these widgets: the pause/no-signal unavailability notices read
- * `time.warp` / `comms.link` one-arg now, with no legacy fallback, so a fixture
- * carrying the old keys must reshape them onto the wire or the notice silently
- * never renders. Absent key stays absent.
- */
+/** `t.isPaused` -> `time.warp.paused`. Absent key stays absent. */
 function resolveTimeWarpWire(fixture: Fixture): unknown {
   const raw = fixture["t.isPaused"];
   return typeof raw === "boolean" ? { paused: raw } : undefined;
 }
 
-/** `comm.connected` -> `comms.link.connected`: see {@link resolveTimeWarpWire}. */
+/** `comm.connected` -> `comms.link.connected`. Absent key stays absent. */
 function resolveCommsLinkWire(fixture: Fixture): unknown {
   const raw = fixture["comm.connected"];
   return typeof raw === "boolean" ? { connected: raw } : undefined;
 }
 
 /**
- * Per-mode size descriptor consumed by the snapshot helper. Mirrors the
- * `SizeMode` shape in `packages/components/scripts/widgets.ts` so the same
- * mode arrays drive both the playwright PNG renders and the vitest DOM
- * snapshots.
+ * Per-mode size descriptor. Mirrors `SizeMode` in
+ * `packages/components/scripts/widgets.ts` so one mode array drives both the
+ * playwright PNG renders and the vitest DOM snapshots.
  */
 export interface WidgetSnapshotMode {
   name: string;
@@ -156,15 +117,10 @@ interface Fixture {
 }
 
 /**
- * A fixture's own declaration of what it puts on the wire, and the ONLY
- * authority for a fixture that carries one.
- *
- * Structurally identical to the probe's `StreamFixtureBlock`
- * (`scripts/probe/probe-entry.tsx`), which is the point: one fixture format,
- * read the same way by both harnesses. Declared here rather than imported
- * because the probe entry is browser-bundled and pulls in a React root, a
- * registry install and a `createRoot` call that a vitest run has no business
- * loading; the shared thing is the fixture JSON, not the module.
+ * A fixture's own declaration of what it puts on the wire, and the only
+ * authority for a fixture that carries one. Structurally identical to the
+ * probe's `StreamFixtureBlock` (`scripts/probe/probe-entry.tsx`): one fixture
+ * format, read the same way by both harnesses.
  */
 interface StreamFixtureBlock {
   /** Topics this fixture carries, forwarded to `setupStreamFixture`. */
@@ -176,25 +132,13 @@ interface StreamFixtureBlock {
   /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
   emits: Array<{ channel: string; value: unknown; meta?: Partial<Meta> }>;
   /**
-   * Stage the scene as NOT CURRENT: drop the transport once every emit has
-   * landed, so the widget is captured holding figures that have stopped
-   * arriving. See the probe's copy of this field for why the drop is the lever.
-   *
-   * Read here as well as in the probe because the two harnesses read ONE
-   * fixture format, and a knob only one of them honours is how a widget
-   * migrated to `_stream` came to have its empty state written down as a
-   * committed snapshot (see {@link buildStreamWrap}). A stale scene ignored
-   * here would snapshot as its live twin under the stale scene's name.
+   * Stage the scene as not current: drop the transport once every emit has
+   * landed, so the widget is captured holding figures that stopped arriving.
    */
   stopsArriving?: boolean;
   /**
-   * The install profiles this scene is interesting under
-   * (`test/installProfile.ts`), by id. The scene names them so the matrix stays
-   * a scene's own decision: a crew widget cares about the crew-standing
-   * election and nothing else, and has no business rendering under twelve
-   * installs to prove it. A caller passes one of these as
-   * {@link SnapshotOpts.profile}; a fixture that names none renders under the
-   * wire it declares, unchanged.
+   * The install profiles (`test/installProfile.ts`) this scene is interesting
+   * under, by id. A caller passes one as {@link SnapshotOpts.profile}.
    */
   profiles?: string[];
 }
@@ -219,41 +163,22 @@ interface SnapshotOpts<Cfg> {
   instanceId?: string;
   /** Override the default config baseline (config overlay merges on top). */
   defaultConfig?: Cfg;
-  /** Forwarded to `setupMockDataSource`: see its own doc comment. Default `false`, matching every existing widget's snapshot behavior. */
+  /** Forwarded to `setupMockDataSource`. Default `false`. */
   connectSource?: boolean;
   /**
    * Render under a declared install (`test/installProfile.ts`), by id: the
    * fixture's `_stream` block is rewritten into the wire that install would
-   * produce, roster included. Only applies to a fixture that HAS a `_stream`
-   * block, since a legacy flat-key fixture has no wire to rewrite.
+   * produce. Applies only to a fixture that has a `_stream` block.
    */
   profile?: string;
 }
 
 /**
  * The widget's own contribution stack, mirroring the app's `WidgetContributions`
- * (`GridItemContent.tsx`) and the shared render probe's `renderWidget`.
- *
- * Without it `useContributions` silently returns empty, and a widget whose
- * content comes through a contribution slot photographs as an empty frame while
- * the snapshot goes on claiming to cover it. That is not hypothetical: this
- * harness's own doc comment promises "the same mount path" as the probe, and it
- * had drifted off it. LandingStatus's descent envelope, whose every mark is a
- * self-contribution, is what surfaced it.
- *
- * The definition is found by matching the mounted COMPONENT against the
- * registry rather than by a new caller-supplied id, because an id every
- * snapshot file has to pass is an id somebody will forget, and the thing a
- * forgotten one produces is exactly the silent empty frame above. A component
- * that is not registered (a sub-component photographed directly) mounts
- * untouched.
- *
- * Exported because the drift is not the snapshot harness's alone. Any spec that
- * hand-rolls a `render(<Widget ... />)` mounts the same widget off the same
- * path, and once a widget's plots arrive through `plots` those specs go quiet
- * in exactly the same way: every query for a mark's accessible name fails, and
- * it reads like the widget stopped drawing rather than like the harness stopped
- * mounting the seam.
+ * (`GridItemContent.tsx`) and the render probe's `renderWidget`. Without it
+ * `useContributions` returns empty and a contribution-driven widget renders an
+ * empty frame. The definition is found by matching the mounted component
+ * against the registry; an unregistered component mounts untouched.
  */
 export function WidgetContributions({
   Widget,
@@ -278,43 +203,30 @@ export function WidgetContributions({
 
 /** Built once per snapshot render; see {@link buildStreamWrap}. */
 interface StreamWrap {
-  /** Wraps `children` in the `TelemetryProvider` this fixture built, or renders them untouched when neither `pinnedUt` nor a `vessel.parts` payload is needed. */
+  /** Wraps `children` in the fixture's `TelemetryProvider`, or renders them untouched when none is needed. */
   Wrap: (props: { children: React.ReactNode }) => React.ReactElement;
-  /** `true` when a `TelemetryProvider` was actually mounted, drives {@link flushProviderFrame}. */
+  /** `true` when a `TelemetryProvider` was mounted; drives {@link flushProviderFrame}. */
   providerMounted: boolean;
-  /** Emits the fixture's `v.topology` (reshaped) onto `vessel.parts`, or a no-op when the fixture carries no `v.topology`. Call inside the same `act()` block as the other fixture-key emits. */
+  /** Emits the fixture's `v.topology` (reshaped) onto `vessel.parts`. Call inside the same `act()` block as the other emits. */
   emitVesselParts: () => void;
-  /** Emits the fixture's legacy control keys (reshaped) onto `vessel.control`/`vessel.structure`, or a no-op when it carries none. Same `act()` block as the other emits. */
+  /** Emits the fixture's legacy control keys (reshaped) onto `vessel.control`/`vessel.structure`. Same `act()` block as the other emits. */
   emitVesselControl: () => void;
   /**
-   * Replays the fixture's own `_stream.emits`, one topic at a time, each
-   * gated on that topic having a live subscription. Awaited AFTER the
-   * synchronous emit block rather than inside it, because the gating needs
-   * frames to pass. A no-op for a fixture with no `_stream` block.
+   * Replays `_stream.emits` one topic at a time, each gated on that topic
+   * having a live subscription. Awaited after the synchronous emit block,
+   * because the gating needs frames to pass.
    */
   replayStreamBlock: () => Promise<void>;
-  /**
-   * Drops the transport when the fixture declared `_stream.stopsArriving`, so
-   * every confirmed topic reads as no longer current. A no-op otherwise. The
-   * frame that publishes the new status is the caller's, via
-   * {@link flushProviderFrame}.
-   */
+  /** Drops the transport when the fixture declared `_stream.stopsArriving`. */
   dropTransport: () => void;
-  /**
-   * Mints one view-clock frame, the harness's only frame source: the fixture
-   * clock is built with its animation-frame loop suspended (see
-   * {@link buildStreamWrap}). A no-op when no provider was mounted.
-   */
+  /** Mints one view-clock frame, the harness's only frame source. */
   emitFrame: () => void;
 }
 
 /**
- * `StubTransport.emit` silently DROPS a sample for a topic nothing has
- * subscribed to yet, and a widget subscribes inside React *passive* effects
- * that no single flush is guaranteed to have run. Poll until the subscription
- * lands, exactly as the probe does, so the replay is deterministic instead of
- * a race the fixture loses on some runs. A topic the widget never reads simply
- * times out, and is then emitted-and-dropped, which is what the probe does too.
+ * `StubTransport.emit` drops a sample for a topic nothing has subscribed to,
+ * and a widget subscribes inside passive effects, so poll until the
+ * subscription lands. A topic the widget never reads times out and is dropped.
  */
 async function waitForSubscription(
   transport: { isSubscribed(topic: string): boolean },
@@ -324,11 +236,7 @@ async function waitForSubscription(
 ): Promise<void> {
   for (let i = 0; i < maxFrames; i++) {
     if (transport.isSubscribed(topic)) return;
-    /*
-     * One view-clock frame per poll turn, because the clock's own loop is
-     * suspended here: a subscription that only appears once a frame-driven
-     * render has run would otherwise never arrive.
-     */
+    // The clock's own loop is suspended, so a frame-driven subscription needs a frame minted per poll.
     emitFrame();
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => resolve());
@@ -339,19 +247,9 @@ async function waitForSubscription(
 }
 
 /**
- * Diagnostics for a mount that never finishes.
- *
- * Vitest's timeout only ever points at the `it()` line, which is equally true
- * of every hang and says nothing about which of the mount's five awaits failed
- * to return. These two record the answer from OUTSIDE the awaiting code: the
- * phase is a plain string the mount updates as it goes, and the watchdog reads
- * it from a timer, which still fires while React's `act` is draining a tree
- * that will not settle.
- *
- * `exhaustedTopics` is the other half. `waitForSubscription` giving up after 30
- * frames is a deliberate fail-soft (a topic the widget never reads is meant to
- * time out and be dropped), but it is silent, so a topic the widget SHOULD have
- * subscribed to and didn't costs half a second and leaves no trace.
+ * Stall diagnostics for a mount that never finishes, read by a timer from
+ * outside the awaiting code, since a vitest timeout names only the `it()`
+ * line. `exhaustedTopics` records topics `waitForSubscription` gave up on.
  */
 let currentPhase = "idle";
 let exhaustedTopics: string[] = [];
@@ -383,32 +281,14 @@ function armStallWatchdog(
 }
 
 /**
- * Builds the minimal `TelemetryProvider` a legacy-fixture snapshot needs for
- * the two migrations that dropped their legacy fallback entirely:
- * `useViewUt()` (pinned at `pinnedUt`, see {@link resolvePinnedUt}) and
- * `useTopology()` (fed `vessel.parts`, see {@link resolveVesselPartsWire}).
- * Nothing else is carried, every other read stays on the legacy
- * `DataSource`. Returns a pass-through `Wrap` (no provider at all) when
- * neither is needed, matching every widget that touches neither key.
+ * Builds the `TelemetryProvider` a snapshot needs. A fixture's own `_stream`
+ * block wins outright and replaces the legacy reshapes, rather than sitting
+ * beside them, so no reshape can overwrite the fixture's own payload. Returns
+ * a pass-through `Wrap` when nothing needs a provider.
  */
 function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
-  // A fixture that declares its own wire wins outright, and the legacy reshapes below are skipped entirely for it.
-  //
-  // This is the one place the two harnesses used to disagree about one file:
-  // the playwright probe has honoured `_stream` since it was introduced, while
-  // this one read only the flat legacy keys. A widget migrated to canonical
-  // stream reads therefore rendered its EMPTY state here, and `toMatchSnapshot`
-  // wrote that emptiness down as the expected result. The probe is the correct
-  // reader of the format, so this follows it rather than the reverse.
-  //
-  // Deliberately exclusive rather than additive: a legacy reshape emitting onto
-  // a channel the block already emits would overwrite the fixture's own,
-  // more-complete payload with one derived from a handful of `v.*` mirrors, and
-  // which of the two survived would come down to emit order.
   const declared = resolveStreamBlock(fixture);
-  // An install profile rewrites the fixture's own wire rather than sitting
-  // beside it, so everything downstream (carried allowlist, emit order, the
-  // subscription gating) stays one code path with one block to read.
+  // An install profile rewrites the fixture's own wire, so downstream stays one code path.
   const streamBlock =
     declared !== undefined && profileId !== undefined
       ? (applyInstallProfile(
@@ -442,12 +322,7 @@ function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
             requestAnimationFrame(() => resolve());
           });
         }
-        /*
-         * The caller's `act()` still has to settle after this returns, and
-         * that is a separate thing to be stuck in: without this line the
-         * phase cannot tell a loop still grinding from one that finished
-         * into an `act` which never quiesces.
-         */
+        // A separate phase so a stall in the caller's `act()` settle is told apart from the loop.
         beginPhase("replay-stream act-settle");
       },
       dropTransport: () => {
@@ -482,9 +357,7 @@ function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
       emitFrame: () => {},
     };
   }
-  // `time.warp`/`comms.link` must be CARRIED, not merely emitted: the pause and
-  // no-signal notices read them one-arg off the stream, and an uncarried channel
-  // never reaches the widget. The other payloads here predate that distinction.
+  // `time.warp`/`comms.link` must be carried, not merely emitted, or they never reach the widget.
   const carriedChannels: string[] = [];
   if (timeWarpWire !== undefined) carriedChannels.push("time.warp");
   if (commsLinkWire !== undefined) carriedChannels.push("comms.link");
@@ -523,21 +396,11 @@ function buildStreamWrap(fixture: Fixture, profileId?: string): StreamWrap {
 }
 
 /**
- * `useViewUt()`'s scrubbed value only lands via a `ViewClock.onFrame` tick
- * (its synchronous initial seed reads `confirmedEdgeUt()`, which ignores
- * `scrubTo` entirely: see that hook's own doc comment in
- * `sitrep-client/src/context.tsx`), and `useTopology`'s canonical stream read
- * similarly only lands via the `TelemetryProvider`'s `beginFrame()`
- * scheduling (a `requestAnimationFrame`, falling back to a microtask under
- * jsdom). Either way a plain `render()` + `act()` can commit BEFORE the value
- * has actually reached React state.
- *
- * Two frames, minted by hand rather than waited for: the clock's own loop is
- * suspended for the whole mount (see {@link buildStreamWrap}), so this is the
- * only thing that advances it. The second covers a subscriber that only
- * attached on the first frame's commit. Each is followed by a real animation
- * frame, because the provider coalesces the resulting `beginFrame()` onto one.
- * A no-op when {@link StreamWrap.providerMounted} is `false`.
+ * `useViewUt()` and `useTopology`'s stream read only land on a frame, so a
+ * plain `render()` + `act()` can commit before the value reaches state. Two
+ * hand-minted frames (the clock's loop is suspended), the second for a
+ * subscriber that attached on the first frame's commit, each followed by a
+ * real animation frame because the provider coalesces onto one.
  */
 async function flushProviderFrame(
   providerMounted: boolean,
@@ -555,19 +418,10 @@ async function flushProviderFrame(
 }
 
 /**
- * Caller's override, else the `defaultConfig` the widget registered, else
- * nothing.
- *
- * A widget whose behaviour depends on its registered default renders NOTHING
- * without one: ActionGroup answers "No action group configured" for every mode
- * that carries no config overlay, which is four of its eight, across all six
- * scenarios. The probe has always applied it (`payload.config ??
- * def.defaultConfig ?? {}` in probe-entry.tsx); this harness only ever used a
- * `defaultConfig` the CALLER passed, and almost no caller passes one.
- *
- * The answer is read straight from the registry rather than memoised by
- * component identity, because `setupMockDataSource` clears only the data
- * sources it owns and leaves the component registry standing.
+ * Caller's override, else the registered `defaultConfig`, else nothing: a
+ * widget such as ActionGroup renders nothing useful without its default.
+ * Read from the registry each time because `setupMockDataSource` leaves the
+ * component registry standing.
  */
 function baselineConfig<Cfg>(opts: SnapshotOpts<Cfg>): Cfg {
   if (opts.defaultConfig !== undefined) return opts.defaultConfig;
@@ -577,11 +431,7 @@ function baselineConfig<Cfg>(opts: SnapshotOpts<Cfg>): Cfg {
   return (registered as Cfg | undefined) ?? ({} as Cfg);
 }
 
-/**
- * Grid-unit to pixel conversion, the same arithmetic
- * `scripts/widgetRenderHarness.ts` sizes the playwright iframe with, so a mode
- * means the same shape in both harnesses.
- */
+/** Grid-unit to pixel conversion, the same arithmetic `scripts/widgetRenderHarness.ts` sizes the playwright iframe with. */
 const COL_WIDTH = 32;
 const ROW_HEIGHT = 25;
 const GRID_MARGIN = 8;
@@ -594,35 +444,10 @@ function modePixels(mode: WidgetSnapshotMode): { w: number; h: number } {
 }
 
 /**
- * Install a `ResizeObserver` that actually reports a size, for the length of
- * one render.
- *
- * The shared jsdom shim (`installDomStubs`) is a no-op in all three methods:
- * it exists to stop a mount crashing, and it never calls its callback. Any
- * widget that gates content on a measured box therefore renders that content
- * NEVER under this harness, whatever its fixture says. `Graph` is the big one
- * (`{size && <LineChart ...>}`), and it is the whole body of six widgets: 90
- * committed baselines across KeplerPeriod and EscapeProfile were one
- * byte-identical title bar over two empty divs, repeated across every scenario
- * and every size, and the accessibility sweep was scanning those same blank
- * containers and reporting no violations.
- *
- * The reported box is the mode's own pixel size rather than a constant, so the
- * modes stay distinguishable and a size-gated branch is exercised at the size
- * it is gated on. It is the WIDGET's box, not the observed element's, which
- * overstates a chart area nested inside panel chrome; jsdom lays nothing out,
- * so there is no truer number available, and a chart drawn slightly large still
- * exercises the axis, label and ARIA code that a chart never drawn does not.
- *
- * Restored afterwards so a test file that renders something else is unaffected.
- * Already-constructed observers keep working, which is what the widget mounted
- * during this render needs.
- *
- * Exported for the same reason `WidgetContributions` is: a hand-rolled
- * `render(<Widget />)` in a widget's own spec hits the identical wall. A chart
- * in an unmeasured box renders `role="img" aria-label="Chart too small to
- * render"` and nothing else, so every assertion on a mark's accessible name
- * fails, and the transcript makes it look like the widget stopped drawing.
+ * Install a `ResizeObserver` that reports the mode's own pixel size, for the
+ * length of one render. The shared jsdom shim never calls its callback, so a
+ * widget gating content on a measured box (`Graph` above all) would never
+ * render it. Restored afterwards; already-constructed observers keep working.
  */
 export function installSizedResizeObserver(size: {
   w: number;
@@ -637,10 +462,8 @@ export function installSizedResizeObserver(size: {
 }
 
 /**
- * Let the sized-observer callbacks above land and the resulting re-render
- * commit. Two macrotask turns: the first drains the `setTimeout(0)` queue, the
- * second covers an observer a re-render only then attached (Graph re-binds its
- * observer when the chart/readout variant flips).
+ * Let the sized-observer callbacks land and the re-render commit. Two turns:
+ * the second covers an observer a re-render only then attached.
  */
 export async function flushResizeObservers(): Promise<void> {
   await act(async () => {
@@ -652,21 +475,13 @@ export async function flushResizeObservers(): Promise<void> {
 /**
  * Mount a widget, emit every fixture key onto its data source, and return the
  * stripped innerHTML for snapshotting. Mirrors the playwright probe
- * (`scripts/probe/probe-entry.tsx`) at the DOM level, with the same mount path,
- * the same fixture seeding and the same modes, so vitest catches structural
- * regressions while the PNG harness covers the visual layer.
- *
- * The returned HTML has styled-components hashes and testing-library auto-ids
- * stripped so the snapshot is deterministic across runs. Canvas content,
- * ResizeObserver-driven layout and CSS-paint visuals do not appear: those live
- * in the playwright PNGs.
+ * (`scripts/probe/probe-entry.tsx`) at the DOM level. Canvas content and
+ * CSS-paint visuals live in the playwright PNGs.
  */
 export async function snapshotWidgetMode<
   Cfg extends object = Record<string, unknown>,
 >(opts: SnapshotOpts<Cfg>): Promise<string> {
-  // The probe registers stock bodies at module load; the DOM snapshot
-  // does the same so body-aware widgets see resolved BodyDefinitions
-  // for `Kerbin`, `Mun`, etc.
+  // As the probe does, so body-aware widgets resolve `Kerbin`, `Mun`, etc.
   registerStockBodies();
   const fixtureKeys = Object.keys(opts.fixture).filter(
     (k) => !k.startsWith("_"),
@@ -716,10 +531,7 @@ export async function snapshotWidgetMode<
       </Wrap>,
     );
 
-    // Seed every fixture key after mount so useDataValue subscriptions
-    // exist before the emits, matches the probe's "mount, then emit"
-    // ordering. Without the act() wrapper React batches updates and the
-    // snapshot races the commit.
+    // Mount, then emit, matching the probe; act() so the snapshot does not race the commit.
     beginPhase("seed-emits");
     act(() => {
       if (!fixtureEmitsMuted()) {
@@ -730,7 +542,7 @@ export async function snapshotWidgetMode<
       emitVesselParts();
       emitVesselControl();
     });
-    // Outside the synchronous block above: each entry waits for its topic's subscription, which only lands once frames have run.
+    // Each entry waits for its topic's subscription, which only lands once frames have run.
     beginPhase("replay-stream");
     await act(async () => {
       await replayStreamBlock();
@@ -738,10 +550,7 @@ export async function snapshotWidgetMode<
     beginPhase("provider-frame");
     await flushProviderFrame(providerMounted, emitFrame);
 
-    // Drain the async `useDataSeries` backfill (graphs/sparklines) before
-    // snapshotting. waitFor wraps act, so the backfill's notify() flushes
-    // inside it: no manual act(). Waits on the real pending work, not a
-    // bare tick. No-op for widgets that never query a range.
+    // Drain the async `useDataSeries` backfill; waitFor wraps act, and this is a no-op for widgets that never query a range.
     beginPhase("backfill-wait");
     await waitFor(() => {
       if (fixture.pendingQueries() !== 0) throw new Error("backfill pending");
@@ -749,9 +558,7 @@ export async function snapshotWidgetMode<
     beginPhase("flush-resize-observers");
     await flushResizeObservers();
 
-    // Last, after the tree has settled live, so a scene staged as not-current
-    // is the same scene as its live twin plus the drop, and the two snapshots
-    // differ only by what the drop does. Matches the probe's ordering.
+    // Last, so a not-current scene differs from its live twin by the drop alone.
     beginPhase("stops-arriving");
     dropTransport();
     await flushProviderFrame(providerMounted, emitFrame);
@@ -770,21 +577,13 @@ export async function snapshotWidgetMode<
 export interface RenderedWidget {
   /** The mounted, still-live container: valid until `teardown()`. */
   container: HTMLElement;
-  /**
-   * Unmount and disconnect. Must be called by the test (typically right
-   * after assertions). Runs `cleanup()` before the data-source disconnect
-   * so no state update fires outside `act()`.
-   */
+  /** Unmount and disconnect. Must be called by the test after its assertions. */
   teardown: () => void;
 }
 
 /**
- * Mount a widget exactly like {@link snapshotWidgetMode}, same registry,
- * same fixture seeding, same context: but leave it mounted and return the
- * live `container` plus a `teardown()`, for callers that need to assert on
- * the rendered DOM (e.g. running `axe()` for an a11y smoke). Unlike
- * `snapshotWidgetMode`, teardown is the caller's responsibility: run your
- * assertions against `container` first, then call `teardown()`.
+ * Mount a widget exactly like {@link snapshotWidgetMode} but leave it mounted,
+ * returning the live `container` and a `teardown()` the caller must run.
  */
 export async function renderWidgetMode<
   Cfg extends object = Record<string, unknown>,
@@ -855,7 +654,7 @@ export async function renderWidgetMode<
     beginPhase("provider-frame");
     await flushProviderFrame(providerMounted, emitFrame);
 
-    // Drain the async useDataSeries backfill the testing-library way (see snapshotWidgetMode) so a11y assertions run against a settled tree.
+    // Drain the async useDataSeries backfill so assertions run against a settled tree.
     beginPhase("backfill-wait");
     await waitFor(() => {
       if (fixture.pendingQueries() !== 0) throw new Error("backfill pending");
@@ -878,14 +677,8 @@ export async function renderWidgetMode<
 }
 
 /**
- * Strip styled-components hashes, testing-library auto-ids, and any `sc-*`
- * class or id attribute that changes per build. Without this the snapshot
- * churns on every styled-components release and file edit.
- *
- * Exported beyond this file's own two internal callers for
- * `WarpControl/dual-run.test.tsx`'s render golden: comparing two renders needs
- * exactly the same stripping, so a genuine markup difference is not masked by
- * two builds' differing volatile-class churn.
+ * Strip styled-components hashes, testing-library auto-ids and any `sc-*`
+ * class or id, so a snapshot does not churn per build.
  */
 export function stripVolatile(html: string): string {
   return normaliseReactIds(
@@ -899,23 +692,9 @@ export function stripVolatile(html: string): string {
 
 /**
  * Rewrite React `useId` values (`:r3:`) to their order of first appearance
- * (`:rid0:`). The counter is per-root and advances for every hook that ran
- * before ours, so mounting an extra provider alongside the widget shifts every
- * id in the tree without changing a thing about its behaviour, which is exactly
- * what a dual-run comparison must not trip on.
- *
- * Deliberately a mapping and not a blanket replace: collapsing every id to one
- * token would also hide a real defect, an `aria-controls` pointing at the wrong
- * panel. Renumbering keeps each reference matching the element it names, so a
- * tablist wired to the wrong panel still fails the compare.
- *
- * Folded INTO `stripVolatile`, so the committed DOM snapshots carry the
- * normalised form too. A snapshot is compared against its own past self, which
- * looked like an argument that the counter could not shift under it, and it is
- * not: the past self was recorded on another machine, where a different set of
- * hooks ran before the widget's. `LandingStatus` stored `:r10:` from a laptop
- * and rendered `:rq:` on a CI runner, and all 24 of its snapshots mismatched at
- * that one character.
+ * (`:rid0:`): the counter shifts with every hook that ran first, including on
+ * a different machine. A mapping rather than a blanket replace, so an
+ * `aria-controls` naming the wrong element still fails the compare.
  */
 export function normaliseReactIds(html: string): string {
   const seen = new Map<string, string>();

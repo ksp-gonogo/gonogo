@@ -9,34 +9,16 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import type { ShipMapPartMeterEntry } from "./shipTopology";
 
-// The built-in half of the `ship-map.part-meters` self-contribution, and this
-// repo's flagship demonstration of the pattern: the five classic drainable
-// propellants, on the SAME contribution slot an Uplink contributes its own
-// supply tanks to. ShipMap
-// itself does not know which resource deserves a meter; that judgement call
-// lives entirely in contributions, this one included.
-//
-// Deliberately NOT widened to "every resource on every part": a bar on every
-// resource on every part is worse than bars on five well-chosen ones. A
-// future contribution is free to add more resources; this one stays at the
-// five.
-//
-// Reads `vessel.parts` (the same Topic `usePartsLive`/`useTopology` already
-// derive ShipMap's own view-model from) through a processor, so each amount
-// carries the currency of the reading it came from, rather than a React hook:
-// contributions are evaluated by the aggregator outside any component, so the
-// pure `buildResourcesByFlightId` reshaping helper is shared instead of
-// duplicated.
-// ---------------------------------------------------------------------------
-
-/**
- * The five classic drainable propellants this contribution watches. This names
- * which resources earn a meter and nothing more: the fill colour is the
- * resource's IDENTITY (`resourceColor(resource)`, derived by the renderer
- * straight from `resource`, not carried on this entry at all), so it is not a
- * colour choice. `statusFor` below supplies the SEPARATE, level-driven status
- * signal.
+/*
+ * The built-in `ship-map.part-meters` contribution: the five classic drainable
+ * propellants, on the same slot an Uplink contributes its supply tanks to.
+ * ShipMap itself does not decide which resource earns a meter. Five
+ * well-chosen bars beat a bar on every resource. Reads `vessel.parts` through
+ * a processor so each amount carries its reading's currency: contributions are
+ * evaluated outside any component.
  */
+
+/** The five drainable propellants that earn a meter. The fill colour is the resource's identity, derived by the renderer. */
 const DRAINABLE_RESOURCES = [
   "LiquidFuel",
   "Oxidizer",
@@ -45,12 +27,7 @@ const DRAINABLE_RESOURCES = [
   "XenonGas",
 ] as const;
 
-/** Ratio thresholds for the built-in five's status signal (a border tint or
- *  badge, never the fill hue): below this fraction of capacity the meter
- *  reads "low", below `CRITICAL_THRESHOLD` it reads "critical". Mirrors the
- *  default-low-threshold convention an Uplink contribution follows, kept
- *  local rather than shared: the two contributions live in different
- *  packages with no shared "ShipMap contribution helpers" module yet. */
+/** Status thresholds as a fraction of capacity: below LOW reads "low", below CRITICAL "critical". */
 const LOW_THRESHOLD = 0.15;
 const CRITICAL_THRESHOLD = 0.05;
 
@@ -68,12 +45,7 @@ function statusFor(
 /** A meter whose amount is the bare quantity read off the wire. */
 type BareMeterEntry = ShipMapPartMeterEntry & { amount: Value<"units"> };
 
-/**
- * Pure core of the built-in contribution, exported so a test can call it
- * directly against a plain `VesselParts` fixture without going through the
- * contribution registry at all (the same export-the-pure-core pattern the
- * Uplink-side contributions follow).
- */
+/** Pure core of the built-in contribution, exported so a test can call it against a plain `VesselParts` fixture. */
 export function computeBuiltinPartMeters(
   wire: VesselParts | undefined,
 ): readonly BareMeterEntry[] {
@@ -127,8 +99,7 @@ function amountReading(
 
 /**
  * The meters with each amount carrying the currency of the `vessel.parts`
- * reading it was read from. A level that has stopped arriving is still the
- * last one there was, so it is drawn, and marked.
+ * reading. A level that stopped arriving is still drawn, and marked.
  */
 export function builtinPartMeterReadings(
   parts: Reading<VesselParts | undefined> | undefined,
@@ -158,7 +129,7 @@ const VESSEL_PARTS_READING = CORE_UPLINK_CLIENT.registerProcessor({
 CORE_UPLINK_CLIENT.registerContribution({
   id: "ship-map-part-meters",
   contributes: "ship-map.part-meters",
-  // `vessel.parts` stays a bare dep beside the reading: the bare id is what subscribes the topic, and the processor only reads what is stored.
+  // `vessel.parts` stays a bare dep: the bare id subscribes the topic; the processor only reads what is stored.
   deps: ["vessel.parts", VESSEL_PARTS_READING],
   compute: (topics) =>
     builtinPartMeterReadings(topics[VESSEL_PARTS_READING.id]),

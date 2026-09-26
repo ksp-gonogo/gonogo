@@ -10,7 +10,7 @@ describe("createStore", () => {
   it("is empty with a stable empty snapshot and no entries", () => {
     const store = createStore<Entry>();
     expect(store.getSnapshot()).toEqual([]);
-    // Stable empty identity: a fresh `[]` each call would make useSyncExternalStore believe the snapshot changed and loop forever.
+    // A fresh `[]` each call would make useSyncExternalStore loop forever.
     expect(store.getSnapshot()).toBe(store.getSnapshot());
   });
 

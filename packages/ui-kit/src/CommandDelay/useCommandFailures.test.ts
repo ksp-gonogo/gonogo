@@ -4,11 +4,7 @@ import type { CommandDelayHandle } from "./CommandDelay";
 import type { InFlightCommandLike } from "./toInFlightListItems";
 import { useCommandFailures } from "./useCommandFailures";
 
-/*
- * The rail axes this fixture's handle carries, from the derivation production
- * uses rather than a literal: a fixture that spelled its own tags would go on
- * asserting the old picture after the derivation moved.
- */
+// The rail axes come from the production derivations, so the fixtures follow them rather than asserting stale literals.
 const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
 
 function cmd(
@@ -60,16 +56,14 @@ describe("useCommandFailures", () => {
   });
 
   it("keeps the failed tint when a loss is promoted to undelivered", () => {
-    // The promotion MOVES the entry out of `losses`. A flag that counted only
-    // those would go quiet at the moment the news got worse: the command did
-    // not merely go unanswered, it never left this machine.
+    // The promotion MOVES the entry out of `losses`, and the flag must stay up.
     const promoted: CommandDelayHandle = {
       ...handle([]),
       losses: [],
       undelivered: [{ id: "u0", command: "vessel.control.setSas", label: "" }],
     };
     expect(useCommandFailures(promoted).hasFailure).toBe(true);
-    // Still no in-flight ROW: an undelivered dispatch has none, the same way a loss has none.
+    // An undelivered dispatch has no in-flight row, like a loss.
     expect(useCommandFailures(promoted).failed).toHaveLength(0);
   });
 

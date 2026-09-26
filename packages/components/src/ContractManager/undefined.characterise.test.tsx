@@ -11,17 +11,9 @@ import {
 import { ContractManagerComponent } from "./index";
 
 /**
- * Characterisation: what ContractManager does when its telemetry reads are
- * absent.
- *
- * Two reads carry the risk:
- * - `useTelemetry("career.status")?.contracts` feeds `parseContracts`, which
- *   maps `undefined` AND `null` to `null`, and the widget then branches on
- *   `active === null`
- * - the altitude reading feeds the altitude-band meter, which draws its absent
- *   form until an altitude arrives
- *
- * Every assertion below is an observation, not an endorsement.
+ * Pins what ContractManager renders when its reads are absent: `parseContracts`
+ * maps both `undefined` and `null` to `null`, and the altitude meter draws its
+ * absent form until an altitude arrives. Observations, not endorsements.
  */
 
 const CARRIED = ["career.status", "vessel.flight"];
@@ -88,21 +80,17 @@ describe("ContractManager: nothing has arrived at all", () => {
   it("renders the awaiting placeholder and none of the loaded chrome", () => {
     renderManager(newFixture());
 
-    // `parseContracts(undefined) === null` reaches the `active === null` gate.
     expect(
       screen.getByText(/Awaiting contract telemetry/i),
     ).toBeInTheDocument();
-    // The gate returns early, so the counts row and the empty-state copy that
-    // a CONFIRMED-empty career would show are both absent. This is the one
-    // place the widget today separates "waiting" from "there are none".
+    // The one place the widget separates "waiting" from "there are none".
     expect(screen.queryByRole("status")).toBeNull();
     expect(screen.queryByText(/No active contracts/i)).toBeNull();
     expect(screen.queryByRole("button", { name: /Accept/i })).toBeNull();
   });
 
   it("renders NOTHING but the panel title in a short box, because the placeholder is itself gated on height", () => {
-    // `showSubtitle` is `(h ?? 8) >= 4`, so at h=3 the awaiting branch has no
-    // body at all: the widget is silent about waiting rather than empty.
+    // At h=3 the awaiting branch has no body: silent about waiting rather than empty.
     renderManager(newFixture(), { w: 5, h: 3 });
 
     expect(screen.getByText("CONTRACT MANAGER")).toBeInTheDocument();
@@ -124,7 +112,7 @@ describe("ContractManager: the `active === null` absence gate", () => {
       fixture.emit("career.status", { contracts: { active: [] } });
     });
 
-    // An empty array parses to `[]`, not `null`, so the gate stops firing and the counts row plus the confident empty-state copy take over.
+    // An empty array parses to `[]`, so the confident empty-state copy takes over.
     await waitFor(() =>
       expect(screen.getByText(/No active contracts/i)).toBeInTheDocument(),
     );
@@ -139,8 +127,7 @@ describe("ContractManager: the `active === null` absence gate", () => {
     renderManager(fixture, undefined, { probe: true });
 
     act(() => {
-      // The record arrived; the sub-tree the widget reads did not. Today this
-      // is indistinguishable from nothing having arrived.
+      // The record arrived without the sub-tree, indistinguishable from nothing arriving.
       fixture.emit("career.status", {
         economy: { funds: 1000, reputation: 0, science: 0 },
         facilities: null,
@@ -164,11 +151,7 @@ describe("ContractManager: null versus undefined", () => {
     renderManager(fixture, undefined, { probe: true });
 
     act(() => {
-      // A tombstone: the hook returns `null` here rather than `undefined`
-      // (`getStreamSnapshot` hands back `point.payload`), so the widget CAN
-      // see the difference. It does not: `null?.contracts` is `undefined`,
-      // `parseContracts` maps both to `null`, and a confirmed "no career at
-      // all" renders the same "waiting" copy as a cold start.
+      // A tombstone is visible to the widget as `null`, yet renders the same "waiting" copy as a cold start.
       fixture.emit("career.status", null);
     });
 
@@ -185,8 +168,7 @@ describe("ContractManager: partial payloads inside an arrived record", () => {
     renderManager(fixture);
 
     act(() => {
-      // Only `active` present. `offered?.length ?? 0` and
-      // `recent?.length ?? 0` coerce two never-arrived arrays to a confident 0.
+      // Only `active` present: two never-arrived arrays coerce to a confident 0.
       fixture.emit("career.status", {
         contracts: { active: [ALTITUDE_CONTRACT] },
       });
@@ -198,7 +180,6 @@ describe("ContractManager: partial payloads inside an arrived record", () => {
     expect(screen.getByRole("status").textContent).toBe(
       "1 active · 0 offered · 0 recent",
     );
-    // The "Offered" section label is gated on that coerced 0, so it is absent.
     expect(screen.queryByText("Offered")).toBeNull();
     expect(screen.getByText("Active")).toBeInTheDocument();
   });
@@ -213,9 +194,7 @@ describe("ContractManager: partial payloads inside an arrived record", () => {
       });
     });
 
-    // `magnitudeOf(undefined) ?? magnitudeOf(undefined) ?? 0` makes an absent
-    // deadline a hard 0, which `formatDeadline` reads as "no deadline" rather
-    // than as an unknown.
+    // An absent deadline becomes a hard 0, which reads as "no deadline" rather than unknown.
     await waitFor(() =>
       expect(screen.getByText("Undated job")).toBeInTheDocument(),
     );
@@ -270,7 +249,7 @@ describe("ContractManager: the altitude-band meter before an altitude arrives", 
     await waitFor(() =>
       expect(screen.getByText("Altitude band")).toBeInTheDocument(),
     );
-    // The meter's absent form: its label and the null token, no fill to assert a fraction with, no band label and no distance-to-band figure.
+    // The meter's absent form: label and null token, with no fill, band label or distance figure.
     expect(screen.getByText("Altitude")).toBeInTheDocument();
     expect(screen.queryByRole("meter", { name: "Altitude" })).toBeNull();
     expect(visibleText()).toContain(NULL_DISPLAY);
@@ -291,7 +270,7 @@ describe("ContractManager: the altitude-band meter before an altitude arrives", 
       emitAltitude(fixture, 7000);
     });
 
-    // The other side of the same gate, so the test above is proving an absence rather than a permanently-missing feature.
+    // The other side of the gate, so the test above proves an absence rather than a missing feature.
     await waitFor(() =>
       expect(screen.getByText("in band")).toBeInTheDocument(),
     );
@@ -310,11 +289,9 @@ describe("ContractManager: the altitude-band meter before an altitude arrives", 
 
     const meter = await screen.findByRole("meter", { name: "Altitude" });
     const root = () => meter.parentElement?.parentElement;
-    // The control: a current altitude is not marked
     expect(root()?.querySelector("[data-fill-not-current]")).toBeNull();
     expect(root()?.querySelector("[data-not-current-mark]")).toBeNull();
 
-    // Drop the link, then run a frame: nothing else re-derives the readings
     act(() => {
       fixture.store.setTransportConnected(false);
       fixture.store.beginFrame();

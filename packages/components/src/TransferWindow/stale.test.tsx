@@ -7,22 +7,10 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TransferWindowComponent } from "./index";
 
 /**
- * What TransferWindow does when the parking orbit stops being current.
- *
- * The decision: it keeps planning, and says which half of the panel is dated.
- * Nothing this widget judges comes off the vessel channel. The phase dial, the
- * IDEAL/NEAR/FAR badge and the window countdowns are computed from the body
- * catalogue propagated to the view time, so they are as current as the clock. The
- * orbit contributes the origin body (an SOI transition is an event) and the
- * parking radius (Keplerian elements do not drift on their own), and those set the
- * ejection Δv, a planning figure for a departure days to years away. A number like
- * that can be dated honestly, so blanking a live board over it would cost the
- * operator the whole instrument to caption one row.
- *
- * The assertions worth having are therefore about DISTINGUISHABILITY. Held, cold
- * and confirmed-none each have to read differently from outside the component,
- * because "the elements are a minute old" and "this vessel is not in an orbit" are
- * different situations and the second one is not a link fault.
+ * What TransferWindow does when the parking orbit stops being current: it keeps
+ * planning and dates the one figure the orbit sets (the ejection Δv), since the
+ * dial, badge and countdowns ride the body catalogue. Held, cold and
+ * confirmed-none each read differently from outside.
  */
 
 const DEG = Math.PI / 180;
@@ -83,9 +71,7 @@ const HELD_NOTE = /Parking orbit no longer current/;
 const COLD_PLACEHOLDER = "Waiting for vessel orbit...";
 const NO_ORBIT = /No parking orbit/;
 
-// Unmounted before clearRegistry, which notifies the DataSource-registry
-// subscribers every useTelemetry keeps wired: firing that on a mounted widget is
-// a state update outside act(). Same note as index.test.tsx.
+// Unmounted before clearRegistry, whose notification on a mounted widget lands outside act().
 const renderedTrees: Array<() => void> = [];
 
 function renderTracked(ui: ReactElement) {
@@ -136,8 +122,7 @@ function loseTheLink(fixture: ReturnType<typeof setupStreamFixture>) {
 
 describe("TransferWindow when the parking orbit is no longer current", () => {
   it("says nothing about a held orbit while the telemetry is current", async () => {
-    // The control. Without it every assertion below would also pass on a widget
-    // that renders the caption unconditionally, or on one that never plans.
+    // The control: without it the assertions below would pass on a widget that captions unconditionally or never plans.
     const { fixture, view } = setup();
     emitParked(fixture);
     await waitFor(() =>
@@ -157,7 +142,7 @@ describe("TransferWindow when the parking orbit is no longer current", () => {
     loseTheLink(fixture);
 
     await waitFor(() => expect(visibleText(view.container)).toMatch(HELD_NOTE));
-    // Held, not withheld: the instruments that ride the body catalogue are still there, and the caption names the one figure that does not.
+    // Held, not withheld: the body-catalogue instruments stay, and the caption names the one figure that does not.
     expect(screen.getByText("Current phase")).toBeInTheDocument();
     expect(screen.getByText("IDEAL")).toBeInTheDocument();
     expect(screen.getByText(/^Windows to$/)).toBeInTheDocument();
@@ -166,9 +151,7 @@ describe("TransferWindow when the parking orbit is no longer current", () => {
   });
 
   it("does not fall back to either empty state, so held reads as neither cold nor orbitless", async () => {
-    // The distinction the file exists for. "Waiting for vessel orbit..." accuses
-    // the link of never having delivered, and "No parking orbit" is a statement
-    // about the craft. Reaching either from a held reading would misreport it.
+    // Neither "Waiting for vessel orbit..." nor "No parking orbit" may be reached from a held reading.
     const { fixture, view } = setup();
     emitParked(fixture);
     await waitFor(() =>
@@ -183,15 +166,14 @@ describe("TransferWindow when the parking orbit is no longer current", () => {
   });
 
   it("says nothing about a held orbit before anything has ever arrived", async () => {
-    // A cold start is not a lost link. Conflating them would accuse the relay on
-    // first paint, every paint.
+    // A cold start is not a lost link.
     const { view } = setup();
     expect(await screen.findByText(COLD_PLACEHOLDER)).toBeInTheDocument();
     expect(visibleText(view.container)).not.toMatch(HELD_NOTE);
   });
 
   it("does not caption a confirmed tombstone as a held orbit", async () => {
-    // `absent` is the subject answering, not the link failing: the widget owes the operator the orbitless wording and none of the currency caption.
+    // `absent` is the subject answering, not the link failing: the orbitless wording and no currency caption.
     const { fixture, view } = setup();
     act(() => {
       fixture.emit("system.bodies", { bodies: [SUN, EARTH, MARS] });

@@ -17,11 +17,7 @@ import {
 } from "./domainAvailability";
 import { WidgetMetaContext } from "./WidgetMetaContext";
 
-/**
- * The demo Uplink's own channel, declared the way a real Uplink declares one:
- * `channels` takes a `TopicId`, so a topic no contract has published is not
- * nameable, and the gating tests below play an Uplink that has published this.
- */
+/** A channel declared the way a real Uplink declares one: `channels` takes a published `TopicId`. */
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
     "demomod.available": { available: boolean };
@@ -40,11 +36,7 @@ const TARGETING_CAMERA: SlotProps<"targeting.camera"> = {
   cameraFlightId: undefined,
 };
 
-/**
- * A map-overlay slot's own props, spelled out once because `map-view.overlay`
- * is a TYPED slot: the mechanism tests below are about ordering and gating and
- * read none of these, but the slot will not take a partial context.
- */
+/** `map-view.overlay` is a typed slot and will not take a partial context, even where a test reads none of it. */
 const MAP_OVERLAY: SlotProps<"map-view.overlay"> = {
   width: 320,
   height: 160,
@@ -60,8 +52,7 @@ const MAP_OVERLAY: SlotProps<"map-view.overlay"> = {
 
 beforeEach(() => clearAugments());
 
-/* The widget-authored segment these cases mount; an undeclared segment carries
-   no props at all. */
+// The widget-authored segment these cases mount; an undeclared segment carries no props at all.
 declare module "@ksp-gonogo/ui-kit" {
   interface AugmentSegmentRegistry {
     overlay: Record<string, never>;
@@ -179,11 +170,7 @@ describe("AugmentSlot: composition", () => {
   });
 
   it("passes slot props down to every augment (spec §4.4)", () => {
-    /*
-     * The augment names only the part of the slot's context it needs, which is
-     * the whole point of a typed slot: the host hands over the context and the
-     * augment reads what it came for.
-     */
+    // A typed slot's augment names only the part of the context it needs.
     function ProjAugment({ camera }: { camera: { zoom: number } }) {
       return <div>zoom:{camera.zoom}</div>;
     }
@@ -214,7 +201,7 @@ describe("AugmentSlot: Domain presence gating (spec §4.2)", () => {
       channels: ["demomod.available"],
     });
 
-    // The gate reads ui-kit's own availability store (fed from telemetry by the app), never the spine directly, so it is driven here store-first.
+    // The gate reads ui-kit's own availability store, never the spine, so it is driven store-first.
     const store = createDomainAvailabilityStore();
 
     render(
@@ -223,10 +210,8 @@ describe("AugmentSlot: Domain presence gating (spec §4.2)", () => {
       </DomainAvailabilityContext.Provider>,
     );
 
-    // Domain absent → augment not rendered.
     expect(screen.queryByText("scan-layer")).toBeNull();
 
-    // Domain announces availability → augment appears.
     act(() => store.setAvailable("demomod", true));
 
     await waitFor(() => expect(screen.getByText("scan-layer")).toBeTruthy());
@@ -245,7 +230,7 @@ describe("AugmentSlot: Domain presence gating (spec §4.2)", () => {
   });
 
   it("keeps a gated augment hidden when no availability provider is mounted", () => {
-    // Matches the old telemetry gate's answer with no `TelemetryProvider`: a Domain nothing has announced is not available.
+    // A Domain nothing has announced is not available.
     registerAugment({
       id: "gated-no-provider",
       augments: "power-systems.sections",
@@ -259,14 +244,7 @@ describe("AugmentSlot: Domain presence gating (spec §4.2)", () => {
   });
 });
 
-// useAugmentAvailable is AugmentEntry's own gate hook, extracted so a HOST
-// can ask "is this augment's Domain live" WITHOUT rendering the augment's
-// component,
-// needed for a decision like MapView's vanilla-suppression, which must
-// respect Domain availability exactly like rendering does, not just
-// registry presence (a bundled client package registers its augments
-// unconditionally at import time, whether or not the mod is actually
-// running in KSP).
+// A host asks whether an augment's Domain is live without rendering it, and must get the same answer rendering would.
 describe("useAugmentAvailable", () => {
   function Probe({ augment }: { augment: { id: string; requires?: string } }) {
     const available = useAugmentAvailable(
@@ -315,7 +293,6 @@ describe("augment settings merge (spec §4.7)", () => {
       priority: 10,
       settings: [{ key: "reactorUnits", type: "text", default: "MW" }],
     });
-    // An augment with no settings contributes no block.
     registerAugment({
       id: "no-settings",
       augments: "power-systems.sections",
@@ -355,7 +332,7 @@ describe("augment settings merge (spec §4.7)", () => {
     const merged = getAugmentSettings("s");
     const namespaces = merged.map((m) => m.namespace);
 
-    // Same field key, distinct namespaces → no collision in instance config.
+    // Same field key, distinct namespaces: no collision in instance config.
     expect(namespaces).toEqual(["aug-a", "aug-b"]);
     expect(merged[0]?.fields[0]?.key).toBe("enabled");
     expect(merged[1]?.fields[0]?.key).toBe("enabled");
@@ -539,9 +516,8 @@ describe("augment registry: retired slot ids", () => {
       component: () => <div>stale</div>,
     });
 
-    // The registry holds it, so the author sees a "registered" augment...
+    // The registry holds it, yet no slot renders it under either name.
     expect(getAugments().map((a) => a.id)).toContain("stale-aug");
-    // ...that no slot will ever render, on either the old or the new name.
     expect(getAugmentsForSlot("targeting.camera")).toEqual([]);
     const { container } = render(
       <AugmentSlot name="targeting.camera" props={TARGETING_CAMERA} />,

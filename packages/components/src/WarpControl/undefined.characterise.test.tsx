@@ -12,23 +12,10 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { WarpControlComponent } from "./index";
 
 /**
- * CHARACTERISATION: what `undefined` MEANS at each of WarpControl's read sites
- * today, recorded before `useTelemetry` returns a `Reading`.
- *
- * Three different meanings live in this one widget, and only one of them is
- * visible to the operator:
- *
- *   - `warpRate` absent -> `magnitudeOf` gives null -> NULL_DISPLAY. Honest
- *   - `warpRateIndex` absent -> `currentIndex` null. The full ladder shows no
- *     level pressed (honest), but the STEPPER coerces it through `idx =
- *     currentIndex ?? 0` and then asserts realtime: 1x pressed, warp-down
- *     disabled, off no data at all
- *   - `paused` absent -> `effectivePaused` undefined -> the pause button reads
- *     "Pause game", and pressing it sends `{ paused: true }`, a command built
- *     by inverting a value that never arrived
- *
- * The scene read has a fourth meaning again: absent means "no game signal",
- * which SUPPRESSES the dimming overlay, so a widget fed nothing looks live.
+ * Pins what each of WarpControl's reads renders when its value is absent. Only
+ * the rate reads honestly: an absent index makes the stepper claim realtime,
+ * an absent `paused` inverts into a real command, and an absent scene
+ * suppresses the dimming overlay.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -88,11 +75,10 @@ describe("WarpControl: nothing has arrived at all", () => {
   it("renders the rate as NULL_DISPLAY, with no mode caption", () => {
     mount(6, 5);
 
-    // `magnitudeOf(undefined)` -> null -> `formatRate(null)` -> NULL_DISPLAY.
     expect(
       screen.getByRole("img", { name: `Time warp rate ${NULL_DISPLAY}` }),
     ).toBeTruthy();
-    // `normalizeWarpMode(undefined)` -> null, and the caption is gated on `mode !== null`, so absence renders no caption rather than an unknown one.
+    // Absence renders no caption rather than an unknown one.
     expect(screen.queryByText("High")).toBeNull();
     expect(screen.queryByText("Physics")).toBeNull();
   });
@@ -100,9 +86,7 @@ describe("WarpControl: nothing has arrived at all", () => {
   it("does NOT dim the body: an absent scene read means 'no game signal', which suppresses the overlay", () => {
     mount(6, 5);
 
-    // `dimBody = hasGameSignal && !warpableScene`. With nothing arrived
-    // `hasGameSignal` is false, so the no-warp-scene overlay never shows and
-    // the widget presents as fully operable off zero telemetry.
+    // With nothing arrived there is no game signal, so the no-warp-scene overlay never shows.
     expect(screen.queryByText("No active save")).toBeNull();
     expect(
       screen.getByRole("group", { name: "Time warp levels" }),
@@ -112,9 +96,7 @@ describe("WarpControl: nothing has arrived at all", () => {
   it("the full ladder shows NO level as current", () => {
     mount(6, 5);
 
-    // `active = currentIndex === lvl.index` and `currentIndex` is null, so the
-    // ladder makes no claim. This is the honest half of the same absent read
-    // the stepper below coerces.
+    // The ladder makes no claim; the stepper below coerces the same absent read.
     for (const label of LADDER_LABELS) {
       expect(
         screen
@@ -127,20 +109,19 @@ describe("WarpControl: nothing has arrived at all", () => {
 
 describe("WarpControl: the `currentIndex ?? 0` coercion", () => {
   it("the stepper asserts realtime, and disables warp-down, off a read that never arrived", () => {
-    // 4x3 is below the full ladder's area threshold, so this is the stepper leg.
+    // 4x3 is below the full ladder's area threshold, so this is the stepper.
     mount(4, 3);
 
     expect(
       screen.getByRole("group", { name: "Time warp controls" }),
     ).toBeTruthy();
-    // `idx = currentIndex ?? 0`: nothing arrived becomes warp level zero, and
-    // the widget then states it. Indistinguishable from a confirmed 1x.
+    // `idx = currentIndex ?? 0`: nothing arrived reads as a confirmed 1x.
     expect(
       screen
         .getByRole("button", { name: "Drop to realtime" })
         .getAttribute("aria-pressed"),
     ).toBe("true");
-    // Same coercion, second consequence: the operator is told they cannot warp down because we are already at the bottom, which we do not know.
+    // Same coercion: warp-down is disabled as if already at the bottom.
     expect(screen.getByRole("button", { name: "Warp down" })).toBeDisabled();
   });
 
@@ -152,8 +133,7 @@ describe("WarpControl: the `currentIndex ?? 0` coercion", () => {
       await dispatchAction(INSTANCE, "stepUp", { kind: "button", value: true });
     });
 
-    // `(currentIndex ?? 0) + 1`. A serial-input step up with no telemetry
-    // commands 5x, not "refuse until we know where we are".
+    // A step up with no telemetry commands 5x rather than refusing.
     await waitFor(() =>
       expect(commandHandler).toHaveBeenCalledWith("time.setWarpIndex", {
         index: 1,
@@ -180,20 +160,19 @@ describe("WarpControl: the absent `paused` read", () => {
   it("reads as not-paused and commands a PAUSE on click", async () => {
     const { fixture, commandHandler } = mount(6, 5);
 
-    // The pause button only renders in the Flight scene, so land that (and only that): `time.warp` stays cold, which is the case under test.
+    // Only the Flight scene renders the pause button; `time.warp` stays cold.
     act(() => {
       fixture.emit("spaceCenter.scene", { scene: "Flight" });
     });
 
     const button = await screen.findByRole("button", { name: "Pause game" });
-    // `effectivePaused === true` is false for an absent read, so the widget shows the pause affordance rather than an unknown state.
     expect(screen.queryByRole("button", { name: "Resume game" })).toBeNull();
 
     act(() => {
       button.click();
     });
 
-    // `next = !effectivePaused` inverts `undefined` to `true`: a command built out of the absence of a value.
+    // `!effectivePaused` inverts `undefined` into a real command.
     await waitFor(() =>
       expect(commandHandler).toHaveBeenCalledWith("time.setPaused", {
         paused: true,
@@ -206,9 +185,7 @@ describe("WarpControl: a partial payload", () => {
   it("a time.warp record missing warpRate/warpRateIndex/warpMode reverts to the unknown render", async () => {
     const { fixture } = mount(6, 5);
 
-    // Land a whole record first, so the partial one below is provably
-    // delivered: NULL_DISPLAY is also the never-arrived render, and asserting
-    // it from a cold mount would prove nothing.
+    // A whole record lands first, so the partial one below is provably delivered.
     act(() => {
       fixture.emit("time.warp", {
         warpRate: 10,
@@ -228,9 +205,7 @@ describe("WarpControl: a partial payload", () => {
       fixture.emit("time.warp", { paused: false });
     });
 
-    // A field missing from an arrived record is read exactly like a record that
-    // never arrived: the widget DISCARDS the rate and the mode it had rather
-    // than holding the last known.
+    // A field missing from an arrived record discards the last known value.
     await waitFor(() =>
       expect(
         screen.getByRole("img", { name: `Time warp rate ${NULL_DISPLAY}` }),
@@ -245,10 +220,7 @@ describe("WarpControl: a partial payload", () => {
 
 describe("WarpControl: null versus undefined", () => {
   it("NULL fields are read exactly like absent ones: this widget does not distinguish them", async () => {
-    // `magnitudeOf` folds null and undefined into the same null, and
-    // `typeof indexRaw === "number"` rejects both, so a confirmed "there is no
-    // warp state" and "nothing has arrived" render identically. Pinned as a
-    // conflation, not as a distinction.
+    // A confirmed "no warp state" and "nothing arrived" render identically: a conflation, not a distinction.
     const { fixture } = mount(6, 5);
 
     act(() => {
@@ -303,7 +275,7 @@ describe("WarpControl: null versus undefined", () => {
       fixture.emit("time.warp", null);
     });
 
-    // `warp?.warpRate` erases the store's confirmed absence, so the operator cannot tell "the mod says there is no warp state" from "still waiting".
+    // The operator cannot tell "the mod says there is no warp state" from "still waiting".
     await waitFor(() =>
       expect(
         screen.getByRole("img", { name: `Time warp rate ${NULL_DISPLAY}` }),

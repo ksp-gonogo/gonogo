@@ -14,14 +14,9 @@ import {
   HAND_TYPED_SYMBOLS,
 } from "./guards";
 
-/**
- * A guard nobody has watched fail is not a guard.
- *
- * Every case below that asserts the scan is QUIET is paired with one that
- * asserts it is loud, because the failure mode this file exists to prevent is
- * the one that bit three separate tests in this repo: an assertion written
- * against a string shape that could never match, passing forever and proving
- * nothing.
+/*
+ * Every case that asserts the scan is quiet is paired with one that asserts it
+ * is loud, so no assertion can pass against a shape that could never match.
  */
 
 const roots: string[] = [];
@@ -37,11 +32,7 @@ function fixture(files: Record<string, string>): string {
   return root;
 }
 
-// 30s, not the 10s default: under heavy concurrent disk I/O (several worktrees
-// building/testing at once) `rmSync` on a temp dir can genuinely take longer
-// than the default hook timeout, failing this cleanup step (and so the whole
-// test) with no assertion ever having run. Purely a timeout bump, the guard's
-// own logic is untouched.
+// 30s, not the 10s default: `rmSync` on a temp dir can exceed the default hook timeout under heavy disk I/O.
 afterEach(() => {
   for (const root of roots) rmSync(root, { recursive: true, force: true });
   roots.length = 0;
@@ -62,8 +53,7 @@ describe("findHandTypedUnits", () => {
   });
 
   it("reports the LONGEST symbol, not the first letter of it", () => {
-    // `m/s` starts with `m`. Reporting the short one would send a reader
-    // looking for a metre that is not there.
+    // `m/s` starts with `m`; reporting the short one would name the wrong unit.
     const dir = fixture({ "a.ts": "`${v} m/s`\n" });
     expect(findHandTypedUnits({ dir })[0].symbol).toBe("m/s");
   });
@@ -97,15 +87,13 @@ describe("findHandTypedUnits", () => {
   });
 
   it("still catches a percentage that IS a readout", () => {
-    // The pair to the case above: the CSS filter must not be so broad that a real percentage readout slips through it.
+    // The CSS filter must not be so broad that a real percentage readout slips through.
     const dir = fixture({ "Coverage.tsx": "<span>{`${pct}%`}</span>\n" });
     expect(findHandTypedUnits({ dir })[0].symbol).toBe("%");
   });
 
   it("ignores a symbol that appears in prose", () => {
-    // A file explaining the rule should not be its own first offender. The
-    // sibling Earth-day guard shipped without this and failed on the comment
-    // that documented it.
+    // A file explaining the rule should not be its own first offender.
     const dir = fixture({
       "Doc.tsx": [
         "// Never write `${speed.toFixed(1)} m/s` by hand.",
@@ -120,7 +108,7 @@ describe("findHandTypedUnits", () => {
   });
 
   it("still catches code on a line that also carries a comment", () => {
-    // The pair: blanking comments must not blank the code beside them.
+    // Blanking comments must not blank the code beside them.
     const dir = fixture({ "Mixed.tsx": "const l = `${v} km`; // a label\n" });
     expect(findHandTypedUnits({ dir })).toHaveLength(1);
   });
@@ -142,7 +130,7 @@ describe("findHandTypedUnits", () => {
   });
 
   it("takes a symbol the kit has never heard of", () => {
-    // An Uplink can `registerUnit` its own; the guard has to be able to look for it, or the extension point only goes half way.
+    // An Uplink can `registerUnit` its own, so the guard has to be able to look for it.
     const dir = fixture({ "Reactor.tsx": "`${flux} Sv`\n" });
     expect(findHandTypedUnits({ dir })).toEqual([]);
     expect(
@@ -169,16 +157,11 @@ describe("expectNoHandTypedUnits", () => {
     const dir = fixture({ "Speed.tsx": "\nconst l = `${v} m/s`;\n" });
     expect(() => expectNoHandTypedUnits({ dir })).toThrow(/Speed\.tsx:2/);
     expect(() => expectNoHandTypedUnits({ dir })).toThrow(/<Unit value=/);
-    // The two sanctioned escapes are named, so the fix does not require finding a document first.
+    // The message names the sanctioned escapes.
     expect(() => expectNoHandTypedUnits({ dir })).toThrow(/speakQuantity/);
   });
 
-  /**
-   * The symbol list is the guard's whole reach, so a unit missing from it is
-   * not caught rather than not present. These pin the units added after the
-   * list was measured against what the tree actually renders (30 symbols
-   * looked for, 67 tokens in use).
-   */
+  /** The symbol list is the guard's whole reach, so a unit missing from it is not caught. */
   it("sees the units added after the list was measured", () => {
     for (const source of [
       "`${v} rpm`",
@@ -194,23 +177,14 @@ describe("expectNoHandTypedUnits", () => {
     }
   });
 
-  /**
-   * Case is significant, because `patternFor` builds its RegExp with no `i`
-   * flag. That is not a defect to fix by adding the flag: single-letter members
-   * like `m`, `s`, `t`, `N` and `W` would then match prose and CSS. It is a
-   * property the list has to be written against, and it is pinned here because
-   * a unit conventionally typed in caps (`RPM`) was invisible while the
-   * lowercase token sat on the list looking like coverage.
-   */
+  /** Case is significant, since single-letter members would otherwise match prose and CSS. */
   it("matches a unit case-sensitively, so both spellings must be listed", () => {
     const upper = fixture({ "Rotor.tsx": "`${v} RPM`\n" });
     expect(() => expectNoHandTypedUnits({ dir: upper })).toThrow(
       /Rotor\.tsx:1/,
     );
 
-    // Not on the list in this spelling, and so not seen. Asserting the LIMIT
-    // rather than the reach: this is what the next person needs to know before
-    // adding a symbol and believing it covers the other casing.
+    // Not on the list in this spelling, and so not seen: one spelling does not cover another.
     const unlisted = fixture({ "Rotor.tsx": "`${v} Rpm`\n" });
     expect(() => expectNoHandTypedUnits({ dir: unlisted })).not.toThrow();
   });
@@ -230,8 +204,7 @@ describe("expectNoHandTypedUnits", () => {
   });
 
   it("throws when a file drops BELOW its baseline", () => {
-    // The half that makes it a ratchet. A stale allowance is an open door: the
-    // symbol could come back to that file and nothing would say so.
+    // A stale allowance would let the symbol come back to that file unnoticed.
     const dir = fixture({ "Old.tsx": "<Unit value={v} />\n" });
     expect(() =>
       expectNoHandTypedUnits({ dir, baseline: { "Old.tsx": 2 } }),

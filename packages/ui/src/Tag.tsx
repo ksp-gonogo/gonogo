@@ -1,9 +1,5 @@
 import styled, { css } from "styled-components";
 
-// ---------------------------------------------------------------------------
-// Colour map for known tags
-// ---------------------------------------------------------------------------
-
 export interface TagColours {
   bg: string;
   fg: string;
@@ -43,10 +39,6 @@ export function getTagColours(label: string): TagColours {
   return TAG_COLOURS[label] ?? FALLBACK;
 }
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
 export interface TagProps {
   label: string;
 }
@@ -59,10 +51,6 @@ export function Tag({ label }: TagProps) {
     </TagBadge>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
 
 const TagBadge = styled.span<{ $bg: string; $fg: string; $border: string }>`
   display: inline-block;

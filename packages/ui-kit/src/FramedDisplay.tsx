@@ -1,52 +1,25 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import styled from "styled-components";
 
-/**
- * A bordered, sunken box for VISUAL content: SVG diagrams, canvases, maps,
- * gauges. Anything whose job is to be looked at rather than read.
- *
- * This exists so that padding can be universal. Panel pads its body, which is
- * right for text and wrong for a diagram that wants to fill the space, and the
- * obvious fix (an opt-out that cancels the inset for one child) was rejected
- * for a better reason than tidiness: almost no widget is wholly visual. They
- * are mixed. A diagram sits beside readouts, and an all-or-nothing container
- * flag forces the widget to choose, which is exactly how one widget ended up
- * with an unpadded data list next to its chart.
- *
- * Framing the visual instead of unpadding the panel makes the mixed case the
- * easy one: the readouts keep the standard inset, and the diagram gets an edge
- * that says where it ends. In a widget with a sidebar the frame also does the
- * dividing, so no separate rule is needed.
- *
- * It deliberately does NOT scroll or size itself. The caller decides how much
- * room the visual gets, because only the caller knows whether the diagram or
- * the numbers beside it should win when space is short.
- *
- * Every in-tree call sizes it with `flex: 1`, and that works only while its
- * flex siblings stay short: a flex item's share of the row is whatever is
- * left after siblings claim theirs, so a tall sibling collapses the frame
- * instead of yielding to it. That collapse is a symptom of a control being a
- * competing SIBLING in the same flex row. Once a control OVERLAYS the frame
- * instead, drawn as a layer on top of it rather than a box beside it, there
- * is no sibling to compete with, and no aspect-ratio or fixed-height
- * workaround is needed.
- *
- * The visual fills the frame to its rounded edge by default: a FramedDisplay
- * only ever wraps a visual, and a visual wants the whole box. Most SVGs carry
- * their own viewBox margin, so an inner gutter reads as a double border. The
- * rare content that has no margin of its own can opt into the gutter with
- * `padded`.
- */
 export interface FramedDisplayProps extends ComponentPropsWithoutRef<"div"> {
   children?: ReactNode;
   /**
-   * Adds an inner gutter between the frame and its contents. Off by default
-   * because the visual should fill to the rounded edge; opt in only for
-   * content that carries no margin of its own.
+   * Adds an inner gutter between the frame and its contents, for content that
+   * carries no margin of its own.
    */
   padded?: boolean;
 }
 
+/**
+ * A bordered, sunken box for visual content (SVG diagrams, canvases, maps,
+ * gauges) inside an ordinary padded panel body, so readouts beside it keep the
+ * standard inset and the diagram gets an edge that says where it ends.
+ *
+ * It does not scroll or size itself: the caller decides how much room the
+ * visual gets. Sized with `flex: 1`, a tall flex sibling collapses it, so a
+ * control belongs overlaid on the frame rather than beside it. The visual
+ * fills to the rounded edge unless `padded`.
+ */
 export function FramedDisplay({
   children,
   padded,

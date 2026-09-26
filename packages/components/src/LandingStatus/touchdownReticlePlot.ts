@@ -10,32 +10,15 @@ import { parentBodyFromTopics } from "../shared/streamBody";
 import { greatCircle } from "./geo";
 
 /**
- * The touchdown reticle, as a CONTRIBUTED PLOT: the top-down half of the
- * altimetry pair, in metres east and metres north of the predicted site.
- *
- * Everything on it is the same reading the hand-rolled SVG carried, and the
- * conversion cost less here than it did for the cross-section because this plot
- * was already spatial: its scale was a metres-to-rim constant rather than a
- * normalisation, so stating it as an axis is a promotion rather than a change
- * of subject. The site sits at the origin, the vessel at its real displacement,
- * and the landing zone is a circle of its actual radius rather than a fraction
- * of a box.
- *
- * The terrain relief is a `relief` layer, the grid kind added to the vocabulary
- * for exactly this: hypsometric colour IS the altitude and the band edges are
- * the iso-lines that make slope legible. It could not be a `field`, which
- * varies along one axis only and so has no shape. Contributing the grid raw and
- * letting the renderer band it is the same tone-not-colour rule the rest of the
- * vocabulary follows: this file states elevations, never a ramp.
+ * The touchdown reticle as a contributed plot: the top-down half of the altimetry pair, in metres east and north of the predicted site, with the vessel at its real displacement and the landing zone at its actual radius.
+ * The terrain is a `relief` layer: this file states elevations and the renderer bands them, so hypsometric colour is the altitude and band edges are the iso-lines.
  */
 
 /** Headroom past the outermost thing on the plot, as a fraction of the span. */
 const SPAN_PADDING = 0.15;
 /** A reticle tighter than this reads as a zoom artefact rather than a site. */
 const MIN_HALF_SPAN_M = 50;
-/** Points around the landing-zone ring. The vocabulary has no circle, and a
- *  ring in DATA space cannot be one: it is an ellipse the moment the axes
- *  differ, which a polygon of the plot's own coordinates gets right for free. */
+/** Points around the landing-zone ring: a ring in data space is an ellipse once the axes differ, so it is a polygon in the plot's own coordinates. */
 const ZONE_STEPS = 48;
 
 export interface TouchdownReticleInputs {
@@ -61,12 +44,7 @@ export interface TouchdownReticleInputs {
   aglMeters: number | null;
 }
 
-/**
- * The reticle as a whole plot, or null when there is no site to centre on.
- *
- * A reticle with no predicted site is not a reticle with an empty middle, it is
- * no reticle: the whole plot is stated relative to a point that does not exist.
- */
+/** The reticle as a whole plot, or null when there is no predicted site: the whole plot is stated relative to it. */
 export function buildTouchdownReticlePlot(
   inputs: Readonly<TouchdownReticleInputs>,
 ): PlotEntry | null {
@@ -90,22 +68,13 @@ export function buildTouchdownReticlePlot(
   }
   if (!siteWorthPlotting(inputs.hasAtmosphere, inputs.aglMeters)) return null;
 
-  // The site is the origin, so the vessel sits at MINUS the site's displacement
-  // from it. Bearing is clockwise from north, so east is sin and north is cos.
+  // The site is the origin, so the vessel sits at minus its displacement; bearing is clockwise from north, so east is sin and north is cos.
   const bearing = (driftBearingDeg * Math.PI) / 180;
   const vesselEast = -driftMeters * Math.sin(bearing);
   const vesselNorth = -driftMeters * Math.cos(bearing);
 
   const layers: PlotLayer[] = [];
-  // What the window is sized to hold: the ground we actually sampled, and how
-  // far the vessel is from the site. NOT the dispersion ring.
-  //
-  // A ring is a statement about uncertainty, and on a fast approach it is
-  // kilometres across while the terrain patch is two hundred metres. Framing to
-  // it shrinks the only ground anybody has looked at to a stamp in the middle
-  // of an empty circle, which trades the map for its error bar. The ring is
-  // still drawn and simply runs off the edges, which is a map saying the
-  // uncertainty is larger than the view, and is the truer picture of that.
+  // The window frames the sampled ground and the vessel, NOT the dispersion ring: on a fast approach the ring is kilometres across and simply runs off the edges.
   const reaches: number[] = [Math.abs(driftMeters)];
 
   const relief = reliefGrid(patch, patchSize, patchExtentMeters);
@@ -115,16 +84,7 @@ export function buildTouchdownReticlePlot(
   }
 
   if (zoneRadiusMeters != null && zoneRadiusMeters > 0) {
-    // The ring is drawn but does NOT frame the map. See `reaches` below.
-    // A RING, not a filled disc. The zone sits over the terrain relief, and a
-    // shaded disc, however faint, muddies the very hypsometric bands an
-    // operator is reading the ground's shape out of. An outline states the same
-    // boundary and hides nothing behind it.
-    //
-    // Drawn as a polygon rather than a circle because the vocabulary has no
-    // circle and should not: a ring in DATA space is an ellipse the moment the
-    // axes differ, and a polygon of the plot's own coordinates gets that right
-    // without anyone thinking about it.
+    // An outline, not a filled disc, so it hides none of the hypsometric bands the ground's shape is read from.
     layers.push({
       kind: "series",
       id: "landing-zone",
@@ -144,9 +104,7 @@ export function buildTouchdownReticlePlot(
     });
   }
 
-  // The drift itself, as a line the operator reads a direction off. Drawn only
-  // when there is a displacement to draw: at touchdown the vessel and the site
-  // coincide, and a zero-length line would be a mark where there is no fact.
+  // Only when there is a displacement: at touchdown a zero-length line would be a mark with no fact.
   if (Math.abs(driftMeters) > 0) {
     layers.push({
       kind: "series",
@@ -182,11 +140,7 @@ export function buildTouchdownReticlePlot(
     description: "current sub-vessel point",
   });
 
-  // No padding when the terrain patch is what fills the picture: the relief
-  // BLEEDS to the frame's edges, the way a map does, and an inset ring of empty
-  // ground around it is the internal padding that made this plot look unlike
-  // the one beside it. Padding only when there is no patch to bleed, where the
-  // span comes from the drift and a mark on the edge would be clipped.
+  // With a patch the relief bleeds to the frame's edges like a map; padding only when the span comes from the drift.
   const halfSpan = relief
     ? Math.max(MIN_HALF_SPAN_M, relief.halfSpan)
     : Math.max(MIN_HALF_SPAN_M, Math.max(...reaches)) * (1 + SPAN_PADDING);
@@ -194,11 +148,7 @@ export function buildTouchdownReticlePlot(
     subject: "touchdown-site",
     title: "Touchdown site",
     frame: {
-      // SPATIAL: this is a map of the ground around the site, not a chart of
-      // one quantity against another. Metres east across, metres north up, the
-      // same scale both ways, and no tick ladder, because nobody reads a
-      // distance off the side of a map. What carries the scale is the picture:
-      // the terrain patch is a known width and the dispersion ring is labelled.
+      // A map: equal scale both ways and no tick ladder; the known patch width and the labelled ring carry the scale.
       kind: "spatial",
       xDomain: [-halfSpan, halfSpan],
       xUnit: "m",
@@ -209,25 +159,10 @@ export function buildTouchdownReticlePlot(
   };
 }
 
-/**
- * Metres AGL below which an atmospheric descent is a LANDING rather than an
- * entry, and this plot has a site worth pointing at.
- *
- * `compute` is pure, and a settling rate is a difference between frames, so
- * there is nowhere for one to live: the altitude gate is the whole of it.
- *
- * That is the safe direction to be missing a case in: a settled prediction
- * between this gate and the edge of the atmosphere waits rather than showing
- * early. A pinpoint reticle around a point still moving kilometres a second
- * is a picture of a decision nobody can take.
- */
+/** Metres AGL below which an atmospheric descent is a landing rather than an entry; `compute` is pure, so the altitude gate is the whole test. */
 const ATMO_PLOT_ALT_GATE_M = 10_000;
 
-/**
- * Whether an atmospheric descent is close enough for the site plots to mean
- * something. A vacuum descent has no entry phase to wait out, so it is always
- * ready; an atmospheric one waits for the gate above.
- */
+/** A vacuum descent is always ready; an atmospheric one waits for the gate above. */
 function siteWorthPlotting(
   hasAtmosphere: boolean,
   aglMeters: number | null,
@@ -236,8 +171,7 @@ function siteWorthPlotting(
   return aglMeters != null && aglMeters < ATMO_PLOT_ALT_GATE_M;
 }
 
-/** The site marker's clause: slope and biome, each only when it is known. An
- *  absent slope is not a flat site and an absent biome is not an unnamed one. */
+/** Slope and biome, each only when known: an absent slope is not a flat site. */
 function siteDescription(
   slopeDeg: number | null,
   biome: string | null,
@@ -250,14 +184,7 @@ function siteDescription(
   return parts.join(", ");
 }
 
-/**
- * The terrain patch as a relief layer over its real ground footprint, or null.
- *
- * Note the extent requirement. Without `terrainPatchExtentMeters` the grid is a
- * picture at an unknown scale, and painting it across the reticle would put the
- * terrain under the site at whatever zoom the plot happened to pick: the marks
- * would be metric and the ground under them would not.
- */
+/** The terrain patch as a relief layer over its real ground footprint, or null without `terrainPatchExtentMeters`, since a grid at unknown scale would sit under metric marks. */
 function reliefGrid(
   patch: readonly number[] | null,
   patchSize: number | null,
@@ -290,15 +217,8 @@ function reliefGrid(
 }
 
 /**
- * The dispersion circle, derived rather than read: nothing on the wire carries
- * one. A fraction of the remaining horizontal travel, so it closes as the
- * descent does, floored at the sampled roughness footprint and at a hard
- * minimum so it never reads tighter than the ground actually sampled. A
- * pinpoint prediction an operator could steer by is a claim the data does not
- * support, which is why the floor is not optional.
- *
- * Null when no site was sampled at all. A zone around a site nobody looked at
- * would be a confidence interval on nothing.
+ * The dispersion circle, derived since nothing on the wire carries one: a fraction of the remaining horizontal travel, floored at the sampled roughness footprint and a hard minimum so it never claims more precision than the data.
+ * Null when no site was sampled.
  */
 const ZONE_DISPERSION = 0.12;
 const ZONE_FLOOR_M = 30;
@@ -321,18 +241,7 @@ function zoneRadius(inputs: {
   return Math.max(inputs.roughnessFootprintMeters ?? 0, ZONE_FLOOR_M, travel);
 }
 
-/**
- * Seconds to the ground if nothing changes.
- *
- * In an atmosphere the mod ships one, because drag makes it a thing only the
- * game can integrate. In vacuum it is the positive root of the ballistic drop,
- * derived here from the surface gravity: an outside author contributing this
- * plot has the same two Topics and would write the same three lines, which is
- * the test of whether this seam is really reachable.
- *
- * Null when any term is missing, so the zone falls back to its floor rather
- * than to a radius computed from a guessed gravity.
- */
+/** Seconds to the ground if nothing changes: the mod's figure in an atmosphere, the ballistic drop from surface gravity in vacuum; null when any term is missing. */
 function timeToImpact(inputs: {
   atmosphericTimeToImpact: number | null;
   aglMeters: number | null;

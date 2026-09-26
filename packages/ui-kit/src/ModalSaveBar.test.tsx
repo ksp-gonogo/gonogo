@@ -11,11 +11,8 @@ import {
 const SAVED_VALUE = { label: "saved" };
 
 /**
- * Minimal stand-in for `ui`'s `ModalDialog`: renders whatever footer/dirty
- * state the content registers via `useModalSaveBar` -> `useModalChrome`, so
- * this suite can exercise the hook without pulling in the full modal shell
- * (which lives in `@ksp-gonogo/ui` and needs `safeRandomUuid` from
- * `@ksp-gonogo/core`: a dependency this package must never take on).
+ * Minimal stand-in for the modal: renders whatever footer and dirty state the
+ * content registers, so the hook is exercised without the full modal shell.
  */
 function ChromeHost({
   children,

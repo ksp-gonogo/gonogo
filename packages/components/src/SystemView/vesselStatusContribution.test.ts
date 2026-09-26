@@ -33,8 +33,7 @@ describe("computeVesselStatus", () => {
   });
 
   it("counts a reacquisition down on the GAME ladder, where a day is six hours", () => {
-    // 43,200 seconds is two 6h KSP days and half a wall-clock one. Rendering
-    // it as "12h" would mean the label had been put on the irl:s ladder.
+    // 43,200 s is two 6h KSP days, so "12h" would mean the wall-clock ladder.
     const [entry] = computeVesselStatus(
       "v1",
       silent({ deadlineUt: 100_000, predictedReacquisitionUt: 44_200 }),

@@ -10,26 +10,8 @@ import subOrbital from "./__fixtures__/sub-orbital.json";
 import { CurrentOrbitComponent } from "./index";
 
 /**
- * DOM snapshots off the stream pipeline, driven by each fixture's own
- * `_stream` block.
- *
- * This spec used to build that stream itself: six orbits declared inline as
- * `{sma, ecc, inc, argPe}`, a `setupStreamFixture` per render, and its own
- * `vessel.orbit`/`vessel.identity`/`system.bodies` emits. The six fixtures next
- * door said the same thing already and are what the playwright probe renders,
- * so the two descriptions of one scenario have been collapsed onto the fixture.
- *
- * The hand-built copy cost two things the shared harness supplies. It never
- * installed a `ResizeObserver` that reports a size, so the diagram, which is
- * gated on a measured box and is the reason five of the seven modes differ at
- * all, was absent from every one of the 42 baselines; and it passed only the
- * per-mode config, so the registered `showDiagram: true` never applied either.
- *
- * What it got RIGHT, and the fixtures did not, is the propagation horizon:
- * `vessel.orbit.horizon` is not nullable on the wire, and a sample without one
- * is read as unpropagatable, so a fixture omitting it asks for an orbit that
- * cannot be drawn. The six fixtures now state it, matching what the stock
- * analytic provider sends.
+ * DOM snapshots driven by each fixture's own `_stream` block.
+ * `vessel.orbit.horizon` is not nullable on the wire, so every fixture states one.
  */
 
 const FIXTURES: Record<string, Record<string, unknown>> = {

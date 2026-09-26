@@ -7,19 +7,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AstronautComplexComponent } from "./index";
 
 /**
- * What AstronautComplex does when its telemetry stops being current.
- *
- * The decision splits by field. The rosters (applicant pool, hired crew, the
- * active/cap counts, the quoted hire price) are facts that only an event can
- * change, so they are held: a Complex that had four candidates a moment ago
- * still has them, and blanking the lists would report an empty astronaut corps
- * for a save that has one.
- *
- * The funds balance is not a fact. It sits beside a spend control, the operator
- * reads it as the money they are about to spend, and a recovery or a purchase
- * moves it while the link is down. So it is withheld, and the widget says so:
- * an em dash on its own is what an unarrived balance looks like too, and the two
- * are different statements about a save that is mid-hire.
+ * When telemetry stops being current, the rosters, counts and hire price are
+ * held (facts only an event changes), and the funds balance is withheld with a
+ * stated reason, distinct from a balance that never arrived.
  */
 
 const CARRIED = [
@@ -91,8 +81,7 @@ describe("AstronautComplex when its telemetry is no longer current", () => {
   }
 
   it("shows the balance while it is current", async () => {
-    // The control. Without it every assertion below would also pass on a widget
-    // that never draws a balance at all.
+    // The control: without it the assertions below would pass on a widget that never draws a balance.
     const { container } = renderWidget();
     emitCareer();
 
@@ -117,7 +106,7 @@ describe("AstronautComplex when its telemetry is no longer current", () => {
     await waitFor(() =>
       expect(visibleText(container)).toContain("Funds no longer current"),
     );
-    // Withheld, not held: the last balance must not still be on screen as the figure the operator is about to spend from.
+    // Withheld, not held: the last balance must not stay on screen as the figure about to be spent from.
     expect(screen.getByText("Funds").nextElementSibling).toHaveTextContent(
       NULL_DISPLAY,
     );
@@ -125,7 +114,7 @@ describe("AstronautComplex when its telemetry is no longer current", () => {
   });
 
   it("says nothing about a stale balance before one has ever arrived", async () => {
-    // A cold start is not a dropped link, and the empty state must not accuse the link of dropping on first paint.
+    // A cold start is not a dropped link.
     const { container } = renderWidget();
 
     await waitFor(() =>
@@ -135,9 +124,7 @@ describe("AstronautComplex when its telemetry is no longer current", () => {
   });
 
   it("keeps the rosters, the cap and the quoted hire price on screen", async () => {
-    // The other half of the decision. These are facts, so withholding them
-    // would be the more misleading choice: it would report a Complex with no
-    // candidates and a corps with no crew.
+    // Withholding these facts would report a Complex with no candidates and a corps with no crew.
     const { container } = renderWidget();
     emitCareer();
     await waitFor(() =>
@@ -164,7 +151,7 @@ describe("AstronautComplex when its telemetry is no longer current", () => {
   });
 
   it("does not present a stale Complex as a save with no space programme", async () => {
-    // "career mode only" is a statement about the save, and reaching it from a dropped link would tell the operator their career had gone.
+    // "career mode only" is a statement about the save, never reached from a dropped link.
     const { container } = renderWidget();
     emitCareer();
     await waitFor(() =>

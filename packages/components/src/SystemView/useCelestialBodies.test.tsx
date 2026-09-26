@@ -3,11 +3,7 @@ import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { useCelestialBodies } from "./useCelestialBodies";
 
-/**
- * `useCelestialBodies` reads the mod's `system.bodies` Topic through a real
- * `TelemetryProvider` (no legacy `MockDataSource`, no `getDataSource` shim
- * bypass) and enriches each body with the derived almanac values.
- */
+/** `useCelestialBodies` reads `system.bodies` through a real `TelemetryProvider` and enriches each body with derived almanac values. */
 
 const KERBIN_MU = 3.5316e12;
 
@@ -93,10 +89,7 @@ describe("useCelestialBodies", () => {
             parentIndex: 0,
             radius: 600_000,
             gravParameter: KERBIN_MU,
-            // Both on the wire now. They were reconstructed from gravParameter
-            // until the contract grew them, and the surface-gravity
-            // reconstruction ran the game's own arithmetic backwards: KSP
-            // derives mass and gravParameter FROM GeeASL, not the other way.
+            // On the wire: KSP derives mass and gravParameter from GeeASL, so reconstructing them backwards is wrong.
             mass: 5.2915158e22,
             surfaceGravity: 1,
             hillSphere: 84_159_286,
@@ -120,7 +113,7 @@ describe("useCelestialBodies", () => {
     expect(kerbin.mass).toBe(5.2915158e22);
     expect(kerbin.geeASL).toBe(1);
     expect(kerbin.hillSphere).toBe(84_159_286);
-    // Still ours: the game has no escape-velocity member at all.
+    // Derived here: the game has no escape-velocity member.
     expect(kerbin.escapeVelocity).toBeCloseTo(
       Math.sqrt((2 * KERBIN_MU) / 600_000),
       6,

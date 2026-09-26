@@ -14,16 +14,14 @@ import type { RailTags } from "./railTags";
 export interface RailRefusal extends CommandRefusalEntry {
   /**
    * The command's three axes. Only the MARK is read: a discrete command gets
-   * the same terse glyph tile it carries in the in-flight queue, a continuous
-   * one gets its text label, having no tile in that queue to match.
+   * its in-flight glyph tile, a continuous one its text label.
    */
   tags: RailTags;
 }
 
 export interface CommandRefusalListProps {
   refusals: readonly RailRefusal[];
-  /** Clear one refusal. Omitted when no handle can dismiss, and the boxes then
-   *  carry no clear control rather than an inert one. */
+  /** Clear one refusal. Omit it and the boxes carry no clear control rather than an inert one. */
   onDismiss?: (id: string) => void;
   /**
    * Announce each entry as it arrives (the default). Off only where something
@@ -34,18 +32,12 @@ export interface CommandRefusalListProps {
 }
 
 /**
- * The refusals under the rail's two queues: what the game said no to, and why.
+ * The refusals under the rail's two queues: what the game said no to, and why,
+ * in `CommandOutcomeList`'s box chrome.
  *
- * The box chrome is `CommandOutcomeList`'s, shared with the losses beside them;
- * what belongs here is the composing, because a refusal quotes the game's
- * verdict and its numbers and no other outcome does.
- *
- * `role="status"` by default, which is `aria-live="polite"`: an entry arrives
- * on its own, a round trip after the press, when the operator may be looking
- * elsewhere. Never assertive, which is reserved for ABORT.
- *
- * An empty set draws nothing. A live list keeps its empty region mounted, so
- * the first entry to arrive is announced.
+ * `role="status"` (polite) by default: an entry arrives a round trip after the
+ * press. An empty set draws nothing, but a live list keeps its empty region
+ * mounted so the first entry is announced.
  */
 export function CommandRefusalList({
   refusals,

@@ -1,8 +1,4 @@
-/**
- * Lives in `@ksp-gonogo/ui-kit`; this is the app-side alias. See that file for
- * why a healthy stream renders nothing, and why most widgets should let
- * `Panel` derive the status rather than rendering this themselves.
- */
+// App-side alias; the implementation lives in ui-kit so an Uplink can reach it, so add nothing here.
 export {
   formatStreamStatus,
   StreamStatusBadge,

@@ -10,12 +10,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ActionGroupComponent } from "./index";
 
-/*
- * Rendered trees, tracked so teardown can unmount them BEFORE clearing the
- * action-handler registry: a still-mounted widget re-rendering on that
- * notification is a state update outside act(), the documented anti-pattern
- * in CLAUDE.md.
- */
+// Unmounted before the registry clears, so the clear never updates a mounted tree outside act().
 const renderedTrees: Array<() => void> = [];
 
 function render(ui: ReactElement) {
@@ -29,29 +24,13 @@ function unmountAll() {
   renderedTrees.length = 0;
 }
 
-/** Stock's ten customs, all disengaged: the named-list shape the mod now sends. */
+/** Stock's ten custom groups, all disengaged. */
 const STOCK_GROUPS_ALL_OFF = Array.from({ length: 10 }, (_, i) => ({
   index: i + 1,
   name: `AG${i + 1}`,
   state: false,
 }));
 
-/**
- * The toggle -> absolute command bridge, proven for a representative stock
- * singleton (SAS) and Abort: `ActionGroupComponent` firing a toggle dispatches
- * the `vessel.control.set*` COMMAND directly via `useCommand`,
- * unconditionally, with no
- * carried-channels gate and no legacy `DataSource.execute()` fallback: every
- * vessel command widget on this pattern dispatches the same way, the ones an
- * Uplink ships included.
- *
- * SAS (not an AG-index like `f.ag1`) is the vehicle here on purpose:
- * `toggleCommandFor`/`buildToggleArgs`'s doc comments explain why: SAS/RCS/
- * Gear/Brakes/Lights each have a clean per-field read home
- * (`vessel.control.sas` etc.), and THIS SAME WIDGET INSTANCE already
- * subscribes to that exact topic for its own state pill, so the invert is
- * built off a value already in hand, no extra read.
- */
 afterEach(() => {
   unmountAll();
   clearActionHandlers();
@@ -80,7 +59,6 @@ describe("ActionGroup (SAS): the toggle -> absolute command dispatch", () => {
       </fixture.Provider>,
     );
 
-    // Live SAS = true, so a click should invert it to `enabled: false`.
     act(() => {
       fixture.emit("vessel.control", {
         sas: true,
@@ -101,11 +79,6 @@ describe("ActionGroup (SAS): the toggle -> absolute command dispatch", () => {
       button.click();
     });
 
-    /*
-     * Fire-and-forget: the underlying command-request/response round trip
-     * resolves on a queued microtask (StubTransport), so the handler call
-     * must be awaited, not asserted synchronously right after the click.
-     */
     await waitFor(() =>
       expect(commandHandler).toHaveBeenCalledWith("vessel.control.setSas", {
         enabled: false,

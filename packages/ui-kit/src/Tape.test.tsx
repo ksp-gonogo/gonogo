@@ -4,7 +4,6 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { Tape } from "./Tape";
 
-/** An altitude, the strip's canonical subject. */
 const m = (n: number) => value("m", n);
 
 describe("Tape", () => {
@@ -27,9 +26,7 @@ describe("Tape", () => {
   });
 
   it("holds one rung for the whole scale, taken from the top of it", () => {
-    // Every mark on a 5 km strip reads in km, including the 200 m marker that
-    // would ladder down to metres on its own magnitude. A ruler whose marks
-    // change unit partway up is not a ruler.
+    // Every mark on a 5 km strip reads in km, including the 200 m one.
     const { container } = render(
       <Tape
         value={m(1200)}

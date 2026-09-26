@@ -79,84 +79,34 @@ const topics = defineTopicManifest({
 });
 
 /**
- * Warn once one-way signal delay crosses this threshold AND fly-by-wire is
- * armed. The felt control-loop lag is ~2x one-way (command out + result
- * back), so 1s one-way ≈ 2s round-trip, the point past which closed-loop
- * stick flying stops working. Below that FBW is sloppy but usable; holding
- * the warning here avoids nuisance flashes on sub-second LAN jitter. `1.0`
- * mirrors the ms-below-1s breakpoint the shared duration ladder behind `Unit`
- * uses, an already-meaningful threshold in this codebase, tunable here if a
- * live session says otherwise.
+ * One-way delay above which armed fly-by-wire warns: the felt loop lag is about
+ * twice one-way, and past 2s round-trip closed-loop stick flying stops working.
  */
 const FBW_DELAY_WARN_SECONDS = 1.0;
 
-/**
- * The smallest dial worth drawing. Below it the ball is illegible and the
- * numeric readout is the better rendering of the same three angles, which is
- * why the widget has one at all.
- *
- * A floor on WHETHER to draw, never on what size to draw at. As a size clamp it
- * did the opposite of what it reads like: a column of 91px still got an 80px
- * dial, and the indicator overflowed it by 63.
- */
+/** The smallest dial worth drawing: a floor on whether to draw, never a size clamp. */
 const MIN_DIAL_PX = 80;
 
 /**
- * What `AttitudeIndicator` puts BELOW the dial in the same column: the heading
- * strip, the HDG/PIT/ROL readout row, and the two gaps between the three.
- *
- * A measured constant rather than a chosen one, so it moves when that column
- * does. It is also the reason a dial cannot simply shrink to whatever height
- * is left: the indicator is never shorter than this, so a column under
+ * Measured height of what `AttitudeIndicator` puts below the dial (heading
+ * strip, readout row and gaps). A column shorter than
  * `MIN_DIAL_PX + ATTITUDE_CHROME_PX` holds no dial at all.
  */
 const ATTITUDE_CHROME_PX = 74;
 
 /**
- * The width the numeric readout needs to put HDG, PCH and RLL on one line.
- *
- * Measured in chromium off the rendered cells, not derived from the template:
- * one glyph of the reading is 10.24px at `--font-size-lg`, the widest each cell
- * can ever carry is `359°`, `-90°` and `-180°` (a bearing, then two signed
- * angles), and 13 glyphs plus two `--gap-related` gaps is 149. A coarse pointer
- * takes `lg` to 17px, and that is the number that binds: 157.5, so 158.
- *
- * Not three times the widest cell. That was the previous derivation and it read
- * 190, because `repeat(3, 1fr)` LOOKS like it forces equal columns. `1fr` is
- * `minmax(auto, 1fr)`, and {@link READOUT_CELL} restores the `auto` minimum
- * `BigReadout` zeroes, so each column's floor is its own content: the row packs
- * to the SUM at the squeeze and only equalises once there is spare width to
- * distribute. 190 is where the three become equal, which is a nicety; 158 is
- * where they fit, which is the question. The 32px between the two numbers is a
- * whole tier: a 5-column tile's 158px column sits in it.
- *
- * That tier clears this by 8.8px on a fine pointer and by half of one on a
- * coarse pointer, and stating the second number is the point of measuring at
- * all: a column that comes back a hair under stacks, which is the presentation
- * one rung down, not an overflow. The failure is graceful in the direction the
- * margin is thin.
- *
- * The alternative to a number here is a container query, which an inline style
- * object cannot carry, and a uniform column minimum, which cannot express
- * "three or one" at all: every minimum wide enough to refuse a cramped
- * three-across leaves a band of widths where exactly two fit. See
- * {@link READOUT_TRIPLE}. Below this the grid OVERFLOWS rather than clipping,
- * so a cell that outgrows the number shows up in the harness's overlap gate
- * instead of quietly truncating a reading.
+ * Measured width the numeric readout needs for HDG, PCH and RLL on one line:
+ * the widest readings (`359°`, `-90°`, `-180°`) plus two gaps at the
+ * coarse-pointer type size. Each `1fr` column floors at its own content, so the
+ * row fits at the sum, not at three times the widest cell. Below this the grid
+ * overflows rather than clipping, so the overlap gate sees it.
  */
 const READOUT_TRIPLE_PX = 158;
 
 /**
- * Dispatch-rate budget for the throttle axis's delayed control-stream
- * (`useControlStream`'s coalesced write half, `COALESCE_MS` in
- * `use-control-stream.tsx`, currently 10 Hz). `@ksp-gonogo/sitrep-client`
- * deliberately does not depend on `@ksp-gonogo/core` (core already depends
- * on sitrep-client, so the reverse would cycle), so the budget lives here
- * in the consuming widget and is wired in via the hook's `onDispatch` seam,
- * the same pattern `SitrepTelemetryProvider` uses for its own stream budget.
- * Threshold is ~5x the realistic steady-state ceiling (one axis, one widget
- * instance, 10 Hz) so a genuine runaway (e.g. a deadband regression that
- * dispatches every tick from multiple mounted instances) still trips it.
+ * Dispatch-rate budget for the throttle control stream, wired through the
+ * hook's `onDispatch` since sitrep-client cannot depend on core. About 5x one
+ * 10 Hz axis on one instance.
  */
 const CONTROL_STREAM_BUDGET = new PerfBudget({
   name: "Navball control-stream dispatch/sec",
@@ -166,15 +116,9 @@ const CONTROL_STREAM_BUDGET = new PerfBudget({
 });
 
 /**
- * The SAS modes the grid offers a button for: every `Sitrep.Contract.SasMode`
- * member except `Unknown`, which is the contract's graceful fallback for a mode
- * this build cannot name and never something an operator asks for.
- *
- * Typed as member names rather than as bare strings, so an entry that is not a
- * real member does not compile, and `sasModeOrdinal.test.ts` fails if the list
- * stops covering the enum. The ORDER here is the grid's layout and nothing
- * else, never the wire ordinal via `indexOf`: doubled up that way, a member
- * inserted into the C# enum becomes a mis-command rather than a missing button.
+ * The SAS modes the grid offers a button for: every `SasMode` member except the
+ * `Unknown` fallback. The order is the grid's layout only, never the wire
+ * ordinal.
  */
 const SAS_MODES: readonly Exclude<SasModeName, "Unknown">[] = [
   "StabilityAssist",
@@ -190,13 +134,7 @@ const SAS_MODES: readonly Exclude<SasModeName, "Unknown">[] = [
 ];
 type SasMode = (typeof SAS_MODES)[number];
 
-/**
- * The navball glyph for each SAS mode that names a DIRECTION.
- *
- * `StabilityAssist` is absent on purpose rather than by omission: it holds the
- * attitude you already have, so there is no marker on the ball it corresponds
- * to and inventing one would say the craft is being pointed somewhere.
- */
+/** The navball glyph for each SAS mode that names a direction; StabilityAssist holds the current attitude and has none. */
 const SAS_MODE_MARKERS: Partial<Record<SasMode, keyof typeof MARKER_ICONS>> = {
   Prograde: "prograde",
   Retrograde: "retrograde",
@@ -209,11 +147,7 @@ const SAS_MODE_MARKERS: Partial<Record<SasMode, keyof typeof MARKER_ICONS>> = {
   Maneuver: "maneuver",
 };
 
-/**
- * The wire ordinal for one SAS mode, read off the generated enum itself rather
- * than counted out of {@link SAS_MODES}. The button list is a layout; the
- * contract is the authority on which integer means which mode.
- */
+/** The wire ordinal for one SAS mode, from the generated enum rather than the layout order of {@link SAS_MODES}. */
 export function sasModeOrdinal(mode: SasMode): number {
   return SasModeEnum[mode];
 }
@@ -221,23 +155,17 @@ export function sasModeOrdinal(mode: SasMode): number {
 export { SAS_MODES };
 
 interface NavballConfig {
-  /** When true, read the CoM-referenced attitude frame (`heading`/`pitch`/`roll`). Default false reads the root-part-referenced frame (`headingRootFrame`/`pitchRootFrame`/`rollRootFrame`); the component body's ternary reads "backwards" relative to these names on purpose, see its comment. */
+  /** When true, read the CoM-referenced attitude frame (`heading`/`pitch`/`roll`); by default the root-part frame (`*RootFrame`). */
   useCoMFrame?: boolean;
   /** When true, render the control surface; otherwise show display-only. */
   controlMode?: boolean;
 }
 
-/**
- * Action surface, kept verbose so each axis and each mode is independently
- * mappable to a hardware input. The order matches the visible button rows, so
- * an operator reading the mapping list sees the same sequence as the panel.
- */
+/** One action per axis and mode so each maps to its own input; ordered like the visible button rows. */
 const navballActions = [
-  // Mode + arm
   { id: "take-control", label: "Toggle control mode", accepts: ["button"] },
   { id: "arm-fbw", label: "Arm FBW", accepts: ["button"] },
   { id: "disarm-fbw", label: "Disarm FBW", accepts: ["button"] },
-  // SAS
   { id: "toggle-sas", label: "Toggle SAS", accepts: ["button"] },
   { id: "toggle-rcs", label: "Toggle RCS", accepts: ["button"] },
   { id: "toggle-precision", label: "Toggle precision", accepts: ["button"] },
@@ -252,20 +180,17 @@ const navballActions = [
   { id: "sas-target", label: "SAS: Target", accepts: ["button"] },
   { id: "sas-anti-target", label: "SAS: Anti-target", accepts: ["button"] },
   { id: "sas-maneuver", label: "SAS: Maneuver", accepts: ["button"] },
-  // Throttle
   { id: "set-throttle", label: "Set throttle", accepts: ["analog"] },
   { id: "throttle-up", label: "Throttle up 10%", accepts: ["button"] },
   { id: "throttle-down", label: "Throttle down 10%", accepts: ["button"] },
   { id: "throttle-zero", label: "Throttle zero", accepts: ["button"] },
   { id: "throttle-full", label: "Throttle full", accepts: ["button"] },
-  // FBW axes
   { id: "set-pitch", label: "Pitch axis", accepts: ["analog"] },
   { id: "set-yaw", label: "Yaw axis", accepts: ["analog"] },
   { id: "set-roll", label: "Roll axis", accepts: ["analog"] },
   { id: "translate-x", label: "RCS X", accepts: ["analog"] },
   { id: "translate-y", label: "RCS Y", accepts: ["analog"] },
   { id: "translate-z", label: "RCS Z", accepts: ["analog"] },
-  // Trim
   { id: "set-pitch-trim", label: "Pitch trim", accepts: ["analog"] },
   { id: "set-yaw-trim", label: "Yaw trim", accepts: ["analog"] },
   { id: "set-roll-trim", label: "Roll trim", accepts: ["analog"] },
@@ -273,11 +198,7 @@ const navballActions = [
 
 type NavballActions = typeof navballActions;
 
-/**
- * The last REAL observation behind a reading, or nothing where there has not
- * been one. Never a modelled value; see `showDial`'s comment for why an attitude
- * is not forward-modellable at all.
- */
+/** The last real observation behind a reading, never a modelled value. */
 function lastObserved<T>(reading: TopicReading<T>): T | undefined {
   switch (reading.state) {
     case "observed":
@@ -290,23 +211,8 @@ function lastObserved<T>(reading: TopicReading<T>): T | undefined {
 
 /**
  * Says why the dial is not there, under the numbers that replaced it.
- *
- * `dialSuppressed` distinguishes the two reasons the numeric readout can be on
- * screen: the widget is too small for a dial (in which case the numbers are the
- * normal rendering and need no explanation), or the attitude is not current (in
- * which case the missing dial is the whole point and must be accounted for).
- * Without that distinction a small widget would grow a permanent apology.
- *
- * **`useViewUt` is read HERE, not in the widget body, and that is not a style
- * choice.** It is per-frame reactive by design (a live countdown needs that), so
- * a widget body calling it re-renders at frame cadence for as long as it is
- * mounted, whether or not anything is stale. Navball has the heaviest SVG in the
- * set, and the same mistake repeated across the widgets about to grow age
- * captions would re-render the whole dashboard at 60 Hz, the identical churn the
- * reading's own identity memo was added to prevent, reintroduced one layer up.
- *
- * Reading it inside the component that renders the age means the subscription
- * exists only while a caption is on screen, and a healthy widget pays nothing.
+ * `dialSuppressed` separates a non-current attitude from a tile merely too
+ * small for a dial, which needs no explanation.
  */
 function AttitudeCurrency({
   reading,
@@ -319,9 +225,6 @@ function AttitudeCurrency({
   if (reading.state === "pending") {
     return <ReadoutCaption>Waiting for attitude telemetry</ReadoutCaption>;
   }
-  // Not "waiting", which is what this said for the rest of the session on a
-  // build with no attitude channel. Nothing is coming, and a dial that keeps
-  // promising it will is the reason this arm exists.
   if (reading.state === "unowned") {
     return <ReadoutCaption>No attitude channel on this install</ReadoutCaption>;
   }
@@ -336,12 +239,7 @@ function AttitudeCurrency({
   );
 }
 
-/**
- * The dated half of the caption, split out purely so the per-frame `useViewUt`
- * subscription lives behind the `observed`/`pending`/`absent` early returns
- * above rather than in front of them: a hook cannot sit behind a conditional, so
- * the conditional has to become a component boundary.
- */
+/** The dated half of the caption, its own component so the per-frame `useViewUt` subscription exists only while a caption is on screen. */
 function StaleCaption({
   label,
   reading,
@@ -350,11 +248,7 @@ function StaleCaption({
   reading: TopicReading<unknown>;
 }) {
   const viewUt = useViewUt();
-  // The age, spelled out now that `readingAge` is gone: an instant minus an instant
-  // is a duration, and the affine rules make that the type. The clamp came with it
-  // and stays, because samples arrive out of order (`ClientTimeline` insert-sorts
-  // for it) so one can sit marginally ahead of the frame and "-0.4 s ago" is never
-  // a thing to render.
+  // Clamped: an out-of-order sample can sit just ahead of the frame.
   const observedUt = observedAt(reading);
   const ageSec =
     viewUt && observedUt
@@ -381,23 +275,7 @@ function NavballComponent({
   const useCoM = config?.useCoMFrame === true;
   const controlMode = config?.controlMode === true;
 
-  /**
-   * The unsuffixed `heading`/`pitch`/`roll` are the CoM-referenced frame and the
-   * `*RootFrame` trio is the root-part-referenced one, confirmed against
-   * `KspHost.BuildAttitude` and `VesselAttitude`'s class doc. That is the
-   * opposite of what the field names suggest at a glance, so the ternary below
-   * is deliberately "backwards" relative to them: `useCoMFrame` true means CoM,
-   * its default false means root part, and both readings then agree with what
-   * `NavballConfig` and the config-form copy promise.
-   *
-   * Attitude reads as a `Reading` because a dial is a claim about NOW, and an
-   * attitude cannot be forward-modelled. Drawing `pitch ?? 0` / `roll ?? 0` /
-   * `heading ?? 0` unconditionally, as this once did, paints a specific,
-   * plausible, wrong orientation when nothing is on the wire: level, facing
-   * north. An attitude is the reading an operator acts on most directly, so a
-   * wrong one is a wrong input to a control decision rather than a cosmetic
-   * defect.
-   */
+  // The unsuffixed trio is the CoM frame and `*RootFrame` the root-part frame.
   const attitudeReading = useTelemetry("vessel.attitude");
   const attitude = lastObserved(attitudeReading);
   const attitudeObserved = attitudeReading.state === "observed";
@@ -407,24 +285,12 @@ function NavballComponent({
   const pitch = numericOrNull(attitude?.[useCoM ? "pitch" : "pitchRootFrame"]);
   const roll = numericOrNull(attitude?.[useCoM ? "roll" : "rollRootFrame"]);
 
-  // `vessel.control` is declared unmodellable: a commanded state changes only
-  // when a command lands, so there is no model, and the in-flight case is the
-  // expectation channel's job rather than this read's. The buttons therefore
-  // show the last CONFIRMED state on every arm that has one; `useCommandFailures`
-  // and the control-delay strip are what say "something is in flight" beside
-  // them, which is why a stale toggle here is not a lie.
+  // Buttons show the last confirmed control state; in-flight commands are shown by the failure echo and the delay strip.
   const control = lastObserved(topics.useTelemetry("vessel.control"));
   const sasMode = enumNameOf<SasModeName>(SAS_MODE_NAMES, control?.sasMode);
   const sasBadgeMode = sasMode ? badgeSasMode(sasMode) : "";
-  /** The engine's throttle as last confirmed, or `null` before any reading carries one. */
   const throttle = magnitudeOf(control?.throttle);
-  /*
-   * Any control level above none is flyable, so the buttons stay live for a
-   * probe or a crewed craft alike and go dead only for the `*None` family.
-   * An unrecognised state and a link that has said nothing both leave them
-   * live: greying the stick out is a claim about the craft, and neither of
-   * those is one.
-   */
+  // Only a confirmed `*None` control state disables the buttons: greying out the stick is a claim about the craft.
   const comms = lastObserved(topics.useTelemetry("vessel.comms"));
   const controlLevel =
     comms === undefined
@@ -432,26 +298,15 @@ function NavballComponent({
       : collapseControlStateLevel(comms.controlState);
   const isControllable = controlLevel === undefined || controlLevel > 0;
 
-  /**
-   * Throttle is the one continuous axis with a real bidirectional channel
-   * (`vessel.control.throttle`), so it rides the delayed control-stream spine:
-   * local state holds the operator's commanded intent, `useControlStream`
-   * coalesces and dispatches it on the channel's write half, and rolls the
-   * in-transit plus confirmed-readback buffer `<ControlDelayStream>` draws.
-   *
-   * The state tracks the live readback until the operator first touches a
-   * throttle control (`throttleTouchedRef`), so the slider shows where the
-   * engine is. Until then the stream is handed `null` and commands nothing:
-   * neither the 0 an unread readback would seed nor, under delay, a readback a
-   * round trip old sent back at a pilot who has since moved the throttle.
-   *
-   * The `vesselId`-keyed effect below resets `throttleTouchedRef` on a vessel
-   * switch, so a freshly-switched craft re-seeds from its own live throttle
-   * rather than carrying over the previous vessel's commanded value.
+  /*
+   * The commanded throttle tracks the readback until the operator first touches
+   * it, and the stream commands nothing until then: neither a 0 seeded from an
+   * unread readback nor, under delay, a round-trip-old readback sent back at the
+   * craft. A vessel switch re-arms the latch.
    */
   const [throttleCmd, setThrottleCmdState] = useState(throttle ?? 0);
   const throttleTouchedRef = useRef(false);
-  // State as well as the ref: a first touch that sets the value it already held (ZERO on an unread throttle) changes no other state, and the stream only learns of the intent through a render.
+  // State as well as the ref: a first touch to the value already held changes nothing else, and the stream learns of it only through a render.
   const [throttleTouched, setThrottleTouched] = useState(false);
   useEffect(() => {
     if (!throttleTouchedRef.current) setThrottleCmdState(throttle ?? 0);
@@ -461,15 +316,7 @@ function NavballComponent({
     setThrottleTouched(true);
     setThrottleCmdState(next);
   };
-  /**
-   * Vessel switch: re-arm the seed latch so the newly-active vessel's live
-   * throttle wins over the previous vessel's stale commanded value. Keyed off
-   * `vessel.identity.vesselId`, the same stable per-vessel id `TargetPicker`
-   * and `LaunchDirector` dispatch against.
-   *
-   * An id, not a quantity, so it does not decay and a stale one is still which
-   * vessel this is. Used only to scope per-vessel UI memory.
-   */
+  // An id does not decay, so a stale one still names the vessel.
   const activeVesselId = lastObserved(
     useTelemetry("vessel.identity"),
   )?.vesselId;
@@ -479,15 +326,11 @@ function NavballComponent({
       prevVesselIdRef.current = activeVesselId;
       throttleTouchedRef.current = false;
       setThrottleTouched(false);
-      // Re-seed immediately rather than waiting on the `throttle` effect's
-      // own dependency to fire: the new vessel's live value may already be
-      // sitting in `throttle` this render (the two topics often update in
-      // the same telemetry frame), and this latch reset must not depend on
-      // that coincidence.
+      // Re-seed here: the new vessel's throttle may have landed in the same frame, so the `throttle` effect may not fire again.
       setThrottleCmdState(throttle ?? 0);
     }
   }, [activeVesselId, throttle]);
-  /** Neither a readback nor an operator command: a step of 10% from here would be a step from a guess. */
+  /** With neither a readback nor a command, a 10% step would be a step from a guess. */
   const throttleKnown = throttleTouched || throttle !== null;
   const throttleStream: ControlStream = useControlStream(
     "vessel.control.throttle",
@@ -499,19 +342,7 @@ function NavballComponent({
     },
   );
 
-  /**
-   * Fly-by-wire attitude and translation axes are continuous per-frame control,
-   * because KSP re-zeroes a raw axis every physics frame, so each rides
-   * `useControlStream` exactly as the throttle does rather than a discrete
-   * one-shot `useCommand`. The stream self-consumes its delay UX via
-   * `<ControlDelayStream>`, so no `<CommandDelay>` is needed.
-   *
-   * Axes rest at 0 (neutral) and are commanded from the analog input handlers
-   * below; values are -1..1, hence `range: "signed"`. The confirmed-readback
-   * (echo) track is the vessel's applied ctrlState axis
-   * (`vessel.control.{pitch,yaw,roll,translationX/Y/Z}`, published by
-   * `KspHost.BuildControl`).
-   */
+  // KSP re-zeroes a raw axis every physics frame, so each fly-by-wire axis is a control stream, not a one-shot command.
   const [pitchCmd, setPitchCmd] = useState<number | null>(null);
   const [yawCmd, setYawCmd] = useState<number | null>(null);
   const [rollCmd, setRollCmd] = useState<number | null>(null);
@@ -562,11 +393,6 @@ function NavballComponent({
     translateZStream,
   ];
 
-  /**
-   * SAS/RCS toggle, SAS mode and FBW arm/disarm are all discrete, absolute-set
-   * vessel commands, the same toggle-invert shape `ActionGroup` uses, so they
-   * ride `useCommand` and are subject to signal delay.
-   */
   const sasCmd = useCommand("vessel.control.setSas");
   const rcsCmd = useCommand("vessel.control.setRcs");
   const sasModeCmd = useCommand("vessel.control.setSasMode");
@@ -576,14 +402,7 @@ function NavballComponent({
   usePanelDelay(sasModeCmd);
   usePanelDelay(fbwCmd);
 
-  /**
-   * Pitch/yaw/roll TRIM. Trim is the one fly-by-wire input with no
-   * `[SitrepControlChannel]`: `SetControlAxesArgs` carries the write fields
-   * (`PitchTrim`/`YawTrim`/`RollTrim`) but `VesselControl` publishes no trim
-   * READ field, so there is no echo to anchor a `useControlStream` on and the
-   * axes above cannot absorb it. It therefore dispatches `setAxes` directly,
-   * one nullable-partial field at a time so a trim never clobbers a live axis.
-   */
+  // Trim has no readback to anchor a control stream, so it sends `setAxes` one field at a time, never clobbering a live axis.
   const trimCmd = useCommand("vessel.control.setAxes");
   usePanelDelay(trimCmd);
   const sendTrim = (
@@ -593,11 +412,7 @@ function NavballComponent({
     void trimCmd.send({ [field]: raw });
   };
 
-  // Uncoerced, and they reach the buttons that way: inverting an unresolved
-  // value would be a blind guess (never dispatch an ambiguous toggle as a
-  // blind set, same contract map-command.ts's `toggleHome` documents), and
-  // `armLabel` needs the same three states to avoid rendering an unread arm as
-  // a confirmed OFF.
+  // Uncoerced: inverting an unread arm would be a blind guess, and an unread arm is not a confirmed OFF.
   const sasRaw = control?.sas;
   const rcsRaw = control?.rcs;
 
@@ -616,15 +431,10 @@ function NavballComponent({
     );
   };
 
-  /**
-   * The SAS-mode grid is this repo's reference control for the
-   * `useCommandFailures` plus `data-failed` pattern. When a mode command goes
-   * overdue or lost, the button that issued it echoes the failure on itself as
-   * an amber `data-failed` tint, and clicking it dismisses through the same
-   * shared dismiss the Panel-top queue uses, so clearing on either surface
-   * clears both. The queue stays the primary failure surface and this is the
-   * secondary in-context echo. Failed commands are matched back to their mode
-   * by the label `setSasMode` stamps above.
+  /*
+   * A failed mode command is echoed on the button that issued it, matched back
+   * by the label `setSasMode` stamps; dismissing there or in the Panel queue
+   * clears both.
    */
   const sasFailures = useCommandFailures(sasModeCmd);
   const failedSasModes = new Map<SasMode, string>();
@@ -633,12 +443,7 @@ function NavballComponent({
     if (mode) failedSasModes.set(mode, f.id);
   }
 
-  /**
-   * FBW arm/disarm, with auto-disarm on unmount. The state mirrors the latest
-   * arm command rather than a telemetry read, because there is no readback for
-   * FBW. `setFlyByWire` is absolute-set, the state travelling in the arg
-   * itself, so unlike SAS/RCS it needs no invert.
-   */
+  // FBW has no readback, so its state mirrors the latest arm command; it disarms on unmount.
   const [fbwArmed, setFbwArmed] = useState(false);
   const fbwArmedRef = useRef(false);
   useEffect(() => {
@@ -646,7 +451,6 @@ function NavballComponent({
   }, [fbwArmed]);
   useEffect(() => {
     return () => {
-      // Release control on unmount regardless of state: the effect cleanup is the last reliable place to fire, so this cannot wait on a render-cycle setFbwArmed(false).
       if (fbwArmedRef.current) {
         void fbwCmd.send({ enabled: false }, { label: "Disarm FBW" });
       }
@@ -662,17 +466,9 @@ function NavballComponent({
     setFbwArmed(false);
   };
 
-  /**
-   * The FBW-under-delay warning, and whether the control-delay strip is drawn
-   * at all. `comms.delay.oneWaySeconds` is gonogo's own SignalDelay authority,
-   * a TrueNow channel that is never itself delayed, carrying a plain count of
-   * one-way light-time seconds and 0 when the delay feature is off, so the
-   * warning stays hidden with no separate "is it enabled" check.
-   *
-   * Read as last-observed on every arm that has one. Nothing models light-time
-   * client-side, and a craft whose delay reading has gone quiet has not stopped
-   * being far away, so suppressing the strip would hide the delay rather than
-   * report it.
+  /*
+   * `oneWaySeconds` is 0 with the delay feature off. Read as last-observed: a
+   * craft whose delay reading went quiet has not stopped being far away.
    */
   const delaySeconds = magnitudeOf(
     lastObserved(useTelemetry("comms.delay"))?.oneWaySeconds,
@@ -681,11 +477,7 @@ function NavballComponent({
     delaySeconds !== null && delaySeconds > FBW_DELAY_WARN_SECONDS;
   const showFbwDelayWarning = fbwArmed && delayHigh;
 
-  /**
-   * Every action surface maps to a command dispatch, with analog values clamped
-   * to [-1, 1] and throttle to [0, 1]. Button payloads only fire on the press
-   * edge (`value=true`), so a hardware press-and-release does not trigger twice.
-   */
+  // Buttons fire on the press edge only, so a hardware press-and-release does not trigger twice.
   useActionInput<NavballActions>({
     "take-control": (payload) => {
       if (!isButtonPress(payload)) return;
@@ -709,7 +501,7 @@ function NavballComponent({
     },
     "toggle-precision": (payload) => {
       if (!isButtonPress(payload)) return;
-      // Deliberately a no-op: precision control is readable but has no set command of its own (it moves only via the SAS path), and the action is declared anyway so a mapping survives the day a command arrives.
+      // A no-op: precision control has no set command, but the action keeps a mapping ready for one.
     },
     "kill-rotation": (payload) => {
       if (!isButtonPress(payload)) return;
@@ -739,10 +531,6 @@ function NavballComponent({
       setThrottleCmd((v) => clamp(v - 0.1, 0, 1)),
     "throttle-zero": (p) => isButtonPress(p) && setThrottleCmd(0),
     "throttle-full": (p) => isButtonPress(p) && setThrottleCmd(1),
-    // Fly-by-wire axes drive their useControlStream state, which coalesces +
-    // dispatches vessel.control.setAxes over the delayed write half. Each
-    // per-axis translate binding sets its own component; the other axes hold
-    // their last-commanded value.
     "set-pitch": (p) => {
       const v = analogValue(p, -1, 1);
       if (v !== null) setPitchCmd(v);
@@ -782,66 +570,21 @@ function NavballComponent({
   });
 
   /**
-   * Measure the attitude column and pick a square dial size that fits both
-   * axes. Reading only the width leaves the dial stuck small on a tall widget
-   * and too big to leave room for the throttle column on a small one, so both
-   * dimensions bind.
-   *
-   * The 600 ceiling is where the indicator's tick text starts to look blurry on
-   * a standard-DPI screen. `MIN_DIAL_PX` is the other end: below it the dial is
-   * illegible and the numeric readout is the better rendering.
-   *
-   * The value is the FIT, not a size clamped up to the floor, and that is the
-   * whole point. Clamped up, a column too short for a legible dial got one
-   * anyway: `AttitudeIndicator` is `MIN_DIAL_PX + ATTITUDE_CHROME_PX` tall at
-   * the floor, and `DIAL_WRAP` centres it, so it painted equally far past both
-   * ends of its box and the heading tape landed on the section below. Kept as
-   * the fit, a column that cannot hold a dial reports so (see {@link
-   * MIN_DIAL_PX}) and the widget renders the readout it degrades to at small
-   * tile sizes anyway.
-   *
-   * 180 until the first observation, which is what a tree with no
-   * `ResizeObserver` (jsdom) keeps: the dial is the right default for a widget
-   * whose box nothing can measure.
+   * The largest square dial the attitude column fits on both axes: the fit
+   * itself, never clamped up to {@link MIN_DIAL_PX}, so a column too small says
+   * so. 180 until a ResizeObserver reports.
    */
   const [dialFit, setDialFit] = useState(180);
-  /**
-   * Whether the numeric readout's three cells fit on one line, off the same
-   * observation as {@link dialFit} and against {@link READOUT_TRIPLE_PX}.
-   *
-   * `true` until the first observation, for the same reason the fit starts at
-   * 180: a row we know is always three is the right default for a widget whose
-   * box nothing can measure.
-   */
+  /** Whether the readout's three cells fit on one line; true until a ResizeObserver reports. */
   const [readoutAcross, setReadoutAcross] = useState(true);
   const throttleReservedRef = useRef(false);
   const controlModeRef = useRef(false);
   const dialObserverRef = useRef<ResizeObserver | null>(null);
   /**
-   * Attaches the observer as a CALLBACK ref rather than reading a `useRef` from
-   * a mount effect, so it follows the element instead of a moment in time.
-   *
-   * The box it measures is the attitude column itself, which renders whichever
-   * branch the widget is showing. Measuring the DIAL's box instead made the
-   * measurement depend on its own verdict: the dial box only exists once an
-   * attitude has been OBSERVED, and a reading starts out pending, so on the
-   * first commit there was no box. A `[]`-dep effect read null there and never
-   * ran again, which left the dial pinned to its initial size for the whole
-   * session: 180px in every widget, including a 4-column tile 152px wide, where
-   * it painted over the heading strip and the readout row below it and, in
-   * control mode, over the SAS section as well. A callback ref fixed that half,
-   * and the column fixes the rest: with the fit now deciding WHETHER to draw a
-   * dial, a ref on the dial would stop observing the moment it said no, and the
-   * dial could never come back when the tile grew.
-   *
-   * Measuring the column is also what keeps the decision from flip-flopping.
-   * The attitude section is the body's only filling section, so with a dial
-   * drawing it measures exactly the height the rest of the body leaves it. With
-   * the readout drawing it measures that or the readout's own height, whichever
-   * is larger (see {@link READOUT_FLOOR}), and the readout is far shorter than
-   * the `MIN_DIAL_PX + ATTITUDE_CHROME_PX` a dial needs. So the fit crosses back
-   * over that threshold only when the tile really has grown, never as a
-   * consequence of having acted on it.
+   * A callback ref on the attitude column, which renders in both branches: a
+   * ref on the dial would stop observing once the fit said no, and the dial
+   * could never come back. Measuring the column also keeps the verdict from
+   * flip-flopping, since the readout is far shorter than a dial needs.
    */
   const attachAttitude = useCallback((el: HTMLDivElement | null) => {
     dialObserverRef.current?.disconnect();
@@ -852,30 +595,13 @@ function NavballComponent({
         const w = e.contentRect.width;
         const h = e.contentRect.height;
         if (w <= 0 || h <= 0) continue;
-        /* Reserve space for the throttle column at every tile wide enough to
-           carry one (~32 px bar + 10 px gap), whether or not one is on screen
-           right now. The column rides `showDial`, so a reserve read off its
-           visibility would be the second way the fit could depend on its own
-           verdict: a width that fits a dial without the column and not with it
-           would add the column, lose the dial, drop the reserve, and fit
-           again. */
+        // Reserved by tile width, not by the column's visibility, which rides `showDial` and would make the fit oscillate.
         const throttleReserve = throttleReservedRef.current ? 42 : 0;
-        // The AttitudeIndicator renders its own heading strip and HDG/PIT/ROL
-        // readout row *below* the SVG in the same column. Reserve that
-        // vertical space so a wide-and-short box (e.g. mobile 9×8, where h is
-        // the limiting dimension) doesn't size the dial to the full column
-        // height and push the strip + readout past the Panel's bottom edge.
         const fit = Math.min(w - throttleReserve, h - ATTITUDE_CHROME_PX);
-        // In control mode the dial competes with the SAS / throttle / FBW
-        // surface for vertical space: cap it so the buttons stay readable.
-        // The display-only path keeps the full 600px ceiling so a dedicated
-        // big-navball widget still fills its slot.
+        // Capped in control mode so the control surface keeps its room; 600 is where tick text blurs.
         const cap = controlModeRef.current ? 200 : 600;
         setDialFit(Math.min(cap, Math.floor(fit)));
-        /* The readout draws into this same column, so its own width is `w`
-           undiminished: the throttle reserve above is the dial's business and
-           the column carries no throttle bar when the readout is what
-           renders. */
+        // The readout carries no throttle bar, so it gets the full width.
         setReadoutAcross(w >= READOUT_TRIPLE_PX);
       }
     });
@@ -883,76 +609,29 @@ function NavballComponent({
     dialObserverRef.current = ro;
   }, []);
 
-  // Selective rendering: at very small sizes the SVG dial doesn't have
-  // room to be readable, so collapse to numeric heading/pitch/roll
-  // readouts. The throttle column and mode badge row drop independently.
-  //
-  // The control-surface gate is intentionally strict (rows≥18, cols≥7)
-  // because the SAS mode grid + throttle group + FBW row need ~350px of
-  // vertical real estate on top of the dial + strip + readouts. Anything
-  // smaller and the surface overlaps the dial. When the widget is too
-  // small for the surface, control mode degrades to a regular dial, the
-  // user keeps the deeper config selection without losing the readout.
+  // The control surface needs ~350px beyond the dial, so a smaller tile degrades control mode to a plain dial.
   const cols = w ?? 8;
   const rows = h ?? 11;
-  // The dial draws ONLY off an observed attitude.
-  //
-  // `Targeting` reached the same answer for its docking reticle and the
-  // ball is the same kind of object, more so: both are instruments whose whole
-  // meaning is "this is the situation NOW", and holding the last known value in
-  // one is indistinguishable from a live reading. There is no caption that fixes
-  // that, because the operator reads the picture, not the caption beside it. So
-  // when the attitude is not current the dial goes away and the numeric readout
-  // takes its place, dated. Refusing to draw is not refusing to tell.
-  //
-  // Deliberately NOT reckoned, and this is the honest reason rather than a gap:
-  // an attitude is not forward-modellable from a snapshot. What changes it is
-  // torque, from SAS or from a command we may ourselves have sent and which may
-  // still be in flight, so the last known angles plus elapsed time say nothing
-  // about the current ones. A craft tumbling and a craft holding are the same
-  // reading here. That is why no reckoner is registered for `vessel.attitude`.
-
-  // Grid units say whether a dial is WANTED here; the measured fit says
-  // whether one will go. Both are needed and neither substitutes for the
-  // other: rows and cols are known before layout and are what the tiny-tile
-  // presentations key off, while the pixels a tile hands the attitude column
-  // depend on everything else in the body. `rows >= 6` alone was the whole
-  // gate until the SAS/RCS row moved into the body below, and a 5x8 tile that
-  // cleared it by two rows had 91px of column for a 154px indicator.
+  /*
+   * Grid units say whether a dial is wanted; the measured fit says whether one
+   * will go. The dial draws only off an observed attitude: a held one is
+   * indistinguishable from a live one, and attitude cannot be reckoned forward,
+   * since torque from SAS or an in-flight command changes it.
+   */
   const dialWanted = rows >= 6 && cols >= 4 && dialFit >= MIN_DIAL_PX;
   const showDial = dialWanted && attitudeObserved;
   const showThrottleColumn = showDial && cols >= 5;
-  // SAS / RCS / precision, in the BODY rather than the header aside.
-  //
-  // They were three hand-styled chips in `panelAside` until 2026-09-10, which
-  // put two of the vessel's live control states next to the panel's status pill
-  // and made the pill look like one more chip in a row of them. They are also
-  // the widest thing the aside ever carried, and the aside collapses on a
-  // MEASURED fit (usePanelAsideSize): title and aside stop fitting side by
-  // side and the WHOLE aside goes behind a disclosure chevron, taking any
-  // contributed alert with it. An Uplink badging a loss of control on the
-  // `navball.badges` slot therefore had room for one short pill and no detail
-  // beside it, measured, so the width the chips were using was not free.
-  //
-  // The same `cols >= 5` the badges used, so no tile that showed SAS and RCS
-  // before loses them, and no tile that was too narrow for them gains a row it
-  // has no width for.
+  // In the body, not the header aside, which collapses on a measured fit and would take contributed alerts with it.
   const showControlRow = cols >= 5;
   const showControlSurface = controlMode && rows >= 18 && cols >= 7;
+  // The ResizeObserver closure reads these refs.
   controlModeRef.current = showControlSurface;
-  // Sync refs the ResizeObserver reads inside its closure, the observer
-  // was created on mount with the initial values closed over, so updates
-  // to either flag need to propagate via refs the callback re-reads on
-  // each observation.
   throttleReservedRef.current = cols >= 5;
 
   return (
     <Panel
       panelTitle={showControlSurface ? "GNC CONTROL" : "ATTITUDE"}
       sections={[
-        /* The attitude readout is the drawing: at any tile size worth showing a
-           dial at, the dial should be as large as the tile allows rather than
-           as large as its own minimum. */
         <Section
           key="attitude"
           fill
@@ -1015,8 +694,6 @@ function NavballComponent({
             )}
           </div>
         </Section>,
-        /* Full-width: a control strip the surface below it belongs to, never a
-           column beside it. */
         showControlRow ? (
           <Section key="controls" full>
             <ControlToggles
@@ -1051,9 +728,7 @@ function NavballComponent({
           </Section>
         ) : null,
       ]}
-      /* The aside carries alerts and nothing else now: this warning, whatever
-         an Uplink contributes to `navball.badges`, and the panel's own status
-         pill. Control STATE moved to the body (see `showControlRow`). */
+      /* The aside carries alerts only; control state lives in the body. */
       panelAside={
         showFbwDelayWarning && delaySeconds !== null ? (
           <Badge severity="warning" size="sm">
@@ -1066,27 +741,15 @@ function NavballComponent({
 }
 
 /**
- * The numeric readout's three cells, as data rather than three copies of the
- * same JSX.
- *
- * The row is ALWAYS these three, which is the whole reason it should never lay
- * out as two-then-one. Built as a list so the count is stated once and both
- * presentations ({@link READOUT_TRIPLE} and {@link READOUT_STACK}) render the
- * same three from it.
- *
- * Pitch and roll carry an explicit `+`: they are signed about a level attitude,
- * so an unsigned `45` reads as a magnitude rather than a nose-up 45 degrees.
- * Heading is a bearing and takes no sign.
+ * The numeric readout's three cells. Pitch and roll carry an explicit `+`, since
+ * an unsigned `45` reads as a magnitude; heading is a bearing and takes no sign.
  */
 function attitudeCells(
   heading: number | null,
   pitch: number | null,
   roll: number | null,
 ): ReadonlyArray<{ label: string; value: ReactNode }> {
-  // One element, never a fragment. Three across, the cell is a column flex box
-  // and a sign beside its `Unit` would be a second FLEX ITEM: the `+` laid out
-  // on a line of its own above the number it belongs to, which `white-space`
-  // cannot reach because nothing had wrapped.
+  // One element, never a fragment: in the column-flex cell a bare sign would become its own flex item on its own line.
   const signed = (v: number | null): ReactNode => (
     <span>
       {v === null ? (
@@ -1119,7 +782,7 @@ function attitudeCells(
 
 interface ControlTogglesProps {
   disabled: boolean;
-  /** SAS as read, UNCOERCED: absent is a third state here, not a false. See {@link armLabel}. */
+  /** SAS as read, uncoerced: absent is a third state, not false. */
   sas: boolean | null | undefined;
   /** The active SAS mode's three-letter token, or `""` when no mode is on the wire. See {@link badgeSasMode}. */
   sasBadgeMode: string;
@@ -1132,27 +795,10 @@ interface ControlTogglesProps {
 }
 
 /**
- * SAS, RCS and precision control: two delay-aware toggles and one readout,
- * present at every tile wide enough to hold them rather than only in control
- * mode.
- *
- * Both toggles ride the same `useCommand` handles they always did
- * (`vessel.control.setSas` / `setRcs`, registered with the panel's delay rail
- * through `usePanelDelay`), so a command in flight still shows in the
- * Panel-top queue and a failed one still surfaces there. What changed is that
- * an operator on a display-sized tile can now press them: the header chips
- * they replace were `<span>`s, so SAS and RCS were readouts everywhere below
- * the control surface's rows>=18, cols>=7 threshold.
- *
- * The SAS toggle carries the active mode, because with the header chip gone
- * this is the only place the mode appears on a tile too small for the mode
- * grid. Same token the grid puts on its buttons, stutter included: see
- * {@link badgeSasMode}.
- *
- * Precision control is a readout among the toggles rather than a chip of its
- * own: it is a state of the same control surface, and the contract carries no
- * command to set it (`ActionDefinition` "toggle-precision" is declared and
- * deliberately inert).
+ * SAS and RCS toggles plus a precision readout, on every tile wide enough, not
+ * only in control mode. The SAS toggle carries the active mode, since on a tile
+ * too small for the mode grid it is the only place the mode appears. Precision
+ * has no set command, so it is a readout.
  */
 function ControlToggles({
   disabled,
@@ -1191,9 +837,7 @@ function ControlToggles({
         >
           {armLabel("RCS", rcs)}
         </ToggleButton>
-        {/* Only once a reading has arrived: a dim chip is how OFF looks, so a
-            dim chip for an unread precision state would be a confirmed-off
-            that nothing confirmed. Absent, the row is two toggles wide. */}
+        {/* A dim chip means off, so there is no chip until precision is read. */}
         {typeof precision === "boolean" && (
           <ToggleButton
             type="button"
@@ -1211,24 +855,9 @@ function ControlToggles({
 }
 
 /**
- * One arm's toggle label: `SAS: PRO` / `RCS ON` when the arm is on, `SAS OFF`
- * when it is confirmed off, and the name plus the kit's no-reading mark when
- * nothing has been read.
- *
- * The third case is the one worth spelling out. `vessel.control` is declared
- * unmodellable, so before the first reading lands there is no state to report,
- * and "SAS OFF" would be a claim about the vessel that no telemetry supports.
- * The header chip this label replaces never made it: absent, it rendered the
- * bare word dark, and the widget's own characterisation test pins that
- * ("SAS mode unknown and SAS mode not reported look the same as each other").
- * The control surface's copy of these buttons DID make it, on the reasoning
- * that a tile showing the surface is a tile being flown; putting them on every
- * tile takes that reasoning away.
- *
- * `NULL_DISPLAY` rather than the bare name, because the bare name is not free:
- * the mode grid's `StabilityAssist` button is also labelled "SAS", so an unread
- * SAS arm and the button that engages stability assist had the same accessible
- * name, two rows apart, in control mode.
+ * One arm's toggle label: `SAS: PRO` / `RCS ON` when on, `SAS OFF` when
+ * confirmed off, and the name plus `NULL_DISPLAY` when unread. Not the bare
+ * name, which would collide with the mode grid's "SAS" stability-assist button.
  */
 function armLabel(
   name: string,
@@ -1243,22 +872,18 @@ function armLabel(
 interface ControlSurfaceProps {
   disabled: boolean;
   sasMode: string | null;
-  /** Commanded throttle value (0..1): local operator intent, tracks the live readback until touched. `null` while there is neither. */
+  /** Commanded throttle (0..1), tracking the readback until touched; `null` while there is neither. */
   throttleCmd: number | null;
   onSetThrottleCmd: (next: number | ((v: number) => number)) => void;
-  /** The delayed control-stream buffer for the throttle axis; feeds `<ControlDelayStream>`. */
   throttleStream: ControlStream;
-  /** The delayed control-stream buffers for the fly-by-wire attitude +
-   * translation axes (pitch/yaw/roll + RCS X/Y/Z); drawn on the same
-   * `<ControlDelayStream>` graph as the throttle. */
+  /** The fly-by-wire attitude and translation streams, drawn on the same delay graph as the throttle. */
   axisStreams: ControlStream[];
   fbwArmed: boolean;
   onArmFbw: () => void;
   onDisarmFbw: () => void;
   onSetSasMode: (mode: SasMode) => void;
-  /** SAS modes whose issued command is currently failed (overdue or lost), mapped to that command's id so the button can dismiss it. */
+  /** SAS modes whose command is overdue or lost, mapped to that command's id so the button can dismiss it. */
   failedSasModes: Map<SasMode, string>;
-  /** Clear a failed SAS-mode command, through the shared dismiss the Panel-top queue also uses. */
   onDismissSasFailure: (id: string) => void;
   showFbwDelayWarning: boolean;
   delaySeconds: number | null;
@@ -1282,9 +907,6 @@ function ControlSurface({
 }: ControlSurfaceProps) {
   return (
     <div style={CONTROL_WRAP}>
-      {/* SAS, RCS, precision and the not-controllable banner all sit in
-          `ControlToggles`, one section above: this surface is only ever
-          rendered on a tile that also shows that row. */}
       <div style={GROUP}>
         <div style={GROUP_LABEL}>SAS Mode</div>
         <div style={BUTTON_GRID}>
@@ -1311,7 +933,6 @@ function ControlSurface({
                   const markerId = SAS_MODE_MARKERS[mode];
                   if (!markerId) return null;
                   const Marker = MARKER_ICONS[markerId];
-                  // Decorative: the short label beside it already names the mode, and the button carries its own accessible name.
                   return <Marker size={14} />;
                 })()}
                 {modeShort(mode)}
@@ -1373,13 +994,7 @@ function ControlSurface({
             FULL
           </Button>
         </div>
-        {/*
-          Continuous control-delay viz for ALL fly-by-wire axes: throttle plus
-          pitch/yaw/roll + RCS X/Y/Z, each on its own vessel.control.* stream
-          channel (LIVE-TEST-REQUIRED, see the axis-stream note in the parent
-          body). Renders `null` when the one-way delay is near zero, so a
-          direct link pays nothing; safe to always mount.
-        */}
+        {/* Renders nothing at near-zero delay, so it is always mounted. */}
         <ControlDelayStream
           streams={[throttleStream, ...axisStreams]}
           ariaLabel="Navball: controls in flight"
@@ -1441,36 +1056,16 @@ function modeShort(mode: SasMode): string {
 }
 
 /**
- * The SAS toggle's mode token: the same three letters the SAS MODE grid puts on
- * its buttons.
- *
- * The full member name is what makes it a token rather than a name. It was in
- * the header aside until 2026-09-10 and pushed the badge row wide enough that
- * the Panel ellipsised its OWN title down to "GNC CO..."; on the toggle it has
- * a whole grid cell, but the cell still competes with two more toggles in the
- * same row, and the grid directly below spells the active mode out in full
- * behind its lit button anyway.
- *
- * `StabilityAssist` gets its token like every other mode, so the toggle reads
- * "SAS: SAS". It stutters, and it is still the right rendering: dropping the
- * suffix there instead makes it identical to the label shown when the mode is
- * not on the wire at all, and on a tile too small for the mode grid (which
- * needs rows>=18 and cols>=7) the toggle is the ONLY place the mode appears.
- * Consistency with the button an operator actually presses beats reading well.
- *
- * `Unknown` keeps its own name rather than becoming a symbol: it is the
- * contract's fallback for a mode this build cannot name, and a "?" would leave
- * an operator unable to tell it from a rendering fault.
+ * The SAS toggle's mode token, the same three letters as the mode grid.
+ * StabilityAssist reads "SAS: SAS" on purpose: dropping the suffix would match
+ * the label for no mode on the wire. `Unknown` keeps its name, since a "?" would
+ * look like a rendering fault.
  */
 function badgeSasMode(mode: SasModeName): string {
   return mode === "Unknown" ? mode : modeShort(mode);
 }
 
-/**
- * An analog input's value clamped to the axis, or `null` for one that is not a
- * finite number. A device reporting NaN has commanded nothing, and read as 0 on
- * the throttle it would cut the engine.
- */
+/** An analog input clamped to the axis, or `null` when not finite: a NaN read as 0 would cut the engine. */
 function analogValue(
   p: { kind: string; value: unknown },
   lo: number,
@@ -1491,18 +1086,10 @@ function clamp(v: number, lo: number, hi: number): number {
   return v;
 }
 
-/**
- * An attitude angle as a number, wrapped or not.
- *
- * The readouts show degrees and the indicator rotates by them, so what this
- * wants is the magnitude. A `typeof === "number"` test answered "no reading"
- * for every one, which rendered three em dashes over a flying vessel.
- */
+/** An attitude angle's magnitude, whether it arrives as a bare number or a quantity. */
 function numericOrNull(v: unknown): number | null {
   return magnitudeOf(asQuantityish(v));
 }
-
-// ── Config component ──────────────────────────────────────────────────────────
 
 function NavballConfigComponent({
   config,
@@ -1555,39 +1142,15 @@ function NavballConfigComponent({
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
-// Structural inline styles (CSS-var tokens): a bespoke dial + control surface,
-// no reusable ui-kit primitive fits, so the layout stays local. The off-scale
-// readout font (18px), the off-ladder dial gap (10px, a ResizeObserver-reserve
-// term) and the 80ms throttle chase are deliberately literal (see each note)
-// and were already literal in the styled blocks this replaces.
-
 /**
- * Stops the attitude section shrinking under the numeric readout, which has a
- * height and cannot resize itself the way the dial can.
- *
- * A filling section takes the height the rest of the body leaves it, `min-height:0`
- * and all, so a body that outgrows its tile crushes this one and nothing else.
- * That is right while the dial is drawing, which is why the shrink is there:
- * the dial is measured and redrawn at whatever it is given. It is wrong for the
- * readout, which keeps painting at its own height wherever the box ends, and at
- * a 33px section on an uncontrollable 5x8 tile that put three angles across the
- * "vessel not controllable" banner below.
- *
- * Refusing to shrink hands the overflow to the panel body, which is the
- * scroller, so the crushed tile scrolls instead of stacking two readings in one
- * place. `flex-shrink` only, so the section still GROWS into whatever the tile
- * has spare, which is what lets a growing tile measure its way back to a dial.
+ * Stops the attitude section shrinking under the numeric readout, which cannot
+ * resize like the dial: a crushed tile scrolls instead of painting the readout
+ * over the section below. It still grows, so a growing tile can measure its
+ * way back to a dial.
  */
 const READOUT_FLOOR: CSSProperties = { flexShrink: 0 };
 
-/**
- * The measured box, and the one thing in the attitude section that renders
- * whichever way the fit goes. It carries the fill so the dial wrap and the
- * numeric readout below it can go on carrying theirs, and it holds no visual
- * treatment of its own: what it is for is being the same box in both branches.
- */
+/** The measured box: the same element in both the dial and readout branches. */
 const ATTITUDE_COLUMN: CSSProperties = {
   flex: 1,
   minHeight: 0,
@@ -1596,16 +1159,11 @@ const ATTITUDE_COLUMN: CSSProperties = {
 };
 
 const DIAL_WRAP: CSSProperties = {
-  // Fill the available column so the ResizeObserver sees real dimensions,
-  // without flex:1 the wrap collapses to its content and the dial gets stuck at
-  // whatever size it last resolved to.
   flex: 1,
   minHeight: 0,
   display: "flex",
   alignItems: "center",
-  // Off the spacing ladder: this 10 is a term in the ResizeObserver's
-  // throttleReserve = 42 ("~32 px bar + 10 px gap") in this file. It is
-  // computed, not chosen, so it moves only when that constant moves.
+  // Off the spacing ladder: a term in the ResizeObserver's 42px throttle reserve (32px bar plus this gap).
   gap: "10px",
   justifyContent: "center",
 };
@@ -1619,30 +1177,9 @@ const NUMERIC_READOUT: CSSProperties = {
 };
 
 /**
- * HDG, PCH and RLL on one line, each reading over its own caption.
- *
- * Never `auto-fit`, and never a wrap. Both let the row decide its own arity
- * from whatever happens to fit, and the row is ALWAYS three: what they
- * produced was two cells with the third slung underneath, and, because a
- * cell's width follows its digit count, which shape you got depended on the
- * vessel's attitude. A level craft laid out two-then-one and a climbing one
- * stacked all three, in the same tile, on the same tier.
- *
- * The cells are reading-over-caption rather than label-beside-value, which is
- * what makes three across affordable at all: a cell is as wide as its reading,
- * where a pair is that plus a caption and the gap between them, and three of
- * these come to 149px. It is also the shape `AttitudeIndicator` gives the same
- * three readings under its own dial, so the readout the widget degrades to is
- * the one it was already showing.
- *
- * `1fr` columns rather than `auto` ones so the three share the spare width and
- * stay aligned on a wide tile, and each one's `auto` minimum (restored in
- * {@link READOUT_CELL}) lets the row pack down to its content at a narrow one.
- *
- * Under {@link READOUT_TRIPLE_PX} three genuinely will not fit, and what that
- * width gets is {@link READOUT_STACK}: all three on their own lines, which is
- * what the 3x4 minimum has always shown. One shape or the other, never a
- * mixture.
+ * HDG, PCH and RLL on one line, each reading over its caption. Never `auto-fit`
+ * or a wrap, which would make the arity depend on digit count: the row is
+ * always three across or, under {@link READOUT_TRIPLE_PX}, {@link READOUT_STACK}.
  */
 const READOUT_TRIPLE: CSSProperties = {
   display: "grid",
@@ -1650,16 +1187,7 @@ const READOUT_TRIPLE: CSSProperties = {
   gap: "var(--gap-related)",
 };
 
-/**
- * The too-narrow answer: one reading per line, in the compact
- * label-beside-value shape.
- *
- * The pairs stay horizontal here on purpose. Stacked cells in a single column
- * are 136px tall against the pairs' 85, and this is the presentation a column
- * of 78px gets: at the 3x4 minimum that height does not exist, and the readout
- * painted over the section below it the last time something in this widget
- * assumed it did.
- */
+/** One reading per line as label-beside-value pairs, 85px tall where stacked cells would need 136. */
 const READOUT_STACK: CSSProperties = {
   display: "flex",
   flexDirection: "column",
@@ -1667,29 +1195,10 @@ const READOUT_STACK: CSSProperties = {
 };
 
 /**
- * The two overrides a `BigReadout` needs to be one of three in a row rather
- * than one hero filling a panel.
- *
- * `font-size` because its own is `clamp(20px, 6vw, 38px)`, and a dashboard
- * tile's width has no fixed relationship to the viewport: three readings on a
- * 5-column tile would be typeset off the browser window. `--font-size-lg` is
- * the top of the scale and the size {@link READOUT_VALUE} already gives these
- * same three readings when they stack, so the two presentations of one readout
- * are typeset alike and a tile that crosses {@link READOUT_TRIPLE_PX} changes
- * its layout without changing its type.
- *
- * `min-width` because `BigReadout` sets it to 0 and the `1fr` columns are
- * `minmax(auto, 1fr)`: with the cells' own minimum zeroed, all three collapse
- * and the readings overflow silently at every width. That minimum is what
- * {@link READOUT_TRIPLE_PX} is measured against.
- *
- * `tabular-nums` and `nowrap` are not overrides, they are the two things the
- * kit does not carry and a live reading needs. Tabular figures stop a changing
- * heading from jittering the row. `nowrap` stops the reading reflowing inside
- * its own cell: pitch and roll are a sign followed by a `Unit`, which are
- * separate inline boxes, so the cell's min-content is the number with the sign
- * broken onto a line of its own, and that is the width the grid would otherwise
- * be free to squeeze it to.
+ * Makes a `BigReadout` one of three in a row. Its own font size follows the
+ * viewport, not the tile, so it takes the stacked readout's size instead; its
+ * zeroed `min-width` would let the `1fr` columns collapse; `nowrap` keeps a
+ * sign on the same line as its number.
  */
 const READOUT_CELL: CSSProperties = {
   fontSize: "var(--font-size-figure)",
@@ -1704,13 +1213,6 @@ const READOUT_PAIR: CSSProperties = {
   gap: "var(--gap-related)",
 };
 
-/**
- * The label in {@link READOUT_STACK}, beside its value rather than under it.
- *
- * It carries no width floor. HDG, PCH and RLL are each exactly three
- * monospace glyphs, so they already measure the same and a floor would align
- * nothing that is not aligned.
- */
 const READOUT_LABEL: CSSProperties = {
   fontSize: "var(--font-size-caption)",
   letterSpacing: "0.12em",
@@ -1718,9 +1220,6 @@ const READOUT_LABEL: CSSProperties = {
 };
 
 const READOUT_VALUE: CSSProperties = {
-  /* The top of the type scale. A display tier above it would want a token
-     rather than a bare px here, and the scale does not carry one; 16px is the
-     largest size this readout can take while staying inside the system. */
   fontSize: "var(--font-size-figure)",
   fontWeight: 700,
   color: "var(--color-text-primary)",
@@ -1757,9 +1256,7 @@ const THROTTLE_FILL: CSSProperties = {
   left: 0,
   right: 0,
   background: "var(--color-accent-fg)",
-  // Off the motion scale on purpose: an 80ms chase on live throttle, not a
-  // UI-motion choice. --duration-instant is the hover rung, and retuning it
-  // must not change how the bar tracks telemetry.
+  // Off the motion scale: an 80ms chase of live throttle must not move when the UI motion tokens are retuned.
   transition: "height 80ms linear",
 };
 
@@ -1800,16 +1297,8 @@ const GROUP_LABEL: CSSProperties = {
 };
 
 /**
- * 68px holds a mode button's whole content: 12px of ToggleButton padding each
- * side, the 14px marker, the 4px gap, and three JetBrains Mono characters at
- * --font-size-sm (12px × 0.6em advance = 21.6px), which is 63.6px with a little
- * slack for a fallback face.
- *
- * The marker is what a narrower column costs. An `<svg>` carries the UA's
- * `overflow: hidden`, so its automatic minimum size is zero and it is the first
- * thing a too-narrow flex row gives up, while the label keeps every pixel: at
- * 48px the glyph laid out 2px wide in a 7-column widget and 0px wide in a
- * 9-column one, present in the DOM and painting nothing.
+ * 68px holds a mode button's padding, marker, gap and three-letter label. A
+ * narrower column silently squeezes the marker SVG to zero width first.
  */
 const BUTTON_GRID: CSSProperties = {
   display: "grid",
@@ -1817,39 +1306,14 @@ const BUTTON_GRID: CSSProperties = {
   gap: "var(--gap-related)",
 };
 
-/**
- * The SAS/RCS/precision row, packed by the width each control actually needs.
- *
- * A uniform column minimum could not do this, and that is what it was: measured
- * on the live buttons at `size="sm"`, the three need 71px ("SAS: PRO"), 65px
- * ("RCS OFF") and 78px ("PRECISION"), so `repeat(auto-fit, minmax(76px, 1fr))`
- * charged all three the widest one's width and refused a three-across line
- * until 244px and a two-across line until 160. The body at 5 columns is 158,
- * two pixels short, so the row stacked one toggle per line and took 100px of a
- * 191px body: the same height the dial needs, spent on three buttons that
- * measure 214px laid end to end.
- *
- * Sized by their own content instead, they share a line from 230px and SAS and
- * RCS share one from 144. Three across is not reachable at 5 columns whatever
- * the template, because 214 does not fit in 158; what that tier gets is SAS and
- * RCS side by side with precision under them, 64px rather than 100.
- */
+/** The SAS/RCS/precision row, packed by each control's own width rather than a uniform column minimum. */
 const TOGGLE_ROW: CSSProperties = {
   display: "flex",
   flexWrap: "wrap",
   gap: "var(--gap-related)",
 };
 
-/**
- * Grow to share the line, never shrink below the label.
- *
- * The no-shrink half is load-bearing. A `ToggleButton` is an `inline-flex`, so
- * its automatic minimum size is its widest WORD, not its label: allowed to
- * shrink, "SAS: PRO" breaks across two lines inside its own border box and
- * "PRECISION" overflows the box outright, both before the row agrees to wrap.
- * That was already happening at the mode grid's 68px, ragged at 7 columns and
- * spilling 4px at 8.
- */
+// Never shrinks: an inline-flex button's minimum is its widest word, so shrinking breaks or overflows the label before the row wraps.
 const TOGGLE_CELL: CSSProperties = { flex: "1 0 auto" };
 
 const SLIDER_ROW: CSSProperties = {
@@ -1879,8 +1343,6 @@ const FBW_HINT: CSSProperties = {
   color: "var(--color-text-faint)",
 };
 
-// ── Registration ──────────────────────────────────────────────────────────────
-
 registerComponent<NavballConfig>({
   id: "navball",
   name: "Navball / Attitude Director",
@@ -1888,21 +1350,10 @@ registerComponent<NavballConfig>({
     "Attitude indicator + control surface. Reads heading/pitch/roll and exposes a deep action surface (every SAS mode, throttle, fly-by-wire pitch/yaw/roll, RCS translation and trim) so a hardware stick mapped via the Inputs tab can fly the vessel.",
   tags: ["telemetry", "control"],
   defaultSize: { w: 8, h: 11 },
-  /*
-   * Four wide by five tall is where the stacked readout stops clipping. At
-   * 3x4 the row needs 81px in a 78px column, and 82px once a coarse pointer
-   * grows the touch targets, so the clip is vertical and present in every
-   * attitude rather than only at extreme roll. Trimming cannot close it: the
-   * three rows are heading, pitch and roll, and dropping one of those is
-   * dropping attitude information a pilot is reading.
-   */
+  // 4x5 is where the stacked readout stops clipping vertically.
   minSize: { w: 4, h: 5 },
   component: NavballComponent,
   configComponent: NavballConfigComponent,
-  // Both attitude frames are declared because the widget reads whichever the
-  // `useCoMFrame` config selects: `heading`/`pitch`/`roll` are CoM-referenced,
-  // the `*RootFrame` trio is the genuinely distinct root-part frame
-  // `VesselAttitude` carries alongside it.
   channels: topics.channels,
   fields: topics.fields,
   defaultConfig: { useCoMFrame: false, controlMode: false },

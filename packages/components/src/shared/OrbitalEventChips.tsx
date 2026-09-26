@@ -6,33 +6,12 @@ import { encounterKindOf } from "./encounterKind";
 import { useBodyName } from "./useBodyName";
 
 /**
- * Vessel-wide orbital event chips: an SOI encounter / escape and the next
- * apsis. Renders nothing when neither has data.
- *
- * Both come off `vessel.orbit`, by two different routes. The encounter is a
- * field of the sample, carried from the game's own patched-conic solver and
- * read as it arrives. The next apsis is SOLVED from the elements at the view
- * instant, so it is absent wherever a conic through them would be wrong, which
- * is why an encounter chip can stand alone with no apsis chip beside it.
- *
- * `transitionUt` is an ABSOLUTE UT, so the countdown is the frame's view time
- * subtracted from it, never the field itself. Rendering it raw put a Mun
- * encounter twenty minutes away on screen as "46d 2h", and the old
- * `encounterTime > 0` gate held the chip up forever because every UT passes
- * it. `timeToNextApsis` beside it really is a remaining duration, hence the
- * two being treated differently three lines apart: `Units.Seconds` is the
- * same token on both and cannot tell them apart.
+ * SOI encounter or escape, and the next apsis; nothing when neither has data.
+ * The encounter comes from the game's patched-conic solver, the apsis is
+ * solved from the elements, so an encounter chip can stand alone.
  */
 export function OrbitalEventChips() {
-  /*
-   * Every chip below is a claim about what happens NEXT, so they all withhold
-   * together when the elements behind them stop arriving. An encounter chip is
-   * the sharpest case: "Mun in 20m" held over from a dropped link is an
-   * instruction about a rendezvous that may already have happened.
-   *
-   * The solve reads this same topic at this same frame, so the two halves
-   * cannot disagree about which frame they describe.
-   */
+  // Every chip is a claim about what happens next, so all withhold unless the orbit is current.
   const reading = useTelemetry("vessel.orbit");
   const orbit = reading.state === "observed" ? reading.value : undefined;
   const solve = useOrbitSolve();
@@ -40,9 +19,8 @@ export function OrbitalEventChips() {
   const encounter = orbit?.encounter ?? null;
 
   const encounterKind = encounterKindOf(encounter);
-  /* The index is how every other Topic names a body, so the name comes from
-     the catalogue that owns that lookup rather than from a second table. */
   const encBody = useBodyName(encounter?.bodyIndex);
+  // `transitionUt` is an absolute UT, unlike `timeToNextApsis`, though both carry "s".
   const encIn =
     encounter?.transitionUt.isFinite() === true && viewUt !== undefined
       ? encounter.transitionUt.minus(viewUt).magnitude

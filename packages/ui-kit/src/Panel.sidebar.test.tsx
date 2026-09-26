@@ -8,19 +8,8 @@ import { Panel } from "./Panel";
 
 /**
  * `panelSidebar`: a second region beside or below the body, with its own
- * scroller.
- *
- * Structure and computed style rather than snapshots, following
- * `Panel.chrome.test.tsx`. What matters here is a set of relationships a
- * snapshot cannot record: that the sidebar is outside the body's scroller,
- * that its visual edge never moves the DOM, that every grid track can shrink
- * below its content, and that a panel with no sidebar gets no grid at all.
- *
- * Each computed-style assertion below is on a value that differs from the CSS
- * default, so none of them can pass on an unstyled element: `display` defaults
- * to `block` and is asserted `grid`/`flex`, `order` defaults to `0` and is
- * asserted `-1`, `overflow` defaults to `visible` and is asserted `auto`, and
- * `grid-template-*` defaults to `none`.
+ * scroller. Each computed-style assertion is on a value that differs from the
+ * CSS default, so none can pass on an unstyled element.
  */
 
 let observers: DrivableResizeObservers;
@@ -53,7 +42,7 @@ function body(): HTMLElement {
 
 describe("Panel sidebar, absent", () => {
   it("renders no grid, so the body is the element it has always been", () => {
-    // The whole compatibility claim: forty widgets that never asked for a sidebar must not be re-laid-out because one widget did.
+    // A panel with no sidebar gets no grid at all.
     render(<Panel panelTitle="SYSTEM">diagram</Panel>);
     expect(split()).toBeNull();
     expect(document.querySelector("[data-panel-sidebar]")).toBeNull();
@@ -64,12 +53,9 @@ describe("Panel sidebar, absent", () => {
 });
 
 describe("Panel sidebar, DOM order", () => {
-  // `undefined` is the unset case, which is the third arrangement the prop has: there is no "auto" side, and asking for one only ever got the default.
   for (const side of [undefined, "start", "end"] as const) {
     it(`keeps the sidebar after the body in the DOM for side="${side ?? "unset"}"`, () => {
-      // Reading and tab order must not depend on which edge the sidebar is
-      // drawn against. Same principle as the floating header: a visual
-      // arrangement is a paint change, never a structural one.
+      // Reading and tab order must not depend on which edge the sidebar is drawn against.
       render(
         <Panel panelTitle="SYSTEM" panelSidebar="almanac" sidebarSide={side}>
           diagram
@@ -83,7 +69,7 @@ describe("Panel sidebar, DOM order", () => {
   }
 
   it('moves the sidebar visually for side="start" without moving it in the DOM', () => {
-    // The other half of the pair above: if the DOM order were the ONLY thing asserted, doing nothing at all would satisfy it.
+    // DOM order alone would pass with no implementation, so the visual side is asserted too.
     render(
       <Panel panelTitle="SYSTEM" panelSidebar="almanac" sidebarSide="start">
         diagram
@@ -157,7 +143,7 @@ describe("Panel sidebar, auto axis", () => {
     resizeTo(box, 300, 600);
     expect(box.dataset.panelSplit).toBe("block");
     expect(getComputedStyle(box).gridTemplateColumns).toBe("minmax(0, 1fr)");
-    // The block default is a share of the height, not an absolute: the strip is competing with the body for the tile rather than sitting next to it.
+    // The block default is a share of the height, since the strip competes with the body for the tile.
     expect(getComputedStyle(box).gridTemplateRows).toBe(
       "minmax(0, 1fr) minmax(0, 40%)",
     );
@@ -177,9 +163,7 @@ describe("Panel sidebar, auto axis", () => {
   });
 
   it("does not flip the axis when the sidebar takes room from the body", () => {
-    // The measured box is the split, whose border box is fixed by flex:1, and
-    // NOT the body: measuring the body would shrink it the moment the sidebar
-    // mounted, read as portrait, and oscillate.
+    // The measured box is the split, not the body, which would shrink when the sidebar mounted and oscillate.
     render(
       <Panel panelTitle="SYSTEM" panelSidebar="almanac">
         diagram
@@ -198,10 +182,7 @@ describe("Panel sidebar, track sizing", () => {
     ["under", 300, 600],
   ] as const) {
     it(`floors every track at zero when the sidebar sits ${label}`, () => {
-      // Without the min-0 a track floors at its content's min-content size, so
-      // the sidebar's own ScrollArea sizes to the un-scrolled content, pushes
-      // past the panel, and is hard-clipped by the container's overflow:hidden
-      // rather than scrolling.
+      // Without the zero floor a track sizes to its content, and the sidebar is clipped rather than scrolling.
       render(
         <Panel panelTitle="SYSTEM" panelSidebar="almanac">
           diagram
@@ -211,9 +192,7 @@ describe("Panel sidebar, track sizing", () => {
       resizeTo(box, w, h);
       const style = getComputedStyle(box);
       const tracks = `${style.gridTemplateColumns} ${style.gridTemplateRows}`;
-      // Three tracks on either axis pairing, and every one of them a minmax
-      // whose floor is zero. The negative lookahead is the real assertion: a
-      // single bare `1fr` or `14rem` slipping in fails it.
+      // Every track is a zero-floored minmax; a single bare `1fr` or `14rem` fails the lookahead.
       expect(tracks.match(/minmax\(/g)).toHaveLength(3);
       expect(tracks).not.toMatch(/minmax\((?!0, )/);
     });
@@ -221,16 +200,8 @@ describe("Panel sidebar, track sizing", () => {
 });
 
 /**
- * The sidebar's inset. A sidebar used to be the one region of a panel with no
- * padding at all: the split's tracks are flush and neither box carried any, so
- * a render of OrbitView's landscape arrangement put the body name and the
- * status pill against the panel's own border while every other region in the
- * same panel was inset 16px.
- *
- * Asserted on the SCROLLER, which is both where the rule is written (padding
- * outside a scrolling element clips what scrolls under it) and the only place
- * it can be seen: jsdom computes no layout, so the only observable is which
- * element carries the declaration.
+ * The sidebar's inset, asserted on the scroller, since padding outside a
+ * scrolling element clips what scrolls under it.
  */
 describe("Panel sidebar, inset", () => {
   function sidebarScroller(): HTMLElement {
@@ -256,17 +227,11 @@ describe("Panel sidebar, inset", () => {
     ["start", "padding-inline-end"],
   ] as const) {
     it(`gives back the inline edge facing the body for side="${side}"`, () => {
-      // The body already pays 16px on the edge the two regions share. Two of
-      // them make that gutter twice the one between two sections, out of a
-      // track that is often only 8rem wide.
-      //
-      // Asserted on the LOGICAL property, which is what the rule writes and
-      // what an RTL panel needs: the split flips the tracks by writing mode, so
-      // a physical left/right give-back would land on the wrong edge there.
-      // jsdom keeps logical and physical longhands as separate entries rather
-      // than resolving one into the other, so the physical pair above still
-      // reads as the full inset here; a real engine cascades them onto the same
-      // computed value and this rule wins it, being the more specific selector.
+      /*
+       * The body already pays the inset on the shared edge. Asserted on the
+       * logical property, which an RTL panel needs; jsdom keeps logical and
+       * physical longhands separate, so the physical pair still reads full here.
+       */
       render(
         <Panel panelTitle="SYSTEM" panelSidebar="almanac" sidebarSide={side}>
           diagram
@@ -280,7 +245,7 @@ describe("Panel sidebar, inset", () => {
   }
 
   it("keeps both inline edges once the sidebar stacks under the body", () => {
-    // Stacked it spans the panel's full width, so both of its inline edges face the panel's border and neither is the body's to pay for.
+    // Stacked, both inline edges face the panel's border, so neither is given back.
     render(
       <Panel panelTitle="SYSTEM" panelSidebar="almanac">
         diagram
@@ -289,10 +254,7 @@ describe("Panel sidebar, inset", () => {
     const box = split() as HTMLElement;
     resizeTo(box, 300, 600);
     expect(box.dataset.panelSplit).toBe("block");
-    // `0` is jsdom's INITIAL value for a logical padding nothing declared; the
-    // give-back writes `0px`, which is how the two are told apart here. The
-    // inline-axis pair above asserts the `0px` side of that same distinction,
-    // so neither reading can pass on its own.
+    // `0` is jsdom's initial value for an undeclared logical padding; the give-back writes `0px`.
     const style = getComputedStyle(sidebarScroller());
     expect(style.getPropertyValue("padding-inline-start")).toBe("0");
     expect(style.getPropertyValue("padding-inline-end")).toBe("0");
@@ -300,15 +262,7 @@ describe("Panel sidebar, inset", () => {
 });
 
 describe("panelSidebar with floatingHeader", () => {
-  /**
-   * A drawing widget wants both: the title floating over the drawing so it
-   * costs the drawing no height, and a chrome column beside it. Those did not
-   * compose. The overlay header is `position: absolute; top/left/right: 0`
-   * against its nearest positioned ancestor, which was the whole panel, so it
-   * painted across the sidebar and hid the sidebar's first item behind the
-   * title box. OrbitView had to give up the floating header (and a band of its
-   * diagram) to keep the column.
-   */
+  /** A floating header and a sidebar compose: the header paints over the body track only. */
   it("hosts the floating header inside the body track, not over the sidebar", () => {
     render(
       <Panel
@@ -326,14 +280,14 @@ describe("panelSidebar with floatingHeader", () => {
     // The floating header's positioned ancestor must be the body track, so the sidebar is outside whatever the header paints over.
     const host = title.closest("[style], div");
     expect(host).not.toBeNull();
-    // The decisive relationship: the header shares an ancestor with the body that does NOT contain the sidebar.
+    // The header shares an ancestor with the body that does not contain the sidebar.
     const bodyTrack = body.parentElement?.parentElement ?? null;
     expect(bodyTrack?.contains(title)).toBe(true);
     expect(bodyTrack?.contains(sidebarItem)).toBe(false);
   });
 
   it("still floats over the whole panel when there is no sidebar", () => {
-    // The no-sidebar case is what every drawing widget already relies on, and re-hosting must not change it.
+    // Without a sidebar the floating header is not re-hosted.
     render(
       <Panel panelTitle="MAP VIEW" floatingHeader>
         <span>map</span>

@@ -33,12 +33,7 @@ function twrOf(thrust: number, mass: number): number | null {
   return mass > 0 ? thrust / (mass * STANDARD_GRAVITY) : null;
 }
 
-// Dial range in TWR units. Most rockets sit between 1.5 and 2.5 at lift-off;
-// 3 is a comfortable upper bound. Anything beyond reads as pinned-max, fine
-// because the qualitative information ("very high TWR") is preserved.
-// `"1"` is the dimensionless token the contract already declares for a
-// thrust-to-weight ratio (`vessel.propulsion.twrVac` and its two siblings), so
-// the gauge's axis is the same kind as the reading that drives it.
+// Lift-off TWR sits around 1.5-2.5; anything above 3 pins the dial, which still reads as "very high".
 const GAUGE_MIN = value("1", 0);
 const GAUGE_MAX = value("1", 3);
 
@@ -71,7 +66,7 @@ function toneFor(twr: Value<"1">): Tone {
 }
 
 function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
-  // The wire carries thrust and mass, not their ratio, so the headline is the same arithmetic as the sparkline on the latest reading.
+  // The wire carries thrust and mass, not their ratio.
   const propulsionReading = useTelemetry("vessel.propulsion");
   const twrReading = combineReadings(
     [propulsionReading.currentThrust, propulsionReading.totalMass],
@@ -86,15 +81,8 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
     },
   );
   const twr = twrReading.value;
-  /*
-   * The figure is HELD rather than withheld. This widget's whole content is the
-   * one number, and its empty state says there is no engine, so nulling a dated
-   * TWR would tell the operator something false about the craft rather than
-   * about the link. The gauge marks it; the tiny layout, which draws no gauge,
-   * dims it.
-   */
+  // A stale TWR is held, never blanked: the empty state means the craft has no engine.
   const twrNotCurrent = twrReading.state === "stale";
-  // The sparkline history is computed here off `vessel.propulsion`'s own history: the wire carries thrust and mass, not their ratio.
   const series = useComputedSeries(
     "vessel.propulsion.currentThrust",
     "vessel.propulsion.totalMass",
@@ -103,35 +91,18 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   );
   const sparkValues = series.v as number[];
 
-  // Three layouts driven by widget size:
-  //   tiny: single big numeric readout, no gauge, no sparkline.
-  //   small: gauge only.
-  //   normal: gauge + sparkline + subtitle.
-  // Switching by widget size (rows/cols) rather than by container pixels
-  // keeps the breakpoint deterministic and avoids the size-dependent
-  // ResizeObserver feedback that arises when the inner widgets fight each
-  // other for the leftover space.
+  // Layout follows grid size, not measured pixels, so the inner widgets cannot set up a ResizeObserver feedback loop.
   const cols = w ?? 4;
   const rows = h ?? 5;
   const variant: "tiny" | "small" | "normal" =
     rows < 3 || cols < 3 ? "tiny" : rows < 4 || cols < 4 ? "small" : "normal";
   const showSparkline = variant === "normal";
-  // Subtitle elaborates the "per-stage" context, but at the registered
-  // defaultSize (4×5) the gauge arc visually overlaps the subtitle row.
-  // Show it only when there's clear room, i.e. at cols ≥ 5, beyond the
-  // default. The PanelTitle "TWR" covers the at-a-glance read either way.
+  // At the 4x5 default the gauge arc overlaps the subtitle row.
   const showSubtitle = variant === "normal" && cols >= 5;
 
-  // Measure the gauge slot so the SVG fills it responsively. Falls back to
-  // fixed defaults when ResizeObserver hasn't fired (initial render, tests).
   const { ref: gaugeRef, size: gaugeSize } = useElementSize({ w: 200, h: 110 });
 
-  // Size the dial to the measured slot width, but also cap it, both by an
-  // absolute width and by a slice of the widget's height, so the SVG can't
-  // overflow the slot. Without the cap the fallback 200px width clips at the
-  // 4×5 default and overflows almost entirely at the 3×3 small variant.
-  // Height is derived from the gauge's 0.55 aspect ratio so the SVG box never
-  // exceeds the room the sparkline + title leave it.
+  // Capped by width and by a slice of the widget height so the SVG never overflows its slot.
   const gaugeMaxH = Math.max(64, rows * 25 * 0.4);
   const gaugeW = Math.min(
     gaugeSize.w || 200,
@@ -140,7 +111,6 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   );
   const gaugeH = Math.round(gaugeW * 0.55);
 
-  // Sparkline width follows its slot: a fixed-pixel sparkline spills out of narrow widget columns and overlaps the title row.
   const sparkRef = useRef<HTMLDivElement>(null);
   const [sparkWidth, setSparkWidth] = useState(120);
   useEffect(() => {
@@ -160,10 +130,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
         panelTitle="TWR"
         sections={
           <Section full>
-            {/* Tiny widget has ~70 px of inner width, the full "No engine
-                data" sentence clips to just "No". A single em-dash conveys
-                "no data" without crowding the panel; the panel title alone
-                tells the operator what the widget is. */}
+            {/* The full sentence clips to "No" at tiny width. */}
             <EmptyState>
               {variant === "tiny" ? NULL_DISPLAY : "No engine data"}
             </EmptyState>
@@ -182,14 +149,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
         fitToSize
         sections={
           <Section full>
-            {/* 32 px TinyValue + 13 px TinyUnit + 4 px gap = ~70 px on a
-                two-character value, which clips the leading digit of "1.82"
-                into ".82" at 72 px inner width. Scale the readout font and
-                drop the explicit "g" unit at this size, the panel title is
-                "TWR", the unit is implied. */}
-            {/* Dimmed rather than captioned: at this width there is no room
-                for the word mark the larger layout draws, and a held figure
-                still has to be readable. */}
+            {/* No room here for the larger layout's word mark, so a held figure is dimmed instead. */}
             <span
               style={{
                 ...TINY_VALUE_STYLE,
@@ -208,10 +168,6 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   return (
     <Panel
       panelTitle="TWR"
-      /* Panel's own centring, where `Body` hand-rolled the `flex: 1` +
-         `justify-content: center` pair. The widget is a dial and a trend line
-         sized to the tile, which is what `fitToSize` is for, and Panel measures
-         before it centres so overflowing content still starts at the top. */
       fitToSize
       sections={[
         showSubtitle && (
@@ -262,16 +218,7 @@ const GAUGE_SLOT_STYLE = {
   justifyContent: "center",
 } as const;
 
-/*
- * Width follows the slot via ResizeObserver: fixed-pixel sparklines used to
- * spill out of narrow columns and paint over the title.
- *
- * The top margin tops the section grid's 12px row gap up to the 20px measured
- * clearance the Gauge above needs. The Gauge SVG draws its value label inside
- * its own bottom strip, flush with the SVG box edge, and at the 4x5 default the
- * two collide below 20px. That makes this measured clearance rather than a
- * rhythm step, so it stays off the spacing ladder.
- */
+// The margin tops the 12px section gap up to the 20px the Gauge's bottom-edge value label needs, so it is off the spacing ladder.
 const SPARK_SLOT_STYLE = {
   width: "100%",
   height: "24px",
@@ -279,12 +226,7 @@ const SPARK_SLOT_STYLE = {
   marginTop: "8px",
 } as const;
 
-/*
- * 24px keeps a three-character value ("1.8") within ~50px so the leading digit
- * doesn't clip at the panel's ~70px inner width. The panel title "TWR" supplies
- * the unit context. Comment-locked to that box width, so off the type scale,
- * which in any case stops at 16px.
- */
+// 24px keeps a three-character value inside the tiny panel's ~70px inner width, so it is off the type scale.
 const TINY_VALUE_STYLE = {
   fontSize: "24px",
   fontWeight: 700,

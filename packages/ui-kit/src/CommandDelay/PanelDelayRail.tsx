@@ -25,32 +25,16 @@ import { type CommandHandle, useActiveHandles } from "./DelayRailContext";
 import { railMark } from "./railTags";
 
 /**
- * Whether a handle's `CommandDelay` would draw anything: a continuous handle
- * with real delay, or a discrete one with in-flight rows. Mirrors `CommandDelay`'s own
- * null-decision so the rail shows a handle iff its `CommandDelay` renders. An
- * instant / idle command (a meta-vantage or not-yet-dispatched handle) is still
- * registered, so its must-consume token is marked and it appears the instant it
- * goes in flight, but it contributes no rail chrome meanwhile.
- *
- * A continuous handle also needs BUFFERS, not just delay. `ControlDelayStream`
- * returns null with neither streams nor ribbons, so a held axis registered
- * before its first sample lands, or a microphone keyed with nothing recorded
- * yet, would otherwise mount the rail to draw nothing inside it.
- *
- * It used to catch a third case that no longer exists: `vessel.control.setAxes`
- * declared itself continuous, so the Navball's TRIM press, which is one
- * dispatch of that same id with a queue row and no readback to build a strip
- * from, came through here as a ribbon with no marks and was suppressed
- * entirely. The press now reads discrete like every other command and takes the
- * branch below, which is what it always was.
+ * Whether a handle's `CommandDelay` would draw anything, mirroring its own
+ * null decision: a continuous handle needs real delay AND buffers, a discrete
+ * one needs in-flight rows. An idle handle stays registered but draws no rail
+ * chrome.
  */
 function handleHasContent(handle: CommandHandle): boolean {
   if (railMark(handle.tags) === "ribbon") {
     const delay = handle.effectiveDelaySeconds;
     const marks = (handle.streams?.length ?? 0) + (handle.ribbons?.length ?? 0);
-    /* The graph's OWN floor, not a positive-delay test. Below it the graph
-       draws nothing, and a rail button standing open around nothing is a
-       zero-height control the operator can neither see nor click. */
+    // The graph's own floor, not a positive-delay test, so the rail never mounts around nothing.
     return delay !== null && delay >= STREAM_MIN_DELAY_SECONDS && marks > 0;
   }
   return handle.inFlight.length > 0;
@@ -58,150 +42,67 @@ function handleHasContent(handle: CommandHandle): boolean {
 
 /**
  * The Panel-owned signal-delay rail. Reads the active command handles from the
- * nearest `DelayRailContext` (populated by `usePanelDelay` in the widget) and
- * renders each handle's delay UI through `CommandDelay`. Takes no prop: it is
- * context-collecting, so a command widget passes nothing.
+ * nearest `DelayRailContext` and renders each one's delay UI through
+ * `CommandDelay`. Takes no prop.
  *
  * **The band is RESERVED, not taken.** Every panel stands the same strip up at
- * its own top edge whether or not it has a command to show. So a command going
- * up costs the widget nothing: the strip the rail draws in was already there
- * and stays there when the last command clears. That is what makes the v3
- * brief's requirement satisfiable rather than self-contradictory. Two earlier
- * shapes tried to conjure the space instead, one by pushing the title down
- * whenever a rail appeared and one by drawing over the sticky header and taking
- * its clicks, and both were the same mistake: the space the rail needs is a
- * property of the widget, not of the traffic.
+ * its top edge whether or not it has a command to show, so a command going up
+ * costs the widget nothing. In a headed panel the rail is the first row of
+ * `PanelStickyTop`; headless or under a `floatingHeader` it is the container's
+ * first child, pulled up into the inset `PanelContainer` reserves.
  *
- * WHICH box holds the band open depends on where the header is, because the
- * rail travels with the header. In a headed panel the rail is the first row of
- * `PanelStickyTop` inside the body scroller and its own `min-height` is the
- * band. In a headless one, and under a `floatingHeader` (which paints over a
- * bleed body that never scrolls), it is the container's first child and pulls
- * itself up into the top-only inset `PanelContainer` reserves. Same height,
- * same permanence, same place on screen.
+ * Collapsed, the rail sits in normal flow inside the band and moves nothing.
+ * Activating it (a native `<button>`; Esc collapses) PINS it, and pinning
+ * GROWS it: each command switches to its `expanded` view and the title and
+ * body are pushed down. Opened while the body is already scrolled, it extends
+ * over the content instead, so the scroll position is kept. `aria-pressed`
+ * carries the pin; hover is a transient preview that says nothing to assistive
+ * tech.
  *
- * Collapsed, the rail is that strip in NORMAL FLOW inside the band (grazing
- * glows for discrete commands, a mini sparkline for a stream); with several
- * commands in flight their summaries overlay in that one band. It covers
- * nothing and moves nothing.
- *
- * Activating it (click / Enter / Space, native `<button>`; Esc collapses) PINS
- * it, and pinning GROWS the rail beyond the band: each command switches to its
- * fuller `expanded` view (the discrete list, the full-height stream graph with
- * its labels back), and every pixel it grows by pushes the Panel title and body
- * DOWN. Content sliding is the price of OPENING the rail, and it is only ever
- * charged then. Opened while the body is ALREADY scrolled, the rail extends
- * down over the scrolled content instead, since the sticky unit it heads is
- * held at the scroller's top: the operator's scroll position is not yanked out
- * from under them to make room.
- *
- * `aria-pressed` carries the pin. Hover is a preview and says nothing to
- * assistive tech. Activating it AGAIN
- * (click / Enter / Space / Esc) un-pins and re-minifies it: pin is a true
- * toggle, not a one-way expand, and the pinned rail shows a small "▲"
- * hint so that's discoverable, not just present in the aria-label (which
- * carries the word "collapse" for assistive tech; the visible hint stays
- * icon-only). Hover separately grows it as a transient preview, gone on
- * pointer-leave and a no-op once pinned; an explicit un-pin click wins over a
- * pointer that simply hasn't moved off the rail yet, see
- * `suppressHoverPreview` below.
- *
- * Renders the band EMPTY when no active handle has anything to draw, so a
- * widget whose commands are all instant or idle gets the reserved strip and no
- * rail chrome inside it. "Anything to draw" is
- * five things, not one: something in flight, something the game refused,
- * something nothing ever answered, something that answered after it was called
- * lost, and something that never left this machine. The last four are terminal
- * and so have nothing in flight by definition, which is precisely why they are
- * asked for separately.
+ * The band stays EMPTY when nothing has anything to draw. "Anything" is five
+ * things: in flight, refused, unanswered, found and never sent. The last four
+ * are terminal, with nothing in flight, so they are asked for separately.
  */
 export function PanelDelayRail() {
   const handles = useActiveHandles();
   const visible = handles.filter(handleHasContent);
-  // Refusals come from EVERY registered handle, not just the ones with delay
-  // content: a refused command has nothing in flight by definition (it settled),
-  // so gating on `handleHasContent` would hide exactly the case this exists for.
-  // Each carries its handle's tags, whose mark decides glyph-tile vs. text label.
+  // Outcomes come from EVERY registered handle: a settled command has nothing in flight, so `handleHasContent` would hide it.
   const refusals: RailRefusal[] = handles.flatMap((h) =>
     (h.refusals ?? []).map((r) => ({ ...r, tags: h.tags })),
   );
-  /*
-   * Same rule, and the case for it is stronger: a comms-loss drop is refused a
-   * queue entry BEFORE dispatch, so `handleHasContent` is false for the whole
-   * of the command's life and the rail rendered nothing at all.
-   */
   const losses: RailLoss[] = handles.flatMap((h) =>
     (h.losses ?? []).map((l) => ({ ...l, tags: h.tags })),
   );
-  /*
-   * Same rule again, and counted apart from the two above rather than with
-   * them. A found is not a dead dispatch: it is a dispatch that turned out to be
-   * alive, so folding it into "N commands failed" would put the one outcome that
-   * reverses a failure inside the failure count.
-   */
+  // A found reverses a failure, so it is never counted with the dead dispatches.
   const founds: RailFound[] = handles.flatMap((h) =>
     (h.founds ?? []).map((f) => ({ ...f, tags: h.tags })),
   );
-  /*
-   * Counted WITH the failures rather than apart from them, which is the
-   * opposite call from the founds above and the same reasoning. An undelivered
-   * command is a loss whose doubt resolved the bad way: it did not run, and it
-   * now provably never will, so leaving it out would drop the collapsed count
-   * at the moment the news got worse.
-   */
+  // An undelivered command provably did not run, so it counts with the failures.
   const undelivered: RailUndelivered[] = handles.flatMap((h) =>
     (h.undelivered ?? []).map((u) => ({ ...u, tags: h.tags })),
   );
   const deadCount = refusals.length + losses.length + undelivered.length;
   const hasContent = visible.length > 0 || deadCount > 0 || founds.length > 0;
   const [pinned, setPinned] = useState(false);
-  /**
-   * The transient hover preview, held in React rather than left to a CSS
-   * `:hover` rule, so that one flag decides both the rail's height and WHICH
-   * view each command draws. Under the old CSS rule the box grew on hover while
-   * its contents stayed the collapsed strip, which is a preview of nothing.
-   */
+  // Hover preview is React state, not CSS `:hover`, so one flag decides both the height and which view each command draws.
   const [previewing, setPreviewing] = useState(false);
-  // Suppresses the hover-preview immediately after an explicit un-pin
-  // click made while the pointer is still over the rail, the common case
-  // (the pointer is right there because the operator just clicked it). Without
-  // this, the hover alone keeps forcing the grown layout, so the click's
-  // un-pin is invisible until the pointer happens to leave, reading as "there
-  // is no way to collapse it back".
-  //
-  // Cleared on the pointer's next genuine ENTRY, not its exit: collapsing the
-  // rail out from under a stationary pointer changes the hover match
-  // (browsers re-run hit-testing after layout) WITHOUT dispatching a real
-  // `mouseleave` DOM event, real leave/enter events only fire on actual
-  // pointer movement, so a leave-triggered clear can be silently skipped when
-  // the click lands beyond the collapsed strip's shorter bounds. A fresh
-  // `mouseenter`, by contrast, is spec-guaranteed on real re-entry, so it is
-  // the reliable place to lift the suppression for the next hover.
+  /*
+   * An un-pin click wins over a pointer still resting on the rail. Cleared on
+   * the next real `mouseenter`, not on leave: collapsing under a stationary
+   * pointer dispatches no `mouseleave`.
+   */
   const [suppressHoverPreview, setSuppressHoverPreview] = useState(false);
   const grown = pinned || (previewing && !suppressHoverPreview);
 
-  /*
-   * There is no measured height to publish and nothing to observe. The rail
-   * heads the sticky unit it shares with the header (or, headless, is the
-   * container's first child), so growing it moves the title and the body by
-   * ordinary flow. The `--panel-rail-height` variable, the `ResizeObserver`
-   * that fed it and the `PanelRailTarget` context that carried the element it
-   * was written onto were all machinery for a rail that had to tell a SEPARATE
-   * sticky header how far down to start. One element, no second offset.
-   */
+  // Growing the rail moves the title and body by ordinary flow; there is no height to measure or publish.
 
-  // Continuous on top, discrete underneath (operator's v3 ordering): a stable
-  // partition, each keeps its own order. The split reads the CONTINUITY axis
-  // through `railMark`, which is the same question the mark is picked by, rather
-  // than a second word for it.
+  // Continuous on top, discrete underneath, each keeping its own order.
   const ordered = [
     ...visible.filter((h) => railMark(h.tags) === "ribbon"),
     ...visible.filter((h) => railMark(h.tags) !== "ribbon"),
   ];
 
-  // Route a dismiss to the handle that owns the refusal, the same way
-  // `CommandDelay` routes an in-flight dismiss. Absent when no handle can
-  // dismiss, so the boxes carry no clear control rather than an inert one.
+  // Each dismiss routes to the handle that owns the outcome; absent when no handle can dismiss.
   const canDismissRefusal = handles.some(
     (h) => h.dismiss && (h.refusals?.length ?? 0) > 0,
   );
@@ -234,17 +135,13 @@ export function PanelDelayRail() {
     : undefined;
 
   return (
-    /* An EMPTY band carries no state attributes, only the band's own marker.
-       Every widget in the app renders this element whether it commands anything
-       or not, so a state flag on an empty strip would be noise on every widget's
-       DOM and in every snapshot of one, describing a control that is not there. */
+    // An EMPTY band carries only its own marker, since every widget renders it.
     <PanelDelayRail__Frame data-panel-rail-frame="">
-      {/* The rail's one announcer, outside the toggle button. Mounted from the
-          moment the widget registers a command, which is before any outcome
-          can exist, so the first outcome is a change to a region assistive
-          tech is already watching. Read whether the rail is collapsed, hovered
-          or pinned; each outcome is its own entry, read once as it arrives. A
-          widget that commands nothing gets no region at all. */}
+      {/*
+        The rail's one announcer, outside the toggle. Mounted once a command
+        registers, before any outcome exists, so the first outcome lands in a
+        region assistive tech is already watching.
+      */}
       {handles.length > 0 && (
         <LiveRegion visuallyHidden additionsOnly>
           {refusals.map((r) => (
@@ -263,9 +160,7 @@ export function PanelDelayRail() {
           ))}
         </LiveRegion>
       )}
-      {/* Nothing to draw leaves the band standing EMPTY, which is the whole
-          point: the strip is the panel's, not the traffic's, so a widget with
-          no command in flight looks the same as one waiting on an ack. */}
+      {/* Nothing to draw leaves the band standing EMPTY: the strip is the panel's, not the traffic's. */}
       {!hasContent ? null : (
         <PanelDelayRail__Rail
           type="button"
@@ -295,9 +190,7 @@ export function PanelDelayRail() {
             if (e.key === "Escape" && pinned) {
               e.stopPropagation();
               setPinned(false);
-              /* Same escape hatch as the un-pin click: a pointer resting on
-                 the rail while the operator reaches for Escape would otherwise
-                 hold the preview open and swallow the collapse. */
+              // As with the un-pin click, a resting pointer must not hold the preview open.
               setSuppressHoverPreview(true);
             }
           }}
@@ -312,18 +205,12 @@ export function PanelDelayRail() {
               key={h.id}
               handle={h}
               variant={grown ? "expanded" : "rail"}
-              /* A handle that names its own graph keeps that name at both
-                 heights: a voice ribbon says which transmission it is drawing,
-                 and only a handle with nothing better to say is "Delay
-                 detail". */
+              // A handle that names its own graph keeps that name at both heights.
               ariaLabel={h.ariaLabel ?? (grown ? "Delay detail" : undefined)}
             />
           ))}
           {!grown && (deadCount > 0 || founds.length > 0) && (
-            /* One end-aligned run holding both counts. They are separate
-             sentences in separate colours, but they share the band's single
-             grid cell, so laying them out apart would stack one over the
-             other. */
+            // One run for both counts, since they share the band's single grid cell.
             <PanelDelayRail__Summaries>
               {deadCount > 0 && (
                 <PanelDelayRail__FailureSummary>
@@ -343,10 +230,7 @@ export function PanelDelayRail() {
           )}
         </PanelDelayRail__Rail>
       )}
-      {/* Underneath BOTH queues, and outside the toggle button rather than
-          inside it. A dismiss control is a button, and a button inside a button
-          is a nested interactive: axe fails it, and a real keyboard user gets a
-          control they cannot reach past the one wrapping it. */}
+      {/* Outside the toggle button: a dismiss button inside it would be a nested interactive. */}
       {grown && refusals.length > 0 && (
         <CommandRefusalList
           refusals={refusals}
@@ -357,8 +241,6 @@ export function PanelDelayRail() {
       {grown && losses.length > 0 && (
         <CommandLossList losses={losses} onDismiss={dismissLoss} live={false} />
       )}
-      {/* Under the losses, because it is one of the two ways a loss ends, and
-          the one that keeps its warning colour. */}
       {grown && undelivered.length > 0 && (
         <CommandUndeliveredList
           undelivered={undelivered}
@@ -366,9 +248,7 @@ export function PanelDelayRail() {
           live={false}
         />
       )}
-      {/* Last, under the losses, because it is the resolution of one: an
-          operator reading down the rail meets the silence and then the answer
-          to it. */}
+      {/* Last, so reading down the rail meets the silence and then its answer. */}
       {grown && founds.length > 0 && (
         <CommandFoundList
           founds={founds}
@@ -381,25 +261,11 @@ export function PanelDelayRail() {
 }
 
 /**
- * The rail's box. Collapsed it is exactly the band tall and adds nothing to the
- * panel's height; every pixel it grows past the band pushes the header and the
- * body down. It holds the toggle button and, once open, the outcome boxes under
- * it.
- *
- * The negative top margin is for the CONTAINER placement (headless panel,
- * floating header), where it pulls the box up into the top-only inset
- * `PanelContainer` reserves. Inside the sticky unit there is no such inset to
- * pull into and `PanelStickyTop` gives the margin back; the `min-height` below
- * is what stands the band up in both.
- *
- * The band's permanence is the whole design. A rail that claimed space on
- * arrival pushed every watching widget's content down on a data transition; one
- * that borrowed the header's space drew over the title and took its clicks.
- * Neither is needed once the strip is simply always there: the rail moves into
- * room that was already standing empty, and leaves it standing empty again.
- *
- * With no rail chrome inside it the band reads as the widget's top padding, and
- * that is what it is.
+ * The rail's box: exactly the band tall when collapsed, pushing the header and
+ * body down by every pixel it grows past it. The band is permanent, so a
+ * command arriving never moves a watching widget's content. The negative top
+ * margin pulls it into `PanelContainer`'s top inset in the container placement;
+ * `PanelStickyTop` gives it back inside the sticky unit.
  */
 const PanelDelayRail__Frame = styled.div`
   /* Never let the container's flex column shrink this below its content: the
@@ -423,17 +289,10 @@ const PanelDelayRail__Frame = styled.div`
 `;
 
 /**
- * The rail button, filling the reserved band. A real `<button>` for the pin
- * disclosure, reset to carry no button chrome.
- *
- * Collapsed (the resting state, kept COMPACT): a thin strip in NORMAL FLOW,
- * capped at the band's own height, all handles OVERLAID (grid, every child in
- * the one cell) so several grazing glows and a mini sparkline share it rather
- * than crowd. It covers nothing, and the title sits exactly where the empty
- * band leaves it. GROWN on hover OR pin (click): the strip becomes a flex
- * column that stacks each command's fuller view and outgrows the band, pushing
- * the title + body DOWN by ordinary flow (the operator is happy for content to
- * slide on expand). Hover is a transient preview; a click PINS it open.
+ * The rail button, filling the reserved band: a real `<button>` for the pin
+ * disclosure, with no button chrome. Collapsed, every handle overlays in one
+ * grid cell capped at the band's height. Grown (hover or pin), it becomes a
+ * flex column that outgrows the band and pushes the title and body down.
  */
 const grownRail = css`
   display: flex;
@@ -502,22 +361,8 @@ const PanelDelayRail__Rail = styled.button`
 `;
 
 /**
- * The pinned-only visible cue that the rail is a toggle: a click (or Enter /
- * Space, it is the same `<button>`) collapses it back to the minified strip.
- * `aria-hidden`, the button's own `aria-label` already carries this for
- * assistive tech; this is purely the sighted affordance so pinning doesn't
- * read as a one-way action.
- */
-/**
- * The whole of a refusal in the COLLAPSED strip: how many commands the game
- * said no to, in the warning colour, sharing the band with the delay glows
- * (every rail child sits in the one grid cell). It says only the count on
- * purpose, since a hundred-character sentence cannot live in a 16px band, and
- * opening the rail is what gets the operator the reason.
- *
- * Not itself a live region: it sits inside the toggle button, whose content is
- * presentational to assistive tech. The rail's own announcer reads each
- * outcome's sentence instead.
+ * The collapsed strip's failure count: only the count, since a sentence cannot
+ * fit the band. Not a live region; the rail's own announcer reads each outcome.
  */
 const PanelDelayRail__FailureSummary = styled.span`
   color: var(--color-status-warning-fg-muted);
@@ -544,19 +389,12 @@ const PanelDelayRail__Summaries = styled.span`
   pointer-events: none;
 `;
 
-/**
- * The whole of a found in the COLLAPSED strip: how many commands the operator
- * was told were lost and which have since answered, in the notice colour rather
- * than the warning one beside it. Counted and coloured apart from the failure
- * summary because it says the opposite thing, and opening the rail is what gets
- * the operator each command's actual outcome.
- *
- * Not itself a live region, for the same reason as the failure summary.
- */
+/** The collapsed strip's found count, in the notice colour because it says the opposite of the failure count. */
 const PanelDelayRail__FoundSummary = styled.span`
   color: var(--color-status-info-fg);
 `;
 
+/** The pinned rail's sighted cue that it is a toggle; the button's `aria-label` carries it for assistive tech. */
 const PanelDelayRail__CollapseHint = styled.span`
   position: absolute;
   top: var(--offset-rail-hint);

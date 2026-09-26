@@ -2,26 +2,19 @@ import { getComponent } from "@ksp-gonogo/core";
 import { act } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { listWidgets } from "../../scripts/widgets";
-// Importing the package index self-registers every built-in component, so `getComponent(widgetId)` below resolves to the real component.
+// Importing the package index self-registers every built-in component.
 import "../index";
 import { axe } from "./axe";
 import { renderWidgetMode } from "./widgetDomSnapshot";
 
 /**
- * Data-driven a11y smoke across every fixture-backed widget. Mirrors the
- * Playwright PNG harness and the DOM-snapshot layer: same widget list
- * (`listWidgets()`), same fixtures, same mount path: but asserts
- * `toHaveNoViolations()` instead of capturing pixels/HTML.
- *
- * Each widget is rendered at every declared grid mode × applicable
- * fixture. Both axes matter: a11y varies by data state (signal-loss vs
- * nominal) AND by grid size, because widgets size-gate which elements
- * render (e.g. CommSignal hides its `aria-label`led bars below 4 rows).
- * Sweeping only the first/smallest mode silently skips those elements.
+ * Data-driven a11y smoke across every fixture-backed widget, on the same
+ * widget list, fixtures and mount path as the PNG and DOM-snapshot harnesses.
+ * Every grid mode times every applicable fixture, since widgets size-gate
+ * which elements render.
  */
 
-// Eagerly load every fixture JSON so the data-driven loop can resolve a
-// widget's fixtures by its `fixturesPath` (e.g. "FuelStatus/__fixtures__").
+// Eagerly loaded so a widget's fixtures resolve by its `fixturesPath`.
 const FIXTURE_MODULES = import.meta.glob<{ default: Record<string, unknown> }>(
   "../*/__fixtures__/*.json",
   { eager: true },
@@ -42,9 +35,7 @@ describe("widget a11y smoke", () => {
   for (const widget of listWidgets()) {
     const def = getComponent(widget.widgetId);
     const fixtures = fixturesFor(widget.fixturesPath);
-    // NOTE: a widget with no fixtures is silently skipped, it gets ZERO
-    // a11y coverage here and nothing fails. A fixtureless widget must add a
-    // per-file axe smoke of its own instead. Don't rely on this sweep for it.
+    // A widget with no fixtures gets no coverage here and needs its own axe smoke.
     if (!def || fixtures.length === 0) continue;
     const Widget = def.component as Parameters<
       typeof renderWidgetMode
@@ -66,14 +57,7 @@ describe("widget a11y smoke", () => {
               mode,
             });
             try {
-              // A fixture carrying `t.universalTime` mounts a pinned
-              // `TelemetryProvider` (`widgetDomSnapshot.tsx`'s `ViewUtWrap`)
-              // whose `ViewClock` keeps ticking every frame for as long as
-              // the widget stays mounted: same live behavior a real
-              // `TelemetryProvider` has in production. `axe()` is slow enough
-              // that a tick can land mid-call; wrapping it in `act()` keeps
-              // that (otherwise value-identical, harmless) tick from
-              // triggering React's "update not wrapped in act" warning.
+              // A pinned TelemetryProvider's clock keeps ticking, and axe() is slow enough for a tick to land mid-call.
               let results: Awaited<ReturnType<typeof axe>> | undefined;
               await act(async () => {
                 results = await axe(container);

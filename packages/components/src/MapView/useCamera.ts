@@ -24,26 +24,22 @@ export function useCamera(containerSize: { w: number; h: number } | null) {
   );
   const [viewMode, setViewMode] = useState<ViewMode>("global");
 
-  // Ref for the element that receives pointer/wheel events (CanvasContainer)
   const interactionRef = useRef<HTMLDivElement | null>(null);
 
-  // Active pointers: keyed by pointerId so we can track multi-touch pinches.
+  // Keyed by pointerId to track multi-touch pinches.
   const activePointers = useRef<Map<number, PointerPos>>(new Map());
-  // Last pan-anchor position when there's a single pointer. Reset on transitions
-  // in/out of pinch so the pan doesn't jump when a finger is added or lifted.
+  // Reset on transitions in and out of pinch so the pan does not jump.
   const lastPanPos = useRef<PointerPos | null>(null);
-  // Distance between the two pointers on the previous move event, used to compute a frame-to-frame zoom ratio during pinch.
+  // Pointer distance on the previous move, for a frame-to-frame pinch zoom ratio.
   const lastPinchDist = useRef<number | null>(null);
 
-  // Reset to global fit when screen resizes, deliberately scoped to w/h so a new containerSize object with identical dimensions is a no-op.
+  // Reset to global fit on a resize, keyed on w/h so an identical new size object is a no-op.
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional: react only to dimension changes, not object identity
   useEffect(() => {
     if (containerSize) setCamera(fitCamera(containerSize.w, containerSize.h));
   }, [containerSize?.w, containerSize?.h]);
 
-  // Wheel zoom, on the pinch gesture only: see `useWheelZoom` for why a plain
-  // wheel has to reach the page. Unbound until the container has been
-  // measured, since the zoom is about a point in that box.
+  // Wheel zoom on the pinch gesture only (see `useWheelZoom`), bound once the container is measured.
   useWheelZoom(
     interactionRef,
     useMemo(

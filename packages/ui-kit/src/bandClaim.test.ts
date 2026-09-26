@@ -5,10 +5,6 @@ import { bandClaim } from "./bandClaim";
 /**
  * The one statement every band-carrying surface speaks, asserted here so the
  * surfaces themselves assert only that they reached it.
- *
- * A hard bound and a one-sigma interval read the same sentence, and neither
- * may reach for the statistics vocabulary a listener cannot be assumed to
- * have.
  */
 describe("bandClaim", () => {
   const INTERVAL = "with bands at 30 percent and 44 percent";
@@ -21,12 +17,7 @@ describe("bandClaim", () => {
     expect(bandClaim("sigma1", INTERVAL)).toBe(bandClaim("bound", INTERVAL));
   });
 
-  /*
-   * The point of the whole helper. "Sigma", "standard deviation" and
-   * "confidence interval" are names for the thing rather than statements of
-   * what it claims, and a listener who does not already know the statistics
-   * learns nothing from any of them.
-   */
+  // Statistics terms name the thing rather than state what it claims.
   it("reaches for no statistics vocabulary in either arm", () => {
     const kinds: BandKind[] = ["bound", "sigma1"];
     for (const kind of kinds) {

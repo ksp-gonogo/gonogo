@@ -60,11 +60,7 @@ describe("deriveHazardVerdict", () => {
   });
 
   it("grades a reading landing exactly on a threshold as the safer band", () => {
-    // The table in this module's header reads `<=5` for SAFE and `5-15` for
-    // MARGINAL, so 5 is SAFE and only something above it is not. Pinned
-    // because the ladder is three comparisons and nothing else here lands on
-    // a boundary: flipping one of them to strict leaves every other case in
-    // this file passing.
+    // The ladder is three comparisons, and only this case lands on a boundary, so flipping one to strict would otherwise pass unnoticed.
     expect(deriveHazardVerdict({ slopeDeg: 5 }).verdict).toBe("SAFE");
     expect(deriveHazardVerdict({ slopeDeg: 15 }).verdict).toBe("MARGINAL");
     expect(deriveHazardVerdict({ verticalSpeed: 2 }).verdict).toBe("SAFE");
@@ -74,7 +70,7 @@ describe("deriveHazardVerdict", () => {
   });
 
   it("honours per-instance tuned slope thresholds", () => {
-    // A wide-base rover: raise the slope tolerance so 12° reads SAFE.
+    // A wide-base rover raises the slope tolerance so 12 degrees reads SAFE.
     const r = deriveHazardVerdict(
       { slopeDeg: 12 },
       {
@@ -87,13 +83,7 @@ describe("deriveHazardVerdict", () => {
   });
 });
 
-/**
- * The band, used as a DECISION rather than a picture.
- *
- * Every case here holds the point estimate fixed and varies only the interval
- * around it, because that is the whole claim: the same reading grades the same
- * way until the model admits it does not know which side of a line it is on.
- */
+/** The band as a decision: the point estimate is fixed and only the interval varies, so a reading grades the same until the model cannot say which side of a line it is on. */
 describe("deriveHazardVerdict: an axis whose band spans a threshold", () => {
   const mps = (lo: number, v: number, hi: number): UncertaintyBand<"m/s"> => ({
     value: value("m/s", v),
@@ -133,11 +123,7 @@ describe("deriveHazardVerdict: an axis whose band spans a threshold", () => {
     expect(r.axes[0].detail).toContain("9.0");
   });
 
-  /*
-   * The rule that keeps the fourth verdict worth having. A certain DIVERT is
-   * actionable and an unresolved axis that could at worst reach DIVERT adds
-   * nothing to it, so the board must not downgrade a firm answer to a shrug.
-   */
+  // A certain DIVERT is actionable, and an unresolved axis that could at worst reach DIVERT adds nothing to it.
   it("keeps a certain DIVERT rather than downgrading it to UNRESOLVED", () => {
     const r = deriveHazardVerdict({
       verticalSpeed: 5.8,
@@ -167,12 +153,7 @@ describe("deriveHazardVerdict: an axis whose band spans a threshold", () => {
     expect(r.verdict).toBe("MARGINAL");
   });
 
-  /*
-   * A reckoned rate crosses zero constantly (a descent rate at the top of a
-   * hop, a lateral rate as it nulls), and the ladder grades the MAGNITUDE. The
-   * magnitude of [-1, 4] reaches 0, not 1, so mapping the ends alone would
-   * assert the craft is definitely still moving.
-   */
+  // The ladder grades the magnitude, and the magnitude of [-1, 4] reaches 0, not 1.
   it("takes the magnitude of an interval that crosses zero, not the magnitudes of its ends", () => {
     const r = deriveHazardVerdict({
       verticalSpeed: 0.5,

@@ -16,34 +16,10 @@ import { type HandoverFixture, loadHandoverFixture } from "./handoverFixture";
 import { LandingStatusComponent } from "./index";
 
 /**
- * The carried ASL altitude and its band, on the operator's screen.
- *
- * This is the first consumer of the interval `core-reckoners.ts` keys at
- * `"altitudeAsl"`, so these cases are as much a measurement of that band as a
- * check on the readout: where it is keyed, what unit it arrives in, and what it
- * is worth at descent scale. What they found is written into the readout's own
- * header and restated as the withheld case below.
- *
- * The handover fixtures are the input because they are the only committed
- * descent that crosses the atmosphere interface. Every one of them is generated
- * from a perfect quadratic (`gen-handover-fixtures.ts`: "the fitted slope IS
- * that acceleration by construction"), which is exactly the history a
- * residual-based band can say nothing about, so the banded case below
- * perturbs one.
+ * The carried ASL altitude and its band, on screen.
+ * The handover fixtures are the only committed descent across the atmosphere interface, and each is a perfect quadratic that a residual-based band can say nothing about, so the banded case perturbs one.
  */
-
-/**
- * The same descent with RESIDUALS in it: the two interior vertical-speed
- * samples pulled off the line the other two sit on.
- *
- * `atmosphericAltitudeBandAt` takes its one sigma from `SlopeFit.stdError`, and
- * a history lying exactly on its own fit leaves it nothing to take, so the fit
- * withholds the sigma altogether and there is no band to draw. Every committed
- * fixture is that history. The
- * nudge is 6 m/s at the two interior samples: small enough that the fitted
- * acceleration stays inside the regime envelope the model would otherwise
- * decline on, large enough to produce an interval a reader can see.
- */
+/** The same descent with residuals: the two interior vertical-speed samples moved 6 m/s off the line, enough for a visible interval while the fitted acceleration stays inside the model's envelope. */
 function withScatteredHistory(fixture: HandoverFixture): HandoverFixture {
   let seen = 0;
   const emits = fixture._stream.emits.map((emit) => {
@@ -84,14 +60,7 @@ async function mount(fixture: HandoverFixture): Promise<RenderResult> {
   return tree;
 }
 
-/**
- * Everything the altitude readout says, found through its HEADING.
- *
- * Text rather than nodes, the way the other `<Band>` consumer in the tree is
- * read: an interval is two `<Unit>`s and an `aria-hidden` dash inside one span,
- * so there is no single text node to match and no role to ask for. Anchoring on
- * the heading is what keeps it from matching the rest of a dense widget.
- */
+/** Everything the altitude readout says, found through its heading, since an interval is two `<Unit>`s in one span with no single text node or role. */
 function readoutText(tree: RenderResult): string {
   const heading = tree.getByRole("heading", { name: /altitude asl/i });
   const section = heading.parentElement;
@@ -99,16 +68,7 @@ function readoutText(tree: RenderResult): string {
   return section.textContent ?? "";
 }
 
-/**
- * The two ends of whatever interval the readout drew, as it wrote them, or
- * `null` where it drew none.
- *
- * Found through the row's own visible LABEL and split on `<Band>`'s dash. The
- * ends are two whole `<Unit>`s inside one span, so there is no text node to
- * match and no role to ask for, and reading the section's text as a whole is
- * what the first attempt did: the left half then ran back through every readout
- * above it. The label is the boundary the widget itself draws.
- */
+/** The two ends of the drawn interval, or `null`, found through the row's own label and split on `<Band>`'s dash. */
 function drawnInterval(tree: RenderResult): { lo: string; hi: string } | null {
   const row = tree.queryByText("Known to")?.nextElementSibling;
   if (!row) return null;
@@ -151,19 +111,14 @@ describe("the carried ASL altitude reaches the operator", () => {
   });
 
   it("draws the OBSERVED altitude, which nothing on this widget drew before", async () => {
-    // 42 000 m is the anchor sample of the drag-biting frame. Before this
-    // readout the widget's only use of `altitudeAsl` was an unwrapped magnitude
-    // fed into `solveSuicideBurn`, so the number never reached a pixel.
+    // 42 000 m is the anchor sample of the drag-biting frame.
     expect(
       readoutText(await mount(loadHandoverFixture("05-drag-biting-42km.json"))),
     ).toMatch(/42\.0/);
   });
 
   it("draws the CARRIED altitude beside it rather than in place of it", async () => {
-    // The rate integration puts the craft at 37 977 m six seconds past the
-    // anchor. It must appear as a figure of its own and must not replace the
-    // observation: a model quietly overwriting a measurement is the
-    // substitution `Reading` exists to prevent.
+    // Six seconds past the anchor the craft is carried to 37 977 m, shown as its own figure beside the observation, never replacing it.
     const text = readoutText(
       await mount(loadHandoverFixture("05-drag-biting-42km.json")),
     );
@@ -190,17 +145,7 @@ describe("the carried ASL altitude reaches the operator", () => {
     ).toMatch(/the carried altitude is inside that interval/);
   });
 
-  /**
-   * The finding, as an executable fact rather than a paragraph.
-   *
-   * Every committed handover fixture is a noiseless quadratic, so the fit has
-   * nothing to take a sigma from and withholds one, and the first real consumer
-   * of this band draws no interval at all through the whole set. The readout
-   * does not paper over that with a point: a zero-width band reads downstream
-   * as "this extrapolation is exact", which is the opposite of what a
-   * residual-free window establishes, so the producer offers nothing and the
-   * consumer says so in words instead of inventing a hedge.
-   */
+  /** A noiseless history gives the fit no sigma, so no interval is drawn, and the readout says so in words rather than drawing a zero-width band that would read as exact. */
   it("draws no band at all through the handover set, and says so", async () => {
     const tree = await mount(loadHandoverFixture("05-drag-biting-42km.json"));
     expect(drawnInterval(tree)).toBeNull();
@@ -210,9 +155,7 @@ describe("the carried ASL altitude reaches the operator", () => {
   });
 
   it("draws no interval where the conic carried the altitude, and invents none", async () => {
-    // Above the interface `vessel.flight` is carried by Kepler propagation,
-    // which offers no `bandAt` at all. The carried figure is still there; an
-    // interval must not be.
+    // Above the interface Kepler propagation offers no band; the carried figure stays and an interval must not appear.
     const tree = await mount(
       loadHandoverFixture("01-above-interface-95km.json"),
     );
@@ -221,8 +164,7 @@ describe("the carried ASL altitude reaches the operator", () => {
   });
 
   it("says why the model withdrew, where it withdrew", async () => {
-    // Peak deceleration closes the rate integration's horizon, so there is no
-    // carried altitude at all. A blank is the one answer that would be wrong.
+    // Peak deceleration closes the rate integration's horizon, so there is no carried altitude.
     const tree = await mount(
       loadHandoverFixture("06-peak-deceleration-30km.json"),
     );

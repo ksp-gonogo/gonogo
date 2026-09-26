@@ -35,41 +35,13 @@ import {
 } from "./plotLayers";
 
 /**
- * Columnar pairs of numeric values to plot. `x` and `y` are parallel arrays
- * of equal length. For time-on-x charts, `x` is unix ms; for parametric
- * charts (e.g. altitude vs velocity), `x` carries that dimension's values.
+ * Parallel `x` and `y` arrays to plot; `x` is unix ms on a time chart. `y2` is the upper bound of a
+ * `band` series.
  *
- * `y2` is only consulted for `type: "band"` series, it carries the upper
- * bound paired against `y` (the lower bound). Other series types ignore it.
- *
- * `breaks` names the indices that OPEN a known hole: no data between the
- * previous sample and that one, and missing rather than merely not sampled.
- * The `line` and `step` builders start a fresh subpath at each, so the trace
- * shows the gap. Ignored by `scatter` (which joins nothing anyway) and by
- * `band` (whose polygon would need its own split; no band series carries a
- * hole today, and shading across one would be a worse lie than a line).
- *
- * The chart draws three states, and only two of them touch the stroke:
- *
- * - OBSERVED, live or replayed: solid, full colour. `spans` names the runs
- *   that did not arrive live (see `SeriesStatusSpan`), and it does NOT change
- *   how they are drawn. A replayed sample is a sample the craft measured; it
- *   arrived late, which is a fact about the link and not about the reading.
- *   Marking it would say "trust this less" about a value that is exact. The
- *   run is still cut, and the status still reaches the DOM, so a hover readout
- *   or a caption can name the provenance without the trace asserting it
- * - GONE: `breaks`, a real hole in the line. Data existed and cannot be had
- * - RECKONED: `reckoned`, muted AND dashed. Nobody measured it; a model
- *   carried the last observation forward. Both channels deliberately: a dash
- *   survives greyscale but reads as merely "special", a mute alone is easy to
- *   miss on a dark ground, and together they say lower confidence without
- *   inventing a hue that would collide with the semantic good/warning/critical
- *   set. Same three-way applicability as `breaks`
- *
- * A reckoned run may also carry a BAND (`SeriesReckonedSpan.bandLo`/`bandHi`),
- * which is shaded behind the stroke. That is a fourth mark and not a fourth
- * state: the run is reckoned either way, and the region says how well, so a
- * run without one is a model that would not say rather than one that is sure.
+ * `breaks` names indices that open a real hole: `line` and `step` start a fresh subpath there.
+ * `spans` records runs that did not arrive live, and they are drawn exactly like live data, because a
+ * replayed sample is still a measured one. `reckoned` runs, which a model carried forward, are muted
+ * and dashed, and may carry a shaded uncertainty band behind the stroke.
  */
 export interface ChartSeriesData {
   x: number[];
@@ -78,32 +50,19 @@ export interface ChartSeriesData {
   breaks?: number[];
   spans?: readonly SeriesStatusSpan[];
   reckoned?: readonly SeriesReckonedSpan[];
-  /**
-   * What the value's model says happened inside a gap nothing observed. Where
-   * the chord into `to` departs from it by more than a pixel, the chord is
-   * withheld and the model's own path is drawn in the reckoned style, with the
-   * observed samples at its ends marked, because a reader cannot otherwise tell
-   * which points on a reckoned line were measured.
-   */
+  /** A model's path through an unobserved gap; drawn instead of the chord when the chord departs from it by more than a pixel. */
   bridges?: readonly SeriesBridge[];
 }
 
-/**
- * An observed sample on a modelled span. Larger than `SCATTER_RADIUS` on
- * purpose: a scatter dot sits alone, while this one has to hold its own against
- * a dashed line crossing it, and at the stroke's own size it reads as a dash.
- */
+/** Larger than a scatter dot so it holds its own against the dashed line crossing it. */
 const OBSERVED_MARK_RADIUS = 2.5;
 
 /**
- * Render type for a single series.
- * - `line`   : straight segments through every sample (default).
- * - `step`   : step-after; flat hold then jump. Right shape for discrete-state
- *               telemetry (stage number, throttle setting) where linear
- *               interpolation between transitions is misleading.
- * - `scatter`: discrete points, no joining. For sparse / noisy data.
- * - `band`   : filled envelope between `y` (lower) and `y2` (upper). Requires
- *               `data.y2` to be present and the same length as `data.y`.
+ * Render type for a single series
+ * - `line`: straight segments through every sample (default)
+ * - `step`: step-after, for discrete-state telemetry where interpolating between transitions misleads
+ * - `scatter`: discrete points, no joining
+ * - `band`: filled envelope between `y` (lower) and `y2` (upper), which must be the same length
  */
 export type SeriesType = "line" | "step" | "scatter" | "band";
 
@@ -114,18 +73,14 @@ export interface ChartSeries {
   color: string;
   /** Defaults to `"line"` when omitted. */
   type?: SeriesType;
-  /** Render as a dashed line. Used to set reference / target curves apart from live traces. */
+  /** Render as a dashed line, for reference or target curves. */
   dashed?: boolean;
   /** Fill opacity (0..1) for `band` series. Defaults 0.2. */
   fillOpacity?: number;
   data: ChartSeriesData;
 }
 
-/**
- * Horizontal reference line at a constant Y. Renders across the plot width
- * with an optional right-anchored label. Useful for "atmosphere ceiling",
- * "max-Q", "throttle limit", etc.
- */
+/** Horizontal reference line at a constant Y, with an optional right-anchored label. */
 export interface ThresholdRule {
   id: string;
   value: number;
@@ -133,12 +88,7 @@ export interface ThresholdRule {
   label?: string;
   color?: string;
   dashed?: boolean;
-  /**
-   * The reading the line was drawn from, when it is one. A held reading gives
-   * the label the held-reading mark and says so in the chart's accessible name,
-   * the way `<Unit>` marks a figure; a current one, or none, draws the line
-   * exactly as before.
-   */
+  /** When held, the label carries the held-reading mark and the chart's accessible name says so. */
   reading?: UnitValue;
 }
 
@@ -150,16 +100,7 @@ export const timeXTickFormat = (
   domain: readonly [number, number],
 ): string => formatTimeLabel(value - domain[0], domain[1] - domain[0]);
 
-/**
- * Tick formatter for an x-axis in UT SECONDS, the basis the telemetry stream
- * stamps its samples in (`SeriesRange.basis`). Same elapsed-since-the-left-edge
- * ladder as `timeXTickFormat`, read off the other clock.
- *
- * Both exist because neither can be inferred: the default's arithmetic on a
- * seconds domain divides by a thousand, so a twenty-minute window of UT reads
- * `0:00 ... 0:01` and the ladder under an outage cannot say when it was. A
- * caller picks by what its producer declared, never by the size of the numbers.
- */
+/** Tick formatter for an x-axis in UT seconds; pick it by the basis the producer declared, never by the size of the numbers. */
 export const utXTickFormat = (
   value: number,
   domain: readonly [number, number],
@@ -181,49 +122,13 @@ export interface LineChartProps {
   yScaleSecondary?: AxisScale;
   /** Horizontal reference lines drawn across the plot. */
   thresholds?: ReadonlyArray<ThresholdRule>;
-  /**
-   * Series-label legend. `"overlay"` (default) stamps labels top-left inside
-   * the plot, each on a translucent backing chip so they stay legible over
-   * curves and gridlines; `"none"` suppresses it for charts whose title or
-   * threshold label already names the series.
-   */
+  /** `"overlay"` (default) stamps labels top-left on backing chips; `"none"` suppresses them. */
   legend?: "overlay" | "none";
-  /**
-   * Drop the X tick ladder and its vertical gridlines.
-   *
-   * For a ONE-DIMENSIONAL plot: an altitude scale has a height and nothing
-   * across it, so the marks sit at a nominal mid-span and the axis under them
-   * measures nothing. A ladder reading 0 / 0.50 / 1 under a chevron is worse
-   * than no ladder, because it is a scale and a reader is entitled to think it
-   * means something.
-   *
-   * The domain is still needed and still used: layers are placed against it.
-   * Only the reader-facing axis goes.
-   */
+  /** Drop the X tick ladder and its gridlines, for a one-dimensional plot; layers are still placed against the domain. */
   hideXAxis?: boolean;
-  /**
-   * A view of a PLACE rather than a chart (see `PlotFrame.kind`): the content
-   * runs to the frame's own edges, there are no tick ladders down the side or
-   * along the bottom, and the two axes are held at the SAME scale so a circle
-   * is a circle and a slope is the slope.
-   *
-   * The scale is not lost with the ladders. It rides the content, the way it
-   * does on a map: the terrain patch is a known width, the dispersion ring is
-   * labelled, and every reading the plot carries is a caption inside the frame
-   * rather than a number in a gutter.
-   */
+  /** A view of a place rather than a chart: no tick ladders, content to the frame edges, and equal scale on both axes. */
   spatial?: boolean;
-  /**
-   * Everything drawn beyond the series, in the plot's own data space (see the
-   * `PlotLayer` vocabulary in `@ksp-gonogo/sitrep-sdk`). A plot contributed to
-   * the app-wide `plots` slot hands its own `layers` down here, so a chart
-   * built from a contribution and one a widget builds by hand reach this
-   * renderer identically.
-   *
-   * Layers participate in an auto Y domain exactly as series do, and are
-   * ignored by a pinned one: whether a guest may rescale the axes is a policy
-   * the host states once, not a privilege it keeps.
-   */
+  /** Everything drawn beyond the series, in data space. Layers join an auto Y domain and are ignored by a pinned one. */
   layers?: readonly PlotLayer[];
   /** Names what the chart is, before the layers add their own clauses. */
   ariaLabel?: string;
@@ -232,19 +137,7 @@ export interface LineChartProps {
 }
 
 const MARGIN = { top: 10, right: 50, bottom: 28, left: 50 };
-/**
- * The margins, fitted to the chart actually being drawn.
- *
- * The constants above are sized for a full-width graph widget, and on a small
- * square plot they eat it: 100 px of left+right gutter out of a 200 px column
- * leaves half the tile for the data. Two adjustments, both of which only ever
- * GIVE space back:
- *
- * - the right gutter is 50 px to hold a SECOND y axis, so without one it keeps
- *   just enough for the right-anchored last x tick label
- * - the left gutter and the bottom band scale down on a small plot, to a floor
- *   that still holds a `-12.3k` label and an 11 px line of type
- */
+/** Shrinks the gutters on a small plot, and drops the right one to a sliver when there is no secondary axis. */
 function fitMargins(
   width: number,
   height: number,
@@ -260,12 +153,9 @@ function fitMargins(
     left,
   };
 }
-/** Screen pixels between a spatial plot's grid dots, both ways. Even by
- *  construction, so the lattice never reads as an axis. */
 const SPATIAL_GRID_PITCH_PX = 26;
 
-/** The dot lattice for a spatial plot, inset half a pitch so no dot sits on the
- *  frame's own edge. */
+/** Inset half a pitch so no dot sits on the frame's own edge. */
 function spatialGrid(
   x0: number,
   x1: number,
@@ -282,79 +172,28 @@ function spatialGrid(
   return dots;
 }
 
-/** Below either, a corner readout is smaller than the words in it: the layer's
- *  own `description` still carries the reading to a screen reader. */
+/** Below either, captions are dropped; the layer description still reaches a screen reader. */
 const CAPTION_MIN_PLOT_W = 120;
 const CAPTION_MIN_PLOT_H = 90;
-// Approximate pixels per tick label: used to scale tick count with plot
-// dimensions so narrow charts don't stamp 5 labels into 100 px of x-axis
-// (collides) and short charts don't stamp 5 labels into 80 px of y-axis.
 const PX_PER_X_TICK = 70;
 const PX_PER_Y_TICK = 35;
 const SCATTER_RADIUS = 2;
 const DEFAULT_BAND_OPACITY = 0.2;
-/**
- * The mute and the dash a reckoned run is drawn with. Not a colour: a third
- * hue would collide with the semantic good/warning/critical set, and this is
- * not a severity.
- *
- * 0.6 keeps the series colours the app actually uses above the 3:1 that WCAG
- * 1.4.11 asks of non-text UI against the dark surface they sit on: the accent
- * green lands near 5.5:1 over `--color-surface-app` at this alpha. So the mute
- * reads as lower confidence without becoming an accessibility problem of its
- * own. The dash is the channel that survives greyscale and a colour-vision
- * deficiency, and it is why the mute is allowed to be subtle.
- */
+/** A reckoned run is muted and dashed, never recoloured; 0.6 keeps series colours above 3:1 against the surface. */
 const RECKONED_STROKE_OPACITY = 0.6;
 const RECKONED_DASHARRAY = "5 3";
-/**
- * The fill an uncertainty region is drawn with, and the edge a HARD BOUND
- * gets on top of it.
- *
- * The series' own colour rather than a hue of its own, for the reason the mute
- * and the dash are not colours either: a region belongs to one trace, and on a
- * two-series chart a shared uncertainty hue would stop saying whose it was.
- *
- * 0.15 keeps a region readable against the dark surface while leaving the
- * stroke through the middle of it clearly the stronger mark. It is decoration
- * over a trace that is already muted and dashed, not a channel of its own:
- * every region also names its kind in the chart's accessible description, so a
- * reader who sees none of this still gets told.
- */
+/** An uncertainty region takes its own series' colour so a two-series chart still says whose it is. */
 const RECKONED_BAND_OPACITY = 0.15;
 const RECKONED_BAND_EDGE_OPACITY = 0.45;
 
-/**
- * What each model did, in words, for the chart's accessible name. An operator
- * calibrates their trust in a modelled figure against what produced it, which
- * is why `ReckoningBasis` is a closed union rather than a string, and a reader
- * who cannot see the dash needs the same handle on it. A new basis over there
- * fails to compile here until it says what it did.
- */
 const RECKONING_BASIS_PHRASE: Record<ReckoningBasis, string> = {
-  /*
-   * Deliberately says nothing about carrying FORWARD, because a combination
-   * does not: it joins readings that already share a view time, and whatever
-   * propagation happened did so inside each input under that input's own
-   * basis. A phrase like "carried forward by combination" would tell a reader
-   * this figure was advanced through time, which is the one thing it was not.
-   */
+  // A combination joins readings of one moment; it never advances a value through time.
   combination: "computed from several readings of the same moment",
   "kepler-propagation": "propagated forward on two-body motion",
   "linear-dead-reckoning": "carried forward at the last observed velocity",
   "rate-integration": "integrated forward at the last observed rate",
 };
 
-/**
- * What the shaded region around a reckoned run claims, in words. A hard bound
- * and a one-sigma estimate are drawn differently and are worth different
- * amounts, and a reader who sees neither the fill nor its edge needs the
- * distinction spelled out rather than implied.
- *
- * The containment half is written here because only a chart calls its interval
- * a shaded region; how much that containment is worth comes from `bandClaim`,
- * so this reads the same as the band on a meter rather than nearly the same.
- */
 function bandKindPhrase(kind: BandKind): string {
   return bandClaim(kind, "the value is inside the shaded region");
 }
@@ -397,9 +236,7 @@ export function LineChart({
   );
   const hasSecondary = secondarySeries.length > 0;
 
-  // A spatial plot has no gutters to reserve: nothing is written outside the
-  // picture, so the picture is the whole box. One pixel of inset keeps the
-  // outermost stroke from being clipped in half by the frame's own edge.
+  // One pixel of inset keeps the outermost stroke from being clipped by the frame.
   const margin = spatial
     ? { top: 1, right: 1, bottom: 1, left: 1 }
     : fitMargins(w, h, hasSecondary);
@@ -412,9 +249,6 @@ export function LineChart({
   const captionsFit =
     plotW >= CAPTION_MIN_PLOT_W && plotH >= CAPTION_MIN_PLOT_H;
 
-  // Layer geometry joins the auto domain on the same terms as a series: a plot
-  // that scaled only to its own marks would clip a contributor's curve off the
-  // top and show nothing to say it had.
   const layerYs = useMemo(() => {
     const out = { primary: [] as number[], secondary: [] as number[] };
     for (const layer of layers ?? []) {
@@ -464,15 +298,7 @@ export function LineChart({
     2,
     Math.min(7, Math.round(plotH / PX_PER_Y_TICK)),
   );
-  // niceTicks/niceLogTicks round the *step* to a nice magnitude, so on a narrow,
-  // non-zero-based domain at a low tick count they can land every tick outside
-  // the domain (e.g. a 0.6–30 Mm SMA axis at 2 ticks → [0, 50 Mm]). Rendering
-  // those maps the labels off the plot, a top y-label floating over the title,
-  // or "0m"/"50.0Mm" out past the axes and clipped at the panel edge. So: keep
-  // only in-domain ticks, and if none land inside, retry with a finer count
-  // (which forces a smaller step that does) before falling back to the raw
-  // endpoints. The endpoints are always in-domain but unrounded, so they're the
-  // last resort, not the first.
+  // Nice rounding can land every tick outside a narrow domain, so keep in-domain ticks and retry finer before falling back to the endpoints.
   const axisTicks = (
     d0: number,
     d1: number,
@@ -487,16 +313,9 @@ export function LineChart({
       kind === "log" ? niceLogTicks(lo, hi, n) : niceTicks(lo, hi, n);
     for (let n = count; n <= 64; n *= 2) {
       const inView = gen(n).filter(inDomain);
-      // TWO, not one. A single tick is not a scale: it is one number floating
-      // against an axis with nothing to measure it by, and on a narrow plot it
-      // is the COMMON case rather than the edge one. At `count` 2 (any plot
-      // under ~175 px of width) the nice step lands the upper tick outside the
-      // domain, the filter drops it, and the axis reads "0" and nothing else.
-      // A finer retry forces a smaller step that does land inside.
+      // A single tick is not a scale.
       if (inView.length < 2) continue;
-      // A finer retry can land many ticks at once; on a short axis rendering
-      // them all smears the labels into an illegible column. Keep ~count of
-      // them, evenly spaced (endpoints included), so density tracks the plot.
+      // Thin a finer retry back to about `count` evenly spaced ticks.
       if (inView.length <= count) return inView;
       const stepIdx = (inView.length - 1) / (count - 1);
       const picked = Array.from(
@@ -523,11 +342,7 @@ export function LineChart({
         yScaleSecondary === "log" ? "log" : "linear",
       );
 
-  // X-axis label placement. Gridlines still draw for every tick, but labels
-  // are thinned so they never overlap a neighbour or clip past the plot edge:
-  // the first label is left-anchored, the last right-anchored, and interior
-  // labels are kept only where there's room. On a very narrow plot this
-  // collapses to just the first label instead of an illegible smear of glyphs.
+  // Labels are thinned so none overlap or clip; the endpoints are edge-anchored.
   const xTickLabels = useMemo(() => {
     const out: {
       x: number;
@@ -536,7 +351,6 @@ export function LineChart({
     }[] = [];
     const last = xTicks.length - 1;
     if (last < 0) return out;
-    // Rough monospace-ish width estimate; gap keeps a little air between labels.
     const estPx = (s: string) => s.length * 6.5 + 6;
     const gap = 6;
     const make = (idx: number) => {
@@ -554,7 +368,6 @@ export function LineChart({
     out.push({ x: first.x, text: first.text, anchor: first.anchor });
     if (last >= 1) {
       const end = make(last);
-      // Only show more than the first label when the endpoints clear each other.
       if (end.leftEdge >= first.rightEdge + gap) {
         let prevRight = first.rightEdge;
         for (let i = 1; i < last; i++) {
@@ -573,11 +386,6 @@ export function LineChart({
     return out;
   }, [xTicks, xDomain, scaleX, xTickFormat]);
 
-  // Y-axis labels get the same overlap suppression as X, but vertically: on a
-  // very short plot the top and bottom ticks would otherwise stack into a
-  // touching, illegible column (e.g. "3.0k" sitting on "2.5k" at tiny sizes).
-  // Gridlines still draw for every tick; only the text is thinned. Returns the
-  // set of indices that should be labelled, preferring the two endpoints.
   const yLabelKeep = (ticks: number[], pos: (t: number) => number) => {
     const keep = new Set<number>();
     const n = ticks.length;
@@ -603,8 +411,6 @@ export function LineChart({
   const yKeepPrimary = yLabelKeep(yTicksPrimary, scaleYPrimary);
   const yKeepSecondary = yLabelKeep(yTicksSecondary, scaleYSecondary);
 
-  // Per-series renderable. Dispatch on type: line/step/scatter share the
-  // stroked-path render block; band gets a filled closed path.
   const drawables = useMemo(() => {
     return series
       .filter((s) => s.data.x.length > 0)
@@ -705,22 +511,10 @@ export function LineChart({
     }));
   }, [thresholds, scaleYPrimary, scaleYSecondary]);
 
-  // Shape carries a layer's reading, and shape is not a channel a screen
-  // reader has (WCAG 1.4.1), so every layer's own clause joins the chart's
-  // accessible name. A layer with nothing to say adds nothing, which is what
-  // stops an absent reading from being spoken as a zero.
-  //
-  // A reckoned run is muted and dashed, and neither is a channel a screen
-  // reader has, so it says the same thing in words. `spans` contributes
-  // nothing here on purpose: the trace draws a replayed run exactly as a live
-  // one, and a clause naming it would hand one reader a caveat the chart does
-  // not put in front of the other. Named per series, because "some of this
-  // chart is reckoned" is not answerable if two traces are drawn.
-  //
-  // A band gets its own clause rather than a phrase inside the basis one. The
-  // two answer different questions (which model, and how well it knows), a run
-  // can have either without the other, and the shaded region is a mark a
-  // sighted reader sees separately from the dash.
+  /*
+   * Shape and dash are not channels a screen reader has, so each layer and each reckoned run adds a
+   * clause to the accessible name. Replayed spans add none, since the trace does not mark them either.
+   */
   const reckonedClauses = series.flatMap((s) => {
     const drawn = drawables.find((d) => d.id === s.id);
     const modelled =
@@ -743,8 +537,6 @@ export function LineChart({
     return clauses;
   });
 
-  /* The dot on a threshold label is a shape, so the same fact goes into the
-     name in words. */
   const thresholdClauses = thresholdLines
     .filter((t) => t.currency.notCurrent)
     .map((t) => sayHeld(t.label ?? t.id, t.currency.caption));
@@ -769,9 +561,7 @@ export function LineChart({
   };
   const layerClipId = `plot-layer-clip-${uid}`;
 
-  // Container is narrower/shorter than the margins, nothing meaningful to
-  // draw, and negative <rect> dimensions spam the console. Render an empty
-  // svg until the ResizeObserver reports a usable size.
+  // Negative rect dimensions spam the console.
   if (plotW <= 0 || plotH <= 0) {
     return (
       <svg
@@ -792,12 +582,7 @@ export function LineChart({
       height={h}
       role="img"
       aria-label={chartLabel}
-      // `display: block` removes the inline-baseline whitespace that an SVG
-      // otherwise carries below itself. With a flex `min-height:0` ancestor
-      // (ChartArea) the baseline gap pushes contentRect a few px past the
-      // height we just set, ResizeObserver fires, we set a larger height,
-      // and the chart slowly grows turn after turn, visible most clearly
-      // on graphs the user keeps open through a long flight.
+      // display: block stops the inline baseline gap feeding the ResizeObserver a growing height.
       style={{
         fontFamily: "var(--font-family-mono)",
         overflow: "visible",
@@ -805,8 +590,6 @@ export function LineChart({
       }}
     >
       <title>{chartLabel}</title>
-      {/* Only when something needs it: a chart with no layers should not carry
-          a `<defs>` block and a generated id it never references. */}
       {layers && layers.length > 0 && (
         <defs>
           <clipPath id={layerClipId}>
@@ -814,7 +597,6 @@ export function LineChart({
           </clipPath>
         </defs>
       )}
-      {/* Background */}
       <rect
         x={plotX0}
         y={plotY0}
@@ -823,17 +605,14 @@ export function LineChart({
         fill="var(--color-surface-panel)"
       />
 
-      {/* Contributed context: fields and regions, under the gridlines so a
-          guest's wash can never bury the axes. */}
+      {/* Under the gridlines so a contributed wash can never bury the axes. */}
       {layers && layers.length > 0 && (
         <g clipPath={`url(#${layerClipId})`}>
           <PlotLayers layers={layers} frame={layerFrame} pass="background" />
         </g>
       )}
 
-      {/* Horizontal grid lines + left y-axis ticks. Keyed by index rather
-          than value because niceTicks returns duplicate ticks when the domain
-          has zero span (single-sample or pinned-equal-bounds data). */}
+      {/* Keyed by index: niceTicks repeats ticks on a zero-span domain. */}
       {!spatial &&
         yTicksPrimary.map((tick, idx) => {
           const y = scaleYPrimary(tick);
@@ -864,7 +643,6 @@ export function LineChart({
           );
         })}
 
-      {/* Right y-axis ticks (secondary) */}
       {!spatial &&
         yTicksSecondary.map((tick, idx) =>
           yKeepSecondary.has(idx) ? (
@@ -883,7 +661,6 @@ export function LineChart({
           ) : null,
         )}
 
-      {/* Vertical grid lines (every tick) */}
       {!hideXAxis &&
         !spatial &&
         xTicks.map((tick, idx) => (
@@ -899,7 +676,6 @@ export function LineChart({
           />
         ))}
 
-      {/* X-axis tick labels (thinned + edge-anchored to avoid overlap/clip) */}
       {!hideXAxis &&
         !spatial &&
         xTickLabels.map((lbl, idx) => (
@@ -916,14 +692,7 @@ export function LineChart({
           </text>
         ))}
 
-      {/* A spatial plot's only grid: an even dot LATTICE, at a fixed screen
-          pitch on both axes.
-          
-          Not on the tick positions the ladders would have used. Those are
-          sparse and unequal between the axes, so the dots came out as a few
-          widely spaced columns, which at plot size read as dashed vertical
-          rules: exactly the "graph hiding behind it" a map must not have. A
-          regular lattice reads as a map's grid because that is what it is. */}
+      {/* An even lattice at a fixed screen pitch, not on tick positions, so it reads as a map grid. */}
       {spatial &&
         spatialGrid(plotX0, plotX1, plotY0, plotY1).map((dot) => (
           <circle
@@ -936,8 +705,6 @@ export function LineChart({
           />
         ))}
 
-      {/* Axis borders. A spatial plot has none: its own frame is the border,
-          and a second rule inside it reads as a box drawn round a map. */}
       {!spatial && (
         <>
           <line
@@ -969,7 +736,6 @@ export function LineChart({
         </>
       )}
 
-      {/* Bands first (filled, behind everything else). */}
       {drawables
         .filter(
           (d): d is Extract<typeof d, { kind: "band" }> => d.kind === "band",
@@ -984,11 +750,7 @@ export function LineChart({
           />
         ))}
 
-      {/* How well each reckoned run was known, filled BEHIND its stroke so the
-          line stays the thing being read and the region is the caveat around
-          it. A hard bound carries a hairline edge because its edge is a real
-          limit; a one-sigma region has none, because drawing an edge on it
-          would assert a boundary the model never claimed. */}
+      {/* A hard bound gets an edge; a one-sigma region has none, since it claims no boundary. */}
       {drawables
         .filter(
           (d): d is Extract<typeof d, { kind: "stroked" }> =>
@@ -1012,12 +774,6 @@ export function LineChart({
           )),
         )}
 
-      {/* Stroked series (line + step), one path per run of shared provenance.
-          A series with nothing but observed samples is one path, exactly as it
-          was, and a replayed run is drawn identically to a live one: it is a
-          reading the craft measured and sent late, so the trace has nothing to
-          say about it beyond the `data-stream-status` record. The one run that
-          is set apart is the one nobody measured, muted and dashed. */}
       {drawables
         .filter(
           (d): d is Extract<typeof d, { kind: "stroked" }> =>
@@ -1050,7 +806,6 @@ export function LineChart({
           )),
         )}
 
-      {/* A model's path where the chord it contradicts was withheld. */}
       {drawables
         .filter(
           (d): d is Extract<typeof d, { kind: "stroked" }> =>
@@ -1094,7 +849,6 @@ export function LineChart({
           )),
         )}
 
-      {/* Scatter dots. */}
       {drawables
         .filter(
           (d): d is Extract<typeof d, { kind: "scatter" }> =>
@@ -1113,15 +867,12 @@ export function LineChart({
           )),
         )}
 
-      {/* Contributed readings: series, rules, ticks and point marks, over the
-          gridlines with the live traces. */}
       {layers && layers.length > 0 && (
         <g clipPath={`url(#${layerClipId})`}>
           <PlotLayers layers={layers} frame={layerFrame} pass="foreground" />
         </g>
       )}
 
-      {/* Threshold rules (horizontal reference lines). */}
       {thresholdLines.map((t) => (
         <React.Fragment key={t.id}>
           <line
@@ -1148,27 +899,13 @@ export function LineChart({
         </React.Fragment>
       ))}
 
-      {/* Series labels (top-left legend), each on a translucent backing chip
-          so the text stays legible over curves/gridlines. Labels that would
-          fall into the x-axis tick band are dropped rather than overlapping. */}
       {legend !== "none" &&
         series.map((s, i) => {
           const rowY = plotY0 + 6 + i * 16;
-          // Don't stamp a label where it would collide with the x-axis ticks.
           if (rowY + 13 > plotY1) return null;
-          // Approximate text width (≈6 px per glyph at fontSize 10); clamp so
-          // the chip never runs past the plot's right edge on narrow charts.
-          // Every font size in this file stays off the type scale: unlike Tape
-          // / Dial / Gauge this <svg> carries no viewBox, so its user units ARE
-          // CSS px, and the 6/8/13/16 constants here and in `yLabelKeep` are
-          // derived from them. A font token (which also grows 1px on a coarse
-          // pointer) would break the ellipsis clamp and the label thinning.
+          // The SVG has no viewBox, so these pixel constants are CSS px and stay off the type scale.
           const chipW = Math.min(s.label.length * 6 + 8, plotW - 6);
-          // When the chip is clamped, the SVG <text> would still overflow the
-          // plot (the root carries `overflow: visible`, which is load-bearing
-          // and must NOT be flipped to hidden). Ellipsize the label to the
-          // glyphs that fit the clamped chip so it stays inside the plot at
-          // extreme/narrow aspects instead of escaping the right edge.
+          // The root keeps overflow visible, so a clamped chip needs its label ellipsised.
           const maxChars = Math.max(1, Math.floor((chipW - 8) / 6));
           const labelText =
             s.label.length > maxChars
@@ -1191,7 +928,7 @@ export function LineChart({
           );
         })}
 
-      {/* Corner and edge readouts, last and outside the clip. */}
+      {/* Readouts go last and outside the clip. */}
       {layers && layers.length > 0 && captionsFit && (
         <PlotLayers layers={layers} frame={layerFrame} pass="caption" />
       )}
@@ -1199,12 +936,7 @@ export function LineChart({
   );
 }
 
-/**
- * Compute the auto-scale Y domain for an axis. Honours an explicit pin when
- * provided; otherwise scans every series (including band upper bounds). On a
- * log axis, non-positive values are filtered out before computing the range
- * so a stray zero doesn't peg the floor at -∞.
- */
+/** A log axis drops non-positive values so a stray zero cannot peg the floor at minus infinity. */
 function computeYDomain(
   axisSeries: ChartSeries[],
   pinned: [number, number] | undefined,
@@ -1225,10 +957,7 @@ function formatYTick(n: number): string {
   if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (Math.abs(n) >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
   if (Number.isInteger(n)) return String(n);
-  // Sub-precision values would round to "0.00" via toFixed(2). Log axes
-  // can pull ticks well below 0.01 (atmospheric profile drops into the
-  // µPa range past 60 km), so fall back to scientific notation so each
-  // tick gets a distinct label instead of three copies of "0.00".
+  // Scientific notation, or a log axis below 0.01 would print several ticks as "0.00".
   if (Math.abs(n) < 0.01) {
     const exp = Math.floor(Math.log10(Math.abs(n)));
     const mantissa = n / 10 ** exp;

@@ -9,16 +9,7 @@ import {
 import { ThermalStatusComponent } from "./index";
 
 /**
- * Stream-migrated widget test (mirrors `stream.test.tsx`/`dual-run.test.tsx`
- * in this directory): every `therm.*` key `index.tsx` reads is a ONE-ARG
- * canonical `useTelemetry("vessel.thermal")` read with no legacy fallback at
- * all, so every render here runs off a real `TelemetryProvider`/
- * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport` instead of the
- * legacy `MockDataSource` registry.
- *
- * `clearAugments()` runs in `beforeEach` (nothing mounted yet, the prior
- * test's tree was already torn down by RTL auto-cleanup) so the augment
- * registry is reset without a state mutation firing against a live component.
+ * ThermalStatus off a real stream pipeline. `clearAugments()` runs in `beforeEach`, before anything mounts, so the reset never fires against a live component.
  */
 const CARRIED_CHANNELS = ["vessel.thermal"];
 
@@ -58,7 +49,7 @@ describe("ThermalStatusComponent", () => {
       fixture.emit("vessel.thermal", {
         hottestPart: {
           name: "LV-T30 'Reliant'",
-          skinTemp: 640, // °C
+          skinTemp: 640, // K
           skinMaxTemp: 2273, // K (≈2000°C)
         },
         maxInternalTempRatio: 0.33,
@@ -128,13 +119,11 @@ describe("ThermalStatusComponent", () => {
     });
     renderThermal(fixture);
     act(() => {
-      // The mod emits ~2K for both temp and max when no thermometer is
-      // fitted (e.g. early-career rocket). These should NOT light up the
-      // widget as CRITICAL: they should be treated as no data.
+      // The mod emits ~2 K for temp and max when no thermometer is fitted; that must read as no data, not CRITICAL.
       fixture.emit("vessel.thermal", {
         hottestPart: {
           name: "",
-          skinTemp: 2.05, // °C: close to 275 K, but...
+          skinTemp: 2.05, // K: sentinel
           skinMaxTemp: 2.05, // K: sentinel: max ≈ 0 K
         },
         maxInternalTempRatio: 1.0, // bogus ratio
@@ -167,9 +156,7 @@ describe("ThermalStatusComponent", () => {
         hottestEngineMaxTemp: 2273,
         hottestEngineTempRatio: 0.4,
         anyEnginesOverheating: false,
-        // Sentinel shield reading: ~2 K, the near-absolute-zero stand-in for
-        // "no heat shield fitted". Kelvin now, same as every other temperature
-        // on this channel.
+        // ~2 K is the stand-in for "no heat shield fitted".
         heatShieldTemp: 2.05,
         heatShieldFlux: 0,
       });

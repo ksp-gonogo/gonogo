@@ -10,11 +10,7 @@ import {
 import { TechTreeComponent } from "./index";
 
 /**
- * What the Unlock control may claim about a spend.
- *
- * Two ways a science verdict can be false: a price that never arrived read as
- * free, and a command the career model refuses outright (RP-1 researches
- * through its own queue) drawn as a purchase the balance decides.
+ * What the Unlock control may claim about a spend: a price that never arrived is not free, and a command the career model refuses outright (RP-1 researches through its own queue) is not a purchase the balance decides.
  */
 
 const CARRIED = ["career.status", "spaceCenter.scene", "system.uplink.gates"];
@@ -124,9 +120,9 @@ describe("TechTree spend truth", () => {
     const unlock = await openNode("Pricey Tech");
 
     expect(unlock.getAttribute("title") ?? "").not.toMatch(/^Need /);
-    // No affordability verdict on the row either: the grey and the red cost are a claim the balance decides.
+    // No affordability verdict on the row either: the grey and the red cost claim the balance decides.
     expect(document.querySelector("[data-afford]")).toBeNull();
-    // What it says instead is the career model's own reason, which is the one thing the control can truthfully tell.
+    // It says the career model's own reason instead.
     expect(unlock).toHaveAccessibleName(/rp1\.tech\.research/);
   });
 });

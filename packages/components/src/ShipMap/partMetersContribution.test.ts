@@ -6,12 +6,8 @@ import {
 } from "./partMetersContribution";
 
 /**
- * Builds one wire part with the REAL `PartResourceFlow` shape
- * (`amount`/`maxAmount` as `Value<"units">`, i.e. `{ magnitude, unit }`
- * objects, per `derivePartResources`'s `.magnitude` reads): a plain-number
- * fixture would silently produce zero entries (`undefined <= 0` is always
- * `false`, not a throw), which is exactly the kind of bug this test exists
- * to catch.
+ * One wire part with the real `PartResourceFlow` shape (`Value<"units">`
+ * amounts): a plain-number fixture would silently produce zero entries.
  */
 function part(
   id: string,

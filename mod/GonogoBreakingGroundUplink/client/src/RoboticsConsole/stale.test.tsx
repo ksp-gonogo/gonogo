@@ -10,22 +10,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import "./index";
 
 /**
- * What the Robotics Console does when `robotics.servos` stops arriving.
- *
- * It used to drop the whole list: `state === "observed" ? value : undefined`,
- * so a link that simply went quiet emptied the panel down to one sentence, and
- * the sentence was "Waiting for the robotic parts list", a never-arrived answer
- * about a list that had arrived and gone stale.
- *
- * What it does now is the split these assertions exist to pin. A joint's
- * identity, its lock and motor state, its torque limit and its commanded target
- * are all things a COMMAND set, and none of them drifts down a link that is not
- * delivering, so they are held. The MEASURED angle does drift, and this console
- * commands against it, so that one figure is withheld and the row says so.
- *
- * The assertion that earns this file is the one about what SURVIVES. A widget
- * that draws nothing passes almost every test ever written about it, so the
- * cases below check the roster is still on screen and still nameable.
+ * Proves that when `robotics.servos` stops arriving the measured angle is withheld and named, while the roster and everything a command set stays on screen.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -48,12 +33,7 @@ const HINGE = {
   targetAngle: 60,
 };
 
-/*
- * A SECOND joint, because the joint list only draws above one
- * (`showServoList = servos.length > 1`). With a single hinge the roster is not
- * on screen to survive anything, and the test that matters here is that the
- * roster survives.
- */
+// A second joint, because the joint list only draws with more than one.
 const PISTON = {
   partName: "Bay Piston",
   partId: "12",
@@ -86,8 +66,7 @@ function mountWithHinge(instanceId: string) {
 
 describe("RoboticsConsole: a servo list that has stopped arriving", () => {
   it("draws the measured angle while the readings are current", async () => {
-    // The control. Without it every assertion below would also pass on a
-    // console that never drew an angle at all.
+    // The control: without it the assertions below would pass on a console that never drew an angle.
     const { container } = mountWithHinge("rc-stale-control");
 
     await waitFor(() => expect(visibleText(container)).toContain("22°"));
@@ -109,23 +88,18 @@ describe("RoboticsConsole: a servo list that has stopped arriving", () => {
     );
     expect(visibleText(container)).not.toContain("22°");
 
-    /* Everything a command set is still on screen. This is the whole point:
-       the operator can still see WHICH joints the craft has and what each was
-       last asked to do. The roster used to vanish with the angle. */
+    // Everything a command set is still on screen.
     expect(visibleText(container)).toContain("Arm Hinge");
     expect(visibleText(container)).toContain("Bay Piston");
     expect(visibleText(container)).toContain("60°");
 
-    // And the reason is named, with the half that is still good spelled out, so a live panel does not read as a dead one.
+    // The reason is named, so a held panel does not read as a dead one.
     expect(visibleText(container)).toContain(
       "Measured positions no longer current",
     );
   });
 
   it("never calls a dated list a list that has not arrived", async () => {
-    /* The absence lie this fix removes. `emptyStateText`'s waiting rung was
-       reachable from a stale reading, so a dropped link answered "Waiting for
-       the robotic parts list" about a list already received. */
     const { fixture, container } = mountWithHinge("rc-stale-not-waiting");
     await waitFor(() => expect(visibleText(container)).toContain("22°"));
 

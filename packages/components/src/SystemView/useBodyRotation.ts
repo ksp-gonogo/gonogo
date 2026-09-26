@@ -2,33 +2,11 @@ import { useViewClockOptional } from "@ksp-gonogo/sitrep-client";
 import { useCelestialBodies } from "./useCelestialBodies";
 
 /**
- * Body rotation angle for the OrbitDiagram pole marker, derived CLIENT-SIDE
- * from the body's `rotationPeriod` + the SDK view-UT rather than read per frame
- * off the wire.
+ * Body rotation angle for the OrbitDiagram pole marker, `(360 * viewUt / rotationPeriod) mod 360`, derived from the period and the view UT.
  *
- * `angleDeg = (360 · viewUt / rotationPeriod) mod 360`, the rate is exact
- * (one turn per `rotationPeriod` seconds; a NEGATIVE period spins the marker
- * the other way, matching retrograde rotation), and the PHASE is deliberately
- * dropped. The wire DOES carry one now, `BodyEntry.initialRotation`, and the
- * SDK's `bodyRotationAngleDegAt` is the absolute angle built from the pair; it
- * is what a surface position needs and not what this marker is. The only
- * consumer here is the OrbitDiagram's spinning limb, a rotation *indicator*
- * drawn relative to the body rather than the sky, so an absolute phase would
- * move the marker without making it mean more.
+ * The phase is dropped on purpose: the marker is a rotation indicator drawn relative to the body, so `initialRotation` would move it without adding meaning. A negative period spins it the other way (retrograde), and `rotates` is true iff the period is finite and non-zero.
  *
- * `rotates` is derived from `rotationPeriod` too: a body rotates iff its period
- * is finite and non-zero.
- *
- * Reads the SDK view-UT NON-reactively (`ViewClock.confirmedEdgeUt()` at
- * render), not via a per-frame `onFrame` subscription, so the marker advances
- * on the widget's own telemetry-driven re-renders and adds no subscription that
- * could fire state updates outside React's `act`.
- *
- * Returns `null` for either field while the body index hasn't resolved yet
- * (the bodies fan-out hasn't reached the row whose name matches `bodyName`),
- * and `angleDeg` is additionally `null` when the body doesn't rotate or the
- * view clock isn't available yet (no `TelemetryProvider` / no confirmed
- * sample: `confirmedEdgeUt()` is `-Infinity`).
+ * The view UT is read non-reactively at render, so the marker advances on the widget's own re-renders and adds no subscription. Both fields are `null` until the body resolves; `angleDeg` is also `null` for a non-rotating body or before the view clock has a confirmed sample.
  */
 export function useBodyRotation(bodyName: string | null | undefined): {
   angleDeg: number | null;

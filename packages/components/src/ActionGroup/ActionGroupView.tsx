@@ -56,15 +56,7 @@ export function ActionGroupView({
 }: ActionGroupViewProps) {
   const currentLabel = config?.label ?? group?.name ?? "";
 
-  /**
-   * Both are inputs to one computed verdict, "would this fire if you pressed it
-   * now", so both are taken from the observation alone. Neither may be answered
-   * from a held value: telling the operator the game is paused, or that there is
-   * no signal, on the strength of a reading we can no longer vouch for puts a
-   * confident reason on the screen for a state that may well have ended. A
-   * withheld one lands on the same "nothing to warn about" the never-arrived
-   * case produces, which is the honest silence.
-   */
+  // Paused and no-signal are claims about now, so neither is answered from a held reading.
   const warpReading = useTelemetry("time.warp");
   const isPaused =
     warpReading.state === "observed" ? warpReading.value.paused : undefined;
@@ -73,7 +65,6 @@ export function ActionGroupView({
     linkReading.state === "observed" ? linkReading.value.connected : undefined;
   const openAlarms = useAlarmsLauncher();
 
-  // The command name varies with the configured group, which `useCommand` does not mind: hooks do not care about argument identity.
   const toggleCommand = group ? toggleCommandFor(group) : null;
   const toggleCmd = useCommand(toggleCommand ?? "");
   usePanelDelay(toggleCmd);
@@ -111,14 +102,10 @@ export function ActionGroupView({
     );
   }
 
-  // A few groups, Stage among them, report a NUMBER rather than a boolean, so coercing every non-true value to OFF would mislabel them.
+  // Some groups, Stage among them, report a number rather than a boolean.
   const isNumeric = typeof value === "number";
   const isOn = isNumeric ? value > 0 : value === true;
-  /**
-   * `== null` on purpose. A group's state arrives as `null` when the backend
-   * reported the group and could not read it, and as `undefined` when nothing
-   * has arrived for it at all. Neither one is OFF.
-   */
+  // `null` (reported, unreadable) and `undefined` (never arrived) are both unknown, never OFF.
   const isUnknown = value == null;
   const stateLabel = isUnknown
     ? NULL_DISPLAY
@@ -128,12 +115,6 @@ export function ActionGroupView({
         ? "ON"
         : "OFF";
 
-  /**
-   * Built after the `!group` guard, so it is a plain object rather than a hook:
-   * no `useMemo` may run conditionally. A fresh reference per render is fine,
-   * since the live `value` changes anyway and `AugmentSlot`'s subscription is
-   * store-driven.
-   */
   const slotContext: ActionGroupSlotContext = {
     groupId: group.name,
     label: currentLabel,
@@ -141,23 +122,14 @@ export function ActionGroupView({
     stateLabel,
   };
 
-  /*
-   * The most common reasons the action would not fire if pressed now, in
-   * precedence order. Staleness is first because it is the reason the pill
-   * reads NULL_DISPLAY, and it is the broader answer that already covers an
-   * unreadable state. "Paused" and "No signal" are confident sentences about a
-   * different screen, so they yield to both. "Not reported" is last because,
-   * unlike the three above it, it does not stop the press: the registry keeps a
-   * configured group operable on purpose, so it only explains the empty pill
-   * when nothing else is claiming the line.
-   */
+  // In precedence order; "Not reported" is last because it alone does not stop the press.
   let unavailableReason: string | null = null;
   if (valueNotCurrent) unavailableReason = "State not current";
   else if (stateUnreadable) unavailableReason = "State unreadable";
   else if (isPaused === true) unavailableReason = "Paused";
   else if (commConnected === false) unavailableReason = "No signal";
   else if (group.provenance === "assumed") unavailableReason = "Not reported";
-  // Keyed off the reason actually chosen, not re-derived, so the two cannot drift into a caveat explained by the wrong sentence.
+  // Keyed off the chosen reason so title and reason cannot disagree.
   const unavailableTitle =
     unavailableReason === "State not current"
       ? "The last known state is too old to invert, so the toggle is held"
@@ -167,19 +139,12 @@ export function ActionGroupView({
           ? "Configured, but no backend has reported this group, so its state is unknown"
           : "The action group can't fire right now";
 
-  // The state pill is itself the toggle control, so it is present at every size; only the secondary official-name line drops when narrow.
   const cols = w ?? 6;
   const showOfficialName = cols >= 5;
-  /**
-   * Precision Control has no toggle key, and a withheld or unreadable state
-   * leaves nothing to invert, so `buildToggleArgs` would refuse the press. An
-   * inert-looking control beside a stated reason is honest where a live-looking
-   * one that swallows the click is not. An "assumed" group stays live: the
-   * registry keeps a configured group operable on purpose.
-   */
+  // Disabled whenever `buildToggleArgs` would refuse the press; an `assumed` group stays live.
   const canToggle =
     Boolean(group.toggle) && !valueNotCurrent && !stateUnreadable;
-  // At tiny size the bell crowds the pill and its size-locked button style breaks the layout; it stays reachable from the alarms menu.
+  // At tiny size the bell crowds the pill; it stays reachable from the alarms menu.
   const showBell = getSizeBucket(w, h) !== "tiny" && Boolean(openAlarms);
 
   const startEditing = () => {
@@ -192,11 +157,7 @@ export function ActionGroupView({
     if (editing && onConfigChange) {
       onConfigChange({
         ...config,
-        /*
-         * Renaming changes the LABEL, so the saved identity must survive it
-         * untouched: writing `group.name` here would re-point a custom group's
-         * config at whatever singleton shares its name.
-         */
+        // Not `group.name`, which would re-point a custom group at a singleton sharing its name.
         actionGroupId: actionGroupIdOf(group),
         label: draft || undefined,
       });
@@ -208,19 +169,13 @@ export function ActionGroupView({
     setEditing(false);
   };
 
-  // Only meaningful while editing. The rename trigger is a real `<button>`, so its own Enter/Space activation is native.
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") commitEdit();
     if (e.key === "Escape") cancelEdit();
   };
 
   return (
-    /*
-     * The panel names the WIDGET; the group's own name is a control, not a
-     * heading. `panelTitle` renders its argument inside PanelTitle's h3, so
-     * passing this through would nest a button and an input in a heading and
-     * uppercase the operator's own label into the bargain.
-     */
+    // The group's name is a control, so it cannot go inside the title's heading.
     <Panel
       panelTitle="ACTION GROUP"
       compactTitle={["ACTIONS", "AG"]}
@@ -312,7 +267,6 @@ export function ActionGroupView({
             </Badge>
           </Section>
         ),
-        // `AugmentSlot` renders a fragment, so each bound augment becomes its own item of the section grid.
         <AugmentSlot
           key="subsystem"
           name="action-group.subsystem"

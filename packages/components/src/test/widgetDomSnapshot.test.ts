@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { normaliseReactIds } from "./widgetDomSnapshot";
 
-/**
- * Part of the comparison behind the behavior-preservation dual-run goldens, so a
- * defect here does not fail a test, it stops tests from failing. The
- * normalisation has to absorb a counter shift while still reporting mis-wired
- * aria references.
- */
+/** The normalisation behind the dual-run goldens absorbs a counter shift while still reporting mis-wired aria references. A defect here stops other tests from failing. */
 describe("normaliseReactIds", () => {
   it("makes the same tree compare equal when the id counter has shifted", () => {
     const early = `<button aria-controls=":r3:panel" /><div id=":r3:panel" />`;
@@ -15,7 +10,7 @@ describe("normaliseReactIds", () => {
   });
 
   it("still reports a control pointing at the wrong panel", () => {
-    // The failure a blanket replace would have hidden: both trees mention two ids, and only the referencing edge differs.
+    // Both trees mention two ids and only the referencing edge differs, which a blanket replace would hide.
     const wired = `<button aria-controls=":r3:" /><div id=":r3:" /><div id=":r4:" />`;
     const mixed = `<button aria-controls=":r4:" /><div id=":r3:" /><div id=":r4:" />`;
     expect(normaliseReactIds(wired)).not.toBe(normaliseReactIds(mixed));

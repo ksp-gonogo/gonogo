@@ -4,30 +4,18 @@ import { join, relative, sep } from "node:path";
 /**
  * Build-time guards an Uplink can run against its own source.
  *
- * Published as `@ksp-gonogo/ui-kit/guards`, and separate from `./testing` for
- * a concrete reason: this entrypoint reads the FILESYSTEM. `./testing` holds
- * DOM helpers that run anywhere a component test runs, including a browser
- * runner; these need `node:fs` and would break that.
+ * Published as `@ksp-gonogo/ui-kit/guards`, separate from `./testing` because
+ * it reads the filesystem (`node:fs`), which would break a browser test runner.
  *
- * ## Why the kit ships a lint rule at all
+ * ## Why
  *
- * The rule this enforces has been learned the expensive way twice in the app
- * this kit came out of. A widget writes
+ * A widget that writes
  *
  *     `${closingSpeed.toFixed(1)} m/s`
  *
- * and nothing objects. It type-checks, it renders correctly, and it is the
- * whole problem the unit layer exists to solve: that symbol cannot be dimmed,
- * cannot be kept off a line break, is announced to a screen reader as the
- * letters "m", "slash", "s", and does not follow when the value's ladder
- * changes rung. Eleven widgets each grew their own private unit ladder that
- * way before anyone noticed, and unpicking them was days of work. Three
- * Uplinks then did the same thing, for the straightforward reason that the
- * app's own guard globbed `packages/` and stopped there.
- *
- * An Uplink imports the same `<Unit>` from the same published package, so it
- * should be able to run the same check. Keeping the check private to one repo
- * is what let those three drift.
+ * type-checks and renders, but the symbol cannot be dimmed, cannot be kept off
+ * a line break, is announced as the letters "m", "slash", "s", and does not
+ * follow when the value's ladder changes rung. `<Unit>` solves all four.
  *
  * ## Using it
  *
@@ -43,24 +31,16 @@ import { join, relative, sep } from "node:path";
  * ```
  *
  * On an existing codebase with offenders already in it, seed a `baseline` and
- * lower it as you convert. The point is the direction of travel, not a cliff:
- * a guessed conversion is worse than a hand-typed symbol, because it renders
- * a confident wrong label.
+ * lower it as you convert: a guessed conversion is worse than a hand-typed
+ * symbol, because it renders a confident wrong label.
  */
 
 /**
- * The symbols worth looking for, deliberately CURATED rather than derived from
- * the kit's full unit catalogue.
+ * The symbols worth looking for, curated rather than derived from the unit
+ * catalogue, whose tokens include ones never typed beside a number and short
+ * ones that occur constantly in prose.
  *
- * Deriving it would look tidier and be worse. The catalogue holds tokens like
- * `count`, `id` and `flag` that never appear beside a number, and short ones
- * whose letters occur constantly in ordinary prose and JSX. What matters is
- * the symbols a developer actually types after an interpolation, which is a
- * much smaller set than the ones the system knows about.
- *
- * Pass your own through `symbols` when your Uplink introduces a unit of its
- * own: `registerUnit` makes the kit render it, and this list is what makes the
- * guard notice when somebody writes it by hand instead.
+ * Pass your own through `symbols` when your Uplink registers a unit of its own.
  */
 export const HAND_TYPED_SYMBOLS: readonly string[] = [
   "m/s²",
@@ -94,19 +74,9 @@ export const HAND_TYPED_SYMBOLS: readonly string[] = [
   "deg",
   "rad",
   /*
-   * Units the tree renders that this list did not name, found by diffing it
-   * against every token actually passed to `value()`/`quantity()`: it looked
-   * for 30 symbols while 67 were in use, so anything absent here was outside
-   * the rule rather than clean.
-   *
-   * `RPM` is listed beside `rpm` ON PURPOSE, and is the reason this comment is
-   * here. The pattern is built with no `i` flag, so case is significant, and
-   * the site that prompted this (`RotorTachometer`) types the uppercase form:
-   * adding only the lowercase token would have left it invisible while looking
-   * like it had been covered. Blanket case-insensitivity is NOT the fix, since
-   * single-letter members like `m`, `s`, `t`, `N` and `W` would then match
-   * prose and CSS; a unit conventionally written both ways earns both spellings
-   * instead.
+   * Matching is case-sensitive, since single letters like `m` and `W` would
+   * otherwise match prose and CSS, so a unit conventionally written both ways
+   * (`rpm`, `RPM`) is listed in both spellings.
    */
   "rpm",
   "RPM",
@@ -122,19 +92,9 @@ export const HAND_TYPED_SYMBOLS: readonly string[] = [
 ];
 
 /**
- * A CSS length is not a readout, and `width: ${pct}%` is by far the most
- * common shape in any component tree. Left unfiltered it drowns the real
- * findings entirely.
- *
- * The `[:(={]` covers all three spellings a length appears in: a declaration
- * (`width: ...`), a call (`translate(...)`), and an SVG or JSX attribute
- * (`offset={...}`), which is how a gradient stop is written and which the first
- * two forms missed.
- *
- * The colour functions (`hsl`/`rgb`/`hsla`/`rgba`) are here for the same
- * reason: `hsl(${h}deg ${s}% ${l}%)` is a CSS colour value, not a readout, so
- * its `deg`/`%` are CSS syntax the way `translate`'s `%` is (e.g. the dynamic
- * hue in `resourceColor`).
+ * A CSS length or colour is not a readout. `[:(={]` covers a declaration
+ * (`width: ...`), a call (`translate(...)`) and an attribute (`offset={...}`);
+ * the colour functions cover `hsl(${h}deg ${s}% ${l}%)`.
  */
 const CSS_PROPERTY =
   /(width|height|left|top|right|bottom|transform|translate|inset|margin|padding|gap|flex|stroke|offset|dasharray|dashoffset|hsl|hsla|rgb|rgba)\s*[:(={]/i;
@@ -158,9 +118,8 @@ export interface HandTypedUnitOptions {
   symbols?: readonly string[];
   /**
    * Per-file allowance, keyed by the path as it appears in a finding. A file
-   * at its entry passes and a file below it throws. Only ever lower one: an entry that stops
-   * being reachable is itself reported, so a conversion cannot silently leave
-   * the door open behind it.
+   * at its entry passes and a file below it throws, so a stale allowance is
+   * reported rather than left open.
    */
   baseline?: Readonly<Record<string, number>>;
   /**
@@ -184,17 +143,8 @@ const SOURCE = /\.(ts|tsx|js|jsx)$/;
 
 /**
  * Blank out comments, keeping line structure so reported line numbers still
- * point at the source.
- *
- * A symbol inside prose is not a readout, and a file explaining WHY not to
- * write `${x.toFixed(1)} m/s` should not fail the guard for saying so. The
- * sibling guard on Earth days learned this the same way: it matched inside
- * comments, and the file documenting the rule was its own first offender.
- *
- * Not a parser, and it does not need to be. It only has to stop prose about
- * the rule from reading as a breach of it. Over-blanking would at worst hide a
- * symbol typed inside a string, and a `"12 km"` literal is a different problem
- * from an interpolation.
+ * point at the source, so prose about the rule is not a breach of it. Not a
+ * parser: over-blanking would at worst hide a symbol inside a string literal.
  */
 function stripComments(source: string): string[] {
   const out: string[] = [];
@@ -282,7 +232,7 @@ export function findHandTypedUnits(
       found.push({
         file,
         line: index + 1,
-        // The RAW line, so the report shows what is actually written there rather than the blanked form the scan matched against.
+        // The raw line, not the blanked form the scan matched against.
         source: raw[index].trim(),
         symbol: match[1],
       });
@@ -293,12 +243,8 @@ export function findHandTypedUnits(
 
 /**
  * Throws when a unit symbol is typed next to a number, with the fix in the
- * message rather than in a document somebody has to go and find.
- *
- * Silent when everything renders through `<Unit>`, and silent for a file at
- * its `baseline` entry. A file BELOW its entry throws: leaving a
- * stale allowance in place is how a ratchet stops ratcheting, because the
- * symbol is then free to come back unnoticed.
+ * message. Silent for a file at its `baseline` entry; a file below its entry
+ * throws, so a stale allowance cannot let the symbol come back unnoticed.
  */
 export function expectNoHandTypedUnits(
   options: HandTypedUnitOptions = {},

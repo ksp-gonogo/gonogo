@@ -7,33 +7,14 @@ interface GroundPoint {
 }
 
 /**
- * Where a ground track leaves the map, measured on what is actually DRAWN
- * rather than on what was propagated.
+ * Where a ground track leaves the map, measured on what is drawn rather than
+ * what was propagated, breaking the polyline at both kinds of edge.
  *
- * An equirectangular map has two kinds of edge and the track can leave by
- * either, so this breaks the polyline on both.
- *
- * **The vertical seam.** `splitOnLongitudeWrap` breaks a polyline at the date
- * line, and it reads the sample's own longitude, which is the body-inertial one
- * the propagation produced. The canvas does not draw that: `adjustedMap`
- * rotates every longitude by the body's texture offset first, 90 degrees for
- * Kerbin, so the seam the drawing has is 90 degrees away from the seam the
- * split looks for. A track crossing the DRAWN seam is handed to the renderer as
- * one unbroken segment, and the pair of samples straddling it is stroked as a
- * single line from one edge of the map to the other. That line is horizontal,
- * full width, and sits at whatever latitude the track happened to have there.
- * It was invisible for as long as every fixture was equatorial, because a
- * spurious line along latitude zero lies exactly on top of the track that drew
- * it. `kerbin-plane-change-node` is inclined 28 degrees and drew it plainly.
- *
- * **The poles**, which are the top and bottom edges. A craft passing over one
- * genuinely inverts its longitude, so the two samples either side of the
- * crossing sit at opposite ends of the map and get stroked as one line along
- * the edge. `mun-polar-orbit` jumps 179.97 degrees between latitudes -89.10 and
- * -89.62, which is a whisker under the seam threshold and drew a dashed bar
- * across a third of the bottom of the map, joining two passes that never meet
- * there. See `splitOnPoleCrossing` for how a pole crossing is told from a seam
- * one, which is not by lowering that threshold.
+ * The vertical seam: `adjustedMap` rotates every longitude by the body's
+ * texture offset (90 degrees for Kerbin), so the drawn seam is not the
+ * body-inertial one, and a track crossing it would be stroked as one
+ * full-width horizontal line. The poles: a craft passing over one inverts its
+ * longitude, and the pair either side would be stroked along the map edge.
  */
 export function splitOnDrawnLongitudeWrap<T extends GroundPoint>(
   samples: readonly T[],
@@ -51,32 +32,14 @@ function drawnLongitude(lon: number, offsetDeg: number): number {
 }
 
 /**
- * Break the polyline wherever the craft flew over a pole.
- *
- * The signature is geometric, not a tuned constant: a pair straddles a pole
- * when the shorter great-circle path between the two samples passes closer to
- * that pole than the samples are to each other. Both halves are needed, and
- * both are real properties of the track rather than of the map.
- *
- * *Passes the pole* rules out an ordinary pair climbing towards one: the
- * closest point of their arc to the pole has to lie BETWEEN them, which for a
- * pair on the same leg it does not. On an exactly polar orbit every pair's
- * great circle contains the pole, so this is the half that does the work there.
- *
- * *Closer than they are to each other* is what makes the tear a tear. A track
- * that misses the pole by more than one sample step draws a small jog at its
- * highest latitude and the straight line between the samples is honest; a track
- * that passes nearer than the sampling can resolve draws a line the craft never
- * flew. Tying the test to the sample spacing means it scales with the sampling
- * rather than needing a latitude band picked to suit one fixture.
- *
- * **What gets drawn instead is a break, not a join over the edge.** On an
- * equirectangular map the pole is not a point, it is the whole top or bottom
- * edge, so any polyline continuing across it has to run ALONG that edge, which
- * is the artefact being removed. Joining the passes honestly would also mean
- * inventing samples at latitude +/-90 with no time, altitude or patch of their
- * own. So each pass runs down to within a fraction of a degree of the edge and
- * stops, which is what the craft does.
+ * Break the polyline wherever the craft flew over a pole. Geometric, not a
+ * tuned constant: a pair straddles a pole when the shorter great-circle arc
+ * between them passes closer to it than the samples are to each other.
+ * "Passes" means the arc's closest point to the pole lies between them, which
+ * rules out a pair climbing on one leg; "closer than each other" ties the test
+ * to the sampling, so a near miss the sampling resolves still draws its jog.
+ * The result is a break, not a join: on this projection the pole is the whole
+ * edge, and a join would run along it.
  */
 function splitOnPoleCrossing<T extends GroundPoint>(
   samples: readonly T[],
@@ -102,8 +65,7 @@ function crossesAPole(a: GroundPoint, b: GroundPoint): boolean {
   // Coincident or antipodal samples span no unique great circle.
   if (normal === null) return false;
 
-  // Angular distance from the pole axis to the arc's great circle. The normal's
-  // z component IS the sine of it, both being measured off the same axis.
+  // Angular distance from the pole axis to the arc's great circle: the normal's z is its sine.
   const missDistance = Math.asin(Math.min(1, Math.abs(normal[2])));
   if (missDistance >= separation) return false;
 

@@ -15,31 +15,15 @@ import { type HandoverFixture, loadHandoverFixtures } from "./handoverFixture";
 import { type FlightReading, LandingStatusComponent } from "./index";
 
 /**
- * WHICH of `vessel.flight`'s two altitude models carried each frame of the
- * handover render set.
- *
- * This file exists because the app cannot say. `RECKONING_BASIS_PHRASE`
- * ("integrated forward at the last observed rate") lives in one place,
- * `packages/ui/src/LineChart.tsx`, and reaches only a chart's accessible name;
- * `LandingStatus` names no model at all, its only currency surface being
- * "Described from last known flight, not current". So a PNG of a carried
- * altitude cannot be captioned with what carried it, and a review render
- * attributing one by eye would be a claim rather than evidence.
- *
- * Each `__render_handover__` fixture states the model it expects in its own
- * `_meta.expectedBasis`, and this checks that claim against the real store,
- * through the real widget, on the same emit path the render harness uses. The
- * fixture holds the intent and the store holds the answer; two copies of the
- * answer would agree with each other forever.
-
+ * Which of `vessel.flight`'s two altitude models carried each frame of the handover render set.
+ * The widget names no model, so each fixture states the one it expects in `_meta.expectedBasis`, checked against the real store through the real widget on the render harness's emit path.
  */
-
 describe("the handover render set reaches the models it says it does", () => {
   let restoreResizeObserver: () => void;
 
   beforeEach(() => {
     for (const b of PerfBudget.getAll()) b.reset();
-    // jsdom lays nothing out, and every plot on this widget is a chart that draws "Chart too small to render" in an unmeasured box.
+    // jsdom lays nothing out, so every chart would draw its too-small message in an unmeasured box.
     restoreResizeObserver = installSizedResizeObserver({ w: 720, h: 640 });
     registerStockBodies();
   });
@@ -48,15 +32,7 @@ describe("the handover render set reaches the models it says it does", () => {
     restoreResizeObserver();
   });
 
-  /**
-   * The reading the widget's own subscription produced, off the fixture's wire.
-   *
-   * The widget is MOUNTED rather than the store fed directly, because
-   * `StubTransport.emit` is subscription-gated exactly like production: nothing
-   * is delivered until something has actually subscribed, so a store-only
-   * version of this would be reading a topic the render path might never have
-   * asked for.
-   */
+  /** The reading the widget's own subscription produced; mounted, since the stub transport is subscription-gated like production. */
   function readFlight(fixture: HandoverFixture): FlightReading {
     const stream = setupStreamFixture({
       carriedChannels: fixture._stream.carriedChannels,
@@ -72,24 +48,13 @@ describe("the handover render set reaches the models it says it does", () => {
         </DashboardItemContext.Provider>
       </stream.Provider>,
     );
-    /*
-     * Inside `act`, because the widget is MOUNTED and every emit is a real
-     * store push: a fixture's hundred frames delivered bare are a hundred
-     * `useSyncExternalStore` re-renders outside React's own scope, and the
-     * seven scenarios here were emitting 743 act warnings between them.
-     */
+    // Inside act: every emit is a real store push into the mounted widget.
     act(() => {
       for (const emit of fixture._stream.emits) {
         stream.emit(emit.channel, emit.value, emit.meta);
       }
     });
-    /*
-     * Read as the READING the contract declares, not as a plain `Reading`:
-     * `vessel.flight.altitudeAsl` carries a `[SitrepReckonable]` mark, so its
-     * refusals arrive with a `declined` beside them, and the plain shape has no
-     * arm for that. `sampleReading` is generic over the payload and cannot know
-     * which topics are marked, so the mark is stated here.
-     */
+    // Read as the contract's reckonable reading, since the marked `altitudeAsl` refusals carry a `declined` the plain shape lacks.
     const reading = stream.store.sampleReading<VesselFlight>(
       "vessel.flight",
     ) as FlightReading;
@@ -105,14 +70,7 @@ describe("the handover render set reaches the models it says it does", () => {
     if (expectedBasis === "declined") {
       const decline = fixture._meta.expectedDecline;
       it(`${scenario}: no model is offered, and it withdraws on ${decline?.input}`, () => {
-        /*
-         * The REASON is asserted, not just the absence of a model, because "no
-         * model" is what every withdrawal in the tree looks like from here. The
-         * one this set holds is the rate integration's horizon closing under
-         * sensed deceleration; the crossing band used to produce a second,
-         * the conic refusing on a floor the selector had never asked about, and
-         * an assertion on absence alone would not have told the two apart.
-         */
+        // The reason is asserted, not just an absent model, since every withdrawal looks alike from here: this set holds the rate integration's horizon closing under sensed deceleration.
         const reading = readFlight(fixture);
         expect(reading.state).toBe("stale");
         if (reading.reckoning.status !== "declined") {
@@ -136,19 +94,12 @@ describe("the handover render set reaches the models it says it does", () => {
       if (reading.state !== "observed" && reading.state !== "stale") {
         throw new Error(`expected an observation, got "${reading.state}"`);
       }
-      /*
-       * The ROOT entry, which is the one a whole-topic read is answered by, and
-       * the field entry for the altitude, which is what says the altitude was
-       * MOVED rather than copied. The conic moves both marked fields; the rate
-       * integration moves the altitude alone and copies `orbitalSpeed`
-       * verbatim, so the pair of assertions is also what tells the two branches
-       * apart on the wire rather than by their arithmetic.
-       */
+      // The root entry answers a whole-topic read, and the field entry says the altitude was moved; the conic moves both marked fields while the rate integration copies `orbitalSpeed`, so the pair tells the branches apart.
       expect(reading.reckoning.basis).toBe(expectedBasis);
       expect(reading.reckoning.modelled).toEqual(
         expect.arrayContaining([{ path: "altitudeAsl", basis: expectedBasis }]),
       );
-      // And the carried altitude is genuinely a different number from the observation, or the picture would be showing an identity projection.
+      // The carried altitude differs from the observation, or this would be an identity projection.
       expect(reading.reckoning.value.altitudeAsl.toWire()).not.toBe(
         reading.value.altitudeAsl.toWire(),
       );

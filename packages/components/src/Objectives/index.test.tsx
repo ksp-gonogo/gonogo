@@ -44,20 +44,13 @@ const contract = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-/**
- * The wire fixtures through the real parser, which is the only shape
- * `contractObjectives` accepts. Parsing rather than hand-writing a
- * `ContractEntry` keeps the fixture one object: the wire carries
- * `stateOrdinal`, and the parsed entry carries the `state`/`stateLabel` pair
- * the ordinal resolves to.
- */
+/** The wire fixtures through the real parser, so the fixture stays one object. */
 function parsed(...wire: ReturnType<typeof contract>[]): ContractEntry[] {
   const entries = parseContracts(wire);
   if (!entries) throw new Error("the contract fixture did not parse");
   return entries;
 }
 
-/** Objectives reads `contracts.active` off `career.status.contracts.active`. */
 function renderObjectives() {
   const fixture = setupStreamFixture({
     carriedChannels: ["career.status"],
@@ -107,7 +100,7 @@ describe("ObjectivesComponent", () => {
     const { fixture } = renderObjectives();
     emitContracts(fixture, [contract()]);
     await screen.findByText("Reach the Mun");
-    // Bell is gated on the alarm context; absent here, it degrades cleanly.
+    // No alarm context here, so no bell.
     expect(screen.queryByRole("button", { name: /Set alarm/i })).toBeNull();
   });
 });
@@ -130,9 +123,7 @@ describe("Objectives: augment slot composition (spec §4.9)", () => {
   it("shows the frame's empty fallback only when the source yields no items", async () => {
     const { fixture } = renderObjectives();
     emitContracts(fixture, [contract()]);
-    // A source yielded items → fallback stays out of the rendered content flow.
-    // (It is present-but-CSS-hidden; asserting the contract items render proves
-    // composition happened. The empty-state case is covered above.)
+    // The fallback is hidden by CSS jsdom does not evaluate, so the items rendering is the evidence.
     expect(await screen.findByText("Reach the Mun")).toBeInTheDocument();
   });
 

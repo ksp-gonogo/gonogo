@@ -16,20 +16,8 @@ import {
 import { LandingStatusComponent } from "./index";
 
 /**
- * LandingStatus genuinely running OFF THE STREAM (a real `TelemetryProvider`/
- * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`): no legacy
- * `DataSource` is registered anywhere in this file, so a value only reaches the
- * widget if it actually streamed.
- *
- * The rebooted widget runs a FULL-VECTOR suicide-burn solve client-side off the
- * streamed `vessel.flight` / `vessel.propulsion` / `vessel.orbit` channels plus
- * the body's radius. This file proves the whole chain, subscription,
- * carried-channel promotion, body resolution off `vessel.identity` and
- * `system.bodies`, and the DOM render, works end to end on a real Mun descent,
- * with the horizontal component surfaced.
- *
- * `carriedChannels` mirrors `index.test.tsx`'s superset, and `vessel.orbit` is
- * emitted `{ quality: Quality.Loaded }`, a craft under physics.
+ * LandingStatus running off the stream through a real `StubTransport` pipeline, with no legacy `DataSource` registered, on a real Mun descent: subscription, carried-channel promotion, body resolution and the DOM render end to end.
+ * `vessel.orbit` is emitted `{ quality: Quality.Loaded }`, a craft under physics.
  */
 const CARRIED = [
   "vessel.orbit",
@@ -47,23 +35,9 @@ const CARRIED = [
 const MUN = { index: 3, name: "Mun", radius: 200_000, mu: 6.5138398e10 };
 
 describe("LandingStatus: full-vector solve genuinely runs off the stream", () => {
-  /**
-   * The contribution budgets, reset between tests.
-   *
-   * `Contributions "<slot>" entries recomputed/sec` is capped at 30, which is
-   * ~7x a real 4 Hz stream. A spec emits its whole scenario in a handful of
-   * milliseconds, so the thirty-odd frames this file replays land inside one
-   * rolling second and every slot on the widget trips its cap at 31. The same
-   * thirty-one frames take eight seconds in the app.
-   *
-   * Reset rather than raised: the threshold is right for the load it is
-   * measuring, and widening it to fit a test's clock is how a budget stops
-   * being able to see the regression it exists for.
-   */
+  // A spec replays its scenario inside one rolling second, so the contribution budgets are reset between tests rather than raised.
 
-  // A chart in an unmeasured box draws nothing but "Chart too small to render",
-  // and every plot on this widget is a chart now. jsdom lays nothing out, so the
-  // observer has to be told a size. Same helper the snapshot harness uses.
+  // jsdom lays nothing out, so charts need a told size.
   let restoreResizeObserver: () => void;
   afterEach(() => {
     restoreResizeObserver();
@@ -132,7 +106,7 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
       },
       { quality: Quality.Loaded },
     );
-    // h=5km, descending 50 m/s but carrying 540 m/s of (mostly horizontal) surface speed: the whole point of the full-vector solve.
+    // h=5km, descending 50 m/s with 540 m/s of mostly horizontal surface speed.
     stream.emit("vessel.flight", {
       latitude: 0,
       longitude: 0,
@@ -143,7 +117,7 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
       orbitalSpeed: 540,
       atmDensity: 0,
     });
-    // aMax = availableThrust/totalMass = 20 m/s^2.
+    // aMax = availableThrust / totalMass = 20 m/s^2.
     stream.emit("vessel.propulsion", {
       totalMass: 1,
       dryMass: 0.5,
@@ -157,24 +131,20 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
 
     // Nothing arrived yet: the empty state shows.
     expect(visibleText(container)).toContain("No landing in progress");
-    // A real subscription must have happened for StubTransport (which is subscription-gated) to deliver at all.
+    // StubTransport is subscription-gated, so a real subscription must have happened.
     expect(stream.transport.isSubscribed("vessel.flight")).toBe(true);
 
     act(() => {
       emitMunDescent();
     });
 
-    // The altitude rail surfaces the streamed AGL datum (5000 m). It is a gauge
-    // rather than a plot, so the reading is an `aria-valuenow` on a meter, and
-    // nothing on the plots board draws height against a scale beside it.
+    // The rail is a gauge, so the streamed AGL datum (5000 m) is an `aria-valuenow` on a meter.
     await waitFor(() =>
       expect(
         screen.getByRole("meter", { name: /altitude above terrain/i }),
       ).toHaveAttribute("aria-valuenow", "5000"),
     );
-    // The velocity split is a readout, not a plot label: this scenario carries
-    // no terrain patch, so the cross-section has no ground to slice and
-    // contributes nothing rather than an empty box with the numbers on it.
+    // The velocity split is a readout; with no terrain patch the cross-section contributes nothing.
     expect(container.textContent).toMatch(/538/);
     // The subtitle names the body off vessel.identity.
     expect(screen.getByText(/mun · vacuum/i)).toBeInTheDocument();
@@ -182,38 +152,23 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
     expect(container.textContent).not.toContain("No landing in progress");
   });
 
-  // L2 (producer-consumer disagreement): the health badge must track the datum
-  // the widget actually displays: vessel.surface (the lowest-point burn
-  // height): not vessel.flight. vessel.surface is independently gated (withheld
-  // while Orbiting/Escaping and under signal delay), so a badge bound to
-  // vessel.flight read healthy even when the shown height had silently dropped
-  // to the CoM fallback.
+  // The widget displays the vessel.surface lowest-point height, independently gated from vessel.flight, so the declared datum must be vessel.surface.
   it("badges on the withheld vessel.surface datum, not the live vessel.flight fallback (L2)", async () => {
-    // Small size renders the plain AGL readout (at wide sizes altitude is the full-height rail, which carries no "AGL" text).
+    // Small size renders the plain AGL readout; the wide rail carries no "AGL" text.
     const { container } = renderWidget({ w: 4, h: 10 });
 
-    // A full descent WITH flight flowing but vessel.surface WITHHELD: the widget falls back to the CoM datum (usingComDatum) and keeps rendering.
+    // Flight flowing but vessel.surface withheld: the widget falls back to the CoM datum and keeps rendering.
     act(() => {
       emitMunDescent(); // emits vessel.flight, NOT vessel.surface
     });
     await screen.findByText("AGL");
 
-    // The declaration is still asserted, because it still drives alarm attribution: an alarm on the withheld datum has to reach this widget.
+    // The declaration drives alarm attribution: an alarm on the withheld datum has to reach this widget.
     expect(getComponent("landing-status")?.dataRequirements).toContain(
       "vessel.surface",
     );
 
-    // NOT ASSERTED ANY MORE, and named rather than quietly dropped: that the
-    // withheld datum is SURFACED to the operator. It used to be, by the
-    // host-derived panel badge reading SYNCING while the fallback channel was
-    // live. That badge is gone (one worst-of pill across every declared topic
-    // could not say which topic was degraded, and read as a fault when there
-    // was none), and nothing has replaced it here yet.
-    //
-    // So this widget currently degrades to the CoM fallback in silence. The
-    // remaining assertions still prove the DERIVATION is right, which is the
-    // half this file can prove; showing the operator it happened is the
-    // widget's own job now and is not yet built.
+    // The CoM fallback is not yet surfaced to the operator; the assertions below prove the derivation only.
 
     // Once vessel.surface arrives the shown AGL switches to the lowest-point datum.
     act(() => {
@@ -223,10 +178,7 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
   });
 
   it("surfaces the round trip in the header, which is what replaced the warnings", async () => {
-    // UNCOMMANDABLE and PAST COMMIT POINT were removed as two readings of one
-    // fact. The round trip is the instrument datum underneath both, so it has
-    // to be on screen for that removal to be a simplification rather than a
-    // loss. It lives in the panel header beside the regime.
+    // The round trip, the datum under commit and blind timing, must be on screen in the panel header beside the regime.
     renderWidget({ w: 12, h: 16 });
     act(() => {
       emitMunDescent();

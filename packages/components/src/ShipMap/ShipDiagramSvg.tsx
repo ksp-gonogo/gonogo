@@ -4,12 +4,7 @@ import { resourceColor } from "@ksp-gonogo/ui-kit";
 import type React from "react";
 import type { CSSProperties } from "react";
 import { useMemo } from "react";
-// PartGroup below is a styled.g whose keyboard focus ring
-// (`&:focus-visible .focus-ring`) is an SVG pseudo-class + descendant rule that
-// inline `style` cannot express, and no ui-kit primitive is an SVG <g> focus
-// wrapper. A JS onFocus replacement would fire on mouse click too, losing the
-// `:focus-visible` semantics. Kept styled deliberately; flagged in the
-// styled-components migration report.
+// SVG <g> focus ring via `:focus-visible`, which inline style and no ui-kit primitive can express.
 // biome-ignore lint/style/noRestrictedImports: SVG <g> focus ring, no inline/primitive equivalent (see above)
 import { styled } from "styled-components";
 import type {
@@ -39,9 +34,7 @@ interface Intrinsic {
   halfH: number;
   /** Half-extent along the lateral axis, in metres. */
   halfW: number;
-  /** Tanks/boosters/engines stretch axially to fill stack slabs; everything
-   *  else stays at its intrinsic size so decouplers, fins, etc. don't
-   *  inflate to fill huge gaps. */
+  /** Tanks, boosters and engines stretch axially to fill stack slabs; everything else keeps its intrinsic size. */
   stretchy: boolean;
 }
 
@@ -62,47 +55,31 @@ export interface ShipDiagramSvgProps {
   highlightColor?: string;
   /** Defaults to identity (zoom=1, pan=0,0): that's what the harness uses. */
   cam?: Camera;
-  /** When provided, each part `<g>` becomes interactive (tabIndex/role/aria
-   *  + pointer + focus handlers). Omit for a static / harness render. */
+  /** When provided, each part `<g>` becomes interactive. Omit for a static render. */
   onPartHover?: (part: ShipMapPart | null) => void;
-  /** Fired on keyboard focus with the focused part's pre-transform centre,
-   *  so the parent can position a tooltip near it. */
+  /** Fired on keyboard focus with the part's pre-transform centre, for tooltip placement. */
   onPartFocus?: (part: ShipMapPart, center: { x: number; y: number }) => void;
   /**
-   * Fired when a part is ACTIVATED rather than merely pointed at: a left click,
-   * Enter/Space on the focused part, or a right click (`contextmenu`, which is
-   * also what a touch long-press raises). Carries the same pre-transform centre
-   * as `onPartFocus` so the parent can anchor a popover to the part.
-   *
-   * Both mouse buttons are bound on purpose: right-click matches KSP's own PAW
-   * muscle memory, and left-click/Enter is what makes the same surface reachable
-   * without a mouse, so neither audience needs a second UI.
+   * Fired when a part is activated: left click, Enter/Space, or right click
+   * (`contextmenu`, also a touch long-press). Carries the same pre-transform
+   * centre as `onPartFocus`. Right click matches KSP's own PAW gesture; left
+   * click and Enter make the same surface reachable without a mouse.
    */
   onPartActivate?: (
     part: ShipMapPart,
     center: { x: number; y: number },
   ) => void;
-  /** Current `f.throttle` (0..1+). Gates engine-flame overlays so a
-   *  staged-but-idle engine doesn't render thrust. Defaults to 1 so
-   *  snapshot fixtures + the harness keep rendering engine flames
-   *  exactly as before. */
+  /** Current throttle (0..1+). Gates engine flames so a staged but idle engine renders no thrust. Defaults to 1. */
   throttle?: number;
   /**
-   * Per-part resource meters, keyed by `ShipMapPart.flightId` (stringified),
-   * aggregated from the `ship-map.part-meters` contribution slot.
-   * Drives the fuel-fill bars on tanks and boosters: there is no
-   * hardcoded resource allowlist here any more, an empty/omitted map simply
-   * renders no bars, same as a part with no contributed meters. Defaults to
-   * empty so the SSR (`render.ts`) and snapshot-test call sites, which
-   * render outside the contribution framework entirely, keep working
-   * unchanged.
+   * Per-part resource meters keyed by stringified `ShipMapPart.flightId`,
+   * from the `ship-map.part-meters` slot. An empty or omitted map renders no
+   * bars, which is what render paths outside the contribution framework get.
    */
   partMeters?: ReadonlyMap<string, readonly ShipMapPartMeterEntry[]>;
 }
 
-/** Lateral offset under which a child counts as "stack-attached" rather
- *  than side-mounted. KSP stack diameters are ~1.25m; 0.3m is well
- *  under the radius so axial-stack joints don't get misclassified. */
+/** Lateral offset under which a child counts as stack-attached. Well under the ~1.25 m stack diameter's radius. */
 const STACK_LAT_TOL = 0.3;
 
 /** Screen-space margin (px) reserved around the fit-scaled diagram. */
@@ -117,11 +94,9 @@ export interface ShipBounds {
 }
 
 /**
- * Base (identity-camera) metres→px scale that fits `bounds` into a
- * `width`×`height` viewport with {@link SHIP_DIAGRAM_PADDING} margin. The
- * single source of truth shared by the diagram's own render and the
- * `ship-map.overlay` slot props, so an overlay augment projects into the same
- * coordinate space the diagram draws in.
+ * Base (identity-camera) metres-to-px scale fitting `bounds` into the
+ * viewport with {@link SHIP_DIAGRAM_PADDING}. Shared by the diagram's render
+ * and the `ship-map.overlay` slot props so both use one coordinate space.
  */
 export function computeShipBaseScale(
   bounds: { w: number; h: number },
@@ -142,12 +117,9 @@ export interface ShipBaseLayout {
 }
 
 /**
- * Compute the diagram's base-frame layout (fit bounds + metres→px scale) for a
- * given part set and viewport. Mirrors exactly what `ShipDiagramSvg` computes
- * internally; exposed so the host widget can hand the same projection to the
- * `ship-map.overlay` slot. The base frame is the identity-camera
- * projection: the diagram's live zoom/pan is layered on top of it at render
- * time and is not reflected here.
+ * The diagram's base-frame layout (fit bounds and scale), exactly as
+ * `ShipDiagramSvg` computes it, for the `ship-map.overlay` slot. The live
+ * zoom/pan is layered on at render time and is not reflected here.
  */
 export function computeShipLayout(
   parts: readonly ShipMapPart[],
@@ -163,10 +135,8 @@ export function computeShipLayout(
 }
 
 /**
- * Pure SVG rendering of the ship diagram. Separated from the interactive
- * `ShipDiagram` shell (Wrapper/Reset/Tooltip) so the harness + snapshot
- * tests can render the same SVG without spinning up zoom/pan state, a
- * jsdom mouse, or any tooltip chrome.
+ * Pure SVG rendering of the ship diagram, separate from the interactive
+ * `ShipDiagram` shell so it renders without zoom/pan state or tooltip chrome.
  */
 export function ShipDiagramSvg({
   parts,
@@ -193,7 +163,6 @@ export function ShipDiagramSvg({
         height={height}
         role="img"
         aria-label="Ship diagram"
-        // The `svg {}` sizing/layer rule that lived on the parent DiagramWrap (ShipMap/index) belongs on the element it sizes.
         style={ROOT_SVG_STYLE}
       >
         <text
@@ -219,14 +188,7 @@ export function ShipDiagramSvg({
   const transform = `translate(${cam.panX}, ${cam.panY}) scale(${cam.zoom})`;
   const stroke = (n: number) => n / cam.zoom;
 
-  // Painter's algorithm: draw back-to-front by depth (the collapsed axis)
-  // so a front-facing radial part paints over the fuselage and a rear one
-  // stays behind it. Depth is quantised to the mm so float noise doesn't
-  // disturb the tiebreak: parts at the same depth, the axial stack and any
-  // in-plane radial parts all sit at depth ~0, fall back to drawing the
-  // outermost first, so the central column still overlaps cleanly on top.
-  // Fuel-line parts come out of the main pass and render as source→target
-  // arrows in a separate layer on top.
+  /* Painter's algorithm: back-to-front by depth, quantised to the mm so float noise does not disturb the tiebreak. Parts at the same depth draw outermost first so the central column overlaps on top. Fuel lines render as arrows in a separate top layer. */
   const drawOrder = [...projected]
     .filter((p) => p.type !== "fuel-line")
     .sort((a, b) => {
@@ -316,7 +278,7 @@ export function ShipDiagramSvg({
           const showFuel = p.type === "tank" || p.type === "booster";
           const meters = partMeters?.get(String(p.flightId)) ?? NO_METERS;
 
-          // Screen-space centre of this part, the anchor point both the focus-tooltip and the action popover position against.
+          // Screen-space centre of this part, the anchor for the focus tooltip and the action popover.
           const anchor = {
             x: center.x * cam.zoom + cam.panX,
             y: center.y * cam.zoom + cam.panY,
@@ -335,17 +297,13 @@ export function ShipDiagramSvg({
                 },
                 onBlur: () => onPartHover?.(null),
                 onClick: () => onPartActivate?.(p, anchor),
-                // Right-click opens the same menu (KSP's own PAW gesture, and
-                // what a touch long-press raises), with the browser's own
-                // context menu suppressed so the two don't both appear.
+                // Right click opens the same menu, with the browser's own context menu suppressed.
                 onContextMenu: (e: React.MouseEvent) => {
                   if (!onPartActivate) return;
                   e.preventDefault();
                   onPartActivate(p, anchor);
                 },
-                // A <g role="button"> gets no native keyboard activation, so
-                // Enter/Space are wired explicitly: without this the part would
-                // be focusable but unusable without a mouse.
+                // A <g role="button"> gets no native keyboard activation, so Enter/Space are wired here.
                 onKeyDown: (e: React.KeyboardEvent) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
@@ -356,23 +314,13 @@ export function ShipDiagramSvg({
               }
             : {};
 
-          // Convert the projected rotationRad into an SVG transform applied
-          // around the part's centre. Zero rotation (the legacy / fixture-
-          // fallback case) renders as today.
-          //
-          // Solar panels skew instead of rotate: up to 45°. A flat panel
-          // viewed at a modest angle projects to a parallelogram, not a
-          // tilted rectangle: its width axis (tangential) stays horizontal
-          // while its length axis (up) tilts. A rigid rotate would slant the
-          // horizontal edges too, which reads wrong. A horizontal shear
-          // keeps the top/bottom edges level and slants only the sides, the
-          // projected up vector: so a skewX of -rotationRad matches the 2D
-          // perspective. Past 45° the shear degenerates (skewX shears by
-          // tan, which blows up toward ±90°, smearing the panel across the
-          // canvas) and a strongly tilted panel is really one mounted
-          // sideways, so it takes the rigid rotate like every other part.
-          // Other parts always rotate so their box + overlays (fuel bars,
-          // heat tint, EC + highlight rings) stay locked to the part.
+          /*
+           * Solar panels skew rather than rotate, up to 45 degrees: a flat panel
+           * seen at an angle projects to a parallelogram with level top and
+           * bottom edges. Past 45 degrees the shear blows up toward tan(90) and
+           * the panel is really mounted sideways, so it rotates like every other
+           * part, whose box and overlays stay locked together.
+           */
           const rotateDeg = (p.rotationRad * 180) / Math.PI;
           const cx = center.x.toFixed(2);
           const cy = center.y.toFixed(2);
@@ -493,10 +441,7 @@ interface FuelLineArrowProps {
 }
 
 function FuelLineArrow({ from, to, zoom }: FuelLineArrowProps) {
-  // Render the line as a stubby yellow pipe with a row of small dark
-  // chevrons inside indicating flow direction. The whole pipe lives in
-  // a rotated local frame whose +X axis points from source to target,
-  // so the chevrons just need to point in local +X.
+  // A stubby pipe in a rotated local frame whose +X points source to target, so the chevrons point along local +X.
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   const len = Math.hypot(dx, dy);
@@ -505,11 +450,7 @@ function FuelLineArrow({ from, to, zoom }: FuelLineArrowProps) {
 
   const thickness = 16 / zoom;
   const stroke = 0.5 / zoom;
-  // Cluster chevrons in the middle stretch so the pipe-end joints stay
-  // visually clean. Each chevron is roughly half the pipe's thickness
-  // (leaves margin top and bottom), and the stride is ~1.5× the chevron
-  // width so the row reads as discrete arrows rather than a dashed
-  // pattern.
+  // Chevrons cluster in the middle so the pipe-end joints stay clean; the stride keeps them reading as discrete arrows.
   const chevronW = 7 / zoom;
   const chevronH = 8 / zoom;
   const chevronStride = 12 / zoom;
@@ -559,19 +500,10 @@ interface ScreenBox {
 }
 
 /**
- * Render visual indicators driven by `v.partState[fid]`: an engine flame
- * when the engine is firing, a parachute canopy when it's deploying or
- * extended, a deploy chevron on solar panels / radiators / antennas
- * mid-animation, a deployed-gear stand when landing gear is down.
- *
- * Returns null when the part has no live state yet, pre-push parts
- * look identical to inactive ones, which is the right default (operator
- * sees "nothing happening" rather than a misleading "deployed" state
- * stale from a previous flight).
- *
- * All overlays sit in part-local coordinates inside the parent's
- * rotation transform, so flames pointing in part-local -up correctly
- * project away from the part regardless of mount orientation.
+ * Indicators driven by live part state: engine flame, parachute canopy,
+ * deploy chevron, gear stand. Returns null before any live state, so a
+ * pre-push part looks inactive rather than stale-deployed. Drawn in
+ * part-local coordinates inside the part's rotation transform.
  */
 function renderPartStateOverlays(
   partState: readonly PartStateModule[] | undefined,
@@ -596,12 +528,7 @@ function overlayFor(
 ): React.ReactNode {
   switch (m.type) {
     case "engine":
-      // PartStateModule.state==="active" means the engine is staged
-      // and *ready* to fire: not that it's currently thrusting. A
-      // staged engine at throttle=0 is idle, not firing. Gate the
-      // flame on actual thrust (throttle > 0). Reported as "engines
-      // permanently firing regardless of throttle" in the
-      // 2026-05-18 BST self-test.
+      // "active" means staged and ready, not thrusting: the flame is gated on throttle.
       return m.state === "active" && throttle > 0
         ? renderEngineFlame(box, zoom)
         : null;
@@ -623,9 +550,7 @@ function overlayFor(
 }
 
 function renderEngineFlame(box: ScreenBox, zoom: number): React.ReactNode {
-  // Stylised flame below the engine bell. Outer flame in warning-amber,
-  // inner core in yellow. Height ~40% of the engine body so it reads
-  // clearly at full-vessel zoom without dominating the diagram.
+  // Flame about 40% of the engine body: outer amber, inner core yellow.
   const { x, y, w, h } = box;
   const flameH = Math.max(h * 0.4, 8 / zoom);
   const top = y + h;
@@ -649,10 +574,7 @@ function renderEngineFlame(box: ScreenBox, zoom: number): React.ReactNode {
 }
 
 function renderParachuteCanopy(box: ScreenBox, state: string): React.ReactNode {
-  // Canopy sits above the parachute canister body (in part-local +up).
-  // Width and height grow with deploy progression so the operator sees
-  // the chute open out: armed = small marker, deploying = mid canopy,
-  // extended = full mushroom.
+  // Canopy grows with deploy progression: armed small, deploying mid, extended full.
   const { x, y, w } = box;
   const cx = x + w / 2;
   let canopyW: number;
@@ -697,10 +619,7 @@ function renderAnimatingChevron(
   state: string,
   zoom: number,
 ): React.ReactNode {
-  // Small chevron in the part's spine-facing corner indicating the
-  // deploy / retract animation is in flight. Operator sees a momentary
-  // marker on a part transitioning from stowed → extended, useful for
-  // catching solar panels mid-deploy after a stage event.
+  // Chevron in the spine-facing corner while a deploy or retract animation is in flight.
   const { x, y, w, h } = box;
   const size = Math.max(4 / zoom, Math.min(w, h) * 0.18);
   const ax = x + w - size - 1;
@@ -725,9 +644,7 @@ function renderAnimatingChevron(
 }
 
 function renderLandingGearStand(box: ScreenBox, zoom: number): React.ReactNode {
-  // Short stand under the wheel/gear indicating "down". For now a tiny
-  // tick below the body box: clear enough that the gear is extended
-  // without redrawing the wheel itself.
+  // A short tick under the body box: gear is down.
   const { x, y, w, h } = box;
   const standH = Math.max(3 / zoom, h * 0.18);
   return (
@@ -747,8 +664,7 @@ function renderLandingGearStand(box: ScreenBox, zoom: number): React.ReactNode {
 }
 
 function renderCargoBayOpenMark(box: ScreenBox, zoom: number): React.ReactNode {
-  // Dashed inset rect to suggest the cargo-bay doors are open. Sized
-  // smaller than the bay body so the original orange rect frames it.
+  // Dashed inset rect: cargo-bay doors are open.
   const { x, y, w, h } = box;
   const inset = Math.min(w, h) * 0.12;
   return (
@@ -789,10 +705,7 @@ function renderPartShape(
 
   switch (type) {
     case "engine": {
-      // Bell height is derived from width, not body height, so a
-      // stretched-tall engine grows its mounting block, not a giant
-      // trapezoid. Cap at half the body so very short engines still
-      // get a recognisable bell.
+      // Bell height from width, capped at half the body, so a tall engine grows its mounting block rather than its bell.
       const bellH = Math.min(h * 0.5, w * 0.55);
       const blockH = h - bellH;
       const bellTopInset = w * 0.12;
@@ -849,14 +762,7 @@ function renderPartShape(
         />
       );
     case "decoupler": {
-      // Stack decouplers (wide w, short h) keep the thin-band rendering,
-      // KSP stack decouplers really are flat discs and the geometric
-      // thinness is part of their identity. Radial decouplers (tall
-      // narrow box) take the full body extent: their mesh genuinely
-      // does span the gap between the parent stack and the side stack,
-      // and reducing them to a 12 px bar was hiding the bridge. Both
-      // paths still render the full long-axis extent so the slab
-      // connects its neighbours visually.
+      // Stack decouplers (wide, short) are thin discs; radial ones (tall, narrow) take the full body extent to bridge the gap to the side stack.
       if (w >= h) {
         const thickness = Math.max(4 / zoom, Math.min(h, 12 / zoom));
         return (
@@ -887,9 +793,7 @@ function renderPartShape(
       );
     }
     case "wheel": {
-      // Side-profile of a rolling wheel: circle (or ellipse for slightly
-      // asymmetric bounds). Radius takes the smaller half-extent so the
-      // wheel never overflows a side-mounted-on-rover body box.
+      // Radius takes the smaller half-extent so the wheel never overflows its box.
       const r = Math.min(w, h) / 2;
       return (
         <circle
@@ -904,13 +808,7 @@ function renderPartShape(
       );
     }
     case "fin": {
-      // Swept-winglet silhouette. We only have the bounding box (span `w`,
-      // axial chord `h`, thickness collapsed), not the real mesh outline,
-      // so this is a stylised fit. Aft is screen-down (spine runs pod-up /
-      // engine-down) and KSP winglets sweep aft, so the blade is widest at
-      // its base and rakes back: a vertical root edge on the spine side, a
-      // swept leading edge, a short tip chord, and the full-span trailing
-      // edge along the bottom.
+      /* Stylised swept winglet fitted to the bounding box (no mesh outline): aft is screen-down and KSP winglets sweep aft, so a vertical root edge on the spine side, a swept leading edge, a short tip chord and the full-span trailing edge along the bottom. */
       const rootX = outerSign >= 0 ? x : x + w;
       const tipX = outerSign >= 0 ? x + w : x;
       const tipLeadY = y + h * 0.7;
@@ -938,10 +836,7 @@ function renderPartShape(
         />
       );
     case "capsule": {
-      // Truncated cone (frustum): Mk1 pod and probe cores both share the
-      // wider-at-base silhouette. Apex flat (not pointed) and stretches
-      // to the bounds top so parts attached above the pod (e.g. the
-      // parachute) visually touch instead of floating with a gap.
+      // Frustum reaching the bounds top, so a part mounted above visually touches.
       const topInset = w * 0.18;
       return (
         <polygon
@@ -954,9 +849,7 @@ function renderPartShape(
       );
     }
     case "nose-cone": {
-      // Rounded dome whose apex reaches the bounds top. Cubic Bezier with
-      // both control points pulled to y so the curve is tangent to the
-      // top edge at its peak: gives a smoother nose than a Q curve.
+      // Cubic Bezier with both control points at y, tangent to the top edge at the peak.
       return (
         <path
           d={`M ${x} ${y + h} L ${x} ${y + h * 0.4} C ${x} ${y} ${x + w} ${y} ${x + w} ${y + h * 0.4} L ${x + w} ${y + h} Z`}
@@ -968,11 +861,7 @@ function renderPartShape(
       );
     }
     case "solar": {
-      // Flat photovoltaic panel drawn as its projected rectangle. The box
-      // w/h already carry the azimuth foreshortening from buildShipMapPart:
-      // a panel facing the viewer keeps its full broad face, one seen
-      // edge-on collapses toward its thin edge. Floor the minor dimension
-      // so an edge-on panel stays a visible hairline rather than vanishing.
+      // The box already carries azimuth foreshortening; the minor dimension is floored so an edge-on panel stays a hairline.
       const minDim = 3 / zoom;
       const rw = Math.max(w, minDim);
       const rh = Math.max(h, minDim);
@@ -990,11 +879,7 @@ function renderPartShape(
       );
     }
     case "parachute": {
-      // Stowed parachute canister: squat dome that sits on its mount.
-      // Flat bottom matching the base width, semicircular top reaching
-      // the bounds apex via cubic-Bezier control points pulled to y.
-      // Inset narrower than the bounds box because the canister itself
-      // is smaller than its mounted footprint.
+      // Stowed canister: a squat dome, inset because the canister is smaller than its mounted footprint.
       const inset = w * 0.18;
       const baseY = y + h * 0.85;
       return (
@@ -1024,12 +909,9 @@ function renderPartShape(
 }
 
 /**
- * `ShipMapPartMeterEntry.status` -> a border/tint colour, deliberately NOT
- * a fill hue. The fill itself is the resource's IDENTITY
- * colour (`resourceColor(m.resource)` below); this is the SEPARATE status
- * signal, painted as a stroke around the bar's track rather than blended
- * into the fill, so "what resource is this" and "how is it doing" stay two
- * independently legible things rather than one conflated hue.
+ * Status as a border tint on the bar's track, never a fill hue: the fill is
+ * the resource's identity colour, so resource and condition stay separately
+ * legible.
  */
 const STATUS_BORDER: Record<"low" | "critical", string> = {
   low: "var(--color-status-warning-bg)",
@@ -1066,22 +948,8 @@ function colorFor(type: PartType): string {
 }
 
 /**
- * The compact in-body fill bars: one segment per contributed
- * `ship-map.part-meters` entry for this part. Renders as raw SVG `<rect>`s
- * rather than the HTML `<Meter>` (this is inside an `<svg>`, no
- * `<foreignObject>` detour); `ShipDiagram`'s hover tooltip renders the SAME
- * entries through the real `<Meter>` component instead, see that file's own
- * doc comment for why the two contexts render differently from one shared
- * data path.
- */
-/**
- * The quantity a part-meter row carries, on whichever of its two arms it
- * arrived in.
- *
- * Read here rather than through a shared accessor: whether a held figure is
- * still worth drawing is the drawing site's judgement, and this one draws a
- * fill bar, so both value-bearing arms are taken. A row carrying no figure has
- * no bar to draw.
+ * The quantity a part-meter row carries, on either value-bearing arm: this
+ * site draws a fill bar, so a held figure is still drawn.
  */
 function quantityOf(
   figure: Value<"units"> | Reading<Value<"units">>,
@@ -1102,10 +970,8 @@ function isHeld(row: ShipMapPartMeterEntry): boolean {
 }
 
 /**
- * The fill, 0..1, and the one place a quantity leaves the algebra here.
- * `dividedBy` checks the two are the same kind and its quotient is
- * dimensionless, so the magnitude below is on a number that has already
- * stopped being a quantity. It becomes an SVG length, which cannot hold a unit.
+ * The fill, 0..1. `dividedBy` checks the two are the same kind, so the
+ * magnitude taken is already dimensionless; an SVG length cannot hold a unit.
  */
 function fillRatio(row: ShipMapPartMeterEntry): number | null {
   const amount = quantityOf(row.amount);
@@ -1114,6 +980,10 @@ function fillRatio(row: ShipMapPartMeterEntry): number | null {
   return Math.max(0, Math.min(1, amount.dividedBy(capacity).magnitude));
 }
 
+/**
+ * The compact in-body fill bars, one segment per contributed meter, as raw
+ * SVG rects. `ShipDiagram`'s tooltip renders the same entries through `<Meter>`.
+ */
 function renderResourceFill(
   meters: readonly ShipMapPartMeterEntry[],
   box: ScreenBox,
@@ -1137,9 +1007,7 @@ function renderResourceFill(
         const fillH = innerH * ratio;
         const barX = box.x + padX + i * (barW + gap);
         const barTop = box.y + padY + (innerH - fillH);
-        // Status is a border tint on the TRACK rect, never the fill hue:
-        // the fill below is always the resource's identity colour,
-        // regardless of level.
+        // Status tints the track, never the fill, which is always the resource's identity colour.
         const statusBorder = m.status ? STATUS_BORDER[m.status] : undefined;
         // A held level is drawn faded inside a dashed track: still the last level there was, and visibly not the tank now.
         const held = isHeld(m);
@@ -1196,19 +1064,10 @@ export function partAriaLabel(
 }
 
 /**
- * Heat indicator overlay for a part. Returns the colour + opacity to
- * paint over the part's body, or null when the part is comfortably cold.
- *
- * Ramp:
- * - < 50% of maxTemp: nothing: most parts hover near ambient.
- * - 50–80%: amber overlay growing from 0 to ~0.5 opacity.
- * - 80–100%: red overlay at 0.55–0.85 opacity, signalling imminent
- *   structural failure.
- *
- * Rendered as a plain `<rect>` over the part's body box rather than
- * blending the base fill, so the colours stay CSS-variable driven (no
- * resolved-hex palette duplicated in component code) and the visual
- * read is bolder at high temperatures than a subtle blend would give.
+ * Heat tint colour and opacity for a part, or null when comfortably cold.
+ * Below 50% of maxTemp nothing; 50-80% amber up to about 0.5 opacity; 80-100%
+ * red at 0.55-0.85. A rect over the body rather than a blended fill, so the
+ * colours stay CSS-variable driven.
  */
 function heatTintFor(
   temp: number | undefined,
@@ -1229,12 +1088,7 @@ function heatTintFor(
   };
 }
 
-/** Metre-space margin to reserve below an engine for its flame overlay.
- *  Mirrors `renderEngineFlame`'s `flameH = body.h * 0.4`, expressed as a
- *  fraction of the part's axial extent. Only engines whose live state is
- *  "active" draw a flame (gated further on throttle at render time), so
- *  reserve nothing for idle / pre-push engines to avoid shrinking every
- *  render. */
+/** Metre-space margin below an active engine for its flame, mirroring `renderEngineFlame`'s 0.4 body height. */
 function engineFlameReach(p: ShipMapPart, axialExtent: number): number {
   if (p.type !== "engine") return 0;
   const firing = p.partState?.some(
@@ -1243,10 +1097,7 @@ function engineFlameReach(p: ShipMapPart, axialExtent: number): number {
   return firing ? axialExtent * 0.4 : 0;
 }
 
-/** Metre-space margin to reserve above a parachute for its canopy overlay.
- *  Mirrors `renderParachuteCanopy`'s canopy height, expressed as a fraction
- *  of the part's lateral extent. Reserves only for the state actually
- *  rendered (armed/deploying/extended). */
+/** Metre-space margin above a parachute for its canopy, reserved only for the states that render one. */
 function parachuteCanopyReach(p: ShipMapPart, latExtent: number): number {
   if (p.type !== "parachute") return 0;
   const state = p.partState?.find((m) => m.type === "parachute")?.state;
@@ -1311,14 +1162,7 @@ function project(parts: readonly ShipMapPart[]) {
   for (const p of projected) {
     minL = Math.min(minL, p.body.latMin);
     maxL = Math.max(maxL, p.body.latMax);
-    // Overlays drawn by renderPartStateOverlays escape the body box: an
-    // active engine's flame reaches ~0.4× the body height below it, and a
-    // deploying/extended parachute canopy balloons up to ~0.8× the body
-    // width above it. Bounds are in metres while those overlays are sized
-    // in screen px as a fraction of the body box, so reserve the same
-    // fraction of the part's metre-space extent here. Without this the
-    // bottom engine's flame and a deployed chute clip the viewbox at
-    // fit-zoom (the harness renders at zoom=1 with no pan to recover them).
+    // Flames and canopies escape the body box, so the same fraction of the metre-space extent is reserved or they clip at fit zoom.
     const axialExtent = p.body.axialMax - p.body.axialMin;
     const latExtent = p.body.latMax - p.body.latMin;
     minA = Math.min(minA, p.body.axialMin - engineFlameReach(p, axialExtent));
@@ -1437,14 +1281,7 @@ function withBody(
   };
 }
 
-// Sizing for the diagram svg, held on the element it sizes rather than as a
-// `svg {}` descendant rule on DiagramWrap. `flex: 1` is inert (the parent
-// Wrapper is position:relative, not flex), so nothing here depends on it.
-//
-// Local sibling ordering inside DiagramWrap's stacking context, not app-global
-// chrome: the svg sits above the ambient tint (z 0) and below the overlay layer
-// (z 2). Off the z-index ladder for that reason; hoisted to a named constant
-// per the token-ratchet convention for deliberately-local z-index values.
+// Local sibling ordering inside DiagramWrap's stacking context (above the ambient tint, below the overlay layer), not app-global chrome.
 const SVG_LAYER_Z = 1;
 const ROOT_SVG_STYLE: CSSProperties = {
   display: "block",
@@ -1453,8 +1290,6 @@ const ROOT_SVG_STYLE: CSSProperties = {
   zIndex: SVG_LAYER_Z,
 };
 
-// The one styled block that stays: an SVG <g> keyboard focus ring. See the
-// justified biome-ignore on the styled-components import at the top of the file.
 const PartGroup = styled.g`
   outline: none;
   .focus-ring {

@@ -18,11 +18,7 @@ CORE_UPLINK_CLIENT.registerContribution({
   id: "comm-signal-no-signal-badge",
   contributes: "comm-signal.badges",
   deps: [COMM_SIGNAL_NOT_CURRENT],
-  /*
-   * The processor answers with currency, so its answer is unwrapped here. Both
-   * value-bearing arms: the flag is about the link, and a held flag is the last
-   * thing the link said about itself.
-   */
+  // A held flag is the last thing the link said about itself, so a stale answer still counts.
   compute: (topics) => {
     const reading = topics[COMM_SIGNAL_NOT_CURRENT.id];
     return commSignalNoSignalBadge(

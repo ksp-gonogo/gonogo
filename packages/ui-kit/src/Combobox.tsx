@@ -2,13 +2,11 @@ import type { ReactNode } from "react";
 import styled from "styled-components";
 import { EmptyState } from "./EmptyState";
 
-/**
- * The generalized combobox/listbox primitive extracted from `DataKeyPicker`.
- * `DataKeyPicker` (a literal `<input role="combobox">`) is the first caller to
- * be rebuilt on top of this file; a second caller drives the same listbox from
- * raw keystrokes via xterm's `onData` rather than a literal `<input>`, so the
- * pure filter/group/navigate functions and the presentational `ComboboxListbox`
- * are kept fully decoupled from any specific input surface.
+/*
+ * The combobox/listbox primitive. The pure filter/group/navigate functions and
+ * the presentational `ComboboxListbox` are decoupled from any input surface, so
+ * a caller can drive them from a literal `<input role="combobox">` or from raw
+ * keystrokes.
  */
 
 /** A single selectable item in a combobox/listbox dropdown. */
@@ -103,33 +101,24 @@ export interface ComboboxListboxProps<T extends ComboboxOption> {
   renderItem?: (option: T) => ReactNode;
   emptyLabel?: string;
   /**
-   * Accessible name for the listbox itself. Optional when the owning input
-   * already labels it via `aria-controls` in a way axe recognizes; required
-   * in practice for any caller whose "input" isn't a literal `<input
-   * role="combobox">` (e.g. a non-DOM input surface), since axe's
-   * `aria-input-field-name` rule flags an unnamed `role="listbox"`.
+   * Accessible name for the listbox itself. Required in practice for any
+   * caller whose input is not a literal `<input role="combobox">`, since an
+   * unnamed `role="listbox"` fails axe.
    */
   ariaLabel?: string;
   /**
-   * Which side of the control the list opens on. Defaults to `"below"`, which
-   * is what a picker sitting in open page flow wants.
-   *
-   * `"above"` is for a control at the FOOT of a container that clips. A console
-   * composer is the last thing inside `Console`, so a list dropping
-   * downward from it is drawn entirely outside the frame and clipped to
-   * nothing. Opening upward puts it over the scrollback, which is both visible
-   * and where a shell's completions have always gone.
+   * Which side of the control the list opens on. Defaults to `"below"`.
+   * `"above"` is for a control at the foot of a clipping container, such as a
+   * console composer, where a downward list would be clipped away.
    */
   placement?: "below" | "above";
 }
 
 /**
  * The presentational half of the combobox pattern: a `role="listbox"`
- * dropdown of grouped, keyboard-navigable options. Owns no state itself:
- * `activeIndex`/`onHoverIndex`/`onSelectKey` are fully controlled by the
- * caller, so it composes equally well behind a literal `<input
- * role="combobox">` (`DataKeyPicker`) or behind a non-DOM input surface like
- * xterm's `onData`.
+ * dropdown of grouped, keyboard-navigable options. Owns no state:
+ * `activeIndex`, `onHoverIndex` and `onSelectKey` are fully controlled by the
+ * caller.
  */
 export function ComboboxListbox<T extends ComboboxOption>({
   id,

@@ -96,12 +96,10 @@ const BLOB: SystemEntity = {
   shape: { kind: "blob", radiusMetres: 300_000 },
 };
 
-// bodyPx = 500_000 * CTX.plotScale (1e-5) = 5; segmentLengthPx = 100_000 *
-// 1e-5 = 1 (well under bodyPx, so unclamped); exitPx = 5 + 1 = 6.
-// arriveUt=100/clearUt=101 (crossingS=1) gives ratePxPerS = 1, so the wave
-// departs (leadingPx=0) at UT 95 and fully clears (leadingPx=exitPx=6) at
-// UT 101: a UT window chosen so every millisecond-of-nowUt below maps to a
-// round leadingPx.
+/*
+ * bodyPx = 500_000 * plotScale (1e-5) = 5; segmentLengthPx = 100_000 * 1e-5 = 1 (unclamped); exitPx = 6.
+ * arriveUt=100, clearUt=101 give ratePxPerS = 1, so the wave departs at UT 95 and clears at UT 101, and every nowUt below maps to a round leadingPx.
+ */
 const TRAVELLING_PULSE: SystemEntity = {
   id: "cme-pulse-1",
   position: {
@@ -155,9 +153,7 @@ describe("SystemEntitiesLayer", () => {
     const d = path?.getAttribute("d") ?? "";
     expect(d.startsWith("M")).toBe(true);
     expect(d.endsWith("Z")).toBe(true);
-    // No `rotate()` anywhere on it. The projection has been applied to every
-    // sample, so there is no residual rotation left to apply, and applying one
-    // would turn an already-turned curve a second time.
+    // The projection is applied to every sample, so a rotate() would turn the curve twice.
     expect(path?.getAttribute("transform")).toBeNull();
     expect(path?.closest("[transform]")).toBeNull();
     expect(container.querySelector("ellipse")).toBeNull();
@@ -211,9 +207,7 @@ describe("SystemEntitiesLayer", () => {
     ).toBeNull();
     const polyline = group?.querySelector("polyline");
     expect(polyline).not.toBeNull();
-    // startPx=0 at this nowUt: the polyline's own points ARE its current
-    // world position (no wrapping transform slides them any more, see this
-    // shape's `Primitive` case), so they start at the local origin here.
+    // startPx=0 here, and the polyline's own points are its world position, so they start at the local origin.
     expect(polyline?.getAttribute("points")).toMatch(/^0,0 /);
     // Stroked via the fade gradient, not a flat colour: see the next test.
     expect(polyline?.getAttribute("stroke")).toBe(
@@ -394,11 +388,7 @@ describe("SystemEntitiesLayer", () => {
     const focusRing = marker?.querySelector("circle.focus-ring");
     expect(focusRing).not.toBeNull();
 
-    // styled-components injects the actual rules into <style> tags in
-    // jsdom; confirm the marker's own generated class carries a
-    // `:focus-visible` rule that reveals `.focus-ring`, and that the base
-    // rule doesn't just strip the outline without this replacement (the
-    // bug this test guards against).
+    // The marker's generated class must carry a :focus-visible rule that reveals .focus-ring, not just strip the outline.
     const css = Array.from(document.querySelectorAll("style"))
       .map((el) => el.textContent ?? "")
       .join("\n");
@@ -696,9 +686,7 @@ describe("travellingPulseWavePoints", () => {
   });
 
   it("shifts every point's x by offsetPx while keeping the ripple phase anchored to LOCAL x", () => {
-    // The ripple TEXTURE is unchanged (same y at the same local position),
-    // only where that textured segment sits moves: this is what lets a
-    // caller position the CURRENT wave without regenerating its shape.
+    // Only the segment's position moves; the ripple texture at a given local position is unchanged.
     const base = travellingPulseWavePoints(50)
       .split(" ")
       .map((p) => p.split(",").map(Number));

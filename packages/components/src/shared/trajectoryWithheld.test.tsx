@@ -28,9 +28,7 @@ const EVERY_REASON = [
 
 describe("trajectoryWithheldCopy", () => {
   it("gives every reason its own sentence, never a shared one", () => {
-    // Two refusals sharing a heading is the failure this table exists to stop:
-    // an operator reading the same words for a missing install and for an
-    // outrun horizon acts on the wrong one of them.
+    // Refusals sharing words would send an operator after the wrong remedy.
     const headings = EVERY_REASON.map(
       (reason) => trajectoryWithheldCopy({ shape: "withheld", reason }).heading,
     );
@@ -51,8 +49,7 @@ describe("trajectoryWithheldCopy", () => {
   });
 
   it("names a missing force model as an install problem, with no wait in it", () => {
-    // The one refusal with no operator remedy. Telling someone to wait for it
-    // would have them waiting for a curve that is never coming.
+    // No operator remedy: waiting would be waiting for a curve that never comes.
     const { heading, detail } = trajectoryWithheldCopy({
       shape: "withheld",
       reason: "no-force-model",

@@ -3,15 +3,11 @@ import { describe, expect, it } from "vitest";
 import { Panel } from "./Panel";
 
 /**
- * The sticky header (Task 6): the standard header rides INSIDE the body
- * scroller, in the sticky unit that is the scroller's first in-flow child, and
- * sticks at the scroller's top while the body scrolls under it, so title +
- * aside stay in view without a scroll-away ghost. The delay rail is the unit's
- * other half (see `Panel.delay.test.tsx`), which is what makes the two travel
- * together rather than merely both being pinned. A `panelToolbar` header uses
- * the SAME sticky mechanism (reconciled from the old pinned-sibling branch);
- * only a `floatingHeader` is an overlay outside the scroller. These assert the
- * relationships (and `position`), not pixels.
+ * The standard header rides inside the body scroller, in the sticky unit that
+ * is its first in-flow child, so title and aside stay in view while the body
+ * scrolls. A toolbar header uses the same mechanism; only a `floatingHeader`
+ * overlays outside the scroller. Asserts relationships and `position`, not
+ * pixels.
  */
 describe("Panel sticky header (standard)", () => {
   it("puts the heading INSIDE the scrolling body as the first in-flow child", () => {
@@ -30,7 +26,7 @@ describe("Panel sticky header (standard)", () => {
 
   it("sticks the header (position: sticky) so the title stays in view", () => {
     render(<Panel panelTitle="ALTITUDE">body</Panel>);
-    // The stickiness lives on the unit the header shares with the rail, so whatever holds the title in view holds the rail there too.
+    // The stickiness lives on the unit the header shares with the rail.
     const unit = document.querySelector(
       "[data-panel-sticky-top]",
     ) as HTMLElement;
@@ -42,7 +38,6 @@ describe("Panel sticky header (standard)", () => {
     const headings = screen.getAllByRole("heading");
     expect(headings).toHaveLength(1);
     expect(headings[0]).toHaveTextContent("ALTITUDE");
-    // The condensing ghost is deleted: the real heading is always in view.
     expect(document.querySelector("[data-panel-ghost]")).toBeNull();
   });
 
@@ -73,7 +68,6 @@ describe("Panel sticky header, one mechanism for the toolbar case", () => {
     );
     const heading = screen.getByRole("heading", { name: "MAP" });
     const scroller = document.querySelector("[data-panel-body]") as HTMLElement;
-    // Reconciled into the sticky model: the heading now rides inside the scroller.
     expect(scroller.contains(heading)).toBe(true);
     const unit = document.querySelector(
       "[data-panel-sticky-top]",
@@ -95,13 +89,10 @@ describe("Panel sticky header, one mechanism for the toolbar case", () => {
     );
     const header = document.querySelector("[data-panel-header]") as HTMLElement;
     expect(getComputedStyle(header).position).toBe("absolute");
-    // The overlay title floats over a non-scrolling bleed body; no ghost.
     expect(document.querySelector("[data-panel-ghost]")).toBeNull();
     const scroller = document.querySelector("[data-panel-body]") as HTMLElement;
     expect(scroller.contains(header)).toBe(false);
-    /* No sticky unit here, because nothing scrolls: the bleed body is fixed to
-       the tile, so the rail keeps the container's band beside this overlay
-       rather than joining a unit with nothing to stick to. */
+    // Nothing scrolls, so there is no sticky unit and the rail keeps the container's band.
     expect(document.querySelector("[data-panel-sticky-top]")).toBeNull();
   });
 });
@@ -115,10 +106,9 @@ describe("Panel sticky header, sidebar", () => {
     );
     const heading = screen.getByRole("heading", { name: "SYSTEM" });
     const body = document.querySelector("[data-panel-body]") as HTMLElement;
-    // Header rides the body scroller exactly as the standard case.
     expect(body.contains(heading)).toBe(true);
     expect(document.querySelector("[data-panel-ghost]")).toBeNull();
-    // The sidebar keeps its own independent scroller, untouched.
+    // The sidebar keeps its own independent scroller.
     const almanac = screen.getByText("almanac");
     expect(body.contains(almanac)).toBe(false);
   });

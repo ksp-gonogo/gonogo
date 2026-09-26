@@ -6,13 +6,9 @@ import { Countdown } from "./Countdown";
 import { NULL_DISPLAY } from "./NullValue";
 
 /**
- * The reckoning slot: which number a clock draws, and when it moves.
- *
- * The ruled behaviour is that `Countdown` does NOT choose. It advances only
- * where a model is carrying the value, freezes otherwise, and marks a held
- * reading either way. These pin all three, because the difference between a
- * countdown that advances and one that does not is invisible in a single
- * render and is the whole point of the ticket.
+ * Which number a clock draws: it advances only where a model is carrying the
+ * value, freezes otherwise, and marks a held reading either way. The
+ * difference is invisible in a single render.
  */
 
 const AT = value("ut", 1_000);
@@ -62,9 +58,7 @@ describe("Countdown, handed a Reading", () => {
   });
 
   it("ADVANCES on the model's answer where one is carrying it", () => {
-    // The observation is 90s; the model says 42s at this frame's view time.
-    // A clock that drew the observation here would be counting down to an
-    // instant the model has already moved past.
+    // The observation is 90s and the model says 42s; drawing 90 would count down to an instant already passed.
     const { container } = render(
       <Countdown value={reckoned(value("s", 90), value("s", 42))} />,
     );
@@ -74,7 +68,7 @@ describe("Countdown, handed a Reading", () => {
 
   it("FREEZES on the last observation where nothing is carrying it", () => {
     const { container } = render(<Countdown value={frozen(value("s", 90))} />);
-    // 90 seconds reads as "1min 30s"; what matters is that it is the OBSERVATION and not a model's later answer.
+    // The OBSERVATION, not a model's later answer.
     expect(container.textContent).toContain("1min 30s");
   });
 

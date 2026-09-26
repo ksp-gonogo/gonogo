@@ -39,12 +39,10 @@ export interface StatusBreakdownEntry {
 
 /**
  * A per-grid-item, off-tree status store: register, update, subscribe and
- * snapshot, plus one derived view, `getSummary`, the max-merge the panel
- * actually shows.
+ * snapshot, plus the derived views the panel shows.
  *
- * HARD RULE from the design applies verbatim: the live status data lives in the
- * store, never in a React context value, so a contribution change re-renders
- * only the summary subscribers, not every widget in the tree.
+ * The live status data lives in the store, never in a React context value, so
+ * a contribution change re-renders only the summary subscribers.
  */
 export interface PanelStatusStore {
   /** Add a contribution. Returns its deregister function. */
@@ -116,11 +114,11 @@ function breakdownEqual(
 export function createPanelStatusStore(): PanelStatusStore {
   const base = createStore<StatusContribution>();
 
-  // Derived-view cache keyed on the base snapshot's identity: while the entry
-  // set is unchanged the snapshot is the same array, so the summary is too.
-  // When it changes, recompute and preserve the previous summary object if the
-  // merged result is equal (a losing contributor moving must not hand
-  // useSyncExternalStore a fresh summary).
+  /*
+   * Derived views are cached on the base snapshot's identity, and an equal
+   * recomputed result keeps the previous object, so a losing contributor
+   * moving never hands useSyncExternalStore a fresh summary.
+   */
   let cachedSummary: StatusSummary | null = null;
   let cachedFrom: readonly StatusContribution[] | null = null;
   let cachedBreakdown: readonly StatusBreakdownEntry[] = EMPTY_BREAKDOWN;

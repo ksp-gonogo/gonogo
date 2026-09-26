@@ -4,16 +4,10 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { MissionDate } from "./MissionDate";
 
-/**
- * The reckoning slot: what `<MissionDate>` draws when handed a whole
- * `Reading`.
- *
- * Less than a figure needs, and deliberately. A stale INSTANT stays true: a
- * date does not drift while nobody is looking, so nothing is withheld, nothing
- * is recomputed, and no band is placed. What a held reading adds is the mark,
- * and the grade behind it on hover.
+/*
+ * What `<MissionDate>` draws when handed a whole `Reading`. A stale instant
+ * stays true, so a held reading adds only the mark and the grade behind it.
  */
-
 const AT = value("ut", 9_201_600);
 
 function held(instant: Value<"ut">): Reading<Value<"ut">> {
@@ -45,8 +39,7 @@ describe("MissionDate, handed a Reading", () => {
   it("still draws the date itself when it is no longer current", () => {
     const bare = render(<MissionDate value={AT} />).container.textContent;
     const { container } = render(<MissionDate value={held(AT)} />);
-    // A stale instant stays true, so the date is unchanged; only the mark and
-    // its spoken caption are added. This is the whole difference from a figure.
+    // A stale instant stays true, so only the mark and its spoken caption are added.
     expect(container.textContent?.startsWith(bare ?? "")).toBe(true);
   });
 

@@ -15,15 +15,6 @@ import {
   StrategiesComponent,
 } from "./index";
 
-/**
- * The widget reads its whole career snapshot off the
- * canonical `career.status` Topic (no legacy read fallback), so these
- * interactive tests feed reads through a real stream pipeline
- * (`setupStreamFixture`). Commands are still COMMAND-blocked
- * (`strategies.activate`/`deactivate` are `KNOWN_COMMAND_GAPS`), so
- * `useExecuteAction("data")` still falls back to the legacy `DataSource`,
- * the `setupMockDataSource` leg stays purely to capture those fired actions.
- */
 function emitCareer(
   fixture: ReturnType<typeof setupStreamFixture>,
   all: unknown[],
@@ -159,9 +150,6 @@ describe("parseStrategies", () => {
 });
 
 describe("StrategiesComponent", () => {
-  // Command-capture leg only (reads come off the stream); see emitCareer's
-  // doc comment. The registered "data" source is what `useExecuteAction`
-  // falls back to for the still-gapped activate/deactivate commands.
   let cmdFixture: MockDataSourceFixture;
   let stream: ReturnType<typeof setupStreamFixture>;
 
@@ -274,7 +262,6 @@ describe("StrategiesComponent", () => {
     );
     await user.click(screen.getByRole("button", { name: /Confirm activate/i }));
 
-    // Factor defaults to factorSliderDefault (0.05) for this fixture.
     await waitFor(() => {
       const sent = stream.transport.sentCommands.find(
         (c) => c.command === "career.strategy.activate",
@@ -299,7 +286,7 @@ describe("StrategiesComponent", () => {
       });
     });
 
-    // The command travels: nothing answers it until this test says so, which is the only condition under which a pending state means anything.
+    // Held, so the pending state has something to mean.
     stream.transport.holdCommands();
 
     await user.click(
@@ -311,12 +298,7 @@ describe("StrategiesComponent", () => {
       await screen.findByRole("button", { name: /Activating/i }),
     ).toBeInTheDocument();
 
-    // A fresh career sample carrying the SAME strategy, still inactive. The
-    // command has not landed, so the control must not say it has. The old
-    // `pendingId` effect cleared unconditionally on any change of the
-    // strategies list's identity, never once reading `isActive`, so the
-    // "Activating..." label reverted while the command was still in flight,
-    // which reads to the operator as the command having landed.
+    // A fresh sample with the same strategy still inactive: the command has not landed, so the control must not say it has.
     act(() => {
       emitCareer(stream, [{ ...inactive }], {
         funds: 289848,
@@ -337,12 +319,7 @@ describe("StrategiesComponent", () => {
     ).toBeInTheDocument();
   });
 
-  /**
-   * Seen live 2026-09-09 on the Administration Building's Programs screen: an
-   * RP-1 Program's description runs past a thousand marked-up characters, this
-   * widget drew one under every card in the list, and a 5x9 tile rendered
-   * 104,000 pixels tall. Long prose is cut here; only the press reveals it.
-   */
+  // Long prose is cut; only the press reveals it.
   it("cuts a long strategy description down and reveals it on press", async () => {
     const user = userEvent.setup();
     const long = [

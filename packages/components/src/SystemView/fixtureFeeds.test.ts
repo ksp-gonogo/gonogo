@@ -3,19 +3,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * A probe fixture that emits a topic nothing is subscribed to renders exactly
- * like a fixture that emits nothing at all: no error, no warning, a perfectly
- * plausible screenshot of the empty state. The visual gate then happily accepts
- * it as the baseline for a feature it never rendered.
- *
- * <p>This bit the contact-state fixtures: they listed the concrete topic
- * `fleet.<guid>.contact` in `carriedChannels`, but a dynamic namespace is
- * carried by its PREFIX (`fleet.`), so the subscription never existed, the
- * emit went to nobody, and all three "new state" renders came out byte-identical
- * to the plain one.</p>
- *
- * So: every emitted channel must be covered by something the fixture claims to
- * carry, either exactly or by a declared prefix.
+ * An emit on a topic nothing subscribes to renders exactly like the empty state and passes the visual gate unnoticed.
+ * So every emitted channel must be covered by something the fixture claims to carry, exactly or by a declared prefix: a dynamic namespace such as `fleet.<guid>.contact` is carried by its prefix.
  */
 describe("SystemView probe fixtures", () => {
   const dir = join(__dirname, "__fixtures__");

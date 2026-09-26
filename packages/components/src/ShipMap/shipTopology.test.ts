@@ -25,18 +25,7 @@ function part(overrides: Partial<TopologyPart>): TopologyPart {
 }
 
 describe("classifyPart", () => {
-  /**
-   * The category branch reads KSP's ORDINAL, not its name.
-   *
-   * It switched on the name until 2026-08-21, and the failure was quiet rather
-   * than loud: a renamed `PartCategories` member sent every part of that
-   * category through to `classifyByName` underneath, so an engine was drawn as
-   * whatever its title happened to match. Falling through to a heuristic is the
-   * right behaviour for a category with no glyph; for `Engine` it is not.
-   *
-   * The part below carries a category name this build has never seen and a
-   * title with no engine word in it, so only the ordinal can classify it.
-   */
+  // A category name this build has never seen and a title with no engine word: only the ordinal can classify it.
   it("classifies from the category ordinal, not the category name", () => {
     expect(
       classifyPart(
@@ -50,11 +39,7 @@ describe("classifyPart", () => {
     ).toBe("engine");
   });
 
-  /**
-   * With no ordinal to read, the name/title heuristic underneath still runs.
-   * A fixture captured before the mod emitted the ordinal has to stay readable,
-   * and an unclassifiable part is not an error.
-   */
+  // A fixture from before the ordinal existed stays readable, and an unclassifiable part is not an error.
   it("falls through to the name heuristic when no ordinal arrived", () => {
     expect(
       classifyPart(
@@ -68,12 +53,7 @@ describe("classifyPart", () => {
     ).toBe("engine");
   });
 
-  /**
-   * `PartCategories.none` is `-1`, a declared member rather than an absence, and
-   * this diagram has no glyph for it. It must reach the heuristic like any other
-   * unglyphed category, not be mistaken for "no ordinal sent" - the two would
-   * behave the same here, but only one of them is a missing read.
-   */
+  // `PartCategories.none` is `-1`, a declared member with no glyph, not a missing ordinal.
   it("treats PartCategories.none as a category with no glyph", () => {
     expect(
       classifyPart(
@@ -88,10 +68,7 @@ describe("classifyPart", () => {
   });
 
   it("classifies cargo bays as 'other', not 'fin'", () => {
-    // mk2CargoBayS in the rover-b-alone fixture has both
-    // ModuleLiftingSurface (body-lift bonus) and ModuleCargoBay. The fin
-    // gate has to recognise the cargo bay or a 2.5m cargo box renders
-    // as a giant triangle in the diagram.
+    // mk2CargoBayS has both ModuleLiftingSurface and ModuleCargoBay; the fin gate must recognise the bay.
     expect(
       classifyPart(
         part({
@@ -123,12 +100,7 @@ describe("classifyPart", () => {
   });
 
   it("treats edge-on parts as unrotated (no -0 atan2 flip)", () => {
-    // A docking port mounted laterally has up = [0, -0, ±1], both X
-    // and Y components are zero. With useX=true the diagram projects
-    // away Z, leaving (0, -0) as the 2D up vector. Math.atan2(0, -0)
-    // returns π (because the sign of -0 matters), which would render
-    // the port upside-down. The edge-on guard must short-circuit to
-    // rotation = 0 in that case.
+    // up = [0, -0, 1] projects to (0, -0), where Math.atan2 returns pi on the sign of -0; the edge-on guard must give 0.
     const p = buildShipMapPart(
       part({
         name: "dockingPort2",
@@ -143,9 +115,7 @@ describe("classifyPart", () => {
   });
 
   it("rotates a radially-mounted part toward its projected up", () => {
-    // Side nose cone with up ≈ [+0.5, +0.87, 0] (about 30° tilt from
-    // vessel up). With useX=true the 2D up is (0.5, 0.87), giving
-    // atan2 ≈ 0.524 rad ≈ 30°.
+    // up of about [0.5, 0.87, 0] is a 30 degree tilt: atan2 of about 0.524 rad.
     const p = buildShipMapPart(
       part({
         name: "noseCone",
@@ -160,9 +130,7 @@ describe("classifyPart", () => {
   });
 
   it("prefers engine over fin when both modules are present", () => {
-    // Sanity check that the cargo-bay gate didn't reorder anything that
-    // mattered. Real KSP engines don't usually have a lifting surface
-    // but the order-of-precedence chain is load-bearing; keep this.
+    // The order-of-precedence chain is load-bearing.
     expect(
       classifyPart(
         part({
@@ -174,19 +142,7 @@ describe("classifyPart", () => {
 });
 
 describe("mesh-centre offset frame", () => {
-  /**
-   * `bounds.center` is `Part.boundsCentroidOffset`, which KSP itself only
-   * ever reads as `partTransform.rotation * boundsCentroidOffset` (two call
-   * sites in `Assembly-CSharp`, and no writer anywhere). It is PART-local,
-   * so it has to be carried into the vessel frame before it can be added to
-   * `orgPos`.
-   *
-   * The motivating case, and the one the old comment named: a radial
-   * decoupler mounted on the +X side of a stack, whose mesh sits 0.15 m out
-   * along its own up axis. Added raw, that offset ran up the SPINE and left
-   * the decoupler sunk in the stack it is holding off. Rotated, it pushes
-   * the part out sideways, which is the entire reason the offset is read.
-   */
+  // `bounds.center` is part-local, so a radial decoupler's up-axis offset has to push it out sideways, not up the spine.
   it("pushes a radially-mounted part out along its mount, not up the spine", () => {
     const p = buildShipMapPart(
       part({
@@ -207,13 +163,7 @@ describe("mesh-centre offset frame", () => {
     expect(p.depth).toBeCloseTo(0, 9);
   });
 
-  /**
-   * Two parts carrying the IDENTICAL authored offset on different mounts
-   * have to land in different places. `boundsCentroidOffset` is one value
-   * serving every instance of a part, so if the offset survives into the
-   * vessel frame unchanged then eight panels on a ring all displace the same
-   * way, which is the shape of the original defect.
-   */
+  // One authored offset shared by every instance must land differently on different mounts.
   it("sends one authored offset to different places on different mounts", () => {
     const mount = (up: [number, number, number]) =>
       buildShipMapPart(
@@ -236,12 +186,7 @@ describe("mesh-centre offset frame", () => {
     expect(east.lat).toBeCloseTo(0.0332, 9);
   });
 
-  /**
-   * The rotation is a rotation: it cannot change how far the mesh centre
-   * sits from the anchor, only which way. A tilted mount with an offset that
-   * is NOT up-aligned is the case where the unrecoverable roll bites, and
-   * length is the invariant that still has to hold there.
-   */
+  // A rotation preserves length, which still has to hold where the unrecoverable roll bites.
   it("preserves the offset's length on a tilted mount", () => {
     const center = { x: 0.02, y: 0.05, z: -0.01 };
     const p = buildShipMapPart(
@@ -262,21 +207,11 @@ describe("mesh-centre offset frame", () => {
   });
 
   /**
-   * What the swing CANNOT do, written down so nobody reads the rotation as a
-   * full one. `up` is `orgRot * Vector3.up`: it pins two of three rotational
-   * degrees of freedom and says nothing about the roll ABOUT that axis.
-   *
-   * These two mounts are one station apart on the real `oxstat-ring` capture,
-   * a 45-degree turn about the vessel Y axis (verified against the capture:
-   * treating the ring as `Ry(45k)` composed with one shared tilt reproduces
-   * all eight `up` vectors to 9e-9). A part-local offset lying in the plane
-   * PERPENDICULAR to up therefore ought to swing 45 degrees round with it.
-   * The minimal swing carries no roll, so it does not: the offset stays
-   * where it was and only its up-aligned share moves.
-   *
-   * The offset's LENGTH is still exact, and so is its component along `up`
-   * (zero here, since this offset is perpendicular). Closing the rest needs
-   * the mod to put `orgRot` on the wire.
+   * `up` pins two of three rotational degrees of freedom and nothing about
+   * the roll about it. These two mounts are one station apart on the
+   * `oxstat-ring` capture, a 45 degree turn about vessel Y, so an offset
+   * perpendicular to up ought to swing 45 degrees with it; the minimal swing
+   * does not. Its length and its component along `up` stay exact.
    */
   it("cannot recover the roll about up, and this is what that costs", () => {
     const center = { x: -0.033157, y: 0, z: 0 };
@@ -315,11 +250,7 @@ describe("mesh-centre offset frame", () => {
     ).toBeCloseTo(0, 9);
   });
 
-  /**
-   * The overwhelmingly common part is axially mounted, and the identity
-   * rotation must leave it exactly where it was: an engine bell hanging
-   * below its attach origin stays hanging below it.
-   */
+  // The identity rotation leaves an axially-mounted part exactly where it was.
   it("leaves an axially-mounted part's centre alone", () => {
     const p = buildShipMapPart(
       part({
@@ -339,13 +270,7 @@ describe("mesh-centre offset frame", () => {
     expect(p.axial).toBeCloseTo(-2.90283102, 9);
   });
 
-  /**
-   * A part mounted exactly upside-down: `up` is the negation of vessel up, so
-   * there is no unique swing (every axis in the plane is minimal). The
-   * half-turn about the vessel X axis is the convention chosen. What must
-   * never happen is the naive `1 / (1 + cos)` dividing by zero and putting
-   * `NaN` into an SVG coordinate, which renders nothing and reports nothing.
-   */
+  // Exactly inverted has no unique swing; the naive `1 / (1 + cos)` would put `NaN` into an SVG coordinate.
   it("survives a fully inverted part without emitting NaN", () => {
     const p = buildShipMapPart(
       part({
@@ -367,11 +292,7 @@ describe("mesh-centre offset frame", () => {
     expect(p.axial).toBeCloseTo(2.5, 9);
   });
 
-  /**
-   * A fixture recorded before the mod emitted `up` has no rotation to apply,
-   * and neither does one whose `up` arrived as a zero vector. Both take the
-   * identity: the offset comes through rather than being dropped.
-   */
+  // No `up`, or a zero one, is the identity: the offset comes through rather than being dropped.
   it("treats a missing up vector as no rotation", () => {
     const p = buildShipMapPart(
       part({

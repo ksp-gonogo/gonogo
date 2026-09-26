@@ -37,31 +37,17 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
-// SectionsScroll + PowerRow below keep styled-components: the first styles
-// ScrollArea's internal `[data-scroll-area-inner]` element (a child component's
-// internals, which inline style can't reach and ScrollArea exposes no prop
-// for), the second is a passive row `:hover` highlight (no ui-kit primitive
-// fits a non-selectable hover row; a JS per-row hover would add state + a
-// re-render per mouse-move to a potentially long list). Both documented.
+// SectionsScroll styles ScrollArea's inner element, which no prop reaches; PowerRow is a passive row :hover.
 // biome-ignore lint/style/noRestrictedImports: ScrollArea-internals selector + passive row :hover, no inline/primitive equivalent (see above)
 import styled from "styled-components";
 import { heldGrade } from "../shared/heldGrade";
 import { magnitudeOf } from "../shared/magnitude";
 
-/**
- * Sparkline window in seconds. Two minutes is enough to see a real
- * EC drain trend on a typical probe (sun-side → shadow transitions
- * land inside this window) without becoming a graph widget in
- * disguise.
- */
+/** Sparkline window in seconds, long enough to show a sun-to-shadow EC drain. */
 const SPARKLINE_WINDOW_SEC = 120;
 
 interface PowerSystemsConfig {
-  /**
-   * Resource to focus on. Default ElectricCharge: the most common reason
-   * to consult this widget. Cycling via the action input rolls through
-   * whichever resources have live flow contributions.
-   */
+  /** Resource to focus on, ElectricCharge by default. */
   defaultResource?: string;
 }
 
@@ -80,53 +66,20 @@ interface Contribution {
   partTitle: string;
   /** Zero when nothing was reported; read `flowKnown` before believing it. */
   flow: number;
-  /**
-   * Whether `flow` is a measurement. A part can be listed on the strength of its
-   * `nominalFlow` alone, and coercing its absent flow to zero made a panel
-   * nobody has measured read exactly like a panel measured in shadow.
-   */
+  /** Whether `flow` is a measurement: a part can be listed on its `nominalFlow` alone, and an unmeasured panel is not a panel in shadow. */
   flowKnown: boolean;
   nominalFlow?: number;
 }
 
-// PowerSystems is this repo's worked example of the augment-slot pattern.
-//
-// `power-systems.sections`: a Table/section slot in the body, below the
-// net-rate/producer-consumer readout. The canonical first filler is
-// an EC-broker breakdown from a life-support backend that re-derives EC
-// production and consumption itself, contributed as an augment that reads
-// ONLY that Uplink's own Topics. Core never references it, the host composes
-// whatever is registered.
-//
-// It carries the widget's current resource focus as slot props so an augment
-// renders against the resource the operator is actually looking at,
-// slot-parameterised augments; the parent's context passed down. No augment
-// ships here yet: the slot renders nothing until one registers.
-
-/**
- * What this widget is currently looking at, published for every augment bound
- * to any of its slots. Read with `useWidgetScope("power-systems")`.
- *
- * It was `power-systems.sections`'s slot props, which is what kept that slot
- * from being the universal `sections` segment: the resource is a SCOPE, not
- * something the section augment's own job needs handing to it, and a universal
- * segment is propless by construction.
- */
+/** What this widget is currently looking at, published for every augment bound to its slots. Read with `useWidgetScope("power-systems")`. */
 export interface PowerSystemsScope {
-  /**
-   * The resource the widget is currently focused on (the picker/action-cycle
-   * selection). Lets an augment scope its breakdown/badge to the same resource
-   * the operator is viewing rather than assuming ElectricCharge.
-   */
+  /** The resource the operator has focused, so an augment need not assume ElectricCharge. */
   resource: string;
 }
 
-// Declaration-merge into core's registries, co-located here so parallel slot work on other widgets never collides on a shared central file.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
-    // Mounted by `Panel`'s universal `sections` segment rather than by this
-    // widget. Declared so a binder types against the propless contract rather
-    // than the loose fallback.
+    // Mounted by `Panel`'s universal `sections` segment; declared so a binder types against the propless contract.
     "power-systems.sections": Record<string, never>;
   }
 
@@ -147,66 +100,31 @@ function PowerSystemsComponent({
   );
   const liveByFlightId = usePartsLive(flightIds);
 
-  // `parts.power` mixed-source enrichment. The
-  // per-part Producers/Consumers/Idle breakdown above stays entirely on
-  // `useTopology`/`usePartsLive` (both bypass the mapTopic shim by design,
-  // both read `vessel.parts` directly, stream-native; `usePartsLive`'s
-  // `resources` join rides the SAME payload's per-part `resources` map, no
-  // separate subscription).
-  // `parts.power.totalProductionEc` is a SEPARATE vessel-wide
-  // measurement of the same quantity the itemized rows sum to.
-  //
-  // It must NEVER win over the topology-summed total. Letting it do so lets
-  // PROD/NET (which drives a charge/consume read the operator relies on)
-  // silently contradict the itemized Producers rows right below: a PROD of
-  // +42.00 over a single +5.00 row. PROD/NET therefore ALWAYS derive from the
-  // itemized total (`computedTotalProduced` below), so they cannot disagree
-  // with the rows. When the streamed measurement meaningfully DISAGREES with
-  // that total, it's surfaced
-  // separately as an explicitly-labeled "MEASURED" reading (see the
-  // `Totals` cells) instead of being silently dropped OR silently winning.
   /**
-   * The MEASURED cell exists to disagree with the itemised total, so a held figure
-   * would manufacture a disagreement out of two readings taken at different times
-   * and report it as an instrument fault. Withheld once it stops being current,
-   * which is the same thing this cell already does when it never arrives.
+   * `parts.power.totalProductionEc` never feeds PROD/NET, which always sum the itemised rows; it is shown apart, as MEASURED, only when it disagrees.
+   *
+   * A held figure is withheld, since it would manufacture a disagreement out of two readings taken at different times.
    */
   const powerReading = useTelemetry("parts.power");
   const streamPower =
     powerReading.state === "observed" ? powerReading.value : undefined;
-  /*
-   * Every figure this widget draws, the totals and all three breakdown
-   * sections, comes off ONE read: `vessel.parts`, through `useTopology` and
-   * `usePartsLive`. So the totals row says it once for the four cells that
-   * share it, and each breakdown row's own efficiency carries the kit's mark.
+  /**
+   * Every figure drawn comes off the one `vessel.parts` read, so its currency is marked once on the totals row, in the body because the header aside holds the resource picker.
    *
-   * In the BODY and not through `panelStatus`: the header aside already holds
-   * the resource picker, and a status pill there squeezes the picker down to a
-   * bare chevron and collapses itself to a dot, which is the statement in a
-   * colour and nothing else.
-   *
-   * The rates and the stored levels are KEPT rather than withheld. A battery
-   * that was draining at 5/s is still the last thing the vessel reported, and a
-   * blank cell would read as a vessel with no load on it.
+   * Held rates and levels are kept: a blank cell would read as a vessel with no load.
    */
   const partsReading = useTelemetry("vessel.parts");
   const partsHeld = heldGrade(partsReading);
 
   const defaultResource = config?.defaultResource ?? "ElectricCharge";
   const [resource, setResource] = useState(defaultResource);
-  // Tracks whether the operator has made an explicit in-widget pick this
-  // session. Once they have, the pick is sticky even if that resource's flow
-  // transiently vanishes (e.g. an engine cuts off), the auto-jump below only
-  // fires for a never-picked default. A config-default change resets it (a
-  // fresh starting point re-enables the auto-jump helper).
+  // An explicit pick is sticky through a transient flow dropout; only a never-picked default auto-jumps.
   const [userPicked, setUserPicked] = useState(false);
   useEffect(() => {
     setResource(defaultResource);
     setUserPicked(false);
   }, [defaultResource]);
 
-  // Resources that have a live `flow` contribution across the vessel.
-  // Drives both the picker options and the action cycle.
   const resourcesWithFlow = useMemo(() => {
     const set = new Set<string>();
     for (const slice of liveByFlightId.values()) {
@@ -218,11 +136,6 @@ function PowerSystemsComponent({
     return Array.from(set).sort();
   }, [liveByFlightId]);
 
-  // Auto-pick a resource with data when the operator hasn't chosen one, if
-  // the (default) pick has no contributions but others do, jump to the first
-  // that does. Skipped once the operator has explicitly picked, so a
-  // deliberate choice survives a transient flow dropout (engine cutoff) rather
-  // than being silently reset out from under them.
   useEffect(() => {
     if (userPicked) return;
     if (resourcesWithFlow.length === 0) return;
@@ -231,10 +144,7 @@ function PowerSystemsComponent({
     }
   }, [resourcesWithFlow, resource, userPicked]);
 
-  // Picker options: the resources with live flow, PLUS the current pick even if
-  // its flow has transiently vanished, so a deliberate pick stays visible and
-  // selected in the dropdown instead of falling back to the browser's first
-  // option.
+  // The current pick stays in the options even when its flow has vanished, so the select keeps showing it.
   const pickerResources = useMemo(
     () =>
       resourcesWithFlow.includes(resource)
@@ -255,14 +165,9 @@ function PowerSystemsComponent({
     },
   });
 
-  // Stable so an unchanged resource selection doesn't churn mounted augments.
   const scope = useMemo<PowerSystemsScope>(() => ({ resource }), [resource]);
 
-  // Per-part flow contributions for the selected resource. Includes
-  // zero-flow rows when the part exposes a nominalFlow, those are
-  // "idle" deployables (stowed solar panel, shaded panel, etc.) that
-  // would contribute power if the conditions were right. Storage-only
-  // rows (no flow, no nominal) are still skipped.
+  // A zero-flow part with a nominalFlow is an idle deployable and is listed; storage-only parts are not.
   const contributions = useMemo<Contribution[]>(() => {
     const out: Contribution[] = [];
     if (!topology) return out;
@@ -295,10 +200,6 @@ function PowerSystemsComponent({
       contributions.filter((c) => c.flow < 0).sort((a, b) => a.flow - b.flow),
     [contributions],
   );
-  // Parts with a known nominal capacity but no current flow, stowed
-  // solar panels, panels in shadow, etc. Rendered at low opacity so the
-  // operator can distinguish "no panels installed" from "panels installed
-  // but currently idle".
   const idle = useMemo(
     () =>
       contributions
@@ -313,15 +214,10 @@ function PowerSystemsComponent({
         ),
     [contributions],
   );
-  // Single source of truth for PROD/NET: the itemized rows below, always, see the doc comment on `streamPower` above.
   const totalProduced = producers.reduce((s, c) => s + c.flow, 0);
   const totalConsumed = consumers.reduce((s, c) => s + c.flow, 0);
   const net = totalProduced + totalConsumed;
 
-  // The streamed measurement, surfaced separately (never substituted into
-  // PROD/NET) only when it MEANINGFULLY disagrees with the itemized total,
-  // agreement (the common/healthy case) shows nothing extra, keeping the
-  // Totals row exactly as it always has been.
   const measuredTotalProduced =
     resource === "ElectricCharge"
       ? (magnitudeOf(streamPower?.totalProductionEc) ?? undefined)
@@ -330,8 +226,6 @@ function PowerSystemsComponent({
     measuredTotalProduced !== undefined &&
     Math.abs(measuredTotalProduced - totalProduced) > 0.01;
 
-  // Storage totals across every part that stores this resource, fuel
-  // tanks + EC batteries + monoprop tanks. Independent of flow rows.
   const storage = useMemo(() => {
     let amt = 0;
     let max = 0;
@@ -344,11 +238,6 @@ function PowerSystemsComponent({
     return { amount: amt, maxAmount: max };
   }, [liveByFlightId, resource]);
 
-  // Time-series of the vessel-wide resource level for the sparkline.
-  // r.resource[<Name>] is the vessel-wide reservoir
-  // (sum-of-parts) and is already buffered, so 120s of history is
-  // available without extra subscriptions. Reading numeric values out
-  // of the SeriesRange is the standard pattern.
   const seriesKey = `vessel.resources.resources.${resource}.current`;
   const series = useDataSeries("data", seriesKey, SPARKLINE_WINDOW_SEC);
   const sparkValues = useMemo(
@@ -358,26 +247,15 @@ function PowerSystemsComponent({
       ),
     [series.v],
   );
-  // Anchor the sparkline's Y range to the storage capacity so a half-
-  // full battery reads as half-full at a glance, not "level is flat
-  // relative to itself". Falls back to autoscale on the rare ticks
-  // before max arrives.
+  // Anchored to capacity so a half-full battery reads as half-full.
   const sparkDomain = useMemo<[number, number] | undefined>(
     () => (storage.maxAmount > 0 ? [0, storage.maxAmount] : undefined),
     [storage.maxAmount],
   );
 
-  // Selective rendering. Compact mode collapses to the net rate + the
-  // resource name; pre-data state shows a single hint line.
   const cols = w ?? 8;
   const rows = h ?? 10;
-  // Wide-short boxes (landscape-18x5) have plenty of *width* but too few
-  // *rows* to clear the normal `rows >= 8` height gate, so the height gate
-  // alone drops them into the near-empty compact path with ~80% of the width
-  // dead. When the grid box is genuinely landscape we instead flow the three sections
-  // side-by-side (see SectionsScroll/$landscape) so the full list fits in
-  // the short height by spending the spare width. Portrait/square keep the
-  // height-gated stacked layout untouched.
+  // A landscape box is too short for the height gate, so it lays the sections side by side instead of going compact.
   const { shape } = getWidgetShape(w, h);
   const isLandscape = shape === "landscape";
   const showFullList = cols >= 6 && (rows >= 8 || isLandscape);
@@ -426,11 +304,6 @@ function PowerSystemsComponent({
     return (
       <Panel
         panelTitle="POWER"
-        /* Panel's own tiny-tile centring, where this hand-rolled the
-           `flex: 1` + `justify-content: center` pair itself. Panel measures
-           first and only centres while the content fits, which a local box
-           cannot: overflowing content centred the plain way puts its first
-           line out of scroll reach. */
         fitToSize
         sections={
           <Section gap="related-dense" style={COMPACT_BODY}>
@@ -479,10 +352,7 @@ function PowerSystemsComponent({
         }
         sections={[
           <Section key="summary" full>
-            {/* Discrete power-state announcement for assistive tech, the visible NET
-              readout communicates surplus/deficit through colour + a ticking
-              number; this narrates the state word and updates only when the state
-              flips (kept out of the ticking value so it doesn't flood). */}
+            {/* Announces the state word only, so the ticking NET value does not flood a screen reader. */}
             <VisuallyHidden role="status" aria-live="polite">
               {netTone === "go"
                 ? "Power surplus"
@@ -583,9 +453,6 @@ function PowerSystemsComponent({
               </div>
             )}
           </Section>,
-          /* The breakdown is the body of this widget: it takes the height the
-             totals and the trend leave, which is what it did as the body's own
-             flexing child. */
           <Section key="breakdown" fill>
             <SectionsScroll $landscape={isLandscape}>
               <Section
@@ -656,10 +523,7 @@ function PowerSystemsComponent({
                   </div>
                 </Section>
               )}
-              {/* Augment sections: e.g. an Uplink's EC-broker breakdown, composed
-              below the stock producer/consumer/idle readout and INSIDE the same
-              scroller, which is why the seam is placed here rather than left to
-              `Panel`'s default end-of-body mount. */}
+              {/* Augment sections mount inside the breakdown's scroller, not at Panel's default end-of-body seam. */}
               <WidgetSections />
             </SectionsScroll>
           </Section>,
@@ -678,12 +542,10 @@ function ContributionRow({
   currency: TopicReading<unknown>;
 }) {
   const { partTitle, flow, flowKnown, nominalFlow } = contribution;
-  // Three-way sign: a shadowed solar panel produces nothing but is
-  // not consuming either; rendering its `+0.00` in green misreads as
-  // "actively producing". Neutral colour communicates "idle" honestly.
+  // A zero flow is neutral, not green: a shadowed panel is idle, not producing.
   const sign: "pos" | "neg" | "zero" =
     Math.abs(flow) < 1e-9 ? "zero" : flow > 0 ? "pos" : "neg";
-  // No efficiency without a measurement: "0% of nominal" computed from a flow that never arrived states a fraction nobody measured.
+  // No efficiency without a measured flow.
   const eff =
     flowKnown && typeof nominalFlow === "number" && Math.abs(nominalFlow) > 1e-9
       ? Math.abs(flow / nominalFlow)
@@ -714,11 +576,7 @@ function ContributionRow({
   );
 }
 
-/** Resource ids are camelCase (`ElectricCharge`,
- *  `LiquidFuel`): the compact-mode CSS uppercases them to
- *  `ELECTRICCHARGE` with no visible word boundary. Inserting a space
- *  between a lowercase and the following uppercase preserves the
- *  word break under the uppercase transform. */
+/** Spaces a camelCase resource id so its word breaks survive the uppercase transform. */
 function splitCamel(s: string): string {
   return s.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
@@ -729,8 +587,6 @@ function formatUnits(v: number): string {
   if (Math.abs(v) >= 100) return v.toFixed(0);
   return v.toFixed(1);
 }
-
-// ── Config ────────────────────────────────────────────────────────────────────
 
 function PowerSystemsConfigComponent({
   config,
@@ -770,14 +626,6 @@ function PowerSystemsConfigComponent({
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
-// Structural inline styles (CSS-var tokens): a bespoke totals/sparkline/section
-// board, no reusable ui-kit primitive fits the layout, so it stays local. Toned
-// numeric readouts render through ui-kit `Value` (tone -fg); cell backgrounds/
-// borders stay on -bg tokens (correct). Two styled blocks remain (SectionsScroll,
-// PowerRow), see the import's biome-ignore.
-
 const RESOURCE_SELECT: CSSProperties = {
   maxWidth: "50%",
   fontSize: "var(--font-size-value)",
@@ -786,10 +634,7 @@ const RESOURCE_SELECT: CSSProperties = {
 
 const TOTALS: CSSProperties = {
   display: "grid",
-  // 64px lets four cells fit in one row at threshold-6×8 (was wrapping to 2×2
-  // with the inner STORED value breaking inside). The narrower cell pairs with
-  // the smaller CellValue font (13px + nowrap) so the "2900 / 4050"-shape value
-  // stays on one line.
+  // 64px fits all four cells on one row at 6x8.
   gridTemplateColumns: "repeat(auto-fit, minmax(64px, 1fr))",
   gap: "var(--gap-related)",
   marginTop: "var(--gap-related-comfortable)",
@@ -806,8 +651,6 @@ const TOTALS_CELL: CSSProperties = {
   borderRadius: "var(--radius-regular)",
 };
 
-// The NET cell's tinted background + border (stays on -bg tokens: a fill, not
-// text). Merged over TOTALS_CELL at the call site.
 function netCellStyle(tone: "go" | "warn" | "neutral"): CSSProperties {
   const bg =
     tone === "go"
@@ -824,19 +667,11 @@ function netCellStyle(tone: "go" | "warn" | "neutral"): CSSProperties {
   return { background: bg, border: `1px solid ${border}` };
 }
 
-// A distinctly-bordered cell for the streamed `parts.power.totalProductionEc`
-// reading, shown ONLY when it disagrees with the itemized PROD total: a visible
-// "these two numbers don't match" signal (dashed border, muted warning tint)
-// rather than either silently overriding PROD/NET or silently vanishing.
 const MEASURED_CELL: CSSProperties = {
   border: "1px dashed var(--color-status-warning-bg)",
 };
 
-// The default CELL_LABEL colour is text-faint; inside NetCell the label takes a
-// tone-appropriate foreground instead (via cellLabelColor). --color-text-faint
-// reads fine on the flat panel background every other CellLabel sits on, but
-// against NetCell's tinted go/warn backgrounds it drops below the 4.5:1 AA floor
-// for this size of text, so it matches NetCell's own foreground tokens.
+// On the NET cell's tinted background text-faint fails 4.5:1, so its label takes the tone's foreground (cellLabelColor).
 const CELL_LABEL: CSSProperties = {
   fontSize: "var(--font-size-caption)",
   letterSpacing: "0.12em",
@@ -852,15 +687,9 @@ function cellLabelColor(tone: "go" | "warn" | "neutral"): string {
       : "var(--color-text-faint)";
 }
 
-// `Text` supplies tone (-fg), size and tabular-nums; the weight + nowrap are
-// this widget's. The neg/warn sign now renders on Text's warning-fg (was the
-// -bg token): the intended -fg normalization.
 const CELL_VALUE: CSSProperties = { fontWeight: 700, whiteSpace: "nowrap" };
 
-// STORED can carry an "amount / max" pair (e.g. "2900 / 4050"). At the default
-// 8×12 size all four Totals cells pack into one row, leaving each cell too
-// narrow for the nowrap value; allow it to wrap within its cell (there is
-// vertical room), the break only ever lands at the " / " separator.
+// An "amount / max" pair may wrap inside its narrow cell, breaking at the separator.
 const STORED_VALUE: CSSProperties = {
   fontWeight: 700,
   whiteSpace: "normal",
@@ -891,9 +720,6 @@ const SPARKLINE_LABEL: CSSProperties = {
 
 const SPARKLINE_SUB: CSSProperties = { color: "var(--color-text-dim)" };
 
-// Sparkline renders a fixed 240×36 SVG. The slot lets it ride at its intrinsic
-// size on the left; the unused space on wider widgets keeps the row from
-// looking truncated without forcing a responsive SVG.
 const SPARKLINE_SLOT: CSSProperties = {
   flex: 1,
   minWidth: 0,
@@ -917,9 +743,6 @@ const SectionsScroll = styled(ScrollArea)<{ $landscape?: boolean }>`
   }
 `;
 
-// The kit's Section is exactly the gap:2px column; $landscape is the only thing
-// it does not cover, and it is genuinely this widget's layout mode. Applied via
-// `<Section as="section" style={landscape ? PANEL_SECTION_LANDSCAPE ...}>`.
 const PANEL_SECTION_LANDSCAPE: CSSProperties = {
   flex: "1 1 0",
   minWidth: 0,
@@ -958,8 +781,6 @@ const PowerRow = styled.div`
   }
 `;
 
-// Per-sign colour was styled; the row value now renders through `Value`
-// (tone={go|warn|faint}), so RowValue is gone. RowEff stays a plain caption.
 const ROW_EFF: CSSProperties = {
   fontSize: "var(--font-size-compact)",
   color: "var(--color-text-faint)",
@@ -973,10 +794,7 @@ const HINT: CSSProperties = {
   lineHeight: "var(--line-height-body)",
 };
 
-/**
- * What is left of the compact body once `Panel fitToSize` owns the fill and the
- * centring: the text alignment for a resource name long enough to wrap.
- */
+/** Text alignment for a compact resource name long enough to wrap; `Panel fitToSize` owns the centring. */
 const COMPACT_BODY: CSSProperties = {
   alignItems: "center",
   textAlign: "center",
@@ -989,14 +807,7 @@ const COMPACT_RESOURCE: CSSProperties = {
   color: "var(--color-text-faint)",
 };
 
-// Extra layout for the compact NET readout (rendered via `Value` for its tone):
-// at the tiny (3×3) size the panel's inner width is ~80px and a value like
-// "+49.50/s" has no natural break point, so max-width + ellipsis is the safety
-// net against the panel's overflow:hidden clipping. The 16px stays literal (off
-// the type scale on purpose): --font-size-lg is identical on desktop but 17px
-// under @media (pointer: coarse), and the tier-1 Steam Deck is coarse, so the
-// token would reintroduce the clipping bug on the one platform that matters
-// most.
+// A literal 16px because --font-size-lg grows to 17px on coarse pointers, which clips "+49.50/s" in a 3x3 tile.
 const COMPACT_NET: CSSProperties = {
   maxWidth: "100%",
   overflow: "hidden",
@@ -1005,8 +816,6 @@ const COMPACT_NET: CSSProperties = {
   fontSize: "16px",
   fontWeight: 700,
 };
-
-// ── Registration ──────────────────────────────────────────────────────────────
 
 registerComponent<PowerSystemsConfig>({
   id: "power-systems",
@@ -1019,20 +828,10 @@ registerComponent<PowerSystemsConfig>({
   component: PowerSystemsComponent,
   configComponent: PowerSystemsConfigComponent,
   openConfigOnAdd: false,
-  // Subscribes via useTopology + usePartsLive: same chain as ShipMap.
-  // useTopology reads `vessel.parts` directly (stream-native, bypasses
-  // mapTopic); usePartsLive derives per-part thermal, resources, and
-  // module state off that SAME payload: no per-flightId subscriptions.
-  // The sparkline reads the vessel-wide reservoir for whichever resource is
-  // selected, off `vessel.resources`. The Topic is what it declares: the
-  // reservoir is keyed BY RESOURCE NAME, so the field path underneath it names
-  // a key the contract never does and only the Topic can be declared.
+  // `vessel.resources` is declared as a whole Topic because its reservoir is keyed by resource name.
   dataRequirements: ["vessel.parts", "vessel.resources", "parts.power"],
   defaultConfig: { defaultResource: "ElectricCharge" },
   actions: powerSystemsActions,
-  // Augment slot. `sections`: body table/section below the stock readout
-  // (an EC-broker breakdown is the canonical filler). Renders nothing
-  // until an Uplink registers.
   augmentSlots: ["power-systems.sections"],
   pushable: true,
   requires: ["flight"],

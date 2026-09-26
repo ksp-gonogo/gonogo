@@ -10,11 +10,7 @@ import {
   type RailUndelivered,
 } from "./CommandUndeliveredList";
 
-/*
- * The rail axes these fixtures carry, from the same derivations production uses
- * rather than written as literals: a fixture that spelled its own tags would go
- * on asserting the old picture after a derivation moved.
- */
+// The rail axes come from the production derivations, so the fixtures follow them rather than asserting stale literals.
 const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
 
 describe("commandUndeliveredSentence", () => {
@@ -28,26 +24,14 @@ describe("commandUndeliveredSentence", () => {
   });
 
   it("says a re-send is safe, which is the half that decides what happens next", () => {
-    // "Never sent" alone leaves the operator wondering whether to press again.
-    // The command is still in a queue on THIS side, so pressing it again cannot
-    // repeat anything, and that is the whole reason the phase exists.
+    // The command never left this side, so pressing again cannot repeat anything.
     expect(commandUndeliveredSentence({ command: "a.b" })).toMatch(
       /safe to re-send/i,
     );
   });
 
   it("says the OPPOSITE of the loss it replaced, in a different shape", () => {
-    /*
-     * The loss earns its caution from a command that may be waiting on the far
-     * side. This one is waiting on ours, where we can see it, so the doubt the
-     * loss sentence carries would be a falsehood here.
-     *
-     * Both were cut to the one fact an operator acts on, which is the risk in
-     * pressing again, and cutting is what could blur them: two sentences that
-     * differ only by a "may" against a "cannot" read alike at a glance. So this
-     * pins the polarity AND the shape, a doubt about the past against a
-     * permission for the next press, and neither borrowing the other's words.
-     */
+    // Pins the polarity AND the shape: "may" against "cannot" alone would read alike at a glance.
     const dispatch = { command: "vessel.control.setSas", label: "" };
     expect(commandLossSentence(dispatch)).toMatch(/may have run/i);
     expect(commandLossSentence(dispatch)).not.toMatch(/safe/i);
@@ -60,9 +44,7 @@ describe("commandUndeliveredSentence", () => {
   });
 
   it("states the retry as a fact, never as an instruction", () => {
-    // The rail is instrumentation. It says what is true and lets the operator
-    // decide; the transport's own reason carries the imperative, and this box
-    // is not the transport.
+    // The rail says what is true and never quotes the transport's imperative.
     const sentence = commandUndeliveredSentence({ command: "a.b" });
     expect(sentence).not.toMatch(/\b(reconnect|send it again|retry|press)\b/i);
   });
@@ -89,8 +71,7 @@ describe("CommandUndeliveredList", () => {
   });
 
   it("announces politely, never assertively", () => {
-    // An entry appears here on its own, minutes after the press, when a
-    // transport gives up on a link. Assertive is reserved for ABORT.
+    // Polite: assertive is reserved for ABORT.
     render(<CommandUndeliveredList undelivered={[unsent]} />);
     const list = screen.getByRole("status", { name: /never sent/i });
     expect(list.getAttribute("aria-live")).not.toBe("assertive");

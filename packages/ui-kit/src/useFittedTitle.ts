@@ -8,69 +8,20 @@ import {
 } from "react";
 
 /**
- * Pick the longest form of a title that actually fits the box it is drawn in.
- *
- * ## The three things this replaces
- *
- * Every widget's title is a fixed string its author chose, so unlike a vessel
- * name it can always be made to fit. Nothing in the kit helped them do it, and
- * three widgets had each solved it their own way:
- *
- *  - `OrbitView` hand-rolled `cols < 4 ? "OVIEW" : "ORBIT VIEW"`, with a comment
- *    admitting what the threshold really is: "the header row gives the title a
- *    fixed reserved width and does not grow it into a chevron-collapsed aside's
- *    freed space, so a title that doesn't fit at this column count is squeezed
- *    far below what the row actually has room for". A grid-column count is a
- *    guess at a pixel width the widget cannot see
- *  - `PerfBudgets` picked "PERF BUDGETS" or "PERF" off a size branch it already
- *    had, so the title is right only where that branch happens to agree
- *  - `SpaceCenterStatus` is called "KSC" at every size, including a twelve-
- *    column tile with room for the whole name. The short form won permanently
- *
- * So the shape is: a list of forms, and a decision made by MEASUREMENT rather
- * than by a column count, so the widest form that fits is the one shown and the
- * short form is never a permanent loss.
- *
- * ## How the measurement works
- *
- * The title box fills the room available to it (`PanelHeader__Titles` grows),
- * so its `clientWidth` IS the room, and each candidate is measured on an
- * isolated clone of the live element. The clone keeps its styled-components
- * classes, so its font, letter-spacing and padding are the real ones rather
- * than an approximation, and it is appended and removed inside one synchronous
- * call so nothing ever observes it. Same technique as
- * `measureNaturalElementWidth` in `usePanelAsideSize`, for the same reason: a
- * live element squeezed by a flex chain reports the squeezed width, which is
- * exactly the case that has to be detected.
- *
- * In jsdom every box is zero, so the full title is what renders. That is the
- * existing behaviour of every widget test, deliberately: a hook that silently
- * shortened titles under test would make every `getByText` in the tree a coin
- * flip on layout nobody can see.
- */
-
-/**
- * How much room to spare a longer form needs before it wins back.
- *
- * The whole hysteresis, and the same argument as `REEXPAND_MARGIN_PX` in
- * `usePanelAsideSize`: shortening reacts the instant the text stops fitting, so
- * a title is never left clipped, but lengthening waits for real room. Without
- * it a box sitting exactly on the boundary alternates forever, because showing
- * the longer form is what makes it not fit.
+ * Room to spare a longer form needs before it wins back. Without it a box
+ * sitting exactly on the boundary alternates forever, because showing the
+ * longer form is what makes it not fit.
  */
 const RELENGTHEN_MARGIN_PX = 12;
 
 /**
  * One candidate's natural width, measured on an isolated clone of `el` with its
- * text replaced.
+ * text replaced, so the font and spacing are the real ones and a flex-squeezed
+ * live box cannot report its squeezed width.
  *
- * Every candidate carries its own text, the full form included, and that is the
- * correctness of this hook rather than a detail. Measuring the first candidate
- * as "whatever the element currently renders" oscillates the instant it
- * shortens: the live element then reads back the SHORT text as the full form's
- * width, so the full form appears to fit, is restored, and does not fit.
- * Measured in Chromium, "RESOURCE OPS" alternated 131px and 90px forever in a
- * box with 110px of room.
+ * Every candidate carries its own text, the full form included: reading the
+ * live element back after a shortening would measure the short text as the
+ * full form's width and oscillate.
  */
 function measureCandidateWidth(el: HTMLElement | null, text: string): number {
   if (!el || typeof document === "undefined") return 0;
@@ -81,9 +32,7 @@ function measureCandidateWidth(el: HTMLElement | null, text: string): number {
   clone.style.pointerEvents = "none";
   clone.style.left = "-99999px";
   clone.style.top = "-99999px";
-  // The live element fills its column and truncates; the clone has to report
-  // what the text WANTS, so it is taken off both the width it inherits and the
-  // ceiling that would clip it again.
+  // The live element truncates within its column; the clone must report the width the text wants.
   clone.style.width = "max-content";
   clone.style.maxWidth = "none";
   document.body.appendChild(clone);
@@ -93,14 +42,11 @@ function measureCandidateWidth(el: HTMLElement | null, text: string): number {
 }
 
 /**
- * Which candidate fits, as an index into a longest-first list. Pure, so the
- * hysteresis is testable with no DOM.
+ * Which candidate fits, as an index into a longest-first list.
  *
  * Anything unmeasured (a zero available width, or a first candidate that
- * measured zero) holds index 0, the full form: that is jsdom, first paint
- * before layout, and a `ResizeObserver` that has not fired yet, and shortening
- * a title on the strength of a measurement that never happened is worse than
- * leaving it long.
+ * measured zero) holds index 0, the full form: shortening a title on a
+ * measurement that never happened is worse than leaving it long.
  */
 export function fittedTitleIndex(
   previous: number,
@@ -117,7 +63,8 @@ export function fittedTitleIndex(
 }
 
 /**
- * The title form to render, given the full one and any shorter alternatives.
+ * The title form to render, given the full one and any shorter alternatives,
+ * chosen by measuring the box rather than by a column count.
  *
  * `compact` is longest-first, so "ORBIT VIEW" then "OVIEW" then "OV" is a full
  * title of `ORBIT VIEW` with `compact={["OVIEW", "OV"]}`. The returned
@@ -134,9 +81,7 @@ export function useFittedTitle(
   const indexRef = useRef(index);
   indexRef.current = index;
 
-  // `compact` is a fresh array on most renders, so its identity would defeat
-  // the memo and rebuild the observer every time. Its CONTENTS are the input,
-  // joined on a newline because a short title is still allowed spaces.
+  // `compact` is a fresh array on most renders, so its contents are the key, joined on a newline because a short title may contain spaces.
   const key = [full, ...compact].join("\n");
 
   const recompute = useCallback(() => {
@@ -157,9 +102,7 @@ export function useFittedTitle(
     }
   }, [titleRef, key]);
 
-  // `key` carries the title text, so a changed title recomputes through
-  // `recompute`'s own identity even though it moves no box a ResizeObserver
-  // would see.
+  // A changed title moves no box a ResizeObserver would see, so it recomputes through `recompute`'s identity.
   useLayoutEffect(() => {
     recompute();
   }, [recompute]);

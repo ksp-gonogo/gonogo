@@ -4,15 +4,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AudioInputPicker } from "./AudioInputPicker";
 
 /**
- * No microphone is involved anywhere in this file. `navigator.mediaDevices` is
- * the whole browser boundary the component talks to, so it is stubbed at that
- * boundary and everything above it (the state machine, the copy, the stream
- * handoff, the track teardown) is the real thing.
- *
- * The stub answers the way a browser does rather than the way the component
- * would find convenient: labels are empty until a capture succeeds, a refusal
- * is a `DOMException` with the name the spec gives it, and `devicechange` is
- * an event rather than a callback.
+ * `navigator.mediaDevices` is stubbed at the browser boundary and everything
+ * above it is real. The stub answers the way a browser does: labels are empty
+ * until a capture succeeds, a refusal is a `DOMException` with the spec's name,
+ * and `devicechange` is an event.
  */
 
 class FakeTrack {

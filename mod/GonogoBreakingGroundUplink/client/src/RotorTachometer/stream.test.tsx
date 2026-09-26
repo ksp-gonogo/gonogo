@@ -9,13 +9,10 @@ import {
 import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-// Side-effect import: the widget self-registers on module load, and `renderWidget` looks it up by id rather than importing the component.
+// Side-effect import: the widget self-registers on module load.
 import "./index";
 
-// Rendered trees, tracked so afterEach can unmount them BEFORE clearing the
-// action-handler registry: clearActionHandlers() firing on a still-mounted
-// widget is a state update outside act(). RTL auto-cleanup runs after this
-// file's afterEach, too late to unmount first.
+// Unmounted in afterEach before the action-handler registry is cleared, since RTL's own cleanup runs too late.
 const renderedTrees: Array<() => void> = [];
 
 function _render(ui: ReactElement) {
@@ -24,13 +21,7 @@ function _render(ui: ReactElement) {
   return result;
 }
 
-/**
- * RotorTachometer runs genuinely off the real `TelemetryProvider`/
- * `TelemetryClient`/`TimelineStore` pipeline via `StubTransport`:
- * `robotics.servos` (filtered to `type === "rotor"`) is its whole identity
- * list, and `robotics.rotor.*` command dispatch rides the same stream via
- * `useCommand`, asserted against `fixture.transport.sentCommands`.
- */
+/** Proves RotorTachometer reads and commands over the real stream pipeline via `StubTransport`. */
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
@@ -83,7 +74,7 @@ describe("RotorTachometer: genuinely runs off the stream", () => {
       ]);
     });
 
-    // The rotor's RPM renders; the hinge entry is ignored (RotorTachometer is rotors-only, hinges/pistons are Robotics Console's domain).
+    // The hinge entry is ignored; hinges and pistons belong to Robotics Console.
     await waitFor(() => expect(visibleText(container)).toContain("240"));
     expect(screen.queryByText(/Arm Hinge/)).not.toBeInTheDocument();
 
@@ -133,7 +124,6 @@ describe("RotorTachometer: genuinely runs off the stream", () => {
       );
     });
 
-    // Default selection is the first entry (partId "1", 100 RPM).
     await waitFor(() => expect(visibleText(container)).toContain("100"));
 
     const rows = screen.getAllByRole("button", {

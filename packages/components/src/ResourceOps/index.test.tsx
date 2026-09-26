@@ -11,24 +11,9 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ResourceOpsComponent } from "./index";
 
 /**
- * Redesign note: processes now render as `Card`s with a tabular
- * resource/rate/direction table (`in`/`out`/`extract`), grouped under a
- * global stats header (process count, active count, net EC draw, and an
- * optional vessel/body "at" line). The cases below are updated for that
- * structure; the underlying claims (shared-fields-only, starved detection,
- * sub-milli rates, filtering) are unchanged.
- */
-
-/**
- * Resource Ops consumes the ONE elected `isru.*` topic pair, so every case below
- * is written against the SHARED shape only. That is the claim the widget makes:
- * a row is complete without reading any provider's extension namespace, so the
- * same frames render identically whichever backend the mod elected.
- *
- * Filtering is delegated to a mounted `FilterList`: the widget bakes each row's
- * `searchText` from shared fields and renders whatever search terms are
- * contributed to its `resource-ops.filters` slot, knowing nothing about what any
- * of them mean.
+ * Every case is written against the shared `isru.*` shape only: a row is complete
+ * without any provider's extension namespace, and filter terms arrive on the
+ * `resource-ops.filters` slot the widget knows nothing about.
  */
 const CARRIED = ["isru.drills", "isru.converters"];
 
@@ -74,19 +59,13 @@ const CONVERTERS = [
   },
 ];
 
-// The widget declares no filter slot: the framework auto-aggregates
-// `resource-ops.filters` for every widget from this meta's componentId, the
-// same way it does the badges slot, so FilterList's terms flow with no
-// widget-side declaration.
+// The framework aggregates `resource-ops.filters` from the componentId, so the widget declares no slot.
 const META = {
   componentId: "resource-ops",
   contributionSlots: [],
 } as const;
 
-// A stand-in for an Uplink's own contributed axis, registered once at module
-// load (the registry has no unregister) and gated on a flag so only the test
-// that wants it sees it. The term is a plain string, matched as a substring
-// against a row's baked searchText.
+// Registered once (the registry has no unregister) and gated so only the test that wants it sees it.
 let uplinkTermOn = false;
 
 registerContribution({
@@ -115,8 +94,7 @@ function renderWidget(carriedChannels: readonly string[] = CARRIED) {
   return { fixture, ...utils };
 }
 
-/** The global stats header, scoped so a header stat ("30.00") is never
- *  confused with the same number appearing in a card's own resource row. */
+/** Scoped so a header stat is never confused with the same number in a card row. */
 async function findStatsHeader(): Promise<HTMLElement> {
   return screen.findByRole("group", { name: "Resource ops summary" });
 }
@@ -133,7 +111,6 @@ describe("ResourceOps", () => {
     expect(screen.getByText("Drill-O-Matic Junior")).toBeInTheDocument();
     expect(screen.getByText("Convert-O-Tron 250")).toBeInTheDocument();
     expect(screen.getByText("Convert-O-Tron 125")).toBeInTheDocument();
-    // The recipe reads as resources, both sides.
     expect(screen.getByText(/LiquidFuel/)).toBeInTheDocument();
   });
 
@@ -149,7 +126,6 @@ describe("ResourceOps", () => {
     expect(search).toHaveValue("");
     expect(screen.getByText("Convert-O-Tron 250")).toBeInTheDocument();
 
-    // Typing a resource narrows to the units that touch it, drills and converters alike, matched against the searchText the widget baked.
     act(() => {
       fireEvent.change(search, { target: { value: "Monopropellant" } });
     });
@@ -159,7 +135,7 @@ describe("ResourceOps", () => {
   });
 
   it("renders a contributed term it knows nothing about, and applies it", async () => {
-    // The widget has never heard of this filter: it renders it as a toggle because it arrived on its slot, and narrows by plain substring.
+    // The widget renders an unknown contributed term as a toggle and narrows by plain substring.
     uplinkTermOn = true;
     const { fixture } = renderWidget();
     act(() => {
@@ -187,7 +163,7 @@ describe("ResourceOps", () => {
     });
 
     expect(await screen.findByText("deployed")).toBeInTheDocument();
-    // A null deploy state is a harvester with no deploy animation, so it must not render as "retracted", which would be a claim the backend never made.
+    // A null deploy state is a harvester with no deploy animation, not "retracted".
     expect(screen.queryByText("retracted")).not.toBeInTheDocument();
   });
 
@@ -198,7 +174,6 @@ describe("ResourceOps", () => {
       fixture.emit("isru.converters", CONVERTERS);
     });
 
-    // Exactly one of the two is starved: the derived diagnostic, not a wire field.
     expect(await screen.findAllByText("no output")).toHaveLength(1);
   });
 
@@ -206,9 +181,7 @@ describe("ResourceOps", () => {
     const { fixture } = renderWidget();
     act(() => {
       fixture.emit("isru.drills", []);
-      // A scrubber consumes and dumps: an EMPTY output side is its healthy
-      // state. `outputs.every(rate === 0)` is vacuously true on [], which is
-      // exactly the false positive this case pins down.
+      // `outputs.every(...)` is vacuously true on [], and an empty output side is a scrubber's healthy state.
       fixture.emit("isru.converters", [
         {
           partId: "301",
@@ -225,7 +198,6 @@ describe("ResourceOps", () => {
 
     expect(await screen.findByText("CO2 Scrubber")).toBeInTheDocument();
     expect(screen.queryByText("no output")).not.toBeInTheDocument();
-    // The empty side still reads as a fact, not a blank.
     expect(screen.getByText("none")).toBeInTheDocument();
   });
 
@@ -233,9 +205,7 @@ describe("ResourceOps", () => {
     const { fixture } = renderWidget();
     act(() => {
       fixture.emit("isru.drills", []);
-      // Life-support rates genuinely sit this low: a recycler at 0.0002
-      // units/s is WORKING, and fixed 3 dp rendered it "0.000", a dead-looking
-      // reading no operator should have to second-guess.
+      // A recycler at 0.0002 units/s is working, and must not render as "0.000".
       fixture.emit("isru.converters", [
         {
           partId: "302",
@@ -284,12 +254,10 @@ describe("ResourceOps", () => {
     });
 
     const header = await findStatsHeader();
-    // 2 drills + 2 converters = 4 processes; one drill is stopped, so 3 active.
     expect(within(header).getByText("4")).toBeInTheDocument();
     expect(within(header).getByText("processes")).toBeInTheDocument();
     expect(within(header).getByText("3")).toBeInTheDocument();
     expect(within(header).getByText("active")).toBeInTheDocument();
-    // Only Convert-O-Tron 250 (running) touches ElectricCharge, at 30/s in.
     expect(within(header).getByText("net EC")).toBeInTheDocument();
     expect(within(header).getByText(/30\.00/)).toBeInTheDocument();
   });
@@ -298,9 +266,7 @@ describe("ResourceOps", () => {
     const { fixture } = renderWidget();
     act(() => {
       fixture.emit("isru.drills", DRILLS);
-      // Neither converter's recipe below ever names ElectricCharge, unlike
-      // the shared CONVERTERS fixture: the stat must read as "not
-      // applicable", not a fabricated zero draw.
+      // Neither recipe names ElectricCharge, so the stat is not applicable rather than a zero draw.
       fixture.emit("isru.converters", [
         {
           partId: "501",
@@ -346,10 +312,7 @@ describe("ResourceOps", () => {
   });
 
   it("degrades gracefully with no location line when vessel telemetry is not carried", async () => {
-    // The default `renderWidget()` never carries `vessel.identity`/
-    // `system.bodies`, mirroring a mount where an Uplink hasn't wired them:
-    // the widget's core drill/converter list must render untouched, just
-    // without the "at" line, never a stuck-loading state.
+    // A mount without the location channels renders the list, just without the "at" line.
     const { fixture } = renderWidget();
     act(() => {
       fixture.emit("isru.drills", DRILLS);

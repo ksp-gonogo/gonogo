@@ -13,11 +13,7 @@ import {
   type RailFound,
 } from "./CommandFoundList";
 
-/*
- * The rail axes these fixtures carry, from the same derivations production uses
- * rather than written as literals: a fixture that spelled its own tags would go
- * on asserting the old picture after a derivation moved.
- */
+// The rail axes come from the production derivations, so the fixtures follow them rather than asserting stale literals.
 const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
 
 describe("commandFoundSentence", () => {
@@ -32,7 +28,7 @@ describe("commandFoundSentence", () => {
   });
 
   it("never says confirmed, for any outcome", () => {
-    // Confirmed means it worked as expected, and every one of these is a command the operator was told to stop waiting for.
+    // Not "confirmed": each of these is a command the operator was told to stop waiting for.
     for (const found of [
       { outcome: "ran" as const, command: "a.b" },
       {
@@ -51,8 +47,7 @@ describe("commandFoundSentence", () => {
   });
 
   it("quotes the refusal composer rather than keeping a second table of reasons", () => {
-    // The clause is the refusal's own, numbers and all. Writing it out again
-    // here is how the two would end up disagreeing about what LimitReached says.
+    // The refusal's own clause, numbers and all, so the two never disagree.
     expect(
       commandFoundSentence({
         outcome: "refused",
@@ -85,7 +80,7 @@ describe("commandFoundSentence", () => {
   });
 
   it("keeps the game's own capitals when it quotes them", () => {
-    // KSP's strings are titles and sentences of its own, and folding case would damage the proper nouns in them.
+    // Folding case would damage the proper nouns in KSP's own strings.
     expect(
       commandFoundSentence({
         outcome: "refused",
@@ -131,8 +126,7 @@ describe("CommandFoundList", () => {
   });
 
   it("announces politely, never assertively", () => {
-    // A command turning up executed is a mission-state change and must reach an
-    // operator looking elsewhere. Assertive is reserved for ABORT.
+    // A mission-state change, so polite live region; assertive is reserved for ABORT.
     render(<CommandFoundList founds={[found]} />);
     const list = screen.getByRole("status", { name: /answered/i });
     expect(list.getAttribute("aria-live")).not.toBe("assertive");

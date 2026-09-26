@@ -57,10 +57,8 @@ type LaunchDirectorConfig = Record<string, never>;
 
 /**
  * One action per control that has exactly one target on screen. Each presses
- * the control itself, so a bound input arms on its first press and dispatches
- * on its second exactly as a click does, and does nothing while that control
- * is dark or absent. Switching vessel acts on one row of many and has no
- * action.
+ * the control itself, so a bound input arms then dispatches exactly as clicks
+ * do, and does nothing while the control is dark or absent.
  */
 const launchDirectorActions = [
   {
@@ -105,11 +103,7 @@ type LaunchDirectorActionId = LaunchDirectorActions[number]["id"];
 
 type Press = (armable: boolean) => void;
 
-/**
- * The press of each on-screen control an action drives, keyed by action id.
- * A control is listed only while a click on it would do something, so an
- * action finds nothing to press exactly when the control is dark or absent.
- */
+/** Each bound control's press, listed only while a click on it would do something. */
 const BoundPresses = createContext<Map<LaunchDirectorActionId, Press> | null>(
   null,
 );
@@ -129,17 +123,9 @@ function useBindPress(
   }, [registry, action, press, clickable]);
 }
 
-/**
- * The context both LaunchDirector slots pass to their augments. A
- * life-support / logistics Uplink reads the pre-launch selection (which craft,
- * crew and site the operator is about to commit) to append a checklist item or
- * a header badge: e.g. supplies for the planned duration, or habitation.
- */
+/** The context both LaunchDirector slots pass to their augments: the pre-launch selection the operator is about to commit. */
 export interface LaunchDirectorSlotContext {
-  /**
-   * Current KSP scene ("Flight", "Editor", ...), undefined until telemetry
-   * arrives and while the mod cannot name the scene it is in.
-   */
+  /** Current KSP scene, undefined until telemetry arrives and while the mod cannot name it. */
   scene: string | undefined;
   /** True while a vessel is in flight (scene === "Flight"). */
   inFlight: boolean;
@@ -155,13 +141,8 @@ export interface LaunchDirectorSlotContext {
 
 /**
  * One pad, as the row that draws it sees it. An Uplink that models launch
- * complexes joins its own pad record on {@link siteName} and says what it knows
- * about THIS pad: which complex owns it, whether it is being reconditioned, what
- * is rolling out to it and when that arrives.
- *
- * The context is per-row rather than per-selection because the list is
- * prioritised by what is standing on each pad, and a pad an Uplink knows is
- * busy has to be able to say so from the row rather than only once opened.
+ * complexes joins its own pad record on {@link siteName}. Per-row, so a pad an
+ * Uplink knows is busy can say so from the row.
  */
 export interface LaunchDirectorPadContext {
   /** The site's internal `LaunchSite.name`: the stable key an Uplink joins on. */
@@ -181,10 +162,6 @@ export interface LaunchDirectorPadContext {
 }
 
 // Declaration-merge the slot ids onto their props type in core's `SlotRegistry`.
-// Co-located here (not a shared central file) so parallel slot work on
-// other widgets can't collide. This makes `registerAugment` and
-// `<AugmentSlot name="launch-director.preflight" ...>` type-check against
-// `LaunchDirectorSlotContext` rather than the loose fallback.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "launch-director.preflight": LaunchDirectorSlotContext;
@@ -198,11 +175,7 @@ export interface SavedShip {
   totalMass: number;
   /** KSP's own `EditorFacility` name, verbatim: the label shown on the row. */
   facility: string;
-  /**
-   * KSP's `EditorFacility` ORDINAL (`KspEditorFacility`), `null` when the
-   * producer sent none. This is what decides which editor the craft launches
-   * from; {@link facility} is only ever displayed.
-   */
+  /** KSP's `EditorFacility` ORDINAL, `null` when none was sent: what decides the launch editor; {@link facility} is display only. */
   facilityOrdinal: number | null;
   requiresFunds: number;
   missingParts: string[];
@@ -212,13 +185,7 @@ export interface CrewMember {
   name: string;
   trait: string;
   experienceLevel: number;
-  /**
-   * Whether the wire says this kerbal can fly today, or `null` where it said
-   * nothing. Null is not false: the roster carries `available` for every kerbal
-   * it knows about, so its absence is a payload that could not answer, and
-   * folding it to "unavailable" would put an unreadable row and a kerbal on a
-   * mission in the same pixel.
-   */
+  /** Whether this kerbal can fly today, or `null` where the wire said nothing, which is not false. */
   available: boolean | null;
   unavailableReason: string;
 }
@@ -227,15 +194,9 @@ export interface CrewMember {
 export type CrewReading = "available" | "unavailable" | "unread";
 
 /**
- * The unavailable set, derived rather than asked for: the roster carries no
- * "available crew" list and does not need to, since `available` is per row and
- * `CrewStandings.CanFly` is a whitelist mod-side (only Available and Applicant
- * are free, so a standing added later reads unavailable here without an edit).
- *
- * <p>The empty reason is the third state, not a formatting miss. The contract
- * gives `CrewStanding.Unknown` an EMPTY reason on purpose, because "Unknown"
- * beside a dead control reads as a diagnosis, so unavailable-with-no-reason is
- * how "nothing could say" arrives.</p>
+ * Availability and its reason read together. Unavailable with an EMPTY reason
+ * is the third state: `CrewStanding.Unknown` carries no reason on purpose, so
+ * that is how "nothing could say" arrives.
  */
 export function crewReading(k: CrewMember): CrewReading {
   if (k.available === true) return "available";
@@ -244,14 +205,9 @@ export function crewReading(k: CrewMember): CrewReading {
 }
 
 /**
- * The roster's own count, and the three exceptions to it. Silent on a term that
- * is zero, so a roster where everyone can fly reads as its size and nothing
- * else.
- *
- * <p>The selected count is here rather than beside the chips because this line
- * is the only part of the section that survives a short tile: the grid folds
- * behind it, and a fold that hid the manifest the operator had already picked
- * would be worse than the overflow it replaced.</p>
+ * The roster's own count and the three exceptions to it, each silent at zero.
+ * The selected count lives here because this line is the part that survives a
+ * short tile when the grid folds.
  */
 export function crewTally(crew: CrewMember[], selected = 0): string {
   const readings = crew.map(crewReading);
@@ -264,31 +220,10 @@ export function crewTally(crew: CrewMember[], selected = 0): string {
   return ` ${terms.join(" · ")}`;
 }
 
-/**
- * Grid rows at or above which the crew grid stands open, and below which it
- * starts folded behind its tally.
- *
- * Measured off the render matrix rather than picked: with a craft selected, the
- * pad row, the craft row and their labels cost ~200px before crew is reached,
- * the section's own label and a seven-kerbal grid cost ~330px more, and the
- * launch control ~40px. At `ROW_HEIGHT` 25 plus an 8px margin that is 18 rows,
- * which is why the only tile it ever fitted was the 7x18 one. Fourteen rows
- * (454px) holds it with the compact chips below; every shorter tile pushed both
- * the grid AND the launch control past the fold.
- */
+/** Grid rows at or above which the crew grid stands open; measured, shorter tiles push the launch control past the fold. */
 const CREW_GRID_MIN_ROWS = 14;
 
-/**
- * The letterbox tile: wide enough to hold two readable columns, short enough
- * that stacking them spends the one dimension it has none of.
- *
- * A pad's craft and its crew stack in every other shape, which is right when
- * height is what the tile has. At 18x5 the widget was 712px wide and 165px
- * tall, spent none of the width, and ran 352px of stacked content, so the fold
- * landed on the craft label and neither the crew nor the launch control was on
- * screen. Fourteen columns is where two tracks still fit a craft name beside
- * its cost rather than wrapping it; six rows is where stacking stops fitting.
- */
+/** The letterbox tile: wide enough for two readable columns, too short to stack them. */
 const LETTERBOX_MIN_COLS = 14;
 const LETTERBOX_MAX_ROWS = 6;
 
@@ -309,11 +244,8 @@ export interface LaunchSiteEntry {
   unlocked: boolean;
   /**
    * Whether a vessel is standing on this pad, `null` when this site reports no
-   * occupancy at all. The two are different answers and the row says so
-   * differently: the mod derives occupancy from the active vessel being at
-   * PRELAUNCH and replicates it onto the stock VAB pad ALONE, so the runway and
-   * every Making History / Kerbal Konstructs site carries `null` rather than a
-   * claim that they are clear.
+   * occupancy at all. The mod reports occupancy for the stock VAB pad alone, so
+   * every other site carries `null`, not a claim that it is clear.
    */
   occupied: boolean | null;
   /** The occupying vessel's name; `null` whenever {@link occupied} is not true. */
@@ -321,40 +253,25 @@ export interface LaunchSiteEntry {
 }
 
 /**
- * The editor a saved craft launches from, as the `ksp.launch` command spells it.
- *
- * Derived from the ORDINAL, not from KSP's name. Checking the name against a
- * hand-written `{"VAB", "SPH"}` set and substituting `"VAB"` on a miss puts
- * that substitution straight into the command's `facility` argument, and a
- * default that becomes a dispatched argument is not a fallback: it launches a
- * spaceplane from the launchpad. Such a set also misses `None`, which KSP
- * declares.
- *
- * The mod refuses an unrecognised facility outright (`CommandErrorCode.Range`,
- * see `FlightOpsCommandProvider.ParseEditorFacility`), so passing the raw name
- * through on an unknown ordinal gets the operator a visible refusal, which is
- * the correct outcome and the one the substitution was hiding. Resolving from
- * the ordinal also means a craft KSP has RENAMED still launches from the right
- * editor, because the ordinal is the fact and the mirror knows what it means.
+ * The editor a saved craft launches from, as `ksp.launch` spells it. Resolved
+ * from the ORDINAL, never substituted with a default: a default in a dispatched
+ * argument launches a spaceplane from the pad. An unknown ordinal passes the
+ * raw name through so the mod refuses it visibly.
  */
 function launchFacilityArg(ship: SavedShip): string {
   const resolved =
     ship.facilityOrdinal === null
       ? undefined
       : KSP_EDITOR_FACILITY_NAMES.get(ship.facilityOrdinal);
-  // `None` is a declared member and not an editor, so it is not launchable; let the mod say so rather than choosing an editor on the player's behalf.
+  // `None` is not an editor: let the mod refuse rather than choosing one on the player's behalf.
   if (resolved === undefined || resolved === "None") return ship.facility;
   return resolved;
 }
 
-/** `Sitrep.Contract.VesselType`'s C# declared order (VesselEnums.cs): the
- * ordinal -> display-label bridge for the `target.available` roster. Same
- * array TargetPicker's `normalizeRoster` uses. Index-alignment with the
- * generated SDK `VesselType` enum is locked by the drift-guard test in
- * `../TargetPicker/enumLabelDrift.test.ts` (imported there under the
- * `LAUNCH_DIRECTOR_VESSEL_TYPE_LABELS` alias exported at the bottom of this
- * file: TargetPicker declares an identically-named const of its own, and
- * both can't be bare-named at the package's `export *` barrel). */
+/**
+ * `Sitrep.Contract.VesselType`'s C# declared order: ordinal to display label.
+ * Alignment with the SDK enum is locked by `../TargetPicker/enumLabelDrift.test.ts`.
+ */
 const VESSEL_TYPE_LABELS: readonly string[] = [
   "Ship",
   "Station",
@@ -374,21 +291,10 @@ const VESSEL_TYPE_LABELS: readonly string[] = [
 ];
 
 /**
- * Parse `kc.launchSites`. Returns null when the key is absent (older fork
- * without the handler) so the picker can collapse rather than render empty.
- * Making History adds non-stock sites; without it only stock sites appear.
- *
- * Two wire shapes land here:
- * - Legacy GonogoTelemetry: `{ name, displayName, facility, body, ready,
- *   unlocked }`.
- * - New SDK `spaceCenter.launchSites` (mapped onto this key via map-topic.ts):
- *   the mod's `LaunchSiteEntry`: `editorFacility` in place of `facility`,
- *   `bodyIndex` in place of the body name, and `isStock` instead of a
- *   `ready`/`unlocked` pair. The mod enumerates `PSystemSetup.LaunchSites`
- *   (the sites actually available to launch from), so a new-shape entry is
- *   treated as selectable (`unlocked: true`): the alternative (no `unlocked`
- *   field → every site non-selectable → the picker vanishes) would silently
- *   drop the feature.
+ * Parse `kc.launchSites`; null when the key is absent so the picker collapses.
+ * Accepts the legacy `{ facility, body, ready, unlocked }` shape and the mod's
+ * `LaunchSiteEntry` (`editorFacility`, `bodyIndex`, `isStock`). A new-shape
+ * entry is selectable: the mod enumerates only sites available to launch from.
  */
 export function parseLaunchSites(raw: unknown): LaunchSiteEntry[] | null {
   if (raw === null || raw === undefined) return null;
@@ -400,7 +306,7 @@ export function parseLaunchSites(raw: unknown): LaunchSiteEntry[] | null {
     const e = entry as Record<string, unknown>;
     const name = typeof e.name === "string" ? e.name : null;
     if (!name) continue;
-    // New-shape detection: the mod entry has `editorFacility`/`isStock` and no legacy `unlocked` field.
+    // The mod entry has `editorFacility`/`isStock` and no legacy `unlocked` field.
     const isNewShape = !("unlocked" in e) && "editorFacility" in e;
     const facility =
       typeof e.facility === "string"
@@ -418,8 +324,7 @@ export function parseLaunchSites(raw: unknown): LaunchSiteEntry[] | null {
       body: typeof e.body === "string" ? e.body : "",
       ready: e.ready === true,
       unlocked: isNewShape ? true : e.unlocked === true,
-      // Only a real boolean is an answer. Anything else is a site that reported
-      // no occupancy, which the row states rather than rendering as clear.
+      // Only a real boolean is an answer; anything else is a site that reported no occupancy.
       occupied: typeof e.padOccupied === "boolean" ? e.padOccupied : null,
       occupantName:
         typeof e.padVesselTitle === "string" && e.padVesselTitle
@@ -431,15 +336,9 @@ export function parseLaunchSites(raw: unknown): LaunchSiteEntry[] | null {
 }
 
 /**
- * The pads, with the ones holding a vessel first.
- *
- * Only a REPORTED occupant promotes a pad. A pad whose occupancy nobody reported
- * keeps its place rather than being floated above one reported clear: "might be
- * holding something" is not a reason to rank it over a pad the operator can act
- * on, and floating it would sink the stock KSC pad (the one site that answers
- * the question at all) below every site that stays silent.
- *
- * Stable otherwise, so the rest keep the order the space centre listed them in.
+ * The pads, with the ones holding a REPORTED vessel first, stable otherwise.
+ * An unreported pad keeps its place, so silence never outranks the stock pad
+ * that answers.
  */
 export function orderPads(
   sites: readonly LaunchSiteEntry[],
@@ -509,13 +408,8 @@ function LaunchDirectorComponent({
   w,
 }: Readonly<ComponentProps<LaunchDirectorConfig>>) {
   /**
-   * The pad's paperwork. A .craft file on disk, a kerbal's place on the roster
-   * and an unlocked launch site are not measurements: each changes when an event
-   * changes it, and no such event can reach us down a link that is not
-   * delivering, so the last set received is still the answer. Withholding them
-   * would be worse than useless here, because this widget reads a missing craft
-   * list as "nothing has arrived" and replaces its entire body with a wait
-   * message, funds and crew included.
+   * The pad's paperwork: craft files, the roster and unlocked sites change only
+   * on events, so the last set received is still the answer.
    */
   const savedShipsRaw = stillTrue(
     useTelemetry("spaceCenter.savedShips"),
@@ -526,82 +420,35 @@ function LaunchDirectorComponent({
     undefined,
   );
   /**
-   * One read of the record; `launchSite` here and `scene` below are two fields of
-   * the same payload, so nothing about them can differ in how current it is.
-   *
-   * The scene is a fact of the same kind, and the one this widget can least
-   * afford to drop: it picks which panel renders. A withheld scene reads as
-   * "not in flight", which would swap the recover / revert controls of a live
-   * flight for the pre-launch craft picker, offering a launch while a vessel is
-   * up.
+   * The scene is a fact of the same kind, and it picks which panel renders: a
+   * withheld scene would offer a launch while a vessel is up.
    */
   const sceneRecord = stillTrue(useTelemetry("spaceCenter.scene"), undefined);
   const launchSite = sceneRecord?.launchSite as string | undefined;
-  /**
-   * The pads themselves, this widget's subject.
-   *
-   * Read as the raw per-site array rather than through the `spaceCenter.state`
-   * derived channel, which collapses the whole list down to the one entry that
-   * carries occupancy. That collapse answers "is the pad busy" for a widget with
-   * a single pad in mind; a widget whose subject is every pad across every
-   * complex needs each site's own answer, occupancy included.
-   */
+  // The raw per-site array, not `spaceCenter.state`, which collapses the list to the one entry carrying occupancy.
   const launchSitesRaw = stillTrue(
     useTelemetry("spaceCenter.launchSites"),
     undefined,
   );
   /**
-   * The balance is the one judgement input on the pre-launch side: it decides
-   * which craft this widget calls launchable and which it tags unaffordable, and
-   * that verdict is spent, not read. Funds move while nobody is looking (a
-   * contract pays out, a facility bills for repairs), so a held balance is not
-   * evidence of what the save can afford now, and the affordability gate below
-   * already treats an unknown balance as no balance.
+   * The balance decides which craft are launchable, and that verdict is spent,
+   * not read. Funds move while nobody looks, so a held balance is withheld.
    */
   const careerReading = useTelemetry("career.status");
-  /* The observation is the whole of what the verdict may rest on: a judgement
-     cannot be dated, and `career.status` declares no reckonable value. */
   const careerEconomy =
     careerReading.state === "observed"
       ? careerReading.value.economy
       : undefined;
   const careerFunds = magnitudeOf(careerEconomy?.funds);
-  /**
-   * Which of the reasons for a missing balance applies. A never-arrived balance
-   * and a balance that has stopped being current blank the same readout and block
-   * the same priced craft, so the caption has to separate them: otherwise the
-   * widget accuses the link of dropping on every cold start.
-   */
+  // Separates a never-arrived balance from one no longer current, so a cold start does not accuse the link.
   const fundsNotCurrent = careerReading.state === "stale";
-  /**
-   * The standing cost the balance is also paying for. A craft this widget calls
-   * launchable is one the balance covers today, which is not the same claim as
-   * one the programme can carry, so the rate the elected money model reports
-   * sits beside the balance rather than being folded into the gate. A stock
-   * career reports no such rate and this renders nothing.
-   */
+  // The standing rate the elected money model reports, beside the balance rather than folded into the gate; stock reports none.
   const netFunds = netFundsPerDay(careerEconomy);
   const { chargesFunds } = useGameContext();
-  // career.funds -> career.status.economy.funds is the one
-  // MAPPED read in this widget (a funds spender per CLAUDE.md's "always show
-  // the balance" rule). kc.savedShips/kc.crewRoster resolve to their own
-  // dedicated topics too (map-topic.ts); crash.hasRecent/crash.lastCrash now
-  // read their topics directly (useStream/useTelemetry), off the shim.
-  // The rest of the kc.*/ksp.* reads below stay legacy, kc.* has no
-  // career.status equivalent shape (see map-topic.ts's doc comment on the
-  // facilities gap), the others are separate provider families or
-  // vessel-provider gaps with no wire home yet. The vessel-switcher below
-  // reads `target.available` directly (a canonical topic, no shim).
-  // In-flight context: populated when scene === "Flight".
-  // The craft's name is set in the editor and changes nowhere else, so the last
-  // one received still names the vessel that is flying.
+  // The craft's name changes nowhere but the editor, so the last one received still names the vessel flying.
   const identity = stillTrue(useTelemetry("vessel.identity"), undefined);
   const vesselName = identity?.name;
-  /*
-   * The pad readout's altitude, off `vessel.flight`'s own field reading. The
-   * derived copy it used to read went `null` on rails, so a craft that made
-   * orbit showed no altitude at the desk that launched it.
-   */
+  // Off `vessel.flight`'s own field reading, which stays live on rails.
   const altitudeReading = useTelemetry("vessel.flight").altitudeAsl;
   const altitudeMeters = magnitudeOf(
     altitudeReading.reckoning.status === "available"
@@ -611,13 +458,8 @@ function LaunchDirectorComponent({
         : undefined,
   );
   /**
-   * Whether the save still holds a revert point is a capability the game grants
-   * and withdraws on events (entering flight, then saving over it), never
-   * something that decays on its own. Withholding it would grey both controls out
-   * and label them "(n/a)", which states that the save cannot revert when it
-   * demonstrably still can, and each control is armed then confirmed anyway, so a
-   * revert the game has since disallowed fails at the desk rather than costing
-   * the flight.
+   * The revert point is a capability the game grants and withdraws on events,
+   * so a held one stands; each control is armed then confirmed anyway.
    */
   const revertAvailability = stillTrue(
     useTelemetry("ksp.revertAvailability"),
@@ -625,49 +467,28 @@ function LaunchDirectorComponent({
   );
   const canRevertToLaunch = revertAvailability?.canRevertToLaunch;
   const canRevertToEditor = revertAvailability?.canRevertToEditor;
-  // crash.hasRecent is a real wire boolean (CrashUplink, ReliableOrdered)
-  // but still missing from the SDK's hand-declared Topic tail, the backing
-  // C# const lacks the "...Topic" suffix topics.test.ts's crosscheck scans
-  // for, so `useTelemetry("crash.hasRecent")` won't typecheck. `useStream`
-  // is the sanctioned read for an untyped tail topic: same route off the
-  // mounted store, no legacy shim. FlightOutcomeBanner reads it identically.
+  // Not in the SDK's typed Topic tail, so read through `useStream`.
   const crashHasRecent = stillTrue(
     useStream<boolean>("crash.hasRecent"),
     undefined,
   );
-  // crash.hasRecent is session-wide, a debris crash from a previous flight
-  // would block recovery of a successfully landed craft. Pull the most
-  // recent crash snapshot too so we can scope the gate to the active
-  // vessel only. User reported this twice on 2026-05-17 (21:15, 23:12 BST).
-  //
-  // A crash report records something that already happened, so it stays true
-  // until the next crash replaces it or a revert undoes the timeline (which the
-  // ut comparison below catches). Withholding it would strip the gate of the
-  // per-vessel scoping it exists for and hand the session-wide flag back the
-  // false block on a successful landing that this snapshot was added to fix.
+  /*
+   * crash.hasRecent is session-wide, so the latest crash snapshot scopes the
+   * recovery gate to the active vessel. A crash report stays true until the
+   * next crash or a revert (the ut comparison below catches that).
+   */
   const lastCrash = stillTrue(useTelemetry("crash.lastCrash"), undefined);
-  // For the revert-staleness guard below: a revert rewinds universal time
-  // below the crash snapshot's capture ut. t.universalTime is dropped as a
-  // data key (it was never a stream; it IS the SDK view-UT), so read that
-  // directly.
-  // Stays an instant: its only use is the ordering below, and comparing two
-  // instants is something the algebra does. It was unwrapped here because the
-  // guard tested it with `typeof === "number"`, which answers NO for a wrapped
-  // value and would have silently stopped recognising a post-dated snapshot.
+  // Stays an instant: its only use is the ordering against a crash snapshot's capture ut.
   const viewUt = useViewUt();
   // Elapsed mission time is the view clock measured from liftoff, absent until the clamps release: `launchUt` is null until then.
   const missionTime =
     identity?.launchUt == null || viewUt === undefined
       ? undefined
       : (magnitudeOf(viewUt.minus(identity.launchUt)) ?? undefined);
-  // `target.available` ships the switcher's real roster: the producer
-  // (TargetProvider) already excludes the active vessel itself, so no extra
-  // exclusion is needed here. Narrow to Vessel-kind entries only; bodies and
-  // parts aren't "switch active vessel" targets.
-  //
-  // The roster is a fact, exactly as it is in the TargetPicker: other craft do
-  // not stop existing because the link dropped, and a switcher with no rows is
-  // useless, so the last roster stands.
+  /*
+   * `target.available` already excludes the active vessel; only Vessel-kind
+   * entries are switch targets. The roster is a fact, so the last one stands.
+   */
   const targetAvailable = stillTrue(
     useTelemetry("target.available"),
     undefined,
@@ -675,11 +496,7 @@ function LaunchDirectorComponent({
   const availableVessels = targetAvailable?.entries?.filter(
     (e) => e.kind === TargetKind.Vessel,
   );
-  // LAUNCH is a delayed command to the pad, so it dispatches at the session
-  // vantage. The non-launch scene ops (recover / revert / to-tracking-station /
-  // switch vessel) are KSC-desk actions with no vessel signal delay, so they
-  // dispatch at the meta-vantage (instant). Every handle is contributed to the
-  // panel delay rail by usePanelDelay below.
+  // LAUNCH is a delayed command to the pad; the other scene ops are KSC-desk actions at the meta-vantage.
   const launchCmd = useCommand("ksp.launch");
   const recoverCmd = useCommand("ksp.recover", { vantage: META_VANTAGE });
   const revertLaunchCmd = useCommand("ksp.revertToLaunch", {
@@ -724,33 +541,22 @@ function LaunchDirectorComponent({
   );
 
   const [selectedShip, setSelectedShip] = useState<string | null>(null);
-  // Which pad row is open. Null means none has been picked yet, and the first
-  // pad in the prioritised order stands in: the pad worth looking at is the one
-  // the operator would have opened. Derived rather than seeded through an
-  // effect, so a pad that leaves the list cannot leave a dead selection behind.
+  // Which pad row is open; null means the first pad in prioritised order stands in. Derived, so a pad that leaves cannot leave a dead selection.
   const [pickedPad, setPickedPad] = useState<string | null>(null);
   const [selectedCrew, setSelectedCrew] = useState<Set<string>>(new Set());
   const activePad = pads.find((p) => p.name === pickedPad) ?? pads[0];
   const selectedSite = activePad?.name ?? "";
   const scene = sceneRecord?.scene;
 
-  // Absent funds are insufficient funds: this gate guards a control that spends
-  // career funds, and "no balance ever arrived" is not evidence that the
-  // operator can afford anything. Sandbox and science charge nothing, so there
-  // is no affordability question to answer there.
+  // Absent funds are insufficient funds; sandbox and science charge nothing.
   const fundsAvailable = chargesFunds
     ? (careerFunds ?? 0)
     : Number.POSITIVE_INFINITY;
   /**
-   * The craft this pad can take, which is the stock half of "what can go from
-   * here": KSP launches a VAB craft from a pad and an SPH craft from a runway,
-   * and the site says which it is.
-   *
-   * Matched on the editor RESOLVED FROM THE ORDINAL, the same fact
-   * {@link launchFacilityArg} dispatches, so a craft KSP has renamed still lands
-   * under the right site. A site whose facility is neither editor offers every
-   * craft rather than none: hiding the fleet on a name we did not recognise
-   * states that nothing can launch from here, which is a claim we cannot make.
+   * The craft this pad can take: a VAB craft from a pad, an SPH craft from a
+   * runway, matched on the editor resolved from the ordinal. A site whose
+   * facility is neither offers every craft, since hiding the fleet is a claim
+   * we cannot make.
    */
   const padCraft =
     activePad === undefined || ships === null
@@ -766,10 +572,7 @@ function LaunchDirectorComponent({
   const showSubtitle = rows >= 4;
   const letterbox = cols >= LETTERBOX_MIN_COLS && rows <= LETTERBOX_MAX_ROWS;
 
-  // Props both augment slots pass down. A plain object rather than a
-  // hook so it can sit above the early return without a conditional `useMemo`; a
-  // fresh reference per render is fine since `AugmentSlot`'s subscription is
-  // store-driven and the live selection changes anyway.
+  // Plain object, not a hook, so it can sit above the early return.
   const slotContext: LaunchDirectorSlotContext = {
     scene: scene ?? undefined,
     inFlight: scene === "Flight",
@@ -781,9 +584,7 @@ function LaunchDirectorComponent({
 
   const inFlight = scene === "Flight";
 
-  // The pads are the subject, so their absence is what empties the panel. Not
-  // gated on the craft list any more: a craft list is what one pad can take,
-  // and a widget that blanks over it says nothing about the pads it does know.
+  // The pads are the subject, so their absence is what empties the panel.
   if (launchSites === null && !inFlight) {
     return (
       <Panel
@@ -809,18 +610,12 @@ function LaunchDirectorComponent({
   }
 
   const activeName = vesselName ?? activePad?.occupantName ?? "(unnamed)";
-  // Only treat recovery as "crash-blocked" when the most recent crash is
-  // for the active vessel: otherwise a debris crash from earlier in the
-  // session would stop the operator recovering a successful landing.
-  // Falls back to the session-wide flag if the snapshot hasn't arrived
-  // yet (rare; the host emits both keys in the same WS tick) so the gate
-  // is fail-safe rather than fail-open.
-  // A crash snapshot dated AFTER the current universal time belongs to a
-  // reverted (undone) timeline: reverting rewinds UT below the capture ut.
-  // The provider clears the snapshot server-side on the same rule; this
-  // mirror keeps the gate correct against older deployed builds. User hit
-  // this on 2026-06-12: post-revert, the chip blocked recovery forever
-  // because the reverted vessel shares the crashed vessel's name.
+  /*
+   * Recovery is crash-blocked only when the latest crash is the active
+   * vessel's, falling back to the session-wide flag before the snapshot
+   * arrives. A snapshot dated after the current UT belongs to a reverted
+   * timeline.
+   */
   const crashStale =
     lastCrash?.ut != null &&
     viewUt !== undefined &&
@@ -862,9 +657,7 @@ function LaunchDirectorComponent({
                     · <Unit value={value("funds", careerFunds)} />
                   </FundsReadout>
                 )}
-                {/* NOT wrapped in FundsReadout beside it: that span is nowrap, so
-                    a readout placed inside it cannot take a second line and clips
-                    at the panel edge instead. */}
+                {/* Not inside FundsReadout: that span is nowrap and would clip the drain. */}
                 {reportsFundsDrain(netFunds) && (
                   <DrainReadout>
                     <FundsDrain
@@ -874,12 +667,7 @@ function LaunchDirectorComponent({
                     />
                   </DrainReadout>
                 )}
-                {/* The balance is required beside a spend control, and an absent
-                    balance is the state that rule exists for: it is exactly when
-                    the affordability gate above has nothing to judge against. The
-                    two ways of having no balance say so differently, because every
-                    priced craft is blocked either way and the operator has to know
-                    whether that is a cold start or a link that stopped. */}
+                {/* The balance is required beside a spend control; the two ways of having none say which. */}
                 {careerFunds === null && chargesFunds && (
                   <FundsReadout
                     title={
@@ -952,11 +740,7 @@ function LaunchDirectorComponent({
   );
 }
 
-/**
- * The subtitle's account of the pads. Every pad silent about occupancy is not
- * every pad clear, so an all-unreported list says exactly that rather than
- * claiming the space centre is empty.
- */
+/** The subtitle's account of the pads; every pad silent about occupancy is not every pad clear. */
 function padSummary({
   pads,
   occupied,
@@ -969,8 +753,7 @@ function padSummary({
   if (pads === 0) return "No pads";
   const label = `${pads} pad${pads === 1 ? "" : "s"}`;
   if (unreported === pads) return `${label} · occupancy unreported`;
-  // "all clear" is a claim about EVERY pad, so it is only available when every
-  // pad answered. With some silent it becomes a count of the ones that did.
+  // "all clear" needs every pad to have answered; otherwise it is a count of those that did.
   const parts = [label];
   if (occupied > 0) parts.push(`${occupied} occupied`);
   else if (unreported === 0) parts.push("all clear");
@@ -988,16 +771,9 @@ function occupancyText(site: LaunchSiteEntry): string {
 }
 
 /**
- * The pads, and what the operator can do with the one they have opened.
- *
- * The list is the subject: what is standing on a pad is a fact of the pad and is
- * read straight off the row, rather than being a join between a craft list and a
- * separate occupancy flag that a reader has to remember to make.
- *
- * A pad an Uplink knows more about says so through `launch-director.pad`, which
- * every row carries. What can launch from an open pad is the stock capability:
- * KSP will take any saved craft from the matching editor, so the picker is the
- * craft list narrowed to this site's own.
+ * The pads, and what the operator can do with the one they have opened. A pad
+ * an Uplink knows more about says so through `launch-director.pad`; an open
+ * pad's picker is the craft list narrowed to this site's editor.
  */
 function PadSection({
   pads,
@@ -1045,11 +821,8 @@ function PadSection({
     ? padCraft.find((s) => s.name === selectedShip)
     : undefined;
   /**
-   * What the launch will actually carry: the selection, minus anyone the roster
-   * has since stopped calling available. A selection made before a kerbal was
-   * assigned or grounded would otherwise still be dispatched and counted, and
-   * `KspFlightOpsActuator.AssignCrew` skips a name it cannot seat without
-   * refusing the launch, so the operator would read "(3 crew)" and fly two.
+   * The selection minus anyone the roster no longer calls available: the mod
+   * skips a name it cannot seat without refusing, so "(3 crew)" could fly two.
    */
   const manifest = (crew ?? [])
     .filter((k) => crewReading(k) === "available" && selectedCrew.has(k.name))
@@ -1103,10 +876,7 @@ function PadSection({
                 {expanded && (
                   <PadDetail>
                     {site.occupied === true ? (
-                      /* The pad's occupant is the vessel KSP has at PRELAUNCH,
-                         which is the one both commands act on; neither takes a
-                         site argument because there is only ever one such
-                         vessel. */
+                      /* Both commands act on the one vessel KSP has at PRELAUNCH. */
                       <PadActions>
                         <ArmedButton
                           bindAs="recover"
@@ -1117,10 +887,7 @@ function PadSection({
                           confirmLabel="Confirm recover"
                           pendingLabel="Recovering..."
                         />
-                        {/* Revert always to VAB by default; the mod's
-                            revertToEditor command accepts vab|sph but the widget
-                            cannot tell which editor the craft on the pad came
-                            from. */}
+                        {/* Reverts to VAB: the widget cannot tell which editor the pad's craft came from. */}
                         <ArmedButton
                           bindAs="revertToEditor"
                           kind="revert"
@@ -1185,12 +952,7 @@ function PadSection({
                                     </ShipDetails>
                                   </ShipMeta>
                                   <ShipCost>
-                                    {/* One Unit carrying the value, not a
-                                      hand-formatted number beside a bare
-                                      symbol: the children form renders the
-                                      symbol ALONE and never sees the number, so
-                                      this cost printed ungrouped beside a
-                                      grouped balance in the same widget. */}
+                                    {/* One Unit carrying the value, so the cost groups like the balance. */}
                                     {s.requiresFunds > fundsAvailable && (
                                       <BlockedTag title="Insufficient funds">
                                         <Unit
@@ -1231,21 +993,13 @@ function PadSection({
                             {crew === null ? (
                               <>
                                 <SectionLabel>Crew</SectionLabel>
-                                {/* The roster's own absence, said out loud: it
-                                    used to remove this section and the launch
-                                    controls with it. Nothing to fold here, so
-                                    no expander is offered. */}
+                                {/* The roster's own absence, said out loud; nothing to fold, so no expander. */}
                                 <ReadoutCaption>
                                   Roster: no reading
                                 </ReadoutCaption>
                               </>
                             ) : (
-                              /* The tally is the part that survives a short
-                                 tile, so it is the expander's own label rather
-                                 than a heading above one. `key` re-seats the
-                                 open state when a resize crosses the threshold;
-                                 without it a tile dragged taller would keep the
-                                 fold it was given while it was short. */
+                              /* The tally is the expander's own label; `key` re-seats the fold when a resize crosses the threshold. */
                               <CrewDisclosure
                                 key={
                                   rows >= CREW_GRID_MIN_ROWS ? "open" : "folded"
@@ -1268,10 +1022,7 @@ function PadSection({
                                       <CrewChip
                                         key={k.name}
                                         type="button"
-                                        /* Named rather than bare, so a render
-                                           scene can select a SPECIFIC kerbal:
-                                           the selected chip had no picture at
-                                           all while nothing could click one. */
+                                        /* Named, so a render scene can select a specific kerbal. */
                                         data-crew-chip={k.name}
                                         $selected={selectedCrew.has(k.name)}
                                         $disabled={!selectable}
@@ -1285,10 +1036,7 @@ function PadSection({
                                         }}
                                       >
                                         <CrewName>{k.name}</CrewName>
-                                        {/* The reason is a fact off the wire
-                                            and belongs on screen, not in a
-                                            tooltip the operator has to hunt
-                                            for. */}
+                                        {/* The reason is a fact off the wire and belongs on screen. */}
                                         <CrewTrait>
                                           {reading === "available"
                                             ? `${k.trait || NULL_DISPLAY} L${k.experienceLevel}`
@@ -1334,9 +1082,7 @@ function PadSection({
           })}
         </PadList>
       )}
-      {/* Pre-launch checklist augments: a life-support / logistics Uplink
-          appends a checklist item here. Empty until bound; the funds readout and
-          the pad list above are untouched. */}
+      {/* Pre-launch checklist augments. */}
       <AugmentSlot name="launch-director.preflight" props={slotContext} />
     </>
   );
@@ -1360,11 +1106,7 @@ function InFlightPanel({
   canRevertToEditor: boolean;
   crashBlocked: boolean;
   availableVessels: TargetListEntry[] | undefined;
-  /**
-   * The handles, not callbacks: each control below holds its own arm and
-   * in-flight state off the handle it is given, so no armed-kind enum travels
-   * down from the widget any more.
-   */
+  /** The handles: each control holds its own arm and in-flight state off the one it is given. */
   recoverCmd: CommandButtonHandle;
   revertLaunchCmd: CommandButtonHandle;
   revertEditorCmd: CommandButtonHandle;
@@ -1372,9 +1114,7 @@ function InFlightPanel({
   switchCmd: CommandButtonHandle;
 }) {
   const [switchOpen, setSwitchOpen] = useState(false);
-  // The Tracking Station control keeps its own chrome (the mod saves first and
-  // refuses when KSP will not, so the refusal names the arm), which is why it
-  // takes the behaviour hook rather than the default rendering.
+  // The mod saves first and refuses when KSP will not, so this control keeps its own chrome to name the refusal.
   const trackingStation = useCommandButton({
     handle: toTrackingCmd,
     commandLabel: "Go to Tracking Station",
@@ -1398,9 +1138,7 @@ function InFlightPanel({
   );
   const switchableVessels = useMemo(() => {
     const entries = availableVessels ?? [];
-    // Filter SpaceObjects (asteroids / comets) by default, same UX call as
-    // the TargetPicker. The toggle below reveals them for the long tail
-    // where the operator actually wants to switch to one.
+    // SpaceObjects (asteroids, comets) are hidden unless the toggle reveals them.
     const list = showSpaceObjects
       ? entries
       : entries.filter((e) => e.vesselType !== VesselType.SpaceObject);
@@ -1573,24 +1311,16 @@ function formatMissionTime(s: number | null): string {
   return `T+${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
 }
 
-// Through the shared `length` ladder rather than a local km ceiling: this is
-// the in-flight altitude readout, and a Mun transfer sits at ~12 Mm, which the
-// hand-rolled version rendered as "12000.0 km".
+// Through the shared `length` ladder, so a Mun transfer reads in Mm.
 function Altitude({ m }: { m: number | null }) {
   if (m === null) return NULL_DISPLAY;
   return <Unit value={value("m", m)} />;
 }
 
 /**
- * The pad/flight action button. Behaviour is the shared `useCommandButton`; the
- * chrome stays local because each verb carries its own colour (`$kind`), which
- * is how the operator tells a recover from a revert at a glance in a stack of
- * four, and the default `CommandButton` rendering has no such axis.
- *
- * EVERY button here carries a pending state, not just launch. It buys
- * idempotency (a double dispatch is suppressed) and honesty (the operator can
- * see the command is still travelling) off the same piece of state, and both
- * apply to a recover and a revert as much as to a launch.
+ * The pad/flight action button. Behaviour is the shared `useCommandButton`;
+ * the chrome is local because each verb carries its own colour. Every button
+ * carries a pending state, for idempotency and honesty alike.
  */
 function ArmedButton({
   handle,
@@ -1623,7 +1353,7 @@ function ArmedButton({
     hasFailure,
     press,
   } = useCommandButton({ handle, args, commandLabel });
-  // Mirrors which of the renders below takes a click: the pending one never does, the refused and lost ones always do, the rest unless disabled.
+  // Mirrors which render takes a click: pending never, refused and lost always, the rest unless disabled.
   useBindPress(
     bindAs,
     press,
@@ -1652,7 +1382,7 @@ function ArmedButton({
     );
   }
   if (isLost) {
-    // Never the resting render, which is where a CONFIRMED action goes: a recover or a revert nobody answered may already have happened.
+    // Not the resting render: a recover or revert nobody answered may already have happened.
     const sentence = commandLossSentence({ label: commandLabel });
     return (
       <ConfirmButton
@@ -1754,8 +1484,7 @@ const PadDetails = styled.span`
   color: var(--color-text-faint);
 `;
 
-/* Occupied reads as the live state, unreported as a caution: an operator who
-   skims the colour must not read silence as an empty pad. */
+// Unreported reads as a caution, so silence is never read as an empty pad.
 const PadOccupancy = styled.span<{ $occupied: boolean | null }>`
   font-size: var(--font-size-compact);
   flex-shrink: 0;
@@ -1768,8 +1497,7 @@ const PadOccupancy = styled.span<{ $occupied: boolean | null }>`
         : "var(--color-text-faint)"};
 `;
 
-/* What an Uplink adds to a pad, indented under the row it belongs to and one
-   step down in size, so a space centre with six pads still reads as a list. */
+// Indented and one step down in size, so six pads with asides still read as a list.
 const PadAside = styled.div`
   padding-left: var(--indent-aside);
   font-size: var(--font-size-compact);
@@ -1786,17 +1514,7 @@ const PadDetail = styled.div`
   border-left: 2px solid var(--color-surface-raised);
 `;
 
-/* One track in every ordinary tile, two in a letterbox: see LETTERBOX_MIN_COLS.
-   `align-items: start` so the crew column keeps its own height rather than
-   stretching to the craft list beside it. The call site asks for two tracks only
-   once a craft is picked, since with no crew column a lone craft list squeezed
-   into half the tile is worse than the full-width list it replaced.
-
-   Tried and rejected: lifting the launch control up BESIDE the tally to clear
-   the fold outright. It cost the tally its single line, three at 18 columns and
-   still two once the crew track was widened, and a wrapped summary reads worse
-   than a button whose bottom edge is cut. The tally is the part that has to
-   survive here. */
+// One track normally, two in a letterbox once a craft is picked; `align-items: start` keeps the crew column its own height.
 const CraftAndCrew = styled.div<{ $sideBySide: boolean }>`
   display: grid;
   grid-template-columns: ${(p) =>
@@ -1817,10 +1535,7 @@ const EmptyNote = styled.div`
   color: var(--color-text-faint);
   line-height: var(--line-height-body);
 `;
-/* Was `styled.ul` but `<button>` is not a valid child of `<ul>` (only
-   `<li>` is). The list-of-buttons UI doesn't benefit from list
-   semantics here: screen readers don't typically need a length count
-   for a craft picker. Use `div` and keep the same flex layout. */
+// Not a list: `<button>` is not a valid child of `<ul>`.
 const ShipList = styled.div`
   display: flex;
   flex-direction: column;
@@ -1887,9 +1602,7 @@ const BlockedTag = styled.span`
   font-variant-numeric: tabular-nums;
 `;
 
-/* The tally reads as a section heading and has to sit in the same column as
-   CRAFT above it. Its trigger is a `<button>`, which centres its label and pads
-   its leading edge by UA default, so both are undone here. */
+// Sits in the CRAFT column like a heading, so the trigger's UA centring and padding are undone.
 const CrewDisclosure = styled(Disclosure)`
   > button {
     padding-left: 0;
@@ -1915,12 +1628,7 @@ const CrewGrid = styled.div<{ $compact: boolean }>`
   gap: var(--gap-related);
 `;
 
-/* Compact lays the name and the reason on ONE line instead of two, which is
-   what makes an opened grid affordable in a short tile: seven kerbals cost
-   ~170px rather than ~300px. The reason is not shortened and not truncated,
-   which is why the compact track is WIDER than the two-line one: a kerbal who
-   cannot fly has to keep saying why. It wraps back to two lines by itself if a
-   reason ever outgrows its track. */
+// Compact puts name and reason on one line; the reason is never truncated, so the compact track is wider.
 const CrewChip = styled.button<{
   $selected: boolean;
   $disabled: boolean;
@@ -2035,9 +1743,7 @@ const FundsReadout = styled.span`
   white-space: nowrap;
 `;
 
-/* The drain's own spacing. Deliberately not FundsReadout: the drain readout is
-   several phrases long and manages its own break opportunities, so borrowing a
-   span that pins white-space would stop it wrapping at all. */
+// Not FundsReadout: the drain manages its own break opportunities and must wrap.
 const DrainReadout = styled.span`
   margin-left: var(--gap-lead-figure);
 `;
@@ -2176,8 +1882,7 @@ const VesselSwitchHint = styled.div`
   line-height: var(--line-height-body);
 `;
 
-/** Same asteroid/comet visibility toggle as the TargetPicker's Vessels tab,
- * hidden by default, the count-carrying label doubles as the reveal button. */
+/** Asteroid/comet visibility toggle, hidden by default; the count-carrying label is the reveal button. */
 const SpaceObjectToggle = styled.button`
   align-self: flex-start;
   margin: var(--outset-reveal-toggle);
@@ -2242,10 +1947,6 @@ registerComponent<LaunchDirectorConfig>({
   defaultSize: { w: 7, h: 10 },
   minSize: { w: 4, h: 6 },
   component: LaunchDirectorComponent,
-  // A per-pad section, so an Uplink that models launch complexes says what it
-  // knows about each pad, and a pre-launch checklist section for a life-support
-  // or logistics Uplink. Both unfilled until one binds; the launch flow renders
-  // unchanged either way.
   augmentSlots: ["launch-director.pad", "launch-director.preflight"],
   dataRequirements: [
     "spaceCenter.savedShips",
@@ -2270,11 +1971,7 @@ registerComponent<LaunchDirectorConfig>({
   pushable: true,
 });
 
-// Test-only surface for the T3 drift-guard (`../TargetPicker/enumLabelDrift.test.ts`),
-// aliased rather than exported bare, since TargetPicker declares an
-// identically-named `VESSEL_TYPE_LABELS` const of its own and the package
-// barrel (`src/index.ts`) re-exports every widget's `*`, which would
-// otherwise collide.
+// Aliased for `../TargetPicker/enumLabelDrift.test.ts`, since TargetPicker declares its own `VESSEL_TYPE_LABELS`.
 export {
   LaunchDirectorComponent,
   VESSEL_TYPE_LABELS as LAUNCH_DIRECTOR_VESSEL_TYPE_LABELS,

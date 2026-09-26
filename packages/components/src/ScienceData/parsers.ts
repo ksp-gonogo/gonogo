@@ -14,10 +14,7 @@ export interface ParsedExperiment {
   subjectId: string;
 }
 
-/**
- * Parses `science.experiments` (`Sitrep.Host.ScienceViewProvider`). `dataAmount`
- * arrives unit-wrapped, so it reads through `magnitudeOf`.
- */
+/** Parses `science.experiments`; `dataAmount` arrives unit-wrapped. */
 export function parseExperiments(raw: unknown): ParsedExperiment[] | null {
   if (raw === null || raw === undefined) return null;
   if (!Array.isArray(raw)) return null;
@@ -49,15 +46,8 @@ export interface ExperimentBreakdownEntry {
 }
 
 /**
- * Parses `science.experimentBreakdown`
- * (`Sitrep.Host.ScienceViewProvider.BuildExperimentBreakdown`). Richer than
- * `science.experiments`: one row per DISTINCT subject id, with biome/situation
- * parsed off the subject id server-side and the ABSOLUTE remaining science
- * potential (`scienceCap - science`). Backs the Aboard tab, scoped to the
- * ACTIVE VESSEL's currently-stored `ScienceData` blobs. Falls back to the
- * plain `science.experiments` view when it's absent (a stream sample that
- * hasn't arrived yet). Contrast `parseArchive` below, which backs the
- * career-wide Archive tab instead.
+ * Parses `science.experimentBreakdown`: one row per distinct subject stored aboard the active vessel, with the absolute remaining potential.
+ * Sorted by remaining potential, most first.
  */
 export function parseExperimentBreakdown(
   raw: unknown,
@@ -80,7 +70,6 @@ export function parseExperimentBreakdown(
       remainingPotential: magnitudeOr(asQuantityish(e.remainingPotential), 0),
     });
   }
-  // Sort by remaining potential desc: subjects with the most science left to extract come first; the operator focuses on what's worth recovering.
   out.sort((a, b) => b.remainingPotential - a.remainingPotential);
   return out;
 }
@@ -101,20 +90,8 @@ export interface ArchiveSubject {
 }
 
 /**
- * Parses `science.archive`
- * (`Sitrep.Host.ScienceViewProvider.BuildArchive`, walking
- * `ResearchAndDevelopment.GetSubjects()`). Every subject the player has
- * ever collected or recovered, across every mission and every body:
- * career-wide, not scoped to the active vessel (contrast
- * `parseExperimentBreakdown` above, which IS vessel-scoped).
- *
- * The wire distinguishes two absent-ish states and this parse preserves
- * both rather than collapsing them: `null`/`undefined` means the save has
- * no R&D instance to walk (Sandbox mode, there is no archive at all);
- * an empty array means a Career/Science save with an archive that's
- * simply empty so far. `ArchiveTab` renders a different message for each.
- * The science figures arrive unit-wrapped on the wire, so they read
- * through `magnitudeOr`.
+ * Parses `science.archive`, every subject the career has ever collected or recovered.
+ * `null` means the save has no archive at all (Sandbox); an empty array means an archive with nothing in it yet.
  */
 export function parseArchive(raw: unknown): ArchiveSubject[] | null {
   if (raw === null || raw === undefined) return null;
@@ -153,13 +130,8 @@ export interface ArchiveBodyGroup {
 }
 
 /**
- * Groups the global archive by body, then by experiment. The archive
- * spans every body the player has ever visited, so body is the outer key.
- * Experiment grouping prefers the real `experimentId` field the
- * mod parses server-side; falls back to the `<expId>@...` split off
- * `subjectId` only when that field is absent. Rows are sorted by
- * remaining potential desc WITHIN each body group (what's still worth
- * recovering there), and each experiment sub-group inherits that order.
+ * Groups the archive by body, then by experiment, falling back to the `<expId>@...` prefix of `subjectId` when `experimentId` is absent.
+ * Rows within a body are sorted by remaining potential, most first.
  */
 export function groupArchiveByExperiment(
   entries: ArchiveSubject[],

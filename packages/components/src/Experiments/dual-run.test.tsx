@@ -7,19 +7,8 @@ import mobileLabIdle from "./__fixtures__/mobile-lab-idle-one-instrument.json";
 import { ExperimentsComponent } from "./index";
 
 /**
- * Experiments's stream render golden. This began life as a
- * legacy-`DataSource`↔stream byte-identical dual-run (comparing `science.lab`
- * + `science.instruments` streamed against every other fixture key staying
- * legacy); with the widget now reading its whole state off canonical Topics
- * (`science.instruments`/`science.experiments`/`science.lab`), there is no
- * legacy read path left to compare against, same "the legacy leg is gone"
- * story as `LaunchDirector/dual-run.test.tsx`'s own doc comment. What remains
- * proves the widget renders the full idle-lab + single-instrument state
- * correctly off the real stream pipeline (`TelemetryProvider` +
- * `TelemetryClient`/`TimelineStore`), using the SAME `mobile-lab-idle`
- * fixture, with `science.instruments` emitted in its NEW `InstrumentEntry`
- * wire shape (string `partId`, `partName`/`experimentId`/`dataIsCollectable`)
- * to prove `parseInstruments` reconciles it to the same rendered output.
+ * The widget renders the full idle-lab and single-instrument state off the real
+ * stream pipeline, with `science.instruments` in its `InstrumentEntry` wire shape.
  */
 describe("Experiments: stream render golden (delay=0)", () => {
   it("renders the full idle-lab + instrument state off the stream pipeline", async () => {
@@ -46,9 +35,6 @@ describe("Experiments: stream render golden (delay=0)", () => {
     );
 
     act(() => {
-      // Same instrument, translated into the new science.instruments wire
-      // shape (partId stringified, field renames): proves parseInstruments
-      // reconciles it to the same rendered output.
       streamFixture.emit("science.instruments", [
         {
           partId: String(legacyInstrument.partId),

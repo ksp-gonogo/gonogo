@@ -6,17 +6,8 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LandingStatusComponent } from "./index";
 
 /**
- * LandingStatus's atmospheric-board stream render golden. `bodyName` is
- * `vessel.identity.parentBodyIndex` named against `system.bodies`, with NO
- * legacy fallback at all (see `stream.test.tsx`).
- *
- * The `kerbin-reentry-atmospheric` fixture is a descent on an ATMOSPHERIC body
- * with NO mod terminal-velocity read on the wire. The widget suppresses the
- * (wrong-for-atmosphere) vacuum burn numbers but shows an HONEST estimate board
- *, velocity + air density + an above-terminal / drag-building note, rather
- * than a silent "descent unmodelled". This proves that gate fires off the real
- * stream pipeline. (When the mod DOES ship a terminal velocity, the fuller
- * atmospheric-aware board shows instead, see the render fixtures.)
+ * The atmospheric-board stream render, with `bodyName` named from `vessel.identity.parentBodyIndex` against `system.bodies`.
+ * `kerbin-reentry-atmospheric` descends through an atmosphere with no mod terminal velocity, so the vacuum burn numbers are suppressed and the estimate board (velocity, air density, drag-building note) shows instead of a silent "descent unmodelled".
  */
 const CARRIED = [
   "vessel.orbit",
@@ -64,7 +55,7 @@ describe("LandingStatus: atmospheric stream render golden (delay=0)", () => {
         vesselId: "test-vessel",
         name: "Test Vessel",
         vesselType: 0,
-        // Reentering (descending), not landed: situation SubOrbital, so the landed-state gate doesn't fire on an in-flight vessel.
+        // SubOrbital, so the landed gate does not fire on an in-flight vessel.
         situation: 6,
         parentBodyIndex: 1,
         launchUt: null,
@@ -84,9 +75,7 @@ describe("LandingStatus: atmospheric stream render golden (delay=0)", () => {
         },
         { quality: Quality.Loaded },
       );
-      // Kerbin reentry: ~28 km AGL, descending 210 m/s, in atmosphere. (Literals
-      //, the __fixtures__ scenario JSON migrated to the _stream format and no
-      // longer exposes the old flat `v.*` keys this test used to read.)
+      // Kerbin reentry: about 28 km AGL, descending 210 m/s, in atmosphere.
       stream.emit("vessel.flight", {
         latitude: 0,
         longitude: 0,
@@ -105,9 +94,7 @@ describe("LandingStatus: atmospheric stream render golden (delay=0)", () => {
     expect(
       await screen.findByText(/kerbin · atmospheric/i),
     ).toBeInTheDocument();
-    // No mod terminal velocity on the wire -> an HONEST atmospheric estimate
-    // (velocity + air density + above-terminal note), never a silent "descent
-    // unmodelled". A real in-atmosphere descent must not read blank.
+    // No terminal velocity on the wire gives the atmospheric estimate, never a silent "descent unmodelled".
     expect(
       screen.getByText("Atmospheric descent (estimate)"),
     ).toBeInTheDocument();

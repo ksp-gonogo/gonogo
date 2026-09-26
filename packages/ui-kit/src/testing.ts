@@ -2,64 +2,30 @@ import type { FormatQuantityOptions } from "./units";
 import { writeQuantity } from "./units";
 
 /**
- * Testing helpers for the readouts this kit renders.
+ * Testing helpers for the readouts this kit renders, published as
+ * `@ksp-gonogo/ui-kit/testing` (separate from the root so a runtime bundle
+ * never pulls testing code in). `<Unit>` splits a readout into a number, a
+ * symbol and a hidden spoken word, so `getByText("12.4 km")` finds nothing;
+ * these read it back.
  *
- * Published as `@ksp-gonogo/ui-kit/testing`, deliberately: `<Unit>` splits a
- * readout into a number, a symbol and a hidden word for screen readers, so
- * `getByText("12.4 km")` finds nothing. That is correct behaviour and a
- * surprise every single time, and until now the way to cope with it lived in
- * `@ksp-gonogo/test-utils`, which is `private: true` and which a third-party
- * Uplink therefore cannot install.
- *
- * So an Uplink author rendering `<Unit>` in their own widget had no way to
- * assert on it except by discovering the markup themselves. The kit that
- * splits the readout should ship the way to read it back.
- *
- * This entrypoint is separate from the root so a runtime bundle never pulls
- * testing code in.
- *
- * It also ships `renderWidget`, which mounts a widget inside the provider stack the
- * dashboard puts around one. That belongs here rather than in
- * `@ksp-gonogo/sitrep-sdk/testing` for a structural reason and not a filing one:
- * the stack IS this package's providers (`DelayRailProvider`,
- * `PanelStatusStoreProvider`, `ContributionsProvider`, `PanelBadgesProvider`),
- * and the sdk cannot import them. Putting it there would
- * have meant handing the sdk seven ui-kit values so it could reassemble a ui-kit
- * stack, which is not an injectable seam, it is the subject matter.
- *
- * The two testing entries do NOT re-export each other. A design-system package
- * fronting a generic test harness is a dependency inversion wearing a convenience,
- * so an Uplink's setup names both when it needs both: a host from the sdk, a
- * provider stack from here. Those are genuinely two things.
+ * `renderWidget` mounts a widget inside the dashboard's provider stack, which is
+ * made of this package's providers. It does not re-export the sdk's testing
+ * entry: an Uplink's setup takes a host from the sdk and a provider stack from
+ * here.
  */
 
 /**
- * What a SIGHTED READER sees, with the screen-reader words removed.
+ * What a sighted reader sees, with the screen-reader words removed:
+ * `textContent` of a `<Unit>` reads "12.4 km kilometres", this reads
+ * "12.4 km". Assert on `textContent`, or `getByText("kilometres")`, when the
+ * announcement is under test.
  *
- * `<Unit>` renders `12.4` and `km` as separate elements, plus a visually
- * hidden ` kilometres` for anyone listening. `textContent` therefore reads
- * "12.4 km kilometres", and `getByText`, which matches one node, matches
- * neither.
- *
- * Assert on this for what is on screen. Assert on `textContent` when the
- * ANNOUNCEMENT is the thing under test, or better, `getByText("kilometres")`,
- * which says so.
- *
- * Defaults to `document.body`, so an assertion about what is on screen needs
- * no container plumbed to it. Pass one when a test renders more than one
- * thing and needs to say which.
- *
- * The thin space between a number and its symbol is normalised to an ordinary
- * one. A reader sees a space; which space it is is a typographic detail, and
- * one that otherwise produces assertion failures reading
- * `expected "12.4 km" to be "12.4 km"`.
+ * Defaults to `document.body`. The thin space between a number and its symbol
+ * is normalised to an ordinary space.
  */
 export function visibleText(container: HTMLElement = document.body): string {
   const clone = container.cloneNode(true) as HTMLElement;
-  // Both of `<Unit>`'s spoken-only nodes: the unit's word, and the caption a
-  // reading that is not current is marked with. Neither is on screen, and the
-  // second one would otherwise turn a stale readout into "2.87 Mm, STALE" in
-  // every assertion about what a sighted reader sees.
+  // `<Unit>`'s spoken-only nodes: the unit's word, and the caption a non-current reading carries.
   for (const hidden of clone.querySelectorAll(
     "[data-unit-word], [data-unit-currency]",
   )) {
@@ -77,29 +43,15 @@ interface MatcherResult {
 /**
  * `expect(container).toShowQuantity(value("m", 12400))`.
  *
- * Asserts that a quantity is on screen, WITHOUT naming how it is spelled. It
- * formats through `writeQuantity`, the same ladder `<Unit>` renders with, so
- * the assertion says "this readout shows this distance" rather than "the
- * characters 12.4 km appear".
- *
- * That distinction is the point. A string assertion pins the ladder: change
- * where metres hand off to kilometres and every test naming `12.4 km` breaks,
- * which is how a presentation change turns into a six-hundred-file diff. This
- * one keeps passing, because the expectation moved with the component.
- *
- * ## What it cannot do
- *
- * It formats with the same code the component renders with, so it cannot
- * catch a formatting BUG: if the ladder starts emitting the wrong rung, both
- * sides move together and the test stays green. When the exact spelling is
- * what you mean to pin, assert the literal:
+ * Asserts that a quantity is on screen without naming how it is spelled: it
+ * formats through `writeQuantity`, the same ladder `<Unit>` renders with, so it
+ * survives a change to where metres hand off to kilometres. For the same
+ * reason it cannot catch a formatting bug. To pin the exact spelling, assert
+ * the literal:
  *
  * ```ts
  * expect(visibleText()).toContain("12.4 km");
  * ```
- *
- * Both are legitimate. Use the matcher for "the widget shows the altitude it
- * was given", and the literal for "this readout reads exactly this".
  *
  * Register it once, in a setup file:
  *
@@ -131,11 +83,8 @@ export const unitMatchers = {
 };
 
 /**
- * Type augmentation for the matcher above, for a consumer using Vitest.
- *
- * Declared as an interface a consumer can merge rather than a global side
- * effect, so importing this module never changes anyone's `expect` types
- * without them asking:
+ * Type augmentation for the matcher above, for a Vitest consumer to merge
+ * explicitly (importing this module never changes `expect` types on its own):
  *
  * ```ts
  * declare module "vitest" {
@@ -150,11 +99,7 @@ export interface UnitMatchers<R = unknown> {
   ): R;
 }
 
-// The a11y smoke assertion, with its `act` wrapping done once here rather than
-// spelled out at every call site. See the module for why it is a helper.
 export { expectNoA11yViolations } from "./expectNoA11yViolations";
-// The widget render harness. Its own module because it is 200 lines of provider
-// stack and JSX, and this file is otherwise plain functions over strings.
 export {
   type RenderWidgetOptions,
   renderWidget,
@@ -163,12 +108,9 @@ export {
 } from "./renderWidget";
 
 /**
- * One observation of `target` at the given size, as a real `ResizeObserverEntry`.
- *
- * jsdom lays nothing out, so a component that sizes itself from an observation
- * never gets one and renders at zero. Every box the interface declares is
- * filled: a partial entry has to be asserted into place, and a component reading
- * a box the fixture left out then gets `undefined` rather than a size.
+ * One observation of `target` at the given size, as a complete
+ * `ResizeObserverEntry` with every box filled. jsdom lays nothing out, so a
+ * self-sizing component otherwise renders at zero.
  */
 export function resizeObservation(
   target: Element,
@@ -191,24 +133,11 @@ export function resizeObservation(
 }
 
 /**
- * Who currently holds `globalThis.ResizeObserver`, or `null` when nobody does.
- *
- * These installers assign the global directly rather than through
- * `vi.stubGlobal`, so `vi.unstubAllGlobals()` does not undo them and the
- * returned closure is the only way back. A caller that drops the closure has
- * installed something it can no longer remove, and nothing said so: two files
- * shadowed the binding that held it with a local `const restore = () => {}`,
- * their teardown called the shadow, and the only symptom was a
- * `noUnusedVariables` warning indistinguishable from a dead import.
- *
- * So a second install over a live one throws. That catches the dropped closure
- * on the NEXT install rather than never, which for the two real cases is the
- * second test in the file, and it leaves alone the legitimate shape of
- * installing once at module scope for a whole file and never restoring.
- *
- * Shared between both installers on purpose: the resource is the global, not
- * either function, so installing a drivable one over a fixed-size one is the
- * same mistake.
+ * Who currently holds `globalThis.ResizeObserver`, or `null`. The installers
+ * assign the global directly, so `vi.unstubAllGlobals()` does not undo them and
+ * the returned closure is the only way back; a second install over a live one
+ * (by either installer) throws, surfacing a dropped closure. Installing once at
+ * module scope and never restoring is fine.
  */
 let resizeObserverHolder: string | null = null;
 
@@ -233,20 +162,16 @@ function claimResizeObserver(installer: string): void {
   resizeObserverHolder = installer;
 }
 
-/** Idempotent: restoring twice is harmless, and the second call owes nothing. */
+/** Idempotent. */
 function releaseResizeObserver(): void {
   resizeObserverHolder = null;
 }
 
 /**
  * Install a `ResizeObserver` that reports one fixed size to everything observed,
- * and return the uninstall.
- *
- * `deliver` chooses when the callback fires: `"sync"` during `observe`, or
- * `"macrotask"` for a component that must not see a size during its own mount.
- *
- * The returned closure is the only way to uninstall, and installing again
- * without calling it throws. See {@link resizeObserverHolder}.
+ * and return the uninstall (the only one: see {@link resizeObserverHolder}).
+ * `deliver` fires the callback during `observe` (`"sync"`), or on a macrotask
+ * for a component that must not see a size during its own mount.
  */
 export function installFixedSizeResizeObserver(options: {
   width: number;
@@ -287,13 +212,10 @@ export interface DrivableResizeObservers {
 }
 
 /**
- * Install a `ResizeObserver` whose observations a test delivers itself, rather
- * than the one fixed size {@link installFixedSizeResizeObserver} reports.
- *
- * For a component whose behaviour is the RESPONSE to a size change: hand it one
- * width, assert, hand it another. `resize` reaches only observers that are
- * actually watching the element, so an assertion cannot pass against a component
- * that never subscribed.
+ * Install a `ResizeObserver` whose observations a test delivers itself, for a
+ * component whose behaviour is the response to a size change. `resize` reaches
+ * only observers watching the element, so a component that never subscribed
+ * cannot pass.
  */
 export function installDrivableResizeObserver(): DrivableResizeObservers {
   claimResizeObserver("installDrivableResizeObserver");

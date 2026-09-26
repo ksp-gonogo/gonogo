@@ -27,12 +27,7 @@ interface FabClusterValue {
 
 const FabClusterContext = createContext<FabClusterValue | null>(null);
 
-/**
- * Delay before collapsing secondary FABs after the cursor leaves. The
- * tower can be ~480px tall with 20px gaps between buttons, so the delay
- * has to tolerate a deliberate cursor traversal between non-adjacent
- * FABs without snapping shut mid-move.
- */
+/** Long enough for a deliberate cursor move between non-adjacent FABs in a tall cluster. */
 const LEAVE_DELAY_MS = 400;
 
 export function FabClusterProvider({
@@ -81,10 +76,7 @@ export function FabClusterProvider({
   );
 }
 
-/**
- * Read the cluster state. Returns `null` when no provider is mounted so
- * FABs can degrade to always-visible when rendered standalone.
- */
+/** Null without a provider, so a standalone FAB stays visible. */
 export function useFabCluster(): FabClusterValue | null {
   return useContext(FabClusterContext);
 }

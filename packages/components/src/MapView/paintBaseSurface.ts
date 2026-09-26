@@ -1,33 +1,13 @@
-// Background paint for MapView's world canvas.
-//
-// The map is a BACKGROUND, with everything else (overlays, POIs, trajectory,
-// vessel marker) drawn on top of it. `map-view.base` is a STACKABLE slot:
-// any number of augments may
-// each contribute a canvas, and every currently-active one is composited in
-// draw order: this module doesn't decide that order (see orderBaseLayers.ts)
-// or which augments count as "active" (that's config/settings, resolved by
-// the caller); it only paints what it's handed.
-//
-// Whether the host's own stock body texture paints at all is a SEPARATE,
-// declarative decision (`suppressVanilla`, sourced from any registered
-// augment's `suppressesVanillaBase` flag: see augments.ts): independent of
-// whether any layer currently has a canvas to contribute. That split matters
-// for the "all layers toggled off" case: if suppression is on, the surface
-// stays black (the dark panel fill already on the canvas shows through),
-// never falling back to the stock texture just because nothing is currently
-// painting: "don't like it, don't have the Uplink" is meant
-// literally: the Uplink's mere presence, not its current per-layer
-// visibility, decides this.
-//
-// Why suppression is declared rather than inferred from "did a layer hand
-// back a canvas": those are two concepts a real base-layer Uplink keeps
-// separate, an opaque base surface plus a translucent layer ON TOP of it.
-// Reading a returned canvas as the suppression signal makes "hide vanilla,
-// draw nothing" unreachable, because a coverage-gated layer that paints
-// nothing for unsurveyed tiles could then only ever REPLACE pixels, never
-// intentionally withhold the whole surface.
-//
-// With no suppression and no layers, the stock texture (or a body-colour wash, or nothing) paints on its own.
+/*
+ * Background paint for MapView's world canvas: the stock texture or colour
+ * wash, then every active `map-view.base` layer in the order it is handed.
+ *
+ * Whether the stock texture paints is a separate, declared decision
+ * (`suppressVanilla`), independent of whether any layer currently has a
+ * canvas: with suppression on and every layer off the surface stays black,
+ * never falling back to the stock texture. Inferring suppression from a
+ * returned canvas would make "hide vanilla, draw nothing" unreachable.
+ */
 
 /** The subset of the 2D context this module touches. */
 export interface BaseSurfaceCtx {
@@ -45,7 +25,7 @@ export interface BaseSurfaceCtx {
 
 /** One active `map-view.base` layer's contributed canvas, ready to composite. */
 export interface BaseSurfaceLayer {
-  /** The contributing augment's own id: carried through for callers/tests; drawing itself doesn't need it. */
+  /** The contributing augment's own id, for callers and tests; drawing does not need it. */
   id: string;
   canvas: CanvasImageSource;
 }
@@ -56,23 +36,12 @@ export interface BaseSurfaceInput {
   /** Last-resort colour wash for bodies with no texture loaded yet. */
   bodyColor: string | undefined;
   /**
-   * True when at least one registered `map-view.base` augment BOTH
-   * declares `suppressesVanillaBase` AND has a currently-live Domain (spec:
-   * the Uplink's mere presence: meaning its Domain is actually live, not
-   * merely that its client package is registered, suppresses the host
-   * surface, non-optional, no setting overrides it back on), independent
-   * of `layers` below, which only reflects what's CURRENTLY painting. This
-   * boolean is the caller's job to resolve (MapView/index.tsx, via
-   * `vanillaSuppression.ts`'s `shouldSuppressVanillaBase` +
-   * `useAugmentAvailable`); this module just trusts it. See this module's
-   * header comment for the all-off case.
+   * True when a registered `map-view.base` augment declares
+   * `suppressesVanillaBase` and its Domain is live. Resolved by the caller,
+   * independent of `layers`, and no setting overrides it.
    */
   suppressVanilla: boolean;
-  /**
-   * Every currently-active layer's canvas, already in draw order (earliest
-   * first, so later entries composite on top); see orderBaseLayers.ts for
-   * how that order is derived.
-   */
+  /** Every active layer's canvas, in draw order: later entries composite on top. */
   layers: readonly BaseSurfaceLayer[];
   worldW: number;
   worldH: number;
@@ -111,13 +80,9 @@ export function paintBaseSurface(
 }
 
 /**
- * Whether {@link paintBaseSurface} actually drew any surface pixels for these
- * inputs: the stock texture / body-colour wash (only when NOT suppressed) OR at
- * least one layer canvas. Mirrors the paint decision above exactly, the
- * MapView grid-stroke keys its light-vs-dark choice off this so a
- * suppressed-and-empty (deliberately black) map takes the DARK grid, even when
- * a stock texture happens to still be loaded. Keying off `textureImage` alone
- * would draw a faint light grid on that black surface.
+ * Whether {@link paintBaseSurface} drew any surface pixels for these inputs,
+ * mirroring its decision exactly, so a suppressed and empty map takes the dark
+ * grid even with a stock texture loaded.
  */
 export function baseSurfacePainted({
   textureImage,

@@ -47,10 +47,7 @@ import { AltitudeRail } from "./AltitudeRail";
 import { deriveBoard } from "./board";
 import { CommitLayer, REGIME_LABEL, REGIME_TONE } from "./CommitLayer";
 import { deriveDelayClocks } from "./clocks";
-// Side-effect import: the widget's OWN plots, registered into `plots` the same
-// way any Uplink's would be. Pulled in here rather than left to the package
-// entry's import order, because a widget that lost its own plot to a
-// module-ordering accident would look like a telemetry outage.
+// The widget's own plots, registered into `plots` like any Uplink's; imported here so no module ordering can drop them.
 import "./descentLayers";
 import "./crossSectionPlot";
 import "./touchdownReticlePlot";
@@ -59,12 +56,9 @@ import { greatCircle } from "./geo";
 import { deriveHazardVerdict } from "./hazardVerdict";
 import { solveSuicideBurn } from "./solveLanding";
 
-// No config of its own; the empty type names the slot so adding one later doesn't change the registration's shape.
 type LandingStatusConfig = Record<string, never>;
 
-// Mounted by `Panel`'s universal segments rather than by this widget. The ids
-// stay declared so a binder's component types against the propless contract
-// rather than the loose fallback.
+// Mounted by Panel's universal segments; declared so a binder types against the propless contract.
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "landing-status.sections": Record<string, never>;
@@ -72,24 +66,8 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-// ── Readouts ─────────────────────────────────────────────────────────────────
-//
-// Three of them, and each is `Unit` with this widget's precision on it, never
-// a string formatter, which is what the unit system exists to stop: a widget
-// that writes its own "m/s" is one rename away from disagreeing with every
-// other readout on the dashboard about what a speed looks like.
-//
-// What is genuinely local is the PRECISION, and it is local for a reason a
-// generic ladder cannot know: on a descent, ten metres of altitude is the
-// difference between a landing and a crater, so the last kilometre is read to
-// the metre while a hundred kilometres is read to a tenth of a kilometre.
-
-/**
- * Accepts either shape while the migration is mid-flight, and PARAMETERISED by
- * unit, which is what this alias adds over ui-kit's own: the readouts below
- * take a length or a speed and nothing else, so a `Value<"m">` handed to `Mps`
- * is a compile error here. The unwrap itself is ui-kit's `magnitudeOf`.
- */
+// Readouts use `Unit` with this widget's own precision: on a descent the last kilometre is read to the metre.
+/** Either shape while the migration is mid-flight, parameterised by unit so a length handed to `Mps` is a compile error. */
 type Quantityish<U extends string> = Quantity<U> | number | null | undefined;
 
 /** A speed, read finer the slower it is: a touchdown is decided in cm/s. */
@@ -109,15 +87,7 @@ function Mps({ v }: { v: Quantityish<"m/s"> }) {
 const ONE_KM = value("m", 1000);
 const TEN_KM = value("m", 10_000);
 
-/**
- * This widget's own precision ladder for a height, in one place so the plain
- * readout and the ASL readout below cannot drift apart about what an altitude
- * looks like.
- *
- * Takes the quantity and compares in the algebra rather than unwrapping it: the
- * rungs are lengths, and a bare 10000 here would be a length written as a
- * number that nothing checks the unit of.
- */
+/** This widget's precision ladder for a height, shared by the AGL and ASL readouts; the rungs compare as lengths, not bare numbers. */
 function altitudeDecimals(m: Quantity<"m">): number {
   const abs = m.abs();
   return abs.greaterThanOrEqual(TEN_KM)
@@ -135,21 +105,14 @@ function Metres({ m }: { m: Quantityish<"m"> }) {
   return <Unit value={height} decimals={altitudeDecimals(height)} />;
 }
 
-/** A delta-v budget. Always whole m/s: nobody plans a burn to the centimetre. */
+/** A delta-v budget, in whole m/s. */
 function Dv({ v }: { v: Quantityish<"m/s"> }) {
   const n = magnitudeOf(v);
   if (n === null) return NULL_DISPLAY;
   return <Unit value={value("m/s", n)} format="m/s" decimals={0} />;
 }
 
-/**
- * The four fields of a normalised stage row the rocket-equation solve needs.
- *
- * Structural rather than `DeltaVStage` itself so the tests below can hand it a
- * four-field literal: the solve is arithmetic on a mass ratio, and what it wants
- * is magnitudes. `NaN` for a field the wire did not carry, which every guard
- * below already rejects.
- */
+/** The four stage fields the rocket-equation solve needs, structural so tests can pass a literal; `NaN` for a field the wire did not carry. */
 interface StageLike {
   deltaVActual: number;
   deltaVVac: number;
@@ -158,21 +121,9 @@ interface StageLike {
 }
 
 /**
- * Active-engine burn parameters for the rocket-equation suicide-burn solve: the
- * effective exhaust velocity `ve` (= Isp·g0) and the burnout mass.
+ * Active-engine burn parameters for the suicide-burn solve: effective exhaust velocity `ve` (Isp * g0) and burnout mass.
  *
- * PREFER the ACTIVE stage (the `DELTA_V_BUDGET` row matched to
- * `vessel.structure.currentStage`)
- * because those are the engine(s) actually flying the landing burn: its ΔV +
- * mass ratio fix that engine's ve (atmosphere-adjusted, from the "actual" ΔV),
- * and its end mass is the burn's floor. `dv.summary.totalDvActual` is the
- * WHOLE-VESSEL multi-stage total, so it must NOT be used directly here: on a
- * multi-stage craft it's an average across engines with different Isp.
- *
- * Fall back to the whole-vessel `dv.summary` + `propulsion.dryMass` only when the
- * per-stage data is absent: exact for a single-stage lander (the common landing
- * case: total == active stage), a coarse average otherwise, still better than a
- * constant-decel guess. Returns `{}` when nothing usable is on the wire.
+ * Prefers the ACTIVE stage's `DELTA_V_BUDGET` row, since those engines fly the burn; the whole-vessel total averages engines of different Isp. Falls back to `dv.summary` plus `propulsion.dryMass` only without per-stage data (exact for a single-stage lander), and returns `{}` when nothing usable is on the wire.
  */
 export function deriveActiveBurnParams(
   active: StageLike | null | undefined,
@@ -222,34 +173,9 @@ export function deriveActiveBurnParams(
 }
 
 /**
- * Read the one-way delay off `comms.delay`, or `null` when nothing has
- * established one.
+ * The one-way delay off `comms.delay`, or `null` when nothing has established one.
  *
- * `null` means NO PATH and zero means a measured zero-distance link. The
- * contract is explicit about this (`command-delay.ts`: "null means NO PATH,
- * never a measured zero-distance delay. Never coerce it to 0"), and the
- * temptation is a `return 0` fallthrough that takes an absent field, a
- * malformed one and the backend's own "no path" null alike.
- *
- * `classifyRegime` reads a zero round trip as `live`, so the cost is a vessel
- * with no comms path rendering "T-1s SUICIDE BURN" behind a green LIVE badge:
- * a countdown an operator would burn on, asserted about a craft nothing can
- * reach. `CommitLayer`'s `no-path` arm expects this null: coercing here leaves
- * that arm reachable only by the whole payload being absent, and the two halves
- * of the design then disagree about which value means "no path".
- *
- * The VALUE decides, never `source`. `CommsDelaySource.None` covers both of
- * these states at once: a 0 under it is a LAN loop with genuinely no delay
- * (the one place the number is a measurement rather than a fabrication), and a
- * null under it is the no-path case above. Short-circuiting on the source read
- * the second as the first, so the null arm below was unreachable for the
- * frames the mod ACTUALLY emits when there is no path home
- * (`SignalDelay.Compute`: source None, value null). The null test either side
- * of this missed it because it emits a `SignalDelay` source, and the zero test
- * because it emits a real zero.
- *
- * A NEGATIVE delay is impossible, so it reads as unknown rather than as zero:
- * fabricating a live link is the one direction it must not fail in.
+ * `null` means NO PATH and zero means a measured zero-distance link, so this never coerces: a coerced zero reads as `live` and shows a burn countdown for a craft nothing can reach. The VALUE decides, never `source`, since `CommsDelaySource.None` carries both a LAN zero and the no-path null. A negative delay is impossible and reads as unknown.
  */
 function readOneWaySeconds(
   delay: { source?: number; oneWaySeconds?: Quantityish<"s"> } | undefined,
@@ -278,48 +204,23 @@ function GridCellPair({
   );
 }
 
-/**
- * The reading `vessel.flight` arrives as, spelled once so the readout below and
- * the widget body agree about which fields the contract marks reckonable.
- */
+/** The reading `vessel.flight` arrives as, spelled once so the readout and the widget body agree on the reckonable fields. */
 export type FlightReading = ReckonableReading<
   VesselFlight,
   "altitudeAsl" | "orbitalSpeed"
 >;
 
 /**
- * Altitude above sea level: what was last measured, where the model puts it
- * now, and how well the model claims to know that.
+ * Altitude above sea level: the last measurement, where the model puts it now, and how well it claims to know that.
  *
- * The widget carried `altitudeAsl` into `solveSuicideBurn` as a bare magnitude
- * and drew it nowhere, so the one quantity `vessel.flight` has a reckoner for
- * was invisible while the quantity ON screen (`heightFromTerrain`) has no
- * reckoner at all. Height above TERRAIN is also not a carriable quantity: a
- * rate fitted over the last few seconds of vertical speed says nothing about
- * the ground ahead, and at reentry speed six seconds of carry is a dozen
- * kilometres downrange of the terrain the measurement was taken over. Giving
- * the AGL readout a modelled source would be inventing an interval dominated by
- * relief the model has never seen, so the carried quantity gets a readout of
- * its own instead of the displayed one getting a model.
- *
- * The observation stays the headline figure and is marked, never replaced, on
- * the same grounds `<Unit>` and `<Meter>` both give: a modelled number quietly
- * standing in for a measured one is the substitution `Reading` exists to
- * prevent. The carried figure and the interval appear only while the reading is
- * NOT current, because on a live link there is nothing carried and a row
- * restating the headline is a row the operator stops reading.
+ * ASL is the quantity `vessel.flight` has a reckoner for; AGL has none, since a fitted rate says nothing about the terrain ahead. The observation stays the headline and is marked, never replaced, and the carried figure and interval appear only while the reading is not current.
  */
 function CarriedAltitude({ reading }: { reading: FlightReading }) {
   const observed = readingOf(reading, (f) => f.altitudeAsl);
   const decimals =
     "value" in observed ? altitudeDecimals(observed.value) : undefined;
   const carrying = reading.state === "stale";
-  /*
-   * The FIELD reading, not the topic's model keyed by a path string. The band
-   * and the carried figure are both properties of this one altitude, and the
-   * field property is where they live: it is projected out of the topic's own
-   * model.
-   */
+  // The field reading, which carries its own band and carried figure.
   const altitude = reading.altitudeAsl;
   const modelled =
     carrying && altitude.reckoning.status === "available"
@@ -327,12 +228,7 @@ function CarriedAltitude({ reading }: { reading: FlightReading }) {
       : undefined;
   const carried = modelled ? modelled.modelled : null;
   const band = bandIn(modelled?.band, "m");
-  /*
-   * Only while the reading is not current. A refusal is an answer to "why is
-   * there no carried figure", and on a live link nobody asked: the observation
-   * IS now, and a standing note about the conic declining under physics is a
-   * line the operator reads once and then stops seeing.
-   */
+  // Only while the reading is not current; on a live link the observation is now.
   const declined =
     carrying && reading.reckoning.status === "declined"
       ? reading.reckoning.declined
@@ -379,11 +275,7 @@ function CarriedAltitude({ reading }: { reading: FlightReading }) {
   );
 }
 
-/**
- * A caption-over-value readout for the reticle's narrow side column, where a
- * side-by-side label + value would force the value to wrap. Stacked, it fills
- * the column beside the tall reticle without wrapping.
- */
+/** A caption over its value, for the reticle's narrow side column where side by side would wrap. */
 function StackedField({
   label,
   children,
@@ -391,7 +283,6 @@ function StackedField({
   label: string;
   children: React.ReactNode;
 }) {
-  // Column so the caption sits ABOVE the value (both are inline elements, so without this they flow side-by-side and the value wraps in a narrow col).
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
       <ReadoutCaption>{label}</ReadoutCaption>
@@ -401,21 +292,9 @@ function StackedField({
 }
 
 /**
- * The visible height of the enclosing `Panel.Body`, in pixels, and the callback
- * ref that finds it.
+ * The visible content height of the enclosing `Panel.Body`, and the callback ref that finds it.
  *
- * The rail wants to be the full height of the widget as DISPLAYED, which is the
- * scroller's own box, not the height of the content inside it. No percentage
- * expresses that from within: a child's `height: 100%` resolves against the
- * flex row it sits in, which is as tall as the content and therefore too tall
- * the moment anything overflows.
- *
- * A CALLBACK ref, not `useRef` + `useEffect`. The row this measures from only
- * exists once a descent is streaming, and an effect keyed on a ref object runs
- * exactly once, on the first render, when that row is not mounted yet: it found
- * nothing, returned, and never ran again, so the height stayed 0 and the rail
- * silently fell back to its content height. A callback ref runs on every attach
- * and detach, which is the actual lifecycle here.
+ * The rail spans the scroller's box, which no percentage expresses from inside a content-sized flex row. A callback ref, because the measured row mounts only once a descent streams, after a mount-time effect would have run.
  */
 function useScrollerHeight(): [(node: HTMLElement | null) => void, number] {
   const [height, setHeight] = useState(0);
@@ -425,9 +304,7 @@ function useScrollerHeight(): [(node: HTMLElement | null) => void, number] {
     observer.current = null;
     const box = node?.closest("[data-panel-body]");
     if (!(box instanceof HTMLElement)) return;
-    // clientHeight is the PADDING box. The rail lives inside the content box,
-    // so using clientHeight made it overrun the visible bottom by exactly the
-    // body's vertical inset, which is what clipped its footer label.
+    // clientHeight is the padding box, and the rail lives in the content box.
     const contentHeight = () => {
       const cs = getComputedStyle(box);
       return (
@@ -446,36 +323,17 @@ function useScrollerHeight(): [(node: HTMLElement | null) => void, number] {
 
 const DESCENT_HISTORY_MAX = 60;
 
-// Atmospheric terrain-plot gating. The plots (top-down site + cross-section) are
-// a pinpoint-landing view, meaningful only once the predicted touchdown point
-// has SETTLED (a jumpy high-altitude prediction is drag noise, not a site). Show
-// them on an atmospheric board when the predicted point is moving slowly OR the
-// vessel is already low (final approach under chutes), never at hypersonic entry.
+// Atmospheric terrain plots appear only once the predicted touchdown has settled or the vessel is low: a jumpy high-altitude prediction is drag noise.
 const PREDICTION_STABLE_M = 250; // predicted point moves < this per tick ⇒ settled
 const ATMO_PLOTS_ALT_GATE = 10_000; // metres AGL, the base unit a bare operand takes
 
-/**
- * Air thin enough that the descent is effectively a vacuum one: below this,
- * drag does nothing a lander can plan around and the readout says so rather
- * than quoting four zeroes.
- */
+/** Air thin enough that the descent is effectively vacuum, so the readout says so rather than quoting zeroes. */
 const NEGLIGIBLE_DENSITY = 0.001; // kg/m³, the base unit a bare operand takes
 
 /**
- * Whether the vessel is on the ground, and so has no descent left to evaluate.
+ * Whether the vessel is on the ground and has no descent left to evaluate, off the `Situation` ordinal.
  *
- * Taken off the `Situation` ORDINAL, and covering `PreLaunch` as well as
- * `Landed`. Comparing the enum NAME against the single literal "Landed" is what
- * a craft on the pad fails: every vessel is `PreLaunch` until the clamps
- * release, and a stationary craft whose centre of mass sits a few metres above
- * the terrain datum still solves to a finite free-fall time-to-impact, so the
- * pad runs a live descent evaluation, counting down to a commit point and a
- * blind moment for a rocket that has not moved. `Splashed` is here for the same
- * reason: a hull in the water is down, and this is the one test that says so.
- *
- * An absent or unrecognized situation is not a verdict either way: it yields
- * false, and the caller falls back to its other grounded signals rather than
- * asserting a descent nothing reported.
+ * `PreLaunch` and `Splashed` count, since a pad craft slightly above the terrain datum still solves to a finite time-to-impact. An absent or unrecognised situation yields false, and the caller falls back to its other grounded signals.
  */
 export function isGroundedSituation(
   situation: number | null | undefined,
@@ -492,11 +350,7 @@ function LandingStatusComponent({
 }: Readonly<ComponentProps<LandingStatusConfig>>) {
   const [measureScroller, scrollerHeight] = useScrollerHeight();
 
-  /*
-   * Range to the target, off `vessel.target`'s own relative position.
-   * `bare`/`vecMagnitude` are the pair `Targeting` measures its range with, so
-   * the two widgets cannot drift on the same figure.
-   */
+  // Range to the target, measured with the same pair `Targeting` uses so the two widgets agree.
   const targetReading = useStream<{ relativePosition?: Vec3Of<"m"> }>(
     "vessel.target",
   );
@@ -518,24 +372,10 @@ function LandingStatusComponent({
   /**
    * Describe from the best value available; instruct only from a current one.
    *
-   * This replaces "the whole board suspends", which was the wrong call for the
-   * reason the case itself makes obvious: losing contact mid-descent is the
-   * EXPECTED case, not an edge one, and a blank board during a descent nobody is
-   * tracking is the worst of the available answers.
+   * - a DESCRIPTION (altitude, velocity, delta-v) renders from a modelled or last-known value, labelled as such
+   * - an INSTRUCTION (the burn instant, the ignition countdown) never renders from a reckoned state: the operator acts on it at a named moment
    *
-   * The split is not by field but by what the operator DOES with the number:
-   *
-   * - a DESCRIPTION (altitude, velocity, how much delta-v there was) renders from a
-   *   modelled or last-known value, labelled as such. It stays useful when dated,
-   *   and blanking it throws away the only picture there is
-   * - an INSTRUCTION (the suicide-burn instant, the ignition countdown) does not
-   *   render from a reckoned state at all. The number IS the act: an operator burns
-   *   on it at a named moment, and a modelled ignition time is a wrong instruction
-   *   rather than a stale reading
-   *
-   * `describe` takes the reckoned value where one exists, because a propagated
-   * descent state is genuinely better than the last observed one. `instruct` demands
-   * `observed`, which is the whole distinction.
+   * Losing contact mid-descent is the expected case, so the board is never blanked.
    */
   const describe = <T,>(r: TopicReading<T>): T | undefined =>
     r.reckoning.status === "available"
@@ -544,78 +384,40 @@ function LandingStatusComponent({
         ? r.value
         : undefined;
 
-  /**
-   * The same policy for a topic the CONTRACT declares reckonable, where the
-   * model moves only the named fields.
-   *
-   * The spread is the whole difference: a conic advances `vessel.flight`'s
-   * altitude and orbital speed and says nothing about its vertical speed, its
-   * terrain height or the air it is in, so overlaying is the only honest read.
-   * Taking `reckoned.value` alone would hand this board a payload missing every
-   * number it descends on.
-   */
+  /** The same policy for a contract-reckonable topic, overlaying the fields the model moves onto the observation; `reckoned.value` alone lacks every number the board descends on. */
   const describeReckonable = <T, K extends keyof T>(
     r: ReckonableReading<T, K>,
   ): T | undefined => {
-    // The observation first, because `reckoning.status` narrows the reckoning and not the arm carrying it.
+    // `reckoning.status` narrows the reckoning, not the arm carrying it.
     if (r.state !== "observed" && r.state !== "stale") return undefined;
     return r.reckoning.status === "available"
       ? { ...r.value, ...r.reckoning.value }
       : r.value;
   };
 
-  // Which situation the vessel is in does not decay the way a velocity does: a
-  // craft that was on the pad when the last frame arrived has not since taken
-  // off down a link that stopped delivering, so `describe` is the right read.
+  // A situation does not decay the way a velocity does, so `describe` is the right read.
   const identity = describe(identityReading);
   const bodyName = useBodyName(identity?.parentBodyIndex);
   const flight = describeReckonable(flightReading);
   const surface = describe(surfaceReading);
   const propulsion = describe(propulsionReading);
-  /*
-   * `vessel.orbit` carries a mark, so it takes the OVERLAYING read like
-   * `vessel.flight` beside it: the conic moves the phase and says nothing
-   * about the elements, and `reckoned.value` alone is not an orbit.
-   */
+  // The conic moves the phase only, so this overlays like `vessel.flight`.
   const orbit = describeReckonable(orbitReading);
   const landing = describe(landingReading);
-  /*
-   * The parent body, resolved off `system.bodies` by INDEX rather than looked
-   * up by name in the bundled table of stock bodies. Under a planet pack the
-   * names do not match: RSS calls Kerbin "Earth", the lookup misses, and this
-   * board reported "no body data" and a VACUUM descent for a reentry through
-   * an atmosphere. The table stays behind it for the presentation the stream
-   * carries nothing for.
-   */
+  // Resolved by index, not by name against the stock table, so a planet pack's renamed bodies still resolve.
   const body = bodyAtIndex(describe(bodiesReading), identity?.parentBodyIndex);
   const atmospheric = body?.hasAtmosphere ?? false;
-  // The one shared ΔV derivation. It already carries a dated budget rather than
-  // blanking one, which is the arm policy `describe` gives every other read here.
-  /*
-   * Both value-bearing arms. A budget that has stopped being current is still
-   * the best figure available, and every readout drawn from it below is a
-   * FIGURE rather than a control: dropping it would blank the panel for a craft
-   * whose link merely went quiet.
-   */
+  // A dated budget is still the best figure, and every readout from it is a figure rather than a control.
   const budgetReading = useProcessor(DELTA_V_BUDGET);
   const budget =
     budgetReading?.state === "observed" || budgetReading?.state === "stale"
       ? budgetReading.value
       : undefined;
   const commsDelayReading = useTelemetry("comms.delay");
-  /*
-   * `describeReckonable` since the contract declared `oneWaySeconds` carriable:
-   * the model moves that one field, so the projection has to be overlaid rather
-   * than taken whole, or this board reads a delay payload with no `source`.
-   */
+  // `oneWaySeconds` is carriable, so the model's projection is overlaid rather than taken whole.
   const commsDelay = describeReckonable(commsDelayReading);
 
-  /**
-   * Whether the board is DESCRIBING rather than reporting, and which readings put it
-   * there. Drives a caption, never a blank: the numbers below are still the best
-   * picture available and stay on screen.
-   */
-  // The state alone, so a declared-reckonable topic answers it identically: how current an observation is has nothing to do with what a model moves.
+  // Whether the board is describing rather than reporting, and which readings put it there; it drives a caption, never a blank.
   const isDated = (r: { state: ReadingState }): boolean => r.state === "stale";
   const datedInputs = [
     isDated(flightReading) ? "flight" : null,
@@ -625,25 +427,15 @@ function LandingStatusComponent({
     isDated(landingReading) ? "landing" : null,
   ].filter((name): name is string => name !== null);
   /**
-   * The gate on the INSTRUCTION half: no input the burn solve rests on may be DATED.
-   *
-   * Keyed on dated rather than on "every input is observed", which is what I wrote
-   * first and which the snapshot fixtures caught. A never-arrived input is not a
-   * reason to refuse: a scenario that carries no `vessel.landing` at all still has a
-   * nameable ignition instant, and `solveSuicideBurn` already answers
-   * "not-descending" when it genuinely lacks data. Refusing there would have
-   * withheld the countdown on every board that simply does not carry every topic.
+   * The gate on the INSTRUCTION half: no input the burn solve rests on may be dated.
+   * A never-arrived input does not refuse, since `solveSuicideBurn` already answers "not-descending" when it lacks data.
    */
   const mayInstruct = datedInputs.length === 0;
-  /*
-   * The range to a target is a description the burn does not rest on, so a
-   * held one joins the caption without refusing the instruction.
-   */
+  // Target range is a description the burn does not rest on, so a held one joins the caption without refusing the instruction.
   const describedInputs = isDated(targetReading)
     ? [...datedInputs, "target"]
     : datedInputs;
 
-  // ve + burnout mass of the ACTIVE engine(s), see `deriveActiveBurnParams`.
   const { exhaustVelocity, burnoutMass } = deriveActiveBurnParams(
     budget?.activeStage,
     propulsion,
@@ -651,9 +443,7 @@ function LandingStatusComponent({
     budget?.totalVac?.magnitude,
   );
 
-  // Burn datum: the vessel's LOWEST point above terrain. Falls back to the CoM
-  // radar altitude with a visible note when `vessel.surface` is nulled (Orbiting
-  // / Escaping capture guard).
+  // The burn datum is the vessel's lowest point above terrain, falling back to CoM radar altitude with a note when `vessel.surface` is null.
   const surfaceHeight = surface?.heightFromTerrain;
   const heightFromTerrain = surfaceHeight ?? flight?.altitudeTerrain;
   const usingComDatum = surfaceHeight == null && heightFromTerrain != null;
@@ -675,11 +465,7 @@ function LandingStatusComponent({
     burnoutMass,
   });
 
-  // On the ground: a grounded vessel can still report a residual altitude and a
-  // stale time-to-impact, so gate the descent clocks on the SITUATION rather
-  // than on the impact figure. `vessel.surface.landedAt` (the site KSP records
-  // a vessel as being down at) is the direct signal; the situation ordinal
-  // backs it up where a source populates that instead.
+  // Gated on the situation, not the impact figure, since a grounded vessel can report a residual altitude; `landedAt` is the direct signal.
   const landed =
     surface?.landedAt != null || isGroundedSituation(identity?.situation);
 
@@ -691,11 +477,7 @@ function LandingStatusComponent({
     landed,
   });
 
-  // No viable landing vector: a real vacuum solution exists but the full-vector
-  // burn can't be nulled within the remaining altitude, so even an optimal burn
-  // still hits the ground at `bestSpeedAtImpact`: there is no descent trajectory
-  // to a safe touchdown. Distinct from a NOMINAL committed burn (bestSpeedAtImpact
-  // 0 = the burn fits and a safe landing IS coming); do NOT conflate the two.
+  // A vacuum solution exists but even the optimal burn hits at `bestSpeedAtImpact`, which is not the same as a nominal committed burn (0 means it fits).
   const noLandingVector =
     !landed &&
     solution.state === "vacuum-solved" &&
@@ -709,9 +491,6 @@ function LandingStatusComponent({
       ? availableDv.greaterThanOrEqual(requiredDv)
       : null;
 
-  // The mod-side atmosphere-aware estimate (terminal-velocity model) is present
-  // when the vessel.landing channel carries a terminal velocity, only in an
-  // atmosphere while the relevance gate is open.
   const atmosphereAware = landing?.terminalVelocity != null;
   const board = deriveBoard({
     solutionState: solution.state,
@@ -719,8 +498,7 @@ function LandingStatusComponent({
     atmosphereAware,
   });
 
-  // Descent-rate trend: a bounded history of vertical speed, so a developing
-  // over-speed reads as a trend not a single tick. Appended after render.
+  // A bounded vertical-speed history, so a developing over-speed reads as a trend.
   const [descentHistory, setDescentHistory] = useState<number[]>([]);
   const currentVs = flight?.verticalSpeed?.magnitude;
   useEffect(() => {
@@ -733,16 +511,12 @@ function LandingStatusComponent({
     });
   }, [currentVs]);
 
-  // Prediction stability: how far the predicted touchdown point moved since the
-  // last tick (great-circle metres). A settled prediction is the real signal that
-  // a pinpoint site is worth drawing on an atmospheric descent.
+  // How far the predicted touchdown moved since the last tick; settling is what makes an atmospheric site worth drawing.
   const prevPredictedRef = useRef<{ lat: number; lon: number } | null>(null);
   const [predictionMovement, setPredictionMovement] = useState<number | null>(
     null,
   );
-  // Magnitudes, because these are effect dependencies as well as geometry
-  // inputs: a `Value` is a fresh object every frame, so depending on one
-  // re-runs the effect on every tick even when the prediction has not moved.
+  // Magnitudes, because a `Value` is a fresh object every frame and would re-run the effect each tick.
   const predLat = landing?.predictedLatitude?.magnitude;
   const predLon = landing?.predictedLongitude?.magnitude;
   const bodyRadius = body?.radius;
@@ -762,42 +536,16 @@ function LandingStatusComponent({
     prevPredictedRef.current = { lat: predLat, lon: predLon };
   }, [predLat, predLon, bodyRadius]);
 
-  // `no-path` is deliberately NOT folded in here. `classifyRegime` goes out of
-  // its way to refuse to call an unknown link live, and folding `no-path` in
-  // here throws that away one line later: with no comms telemetry at all the
-  // hero would read "SUICIDE BURN", which is a claim that the loop is closed.
-  // CommitLayer has its own arm for a link it cannot vouch for.
+  // `no-path` is not live: with no comms telemetry at all the hero must not claim the loop is closed.
   const live = clocks.regime === "live";
   const width = w ?? 8;
-  // The flight instruments (velocity vector + TWR) and the full-height altitude rail come in together at a comfortable width; below that, plain readouts.
+  // Instruments and the altitude rail come in together at a comfortable width; below it, plain readouts.
   const showScope = width >= 6;
-  /**
-   * Whether this widget lays plots out at all, which is the ONLY plot decision
-   * left to it: below this width a plot is narrower than it is legible and the
-   * readouts are the better use of the space. It says nothing about WHICH plots
-   * exist, and cannot: each decides that for itself and the board arranges what
-   * comes back.
-   */
+  // Below this width a plot is narrower than legible; each plot still decides for itself whether it exists.
   const showPlots = width >= 8;
-  /**
-   * The altitude RAIL, which is not a plot and is deliberately not one.
-   *
-   * It was briefly a contribution to `plots`, and that was wrong twice over: a
-   * chart of a single scalar is one chevron on a ladder, and the widget already
-   * states the same height a few pixels away. It is a gauge, so it is chrome,
-   * and the rule was that every PLOT goes through the slot rather than every
-   * instrument. Nothing else on the board draws height against a scale, so it
-   * duplicates nothing.
-   */
+  // The altitude rail is a gauge, so it is chrome rather than a contributed plot.
   const showRail = showScope;
-  // The reticle is the centerpiece, shown once terrain was sampled (predicted
-  // point or the sub-vessel fallback) and there's width to make it prominent.
-  // The two-plot row FLEX-WRAPS (see below), so from ~8 wide it degrades by
-  // STACKING the plots rather than dropping the top-down one; only below the
-  // scope width do we fall back to plain readouts.
-  // On an ATMOSPHERIC board the terrain plots re-appear only once the predicted
-  // point has settled (or the vessel is already low), see the gate constants.
-  // On a vacuum board a sample alone is enough (the burn solve is the site).
+  // On an atmospheric board the terrain plots wait for a settled prediction or a low vessel; on a vacuum board a sample is enough.
   const predictionStable =
     predictionMovement != null && predictionMovement < PREDICTION_STABLE_M;
   const lowApproach = heightFromTerrain?.lessThan(ATMO_PLOTS_ALT_GATE);
@@ -805,35 +553,14 @@ function LandingStatusComponent({
     atmospheric &&
     landing?.sampleSource != null &&
     (predictionStable || lowApproach);
-  /**
-   * Whether the SITE readouts beside the plots have a site to describe. Not a
-   * plot gate any more: the reticle decides for itself whether it is relevant,
-   * and this is the verdict banner and the biome/terrain line, which are text
-   * this widget owns.
-   */
+  // Whether the site text beside the plots (verdict banner, biome and terrain line) has a site to describe.
   const siteReadoutsShown =
     showPlots &&
     landing?.sampleSource != null &&
     (!atmospheric || atmosphericPlotsShown);
   /*
-   * EVERY AXIS HERE GRADES ON ITS POINT ESTIMATE, and no band is passed,
-   * because none exists to pass. `deriveHazardVerdict` can take an interval per
-   * axis and withhold a verdict where one straddles a threshold; the arm this
-   * widget used to wire into it asked `Reckoning.bands` for a band at
-   * `"verticalSpeed"` and got `undefined` on every frame it ever ran.
-   *
-   * The reason is the FIELD, and it did not move when the altitude gained a
-   * band. `verticalSpeed` is not among `vessel.flight`'s declared reckonable
-   * fields (`altitudeAsl` and `orbitalSpeed` are), so no path on a reckoning is
-   * ever keyed by it: the atmospheric branch copies the rate verbatim off the
-   * observation. `core-reckoners.ts` now does implement `TopicModel.bandAt` for
-   * `vessel.flight`, and it keys the band at `"altitudeAsl"` alone, off the
-   * standard error of the acceleration it fitted. A measured rate the wire
-   * carries once has no residuals to take a sigma from and no bound to claim,
-   * so it is still not a field a band is coming for.
-   *
-   * The lateral rate is composed from two rates by `solveSuicideBurn` and the
-   * slope comes off `vessel.landing`, so the same holds for both of those.
+   * Every axis grades on its point estimate, with no band, because none exists: only `altitudeAsl` is banded on `vessel.flight`.
+   * Vertical speed is not a reckonable field, and the lateral rate and slope come from the solve and `vessel.landing`.
    */
   const hazardVerdict = deriveHazardVerdict({
     slopeDeg: landing?.predictedSlopeAngle?.magnitude,
@@ -842,17 +569,11 @@ function LandingStatusComponent({
     lateralSpeed: solution.horizontalSpeed,
     biome: landing?.predictedBiome,
   });
-  // The velocity vector + TWR only carry a meaningful vacuum picture for a
-  // solved descent at a wide size; elsewhere fall back to the plain, always-
-  // valid velocity/height readouts. Once landed we KEEP the spatial scope (the
-  // plots showing the vessel now AT the site) even though the burn solution has
-  // gone idle: a "touchdown confirmed" view, not a blank panel.
+  // The velocity vector is meaningful only for a solved descent at width; once landed the scope stays as a touchdown view.
   const scopeShown =
     (board === "vacuum-solved" || landed || atmosphericPlotsShown) && showScope;
 
-  // ── Section fragments (composed into the layout below) ─────────────────────
-
-  // Displacement sub-vessel → predicted site: bearing is the ground-track slice direction for the cross-section; distance is the downrange readout.
+  // Sub-vessel to predicted site: the bearing slices the cross-section, the distance is the downrange readout.
   const siteDrift =
     flight?.latitude != null &&
     flight?.longitude != null &&
@@ -868,15 +589,7 @@ function LandingStatusComponent({
         )
       : null;
 
-  // TWR is its own widget. It was here because a descent wants it, but a
-  // dashboard that wants it can place the TWR widget beside this one, and
-  // carrying a second copy cost this panel a whole band of vertical space it
-  // needs for the plots.
-
-  // Contributed plots. This widget names none of them and derives nothing for
-  // them: each decides for itself whether it has anything to say this frame and
-  // what to say it against, and the board lays out whatever comes back. The
-  // descent envelope that used to be composed here by hand is one of them now.
+  // Contributed plots: each decides for itself whether it has anything to say, and the board lays out what comes back.
   const contributedPlots = <PlotBoard />;
 
   const comDatumNote = usingComDatum ? (
@@ -885,13 +598,9 @@ function LandingStatusComponent({
     </Text>
   ) : null;
 
-  // Compact caption-over-value burn/touchdown readouts. `minColWidth` makes it
-  // auto-column: one column in the narrow detail stack, a multi-column row when
-  // it sits full-width underneath the plots.
+  // `minColWidth` makes this one column in the narrow stack and a row full-width under the plots.
   const readoutsStack = landed ? (
-    // Touchdown-confirmed readouts: the outcome-relevant numbers (how soft, how
-    // much fuel is left), not the now-void in-flight burn countdowns. The site
-    // verdict + biome/slope ride the banner + terrain readout above.
+    // Touchdown-confirmed readouts: how soft, how much fuel is left.
     <Grid minColWidth="130px" gap="related-dense">
       <StackedField label="Touchdown speed">
         {<Mps v={flight?.surfaceSpeed ?? solution.horizontalSpeed} />}
@@ -901,9 +610,7 @@ function LandingStatusComponent({
       </StackedField>
     </Grid>
   ) : board === "vacuum-solved" ? (
-    // Under NO LANDING VECTOR every number here (burn dV you can afford, dV in
-    // the tank, coast speed) is moot context, not a positive: dim the whole
-    // grid so it can't read as reassurance against the ABORT hero above.
+    // Under NO LANDING VECTOR every number here is moot, so the grid dims rather than reading as reassurance against the ABORT.
     <div style={noLandingVector ? { opacity: 0.5 } : undefined}>
       <Grid minColWidth="130px" gap="related-dense">
         <StackedField label="Burn dV">{<Dv v={requiredDv} />}</StackedField>
@@ -926,7 +633,7 @@ function LandingStatusComponent({
         >
           <ReadoutCaption>Affordable</ReadoutCaption>
           {noLandingVector ? (
-            // Fuel isn't the wall (there's no path at all): a green "yes" here would contradict the ABORT above, so mute it.
+            // A green "yes" would contradict the ABORT above, since fuel is not the wall.
             <Text tone="muted">n/a · no path</Text>
           ) : affordable == null ? (
             <Text tone="muted">{NULL_DISPLAY}</Text>
@@ -998,10 +705,7 @@ function LandingStatusComponent({
         </Text>
       </Section>
     ) : board === "atmospheric-estimate" ? (
-      // Descending in atmosphere but the mod shipped no terminal velocity yet
-      // (drag not measurable this tick / stale source). Not "unmodelled": show
-      // the honest state: the velocity + air density, and that the vessel is
-      // still above terminal with drag building. An estimate, labelled as one.
+      // In atmosphere with no terminal velocity yet: show velocity, air density and that drag is still building, labelled as an estimate.
       <Section>
         <SectionTitle>Atmospheric descent (estimate)</SectionTitle>
         <Grid cols="auto 1fr" gap="readout-row">
@@ -1040,15 +744,7 @@ function LandingStatusComponent({
     ) : null;
 
   const velocityEl =
-    // The atmospheric-estimate board carries its own velocity split, so don't repeat it in the standalone Velocity section.
-    //
-    // It used to be suppressed whenever the spatial plots were up, on the
-    // grounds that the cross-section's own label carried the split. That was
-    // only ever true when a terrain patch had shipped: without one the
-    // cross-section now contributes no plot at all, and the split was left
-    // being reported by nothing. A readout is this widget's own text, so
-    // whether some plot happens to restate it is not a question it should be
-    // answering, and answering it is how the number went missing.
+    // The atmospheric-estimate board carries its own velocity split; this readout is the widget's own text, so it never depends on a plot restating it.
     board !== "atmospheric-estimate" && solution.horizontalSpeed != null ? (
       <Section>
         <SectionTitle>Velocity</SectionTitle>
@@ -1063,16 +759,12 @@ function LandingStatusComponent({
       </Section>
     ) : null;
 
-  // ASL, the one quantity on this board a reckoner speaks for. Gated only on a
-  // payload having arrived at all, not on the descent board: an altitude the
-  // operator can read is worth the row on any frame, and the interval below it
-  // appears on its own once the link stops being current.
+  // ASL on any frame a payload has arrived; its interval appears once the link stops being current.
   const carriedAltitudeEl = flight ? (
     <CarriedAltitude reading={flightReading} />
   ) : null;
 
-  // Plain AGL readout only when there's no altitude rail (small size). The rail
-  // is the altitude carrier everywhere else.
+  // Plain AGL only when there is no altitude rail.
   const heightEl = !showRail ? (
     <Section>
       <SectionTitle>Height</SectionTitle>
@@ -1081,8 +773,6 @@ function LandingStatusComponent({
           {<Metres m={heightFromTerrain} />}
         </GridCellPair>
       </Grid>
-      {/* The CoM-datum caveat is carried once by `comDatumNote` (in the detail
-          stack / right column), so it isn't repeated here. */}
     </Section>
   ) : null;
 
@@ -1112,9 +802,7 @@ function LandingStatusComponent({
     />
   );
 
-  // Everything that isn't a plot: the numbers + notes, in the order they
-  // matter. Non-relevant fragments are null and drop out. Used at sizes below
-  // the wide-size plots layout.
+  // Everything that is not a plot, in the order it matters, below the wide plots layout.
   const detailStack = (
     <Stack>
       {contributedPlots}
@@ -1128,15 +816,10 @@ function LandingStatusComponent({
     </Stack>
   );
 
-  // Site-hazard verdict (slope / roughness). When there's NO LANDING VECTOR the
-  // site verdict is moot (you can't reach a safe touchdown ANYWHERE), so the
-  // banner reads ABORT (not "DIVERT to a better patch", and never a green
-  // "SAFE" that would contradict the alert hero above).
-  //
-  // UNRESOLVED takes the DEFAULT tone, and neither of the other two it looks
-  // close to: green would state a verdict the board just declined to give, and
-  // amber would read as a finding about the site when the finding is about the
-  // model. The word is the whole message.
+  /*
+   * With NO LANDING VECTOR the banner reads ABORT, never DIVERT or a green SAFE.
+   * UNRESOLVED takes the default tone: green would state a verdict and amber a site finding, when the finding is about the model.
+   */
   const hazard = hazardVerdict.verdict;
   const bannerLabel = noLandingVector ? "ABORT" : (hazard ?? "NO SITE");
   const bannerTone: ReadoutTone =
@@ -1196,11 +879,9 @@ function LandingStatusComponent({
   return (
     <Panel
       panelTitle="LANDING"
-      // Host-derived, so there is no hand-picked `vessel.surface` badge: the panel watches every topic this widget declares rather than one chosen key.
+      // Host-derived: the panel watches every topic this widget declares.
       sections={[
-        /* The link state, first and full width: the commit and blind countdowns
-           are what a delayed descent is flown by, so they sit in the body where
-           a narrow tile cannot fold them behind the header's expand box. */
+        // The link state, first and full width: a delayed descent is flown by these countdowns, so a narrow tile must not fold them away.
         <Section key="link" full>
           <div
             style={{
@@ -1238,28 +919,16 @@ function LandingStatusComponent({
                 {`${bodyName}${atmospheric ? " · atmospheric" : " · vacuum"}`}
               </Text>
             )}
-            {/* The board is DESCRIBED, not suspended. No `role="status"`: the hero below
-              already owns one, and a second live region on the same panel floods a
-              screen reader rather than informing it. `isDated` rather than
-              "not observed", so a cold start says nothing at all: "described from last
-              known" is a lie when nothing has ever arrived. It stays on screen with a caption
-              naming which readings are no longer current, because losing contact
-              mid-descent is the expected case and a blank board is the worst answer
-              available. The ignition instant is refused separately, in CommitLayer. */}
+            {/* No role="status": the hero owns the live region. Shown only for dated inputs, since a cold start has nothing "last known". */}
             <DescribedFromLastKnown readings={describedInputs} />
           </Section>
         ) : null,
-        /* The rail and the readouts beside it are the instrument: they take
-           the height the context captions leave, which is what the row did as
-           the body's one flexing child. */
+        // The rail and its readouts take the height the captions leave.
         <Section key="descent" fill>
           {board === "not-descending" && !landed ? (
             <EmptyState>No landing in progress</EmptyState>
           ) : (
-            // The rail beside the content, both inside the panel's own body, which
-            // owns the single inset. Bleeding to the panel edge with `padding: 0`
-            // makes every text band pay its own inset, which is how a widget ends
-            // up with five different ones and reads tight.
+            // Rail and content sit inside the panel's own body, which owns the single inset.
             <div
               ref={measureScroller}
               style={{
@@ -1267,30 +936,20 @@ function LandingStatusComponent({
                 flex: 1,
                 minHeight: 0,
                 alignItems: "stretch",
-                // One rung up from space-8. This widget reads tight at close
-                // quarters and the plots, rail and readouts all abut each other.
                 gap: "var(--gap-section)",
               }}
             >
               {showRail && (
-                // Sticky, not scrolling. The rail is the instrument's spatial
-                // spine: an altitude scale that slides out of view while the
-                // readouts it indexes stay put is worse than useless. It sits in
-                // the scrolling body (so it takes the panel inset like everything
-                // else) but pins itself to the top of it. `align-self: flex-start`
-                // is what lets sticky engage: a stretched flex child is already as
-                // tall as the container and has nothing to stick within.
+                // Sticky, so the altitude scale stays in view while the readouts scroll; `align-self: flex-start` lets sticky engage.
                 <div
                   style={{
                     flex: "0 0 auto",
-                    // An instrument dimension, not a spacing rung: the width the scale's labels and track need.
+                    // An instrument dimension: the width the scale's labels and track need.
                     width: 64,
                     position: "sticky",
                     top: 0,
                     alignSelf: "flex-start",
-                    // The scroller's visible height, measured. Full display height
-                    // of the widget, so the scale spans what the operator can see
-                    // however far the readouts below it have scrolled.
+                    // The scroller's measured visible height, so the scale spans what the operator can see.
                     height: scrollerHeight > 0 ? scrollerHeight : undefined,
                   }}
                 >
@@ -1306,14 +965,10 @@ function LandingStatusComponent({
               <div style={{ flex: 1, minWidth: 0 }}>
                 {showPlots ? (
                   <div style={{ display: "flex", flexDirection: "column" }}>
-                    {/* Every plot on this widget, arranged and nothing more. No
-                      `FramedDisplay` around it: a contributed plot's chart owns
-                      its own frame and a second one reads as a double border. */}
+                    {/* No FramedDisplay: a contributed plot's chart owns its frame. */}
                     <div style={{ padding: "var(--inset-contributed-plots)" }}>
                       {contributedPlots}
                     </div>
-                    {/* Readouts UNDERNEATH the plots (inset text): verdict banner,
-                      terrain readout, then the numeric readout grid full-width. */}
                     <div
                       style={{
                         display: "flex",
@@ -1343,8 +998,6 @@ function LandingStatusComponent({
   );
 }
 
-// ── Registration ──────────────────────────────────────────────────────────────
-
 registerComponent<LandingStatusConfig>({
   id: "landing-status",
   name: "Landing Status",
@@ -1369,10 +1022,7 @@ registerComponent<LandingStatusConfig>({
     "comms.delay",
   ],
   defaultConfig: {},
-  // This widget HOSTS plots. Declaring the slot is the whole of the opt-in, and
-  // it is an opt-in rather than a framework universal because a plot is not
-  // something every widget has room for. Its own descent envelope arrives
-  // through here like anyone else's (see `descentLayers.ts`); no augment slot.
+  // Declaring the slot is the whole opt-in; the widget's own descent envelope arrives through it too.
   contributionSlots: ["plots"],
   pushable: true,
   requires: ["flight"],

@@ -25,8 +25,7 @@ export function useElementSize<T extends HTMLElement = HTMLDivElement>(
   const [size, setSize] = useState<ElementSize>(initial);
   const [observed, setObserved] = useState<T | null>(null);
 
-  // After every render, so an element that mounts late or is replaced is picked
-  // up. Only a different element causes a re-render.
+  // After every render, so an element that mounts late or is replaced is picked up; only a different element re-renders.
   useEffect(() => {
     if (ref.current !== observed) setObserved(ref.current);
   });

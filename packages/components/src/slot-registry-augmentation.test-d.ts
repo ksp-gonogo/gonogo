@@ -1,16 +1,7 @@
-// Type-level proof that a `declare module "@ksp-gonogo/core"` augmentation of
-// the `SlotRegistry` declaration-merge seam STILL merges after that interface
-// (and `SlotProps`) moved to `@ksp-gonogo/ui-kit` and are re-exported through
-// `@ksp-gonogo/core`. This is the load-bearing acceptance criterion of moving
-// the augment seam onto the published design floor: an Uplink that augments
-// `SlotRegistry` via the `@ksp-gonogo/core` module specifier (as every in-tree
-// widget does) must keep resolving to its precise slot props, not the loose
-// `Record<string, unknown>` fallback.
-//
-// Checked by `tsc` (the package `typecheck`), NOT the vitest runner. The
-// sibling `contribution-registry-augmentation.test-d.ts` proves the same for
-// the contribution seams; `Objectives/slot-contract.test-d.ts` proves it for a
-// real widget's `objectives.source` contract.
+/*
+ * Type-level proof that a `declare module "@ksp-gonogo/core"` augmentation of `SlotRegistry` merges through the re-export from `@ksp-gonogo/ui-kit`, resolving to precise slot props rather than the loose `Record<string, unknown>` fallback.
+ * Checked by `tsc` (the package `typecheck`), not vitest.
+ */
 
 import type { SlotProps } from "@ksp-gonogo/core";
 

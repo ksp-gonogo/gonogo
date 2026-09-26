@@ -1,4 +1,2 @@
-// Re-export shim: `FilterChip` moved to `@ksp-gonogo/ui-kit` (the published
-// design floor) with `FilterList`. Kept here so `@ksp-gonogo/ui` importers stay
-// unchanged.
+// App-side alias; the implementation lives in ui-kit so an Uplink can reach it, so add nothing here.
 export { FilterChip, type FilterChipProps } from "@ksp-gonogo/ui-kit";

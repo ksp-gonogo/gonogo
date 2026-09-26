@@ -13,93 +13,42 @@ import {
 import type { ReactNode } from "react";
 import { KerbalInfoPopover } from "./KerbalInfoPopover";
 
-// ---------------------------------------------------------------------------
-// Shared kerbal stat block: name + trait/level/trait-badge row.
-//
-// One renderer for a single kerbal's astronaut stats, used across the
-// Astronaut Complex's Applicants and Active tabs so a candidate reads at the
-// same fidelity as a hired crew member. Renders the
-// Name plus a Meta row carrying trait, experience level, and the veteran /
-// badass / career-flight / unavailable badges. Callers own the surrounding
-// card and any trailing chrome (a hire button, an augment slot), which they
-// pass as `children` to append inside the Meta row.
-// ---------------------------------------------------------------------------
-
-/** The stat fields a kerbal row renders. A superset of what a fresh applicant
- *  carries: applicants set the veteran / badass / flight / availability fields
- *  to their safe zero (a new recruit has no flights and is always available to
- *  hire), so those badges simply do not appear. */
+/** The stat fields a kerbal row renders; an applicant's veteran, flight and availability fields sit at their zero. */
 export interface KerbalStatFields {
   name: string;
   trait: string;
-  /** Rank, `null` when the producer sent none. Nullable rather than defaulted,
-   *  because `L0` is a rank every save has a real kerbal at, so a substituted
-   *  zero here is a rookie the operator cannot tell from a reading that never
-   *  arrived. */
+  /** `null` when unsent: `L0` is a real rank, so a substituted zero would be an indistinguishable rookie. */
   experienceLevel: number | null;
   veteran: boolean;
   isBadass: boolean;
   careerFlights: number;
   available: boolean;
   unavailableReason: string;
-  /** Standing as a DISPLAY LABEL. Shown, never compared: {@link standing} is
-   *  the field that decides anything. */
+  /** A display label only; {@link standing} is the field that decides anything. */
   situation: string;
-  /** `CrewStanding`, the contract's own answer, driving the unavailable badge's
-   *  severity. This is the field that tells a retiree from a fatality, and the
-   *  reason the badge no longer reads the KSP ordinal: under RP-1 that ordinal
-   *  is `Dead` for a living retiree. `undefined` for a caller that carries no
-   *  standing. */
+  /** `CrewStanding`, which tells a retiree from a fatality where KSP's roster ordinal cannot. */
   standing?: number | null;
-  /** KSP's OWN `RosterStatus` ordinal, carried for a caller that needs to know
-   *  what the game holds. Nothing here branches on it. */
+  /** KSP's own `RosterStatus` ordinal; nothing here branches on it. */
   situationOrdinal?: number | null;
-  /** When the current {@link standing} lapses, as universal time: a course's
-   *  ETA, a rest period's end. Absent for a standing with no scheduled end.
-   *  Joined onto {@link unavailableReason} for the badge's title, so the date is
-   *  formatted in the client's calendar and never on the wire. */
+  /** UT the current {@link standing} lapses, formatted client-side in the live calendar. */
   standingEndsAtUt?: number | null;
   currentVesselName: string;
-  /** Ratio 0-1. Carried as non-optional (defaulted via `magnitudeOr(..., 0)`),
-   *  so presence alone can't gate the chips: a caller must opt in with
-   *  `showTraits` below. */
+  /** Ratio 0-1; always carried, so the chips are gated by `showTraits` rather than presence. */
   courage?: number | null;
   stupidity?: number | null;
-  /** Progress toward the next rank, ratio 0-1 (`ProtoCrewMember.ExperienceLevelDelta`).
-   *  Only meaningful once a kerbal is hired (an applicant's rank is withheld
-   *  entirely via `showRank={false}`), so gated by its own `showExperienceProgress`
-   *  opt-in rather than folded into `showRank`. */
+  /** Progress toward the next rank, ratio 0-1. */
   experienceLevelDelta?: number | null;
-  /** The stock trait tooltip strings (`ExperienceTrait.Description` /
-   *  `DescriptionEffects`, current rank only). Rendered by the info popover
-   *  when `showInfo` is set; absent or empty renders the popover's graceful
-   *  no-description state rather than an empty panel. */
+  /** Stock trait tooltip strings for the current rank, shown by the info popover. */
   roleDescription?: string;
   descriptionEffects?: string;
 }
 
-/** KSP's top astronaut rank: `ExperienceLevelDelta` reads 1 here (no further
- *  rank to progress toward), so the progress chip reads "MAX" instead of a
- *  redundant 100%. */
+/** KSP's top astronaut rank, where the progress chip reads "MAX" rather than 100%. */
 const MAX_EXPERIENCE_LEVEL = 5;
 
 /**
- * Severity for the unavailable badge. `Dead`/`Missing` are the only standings
- * worth alarming an operator over; `Assigned` ("on mission") is the expected,
- * healthy state for a crewed vessel, `Retired` is a career that ended well, and
- * a standing this build does not declare stays neutral rather than crying wolf.
- * Undefined renders Badge's decorative grey, the same "just busy" chip the
- * career-flights count uses.
- *
- * Reads the STANDING, and this is where the RP-1 retiree defect surfaced. It
- * used to read KSP's own roster ordinal, which RP-1 sets to `Dead` when it
- * retires a kerbal, so every retiree on the board wore a red fatality badge.
- * The standing is the contract's own answer and tells the two apart.
- *
- * Still an enum comparison rather than a label one: matched by name, a rename
- * on either side sends a dead kerbal's badge quietly grey, and failing toward
- * "nothing to see" is the worst available direction for the one badge whose
- * whole job is to be alarming.
+ * Only a fatality alarms; every other standing is neutral grey. Compared by
+ * enum, never by label, because a rename would fail toward "nothing to see".
  */
 function unavailableSeverity(
   standing: number | null | undefined,
@@ -107,15 +56,7 @@ function unavailableSeverity(
   return isFatality(standing) ? "critical" : undefined;
 }
 
-/**
- * The badge's title: why the kerbal cannot fly, until when, and aboard what.
- *
- * The date is joined on HERE rather than read off the wire, through the SDK's
- * `crewUnavailableSentence`, because the producer deliberately sends
- * `unavailableReason` as prose and the when as a `ut` value: a date formatted in
- * the mod would be formatted in the mod's idea of a calendar. `speakQuantity` is
- * the client's own renderer, so an RSS save reads in RSS years.
- */
+/** Why the kerbal cannot fly, until when (in the client's calendar) and aboard what. */
 function unavailableTitle(kerbal: KerbalStatFields): string {
   const sentence =
     crewUnavailableSentence(
@@ -128,12 +69,7 @@ function unavailableTitle(kerbal: KerbalStatFields): string {
     : sentence;
 }
 
-/**
- * One ratio-valued stat chip: courage, stupidity, progress toward the next
- * rank. Rendered whether or not its reading arrived, because the caller asked
- * for the chip and a chip that quietly disappears reads as a kerbal who has no
- * such stat. Absent, it says a dash and names itself unknown.
- */
+/** A ratio stat chip, rendered even when its reading is absent: a vanished chip reads as a kerbal without the stat. */
 function RatioChip({
   symbol,
   name,
@@ -178,31 +114,16 @@ export function KerbalStats({
   children,
 }: {
   kerbal: KerbalStatFields;
-  /** Rank (`L{experienceLevel}`) only makes sense once a kerbal is actually
-   *  on the books: an applicant keeps the field on the model (astronauts
-   *  retain experience across a dismiss/rehire) but it isn't shown until
-   *  they're hired. Defaults to shown, the existing behaviour every current
-   *  caller relies on. */
+  /** Hidden for an applicant, who keeps a rank from an earlier hire. */
   showRank?: boolean;
-  /** Courage/Stupidity chips. Explicit opt-in rather than inferred from
-   *  `kerbal.courage`/`stupidity` being set: those fields are always
-   *  defaulted (never undefined), so presence alone can't gate the chips.
-   *  Defaults to hidden, the existing behaviour every current caller
-   *  relies on. */
   showTraits?: boolean;
-  /** Progress-toward-next-rank chip. Same explicit-opt-in reasoning as
-   *  `showTraits`: defaults to hidden so existing callers are unaffected. */
   showExperienceProgress?: boolean;
-  /** The per-row info popover (role description + current-rank effects).
-   *  Defaults to hidden, the existing behaviour every current caller
-   *  relies on. */
   showInfo?: boolean;
   /** Appended at the end of the Meta row (e.g. an augment slot). */
   children?: ReactNode;
 }) {
   const rankKnown = typeof kerbal.experienceLevel === "number";
-  // Only a rank we have can be the top one. Unknown, the progress chip quotes
-  // whatever ratio arrived rather than claiming a career that cannot progress.
+  // An unknown rank is never the top one.
   const atMaxRank =
     rankKnown && (kerbal.experienceLevel as number) >= MAX_EXPERIENCE_LEVEL;
   return (
@@ -287,13 +208,7 @@ export function KerbalStats({
             {kerbal.careerFlights}F
           </Badge>
         )}
-        {/* ONE badge for every way a kerbal cannot fly, driven by the derived
-          `available` / `unavailableReason` pair rather than by a per-axis flag.
-          There used to be a bespoke RESTING badge beside this reading
-          `inactive`, from when a stand-down was not a standing: it showed
-          alongside this one the moment the derivation started producing
-          `Resting`, saying the same thing twice. A new axis needs no badge of
-          its own, which is the whole point of the producer deriving the pair. */}
+        {/* One badge for every way a kerbal cannot fly; a new axis needs no badge of its own. */}
         {!kerbal.available && (
           <Badge
             severity={unavailableSeverity(kerbal.standing)}
@@ -326,16 +241,7 @@ const NAME_STYLE = {
   whiteSpace: "nowrap",
 } as const;
 
-/**
- * The row a reader takes a kerbal in from, so it is spaced to be read at a
- * glance rather than packed. At the 4px gap it shipped with, "PILOT L2 C 45% S
- * 40% XP 15%" ran together into one undifferentiated line of green and an
- * operator had to parse it a character at a time.
- *
- * Both of its render sites are inside a `Card`, which steps --gap-related down
- * to 6, so this row is 2px tighter than the 8 it was widened to and still 2px
- * clear of the 4 that failed.
- */
+// Spaced to be read at a glance: packed tighter, the chips run together into one line.
 const META_STYLE = {
   display: "flex",
   flexWrap: "wrap",
@@ -343,11 +249,7 @@ const META_STYLE = {
   alignItems: "center",
 } as const;
 
-/**
- * The letter naming a stat, held back from the figure beside it. Both were the
- * accent colour, so the eye had nothing to catch on and every chip read at the
- * same weight as its value.
- */
+/** The letter naming a stat, muted so the figure beside it carries the weight. */
 const STAT_SYMBOL_STYLE = { color: "var(--color-text-muted)" } as const;
 
 const TRAIT_TAG_STYLE = {

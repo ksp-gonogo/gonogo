@@ -14,30 +14,13 @@ import {
   useCommandButton,
 } from "./CommandButton";
 
-/*
- * The rail axes this fixture's handle carries, from the derivation production
- * uses rather than a literal: a fixture that spelled its own tags would go on
- * asserting the old picture after the derivation moved.
- */
+// The rail axes come from the production derivation, so the fixture follows it rather than asserting a stale literal.
 const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
 
-/**
- * What a confirmed dispatch resolves with, as the wire actually answers it.
- *
- * These fixtures used to resolve `undefined`, which is a reply no command has
- * ever sent: the mod answers a `CommandResult` envelope on every success. That
- * only typechecked while the handle's reply defaulted to `unknown`, and it is
- * the same absence that let seven controls read a receipt's fields off the
- * envelope carrying it.
- */
+/** What a confirmed dispatch resolves with, as the wire answers it: a `CommandResult` envelope. */
 const OK: CommandReplyLike = { success: true };
 
-/**
- * A hand-built handle satisfying the structural `CommandButtonHandle`, the same
- * way `useCommand`'s real return value does. Nothing here mocks a ui-kit module:
- * the component under test runs whole, and only the dispatch it is handed is a
- * fixture.
- */
+/** A hand-built handle satisfying the structural `CommandButtonHandle`; only the dispatch is a fixture. */
 function makeHandle(
   send: CommandButtonHandle["send"],
   over: Partial<CommandButtonHandle> = {},
@@ -61,7 +44,7 @@ function deferred<T = CommandReplyLike>() {
     resolve = res;
     reject = rej;
   });
-  // The component attaches its own handlers, so an unhandled rejection is not possible here; this keeps a test that never settles from warning anyway.
+  // Keeps a test that never settles from warning about an unhandled rejection.
   promise.catch(() => undefined);
   return { promise, resolve, reject };
 }
@@ -75,11 +58,7 @@ function refusalError(errorCode: number, extra: Record<string, unknown> = {}) {
   });
 }
 
-/**
- * `shouldAdvanceTime`, not a bare `useFakeTimers()`: `userEvent`'s own pointer
- * sequencing waits on real time, so a frozen clock hangs the click that is meant
- * to arm the control and every later test inherits the frozen clock.
- */
+/** `shouldAdvanceTime`, because `userEvent`'s pointer sequencing waits on real time and a frozen clock hangs the click. */
 function useArmClock() {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   return userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
@@ -251,16 +230,7 @@ describe("CommandButton: the in-flight window", () => {
     expect(onConfirmed).toHaveBeenCalledTimes(1);
   });
 
-  /**
-   * The dispatch's own answer reaches the caller.
-   *
-   * A confirmed command is not always a command that DID something: a mod that
-   * de-duplicates on request id answers a repeat with the receipt it stored the
-   * first time, and that receipt is the only place the repeat is distinguishable
-   * from a fresh write. Discarding the resolved value made every such reply read
-   * as a fresh success, which is a widget saying the plan changed when it did
-   * not.
-   */
+  // The resolved value is the only place a de-duplicated repeat is distinguishable from a fresh write.
   it("hands onConfirmed what the dispatch resolved with", async () => {
     const user = userEvent.setup();
     const d = deferred();
@@ -273,9 +243,7 @@ describe("CommandButton: the in-flight window", () => {
       />,
     );
 
-    // The envelope, with the command's own receipt on `payload`, which is where
-    // the wire puts it. This fixture used to be the bare receipt, and passing
-    // that off as a reply is the fiction the reply type now refuses.
+    // The envelope, with the command's own receipt on `payload`, where the wire puts it.
     const reply = { success: true, payload: { replayed: true } };
 
     await user.click(screen.getByRole("button", { name: "Go" }));
@@ -331,27 +299,10 @@ describe("CommandButton: the refused phase", () => {
     const button = await screen.findByRole("button", { name: /refused/i });
     expect(button).toHaveAttribute("data-command-phase", "refused");
     expect(button).toHaveTextContent("Refused");
-    // The reason reaches the operator, rather than being discarded at the line that refused.
     expect(button.getAttribute("title")).toMatch(/Upgrade Launch Pad refused/);
   });
 
-  /**
-   * The game's own sentence, on the refusal path as well as the gate path.
-   *
-   * A refusal carries `detail` all the way here: the mod writes it,
-   * `AppendCommandResult` puts it on the wire, the client puts it on the thrown
-   * `CommandError`, and `classifyCommandRejection` reads it back.
-   * `commandRefusalSentence` prefers it over every sentence written in this
-   * package. This component then rebuilt the refusal field by field and left
-   * that one out, so the sentence fell through to the general clause for the
-   * coarse code and an operator read "the game would not say why" about a
-   * refusal that said exactly why.
-   *
-   * Nothing caught it because the only `detail` in this file was on the BLOCKED
-   * path, where the whole gate object is spread rather than copied. It bites
-   * hardest on a refusal that carries no `LimitBreach`, which is most of them:
-   * `detail` is then the only clause there is.
-   */
+  // The game's own `detail` must survive the refusal path too; without a `LimitBreach` it is the only clause there is.
   it("quotes the game's own reason when the refusal carried one", async () => {
     const user = userEvent.setup();
     const d = deferred();
@@ -437,11 +388,7 @@ describe("CommandButton: the refused phase", () => {
     expect(button).toHaveAttribute("data-command-phase", "lost");
   });
 
-  /**
-   * A dropped command must not settle the control to `idle` with a null
-   * reason, byte-identical to the confirmed path: that would make a command
-   * the engine dropped for a downed link look exactly like one that ran.
-   */
+  // A dropped command must not settle to `idle`, where it would look exactly like one that ran.
   it("does not settle a dropped command the way it settles a confirmed one", async () => {
     async function settledPhase(settle: (d: Deferred) => void) {
       const user = userEvent.setup();
@@ -527,7 +474,7 @@ describe("CommandButton: the accessible name tracks the phase", () => {
       }),
     );
 
-    // The press meant something; a control still announcing "Hire ..." has told a screen-reader user nothing happened.
+    // Still announcing "Hire ..." after arming would tell a screen-reader user nothing happened.
     expect(screen.getByRole("button", { name: "Confirm" })).toBeInTheDocument();
   });
 
@@ -705,7 +652,7 @@ describe("CommandButton: the blocked phase", () => {
     );
     const gated = screen.getAllByRole("button")[1];
     expect(gated).toHaveAttribute("aria-disabled", "true");
-    // The load-bearing half: `disabled` would drop it from some screen readers' walk entirely, leaving nothing where the reason should be.
+    // `disabled` would drop it from some screen readers' walk, leaving nothing where the reason should be.
     expect(gated).not.toBeDisabled();
   });
 
@@ -869,10 +816,7 @@ describe("CommandButton: the blocked phase", () => {
   });
 
   it("leaves a control the mod could not judge alone, since sandbox nulls one authority", async () => {
-    // ScenarioUpgradeableFacilities is a career/mission-only [KSPScenario], so
-    // its Instance is null in a sandbox save and every facility gate answers
-    // Unknown. Darkening on that would black out a working control in every
-    // sandbox game, with a sentence that reads like the game's own.
+    // In a sandbox save every facility gate answers Unknown, so darkening on it would black out working controls.
     const user = userEvent.setup();
     const send = vi.fn(() => Promise.resolve(OK));
     render(
@@ -893,7 +837,7 @@ describe("CommandButton: the blocked phase", () => {
     const button = screen.getByRole("button");
     expect(button).not.toHaveAttribute("aria-disabled");
     expect(button).toHaveTextContent("Unlock");
-    // Reports itself for a diagnostic surface without saying anything to the operator that it cannot back up.
+    // Reported for a diagnostic surface, never to the operator.
     expect(button).toHaveAttribute("data-gate", "undetermined");
 
     await user.click(button);
@@ -936,14 +880,9 @@ describe("CommandButton: accessibility", () => {
 });
 
 /**
- * The reversal. `lost` gives the operator permission to stop waiting and
- * guarantees nothing about execution, so the command can turn up executed, and
- * the control that issued it is where an operator about to re-send is looking.
- *
- * The handle is the channel, not the dispatch promise: that promise rejected as
- * `E_LOST`, honestly and once, and never settles again. `useCommand` moves the
- * entry from `losses` to `founds` off the client's status store, and this
- * control watches the handle for it.
+ * The reversal: a `lost` command can turn up executed, and the control that
+ * issued it is where an operator about to re-send is looking. The handle is the
+ * channel, since the dispatch promise already rejected as `E_LOST`.
  */
 describe("CommandButton: a lost command that answered after all", () => {
   const RAN: NonNullable<CommandButtonHandle["founds"]> = [
@@ -973,7 +912,7 @@ describe("CommandButton: a lost command that answered after all", () => {
       "data-command-phase",
       "lost",
     );
-    // The late reply lands: `useCommand` promotes the loss and the handle the control holds now carries a found.
+    // The late reply lands: `useCommand` promotes the loss to a found on the handle.
     await act(async () => {
       rerender(
         <CommandButton handle={makeHandle(send, { founds })} label="SAS" />,
@@ -987,19 +926,12 @@ describe("CommandButton: a lost command that answered after all", () => {
     const button = screen.getByRole("button");
     expect(button).toHaveAttribute("data-command-phase", "found");
     expect(button).toHaveTextContent(/found/i);
-    // Confirmed means it worked as expected. This is a command the operator was
-    // told to give up on, which is the opposite, and the two must not read
-    // alike to someone deciding whether to send it again.
+    // Must not read like a confirmation to someone deciding whether to send it again.
     expect(button).not.toHaveTextContent(/confirmed/i);
   });
 
   it("carries the whole sentence on the accessible name, as the lost phase does", async () => {
-    /*
-     * The visible phase is the single word "Found". A screen-reader user
-     * landing on it learns that something reversed and nothing about which
-     * command or what it did, so the name has to carry the subject as well as
-     * the verdict.
-     */
+    // The visible word is only "Found", so the accessible name carries the subject and the verdict.
     await loseThenFind();
     const button = screen.getByRole("button");
     const name = button.getAttribute("aria-label") ?? "";
@@ -1023,10 +955,7 @@ describe("CommandButton: a lost command that answered after all", () => {
   });
 
   it("does NOT claim a found for a control that never lost anything", async () => {
-    // One handle commonly serves a whole list of rows. A found landing on the
-    // handle belongs to the row that lost the command, and a phase takes over
-    // the control's own words, so it cannot be shown on a row that has nothing
-    // outstanding.
+    // One handle serves many rows; a found belongs only to the row that lost the command.
     const send = vi.fn(async () => OK);
     const { rerender } = render(
       <CommandButton handle={makeHandle(send)} label="SAS" />,
@@ -1052,7 +981,7 @@ describe("CommandButton: a lost command that answered after all", () => {
       "data-command-phase",
       "idle",
     );
-    // The press CLEARS rather than dispatching straight back out, same as a refusal and a loss: the rail holds the found until it is dismissed.
+    // The press clears rather than re-dispatching; the rail holds the found until dismissed.
     expect(send).toHaveBeenCalledTimes(1);
   });
 

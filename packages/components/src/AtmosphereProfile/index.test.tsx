@@ -84,12 +84,8 @@ describe("AtmosphereProfileComponent", () => {
     });
 
     await waitFor(() => {
-      // The curve is drawn dashed; the threshold line is solid. Look for
-      // any non-dashed stroke line spanning the plot width.
       const text = container.textContent ?? "";
-      // The label goes through speakQuantity, so it carries the unit's WORD
-      // rather than its symbol: a chart annotation is read aloud, and
-      // "kilopascals" beats "kay pee ay".
+      // speakQuantity writes the unit's word, not its symbol, since a chart annotation is read aloud.
       expect(text).toMatch(/pascals/);
     });
   });

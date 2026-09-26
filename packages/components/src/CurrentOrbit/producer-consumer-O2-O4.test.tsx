@@ -7,22 +7,7 @@ import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CurrentOrbitComponent } from "./index";
 
-/**
- * Producer↔consumer disagreements O2/O4: the CurrentOrbit half (see
- * `OrbitView/producer-consumer-O2-O3-O4.test.tsx` for the fuller writeup;
- * O3 is OrbitView-only, since CurrentOrbit's apsis radii come off the orbit
- * solve, never a client-side `sma·(1±ecc)` computation).
- *
- * - **O2**: `hasOrbit` must not require apoapsis (`null`-by-design on a
- *   hyperbolic orbit). This was already true by accident here (`null !==
- *   undefined` in the old gate), so this test is a REGRESSION PIN, not a
- *   before/after fix: it guards against a future `apoapsisRadius ??
- *   undefined` refactor silently flipping the gate.
- * - **O4**: in the "measured" basis the mini diagram must be suppressed
- *   (already true via O2's gate: `periapisR` is `null` there too), but the
- *   numeric grid must still render (raw `ecc` + NULL_DISPLAY for the null derived
- *   apsides) rather than some other empty state.
- */
+/** `hasOrbit` must not require apoapsis, which is `null` on a hyperbolic orbit, so the diagram still renders. */
 const CURRENT_ORBIT_CHANNELS = [
   "vessel.orbit",
   "vessel.identity",

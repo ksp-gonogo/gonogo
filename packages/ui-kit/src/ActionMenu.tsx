@@ -7,26 +7,20 @@ import { focusRingInset } from "./focusRing";
 
 /**
  * An anchored menu of actions to fire: the APG `menu` pattern
- * (https://www.w3.org/WAI/ARIA/apg/patterns/menu/) as a ui-kit primitive.
+ * (https://www.w3.org/WAI/ARIA/apg/patterns/menu/).
  *
- * <p>Distinct from {@link ComboboxListbox}, which is a `listbox` for CHOOSING a
- * value: this is a `menu` for INVOKING a command, so its items are real
- * `<button>`s, it owns keyboard focus while open, and selecting one fires
- * rather than commits. The two patterns have different roles and different
- * keyboard contracts, so they are separate components sharing the one piece
- * that genuinely is common, {@link groupComboboxOptions}, rather than one
- * component bent to serve both.</p>
+ * <p>Distinct from {@link ComboboxListbox}, a `listbox` for CHOOSING a value:
+ * this is a `menu` for INVOKING a command, so its items are real `<button>`s,
+ * it owns keyboard focus while open, and selecting one fires rather than
+ * commits.</p>
  *
  * <p>Keyboard: ArrowDown/ArrowUp walk items, Home/End jump to the ends,
- * Enter/Space fire the focused item (native `<button>` behaviour), Escape
- * dismisses, and Tab dismisses too (a menu does not hold Tab focus, per APG).
- * A pointer press outside dismisses. Focus moves to the first item on open and
- * the caller is responsible for restoring focus to the trigger on dismiss.</p>
+ * Enter/Space fire the focused item, Escape and Tab dismiss. A pointer press
+ * outside dismisses. Focus moves to the first item on open and the caller
+ * restores focus to the trigger on dismiss.</p>
  *
- * <p>A disabled item stays reachable by keyboard rather than being skipped:
- * per APG either is allowed, and a control the operator can reach is a control
- * that can explain why it is unavailable, whereas a silently-skipped one just
- * seems to be missing.</p>
+ * <p>A disabled item stays reachable by keyboard, so it reads as unavailable
+ * rather than missing.</p>
  */
 export interface ActionMenuItem {
   /** Stable id handed back to `onSelect`. */
@@ -77,20 +71,11 @@ export function ActionMenu({
   const groups = groupComboboxOptions(items, otherLabel);
   const flat = groups.flatMap(([, bucket]) => bucket);
 
-  // Focus follows the active index (roving focus, not aria-activedescendant):
-  // the items are real buttons, so real DOM focus is what makes Enter/Space
-  // work without re-implementing activation.
-  // `itemCount` is read here on purpose, not just listed: a menu can open before
-  // its items arrive (an async action list), and then `activeIndex` never
-  // changes, so without the count in the dependencies focus would never land on
-  // the first item once it rendered.
-  //
-  // The EMPTY case focuses the menu container itself rather than doing nothing.
-  // A menu that opens before its items have travelled would otherwise leave
-  // focus outside itself, and then Escape (handled here, by bubbling) would
-  // never reach it: the operator opens a menu, presses Escape, and nothing
-  // happens. Owning focus from the moment it opens is what makes dismissal
-  // work at every point in the menu's life, not just once it has content.
+  /*
+   * Roving DOM focus, so the real buttons handle Enter/Space. `itemCount` is a
+   * dependency because a menu can open before its items arrive; while empty the
+   * container itself takes focus so Escape still has somewhere to bubble from.
+   */
   const itemCount = flat.length;
   useEffect(() => {
     const container = containerRef.current;
@@ -104,8 +89,7 @@ export function ActionMenu({
     buttons[activeIndex]?.focus();
   }, [activeIndex, itemCount]);
 
-  // An outside pointer press dismisses. Bound on pointerdown (not click) so a
-  // press that starts outside dismisses before it can activate anything else.
+  // Bound on pointerdown, not click, so an outside press dismisses before it can activate anything else.
   useEffect(() => {
     const onPointerDown = (e: PointerEvent) => {
       const container = containerRef.current;
@@ -128,7 +112,7 @@ export function ActionMenu({
         onDismiss();
         return;
       }
-      // A menu does not keep Tab focus: Tab dismisses and lets focus continue past the trigger, rather than trapping the operator inside.
+      // A menu does not trap Tab: it dismisses and focus continues past the trigger.
       if (e.key === "Tab") {
         onDismiss();
         return;
@@ -155,16 +139,11 @@ export function ActionMenu({
   return (
     <Menu
       ref={containerRef}
-      // `role="menu"` ONLY once there are items: a menu with no menuitem
-      // children is invalid ARIA (axe's aria-required-children), and an empty
-      // menu is a real state here, it opens before its actions have travelled.
-      // While empty it is a plain labelled region carrying the waiting message.
+      // A menu with no menuitem children is invalid ARIA, so the empty state is a plain labelled region.
       role={itemCount > 0 ? "menu" : undefined}
       aria-label={ariaLabel}
       onKeyDown={onKeyDown}
-      // Focusable only programmatically: the container takes focus while the
-      // menu has no items yet, so Escape always has somewhere to bubble from
-      // (see the focus effect above). Never a tab stop of its own.
+      // Programmatic focus only, for the empty state; never a tab stop.
       tabIndex={-1}
       style={style}
     >
@@ -182,8 +161,7 @@ export function ActionMenu({
                 }
               : { role: "none" })}
           >
-            {/* A single ungrouped bucket renders flat: a lone header naming
-                every item in the menu is noise, not structure. */}
+            {/* A single bucket renders flat, without a header. */}
             {groups.length > 1 ? (
               <GroupHeader
                 id={`${menuId}-group-${groupIndex}`}
@@ -200,14 +178,9 @@ export function ActionMenu({
                   type="button"
                   role="menuitem"
                   aria-label={item.ariaLabel}
-                  // aria-disabled, NOT the native `disabled` attribute: a
-                  // natively-disabled button cannot receive focus, so it would
-                  // drop out of the arrow-key walk and read as missing rather
-                  // than unavailable. Activation is refused in onClick instead,
-                  // which is what APG's focusable-disabled guidance asks for.
+                  // aria-disabled, not `disabled`: a natively disabled button cannot take focus and drops out of the arrow-key walk.
                   aria-disabled={item.disabled}
                   $disabled={item.disabled}
-                  // Roving tabindex: exactly one item is in the tab order.
                   tabIndex={index === activeIndex ? 0 : -1}
                   onFocus={() => setActiveIndex(index)}
                   onClick={() => {

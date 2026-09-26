@@ -1,32 +1,13 @@
-// Type-level proof that `objectives.source` is a genuinely TYPED-CONTRACT slot, the dogfood's whole point.
-//
-// Checked by `tsc` (the package `typecheck`), NOT the vitest runner: a
-// `*.test-d.ts` file is not matched by the test tsconfig's `*.test.ts` exclude,
-// so it is compiled, while vitest's `*.test.ts` include never runs it. Runtime
-// composition/ordering/settings behaviour is covered in `index.test.tsx`.
-//
-// The slot id is declared ONCE, in `@ksp-gonogo/sitrep-sdk`'s `api/slots.ts`
-// mirror, and `SlotRegistry` is now that one interface which ui-kit and core
-// re-export rather than re-declare. `./index` therefore no longer carries a
-// `declare module` block of its own: it would be the same key declared twice.
-//
-// So this file's job changed, and got better. It used to assert that the slot's
-// props EQUAL this package's own `ObjectiveSourceContext`, which only held
-// because the merge and the type came from the same file. The mirror's
-// field-for-field accuracy was left to "eyeball-verified" (the conformance
-// file's own words). Now the props come from the mirror and the widget's shape
-// is local, so asserting the two are mutually assignable MACHINE-CHECKS the
-// mirror, which is what caught `renderAlarm` returning `unknown` where the real
-// one returns `ReactNode`.
+/**
+ * Type-level proof that `objectives.source` is a typed-contract slot, and that the sdk's `api/slots.ts` mirror matches the widget's `ObjectiveSourceContext`.
+ * Checked by `tsc` (the package typecheck), never run by vitest.
+ */
 
 import type { SlotProps } from "@ksp-gonogo/core";
 import type { ComponentType } from "react";
 import type { ObjectiveSourceContext } from "./index";
 
-// What the merged registry says this slot passes down. Read through `SlotProps`
-// rather than imported by name: the sdk's `api/slots.ts` is pulled into the
-// barrel for its ambient merge ONLY and adds no named exports, which is what
-// makes the merge reach a facade-sealed client that never imports it directly.
+// Read through `SlotProps`, since the sdk's `api/slots.ts` adds an ambient merge and no named exports.
 type MirroredContext = SlotProps<"objectives.source">;
 
 type Equal<A, B> =
@@ -34,24 +15,18 @@ type Equal<A, B> =
     ? true
     : false;
 type Expect<T extends true> = T;
-// Non-distributive: a bare `A extends B` distributes over a union and answers `boolean` rather than a verdict, which reads as a failure that isn't one.
+// Non-distributive, so a union yields a verdict rather than `boolean`.
 type Assignable<A, B> = [A] extends [B] ? true : false;
 
-// ── The declaration merge resolved: the slot's props ARE the objective-source contract the sdk mirror declares, not the loose fallback.
+// The slot's props are the objective-source contract, not the loose fallback.
 type _SlotIsTyped = Expect<Assignable<MirroredContext, { Section: unknown }>>;
 
-// ── Negative control. Without this the assertion above would also pass if the
-//    slot silently fell back to the loose bag AND the mirror happened to be a
-//    loose bag too, which is precisely the failure this file exists to catch.
+// Negative control: the assertion above would also pass if both the slot and the mirror were the loose bag.
 type _SlotIsNotLoose = Expect<
   Equal<Equal<SlotProps<"objectives.source">, Record<string, unknown>>, false>
 >;
 
-// ── The mirror matches the widget, both ways. Mutual assignability is the
-//    property that actually matters: the type reaches the registry inside a
-//    `ComponentType<...>`, which is contravariant in its props, so a mirror that
-//    is only assignable in one direction breaks the augment-props constraint in
-//    the other.
+// Both directions, because `ComponentType<...>` is contravariant in its props.
 type _MirrorMatchesWidget = Expect<
   Assignable<ObjectiveSourceContext, MirroredContext>
 >;
@@ -59,23 +34,18 @@ type _WidgetMatchesMirror = Expect<
   Assignable<MirroredContext, ObjectiveSourceContext>
 >;
 
-// ── A component satisfying the contract is assignable to what the slot passes
-//    down: this is exactly the constraint `registerAugment` enforces on an
-//    `objectives.source` augment's `component`.
+// The constraint `registerAugment` enforces on an `objectives.source` augment's `component`.
 const _GoodSource: ComponentType<SlotProps<"objectives.source">> = (
   _: ObjectiveSourceContext,
 ) => null;
 
-// ── A component requiring a prop the slot does not provide is REJECTED, proving the generic actually gates the augment's props against the contract.
+// A component requiring a prop the slot does not provide is rejected.
 // @ts-expect-error component props are not satisfied by the slot's props
 const _BadSource: ComponentType<SlotProps<"objectives.source">> = (_: {
   notASlotProp: boolean;
 }) => null;
 
-// Reference the bindings so `noUnusedLocals` doesn't flag them; this file is
-// never imported or executed (see the header), it exists only to be typechecked.
-// Annotated rather than inferred: the inferred element type names the sdk's
-// mirror through a node_modules path tsc calls non-portable (TS2742).
+/* Exported so `noUnusedLocals` does not flag them. Annotated rather than inferred, because the inferred type names a non-portable node_modules path (TS2742). */
 export type {
   _MirrorMatchesWidget,
   _SlotIsNotLoose,

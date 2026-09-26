@@ -28,13 +28,10 @@ function makeSitrepFixture(status: DataSourceStatus): DataSource {
   };
 }
 
-// Default every test to a CONNECTED host: most exercise the uplink-health and game-context branches and do not care about host status, and the two host-down-specific tests below override this explicitly.
+// A connected host by default; the host-down tests override it.
 beforeEach(() => registerDataSource(makeSitrepFixture("connected")));
 
-// Unmount each rendered tree BEFORE clearRegistry(): clearing the DataSource
-// registry re-renders a still-mounted RequiresGuard (host → gone), a state
-// update outside act(). RTL auto-cleanup runs after this file's afterEach, too
-// late to unmount first.
+// Unmounted before clearRegistry(), which would otherwise re-render a mounted guard outside act().
 const renderedTrees: Array<() => void> = [];
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();

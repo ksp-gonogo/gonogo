@@ -6,25 +6,14 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { topologyToVesselPartsWire } from "../test/topologyToVesselPartsWire";
-// Importing the real module runs its module-load registration of the
-// built-in `ship-map.part-meters` contribution (./partMetersContribution.ts,
-// a side-effect import inside this file), the same way importing any widget
-// runs its own `registerComponent`.
+// Importing the module registers the built-in `ship-map.part-meters` contribution.
 import { ShipMapComponent } from "./index";
 
 /**
- * Proves the self-contribution unify end to end: ShipMap's
- * compact fill bars come from the aggregated `ship-map.part-meters` slot,
- * not from a hardcoded resource allowlist inside `ShipDiagramSvg`. The
- * built-in `core` contribution is exercised here (it lives in this
- * package); an Uplink contribution's OWN pure-function tests live alongside
- * it in that Uplink.
- *
- * `WidgetMetaContext` + `ContributionsProvider` are mounted explicitly here
- * (mirrors the app's real `WidgetContributions` wrapper,
- * `GridItemContent.tsx`): `ShipMapComponent` alone, the way `slot.test.tsx`
- * renders it, has no contribution store at all and `useContributions`
- * silently returns empty, same as a bare widget with no dashboard around it.
+ * ShipMap's fill bars come from the aggregated `ship-map.part-meters` slot,
+ * exercised here with the built-in contribution. The contribution providers
+ * are mounted explicitly, as the app's `WidgetContributions` does; without
+ * them `useContributions` returns empty.
  */
 
 const TOPOLOGY: VesselTopology = {
@@ -125,16 +114,14 @@ describe("ShipMap: self-contribution unify (spec §13.4)", () => {
 
   it("paints each resource's identity colour (resourceColor), not a shared MeterTone CSS var", async () => {
     const { container } = await renderShipMap();
-    // The fill is the resource's own identity colour, derived straight from `resourceColor`, not a five-value MeterTone CSS var shared across unrelated resources.
+    // The fill is the resource's own identity colour from `resourceColor`, not a shared MeterTone variable.
     const fills = Array.from(container.querySelectorAll("rect")).map((r) =>
       r.getAttribute("fill"),
     );
     expect(fills).toContain(resourceColor("LiquidFuel"));
     expect(fills).toContain(resourceColor("Oxidizer"));
     expect(resourceColor("LiquidFuel")).not.toBe(resourceColor("Oxidizer"));
-    // Neither the old bespoke `resourceColor` switch's CSS var nor the
-    // MeterTone CSS vars it was replaced with, then replaced again, should
-    // ever appear as a fill on a healthy (no-status) resource meter.
+    // No shared tone variable ever fills a healthy meter.
     expect(fills).not.toContain("var(--color-accent-fg)");
     expect(fills).not.toContain("var(--color-status-go-bg)");
     expect(fills).not.toContain("var(--color-status-info-bg)");
@@ -150,7 +137,7 @@ describe("ShipMap: self-contribution unify (spec §13.4)", () => {
   it("renders no bars on a part with no contributed meters (the command pod)", async () => {
     await renderShipMap();
     const pod = screen.getByLabelText(/Mk1 Command Pod/);
-    // `renderResourceFill`'s own wrapper (`<g pointerEvents="none">`) is the fill-bar marker; a part's unconditional focus-ring `<rect>` is not.
+    // The fill-bar wrapper marks a bar; the part's focus-ring rect does not.
     expect(pod.querySelector('g[pointer-events="none"]')).toBeNull();
   });
 
@@ -172,7 +159,7 @@ describe("ShipMap: self-contribution unify (spec §13.4)", () => {
     expect(
       rects.some((r) => r.getAttribute("fill") === resourceColor("LiquidFuel")),
     ).toBe(true);
-    // The status (5 / 180 = 2.8%, below the critical threshold) shows as a SEPARATE stroke on the track rect, never as a fill colour swap.
+    // 5 / 180 is below critical, shown as a separate stroke on the track, never a fill swap.
     expect(
       rects.some(
         (r) => r.getAttribute("stroke") === "var(--color-status-nogo-bg)",
