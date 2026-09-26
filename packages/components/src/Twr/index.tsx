@@ -1,12 +1,7 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
-import {
-  combineReadings,
-  STANDARD_GRAVITY,
-  type Value,
-  value,
-} from "@ksp-gonogo/sitrep-sdk";
-import { Gauge, type GaugeZone, Sparkline } from "@ksp-gonogo/ui";
+import { combineReadings, value } from "@ksp-gonogo/sitrep-sdk";
+import { Gauge, Sparkline } from "@ksp-gonogo/ui";
 import {
   EmptyState,
   NULL_DISPLAY,
@@ -16,53 +11,20 @@ import {
   useElementSize,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
-import { useEffect, useRef, useState } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { useComputedSeries } from "../shared/useComputedSeries";
+import { GAUGE_MAX, GAUGE_MIN, toneColorFor, twrOf, ZONES } from "./scale";
 
 type TwrConfig = Record<string, never>;
 
 const SPARK_WINDOW_SEC = 60;
 
-/**
- * Thrust over weight at standard gravity: kilonewtons over tonnes is newtons
- * over kilograms, so the ratio needs no conversion. `null` without a positive
- * mass.
- */
-function twrOf(thrust: number, mass: number): number | null {
-  return mass > 0 ? thrust / (mass * STANDARD_GRAVITY) : null;
-}
+type Variant = "tiny" | "small" | "normal";
 
-// Lift-off TWR sits around 1.5-2.5; anything above 3 pins the dial, which still reads as "very high".
-const GAUGE_MIN = value("1", 0);
-const GAUGE_MAX = value("1", 3);
-
-const ZONES: GaugeZone<"1">[] = [
-  {
-    from: value("1", 0),
-    to: value("1", 1),
-    color: "var(--color-status-nogo-bg)",
-  },
-  {
-    from: value("1", 1),
-    to: value("1", 1.5),
-    color: "var(--color-status-warning-bg)",
-  },
-  { from: value("1", 1.5), to: value("1", 3), color: "var(--color-accent-fg)" },
-];
-
-type Tone = "ok" | "warn" | "lost";
-
-const TONE_COLOR: Record<Tone, string> = {
-  ok: "var(--color-accent-fg)",
-  warn: "var(--color-status-warning-bg)",
-  lost: "var(--color-status-nogo-bg)",
-};
-
-function toneFor(twr: Value<"1">): Tone {
-  if (twr.lessThan(1)) return "lost";
-  if (twr.lessThan(1.5)) return "warn";
-  return "ok";
+function variantFor(cols: number, rows: number): Variant {
+  if (rows < 3 || cols < 3) return "tiny";
+  if (rows < 4 || cols < 4) return "small";
+  return "normal";
 }
 
 function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
@@ -94,8 +56,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   // Layout follows grid size, not measured pixels, so the inner widgets cannot set up a ResizeObserver feedback loop.
   const cols = w ?? 4;
   const rows = h ?? 5;
-  const variant: "tiny" | "small" | "normal" =
-    rows < 3 || cols < 3 ? "tiny" : rows < 4 || cols < 4 ? "small" : "normal";
+  const variant = variantFor(cols, rows);
   const showSparkline = variant === "normal";
   // At the 4x5 default the gauge arc overlaps the subtitle row.
   const showSubtitle = variant === "normal" && cols >= 5;
@@ -111,18 +72,8 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   );
   const gaugeH = Math.round(gaugeW * 0.55);
 
-  const sparkRef = useRef<HTMLDivElement>(null);
-  const [sparkWidth, setSparkWidth] = useState(120);
-  useEffect(() => {
-    const el = sparkRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      const { width } = entries[0].contentRect;
-      if (width > 0) setSparkWidth(Math.max(40, Math.floor(width)));
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  const { ref: sparkRef, size: sparkSize } = useElementSize({ w: 120, h: 24 });
+  const sparkWidth = Math.max(40, sparkSize.w);
 
   if (twr === undefined) {
     return (
@@ -140,7 +91,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
     );
   }
 
-  const tone = toneFor(twr);
+  const toneColor = toneColorFor(twr);
 
   if (variant === "tiny") {
     return (
@@ -153,7 +104,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
             <span
               style={{
                 ...TINY_VALUE_STYLE,
-                color: TONE_COLOR[tone],
+                color: toneColor,
                 ...(twrNotCurrent ? { opacity: 0.55 } : {}),
               }}
             >
@@ -197,7 +148,7 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
                 values={sparkValues}
                 width={sparkWidth}
                 height={24}
-                color={TONE_COLOR[tone]}
+                color={toneColor}
                 ariaLabel="TWR trend"
               />
             </div>

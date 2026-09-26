@@ -1,6 +1,9 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  installFixedSizeResizeObserver,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TwrComponent } from "./index";
@@ -30,7 +33,7 @@ function renderTwr(fixture: ReturnType<typeof setupStreamFixture>) {
   );
 }
 
-describe("TwrComponent: genuinely runs off the stream (R6 Wave 2)", () => {
+describe("TwrComponent off the stream", () => {
   it("shows the empty state before any telemetry arrives", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: TWR_CHANNELS,
@@ -106,5 +109,25 @@ describe("TwrComponent: genuinely runs off the stream (R6 Wave 2)", () => {
     // One track plus three zones.
     const gauge = await screen.findByLabelText("TWR 1.50");
     await waitFor(() => expect(gauge.querySelectorAll("path")).toHaveLength(4));
+  });
+
+  it("sizes the trend line to its slot when the first reading arrives after mount", async () => {
+    const restore = installFixedSizeResizeObserver({ width: 300, height: 24 });
+    try {
+      const fixture = setupStreamFixture({
+        carriedChannels: TWR_CHANNELS,
+        pinnedUt: 10,
+        suspendFrames: true,
+      });
+      renderTwr(fixture);
+      expect(await screen.findByText(/no engine data/i)).toBeInTheDocument();
+      act(() => {
+        emitTwr(fixture, 1.832);
+      });
+      const trend = await screen.findByLabelText("TWR trend");
+      await waitFor(() => expect(trend.getAttribute("width")).toBe("300"));
+    } finally {
+      restore();
+    }
   });
 });
