@@ -25,6 +25,7 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AlarmsModal, conditionWithheld } from "./AlarmsModal";
 import type { Alarm, AlarmSnapshot } from "./types";
 import {
@@ -82,25 +83,12 @@ function makeSnapshot(alarms: Alarm[] = []): AlarmSnapshot {
  * ten stock customs, exactly as the mod sends them.
  */
 function renderWithControlStream(ui: React.ReactElement, parts?: unknown) {
-  const transport = new StubTransport();
-  const client = new TelemetryClient(transport);
-  const store = new TimelineStore(
-    new ViewClock({
-      nowWall: () => 0,
-      warpRate: () => 1,
-      delaySeconds: () => 0,
-    }),
-  );
-  client.attachStore(store);
-  const result = render(
-    <TelemetryProvider
-      client={client}
-      store={store}
-      carriedChannels={new Set(["vessel.control", "vessel.parts"])}
-    >
-      {ui}
-    </TelemetryProvider>,
-  );
+  const fixture = setupStreamFixture({
+    carriedChannels: ["vessel.control", "vessel.parts"],
+    suspendFrames: true,
+  });
+  const { transport } = fixture;
+  const result = render(<fixture.Provider>{ui}</fixture.Provider>);
   act(() => {
     transport.emit("vessel.control", {
       sasMode: 0,
@@ -114,7 +102,7 @@ function renderWithControlStream(ui: React.ReactElement, parts?: unknown) {
     if (parts !== undefined) {
       transport.emit("vessel.parts", parts);
     }
-    store.beginFrame();
+    fixture.emitFrame();
   });
   return result;
 }
@@ -1137,37 +1125,26 @@ describe("AlarmsModal alarms other screens armed", () => {
   ) => ({ id, name: `${id} name`, armedBy, state, condition });
 
   function renderAtVantage(snapshot: AlarmSnapshot, onDelete = vi.fn()) {
-    const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
-    const store = new TimelineStore(
-      new ViewClock({
-        nowWall: () => 0,
-        warpRate: () => 1,
-        delaySeconds: () => 0,
-      }),
-    );
-    client.attachStore(store);
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.control"],
+      suspendFrames: true,
+    });
     const result = render(
-      <TelemetryProvider
-        client={client}
-        store={store}
-        carriedChannels={new Set(["vessel.control"])}
-      >
+      <fixture.Provider>
         <AlarmsModal
           useSnapshot={() => snapshot}
           onAdd={vi.fn()}
           onUpdate={vi.fn()}
           onDelete={onDelete}
         />
-      </TelemetryProvider>,
+      </fixture.Provider>,
     );
     act(() => {
-      transport.emit(
+      fixture.emit(
         "vessel.control",
         { sasMode: 0, throttle: 0, actionGroups: [] },
         { validAt: 0, deliveredAt: 0, vantage: KSC },
       );
-      store.beginFrame();
     });
     return { ...result, onDelete };
   }
