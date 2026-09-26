@@ -172,7 +172,7 @@ describe("WidgetStreamStatusBridge", () => {
       </Host>,
     );
 
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByText("RECORDED")).toBeNull();
 
     act(() => {
       transport.emit(
@@ -183,7 +183,8 @@ describe("WidgetStreamStatusBridge", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByRole("status").textContent).toContain("RECORDED"),
+      expect(screen.getByText("ORBIT: RECORDED")).toBeTruthy(),
     );
+    expect(screen.getByText("RECORDED")).toBeTruthy();
   });
 });
