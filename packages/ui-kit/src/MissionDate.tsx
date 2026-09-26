@@ -203,6 +203,9 @@ export function MissionDate({ value, context }: MissionDateProps) {
         <NotCurrentHost data-not-current="" title={caption ?? undefined}>
           {date}
           <NotCurrentMark aria-hidden="true" data-not-current-mark="" />
+          {caption !== null && (
+            <VisuallyHidden data-unit-currency="">, {caption}</VisuallyHidden>
+          )}
         </NotCurrentHost>
       ) : (
         date
