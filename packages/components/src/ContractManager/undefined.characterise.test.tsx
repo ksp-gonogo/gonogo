@@ -54,7 +54,7 @@ function renderManager(
   );
 }
 
-/** A ReachAltitudeEnvelope parameter: the one thing that reads the altitude. */
+/** An altitude-banded parameter, as `career.status` carries it: the one thing that reads the altitude. */
 const ALTITUDE_CONTRACT = {
   id: "7001",
   title: "Fly above 5000m",
@@ -69,8 +69,6 @@ const ALTITUDE_CONTRACT = {
       title: "Altitude band",
       state: "Incomplete",
       stateOrdinal: 0,
-      optional: false,
-      parameterType: "ReachAltitudeEnvelope",
       minAltitude: 5000,
       maxAltitude: 10000,
     },
@@ -227,6 +225,39 @@ describe("ContractManager: partial payloads inside an arrived record", () => {
 });
 
 describe("ContractManager: the altitude-band meter before an altitude arrives", () => {
+  it("draws no meter for a parameter the wire sends without a band", async () => {
+    const fixture = newFixture();
+    renderManager(fixture);
+
+    act(() => {
+      fixture.emit("career.status", {
+        contracts: {
+          active: [
+            {
+              ...ALTITUDE_CONTRACT,
+              parameters: [
+                {
+                  title: "Altitude band",
+                  state: "Incomplete",
+                  stateOrdinal: 0,
+                  minAltitude: null,
+                  maxAltitude: null,
+                },
+              ],
+            },
+          ],
+        },
+      });
+      emitAltitude(fixture, 7000);
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("Altitude band")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("Altitude")).toBeNull();
+    expect(screen.queryByText("in band")).toBeNull();
+  });
+
   it("draws the meter's absent form while no altitude has arrived", async () => {
     const fixture = newFixture();
     renderManager(fixture);

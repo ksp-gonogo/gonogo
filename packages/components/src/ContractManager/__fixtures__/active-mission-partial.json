@@ -66,7 +66,7 @@
   "t.universalTime": 125340,
   "v.altitude": 45000,
   "_stream": {
-    "carriedChannels": ["career.status", "career.facilities"],
+    "carriedChannels": ["career.status", "career.facilities", "vessel.flight"],
     "emits": [
       {
         "channel": "career.status",
@@ -90,7 +90,9 @@
                   {
                     "title": "Reach altitude between 70 km and 100 km",
                     "state": "Incomplete",
-                    "stateOrdinal": 0
+                    "stateOrdinal": 0,
+                    "minAltitude": 70000,
+                    "maxAltitude": 100000
                   },
                   {
                     "title": "Return to Kerbin",
@@ -127,6 +129,24 @@
           },
           "strategies": null,
           "tech": null
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0,
+          "longitude": 0,
+          "altitudeAsl": 45000,
+          "altitudeTerrain": 45000,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "gForce": 1,
+          "dynamicPressureKPa": 0,
+          "mach": 0,
+          "atmDensity": 0,
+          "externalTemperature": 213.0,
+          "atmosphericTemperature": 210.0
         }
       }
     ],

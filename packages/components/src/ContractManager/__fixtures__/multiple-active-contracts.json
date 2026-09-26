@@ -95,7 +95,7 @@
   "t.universalTime": 125340,
   "v.altitude": 25000,
   "_stream": {
-    "carriedChannels": ["career.status", "career.facilities"],
+    "carriedChannels": ["career.status", "career.facilities", "vessel.flight"],
     "emits": [
       {
         "channel": "career.status",
@@ -160,7 +160,9 @@
                   {
                     "title": "Crew report from upper atmosphere",
                     "state": "Incomplete",
-                    "stateOrdinal": 0
+                    "stateOrdinal": 0,
+                    "minAltitude": 18000,
+                    "maxAltitude": 70000
                   }
                 ],
                 "agent": "Research & Development Dept.",
@@ -186,6 +188,24 @@
           },
           "strategies": null,
           "tech": null
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0,
+          "longitude": 0,
+          "altitudeAsl": 25000,
+          "altitudeTerrain": 25000,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "gForce": 1,
+          "dynamicPressureKPa": 0,
+          "mach": 0,
+          "atmDensity": 0,
+          "externalTemperature": 213.0,
+          "atmosphericTemperature": 210.0
         }
       }
     ],

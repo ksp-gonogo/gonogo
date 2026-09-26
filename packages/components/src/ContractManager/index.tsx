@@ -100,16 +100,9 @@ export interface ContractParameter {
    *  Empty when the producer sent no name. */
   stateLabel: string;
   optional: boolean;
-  /**
-   * Subclass of `ContractParameter` in stock KSP. Present when the fork's
-   * type-aware emit recognises the parameter (ReachAltitudeEnvelope,
-   * ReachSituation, ReachDestination, PartTest). Older DLLs that only
-   * emit title/state/optional leave this undefined.
-   */
-  parameterType?: string;
-  /** ReachAltitudeEnvelope min, metres. */
+  /** Lower bound of the altitude band the objective requires, metres. */
   minAltitude?: number;
-  /** ReachAltitudeEnvelope max, metres. */
+  /** Upper bound of the altitude band the objective requires, metres. */
   maxAltitude?: number;
   /** ReachDestination body name (matches v.body). */
   body?: string;
@@ -172,11 +165,8 @@ function paramState(ordinal: unknown): ContractParameterState {
  * `agent`/`reputationCompletion`/`dateDeadline`): same "one parser, either
  * wire shape" pattern ScienceBench's `parseExperiments` established
  * (`partName ?? part`, map-topic.ts's doc comment). The new shape's
- * `parameters` only carry `{title, state}` (no `optional`/`parameterType`/
- * altitude bounds: decompile-confirmed exact shape); those extra fields simply
- * stay undefined on a new-wire
- * parameter, degrading the AltitudeProgress bar/optional-badge gracefully
- * rather than breaking. Drops malformed entries; tolerates unknown
+ * `parameters` carry no `optional`, so it stays undefined on a new-wire
+ * parameter and the optional badge never draws. Drops malformed entries; tolerates unknown
  * parameter states by reporting them as "Unknown", never by collapsing them
  * onto an arm we cannot justify.
  */
@@ -242,8 +232,6 @@ function parseParameters(raw: unknown): ContractParameter[] {
       state: paramState(e.stateOrdinal),
       stateLabel: typeof e.state === "string" ? e.state : "",
       optional: e.optional === true,
-      parameterType:
-        typeof e.parameterType === "string" ? e.parameterType : undefined,
       minAltitude: magnitudeOf(asQuantityish(e.minAltitude)) ?? undefined,
       maxAltitude: magnitudeOf(asQuantityish(e.maxAltitude)) ?? undefined,
       body: typeof e.body === "string" ? e.body : undefined,
@@ -497,7 +485,6 @@ function ContractManagerComponent({
                             <span style={OPTIONAL_STYLE}> (optional)</span>
                           )}
                           {p.state === "Incomplete" &&
-                            p.parameterType === "ReachAltitudeEnvelope" &&
                             p.minAltitude !== undefined &&
                             p.maxAltitude !== undefined && (
                               <AltitudeProgress
