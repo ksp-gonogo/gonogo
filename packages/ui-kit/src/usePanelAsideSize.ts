@@ -69,49 +69,71 @@ export function nextAsideCollapsed(
 }
 
 /**
- * An element's natural (unconstrained) rendered width, measured off an
- * ISOLATED clone rather than the live in-DOM element.
+ * An element's natural (unconstrained) rendered width, measured off a clone
+ * rather than the live element.
  *
- * Both `titleRef` and `asideRef` sit inside header boxes squeezed by the
- * row's `justify-content: space-between` and, for the aside, a further
+ * Both `titleRef` and `asideRef` sit inside header boxes squeezed by the row's
+ * `justify-content: space-between` and, for the aside, a further
  * `flex: 0 0 auto` `<details>` (`PanelAsideExpand`). Measuring either live is
- * not reliable at exactly the widths this hook cares about: confirmed in real
- * Chromium, nested shrink-to-fit through that chain can resolve to a value
- * far short of the content's real size once the row runs out of room for it,
- * which is precisely the "doesn't fit" case the measurement exists to catch.
- * `display: none` would be the obvious next guess, but the same live element
- * cannot be both currently visible (the wide/inline case, where the
- * measurement also has to work) and off-flow for measurement at once.
+ * not reliable at exactly the widths this hook cares about: nested
+ * shrink-to-fit through that chain can resolve to a value far short of the
+ * content's real size once the row runs out of room for it, which is precisely
+ * the "doesn't fit" case the measurement exists to catch. And while the aside
+ * is collapsed the live element is laid out as the floating box, not the row.
  *
- * `cloneNode` sidesteps the whole chain: pulled onto `position: fixed` with
- * no `left`/`top`/`right`/`bottom` set, a clone sizes against the INITIAL
- * containing block (the viewport) rather than any ancestor's shrink-to-fit
- * result, so it always reports the same natural width the live element would
- * show if it had all the room it wanted. The clone keeps its styled-
- * components class(es), which resolve against the SAME global stylesheet
- * regardless of where in the document the clone sits, so its measured font,
- * padding and letter-spacing match the live element exactly rather than an
- * approximation of them.
+ * The clone goes in beside the live element, under the same parent, so it
+ * inherits the same font and matches the same contextual selectors (the gap
+ * between aside items is one). It is taken out of flow and sized to its
+ * max-content width, and `restyle` restates whatever layout the live element
+ * may have left (the aside's inline row), so it reports the width the element
+ * takes laid out inline with all the room it wants, whichever state the live
+ * one is in.
  *
- * Appended and removed in one synchronous call, with no `await` between them,
- * so nothing (a test's `getByText`, a `MutationObserver`) ever observes the
- * clone existing. Returns `0` (the same "hold the previous state" signal
- * `nextAsideCollapsed` treats as unmeasured) in jsdom, which lays out
- * nothing and reports `0` for every `getBoundingClientRect()` call: exactly
- * why every existing widget test keeps seeing the wide default.
+ * Inserted and removed in one synchronous call, with no `await` between them,
+ * so nothing (a test's `getByText`, a `MutationObserver` callback) ever
+ * observes the clone existing. Returns `0` (the "hold the previous state"
+ * signal `nextAsideCollapsed` treats as unmeasured) in jsdom, which lays out
+ * nothing.
  */
-function measureNaturalElementWidth(el: HTMLElement | null): number {
-  if (!el || typeof document === "undefined") return 0;
+function measureNaturalElementWidth(
+  el: HTMLElement | null,
+  restyle: Partial<CSSStyleDeclaration> = {},
+): number {
+  const parent = el?.parentNode;
+  if (!el || !parent) return 0;
   const clone = el.cloneNode(true) as HTMLElement;
-  clone.style.position = "fixed";
-  clone.style.visibility = "hidden";
-  clone.style.pointerEvents = "none";
-  clone.style.left = "-99999px";
-  clone.style.top = "-99999px";
-  document.body.appendChild(clone);
+  Object.assign(clone.style, {
+    position: "absolute",
+    visibility: "hidden",
+    pointerEvents: "none",
+    top: "0",
+    left: "0",
+    width: "max-content",
+    minWidth: "0",
+    maxWidth: "none",
+    ...restyle,
+  });
+  clone.setAttribute("aria-hidden", "true");
+  parent.insertBefore(clone, el.nextSibling);
   const width = clone.getBoundingClientRect().width;
-  document.body.removeChild(clone);
+  parent.removeChild(clone);
   return width;
+}
+
+/**
+ * The aside's inline layout, restated on its clone: while collapsed and open,
+ * the live element is a padded, bordered column floating under the summary.
+ */
+const ASIDE_INLINE: Partial<CSSStyleDeclaration> = {
+  flexDirection: "row",
+  flexWrap: "nowrap",
+  padding: "0",
+  border: "0",
+};
+
+/** A computed length, or 0 for one that is not a plain number (jsdom). */
+function px(value: string): number {
+  return Number.parseFloat(value) || 0;
 }
 
 /**
@@ -122,23 +144,25 @@ function measureNaturalElementWidth(el: HTMLElement | null): number {
  * plenty of room for its aside just because the panel itself is narrow, hiding
  * content behind black space.
  *
- * `rowRef` is the header row, whose measured width is the room available to
- * title + aside together. `titleRef` (the rendered `Panel.Title`) and
- * `asideRef` (the `[data-panel-aside-full]` box) are both measured via
- * `measureNaturalElementWidth` (see its own doc comment for why a live
- * measurement is not reliable here).
+ * `rowRef` is the header row: its content width is the room available.
+ * `titleRef` is the rendered `Panel.Title`, and `asideRef` the
+ * `[data-panel-aside-full]` box. What the two need side by side is the title's
+ * natural width, the row's gap between the boxes, the aside box's own
+ * horizontal padding, and the aside's natural width; see
+ * `measureNaturalElementWidth` for why the naturals come off a clone.
  *
- * Recomputes on: a resize of the row or the aside (`ResizeObserver`, a no-op
- * where unavailable, matching `useElementSize`), and a content change to
- * `title`/`aside` (`useLayoutEffect`, so a title-text change is picked up even
- * when it does not happen to change the aside's own box size).
+ * Recomputes on a resize of the row or the aside, and on any change to what the
+ * title or the aside hold. The content check reads a `MutationObserver`'s
+ * pending records after each render instead of comparing the `title`/`aside`
+ * nodes, which are new objects on every render and would re-measure, and force
+ * a layout, every time the panel rendered at all. A change made without the
+ * header rendering (a badge inside the aside updating itself) reaches the
+ * observer's callback instead.
  */
 export function useHeaderAsideFit(
   rowRef: RefObject<HTMLElement | null>,
   titleRef: RefObject<HTMLElement | null>,
   asideRef: RefObject<HTMLElement | null>,
-  title: unknown,
-  aside: unknown,
 ): boolean {
   const [collapsed, setCollapsed] = useState(false);
   const collapsedRef = useRef(collapsed);
@@ -148,10 +172,25 @@ export function useHeaderAsideFit(
   const recompute = useCallback(() => {
     const row = rowRef.current;
     if (!row) return;
-    const available = row.getBoundingClientRect().width;
+    const rowStyle = getComputedStyle(row);
+    const available =
+      row.getBoundingClientRect().width -
+      px(rowStyle.paddingLeft) -
+      px(rowStyle.paddingRight);
+    const title = measureNaturalElementWidth(titleRef.current);
+    const aside = measureNaturalElementWidth(asideRef.current, ASIDE_INLINE);
+    const asideBox = asideRef.current?.closest<HTMLElement>(
+      "[data-panel-aside-expand]",
+    )?.parentElement;
+    const asideBoxStyle = asideBox ? getComputedStyle(asideBox) : null;
     const needed =
-      measureNaturalElementWidth(titleRef.current) +
-      measureNaturalElementWidth(asideRef.current);
+      title === 0 || aside === 0
+        ? title + aside
+        : title +
+          px(rowStyle.columnGap) +
+          px(asideBoxStyle?.paddingLeft ?? "") +
+          px(asideBoxStyle?.paddingRight ?? "") +
+          aside;
     const next = nextAsideCollapsed(
       collapsedRef.current,
       available,
@@ -165,13 +204,49 @@ export function useHeaderAsideFit(
     }
   }, [rowRef, titleRef, asideRef]);
 
-  // Content changes (a title string that changed, an aside whose contents
-  // changed identity) recompute even when they do not happen to trigger a
-  // ResizeObserver callback on their own.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: title/aside are intentional recompute triggers, not values read directly in the body.
+  const watched = useRef<{
+    title: HTMLElement | null;
+    aside: HTMLElement | null;
+    observer: MutationObserver | null;
+  }>({ title: null, aside: null, observer: null });
+
+  // Runs after every render, and measures only when the elements were swapped
+  // or something inside them changed.
   useLayoutEffect(() => {
-    recompute();
-  }, [recompute, title, aside]);
+    const title = titleRef.current;
+    const aside = asideRef.current;
+    const w = watched.current;
+    if (w.observer === null || w.title !== title || w.aside !== aside) {
+      w.observer?.disconnect();
+      w.title = title;
+      w.aside = aside;
+      w.observer =
+        typeof MutationObserver === "undefined"
+          ? null
+          : new MutationObserver(() => recompute());
+      for (const el of [title, aside]) {
+        if (el) {
+          w.observer?.observe(el, {
+            subtree: true,
+            childList: true,
+            characterData: true,
+            attributes: true,
+          });
+        }
+      }
+      recompute();
+      return;
+    }
+    if (w.observer.takeRecords().length > 0) recompute();
+  });
+
+  useEffect(() => {
+    const w = watched.current;
+    return () => {
+      w.observer?.disconnect();
+      w.observer = null;
+    };
+  }, []);
 
   useEffect(() => {
     const row = rowRef.current;

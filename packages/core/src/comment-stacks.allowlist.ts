@@ -549,7 +549,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/ui-kit/src/units.ts": 4,
   "packages/ui-kit/src/useFittedTitle.ts": 2,
   "packages/ui-kit/src/usePanelAsideSize.test.tsx": 1,
-  "packages/ui-kit/src/usePanelAsideSize.ts": 1,
   "packages/ui/src/LineChart.tsx": 2,
   "packages/ui/src/SourceOfflineBanner.tsx": 1,
   "packages/ui/src/Tag.tsx": 1,

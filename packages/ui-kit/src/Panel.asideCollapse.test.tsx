@@ -1,14 +1,19 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
   within,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Badge } from "./Badge";
 import { Panel, PanelHeader } from "./Panel";
 import { PanelStatusStoreProvider } from "./status/PanelStatusStore";
+import {
+  type DrivableResizeObservers,
+  installDrivableResizeObserver,
+} from "./testing";
 import { usePanelAsideSize } from "./usePanelAsideSize";
 
 /**
@@ -46,8 +51,12 @@ function statusDots(): NodeListOf<Element> {
  * collapses, and re-expanding additionally needs the hook's hysteresis margin.
  */
 const pristineRect = Element.prototype.getBoundingClientRect;
+let observers: DrivableResizeObservers | null = null;
 afterEach(() => {
   Element.prototype.getBoundingClientRect = pristineRect;
+  observers?.uninstall();
+  observers = null;
+  vi.restoreAllMocks();
 });
 
 function withHeaderMeasurements(row: number, part: number): void {
@@ -165,19 +174,22 @@ describe("Panel header aside expand box", () => {
         {body}
       </Panel>
     );
+    observers = installDrivableResizeObserver();
     withHeaderMeasurements(...TOO_NARROW);
-    const { rerender } = render(panel("body"));
+    render(panel("body"));
     fireEvent.click(expandBox().querySelector("summary") as HTMLElement);
     expect(expandBox().open).toBe(true);
 
     // Widening to a fit forces open (the inline state), and must not keep the
     // operator's choice around to re-open the box the next time it narrows.
     withHeaderMeasurements(...ROOMY);
-    rerender(panel("body wider"));
+    act(() => observers?.resize(header(), { width: ROOMY[0], height: 20 }));
     expect(expandBox().open).toBe(true);
 
     withHeaderMeasurements(...TOO_NARROW);
-    rerender(panel("body narrow again"));
+    act(() =>
+      observers?.resize(header(), { width: TOO_NARROW[0], height: 20 }),
+    );
     expect(expandBox().open).toBe(false);
   });
 
@@ -200,6 +212,21 @@ describe("Panel header aside expand box", () => {
     withHeaderMeasurements(230, 110);
     rerender(panel(["3/4 aboard", "2 crit"]));
     expect(expandBox().open).toBe(true);
+  });
+
+  it("does not re-measure the header when the panel re-renders with the same title and aside", () => {
+    const panel = (body: string, badge = "STALE") => (
+      <Panel panelTitle="MAP" panelAside={<Badge>{badge}</Badge>}>
+        {body}
+      </Panel>
+    );
+    const { rerender } = render(panel("body"));
+    const clones = vi.spyOn(Node.prototype, "cloneNode");
+    for (const body of ["a", "b", "c"]) rerender(panel(body));
+    expect(clones).not.toHaveBeenCalled();
+
+    rerender(panel("c", "OFFLINE"));
+    expect(clones).toHaveBeenCalled();
   });
 
   it("has no aside box at all when the widget passes no aside", () => {
