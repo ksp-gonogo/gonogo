@@ -1,11 +1,12 @@
 import {
   act,
-  fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Badge } from "./Badge";
 import { Panel, PanelHeader } from "./Panel";
@@ -65,6 +66,29 @@ function withHeaderMeasurements(row: number, part: number): void {
       this instanceof HTMLElement && this.hasAttribute("data-panel-header");
     return { ...pristineRect.call(this), width: isRow ? row : part } as DOMRect;
   };
+}
+
+/**
+ * Count the expand box's `toggle` events. The browser dispatches one as its own
+ * task whenever `open` is added or removed, whether by a summary click or by
+ * Panel forcing the box open inline and closed on collapse, and Panel records
+ * the operator's choice from that event. A test waits for each one so that
+ * what it asserts next is what React holds, not only what the DOM shows.
+ */
+function watchToggles(): { readonly count: number } {
+  let count = 0;
+  expandBox().addEventListener("toggle", () => {
+    count += 1;
+  });
+  return {
+    get count() {
+      return count;
+    },
+  };
+}
+
+function summary(): HTMLElement {
+  return expandBox().querySelector("summary") as HTMLElement;
 }
 
 /** Widths that do not fit: the aside collapses behind the summary. */
@@ -150,25 +174,31 @@ describe("Panel header aside expand box", () => {
     expect(expandBox().open).toBe(true);
   });
 
-  it("toggles the expand box open and closed once the aside is collapsed", () => {
+  it("toggles the expand box open and closed once the aside is collapsed", async () => {
+    const user = userEvent.setup();
     withHeaderMeasurements(...TOO_NARROW);
     render(
       <Panel panelTitle="MAP" panelAside={<button type="button">Ctl</button>}>
         body
       </Panel>,
     );
-    const box = expandBox();
-    const summary = box.querySelector("summary") as HTMLElement;
+    const toggles = watchToggles();
     // Collapsed is the one state where the details is a real disclosure: the
     // content genuinely sits behind the summary, so it starts closed.
-    expect(box.open).toBe(false);
-    fireEvent.click(summary);
-    expect(box.open).toBe(true);
-    fireEvent.click(summary);
-    expect(box.open).toBe(false);
+    expect(expandBox().open).toBe(false);
+    await waitFor(() => expect(toggles.count).toBe(1));
+
+    await user.click(summary());
+    await waitFor(() => expect(toggles.count).toBe(2));
+    expect(expandBox().open).toBe(true);
+
+    await user.click(summary());
+    await waitFor(() => expect(toggles.count).toBe(3));
+    expect(expandBox().open).toBe(false);
   });
 
-  it("drops an operator-opened collapsed box when the aside goes back inline", () => {
+  it("drops an operator-opened collapsed box when the aside goes back inline", async () => {
+    const user = userEvent.setup();
     const panel = (body: string) => (
       <Panel panelTitle="MAP" panelAside={<button type="button">Ctl</button>}>
         {body}
@@ -177,7 +207,10 @@ describe("Panel header aside expand box", () => {
     observers = installDrivableResizeObserver();
     withHeaderMeasurements(...TOO_NARROW);
     render(panel("body"));
-    fireEvent.click(expandBox().querySelector("summary") as HTMLElement);
+    const toggles = watchToggles();
+    await waitFor(() => expect(toggles.count).toBe(1));
+    await user.click(summary());
+    await waitFor(() => expect(toggles.count).toBe(2));
     expect(expandBox().open).toBe(true);
 
     // Widening to a fit forces open (the inline state), and must not keep the
@@ -191,6 +224,7 @@ describe("Panel header aside expand box", () => {
       observers?.resize(header(), { width: TOO_NARROW[0], height: 20 }),
     );
     expect(expandBox().open).toBe(false);
+    await waitFor(() => expect(toggles.count).toBe(3));
   });
 
   it("goes back inline once a badge that made it collapse has gone, with no resize", () => {
