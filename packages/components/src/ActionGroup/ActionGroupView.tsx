@@ -33,6 +33,7 @@ import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
 import type { ActionGroupActions, ActionGroupConfig } from "./config";
 import type { ActionGroupSlotContext } from "./slots";
 import {
+  HELD_STATE,
   stateLabelOf,
   UNAVAILABLE_TITLES,
   unavailableReasonOf,
@@ -243,19 +244,21 @@ export function ActionGroupView({
             </Inline>
           </Cluster>
         </Section>,
-        unavailableReason && getSizeBucket(w, h) !== "tiny" && (
-          <Section key="unavailable" full>
-            <Badge
-              severity="warning"
-              size="sm"
-              role="status"
-              aria-live="polite"
-              title={unavailableTitle}
-            >
-              {unavailableReason}
-            </Badge>
-          </Section>
-        ),
+        unavailableReason &&
+          unavailableReason !== HELD_STATE &&
+          getSizeBucket(w, h) !== "tiny" && (
+            <Section key="unavailable" full>
+              <Badge
+                severity="warning"
+                size="sm"
+                role="status"
+                aria-live="polite"
+                title={unavailableTitle}
+              >
+                {unavailableReason}
+              </Badge>
+            </Section>
+          ),
         <AugmentSlot
           key="subsystem"
           name="action-group.subsystem"

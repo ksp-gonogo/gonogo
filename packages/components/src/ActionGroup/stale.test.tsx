@@ -105,11 +105,11 @@ describe("ActionGroup when the group's state is not current", () => {
 
     const toggle = () => screen.getByRole("button", { name: "Toggle SAS" });
     await waitFor(() => expect(toggle().textContent).toBe("ON"));
-    expect(screen.queryByText("State not current")).toBeNull();
+    expect(toggle().getAttribute("title")).toBe("Toggle SAS");
     expect(toggle()).not.toBeDisabled();
   });
 
-  it("withholds the state once it stops arriving, and SAYS SO", async () => {
+  it("withholds the state once it stops arriving, and says why the press is refused", async () => {
     const { fixture, container } = mount("SAS");
     act(() => {
       fixture.emit("vessel.control", { ...CONTROL_ALL_OFF, sas: true });
@@ -119,12 +119,13 @@ describe("ActionGroup when the group's state is not current", () => {
 
     stopDelivering(fixture);
 
-    await waitFor(() => {
-      // A blank pill alone is indistinguishable from waiting for the first sample.
-      expect(visibleText(container)).toContain("State not current");
-    });
+    // A blank pill alone is indistinguishable from waiting for the first sample; the disabled toggle and its reason tell them apart.
+    await waitFor(() => expect(toggle()).toBeDisabled());
     expect(toggle().textContent).toBe(NULL_DISPLAY);
-    expect(toggle().getAttribute("title")).toBe("State not current");
+    expect(toggle().getAttribute("title")).toBe("Cannot invert a held state");
+    // Time is only ever shown through Unit, so the widget writes no currency wording of its own.
+    expect(visibleText(container)).not.toMatch(/not current|last contact/i);
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("stops presenting the pill as operable, rather than swallowing the press", async () => {
@@ -165,7 +166,9 @@ describe("ActionGroup when the group's state is not current", () => {
         screen.getByRole("button", { name: "Toggle SAS" }).textContent,
       ).toBe(NULL_DISPLAY),
     );
-    expect(screen.queryByText("State not current")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Toggle SAS" }).getAttribute("title"),
+    ).toBe("Toggle SAS");
     expect(
       screen.getByRole("button", { name: "Toggle SAS" }),
     ).not.toBeDisabled();
@@ -175,7 +178,7 @@ describe("ActionGroup when the group's state is not current", () => {
 describe("ActionGroup: what a stale link does NOT take away", () => {
   it("keeps the group the vessel reported, toggle key and all", async () => {
     // The bell renders only for a group with a toggle key, so it proves the key survived.
-    const { fixture, container } = mount("Radiators", "ag-stale-agx");
+    const { fixture } = mount("Radiators", "ag-stale-agx");
     act(() => {
       fixture.emit("vessel.control", {
         ...CONTROL_ALL_OFF,
@@ -194,7 +197,9 @@ describe("ActionGroup: what a stale link does NOT take away", () => {
     stopDelivering(fixture);
 
     await waitFor(() =>
-      expect(visibleText(container)).toContain("State not current"),
+      expect(
+        screen.getByRole("button", { name: "Toggle Radiators" }),
+      ).toBeDisabled(),
     );
     expect(screen.queryByText("No action group configured")).toBeNull();
     expect(
@@ -206,10 +211,7 @@ describe("ActionGroup: what a stale link does NOT take away", () => {
   });
 
   it("keeps Stage's number and keeps staging available", async () => {
-    const { fixture, commandHandler, container } = mount(
-      "Stage",
-      "ag-stale-stage",
-    );
+    const { fixture, commandHandler } = mount("Stage", "ag-stale-stage");
     act(() => {
       fixture.emit("vessel.structure", { currentStage: 4 });
     });
@@ -225,7 +227,7 @@ describe("ActionGroup: what a stale link does NOT take away", () => {
       ),
     );
     expect(toggle().textContent).toBe("4");
-    expect(visibleText(container)).not.toContain("State not current");
+    expect(toggle().getAttribute("title")).toBe("Toggle Stage");
     expect(toggle()).not.toBeDisabled();
 
     act(() => {
