@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import styled from "styled-components";
 import { groupComboboxOptions } from "./Combobox";
 import { EmptyState } from "./EmptyState";
@@ -71,6 +71,7 @@ export function ActionMenu({
   otherLabel = "Other",
 }: Readonly<ActionMenuProps>) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const menuId = useId();
   const [activeIndex, setActiveIndex] = useState(0);
 
   const groups = groupComboboxOptions(items, otherLabel);
@@ -172,11 +173,26 @@ export function ActionMenu({
       {flat.length === 0 ? (
         <EmptyState layout="fill">{emptyLabel}</EmptyState>
       ) : (
-        groups.map(([group, bucket]) => (
-          <div key={group}>
+        groups.map(([group, bucket], groupIndex) => (
+          <div
+            key={group}
+            {...(groups.length > 1
+              ? {
+                  role: "group",
+                  "aria-labelledby": `${menuId}-group-${groupIndex}`,
+                }
+              : { role: "none" })}
+          >
             {/* A single ungrouped bucket renders flat: a lone header naming
                 every item in the menu is noise, not structure. */}
-            {groups.length > 1 ? <GroupHeader>{group}</GroupHeader> : null}
+            {groups.length > 1 ? (
+              <GroupHeader
+                id={`${menuId}-group-${groupIndex}`}
+                aria-hidden="true"
+              >
+                {group}
+              </GroupHeader>
+            ) : null}
             {bucket.map((item) => {
               const index = flat.indexOf(item);
               return (
@@ -231,7 +247,7 @@ const GroupHeader = styled.div`
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
   padding: var(--space-8, 8px) var(--space-8, 8px) var(--space-4, 4px);
 `;
 

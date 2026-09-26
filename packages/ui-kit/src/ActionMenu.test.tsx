@@ -1,4 +1,9 @@
-import { render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, type Mock, vi } from "vitest";
 import { ActionMenu, type ActionMenuItem } from "./ActionMenu";
@@ -149,5 +154,20 @@ describe("ActionMenu", () => {
         screen.getByRole("menuitem", { name: "Alpha" }),
       ),
     );
+  });
+});
+
+describe("ActionMenu groups", () => {
+  it("names each group of actions for assistive tech", () => {
+    renderMenu({
+      items: [
+        { key: "a", label: "Alpha", group: "Flight" },
+        { key: "b", label: "Bravo", group: "Flight" },
+        { key: "c", label: "Charlie", group: "Science" },
+      ],
+    });
+    const flight = screen.getByRole("group", { name: "Flight" });
+    expect(within(flight).getAllByRole("menuitem")).toHaveLength(2);
+    expect(screen.getByRole("group", { name: "Science" })).toBeInTheDocument();
   });
 });
