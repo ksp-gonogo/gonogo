@@ -184,7 +184,7 @@ describe("ScienceData probe fixtures, read against the widget", () => {
     await userEvent.click(screen.getByRole("tab", { name: "Archive" }));
     await waitFor(() =>
       expect(
-        screen.getByRole("columnheader", { name: /Kerbin · Crew Report/ }),
+        screen.getByRole("rowheader", { name: /Kerbin · Crew Report/ }),
       ).toBeInTheDocument(),
     );
   });

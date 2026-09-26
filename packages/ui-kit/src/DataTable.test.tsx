@@ -76,9 +76,29 @@ describe("DataTable", () => {
         rowKey={key}
       />,
     );
-    const heading = screen.getByRole("columnheader", { name: "Kerbin" });
+    const heading = screen.getByRole("rowheader", { name: "Kerbin" });
     expect(heading).toHaveAttribute("colspan", "2");
+    expect(heading).toHaveAttribute("scope", "rowgroup");
     expect(screen.getByText("Mystery Goo")).toBeInTheDocument();
+  });
+
+  it("puts each section in a row group of its own, so its heading heads only its rows", () => {
+    render(
+      <DataTable
+        caption="Archive"
+        columns={COLUMNS}
+        sections={[
+          { id: "kerbin", title: "Kerbin", rows: [ROWS[0]] },
+          { id: "mun", title: "Mun", rows: [ROWS[1]] },
+        ]}
+        rowKey={key}
+      />,
+    );
+    const kerbin = screen
+      .getByRole("rowheader", { name: "Kerbin" })
+      .closest("tbody") as HTMLElement;
+    expect(within(kerbin).getByText("Crew Report")).toBeInTheDocument();
+    expect(within(kerbin).queryByText("Mystery Goo")).toBeNull();
   });
 
   it("shows the empty state instead of a bare header when there is nothing to list", () => {
@@ -134,5 +154,21 @@ describe("DataTable", () => {
       />,
     );
     await expectNoA11yViolations(grouped.container);
+  });
+});
+
+describe("DataTable row detail", () => {
+  it("draws a detail that is a falsy number on its own row, like any other detail", () => {
+    render(
+      <DataTable
+        caption="Archive"
+        columns={COLUMNS}
+        rows={[ROWS[0]]}
+        rowKey={key}
+        rowDetail={() => 0}
+      />,
+    );
+    const body = screen.getAllByRole("rowgroup")[1] as HTMLElement;
+    expect(within(body).getAllByRole("row")).toHaveLength(2);
   });
 });

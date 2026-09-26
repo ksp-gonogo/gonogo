@@ -70,7 +70,9 @@ export interface DataTableProps<Row> {
  * where a cluster forces the eye to re-find each number on every row.
  *
  * Semantic `<table>` throughout, so row and column headers are announced as
- * such. Section headings are `<th scope="colgroup">` spanning the width.
+ * such. Each section is a `<tbody>` of its own, headed by a
+ * `<th scope="rowgroup">` spanning the width, so its heading heads only its
+ * rows.
  */
 export function DataTable<Row>({
   columns,
@@ -107,54 +109,59 @@ export function DataTable<Row>({
             ))}
           </tr>
         </thead>
-        <tbody>
-          {total === 0 && empty !== undefined && (
+        {total === 0 && empty !== undefined && (
+          <tbody>
             <tr>
               <DataTable__EmptyCell colSpan={columns.length}>
                 {empty}
               </DataTable__EmptyCell>
             </tr>
-          )}
-          {groups.map((group) => (
-            <Fragment key={group.id}>
-              {group.title !== null && group.title !== undefined && (
-                <tr>
-                  <DataTable__SectionCell
-                    scope="colgroup"
-                    colSpan={columns.length}
-                  >
-                    {group.title}
-                  </DataTable__SectionCell>
-                </tr>
-              )}
-              {group.rows.map((row) => {
-                const key = rowKey(row);
-                const detail = rowDetail?.(row);
-                return (
-                  <Fragment key={key}>
-                    <DataTable__Row $hasDetail={detail != null}>
-                      {columns.map((col) => (
-                        <DataTable__Cell
-                          key={col.key}
-                          $align={col.align ?? "start"}
-                        >
-                          {col.render(row)}
-                        </DataTable__Cell>
-                      ))}
-                    </DataTable__Row>
-                    {detail ? (
-                      <tr>
-                        <DataTable__DetailCell colSpan={columns.length}>
-                          {detail}
-                        </DataTable__DetailCell>
-                      </tr>
-                    ) : null}
-                  </Fragment>
-                );
-              })}
-            </Fragment>
-          ))}
-        </tbody>
+          </tbody>
+        )}
+        {groups.map((group) => (
+          <tbody key={group.id}>
+            {group.title !== null && group.title !== undefined && (
+              <tr>
+                <DataTable__SectionCell
+                  scope="rowgroup"
+                  colSpan={columns.length}
+                >
+                  {group.title}
+                </DataTable__SectionCell>
+              </tr>
+            )}
+            {group.rows.map((row) => {
+              const key = rowKey(row);
+              const detail = rowDetail?.(row);
+              const hasDetail =
+                detail !== null &&
+                detail !== undefined &&
+                detail !== false &&
+                detail !== "";
+              return (
+                <Fragment key={key}>
+                  <DataTable__Row $hasDetail={hasDetail}>
+                    {columns.map((col) => (
+                      <DataTable__Cell
+                        key={col.key}
+                        $align={col.align ?? "start"}
+                      >
+                        {col.render(row)}
+                      </DataTable__Cell>
+                    ))}
+                  </DataTable__Row>
+                  {hasDetail ? (
+                    <tr>
+                      <DataTable__DetailCell colSpan={columns.length}>
+                        {detail}
+                      </DataTable__DetailCell>
+                    </tr>
+                  ) : null}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        ))}
       </DataTable__Table>
     </DataTable__Scroller>
   );
