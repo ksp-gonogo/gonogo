@@ -16,13 +16,10 @@ import { focusRing } from "./focusRing";
  * ## Why it is a flex row rather than a run of inline text
  *
  * A caller that puts an icon beside the word (`<Button><PlusIcon />New
- * message</Button>`) gets an inline `<svg>`, which sits on the TEXT BASELINE
- * and therefore hangs a couple of pixels below the middle of the word next to
- * it, with no space between the two. Every caller that noticed re-declared
- * `display: inline-flex; align-items: center; gap` on its own extension of this
- * button, and every caller that did not shipped the misalignment; Commcast had
- * one of each, side by side in the same bar. Centring here is what makes the
- * two agree, and it changes nothing for a text-only button.
+ * message</Button>`) gets an inline `<svg>`, which would sit on the TEXT
+ * BASELINE and hang a couple of pixels below the middle of the word, touching
+ * it. Centring here keeps every extension of this button aligned, and it
+ * changes nothing for a text-only button.
  */
 export const Button = styled.button`
   /* Centres an icon against the word beside it; see the note above. */
@@ -56,6 +53,7 @@ export const Button = styled.button`
   &:active {
     background: var(--color-border-subtle);
   }
+  ${focusRing}
   &:disabled {
     opacity: 0.4;
     cursor: not-allowed;
@@ -90,8 +88,7 @@ export const PrimaryButton = styled(Button)`
 export const GhostButton = styled(Button)`
   background: none;
   border-color: var(--color-border-strong);
-  /* var(--color-text-muted) on the var(--color-surface-app) app background clears WCAG AA 4.5:1 (≈6.1:1);
-     var(--color-text-dim) (the previous value) was ~3.5:1 and failed. */
+  /* Clears 4.5:1 on the app background. */
   color: var(--color-text-muted);
 
   @media (hover: hover) {
@@ -144,6 +141,7 @@ export const IconButton = styled.button`
       color: var(--color-text-primary);
     }
   }
+  ${focusRing}
   &:disabled {
     opacity: 0.4;
     cursor: not-allowed;
