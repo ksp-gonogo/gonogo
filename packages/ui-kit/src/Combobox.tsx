@@ -155,9 +155,15 @@ export function ComboboxListbox<T extends ComboboxOption>({
       {flatOptions.length === 0 ? (
         <EmptyState layout="fill">{emptyLabel}</EmptyState>
       ) : (
-        groups.map(([group, items]) => (
-          <DropdownGroup key={group}>
-            <GroupHeader>{group}</GroupHeader>
+        groups.map(([group, items], groupIndex) => (
+          <DropdownGroup
+            key={group}
+            role="group"
+            aria-labelledby={`${id}-group-${groupIndex}`}
+          >
+            <GroupHeader id={`${id}-group-${groupIndex}`} aria-hidden="true">
+              {group}
+            </GroupHeader>
             {items.map((opt) => {
               const globalIdx = flatOptions.indexOf(opt);
               const isActive = globalIdx === activeIndex;
@@ -201,11 +207,7 @@ const Dropdown = styled.div<{ $placement: "below" | "above" }>`
   border-radius: var(--radius-regular, 3px);
   max-height: 280px;
   overflow-y: auto;
-  /* Named rather than renumbered. Every caller so far mounts this inside a
-     position: relative container that is itself inside a transformed grid
-     item, so the absolute value orders nothing outside that local context and
-     the 100 -> 200 move is inert. It takes the rung because this IS a
-     popover anchored to a control, which is what the rung means. */
+  /* The popover-anchored-to-a-control rung. */
   z-index: var(--z-dropdown, 200);
 `;
 
@@ -216,7 +218,7 @@ const GroupHeader = styled.div`
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
   padding: var(--space-8, 8px) var(--space-8, 8px) var(--space-4, 4px);
   position: sticky;
   top: 0;
@@ -235,6 +237,10 @@ const DropdownItem = styled.div<{ $active: boolean; $selected: boolean }>`
       : $selected
         ? "var(--color-status-go-bg)"
         : "transparent"};
+  /* Focus stays on the owning input, so the highlighted option carries the
+     focus colour itself as an inset bar. */
+  box-shadow: ${({ $active }) =>
+    $active ? "inset 3px 0 0 var(--color-focus)" : "none"};
 
   &:hover {
     background: var(--color-border-subtle);
