@@ -14,7 +14,7 @@ const CURRENT_ORBIT_CHANNELS = [
   "system.bodies",
 ];
 
-describe("CurrentOrbit: O1, t-Pe shows the null-display placeholder on a hyperbolic orbit", () => {
+describe("CurrentOrbit: t-Pe shows the null-display placeholder on a hyperbolic orbit", () => {
   it("renders t-Pe as NULL_DISPLAY (never a countdown) when ecc >= 1", async () => {
     registerStockBodies();
     const stream = setupStreamFixture({

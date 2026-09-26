@@ -11,7 +11,7 @@ import { CurrentOrbitComponent } from "./index";
  * CurrentOrbit on the real provider pipeline via `StubTransport`. The solved figures resolve off the elements alone; the two apsis altitudes stay absent because no body in the roster carries a radius.
  * `system.bodies` is emitted empty because the conic declares it as an input: an empty roster satisfies the input and still resolves no radius.
  */
-describe("CurrentOrbit: genuinely runs off the stream (M3 batch 2)", () => {
+describe("CurrentOrbit: genuinely runs off the stream", () => {
   it("reads sma/eccentricity/inclination/argPe/period off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.orbit", "vessel.identity", "system.bodies"],

@@ -16,7 +16,7 @@ const CURRENT_ORBIT_CHANNELS = [
 
 const KERBIN_MU = 3.5316e12;
 
-describe("CurrentOrbit: O2: hyperbolic orbit still counts as hasOrbit", () => {
+describe("CurrentOrbit: a hyperbolic orbit still counts as hasOrbit", () => {
   it("renders the mini diagram (not suppressed) for a fully hyperbolic orbit", async () => {
     registerStockBodies();
     const stream = setupStreamFixture({
@@ -74,7 +74,7 @@ describe("CurrentOrbit: O2: hyperbolic orbit still counts as hasOrbit", () => {
  * as they stand, and the countdowns from KSP's own, sent on the sample and run
  * down by the view time since it was taken.
  */
-describe("CurrentOrbit: O4: a craft under physics keeps every figure", () => {
+describe("CurrentOrbit: a craft under physics keeps every figure", () => {
   async function renderLoaded(
     countdowns: { timeToAp?: number; timeToPe?: number },
     sampleUt: number,

@@ -27,7 +27,7 @@ const MU = 3.5316e12; // Kerbin's GM
 const BODY_RADIUS = 600_000;
 const PERIOD = 2 * Math.PI * Math.sqrt(SMA ** 3 / MU);
 
-describe("CurrentOrbit: full render off the stream (R6 Wave 1)", () => {
+describe("CurrentOrbit: full render off the stream", () => {
   it("renders the complete grid, subtitle, and diagram purely off the stream", async () => {
     registerStockBodies();
     const mode = { name: "default-9x18", w: 9, h: 18 };
