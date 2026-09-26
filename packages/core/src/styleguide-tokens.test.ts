@@ -193,7 +193,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/SpaceCenterStatus/index.tsx": 3,
     "packages/components/src/StationConnectView/StationConnectView.styles.ts": 7,
     "packages/components/src/SystemView/index.tsx": 1,
-    "packages/components/src/TechTree/index.tsx": 5,
+    "packages/components/src/TechTree/styles.ts": 5,
     "packages/components/src/Twr/index.tsx": 1,
     "packages/components/src/WarpControl/styles.ts": 1,
     "packages/serial/src/SerialDevicesMenu/CalibrateWizard.tsx": 1,
@@ -219,7 +219,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
    */
   lineHeight: {
     "packages/components/src/SpaceCenterStatus/index.tsx": 1,
-    "packages/components/src/TechTree/index.tsx": 1,
+    "packages/components/src/TechTree/styles.ts": 1,
     "packages/serial/src/VirtualDevice/index.tsx": 1,
     "packages/ui-kit/src/Readout.tsx": 1,
   },

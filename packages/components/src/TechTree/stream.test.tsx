@@ -10,7 +10,7 @@ beforeEach(() => {
   clearActionHandlers();
 });
 
-describe("TechTree: genuinely runs off the stream (M3/M3b career batch)", () => {
+describe("TechTree: genuinely runs off the stream", () => {
   it("renders the science readout derived from career.status.economy.science", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["career.status", "spaceCenter.scene"],
