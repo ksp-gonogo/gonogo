@@ -1,7 +1,9 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen, within } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { DataTable } from "./DataTable";
+import { DataTable, type DataTableColumn } from "./DataTable";
+import type { UnitValue } from "./readingCurrency";
 
 interface Sample {
   id: string;
@@ -169,5 +171,69 @@ describe("DataTable row detail", () => {
     );
     const body = screen.getAllByRole("rowgroup")[1] as HTMLElement;
     expect(within(body).getAllByRole("row")).toHaveLength(2);
+  });
+});
+
+describe("DataTable row headers and readings", () => {
+  interface Craft {
+    name: string;
+    apoapsis: UnitValue<"m">;
+  }
+  const crafts: Craft[] = [
+    { name: "Kerbal X", apoapsis: value("m", 84_000) },
+    {
+      name: "Mun Lander",
+      apoapsis: {
+        state: "stale",
+        reckoning: { status: "none" },
+        value: value("m", 12_000),
+        asOfUt: value("ut", 12_000),
+        grade: "held-stale",
+      },
+    },
+  ];
+  const columns: DataTableColumn<Craft>[] = [
+    { key: "name", header: "Craft", rowHeader: true, render: (c) => c.name },
+    { key: "ap", header: "Apoapsis", align: "end", value: (c) => c.apoapsis },
+  ];
+
+  it("names each row with its row-header cell", () => {
+    render(
+      <DataTable
+        caption="Crafts"
+        columns={columns}
+        rows={crafts}
+        rowKey={(c) => c.name}
+      />,
+    );
+    expect(screen.getByRole("rowheader", { name: "Kerbal X" })).toBeTruthy();
+    expect(screen.getAllByRole("rowheader")).toHaveLength(2);
+  });
+
+  it("draws a value column through Unit, so a held reading keeps its mark", () => {
+    const { container } = render(
+      <DataTable
+        caption="Crafts"
+        columns={columns}
+        rows={crafts}
+        rowKey={(c) => c.name}
+      />,
+    );
+    expect(container.querySelectorAll("[data-held-mark]")).toHaveLength(1);
+    expect(
+      container.querySelector("[data-unit-currency]")?.textContent,
+    ).toMatch(/STALE/i);
+  });
+
+  it("has no axe violations with a row-header column", async () => {
+    const { container } = render(
+      <DataTable
+        caption="Crafts"
+        columns={columns}
+        rows={crafts}
+        rowKey={(c) => c.name}
+      />,
+    );
+    await expectNoA11yViolations(container);
   });
 });

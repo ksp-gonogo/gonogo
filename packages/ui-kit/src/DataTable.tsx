@@ -1,12 +1,19 @@
 import type { ReactNode } from "react";
 import { Fragment } from "react";
 import styled from "styled-components";
+import type { UnitValue } from "./readingCurrency";
+import { Unit } from "./Unit";
 
-export interface DataTableColumn<Row> {
+interface DataTableColumnBase {
   /** Stable identity for the column, and its React key. */
   key: string;
   header: ReactNode;
-  render: (row: Row) => ReactNode;
+  /**
+   * This column names its row: its cells are row headers
+   * (`<th scope="row">`), so a screen reader says the row's name with every
+   * other cell in it. One column per table, normally the first.
+   */
+  rowHeader?: boolean;
   /**
    * `end` right-aligns the cell and its header. Use it for every numeric
    * column, so the digits line up.
@@ -23,6 +30,23 @@ export interface DataTableColumn<Row> {
    * instead of wrapping to single words.
    */
   minWidth?: string;
+}
+
+/**
+ * One column: what each cell draws, from a `render` of the caller's own, or
+ * from a `value` the table draws through `<Unit>`, which takes a whole
+ * `Reading` so a held figure keeps its mark.
+ */
+export type DataTableColumn<Row> = DataTableColumnBase &
+  (
+    | { render: (row: Row) => ReactNode; value?: never }
+    | { value: (row: Row) => UnitValue | null | undefined; render?: never }
+  );
+
+/** A cell's content, from whichever of the two the column gives. */
+function cellContent<Row>(col: DataTableColumn<Row>, row: Row): ReactNode {
+  if (col.value !== undefined) return <Unit value={col.value(row) ?? null} />;
+  return col.render(row);
 }
 
 /**
@@ -62,7 +86,8 @@ export interface DataTableProps<Row> {
  * down the page.
  *
  * Semantic `<table>` throughout. Each section is a `<tbody>` of its own,
- * headed by a `<th scope="rowgroup">` spanning the width.
+ * headed by a `<th scope="rowgroup">` spanning the width, and a `rowHeader`
+ * column makes each row's naming cell a `<th scope="row">`.
  */
 export function DataTable<Row>({
   columns,
@@ -134,9 +159,11 @@ export function DataTable<Row>({
                     {columns.map((col) => (
                       <DataTable__Cell
                         key={col.key}
+                        as={col.rowHeader ? "th" : undefined}
+                        scope={col.rowHeader ? "row" : undefined}
                         $align={col.align ?? "start"}
                       >
-                        {col.render(row)}
+                        {cellContent(col, row)}
                       </DataTable__Cell>
                     ))}
                   </DataTable__Row>
@@ -210,14 +237,17 @@ const DataTable__SectionCell = styled.th`
 
 /* A row and its detail are one record, so only the bottom of the pair is ruled. */
 const DataTable__Row = styled.tr<{ $hasDetail: boolean }>`
-  &:not(:last-child) > td {
+  &:not(:last-child) > td,
+  &:not(:last-child) > th {
     border-bottom: ${({ $hasDetail }) =>
       $hasDetail ? "none" : "1px solid var(--color-border-subtle)"};
   }
 `;
 
+/* A row header is the same cell to the eye; only its role differs. */
 const DataTable__Cell = styled.td<{ $align: "start" | "end" }>`
   text-align: ${({ $align }) => $align};
+  font-weight: inherit;
   color: var(--color-text-primary);
   padding: var(--inset-table-cell);
   font-variant-numeric: tabular-nums;
