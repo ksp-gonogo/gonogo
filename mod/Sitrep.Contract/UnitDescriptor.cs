@@ -386,15 +386,14 @@ namespace Sitrep.Contract
                 if (c == '"' || c == '\\')
                 {
                     sb.Append('\\').Append(c);
+                    continue;
                 }
-                else if (c < ' ')
+                if (c < ' ')
                 {
                     sb.Append("\\u").Append(((int)c).ToString("x4"));
+                    continue;
                 }
-                else
-                {
-                    sb.Append(c);
-                }
+                sb.Append(c);
             }
             return sb.Append('"').ToString();
         }

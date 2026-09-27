@@ -121,9 +121,18 @@ public class RtDocVisitor : TypeScriptExportVisitor
         {
             foreach (var unit in ns.CompilationUnits)
             {
-                if (unit is RtInterface iface) Members(iface.Name, iface.Members);
-                else if (unit is RtClass cls) Members(cls.Name, cls.Members);
-                else if (unit is RtEnum en) EnumValues(en);
+                switch (unit)
+                {
+                    case RtInterface iface:
+                        Members(iface.Name, iface.Members);
+                        break;
+                    case RtClass cls:
+                        Members(cls.Name, cls.Members);
+                        break;
+                    case RtEnum en:
+                        EnumValues(en);
+                        break;
+                }
             }
         }
 

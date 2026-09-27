@@ -723,56 +723,10 @@ public static class RtConfig
                     continue;
                 }
 
-                var value = "Value<\"" + unit.Unit + "\">";
-                string tsType;
                 // Vec3 is a class, so `Vec3?` is the same runtime type; one
                 // comparison covers the required and the optional field alike.
-                if (prop.PropertyType == typeof(Vec3))
-                {
-                    // The unit sits on the WHOLE vector, because one canonical
-                    // Vec3 shape is reused at sites carrying three different
-                    // units (its own X/Y/Z are annotated NotApplicable for
-                    // exactly that reason). Vec3Of<U> carries the per-use-site
-                    // unit down to the leaves, which is the same propagation
-                    // EmitUnitMap does below, expressed as a type.
-                    vectors++;
-                    tsType = "Vec3Of<\"" + unit.Unit + "\">";
-                }
-                else if (IsNumeric(prop.PropertyType))
-                {
-                    tsType = value;
-                }
-                else if (IsNumeric(UnitDescriptor.NumericSequenceElement(prop.PropertyType)))
-                {
-                    // A sequence of same-unit readings (a terrain profile, a
-                    // per-stage delta-v list). The unit belongs to each ELEMENT,
-                    // so it lands inside the array rather than on it.
-                    tsType = value + "[]";
-                }
-                else if (IsNumeric(UnitDescriptor.DictionaryValueType(prop.PropertyType)))
-                {
-                    // A name-keyed map of same-unit readings (a rate per resource
-                    // name). Same rule as the sequence above: the unit belongs to
-                    // each VALUE, so it lands inside the map rather than on it,
-                    // and the key is just a name.
-                    //
-                    // Every name-keyed channel before this one had a POCO value
-                    // (vessel.resources -> ResourceAmount, career.facilities ->
-                    // CareerFacility) whose own properties carried the units, so
-                    // a map of BARE scalars had never come up and this branch did
-                    // not exist. Its absence was a gap, not a decision: without it
-                    // the only ways to declare such a map were a wrapper object
-                    // per entry, or a bare `number` the client has to guess at.
-                    tsType = "{ [key: string]: " + value + " }";
-                }
-                else
-                {
-                    throw new InvalidOperationException(
-                        "[SitrepUnit(\"" + unit.Unit + "\")] on " + type.Name + "." + prop.Name +
-                        " declares a quantity, but the property is " + prop.PropertyType.Name +
-                        ", which has no magnitude to carry. Use a non-quantity token (text/flag/enum/id/n/a) " +
-                        "or make the property numeric.");
-                }
+                if (prop.PropertyType == typeof(Vec3)) vectors++;
+                var tsType = QuantityTsType(type, prop, unit);
 
                 if (nullable)
                 {
@@ -811,6 +765,51 @@ public static class RtConfig
             vectors + " as Vec3Of<...>)");
         Console.WriteLine(
             "codegen (null unions) -> " + nulled + " nullable properties can hold the null the wire sends");
+    }
+
+    private static string QuantityTsType(Type type, PropertyInfo prop, SitrepUnitAttribute unit)
+    {
+        var value = "Value<\"" + unit.Unit + "\">";
+        if (prop.PropertyType == typeof(Vec3))
+        {
+            // The unit sits on the WHOLE vector, because one canonical
+            // Vec3 shape is reused at sites carrying three different
+            // units (its own X/Y/Z are annotated NotApplicable for
+            // exactly that reason). Vec3Of<U> carries the per-use-site
+            // unit down to the leaves, which is the same propagation
+            // EmitUnitMap does below, expressed as a type.
+            return "Vec3Of<\"" + unit.Unit + "\">";
+        }
+        if (IsNumeric(prop.PropertyType)) return value;
+        if (IsNumeric(UnitDescriptor.NumericSequenceElement(prop.PropertyType)))
+        {
+            // A sequence of same-unit readings (a terrain profile, a
+            // per-stage delta-v list). The unit belongs to each ELEMENT,
+            // so it lands inside the array rather than on it.
+            return value + "[]";
+        }
+        if (IsNumeric(UnitDescriptor.DictionaryValueType(prop.PropertyType)))
+        {
+            // A name-keyed map of same-unit readings (a rate per resource
+            // name). Same rule as the sequence above: the unit belongs to
+            // each VALUE, so it lands inside the map rather than on it,
+            // and the key is just a name.
+            //
+            // Every name-keyed channel before this one had a POCO value
+            // (vessel.resources -> ResourceAmount, career.facilities ->
+            // CareerFacility) whose own properties carried the units, so
+            // a map of BARE scalars had never come up and this branch did
+            // not exist. Its absence was a gap, not a decision: without it
+            // the only ways to declare such a map were a wrapper object
+            // per entry, or a bare `number` the client has to guess at.
+            return "{ [key: string]: " + value + " }";
+        }
+
+        throw new InvalidOperationException(
+            "[SitrepUnit(\"" + unit.Unit + "\")] on " + type.Name + "." + prop.Name +
+            " declares a quantity, but the property is " + prop.PropertyType.Name +
+            ", which has no magnitude to carry. Use a non-quantity token (text/flag/enum/id/n/a) " +
+            "or make the property numeric.");
     }
 
     /// <summary>
@@ -2011,29 +2010,7 @@ public static class RtConfig
                         "Result names the resolved type outright. A command answers one shape.");
                 }
 
-                string reply;
-                if (attr.Result != null)
-                {
-                    var named = TsResultName(attr.Result, attr.CommandId, type.Name, localNames);
-                    reply = named;
-                    // Only a NAME needs importing. A primitive and the open
-                    // `Record<string, unknown>` are spelled inline, and adding
-                    // the C# type's name for one of those put a literal
-                    // `Dictionary`2` in the import list, which is exactly the
-                    // "check the output rather than assuming" failure this
-                    // codegen is warned about.
-                    if (named == attr.Result.Name) replyNames.Add(named);
-                }
-                else if (attr.Payload != null)
-                {
-                    var named = TsResultName(attr.Payload, attr.CommandId, type.Name, localNames);
-                    reply = "CommandResultOf<" + named + ">";
-                    if (named == attr.Payload.Name) replyNames.Add(named);
-                }
-                else
-                {
-                    reply = "CommandResult";
-                }
+                var reply = CommandReply(attr, type.Name, localNames, replyNames);
 
                 // The rail columns. `replies` is derived from what the command
                 // answers, and is true for every command the contract has ever
@@ -2239,6 +2216,28 @@ public static class RtConfig
 
         File.WriteAllText(outPath, sb.ToString());
         Console.WriteLine("codegen (command-map) -> " + outPath + " (" + rows.Count + " commands)");
+    }
+
+    private static string CommandReply(
+        SitrepCommandAttribute attr, string argsName, HashSet<string> localNames, SortedSet<string> replyNames)
+    {
+        if (attr.Result != null)
+        {
+            var named = TsResultName(attr.Result, attr.CommandId, argsName, localNames);
+            // Only a NAME needs importing. A primitive and the open
+            // `Record<string, unknown>` are spelled inline, and adding
+            // the C# type's name for one of those put a literal
+            // `Dictionary`2` in the import list, which is exactly the
+            // "check the output rather than assuming" failure this
+            // codegen is warned about.
+            if (named == attr.Result.Name) replyNames.Add(named);
+            return named;
+        }
+        if (attr.Payload == null) return "CommandResult";
+
+        var payload = TsResultName(attr.Payload, attr.CommandId, argsName, localNames);
+        if (payload == attr.Payload.Name) replyNames.Add(payload);
+        return "CommandResultOf<" + payload + ">";
     }
 
     /// <summary>

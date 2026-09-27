@@ -154,7 +154,7 @@ public static class RtDocText
                 if (skipDepth > 0)
                 {
                     if (reader.NodeType == XmlNodeType.Element && !reader.IsEmptyElement) skipDepth++;
-                    else if (reader.NodeType == XmlNodeType.EndElement) skipDepth--;
+                    if (reader.NodeType == XmlNodeType.EndElement) skipDepth--;
                     continue;
                 }
 
@@ -228,9 +228,9 @@ public static class RtDocText
                                 // the self-closing form has to be named for the
                                 // reader, and every one in this tree is that form.
                                 if (!empty) { closers.Push(string.Empty); break; }
-                                if (!string.IsNullOrEmpty(cref)) sb.Append(renderCref(cref));
-                                else if (!string.IsNullOrEmpty(langword)) sb.Append('`').Append(langword).Append('`');
-                                else if (!string.IsNullOrEmpty(href)) sb.Append(href);
+                                if (!string.IsNullOrEmpty(cref)) { sb.Append(renderCref(cref)); break; }
+                                if (!string.IsNullOrEmpty(langword)) { sb.Append('`').Append(langword).Append('`'); break; }
+                                if (!string.IsNullOrEmpty(href)) sb.Append(href);
                                 break;
                             }
                             case "paramref":
@@ -254,11 +254,24 @@ public static class RtDocText
 
                     case XmlNodeType.EndElement:
                     {
-                        var name = reader.Name.ToLowerInvariant();
-                        if (name == "para" || name == "p" || name == "list" || name == "item"
-                            || name == "remarks" || name == "example") Flush();
-                        else if (name == "term" || name == "description" || name == "listheader") { }
-                        else if (closers.Count > 0) sb.Append(closers.Pop());
+                        switch (reader.Name.ToLowerInvariant())
+                        {
+                            case "para":
+                            case "p":
+                            case "list":
+                            case "item":
+                            case "remarks":
+                            case "example":
+                                Flush();
+                                break;
+                            case "term":
+                            case "description":
+                            case "listheader":
+                                break;
+                            default:
+                                if (closers.Count > 0) sb.Append(closers.Pop());
+                                break;
+                        }
                         afterTag = true;
                         break;
                     }
