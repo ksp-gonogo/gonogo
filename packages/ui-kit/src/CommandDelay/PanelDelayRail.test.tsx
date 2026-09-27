@@ -46,6 +46,18 @@ function railAnnouncer(): HTMLElement | null {
   return document.querySelector<HTMLElement>("[data-live-region]");
 }
 
+/** The rail box around the disclosure button, which carries the grow state. */
+function railOf(btn: HTMLElement): HTMLElement {
+  return btn.closest("[data-panel-rail]") as HTMLElement;
+}
+
+/** The pinned rail's collapse hint, its one pointer target. */
+function collapseHint(container: HTMLElement): HTMLElement {
+  return container.querySelector(
+    "[data-panel-rail] button > span",
+  ) as HTMLElement;
+}
+
 /** The rail with a store above it, which is all it needs. */
 function inPanel(rail: JSX.Element, store = createDelayRailStore()) {
   return render(
@@ -111,9 +123,8 @@ describe("PanelDelayRail", () => {
     inPanel(<PanelDelayRail />, store);
     const btn = screen.getByRole("button", { name: /signal-delay detail/i });
     await user.hover(btn);
-    expect(btn).toHaveAttribute("data-grown", "true");
-    expect(btn).not.toHaveAttribute("aria-expanded");
-    expect(btn).toHaveAttribute("aria-pressed", "false");
+    expect(railOf(btn)).toHaveAttribute("data-grown", "true");
+    expect(btn).toHaveAttribute("aria-expanded", "false");
   });
 
   it("has no axe violations grown with a command in flight", async () => {
@@ -125,7 +136,7 @@ describe("PanelDelayRail", () => {
       screen.getByRole("button", { name: /signal-delay detail/i }),
     );
     expect(
-      screen.getByRole("button", { name: /signal-delay detail/i }),
+      railOf(screen.getByRole("button", { name: /signal-delay detail/i })),
     ).toHaveAttribute("data-grown", "true");
     await expectNoA11yViolations(container);
   });
@@ -199,7 +210,7 @@ describe("PanelDelayRail", () => {
       store.register(handle("cmd"));
       inPanel(<PanelDelayRail />, store);
       // Not `absolute`: an out-of-flow band would draw over the sticky header and take its clicks.
-      expect(getComputedStyle(railButton()).position).toBe("relative");
+      expect(getComputedStyle(railOf(railButton())).position).toBe("relative");
     });
   });
 
@@ -210,13 +221,13 @@ describe("PanelDelayRail", () => {
       }) as HTMLButtonElement;
     }
 
-    it("is a toggle button, unpressed by default, showing the rail summary not the detail list", () => {
+    it("is a disclosure button, collapsed by default, showing the rail summary not the detail list", () => {
       const store = createDelayRailStore();
       store.register(handle("cmd"));
       const { container } = inPanel(<PanelDelayRail />, store);
       const btn = railButton();
-      expect(btn).toHaveAttribute("aria-pressed", "false");
-      expect(btn).toHaveAttribute("data-pinned", "false");
+      expect(btn).toHaveAttribute("aria-expanded", "false");
+      expect(railOf(btn)).toHaveAttribute("data-pinned", "false");
       // Collapsed = the grazing-glow summary, not the detail list.
       expect(container.querySelector('[data-role="glow"]')).not.toBeNull();
       expect(container.textContent).not.toContain("Launch");
@@ -230,15 +241,15 @@ describe("PanelDelayRail", () => {
       const btn = railButton();
 
       await user.click(btn);
-      expect(btn).toHaveAttribute("aria-pressed", "true");
-      // Grown: the queue square replaces the glow in place, inside the rail button.
+      expect(btn).toHaveAttribute("aria-expanded", "true");
+      // Grown: the queue square replaces the glow in place.
       expect(container.querySelector('[data-role="glow"]')).toBeNull();
       // The command's label rides the queue square's accessible name.
       expect(container.querySelector('[aria-label*="Launch"]')).not.toBeNull();
       expect(container.querySelector("[data-delay-float]")).toBeNull();
 
       await user.keyboard("{Escape}");
-      expect(btn).toHaveAttribute("aria-pressed", "false");
+      expect(btn).toHaveAttribute("aria-expanded", "false");
       expect(container.querySelector('[data-role="glow"]')).not.toBeNull();
       expect(btn).toHaveFocus();
     });
@@ -250,31 +261,73 @@ describe("PanelDelayRail", () => {
       inPanel(<PanelDelayRail />, store);
       const btn = railButton();
       await user.click(btn);
-      expect(btn).toHaveAttribute("aria-pressed", "true");
-      await user.click(btn);
-      expect(btn).toHaveAttribute("aria-pressed", "false");
+      expect(btn).toHaveAttribute("aria-expanded", "true");
+      await user.keyboard("{Enter}");
+      expect(btn).toHaveAttribute("aria-expanded", "false");
     });
 
-    it("shows a sighted arrow-only collapse hint while pinned, hidden again once un-pinned; the word 'collapse' stays in the button's aria-label for assistive tech", async () => {
+    it("controls a detail region beside it, so the expanded contents are not button label text", async () => {
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register(handle("cmd"));
+      inPanel(<PanelDelayRail />, store);
+      const btn = railButton();
+      await user.click(btn);
+
+      const detailId = btn.getAttribute("aria-controls");
+      expect(detailId).toBeTruthy();
+      const detail = document.getElementById(detailId as string);
+      expect(detail).not.toBeNull();
+      const square = detail?.querySelector('[aria-label*="Launch"]');
+      expect(square).not.toBeNull();
+      expect(btn.contains(square as Element)).toBe(false);
+      expect(btn).toHaveAccessibleName("Signal-delay detail");
+    });
+
+    it("stays pinned when the expanded detail itself is clicked", async () => {
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register(handle("cmd"));
+      const { container } = inPanel(<PanelDelayRail />, store);
+      const btn = railButton();
+      await user.click(btn);
+
+      await user.click(
+        container.querySelector('[aria-label*="Launch"]') as HTMLElement,
+      );
+      expect(btn).toHaveAttribute("aria-expanded", "true");
+      expect(railOf(btn)).toHaveAttribute("data-grown", "true");
+    });
+
+    it("un-pins from the collapse hint", async () => {
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register(handle("cmd"));
+      const { container } = inPanel(<PanelDelayRail />, store);
+      const btn = railButton();
+      await user.click(btn);
+
+      await user.click(collapseHint(container));
+      expect(btn).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("shows a sighted arrow-only collapse hint while pinned, hidden again once un-pinned; aria-expanded carries the state for assistive tech", async () => {
       const user = userEvent.setup();
       const store = createDelayRailStore();
       store.register(handle("cmd"));
       const { container } = inPanel(<PanelDelayRail />, store);
       const btn = railButton();
 
-      expect(container.textContent).not.toContain("▲");
+      expect(collapseHint(container)).not.toBeVisible();
 
       await user.click(btn);
-      const hint = container.querySelector('[aria-hidden="true"]');
-      expect(hint?.textContent).toBe("▲");
-      expect(hint?.textContent).not.toMatch(/collapse/i);
-      expect(btn).toHaveAttribute(
-        "aria-label",
-        expect.stringMatching(/collapse/i),
-      );
+      const hint = collapseHint(container);
+      expect(hint).toBeVisible();
+      expect(hint).toHaveAttribute("aria-hidden", "true");
+      expect(hint.textContent).toBe("▲");
 
-      await user.click(btn);
-      expect(container.textContent).not.toContain("▲");
+      await user.keyboard("{Enter}");
+      expect(collapseHint(container)).not.toBeVisible();
     });
 
     it("un-pinning via click suppresses the CSS hover-preview immediately (data-suppress-hover), the pointer having never left", async () => {
@@ -286,31 +339,31 @@ describe("PanelDelayRail", () => {
       const btn = railButton();
 
       await user.click(btn); // pin
-      expect(btn).toHaveAttribute("data-suppress-hover", "false");
+      expect(railOf(btn)).toHaveAttribute("data-suppress-hover", "false");
 
-      await user.click(btn); // un-pin, pointer still over the button
-      expect(btn).toHaveAttribute("data-pinned", "false");
-      expect(btn).toHaveAttribute("data-suppress-hover", "true");
-      expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
+      await user.click(collapseHint(container)); // un-pin, pointer still over the rail
+      expect(railOf(btn)).toHaveAttribute("data-pinned", "false");
+      expect(railOf(btn)).toHaveAttribute("data-suppress-hover", "true");
+      expect(collapseHint(container)).not.toBeVisible();
     });
 
     it("clears the hover-preview suppression on the pointer's next genuine entry, not on its exit", async () => {
       const user = userEvent.setup();
       const store = createDelayRailStore();
       store.register(handle("cmd"));
-      inPanel(<PanelDelayRail />, store);
+      const { container } = inPanel(<PanelDelayRail />, store);
       const btn = railButton();
 
       await user.click(btn);
-      await user.click(btn);
-      expect(btn).toHaveAttribute("data-suppress-hover", "true");
+      await user.click(collapseHint(container));
+      expect(railOf(btn)).toHaveAttribute("data-suppress-hover", "true");
 
       await user.unhover(btn);
       // Only a fresh entry clears it, never leaving.
-      expect(btn).toHaveAttribute("data-suppress-hover", "true");
+      expect(railOf(btn)).toHaveAttribute("data-suppress-hover", "true");
 
       await user.hover(btn);
-      expect(btn).toHaveAttribute("data-suppress-hover", "false");
+      expect(railOf(btn)).toHaveAttribute("data-suppress-hover", "false");
     });
 
     it("has no axe violations while pinned/grown", async () => {

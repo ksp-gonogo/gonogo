@@ -605,6 +605,8 @@ textarea {
   --gap-delay-rail: var(--space-8);
   --gap-rail-summaries: var(--space-8);
   --offset-rail-hint: var(--space-4);
+  /* How far the collapse hint's click target reaches past its glyph. */
+  --outset-rail-hint-target: var(--space-8);
   --gap-message-stack: var(--space-4);
   --inset-command-list: var(--space-4) var(--space-8);
   --gap-command-list-column: var(--space-8);

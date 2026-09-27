@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import styled, { css } from "styled-components";
 import { focusRingInset } from "../focusRing";
 import { LiveRegion } from "../LiveRegion";
@@ -52,12 +52,14 @@ function handleHasContent(handle: CommandHandle): boolean {
  * first child, pulled up into the inset `PanelContainer` reserves.
  *
  * Collapsed, the rail sits in normal flow inside the band and moves nothing.
- * Activating it (a native `<button>`; Esc collapses) PINS it, and pinning
+ * It is a disclosure: a native `<button>` laid over the strip controls the
+ * detail beside it. Activating it (Esc collapses) PINS the rail, and pinning
  * GROWS it: each command switches to its `expanded` view and the title and
  * body are pushed down. Opened while the body is already scrolled, it extends
- * over the content instead, so the scroll position is kept. `aria-pressed`
+ * over the content instead, so the scroll position is kept. `aria-expanded`
  * carries the pin; hover is a transient preview that says nothing to assistive
- * tech.
+ * tech. Pinned, the detail takes its own clicks and only the collapse hint
+ * toggles.
  *
  * The band stays EMPTY when nothing has anything to draw. "Anything" is five
  * things: in flight, refused, unanswered, found and never sent. The last four
@@ -93,6 +95,7 @@ export function PanelDelayRail() {
    */
   const [suppressHoverPreview, setSuppressHoverPreview] = useState(false);
   const grown = pinned || (previewing && !suppressHoverPreview);
+  const detailId = useId();
 
   // Growing the rail moves the title and body by ordinary flow; there is no height to measure or publish.
 
@@ -163,24 +166,10 @@ export function PanelDelayRail() {
       {/* Nothing to draw leaves the band standing EMPTY: the strip is the panel's, not the traffic's. */}
       {!hasContent ? null : (
         <PanelDelayRail__Rail
-          type="button"
           data-panel-rail=""
           data-grown={grown}
           data-pinned={pinned}
           data-suppress-hover={suppressHoverPreview}
-          aria-pressed={pinned}
-          aria-label={
-            pinned
-              ? "Signal-delay detail; activate to collapse"
-              : "Signal-delay detail; activate to expand it in place"
-          }
-          onClick={() => {
-            setPinned((p) => {
-              const next = !p;
-              if (!next) setSuppressHoverPreview(true);
-              return next;
-            });
-          }}
           onMouseEnter={() => {
             setSuppressHoverPreview(false);
             setPreviewing(true);
@@ -195,42 +184,57 @@ export function PanelDelayRail() {
             }
           }}
         >
-          {grown && (
-            <PanelDelayRail__CollapseHint aria-hidden="true">
+          <PanelDelayRail__Toggle
+            type="button"
+            aria-expanded={pinned}
+            aria-controls={detailId}
+            aria-label="Signal-delay detail"
+            onClick={() => {
+              setPinned((p) => {
+                const next = !p;
+                if (!next) setSuppressHoverPreview(true);
+                return next;
+              });
+            }}
+          >
+            {/* Hidden rather than unmounted: a node leaving from under a resting pointer reads to React as the pointer entering the rail. */}
+            <PanelDelayRail__CollapseHint aria-hidden="true" hidden={!grown}>
               ▲
             </PanelDelayRail__CollapseHint>
-          )}
-          {ordered.map((h) => (
-            <CommandDelay
-              key={h.id}
-              handle={h}
-              variant={grown ? "expanded" : "rail"}
-              // A handle that names its own graph keeps that name at both heights.
-              ariaLabel={h.ariaLabel ?? (grown ? "Delay detail" : undefined)}
-            />
-          ))}
-          {!grown && (deadCount > 0 || founds.length > 0) && (
-            // One run for both counts, since they share the band's single grid cell.
-            <PanelDelayRail__Summaries>
-              {deadCount > 0 && (
-                <PanelDelayRail__FailureSummary>
-                  {deadCount === 1
-                    ? "1 command failed"
-                    : `${deadCount} commands failed`}
-                </PanelDelayRail__FailureSummary>
-              )}
-              {founds.length > 0 && (
-                <PanelDelayRail__FoundSummary>
-                  {founds.length === 1
-                    ? "1 lost command found"
-                    : `${founds.length} lost commands found`}
-                </PanelDelayRail__FoundSummary>
-              )}
-            </PanelDelayRail__Summaries>
-          )}
+          </PanelDelayRail__Toggle>
+          <PanelDelayRail__Detail id={detailId} data-panel-rail-detail="">
+            {ordered.map((h) => (
+              <CommandDelay
+                key={h.id}
+                handle={h}
+                variant={grown ? "expanded" : "rail"}
+                // A handle that names its own graph keeps that name at both heights.
+                ariaLabel={h.ariaLabel ?? (grown ? "Delay detail" : undefined)}
+              />
+            ))}
+            {!grown && (deadCount > 0 || founds.length > 0) && (
+              // One run for both counts, since they share the band's single grid cell.
+              <PanelDelayRail__Summaries>
+                {deadCount > 0 && (
+                  <PanelDelayRail__FailureSummary>
+                    {deadCount === 1
+                      ? "1 command failed"
+                      : `${deadCount} commands failed`}
+                  </PanelDelayRail__FailureSummary>
+                )}
+                {founds.length > 0 && (
+                  <PanelDelayRail__FoundSummary>
+                    {founds.length === 1
+                      ? "1 lost command found"
+                      : `${founds.length} lost commands found`}
+                  </PanelDelayRail__FoundSummary>
+                )}
+              </PanelDelayRail__Summaries>
+            )}
+          </PanelDelayRail__Detail>
         </PanelDelayRail__Rail>
       )}
-      {/* Outside the toggle button: a dismiss button inside it would be a nested interactive. */}
+      {/* Outside the rail, so the grown lists push the panel down rather than share the rail's grid cell. */}
       {grown && refusals.length > 0 && (
         <CommandRefusalList
           refusals={refusals}
@@ -278,8 +282,7 @@ const PanelDelayRail__Frame = styled.div`
 `;
 
 /**
- * The rail button, filling the reserved band: a real `<button>` for the pin
- * disclosure, with no button chrome. Collapsed, every handle overlays in one
+ * The rail, filling the reserved band. Collapsed, every handle overlays in one
  * grid cell capped at the band's height. Grown (hover or pin), it becomes a
  * flex column that outgrows the band and pushes the title and body down.
  */
@@ -292,23 +295,17 @@ const grownRail = css`
   /* Full-bleed, so the stream graph spans the widget edge to edge; each child owns its own inset. */
   padding: 0;
 
-  & > * {
+  & > *,
+  & > [data-panel-rail-detail] > * {
     grid-area: auto;
   }
 `;
 
-const PanelDelayRail__Rail = styled.button`
-  appearance: none;
-  border: 0;
+const PanelDelayRail__Rail = styled.div`
   width: 100%;
   margin: 0;
   padding: 0;
   position: relative;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-  text-align: inherit;
 
   /* Height follows min(content, max-height), so animating max-height opens and collapses the rail (auto is not animatable). */
   display: grid;
@@ -318,20 +315,57 @@ const PanelDelayRail__Rail = styled.button`
   overflow: hidden;
   transition: max-height var(--duration-slow) var(--ease-standard);
 
-  & > * {
+  & > *,
+  & > [data-panel-rail-detail] > * {
     grid-area: 1 / 1;
+  }
+
+  &:not([data-pinned="true"]) > [data-panel-rail-detail] > * {
+    pointer-events: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
 
-  ${focusRingInset}
-
   /* Open (pinned or hover preview) grows past the band, driven by React state because the published height must be the grown one only. */
   &[data-grown="true"] {
     ${grownRail}
   }
+`;
+
+/**
+ * The disclosure button, laid over the whole rail with no chrome of its own, so
+ * the strip is one click target and the focus ring traces the rail's edge.
+ * Pinned, it lets pointer events through to the detail and takes a click only
+ * on its collapse hint.
+ */
+const PanelDelayRail__Toggle = styled.button`
+  appearance: none;
+  position: absolute;
+  inset: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+
+  ${focusRingInset}
+
+  &[aria-expanded="true"] {
+    pointer-events: none;
+  }
+
+`;
+
+/**
+ * The detail the toggle controls. It generates no box, so each command stays
+ * a direct grid or flex item of the rail and lays out exactly as a child of it.
+ */
+const PanelDelayRail__Detail = styled.div`
+  display: contents;
 `;
 
 /**
@@ -363,7 +397,11 @@ const PanelDelayRail__FoundSummary = styled.span`
   color: var(--color-status-info-fg);
 `;
 
-/** The pinned rail's sighted cue that it is a toggle; the button's `aria-label` carries it for assistive tech. */
+/**
+ * The grown rail's sighted cue that it collapses; `aria-expanded` carries it
+ * for assistive tech. Pinned, it is the rail's one click target, reaching past
+ * the glyph.
+ */
 const PanelDelayRail__CollapseHint = styled.span`
   position: absolute;
   top: var(--offset-rail-hint);
@@ -372,6 +410,13 @@ const PanelDelayRail__CollapseHint = styled.span`
   color: var(--color-text-muted);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
   z-index: 1;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: calc(-1 * var(--outset-rail-hint-target));
+  }
 `;
