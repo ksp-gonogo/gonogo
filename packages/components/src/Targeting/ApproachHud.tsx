@@ -1,4 +1,3 @@
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Countdown,
@@ -19,8 +18,8 @@ interface ApproachHudProps {
   relVel: number | undefined;
   closestApproachUT: number | null;
   universalTime: number | null;
-  /** A pairing is selected but its geometry is no longer current, with the age of the last dock observation. */
-  alignmentWithheld?: { age: Value<"s"> | undefined };
+  /** A pairing is selected but its geometry is not current, so the alignment is not drawn. */
+  alignmentWithheld?: boolean;
   cols: number;
   rows: number;
 }
@@ -61,17 +60,10 @@ function ReadoutRow({
   );
 }
 
-/** Why the docking HUD is not on screen while a pairing is still selected, dated where possible. */
-function AlignmentWithheldNotice({ age }: { age: Value<"s"> | undefined }) {
+/** Why the docking HUD is not on screen while a pairing is still selected. */
+function AlignmentWithheldNotice() {
   return (
-    <ReadoutCaption role="status">
-      Docking alignment no longer current
-      {age !== undefined && (
-        <>
-          , last seen <Unit value={age} /> ago
-        </>
-      )}
-    </ReadoutCaption>
+    <ReadoutCaption role="status">Docking alignment withheld</ReadoutCaption>
   );
 }
 
@@ -136,9 +128,7 @@ export function ApproachHud({
                 <Unit value={value("m/s", closingMagnitude)} decimals={1} />
               </Text>
             )}
-            {alignmentWithheld && (
-              <AlignmentWithheldNotice age={alignmentWithheld.age} />
-            )}
+            {alignmentWithheld && <AlignmentWithheldNotice />}
           </Section>
         }
       />
@@ -195,9 +185,7 @@ export function ApproachHud({
               )}
             </ReadoutRow>
           </Grid>
-          {alignmentWithheld && (
-            <AlignmentWithheldNotice age={alignmentWithheld.age} />
-          )}
+          {alignmentWithheld && <AlignmentWithheldNotice />}
         </Section>,
       ]}
     />

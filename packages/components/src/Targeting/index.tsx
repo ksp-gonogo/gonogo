@@ -119,7 +119,7 @@ function TargetingComponent({
           typeof closestApproachUT === "number" ? closestApproachUT : null
         }
         universalTime={typeof universalTime === "number" ? universalTime : null}
-        alignmentWithheld={alignmentWithheld ? { age: dockAge } : undefined}
+        alignmentWithheld={alignmentWithheld}
         cols={cols}
         rows={rows}
       />

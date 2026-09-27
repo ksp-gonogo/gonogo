@@ -9,8 +9,8 @@ import { TargetingComponent } from "./index";
 /**
  * `vessel.dock` alone stops being current while `vessel.target` keeps
  * arriving. With a model the reticle draws from reckoned geometry under a
- * caption naming the basis; without one it is withheld. The assertions are on
- * the stated reason in both cases, never on the absence. Emits stamp
+ * caption naming the basis; without one it is withheld and says so. The
+ * assertions are on the stated reason in both cases, never on the absence. Emits stamp
  * `Staleness.HeldStale` on the dock point, the wire shape for one channel not
  * being current.
  */
@@ -81,7 +81,7 @@ describe("Targeting: the dock channel alone stops being current", () => {
       ).toBeTruthy(),
     );
     // The notice cannot be on screen while the alignment is current.
-    expect(visibleText()).not.toMatch(/no longer current/i);
+    expect(visibleText()).not.toMatch(/withheld/i);
 
     act(() => {
       // Same geometry, now held-stale; the target keeps arriving.
@@ -105,7 +105,7 @@ describe("Targeting: the dock channel alone stops being current", () => {
     expect(visibleText()).toContain("linear-dead-reckoning");
     expect(visibleText()).toMatch(/last seen .+ ago/);
     // A modelled reticle is not a withheld one: two opposite captions on one instrument is worse than either.
-    expect(visibleText()).not.toMatch(/no longer current/i);
+    expect(visibleText()).not.toMatch(/withheld/i);
     expect(visibleText()).toContain("α/β/γ");
   });
 
@@ -137,11 +137,9 @@ describe("Targeting: the dock channel alone stops being current", () => {
     await waitFor(() =>
       expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull(),
     );
-    // The reason is named and dated, so withheld reads differently from broken.
-    expect(
-      screen.getByText(/Docking alignment no longer current/),
-    ).toBeTruthy();
-    expect(visibleText()).toMatch(/last seen .+ ago/);
+    // The reason is named, so withheld reads differently from broken, and time is left to Unit.
+    expect(screen.getByText("Docking alignment withheld")).toBeTruthy();
+    expect(visibleText()).not.toMatch(/last seen|\bago\b|no longer current/i);
     // The alignment row goes with the HUD rather than lingering as placeholders.
     expect(visibleText()).not.toContain("α/β/γ");
 
@@ -166,6 +164,6 @@ describe("Targeting: the dock channel alone stops being current", () => {
     });
 
     await waitFor(() => expect(screen.getByText("APPROACH")).toBeTruthy());
-    expect(visibleText()).not.toMatch(/no longer current/i);
+    expect(visibleText()).not.toMatch(/withheld/i);
   });
 });
