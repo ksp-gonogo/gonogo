@@ -1259,6 +1259,111 @@ describe("useCommand gate", () => {
     });
   });
 
+  it("refuses locally, sending nothing, while the command's own gate blocks it", async () => {
+    const fixture = setupFixture();
+    const captured: {
+      handle?: ReturnType<typeof useCommand<unknown, unknown>>;
+    } = {};
+    function Captured() {
+      const handle = useCommand("deploy");
+      captured.handle = handle;
+      return (
+        <div>
+          <span>refusals:{handle.refusals.length}</span>
+          <CommandDelay handle={handle} />
+        </div>
+      );
+    }
+    render(
+      <fixture.Provider>
+        <Captured />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.gates",
+        {
+          gates: [
+            {
+              command: "deploy",
+              verdict: { outcome: 1, errorCode: 13, detail: "throttled up" },
+            },
+          ],
+        },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    await waitFor(() => {
+      expect(captured.handle?.gate?.blocked).toBe(true);
+    });
+
+    let sent: Promise<unknown> | undefined;
+    act(() => {
+      // biome-ignore lint/style/noNonNullAssertion: asserted by the waitFor above
+      sent = captured.handle!.send(1, { label: "Deploy" });
+    });
+
+    await expect(sent).rejects.toMatchObject({
+      code: "E_REFUSED",
+      errorCode: 13,
+      command: "deploy",
+      detail: "throttled up",
+    });
+    expect(fixture.transport.sentCommands).toHaveLength(0);
+    await waitFor(() => {
+      expect(screen.getByText("refusals:1")).toBeTruthy();
+    });
+    expect(captured.handle?.refusals[0]).toMatchObject({
+      command: "deploy",
+      label: "Deploy",
+      errorCode: 13,
+      detail: "throttled up",
+    });
+  });
+
+  it("dispatches once the gate reopens", async () => {
+    const fixture = setupFixture();
+    const captured: {
+      handle?: ReturnType<typeof useCommand<unknown, unknown>>;
+    } = {};
+    function Captured() {
+      const handle = useCommand("deploy");
+      captured.handle = handle;
+      return <CommandDelay handle={handle} />;
+    }
+    render(
+      <fixture.Provider>
+        <Captured />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.gates",
+        {
+          gates: [
+            {
+              command: "deploy",
+              verdict: { outcome: 0, errorCode: 0, detail: "" },
+            },
+          ],
+        },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    await waitFor(() => {
+      expect(captured.handle?.gate?.blocked).toBe(false);
+    });
+
+    act(() => {
+      // biome-ignore lint/style/noNonNullAssertion: asserted by the waitFor above
+      void captured.handle!.send(1).catch(() => undefined);
+    });
+
+    expect(fixture.transport.sentCommands).toHaveLength(1);
+    // Holds the scope open across the stub's answer, which settles after the body.
+    await act(async () => {});
+  });
+
   /**
    * A press with nothing mounted must not resolve `send()` with `undefined`:
    * that would make every control that awaits it settle back at rest and

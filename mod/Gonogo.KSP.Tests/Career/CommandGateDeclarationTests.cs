@@ -88,12 +88,29 @@ namespace Gonogo.KSP.Tests.Career
                 byCommand["career.strategy.activate"],
                 r => r.Kind == KspGateEvaluators.Kinds.FacilityLimit
                     && r.Quantity == KspGateEvaluators.Quantities.ActiveStrategies);
+            Assert.Contains(
+                byCommand["career.crew.hire"],
+                r => r.Kind == KspGateEvaluators.Kinds.Affordable
+                    && r.Quantity == KspGateEvaluators.Quantities.RecruitHire);
             foreach (var revert in new[] { "ksp.revertToLaunch", "ksp.revertToEditor" })
             {
                 Assert.Contains(
                     byCommand[revert],
                     r => r.Kind == KspGateEvaluators.Kinds.Scene && r.Quantity == "FLIGHT");
             }
+            // The flag is asked only after the scene, which is the only scene it describes.
+            Assert.Equal(
+                new[] { KspGateEvaluators.Kinds.Scene, KspGateEvaluators.Kinds.RevertAvailable },
+                byCommand["ksp.revertToLaunch"].Select(r => r.Kind));
+            Assert.Equal(KspGateEvaluators.Quantities.RevertToLaunch, byCommand["ksp.revertToLaunch"][1].Quantity);
+            Assert.Equal(
+                new[] { KspGateEvaluators.Kinds.Scene, KspGateEvaluators.Kinds.RevertAvailable },
+                byCommand["ksp.revertToEditor"].Select(r => r.Kind));
+            Assert.Equal(KspGateEvaluators.Quantities.RevertToEditor, byCommand["ksp.revertToEditor"][1].Quantity);
+            // The facility upgrade runs in every game scene, so it declares none.
+            Assert.DoesNotContain(
+                byCommand["career.facility.upgrade"],
+                r => r.Kind == KspGateEvaluators.Kinds.Scene);
             Assert.Contains(
                 byCommand["ksp.recover"],
                 r => r.Kind == KspGateEvaluators.Kinds.ClearToSave);

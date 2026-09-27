@@ -9,6 +9,7 @@ import {
 import type { CommandGateReport } from "../__generated__/contract";
 import {
   COMMAND_LOST,
+  COMMAND_REFUSED,
   COMMAND_UNDELIVERED,
   classifyCommandRejection,
 } from "../api/command-rejection";
@@ -288,6 +289,8 @@ export interface UseCommandResult<TArgs = unknown, TReply = AnyCommandReply> {
    *
    * A `blocked` gate is a reason to draw the control dark and SAY WHY. It is
    * not a reason to make it unpressable and silent: see `CommandButton`.
+   * While it blocks, `send` refuses locally with the gate's own reason and
+   * dispatches nothing.
    */
   gate?: CommandGateStatus;
   /**
@@ -489,6 +492,10 @@ export function useCommand(
     () => selectCommandGate(gateReport, command),
     [gateReport, command],
   );
+  // Read by `send`, which is keyed on the command alone and so cannot close over the render's gate.
+  const gateRef = useRef(gate);
+  gateRef.current = gate;
+  const localRefusalSeqRef = useRef(0);
   // Whether a tracked dispatch has actually been ANSWERED, which is what
   // separates a command that arrived from one nobody ever heard. Read straight
   // off the client's own per-request record: `confirmed` and `failed` are both
@@ -839,6 +846,35 @@ export function useCommand(
         // who awaits it.
         unsent.catch(() => undefined);
         return unsent;
+      }
+      /*
+       * The command's own declaration already said no, so nothing is sent. The
+       * refusal carries the gate's verdict and lands where a dispatched one
+       * would, so every caller, not only a button, is refused the same way.
+       */
+      const standing = gateRef.current;
+      if (standing?.blocked) {
+        localRefusalSeqRef.current += 1;
+        const refusal: CommandRefusal = {
+          id: `local-refusal:${command}:${localRefusalSeqRef.current}`,
+          errorCode: standing.errorCode,
+          command,
+          args,
+          label: opts?.label ?? "",
+          breach: standing.breach,
+          detail: standing.detail,
+        };
+        setRefusals((prev) => [...prev, refusal]);
+        const refused = Promise.reject<AnyCommandReply>(
+          new CommandError(
+            COMMAND_REFUSED,
+            `command ${JSON.stringify(command)} was not dispatched: its gate refuses it`,
+            standing.errorCode,
+            refusal,
+          ),
+        );
+        refused.catch(() => undefined);
+        return refused;
       }
       const { requestId: newRequestId, result } = client.dispatch(
         command,

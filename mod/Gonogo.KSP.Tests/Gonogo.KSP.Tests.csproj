@@ -454,6 +454,7 @@
     <Compile Include="..\Gonogo.KSP\Gates\CareerGates.cs" />
     <Compile Include="..\Gonogo.KSP\Gates\GateDeclarations.cs" />
     <Compile Include="..\Gonogo.KSP\Gates\KspGateEvaluators.cs" />
+    <Compile Include="..\Gonogo.KSP\Career\HirePrice.cs" />
     <Compile Include="..\Gonogo.KSP\GameWords.cs" />
     <!-- The launch pre-flight WALK: which of KSP's own launch tests refuses,
          which code that becomes, and what the refusal quotes. The tests

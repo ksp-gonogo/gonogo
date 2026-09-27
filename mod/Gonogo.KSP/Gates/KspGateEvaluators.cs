@@ -52,6 +52,8 @@ namespace Gonogo.KSP.Gates
             yield return new FacilityUnlockedGate();
             yield return new ClearToSaveGate();
             yield return new PreFlightGate();
+            yield return new RevertAvailableGate();
+            yield return new AffordableGate();
         }
 
         /// <summary>Requirement kinds, spelled once so a declaration and its evaluator cannot drift apart on a typo.</summary>
@@ -63,6 +65,8 @@ namespace Gonogo.KSP.Gates
             public const string FacilityUnlocked = "facility-unlocked";
             public const string ClearToSave = "clear-to-save";
             public const string PreFlight = "preflight";
+            public const string RevertAvailable = "revert-available";
+            public const string Affordable = "affordable";
         }
 
         /// <summary>Quantities the facility gates understand, spelled once for the same reason.</summary>
@@ -77,6 +81,9 @@ namespace Gonogo.KSP.Gates
             public const string ManeuverTool = "maneuverTool";
             public const string LaunchSiteClear = "launchSiteClear";
             public const string FacilityOperational = "facilityOperational";
+            public const string RevertToLaunch = "launch";
+            public const string RevertToEditor = "editor";
+            public const string RecruitHire = "recruitHire";
 
             /// <summary>
             /// Whether <see cref="FacilityLimitGate"/> knows this quantity.
@@ -401,6 +408,94 @@ namespace Gonogo.KSP.Gates
             catch (Exception ex)
             {
                 return GateVerdict.Unknown("could not ask whether the flight is clear: " + ex.Message);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Authority: <c>FlightDriver.CanRevertToPostInit</c> (<see cref="KspGateEvaluators.Quantities.RevertToLaunch"/>)
+    /// and <c>FlightDriver.CanRevertToPrelaunch</c> (<see cref="KspGateEvaluators.Quantities.RevertToEditor"/>),
+    /// the flags KSP's own pause menu reads for its revert buttons.
+    ///
+    /// <para>Outside flight the flags still describe the previous flight, so
+    /// this answers Unknown there; both reverts declare the flight scene
+    /// first, which is what refuses them off-scene.</para>
+    /// </summary>
+    internal sealed class RevertAvailableGate : ICommandGateEvaluator
+    {
+        public const string LaunchDetail = "this flight cannot be reverted to launch";
+        public const string EditorDetail = "this flight cannot be reverted to the editor";
+
+        public string Kind => KspGateEvaluators.Kinds.RevertAvailable;
+
+        public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
+        {
+            try
+            {
+                if (!HighLogic.LoadedSceneIsFlight)
+                {
+                    return GateVerdict.Unknown("the revert flags describe a flight only in the flight scene");
+                }
+                switch (requirement.Quantity)
+                {
+                    case KspGateEvaluators.Quantities.RevertToLaunch:
+                        return FlightDriver.CanRevertToPostInit
+                            ? GateVerdict.Pass()
+                            : GateVerdict.Fail(CommandErrorCode.NotClearToProceed, LaunchDetail);
+                    case KspGateEvaluators.Quantities.RevertToEditor:
+                        return FlightDriver.CanRevertToPrelaunch
+                            ? GateVerdict.Pass()
+                            : GateVerdict.Fail(CommandErrorCode.NotClearToProceed, EditorDetail);
+                    default:
+                        return GateVerdict.Unknown($"no revert is named \"{requirement.Quantity}\"");
+                }
+            }
+            catch (Exception ex)
+            {
+                return GateVerdict.Unknown("could not read the revert flags: " + ex.Message);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Authority: <c>CurrencyModifierQuery</c> over the price the game quotes
+    /// for an argument-free purchase, against <c>Funding.Funds</c>. The only
+    /// purchase declared is <see cref="KspGateEvaluators.Quantities.RecruitHire"/>,
+    /// <c>GameVariables.GetRecruitHireCost</c> at the active roster size, which
+    /// is the same for every applicant.
+    ///
+    /// <para>A save with no funds at all charges nothing, so it passes; a career
+    /// whose <c>Funding</c> has not woken up answers Unknown.</para>
+    /// </summary>
+    internal sealed class AffordableGate : ICommandGateEvaluator
+    {
+        public string Kind => KspGateEvaluators.Kinds.Affordable;
+
+        public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
+        {
+            if (requirement.Quantity != KspGateEvaluators.Quantities.RecruitHire)
+            {
+                return GateVerdict.Unknown($"no price is named \"{requirement.Quantity}\"");
+            }
+            try
+            {
+                var game = HighLogic.CurrentGame;
+                if (game == null) return GateVerdict.Unknown("no game is loaded");
+                if (game.Mode != Game.Modes.CAREER) return GateVerdict.Pass();
+                var roster = game.CrewRoster;
+                var funding = Funding.Instance;
+                if (roster == null || funding == null || GameVariables.Instance == null)
+                {
+                    return GateVerdict.Unknown("the career's funds are not loaded yet");
+                }
+                var shortfall = HirePrice.Shortfall(roster, funding);
+                return shortfall == null
+                    ? GateVerdict.Pass()
+                    : GateVerdict.Fail(CommandErrorCode.InsufficientFunds, shortfall);
+            }
+            catch (Exception ex)
+            {
+                return GateVerdict.Unknown("could not price the next recruit: " + ex.Message);
             }
         }
     }

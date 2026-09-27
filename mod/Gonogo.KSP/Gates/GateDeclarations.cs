@@ -90,24 +90,27 @@ namespace Gonogo.KSP.Gates
                     SpaceCenterFacility.MissionControl, KspGateEvaluators.Quantities.ActiveContracts),
             };
 
+            // The recruit price is the same for every applicant, so it is askable in advance.
             table[CareerCommandProvider.HireApplicantCommand] = new[]
             {
                 CareerGates.CareerMode,
                 CareerGates.FacilityLimit(
                     SpaceCenterFacility.AstronautComplex, KspGateEvaluators.Quantities.ActiveCrew),
+                CareerGates.Affordable(KspGateEvaluators.Quantities.RecruitHire),
             };
 
             // Both reverts restore a state FlightDriver saved during THIS
-            // flight, which only the flight scene still describes. The
-            // actuator refuses outside it too; declared, the control is dark
-            // with the scene named before anyone presses it.
+            // flight, which only the flight scene still describes, so the scene
+            // is asked before the flag that describes it.
             table[FlightOpsCommandProvider.RevertToLaunchCommand] = new[]
             {
                 CareerGates.InRevertScene,
+                CareerGates.RevertAvailable(KspGateEvaluators.Quantities.RevertToLaunch),
             };
             table[FlightOpsCommandProvider.RevertToEditorCommand] = new[]
             {
                 CareerGates.InRevertScene,
+                CareerGates.RevertAvailable(KspGateEvaluators.Quantities.RevertToEditor),
             };
 
             // Recovery is destructive and KSP will not do it while the craft is

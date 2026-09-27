@@ -54,7 +54,7 @@ namespace Gonogo.KSP
             {
                 return CommandResult.Fail(
                     CommandErrorCode.NotClearToProceed,
-                    "this flight cannot be reverted to launch");
+                    Gates.RevertAvailableGate.LaunchDetail);
             }
             FlightDriver.RevertToLaunch();
             return CommandResult.Ok();
@@ -92,7 +92,7 @@ namespace Gonogo.KSP
             {
                 return CommandResult.Fail(
                     CommandErrorCode.NotClearToProceed,
-                    "this flight cannot be reverted to the editor");
+                    Gates.RevertAvailableGate.EditorDetail);
             }
 
             EditorFacility kspFacility;

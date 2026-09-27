@@ -63,6 +63,20 @@ namespace Gonogo.KSP.Gates
         /// <summary>The game is in <see cref="RevertScene"/>.</summary>
         public static CommandRequirement InRevertScene => Scene(RevertScene);
 
+        /// <summary>KSP's own revert flag for this revert (<c>FlightDriver.CanRevertTo*</c>).</summary>
+        public static CommandRequirement RevertAvailable(string revert) => new CommandRequirement
+        {
+            Kind = KspGateEvaluators.Kinds.RevertAvailable,
+            Quantity = revert,
+        };
+
+        /// <summary>The career can afford an argument-free purchase the game prices.</summary>
+        public static CommandRequirement Affordable(string purchase) => new CommandRequirement
+        {
+            Kind = KspGateEvaluators.Kinds.Affordable,
+            Quantity = purchase,
+        };
+
         /// <summary>The flight is in a state KSP would let you leave (<c>FlightGlobals.ClearToSave()</c>).</summary>
         public static CommandRequirement ClearToSave => new CommandRequirement
         {

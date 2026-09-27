@@ -534,19 +534,10 @@ namespace Gonogo.KSP
                 }
             }
 
-            var cost = gameVariables != null ? gameVariables.GetRecruitHireCost(activeCrew) : 0f;
-            var query = CareerAffordability.Price(
-                TransactionReasons.CrewRecruited, Currency.Funds, cost);
-            if (!CareerAffordability.CanAfford(query, Currency.Funds))
+            var shortfall = HirePrice.Shortfall(roster, funding);
+            if (shortfall != null)
             {
-                return CommandResult.Fail(
-                    CommandErrorCode.InsufficientFunds,
-                    CareerRefusals.ShortfallBreach(
-                        SpaceCenterFacility.AstronautComplex.ToString(),
-                        FacilityDisplayName(SpaceCenterFacility.AstronautComplex),
-                        complexNorm, "funds",
-                        CareerAffordability.PriceOf(query, Currency.Funds),
-                        funding.Funds, Units.Funds));
+                return CommandResult.Fail(CommandErrorCode.InsufficientFunds, shortfall);
             }
 
             // No debit here: the hire fires OnCrewmemberHired and Funding's own
