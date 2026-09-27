@@ -28,12 +28,15 @@ describe("ProgressBar", () => {
     );
   });
 
-  it("treats a non-finite value as 0", () => {
-    render(<ProgressBar value={Number.NaN} ariaLabel="Coverage" />);
-    expect(screen.getByRole("progressbar")).toHaveAttribute(
-      "aria-valuenow",
-      "0",
+  it("draws nothing for a non-finite value, since an empty track reads as 0%", () => {
+    const { container } = render(
+      <>
+        <ProgressBar value={Number.NaN} ariaLabel="Coverage" />
+        <ProgressBar value={Number.POSITIVE_INFINITY} ariaLabel="Rate" />
+      </>,
     );
+    expect(screen.queryByRole("progressbar")).toBeNull();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("defaults the fill to the accent colour", () => {

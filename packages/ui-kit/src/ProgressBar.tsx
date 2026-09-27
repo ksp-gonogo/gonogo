@@ -22,8 +22,8 @@ interface ProgressBarCommonProps
 /** The bar driven by a percentage already worked out. See {@link ProgressBarProps}. */
 export interface ProgressBarPercentProps extends ProgressBarCommonProps {
   /**
-   * Current value, 0-100. Clamped into range before rendering; non-finite
-   * renders empty. For a figure the source already derived as a percentage;
+   * Current value, 0-100. Clamped into range before rendering; a non-finite
+   * value draws nothing, since an empty track would read as 0%. For a figure the source already derived as a percentage;
    * where both halves are in hand as quantities, pass `quantity` instead.
    */
   value: number;
@@ -68,13 +68,11 @@ export function ProgressBar<U extends string = string>({
 }: Readonly<ProgressBarProps<U>>) {
   const fraction = quantity === undefined ? null : fillFraction(quantity);
 
-  // Absence, not a zero bar. Only the pair spelling can be absent.
+  // Absence, not a zero bar.
   if (quantity !== undefined && fraction === null) return null;
-
   const percent = fraction === null ? (value ?? Number.NaN) : fraction * 100;
-  const clamped = Number.isFinite(percent)
-    ? Math.max(0, Math.min(100, percent))
-    : 0;
+  if (!Number.isFinite(percent)) return null;
+  const clamped = Math.max(0, Math.min(100, percent));
 
   return (
     <ProgressBar__Track
