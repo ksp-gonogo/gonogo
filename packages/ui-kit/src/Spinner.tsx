@@ -1,3 +1,4 @@
+import type { HTMLAttributes } from "react";
 import styled, { keyframes } from "styled-components";
 
 /**
@@ -6,7 +7,8 @@ import styled, { keyframes } from "styled-components";
  * the spin animation is gated on the no-preference query so users with
  * vestibular sensitivity see a static ring instead.
  */
-export interface SpinnerProps {
+export interface SpinnerProps
+  extends Omit<HTMLAttributes<HTMLSpanElement>, "color" | "role"> {
   /** Outer diameter in pixels. Defaults to 12. */
   size?: number;
   /** Stroke width in pixels. Defaults to 2. */
@@ -22,9 +24,11 @@ export function Spinner({
   thickness = 2,
   color = "var(--color-accent-fg)",
   ariaLabel = "Loading",
+  ...rest
 }: Readonly<SpinnerProps>) {
   return (
     <SpinnerEl
+      {...rest}
       role="status"
       aria-label={ariaLabel}
       $size={size}

@@ -24,4 +24,12 @@ describe("Spinner", () => {
     const el = screen.getByRole("status");
     expect(el).toHaveStyle({ width: "12px", height: "12px" });
   });
+
+  it("forwards the attributes a caller places it with", () => {
+    render(<Spinner className="beside" data-testid="pending" id="s1" />);
+    const el = screen.getByTestId("pending");
+    expect(el).toHaveClass("beside");
+    expect(el).toHaveAttribute("id", "s1");
+    expect(el).toHaveAttribute("role", "status");
+  });
 });
