@@ -89,14 +89,6 @@ export interface GonogoHost {
    */
   useViewUt(): Value<"ut"> | undefined;
   /**
-   * The craft's present (SCET): the instant every reading's reckoning is for.
-   * Solve geometry and count down to an event at the craft against this, so a
-   * drawn object shares one instant with the readings beside it; keep
-   * `useViewUt` for the age of an observation. Equal to `useViewUt` below a
-   * one-second light-time and while scrubbed.
-   */
-  useScetUt(): Value<"ut"> | undefined;
-  /**
    * The write boundary, mirroring `useTelemetry`'s read one. Overloaded on the
    * same seam the SDK's own `useCommand` uses: a known `CommandId` resolves its
    * args and its reply out of the generated command map, and a computed id

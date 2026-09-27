@@ -32,7 +32,6 @@ const TEST_FILE = /\.test\.|\.test-d\./;
 const MACHINERY = "mod/sitrep-sdk/src/spine/";
 
 const PENDING = "command planning at the arrival instant, held for a ruling";
-const MOVING = "moves to the received edge in this branch";
 
 /** Readers still to go, each with why it is here. Shrink-only. */
 const DIRECT_READERS: Record<string, { count: number; why: string }> = {
@@ -49,13 +48,6 @@ const DIRECT_READERS: Record<string, { count: number; why: string }> = {
     why: PENDING,
   },
   "packages/core/src/hooks/useOrbitSolve.ts": { count: 1, why: PENDING },
-  "packages/app/src/uplinks/host.ts": { count: 1, why: MOVING },
-  "mod/sitrep-sdk/src/api/host.ts": { count: 1, why: MOVING },
-  "mod/sitrep-sdk/src/api/index.ts": { count: 1, why: MOVING },
-  "mod/sitrep-sdk/src/testing/install-real-test-host.ts": {
-    count: 1,
-    why: MOVING,
-  },
 };
 
 function withoutComments(source: string): string {

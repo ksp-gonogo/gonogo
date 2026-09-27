@@ -4,7 +4,6 @@ import { getUplinkHandle } from "../api/uplink-handles";
 import { PerfBudget } from "../perf/PerfBudget";
 import {
   getActiveTelemetryClient,
-  useScetUt,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
   useUtNow,
@@ -118,7 +117,6 @@ export function installRealTestHost(uiKit: UiKitHostPieces): () => void {
         key,
       )) as GonogoHost["useTelemetry"],
     useViewUt: () => useViewUt(),
-    useScetUt: () => useScetUt(),
     useCommand: ((command: string, options?: { vantage?: string }) =>
       useCommand(command, options)) as GonogoHost["useCommand"],
     // An Uplink's own test run has no peer client, so a call goes straight to

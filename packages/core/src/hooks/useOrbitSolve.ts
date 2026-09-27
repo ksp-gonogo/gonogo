@@ -56,7 +56,9 @@ import { useMemo } from "react";
  * the reference body's radius cannot be resolved, which is `bodyRadiusOf`'s
  * three-way discipline reaching the drawing site intact.
  */
-export function useOrbitSolve(at: SolveInstant = "scet"): OrbitalSolve | null {
+export function useOrbitSolve(
+  at: SolveInstant = "received",
+): OrbitalSolve | null {
   const reading = useTelemetry("vessel.orbit");
   const bodiesReading = useStream<BodyRadiusTable>("system.bodies");
   // The roster does not decay, and a tombstone is the one null it answers.

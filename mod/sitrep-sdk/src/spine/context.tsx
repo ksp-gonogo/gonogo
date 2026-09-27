@@ -687,23 +687,10 @@ export function useViewUt(): Value<"ut"> | undefined {
 }
 
 /**
- * The craft's present (SCET) as a reactive value: the instant every reading's
- * reckoning is for. Anything a widget solves or counts down for itself, a conic,
- * a body's position, the time to an event at the craft, is solved here so it
- * shares one instant with the readings it is drawn beside. `useViewUt` stays the
- * received edge, for the age of an observation.
- *
- * Equal to `useViewUt` on a LAN session and while scrubbed.
- */
-export function useScetUt(): Value<"ut"> | undefined {
-  return useFrameInstant(craftPresent);
-}
-
-/**
- * Which instant an orbit is solved at: the craft's present, or when a command
+ * Which instant an orbit is solved at: the received edge, or when a command
  * sent now would reach it, for a surface planning what that command will find.
  */
-export type SolveInstant = "scet" | "command-arrival";
+export type SolveInstant = "received" | "command-arrival";
 
 /**
  * When a command sent now reaches the craft, as a reactive value: SCET plus the
@@ -720,10 +707,6 @@ function commandArrival(clock: ViewClockView, viewUt: number): number {
 
 function receivedEdge(_clock: ViewClockView, viewUt: number): number {
   return viewUt;
-}
-
-function craftPresent(clock: ViewClockView, viewUt: number): number {
-  return clock.scetUt(viewUt);
 }
 
 /** One of the frame's instants, derived from the view time `onFrame` hands each tick, as a reactive `Value`. */
@@ -856,17 +839,9 @@ export function getCommandArrivalUt(): number | undefined {
   return ut !== undefined && Number.isFinite(ut) ? ut : undefined;
 }
 
-/** Non-React `useScetUt()` equivalent, off the same clock `getViewUt` reads. */
-export function getScetUt(): number | undefined {
-  noteUndeclaredRead("getScetUt");
-  const clock = activeViewClock;
-  const ut = clock?.scetUt(clock.viewUt());
-  return ut !== undefined && Number.isFinite(ut) ? ut : undefined;
-}
-
 /**
  * Test-only escape hatch: registers `clock` as `getViewUt()`'s and
- * `getScetUt()`'s source directly, without mounting a `TelemetryProvider`: for
+ * `getCommandArrivalUt()`'s source directly, without mounting a `TelemetryProvider`: for
  * a host-service unit test (`AlarmHostService`, `ManeuverTriggerHostService`)
  * that drives its own fake telemetry reader and has no React tree to render at
  * all. A fake with no `scetUt` answers SCET as its view time, and one with no
@@ -1162,7 +1137,9 @@ export function getSystemBodies(): SystemBodies | undefined {
  * would, so a maneuver plan and the panel drawing the orbit it plans against
  * cannot disagree about whether there is an orbit to plan against.
  */
-export function getOrbitSolve(at: SolveInstant = "scet"): OrbitalSolve | null {
+export function getOrbitSolve(
+  at: SolveInstant = "received",
+): OrbitalSolve | null {
   if (!activeTimelineStore) return null;
   const reading =
     activeTimelineStore.sampleReading<VesselOrbit>("vessel.orbit");
@@ -1177,7 +1154,7 @@ export function getOrbitSolve(at: SolveInstant = "scet"): OrbitalSolve | null {
     elements,
     reading.reckoning,
     getSystemBodies(),
-    at === "command-arrival" ? getCommandArrivalUt() : getScetUt(),
+    at === "command-arrival" ? getCommandArrivalUt() : getViewUt(),
     reading.state === "observed" ? reading.atUt : undefined,
   );
 }
