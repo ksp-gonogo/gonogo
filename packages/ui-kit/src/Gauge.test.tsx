@@ -1,5 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { render } from "@ksp-gonogo/sitrep-sdk/testing";
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { Gauge } from "./Gauge";
@@ -35,19 +35,22 @@ describe("Gauge", () => {
     expect(container.textContent).toContain("kN");
   });
 
-  it("speaks the value with its unit in the accessible name", () => {
-    const { container } = render(
+  it("is a meter that states its value, with the unit in words", () => {
+    render(
       <Gauge
         value={value("kN", 42)}
         min={value("kN", 0)}
         max={value("kN", 100)}
         width={200}
         height={120}
+        ariaLabel="Thrust"
       />,
     );
-    expect(
-      container.querySelector("svg")?.getAttribute("aria-label"),
-    ).toContain("kilonewton");
+    const meter = screen.getByRole("meter", { name: "Thrust" });
+    expect(meter).toHaveAttribute("aria-valuenow", "42");
+    expect(meter).toHaveAttribute("aria-valuemin", "0");
+    expect(meter).toHaveAttribute("aria-valuemax", "100");
+    expect(meter.getAttribute("aria-valuetext")).toContain("kilonewton");
   });
 
   it("uses the supplied valueLabel when provided", () => {

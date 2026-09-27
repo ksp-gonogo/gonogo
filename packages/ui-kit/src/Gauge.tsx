@@ -149,15 +149,30 @@ export function Gauge<U extends string = string>({
     [safeValue, lo, hi, radius],
   );
 
+  const semantics = hasFigure
+    ? {
+        role: "meter",
+        "aria-label": sayHeld(ariaLabel ?? "Gauge", caption),
+        ...heldNameMarker(caption),
+        "aria-valuenow": v,
+        "aria-valuemin": lo,
+        "aria-valuemax": hi,
+        "aria-valuetext": spoken,
+      }
+    : {
+        // With no value to state, the face is an image rather than a meter at its minimum.
+        role: "img",
+        "aria-label": sayHeld(ariaLabel ?? `Gauge: ${spoken}`, caption),
+        ...heldNameMarker(caption),
+      };
+
   if (radius <= 0) {
     return (
       <svg
         width={Math.max(0, width)}
         height={Math.max(0, height)}
         viewBox={`0 0 ${Math.max(0, width)} ${Math.max(0, height)}`}
-        role="img"
-        aria-label={sayHeld(ariaLabel ?? `Gauge: ${spoken}`, caption)}
-        {...heldNameMarker(caption)}
+        {...semantics}
         style={{ display: "block", maxWidth: "100%", height: "auto" }}
       >
         <title>{ariaLabel ?? "Gauge"}</title>
@@ -177,9 +192,7 @@ export function Gauge<U extends string = string>({
       height={height}
       // With `max-width: 100%`, the viewBox lets the SVG scale down to a slot narrower than `width` instead of being clipped.
       viewBox={`0 0 ${width} ${height}`}
-      role="img"
-      aria-label={sayHeld(ariaLabel ?? `Gauge: ${spoken}`, caption)}
-      {...heldNameMarker(caption)}
+      {...semantics}
       data-not-current={notCurrent ? "" : undefined}
       style={{
         display: "block",

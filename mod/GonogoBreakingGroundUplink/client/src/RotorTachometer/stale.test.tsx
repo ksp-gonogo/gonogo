@@ -59,7 +59,7 @@ describe("RotorTachometer: a rotor list that has stopped arriving", () => {
     const { container } = mountWithRotor("rt-stale-control");
 
     await waitFor(() => expect(visibleText(container)).toContain("130"));
-    expect(screen.getByRole("img", { name: /EM-32S/ })).not.toHaveAttribute(
+    expect(screen.getByRole("meter", { name: /EM-32S/ })).not.toHaveAttribute(
       "data-not-current",
     );
   });
@@ -72,7 +72,7 @@ describe("RotorTachometer: a rotor list that has stopped arriving", () => {
       fixture.store.setTransportConnected(false);
     });
 
-    const gauge = await screen.findByRole("img", { name: /EM-32S/ });
+    const gauge = await screen.findByRole("meter", { name: /EM-32S/ });
     await waitFor(() => expect(gauge).toHaveAttribute("data-not-current"));
     expect(gauge).toHaveAccessibleName(
       /^EM-32S Standard Rotor: 130 rpm, cap 200 rpm, \S/,
@@ -91,7 +91,7 @@ describe("RotorTachometer: a rotor list that has stopped arriving", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByRole("img", { name: /EM-32S/ })).toHaveAttribute(
+      expect(screen.getByRole("meter", { name: /EM-32S/ })).toHaveAttribute(
         "data-not-current",
       ),
     );

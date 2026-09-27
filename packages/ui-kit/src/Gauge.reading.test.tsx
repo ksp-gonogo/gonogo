@@ -118,7 +118,7 @@ describe("Gauge, handed a Reading", () => {
       />,
     );
     // The grade's own word, never rephrased here.
-    expect(screen.getByRole("img").getAttribute("aria-label")).toMatch(
+    expect(screen.getByRole("meter").getAttribute("aria-label")).toMatch(
       /^TWR, /,
     );
   });
@@ -133,7 +133,7 @@ describe("Gauge, handed a Reading", () => {
         ariaLabel="TWR"
       />,
     );
-    expect(screen.getByRole("img").getAttribute("aria-label")).toBe("TWR");
+    expect(screen.getByRole("meter").getAttribute("aria-label")).toBe("TWR");
   });
 
   it("draws one mark per bound, and never a shaded interval", () => {
