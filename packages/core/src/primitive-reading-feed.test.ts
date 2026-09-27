@@ -501,19 +501,6 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
   "packages/components/src/CommSignal/index.tsx": 2,
   "packages/components/src/CrewStatus/index.tsx": 2,
   "packages/components/src/CurrentOrbit/index.tsx": 2,
-  /*
-   * TWO, and newly VISIBLE rather than newly written. The Δv budget reaches
-   * this widget from a processor, and a processor that deps on a reading now
-   * ANSWERS with one, so the unwrap that feeds these two figures is a currency
-   * the walk can see being dropped where before there was none to drop.
-   *
-   * Held deliberately: every readout here is a figure rather than a control, so
-   * both value-bearing arms are taken and the panel keeps its numbers when the
-   * link goes quiet. What is missing is the MARK, and that arrives when the
-   * budget's per-field currency retires into the reading rather than sitting
-   * beside it as its own `budget.state`.
-   */
-  "packages/components/src/FuelStatus/index.tsx": 2,
   "packages/components/src/SpaceCenterStatus/index.tsx": 1,
   /*
    * Newly VISIBLE, through `Countdown` taking a reading, and the same shape as

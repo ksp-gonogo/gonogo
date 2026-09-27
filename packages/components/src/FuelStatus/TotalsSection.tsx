@@ -1,4 +1,3 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Box,
   NULL_DISPLAY,
@@ -7,7 +6,6 @@ import {
   Text,
   Unit,
   type UnitValue,
-  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { DELTA_V_MODE_SHORT, type DeltaVMode } from "./config";
@@ -53,8 +51,7 @@ export function TotalsSection({
   totalBurnTime,
   mode,
 }: {
-  totalDv: number | undefined;
-  /** `null` when the sim reported no figure, so it still goes through `Unit` rather than the bare-string branch. */
+  totalDv: UnitValue<"m/s"> | undefined;
   totalBurnTime: UnitValue<"s"> | null | undefined;
   mode: DeltaVMode;
 }) {
@@ -71,9 +68,11 @@ export function TotalsSection({
     >
       <TotalFigure label="Total ΔV">
         <span style={{ whiteSpace: "nowrap" }}>
-          {totalDv !== undefined
-            ? writeQuantity(value("m/s", totalDv), { decimals: 0 })
-            : NULL_DISPLAY}
+          {totalDv !== undefined ? (
+            <Unit value={totalDv} decimals={0} />
+          ) : (
+            NULL_DISPLAY
+          )}
         </span>
         <span
           style={{

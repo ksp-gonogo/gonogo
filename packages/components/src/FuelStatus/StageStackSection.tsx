@@ -13,7 +13,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { DELTA_V_MODE_SHORT, type DeltaVMode } from "./config";
-import { fmtFixed, pickDeltaV, pickTWR, stageReading } from "./deltaV";
+import { budgetFigure, fmtFixed, pickDeltaV, pickTWR } from "./deltaV";
 
 function burnLabel(burnTime: number): ReactNode {
   // NaN is a burn time the wire did not carry, not a stage that burns for no time.
@@ -62,7 +62,7 @@ export function StageStackSection({
           const figure = pickDeltaV(s, mode);
           // NaN is a stage the wire carried no ΔV for, which the meter draws as absent rather than empty.
           const dv = Number.isFinite(figure)
-            ? stageReading(budgetReading, value("m/s", figure))
+            ? budgetFigure(budgetReading, value("m/s", figure))
             : null;
           const active = s.stage === currentStage;
           return (

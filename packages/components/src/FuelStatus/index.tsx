@@ -5,7 +5,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { DELTA_V_BUDGET, useProcessor } from "@ksp-gonogo/sitrep-client";
-import { stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
+import { stillTrue, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   BigReadout,
   NULL_DISPLAY,
@@ -21,7 +21,7 @@ import {
   type DeltaVMode,
   type FuelStatusConfig,
 } from "./config";
-import { maxStageDeltaV, NO_STAGES, pickTotal } from "./deltaV";
+import { budgetFigure, maxStageDeltaV, NO_STAGES, pickTotal } from "./deltaV";
 import { FuelStatusConfigForm } from "./FuelStatusConfigForm";
 import { ResourceListSection } from "./ResourceListSection";
 import { useResourceRows } from "./resources";
@@ -42,14 +42,13 @@ function FuelStatusComponent({
   )?.currentStage;
   /*
    * Every total is the game's own figure off `dv.summary`, never a sum of the stage rows, which are built from a different stage list (see `DELTA_V_BUDGET`).
-   * A dated budget is carried and captioned rather than blanked: it only falls by burning and rises by staging or docking, so the last figure is still the figure.
+   * A dated budget is carried and marked held rather than blanked: it only falls by burning and rises by staging or docking, so the last figure is still the figure.
    */
   const budgetReading = useProcessor(DELTA_V_BUDGET);
   const budget =
     budgetReading?.state === "observed" || budgetReading?.state === "stale"
       ? budgetReading.value
       : undefined;
-  const budgetNotCurrent = budget?.budget.state === "stale";
   // Gated on the sim having answered: a craft with no engines answers `null` for every total, and the row draws its labelled pair of dashes.
   const budgetReported =
     budget !== undefined &&
@@ -57,7 +56,11 @@ function FuelStatusComponent({
     // A build whose ΔV sim publishes nothing has not answered and never will, so the row stays away.
     budget.budget.state !== "unowned";
   const stageCount = budget?.stageCount ?? undefined;
+  const dated = <U extends string>(figure: Value<U>) =>
+    budgetReading === undefined ? figure : budgetFigure(budgetReading, figure);
   const totalDv = magnitudeOf(pickTotal(budget, mode)) ?? undefined;
+  // `null` when the sim reported no figure, so it still goes through `Unit` rather than the bare-string branch.
+  const totalBurnTime = budget?.totalBurnTime;
 
   const readings = useResourceRows();
 
@@ -111,8 +114,6 @@ function FuelStatusComponent({
               {stageCount !== null &&
                 stageCount !== undefined &&
                 ` / ${stageCount.minus(1).max(0).magnitude}`}
-              {/* A dated budget is still the budget, so it is said out loud rather than blanked. */}
-              {budgetNotCurrent && " · ΔV at last contact"}
             </ReadoutCaption>
           </Section>
         ),
@@ -123,12 +124,9 @@ function FuelStatusComponent({
               style={{ fontSize: "clamp(13px, 3.5vw, 17px)" }}
             >
               <span style={{ whiteSpace: "nowrap" }}>
-                <Unit value={value("m/s", totalDv)} decimals={0} />
+                <Unit value={dated(value("m/s", totalDv))} decimals={0} />
               </span>
-              <ReadoutCaption>
-                ΔV {DELTA_V_MODE_SHORT[mode]}
-                {budgetNotCurrent && " · at last contact"}
-              </ReadoutCaption>
+              <ReadoutCaption>ΔV {DELTA_V_MODE_SHORT[mode]}</ReadoutCaption>
             </BigReadout>
           </Section>
         ),
@@ -141,8 +139,14 @@ function FuelStatusComponent({
         showTotals && budgetReported && (
           <Section key="totals" full>
             <TotalsSection
-              totalDv={totalDv}
-              totalBurnTime={budget?.totalBurnTime}
+              totalDv={
+                totalDv === undefined ? undefined : dated(value("m/s", totalDv))
+              }
+              totalBurnTime={
+                totalBurnTime === null || totalBurnTime === undefined
+                  ? totalBurnTime
+                  : dated(totalBurnTime)
+              }
               mode={mode}
             />
           </Section>

@@ -6,11 +6,11 @@ import type { DeltaVMode } from "./config";
 /** Stable empty stack: `useProcessor` answers undefined before the first frame. */
 export const NO_STAGES: DeltaVStage[] = [];
 
-/** One stage's ΔV as a reading dated as the budget it is a row of; the budget's model is dropped because it speaks about the whole budget. */
-export function stageReading(
+/** A budget figure as a reading dated as the budget it is part of; the budget's model is dropped because it speaks about the whole budget. */
+export function budgetFigure<U extends string>(
   budget: Reading<DeltaVBudget>,
-  figure: Value<"m/s">,
-): Reading<Value<"m/s">> {
+  figure: Value<U>,
+): Reading<Value<U>> {
   return {
     state: budget.state,
     value: figure,
