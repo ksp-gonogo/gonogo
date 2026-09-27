@@ -389,8 +389,11 @@ describe("banner comments", () => {
       const added: string[] = [];
       for (const [file, count] of Object.entries(current)) {
         const before = base[file];
-        if (before === undefined) added.push(`${file} (new entry: ${count})`);
-        else if (count > before) added.push(`${file} (${before} -> ${count})`);
+        if (before === undefined) {
+          added.push(`${file} (new entry: ${count})`);
+          continue;
+        }
+        if (count > before) added.push(`${file} (${before} -> ${count})`);
       }
       return added;
     }

@@ -294,7 +294,8 @@ function unresolvedIn(checker: ts.TypeChecker, sf: ts.SourceFile): string[] {
     if (ts.isImportDeclaration(statement)) {
       if (!statement.importClause) continue;
       specifier = statement.moduleSpecifier;
-    } else if (ts.isExportDeclaration(statement)) {
+    }
+    if (ts.isExportDeclaration(statement)) {
       specifier = statement.moduleSpecifier;
     }
     if (!specifier || !ts.isStringLiteral(specifier)) continue;
@@ -333,9 +334,8 @@ export function scanProgram(
       if (isAssertion(node)) {
         if (!isConstAssertion(node.type)) scan.assertions += 1;
         const verdict = classifyAssertion(checker, node);
-        if (verdict === "error-typed") {
-          scan.errorTyped += 1;
-        } else if (verdict) {
+        if (verdict === "error-typed") scan.errorTyped += 1;
+        if (typeof verdict === "object" && verdict !== null) {
           const { line } = sf.getLineAndCharacterOfPosition(node.getStart());
           scan.sites.push({
             file: sf.fileName.slice(repoRoot.length + 1),

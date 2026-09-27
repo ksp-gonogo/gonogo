@@ -76,8 +76,11 @@ function balancedRegion(
 ): string | undefined {
   let depth = 0;
   for (let i = start; i < text.length; i++) {
-    if (text[i] === open) depth++;
-    else if (text[i] === close) {
+    if (text[i] === open) {
+      depth++;
+      continue;
+    }
+    if (text[i] === close) {
       depth--;
       if (depth === 0) return text.slice(start + 1, i);
     }

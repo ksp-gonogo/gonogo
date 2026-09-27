@@ -584,28 +584,24 @@ export function scanProgram(
     const visit = (node: ts.Node): void => {
       if (ts.isJsxAttribute(node)) {
         const verdict = classifyAttribute(checker, node);
-        if (verdict === "error-typed") {
-          scan.readingProps += 1;
-          scan.errorTyped += 1;
-        } else if (verdict !== "not-a-reading-prop") {
-          scan.readingProps += 1;
-          if (verdict) {
-            const { line } = sf.getLineAndCharacterOfPosition(node.getStart());
-            const owner = node.parent.parent;
-            const tag = ts.isJsxSelfClosingElement(owner)
+        if (verdict !== "not-a-reading-prop") scan.readingProps += 1;
+        if (verdict === "error-typed") scan.errorTyped += 1;
+        if (typeof verdict === "object" && verdict !== null) {
+          const { line } = sf.getLineAndCharacterOfPosition(node.getStart());
+          const owner = node.parent.parent;
+          const tag = ts.isJsxSelfClosingElement(owner)
+            ? owner.tagName.getText()
+            : ts.isJsxOpeningElement(owner)
               ? owner.tagName.getText()
-              : ts.isJsxOpeningElement(owner)
-                ? owner.tagName.getText()
-                : "?";
-            scan.sites.push({
-              file: sf.fileName.slice(repoRoot.length + 1),
-              line: line + 1,
-              element: tag,
-              prop: verdict.prop,
-              via: verdict.via,
-              text: node.getText().replace(/\s+/g, " ").slice(0, 140),
-            });
-          }
+              : "?";
+          scan.sites.push({
+            file: sf.fileName.slice(repoRoot.length + 1),
+            line: line + 1,
+            element: tag,
+            prop: verdict.prop,
+            via: verdict.via,
+            text: node.getText().replace(/\s+/g, " ").slice(0, 140),
+          });
         }
       }
       ts.forEachChild(node, visit);

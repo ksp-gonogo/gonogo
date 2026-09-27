@@ -259,8 +259,11 @@ describe("each declared domain holds the paths its scan names", () => {
       // A workspace package the scan imports is code it runs, so its sources are part of what the scan's verdict depends on.
       for (const m of text.matchAll(WORKSPACE_IMPORT)) {
         const dir = packageDirs.get(m[1] ?? "");
-        if (dir === undefined) out.add(`${m[1]} (imported, no such package)`);
-        else if (!covered(`${dir}/src/x.ts`)) out.add(`${m[1]} (imported)`);
+        if (dir === undefined) {
+          out.add(`${m[1]} (imported, no such package)`);
+          continue;
+        }
+        if (!covered(`${dir}/src/x.ts`)) out.add(`${m[1]} (imported)`);
       }
       for (const m of text.matchAll(PATH_LITERAL)) {
         const literal = m[1] ?? "";

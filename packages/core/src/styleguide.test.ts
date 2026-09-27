@@ -108,8 +108,11 @@ function* walk(dir: string): Generator<string> {
       continue;
     const path = join(dir, name);
     const stat = statSync(path);
-    if (stat.isDirectory()) yield* walk(path);
-    else if (/\.(tsx?|css)$/.test(name)) yield path;
+    if (stat.isDirectory()) {
+      yield* walk(path);
+      continue;
+    }
+    if (/\.(tsx?|css)$/.test(name)) yield path;
   }
 }
 

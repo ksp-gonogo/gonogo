@@ -108,7 +108,7 @@ function gatedTestCount(file: string): number {
   for (let i = start; i < source.length; i++) {
     const ch = source[i];
     if (ch === "{") depth++;
-    else if (ch === "}") {
+    if (ch === "}") {
       depth--;
       if (depth === 0) {
         end = i;

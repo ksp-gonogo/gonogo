@@ -65,8 +65,11 @@ function walk(dir: string): string[] {
   for (const entry of entries) {
     if (entry === "node_modules" || entry === "dist") continue;
     const full = join(dir, entry);
-    if (statSync(full).isDirectory()) out.push(...walk(full));
-    else if (SOURCE.test(entry)) out.push(full);
+    if (statSync(full).isDirectory()) {
+      out.push(...walk(full));
+      continue;
+    }
+    if (SOURCE.test(entry)) out.push(full);
   }
   return out;
 }
@@ -107,8 +110,11 @@ function countFixtures(root: string): number {
     for (const entry of entries) {
       if (entry === "node_modules" || entry === "dist") continue;
       const full = join(dir, entry);
-      if (statSync(full).isDirectory()) visit(full);
-      else if (
+      if (statSync(full).isDirectory()) {
+        visit(full);
+        continue;
+      }
+      if (
         entry.endsWith(".json") &&
         dirname(full).endsWith("__fixtures__") &&
         // A SCENE fixture, which is what the tool consumes. The same directory

@@ -359,8 +359,11 @@ describe("comment stacks", () => {
       const offenders: string[] = [];
       for (const [file, count] of regraded) {
         const budget = before[file];
-        if (budget === undefined) offenders.push(`${file}: ${count}, unlisted`);
-        else if (count > budget) {
+        if (budget === undefined) {
+          offenders.push(`${file}: ${count}, unlisted`);
+          continue;
+        }
+        if (count > budget) {
           offenders.push(`${file}: ${count}, debt list said ${budget}`);
         }
       }
@@ -420,8 +423,11 @@ describe("comment stacks", () => {
       const arrived: string[] = [];
       for (const [file, count] of Object.entries(COMMENT_STACK_DEBT)) {
         const was = before[file];
-        if (was === undefined) arrived.push(`${file} (${count})`);
-        else if (count > was) raised.push(`${file} (${was} -> ${count})`);
+        if (was === undefined) {
+          arrived.push(`${file} (${count})`);
+          continue;
+        }
+        if (count > was) raised.push(`${file} (${was} -> ${count})`);
       }
 
       expect(

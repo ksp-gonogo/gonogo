@@ -285,7 +285,7 @@ function readsOf(file: string, source: string): Reads {
     if (ts.isCallExpression(n)) {
       const specs = gitSearchPathspecs(n);
       if (specs === "runtime") searchesTree = true;
-      else if (specs) for (const spec of specs) pathspecs.add(spec);
+      if (Array.isArray(specs)) for (const spec of specs) pathspecs.add(spec);
     }
     if (ts.isCallExpression(n) || ts.isNewExpression(n)) {
       const value = evaluate(n, file, consts);

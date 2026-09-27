@@ -240,7 +240,9 @@ function* walk(dir: string): Generator<string> {
     if (stat.isDirectory()) {
       if (SKIP_DIR_PATTERN.test(name)) continue;
       yield* walk(path);
-    } else if (SCAN_EXTENSION.test(name)) {
+      continue;
+    }
+    if (SCAN_EXTENSION.test(name)) {
       yield path;
     }
   }

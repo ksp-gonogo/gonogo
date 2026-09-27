@@ -407,7 +407,9 @@ describe("the fire-and-forget command budget only shrinks", () => {
       const budget = FIRE_AND_FORGET_BUDGET[file];
       if (budget === undefined) {
         over.push(`  ${file}: ${used} (not on the list)`);
-      } else if (used > budget) {
+        continue;
+      }
+      if (used > budget) {
         over.push(`  ${file}: ${used}, budget ${budget}`);
       }
     }

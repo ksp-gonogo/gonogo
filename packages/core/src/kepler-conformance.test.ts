@@ -361,10 +361,9 @@ describe("Kepler's equation: the contract every solver must satisfy", () => {
               continue;
             }
             walk(full);
-          } else if (
-            entry.name.endsWith(".ts") ||
-            entry.name.endsWith(".tsx")
-          ) {
+            continue;
+          }
+          if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
             out.push(full);
           }
         }

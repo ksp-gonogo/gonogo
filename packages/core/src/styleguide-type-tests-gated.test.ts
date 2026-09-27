@@ -151,7 +151,9 @@ describe("type-level tests are actually gated", () => {
       const script = scriptNamed(pkg, "typecheck");
       if (!script) {
         broken.push(`${pkgDir}: no "typecheck" script`);
-      } else if (!script.includes("tsconfig.test-d.json")) {
+        continue;
+      }
+      if (!script.includes("tsconfig.test-d.json")) {
         broken.push(
           `${pkgDir}: "typecheck" does not run tsconfig.test-d.json (${script})`,
         );

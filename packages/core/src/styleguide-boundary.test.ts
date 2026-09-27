@@ -64,8 +64,11 @@ function* walk(dir: string): Generator<string> {
   for (const name of readdirSync(dir)) {
     if (SKIP_DIRS.has(name)) continue;
     const path = join(dir, name);
-    if (statSync(path).isDirectory()) yield* walk(path);
-    else if (SCAN_EXTENSIONS.test(name)) yield path;
+    if (statSync(path).isDirectory()) {
+      yield* walk(path);
+      continue;
+    }
+    if (SCAN_EXTENSIONS.test(name)) yield path;
   }
 }
 

@@ -87,7 +87,7 @@ function commandDeclarations(source: string): string[] {
     let depth = 0;
     for (let i = brace; i < source.length; i++) {
       if (source[i] === "{") depth++;
-      else if (source[i] === "}") {
+      if (source[i] === "}") {
         depth--;
         if (depth === 0) {
           found.push(source.slice(brace, i + 1));

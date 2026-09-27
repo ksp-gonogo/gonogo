@@ -118,8 +118,11 @@ function countTestFiles(absPkgDir: string): number {
     for (const entry of readdirSync(dir)) {
       if (entry === "node_modules" || entry === "dist") continue;
       const abs = join(dir, entry);
-      if (statSync(abs).isDirectory()) stack.push(abs);
-      else if (isTestFile(entry)) count++;
+      if (statSync(abs).isDirectory()) {
+        stack.push(abs);
+        continue;
+      }
+      if (isTestFile(entry)) count++;
     }
   }
   return count;

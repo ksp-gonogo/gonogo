@@ -254,7 +254,9 @@ function* walkAll(dir: string): Generator<string> {
     const stat = statSync(path);
     if (stat.isDirectory()) {
       yield* walkAll(path);
-    } else if (SCAN_EXTENSION.test(name)) {
+      continue;
+    }
+    if (SCAN_EXTENSION.test(name)) {
       yield path;
     }
   }
@@ -267,7 +269,9 @@ function* walk(dir: string): Generator<string> {
     const stat = statSync(path);
     if (stat.isDirectory()) {
       yield* walk(path);
-    } else if (SCAN_EXTENSION.test(name) && !SKIP_FILE.test(name)) {
+      continue;
+    }
+    if (SCAN_EXTENSION.test(name) && !SKIP_FILE.test(name)) {
       yield path;
     }
   }

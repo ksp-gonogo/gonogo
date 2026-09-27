@@ -88,8 +88,11 @@ function walk(dir: string, out: string[] = []): string[] {
   for (const entry of entries) {
     if (SKIP_DIRS.has(entry)) continue;
     const path = join(dir, entry);
-    if (statSync(path).isDirectory()) walk(path, out);
-    else if (/\.tsx?$/.test(path)) out.push(path);
+    if (statSync(path).isDirectory()) {
+      walk(path, out);
+      continue;
+    }
+    if (/\.tsx?$/.test(path)) out.push(path);
   }
   return out;
 }
@@ -124,7 +127,7 @@ function collectReferences(
   const visit = (node: ts.Node): void => {
     if (ts.isExportDeclaration(node)) return;
     if (ts.isIdentifier(node)) identifiers.add(node.text);
-    else if (ts.isStringLiteral(node)) strings.add(node.text);
+    if (ts.isStringLiteral(node)) strings.add(node.text);
     ts.forEachChild(node, visit);
   };
   ts.forEachChild(source, visit);

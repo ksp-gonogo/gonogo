@@ -828,8 +828,11 @@ function funnelCeilingBreaches(
   const over: string[] = [];
   for (const [pkg, used] of [...totals].sort()) {
     const allowed = budget[pkg];
-    if (allowed === undefined) over.push(`  ${pkg}: ${used} (not on the list)`);
-    else if (used > allowed) over.push(`  ${pkg}: ${used}, ceiling ${allowed}`);
+    if (allowed === undefined) {
+      over.push(`  ${pkg}: ${used} (not on the list)`);
+      continue;
+    }
+    if (used > allowed) over.push(`  ${pkg}: ${used}, ceiling ${allowed}`);
   }
   return { over, stale: staleEntries(budget, totals) };
 }
@@ -1097,7 +1100,9 @@ describe("the magnitude budget only shrinks", () => {
       const budget = MAGNITUDE_BUDGET[file];
       if (budget === undefined) {
         over.push(`  ${file}: ${used} (not on the list)`);
-      } else if (used > budget) {
+        continue;
+      }
+      if (used > budget) {
         over.push(`  ${file}: ${used}, budget ${budget}`);
       }
     }
@@ -1202,7 +1207,9 @@ describe("the named wire exit is priced, not exempt", () => {
       const budget = WIRE_BUDGET[file];
       if (budget === undefined) {
         over.push(`  ${file}: ${used} (not on the list)`);
-      } else if (used > budget) {
+        continue;
+      }
+      if (used > budget) {
         over.push(`  ${file}: ${used}, budget ${budget}`);
       }
     }

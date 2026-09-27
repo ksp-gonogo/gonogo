@@ -93,8 +93,7 @@ function withoutCommentsAndStrings(source: string): string {
           i += 2;
           continue;
         }
-        if (isBracketKey) out += source[i];
-        else if (source[i] === "\n") out += "\n";
+        if (isBracketKey || source[i] === "\n") out += source[i];
         i++;
       }
       if (isBracketKey) out += quote;

@@ -247,8 +247,11 @@ describe("design-system: punctuation dashes", () => {
       const arrived: string[] = [];
       for (const [file, count] of Object.entries(PUNCTUATION_DASH_DEBT)) {
         const was = before[file];
-        if (was === undefined) arrived.push(`${file} (${count})`);
-        else if (count > was) raised.push(`${file} (${was} -> ${count})`);
+        if (was === undefined) {
+          arrived.push(`${file} (${count})`);
+          continue;
+        }
+        if (count > was) raised.push(`${file} (${was} -> ${count})`);
       }
 
       expect(

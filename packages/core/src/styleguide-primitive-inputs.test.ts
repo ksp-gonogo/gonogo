@@ -72,8 +72,11 @@ function walk(dir: string): string[] {
     if (name === "node_modules" || name === "dist" || name === "__generated__")
       continue;
     const full = join(dir, name);
-    if (statSync(full).isDirectory()) out.push(...walk(full));
-    else if (name.endsWith(".tsx")) out.push(full);
+    if (statSync(full).isDirectory()) {
+      out.push(...walk(full));
+      continue;
+    }
+    if (name.endsWith(".tsx")) out.push(full);
   }
   return out;
 }
@@ -109,8 +112,8 @@ function openingTags(code: string): string[] {
     for (; i < code.length; i++) {
       const ch = code[i];
       if (ch === "{") depth++;
-      else if (ch === "}") depth--;
-      else if (ch === ">" && depth === 0) break;
+      if (ch === "}") depth--;
+      if (ch === ">" && depth === 0) break;
     }
     tags.push(code.slice(match.index + match[0].length, i));
   }
@@ -134,7 +137,7 @@ function quantityExpressions(attrs: string): string[] {
       const start = i;
       for (; i < attrs.length && depth > 0; i++) {
         if (attrs[i] === "{") depth++;
-        else if (attrs[i] === "}") depth--;
+        if (attrs[i] === "}") depth--;
       }
       found.push(attrs.slice(start, i - 1).trim());
     }
@@ -156,9 +159,15 @@ function topLevel(expression: string): string {
   let out = "";
   let depth = 0;
   for (const ch of expression) {
-    if (ch === "(" || ch === "[" || ch === "{") depth++;
-    else if (ch === ")" || ch === "]" || ch === "}") depth--;
-    else if (depth === 0) out += ch;
+    if (ch === "(" || ch === "[" || ch === "{") {
+      depth++;
+      continue;
+    }
+    if (ch === ")" || ch === "]" || ch === "}") {
+      depth--;
+      continue;
+    }
+    if (depth === 0) out += ch;
   }
   return out;
 }

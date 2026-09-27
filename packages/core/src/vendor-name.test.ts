@@ -157,9 +157,12 @@ describe("vendor name", () => {
       const allowed = SDK_SURFACE[path];
       if (allowed === undefined) {
         drift.push(`NEW published-surface file: ${path} (${actual} lines)`);
-      } else if (actual > allowed) {
+        continue;
+      }
+      if (actual > allowed) {
         drift.push(`GREW: ${path} ${allowed} -> ${actual}`);
-      } else if (actual < allowed) {
+      }
+      if (actual < allowed) {
         drift.push(`FIXED, lower the number: ${path} ${allowed} -> ${actual}`);
       }
     }
@@ -195,9 +198,12 @@ describe("vendor name", () => {
       const allowed = APP_INTERNAL[path];
       if (allowed === undefined) {
         drift.push(`NEW file: ${path} (${actual} lines)`);
-      } else if (actual > allowed) {
+        continue;
+      }
+      if (actual > allowed) {
         drift.push(`GREW: ${path} ${allowed} -> ${actual}`);
-      } else if (actual < allowed) {
+      }
+      if (actual < allowed) {
         drift.push(`FIXED, lower the number: ${path} ${allowed} -> ${actual}`);
       }
     }

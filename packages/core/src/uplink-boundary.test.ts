@@ -574,8 +574,11 @@ function* walk(dir: string): Generator<string> {
     if (SKIP_DIRS.has(name)) continue;
     const path = join(dir, name);
     const stat = statSync(path);
-    if (stat.isDirectory()) yield* walk(path);
-    else if (SCANNED_FILE.test(name)) yield path;
+    if (stat.isDirectory()) {
+      yield* walk(path);
+      continue;
+    }
+    if (SCANNED_FILE.test(name)) yield path;
   }
 }
 

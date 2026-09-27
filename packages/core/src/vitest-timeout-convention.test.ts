@@ -57,8 +57,11 @@ function findVitestConfigs(dir: string, found: string[] = []): string[] {
     if (entry === "node_modules" || entry === "dist" || entry.startsWith("."))
       continue;
     const full = join(dir, entry);
-    if (statSync(full).isDirectory()) findVitestConfigs(full, found);
-    else if (entry === "vitest.config.ts") found.push(full);
+    if (statSync(full).isDirectory()) {
+      findVitestConfigs(full, found);
+      continue;
+    }
+    if (entry === "vitest.config.ts") found.push(full);
   }
   return found;
 }

@@ -128,8 +128,11 @@ function walk(dir: string, out: string[]): void {
   for (const entry of readdirSync(dir)) {
     if (entry === "node_modules" || entry === "dist") continue;
     const full = join(dir, entry);
-    if (statSync(full).isDirectory()) walk(full, out);
-    else if (/\.tsx?$/.test(entry)) out.push(full);
+    if (statSync(full).isDirectory()) {
+      walk(full, out);
+      continue;
+    }
+    if (/\.tsx?$/.test(entry)) out.push(full);
   }
 }
 
