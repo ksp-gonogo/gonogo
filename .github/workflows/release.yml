@@ -28,10 +28,11 @@ name: release
 #
 # WHY PACKAGE PUBLISHING LIVES HERE
 #
-# npm's trusted publisher for @ksp-gonogo/ui-kit and @ksp-gonogo/sitrep-sdk
-# names *this file*, and so does nuget.org's policy for the ksp-gonogo
-# organisation. That pin is absolute: a publish from any other workflow
-# filename is refused, so this is the only place in the repo that can publish.
+# npm's trusted publisher for @ksp-gonogo/ui-kit, @ksp-gonogo/sitrep-sdk and
+# @ksp-gonogo/uplink-tools names *this file*, and so does nuget.org's policy
+# for the ksp-gonogo organisation. That pin is absolute: a publish from any
+# other workflow filename is refused, so this is the only place in the repo
+# that can publish.
 #
 # It also matches the cadence we want. Riding the app's release couples *when*
 # a package may publish, not *what version* it publishes, each package's
@@ -196,6 +197,8 @@ jobs:
             dir: packages/ui-kit
           - package: '@ksp-gonogo/sitrep-sdk'
             dir: mod/sitrep-sdk
+          - package: '@ksp-gonogo/uplink-tools'
+            dir: packages/uplink-tools
     steps:
       - uses: actions/checkout@v5
 
