@@ -56,22 +56,7 @@ export class AxiomTransport implements LogTransport {
     }
 
     this.dataset = options.dataset;
-    if (options.client) {
-      this.client = options.client;
-    } else if (options.token) {
-      this.client = new Axiom({
-        token: options.token,
-        url: options.url,
-        orgId: options.orgId,
-        // Silence the SDK's default `console.error` so a transient ingest
-        // failure doesn't show up as a noisy error on the user's screen.
-        // The console transport (i.e. `ConsoleLogger`) keeps its own log
-        // visibility independent of remote delivery.
-        onError: () => {},
-      });
-    } else {
-      throw new Error("AxiomTransport requires either `client` or `token`");
-    }
+    this.client = AxiomTransport.resolveClient(options);
 
     const wantPageHide =
       options.flushOnPageHide ??
@@ -82,6 +67,25 @@ export class AxiomTransport implements LogTransport {
       };
       globalThis.addEventListener("pagehide", this.pageHideHandler);
     }
+  }
+
+  private static resolveClient(
+    options: AxiomTransportOptions,
+  ): AxiomIngestClient {
+    if (options.client) return options.client;
+    if (options.token) {
+      return new Axiom({
+        token: options.token,
+        url: options.url,
+        orgId: options.orgId,
+        // Silence the SDK's default `console.error` so a transient ingest
+        // failure doesn't show up as a noisy error on the user's screen.
+        // The console transport (i.e. `ConsoleLogger`) keeps its own log
+        // visibility independent of remote delivery.
+        onError: () => {},
+      });
+    }
+    throw new Error("AxiomTransport requires either `client` or `token`");
   }
 
   send(entries: readonly LogEntry[]): void {
