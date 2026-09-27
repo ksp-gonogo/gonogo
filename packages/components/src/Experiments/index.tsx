@@ -1,29 +1,18 @@
-import type { ComponentProps, Contributed } from "@ksp-gonogo/core";
+import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   AugmentSlot,
   registerComponent,
   useContributions,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import {
-  readingOf,
-  type StaleGrade,
-  useCommand,
-} from "@ksp-gonogo/sitrep-client";
+import { readingOf, useCommand } from "@ksp-gonogo/sitrep-client";
 import { stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Badge,
-  Cluster,
-  Divider,
   EmptyState,
-  formatStreamStatus,
-  Inline,
   Panel,
-  RowName,
   Section,
   SectionTitle,
   Stack,
-  severityFromStreamStatus,
   Text,
   Unit,
   usePanelDelay,
@@ -31,13 +20,32 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { Fragment } from "react";
 import { heldGrade } from "../shared/heldGrade";
-import { asQuantityish, magnitudeOf } from "../shared/magnitude";
+import {
+  groupByExpId,
+  groupContributed,
+  ownContributed,
+  summarise,
+} from "./grouping";
 import type { Instrument } from "./instrument";
+import { LabSection } from "./LabSection";
+import {
+  EMPTY_EXPERIMENTS,
+  EMPTY_INSTRUMENTS,
+  parseInstruments,
+  parseLab,
+  sumExperimentDataAmount,
+} from "./parse";
 import { ScienceExperimentRow } from "./ScienceExperimentRow";
 
 type ExperimentsConfig = Record<string, never>;
 
 export type { Instrument } from "./instrument";
+export {
+  type LabStatus,
+  parseInstruments,
+  parseLab,
+  sumExperimentDataAmount,
+} from "./parse";
 
 /**
  * Slot context for `experiments.instrument`, the per-instrument-row slot. It
@@ -59,121 +67,8 @@ declare module "@ksp-gonogo/core" {
 
 // The sitrep-sdk copy of this merge lives in `mod/sitrep-sdk/src/api/slots.ts`.
 
-/** Confirmed-none values for the science reads: present, and empty. */
-const EMPTY_INSTRUMENTS = { instruments: [] as unknown[] };
-const EMPTY_EXPERIMENTS = { experiments: [] as unknown[] };
-
-/**
- * Two wire shapes land here, so each field reads through a fallback pair:
- * `partName`/`experimentId`/`dataIsCollectable` or `partTitle`/`expId`/`hasData`.
- * `partId` normalises to a string.
- */
-export function parseInstruments(raw: unknown): Instrument[] | null {
-  if (raw === null || raw === undefined) return null;
-  if (!Array.isArray(raw)) return null;
-  const out: Instrument[] = [];
-  const entries: unknown[] = raw;
-  for (const entry of entries) {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
-    const e = entry as Record<string, unknown>;
-    const partId =
-      typeof e.partId === "string"
-        ? e.partId
-        : typeof e.partId === "number"
-          ? String(e.partId)
-          : null;
-    if (partId === null) continue;
-    const partTitle =
-      typeof e.partName === "string"
-        ? e.partName
-        : typeof e.partTitle === "string"
-          ? e.partTitle
-          : "Unknown part";
-    const expId =
-      typeof e.experimentId === "string"
-        ? e.experimentId
-        : typeof e.expId === "string"
-          ? e.expId
-          : "";
-    const hasData =
-      typeof e.dataIsCollectable === "boolean"
-        ? e.dataIsCollectable
-        : e.hasData === true;
-    out.push({
-      partId,
-      partTitle,
-      expId,
-      deployed: e.deployed === true,
-      hasData,
-      rerunnable: e.rerunnable === true,
-      inoperable: e.inoperable === true,
-    });
-  }
-  return out;
-}
-
-// The wire carries no vessel-wide data total, so it is summed here.
-export function sumExperimentDataAmount(raw: unknown): number {
-  if (!Array.isArray(raw)) return 0;
-  let total = 0;
-  const entries: unknown[] = raw;
-  for (const entry of entries) {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
-    const dataAmount = magnitudeOf(
-      asQuantityish((entry as Record<string, unknown>).dataAmount),
-    );
-    if (dataAmount !== null) {
-      total += dataAmount;
-    }
-  }
-  return total;
-}
-
-export interface LabStatus {
-  partName: string;
-  dataStored: number | null;
-  dataStorage: number | null;
-  storedScience: number | null;
-  /** Null when the provider could not read it; not the same as idle. */
-  processingData: boolean | null;
-  statusText: string | null;
-  scientistCount: number | null;
-  scienceRate: number | null;
-  /** Null when the provider could not read it; OFFLINE is a diagnosis, not a failed read. */
-  isOperational: boolean | null;
-}
-
-/** A wire bool with its absence kept as null. */
-function asFlag(value: unknown): boolean | null {
-  return typeof value === "boolean" ? value : null;
-}
-
-/**
- * Parses `science.lab`, one entry per lab part. A lab with everything at zero is
- * idle, not absent.
- */
-export function parseLab(raw: unknown): LabStatus[] | null {
-  if (raw === null || raw === undefined) return null;
-  if (!Array.isArray(raw)) return null;
-  const out: LabStatus[] = [];
-  const entries: unknown[] = raw;
-  for (const entry of entries) {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
-    const e = entry as Record<string, unknown>;
-    out.push({
-      partName: typeof e.partName === "string" ? e.partName : "Lab",
-      dataStored: magnitudeOf(asQuantityish(e.dataStored)),
-      dataStorage: magnitudeOf(asQuantityish(e.dataStorage)),
-      storedScience: magnitudeOf(asQuantityish(e.storedScience)),
-      processingData: asFlag(e.processingData),
-      statusText: typeof e.statusText === "string" ? e.statusText : null,
-      scientistCount: magnitudeOf(asQuantityish(e.scientistCount)),
-      scienceRate: magnitudeOf(asQuantityish(e.scienceRate)),
-      isOperational: asFlag(e.isOperational),
-    });
-  }
-  return out;
-}
+/** Strips the browser's list chrome so the `<ul>` is semantics only. */
+const INSTRUMENT_LIST = { listStyle: "none", margin: 0, padding: 0 } as const;
 
 function ExperimentsComponent({
   w,
@@ -333,151 +228,6 @@ function ExperimentsComponent({
       ]}
     />
   );
-}
-
-/** Mobile Processing Lab status. Renders nothing while loading or when the vessel carries no lab. */
-function LabSection({
-  labs,
-  heldGrade: labGrade,
-}: {
-  labs: LabStatus[] | null;
-  /** `science.lab` stopped arriving: every badge and count below is held. */
-  heldGrade: StaleGrade | undefined;
-}) {
-  if (labs === null || labs.length === 0) return null;
-  return (
-    <>
-      <Stack>
-        {labs.map((lab, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: no stable id on science.lab entries
-          <Stack key={`${lab.partName}-${i}`}>
-            <Cluster>
-              <RowName>{lab.partName}</RowName>
-              <Inline>
-                <Badge
-                  severity={
-                    lab.isOperational === null
-                      ? "warning"
-                      : lab.isOperational
-                        ? "nominal"
-                        : "critical"
-                  }
-                >
-                  {lab.isOperational === null
-                    ? "UNREAD"
-                    : lab.isOperational
-                      ? "OPERATIONAL"
-                      : "OFFLINE"}
-                </Badge>
-                {lab.processingData === true && <Badge>PROCESSING</Badge>}
-                {labGrade !== undefined && (
-                  <Badge
-                    severity={severityFromStreamStatus(labGrade)}
-                    title={`${lab.partName}: lab state is no longer current`}
-                  >
-                    {formatStreamStatus(labGrade)}
-                  </Badge>
-                )}
-              </Inline>
-            </Cluster>
-            <Inline>
-              {lab.scientistCount !== null && (
-                <Text tone="muted" size="xs">
-                  {lab.scientistCount} scientist
-                  {lab.scientistCount === 1 ? "" : "s"}
-                </Text>
-              )}
-              {lab.dataStored !== null && lab.dataStorage !== null && (
-                <Text tone="muted" size="xs">
-                  {lab.dataStored.toFixed(0)}/{lab.dataStorage.toFixed(0)} data
-                </Text>
-              )}
-            </Inline>
-          </Stack>
-        ))}
-      </Stack>
-      <Divider space="related-dense" />
-    </>
-  );
-}
-
-/** Strips the browser's list chrome so the `<ul>` is semantics only. */
-const INSTRUMENT_LIST = { listStyle: "none", margin: 0, padding: 0 } as const;
-
-interface InstrumentGroup {
-  expId: string;
-  items: Instrument[];
-}
-
-function groupByExpId(instruments: Instrument[]): InstrumentGroup[] {
-  const map = new Map<string, Instrument[]>();
-  for (const inst of instruments) {
-    const list = map.get(inst.expId);
-    if (list) list.push(inst);
-    else map.set(inst.expId, [inst]);
-  }
-  return Array.from(map.entries()).map(([expId, items]) => ({ expId, items }));
-}
-
-/**
- * The contributed entries this widget draws: first per `partId` wins, and a
- * `partId` the stock list carries is dropped, since the stock row can be commanded.
- */
-function ownContributed(
-  entries: readonly Contributed<Instrument>[],
-  stock: Instrument[] | null,
-): Contributed<Instrument>[] {
-  const seen = new Set((stock ?? []).map((inst) => inst.partId));
-  const out: Contributed<Instrument>[] = [];
-  for (const entry of entries) {
-    if (seen.has(entry.partId)) continue;
-    seen.add(entry.partId);
-    out.push(entry);
-  }
-  return out;
-}
-
-interface ContributedInstrumentGroup {
-  /** Who supplied these, for the section heading. */
-  ownerLabel: string;
-  groups: InstrumentGroup[];
-}
-
-/**
- * Contributed instruments by supplier, then by experiment, in first-seen order so
- * sections do not reshuffle. An ownerless contribution is labelled by its id.
- */
-function groupContributed(
-  entries: readonly Contributed<Instrument>[],
-): ContributedInstrumentGroup[] {
-  const byOwner = new Map<string, Contributed<Instrument>[]>();
-  for (const entry of entries) {
-    const label = entry.owner?.name ?? entry.contributionId;
-    const list = byOwner.get(label);
-    if (list) list.push(entry);
-    else byOwner.set(label, [entry]);
-  }
-  return Array.from(byOwner.entries()).map(([ownerLabel, items]) => ({
-    ownerLabel,
-    groups: groupByExpId(items),
-  }));
-}
-
-function summarise(instruments: Instrument[]): {
-  total: number;
-  hasData: number;
-  deployed: number;
-  inoperable: number;
-} {
-  let hasData = 0;
-  let deployed = 0;
-  let inoperable = 0;
-  for (const inst of instruments) {
-    if (inst.hasData) hasData++;
-    if (inst.deployed) deployed++;
-    if (inst.inoperable) inoperable++;
-  }
-  return { total: instruments.length, hasData, deployed, inoperable };
 }
 
 registerComponent<ExperimentsConfig>({

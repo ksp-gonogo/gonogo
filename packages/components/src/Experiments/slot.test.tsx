@@ -73,7 +73,7 @@ async function renderFullList(): Promise<void> {
   await waitFor(() => expect(screen.getByText("Mystery Goo")).toBeTruthy());
 }
 
-describe("Experiments: augment slots (spec §4)", () => {
+describe("Experiments: augment slots", () => {
   afterEach(() => {
     for (const unmount of renderedTrees) unmount();
     renderedTrees.length = 0;
