@@ -45,6 +45,14 @@ function tierFigure(level: number, heldSince: HeldSince): UnitValue<"count"> {
   };
 }
 
+function affordVerdict(
+  moneyDecides: boolean,
+  canAfford: boolean,
+): "yes" | "no" | undefined {
+  if (!moneyDecides) return undefined;
+  return canAfford ? "yes" : "no";
+}
+
 export interface FacilityGridItemProps {
   facilityKey: FacilityKey;
   label: string;
@@ -124,7 +132,7 @@ export function FacilityGridItem({
           <UpgradeCost
             $afford={moneyDecides ? canAfford : true}
             /* The verdict, observable from outside; absent when money decides nothing. */
-            data-afford={moneyDecides ? (canAfford ? "yes" : "no") : undefined}
+            data-afford={affordVerdict(moneyDecides, canAfford)}
           >
             {formatCompactCurrency(f.upgradeFunds)}
           </UpgradeCost>
