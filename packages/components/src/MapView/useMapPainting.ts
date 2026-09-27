@@ -13,6 +13,7 @@ import {
 import {
   type MapProjection,
   paintMapBase,
+  paintModelledMarker,
   paintPrediction,
   paintVesselMarker,
   sizedContext,
@@ -39,8 +40,10 @@ interface MapPaintingInputs {
   encounterKind: EncounterKind | null;
   lat: Value<"°"> | undefined;
   lon: Value<"°"> | undefined;
-  /** The marker stands on an observation that is not the craft's present; see `MapTelemetry.positionHeld`. */
+  /** See `MapTelemetry.positionHeld`. */
   positionHeld: boolean;
+  /** See `MapTelemetry.modelledPosition`. */
+  modelledPosition: { lat: number; lon: number } | null;
 }
 
 /**
@@ -66,6 +69,7 @@ export function useMapPainting({
   lat,
   lon,
   positionHeld,
+  modelledPosition,
 }: Readonly<MapPaintingInputs>) {
   const baseRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -208,6 +212,15 @@ export function useMapPainting({
     );
     const { x, y } = worldToScreen(wx, wy, camera, w, h);
     paintVesselMarker(canvas, ctx, x, y, positionHeld);
+    if (modelledPosition === null) return;
+    const modelled = adjustedMap(
+      WORLD_W,
+      WORLD_H,
+      modelledPosition.lat,
+      modelledPosition.lon,
+    );
+    const at = worldToScreen(modelled.x, modelled.y, camera, w, h);
+    paintModelledMarker(canvas, ctx, at.x, at.y);
   }, [
     containerSize,
     camera,
@@ -216,6 +229,7 @@ export function useMapPainting({
     adjustedMap,
     vesselMarked,
     positionHeld,
+    modelledPosition,
   ]);
 
   return {

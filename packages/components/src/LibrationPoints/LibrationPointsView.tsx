@@ -12,7 +12,7 @@ import {
   TRAJECTORY_SCALE_CONVENTIONS,
   TrajectoryFrameKindLike,
   useOrbitTrajectory,
-  useScetUt,
+  useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, Select } from "@ksp-gonogo/ui";
@@ -63,7 +63,7 @@ export function LibrationPointsComponent({
   id,
 }: Readonly<ComponentProps<LibrationPointsConfig>>) {
   const facts = useCatalogue();
-  const viewUt = useScetUt()?.magnitude;
+  const viewUt = useViewUt()?.magnitude;
   const ut = quantiseUt(
     typeof viewUt === "number" ? viewUt : undefined,
     UT_BUCKET_SECONDS,

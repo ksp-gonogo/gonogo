@@ -293,3 +293,19 @@ export function paintVesselMarker(
   ctx.stroke();
   ctx.setLineDash([]);
 }
+
+/** Where the model puts the craft, beside its observed marker: a dashed ring in the modelled mark's hue. */
+export function paintModelledMarker(
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+): void {
+  ctx.beginPath();
+  ctx.arc(x, y, 5, 0, Math.PI * 2);
+  ctx.strokeStyle = canvasColor(canvas, "--color-status-warning-bg", "#d9a13b");
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([2, 2]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}

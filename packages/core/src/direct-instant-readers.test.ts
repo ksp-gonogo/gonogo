@@ -50,14 +50,6 @@ const DIRECT_READERS: Record<string, { count: number; why: string }> = {
   },
   "packages/core/src/hooks/useOrbitSolve.ts": { count: 1, why: PENDING },
   "packages/app/src/uplinks/host.ts": { count: 1, why: MOVING },
-  "packages/components/src/LibrationPoints/LibrationPointsView.tsx": {
-    count: 1,
-    why: MOVING,
-  },
-  "packages/components/src/MapView/useMapTelemetry.ts": {
-    count: 1,
-    why: MOVING,
-  },
   "packages/components/src/SystemView/index.tsx": { count: 1, why: MOVING },
   "packages/components/src/SystemView/usePhaseAngles.ts": {
     count: 1,

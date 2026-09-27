@@ -178,6 +178,41 @@ describe("MapView's vessel marker", () => {
 });
 
 describe("MapView's vessel marker under signal delay", () => {
+  /** A circular low Kerbin orbit whose one patch spans the light-time and well beyond. */
+  function lkoOrbit(epoch: number) {
+    const elements = {
+      sma: 685000,
+      ecc: 0,
+      inc: 0,
+      lan: 0,
+      argPe: 0,
+      meanAnomalyAtEpoch: 0,
+      epoch,
+      mu: 3531600000000,
+    };
+    return {
+      ...elements,
+      referenceBodyIndex: 1,
+      patches: [
+        {
+          ...elements,
+          period: 1895.527,
+          startUt: epoch,
+          endUt: epoch + 1895.527,
+          patchStartTransition: 0,
+          patchEndTransition: 1,
+          peA: 85000,
+          apA: 85000,
+          semiLatusRectum: 685000,
+          semiMinorAxis: 685000,
+          referenceBody: "Kerbin",
+          referenceBodyIndex: 1,
+        },
+      ],
+      horizon: { kind: 1, trajectoryKind: 1 },
+    };
+  }
+
   function mountDelayed(owlt: number) {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
@@ -195,34 +230,56 @@ describe("MapView's vessel marker under signal delay", () => {
     const meta = { validAt: UT - owlt, deliveredAt: UT };
     act(() => {
       fixture.emit("system.bodies", BODIES, meta);
-      fixture.emit("vessel.flight", FLIGHT, {
+      fixture.emit(
+        "vessel.identity",
+        {
+          vesselId: "v1",
+          name: "Active Vessel",
+          vesselType: 0,
+          situation: 3,
+          parentBodyIndex: 1,
+          launchUt: 0,
+        },
+        meta,
+      );
+      fixture.emit("vessel.orbit", lkoOrbit(UT - owlt), {
         ...meta,
-        quality: Quality.Loaded,
+        quality: Quality.OnRails,
       });
+      fixture.emit(
+        "vessel.flight",
+        { ...FLIGHT, latitude: 0, longitude: 0 },
+        { ...meta, quality: Quality.Loaded },
+      );
       fixture.emitFrame();
     });
     return rendered;
   }
 
-  it("draws a current position a light-time behind SCET as held, since nothing carries latitude and longitude", async () => {
+  const marker = (container: HTMLElement) =>
+    container.querySelector("[data-vessel-marker]");
+
+  it("draws the received position as current, with the conic's position for the craft's present beside it", async () => {
     const { container } = mountDelayed(240);
     await waitFor(() =>
-      expect(
-        container
-          .querySelector("[data-vessel-marker]")
-          ?.getAttribute("data-vessel-position"),
-      ).toBe("held"),
+      expect(marker(container)?.getAttribute("data-vessel-position")).toBe(
+        "current",
+      ),
+    );
+    await waitFor(() =>
+      expect(marker(container)?.hasAttribute("data-vessel-modelled")).toBe(
+        true,
+      ),
     );
   });
 
-  it("draws the same position as current when there is no light-time", async () => {
+  it("draws no modelled position when there is no light-time", async () => {
     const { container } = mountDelayed(0);
     await waitFor(() =>
-      expect(
-        container
-          .querySelector("[data-vessel-marker]")
-          ?.getAttribute("data-vessel-position"),
-      ).toBe("current"),
+      expect(marker(container)?.getAttribute("data-vessel-position")).toBe(
+        "current",
+      ),
     );
+    expect(marker(container)?.hasAttribute("data-vessel-modelled")).toBe(false);
   });
 });

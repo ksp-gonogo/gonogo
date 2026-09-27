@@ -227,6 +227,7 @@ function MapViewComponent({
     lat,
     lon,
     positionHeld: telemetry.positionHeld,
+    modelledPosition: telemetry.modelledPosition,
   });
 
   const displayName = body?.name ?? targetBodyId;
@@ -403,6 +404,11 @@ function MapViewComponent({
                         vesselMarked,
                         telemetry.positionHeld,
                       )}
+                      data-vessel-modelled={
+                        vesselMarked && telemetry.modelledPosition !== null
+                          ? ""
+                          : undefined
+                      }
                     />
                     {positionNotice !== undefined && (
                       <NoSignal>{positionNotice}</NoSignal>

@@ -250,6 +250,8 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/MapView/useGroundTrackPrediction.ts": 5,
   "packages/components/src/MapView/useMapPainting.ts": 2,
   "packages/components/src/MapView/useMapTelemetry.ts": 5,
+  // 4: `predictGroundTrack` is plain-number geometry, so the reckoning's instant, the throttle bucket and the `{ ut, lat, lon }` reference unwrap at that boundary.
+  "packages/components/src/MapView/useModelledPosition.ts": 4,
   "packages/components/src/MapView/vanillaPoiProvider.ts": 2,
   "packages/components/src/OrbitView/index.tsx": 6,
   /*

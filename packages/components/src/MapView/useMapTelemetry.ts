@@ -4,10 +4,8 @@ import {
   type OrbitTrajectory,
   predictImpactPoint,
   useOrbitTrajectory,
-  useScetUt,
   useStream,
   useViewUt,
-  VISIBLE_GAP_SECONDS,
 } from "@ksp-gonogo/sitrep-client";
 import type { Reading, Value, VesselManeuver } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
@@ -15,6 +13,7 @@ import { type EncounterKind, encounterKindOf } from "../shared/encounterKind";
 import { magnitudeOf } from "../shared/magnitude";
 import { bodyNamed } from "../shared/streamBody";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
+import { useModelledPosition } from "./useModelledPosition";
 
 /** What the map draws from, each figure resolved to the currency its draw needs. */
 export interface MapTelemetry {
@@ -23,13 +22,10 @@ export interface MapTelemetry {
   lon: Value<"°"> | undefined;
   /** The position is held and nothing models it, so no marker draws. */
   positionStale: boolean;
-  /**
-   * The marker stands on an observed position that is not the craft's present:
-   * the reading is held, or a light-time behind SCET, and nothing carries the
-   * latitude and longitude forward. Everything else on the map is at SCET, so
-   * this one object is drawn held.
-   */
+  /** The marker stands on a held position that nothing carries forward. */
   positionHeld: boolean;
+  /** Where the conic puts the craft at the instant it reckoned to, beside the observed marker; `null` where no model reaches past the received edge. */
+  modelledPosition: { lat: number; lon: number } | null;
   /** The readouts' own readings, which mark a held figure. */
   latitudeReading: Reading<Value<"°">>;
   longitudeReading: Reading<Value<"°">>;
@@ -83,16 +79,10 @@ export function useMapTelemetry(
     flightReading.reckoning.status !== "available";
   const lat = positioned?.latitude;
   const lon = positioned?.longitude;
-  const scetUt = useScetUt();
-  const receivedUt = useViewUt();
-  const behindScet =
-    scetUt !== undefined &&
-    receivedUt !== undefined &&
-    !scetUt.minus(receivedUt).lessThan(VISIBLE_GAP_SECONDS);
   const positionHeld =
     positioned !== undefined &&
     flightReading.latitude.reckoning.status !== "available" &&
-    (flightReading.state === "stale" || behindScet);
+    flightReading.state === "stale";
   /* `altitudeReading` feeds the readout, which marks its own currency. `altSea` is the last observed magnitude and feeds the flown trail, where a modelled altitude does not belong. */
   const altitudeReading = flightReading.altitudeAsl;
   const altSea =
@@ -147,7 +137,7 @@ export function useMapTelemetry(
     planReading.state === "observed" || planReading.state === "stale"
       ? planReading.value.nodes
       : undefined;
-  const universalTime = scetUt?.magnitude;
+  const universalTime = useViewUt()?.magnitude;
 
   // The body picker (config.bodyOverride) lets the operator inspect any body; unset follows the vessel.
   const targetBodyId = bodyOverride ?? bodyName;
@@ -163,6 +153,13 @@ export function useMapTelemetry(
     () => bodyNamed(bodies, targetBodyId),
     [bodies, targetBodyId],
   );
+  const modelledPosition = useModelledPosition({
+    targetBodyId,
+    body,
+    lat,
+    lon,
+    receivedUt: universalTime,
+  });
   const impact = useMemo(
     () =>
       orbitCurrent === undefined ||
@@ -189,6 +186,7 @@ export function useMapTelemetry(
     lon,
     positionStale,
     positionHeld,
+    modelledPosition,
     latitudeReading: flightReading.latitude,
     longitudeReading: flightReading.longitude,
     altitudeReading,
