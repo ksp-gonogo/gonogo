@@ -34,6 +34,10 @@ import {
   useContributions,
   useContributionsBySlotId,
 } from "./contributionsRead";
+import {
+  type DomainAvailabilityStore,
+  useDomainAvailabilityStore,
+} from "./domainAvailability";
 import type { Store } from "./store/createStore";
 import { useWidgetMeta } from "./WidgetMetaContext";
 
@@ -170,7 +174,6 @@ function SlotAggregator({
   const unionDeps = useMemo(() => {
     const topics = new Set<TopicId>();
     const processors = new Map<string, ProcessorHandle<unknown>>();
-    // A `requires` domain needs its own `.available` subscription: a transport only delivers a topic something subscribed to.
     for (const c of contribs) {
       for (const d of c.deps ?? []) {
         if (typeof d === "string") {
@@ -184,7 +187,6 @@ function SlotAggregator({
         }
         processors.set(d.id, d);
       }
-      if (c.requires) topics.add(`${c.requires}.available` as TopicId);
     }
     return {
       topics: Array.from(topics),
@@ -261,17 +263,20 @@ function SlotAggregator({
   }, [telemetryStore, unionDeps]);
 
   const topicValues = useSyncExternalStore(subscribe, getSnapshot);
+  // The host's presence store, the same one an augment's `requires` reads, so both gates follow one rule.
+  const availability = useDomainAvailabilityStore();
+  const presence = useSyncExternalStore(
+    availability ? availability.subscribe : NO_AVAILABILITY_SUBSCRIBE,
+    () => presenceKey(contribs, availability),
+    () => presenceKey(contribs, availability),
+  );
   const budget = useMemo(() => getSlotPerfBudget(slot), [slot]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `presence` is an intentional trigger, since the store keeps its identity when a Domain comes or goes.
   useEffect(() => {
     const collected: unknown[] = [];
     for (const def of contribs) {
-      if (
-        def.requires &&
-        client?.getValue(`${def.requires}.available`) === undefined
-      ) {
-        continue; // Domain absent: this contribution does not run.
-      }
+      if (def.requires && !availability?.isAvailable(def.requires)) continue;
       try {
         const result = runContributionCompute(
           def.id,
@@ -303,9 +308,23 @@ function SlotAggregator({
     store.update(slot, { entries: collected });
     // update() returns early on an unknown id, so the first write registers.
     if (!current) store.register({ id: slot, entries: collected });
-  }, [contribs, topicValues, slot, store, budget, client]);
+  }, [contribs, topicValues, slot, store, budget, availability, presence]);
 
   return null;
+}
+
+const NO_AVAILABILITY_SUBSCRIBE = (): (() => void) => () => {};
+
+/** Which of these contributions' Domains are present, as a string, so a presence change re-runs them and nothing else does. */
+function presenceKey(
+  contribs: readonly AnyContribution[],
+  availability: DomainAvailabilityStore | null,
+): string {
+  return contribs
+    .map((c) =>
+      c.requires && availability?.isAvailable(c.requires) ? c.requires : "",
+    )
+    .join("|");
 }
 
 /**

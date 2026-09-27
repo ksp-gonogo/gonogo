@@ -1,6 +1,17 @@
-import { AugmentSlot, clearAugments, registerAugment } from "@ksp-gonogo/core";
+import {
+  AugmentSlot,
+  ContributionsProvider,
+  clearAugments,
+  registerAugment,
+  useContributionsBySlotId,
+  WidgetMetaContext,
+} from "@ksp-gonogo/core";
 import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import { Quality, type TopicId } from "@ksp-gonogo/sitrep-sdk";
+import {
+  clearContributions,
+  registerContribution,
+} from "@ksp-gonogo/sitrep-sdk/spine";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, cleanup, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { DomainAvailabilityProvider } from "@ksp-gonogo/ui-kit";
@@ -18,6 +29,7 @@ import { AugmentAvailabilityFeeder } from "./AugmentAvailabilityFeeder";
 afterEach(() => {
   cleanup();
   clearAugments();
+  clearContributions();
 });
 
 /* The propless probe slot this file mounts, declared because an undeclared
@@ -25,6 +37,9 @@ afterEach(() => {
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "e2e-availability.slot": Record<string, never>;
+  }
+  interface ContributionRegistry {
+    "e2e-availability.rows": { entry: { label: string } };
   }
 }
 
@@ -63,5 +78,55 @@ describe("AugmentAvailabilityFeeder end-to-end gating", () => {
     });
 
     await waitFor(() => expect(screen.getByText("scan-layer")).toBeTruthy());
+  });
+
+  it("gates a contribution on the same presence, fed by the same feeder", async () => {
+    const SLOT = "e2e-availability.rows";
+    registerContribution({
+      id: "demomod-rows",
+      contributes: SLOT,
+      requires: "demomod-rows",
+      compute: () => [{ label: "from demomod" }],
+    });
+    function Probe() {
+      return (
+        <output data-testid="rows">
+          {useContributionsBySlotId(SLOT).length}
+        </output>
+      );
+    }
+
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    render(
+      <TelemetryProvider client={client}>
+        <DomainAvailabilityProvider>
+          <AugmentAvailabilityFeeder />
+          <WidgetMetaContext.Provider
+            value={{
+              componentId: "e2e-availability",
+              contributionSlots: [SLOT],
+            }}
+          >
+            <ContributionsProvider>
+              <Probe />
+            </ContributionsProvider>
+          </WidgetMetaContext.Provider>
+        </DomainAvailabilityProvider>
+      </TelemetryProvider>,
+    );
+    expect(screen.getByTestId("rows")).toHaveTextContent("0");
+
+    act(() => {
+      transport.emit(
+        "demomod-rows.available",
+        { available: true },
+        { quality: Quality.Loaded, source: "demomod-rows" },
+      );
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId("rows")).toHaveTextContent("1"),
+    );
   });
 });

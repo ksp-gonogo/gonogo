@@ -51,7 +51,7 @@ const DomainAvailabilityPanelStore = createPanelStore(
 
 /**
  * Carries only the store handle, never the live map. `null` outside a
- * provider, where `useDomainAvailable` answers "not available". Exported so a
+ * provider, where every Domain reads as not available. Exported so a
  * test can seed a store; `DomainAvailabilityProvider` is the common case.
  */
 export const DomainAvailabilityContext = DomainAvailabilityPanelStore.Context;

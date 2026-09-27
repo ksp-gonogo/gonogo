@@ -1,6 +1,10 @@
 import { getAugments, onAugmentsChange, useTelemetry } from "@ksp-gonogo/core";
 import { hasAnswered, type TopicId } from "@ksp-gonogo/sitrep-sdk";
 import {
+  getContributions,
+  onContributionsChange,
+} from "@ksp-gonogo/sitrep-sdk/spine";
+import {
   type DomainAvailabilityStore,
   useDomainAvailabilityStore,
 } from "@ksp-gonogo/ui-kit";
@@ -18,16 +22,17 @@ import { type ReactElement, useEffect, useSyncExternalStore } from "react";
  * the store resolves), sitting alongside the other headless telemetry siblings
  * the screen already mounts. With no store above it, it renders nothing.
  *
- * It watches EVERY distinct Domain any registered augment `requires`, not just
- * the ones a mounted slot happens to show, so availability is global truth: a
- * `suppressesVanillaBase` decision and a slot in another widget read the same
- * answer. One telemetry subscription per Domain regardless of how many augments
- * or slots reference it.
+ * It watches EVERY distinct Domain any registered augment or contribution
+ * `requires`, not just the ones a mounted slot happens to show, so availability
+ * is global truth: an augment's gate, a contribution's gate, a
+ * `suppressesVanillaBase` decision and a slot in another widget all read the
+ * same answer. One telemetry subscription per Domain regardless of how many
+ * augments, contributions or slots reference it.
  */
 export function AugmentAvailabilityFeeder(): ReactElement | null {
   const store = useDomainAvailabilityStore();
   const domains = useSyncExternalStore(
-    onAugmentsChange,
+    onRegistryChange,
     getRequiredDomains,
     getRequiredDomains,
   );
@@ -85,11 +90,26 @@ let domainsDirty = true;
 onAugmentsChange(() => {
   domainsDirty = true;
 });
+onContributionsChange(() => {
+  domainsDirty = true;
+});
+/** Either registry changing can add or drop a gated Domain. */
+function onRegistryChange(onChange: () => void): () => void {
+  const offAugments = onAugmentsChange(onChange);
+  const offContributions = onContributionsChange(onChange);
+  return () => {
+    offAugments();
+    offContributions();
+  };
+}
 function getRequiredDomains(): string[] {
   if (!domainsDirty) return cachedDomains;
   const set = new Set<string>();
   for (const augment of getAugments()) {
     if (augment.requires) set.add(augment.requires);
+  }
+  for (const contribution of getContributions()) {
+    if (contribution.requires) set.add(contribution.requires);
   }
   const next = Array.from(set).sort();
   const changed =

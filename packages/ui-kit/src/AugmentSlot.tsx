@@ -19,8 +19,9 @@ import { useWidgetMeta } from "./WidgetMetaContext";
  * typed-contract slot passes the interface an augment must satisfy. Pass `{}`
  * for a slot with no props.
  *
- * An augment declaring `requires: "<domain>"` renders only while that Domain
- * is live, per ui-kit's {@link useDomainAvailable} store.
+ * An augment declaring `requires: "<domain>"` renders only while the host
+ * reports that Domain present, the same presence a contribution's `requires`
+ * reads; a held `<domain>.available` counts as present.
  *
  * Two mutually exclusive forms:
  *  - `name`: the full slot literal (`"power-systems.sections"`), props typed
@@ -108,8 +109,8 @@ function getAugmentsForSlotCached(name: string): AnyAugment[] {
 }
 
 /**
- * Domain presence gate: true when `augment` declares no `requires`, or its
- * Domain is live per {@link useDomainAvailable}. A host uses it to ask the same
+ * Domain presence gate: true when `augment` declares no `requires`, or the host
+ * reports its Domain present. A host uses it to ask the same
  * question rendering asks without rendering the augment, since a bundled
  * client registers its augments whether or not its mod is running.
  */
