@@ -1,0 +1,34 @@
+{
+  "name": "@ksp-gonogo/storybook",
+  "license": "MIT",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "tsx scripts/generate-stories.ts",
+    "storybook": "pnpm generate && storybook dev -p 6006",
+    "build-storybook": "pnpm generate && storybook build -o dist/static",
+    "smoke": "pnpm build-storybook && tsx scripts/smoke.ts",
+    "typecheck": "pnpm generate && tsc --noEmit"
+  },
+  "dependencies": {
+    "@ksp-gonogo/components": "workspace:*",
+    "@ksp-gonogo/core": "workspace:*",
+    "@ksp-gonogo/sitrep-sdk": "workspace:*",
+    "@ksp-gonogo/ui-kit": "workspace:*",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "styled-components": "^6.0.0"
+  },
+  "devDependencies": {
+    "@storybook/react-vite": "10.6.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "playwright": "^1.60.0",
+    "storybook": "10.6.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^6.0.0"
+  }
+}

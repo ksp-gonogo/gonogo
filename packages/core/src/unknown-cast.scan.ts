@@ -71,6 +71,7 @@ export const SCANNED_PACKAGE_ROOTS = [
   "packages/relay",
   "packages/serial",
   "packages/sitrep-client",
+  "packages/storybook",
   "packages/test-utils",
   "packages/theme",
   "packages/ui",

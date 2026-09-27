@@ -27,6 +27,7 @@ import {
   registerStockBodies,
   unregisterDataSource,
   useTelemetry,
+  useWidgetBadges,
   WidgetMetaContext,
   WidgetStreamStatusBridge,
 } from "@ksp-gonogo/core";
@@ -48,6 +49,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
 // Side-effect import: every widget self-registers on module load.
 import "../../src";
+import { AugmentAvailabilityFeeder } from "../../../app/src/telemetry/AugmentAvailabilityFeeder";
 import {
   AlarmsLauncherProvider,
   type PendingAlarmSummary,
@@ -178,6 +180,37 @@ function wrapWithPinnedViewUt(
   if (pinnedUt === undefined) return createElement(Fragment, null, children);
   const { Provider } = setupStreamFixture({ carriedChannels: [], pinnedUt });
   return createElement(Provider, null, children);
+}
+
+/** The header badges a scene's `_badges` block names. */
+function sceneBadges(payload: ProbePayload): readonly BadgeEntry[] {
+  return (payload.fixture._badges as readonly BadgeEntry[] | undefined) ?? [];
+}
+
+/** The app's `WidgetBadges`: the widget's contributed header badges, after the scene's own. */
+function ContributedBadges({
+  scene,
+  children,
+}: {
+  scene: readonly BadgeEntry[];
+  children: React.ReactNode;
+}): React.ReactElement {
+  const contributed = useWidgetBadges();
+  return createElement(
+    PanelBadgesProvider,
+    { badges: [...scene, ...contributed] },
+    children,
+  );
+}
+
+function withContributedBadges(
+  payload: ProbePayload,
+  tree: React.ReactElement,
+): React.ReactElement {
+  if (!payload.asDashboard) return tree;
+  return (
+    <ContributedBadges scene={sceneBadges(payload)}>{tree}</ContributedBadges>
+  );
 }
 
 /**
@@ -456,29 +489,32 @@ export async function renderProbe(
         createElement(
           ContributionsProvider,
           null,
-          <AlarmsLauncherProvider
-            launcher={() => {}}
-            creator={() => {}}
-            manager={{ find: () => null, remove: () => {} }}
-            // A scene's `_alarms` stands in for the pipeline's pending list.
-            // Absent means the tree has no pipeline to ask.
-            pending={
-              payload.fixture._alarms as
-                | readonly PendingAlarmSummary[]
-                | undefined
-            }
-          >
-            {createElement(
-              DashboardItemContext.Provider,
-              { value: { instanceId } },
-              createElement(WidgetComponent, {
-                config: payload.config ?? def.defaultConfig ?? {},
-                id: instanceId,
-                w: payload.w,
-                h: payload.h,
-              }),
-            )}
-          </AlarmsLauncherProvider>,
+          withContributedBadges(
+            payload,
+            <AlarmsLauncherProvider
+              launcher={() => {}}
+              creator={() => {}}
+              manager={{ find: () => null, remove: () => {} }}
+              // A scene's `_alarms` stands in for the pipeline's pending list.
+              // Absent means the tree has no pipeline to ask.
+              pending={
+                payload.fixture._alarms as
+                  | readonly PendingAlarmSummary[]
+                  | undefined
+              }
+            >
+              {createElement(
+                DashboardItemContext.Provider,
+                { value: { instanceId } },
+                createElement(WidgetComponent, {
+                  config: payload.config ?? def.defaultConfig ?? {},
+                  id: instanceId,
+                  w: payload.w,
+                  h: payload.h,
+                }),
+              )}
+            </AlarmsLauncherProvider>,
+          ),
         ),
       ),
     );
@@ -496,8 +532,8 @@ export async function renderProbe(
      * from the scene the provider is skipped entirely rather than mounted
      * empty, so no existing render moves.
      */
-    const badges = payload.fixture._badges as readonly BadgeEntry[] | undefined;
-    if (!badges || badges.length === 0) return tree;
+    const badges = sceneBadges(payload);
+    if (payload.asDashboard || badges.length === 0) return tree;
     return createElement(PanelBadgesProvider, { badges }, tree);
   };
 
@@ -523,7 +559,12 @@ export async function renderProbe(
             createElement(
               DomainAvailabilityProvider,
               null,
-              createElement(ProbeAugmentAvailabilityFeeder, null),
+              createElement(
+                payload.asDashboard
+                  ? AugmentAvailabilityFeeder
+                  : ProbeAugmentAvailabilityFeeder,
+                null,
+              ),
               buildWidgetTree(),
             ),
           )

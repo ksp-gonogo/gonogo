@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "allowImportingTsExtensions": true,
+    "types": ["vite/client"]
+  },
+  "include": [
+    "src",
+    "scripts",
+    ".storybook",
+    "dist/stories",
+    "../app/src/vite-env.d.ts"
+  ]
+}

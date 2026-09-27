@@ -30,6 +30,7 @@ export const SCANNED_PACKAGE_ROOTS = [
   "packages/data/src",
   "packages/serial/src",
   "packages/sitrep-client/src",
+  "packages/storybook/src",
   "packages/theme/src",
   "packages/ui/src",
   "packages/ui-kit/src",

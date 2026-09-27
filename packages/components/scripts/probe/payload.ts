@@ -66,6 +66,15 @@ export interface ProbePayload {
    * for the screenshot. Missing selectors throw, the same as a click's.
    */
   hovers?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
+  /**
+   * Mount the widget as the dashboard does rather than as the committed
+   * baselines were drawn: the badges contributed into its `<id>.badges` slot
+   * reach its panel header beside the scene's own `_badges`, and Domain
+   * presence is fed for every registered augment AND contribution by the app's
+   * own feeder. Off, only `_badges` reaches the header and presence is fed for
+   * augment Domains alone.
+   */
+  asDashboard?: boolean;
 }
 
 /*
@@ -107,6 +116,7 @@ export function probePayload(opts: {
   size: ProbeSize;
   profile?: string;
   gridCell?: boolean;
+  asDashboard?: boolean;
 }): ProbePayload {
   const { fixture, size } = opts;
   const series = (
@@ -124,5 +134,6 @@ export function probePayload(opts: {
     clicks: size.clicks,
     hovers: size.hovers,
     profile: opts.profile,
+    asDashboard: opts.asDashboard,
   };
 }
