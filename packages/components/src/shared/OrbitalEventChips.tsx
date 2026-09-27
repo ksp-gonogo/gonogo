@@ -3,13 +3,12 @@ import {
   useOrbitSolveReading,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useViewUt } from "@ksp-gonogo/sitrep-client";
-import { deriveReading } from "@ksp-gonogo/sitrep-sdk";
 import { Box, Cluster, Countdown } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { encounterKindOf } from "./encounterKind";
 import { solveCountdown } from "./solveCountdown";
 import { useBodyName } from "./useBodyName";
+import { useEncounterIn } from "./useEncounterIn";
 
 /**
  * SOI encounter or escape, and the next apsis; nothing when neither has data.
@@ -22,23 +21,11 @@ export function OrbitalEventChips() {
   const orbit = reading.state === "observed" ? reading.value : undefined;
   const solve = useOrbitSolve();
   const solveReading = useOrbitSolveReading();
-  const receivedUt = useViewUt();
   const encounter = orbit?.encounter ?? null;
 
   const encounterKind = encounterKindOf(encounter);
   const encBody = useBodyName(encounter?.bodyIndex);
-  // `transitionUt` is an absolute UT, unlike `timeToNextApsis`, though both carry "s".
-  const encIn = deriveReading(
-    reading,
-    (o) =>
-      o.encounter?.transitionUt.isFinite() === true && receivedUt !== undefined
-        ? o.encounter.transitionUt.minus(receivedUt)
-        : undefined,
-    (o, atUt) =>
-      o.encounter?.transitionUt.isFinite() === true
-        ? o.encounter.transitionUt.minus(atUt)
-        : undefined,
-  );
+  const encIn = useEncounterIn();
   const hasEncounter =
     encounterKind !== null &&
     typeof encBody === "string" &&

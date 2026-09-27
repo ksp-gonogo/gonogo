@@ -3,7 +3,7 @@ import { formatDuration } from "./formatDuration";
 import { HeldHost, HeldMark } from "./HeldMark";
 import { ModelledAlongside } from "./ModelledAlongside";
 import { NULL_DISPLAY } from "./NullValue";
-import { resolveCurrency } from "./readingCurrency";
+import { modelledBeyondReceived, resolveCurrency } from "./readingCurrency";
 import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
@@ -93,11 +93,7 @@ function modelledAlongside(
   carried: Value<"s"> | Reading<Value<"s">> | null | undefined,
 ): { observed: Value<"s">; modelled: Value<"s"> } | null {
   if (carried == null || !("state" in carried)) return null;
-  if (carried.state !== "observed" || carried.value === undefined) return null;
-  if (carried.reckoning.status !== "available") return null;
-  if (!carried.reckoning.beyondReceived) return null;
-  return {
-    observed: carried.value,
-    modelled: carried.reckoning.modelled,
-  };
+  const modelled = modelledBeyondReceived(carried);
+  if (modelled === undefined || carried.value === undefined) return null;
+  return { observed: carried.value, modelled };
 }

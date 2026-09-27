@@ -1,7 +1,9 @@
+import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import { HeldHost, HeldMark } from "./HeldMark";
 import { MODELLED_TO_SCET } from "./readingCurrency";
+import { Unit } from "./Unit";
 import { VisuallyHidden } from "./VisuallyHidden";
 
 const ModelledAlongside__Figure = styled.span`
@@ -24,5 +26,33 @@ export function ModelledAlongside({ children }: { children: ReactNode }) {
         , {MODELLED_TO_SCET}
       </VisuallyHidden>
     </ModelledAlongside__Figure>
+  );
+}
+
+/**
+ * A reading's observation through `<Unit>`, and where its model reaches past
+ * the received edge, the model's figure beside it with the modelled mark.
+ */
+export function ReckonedUnit<U extends string>({
+  value,
+}: {
+  value: Reading<Value<U>>;
+}) {
+  const { reckoning } = value;
+  const modelled =
+    value.state === "observed" &&
+    reckoning.status === "available" &&
+    reckoning.beyondReceived
+      ? reckoning.modelled
+      : undefined;
+  return (
+    <>
+      <Unit value={value} />
+      {modelled !== undefined && (
+        <ModelledAlongside>
+          <Unit value={modelled} />
+        </ModelledAlongside>
+      )}
+    </>
   );
 }

@@ -406,6 +406,7 @@ export {
   useModalChrome,
   useModalSaveBar,
 } from "./ModalSaveBar";
+export { ModelledAlongside, ReckonedUnit } from "./ModelledAlongside";
 export {
   asQuantityish,
   magnitudeOf,
@@ -450,7 +451,11 @@ export {
   StatusPill,
 } from "./Readout";
 export { Row, RowName, type RowProps } from "./Row";
-export { type Resolved, resolveCurrency } from "./readingCurrency";
+export {
+  modelledBeyondReceived,
+  type Resolved,
+  resolveCurrency,
+} from "./readingCurrency";
 export { resourceColor } from "./resourceColor";
 export { Section, type SectionProps, SectionTitle } from "./Section";
 export {

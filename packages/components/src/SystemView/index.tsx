@@ -5,6 +5,7 @@ import {
   registerComponent,
   useContributions,
   useOrbitSolve,
+  useOrbitSolveReading,
 } from "@ksp-gonogo/core";
 import {
   CELESTIAL_FACTS,
@@ -12,14 +13,16 @@ import {
   useFleetVesselSilence,
   useOrbitTrajectory,
   useProcessor,
-  useScetUt,
+  useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import { Panel, useElementSize } from "@ksp-gonogo/ui";
 import { FramedDisplay, NULL_DISPLAY, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useMemo, useRef, useState } from "react";
+import { solveCountdown } from "../shared/solveCountdown";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
+import { useEncounterIn } from "../shared/useEncounterIn";
 import { AlmanacPanel } from "./AlmanacPanel";
 import { ContactCaption, FRAME_CAPTION } from "./ContactCaption";
 import type { SystemViewConfig } from "./config";
@@ -38,7 +41,7 @@ import "./vesselOrbitsContribution";
 import { panelHohmannFor, transferStatusesFor } from "./transferWindow";
 import { type CelestialBody, useCelestialBodies } from "./useCelestialBodies";
 import { useCommsEntities } from "./useCommsEntities";
-import { usePhaseAngles } from "./usePhaseAngles";
+import { usePhaseAngleReading, usePhaseAngles } from "./usePhaseAngles";
 import { VesselInfoPanel } from "./VesselInfoPanel";
 import { vesselPlotStateFromStatus } from "./VesselMarker";
 // Registers the built-in `system-view.vessel-status` contribution.
@@ -120,7 +123,7 @@ function SystemViewComponent({
       ? commsNetworkReading.value
       : undefined;
   // Unwrapped at the read: the finiteness guards below answer no for a wrapped value and would silently stop drawing the arc.
-  const universalTime = useScetUt()?.magnitude;
+  const universalTime = useViewUt()?.magnitude;
   const {
     entities,
     selectedVesselId,
@@ -151,6 +154,7 @@ function SystemViewComponent({
 
   // The orbit model's solve at the viewed instant, so a craft it refuses to advance is refused here too.
   const derived = useOrbitSolve();
+  const derivedReading = useOrbitSolveReading();
 
   const encounter = orbit?.encounter ?? null;
   const encounterDirection = encounterDirectionOf(encounter?.transitionType);
@@ -268,10 +272,21 @@ function SystemViewComponent({
     [bodies, vesselBody],
   );
   const panelBody = focusedBody ?? vesselBodyRecord;
-  const nowUt = typeof universalTime === "number" ? universalTime : null;
   const panelPhaseAngle =
     panelBody && phaseAngles.has(panelBody.index)
       ? (phaseAngles.get(panelBody.index) ?? null)
+      : null;
+  const panelPhaseAngleReading = usePhaseAngleReading(
+    panelPhaseAngle === null ? null : panelBody,
+    bodies,
+    universalTime,
+  );
+  const encounterIn = useEncounterIn();
+  const nextApsisIn =
+    derived?.nextApsisType === -1 || derived?.nextApsisType === 1
+      ? (solveCountdown(derivedReading, (s) =>
+          s.nextApsisType === derived.nextApsisType ? s.timeToNextApsis : null,
+        ) ?? null)
       : null;
   const panelIsVesselParent =
     panelBody !== null &&
@@ -330,7 +345,7 @@ function SystemViewComponent({
   const almanac = (
     <AlmanacPanel
       body={panelBody}
-      phaseAngleDeg={panelPhaseAngle}
+      phaseAngle={panelPhaseAngleReading ?? null}
       isVesselParent={panelIsVesselParent}
       hohmannIdealDeg={panelHohmann?.ideal ?? null}
       hohmannDeltaDeg={panelHohmann?.delta ?? null}
@@ -340,23 +355,13 @@ function SystemViewComponent({
           ? encounterDirection
           : null
       }
-      encounterTimeSec={
-        // `encounterTimeUt` is an ABSOLUTE UT (transitionUt); the panel wants seconds-to-event, so subtract SCET.
-        encounterTimeUt != null && nowUt !== null
-          ? encounterTimeUt - nowUt
-          : null
-      }
+      encounterIn={encounterIn}
       nextApsisType={
         derived?.nextApsisType === -1 || derived?.nextApsisType === 1
           ? derived.nextApsisType
           : null
       }
-      nextApsisTimeSec={
-        typeof derived?.timeToNextApsis === "number"
-          ? derived.timeToNextApsis
-          : null
-      }
-      orbitCurrency={orbitReading}
+      nextApsisIn={nextApsisIn}
     />
   );
   const sidebarContent =

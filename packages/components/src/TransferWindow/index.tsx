@@ -11,7 +11,7 @@ import {
   type CelestialBody,
   DELTA_V_BUDGET,
   useProcessor,
-  useScetUt,
+  useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import { stillTrue, TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 import { Placeholder } from "@ksp-gonogo/ui";
@@ -108,7 +108,7 @@ function TransferWindowComponent({
       : undefined;
   const bodies = facts?.bodies ?? NO_BODIES;
   // Through the canonical funnel, which coalesces a non-finite reading to 0 rather than passing NaN into the porkchop.
-  const nowUt = magnitudeOr(useScetUt(), 0);
+  const nowUt = magnitudeOr(useViewUt(), 0);
 
   /**
    * The vehicle's Δv budget: a description, so a held one is still drawn, never
@@ -190,7 +190,7 @@ function TransferWindowComponent({
 
   /**
    * What the porkchop's inputs are rounded to before they reach a memo: the
-   * grid is 1,024 Lambert solves and `useScetUt` notifies every frame. The
+   * grid is 1,024 Lambert solves and `useViewUt` notifies every frame. The
    * quantum scales with the Hohmann transfer time the axes are drawn in, so it
    * holds at any warp.
    */
@@ -233,7 +233,7 @@ function TransferWindowComponent({
   const reachRecomputeUt = kspCalendar().day;
   const reachUtBucket = Math.floor(nowUt / reachRecomputeUt);
 
-  // Keyed on a coarse SCET so a list of closed-form solves stays off the per-frame path.
+  // Keyed on a coarse view time so a list of closed-form solves stays off the per-frame path.
   const reach = useMemo(
     () =>
       origin && parkingRadius != null && Number.isFinite(parkingRadius)

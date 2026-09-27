@@ -88,6 +88,21 @@ export interface CurrencyOptions {
 /** The mark's words for a current reading whose figure the model carried across the light-time. */
 export const MODELLED_TO_SCET = "modelled to SCET";
 
+/**
+ * What the model says a current reading's figure is at the instant it reckoned
+ * to, where that is past the received edge: the figure a widget draws beside
+ * the observation with `ModelledAlongside`. `undefined` everywhere else.
+ */
+export function modelledBeyondReceived<V>(
+  reading: Reading<V> | null | undefined,
+): V | undefined {
+  if (reading == null || reading.state !== "observed") return undefined;
+  if (reading.value === undefined) return undefined;
+  if (reading.reckoning.status !== "available") return undefined;
+  if (!reading.reckoning.beyondReceived) return undefined;
+  return reading.reckoning.modelled;
+}
+
 /** The mark and its words for a held reading's observation. */
 function heldCurrency<U extends string>(
   input: Reading<Value<U>>,

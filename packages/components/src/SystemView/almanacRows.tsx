@@ -1,9 +1,6 @@
-import type { TopicReading } from "@ksp-gonogo/sitrep-client";
-import { readingOf } from "@ksp-gonogo/sitrep-client";
-import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
-import { Unit, type UnitValue, writeQuantity } from "@ksp-gonogo/ui-kit";
+import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import { ReckonedUnit, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import { normalizePhaseAngle } from "./transferWindow";
 import type { CelestialBody } from "./useCelestialBodies";
 
 // Each readout restates its unit because `CelestialBody` carries bare magnitudes for the diagram's arithmetic.
@@ -31,21 +28,15 @@ function atmosphereValue(body: CelestialBody): ReactNode | null {
 
 export function buildRows(
   body: CelestialBody,
-  phaseAngleDeg: number | null,
+  phaseAngle: Reading<Value<"°">> | null,
   isVesselParent: boolean,
   hohmannIdealDeg: number | null,
   hohmannDeltaDeg: number | null,
   encounterDirection: "encounter" | "escape" | null,
-  encounterTimeSec: number | null,
+  encounterIn: Reading<Value<"s">> | null,
   nextApsisType: -1 | 1 | null,
-  nextApsisTimeSec: number | null,
-  orbitCurrency: TopicReading<unknown> | undefined,
+  nextApsisIn: Reading<Value<"s">> | null,
 ): AlmanacRow[] {
-  // A figure computed from the orbit read, carrying that read's currency.
-  const asOrbit = <U extends string>(magnitude: Value<U>): UnitValue<U> =>
-    orbitCurrency === undefined
-      ? magnitude
-      : readingOf(orbitCurrency, () => magnitude);
   const rows: AlmanacRow[] = [];
   if (body.radius !== null) {
     rows.push({
@@ -111,16 +102,10 @@ export function buildRows(
       value: <Unit value={value("°", body.inclination)} />,
     });
   }
-  if (
-    !isVesselParent &&
-    phaseAngleDeg !== null &&
-    phaseAngleDeg !== undefined
-  ) {
+  if (!isVesselParent && phaseAngle !== null) {
     rows.push({
       label: "Phase angle",
-      value: (
-        <Unit value={asOrbit(value("°", normalizePhaseAngle(phaseAngleDeg)))} />
-      ),
+      value: <ReckonedUnit value={phaseAngle} />,
     });
   }
   if (
@@ -144,25 +129,25 @@ export function buildRows(
   }
   if (
     encounterDirection !== null &&
-    encounterTimeSec !== null &&
-    Number.isFinite(encounterTimeSec) &&
-    encounterTimeSec > 0
+    encounterIn !== null &&
+    encounterIn.value?.isFinite() === true &&
+    encounterIn.value.greaterThan(0)
   ) {
     rows.push({
       label: encounterDirection === "escape" ? "Escape in" : "Encounter in",
-      value: <Unit value={asOrbit(value("s", encounterTimeSec))} />,
+      value: <ReckonedUnit value={encounterIn} />,
     });
   }
   if (
     isVesselParent &&
     nextApsisType !== null &&
-    nextApsisTimeSec !== null &&
-    Number.isFinite(nextApsisTimeSec) &&
-    nextApsisTimeSec >= 0
+    nextApsisIn !== null &&
+    nextApsisIn.value?.isFinite() === true &&
+    !nextApsisIn.value.lessThan(0)
   ) {
     rows.push({
       label: nextApsisType === -1 ? "Next Pe" : "Next Ap",
-      value: <Unit value={asOrbit(value("s", nextApsisTimeSec))} />,
+      value: <ReckonedUnit value={nextApsisIn} />,
     });
   }
   return rows;

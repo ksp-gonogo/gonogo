@@ -274,8 +274,9 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // 5: the LAN and argPe coalesce, each `?.magnitude ?? 0` or `?.magnitude`
   // behind a `Number.isFinite` guard, is expressed through `magnitudeOr` and
   // `magnitudeOf` instead and so does not count here. What is left is the five
-  // elements the shared Kepler solver takes as canonical SI numbers.
-  "packages/components/src/SystemView/usePhaseAngles.ts": 5,
+  // elements the shared Kepler solver takes as canonical SI numbers, and the
+  // reckoning's instant the same solver advances both objects to.
+  "packages/components/src/SystemView/usePhaseAngles.ts": 6,
   /*
    * THREE, and each is a boundary rather than arithmetic: the view UT the
    * widget subtracts from, a stream field that arrives as a bare number, and a

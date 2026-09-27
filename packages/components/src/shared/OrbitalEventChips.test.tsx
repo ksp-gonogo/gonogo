@@ -133,7 +133,7 @@ describe("OrbitalEventChips under signal delay", () => {
     expect(visibleText()).toMatch(/24m/);
     expect(alongside[0]?.textContent).toMatch(/20m/);
     expect(
-      alongside[0]?.querySelector("[data-not-current-mark]"),
+      alongside[0]?.querySelector("[data-held-mark]"),
     ).not.toBeNull();
   });
 });

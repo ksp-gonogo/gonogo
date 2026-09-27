@@ -1,4 +1,4 @@
-import type { TopicReading } from "@ksp-gonogo/sitrep-client";
+import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import { ExpandableText, Grid } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 import { buildRows } from "./almanacRows";
@@ -7,8 +7,8 @@ import type { CelestialBody } from "./useCelestialBodies";
 export interface AlmanacPanelProps {
   /** Body to describe. When null, the panel renders an idle hint. */
   body: CelestialBody | null;
-  /** Live phase angle to the active vessel, deg. Suppressed for the vessel's parent. */
-  phaseAngleDeg?: number | null;
+  /** Phase angle to the active vessel, with the model's figure where one reaches past the received edge. Suppressed for the vessel's parent. */
+  phaseAngle?: Reading<Value<"°">> | null;
   /** Whether this body is the vessel's current parent, phase angle is meaningless. */
   isVesselParent?: boolean;
   /** Hohmann ideal departure phase angle (deg), if the vessel and body share a parent. */
@@ -17,30 +17,24 @@ export interface AlmanacPanelProps {
   hohmannDeltaDeg?: number | null;
   /** SOI event direction when this body is the vessel's upcoming encounter or escape destination; the caller matches `o.encounterBody` to the panel body first. */
   encounterDirection?: "encounter" | "escape" | null;
-  /** Seconds until the SOI transition. Caller filters to positive values. */
-  encounterTimeSec?: number | null;
+  /** Time until the SOI transition. */
+  encounterIn?: Reading<Value<"s">> | null;
   /** Next apsis on the *vessel's* orbit: 1 = Ap, -1 = Pe. Only shown when `isVesselParent`. */
   nextApsisType?: -1 | 1 | null;
-  /** Seconds to the next apsis. */
-  nextApsisTimeSec?: number | null;
-  /**
-   * The `vessel.orbit` read the vessel-derived rows were computed from, so each carries its currency.
-   * The body rows take none: catalogue figures do not go stale when the craft stops reporting.
-   */
-  orbitCurrency?: TopicReading<unknown>;
+  /** Time to the next apsis. */
+  nextApsisIn?: Reading<Value<"s">> | null;
 }
 
 export function AlmanacPanel({
   body,
-  phaseAngleDeg = null,
+  phaseAngle = null,
   isVesselParent = false,
   hohmannIdealDeg = null,
   hohmannDeltaDeg = null,
   encounterDirection = null,
-  encounterTimeSec = null,
+  encounterIn = null,
   nextApsisType = null,
-  nextApsisTimeSec = null,
-  orbitCurrency,
+  nextApsisIn = null,
 }: AlmanacPanelProps) {
   if (!body) {
     return (
@@ -54,15 +48,14 @@ export function AlmanacPanel({
   }
   const rows = buildRows(
     body,
-    phaseAngleDeg,
+    phaseAngle,
     isVesselParent,
     hohmannIdealDeg,
     hohmannDeltaDeg,
     encounterDirection,
-    encounterTimeSec,
+    encounterIn,
     nextApsisType,
-    nextApsisTimeSec,
-    orbitCurrency,
+    nextApsisIn,
   );
   return (
     <Wrap>

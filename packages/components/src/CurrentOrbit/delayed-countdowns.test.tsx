@@ -55,6 +55,6 @@ describe("CurrentOrbit under signal delay", () => {
     const observed = toAp?.parentElement?.firstChild?.textContent ?? "";
     expect(observed).toMatch(/^\d/);
     expect(toAp?.textContent).not.toBe(observed);
-    expect(toAp?.querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(toAp?.querySelector("[data-held-mark]")).not.toBeNull();
   });
 });

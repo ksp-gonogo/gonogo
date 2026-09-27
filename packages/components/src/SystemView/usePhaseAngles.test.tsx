@@ -1,7 +1,10 @@
 import {
   ANALYTIC_BODY_HORIZON,
+  deriveTrueAnomalyDeg,
   type PropagationHorizonLike,
+  useViewUt,
 } from "@ksp-gonogo/sitrep-client";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import {
@@ -10,8 +13,9 @@ import {
   UNBOUNDED_HORIZON,
 } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
+import { normalizePhaseAngle } from "./transferWindow";
 import type { CelestialBody } from "./useCelestialBodies";
-import { usePhaseAngles } from "./usePhaseAngles";
+import { usePhaseAngleReading, usePhaseAngles } from "./usePhaseAngles";
 
 /** `usePhaseAngles` derives each body's phase angle to the active vessel from streamed elements, read through a real `TelemetryProvider`. */
 
@@ -242,41 +246,85 @@ describe("usePhaseAngles", () => {
   });
 });
 
-describe("usePhaseAngles under signal delay", () => {
+describe("phase angles under signal delay", () => {
   const UT_NOW = 1_000;
+  const MUN_SMA = 12_000_000;
 
-  /** The Mun's phase angle when the vessel's elements left it `owlt` seconds before its present of `UT_NOW`. */
-  async function phaseAtLightTime(owlt: number): Promise<number | undefined> {
+  function munAnomalyAt(ut: number): number | null {
+    return deriveTrueAnomalyDeg({
+      semiMajorAxis: MUN_SMA,
+      eccentricity: 0,
+      meanAnomalyAtEpoch: 0,
+      epoch: 0,
+      parentGravParameter: KERBIN_MU,
+      ut,
+    });
+  }
+
+  /** The Mun as the catalogue has it at the received edge, `owlt` seconds behind the craft's present of `UT_NOW`. */
+  function munAt(owlt: number): CelestialBody {
+    return makeBody(1, "Mun", {
+      referenceBody: "Kerbin",
+      lan: 90,
+      argumentOfPeriapsis: 0,
+      semiMajorAxis: MUN_SMA,
+      eccentricity: 0,
+      meanAnomalyAtEpoch: 0,
+      epoch: 0,
+      trueAnomaly: munAnomalyAt(UT_NOW - owlt),
+    });
+  }
+
+  async function phasesAtLightTime(owlt: number) {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.orbit"],
       delaySeconds: owlt,
       suspendFrames: true,
     });
+    const mun = munAt(owlt);
+    const bodies = [makeBody(0, "Kerbin", { gravParameter: KERBIN_MU }), mun];
     const { result } = renderHook(
-      () =>
-        usePhaseAngles([
-          makeBody(1, "Mun", {
-            lan: 90,
-            argumentOfPeriapsis: 0,
-            trueAnomaly: 0,
-          }),
-        ]),
+      () => ({
+        observed: usePhaseAngles([mun]),
+        reading: usePhaseAngleReading(mun, bodies, useViewUt()?.magnitude),
+      }),
       { wrapper: fixture.Provider },
     );
     act(() => {
       fixture.emit("vessel.orbit", vesselAtLongitude(0), {
         validAt: UT_NOW - owlt,
         deliveredAt: UT_NOW,
+        quality: Quality.OnRails,
       });
       fixture.emitFrame();
     });
-    await waitFor(() => expect(result.current.get(1)).toBeDefined());
-    return result.current.get(1);
+    await waitFor(() => expect(result.current.observed.get(1)).toBeDefined());
+    return result.current;
   }
 
-  it("measures the vessel where it is at the craft's present, not at the received edge", async () => {
-    const atCraft = await phaseAtLightTime(0);
-    const delayed = await phaseAtLightTime(240);
-    expect(delayed).toBeCloseTo(atCraft ?? Number.NaN, 4);
+  it("measures the observation at the received edge, not at the craft's present", async () => {
+    const atCraft = await phasesAtLightTime(0);
+    const delayed = await phasesAtLightTime(240);
+    expect(delayed.observed.get(1)).not.toBeCloseTo(
+      atCraft.observed.get(1) ?? Number.NaN,
+      1,
+    );
+    expect(delayed.reading?.value?.magnitude).toBeCloseTo(
+      normalizePhaseAngle(delayed.observed.get(1) ?? Number.NaN),
+      6,
+    );
+  });
+
+  it("draws the craft's present only as the reckoning, with both objects advanced to it", async () => {
+    const atCraft = await phasesAtLightTime(0);
+    const delayed = await phasesAtLightTime(240);
+    const reckoning = delayed.reading?.reckoning;
+    expect(reckoning?.status).toBe("available");
+    if (reckoning?.status !== "available") return;
+    expect(reckoning.beyondReceived).toBe(true);
+    expect(reckoning.modelled.magnitude).toBeCloseTo(
+      normalizePhaseAngle(atCraft.observed.get(1) ?? Number.NaN),
+      4,
+    );
   });
 });
