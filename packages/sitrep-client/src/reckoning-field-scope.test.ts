@@ -53,7 +53,7 @@ function targetPoint(validAt: number): TimelinePoint<Target> {
   return {
     validAt,
     payload: OBSERVED,
-    meta: makeMeta({ validAt, deliveredAt: validAt }),
+    meta: makeMeta({ validAt, deliveredAt: validAt + LIGHT_TIME_SECONDS }),
     epoch: 0,
   };
 }
@@ -68,14 +68,16 @@ function fakeWall(start = 0) {
   };
 }
 
-/** A store whose view clock is free to run ahead of the newest sample. */
-function predictedStore(wall: { now: () => number }) {
+/** The one-way light-time every sample in this file is delivered across. */
+const LIGHT_TIME_SECONDS = 10;
+
+/** A store a light-time from the craft, so each frame reckons to a SCET past the newest sample. */
+function delayedStore(wall: { now: () => number }) {
   const clock = new ViewClock({
     nowWall: wall.now,
     warpRate: () => 1,
-    delaySeconds: () => 0,
+    delaySeconds: () => LIGHT_TIME_SECONDS,
   });
-  clock.setMode("predicted");
   return new TimelineStore(clock);
 }
 
@@ -98,7 +100,7 @@ beforeEach(clearReckoners);
 describe("a per-topic model, expressed per field", () => {
   it("gives the modelled field a reckoning and an unmodelled sibling a stale reading, in one frame", () => {
     const wall = fakeWall();
-    const store = predictedStore(wall);
+    const store = delayedStore(wall);
     registerPositionOnlyModel();
 
     store.ingest("test.target", targetPoint(100));
@@ -112,8 +114,8 @@ describe("a per-topic model, expressed per field", () => {
     expect(position.reckoning.status).toBe("available");
     if (position.reckoning.status !== "available") return;
     const reckoning = position.reckoning;
-    expect(reckoning.value).toEqual({ x: 1600 });
-    expect(reckoning.atUt).toEqual(value("ut", 160));
+    expect(reckoning.value).toEqual({ x: 1700 });
+    expect(reckoning.atUt).toEqual(value("ut", 170));
     expect(reckoning.basis).toBe("linear-dead-reckoning");
 
     // Same frame, same model, same topic. Nothing dead-reckons a name, so the
@@ -127,7 +129,7 @@ describe("a per-topic model, expressed per field", () => {
   it("still declines the whole-topic read, because the model does not cover the payload", () => {
     // The guard on the above: a model that reaches one field must not become a licence to stamp its basis on the record it happens to be part of.
     const wall = fakeWall();
-    const store = predictedStore(wall);
+    const store = delayedStore(wall);
     registerPositionOnlyModel();
 
     store.ingest("test.target", targetPoint(100));
@@ -145,7 +147,7 @@ describe("a per-topic model, expressed per field", () => {
     // `value` to come back already advanced. It must not: `value` is the last
     // real observation on every arm that has one, and the model is a pull.
     const wall = fakeWall();
-    const store = predictedStore(wall);
+    const store = delayedStore(wall);
     registerPositionOnlyModel();
 
     store.ingest("test.target", targetPoint(100));
@@ -168,7 +170,7 @@ describe("a per-topic model, expressed per field", () => {
     // `relativePosition` has answered for `relativePosition.x` too, which is
     // the read a scalar readout actually makes.
     const wall = fakeWall();
-    const store = predictedStore(wall);
+    const store = delayedStore(wall);
     registerPositionOnlyModel();
 
     store.ingest("test.target", targetPoint(100));
@@ -179,7 +181,7 @@ describe("a per-topic model, expressed per field", () => {
     const x = store.sampleReading<number>("test.target.relativePosition.x");
     expect(x.reckoning.status).toBe("available");
     if (x.reckoning.status !== "available") return;
-    expect(x.reckoning.value).toBe(1600);
+    expect(x.reckoning.value).toBe(1700);
   });
 
   it("does not treat a covered path as a prefix of an unrelated sibling", () => {
@@ -187,7 +189,7 @@ describe("a per-topic model, expressed per field", () => {
     // a different field. Prefix matching has to be segment-wise or a model
     // silently answers for fields nobody claimed.
     const wall = fakeWall();
-    const store = predictedStore(wall);
+    const store = delayedStore(wall);
     registerReckoner("test.dock", "test", {
       deps: [],
       reckon: (point) => ({
@@ -201,7 +203,7 @@ describe("a per-topic model, expressed per field", () => {
     store.ingest("test.dock", {
       validAt: 100,
       payload: { relativePosition: 5, relativePositionError: 1 },
-      meta: makeMeta({ validAt: 100, deliveredAt: 100 }),
+      meta: makeMeta({ validAt: 100, deliveredAt: 100 + LIGHT_TIME_SECONDS }),
       epoch: 0,
     });
     wall.advanceBy(60);
@@ -247,7 +249,7 @@ describe("a topic two owners both model is served with neither", () => {
     });
 
     const wall = fakeWall();
-    const store = predictedStore(wall);
+    const store = delayedStore(wall);
     store.ingest("test.target", targetPoint(100));
     wall.advanceBy(60);
     store.setTransportConnected(false);
@@ -297,7 +299,7 @@ describe("every path to a reckoning shares the one cache", () => {
     // it: a partial fix here would be indistinguishable from a complete one at
     // every call site.
     const wall = fakeWall();
-    const store = predictedStore(wall);
+    const store = delayedStore(wall);
 
     let runs = 0;
     registerReckoner("test.target", "test", {

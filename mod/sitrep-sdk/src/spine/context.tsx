@@ -575,7 +575,7 @@ export function useTelemetryStoreOptional(): TimelineStore | undefined {
 /**
  * The nearest `TelemetryProvider`'s **one** `ViewClock`: THE single delay
  * authority. Every surface that must stay delay-consistent with telemetry
- * (staleness, predicted-view, and crucially the kerbcast media
+ * (staleness, reckoning to SCET, and crucially the kerbcast media
  * `DelayedPlayoutBuffer`) reads its release/certainty edge off
  * THIS clock instance, never a second one it constructs itself. A media frame
  * and a telemetry sample stamped the same UT therefore surface at the same
@@ -673,7 +673,7 @@ export function useViewClockOptional(): ViewClockView | undefined {
  * DROP (it was never a stream; it IS the SDK view time the propagation already
  * evaluates at). Subscribes to the shared `ViewClock`'s per-frame `onFrame`
  * tick and returns the frozen `viewUt` for the current frame (respecting
- * scrub/predicted mode). `undefined` when no `TelemetryProvider` is mounted or
+ * a scrub). `undefined` when no `TelemetryProvider` is mounted or
  * before the first confirmed sample (the view time isn't finite yet), the
  * natural "no stream / not synced" signal a widget can `??`-fall-back on.
  *

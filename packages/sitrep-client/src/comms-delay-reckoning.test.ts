@@ -127,18 +127,22 @@ interface DelaySample {
   source: CommsDelaySource;
 }
 
-function point<T>(validAt: number, payload: T): TimelinePoint<T> {
-  return {
-    validAt,
-    payload,
-    meta: makeMeta({ validAt, deliveredAt: validAt, source: "vessel:probe" }),
-    epoch: 0,
-  };
-}
+/**
+ * The light-time the store is told it sits behind the craft. Longer than the
+ * fixture's own route, which is under `VISIBLE_GAP_SECONDS`: at that
+ * light-time SCET is the received edge and a read cannot run ahead of the
+ * observation at all.
+ */
+const LIGHT_TIME_SECONDS = 10;
+
+/** The direct route's own one-way light-time. */
+const DIRECT_LIGHT_TIME_SECONDS = (CRAFT_SMA - PLANET_RADIUS) / C;
 
 /**
- * A store holding one observation of every input, with the transport DOWN so a
- * read past the observation grades stale rather than waiting out a heartbeat.
+ * A store holding one observation of every input, a light-time from the craft,
+ * with the transport DOWN so a read past the observation grades stale rather
+ * than waiting out a heartbeat. The wall clock stands for the craft's UT, so
+ * each point lands a light-time after it was stamped, and `at` dials SCET.
  */
 function scene(
   hops: readonly CommsHop[],
@@ -149,16 +153,30 @@ function scene(
     relayOrbit?: boolean;
     /** Record what the store asks to be held up, and what it lets go. */
     held?: string[];
+    lightTimeSeconds?: number;
   } = {},
 ) {
-  const { source = CommsDelaySource.SignalDelay, observedAt = 0 } = options;
-  let wall = observedAt;
+  const {
+    source = CommsDelaySource.SignalDelay,
+    observedAt = 0,
+    lightTimeSeconds = LIGHT_TIME_SECONDS,
+  } = options;
+  const point = <T>(validAt: number, payload: T): TimelinePoint<T> => ({
+    validAt,
+    payload,
+    meta: makeMeta({
+      validAt,
+      deliveredAt: validAt + lightTimeSeconds,
+      source: "vessel:probe",
+    }),
+    epoch: 0,
+  });
+  let wall = observedAt + lightTimeSeconds;
   const clock = new ViewClock({
     nowWall: () => wall,
     warpRate: () => 1,
-    delaySeconds: () => 0,
+    delaySeconds: () => lightTimeSeconds,
   });
-  clock.setMode("predicted");
   const store = new TimelineStore(clock, {
     subscribeDynamicTopic: (topic) => {
       options.held?.push(`+${topic}`);
@@ -187,16 +205,16 @@ function scene(
     store,
     /** Re-emit the route alone, as the change-gate does when only a hop's extension bag moved. */
     repeatRoute(at: number) {
-      wall = at;
+      wall = at + lightTimeSeconds;
       store.ingest("comms.path", point(at, { hops: [...hops] }));
     },
     /** Re-route straight to the station, so the model names no subject at all. */
     goDirect(at: number) {
-      wall = at;
+      wall = at + lightTimeSeconds;
       store.ingest("comms.path", point(at, { hops: [...DIRECT_HOPS] }));
     },
-    at(viewUt: number): TopicReading<DelaySample> {
-      wall = viewUt;
+    at(scetUt: number): TopicReading<DelaySample> {
+      wall = scetUt;
       store.beginFrame();
       return store.sampleReading<DelaySample>("comms.delay");
     },
@@ -219,8 +237,11 @@ beforeEach(() => {
 
 describe("a direct link to a ground station", () => {
   it("reads back the observed delay at the instant it was observed", () => {
-    const s = scene(DIRECT_HOPS);
-    const reading = s.at(0);
+    // At the route's own light-time SCET is the received edge, so the read lands on the observation itself.
+    const s = scene(DIRECT_HOPS, {
+      lightTimeSeconds: DIRECT_LIGHT_TIME_SECONDS,
+    });
+    const reading = s.at(DIRECT_LIGHT_TIME_SECONDS);
 
     expect(reading.reckoning.status).toBe("available");
     // The craft and the station are where they were when the light left, so the
@@ -342,8 +363,8 @@ describe("a relayed link", () => {
     // and the sweep drops it. Two frames: the sweep runs before a frame's
     // reads, so the frame that stops asserting is the one that earns release.
     s.goDirect(HALF_ORBIT);
-    s.at(HALF_ORBIT);
-    s.at(HALF_ORBIT);
+    s.at(HALF_ORBIT + LIGHT_TIME_SECONDS);
+    s.at(HALF_ORBIT + LIGHT_TIME_SECONDS);
     expect(held).toEqual([
       `+fleet.${RELAY_GUID}.orbit`,
       `-fleet.${RELAY_GUID}.orbit`,

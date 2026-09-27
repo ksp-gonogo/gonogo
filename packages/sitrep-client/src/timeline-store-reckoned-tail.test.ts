@@ -31,27 +31,24 @@ function ingestPoint(
   store.ingest(topic, {
     validAt,
     payload,
-    meta: makeMeta({ validAt, deliveredAt: validAt }),
+    meta: makeMeta({ validAt, deliveredAt: validAt + LIGHT_TIME_SECONDS }),
     epoch: 0,
   });
 }
 
 afterEach(() => clearReckoners());
 
-/**
- * A store whose view clock is free to run ahead of the newest sample, the
- * `reckoning-gaps.test.ts` recipe: in confirmed mode the clock clamps to the
- * newest delivered sample, so there is no silence to carry anything across.
- */
+/** The one-way light-time every sample in this file is delivered across. */
+const LIGHT_TIME_SECONDS = 10;
+
+/** A store a light-time from the craft, the `reckoning-gaps.test.ts` recipe. */
 function disconnectedStore(nowSeconds: number): TimelineStore {
   const clock = new ViewClock({
     nowWall: () => nowSeconds,
     warpRate: () => 1,
-    delaySeconds: () => 0,
+    delaySeconds: () => LIGHT_TIME_SECONDS,
   });
-  clock.setMode("predicted");
-  const store = new TimelineStore(clock);
-  return store;
+  return new TimelineStore(clock);
 }
 
 /**

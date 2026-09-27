@@ -36,8 +36,8 @@ export interface Row {
   label: string;
   note: string;
   samples: readonly Sample[];
-  /** The instant the frame is drawn for, past the newest sample's own. */
-  viewUt: number;
+  /** The SCET the frame is drawn for, past the newest sample's own. */
+  scetUt: number;
   /** What the track is a fraction of, in metres. */
   capacityM: number;
 }
@@ -95,28 +95,28 @@ export const SHEETS: readonly Sheet[] = [
         label: "Carried 3 s",
         note: "Four scattered samples, frame drawn 3 s past the anchor",
         samples: SCATTERED_APPROACH,
-        viewUt: 13,
+        scetUt: 13,
         capacityM: APPROACH_CAPACITY,
       },
       {
         label: "Carried 6 s",
         note: "The same fit, twice as far out: the interval quadruples",
         samples: SCATTERED_APPROACH,
-        viewUt: 16,
+        scetUt: 16,
         capacityM: APPROACH_CAPACITY,
       },
       {
         label: "Carried 6 s, two samples",
         note: "Two points determine a line, so there is no residual to measure",
         samples: SCATTERED_APPROACH.slice(2),
-        viewUt: 16,
+        scetUt: 16,
         capacityM: APPROACH_CAPACITY,
       },
       {
         label: "Carried 6 s, no scatter",
         note: "Four samples exactly on one line: a degenerate estimate, not an exact one",
         samples: CLEAN_APPROACH,
-        viewUt: 16,
+        scetUt: 16,
         capacityM: APPROACH_CAPACITY,
       },
     ],
@@ -131,7 +131,7 @@ export const SHEETS: readonly Sheet[] = [
         label: "Carried 6 s at 57 km",
         note: "Interval as a share of the track: about four ten-thousandths",
         samples: REENTRY,
-        viewUt: 16,
+        scetUt: 16,
         capacityM: 70_000,
       },
     ],

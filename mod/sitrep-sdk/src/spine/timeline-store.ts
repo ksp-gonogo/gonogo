@@ -3065,16 +3065,10 @@ export class TimelineStore {
    * 5. Otherwise the `HeartbeatTracker` (missed-keyframe inference, never
    *    `validAt` age) decides live vs. held-stale.
    *
-   * `isOverdue` is keyed off `clock.certaintyHorizonUt()`, NOT
-   * `token.viewUt`. The overdue
-   * check is about a genuine gap in CONFIRMED arrivals, not about how far
-   * the predicted-mode viewUt has raced ahead of the horizon on wall time
-   * alone: in predicted mode `viewUt` is `utNowEstimate()`, which can run
-   * arbitrarily far ahead of anything actually confirmed, and would falsely
-   * flag a perfectly healthy topic as overdue purely because the display is
-   * looking further into the future. The horizon only advances when
-   * something real confirms elapsed UT (a delivered sample, on any topic),
-   * which is exactly what "overdue" should track.
+   * `isOverdue` is keyed off `clock.certaintyHorizonUt()`, never the frame's
+   * SCET: overdue is a gap in CONFIRMED arrivals, and SCET runs ahead of
+   * anything confirmed on wall time alone. The horizon only advances when a
+   * delivered sample, on any topic, confirms elapsed UT.
    */
   private sampleRawStatus(topic: string, token: FrameToken): StreamStatusValue {
     const point = this.sample(topic, token);

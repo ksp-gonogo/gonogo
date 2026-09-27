@@ -110,10 +110,9 @@ describe("a channel's declared delay role", () => {
    * could only ever answer for one of them.
    */
   it("answers a topic's certainty for that topic's own lane", () => {
-    const { clock, store, advance } = startStore();
-    clock.setMode("predicted");
-    advance(50);
-    store.ingest(TRUE_NOW_TOPIC, point(UT_NOW + 50, { funds: 43 }));
+    const { clock, store } = startStore();
+    // One instant for both lanes, which only the true-now lane's horizon has reached.
+    clock.scrubTo(UT_NOW);
     store.beginFrame();
 
     expect(store.sampleCertainty(TRUE_NOW_TOPIC)).toBe("confirmed");

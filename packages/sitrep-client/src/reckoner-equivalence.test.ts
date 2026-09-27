@@ -100,7 +100,7 @@ function point<T>(validAt: number, payload: T): TimelinePoint<T> {
     payload,
     meta: makeMeta({
       validAt,
-      deliveredAt: validAt,
+      deliveredAt: validAt + LIGHT_TIME_SECONDS,
       quality: Quality.OnRails,
       source: "vessel:equivalence",
     }),
@@ -162,22 +162,24 @@ function registerProbeReckoner(): void {
   });
 }
 
+/** The one-way light-time every sample in this file is delivered across. */
+const LIGHT_TIME_SECONDS = 10;
+
 /**
- * A store whose view time is set directly, so the sweep can stand on a
- * withdrawal instant rather than near it. Predicted mode is what lets `viewUt`
- * run ahead of the newest sample at all; the wall clock is the dial.
+ * A store whose SCET is set directly, so the sweep can stand on a withdrawal
+ * instant rather than near it. The wall clock is the dial and stands for the
+ * craft's UT, so each sample lands a light-time after it was stamped.
  */
 function scene(encounterUt?: number) {
-  let wall = 0;
+  let wall = LIGHT_TIME_SECONDS;
   const clock = new ViewClock({
     nowWall: () => wall,
     warpRate: () => 1,
-    delaySeconds: () => 0,
+    delaySeconds: () => LIGHT_TIME_SECONDS,
   });
-  clock.setMode("predicted");
   const store = new TimelineStore(clock);
-  const at = (viewUt: number) => {
-    wall = viewUt;
+  const at = (scetUt: number) => {
+    wall = scetUt;
     store.beginFrame();
   };
   store.ingest("system.bodies", point(0, SYSTEM));
@@ -210,14 +212,14 @@ function scene(encounterUt?: number) {
 type FlightAnswer = { altitudeAsl: number; orbitalSpeed: number };
 
 /**
- * `vessel.flight`'s reckoned answer at one view time. `undefined` means the
+ * `vessel.flight`'s reckoned answer at one SCET. `undefined` means the
  * model withdrew, which is a result rather than a failure to produce one.
  */
 function flightAt(
-  { store, at }: { store: TimelineStore; at: (viewUt: number) => void },
-  viewUt: number,
+  { store, at }: { store: TimelineStore; at: (scetUt: number) => void },
+  scetUt: number,
 ): FlightAnswer | undefined {
-  at(viewUt);
+  at(scetUt);
   const flight = store.sampleReading<{
     altitudeAsl: { magnitude: number };
     orbitalSpeed: { magnitude: number };
@@ -231,26 +233,26 @@ function flightAt(
 }
 
 /**
- * Both registrations' answers at each view time: core's alone first, then the
+ * Both registrations' answers at each SCET: core's alone first, then the
  * probe's over core's, each on its own fresh scene.
  */
 function bothAcross(
-  viewUts: readonly number[],
+  scetUts: readonly number[],
   encounterUt?: number,
-): { viewUt: number; builtIn?: FlightAnswer; uplink?: FlightAnswer }[] {
+): { scetUt: number; builtIn?: FlightAnswer; uplink?: FlightAnswer }[] {
   clearReckoners();
   registerCoreReckoners();
   const coreWorld = scene(encounterUt);
-  const builtIn = viewUts.map((viewUt) => flightAt(coreWorld, viewUt));
+  const builtIn = scetUts.map((scetUt) => flightAt(coreWorld, scetUt));
 
   clearReckoners();
   registerCoreReckoners();
   registerProbeReckoner();
   const probeWorld = scene(encounterUt);
-  const uplink = viewUts.map((viewUt) => flightAt(probeWorld, viewUt));
+  const uplink = scetUts.map((scetUt) => flightAt(probeWorld, scetUt));
 
-  return viewUts.map((viewUt, i) => ({
-    viewUt,
+  return scetUts.map((scetUt, i) => ({
+    scetUt,
     builtIn: builtIn[i],
     uplink: uplink[i],
   }));
@@ -281,12 +283,12 @@ describe("core's conic and an Uplink's registration of it are the same model", (
     const disagreements: string[] = [];
     let answered = 0;
     let withdrawn = 0;
-    const viewUts: number[] = [];
-    for (let viewUt = 0; viewUt <= 2900; viewUt += 50) viewUts.push(viewUt);
-    for (const { viewUt, builtIn, uplink } of bothAcross(viewUts)) {
+    const scetUts: number[] = [];
+    for (let scetUt = 0; scetUt <= 2900; scetUt += 50) scetUts.push(scetUt);
+    for (const { scetUt, builtIn, uplink } of bothAcross(scetUts)) {
       if ((builtIn === undefined) !== (uplink === undefined)) {
         disagreements.push(
-          `ut ${viewUt}: builtIn ${builtIn ? "answered" : "withdrew"}, uplink ${uplink ? "answered" : "withdrew"}`,
+          `ut ${scetUt}: builtIn ${builtIn ? "answered" : "withdrew"}, uplink ${uplink ? "answered" : "withdrew"}`,
         );
         continue;
       }
@@ -300,7 +302,7 @@ describe("core's conic and an Uplink's registration of it are the same model", (
         Math.abs(builtIn.orbitalSpeed - uplink.orbitalSpeed) > 1e-9
       ) {
         disagreements.push(
-          `ut ${viewUt}: alt ${builtIn.altitudeAsl} vs ${uplink.altitudeAsl}, speed ${builtIn.orbitalSpeed} vs ${uplink.orbitalSpeed}`,
+          `ut ${scetUt}: alt ${builtIn.altitudeAsl} vs ${uplink.altitudeAsl}, speed ${builtIn.orbitalSpeed} vs ${uplink.orbitalSpeed}`,
         );
       }
     }
@@ -321,9 +323,9 @@ describe("core's conic and an Uplink's registration of it are the same model", (
     expect(before.builtIn).toBeDefined();
     expect(before.uplink).toBeDefined();
 
-    for (const { viewUt, builtIn, uplink } of past) {
-      expect({ viewUt, builtIn, uplink }).toEqual({
-        viewUt,
+    for (const { scetUt, builtIn, uplink } of past) {
+      expect({ scetUt, builtIn, uplink }).toEqual({
+        scetUt,
         builtIn: undefined,
         uplink: undefined,
       });
@@ -339,7 +341,7 @@ describe("core's conic and an Uplink's registration of it are the same model", (
     const clock = new ViewClock({
       nowWall: () => 0,
       warpRate: () => 1,
-      delaySeconds: () => 0,
+      delaySeconds: () => LIGHT_TIME_SECONDS,
     });
     const store = new TimelineStore(clock);
     store.ingest("vessel.flight", point(0, { altitudeAsl: value("m", 0) }));

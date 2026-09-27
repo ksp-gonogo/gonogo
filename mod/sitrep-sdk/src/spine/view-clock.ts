@@ -18,9 +18,6 @@ export type {
  */
 export const VISIBLE_GAP_SECONDS = 1;
 
-/** Which regime `viewUt()` is currently drawn from, set via `ViewClock.setMode`. */
-export type ViewClockMode = "confirmed" | "predicted";
-
 /**
  * Whether a read sits at-or-before the certainty horizon (`"confirmed"`: a
  * delivered sample or an honest interpolation between two of them) or past
@@ -69,7 +66,7 @@ type FrameTickHandle =
  * make `confirmedEdgeUt()` LOWER than the raw estimate (display latency, or
  * a too-early `HeldStale` later on): never higher than what's actually been
  * delivered. That is the one invariant every other feature (staleness,
- * media release, predicted-view) is built to never violate.
+ * media release, reckoning to SCET) is built to never violate.
  *
  * Epoch-aware exactly like `ClientTimeline`: `observeSample`'s `epoch`
  * argument resets the fit + sample clamp + monotonic view cursor on a
@@ -77,16 +74,15 @@ type FrameTickHandle =
  * applied to the one clock instead of per-topic buffers.
  */
 export class ViewClock {
-  private modeValue: ViewClockMode = "confirmed";
-
   private epoch = 0;
   private anchorWall: number | undefined;
   private anchorUt: number | undefined;
   private maxSampleUt = Number.NEGATIVE_INFINITY;
   private lastObservedWall: number | undefined;
   /**
-   * Monotonic cursor for CONFIRMED mode only: deliberately not shared with
-   * predicted-mode reads, see `viewUt()`'s doc.
+   * Monotonic cursor behind {@link viewUt}, kept apart from {@link scetUt}'s so
+   * a present that runs ahead can never pin the received edge ahead of what
+   * has been delivered.
    *
    * One PER LANE, because the two cursors run a whole light-time apart: a
    * shared one would let the first true-now read of a frame pin the delayed
@@ -109,21 +105,6 @@ export class ViewClock {
   private frameHandle: FrameTickHandle | undefined;
   /** Set by `suspendFrames`: the loop stays stopped and only `emitFrame` mints frames. */
   private framesSuspended = false;
-
-  /** Which regime `viewUt()` is currently drawn from. */
-  get mode(): ViewClockMode {
-    return this.modeValue;
-  }
-
-  /**
-   * Switch between the confirmed view (`viewUt() = confirmedEdgeUt()`, the
-   * default) and the predicted-present view (`viewUt() = utNowEstimate()`).
-   * Independent of `scrubTo`: a scrub target still wins
-   * over either mode while active.
-   */
-  setMode(mode: ViewClockMode): void {
-    this.modeValue = mode;
-  }
 
   constructor(private readonly options: ViewClockOptions = {}) {}
 
@@ -233,16 +214,15 @@ export class ViewClock {
     return this.confirmedEdgeUt(lane);
   }
 
-  /** Classify `ut` against the certainty horizon: `<=` is CONFIRMED, matching `viewUt() === confirmedEdgeUt()` exactly in confirmed mode (never falsely "predicted" while merely tracking live). Classified against the SAME lane the `ut` was drawn from, or a true-now read lands a light-time past the delayed horizon and every one of them reports `"predicted"`. */
+  /** Classify `ut` against the certainty horizon: `<=` is CONFIRMED, matching `viewUt() === confirmedEdgeUt()` exactly (never falsely "predicted" while merely tracking live). Classified against the SAME lane the `ut` was drawn from, or a true-now read lands a light-time past the delayed horizon and every one of them reports `"predicted"`. */
   certaintyFor(ut: number, lane: DelayLane = "delayed"): Certainty {
     return ut <= this.certaintyHorizonUt(lane) ? "confirmed" : "predicted";
   }
 
   /**
-   * Manual history scrub: pins `viewUt()` to `ut`
-   * regardless of `mode`, for exploring history (a scrub bar). The live
-   * cursor keeps advancing underneath while scrubbed (confirmed-edge
-   * tracking / predicted estimate both keep updating from `observeSample`
+   * Manual history scrub: pins `viewUt()` to `ut`, for exploring history (a
+   * scrub bar). The live cursor keeps advancing underneath while scrubbed (the
+   * confirmed edge and the estimate both keep updating from `observeSample`
    * and wall-clock flow): so `scrubTo(null)` resumes live tracking with a
    * monotonic catch-up, picking up wherever the live cursor has reached by
    * then, never a backward jump. Cleared automatically on an epoch bump
@@ -257,35 +237,23 @@ export class ViewClock {
    * THE view time: every read in a frame uses this (via the frozen
    * `FrameToken`, see `timeline-store.ts`).
    *
-   * - **Confirmed mode** (default): tracks `confirmedEdgeUt()`, monotonic
-   *   non-decreasing within an epoch (mirrors `Archive.ReadAtVantage`'s
-   *   cursor clamp server-side): the cursor resets to `-Infinity` on an
-   *   epoch bump via `observeSample`, so "monotonic" is scoped per-epoch,
-   *   not across a rewind.
-   * - **Predicted mode**: tracks `utNowEstimate()`
-   *   directly: deliberately NOT run through the confirmed cursor's
-   *   monotonic clamp (`lastConfirmedViewUt`), so a predicted excursion can
-   *   never leak forward and pin the confirmed cursor ahead of the real
-   *   confirmed edge once the caller switches back to confirmed mode.
-   * - **Scrubbed** (either mode): `scrubTo`'s target wins outright, but the
-   *   live cursor for whichever mode is active still advances underneath
-   *   (see `scrubTo`'s doc).
+   * - **Live**: tracks `confirmedEdgeUt()`, monotonic non-decreasing within
+   *   an epoch (mirrors `Archive.ReadAtVantage`'s cursor clamp server-side):
+   *   the cursor resets to `-Infinity` on an epoch bump via `observeSample`,
+   *   so "monotonic" is scoped per-epoch, not across a rewind.
+   * - **Scrubbed**: `scrubTo`'s target wins outright, but the live cursor
+   *   still advances underneath (see `scrubTo`'s doc).
    *
    * The LANE picks which of the two confirmed edges is tracked, and the store
-   * asks for whichever one the topic being read declared. It changes nothing in
-   * predicted mode, where the estimate carries no delay term to drop, and
-   * nothing while scrubbed, where a scrub target is a past instant both lanes
-   * agree on.
+   * asks for whichever one the topic being read declared. It changes nothing
+   * while scrubbed, where a scrub target is a past instant both lanes agree on.
    */
   viewUt(lane: DelayLane = "delayed"): number {
-    let live: number;
-    if (this.modeValue === "predicted") {
-      live = this.utNowEstimate();
-    } else {
-      const edge = this.confirmedEdgeUt(lane);
-      live = Math.max(this.lastConfirmedViewUt[lane], edge);
-      this.lastConfirmedViewUt[lane] = live;
-    }
+    const live = Math.max(
+      this.lastConfirmedViewUt[lane],
+      this.confirmedEdgeUt(lane),
+    );
+    this.lastConfirmedViewUt[lane] = live;
     return this.scrubTarget !== null ? this.scrubTarget : live;
   }
 

@@ -509,7 +509,6 @@ export { CLIENT_VERSION } from "./version.generated";
 export type {
   Certainty,
   ViewClockConfidence,
-  ViewClockMode,
   ViewClockOptions,
 } from "./view-clock";
 export { VISIBLE_GAP_SECONDS, ViewClock } from "./view-clock";

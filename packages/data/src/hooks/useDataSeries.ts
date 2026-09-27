@@ -241,8 +241,8 @@ function plotValue(payload: unknown): unknown {
  *
  * The window's upper bound is `store.currentFrame().viewUt`, the SAME
  * frozen view-time every other read in the frame uses (`useStream`'s
- * `getSnapshot`, `useDataValue`'s streamed branch). In the default confirmed
- * `ViewClockMode`, `viewUt() === confirmedEdgeUt()` while live (`ViewClock`'s
+ * `getSnapshot`, `useDataValue`'s streamed branch). `viewUt() ===
+ * confirmedEdgeUt()` while live (`ViewClock`'s
  * own doc), so this naturally reads only CONFIRMED data, consistent with the
  * SDK's delay handling: a value at a `validAt` beyond the confirmed edge
  * hasn't been "shown" yet by any other read either, so it doesn't

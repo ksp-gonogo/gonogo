@@ -19,11 +19,10 @@ import { ViewClock } from "./view-clock";
  * field, no failure return on `reckoned`, one `basis` per reading) on premises
  * this file pins as false.
  *
- * Every case here reads in PREDICTED mode. That is not incidental: in
- * confirmed mode the view clock clamps to the newest delivered sample, so
- * there is no gap between the observation and the frame and nothing to reckon
- * across. Reckoning MATTERS only where `viewUt` runs ahead of the last thing
- * that arrived, which is exactly what predicted mode is for.
+ * Every case here reads a light-time from the craft. That is not incidental:
+ * the received edge clamps to the newest delivered sample, and reckoning
+ * MATTERS only where the frame's SCET runs ahead of the last thing that
+ * arrived.
  *
  * It is now OFFERED more widely than that. Since reckonability became its own
  * discriminant, `readingFrom` consults the reckoner on a live reading too, so a
@@ -48,14 +47,16 @@ function fakeWall(start = 0) {
   };
 }
 
-/** A store whose view clock is free to run ahead of the newest sample. */
-function predictedStore(wall: { now: () => number }) {
+/** The one-way light-time every sample in this file is delivered across. */
+const LIGHT_TIME_SECONDS = 10;
+
+/** A store a light-time from the craft, so each frame reckons to a SCET past the newest sample. */
+function delayedStore(wall: { now: () => number }) {
   const clock = new ViewClock({
     nowWall: wall.now,
     warpRate: () => 1,
-    delaySeconds: () => 0,
+    delaySeconds: () => LIGHT_TIME_SECONDS,
   });
-  clock.setMode("predicted");
   return { clock, store: new TimelineStore(clock) };
 }
 
@@ -65,7 +66,7 @@ function bodiesPoint(
   return {
     validAt,
     payload: { bodies: [{ name: "Kerbin", index: 1 }] },
-    meta: makeMeta({ validAt, deliveredAt: validAt }),
+    meta: makeMeta({ validAt, deliveredAt: validAt + LIGHT_TIME_SECONDS }),
     epoch: 0,
   };
 }
@@ -74,21 +75,21 @@ function numberPoint(validAt: number, payload: number): TimelinePoint<number> {
   return {
     validAt,
     payload,
-    meta: makeMeta({ validAt, deliveredAt: validAt }),
+    meta: makeMeta({ validAt, deliveredAt: validAt + LIGHT_TIME_SECONDS }),
     epoch: 0,
   };
 }
 
 beforeEach(clearReckoners);
 
-describe("a derived reading must not claim the frame's own view time as its observation", () => {
+describe("a derived reading must not claim the frame's own SCET as its observation", () => {
   it("a derived channel twenty minutes into a blackout reports the age of its INPUT's observation, not zero", () => {
     // A derived record is recomputed every frame, so stamping it with the
-    // frame's own view time would make a widget asking how old it is get 0
+    // frame's own SCET would make a widget asking how old it is get 0
     // however long the craft has been dark. The store tracks the oldest input
     // the derivation consumed instead, which is how current the record is.
     const wall = fakeWall();
-    const { store } = predictedStore(wall);
+    const { store } = delayedStore(wall);
     store.registerDerivedChannel(systemStateChannel);
 
     store.ingest("system.bodies", bodiesPoint(100));
@@ -96,26 +97,26 @@ describe("a derived reading must not claim the frame's own view time as its obse
     store.setTransportConnected(false);
     store.beginFrame();
 
-    const viewUt = store.currentFrame().viewUt;
-    expect(viewUt).toBe(1300);
+    const scetUt = store.currentFrame().scetUt;
+    expect(scetUt).toBe(1310);
 
     const reading = store.sampleReading<unknown>("system.state");
     expect(reading.state).toBe("stale");
-    // The age, as the subtraction it is: twenty minutes since the bodies were observed, not zero because the derived channel was recomputed this frame.
+    // The age at the craft's present, as the subtraction it is: twenty minutes and a light-time since the bodies were observed, not zero because the derived channel was recomputed this frame.
     expect(
-      value("ut", viewUt).minus(observedAt(reading) as Value<"ut">),
-    ).toEqual(value("s", 1200));
+      value("ut", scetUt).minus(observedAt(reading) as Value<"ut">),
+    ).toEqual(value("s", 1210));
   });
 });
 
 describe("a reckoner can see the UT it is reckoning for", () => {
-  it("is handed the frame's view time, so it can honour a horizon", () => {
+  it("is handed the frame's SCET, so it can honour a horizon", () => {
     // `reading.ts` justifies having no horizon field with "once the provider's
     // horizon is exceeded it stops offering a model". A reckoner cannot decide
     // that from what it is given: the point and the grade say when the
     // observation was made, never how far it is being asked to carry it.
     const wall = fakeWall();
-    const { store } = predictedStore(wall);
+    const { store } = delayedStore(wall);
 
     const seen: number[] = [];
     const reckoner: ReckonerDefinition<number> = {
@@ -139,9 +140,9 @@ describe("a reckoner can see the UT it is reckoning for", () => {
     expect(seen).toEqual([store.currentFrame().scetUt]);
   });
 
-  it("produces a reckoning FOR the frame's view time, not the observation's", () => {
+  it("produces a reckoning FOR the frame's SCET, not the observation's", () => {
     const wall = fakeWall();
-    const { store } = predictedStore(wall);
+    const { store } = delayedStore(wall);
 
     registerReckoner("test.temperature", "test", {
       deps: [],
@@ -160,8 +161,8 @@ describe("a reckoner can see the UT it is reckoning for", () => {
     expect(reading.reckoning.status).toBe("available");
     if (reading.reckoning.status !== "available") return;
     const reckoning = reading.reckoning;
-    expect(reckoning.atUt).toEqual(value("ut", 160));
-    expect(reckoning.value).toBe(65);
+    expect(reckoning.atUt).toEqual(value("ut", 170));
+    expect(reckoning.value).toBe(75);
   });
 });
 
@@ -172,7 +173,7 @@ describe("a reckoning withdraws when its model stops being offered", () => {
     // whose horizon expires two minutes in would go on being offered forever,
     // and `reading-identity.test.ts` pins that behaviour today.
     const wall = fakeWall();
-    const { store } = predictedStore(wall);
+    const { store } = delayedStore(wall);
 
     const HORIZON_SECONDS = 120;
     registerReckoner("test.temperature", "test", {
@@ -210,7 +211,7 @@ describe("a reckoning withdraws when its model stops being offered", () => {
     // re-renders at frame cadence forever, which is what the identity cache
     // was built to stop.
     const wall = fakeWall();
-    const { store } = predictedStore(wall);
+    const { store } = delayedStore(wall);
 
     store.ingest("test.temperature", numberPoint(100, 5));
     wall.advanceBy(60);
@@ -237,7 +238,7 @@ describe("a reckoning says which fields it actually modelled", () => {
     // committed by the mechanism meant to prevent it. A model that does not
     // cover the payload root cannot answer for the payload.
     const wall = fakeWall();
-    const { store } = predictedStore(wall);
+    const { store } = delayedStore(wall);
 
     type Target = { relativePosition: number; name: string };
     registerReckoner("test.contact", "test", {
@@ -254,7 +255,7 @@ describe("a reckoning says which fields it actually modelled", () => {
     store.ingest("test.contact", {
       validAt: 100,
       payload: { relativePosition: 1, name: "Mun Station" },
-      meta: makeMeta({ validAt: 100, deliveredAt: 100 }),
+      meta: makeMeta({ validAt: 100, deliveredAt: 100 + LIGHT_TIME_SECONDS }),
       epoch: 0,
     });
     wall.advanceBy(60);
@@ -284,9 +285,9 @@ describe("a reckoning advances with the clock, not only with the post", () => {
     //
     // The store cannot fix that alone, but it must not be the thing standing in
     // the way: a frame minted with no ingest has to produce a reckoning for
-    // THAT frame's view time.
+    // THAT frame's SCET.
     const wall = fakeWall();
-    const { store } = predictedStore(wall);
+    const { store } = delayedStore(wall);
 
     registerReckoner("test.temperature", "test", {
       deps: [],
@@ -304,7 +305,7 @@ describe("a reckoning advances with the clock, not only with the post", () => {
     const first = store.sampleReading<number>("test.temperature");
     if (first.reckoning.status !== "available")
       throw new Error("expected a reckoning on offer");
-    expect(first.reckoning.value).toBe(10);
+    expect(first.reckoning.value).toBe(20);
 
     // Ten more seconds of silence. Nothing ingests; only the clock moves.
     wall.advanceBy(10);
@@ -313,8 +314,8 @@ describe("a reckoning advances with the clock, not only with the post", () => {
     const second = store.sampleReading<number>("test.temperature");
     if (second.reckoning.status !== "available")
       throw new Error("expected a reckoning on offer");
-    expect(second.reckoning.value).toBe(20);
-    expect(second.reckoning.atUt).toEqual(value("ut", 120));
+    expect(second.reckoning.value).toBe(30);
+    expect(second.reckoning.atUt).toEqual(value("ut", 130));
   });
 });
 
@@ -326,7 +327,7 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     // and in the processor evaluator. A plain field gives this for free, which
     // is one of the reasons it is a plain field.
     const wall = fakeWall();
-    const { store } = predictedStore(wall);
+    const { store } = delayedStore(wall);
 
     registerReckoner("test.temperature", "test", {
       deps: [],
@@ -352,7 +353,7 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     // repeated: the model runs when the arm is built and the field is then just
     // a field.
     const wall = fakeWall();
-    const { store } = predictedStore(wall);
+    const { store } = delayedStore(wall);
 
     let runs = 0;
     registerReckoner("test.temperature", "test", {
@@ -386,7 +387,7 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     // is fresh per frame by construction. An answer that survived a frame would
     // be the freeze bug this file already pins, one layer in.
     const wall = fakeWall();
-    const { store } = predictedStore(wall);
+    const { store } = delayedStore(wall);
 
     registerReckoner("test.temperature", "test", {
       deps: [],
@@ -403,7 +404,7 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     const first = store.sampleReading<number>("test.temperature");
     if (first.reckoning.status !== "available")
       throw new Error("expected a reckoning on offer");
-    expect(first.reckoning.value).toBe(10);
+    expect(first.reckoning.value).toBe(20);
 
     wall.advanceBy(10);
     store.beginFrame();
@@ -411,7 +412,7 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     if (second.reckoning.status !== "available")
       throw new Error("expected a reckoning on offer");
     expect(second.reckoning).not.toBe(first.reckoning);
-    expect(second.reckoning.value).toBe(20);
+    expect(second.reckoning.value).toBe(30);
   });
 
   it("survives a copy, which is the point of it not being a getter", () => {
@@ -420,7 +421,7 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     // field has no such failure mode, and this is what says the hazard is gone
     // rather than merely avoided.
     const wall = fakeWall();
-    const { store } = predictedStore(wall);
+    const { store } = delayedStore(wall);
 
     registerReckoner("test.temperature", "test", {
       deps: [],
@@ -442,6 +443,6 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     expect(copied.reckoning).toBe(reading.reckoning);
     if (copied.reckoning.status !== "available")
       throw new Error("the copy lost the model");
-    expect(copied.reckoning.value).toBe(65);
+    expect(copied.reckoning.value).toBe(75);
   });
 });

@@ -10,11 +10,11 @@ import { makeMeta, type WireOf, wrapWire } from "./stub-transport";
 import { systemStateChannel } from "./system-state";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
-import { ViewClock } from "./view-clock";
+import { VISIBLE_GAP_SECONDS, ViewClock } from "./view-clock";
 
 /**
  * Confirmed-vs-predicted views + the certainty horizon. Complements
- * `view-clock.test.ts` (the clock's own mode/scrub/horizon mechanics) with
+ * `view-clock.test.ts` (the clock's own scrub/horizon/SCET mechanics) with
  * `TimelineStore`-level integration: real interpolation filling the
  * `ClientTimeline.straddle` seam, real propagation of `vessel.orbit` past
  * the horizon, and the composition of `certainty` alongside
@@ -135,36 +135,35 @@ describe("confirmed-range interpolation (M2 design §3.3)", () => {
 });
 
 describe("predicted-range reads (M2 design §3.3)", () => {
-  it("an orbit past the horizon reads predicted, held at the horizon, in a frame whose view UT runs ahead of it", () => {
+  it("an orbit past the horizon reads predicted, held at the horizon, in a frame whose SCET runs ahead of it", () => {
     const wall = fakeWall();
     const clock = new ViewClock({
       nowWall: wall.now,
       warpRate: () => 1,
-      delaySeconds: () => 0,
+      delaySeconds: () => 30,
     });
     const store = new TimelineStore(clock);
 
     store.ingest(
       "vessel.orbit",
-      orbitPoint(CIRCULAR_ORBIT, { validAt: 100, deliveredAt: 100 }),
+      orbitPoint(CIRCULAR_ORBIT, { validAt: 100, deliveredAt: 130 }),
     );
 
-    clock.setMode("predicted");
-    wall.advanceBy(50); // utNowEstimate = 100 + 50 = 150, well past the horizon (sample-clamped to 100)
+    wall.advanceBy(20); // utNowEstimate = 130 + 20 = 150, well past the horizon (sample-clamped to 100)
 
     store.beginFrame();
     const token = store.currentFrame();
-    expect(token.viewUt).toBe(150);
-    expect(token.certainty).toBe("predicted");
-    expect(store.sampleCertainty("vessel.orbit")).toBe("predicted");
+    expect(token.viewUt).toBe(100);
+    expect(token.scetUt).toBe(150);
+    expect(clock.certaintyFor(token.scetUt)).toBe("predicted");
     // The horizon itself did not move, only the estimate ran ahead of it.
     expect(store.certaintyHorizonUt()).toBe(100);
 
-    // The store holds the orbit last at the horizon and propagates nothing; the prediction is a reader solving it at the frame's view UT.
+    // The store holds the orbit last at the horizon and propagates nothing; the prediction is a reader solving it at the frame's SCET.
     const orbit = store.sample<VesselOrbitPayload>("vessel.orbit", token);
     expect(orbit?.payload).toBeTruthy();
     const solved = orbit?.payload
-      ? solveOrbit(orbit.payload, token.viewUt, null)
+      ? solveOrbit(orbit.payload, token.scetUt, null)
       : undefined;
 
     // Off the WIRE fixture, which is bare numbers: the solver's own contract.
@@ -183,7 +182,7 @@ describe("predicted-range reads (M2 design §3.3)", () => {
       trueAnomalyDegrees(elements, 150),
       9,
     );
-    // Solved at the horizon instead, the same orbit lands ~9 degrees behind, so the frame's view UT and the horizon are different instants to a reader.
+    // Solved at the horizon instead, the same orbit lands ~9 degrees behind, so the frame's SCET and the horizon are different instants to a reader.
     expect(solved?.trueAnomaly).not.toBeCloseTo(
       trueAnomalyDegrees(elements, 100),
       3,
@@ -237,26 +236,25 @@ describe("quickload epoch bump (M2 design §7.6)", () => {
     const clock = new ViewClock({
       nowWall: wall.now,
       warpRate: () => 1,
-      delaySeconds: () => 0,
+      delaySeconds: () => 10,
     });
     const store = new TimelineStore(clock);
 
     store.ingest(
       "vessel.orbit",
-      orbitPoint(CIRCULAR_ORBIT, { validAt: 100, deliveredAt: 100, epoch: 0 }),
+      orbitPoint(CIRCULAR_ORBIT, { validAt: 100, deliveredAt: 110, epoch: 0 }),
     );
-    clock.setMode("predicted");
     wall.advanceBy(20);
     store.beginFrame();
 
-    // Sanity: predicted mode is genuinely reading the orbit before the rewind.
+    // Sanity: the frame genuinely reads the orbit, and reckons past the horizon, before the rewind.
     expect(store.sample("vessel.orbit")).toBeDefined();
-    expect(store.currentFrame().certainty).toBe("predicted");
+    expect(clock.certaintyFor(store.currentFrame().scetUt)).toBe("predicted");
 
     // Quickload rewind: some topic delivers a higher-epoch point (the engine's reset broadcast, mirrored here as any epoch-bumping ingest).
     store.ingest(
       "system.clock",
-      numberPoint(4500, 4500, { deliveredAt: 4500, epoch: 1 }),
+      numberPoint(4500, 4500, { deliveredAt: 4510, epoch: 1 }),
     );
     store.beginFrame();
 
@@ -422,37 +420,35 @@ describe("certainty composes with T4 status + T3 undefined/null", () => {
     expect(store.currentFrame().certainty).toBe("confirmed");
   });
 
-  it("predicted mode CAN read held-stale (T4) alongside a genuine arrival gap, the two channels don't fight", () => {
+  it("a frame reckoning far past the horizon CAN read held-stale (T4) alongside a genuine arrival gap, the two channels don't fight", () => {
     const wall = fakeWall();
     const clock = new ViewClock({
       nowWall: wall.now,
       warpRate: () => 1,
-      delaySeconds: () => 0,
+      delaySeconds: () => 10,
     });
     const store = new TimelineStore(clock);
 
-    store.ingest("c", numberPoint(100, 1, { deliveredAt: 100 }));
-    clock.setMode("predicted");
-    wall.advanceBy(1000); // predicted cursor races far ahead...
+    store.ingest("c", numberPoint(100, 1, { deliveredAt: 110 }));
+    wall.advanceBy(1000); // SCET races far ahead...
 
     store.beginFrame();
-    expect(store.currentFrame().certainty).toBe("predicted");
+    expect(clock.certaintyFor(store.currentFrame().scetUt)).toBe("predicted");
     // ...but the certainty HORIZON (confirmedEdgeUt) is still sample-clamped
     // near 100: nothing has confirmed 1000s of real elapsed UT, only the
-    // wall clock ran. isOverdue must not fire off the predicted cursor
-    // racing ahead on its own.
+    // wall clock ran. isOverdue must not fire off SCET racing ahead on its own.
     expect(store.sampleStatus("c")).toBe("live");
 
     // A genuine arrival gap: other traffic advances the confirmed horizon (real confirmed UT elapses) while "c" itself stays silent.
-    store.ingest("other", numberPoint(500, 1, { deliveredAt: 500 }));
+    store.ingest("other", numberPoint(500, 1, { deliveredAt: 510 }));
     store.beginFrame();
     expect(store.sampleStatus("c")).toBe("held-stale");
     // The stale value is still served (hold-last past the horizon), just labeled by both independent channels.
     expect(store.sample<number>("c")?.payload).toBe(1);
   });
 
-  it("a healthy predicted-mode topic (single fresh arrival, no further traffic) reads live regardless of delay, isOverdue must key off confirmedHorizonUt(), not the far-future predicted viewUt (M2 T5 close-review Fix 2)", () => {
-    for (const delay of [0, 300]) {
+  it("a healthy topic (single fresh arrival, no further traffic) reads live regardless of delay, isOverdue must key off confirmedHorizonUt(), not the far-future SCET", () => {
+    for (const delay of [VISIBLE_GAP_SECONDS, 300]) {
       const wall = fakeWall();
       const clock = new ViewClock({
         nowWall: wall.now,
@@ -461,12 +457,11 @@ describe("certainty composes with T4 status + T3 undefined/null", () => {
       });
       const store = new TimelineStore(clock);
 
-      store.ingest("c", numberPoint(100, 1, { deliveredAt: 100 }));
-      clock.setMode("predicted");
-      wall.advanceBy(1000); // predicted cursor races far ahead of the horizon
+      store.ingest("c", numberPoint(100, 1, { deliveredAt: 100 + delay }));
+      wall.advanceBy(1000); // SCET races far ahead of the horizon
 
       store.beginFrame();
-      expect(store.currentFrame().certainty).toBe("predicted");
+      expect(clock.certaintyFor(store.currentFrame().scetUt)).toBe("predicted");
       // Nothing else has confirmed elapsed UT beyond this one sample, the
       // confirmed horizon stays sample-clamped, so there is no genuine
       // arrival gap for "c" to be overdue against.

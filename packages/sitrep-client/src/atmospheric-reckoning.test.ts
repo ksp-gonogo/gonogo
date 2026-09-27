@@ -14,7 +14,7 @@ import {
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
-import { ViewClock } from "./view-clock";
+import { VISIBLE_GAP_SECONDS, ViewClock } from "./view-clock";
 
 /**
  * `vessel.flight.altitudeAsl` below the atmosphere interface, where the conic
@@ -32,8 +32,9 @@ import { ViewClock } from "./view-clock";
  * fixed-interval assumption would get wrong: the stream is change-gated, so a
  * topic carries a point when its value changed and at no other time.
  *
- * Every case reads in PREDICTED mode with the transport DOWN, which is what puts
- * `viewUt` ahead of the newest sample and grades the reading stale. A rate
+ * Every case reads a light-time from the craft with the transport DOWN, which is
+ * what puts the frame's SCET ahead of the newest sample and grades the reading
+ * stale. A rate
  * integration declines on a live reading by design (there is no gap to carry the
  * value across), and the last case here is the one that pins that.
  */
@@ -163,7 +164,7 @@ function flightPoint(
     },
     meta: makeMeta({
       validAt,
-      deliveredAt: validAt,
+      deliveredAt: validAt + LIGHT_TIME_SECONDS,
       quality: Quality.OnRails,
       source: "vessel:descent",
       ...meta,
@@ -189,7 +190,7 @@ function partialFlightPoint(
     payload,
     meta: makeMeta({
       validAt,
-      deliveredAt: validAt,
+      deliveredAt: validAt + LIGHT_TIME_SECONDS,
       quality: Quality.OnRails,
       source: "stub",
     }),
@@ -197,13 +198,17 @@ function partialFlightPoint(
   };
 }
 
-function point<T>(validAt: number, payload: T): TimelinePoint<T> {
+function point<T>(
+  validAt: number,
+  payload: T,
+  lightTimeSeconds = LIGHT_TIME_SECONDS,
+): TimelinePoint<T> {
   return {
     validAt,
     payload,
     meta: makeMeta({
       validAt,
-      deliveredAt: validAt,
+      deliveredAt: validAt + lightTimeSeconds,
       quality: Quality.OnRails,
       source: "vessel:descent",
     }),
@@ -211,14 +216,18 @@ function point<T>(validAt: number, payload: T): TimelinePoint<T> {
   };
 }
 
+/** The one-way light-time every sample in this file is delivered across. */
+const LIGHT_TIME_SECONDS = VISIBLE_GAP_SECONDS;
+
 /**
- * A store whose view time is dialled directly, with the transport DOWN so every
+ * A store whose SCET is dialled directly, with the transport DOWN so every
  * reading is graded `disconnected` rather than waiting out a heartbeat margin.
  *
- * The wall clock is advanced to each sample's own instant BEFORE it is ingested,
- * which is not decoration: `ViewClock.observeSample` anchors the UT/wall fit at
+ * The wall clock stands for the craft's UT and is advanced to each sample's
+ * arrival, a light-time after its own instant, BEFORE it is ingested, which is
+ * not decoration: `ViewClock.observeSample` anchors the UT/wall fit at
  * `(now(), deliveredAt)`, so ingesting a run of samples without moving the wall
- * anchors UT 10 to wall 0 and every later `viewUt` reads ten seconds further
+ * anchors UT 10 to wall 0 and every later SCET reads ten seconds further
  * ahead than the dial says. A fixture whose samples all sit at UT 0 cannot feel
  * that, which is why the existing reckoner fixtures do not.
  */
@@ -227,18 +236,18 @@ function scene(
   orbitRadius = 700_000,
   mu = KERBIN_MU,
   orbit: ReturnType<typeof orbitOf> = orbitOf(bodyIndex, orbitRadius, mu),
+  lightTimeSeconds = LIGHT_TIME_SECONDS,
 ) {
-  let wall = 0;
+  let wall = lightTimeSeconds;
   const clock = new ViewClock({
     nowWall: () => wall,
     warpRate: () => 1,
-    delaySeconds: () => 0,
+    delaySeconds: () => lightTimeSeconds,
   });
-  clock.setMode("predicted");
   const store = new TimelineStore(clock);
   store.setTransportConnected(false);
-  store.ingest("system.bodies", point(0, SYSTEM));
-  store.ingest("vessel.orbit", point(0, orbit));
+  store.ingest("system.bodies", point(0, SYSTEM, lightTimeSeconds));
+  store.ingest("vessel.orbit", point(0, orbit, lightTimeSeconds));
   return {
     store,
     /** Ingest a descent run at the given (uneven) instants. */
@@ -253,18 +262,19 @@ function scene(
       }[],
     ) {
       for (const s of samples) {
-        wall = s.at;
+        wall = s.at + lightTimeSeconds;
         store.ingest(
           "vessel.flight",
           flightPoint(s.at, s.altitudeAsl, s.verticalSpeed, s.gForce ?? 2, {
+            deliveredAt: wall,
             ...(s.gapSinceUt === undefined ? {} : { gapSinceUt: s.gapSinceUt }),
             ...(s.source === undefined ? {} : { source: s.source }),
           }),
         );
       }
     },
-    at(viewUt: number): TopicReading<FlightSample> {
-      wall = viewUt;
+    at(scetUt: number): TopicReading<FlightSample> {
+      wall = scetUt;
       store.beginFrame();
       return store.sampleReading<FlightSample>("vessel.flight");
     },
@@ -684,13 +694,17 @@ describe("what the descent withdraws on", () => {
      * it would replace a measured altitude with arithmetic about the same
      * instant. The same posture `elapsedOrDecline` takes for the dead-reckoned
      * pair, and the opposite of the conic's, which is a CAUSE and true of a
-     * value that arrived on time.
+     * value that arrived on time. Under a visible light-time a live reading is
+     * still a light-time behind SCET and that gap IS carried, so this is read
+     * under the visible gap, where SCET is the received edge.
      */
-    const s = scene();
+    const lightTime = VISIBLE_GAP_SECONDS / 2;
+    const s = scene(KERBIN_INDEX, 700_000, KERBIN_MU, undefined, lightTime);
     s.store.setTransportConnected(true);
     s.descend(UNEVEN_DESCENT);
 
-    const reading = s.at(10);
+    // The instant the newest sample lands, a light-time after it was stamped.
+    const reading = s.at(10 + lightTime);
 
     expect(reading.state).toBe("observed");
     expect(reading.reckoning.status).toBe("declined");

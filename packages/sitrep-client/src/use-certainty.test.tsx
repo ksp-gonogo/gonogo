@@ -6,22 +6,13 @@ import { TimelineStore } from "./timeline-store";
 import { useCertainty } from "./use-certainty";
 import { ViewClock } from "./view-clock";
 
-/** A wall clock a test can advance explicitly, instead of racing real time. */
-function fakeWall(start = 0) {
-  let now = start;
-  return {
-    now: () => now,
-    advanceBy: (seconds: number) => {
-      now += seconds;
-    },
-  };
-}
+const LIGHT_TIME_SECONDS = 10;
 
 function point(validAt: number, payload: number): TimelinePoint<number> {
   return {
     validAt,
     payload,
-    meta: makeMeta({ validAt, deliveredAt: validAt }),
+    meta: makeMeta({ validAt, deliveredAt: validAt + LIGHT_TIME_SECONDS }),
     epoch: 0,
   };
 }
@@ -33,11 +24,9 @@ function Certainty({ store }: { store: TimelineStore }) {
 
 describe("useCertainty", () => {
   it("re-renders on beginFrame() and surfaces the frame's certainty", () => {
-    const wall = fakeWall();
     const clock = new ViewClock({
-      nowWall: wall.now,
       warpRate: () => 1,
-      delaySeconds: () => 0,
+      delaySeconds: () => LIGHT_TIME_SECONDS,
     });
     const store = new TimelineStore(clock);
 
@@ -47,18 +36,17 @@ describe("useCertainty", () => {
       store.ingest("vessel.target", point(10, 1));
       store.beginFrame();
     });
-    // Confirmed mode (default): viewUt tracks confirmedEdgeUt(), which is sample-clamped to the point just ingested: at-or-before the horizon.
+    // Live, viewUt tracks confirmedEdgeUt(), which is sample-clamped to the point just ingested: at-or-before the horizon.
     expect(screen.getByText("certainty:confirmed")).toBeTruthy();
 
     act(() => {
-      clock.setMode("predicted");
-      wall.advanceBy(50); // utNowEstimate races well past the sample-clamped horizon
+      clock.scrubTo(10 + LIGHT_TIME_SECONDS); // the craft's present on delivery, a light-time past the horizon
       store.beginFrame();
     });
     expect(screen.getByText("certainty:predicted")).toBeTruthy();
 
     act(() => {
-      clock.setMode("confirmed");
+      clock.scrubTo(null);
       store.beginFrame();
     });
     expect(screen.getByText("certainty:confirmed")).toBeTruthy();

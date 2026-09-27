@@ -31,14 +31,16 @@ function fakeWall(start = 0) {
   };
 }
 
-/** A store whose view clock is free to run ahead of the newest sample. */
-function predictedStore(wall: { now: () => number }) {
+/** The one-way light-time every sample in this file is delivered across. */
+const LIGHT_TIME_SECONDS = 10;
+
+/** A store a light-time from the craft, so each frame reckons to a SCET past the newest sample. */
+function delayedStore(wall: { now: () => number }) {
   const clock = new ViewClock({
     nowWall: wall.now,
     warpRate: () => 1,
-    delaySeconds: () => 0,
+    delaySeconds: () => LIGHT_TIME_SECONDS,
   });
-  clock.setMode("predicted");
   return new TimelineStore(clock);
 }
 
@@ -50,7 +52,11 @@ function numberPoint(
   return {
     validAt,
     payload,
-    meta: makeMeta({ validAt, deliveredAt: validAt, ...overrides }),
+    meta: makeMeta({
+      validAt,
+      deliveredAt: validAt + LIGHT_TIME_SECONDS,
+      ...overrides,
+    }),
     epoch: 0,
   };
 }
@@ -78,7 +84,7 @@ beforeEach(clearReckoners);
 
 describe("a reckoner's own window", () => {
   it("is one sample when no window is declared, so an existing model is unchanged", () => {
-    const store = predictedStore(fakeWall());
+    const store = delayedStore(fakeWall());
     let seen: readonly TimelinePoint<number>[] = [];
     registerReckoner("test.temperature", "test", {
       deps: [],
@@ -99,7 +105,7 @@ describe("a reckoner's own window", () => {
   });
 
   it("hands back the declared span, oldest first, ending at the observation", () => {
-    const store = predictedStore(fakeWall());
+    const store = delayedStore(fakeWall());
     let seen: readonly TimelinePoint<number>[] = [];
     registerReckoner("test.temperature", "test", {
       deps: [],
@@ -121,16 +127,16 @@ describe("a reckoner's own window", () => {
     expect(seen.map((p) => p.validAt)).toEqual([120, 130, 140]);
   });
 
-  it("measures the span back from the observation, not from the view time", () => {
+  it("measures the span back from the observation, not from the frame's SCET", () => {
     /*
      * The whole point of reckoning is to carry a value across a silence, so a
-     * window anchored on the frame's view time would empty out precisely when
+     * window anchored on the frame's SCET would empty out precisely when
      * the model was needed: twenty minutes into a blackout, the last minute of
      * contact would be outside it and the model would have nothing to take a
      * rate from.
      */
     const wall = fakeWall();
-    const store = predictedStore(wall);
+    const store = delayedStore(wall);
     let seen: readonly TimelinePoint<number>[] = [];
     registerReckoner("test.temperature", "test", {
       deps: [],
@@ -155,7 +161,7 @@ describe("a reckoner's own window", () => {
 
   it("thins a fuller window to the cap and runs anyway, keeping both ends", () => {
     // `maxSamples` is a COST cap, never a rejection: too many points is not a reason to refuse to model, it is a reason to look at fewer of them.
-    const store = predictedStore(fakeWall());
+    const store = delayedStore(fakeWall());
     let seen: readonly TimelinePoint<number>[] = [];
     let ran = false;
     registerReckoner("test.temperature", "test", {
@@ -184,7 +190,7 @@ describe("a reckoner's own window", () => {
 
 describe("minSamples is the only rejection, and it is the store's", () => {
   it("never runs the model when the window holds too few points", () => {
-    const store = predictedStore(fakeWall());
+    const store = delayedStore(fakeWall());
     let calls = 0;
     registerReckoner("test.temperature", "test", {
       deps: [],
@@ -207,7 +213,7 @@ describe("minSamples is the only rejection, and it is the store's", () => {
   });
 
   it("runs the model once the floor is met", () => {
-    const store = predictedStore(fakeWall());
+    const store = delayedStore(fakeWall());
     let calls = 0;
     registerReckoner("test.temperature", "test", {
       deps: [],
@@ -237,7 +243,7 @@ describe("minSamples is the only rejection, and it is the store's", () => {
      * every hand-written decline already uses. `vessel.flight` is such a topic,
      * so registering a windowed model here is what proves the reason travels.
      */
-    const store = predictedStore(fakeWall());
+    const store = delayedStore(fakeWall());
     registerReckoner("vessel.flight", "test", {
       deps: [],
       window: { spanUt: 60, maxSamples: 8, minSamples: 5 },
@@ -249,7 +255,7 @@ describe("minSamples is the only rejection, and it is the store's", () => {
     store.ingest("vessel.flight", {
       validAt: 100,
       payload: {} as never,
-      meta: makeMeta({ validAt: 100, deliveredAt: 100 }),
+      meta: makeMeta({ validAt: 100, deliveredAt: 100 + LIGHT_TIME_SECONDS }),
       epoch: 0,
     });
     store.beginFrame();
@@ -267,7 +273,7 @@ describe("minSamples is the only rejection, and it is the store's", () => {
      * one waits for more data, the other knows there was an outage. Only the
      * store can tell them apart, so the sentence it writes has to.
      */
-    const store = predictedStore(fakeWall());
+    const store = delayedStore(fakeWall());
     registerReckoner("vessel.flight", "test", {
       deps: [],
       window: { spanUt: 1000, maxSamples: 16, minSamples: 6 },
@@ -279,7 +285,11 @@ describe("minSamples is the only rejection, and it is the store's", () => {
     const flight = (validAt: number, overrides = {}) => ({
       validAt,
       payload: {} as never,
-      meta: makeMeta({ validAt, deliveredAt: validAt, ...overrides }),
+      meta: makeMeta({
+        validAt,
+        deliveredAt: validAt + LIGHT_TIME_SECONDS,
+        ...overrides,
+      }),
       epoch: 0,
     });
     for (const validAt of [100, 110, 120, 130]) {
@@ -314,7 +324,7 @@ describe("a window stops at a break in the record", () => {
      * same regime, and a model handed both would take a trend through an outage
      * it has no readings for.
      */
-    const store = predictedStore(fakeWall());
+    const store = delayedStore(fakeWall());
     let seen: readonly TimelinePoint<number>[] = [];
     registerReckoner("test.temperature", "test", {
       deps: [],
@@ -341,7 +351,7 @@ describe("a window stops at a break in the record", () => {
   });
 
   it("truncates at a tombstone, which is the value confirmed gone and back", () => {
-    const store = predictedStore(fakeWall());
+    const store = delayedStore(fakeWall());
     let seen: readonly TimelinePoint<number>[] = [];
     registerReckoner("test.temperature", "test", {
       deps: [],
@@ -372,7 +382,7 @@ describe("a window stops at a break in the record", () => {
      * survives the truncation says it has two. The second is the honest number,
      * and the sparse-reject that already exists is what says so.
      */
-    const store = predictedStore(fakeWall());
+    const store = delayedStore(fakeWall());
     let calls = 0;
     registerReckoner("test.temperature", "test", {
       deps: [],
@@ -409,7 +419,7 @@ describe("a dependency resolves to one point unless it opts in", () => {
      * samples would refuse to model anything whose input is a slow-moving
      * constant, which is most of them.
      */
-    const store = predictedStore(fakeWall());
+    const store = delayedStore(fakeWall());
     let seen: TimelinePoint<TestContact> | undefined;
     registerReckoner("test.temperature", "test", {
       deps: ["test.contact"],
@@ -425,7 +435,7 @@ describe("a dependency resolves to one point unless it opts in", () => {
     store.ingest("test.contact", {
       validAt: 10,
       payload: { relativePosition: 5, name: "Mun Station" },
-      meta: makeMeta({ validAt: 10, deliveredAt: 10 }),
+      meta: makeMeta({ validAt: 10, deliveredAt: 10 + LIGHT_TIME_SECONDS }),
       epoch: 0,
     });
     ingestRun(store, 100, 3);
@@ -437,7 +447,7 @@ describe("a dependency resolves to one point unless it opts in", () => {
   });
 
   it("resolves to an array of its own history once it declares a window", () => {
-    const store = predictedStore(fakeWall());
+    const store = delayedStore(fakeWall());
     let seen: readonly TimelinePoint<TestContact>[] = [];
     registerReckoner("test.temperature", "test", {
       deps: ["test.contact"],
@@ -455,7 +465,7 @@ describe("a dependency resolves to one point unless it opts in", () => {
       store.ingest("test.contact", {
         validAt,
         payload: { relativePosition: validAt, name: "Mun Station" },
-        meta: makeMeta({ validAt, deliveredAt: validAt }),
+        meta: makeMeta({ validAt, deliveredAt: validAt + LIGHT_TIME_SECONDS }),
         epoch: 0,
       });
     }
@@ -473,7 +483,7 @@ describe("a dependency resolves to one point unless it opts in", () => {
      * input the frame did not carry is a decline the store builds, and the
      * model is never asked a question it cannot answer.
      */
-    const store = predictedStore(fakeWall());
+    const store = delayedStore(fakeWall());
     let calls = 0;
     registerReckoner("test.temperature", "test", {
       deps: ["test.contact"],

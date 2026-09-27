@@ -787,13 +787,14 @@ describe("a reading-shaped dep", () => {
     };
   }
 
-  function predictedStore(wall: { now: () => number }): TimelineStore {
+  const LIGHT_TIME_SECONDS = 10;
+
+  function delayedStore(wall: { now: () => number }): TimelineStore {
     const clock = new ViewClock({
       nowWall: wall.now,
       warpRate: () => 1,
-      delaySeconds: () => 0,
+      delaySeconds: () => LIGHT_TIME_SECONDS,
     });
-    clock.setMode("predicted");
     return new TimelineStore(clock);
   }
 
@@ -801,14 +802,14 @@ describe("a reading-shaped dep", () => {
     return {
       validAt,
       payload,
-      meta: makeMeta({ validAt, deliveredAt: validAt }),
+      meta: makeMeta({ validAt, deliveredAt: validAt + LIGHT_TIME_SECONDS }),
       epoch: 0,
     };
   }
 
   it("hands over the whole Reading, so a derivation can see how current its input is", () => {
     const wall = fakeWall();
-    const store = predictedStore(wall);
+    const store = delayedStore(wall);
     setActiveTimelineStore(store);
 
     const seen: string[] = [];

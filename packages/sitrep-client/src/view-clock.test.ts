@@ -142,13 +142,8 @@ describe("ViewClock", () => {
     });
   });
 
-  describe("predicted mode (M2 design §3.3)", () => {
-    it("defaults to confirmed mode", () => {
-      const clock = new ViewClock();
-      expect(clock.mode).toBe("confirmed");
-    });
-
-    it("viewUt() tracks utNowEstimate() directly in predicted mode; never re-subtracting or re-adding delaySeconds (no double-counting the delay under warp)", () => {
+  describe("the present past the received edge", () => {
+    it("SCET is exactly utNowEstimate() at a real light-time, never re-subtracting or re-adding delaySeconds (no double-counting the delay under warp)", () => {
       const wall = fakeWall();
       const clock = new ViewClock({
         nowWall: wall.now,
@@ -156,49 +151,50 @@ describe("ViewClock", () => {
         delaySeconds: () => 30,
       });
 
-      clock.observeSample(1000, 1000);
-      wall.advanceBy(2); // utNowEstimate = 1000 + 2*50 = 1100
+      clock.observeSample(1000, 1030); // delivered one light-time after it was stamped
+      wall.advanceBy(2); // utNowEstimate = 1030 + 2*50 = 1130
 
       // The confirmed edge stays sample-clamped: the estimate raced ahead under warp, but nothing new has actually been confirmed.
       expect(clock.confirmedEdgeUt()).toBe(1000);
       expect(clock.certaintyHorizonUt()).toBe(1000);
+      expect(clock.viewUt()).toBe(1000);
 
-      clock.setMode("predicted");
-      // Exactly utNowEstimate(): not 1100-30=1070 (re-subtracting delay, under-predicting) and not 1100+30=1130 (double-adding it).
-      expect(clock.viewUt()).toBe(1100);
-      expect(clock.utNowEstimate()).toBe(1100);
-      expect(clock.certaintyFor(clock.viewUt())).toBe("predicted");
+      // Exactly utNowEstimate(): not 1130-30=1100 (re-subtracting delay, under-predicting) and not 1130+30=1160 (double-adding it).
+      const scet = clock.scetUt(clock.viewUt());
+      expect(scet).toBe(1130);
+      expect(clock.utNowEstimate()).toBe(1130);
+      expect(clock.certaintyFor(scet)).toBe("predicted");
     });
 
-    it("a predicted excursion never leaks into the confirmed monotonic cursor once mode switches back", () => {
+    it("a present far past the edge never leaks into the received edge's monotonic cursor", () => {
       const wall = fakeWall();
       const clock = new ViewClock({
         nowWall: wall.now,
         warpRate: () => 100,
-        delaySeconds: () => 0,
+        delaySeconds: () => 5,
       });
 
-      clock.observeSample(10, 10);
-      clock.setMode("predicted");
-      wall.advanceBy(5); // utNowEstimate = 10 + 5*100 = 510
-      expect(clock.viewUt()).toBe(510);
+      clock.observeSample(10, 15);
+      wall.advanceBy(5); // utNowEstimate = 15 + 5*100 = 515
+      expect(clock.scetUt(clock.viewUt())).toBe(515);
 
-      clock.setMode("confirmed");
-      // confirmedEdgeUt is still sample-clamped at 10, the 510 predicted peak must not have pinned the confirmed cursor ahead of it.
+      // confirmedEdgeUt is still sample-clamped at 10: the 515 present must not have pinned the received edge ahead of it.
       expect(clock.viewUt()).toBe(10);
+      expect(clock.viewUt("true-now")).toBe(10);
     });
   });
 
   describe("scrubTo (M2 design §3.2)", () => {
-    it("pins viewUt() to the scrub target regardless of mode", () => {
-      const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
-      clock.observeSample(100, 100);
+    it("pins viewUt() and SCET to the scrub target", () => {
+      const clock = new ViewClock({
+        delaySeconds: () => 10,
+        warpRate: () => 1,
+      });
+      clock.observeSample(100, 110);
 
       clock.scrubTo(40);
       expect(clock.viewUt()).toBe(40);
-
-      clock.setMode("predicted");
-      expect(clock.viewUt()).toBe(40); // scrub still wins over predicted mode
+      expect(clock.scetUt(clock.viewUt())).toBe(40);
     });
 
     it("scrubTo(null) resumes live tracking with a monotonic catch-up, not a restart", () => {

@@ -367,13 +367,14 @@ function trueAnomalyDegrees(elements: OrbitElements, ut: number): number {
 function orbitPoint(
   payload: WireOf<VesselOrbitPayload>,
   validAt: number,
+  deliveredAt = validAt,
 ): TimelinePoint<VesselOrbitPayload> {
   return {
     validAt,
     payload: wrapWire<VesselOrbitPayload>("VesselOrbit", { ...payload }),
     meta: makeMeta({
       validAt,
-      deliveredAt: validAt,
+      deliveredAt,
       quality: Quality.OnRails,
       source: "vessel:abc-123",
     }),
@@ -383,14 +384,13 @@ function orbitPoint(
 
 describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () => {
   /**
-   * Under delay the frame's view UT is the predicted present, ahead of the
-   * confirmed edge. The store holds the vessel's last confirmed elements; a
-   * reader dead-reckons by solving them at that view UT, and a deterministic
-   * object (a body) solved at the SAME view UT agrees on the instant. Here the
-   * delay authority sets the lead and predicted mode puts the view UT at
-   * `utNowEstimate()`.
+   * Under delay the frame's SCET is the craft's present, ahead of the confirmed
+   * edge. The store holds the vessel's last confirmed elements; a reader
+   * dead-reckons by solving them at that SCET, and a deterministic object (a
+   * body) solved at the SAME SCET agrees on the instant. Here the delay
+   * authority sets the light-time each sample is delivered across.
    */
-  it("puts the view UT at the predicted present, where the held orbit and a deterministic solve share one instant", () => {
+  it("puts the frame's SCET at the craft's present, where the held orbit and a deterministic solve share one instant", () => {
     const wall = createFakeWallClock(0);
     const authority = new DelayAuthority();
     authority.observe({
@@ -405,30 +405,28 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
     });
     const store = new TimelineStore(clock);
 
-    store.ingest("vessel.orbit", orbitPoint(CIRCULAR_ORBIT, 100));
+    store.ingest("vessel.orbit", orbitPoint(CIRCULAR_ORBIT, 100, 108));
 
-    clock.setMode("predicted");
-    wall.advanceBy(50); // utNowEstimate = 100 + 50 = 150 (delayed present)
+    wall.advanceBy(42); // utNowEstimate = 108 + 42 = 150, the craft's present
     store.beginFrame();
 
     const frame = store.currentFrame();
-    expect(frame.viewUt).toBe(150);
-    expect(frame.certainty).toBe("predicted");
-    // Horizon stayed at the confirmed sample (100); the 8s delay would clamp
-    // it further back once the estimate is the binding side, but the sample
-    // clamp binds first here: the point is the estimate LEADS it.
+    expect(frame.viewUt).toBe(100);
+    expect(frame.scetUt).toBe(150);
+    expect(clock.certaintyFor(frame.scetUt)).toBe("predicted");
+    // Horizon stayed at the confirmed sample (100): the sample clamp binds before the 8 s delay does, and SCET LEADS it.
     expect(store.certaintyHorizonUt()).toBe(100);
 
-    // The store holds the orbit last at the confirmed sample and propagates nothing; the dead-reckoning is a reader solving it at the view UT.
+    // The store holds the orbit last at the confirmed sample and propagates nothing; the dead-reckoning is a reader solving it at SCET.
     const orbit = store.sample<VesselOrbitPayload>("vessel.orbit");
     expect(orbit?.payload).toBeTruthy();
     const solved = orbit?.payload
-      ? solveOrbit(orbit.payload, frame.viewUt, null)
+      ? solveOrbit(orbit.payload, frame.scetUt, null)
       : undefined;
 
-    // The vessel dead-reckons to the frame's single view UT...
+    // The vessel dead-reckons to the frame's single SCET...
     expect(solved?.trueAnomaly).toBeCloseTo(
-      trueAnomalyDegrees(CIRCULAR_ELEMENTS, frame.viewUt),
+      trueAnomalyDegrees(CIRCULAR_ELEMENTS, frame.scetUt),
       9,
     );
     // ...and not to the confirmed edge, which is the other instant on offer.
@@ -437,10 +435,10 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
       3,
     );
 
-    // A deterministic body, solved at the SAME frame UT, uses the identical
+    // A deterministic body, solved at the SAME frame SCET, uses the identical
     // instant: no per-object time. Solving it at any other UT would disagree,
-    // proving the shared frame UT is load-bearing.
-    const bodyAtFrameUt = solve(CIRCULAR_ELEMENTS, frame.viewUt);
+    // proving the shared frame SCET is load-bearing.
+    const bodyAtFrameUt = solve(CIRCULAR_ELEMENTS, frame.scetUt);
     const bodyAtConfirmedEdge = solve(
       CIRCULAR_ELEMENTS,
       store.certaintyHorizonUt(),

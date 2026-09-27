@@ -24,6 +24,7 @@
 import {
   TimelineStore,
   type TopicReading,
+  VISIBLE_GAP_SECONDS,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality, type Value, value } from "@ksp-gonogo/sitrep-sdk";
@@ -74,13 +75,16 @@ interface FlightSample {
   gForce: Value<"g">;
 }
 
+/** The one-way light-time every sample is delivered across. */
+const LIGHT_TIME_SECONDS = VISIBLE_GAP_SECONDS;
+
 function point<T>(validAt: number, payload: T) {
   return {
     validAt,
     payload,
     meta: makeMeta({
       validAt,
-      deliveredAt: validAt,
+      deliveredAt: validAt + LIGHT_TIME_SECONDS,
       quality: Quality.OnRails,
       source: "vessel:descent",
     }),
@@ -89,27 +93,27 @@ function point<T>(validAt: number, payload: T) {
 }
 
 /**
- * The store's reading of `vessel.flight` at `viewUt`, after the row's samples.
+ * The store's reading of `vessel.flight` at the row's SCET, after its samples.
  *
- * The wall clock is advanced to each sample's own instant before it is
- * ingested: `ViewClock.observeSample` anchors the UT/wall fit where the packet
- * landed, so a run ingested without moving the wall reads every later frame
- * further ahead than the dial says.
+ * The wall clock stands for the craft's UT and is advanced to each sample's
+ * arrival, a light-time after its own instant, before it is ingested:
+ * `ViewClock.observeSample` anchors the UT/wall fit where the packet landed, so
+ * a run ingested without moving the wall reads every later frame further ahead
+ * than the dial says.
  */
 function read(row: Row): TopicReading<FlightSample> {
-  let wall = 0;
+  let wall = LIGHT_TIME_SECONDS;
   const clock = new ViewClock({
     nowWall: () => wall,
     warpRate: () => 1,
-    delaySeconds: () => 0,
+    delaySeconds: () => LIGHT_TIME_SECONDS,
   });
-  clock.setMode("predicted");
   const store = new TimelineStore(clock);
   store.setTransportConnected(false);
   store.ingest("system.bodies", point(0, SYSTEM));
   store.ingest("vessel.orbit", point(0, ORBIT));
   for (const s of row.samples) {
-    wall = s.at;
+    wall = s.at + LIGHT_TIME_SECONDS;
     store.ingest(
       "vessel.flight",
       point<FlightSample>(s.at, {
@@ -120,7 +124,7 @@ function read(row: Row): TopicReading<FlightSample> {
       }),
     );
   }
-  wall = row.viewUt;
+  wall = row.scetUt;
   store.beginFrame();
   return store.sampleReading<FlightSample>("vessel.flight");
 }

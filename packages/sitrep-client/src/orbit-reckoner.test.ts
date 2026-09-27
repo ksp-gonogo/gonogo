@@ -45,7 +45,7 @@ function point<T>(validAt: number, payload: T, quality: Quality) {
     payload,
     meta: makeMeta({
       validAt,
-      deliveredAt: validAt,
+      deliveredAt: validAt + LIGHT_TIME_SECONDS,
       source: "vessel:probe",
       quality,
     }),
@@ -53,21 +53,25 @@ function point<T>(validAt: number, payload: T, quality: Quality) {
   } as TimelinePoint<T>;
 }
 
+/** The one-way light-time the orbit sample is delivered across. */
+const LIGHT_TIME_SECONDS = 10;
+
 /**
- * A store carrying one orbit sample at the given quality, read at `viewUt`.
+ * A store carrying one orbit sample at the given quality, read at the SCET
+ * `at` is given. The wall clock stands for the craft's UT, so the sample lands
+ * a light-time after it was stamped.
  * `roster` is the `system.bodies` payload, and `null` leaves the roster out.
  */
 function scene(
   quality: Quality,
   roster: ConicBodiesInput | null = { bodies: [] },
 ) {
-  let wall = 0;
+  let wall = LIGHT_TIME_SECONDS;
   const clock = new ViewClock({
     nowWall: () => wall,
     warpRate: () => 1,
-    delaySeconds: () => 0,
+    delaySeconds: () => LIGHT_TIME_SECONDS,
   });
-  clock.setMode("predicted");
   const store = new TimelineStore(clock);
   store.setTransportConnected(false);
   if (roster !== null) {
@@ -75,8 +79,8 @@ function scene(
   }
   store.ingest("vessel.orbit", point(0, orbitPayload(), quality));
   return {
-    at(viewUt: number): TopicReading<ReturnType<typeof orbitPayload>> {
-      wall = viewUt;
+    at(scetUt: number): TopicReading<ReturnType<typeof orbitPayload>> {
+      wall = scetUt;
       store.beginFrame();
       return store.sampleReading("vessel.orbit");
     },
