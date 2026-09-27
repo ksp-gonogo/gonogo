@@ -41,10 +41,7 @@ const tokens = parseColorTokens(
  * Real contrast findings that no token swap fixes, so the design itself has to
  * change. Each entry is `file site: token property on ground`.
  */
-const AWAITING_RULING: Readonly<Record<string, string>> = {
-  "DataKeyPicker.tsx PickerInput &::placeholder: text-faint color on surface-raised":
-    "placeholder text in the faint tier on the raised input, 4.05:1; faint is the placeholder tier and fails on raised",
-};
+const AWAITING_RULING: Readonly<Record<string, string>> = {};
 
 /**
  * Pairs the scan forms that the component never draws, each with what decides

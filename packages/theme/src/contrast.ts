@@ -147,18 +147,6 @@ export const NAMED_PAIR_EXCEPTIONS: readonly {
     reason: "the dark text for bright fills; see its accent-bg pairing",
   },
   {
-    token: "text-dim",
-    on: "surface-raised",
-    reason:
-      "under 4.5:1 on the raised surface; text-muted is the dim tier there",
-  },
-  {
-    token: "text-faint",
-    on: "surface-raised",
-    reason:
-      "under 4.5:1 on the raised surface; text-muted is the faint tier there",
-  },
-  {
     token: "status-nogo-fg",
     on: "status-nogo-bg",
     reason:
