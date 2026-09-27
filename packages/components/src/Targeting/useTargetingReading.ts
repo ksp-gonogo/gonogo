@@ -33,12 +33,13 @@ export function useTargetingReading() {
     dockReading.state === "observed" || dockReading.state === "stale"
       ? dockReading.value
       : undefined;
-  const dock =
-    dockObserved && dockReading.reckoning.status === "available"
-      ? { ...dockObserved, ...dockReading.reckoning.value }
-      : dockReading.state === "observed"
-        ? dockReading.value
-        : undefined;
+  const currentDock = () => {
+    if (dockObserved && dockReading.reckoning.status === "available")
+      return { ...dockObserved, ...dockReading.reckoning.value };
+    if (dockReading.state === "observed") return dockReading.value;
+    return undefined;
+  };
+  const dock = currentDock();
   const dockPairing = stillTrue(withoutReckoning(dockReading), undefined);
   const target = stillTrue(withoutReckoning(targetReading), undefined);
 

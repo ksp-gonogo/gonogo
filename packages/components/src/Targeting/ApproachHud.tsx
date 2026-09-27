@@ -60,6 +60,14 @@ function ReadoutRow({
   );
 }
 
+function closingTone(
+  closingMagnitude: number | null,
+  closing: boolean,
+): "ok" | "warn" | undefined {
+  if (closingMagnitude === null) return undefined;
+  return closing ? "ok" : "warn";
+}
+
 /** Why the docking HUD is not on screen while a pairing is still selected. */
 function AlignmentWithheldNotice() {
   return (
@@ -163,9 +171,7 @@ export function ApproachHud({
 
             <ReadoutRow
               label="Closing rate"
-              tone={
-                closingMagnitude === null ? undefined : closing ? "ok" : "warn"
-              }
+              tone={closingTone(closingMagnitude, closing)}
             >
               {closingMagnitude === null ? (
                 NULL_DISPLAY
