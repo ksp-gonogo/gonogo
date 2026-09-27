@@ -334,34 +334,24 @@ namespace Sitrep.Propagation
 
         private double ScanStep(PropagationTarget subject, PropagationTarget other, double span)
         {
-            var subjectCycle = CharacteristicCycleSeconds(subject);
-            var otherCycle = CharacteristicCycleSeconds(other);
-
-            double step;
-            if (subjectCycle.HasValue && otherCycle.HasValue)
-            {
-                step = Math.Min(subjectCycle.Value, otherCycle.Value) / ScanStepsPerCycle;
-            }
-            else if (subjectCycle.HasValue)
-            {
-                step = subjectCycle.Value / ScanStepsPerCycle;
-            }
-            else if (otherCycle.HasValue)
-            {
-                step = otherCycle.Value / ScanStepsPerCycle;
-            }
-            else
-            {
-                // Neither repeats, so there is no natural timescale to take one
-                // from and the window itself is the only thing left to divide.
-                step = span / ScanStepsPerCycle;
-            }
-
+            var step = CycleStep(CharacteristicCycleSeconds(subject), CharacteristicCycleSeconds(other), span);
             if (!(step > 0.0))
             {
                 step = span / ScanStepsPerCycle;
             }
             return Math.Max(step, span / MaxScanSteps);
+        }
+
+        private static double CycleStep(double? subjectCycle, double? otherCycle, double span)
+        {
+            if (subjectCycle.HasValue && otherCycle.HasValue)
+                return Math.Min(subjectCycle.Value, otherCycle.Value) / ScanStepsPerCycle;
+            if (subjectCycle.HasValue) return subjectCycle.Value / ScanStepsPerCycle;
+            if (otherCycle.HasValue) return otherCycle.Value / ScanStepsPerCycle;
+
+            // Neither repeats, so there is no natural timescale to take one
+            // from and the window itself is the only thing left to divide.
+            return span / ScanStepsPerCycle;
         }
 
         /// <summary>
