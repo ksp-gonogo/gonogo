@@ -132,10 +132,12 @@ type DecodedFrame =
 function decodeFrame(data: unknown): DecodedFrame | null {
   if (typeof data === "string") return { lane: "text", text: data };
 
-  let bytes: Uint8Array | null = null;
-  if (data instanceof ArrayBuffer) bytes = frameBytes(data);
-  else if (ArrayBuffer.isView(data))
-    bytes = frameBytes(data as ArrayBufferView);
+  const resolveBytes = (): Uint8Array | null => {
+    if (data instanceof ArrayBuffer) return frameBytes(data);
+    if (ArrayBuffer.isView(data)) return frameBytes(data as ArrayBufferView);
+    return null;
+  };
+  const bytes = resolveBytes();
   if (bytes === null) return null;
 
   if (!isBinaryFrame(bytes)) {
