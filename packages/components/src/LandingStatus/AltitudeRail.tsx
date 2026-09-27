@@ -33,9 +33,10 @@ export function AltitudeRail({
   suicideBurnCountdown,
 }: Readonly<AltitudeRailProps>) {
   const aglMeters = agl.value?.magnitude ?? 0;
+  // Quantised to the millimetre: the solve reaches this through pow and exp, whose last bits differ between platforms, and the rail must draw the same band everywhere.
   const ignition =
     !centreOfMass && ignitionAltitude != null && ignitionAltitude > 0
-      ? ignitionAltitude
+      ? Math.round(ignitionAltitude * 1000) / 1000
       : null;
   const maxScale = niceCeil(Math.max(aglMeters, ignition ?? 0, 1) * 1.1);
 
