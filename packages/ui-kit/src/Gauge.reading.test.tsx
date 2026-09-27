@@ -97,8 +97,8 @@ describe("Gauge, handed a Reading", () => {
         max={value("1", 3)}
       />,
     );
-    expect(container.querySelector("[data-not-current]")).not.toBeNull();
-    expect(container.querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(container.querySelector("[data-held]")).not.toBeNull();
+    expect(container.querySelector("[data-held-mark]")).not.toBeNull();
   });
 
   it("says the currency in words, because the mark has none to say", () => {

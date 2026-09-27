@@ -132,7 +132,7 @@ async function rendered(
     let announced = 0;
     let silent = 0;
     let noAsOf = 0;
-    for (const mark of container.querySelectorAll("[data-not-current]")) {
+    for (const mark of container.querySelectorAll("[data-held]")) {
       const caption =
         mark.querySelector("[data-unit-currency]")?.textContent ??
         instrumentCaption(mark);

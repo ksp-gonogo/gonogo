@@ -38,7 +38,7 @@ describe("Twr when vessel.propulsion is no longer current", () => {
     mount();
     const gauge = await screen.findByRole("meter", { name: /^TWR \d/ });
     expect(gauge).toHaveAccessibleName(/^TWR [\d.]+$/);
-    expect(gauge).not.toHaveAttribute("data-not-current");
+    expect(gauge).not.toHaveAttribute("data-held");
     // useElementSize picks up the gauge slot in an effect that settles after the body returns.
     await act(async () => {});
   });
@@ -53,7 +53,7 @@ describe("Twr when vessel.propulsion is no longer current", () => {
     });
 
     const gauge = screen.getByRole("meter", { name: /^TWR \d/ });
-    expect(gauge).toHaveAttribute("data-not-current");
+    expect(gauge).toHaveAttribute("data-held");
     expect(gauge).toHaveAccessibleName(/^TWR [\d.]+, \S/);
     // The empty state would claim the craft has no engine.
     expect(screen.queryByText(/no engine data/i)).toBeNull();

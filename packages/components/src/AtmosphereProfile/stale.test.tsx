@@ -32,7 +32,7 @@ const CARRIED = [
 const PRESSURE_LINE = /pascals @ 6 km/;
 
 function heldMark(container: HTMLElement): Element | null {
-  return container.querySelector("text [data-not-current-mark]");
+  return container.querySelector("text [data-held-mark]");
 }
 
 function chartName(container: HTMLElement): string {

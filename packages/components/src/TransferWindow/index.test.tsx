@@ -310,9 +310,7 @@ describe("TransferWindow reach list", () => {
 
     await waitFor(() => expect(budgetFigure()).not.toBeNull());
     expect(
-      screen
-        .getByText("Budget")
-        .parentElement?.querySelector("[data-not-current]"),
+      screen.getByText("Budget").parentElement?.querySelector("[data-held]"),
     ).not.toBeNull();
     expect(visibleText(view.container)).not.toMatch(/last heard|ago\b/i);
   });

@@ -101,7 +101,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
       (screen.getByRole("button", { name: "Upgrade" }) as HTMLButtonElement)
         .disabled,
     ).toBe(false);
-    expect(container.querySelector("[data-not-current]")).toBeNull();
+    expect(container.querySelector("[data-held]")).toBeNull();
   });
 
   it("keeps the held balance on screen, marked by Unit, and disarms the upgrade", async () => {
@@ -116,16 +116,14 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
       expect(screen.getByTitle("Available funds")).toBeTruthy(),
     );
     expect(
-      screen.getByTitle("Available funds").querySelector("[data-not-current]"),
+      screen.getByTitle("Available funds").querySelector("[data-held]"),
     ).toBeNull();
 
     goStale(fixture);
 
     await waitFor(() =>
       expect(
-        screen
-          .getByTitle("Available funds")
-          .querySelector("[data-not-current]"),
+        screen.getByTitle("Available funds").querySelector("[data-held]"),
       ).not.toBeNull(),
     );
     const balance = screen.getByTitle("Available funds");
@@ -158,9 +156,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
 
     await waitFor(() =>
       expect(
-        screen
-          .getByTitle("Available funds")
-          .querySelector("[data-not-current]"),
+        screen.getByTitle("Available funds").querySelector("[data-held]"),
       ).not.toBeNull(),
     );
     // The last balance covered the cost, but a held figure can say neither yes nor no.
@@ -189,7 +185,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     );
     // The held balance carries the mark; nothing else on the panel dates the link.
     expect(
-      screen.getByTitle("Available funds").querySelector("[data-not-current]"),
+      screen.getByTitle("Available funds").querySelector("[data-held]"),
     ).not.toBeNull();
     expect(visibleText(container)).not.toMatch(/not current|no longer current/);
     // MAX is a claim about the facility, not about the link.
@@ -211,9 +207,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     goStale(fixture);
     await waitFor(() =>
       expect(
-        screen
-          .getByTitle("Available funds")
-          .querySelector("[data-not-current]"),
+        screen.getByTitle("Available funds").querySelector("[data-held]"),
       ).not.toBeNull(),
     );
 
@@ -237,7 +231,7 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     const container = mount(fixture, "scs-stale-cold", 6, 7);
 
     await waitFor(() => expect(screen.getByText("SPACE CENTER")).toBeTruthy());
-    expect(container.querySelector("[data-not-current]")).toBeNull();
+    expect(container.querySelector("[data-held]")).toBeNull();
     expect(visibleText(container)).toContain("funds unknown");
     expect(screen.queryByTitle("Funds balance no longer current")).toBeNull();
   });
@@ -253,12 +247,12 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     await waitFor(() =>
       expect(visibleText(container)).not.toContain(NULL_DISPLAY),
     );
-    expect(container.querySelector("[data-not-current]")).toBeNull();
+    expect(container.querySelector("[data-held]")).toBeNull();
 
     goStale(fixture);
 
     await waitFor(() =>
-      expect(container.querySelector("[data-not-current]")).not.toBeNull(),
+      expect(container.querySelector("[data-held]")).not.toBeNull(),
     );
     expect(visibleText(container)).not.toContain(NULL_DISPLAY);
     expect(screen.queryByTitle("Funds balance no longer current")).toBeNull();
@@ -273,6 +267,6 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     const container = mount(fixture, "scs-stale-tiny-cold", 2, 3);
 
     await waitFor(() => expect(visibleText(container)).toContain(NULL_DISPLAY));
-    expect(container.querySelector("[data-not-current]")).toBeNull();
+    expect(container.querySelector("[data-held]")).toBeNull();
   });
 });

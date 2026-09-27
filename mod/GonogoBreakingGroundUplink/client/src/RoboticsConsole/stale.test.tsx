@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import "./index";
 
 /**
- * When `robotics.servos` stops arriving every figure is held and the drawn positions carry the not-current mark; only the at-target verdict, a judgement about now, is withheld.
+ * When `robotics.servos` stops arriving every figure is held and the drawn positions carry the held mark; only the at-target verdict, a judgement about now, is withheld.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -70,7 +70,7 @@ describe("RoboticsConsole: a servo list that has stopped arriving", () => {
     const { container } = mountWithHinge("rc-stale-control");
 
     await waitFor(() => expect(visibleText(container)).toContain("22°"));
-    expect(container.querySelector("[data-not-current-mark]")).toBeNull();
+    expect(container.querySelector("[data-held-mark]")).toBeNull();
     expect(visibleText(container)).toContain("MOVING");
   });
 
@@ -84,7 +84,7 @@ describe("RoboticsConsole: a servo list that has stopped arriving", () => {
     });
 
     await waitFor(() =>
-      expect(container.querySelector("[data-not-current-mark]")).not.toBeNull(),
+      expect(container.querySelector("[data-held-mark]")).not.toBeNull(),
     );
     expect(visibleText(container)).toContain("22°");
     expect(visibleText(container)).not.toContain("Position unknown");
@@ -106,7 +106,7 @@ describe("RoboticsConsole: a servo list that has stopped arriving", () => {
     });
 
     await waitFor(() =>
-      expect(container.querySelector("[data-not-current-mark]")).not.toBeNull(),
+      expect(container.querySelector("[data-held-mark]")).not.toBeNull(),
     );
     expect(visibleText(container)).not.toContain("Waiting for the");
     expect(visibleText(container)).not.toContain("No robotic parts");

@@ -291,7 +291,7 @@ export const SHEETS: MeterSheet[] = [
         tank: { amount: 32.4, capacity: 40, unit: "units" },
         fillColor: "hsl(120deg 35% 55%)",
         stale: true,
-        note: "held: dimmed fill and the not-current mark",
+        note: "held: dimmed fill and the held mark",
       },
       {
         label: "Power",
@@ -308,7 +308,7 @@ export const SHEETS: MeterSheet[] = [
       "Where the widest label, a bar and the widest figure no longer fit on " +
       "a line, every figure moves under its bar at the trailing edge, " +
       "together, so the bars still start and end at one x and no " +
-      "not-current mark is clipped.",
+      "held mark is clipped.",
     width: 220,
     layout: "row",
     cases: [

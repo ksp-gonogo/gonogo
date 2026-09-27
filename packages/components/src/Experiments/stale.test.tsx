@@ -111,12 +111,12 @@ describe("Experiments when the science channels are no longer current", () => {
     const container = mount(fixture);
     emitScience(fixture);
     await waitFor(() => expect(visibleText(container)).toContain("12.0"));
-    expect(container.querySelector("[data-not-current]")).toBeNull();
+    expect(container.querySelector("[data-held]")).toBeNull();
 
     goStale(fixture);
 
     // The mark must carry its currency caption, or it looks marked and says nothing.
-    const held = container.querySelector("[data-not-current]");
+    const held = container.querySelector("[data-held]");
     expect(held).not.toBeNull();
     expect(held?.querySelector("[data-unit-currency]")).not.toBeNull();
     // Still drawing the number, not a dash.

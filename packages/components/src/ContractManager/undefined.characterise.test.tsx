@@ -289,8 +289,8 @@ describe("ContractManager: the altitude-band meter before an altitude arrives", 
 
     const meter = await screen.findByRole("meter", { name: "Altitude" });
     const root = () => meter.parentElement?.parentElement;
-    expect(root()?.querySelector("[data-fill-not-current]")).toBeNull();
-    expect(root()?.querySelector("[data-not-current-mark]")).toBeNull();
+    expect(root()?.querySelector("[data-fill-held]")).toBeNull();
+    expect(root()?.querySelector("[data-held-mark]")).toBeNull();
 
     act(() => {
       fixture.store.setTransportConnected(false);
@@ -298,8 +298,8 @@ describe("ContractManager: the altitude-band meter before an altitude arrives", 
     });
 
     await waitFor(() =>
-      expect(root()?.querySelector("[data-fill-not-current]")).not.toBeNull(),
+      expect(root()?.querySelector("[data-fill-held]")).not.toBeNull(),
     );
-    expect(root()?.querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(root()?.querySelector("[data-held-mark]")).not.toBeNull();
   });
 });

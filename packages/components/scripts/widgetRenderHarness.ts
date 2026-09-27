@@ -1104,7 +1104,7 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
  *   parent's box, which is precisely the arrangement a clipping grandparent
  *   destroys, so this walk includes them
  *
- * The specimen: a `Meter`'s not-current dot, absolutely positioned at
+ * The specimen: a `Meter`'s held dot, absolutely positioned at
  * `left: 100%` of the quantity so it costs the column no width, inside a
  * `Meter__Value` that is `flex: 0 0 auto` (so it shrink-wraps, leaving no
  * slack) and `overflow: hidden` (for text truncation). Measured through this
@@ -1145,7 +1145,7 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
  * are absolutely positioned, wholly outside a clipping ancestor, and CORRECT,
  * because a tape and a pannable graph are windows onto something larger. They
  * are geometrically identical to a defect, so the intent has to come from the
- * component: an element carrying `data-not-current-mark` is asked about wherever
+ * component: an element carrying `data-held-mark` is asked about wherever
  * it is drawn, which is how a `Meter` dot was found.
  *
  * Stated so the gate's green is read as "nothing an operator reads is out of
@@ -1189,8 +1189,7 @@ async function findClippedContent(page: Page): Promise<string[]> {
          * canvas, a form control, or the outermost element of a drawing.
          */
         const declared =
-          el.namespaceURI === htmlNs &&
-          el.hasAttribute("data-not-current-mark");
+          el.namespaceURI === htmlNs && el.hasAttribute("data-held-mark");
         const content =
           !declared &&
           (el.namespaceURI === svgNs
@@ -1389,13 +1388,13 @@ async function proveClipDetectorWorks(page: Page): Promise<void> {
              with narrower text has room to spare and does not reproduce it. -->
         <span style="display:inline-block;overflow:hidden">
           <span style="position:relative;display:inline-block">value<span
-            id="fires-absolute" data-not-current-mark=""
+            id="fires-absolute" data-held-mark=""
             style="position:absolute;left:100%;top:0;width:6px;height:6px;background:#fa0"></span></span>
         </span>
       </div>
       <div style="position:absolute;top:100px;left:0;width:120px;height:20px;overflow:hidden">
         <span style="position:relative;display:inline-block">v<span
-          id="fires-below" data-not-current-mark=""
+          id="fires-below" data-held-mark=""
           style="position:absolute;top:100%;left:0;width:6px;height:6px;background:#fa0"></span></span>
       </div>
       <div style="position:absolute;top:500px;left:0;width:120px;height:20px;overflow:hidden">
@@ -1416,7 +1415,7 @@ async function proveClipDetectorWorks(page: Page): Promise<void> {
         <div style="height:40px;overflow:auto">
           <div style="height:80px"></div>
           <span style="position:relative;display:inline-block">v<span
-            id="quiet-scroll-mark" data-not-current-mark=""
+            id="quiet-scroll-mark" data-held-mark=""
             style="position:absolute;left:100%;top:0;width:6px;height:6px;background:#fa0"></span></span>
           <div id="quiet-scroll-text" style="height:20px">scrolled to</div>
         </div>

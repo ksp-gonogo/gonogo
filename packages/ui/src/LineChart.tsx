@@ -542,7 +542,7 @@ export function LineChart({
   });
 
   const thresholdClauses = thresholdLines
-    .filter((t) => t.currency.notCurrent)
+    .filter((t) => t.currency.held)
     .map((t) => sayHeld(t.label ?? t.id, t.currency.caption));
 
   const chartLabel = [
@@ -897,7 +897,7 @@ export function LineChart({
               fontSize={10}
             >
               {t.label}
-              {t.currency.notCurrent && <InstrumentHeldMark size={10} />}
+              {t.currency.held && <InstrumentHeldMark size={10} />}
             </text>
           )}
         </React.Fragment>

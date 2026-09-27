@@ -99,7 +99,7 @@ describe("Meter layout", () => {
     expect(symbols("Row")).toBe(1);
   });
 
-  it("keeps the held treatment in the row form: dimmed fill and the not-current mark", () => {
+  it("keeps the held treatment in the row form: dimmed fill and the held mark", () => {
     render(
       <Meter
         label="LF"
@@ -109,9 +109,9 @@ describe("Meter layout", () => {
       />,
     );
     const root = rootOf("LF");
-    expect(root.querySelector("[data-fill-not-current]")).not.toBeNull();
-    expect(root.querySelector("[data-track-not-current]")).not.toBeNull();
-    expect(root.querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(root.querySelector("[data-fill-held]")).not.toBeNull();
+    expect(root.querySelector("[data-track-held]")).not.toBeNull();
+    expect(root.querySelector("[data-held-mark]")).not.toBeNull();
   });
 
   it("draws the absent form on one line too", () => {

@@ -89,7 +89,7 @@ describe("TechTree when the career record is no longer current", () => {
 
     expect(screen.getByRole("button", { name: "Unlock" })).toBeEnabled();
     expect(screen.getByRole("status").textContent).toContain("5000");
-    expect(document.querySelector("[data-not-current]")).toBeNull();
+    expect(document.querySelector("[data-held]")).toBeNull();
   });
 
   it("keeps the tech tree browsable, because a node list cannot change unobserved", async () => {
@@ -104,7 +104,7 @@ describe("TechTree when the career record is no longer current", () => {
     // Not the awaiting placeholder and not an empty tree: both would misstate a catalogue we hold.
     await waitFor(() =>
       expect(
-        screen.getByRole("status").querySelector("[data-not-current]"),
+        screen.getByRole("status").querySelector("[data-held]"),
       ).not.toBeNull(),
     );
     expect(screen.getByText("Pricey Tech")).toBeInTheDocument();
@@ -152,9 +152,7 @@ describe("TechTree when the career record is no longer current", () => {
 
     await waitFor(() =>
       expect(
-        screen
-          .getByTitle("Available science")
-          .querySelector("[data-not-current]"),
+        screen.getByTitle("Available science").querySelector("[data-held]"),
       ).not.toBeNull(),
     );
     const status = screen.getByRole("status").textContent ?? "";
@@ -176,9 +174,7 @@ describe("TechTree when the career record is no longer current", () => {
 
     await waitFor(() =>
       expect(
-        screen
-          .getByTitle("Available science")
-          .querySelector("[data-not-current]"),
+        screen.getByTitle("Available science").querySelector("[data-held]"),
       ).not.toBeNull(),
     );
     // The last balance covered the price, but a held figure can say neither yes nor no.
@@ -190,12 +186,12 @@ describe("TechTree when the career record is no longer current", () => {
     const { container } = renderTree(4, 3);
     emitAffordableCareer();
     await waitFor(() => expect(visibleText(container)).toContain("5000"));
-    expect(container.querySelector("[data-not-current]")).toBeNull();
+    expect(container.querySelector("[data-held]")).toBeNull();
 
     goNotCurrent();
 
     await waitFor(() =>
-      expect(container.querySelector("[data-not-current]")).not.toBeNull(),
+      expect(container.querySelector("[data-held]")).not.toBeNull(),
     );
     expect(visibleText(container)).toContain("5,000");
     expect(visibleText(container)).not.toContain("NOT CURRENT");
@@ -207,6 +203,6 @@ describe("TechTree when the career record is no longer current", () => {
     await waitFor(() =>
       expect(visibleText(container)).toContain("Awaiting tech telemetry"),
     );
-    expect(container.querySelector("[data-not-current]")).toBeNull();
+    expect(container.querySelector("[data-held]")).toBeNull();
   });
 });

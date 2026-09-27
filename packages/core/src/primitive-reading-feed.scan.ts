@@ -11,7 +11,7 @@
  *     <Unit value={altitude.value} />        // compiles. Band and staleness gone
  *
  * Both lines typecheck, both render a number, and the second silently drops the
- * not-current mark and the uncertainty band. That
+ * held mark and the uncertainty band. That
  * is not a hypothetical failure mode: it is the SHORTER thing to write, and it
  * is what a call site reaches for the moment the reading's optional `value`
  * annoys it.

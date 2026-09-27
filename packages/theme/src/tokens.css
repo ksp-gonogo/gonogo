@@ -689,7 +689,7 @@ textarea {
   --inset-jog-wheel: var(--space-4);
   --inset-jog-wheel-compact: var(--space-2);
   --inset-jog-wheel-label: 0 var(--space-2);
-  /* The room a Meter figure keeps for the not-current mark drawn outside it. */
+  /* The room a Meter figure keeps for the held mark drawn outside it. */
   --inset-meter-mark: var(--space-6);
 
   /* Fields. */

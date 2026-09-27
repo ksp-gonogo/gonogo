@@ -95,7 +95,7 @@ describe("Strategies when the career balances are no longer current", () => {
     emitCareer(fixture);
 
     await waitFor(() => expect(visibleText()).toContain("289,848"));
-    expect(document.querySelector("[data-not-current]")).toBeNull();
+    expect(document.querySelector("[data-held]")).toBeNull();
     const activate = screen.getByRole("button", { name: "Activate" });
     expect(activate).toBeEnabled();
     expect(activate).toHaveAttribute("title", "Set the factor, then confirm");
@@ -110,7 +110,7 @@ describe("Strategies when the career balances are no longer current", () => {
     goStale(fixture);
 
     await waitFor(() =>
-      expect(document.querySelector("[data-not-current]")).not.toBeNull(),
+      expect(document.querySelector("[data-held]")).not.toBeNull(),
     );
     expect(screen.getByText("Open Door Policy")).toBeInTheDocument();
     expect(screen.getByText("Admin Building")).toBeInTheDocument();
@@ -127,7 +127,7 @@ describe("Strategies when the career balances are no longer current", () => {
 
     await waitFor(() =>
       expect(
-        document.querySelectorAll("[data-balance-row] [data-not-current]"),
+        document.querySelectorAll("[data-balance-row] [data-held]"),
       ).toHaveLength(3),
     );
     const rail = document.querySelector("[data-balance-row]");
@@ -170,7 +170,7 @@ describe("Strategies when the career balances are no longer current", () => {
     goStale(fixture);
 
     await waitFor(() =>
-      expect(document.querySelector("[data-not-current]")).not.toBeNull(),
+      expect(document.querySelector("[data-held]")).not.toBeNull(),
     );
     // The last balance covered the price, but a held figure can say neither yes nor no.
     expect(document.querySelector("[data-afford]")).toBeNull();
@@ -182,13 +182,13 @@ describe("Strategies when the career balances are no longer current", () => {
     renderStrategies(fixture, { w: 4, h: 4 });
     emitCareer(fixture);
     await waitFor(() => expect(visibleText()).toContain("290kf"));
-    expect(document.querySelector("[data-not-current]")).toBeNull();
+    expect(document.querySelector("[data-held]")).toBeNull();
 
     goStale(fixture);
 
     await waitFor(() =>
       expect(
-        document.querySelector("[data-balance-row] [data-not-current]"),
+        document.querySelector("[data-balance-row] [data-held]"),
       ).not.toBeNull(),
     );
     expect(visibleText()).not.toContain("not current");
@@ -200,6 +200,6 @@ describe("Strategies when the career balances are no longer current", () => {
     // A cold mount is not a dropped link.
     renderStrategies(newFixture());
 
-    expect(document.querySelector("[data-not-current]")).toBeNull();
+    expect(document.querySelector("[data-held]")).toBeNull();
   });
 });

@@ -170,12 +170,12 @@ describe("a row meter's amount over a capacity", () => {
     const track = screen.getByRole("meter", { name: label });
     const root = track.parentElement?.parentElement;
     if (!root) throw new Error("no meter root");
-    return Array.from(root.querySelectorAll("[data-not-current-mark]")).filter(
+    return Array.from(root.querySelectorAll("[data-held-mark]")).filter(
       (mark) => getComputedStyle(mark).display !== "none",
     );
   }
 
-  it("carries one not-current mark, after the capacity, when only the amount is held", () => {
+  it("carries one held mark, after the capacity, when only the amount is held", () => {
     render(
       <Meter
         label="LF"

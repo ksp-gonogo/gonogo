@@ -78,7 +78,7 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
     emitOrbit(fixture);
 
     await waitFor(() => expect(visibleText(container)).toContain("675.0 km"));
-    expect(container.querySelector("[data-not-current]")).toBeNull();
+    expect(container.querySelector("[data-held]")).toBeNull();
     expect(heldCaption(container)).toBeNull();
   });
 
@@ -91,7 +91,7 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
     goStale(fixture);
 
     await waitFor(() =>
-      expect(container.querySelector("[data-not-current]")).not.toBeNull(),
+      expect(container.querySelector("[data-held]")).not.toBeNull(),
     );
     // The number survives: this widget dates its readout rather than withholding it.
     expect(visibleText(container)).toContain("675.0 km");
@@ -107,12 +107,12 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
     const container = mount(fixture, "sma-stale-marked");
     emitOrbit(fixture);
     await waitFor(() => expect(visibleText(container)).toContain("675.0 km"));
-    expect(container.querySelector("[data-not-current]")).toBeNull();
+    expect(container.querySelector("[data-held]")).toBeNull();
 
     goStale(fixture);
 
     await waitFor(() =>
-      expect(container.querySelector("[data-not-current]")).not.toBeNull(),
+      expect(container.querySelector("[data-held]")).not.toBeNull(),
     );
     expect(container.textContent).toContain("OFFLINE");
     // The caption is spoken only, so the sighted readout is unchanged.
@@ -129,7 +129,7 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
     goStale(fixture);
 
     await waitFor(() =>
-      expect(container.querySelector("[data-not-current]")).not.toBeNull(),
+      expect(container.querySelector("[data-held]")).not.toBeNull(),
     );
     expect(visibleText(container)).toContain("675.0 km");
     expect(heldCaption(container)).toMatch(/OFFLINE, as of /);
@@ -142,7 +142,7 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
 
     await waitFor(() => expect(visibleText(container)).toContain("SMA"));
     expect(visibleText(container)).toContain("No orbit data");
-    expect(container.querySelector("[data-not-current]")).toBeNull();
+    expect(container.querySelector("[data-held]")).toBeNull();
   });
 
   it("keeps the streaming figure out of every live region", async () => {
@@ -162,7 +162,7 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
     goStale(fixture);
 
     await waitFor(() =>
-      expect(container.querySelector("[data-not-current]")).not.toBeNull(),
+      expect(container.querySelector("[data-held]")).not.toBeNull(),
     );
     expect(screen.queryAllByRole("status")).toHaveLength(0);
   });
@@ -181,6 +181,6 @@ describe("SemiMajorAxis when vessel.orbit is no longer current", () => {
     await waitFor(() =>
       expect(visibleText(container)).toContain("No orbit data"),
     );
-    expect(container.querySelector("[data-not-current]")).toBeNull();
+    expect(container.querySelector("[data-held]")).toBeNull();
   });
 });

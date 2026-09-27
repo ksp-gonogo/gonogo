@@ -49,7 +49,7 @@ export const PROBE_CHROME_ATTR = "data-probe-chrome";
 export const HOST_DRAWN_CONTRIBUTION_SEGMENTS = ["badges"] as const;
 
 /**
- * The tag the probe appends to an element drawn as held (`data-not-current`)
+ * The tag the probe appends to an element drawn as held (`data-held`)
  * that {@link announcesHeld} says is silent: a mark a reader can see and a
  * screen reader is told nothing about.
  */
@@ -73,7 +73,7 @@ export function announcesHeld(el: Element): boolean {
  *
  * <p>Finer than the probe's size-outline signature on purpose. A widget that
  * says a figure is held often changes nothing a size outline can see: a colour, a
- * `data-not-current` attribute, a dimmed class. So every attribute is kept,
+ * `data-held` attribute, a dimmed class. So every attribute is kept,
  * `class` included, which is stable here because one page renders every scene
  * and an identical style always hashes to the identical class.</p>
  *
@@ -89,7 +89,7 @@ export function announcesHeld(el: Element): boolean {
  * <p>A class token a library numbers per instance is folded when it is on
  * {@link INSTANCE_COUNTER_CLASSES}, and compared as written when it is not.</p>
  *
- * <p>A `data-not-current` element that does not {@link announcesHeld} is tagged
+ * <p>A `data-held` element that does not {@link announcesHeld} is tagged
  * {@link UNANNOUNCED_MARK}: the dot is drawn, and nothing tells a screen reader
  * the figure is held.</p>
  */
@@ -108,7 +108,7 @@ export function describeElements(host: HTMLElement): string[] {
       .replace(/\s+/g, " ")
       .trim();
     let line = `<${el.tagName.toLowerCase()} ${attributes.join(" ")}> ${own}`;
-    if (el.hasAttribute("data-not-current") && !announcesHeld(el)) {
+    if (el.hasAttribute("data-held") && !announcesHeld(el)) {
       line += ` ${UNANNOUNCED_MARK}`;
     }
     lines.push(line);

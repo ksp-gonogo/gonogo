@@ -96,7 +96,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
     // Every figure nulls: not held, not marked, not reckoned.
     expect(visibleText()).not.toContain("87");
-    expect(container.querySelectorAll("[data-not-current]").length).toBe(0);
+    expect(container.querySelectorAll("[data-held]").length).toBe(0);
     expect(visibleText()).not.toContain("Full");
     // The bars withhold their count, and their aria-label matches the visible badge.
     expect(screen.getByLabelText("No signal")).toBeTruthy();

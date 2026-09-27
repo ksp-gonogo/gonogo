@@ -1,6 +1,6 @@
 import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import { formatDuration } from "./formatDuration";
-import { NotCurrentHost, NotCurrentMark } from "./NotCurrentMark";
+import { HeldHost, HeldMark } from "./HeldMark";
 import { NULL_DISPLAY } from "./NullValue";
 import { resolveCurrency } from "./readingCurrency";
 import { VisuallyHidden } from "./VisuallyHidden";
@@ -49,20 +49,20 @@ export function Countdown({
 }: CountdownProps) {
   // A bare number never carries currency, so it is split off before the resolver.
   const carried = typeof value === "number" ? undefined : value;
-  const { shown, notCurrent, caption } = resolveCurrency(carried, {
+  const { shown, held, caption } = resolveCurrency(carried, {
     drawsReckoning: true,
   });
   const drawn = typeof value === "number" ? value : shown?.magnitude;
   if (drawn === undefined || drawn === null) return NULL_DISPLAY;
   const text = formatDuration(drawn, { ms: precise, sign: clock });
-  if (!notCurrent) return <>{text}</>;
+  if (!held) return <>{text}</>;
   return (
-    <NotCurrentHost data-not-current="" title={caption ?? undefined}>
+    <HeldHost data-held="" title={caption ?? undefined}>
       {text}
-      <NotCurrentMark aria-hidden="true" data-not-current-mark="" />
+      <HeldMark aria-hidden="true" data-held-mark="" />
       {caption !== null && (
         <VisuallyHidden data-unit-currency="">, {caption}</VisuallyHidden>
       )}
-    </NotCurrentHost>
+    </HeldHost>
   );
 }

@@ -42,7 +42,7 @@ const HOTTEST_PART_ID = "965970713";
 const CAPTION = /no longer current|last contact/i;
 
 function heldMarks(): NodeListOf<Element> {
-  return document.querySelectorAll("[data-not-current-mark]");
+  return document.querySelectorAll("[data-held-mark]");
 }
 
 function hotTag(): HTMLElement {
@@ -111,7 +111,7 @@ describe("ShipMap when the thermal reading is not current", () => {
     await waitFor(() => expect(ringCount(container)).toBe(0));
     // The tag keeps the last hottest part; Unit's held mark and spoken caption on its temperature say it is held.
     expect(hotTag().textContent).toMatch(/900/);
-    expect(hotTag().querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(hotTag().querySelector("[data-held-mark]")).not.toBeNull();
     expect(hotTag().querySelector("[data-unit-currency]")).not.toBeNull();
     expect(screen.queryByText(CAPTION)).toBeNull();
   });

@@ -23,7 +23,7 @@ export type UnitValue<U extends string = string> = Value<U> | Reading<Value<U>>;
 export interface Resolved<U extends string> {
   shown: Value<U> | null | undefined;
   /** Whether the number on screen is a reading of now. Drives the mark. */
-  notCurrent: boolean;
+  held: boolean;
   /**
    * What the mark means in words: the grade where the reading names one, a
    * grade-neutral word where it does not, and the instant the number was last
@@ -99,7 +99,7 @@ function heldCurrency<U extends string>(
    */
   return {
     shown: input.value,
-    notCurrent: input.value !== undefined,
+    held: input.value !== undefined,
     caption:
       input.value === undefined
         ? null
@@ -125,7 +125,7 @@ export function resolveCurrency<U extends string>(
 ): Resolved<U> {
   // `in` throws on a primitive, and some callers hand over a raw magnitude.
   if (typeof input !== "object" || input === null || !("state" in input)) {
-    return { shown: input, notCurrent: false, caption: null, band: null };
+    return { shown: input, held: false, caption: null, band: null };
   }
   // The band is orthogonal to the state: a live reading and a held one may each carry a model.
   const band =
@@ -144,15 +144,15 @@ export function resolveCurrency<U extends string>(
     const carried = input.reckoning.beyondReceived;
     return {
       shown,
-      notCurrent: carried,
+      held: carried,
       caption: carried ? MODELLED_TO_SCET : null,
       band,
     };
   }
   if (input.state === "observed") {
-    return { shown: input.value, notCurrent: false, caption: null, band };
+    return { shown: input.value, held: false, caption: null, band };
   }
   if (input.state === "stale") return { ...heldCurrency(input), band };
   // `null` rather than `undefined`, so the caller renders the null token rather than the symbol form.
-  return { shown: null, notCurrent: false, caption: null, band: null };
+  return { shown: null, held: false, caption: null, band: null };
 }

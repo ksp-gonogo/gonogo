@@ -135,7 +135,7 @@ function reachDeltaVFigures(container: HTMLElement): Element[] {
 }
 
 const isMarkedHeld = (figure: Element): boolean =>
-  figure.querySelector("[data-not-current]") !== null &&
+  figure.querySelector("[data-held]") !== null &&
   figure.querySelector("[data-unit-currency]") !== null;
 
 describe("TransferWindow when the parking orbit is no longer current", () => {
@@ -147,7 +147,7 @@ describe("TransferWindow when the parking orbit is no longer current", () => {
       expect(screen.getByText("Current phase")).toBeInTheDocument(),
     );
     expect(isMarkedHeld(figureBeside("Ejection Δv"))).toBe(false);
-    expect(view.container.querySelector("[data-not-current]")).toBeNull();
+    expect(view.container.querySelector("[data-held]")).toBeNull();
   });
 
   it("keeps the board drawn and marks the parking-orbit Δv figures held", async () => {
@@ -193,7 +193,7 @@ describe("TransferWindow when the parking orbit is no longer current", () => {
     // A cold start is not a lost link.
     const { view } = setup();
     expect(await screen.findByText(COLD_PLACEHOLDER)).toBeInTheDocument();
-    expect(view.container.querySelector("[data-not-current]")).toBeNull();
+    expect(view.container.querySelector("[data-held]")).toBeNull();
   });
 
   it("does not mark a confirmed tombstone as a held orbit", async () => {
@@ -204,7 +204,7 @@ describe("TransferWindow when the parking orbit is no longer current", () => {
       fixture.emit("vessel.orbit", null);
     });
     await waitFor(() => expect(visibleText(view.container)).toMatch(NO_ORBIT));
-    expect(view.container.querySelector("[data-not-current]")).toBeNull();
+    expect(view.container.querySelector("[data-held]")).toBeNull();
     expect(visibleText(view.container)).not.toContain(COLD_PLACEHOLDER);
   });
 });

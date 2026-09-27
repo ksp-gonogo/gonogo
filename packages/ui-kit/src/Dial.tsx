@@ -116,7 +116,7 @@ export function Dial<U extends string = string>({
   trackColor = "var(--color-border-subtle)",
   ariaLabel,
 }: Readonly<DialProps<U>>) {
-  const { shown, notCurrent, caption, band } = resolveCurrency(value);
+  const { shown, held, caption, band } = resolveCurrency(value);
 
   // The axis, unwrapped once into the face's angular geometry; every figure a reader sees goes back out through the unit layer.
   const current = shown?.magnitude ?? Number.NaN;
@@ -179,7 +179,7 @@ export function Dial<U extends string = string>({
 
   return (
     <Dial__Meter
-      data-not-current={notCurrent ? "" : undefined}
+      data-held={held ? "" : undefined}
       {...(hasFigure
         ? {
             role: "meter",
@@ -325,9 +325,7 @@ export function Dial<U extends string = string>({
           }
         >
           {centreLabel ?? NULL_DISPLAY}
-          {notCurrent && centreLabel !== null && (
-            <InstrumentHeldMark size={6} />
-          )}
+          {held && centreLabel !== null && <InstrumentHeldMark size={6} />}
         </text>
       </svg>
     </Dial__Meter>

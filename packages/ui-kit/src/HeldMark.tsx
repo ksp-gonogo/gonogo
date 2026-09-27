@@ -10,10 +10,10 @@ import { severityDotColor } from "./status/severityDotColor";
  * or not it is there, and it follows its value's right edge at superscript
  * height. Sized in `em` with a pixel floor, so it stays a dot in small text.
  *
- * It needs a positioned container to hang off: use {@link NotCurrentHost}, or
+ * It needs a positioned container to hang off: use {@link HeldHost}, or
  * a container of your own that is `position: relative` and does not wrap.
  */
-export const NotCurrentMark = styled.span`
+export const HeldMark = styled.span`
   position: absolute;
   left: 100%;
   top: 0;
@@ -30,7 +30,7 @@ export const NotCurrentMark = styled.span`
  *
  * `nowrap`, since a phrase broken across two lines has two right edges.
  */
-export const NotCurrentHost = styled.span`
+export const HeldHost = styled.span`
   position: relative;
   white-space: nowrap;
 `;

@@ -164,7 +164,7 @@ describe("LandingStatus atmospheric site gate", () => {
   /** The held-marked figure whose visible text contains `text`, or null. */
   function heldFigure(text: string): Element | null {
     return (
-      [...document.querySelectorAll("[data-not-current]")].find((el) =>
+      [...document.querySelectorAll("[data-held]")].find((el) =>
         el.textContent?.includes(text),
       ) ?? null
     );

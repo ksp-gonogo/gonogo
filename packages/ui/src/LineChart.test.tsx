@@ -565,9 +565,7 @@ describe("LineChart threshold currency", () => {
 
   it("marks a held reading's label and names it in words", () => {
     const container = chartWith(held);
-    expect(
-      container.querySelector("text [data-not-current-mark]"),
-    ).not.toBeNull();
+    expect(container.querySelector("text [data-held-mark]")).not.toBeNull();
     expect(chartName(container)).toMatch(/400 pascals @ 30 km, .+/);
   });
 
@@ -601,16 +599,14 @@ describe("LineChart threshold currency", () => {
         height={200}
       />,
     ).container;
-    expect(
-      container.querySelector("text [data-not-current-mark]"),
-    ).not.toBeNull();
+    expect(container.querySelector("text [data-held-mark]")).not.toBeNull();
     expect(chartName(container)).toMatch(/modelled to SCET/);
   });
 
   it("draws a current reading, or none, exactly as a bare line", () => {
     for (const reading of [live, undefined]) {
       const container = chartWith(reading);
-      expect(container.querySelector("[data-not-current-mark]")).toBeNull();
+      expect(container.querySelector("[data-held-mark]")).toBeNull();
       expect(chartName(container)).not.toMatch(/400 pascals/);
     }
   });

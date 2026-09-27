@@ -1105,7 +1105,7 @@ function reportStaleness(
         "An operator has no way to tell a held figure from a current one.\n" +
         "Mark what is held the way the kit does: read the value as a Reading " +
         "and draw it through `Unit` (or a `Meter`/readout fed the reading), so " +
-        "it carries the not-current dot and says when it was read, or say it " +
+        "it carries the held dot and says when it was read, or say it " +
         'in words ("held", "at last contact"). A guest in a host that marks ' +
         "itself is not covered by the host's mark: it reads its own data, so " +
         "it owns saying that data is held.\n" +
@@ -1121,7 +1121,7 @@ function reportStaleness(
         "screen reader is told nothing:\n  " +
         `${verdict.unannounced.slice(0, 6).join("\n  ")}\n` +
         "Draw the figure through `Unit` or hand the kit instrument the reading, " +
-        "each of which says its mark, rather than setting `data-not-current` by hand.",
+        "each of which says its mark, rather than setting `data-held` by hand.",
     );
   }
   if (verdict.unchanged) {

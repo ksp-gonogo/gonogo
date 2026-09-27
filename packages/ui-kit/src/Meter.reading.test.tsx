@@ -233,7 +233,7 @@ describe("Meter, given a reading of a fraction", () => {
         }}
       />,
     );
-    expect(container.querySelector("[data-not-current]")).not.toBeNull();
+    expect(container.querySelector("[data-held]")).not.toBeNull();
   });
 
   it("dims the fill where the figure names a grade", () => {
@@ -249,7 +249,7 @@ describe("Meter, given a reading of a fraction", () => {
         }}
       />,
     );
-    expect(container.querySelector("[data-fill-not-current]")).not.toBeNull();
+    expect(container.querySelector("[data-fill-held]")).not.toBeNull();
   });
 
   it("marks the figure itself, which is the one place the doubt is drawn", () => {
@@ -266,7 +266,7 @@ describe("Meter, given a reading of a fraction", () => {
       />,
     );
     // The figure carries the mark; the grade's word is only in `aria-valuetext`.
-    expect(container.querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(container.querySelector("[data-held-mark]")).not.toBeNull();
   });
 
   it("dims a held reading that names no grade, and still speaks it", () => {
@@ -283,8 +283,8 @@ describe("Meter, given a reading of a fraction", () => {
     );
 
     // A stale figure with no named grade still fires all three signals, with grade-neutral words.
-    expect(container.querySelector("[data-fill-not-current]")).not.toBeNull();
-    expect(container.querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(container.querySelector("[data-fill-held]")).not.toBeNull();
+    expect(container.querySelector("[data-held-mark]")).not.toBeNull();
 
     const at = formatQuantity(AT.magnitude, AT.unit).value;
     const caption = container.querySelector("[data-unit-currency]");
@@ -297,8 +297,8 @@ describe("Meter, given a reading of a fraction", () => {
     const { container } = render(
       <Meter label="Dose" value={banded(value("ratio", 0.39))} />,
     );
-    expect(container.querySelector("[data-fill-not-current]")).toBeNull();
-    expect(container.querySelector("[data-not-current-mark]")).toBeNull();
+    expect(container.querySelector("[data-fill-held]")).toBeNull();
+    expect(container.querySelector("[data-held-mark]")).toBeNull();
   });
 
   it("speaks the mark it draws, because the value IS a Unit", () => {
@@ -327,7 +327,7 @@ describe("Meter, given a reading of a fraction", () => {
     expect(caption?.textContent).toContain(at);
 
     // Silent by design: the words beside it are what speak.
-    const mark = container.querySelector("[data-not-current-mark]");
+    const mark = container.querySelector("[data-held-mark]");
     expect(mark?.getAttribute("aria-hidden")).toBe("true");
 
     // Anchored to the marked quantity, since `Unit` also titles the unit symbol.
@@ -352,7 +352,7 @@ describe("Meter, given a reading of a fraction", () => {
     );
 
     // A caller's label replaces the figure, never its currency.
-    const mark = container.querySelector("[data-not-current-mark]");
+    const mark = container.querySelector("[data-held-mark]");
     expect(mark?.getAttribute("aria-hidden")).toBe("true");
     const caption = container.querySelector("[data-unit-currency]");
     expect(caption?.textContent).toMatch(/STALE/i);
@@ -379,7 +379,7 @@ describe("Meter, given a reading of a fraction", () => {
         }}
       />,
     );
-    expect(container.querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(container.querySelector("[data-held-mark]")).not.toBeNull();
     expect(
       container.querySelector("[data-unit-currency]")?.textContent,
     ).toMatch(/STALE/i);
@@ -400,7 +400,7 @@ describe("Meter, given a reading of a fraction", () => {
         }}
       />,
     );
-    expect(container.querySelector("[data-not-current-mark]")).toBeNull();
+    expect(container.querySelector("[data-held-mark]")).toBeNull();
     expect(
       screen
         .getByRole("meter", { name: "Dose" })
@@ -412,7 +412,7 @@ describe("Meter, given a reading of a fraction", () => {
     const { container } = render(
       <Meter label="Dose" valueLabel="39%" value={value("ratio", 0.39)} />,
     );
-    expect(container.querySelector("[data-not-current-mark]")).toBeNull();
+    expect(container.querySelector("[data-held-mark]")).toBeNull();
     expect(container.querySelector("[data-unit-currency]")).toBeNull();
   });
 
@@ -436,7 +436,7 @@ describe("Meter, given a reading of a fraction", () => {
         }}
       />,
     );
-    expect(container.querySelector("[data-fill-not-current]")).not.toBeNull();
+    expect(container.querySelector("[data-fill-held]")).not.toBeNull();
     expect(marks(container)).toHaveLength(2);
   });
 
@@ -560,7 +560,7 @@ describe("Meter, given a capacity that is itself a reading", () => {
         }}
       />,
     );
-    expect(container.querySelector("[data-track-not-current]")).not.toBeNull();
+    expect(container.querySelector("[data-track-held]")).not.toBeNull();
   });
 
   it("dashes a held track in the held mark's hue, not the 1.4:1 subtle border", () => {
@@ -577,9 +577,7 @@ describe("Meter, given a capacity that is itself a reading", () => {
         }}
       />,
     );
-    const track = container.querySelector(
-      "[data-track-not-current]",
-    ) as HTMLElement;
+    const track = container.querySelector("[data-track-held]") as HTMLElement;
     const rule = emittedRuleFor(track);
     expect(rule).toContain("dashed var(--color-status-warning-bg)");
     expect(rule).not.toContain("--color-border-subtle");

@@ -126,13 +126,11 @@ describe("SystemView when vessel.orbit is no longer current", () => {
       expect(view.container.querySelector("svg")).not.toBeNull();
     });
     // The control: a widget that marked unconditionally would pass the assertion below.
-    expect(view.container.querySelectorAll("[data-not-current]")).toHaveLength(
-      0,
-    );
+    expect(view.container.querySelectorAll("[data-held]")).toHaveLength(0);
 
     goStale(fixture);
 
-    const marks = view.container.querySelectorAll("[data-not-current]");
+    const marks = view.container.querySelectorAll("[data-held]");
     expect(marks.length).toBeGreaterThan(0);
     for (const mark of marks) {
       // A mark with no caption looks marked and says nothing.

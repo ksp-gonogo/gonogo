@@ -75,8 +75,8 @@ describe("Dial, handed a Reading", () => {
     const { container } = render(
       <Dial {...AXIS} value={held(value("deg", 90))} ariaLabel="Heading" />,
     );
-    expect(container.querySelector("[data-not-current]")).not.toBeNull();
-    expect(container.querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(container.querySelector("[data-held]")).not.toBeNull();
+    expect(container.querySelector("[data-held-mark]")).not.toBeNull();
   });
 
   it("says the currency on the face's own accessible name", () => {

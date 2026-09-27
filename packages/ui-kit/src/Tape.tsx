@@ -121,7 +121,7 @@ export function Tape<U extends string = string>({
   }, [fillHeight]);
   const h = fillHeight ? measured : height;
 
-  const { shown, notCurrent, caption, band } = resolveCurrency(value);
+  const { shown, held, caption, band } = resolveCurrency(value);
 
   // Unwrapped once into pixel geometry; every figure a reader sees goes back out through the unit layer.
   const current = shown?.magnitude ?? Number.NaN;
@@ -194,7 +194,7 @@ export function Tape<U extends string = string>({
   return (
     <Tape__Meter
       ref={wrapRef}
-      data-not-current={notCurrent ? "" : undefined}
+      data-held={held ? "" : undefined}
       {...(hasFigure
         ? {
             role: "meter",
@@ -375,7 +375,7 @@ export function Tape<U extends string = string>({
               fill="var(--color-accent-fg)"
             >
               {scale.mark(safe)}
-              {notCurrent && <InstrumentHeldMark size={5} />}
+              {held && <InstrumentHeldMark size={5} />}
             </text>
           </>
         )}

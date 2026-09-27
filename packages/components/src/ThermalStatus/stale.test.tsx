@@ -97,18 +97,18 @@ describe("ThermalStatus: a thermal record that has stopped arriving", () => {
     });
     const root = () => meter.parentElement?.parentElement;
     // The control: while current, nothing on the meter is marked
-    expect(root()?.querySelector("[data-fill-not-current]")).toBeNull();
-    expect(root()?.querySelector("[data-not-current-mark]")).toBeNull();
+    expect(root()?.querySelector("[data-fill-held]")).toBeNull();
+    expect(root()?.querySelector("[data-held-mark]")).toBeNull();
 
     act(() => {
       fixture.store.setTransportConnected(false);
     });
 
     await waitFor(() =>
-      expect(root()?.querySelector("[data-fill-not-current]")).not.toBeNull(),
+      expect(root()?.querySelector("[data-fill-held]")).not.toBeNull(),
     );
     expect(meter).toHaveAttribute("aria-valuenow", "64");
     // One mark, on the temperature: the rated maximum is not marked a second time
-    expect(root()?.querySelectorAll("[data-not-current-mark]")).toHaveLength(1);
+    expect(root()?.querySelectorAll("[data-held-mark]")).toHaveLength(1);
   });
 });

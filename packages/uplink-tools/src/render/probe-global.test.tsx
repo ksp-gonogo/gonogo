@@ -17,7 +17,7 @@ const HELD: Reading<Value<"rpm">> = {
 const SCALE = { min: value("rpm", 0), max: value("rpm", 460) } as const;
 
 function marked(container: HTMLElement): Element {
-  const el = container.querySelector("[data-not-current]");
+  const el = container.querySelector("[data-held]");
   if (el === null) throw new Error("nothing was drawn held");
   return el;
 }
@@ -44,7 +44,7 @@ describe("announcesHeld, on what the kit draws", () => {
 
   it("calls a held mark with neither caption nor marker silent", () => {
     const { container } = render(
-      <svg role="img" aria-label="Rotor: 240 rpm" data-not-current="" />,
+      <svg role="img" aria-label="Rotor: 240 rpm" data-held="" />,
     );
     expect(announcesHeld(marked(container))).toBe(false);
   });

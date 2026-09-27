@@ -41,7 +41,7 @@ function dial(): HTMLElement | null {
 }
 
 function heldMarks(): NodeListOf<Element> {
-  return document.querySelectorAll("[data-not-current-mark]");
+  return document.querySelectorAll("[data-held-mark]");
 }
 
 describe("Navball never draws an attitude it does not have", () => {

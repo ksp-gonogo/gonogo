@@ -60,9 +60,7 @@ function dropTheLink(fixture: ReturnType<typeof setupStreamFixture>): void {
 /** The held mark inside the stack a totals caption labels. */
 function totalMark(label: string): Element | null {
   const caption = screen.getByText(label);
-  return (
-    caption.parentElement?.querySelector("[data-not-current-mark]") ?? null
-  );
+  return caption.parentElement?.querySelector("[data-held-mark]") ?? null;
 }
 
 describe("FuelStatus when the ΔV budget is no longer current", () => {
@@ -86,10 +84,10 @@ describe("FuelStatus when the ΔV budget is no longer current", () => {
   it("marks the held hero figure on a tiny tile rather than captioning it", async () => {
     const { fixture, container } = renderAt(3, 3);
     await waitFor(() => expect(visibleText()).toContain("3900"));
-    expect(container.querySelector("[data-not-current-mark]")).toBeNull();
+    expect(container.querySelector("[data-held-mark]")).toBeNull();
     dropTheLink(fixture);
     await waitFor(() =>
-      expect(container.querySelector("[data-not-current-mark]")).not.toBeNull(),
+      expect(container.querySelector("[data-held-mark]")).not.toBeNull(),
     );
     expect(visibleText()).not.toMatch(/last contact/i);
   });

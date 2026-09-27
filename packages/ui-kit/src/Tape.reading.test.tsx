@@ -72,8 +72,8 @@ describe("Tape, handed a Reading", () => {
     const { container } = render(
       <Tape {...AXIS} value={held(value("m", 420))} ariaLabel="AGL" />,
     );
-    expect(container.querySelector("[data-not-current]")).not.toBeNull();
-    expect(container.querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(container.querySelector("[data-held]")).not.toBeNull();
+    expect(container.querySelector("[data-held-mark]")).not.toBeNull();
   });
 
   it("says the currency on the rail's own accessible name", () => {

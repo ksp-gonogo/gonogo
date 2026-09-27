@@ -47,14 +47,14 @@ describe("DivergingBar, handed a Reading", () => {
     const { container } = render(
       <DivergingBar value={held(value("units/s", 4))} maxAbs={SCALE} />,
     );
-    expect(container.querySelector("[data-not-current]")).not.toBeNull();
+    expect(container.querySelector("[data-held]")).not.toBeNull();
   });
 
   it("carries no mark of its own, having no reader to carry it to", () => {
     const { container } = render(
       <DivergingBar value={held(value("units/s", 4))} maxAbs={SCALE} />,
     );
-    expect(container.querySelector("[data-not-current-mark]")).toBeNull();
+    expect(container.querySelector("[data-held-mark]")).toBeNull();
     expect(container.querySelectorAll("[data-bound]")).toHaveLength(0);
   });
 
@@ -62,7 +62,7 @@ describe("DivergingBar, handed a Reading", () => {
     const { container } = render(
       <DivergingBar value={held(value("units/s", -4))} maxAbs={SCALE} />,
     );
-    const fill = container.querySelector("[data-not-current] > :last-child");
+    const fill = container.querySelector("[data-held] > :last-child");
     expect(fill).not.toBeNull();
     expect(getComputedStyle(fill as Element).width).toBe("20%");
   });

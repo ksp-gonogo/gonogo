@@ -1,6 +1,6 @@
 /**
  * What an instrument draws when its figure is a reading rather than a bare
- * quantity: the not-current mark, the model's two bounds, and the sentence a
+ * quantity: the held mark, the model's two bounds, and the sentence a
  * screen reader hears.
  *
  * The vocabulary is `<Unit>`'s and `<Meter>`'s, in SVG: the dot is a tspan and
@@ -10,7 +10,7 @@ import type { ReactNode } from "react";
 import { severityDotColor } from "./status/severityDotColor";
 
 /**
- * The not-current mark, as an instrument can draw it.
+ * The held mark, as an instrument can draw it.
  *
  * A superscript tspan in the readout's warning hue; a shape that is present or
  * absent, so nothing rests on telling amber from grey. Silent to a screen
@@ -23,7 +23,7 @@ export function InstrumentHeldMark({ size }: { size: number }) {
       dy={-size * 0.55}
       fontSize={size}
       fill={severityDotColor("warning")}
-      data-not-current-mark=""
+      data-held-mark=""
     >
       {"●"}
     </tspan>

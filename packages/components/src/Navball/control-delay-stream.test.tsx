@@ -102,9 +102,7 @@ describe("Navball fly-by-wire delay warning", () => {
       expect(screen.getByText(/High signal delay/)).toBeInTheDocument(),
     );
     // The control: a current delay draws no held mark.
-    expect(container.querySelectorAll("[data-not-current-mark]")).toHaveLength(
-      0,
-    );
+    expect(container.querySelectorAll("[data-held-mark]")).toHaveLength(0);
 
     act(() => {
       fixture.store.setTransportConnected(false);
@@ -114,7 +112,7 @@ describe("Navball fly-by-wire delay warning", () => {
     // The header badge and the in-body warning each hand Countdown the delay reading, so both carry Unit's held mark.
     await waitFor(() =>
       expect(
-        container.querySelectorAll("[data-not-current-mark]").length,
+        container.querySelectorAll("[data-held-mark]").length,
       ).toBeGreaterThanOrEqual(2),
     );
     expect(screen.getByText(/High signal delay/)).toBeInTheDocument();

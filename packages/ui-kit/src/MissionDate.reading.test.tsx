@@ -45,20 +45,20 @@ describe("MissionDate, handed a Reading", () => {
 
   it("marks a held instant the way a Unit does", () => {
     const { container } = render(<MissionDate value={held(AT)} />);
-    expect(container.querySelector("[data-not-current]")).not.toBeNull();
-    expect(container.querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(container.querySelector("[data-held]")).not.toBeNull();
+    expect(container.querySelector("[data-held-mark]")).not.toBeNull();
   });
 
   it("says the grade and the last-valid instant on hover", () => {
     const { container } = render(<MissionDate value={held(AT)} />);
     expect(
-      container.querySelector("[data-not-current]")?.getAttribute("title"),
+      container.querySelector("[data-held]")?.getAttribute("title"),
     ).toMatch(/^STALE/);
   });
 
   it("adds no mark at all while the instant is a reading of now", () => {
     const { container } = render(<MissionDate value={observed(AT)} />);
-    expect(container.querySelector("[data-not-current-mark]")).toBeNull();
+    expect(container.querySelector("[data-held-mark]")).toBeNull();
   });
 
   it("keeps the clock qualifier working beside the mark", () => {
@@ -66,7 +66,7 @@ describe("MissionDate, handed a Reading", () => {
       <MissionDate value={held(AT)} context={{ frame: "scet" }} />,
     );
     expect(container.textContent).toContain("SCET");
-    expect(container.querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(container.querySelector("[data-held-mark]")).not.toBeNull();
   });
 
   it("has no axe violations with the mark drawn", async () => {
@@ -81,7 +81,7 @@ describe("MissionDate's held caption", () => {
   it("reaches the accessibility tree, not only the hover", () => {
     const { container } = render(<MissionDate value={held(AT)} />);
     const caption = container
-      .querySelector("[data-not-current]")
+      .querySelector("[data-held]")
       ?.getAttribute("title");
     expect(caption).toBeTruthy();
     expect(container.textContent).toContain(`, ${caption}`);

@@ -1,5 +1,5 @@
 /**
- * The browser half of `render-unit-currency.ts`: the not-current mark on
+ * The browser half of `render-unit-currency.ts`: the held mark on
  * `<Unit>`, drawn in the place it is actually at risk.
  *
  * `?sheet=<id>` picks one of {@link SHEETS}, so every PNG comes out of one
@@ -13,7 +13,7 @@
  * cannot see a reflow reports none, so the sheet plants one and shows the
  * ruler catching it.
  *
- * Nothing here reaches into `Unit`'s own markup beyond `[data-not-current]`,
+ * Nothing here reaches into `Unit`'s own markup beyond `[data-held]`,
  * which both treatments of this component have carried, so the same harness
  * renders the tree before this change and the tree after it.
  */

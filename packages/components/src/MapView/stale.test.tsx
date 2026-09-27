@@ -55,7 +55,7 @@ function emitPosition(fixture: ReturnType<typeof mount>["fixture"]) {
 function heldFigure(container: HTMLElement, text: string): Element | null {
   const shown = (el: Element) => el.textContent?.replace(/\s+/g, " ") ?? "";
   return (
-    [...container.querySelectorAll("[data-not-current]")].find((el) =>
+    [...container.querySelectorAll("[data-held]")].find((el) =>
       shown(el).includes(text),
     ) ?? null
   );
@@ -76,7 +76,7 @@ describe("MapView when the position is not current", () => {
     await waitFor(() => {
       expect(visibleText(container)).toContain("-0.10°");
     });
-    expect(container.querySelector("[data-not-current]")).toBeNull();
+    expect(container.querySelector("[data-held]")).toBeNull();
   });
 
   it("keeps the held coordinates, each marked with its spoken caption", async () => {
@@ -117,7 +117,7 @@ describe("MapView when the position is not current", () => {
     dropLink(fixture);
 
     await waitFor(() =>
-      expect(container.querySelector("[data-not-current]")).not.toBeNull(),
+      expect(container.querySelector("[data-held]")).not.toBeNull(),
     );
     expect(visibleText(container)).not.toContain("not current");
     expect(visibleText(container)).not.toContain("No position data");
@@ -129,6 +129,6 @@ describe("MapView when the position is not current", () => {
     await waitFor(() => {
       expect(visibleText(container)).toContain("Waiting for telemetry");
     });
-    expect(container.querySelector("[data-not-current]")).toBeNull();
+    expect(container.querySelector("[data-held]")).toBeNull();
   });
 });

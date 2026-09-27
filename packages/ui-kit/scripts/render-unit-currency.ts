@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Render the not-current mark on `<Unit>`, and MEASURE what it costs a table.
+ * Render the held mark on `<Unit>`, and MEASURE what it costs a table.
  *
  * Run: `pnpm --filter @ksp-gonogo/ui-kit render:unit-currency [--out <dir>] [--tag before|after]`
  * Default output: local_docs/renders/unit-currency

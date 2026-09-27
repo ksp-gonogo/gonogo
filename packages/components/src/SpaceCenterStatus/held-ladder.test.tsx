@@ -110,7 +110,7 @@ function leaveTheSpaceCentre(fixture: ReturnType<typeof mount>): void {
 /** Tier figures the kit marks as no longer a reading of now. */
 function heldTiers(): Element[] {
   return Array.from(
-    document.querySelectorAll('[aria-label*=" tier "] [data-not-current]'),
+    document.querySelectorAll('[aria-label*=" tier "] [data-held]'),
   );
 }
 

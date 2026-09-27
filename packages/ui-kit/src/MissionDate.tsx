@@ -1,7 +1,7 @@
 import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
 import { formatKspDate } from "./formatKspDate";
-import { NotCurrentHost, NotCurrentMark } from "./NotCurrentMark";
+import { HeldHost, HeldMark } from "./HeldMark";
 import { resolveCurrency } from "./readingCurrency";
 import { VisuallyHidden } from "./VisuallyHidden";
 
@@ -102,21 +102,21 @@ export interface MissionDateProps {
 export function MissionDate({ value, context }: MissionDateProps) {
   // A stale instant stays true, so a held reading adds only the mark, its grade and its last-valid instant.
   const carried = typeof value === "number" ? undefined : value;
-  const { shown, notCurrent, caption } = resolveCurrency(carried);
+  const { shown, held, caption } = resolveCurrency(carried);
   const ut = typeof value === "number" ? value : shown?.magnitude;
   const qualifier = context && describeContext(context);
   const date = formatKspDate(ut ?? Number.NaN);
   return (
     <>
-      {notCurrent ? (
+      {held ? (
         /* The component otherwise renders bare text, so the mark needs a box to hang off. */
-        <NotCurrentHost data-not-current="" title={caption ?? undefined}>
+        <HeldHost data-held="" title={caption ?? undefined}>
           {date}
-          <NotCurrentMark aria-hidden="true" data-not-current-mark="" />
+          <HeldMark aria-hidden="true" data-held-mark="" />
           {caption !== null && (
             <VisuallyHidden data-unit-currency="">, {caption}</VisuallyHidden>
           )}
-        </NotCurrentHost>
+        </HeldHost>
       ) : (
         date
       )}

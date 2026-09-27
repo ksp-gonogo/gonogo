@@ -9,8 +9,8 @@ import {
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import { bandClaim } from "./bandClaim";
+import { HeldMark } from "./HeldMark";
 import { MicroscopeIcon, StarIcon } from "./Icons";
-import { NotCurrentMark } from "./NotCurrentMark";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
 import { severityDotColor } from "./status/severityDotColor";
 import { useInSharedFormat, useSharedFormat } from "./UnitSharedFormat";
@@ -55,9 +55,9 @@ const Unit__Span = styled.span<{ $attached: boolean; $icon: boolean }>`
 `;
 
 // Relatively positioned when it carries a mark, so the out-of-flow dot hangs off the value's own box and never reflows a column.
-const Unit__Quantity = styled.span<{ $notCurrent: boolean }>`
+const Unit__Quantity = styled.span<{ $held: boolean }>`
   white-space: nowrap;
-  ${({ $notCurrent }) => ($notCurrent ? "position: relative;" : "")}
+  ${({ $held }) => ($held ? "position: relative;" : "")}
 `;
 
 // Dimmer than the value but never smaller: a qualifier must recede without becoming unreadable.
@@ -258,7 +258,7 @@ export function Unit<U extends string = string>({
   hideUnitInGroup,
   ...opts
 }: UnitProps<U>) {
-  const { shown, notCurrent, caption, band } = resolveCurrency(value);
+  const { shown, held, caption, band } = resolveCurrency(value);
   /*
    * Reports to an enclosing `<UnitSharedFormat>` and returns the format the group settled on; inert with no scope above it.
    * A stale member reports as a live one does, so a column's rung does not move when one cell stops updating.
@@ -278,14 +278,14 @@ export function Unit<U extends string = string>({
     const formatted = formatQuantity(shown?.magnitude, shown?.unit, resolved);
     // Narrowed to the shown value's unit, never assumed: a band arrives keyed by a runtime path, and `bandIn` answers nothing rather than converting.
     const interval =
-      shown == null || band === null || !notCurrent
+      shown == null || band === null || !held
         ? null
         : toInterval(shown, bandIn(band, shown.unit), resolved, formatted.rung);
     return (
       <Unit__Quantity
         className={className}
-        $notCurrent={notCurrent}
-        data-not-current={notCurrent ? "" : undefined}
+        $held={held}
+        data-held={held ? "" : undefined}
         // The hover says in words what the dot says in shape, plus the instant and the band's claim; the symbol keeps its own title.
         title={hover(caption, interval) ?? undefined}
       >
@@ -312,9 +312,7 @@ export function Unit<U extends string = string>({
           </Unit__Interval>
         )}
         {/* Silent: the caption below is what gets spoken, and the shape alone carries the meaning (WCAG 1.4.1). */}
-        {notCurrent && (
-          <NotCurrentMark aria-hidden="true" data-not-current-mark="" />
-        )}
+        {held && <HeldMark aria-hidden="true" data-held-mark="" />}
         {caption !== null && (
           <Unit__Currency data-unit-currency="">, {caption}</Unit__Currency>
         )}

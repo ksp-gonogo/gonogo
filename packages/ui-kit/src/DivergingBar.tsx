@@ -36,7 +36,7 @@ export function DivergingBar<U extends string = string>({
   maxAbs,
   className,
 }: DivergingBarProps<U>) {
-  const { shown, notCurrent } = resolveCurrency(value);
+  const { shown, held } = resolveCurrency(value);
   // `dividedBy` checks the two are the same kind, so the quotient is dimensionless before it becomes a CSS width.
   const pct =
     shown != null && maxAbs.isPositive()
@@ -46,7 +46,7 @@ export function DivergingBar<U extends string = string>({
     <DivergingBar__Track
       aria-hidden="true"
       data-testid="diverging-bar"
-      data-not-current={notCurrent ? "" : undefined}
+      data-held={held ? "" : undefined}
       className={className}
     >
       <DivergingBar__Zero />
@@ -54,7 +54,7 @@ export function DivergingBar<U extends string = string>({
       {shown != null && (
         <DivergingBar__Fill
           $positive={!shown.isNegative()}
-          $notCurrent={notCurrent}
+          $held={held}
           style={{ width: `${pct}%` }}
         />
       )}
@@ -91,14 +91,14 @@ const DivergingBar__Zero = styled.div`
 
 const DivergingBar__Fill = styled.div<{
   $positive: boolean;
-  $notCurrent: boolean;
+  $held: boolean;
 }>`
   position: absolute;
   top: 0;
   bottom: 0;
   border-radius: var(--radius-pill);
   /* Faint rather than a second hue: the fill's colour already carries the direction. */
-  ${({ $notCurrent }) => ($notCurrent ? "opacity: 0.45;" : "")}
+  ${({ $held }) => ($held ? "opacity: 0.45;" : "")}
   ${({ $positive }) =>
     $positive
       ? css`

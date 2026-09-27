@@ -221,7 +221,7 @@ describe("CareerEconomy", () => {
 
     // Every figure drawn: two balances, four rates, the range's other end, the net and seven upkeep sources.
     await waitFor(() => {
-      expect(container.querySelectorAll("[data-not-current]").length).toBe(15);
+      expect(container.querySelectorAll("[data-held]").length).toBe(15);
     });
     expect(screen.getByText("289,848")).toBeInTheDocument();
     expect(screen.getByText("259.8")).toBeInTheDocument();

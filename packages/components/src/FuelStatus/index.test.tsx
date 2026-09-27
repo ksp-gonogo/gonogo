@@ -148,7 +148,7 @@ describe("FuelStatusComponent", () => {
       ]);
     });
     const live = await screen.findByRole("meter", { name: "RCS · vessel" });
-    expect(live.querySelector("[data-fill-not-current]")).toBeNull();
+    expect(live.querySelector("[data-fill-held]")).toBeNull();
 
     act(() => {
       fixture.store.setTransportConnected(false);
@@ -158,7 +158,7 @@ describe("FuelStatusComponent", () => {
     for (const name of ["RCS · vessel", "Liquid Fuel · stage"]) {
       const held = screen.getByRole("meter", { name });
       expect(held).toHaveAttribute("aria-valuenow", "50");
-      expect(held.querySelector("[data-fill-not-current]")).not.toBeNull();
+      expect(held.querySelector("[data-fill-held]")).not.toBeNull();
     }
     await act(async () => {});
   });
@@ -177,7 +177,7 @@ describe("FuelStatusComponent", () => {
     });
     const live = await screen.findByRole("meter", { name: "S0" });
     expect(live).toHaveAttribute("aria-valuenow", "50");
-    expect(live.querySelector("[data-fill-not-current]")).toBeNull();
+    expect(live.querySelector("[data-fill-held]")).toBeNull();
 
     act(() => {
       fixture.store.setTransportConnected(false);
@@ -186,7 +186,7 @@ describe("FuelStatusComponent", () => {
 
     for (const name of ["▶ S1", "S0"]) {
       const held = screen.getByRole("meter", { name });
-      expect(held.querySelector("[data-fill-not-current]")).not.toBeNull();
+      expect(held.querySelector("[data-fill-held]")).not.toBeNull();
     }
     expect(screen.getByRole("meter", { name: "S0" })).toHaveAttribute(
       "aria-valuenow",

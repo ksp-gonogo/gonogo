@@ -10,7 +10,7 @@ describe("resolveCurrency", () => {
       asOfUt: value("ut", 1_000),
       grade: "held-stale",
     });
-    expect(resolved.notCurrent).toBe(false);
+    expect(resolved.held).toBe(false);
     expect(resolved.caption).toBeNull();
   });
 
@@ -22,7 +22,7 @@ describe("resolveCurrency", () => {
       asOfUt: value("ut", 1_000),
       grade: "held-stale",
     });
-    expect(resolved.notCurrent).toBe(true);
+    expect(resolved.held).toBe(true);
     expect(resolved.caption).toMatch(/^STALE/);
   });
 });
@@ -50,7 +50,7 @@ describe("resolveCurrency for a consumer that draws the reckoning", () => {
       drawsReckoning,
     );
     expect(resolved.shown).toEqual(value("m", 20));
-    expect(resolved.notCurrent).toBe(true);
+    expect(resolved.held).toBe(true);
     expect(resolved.caption).toBe("modelled to SCET");
   });
 
@@ -65,7 +65,7 @@ describe("resolveCurrency for a consumer that draws the reckoning", () => {
       drawsReckoning,
     );
     expect(resolved.shown).toEqual(value("m", 20));
-    expect(resolved.notCurrent).toBe(false);
+    expect(resolved.held).toBe(false);
   });
 
   it("draws the model's figure on a held reading, under the held mark", () => {
@@ -89,7 +89,7 @@ describe("resolveCurrency for a consumer that draws the reckoning", () => {
       drawsReckoning,
     );
     expect(resolved.shown).toBeNull();
-    expect(resolved.notCurrent).toBe(false);
+    expect(resolved.held).toBe(false);
   });
 
   it("leaves a consumer drawing the observation exactly as it was", () => {
@@ -100,6 +100,6 @@ describe("resolveCurrency for a consumer that draws the reckoning", () => {
       reckoning: modelled(true),
     });
     expect(resolved.shown).toEqual(value("m", 12));
-    expect(resolved.notCurrent).toBe(false);
+    expect(resolved.held).toBe(false);
   });
 });

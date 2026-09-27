@@ -122,11 +122,11 @@ describe("PowerSystems when vessel.parts is no longer current", () => {
       fixture.emit("vessel.parts", VESSEL_PARTS_WIRE);
     });
     await waitFor(() => expect(visibleText(container)).toContain("-6.00"));
-    expect(container.querySelectorAll("[data-not-current]")).toHaveLength(0);
+    expect(container.querySelectorAll("[data-held]")).toHaveLength(0);
 
     goStale(fixture);
 
-    const marks = container.querySelectorAll("[data-not-current]");
+    const marks = container.querySelectorAll("[data-held]");
     // One per breakdown row that reports an efficiency: the producer and the consumer, each drawn from the read that stopped.
     expect(marks.length).toBeGreaterThan(0);
     for (const mark of marks) {

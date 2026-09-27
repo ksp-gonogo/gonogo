@@ -108,7 +108,7 @@ export function Gauge<U extends string = string>({
   trackColor = "var(--color-border-subtle)",
   ariaLabel,
 }: Readonly<GaugeProps<U>>) {
-  const { shown, notCurrent, caption, band } = resolveCurrency(value);
+  const { shown, held, caption, band } = resolveCurrency(value);
 
   // The axis, unwrapped once into SVG coordinates; every figure a reader sees goes back out through the unit layer.
   const v = shown?.magnitude ?? Number.NaN;
@@ -193,7 +193,7 @@ export function Gauge<U extends string = string>({
       // With `max-width: 100%`, the viewBox lets the SVG scale down to a slot narrower than `width` instead of being clipped.
       viewBox={`0 0 ${width} ${height}`}
       {...semantics}
-      data-not-current={notCurrent ? "" : undefined}
+      data-held={held ? "" : undefined}
       style={{
         display: "block",
         fontFamily: "var(--font-family-mono)",
@@ -271,7 +271,7 @@ export function Gauge<U extends string = string>({
           fill="var(--color-text-primary)"
         >
           {centreLabel}
-          {notCurrent && <InstrumentHeldMark size={7} />}
+          {held && <InstrumentHeldMark size={7} />}
         </text>
       )}
     </svg>

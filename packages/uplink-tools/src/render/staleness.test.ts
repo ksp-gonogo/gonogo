@@ -11,7 +11,7 @@ import {
 
 const figure = (n: number) => `<span class="v"> ${n}`;
 const held = (n: number) =>
-  `<span class="v" data-not-current="" title="OFFLINE"> ${n}`;
+  `<span class="v" data-held="" title="OFFLINE"> ${n}`;
 const wrapper = (cls: string) => `<div class="${cls}"> `;
 
 describe("multisetMinus", () => {

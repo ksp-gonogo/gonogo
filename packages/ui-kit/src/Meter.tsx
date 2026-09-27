@@ -12,9 +12,9 @@ import {
 } from "react";
 import styled, { css } from "styled-components";
 import { bandClaim } from "./bandClaim";
+import { HeldHost, HeldMark } from "./HeldMark";
 import { boundsStandApart } from "./instrumentCurrency";
 import { magnitudeOr } from "./magnitude";
-import { NotCurrentHost, NotCurrentMark } from "./NotCurrentMark";
 import { NullValue } from "./NullValue";
 import { resolveCurrency, type UnitValue } from "./readingCurrency";
 import type { StatTone } from "./statTone";
@@ -158,7 +158,7 @@ export function Meter<U extends string = string>({
         {...rest}
       >
         {/* Decorative: the label and placeholder are the whole accessible content. */}
-        <Meter__Track $notCurrent={false} aria-hidden="true" />
+        <Meter__Track $held={false} aria-hidden="true" />
       </MeterFrame>
     );
   }
@@ -170,8 +170,8 @@ export function Meter<U extends string = string>({
     tone,
     fillColor,
     // A stale capacity marks the track: the axis aged, not the reading on it.
-    trackNotCurrent: held.reading?.state === "stale",
-    notCurrent: shown.reading?.state === "stale",
+    trackHeld: held.reading?.state === "stale",
+    fillHeld: shown.reading?.state === "stale",
     ...rest,
   };
   const endBounds = apartFrom(
@@ -233,8 +233,8 @@ export function Meter<U extends string = string>({
 function heldCaption<U extends string>(
   input: UnitValue<U> | null | undefined,
 ): string | null {
-  const { notCurrent, caption } = resolveCurrency(input ?? null);
-  return notCurrent ? caption : null;
+  const { held, caption } = resolveCurrency(input ?? null);
+  return held ? caption : null;
 }
 
 /** A caller's own words for the figure, with the held reading's words after them. */
@@ -257,11 +257,11 @@ function HeldLabel({
 }) {
   if (caption === null) return <>{children}</>;
   return (
-    <NotCurrentHost title={caption}>
+    <HeldHost title={caption}>
       {children}
-      <NotCurrentMark aria-hidden="true" data-not-current-mark="" />
+      <HeldMark aria-hidden="true" data-held-mark="" />
       <VisuallyHidden data-unit-currency="">, {caption}</VisuallyHidden>
-    </NotCurrentHost>
+    </HeldHost>
   );
 }
 
@@ -411,12 +411,12 @@ interface MeterBarProps
   tone: StatTone;
   fillColor?: string;
   /** Whether the AXIS has stopped being current. See `Meter__Track`. */
-  trackNotCurrent: boolean;
+  trackHeld: boolean;
   /**
    * Whether the figure has stopped being current: one treatment for the whole
    * meter rather than a mark per entry.
    */
-  notCurrent: boolean;
+  fillHeld: boolean;
   /** The value for the eye, as markup. */
   display: ReactNode;
   /** The same value for the ear, as the string an attribute can hold. */
@@ -437,8 +437,8 @@ function MeterBar({
   pct,
   tone,
   fillColor,
-  trackNotCurrent,
-  notCurrent,
+  trackHeld,
+  fillHeld,
   display,
   spoken,
   bounds,
@@ -448,8 +448,8 @@ function MeterBar({
   return (
     <MeterFrame layout={layout} label={label} display={display} {...rest}>
       <Meter__Track
-        $notCurrent={trackNotCurrent}
-        data-track-not-current={trackNotCurrent ? "" : undefined}
+        $held={trackHeld}
+        data-track-held={trackHeld ? "" : undefined}
         role="meter"
         aria-label={label}
         aria-valuenow={pct}
@@ -460,8 +460,8 @@ function MeterBar({
         <Meter__Fill
           $tone={tone}
           $fillColor={fillColor}
-          $notCurrent={notCurrent}
-          data-fill-not-current={notCurrent ? "" : undefined}
+          $held={fillHeld}
+          data-fill-held={fillHeld ? "" : undefined}
           style={{ width: `${pct}%` }}
         />
       </Meter__Track>
@@ -561,7 +561,7 @@ function MeterPairBar<U extends string = string>({
   const shared = fromValue ?? fromCapacity ?? {};
   /*
    * A row writes the symbol once, after the capacity (`960 / 1,000 units`), and
-   * the pair carries one not-current mark at its end. Which half aged is still
+   * the pair carries one held mark at its end. Which half aged is still
    * drawn on the bar.
    */
   const caption = heldCaption(value) ?? heldCaption(capacity);
@@ -574,8 +574,8 @@ function MeterPairBar<U extends string = string>({
         <Unit value={value} hideUnitInGroup />
         {" / "}
         <Unit value={capacity} />
-        {(bar.notCurrent || bar.trackNotCurrent) && (
-          <NotCurrentMark aria-hidden="true" data-not-current-mark="" />
+        {(bar.fillHeld || bar.trackHeld) && (
+          <HeldMark aria-hidden="true" data-held-mark="" />
         )}
       </Meter__Pair>
     ) : (
@@ -867,19 +867,19 @@ const Meter__Value = styled.span<{ $row: boolean }>`
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* Room for the not-current mark Unit draws outside this box, reserved unconditionally so a quiet channel causes no reflow. */
+  /* Room for the held mark Unit draws outside this box, reserved unconditionally so a quiet channel causes no reflow. */
   padding-right: max(0.44em, var(--inset-meter-mark));
 `;
 
 /* The bar's axis, dashed where the capacity has stopped being current: colour already means the fill's status. */
 /* A held capacity dashes the track's edge in the held mark's hue, which clears 3:1 against the panel where the subtle border does not. */
-const Meter__Track = styled.div<{ $notCurrent: boolean }>`
+const Meter__Track = styled.div<{ $held: boolean }>`
   width: 100%;
   border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
   border: 1px
-    ${({ $notCurrent }) =>
-      $notCurrent
+    ${({ $held }) =>
+      $held
         ? `dashed ${severityDotColor("warning")}`
         : "solid var(--color-border-subtle)"};
   overflow: hidden;
@@ -907,9 +907,9 @@ const Meter__Bar = styled.div<{ $row: boolean }>`
       : ""}
 `;
 
-/* One nowrap box for the row form's pair, so its single not-current mark hangs off the end of the phrase. */
-const Meter__Pair = styled(NotCurrentHost)`
-  & > span > [data-not-current-mark] {
+/* One nowrap box for the row form's pair, so its single held mark hangs off the end of the phrase. */
+const Meter__Pair = styled(HeldHost)`
+  & > span > [data-held-mark] {
     display: none;
   }
 `;
@@ -936,13 +936,13 @@ const Meter__Bound = styled.div`
 const Meter__Fill = styled.div<{
   $tone: StatTone;
   $fillColor?: string;
-  $notCurrent: boolean;
+  $held: boolean;
 }>`
   height: 100%;
   border-radius: var(--radius-pill);
   transition: width var(--duration-slow) var(--ease-standard);
   /* A held reading dims the fill, not the hue and not the whole meter, so the label and figure stay readable. */
-  ${({ $notCurrent }) => ($notCurrent ? "opacity: 0.55;" : "")}
+  ${({ $held }) => ($held ? "opacity: 0.55;" : "")}
   /* $fillColor is an arbitrary CSS colour and wins outright over the tone fill. */
   ${({ $tone, $fillColor }) =>
     $fillColor

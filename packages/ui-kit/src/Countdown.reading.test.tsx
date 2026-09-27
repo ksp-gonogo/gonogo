@@ -76,9 +76,7 @@ describe("Countdown, handed a Reading", () => {
 
   it("marks a held reading, whether it froze or advanced", () => {
     const held = render(<Countdown value={frozen(value("s", 90))} />);
-    expect(
-      held.container.querySelector("[data-not-current-mark]"),
-    ).not.toBeNull();
+    expect(held.container.querySelector("[data-held-mark]")).not.toBeNull();
 
     const carried = render(
       <Countdown
@@ -90,9 +88,7 @@ describe("Countdown, handed a Reading", () => {
         }}
       />,
     );
-    expect(
-      carried.container.querySelector("[data-not-current-mark]"),
-    ).not.toBeNull();
+    expect(carried.container.querySelector("[data-held-mark]")).not.toBeNull();
     // Still the model's number: staleness marks it, it does not freeze it.
     expect(carried.container.textContent).toContain("42");
   });
@@ -101,7 +97,7 @@ describe("Countdown, handed a Reading", () => {
     const { container } = render(
       <Countdown value={reckoned(value("s", 90), value("s", 42))} />,
     );
-    expect(container.querySelector("[data-not-current-mark]")).toBeNull();
+    expect(container.querySelector("[data-held-mark]")).toBeNull();
   });
 
   it("keeps the clock prefix and the sub-second rung working", () => {
@@ -143,9 +139,9 @@ describe("Countdown under signal delay", () => {
       <Countdown value={carriedToScet(value("s", 90), value("s", 42))} />,
     );
     expect(container.textContent).toContain("42s");
-    const host = container.querySelector("[data-not-current]");
+    const host = container.querySelector("[data-held]");
     expect(host).not.toBeNull();
-    expect(host?.querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(host?.querySelector("[data-held-mark]")).not.toBeNull();
     expect(host?.getAttribute("title")).toBeTruthy();
   });
 
@@ -172,7 +168,7 @@ describe("Countdown under signal delay", () => {
 describe("Countdown's held caption", () => {
   it("reaches the accessibility tree, not only the hover", () => {
     const { container } = render(<Countdown value={frozen(value("s", 90))} />);
-    const host = container.querySelector("[data-not-current]");
+    const host = container.querySelector("[data-held]");
     const caption = host?.getAttribute("title");
     expect(caption).toBeTruthy();
     expect(container.textContent).toContain(`, ${caption}`);

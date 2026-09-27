@@ -156,7 +156,7 @@ describe("DeployedScience: a progress held over a dropped link", () => {
     const meter = await screen.findByRole("meter", { name: "Seismometer" });
     const root = () => meter.parentElement?.parentElement;
     // The control: a current roster is not marked.
-    expect(root()?.querySelector("[data-fill-not-current]")).toBeNull();
+    expect(root()?.querySelector("[data-fill-held]")).toBeNull();
 
     // Drop the link, then run a frame: nothing else re-derives the readings.
     act(() => {
@@ -165,10 +165,10 @@ describe("DeployedScience: a progress held over a dropped link", () => {
     });
 
     await waitFor(() =>
-      expect(root()?.querySelector("[data-fill-not-current]")).not.toBeNull(),
+      expect(root()?.querySelector("[data-fill-held]")).not.toBeNull(),
     );
     expect(meter).toHaveAttribute("aria-valuenow", "50");
-    expect(root()?.querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(root()?.querySelector("[data-held-mark]")).not.toBeNull();
   });
 });
 

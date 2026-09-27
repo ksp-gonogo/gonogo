@@ -56,7 +56,7 @@ function quantity(container: HTMLElement): HTMLElement {
 
 /** Just the rules emitted for the mark, since any other component on the page may contain a hex. */
 function markRule(container: HTMLElement): string {
-  const mark = container.querySelector<HTMLElement>("[data-not-current-mark]");
+  const mark = container.querySelector<HTMLElement>("[data-held-mark]");
   if (!mark) throw new Error("no mark rendered");
   const css = emittedCss();
   return Array.from(mark.classList)
@@ -71,7 +71,7 @@ describe("Unit: a reading that is current", () => {
     );
     const { container: fromValue } = render(<Unit value={metres(12_400)} />);
     expect(visibleText(fromReading)).toBe(visibleText(fromValue));
-    expect(quantity(fromReading).hasAttribute("data-not-current")).toBe(false);
+    expect(quantity(fromReading).hasAttribute("data-held")).toBe(false);
   });
 
   it("says nothing extra about a current reading", () => {
@@ -97,7 +97,7 @@ describe("Unit: a reading that is current", () => {
     };
     const { container } = render(<Unit value={withModel} />);
     expect(visibleText(container)).toBe("12.4 km");
-    expect(quantity(container).hasAttribute("data-not-current")).toBe(false);
+    expect(quantity(container).hasAttribute("data-held")).toBe(false);
   });
 });
 
@@ -124,7 +124,7 @@ describe("Unit: a reading with no number", () => {
       />,
     );
     expect(visibleText(container)).toBe(NULL_DISPLAY);
-    expect(quantity(container).hasAttribute("data-not-current")).toBe(false);
+    expect(quantity(container).hasAttribute("data-held")).toBe(false);
   });
 
   it("does not fall through to the bare-symbol form", () => {
@@ -148,12 +148,12 @@ describe("Unit: a reading that is not current", () => {
     // Still the best number available, so it is drawn and not withheld.
     const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
     expect(visibleText(container)).toBe("12.4 km");
-    expect(quantity(container).hasAttribute("data-not-current")).toBe(true);
+    expect(quantity(container).hasAttribute("data-held")).toBe(true);
   });
 
   it("marks with a superscript dot, and draws no underline under the value", () => {
     const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
-    expect(container.querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(container.querySelector("[data-held-mark]")).not.toBeNull();
     const css = emittedCss();
     expect(css).not.toContain("text-decoration-style:dotted");
     expect(css).toContain("border-radius:var(--radius-circle)");
@@ -301,13 +301,13 @@ describe("Unit: the staleness slot is announced", () => {
   it("carries the meaning without the hue, and draws no dot on a current one", () => {
     // WCAG 1.4.1: the mark is a shape, silent itself, with the meaning said in words by the hover and caption.
     const { container } = render(<Unit value={stale(12_400, "held-stale")} />);
-    const dot = container.querySelector<HTMLElement>("[data-not-current-mark]");
+    const dot = container.querySelector<HTMLElement>("[data-held-mark]");
     expect(dot?.getAttribute("aria-hidden")).toBe("true");
     expect(dot?.textContent).toBe("");
     expect(quantity(container).getAttribute("title")).toContain("STALE");
 
     const { container: live } = render(<Unit value={observed(12_400)} />);
-    expect(live.querySelector("[data-not-current-mark]")).toBeNull();
+    expect(live.querySelector("[data-held-mark]")).toBeNull();
   });
 
   it("raises no a11y violation on either treatment", async () => {

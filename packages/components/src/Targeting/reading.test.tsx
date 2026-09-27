@@ -110,7 +110,7 @@ describe("Targeting: stale renders the last observation as an observation", () =
     });
     await waitFor(() => expect(visibleText()).toContain("10.0 km"));
     // While current there is no mark: delay is not staleness.
-    expect(document.querySelector("[data-not-current]")).toBeNull();
+    expect(document.querySelector("[data-held]")).toBeNull();
 
     act(() => {
       fixture.store.setTransportConnected(false);
@@ -118,13 +118,13 @@ describe("Targeting: stale renders the last observation as an observation", () =
     });
 
     await waitFor(() =>
-      expect(document.querySelector("[data-not-current]")).not.toBeNull(),
+      expect(document.querySelector("[data-held]")).not.toBeNull(),
     );
     expect(visibleText()).not.toMatch(/last contact/i);
     // The last real value stays reachable on the same reading.
     expect(visibleText()).toContain("10.0 km");
     // The mark is on each derived FIGURE, asserted by which carry one, since a count would pass with one reverted.
-    const marked = [...document.querySelectorAll("[data-not-current]")].map(
+    const marked = [...document.querySelectorAll("[data-held]")].map(
       // Whitespace normalised: `Unit` uses a thin space.
       (el) => (el.textContent ?? "").replace(/\s+/g, " "),
     );
@@ -153,7 +153,7 @@ describe("Targeting: stale renders the last observation as an observation", () =
       fixture.store.beginFrame();
     });
     await waitFor(() =>
-      expect(document.querySelector("[data-not-current]")).not.toBeNull(),
+      expect(document.querySelector("[data-held]")).not.toBeNull(),
     );
 
     // No model is registered for the topic, so no reckoned row: presence of the row is the statement of trust.
@@ -203,7 +203,7 @@ describe("Targeting: stale renders the last observation as an observation", () =
     expect(visibleText()).toContain("10.0 km");
     expect(visibleText()).toContain("12.0 km");
     expect(visibleText()).toContain("linear-dead-reckoning");
-    expect(document.querySelector("[data-not-current]")).not.toBeNull();
+    expect(document.querySelector("[data-held]")).not.toBeNull();
 
     teardownMockDataSource(legacyAux);
   });
@@ -266,7 +266,7 @@ describe("Targeting: stale renders the last observation as an observation", () =
         }),
       ).toBeNull(),
     );
-    expect(document.querySelector("[data-not-current]")).not.toBeNull();
+    expect(document.querySelector("[data-held]")).not.toBeNull();
 
     teardownMockDataSource(legacyAux);
   });
