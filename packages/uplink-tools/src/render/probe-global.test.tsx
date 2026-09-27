@@ -2,8 +2,9 @@
 import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { Dial, Gauge, Tape, Unit } from "@ksp-gonogo/ui-kit";
+import { useId } from "react";
 import { describe, expect, it } from "vitest";
-import { announcesHeld } from "./probe-global";
+import { announcesHeld, describeElements } from "./probe-global";
 
 const HELD: Reading<Value<"rpm">> = {
   state: "stale",
@@ -53,5 +54,63 @@ describe("announcesHeld, on what the kit draws", () => {
       <Gauge value={value("rpm", 240)} {...SCALE} width={160} height={90} />,
     );
     expect(container.querySelector("[data-currency-in-name]")).toBeNull();
+  });
+});
+
+/** An SVG clip keyed on a useId with its colons stripped, which `url(#...)` needs. */
+function ClippedDial({ label }: { label?: string }) {
+  const clipId = `dial-clip-${useId().replace(/:/g, "")}`;
+  return (
+    <svg role="img" aria-label={label ?? "Dial"} data-part="r1">
+      <clipPath id={clipId}>
+        <circle r={10} />
+      </clipPath>
+      <g
+        clipPath={`url(#${clipId})`}
+        aria-labelledby={`${clipId} dial-caption`}
+      />
+      <text id="dial-caption">r1</text>
+    </svg>
+  );
+}
+
+describe("describeElements, across two renders of one state", () => {
+  it("folds a colon-stripped useId in an id and in every reference to it", () => {
+    const first = describeElements(render(<ClippedDial />).container);
+    const second = describeElements(render(<ClippedDial />).container);
+    expect(second).toEqual(first);
+  });
+
+  it("keeps a genuine difference, and a lookalike outside an id position", () => {
+    const plain = describeElements(render(<ClippedDial />).container);
+    const renamed = describeElements(
+      render(<ClippedDial label="Rotor" />).container,
+    );
+    expect(renamed).not.toEqual(plain);
+    expect(plain.join("\n")).toContain('data-part="r1"');
+    expect(plain.join("\n")).toContain("> r1");
+  });
+});
+
+describe("describeElements, on a library's per-instance class token", () => {
+  const terminal = (owner: number, extra = "") =>
+    describeElements(
+      render(
+        <div
+          className={`terminal xterm xterm-dom-renderer-owner-${owner}${extra}`}
+        >
+          $
+        </div>,
+      ).container,
+    );
+
+  it("folds xterm's renderer owner counter", () => {
+    expect(terminal(3)).toEqual(terminal(1));
+  });
+
+  it("compares a numbered class no library is listed for as written", () => {
+    expect(terminal(1, " chart-owner-1")).not.toEqual(
+      terminal(1, " chart-owner-3"),
+    );
   });
 });

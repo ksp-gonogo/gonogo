@@ -30,7 +30,12 @@ import {
   type ShapeCapture,
   settleAnimations,
 } from "./shape";
-import { judgeStaleness, type StalenessVerdict } from "./staleness";
+import {
+  judgeStaleness,
+  mountForStaleness,
+  type StalenessStage,
+  type StalenessVerdict,
+} from "./staleness";
 
 /**
  * The Playwright half: one browser, one page, every scene.
@@ -369,13 +374,11 @@ async function renderOneScene(
   }
   for (const [index, mode] of scene.modes.entries()) {
     const fed = await mount(tab, payloadFor(scene, mode, false));
-    if (index === 0) {
-      assertFedRenderMeansSomething(scene, fed, starved);
-      if (staleness) assertRendersRepeat(scene, staleness.control, fed);
-    }
+    if (index === 0) assertFedRenderMeansSomething(scene, fed, starved);
+    const control = index === 0 ? staleness?.control : undefined;
 
     if (scene.steps && scene.steps.length > 0 && index === 0) {
-      await captureMotion(tab, scene, mode, opts, assets);
+      await captureMotion(tab, scene, mode, opts, assets, control);
       assertEveryEmitLanded(scene, await refeed(tab));
       continue;
     }
@@ -388,6 +391,7 @@ async function renderOneScene(
     // value on subscribe and this is where the harness does the same. What is
     // still unread once the presses have run is the real finding.
     assertEveryEmitLanded(scene, await refeed(tab));
+    if (control) assertRendersRepeat(scene, control, await readScene(tab));
     // Read BEFORE the grow, which writes a measured height into `#root`'s inline
     // style and lets every ResizeObserver in the tree settle against it. The
     // shape is meant to be the same on any machine, and the state after that
@@ -546,6 +550,13 @@ function refeed(tab: Page): Promise<UnreadTopics> {
   );
 }
 
+function readScene(tab: Page): Promise<SceneReport> {
+  return tab.evaluate(
+    (key) => globalThis[key as typeof RENDER_PROBE_GLOBAL].readScene(),
+    RENDER_PROBE_GLOBAL,
+  );
+}
+
 /**
  * Every string `_scene.paints` names is on screen and READABLE.
  *
@@ -635,10 +646,15 @@ async function assertEveryPaintVisible(
  * from under a scene should fail here rather than quietly photograph the state
  * before the press.
  */
-async function performActs(tab: Page, scene: Scene): Promise<void> {
+async function performActs(
+  tab: Page,
+  scene: Scene,
+  missing: "throw" | "skip" = "throw",
+): Promise<void> {
   const performAct = async (act: SceneAct): Promise<void> => {
     if (act.press !== undefined) {
       const control = await pressable(tab, act.press);
+      if (control === null && missing === "skip") return;
       if (control === null) {
         throw new Error(
           `${scene.name}: "_scene.before" presses "${act.press}", which is ` +
@@ -654,6 +670,7 @@ async function performActs(tab: Page, scene: Scene): Promise<void> {
       const target = tab.locator(act.hover).first();
       await target.scrollIntoViewIfNeeded().catch(() => {});
       const box = await target.boundingBox().catch(() => null);
+      if (box === null && missing === "skip") return;
       if (box === null) {
         throw new Error(
           `${scene.name}: "_scene.before" hovers "${act.hover}", which matched ` +
@@ -968,11 +985,27 @@ function mountAs(
   stopsArriving: boolean,
   withhold?: SceneTarget,
 ): Promise<SceneReport> {
-  return mount(tab, {
+  return mountForStaleness(stalenessStage(tab), scene, {
     ...payloadFor(scene, mode, false),
     stopsArriving,
     withhold,
   });
+}
+
+function stalenessStage(tab: Page): StalenessStage {
+  return {
+    mount: (payload) => mount(tab, payload),
+    act: (scene, missing) => performActs(tab, scene, missing),
+    refeed: async () => {
+      await refeed(tab);
+    },
+    finish: () =>
+      tab.evaluate(
+        (key) => globalThis[key as typeof RENDER_PROBE_GLOBAL].finishScene(),
+        RENDER_PROBE_GLOBAL,
+      ),
+    read: () => readScene(tab),
+  };
 }
 
 /** The widget a scene's guests are drawn inside, if the scene has a real one. */
@@ -1166,11 +1199,13 @@ async function captureMotion(
   mode: { name: string; w: number; h: number; pxW: number; pxH: number },
   opts: RenderOptions,
   assets: RenderedAsset[],
+  control?: SceneReport,
 ): Promise<void> {
   const frames: Buffer[] = [];
   const framesDir = join(opts.outDir, `${scene.name}.frames`);
   if (opts.frames) await mkdir(framesDir, { recursive: true });
   await performActs(tab, scene);
+  if (control) assertRendersRepeat(scene, control, await readScene(tab));
   // Before the first frame, and once: a step that drives a control has to be
   // able to REACH it, and `page.mouse` works in viewport coordinates. A control
   // below the fold of a scrolling tile is at a y nothing is under, so the press

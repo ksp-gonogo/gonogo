@@ -1,4 +1,6 @@
+import type { ScenePayload, SceneReport } from "../render-probe";
 import { UNANNOUNCED_MARK } from "./probe-global";
+import type { Scene } from "./scenes";
 
 /**
  * Whether a subject says the link has gone, judged from two renders of one
@@ -116,4 +118,44 @@ export function judgeStaleness(renders: StalenessRenders): StalenessVerdict {
     },
     unannounced: subjectStale.filter((line) => line.endsWith(UNANNOUNCED_MARK)),
   };
+}
+
+/** The page calls one staleness render is made of. */
+export interface StalenessStage {
+  /** Mount the scene with the drop held back. */
+  mount(payload: ScenePayload): Promise<SceneReport>;
+  act(scene: Scene, missing: "throw" | "skip"): Promise<void>;
+  refeed(): Promise<void>;
+  /** Drop the link if the payload stops arriving, then read the render. */
+  finish(): Promise<SceneReport>;
+  read(): Promise<SceneReport>;
+}
+
+/**
+ * One render of a scene for the staleness comparison, live or dropped as the
+ * payload says, in the state the scene pictures.
+ *
+ * <p>The render in the scene's own state is the fed render again, so it drops
+ * the link where the fed render does, before the presses. The twin with the
+ * other state holds its drop until the presses have run: a scene driven by
+ * presses is judged pressed, and a link that goes after them is the order an
+ * operator meets it.</p>
+ *
+ * <p>A still is refed after the presses, as its picture is; a motion scene is
+ * not, because its first frame is taken before the refeed. With a guest
+ * withheld, a press that finds no control is skipped: the control was the
+ * guest's, and the host without it is in the state the press leaves it.</p>
+ */
+export async function mountForStaleness(
+  stage: StalenessStage,
+  scene: Scene,
+  payload: ScenePayload,
+): Promise<SceneReport> {
+  const twin =
+    (payload.stopsArriving === true) !== (scene.stopsArriving === true);
+  await stage.mount({ ...payload, holdDrop: true });
+  if (!twin) await stage.finish();
+  await stage.act(scene, payload.withhold ? "skip" : "throw");
+  if (!(scene.steps && scene.steps.length > 0)) await stage.refeed();
+  return twin ? stage.finish() : stage.read();
 }

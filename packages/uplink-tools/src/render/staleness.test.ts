@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
+import type { ScenePayload, SceneReport } from "../render-probe";
 import { UNANNOUNCED_MARK } from "./probe-global";
-import { judgeStaleness, multisetMinus } from "./staleness";
+import type { Scene } from "./scenes";
+import {
+  judgeStaleness,
+  mountForStaleness,
+  multisetMinus,
+  type StalenessStage,
+} from "./staleness";
 
 const figure = (n: number) => `<span class="v"> ${n}`;
 const held = (n: number) =>
@@ -88,5 +95,135 @@ describe("judgeStaleness on a guest inside a host", () => {
       hostOnly: { live: hostLive, stale: hostStale },
     });
     expect(verdict.drawn).toEqual({ live: 0, stale: 0 });
+  });
+});
+
+describe("a staleness render of a scene driven by presses", () => {
+  /**
+   * A plan composer: bare until "Save plan" is pressed, then a countdown that
+   * is marked held once the link drops. The drop is applied when the probe
+   * would apply it: inside the mount, unless the mount holds it for `finish`.
+   */
+  function composer(log: string[]): StalenessStage {
+    let saved = false;
+    let connected = true;
+    let pendingDrop = false;
+    const report = (): SceneReport => ({
+      visibleText: "",
+      boxCount: 1,
+      signature: "",
+      elements: saved
+        ? [connected ? figure(3) : held(3)]
+        : ["<p> Nothing saved"],
+      uncarriedTopics: [],
+      unsubscribedTopics: [],
+    });
+    return {
+      mount: async (payload) => {
+        log.push("mount");
+        saved = false;
+        connected = true;
+        pendingDrop =
+          payload.stopsArriving === true && payload.holdDrop === true;
+        if (payload.stopsArriving && !pendingDrop) {
+          log.push("drop");
+          connected = false;
+        }
+        return report();
+      },
+      act: async (_scene, missing) => {
+        log.push(`act:${missing}`);
+        saved = true;
+      },
+      refeed: async () => {
+        log.push("refeed");
+      },
+      finish: async () => {
+        if (pendingDrop) {
+          log.push("drop");
+          connected = false;
+          pendingDrop = false;
+        }
+        return report();
+      },
+      read: async () => report(),
+    };
+  }
+
+  const scene = (steps?: Scene["steps"], stopsArriving?: boolean): Scene => ({
+    file: "composer.json",
+    name: "composer-delayed",
+    target: { kind: "widget", id: "composer" },
+    paints: [],
+    before: [{ press: "Save plan" }],
+    pinnedUt: 0,
+    emits: [],
+    config: {},
+    slotProps: {},
+    dataSources: {},
+    carriedChannels: [],
+    modes: [],
+    steps,
+    stopsArriving,
+    motion: { fps: 10, pingPong: false },
+  });
+
+  const payload = (stopsArriving: boolean, withheld = false): ScenePayload => ({
+    target: { kind: "widget", id: "composer" },
+    fixture: "composer-delayed",
+    pinnedUt: 0,
+    carriedChannels: [],
+    emits: [],
+    stopsArriving,
+    withhold: withheld ? { kind: "augment", id: "guest" } : undefined,
+    config: {},
+    slotProps: {},
+    dataSources: {},
+    w: 1,
+    h: 1,
+    pxW: 1,
+    pxH: 1,
+    starve: false,
+  });
+
+  it("judges the pressed state, and marks it held once the link drops", async () => {
+    const log: string[] = [];
+    const stage = composer(log);
+    const live = await mountForStaleness(stage, scene(), payload(false));
+    const stale = await mountForStaleness(stage, scene(), payload(true));
+    expect(live.elements).toEqual([figure(3)]);
+    const verdict = judgeStaleness({
+      live: live.elements,
+      stale: stale.elements,
+    });
+    expect(verdict.unchanged).toBe(false);
+    expect(verdict.differences).toEqual([`- ${figure(3)}`, `+ ${held(3)}`]);
+    expect(log.slice(-4)).toEqual(["mount", "act:throw", "refeed", "drop"]);
+  });
+
+  it("does not refeed a motion scene, whose film starts before the refeed", async () => {
+    const log: string[] = [];
+    await mountForStaleness(
+      composer(log),
+      scene([{ waitMs: 100 }]),
+      payload(true),
+    );
+    expect(log).toEqual(["mount", "act:throw", "drop"]);
+  });
+
+  it("drops before the presses for a scene that stages the drop, as its picture does", async () => {
+    const log: string[] = [];
+    await mountForStaleness(
+      composer(log),
+      scene(undefined, true),
+      payload(true),
+    );
+    expect(log).toEqual(["mount", "drop", "act:throw", "refeed"]);
+  });
+
+  it("skips a press the withheld guest would have drawn", async () => {
+    const log: string[] = [];
+    await mountForStaleness(composer(log), scene(), payload(true, true));
+    expect(log).toContain("act:skip");
   });
 });

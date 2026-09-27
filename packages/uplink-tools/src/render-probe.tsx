@@ -59,11 +59,10 @@ import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
 import { auditMinFit, type MinFitFinding } from "./render/minFit";
 import {
-  announcesHeld,
+  describeElements,
   HOST_DRAWN_CONTRIBUTION_SEGMENTS,
   PROBE_CHROME_ATTR,
   RENDER_PROBE_GLOBAL,
-  UNANNOUNCED_MARK,
 } from "./render/probe-global";
 import {
   advanceSceneClock,
@@ -242,6 +241,11 @@ export interface ScenePayload {
    * held readings whatever the guest does.
    */
   withhold?: SceneTarget;
+  /**
+   * Leave the drop and the clock seal to {@link finishScene}, so the driver can
+   * press through `_scene.before` while the link is still up.
+   */
+  holdDrop?: boolean;
   steps?: SceneStep[];
 }
 
@@ -677,6 +681,12 @@ let mountedFixture: StreamFixture | null = null;
 let activeSourceIds: string[] = [];
 let currentScene: ScenePayload | null = null;
 
+/** What the last mount found unread, for the report {@link finishScene} returns. */
+let unreadAtMount: UnreadTopics = {
+  uncarriedTopics: [],
+  unsubscribedTopics: [],
+};
+
 /**
  * The emits that had no subscriber when the mount stopped growing.
  *
@@ -907,6 +917,25 @@ async function renderScene(scene: ScenePayload): Promise<SceneReport> {
   await activeSetup.afterMount?.({ scene, starve: scene.starve });
   await frame();
 
+  unreadAtMount = {
+    uncarriedTopics: uncarried,
+    unsubscribedTopics: unsubscribed,
+  };
+  if (scene.holdDrop) return readScene(el);
+  return finishScene();
+}
+
+/**
+ * Drop the link if the mounted scene stops arriving, seal the scene clock, and
+ * read the render. {@link renderScene} runs it itself unless the payload holds
+ * the drop.
+ */
+async function finishScene(): Promise<SceneReport> {
+  const fixture = mountedFixture;
+  const el = document.getElementById("root");
+  if (!fixture || !currentScene || !el) {
+    throw new Error("render probe: finishScene called before renderScene");
+  }
   /* The drop goes after the setup, because that is the order an operator meets
      it: the panel is up and populated, and then the link goes. It also goes
      BEFORE the clock is sealed, because a scene that has stopped arriving has
@@ -914,7 +943,7 @@ async function renderScene(scene: ScenePayload): Promise<SceneReport> {
      `beginFrame` mints the frame that publishes the new status rather than
      waiting on the provider's own loop, so the shot does not depend on which of
      the two lands first. */
-  if (scene.stopsArriving) {
+  if (currentScene.stopsArriving) {
     fixture.store.setTransportConnected(false);
     fixture.store.beginFrame();
     await frame();
@@ -926,11 +955,14 @@ async function renderScene(scene: ScenePayload): Promise<SceneReport> {
   // the first frame. See `sealSceneClock`.
   sealSceneClock();
 
+  return readScene(el);
+}
+
+function readScene(el: HTMLElement): SceneReport {
   return {
     ...measure(el),
     elements: describeElements(el),
-    uncarriedTopics: uncarried,
-    unsubscribedTopics: unsubscribed,
+    ...unreadAtMount,
   };
 }
 
@@ -1268,50 +1300,6 @@ function measure(host: HTMLElement): {
   return { visibleText, boxCount, signature: hash(parts.join("|")) };
 }
 
-/**
- * The subject's render as a list of elements, for the staleness comparison.
- *
- * <p>Finer than {@link measure}'s signature on purpose. A widget that says a
- * figure is held often changes nothing a size outline can see: a colour, a
- * `data-not-current` attribute, a dimmed class. So every attribute is kept,
- * `class` included, which is stable here because one page renders every scene
- * and an identical style always hashes to the identical class.</p>
- *
- * <p>React ids are folded to one token rather than renumbered: the comparison
- * that reads these lines subtracts one render from another, and an id counter
- * that shifted because a guest mounted before an element would otherwise make
- * the host's own element look changed.</p>
- *
- * <p>A `data-not-current` element that does not {@link announcesHeld} is tagged
- * {@link UNANNOUNCED_MARK}: the dot is drawn, and nothing tells a screen reader
- * the figure is held.</p>
- */
-function describeElements(host: HTMLElement): string[] {
-  const lines: string[] = [];
-  for (const el of Array.from(host.querySelectorAll("*"))) {
-    if (el.closest(`[${PROBE_CHROME_ATTR}]`)) continue;
-    if (el.tagName === "STYLE" || el.tagName === "SCRIPT") continue;
-    const attributes = Array.from(el.attributes)
-      .map(
-        (a) =>
-          `${a.name}="${a.value.replace(/:r[0-9a-z]+:|«r[0-9a-z]+»/g, ":r:")}"`,
-      )
-      .sort();
-    const own = Array.from(el.childNodes)
-      .filter((n) => n.nodeType === Node.TEXT_NODE)
-      .map((n) => n.textContent ?? "")
-      .join("")
-      .replace(/\s+/g, " ")
-      .trim();
-    let line = `<${el.tagName.toLowerCase()} ${attributes.join(" ")}> ${own}`;
-    if (el.hasAttribute("data-not-current") && !announcesHeld(el)) {
-      line += ` ${UNANNOUNCED_MARK}`;
-    }
-    lines.push(line);
-  }
-  return lines;
-}
-
 /** FNV-1a, hex. A signature only has to be stable and short; nothing here is
  *  adversarial, and `crypto.subtle` is async and needs a secure origin. */
 function hash(input: string): string {
@@ -1384,6 +1372,10 @@ export interface RenderProbeApi {
   /** Feed whatever a `_scene.before` press has just mounted, and report the
    *  topics still unread. See {@link refeedScene}. */
   refeedScene: () => Promise<UnreadTopics>;
+  /** Complete a mount whose payload held the drop. See {@link finishScene}. */
+  finishScene: () => Promise<SceneReport>;
+  /** The mounted render as it stands, with nothing done to it. */
+  readScene: () => SceneReport;
   stepScene: (step: SceneStep, deltaUt: number) => Promise<void>;
   /** Whether the render just mounted fits its tile. See {@link auditMinFit}.
    *  Separate from `renderScene`'s report because the driver GROWS the mount
@@ -1419,6 +1411,12 @@ export async function installRenderProbe(): Promise<RenderProbeApi> {
       return renderScene(scene);
     },
     refeedScene,
+    finishScene,
+    readScene: () => {
+      const el = document.getElementById("root");
+      if (!el) throw new Error("render probe: no #root in the page");
+      return readScene(el);
+    },
     stepScene,
     auditMinFit: () => {
       const el = document.getElementById("root");
