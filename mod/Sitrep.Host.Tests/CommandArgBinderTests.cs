@@ -259,27 +259,30 @@ namespace Sitrep.Host.Tests
                 {
                     continue;
                 }
-                var pt = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
-                if (pt == typeof(string))
+                var sample = WireSample(Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType);
+                if (sample != null)
                 {
-                    dict[prop.Name] = "x";
+                    dict[prop.Name] = sample;
                 }
-                else if (pt == typeof(bool))
-                {
-                    dict[prop.Name] = true;
-                }
-                else if (pt.IsEnum || pt == typeof(double) || pt == typeof(float) ||
-                         pt == typeof(int) || pt == typeof(long) || pt == typeof(short) ||
-                         pt == typeof(decimal))
-                {
-                    dict[prop.Name] = 1.0; // wire numbers (incl. enum ordinals) are double
-                }
-                // Any other property type is left absent, if the binder can't
-                // handle it from a missing key that's fine (stays default);
-                // a new required non-primitive would surface via a live gap,
-                // but no command arg type has one today.
             }
             return dict;
+        }
+
+        private static object? WireSample(Type pt)
+        {
+            if (pt == typeof(string)) return "x";
+            if (pt == typeof(bool)) return true;
+            if (pt.IsEnum || pt == typeof(double) || pt == typeof(float) ||
+                pt == typeof(int) || pt == typeof(long) || pt == typeof(short) ||
+                pt == typeof(decimal))
+            {
+                return 1.0; // wire numbers (incl. enum ordinals) are double
+            }
+            // Any other property type is left absent, if the binder can't
+            // handle it from a missing key that's fine (stays default);
+            // a new required non-primitive would surface via a live gap,
+            // but no command arg type has one today.
+            return null;
         }
     }
 }

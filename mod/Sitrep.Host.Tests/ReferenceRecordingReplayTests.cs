@@ -65,8 +65,9 @@ namespace Sitrep.Host.Tests
                 if (entry.Kind == "snapshot")
                 {
                     snapshotCount++;
+                    continue;
                 }
-                else if (entry.Kind == "event")
+                if (entry.Kind == "event")
                 {
                     eventCount++;
                 }

@@ -99,16 +99,15 @@ namespace Sitrep.Host.Tests.Settings
                 if (nextLaunch.FirstDifferenceFrom(before) == null)
                 {
                     oldSeen++;
+                    continue;
                 }
-                else if (nextLaunch.FirstDifferenceFrom(New()) == null)
+                if (nextLaunch.FirstDifferenceFrom(New()) == null)
                 {
                     newSeen++;
+                    continue;
                 }
-                else
-                {
-                    problems.Add("crash after operation " + crashAfter + (tear ? " (torn)" : string.Empty)
-                        + " left neither: " + nextLaunch.FirstDifferenceFrom(New()));
-                }
+                problems.Add("crash after operation " + crashAfter + (tear ? " (torn)" : string.Empty)
+                    + " left neither: " + nextLaunch.FirstDifferenceFrom(New()));
             }
 
             return problems;
@@ -463,12 +462,14 @@ namespace Sitrep.Host.Tests.Settings
                         {
                             stack.Peek().AppendValue(body.Substring(0, equals), body.Substring(equals + 1));
                         }
+                        continue;
                     }
-                    else if (line.StartsWith("b ", StringComparison.Ordinal))
+                    if (line.StartsWith("b ", StringComparison.Ordinal))
                     {
                         stack.Push(stack.Peek().AppendBlock(line.Substring(2)));
+                        continue;
                     }
-                    else if (line == "e" && stack.Count > 1)
+                    if (line == "e" && stack.Count > 1)
                     {
                         stack.Pop();
                     }
