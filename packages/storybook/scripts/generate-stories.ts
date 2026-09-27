@@ -11,6 +11,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { storyNameFromExport, toId } from "storybook/internal/csf";
 import type {
   SizeMode,
   WidgetRenderConfig,
@@ -30,6 +31,30 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(HERE, "../dist/stories");
 const SRC = resolve(HERE, "../src");
 const REPO = resolve(HERE, "../../..");
+
+/** What a listing is: a registered widget, a registered augment or contribution, or a ui-kit export. */
+export type TargetKind = "widget" | "extension" | "primitive";
+
+/**
+ * The story ids each widget, extension and ui-kit export is shown under, in
+ * the order the stories are written, named as Storybook's own indexer names
+ * them. Written to `review-targets.json` for the review sheet.
+ */
+const TARGETS: Record<TargetKind, Record<string, string[]>> = {
+  widget: {},
+  extension: {},
+  primitive: {},
+};
+
+function target(
+  kind: TargetKind,
+  id: string,
+  title: string,
+  exportName: string,
+): void {
+  TARGETS[kind][id] ??= [];
+  TARGETS[kind][id].push(toId(title, storyNameFromExport(exportName)));
+}
 
 /** An identifier a story export can be named: `eva-suit-link-lost` becomes `EvaSuitLinkLost`. */
 function exportName(slug: string, taken: Set<string>): string {
@@ -183,6 +208,9 @@ async function writeWidgetFile(
       });
     }
   }
+  const title = `Widgets/${label}`;
+  for (const s of stories)
+    target("widget", config.widgetId, title, s.exportName);
   const body = [
     HEADER,
     `import type { Meta, StoryObj } from "@storybook/react-vite";`,
@@ -191,7 +219,7 @@ async function writeWidgetFile(
     ...imports,
     "",
     metaBlock({
-      title: `Widgets/${label}`,
+      title,
       widgetId: config.widgetId,
       modes: config.modes,
     }),
@@ -201,19 +229,23 @@ async function writeWidgetFile(
   return { file, stories: stories.length };
 }
 
+const UNFIXTURED_TITLE = "Widgets/(unfixtured)";
+
 async function writeUnfixturedFile(): Promise<number> {
   const file = resolve(OUT, "widgets", "unfixtured.stories.tsx");
   const dir = dirname(file);
   const taken = new Set<string>();
-  const stories = UNFIXTURED_WIDGETS.map(
-    (w) => `
+  const stories = UNFIXTURED_WIDGETS.map((w) => {
+    const name = exportName(w.widgetId, taken);
+    target("widget", w.widgetId, UNFIXTURED_TITLE, name);
+    return `
 /** No fixture exists for this widget: it renders unfed. ${w.reason} */
-export const ${exportName(w.widgetId, taken)}: Story = {
+export const ${name}: Story = {
   name: ${JSON.stringify(w.widgetId)},
   args: { widgetId: ${JSON.stringify(w.widgetId)}, fixture: {}, w: ${w.w}, h: ${w.h}${w.wrapped ? `, wrap: APP_WIDGET_WRAPS[${JSON.stringify(w.widgetId)}]` : ""} },
 };
-`,
-  );
+`;
+  });
   const registers = [
     ...new Set(UNFIXTURED_WIDGETS.flatMap((w) => w.registers ?? [])),
   ].map((m) => `import ${JSON.stringify(importPath(dir, resolve(REPO, m)))};`);
@@ -230,7 +262,7 @@ export const ${exportName(w.widgetId, taken)}: Story = {
     ...registers,
     "",
     `const meta = {
-  title: "Widgets/(unfixtured)",
+  title: ${JSON.stringify(UNFIXTURED_TITLE)},
   component: WidgetScene,
   decorators: [withGonogoFrame],
   parameters: { layout: "fullscreen" },
@@ -259,6 +291,8 @@ function firstInstall(fixture: string): string {
   return first;
 }
 
+const EXTENSIONS_TITLE = "Extensions";
+
 async function writeExtensionsFile(): Promise<number> {
   const file = resolve(OUT, "extensions", "extensions.stories.tsx");
   const dir = dirname(file);
@@ -275,10 +309,12 @@ async function writeExtensionsFile(): Promise<number> {
     );
     return name;
   };
-  const stories = EXTENSION_SCENES.map(
-    (e) => `
+  const stories = EXTENSION_SCENES.map((e) => {
+    const name = exportName(e.id, taken);
+    target("extension", e.id, EXTENSIONS_TITLE, name);
+    return `
 /** \`${e.id}\` switched on in \`${e.widgetId}\`. Untick \`enabled\` to see the host without it. */
-export const ${exportName(e.id, taken)}: ExtensionStory = {
+export const ${name}: ExtensionStory = {
   name: ${JSON.stringify(e.id)},
   args: {
     widgetId: ${JSON.stringify(e.widgetId)},
@@ -289,8 +325,8 @@ export const ${exportName(e.id, taken)}: ExtensionStory = {
     enabled: true,${e.config ? `\n    mode: { config: ${JSON.stringify(e.config)} },` : ""}${e.underInstall ? `\n    profile: ${JSON.stringify(firstInstall(e.fixture))},` : ""}
   },
 };
-`,
-  );
+`;
+  });
   const body = [
     HEADER,
     `import type { Meta, StoryObj } from "@storybook/react-vite";`,
@@ -299,7 +335,7 @@ export const ${exportName(e.id, taken)}: ExtensionStory = {
     ...imports,
     "",
     `const meta = {
-  title: "Extensions",
+  title: ${JSON.stringify(EXTENSIONS_TITLE)},
   component: ExtensionScene,
   decorators: [withGonogoFrame],
   parameters: { layout: "fullscreen" },
@@ -373,6 +409,8 @@ async function writeUplinkFiles(
     }
     for (const [key, scenes] of byTarget) {
       const targetId = key.slice(key.indexOf(":") + 1);
+      const title = `Uplinks/${uplink.name}/${targetId}`;
+      const kind = key.startsWith("widget:") ? "widget" : "extension";
       const out = resolve(
         OUT,
         "uplinks",
@@ -387,6 +425,8 @@ async function writeUplinkFiles(
           `import scene${i} from ${JSON.stringify(importPath(dir, file))};`,
         );
         const name = basename(file, ".json");
+        const story = exportName(name, taken);
+        target(kind, targetId, title, story);
         const display = relative(REPO, file);
         const block = raw._scene;
         const caption =
@@ -395,7 +435,7 @@ async function writeUplinkFiles(
             : undefined;
         stories.push(`
 /** ${typeof caption === "string" ? caption : name} */
-export const ${exportName(name, taken)}: Story = {
+export const ${story}: Story = {
   name: ${JSON.stringify(name)},
   args: { fixture: scene${i}, file: ${JSON.stringify(display)} },
 };
@@ -412,7 +452,7 @@ export const ${exportName(name, taken)}: Story = {
         ...imports,
         "",
         `const meta = {
-  title: ${JSON.stringify(`Uplinks/${uplink.name}/${targetId}`)},
+  title: ${JSON.stringify(title)},
   component: UplinkScene,
   decorators: [withGonogoFrame],
   parameters: { layout: "fullscreen" },
@@ -469,6 +509,10 @@ async function main(): Promise<void> {
     resolve(OUT, "ui-kit-coverage.json"),
     `${JSON.stringify(uiKit, null, 2)}\n`,
   );
+  for (const [name, ids] of Object.entries(uiKit.stories)) {
+    TARGETS.primitive[name] = ids;
+  }
+  for (const { name } of uiKit.uncovered) TARGETS.primitive[name] = [];
 
   const clients = uplinkClients().map((u) => resolveUplinkPackage(u.dir).entry);
   const registerModules = [
@@ -491,6 +535,10 @@ async function main(): Promise<void> {
   await writeFile(
     resolve(OUT, "coverage.json"),
     `${JSON.stringify({ widgets: [...covered].sort(), extensions: [...extensionIds].sort() }, null, 2)}\n`,
+  );
+  await writeFile(
+    resolve(OUT, "review-targets.json"),
+    `${JSON.stringify(TARGETS, null, 2)}\n`,
   );
   console.log(
     `generate-stories: ${configs.length} render configs -> ${widgetStories} widget stories, ${unfixtured} unfixtured, ${extensions} extension stories, ${uplinkStories} Uplink scene stories; ${covered.size} widgets covered`,

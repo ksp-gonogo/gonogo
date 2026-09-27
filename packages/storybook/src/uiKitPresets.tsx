@@ -1,5 +1,9 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { railTagsForCommand, value } from "@ksp-gonogo/sitrep-sdk";
 import type {
+  AugmentSlot,
+  CommandButton,
+  CommandButtonHandle,
+  CommandGroup,
   Countdown,
   Dial,
   DivergingBar,
@@ -8,8 +12,10 @@ import type {
   MissionDate,
   ReadOnlyField,
   ReckonedUnit,
+  Stepper,
   Tape,
   UnitInput,
+  WidgetScopeProvider,
 } from "@ksp-gonogo/ui-kit";
 import type { ComponentProps } from "react";
 import { absent, held, live, pending } from "./readings";
@@ -21,6 +27,14 @@ export interface Preset<P> {
 }
 
 type Presets<P> = Preset<P>[];
+
+/** A handle whose send never settles: the button at rest, dispatching nothing. */
+const IDLE_HANDLE: CommandButtonHandle = {
+  send: () => new Promise<never>(() => {}),
+  inFlight: [],
+  tags: railTagsForCommand("vessel.control.stage"),
+  effectiveDelaySeconds: 0,
+};
 
 const RANGE = { min: value("1", 0), max: value("1", 3) };
 
@@ -173,6 +187,65 @@ export const UI_KIT_PRESETS = {
       args: { label: "Apoapsis", value: value("m", 82_300) },
     },
   ] satisfies Presets<ComponentProps<typeof ReadOnlyField>>,
+  Stepper: [
+    {
+      name: "Warp rate",
+      args: {
+        options: [1, 5, 10, 50, 100],
+        value: 10,
+        onChange: () => {},
+        label: "Warp rate",
+      },
+    },
+  ] satisfies Presets<ComponentProps<typeof Stepper>>,
+  CommandGroup: [
+    {
+      name: "Commit",
+      args: {
+        value: {},
+        onCommit: () => {},
+        children: "Grouped inputs",
+        commitLabel: "Commit",
+      },
+    },
+    {
+      name: "Gated",
+      args: {
+        value: {},
+        onCommit: () => {},
+        children: "Grouped inputs",
+        commitLabel: "Commit",
+        gated: true,
+      },
+    },
+  ] satisfies Presets<ComponentProps<typeof CommandGroup>>,
+  CommandButton: [
+    { name: "Ready", args: { handle: IDLE_HANDLE, label: "Stage" } },
+    {
+      name: "Delayed",
+      args: {
+        handle: { ...IDLE_HANDLE, effectiveDelaySeconds: 12 },
+        label: "Stage",
+      },
+    },
+  ] satisfies Presets<ComponentProps<typeof CommandButton>>,
+  WidgetScopeProvider: [
+    {
+      name: "Scoped",
+      args: {
+        widget: "resource-ops",
+        scope: {},
+        children: "WidgetScopeProvider",
+      },
+    },
+  ] satisfies Presets<ComponentProps<typeof WidgetScopeProvider>>,
+  AugmentSlot: [
+    {
+      name: "Empty slot",
+      // The props type is per slot, and a story typed against every slot at once reads it as never.
+      args: { name: "resource-ops.sections", props: {} as never },
+    },
+  ] satisfies Presets<ComponentProps<typeof AugmentSlot>>,
 };
 
 export type PresetName = keyof typeof UI_KIT_PRESETS;

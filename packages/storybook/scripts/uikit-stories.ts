@@ -4,9 +4,11 @@
  * prop can be given a plain value, the preset states where `uiKitPresets.tsx`
  * names some, and nothing but a line in the report where neither holds.
  */
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { relative, resolve } from "node:path";
+import { storyNameFromExport, toId } from "storybook/internal/csf";
+import { loadCsf } from "storybook/internal/csf-tools";
 import { Project, type Symbol as TsSymbol, type Type, ts } from "ts-morph";
 
 export interface UiKitCoverage {
@@ -18,6 +20,8 @@ export interface UiKitCoverage {
   handwritten: string[];
   /** Exports with no story, and why. */
   uncovered: { name: string; reason: string }[];
+  /** Each covered export's story ids, the one to open first leading. */
+  stories: Record<string, string[]>;
 }
 
 /** Whether `type` is one of React's renderable-node types. */
@@ -161,6 +165,7 @@ export async function writeUiKitStories(opts: {
     presets: [],
     handwritten: [],
     uncovered: [],
+    stories: {},
   };
   const dir = opts.out;
   const frame = importPath(dir, resolve(opts.src, "frame.tsx"));
@@ -172,12 +177,22 @@ export async function writeUiKitStories(opts: {
     const type = decl.getType();
     const signatures = type.getCallSignatures();
     if (signatures.length === 0) continue;
-    if (
-      existsSync(resolve(opts.src, "stories/ui-kit", `${name}.stories.tsx`))
-    ) {
+    const handwritten = resolve(
+      opts.src,
+      "stories/ui-kit",
+      `${name}.stories.tsx`,
+    );
+    if (existsSync(handwritten)) {
       coverage.handwritten.push(name);
+      coverage.stories[name] = loadCsf(readFileSync(handwritten, "utf8"), {
+        fileName: handwritten,
+        makeTitle: (title) => title,
+      })
+        .parse()
+        .stories.map((story) => story.id);
       continue;
     }
+    const title = `ui-kit/${name}`;
 
     const styled = type.getProperty("styledComponentId") !== undefined;
     const lines = [
@@ -192,7 +207,7 @@ export async function writeUiKitStories(opts: {
         .join(", ");
       return `
 const meta = {
-  title: ${JSON.stringify(`ui-kit/${name}`)},
+  title: ${JSON.stringify(title)},
   component: ${name},
   decorators: [
     (Story) => (
@@ -239,6 +254,9 @@ export const States: Story = {
 export const Default: Story = {};
 `);
       coverage.presets.push(name);
+      coverage.stories[name] = ["States", "Default"].map((story) =>
+        toId(title, storyNameFromExport(story)),
+      );
       await writeFile(resolve(dir, `${name}.stories.tsx`), lines.join("\n"));
       continue;
     }
@@ -264,6 +282,7 @@ export const Default: Story = {};
     }
     lines.push(metaFor(plan.args), "export const Default: Story = {};\n");
     coverage.defaults.push(name);
+    coverage.stories[name] = [toId(title, storyNameFromExport("Default"))];
     await writeFile(resolve(dir, `${name}.stories.tsx`), lines.join("\n"));
   }
   return coverage;

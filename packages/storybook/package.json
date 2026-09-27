@@ -9,6 +9,7 @@
     "storybook": "pnpm generate && storybook dev -p 6006",
     "build-storybook": "pnpm generate && storybook build -o dist/static",
     "smoke": "pnpm build-storybook && tsx scripts/smoke.ts",
+    "review-sheet": "pnpm build-storybook && tsx scripts/review-sheet.ts",
     "typecheck": "pnpm generate && tsc --noEmit"
   },
   "dependencies": {

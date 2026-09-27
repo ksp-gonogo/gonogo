@@ -6,6 +6,40 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import coverage from "../../dist/stories/coverage.json";
 import { withGonogoFrame } from "../frame";
 
+/** One registration, as the review sheet lists it. */
+export interface Registered {
+  id: string;
+  name?: string;
+  /** The slot an augment or contribution fills. */
+  slot?: string;
+  kind: "widget" | "augment" | "contribution";
+}
+
+declare global {
+  interface Window {
+    /** Every registration this Storybook loads, for the review sheet to list. */
+    __gonogoRegistered?: () => Registered[];
+  }
+}
+
+window.__gonogoRegistered = () => [
+  ...getComponents().map((d) => ({
+    id: d.id,
+    name: d.name,
+    kind: "widget" as const,
+  })),
+  ...getAugments().map((a) => ({
+    id: a.id,
+    slot: a.augments,
+    kind: "augment" as const,
+  })),
+  ...getContributions().map((c) => ({
+    id: c.id,
+    slot: c.contributes,
+    kind: "contribution" as const,
+  })),
+];
+
 /** Ids on one side and not the other. */
 function difference(from: readonly string[], to: readonly string[]): string[] {
   const other = new Set(to);

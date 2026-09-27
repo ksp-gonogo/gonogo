@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Gonogo Review Sheet</title>
+    <style>
+      /* This page ships outside the app bundle and is not app code, so it
+         keeps its own small, self-contained stylesheet rather than reaching
+         for the design tokens. */
+      :root {
+        color-scheme: dark;
+        --bg: #14181c;
+        --panel: #1c2126;
+        --panel-border: #2c333a;
+        --text: #d8e0e6;
+        --text-dim: #8a97a3;
+        --accent: #3fb1e0;
+        --ok: #3ecf8e;
+        --warn: #e0a83f;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, "Segoe UI", sans-serif;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+      a {
+        color: var(--accent);
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: var(--panel);
+        border-bottom: 1px solid var(--panel-border);
+        padding: 12px 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      header h1 {
+        font-size: 16px;
+        margin: 0;
+      }
+      header .meta {
+        color: var(--text-dim);
+        font-size: 12px;
+      }
+      header .counts {
+        margin-left: auto;
+        display: flex;
+        gap: 12px;
+        font-size: 12px;
+        color: var(--text-dim);
+      }
+      header button {
+        background: var(--accent);
+        color: #05252f;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      header button:hover {
+        filter: brightness(1.1);
+      }
+      nav.kind-jump {
+        display: flex;
+        gap: 8px;
+        padding: 10px 20px;
+        background: var(--bg);
+        border-bottom: 1px solid var(--panel-border);
+        position: sticky;
+        top: 57px;
+        z-index: 9;
+        flex-wrap: wrap;
+      }
+      nav.kind-jump a {
+        color: var(--text-dim);
+        text-decoration: none;
+        font-size: 12px;
+        padding: 4px 10px;
+        border: 1px solid var(--panel-border);
+        border-radius: 12px;
+      }
+      nav.kind-jump a:hover {
+        color: var(--text);
+        border-color: var(--accent);
+      }
+      main {
+        padding: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+      section.kind-section h2 {
+        font-size: 18px;
+        border-bottom: 1px solid var(--panel-border);
+        padding-bottom: 6px;
+        margin-top: 36px;
+      }
+      .item {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 6px;
+        padding: 10px 16px;
+        margin: 8px 0;
+      }
+      .item.approved {
+        border-color: var(--ok);
+      }
+      .item-head {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .item-head h3 {
+        margin: 0;
+        font-size: 15px;
+      }
+      .item-head .subtitle {
+        color: var(--text-dim);
+        font-size: 12px;
+      }
+      .approve-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .approve-row label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+      }
+      :focus-visible {
+        outline: 2px solid #00ff88;
+        outline-offset: 2px;
+      }
+      .item-head .story {
+        margin-left: auto;
+        font-weight: 600;
+      }
+      details.more {
+        margin-top: 6px;
+        font-size: 12px;
+        color: var(--text-dim);
+      }
+      details.more ul {
+        margin: 6px 0 0;
+        padding-left: 18px;
+        columns: 3 16em;
+      }
+      .comments {
+        margin-top: 10px;
+        border-top: 1px solid var(--panel-border);
+        padding-top: 10px;
+      }
+      .comment {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+      .comment span {
+        flex: 1;
+        white-space: pre-wrap;
+      }
+      .comment button {
+        background: none;
+        border: 1px solid var(--panel-border);
+        color: var(--text-dim);
+        border-radius: 4px;
+        cursor: pointer;
+        padding: 2px 8px;
+        font-size: 11px;
+      }
+      .comment button:hover {
+        color: var(--warn);
+        border-color: var(--warn);
+      }
+      .add-comment {
+        display: flex;
+        gap: 8px;
+        margin-top: 6px;
+      }
+      .add-comment input {
+        flex: 1;
+        background: var(--bg);
+        border: 1px solid var(--panel-border);
+        color: var(--text);
+        border-radius: 4px;
+        padding: 6px 8px;
+      }
+      .add-comment button {
+        background: var(--panel-border);
+        color: var(--text);
+        border: none;
+        border-radius: 4px;
+        padding: 6px 12px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Gonogo Review Sheet</h1>
+      <span class="meta" id="meta"></span>
+      <span class="counts" id="counts"></span>
+      <button id="export-btn" type="button">Export JSON</button>
+    </header>
+    <nav class="kind-jump">
+      <a href="#kind-widget">Widgets</a>
+      <a href="#kind-extension">Extensions</a>
+      <a href="#kind-primitive">ui-kit components</a>
+    </nav>
+    <main id="main"></main>
+    <script>
+      const DATA = "__REVIEW_DATA__";
+      const STORAGE_KEY = "gonogo-review-sheet:v1";
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return {};
+          return JSON.parse(raw);
+        } catch {
+          return {};
+        }
+      }
+
+      function saveState(state) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          return;
+        } catch {
+          // localStorage can be unavailable (private browsing, quota); the
+          // page still works for the current load, it just won't persist.
+        }
+      }
+
+      const state = loadState();
+
+      function itemKey(item) {
+        return `${item.kind}:${item.id}`;
+      }
+
+      function itemState(item) {
+        const key = itemKey(item);
+        if (state[key]) return state[key];
+        state[key] = { approved: false, comments: [] };
+        return state[key];
+      }
+
+      function newCommentId() {
+        if (window.crypto?.randomUUID) return crypto.randomUUID();
+        return `c-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      }
+
+      const KIND_LABELS = {
+        widget: "Widgets",
+        extension: "Extensions",
+        primitive: "ui-kit components",
+      };
+
+      function renderCounts() {
+        const counts = document.getElementById("counts");
+        const parts = [];
+        for (const kind of ["widget", "extension", "primitive"]) {
+          const items = DATA.items.filter((i) => i.kind === kind);
+          const approved = items.filter((i) => itemState(i).approved).length;
+          parts.push(`${KIND_LABELS[kind]}: ${approved}/${items.length} approved`);
+        }
+        counts.textContent = parts.join(" · ");
+      }
+
+      function storyUrl(id) {
+        return `${DATA.storybookUrl}/?path=/story/${encodeURIComponent(id)}`;
+      }
+
+      function storyLink(id, text) {
+        return `<a href="${escapeAttr(storyUrl(id))}" target="_blank" rel="noopener">${escapeHtml(text)}</a>`;
+      }
+
+      /** Every story after the first, one per scene or state. */
+      function buildMoreStories(item) {
+        if (item.stories.length < 2) return "";
+        const rows = item.stories
+          .slice(1)
+          .map((id) => `<li>${storyLink(id, id.split("--").pop())}</li>`)
+          .join("");
+        return `<details class="more">
+          <summary>${item.stories.length - 1} more ${item.stories.length === 2 ? "story" : "stories"}</summary>
+          <ul>${rows}</ul>
+        </details>`;
+      }
+
+      function buildComments(item) {
+        const s = itemState(item);
+        if (s.approved) return "";
+        const rows = s.comments
+          .map(
+            (c) => `<div class="comment" data-comment-id="${escapeAttr(c.id)}">
+              <span>${escapeHtml(c.text)}</span>
+              <button type="button" class="remove-comment" data-comment-id="${escapeAttr(c.id)}">remove</button>
+            </div>`,
+          )
+          .join("");
+        return `<div class="comments">
+          ${rows}
+          <div class="add-comment">
+            <input type="text" placeholder="Add a comment" data-add-comment />
+            <button type="button" class="add-comment-btn" data-add-comment-btn>Add</button>
+          </div>
+        </div>`;
+      }
+
+      function buildItem(item) {
+        const s = itemState(item);
+        return `<div class="item${s.approved ? " approved" : ""}" data-key="${escapeAttr(itemKey(item))}">
+          <div class="item-head">
+            <h3>${escapeHtml(item.title)}</h3>
+            <span class="subtitle">${escapeHtml(item.subtitle)}</span>
+            <span class="story">${storyLink(item.stories[0], "Open story")}</span>
+          </div>
+          <div class="approve-row">
+            <label>
+              <input type="checkbox" class="approve-checkbox" ${s.approved ? "checked" : ""} />
+              Approve
+            </label>
+          </div>
+          ${buildMoreStories(item)}
+          <div class="comments-slot">${buildComments(item)}</div>
+        </div>`;
+      }
+
+      function buildSection(kind) {
+        const items = DATA.items.filter((i) => i.kind === kind);
+        if (items.length === 0) return "";
+        const rows = items.map(buildItem).join("");
+        return `<section class="kind-section" id="kind-${kind}">
+          <h2>${KIND_LABELS[kind]} (${items.length})</h2>
+          ${rows}
+        </section>`;
+      }
+
+      function renderMain() {
+        document.getElementById("meta").textContent =
+          `generated ${DATA.generatedAt} · source ${DATA.sourceSha.slice(0, 12)} · stories at ${DATA.storybookUrl}`;
+        document.getElementById("main").innerHTML =
+          buildSection("widget") + buildSection("extension") + buildSection("primitive");
+        renderCounts();
+      }
+
+      function findItem(key) {
+        return DATA.items.find((i) => itemKey(i) === key);
+      }
+
+      function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, (c) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[c]);
+      }
+
+      function escapeAttr(str) {
+        return escapeHtml(str);
+      }
+
+      // Event delegation: the list is rebuilt on every state change, so
+      // listeners bind once on `main` rather than per rendered item.
+      document.getElementById("main").addEventListener("click", (event) => {
+        const removeBtn = event.target.closest(".remove-comment");
+        if (removeBtn) {
+          const itemEl = event.target.closest(".item");
+          const item = findItem(itemEl.dataset.key);
+          const s = itemState(item);
+          s.comments = s.comments.filter((c) => c.id !== removeBtn.dataset.commentId);
+          saveState(state);
+          renderMain();
+          return;
+        }
+        const addBtn = event.target.closest("[data-add-comment-btn]");
+        if (addBtn) {
+          const itemEl = event.target.closest(".item");
+          const input = itemEl.querySelector("[data-add-comment]");
+          const text = input.value.trim();
+          if (!text) return;
+          const item = findItem(itemEl.dataset.key);
+          const s = itemState(item);
+          s.comments.push({ id: newCommentId(), text });
+          saveState(state);
+          renderMain();
+          return;
+        }
+      });
+
+      document.getElementById("main").addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        const input = event.target.closest("[data-add-comment]");
+        if (!input) return;
+        event.preventDefault();
+        input.closest(".item").querySelector("[data-add-comment-btn]").click();
+      });
+
+      document.getElementById("main").addEventListener("change", (event) => {
+        const checkbox = event.target.closest(".approve-checkbox");
+        if (!checkbox) return;
+        const itemEl = event.target.closest(".item");
+        const item = findItem(itemEl.dataset.key);
+        const s = itemState(item);
+        s.approved = checkbox.checked;
+        saveState(state);
+        renderMain();
+      });
+
+      document.getElementById("export-btn").addEventListener("click", () => {
+        const items = DATA.items.map((item) => {
+          const s = itemState(item);
+          return {
+            kind: item.kind,
+            id: item.id,
+            approved: s.approved,
+            comments: s.comments,
+          };
+        });
+        const payload = {
+          generatedAt: DATA.generatedAt,
+          sourceSha: DATA.sourceSha,
+          items,
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `gonogo-review-sheet-${DATA.sourceSha.slice(0, 12)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      renderMain();
+    </script>
+  </body>
+</html>
