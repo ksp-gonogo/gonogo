@@ -1,5 +1,9 @@
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
-import { NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  NULL_DISPLAY,
+  resolveCurrency,
+  Unit,
+  type UnitValue,
+} from "@ksp-gonogo/ui-kit";
 
 /**
  * One career balance on the header rail: the figure, or the null token beside
@@ -9,10 +13,10 @@ export function Balance<U extends string>({
   balance,
   unit,
 }: {
-  balance: Value<U> | null | undefined;
+  balance: UnitValue<U>;
   unit: U;
 }) {
-  if (balance === null || balance === undefined) {
+  if (resolveCurrency(balance).shown == null) {
     return (
       <>
         {NULL_DISPLAY}

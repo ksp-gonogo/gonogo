@@ -10,8 +10,9 @@ import { StrategiesComponent } from "./index";
 
 /**
  * What Strategies does when `career.status` stops being current: the roster is
- * a fact and stays, the balances arm a spend and are withheld. The refusal
- * names the link rather than calling the career short of funds.
+ * a fact and stays, the balances stay on screen marked held and no longer arm a
+ * spend. The refusal names the held balance rather than calling the career
+ * short of funds.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -94,7 +95,7 @@ describe("Strategies when the career balances are no longer current", () => {
     emitCareer(fixture);
 
     await waitFor(() => expect(visibleText()).toContain("289,848"));
-    expect(visibleText()).not.toContain("balances not current");
+    expect(document.querySelector("[data-not-current]")).toBeNull();
     const activate = screen.getByRole("button", { name: "Activate" });
     expect(activate).toBeEnabled();
     expect(activate).toHaveAttribute("title", "Set the factor, then confirm");
@@ -109,14 +110,14 @@ describe("Strategies when the career balances are no longer current", () => {
     goStale(fixture);
 
     await waitFor(() =>
-      expect(visibleText()).toContain("balances not current"),
+      expect(document.querySelector("[data-not-current]")).not.toBeNull(),
     );
     expect(screen.getByText("Open Door Policy")).toBeInTheDocument();
     expect(screen.getByText("Admin Building")).toBeInTheDocument();
     expect(visibleText()).not.toContain("Awaiting career data");
   });
 
-  it("withholds the balances and says the link is why, not that the career is empty", async () => {
+  it("keeps each balance on the rail, marked held by Unit, with no written caption", async () => {
     const fixture = newFixture();
     renderStrategies(fixture);
     emitCareer(fixture);
@@ -125,11 +126,15 @@ describe("Strategies when the career balances are no longer current", () => {
     goStale(fixture);
 
     await waitFor(() =>
-      expect(visibleText()).toContain("balances not current"),
+      expect(
+        document.querySelectorAll("[data-balance-row] [data-not-current]"),
+      ).toHaveLength(3),
     );
-    expect(visibleText()).not.toContain("289,848");
-    expect(visibleText()).not.toContain("420");
-    expect(visibleText()).not.toContain("145");
+    const rail = document.querySelector("[data-balance-row]");
+    expect(rail?.textContent).toContain("289,848");
+    expect(rail?.textContent).toContain("420");
+    expect(rail?.textContent).toContain("145");
+    expect(visibleText()).not.toContain("not current");
   });
 
   it("refuses Activate with the staleness reason rather than calling the operator short of funds", async () => {
@@ -148,22 +153,26 @@ describe("Strategies when the career balances are no longer current", () => {
     );
     expect(screen.getByRole("button", { name: "Activate" })).toHaveAttribute(
       "title",
-      "Career balances are no longer current, so affordability cannot be checked",
+      "Affordability cannot be checked against a held balance",
     );
   });
 
-  it("says 'not current' in the tiny bucket, where 'unknown' would blame the wrong thing", async () => {
+  it("marks the tiny bucket's held balance, where 'unknown' would blame the wrong thing", async () => {
     // w=4 is the tiny bucket.
     const fixture = newFixture();
     renderStrategies(fixture, { w: 4, h: 4 });
     emitCareer(fixture);
     await waitFor(() => expect(visibleText()).toContain("290kf"));
+    expect(document.querySelector("[data-not-current]")).toBeNull();
 
     goStale(fixture);
 
     await waitFor(() =>
-      expect(visibleText()).toBe("Strategiesfunds not current· 0 active"),
+      expect(
+        document.querySelector("[data-balance-row] [data-not-current]"),
+      ).not.toBeNull(),
     );
+    expect(visibleText()).not.toContain("not current");
     // "funds unknown" is the never-arrived wording.
     expect(visibleText()).not.toContain("funds unknown");
   });
@@ -172,6 +181,6 @@ describe("Strategies when the career balances are no longer current", () => {
     // A cold mount is not a dropped link.
     renderStrategies(newFixture());
 
-    expect(visibleText()).not.toContain("not current");
+    expect(document.querySelector("[data-not-current]")).toBeNull();
   });
 });

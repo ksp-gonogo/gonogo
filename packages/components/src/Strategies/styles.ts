@@ -226,11 +226,6 @@ export const Tally = styled.span<{ $overCap?: boolean }>`
   font-weight: ${(p) => (p.$overCap ? 700 : 400)};
 `;
 
-export const NotCurrentTally = styled.span`
-  color: var(--color-status-warning-bg);
-  font-weight: 700;
-`;
-
 export const Sep = styled.span`
   color: var(--color-text-dim);
 `;

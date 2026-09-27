@@ -1,7 +1,7 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { defineTopicManifest, registerComponent } from "@ksp-gonogo/core";
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
-import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
+import { readingOf, stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import { useContributions, usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import { netFundsPerDay } from "../shared/FundsDrain";
@@ -51,6 +51,15 @@ function StrategiesComponent({
   const science = economy?.science;
   // Stale balances and a never-arrived economy both refuse Activate, but only one is about the link.
   const balancesNotCurrent = careerReading.state === "stale";
+  // The balances as the rail draws them: held ones stay on screen and Unit marks them.
+  const shownBalances = {
+    funds: readingOf(careerReading, (c) => c.economy?.funds ?? undefined),
+    reputation: readingOf(
+      careerReading,
+      (c) => c.economy?.reputation ?? undefined,
+    ),
+    science: readingOf(careerReading, (c) => c.economy?.science ?? undefined),
+  };
   // The standing funds rate beside Activate; stock reports none and it renders nothing.
   const netFunds = netFundsPerDay(economy);
   // An Administration Building action carries no vessel signal delay.
@@ -86,6 +95,7 @@ function StrategiesComponent({
       reputation={reputation}
       science={science}
       balancesNotCurrent={balancesNotCurrent}
+      shownBalances={shownBalances}
       netFunds={netFunds}
       factorById={factorById}
       setFactorById={setFactorById}

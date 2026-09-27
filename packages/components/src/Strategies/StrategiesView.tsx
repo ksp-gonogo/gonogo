@@ -8,6 +8,7 @@ import {
   type TabDescriptor,
   Tabs,
   Unit,
+  type UnitValue,
 } from "@ksp-gonogo/ui-kit";
 import type { Dispatch, SetStateAction } from "react";
 import { FundsDrain, reportsFundsDrain } from "../shared/FundsDrain";
@@ -20,7 +21,6 @@ import {
   BalanceRow,
   Empty,
   LockedScreen,
-  NotCurrentTally,
   Sep,
   Tally,
   TinyDrainRow,
@@ -40,6 +40,12 @@ export interface StrategiesViewProps {
   reputation: Value<"rep"> | null | undefined;
   science: Value<"science"> | null | undefined;
   balancesNotCurrent: boolean;
+  /** The balances the rail draws, held ones included so Unit can mark them. */
+  shownBalances: {
+    funds: UnitValue<"funds">;
+    reputation: UnitValue<"rep">;
+    science: UnitValue<"science">;
+  };
   /** The standing funds rate beside Activate; stock reports none and it renders nothing. */
   netFunds: number | null;
   factorById: Record<string, number>;
@@ -64,12 +70,33 @@ function inferCap(softBlocked: readonly Strategy[]): number | null {
 function tinyFundsTitle(
   balancesNotCurrent: boolean,
   funds: Value<"funds"> | null | undefined,
-): string {
-  if (balancesNotCurrent) {
-    return "The funds balance is no longer current, so affordability is not being checked";
-  }
+): string | undefined {
+  // A held balance is drawn by Unit, which carries its own hover.
+  if (balancesNotCurrent) return undefined;
   if (funds != null) return speakQuantity(funds, { decimals: 0 });
   return "No funds balance has arrived";
+}
+
+function TinyFunds({
+  balancesNotCurrent,
+  funds,
+  shown,
+}: {
+  balancesNotCurrent: boolean;
+  funds: Value<"funds"> | null | undefined;
+  shown: UnitValue<"funds">;
+}) {
+  if (balancesNotCurrent) return <Unit value={shown} decimals={0} />;
+  if (funds != null) {
+    return (
+      <>
+        {formatCompactNumber(funds.magnitude, 0)}
+        <Unit>funds</Unit>
+      </>
+    );
+  }
+  // Activate refuses on an absent balance, so the row says so rather than vanish.
+  return <>funds unknown</>;
 }
 
 export function StrategiesView({
@@ -82,6 +109,7 @@ export function StrategiesView({
   reputation,
   science,
   balancesNotCurrent,
+  shownBalances,
   netFunds,
   factorById,
   setFactorById,
@@ -145,17 +173,11 @@ export function StrategiesView({
               title={tinyFundsTitle(balancesNotCurrent, funds)}
             >
               <TinyFundsFigure>
-                {balancesNotCurrent ? (
-                  "funds not current"
-                ) : funds != null ? (
-                  <>
-                    {formatCompactNumber(funds.magnitude, 0)}
-                    <Unit>funds</Unit>
-                  </>
-                ) : (
-                  // Activate refuses on an absent balance, so the row says so rather than vanish.
-                  "funds unknown"
-                )}
+                <TinyFunds
+                  balancesNotCurrent={balancesNotCurrent}
+                  funds={funds}
+                  shown={shownBalances.funds}
+                />
               </TinyFundsFigure>
               <TinyTally>
                 <Sep>·</Sep>{" "}
@@ -196,37 +218,25 @@ export function StrategiesView({
         <Section full>
           {/* The balances live in the body, because the panel aside collapses at the default size. */}
           <BalanceRow data-balance-row="">
-            {balancesNotCurrent ? (
-              // One statement, since dashes are what an absent economy already renders.
-              <NotCurrentTally title="The career balances are no longer current, so affordability is not being checked">
-                balances not current
-              </NotCurrentTally>
-            ) : (
+            <Tally>
+              <Balance balance={shownBalances.funds} unit="funds" />
+            </Tally>
+            {reportsFundsDrain(netFunds) && (
               <>
+                <Sep>·</Sep>
+                <FundsDrain funds={magnitudeOf(funds)} netPerDay={netFunds} />
+              </>
+            )}
+            {(w ?? 9) >= 6 && (
+              <>
+                <Sep>·</Sep>
                 <Tally>
-                  <Balance balance={funds} unit="funds" />
+                  <Balance balance={shownBalances.reputation} unit="rep" />
                 </Tally>
-                {reportsFundsDrain(netFunds) && (
-                  <>
-                    <Sep>·</Sep>
-                    <FundsDrain
-                      funds={magnitudeOf(funds)}
-                      netPerDay={netFunds}
-                    />
-                  </>
-                )}
-                {(w ?? 9) >= 6 && (
-                  <>
-                    <Sep>·</Sep>
-                    <Tally>
-                      <Balance balance={reputation} unit="rep" />
-                    </Tally>
-                    <Sep>·</Sep>
-                    <Tally>
-                      <Balance balance={science} unit="science" />
-                    </Tally>
-                  </>
-                )}
+                <Sep>·</Sep>
+                <Tally>
+                  <Balance balance={shownBalances.science} unit="science" />
+                </Tally>
               </>
             )}
           </BalanceRow>

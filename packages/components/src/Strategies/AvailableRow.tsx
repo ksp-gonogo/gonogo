@@ -55,7 +55,7 @@ function activateTitle(
     }
   }
   if (balancesNotCurrent) {
-    return "Career balances are no longer current, so affordability cannot be checked";
+    return "Affordability cannot be checked against a held balance";
   }
   if (cantAfford) {
     return "Insufficient funds / science / reputation at this factor";
