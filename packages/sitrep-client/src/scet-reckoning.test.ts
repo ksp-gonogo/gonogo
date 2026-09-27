@@ -91,6 +91,17 @@ describe("the frame's SCET", () => {
     expect(store.beginFrame().scetUt).toBe(UT_NOW + 10);
   });
 
+  it("puts command arrival a light-time past SCET", () => {
+    const { store } = startStore();
+    expect(store.currentFrame().commandArrivalUt).toBe(UT_NOW + OWLT);
+  });
+
+  it("puts command arrival at SCET while the view is scrubbed", () => {
+    const { clock, store } = startStore();
+    clock.scrubTo(9_000);
+    expect(store.beginFrame().commandArrivalUt).toBe(9_000);
+  });
+
   it("starts again after a rewind", () => {
     const { clock, store, advance } = startStore();
     advance(10);

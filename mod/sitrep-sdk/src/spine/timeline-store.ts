@@ -85,6 +85,8 @@ export interface FrameToken {
    * `ViewClock.scetUt` for how it relates to it.
    */
   readonly scetUt: number;
+  /** When a command sent this frame reaches the craft; see `ViewClock.commandArrivalUt`. */
+  readonly commandArrivalUt: number;
   /**
    * Internal validity marker, bumped by every `beginFrame()` call. Not
    * meant to be read by callers, it's what lets `sample()` detect a token
@@ -117,10 +119,12 @@ export interface FrameToken {
 function mintToken(clock: ViewClock, generation: number): FrameToken {
   const viewUt = clock.viewUt("delayed");
   const trueNowViewUt = clock.viewUt("true-now");
+  const scetUt = clock.scetUt(viewUt);
   return {
     viewUt,
     trueNowViewUt,
-    scetUt: clock.scetUt(viewUt),
+    scetUt,
+    commandArrivalUt: clock.commandArrivalUt(scetUt),
     generation,
     certainty: clock.certaintyFor(viewUt, "delayed"),
     trueNowCertainty: clock.certaintyFor(trueNowViewUt, "true-now"),

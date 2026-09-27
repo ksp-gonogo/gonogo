@@ -270,20 +270,21 @@ describe("ManeuverTriggerHostService", () => {
     expect(svc.snapshot().triggers).toHaveLength(0);
   });
 
-  it("plans a node from the craft's present, not from the received edge", async () => {
+  it("plans a node against the orbit the command will find when it lands", async () => {
     const svc = makeService();
     const pinnedUt = 1_000_000;
     const storeFixture = seedKerbinOrbit(pinnedUt);
-    // A light-time of 240 s: the craft is at pinnedUt, the screen has received it up to 240 s earlier.
+    // A light-time of 240 s: the craft is at pinnedUt, the screen has it from 240 s earlier, and a command lands 240 s later.
     setActiveViewClockForTests({
       viewUt: () => pinnedUt - 240,
       scetUt: () => pinnedUt,
+      commandArrivalUt: () => pinnedUt + 240,
     });
     svc.arm({
       dataKey: "vessel.orbit.sma",
       op: ">=",
       value: 700_000,
-      inputs: FROZEN,
+      inputs: { ...FROZEN, preset: "custom-ut", prograde: 10 },
     });
     await vi.advanceTimersByTimeAsync(0);
     const args = storeFixture.calls.find(
@@ -293,9 +294,8 @@ describe("ManeuverTriggerHostService", () => {
       typeof args === "object" && args !== null && "ut" in args
         ? args.ut
         : undefined;
-    const halfPeriod = Math.PI * Math.sqrt(700_000 ** 3 / 3.5316e12);
-    // The craft is at periapsis at pinnedUt, so apoapsis is half an orbit on.
-    expect(ut).toBeCloseTo(pinnedUt + halfPeriod, 0);
+    // "Burn in 60 s" counts from when the command lands.
+    expect(ut).toBeCloseTo(pinnedUt + 240 + FROZEN.burnInSeconds, 0);
   });
 
   it("plans a transfer around a body the stock table has never heard of", async () => {

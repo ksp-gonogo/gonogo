@@ -1,7 +1,9 @@
 import {
   type BodyRadiusTable,
   type OrbitalSolve,
+  type SolveInstant,
   solveSelfOrbit,
+  useCommandArrivalUt,
   useScetUt,
   useStream,
 } from "@ksp-gonogo/sitrep-client";
@@ -11,7 +13,8 @@ import { useMemo } from "react";
 /**
  * The self vessel's orbit solved at the craft's present (SCET): apsides, their
  * altitudes, the two apsis countdowns, true anomaly, period, orbital radius and
- * which apsis comes next.
+ * which apsis comes next. `at` moves the solve to when a command sent now
+ * reaches the craft, for a surface planning a burn.
  *
  * `null` means there is no solve to draw, and it is the same answer for three
  * different situations on purpose: no elements have arrived, they arrived and
@@ -46,7 +49,7 @@ import { useMemo } from "react";
  * the reference body's radius cannot be resolved, which is `bodyRadiusOf`'s
  * three-way discipline reaching the drawing site intact.
  */
-export function useOrbitSolve(): OrbitalSolve | null {
+export function useOrbitSolve(at: SolveInstant = "scet"): OrbitalSolve | null {
   const reading = useTelemetry("vessel.orbit");
   const bodiesReading = useStream<BodyRadiusTable>("system.bodies");
   // The roster does not decay, and a tombstone is the one null it answers.
@@ -56,7 +59,9 @@ export function useOrbitSolve(): OrbitalSolve | null {
       : bodiesReading.state === "absent"
         ? null
         : undefined;
-  const at = useScetUt()?.magnitude;
+  const scetUt = useScetUt();
+  const arrivalUt = useCommandArrivalUt();
+  const solveUt = (at === "command-arrival" ? arrivalUt : scetUt)?.magnitude;
 
   /*
    * A stale reading still carries its elements, and they are constants of the
@@ -74,7 +79,7 @@ export function useOrbitSolve(): OrbitalSolve | null {
   const reckoning = reading.reckoning;
   const observedAtUt = reading.state === "observed" ? reading.atUt : undefined;
   return useMemo(
-    () => solveSelfOrbit(elements, reckoning, bodies, at, observedAtUt),
-    [elements, reckoning, bodies, at, observedAtUt],
+    () => solveSelfOrbit(elements, reckoning, bodies, solveUt, observedAtUt),
+    [elements, reckoning, bodies, solveUt, observedAtUt],
   );
 }

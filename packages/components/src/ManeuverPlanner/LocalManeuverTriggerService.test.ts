@@ -143,12 +143,13 @@ describe("LocalManeuverTriggerService", () => {
     }
   });
 
-  it("plans a node from the craft's present, not from the received edge", async () => {
+  it("plans a node against the orbit the command will find when it lands", async () => {
     const { calls } = fixture();
-    // A light-time of 240 s: the craft is at PINNED_UT, the screen has received it up to 240 s earlier.
+    // A light-time of 240 s: the craft is at PINNED_UT, the screen has it from 240 s earlier, and a command lands 240 s later.
     setActiveViewClockForTests({
       viewUt: () => PINNED_UT - 240,
       scetUt: () => PINNED_UT,
+      commandArrivalUt: () => PINNED_UT + 240,
     });
     const svc = new LocalManeuverTriggerService();
     try {
@@ -156,7 +157,7 @@ describe("LocalManeuverTriggerService", () => {
         dataKey: "vessel.orbit.sma",
         op: ">=",
         value: 6_000_000,
-        inputs: { ...FROZEN, preset: "circularize-apo" },
+        inputs: { ...FROZEN, preset: "custom-ut", prograde: 10 },
       });
       await vi.waitFor(() =>
         expect(calls.map((c) => c.command)).toContain("vessel.maneuver.add"),
@@ -166,9 +167,8 @@ describe("LocalManeuverTriggerService", () => {
         typeof args === "object" && args !== null && "ut" in args
           ? args.ut
           : undefined;
-      const halfPeriod = Math.PI * Math.sqrt(6_771_000 ** 3 / 3.986e14);
-      // The craft is at periapsis at PINNED_UT, so apoapsis is half an orbit on.
-      expect(ut).toBeCloseTo(PINNED_UT + halfPeriod, 0);
+      // "Burn in 60 s" counts from when the command lands.
+      expect(ut).toBeCloseTo(PINNED_UT + 240 + FROZEN.burnInSeconds, 0);
     } finally {
       svc.dispose();
     }

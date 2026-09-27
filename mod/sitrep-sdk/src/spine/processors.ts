@@ -216,6 +216,8 @@ export interface ProcessorFrame {
   viewUt: number;
   /** The craft's present (SCET) for the same frame, the instant its readings are reckoned to. */
   scetUt: number;
+  /** When a command sent this frame reaches the craft. */
+  commandArrivalUt: number;
 }
 
 export interface ProcessorDefinition<

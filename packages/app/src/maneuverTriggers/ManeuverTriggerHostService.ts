@@ -16,8 +16,8 @@ import { LocalStorageStore } from "@ksp-gonogo/data";
 import {
   bodyRadiusOf,
   dispatchActiveCommandTopic,
+  getCommandArrivalUt,
   getOrbitSolve,
-  getScetUt,
   getSystemBodies,
   getValue,
   getVesselIdentity,
@@ -297,11 +297,11 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     const targetOrbit = target?.orbit;
     /*
      * The target's own orbit, solved here: the same `solveOrbit` the craft's
-     * orbit goes through, on the target's elements at the same instant (SCET).
+     * orbit goes through, on the target's elements at the same instant, when the command lands.
      * The altitude needs the TARGET's reference body, not the craft's, which is
      * why the radius is resolved from its own `referenceBodyIndex`.
      */
-    const currentUT = getScetUt();
+    const currentUT = getCommandArrivalUt();
     const targetSolved =
       targetOrbit == null || currentUT === undefined
         ? undefined
@@ -318,7 +318,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
      * `undefined`, which `buildCurrentOrbit` already treats as nothing to plan
      * against.
      */
-    const solve = getOrbitSolve();
+    const solve = getOrbitSolve("command-arrival");
     return {
       currentOrbit: buildCurrentOrbit({
         sma: solverInput(orbit?.sma),

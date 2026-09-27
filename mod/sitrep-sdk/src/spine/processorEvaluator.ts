@@ -622,6 +622,7 @@ function evaluate(id: string, token: { generation: number }): void {
     def.compute(values as never, {
       viewUt: frame?.viewUt ?? 0,
       scetUt: frame?.scetUt ?? 0,
+      commandArrivalUt: frame?.commandArrivalUt ?? 0,
     }),
   );
   /*

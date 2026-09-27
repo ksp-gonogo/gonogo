@@ -623,6 +623,7 @@ export type ViewClockView = Pick<
   ViewClock,
   | "viewUt"
   | "scetUt"
+  | "commandArrivalUt"
   | "confirmedEdgeUt"
   | "onFrame"
   | "utNowEstimate"
@@ -646,7 +647,9 @@ export type ViewClockView = Pick<
  * `getViewUt()` below must read the exact same method to match `useViewUt`'s
  * contract, including under a pinned/scrubbed test clock.
  */
-let activeViewClock: Pick<ViewClock, "viewUt" | "scetUt"> | undefined;
+let activeViewClock:
+  | Pick<ViewClock, "viewUt" | "scetUt" | "commandArrivalUt">
+  | undefined;
 
 export function useViewClock(): ViewClockView {
   return useTelemetryStore().clock;
@@ -694,6 +697,25 @@ export function useViewUt(): Value<"ut"> | undefined {
  */
 export function useScetUt(): Value<"ut"> | undefined {
   return useFrameInstant(craftPresent);
+}
+
+/**
+ * Which instant an orbit is solved at: the craft's present, or when a command
+ * sent now would reach it, for a surface planning what that command will find.
+ */
+export type SolveInstant = "scet" | "command-arrival";
+
+/**
+ * When a command sent now reaches the craft, as a reactive value: SCET plus the
+ * one-way light-time. For a surface that plans what a command will find when it
+ * lands, a burn placed against the orbit the craft is on at arrival.
+ */
+export function useCommandArrivalUt(): Value<"ut"> | undefined {
+  return useFrameInstant(commandArrival);
+}
+
+function commandArrival(clock: ViewClockView, viewUt: number): number {
+  return clock.commandArrivalUt(clock.scetUt(viewUt));
 }
 
 function receivedEdge(_clock: ViewClockView, viewUt: number): number {
@@ -826,6 +848,14 @@ export function getViewUt(): number | undefined {
   return ut !== undefined && Number.isFinite(ut) ? ut : undefined;
 }
 
+/** Non-React `useCommandArrivalUt()` equivalent, off the same clock `getViewUt` reads. */
+export function getCommandArrivalUt(): number | undefined {
+  noteUndeclaredRead("getCommandArrivalUt");
+  const clock = activeViewClock;
+  const ut = clock?.commandArrivalUt(clock.scetUt(clock.viewUt()));
+  return ut !== undefined && Number.isFinite(ut) ? ut : undefined;
+}
+
 /** Non-React `useScetUt()` equivalent, off the same clock `getViewUt` reads. */
 export function getScetUt(): number | undefined {
   noteUndeclaredRead("getScetUt");
@@ -839,19 +869,22 @@ export function getScetUt(): number | undefined {
  * `getScetUt()`'s source directly, without mounting a `TelemetryProvider`: for
  * a host-service unit test (`AlarmHostService`, `ManeuverTriggerHostService`)
  * that drives its own fake telemetry reader and has no React tree to render at
- * all. A fake with no `scetUt` answers SCET as its view time, which is what a
- * clock with no light-time does. Pass `undefined` to clear; a test's
+ * all. A fake with no `scetUt` answers SCET as its view time, and one with no
+ * `commandArrivalUt` answers arrival as its SCET, which is what a clock with no
+ * light-time does. Pass `undefined` to clear; a test's
  * `afterEach` should always do this so a later, unrelated suite's `getViewUt()`
  * call can't see a stale clock left over from this one.
  */
 export function setActiveViewClockForTests(
   clock:
-    | (Pick<ViewClock, "viewUt"> & Partial<Pick<ViewClock, "scetUt">>)
+    | (Pick<ViewClock, "viewUt"> &
+        Partial<Pick<ViewClock, "scetUt" | "commandArrivalUt">>)
     | undefined,
 ): void {
   activeViewClock = clock && {
     viewUt: () => clock.viewUt(),
     scetUt: (viewUt) => clock.scetUt?.(viewUt) ?? viewUt,
+    commandArrivalUt: (scetUt) => clock.commandArrivalUt?.(scetUt) ?? scetUt,
   };
 }
 
@@ -1129,7 +1162,7 @@ export function getSystemBodies(): SystemBodies | undefined {
  * would, so a maneuver plan and the panel drawing the orbit it plans against
  * cannot disagree about whether there is an orbit to plan against.
  */
-export function getOrbitSolve(): OrbitalSolve | null {
+export function getOrbitSolve(at: SolveInstant = "scet"): OrbitalSolve | null {
   if (!activeTimelineStore) return null;
   const reading =
     activeTimelineStore.sampleReading<VesselOrbit>("vessel.orbit");
@@ -1144,7 +1177,7 @@ export function getOrbitSolve(): OrbitalSolve | null {
     elements,
     reading.reckoning,
     getSystemBodies(),
-    getScetUt(),
+    at === "command-arrival" ? getCommandArrivalUt() : getScetUt(),
     reading.state === "observed" ? reading.atUt : undefined,
   );
 }

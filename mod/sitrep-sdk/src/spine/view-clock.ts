@@ -309,6 +309,17 @@ export class ViewClock {
     return scet;
   }
 
+  /**
+   * When a command sent now reaches the craft: {@link scetUt} plus the one-way
+   * light-time, for a surface that plans what a command will find on arrival.
+   * The SCET itself while scrubbed, where nothing is being sent.
+   */
+  commandArrivalUt(scetUt: number): number {
+    if (!Number.isFinite(scetUt)) return scetUt;
+    if (this.scrubTarget !== null) return scetUt;
+    return scetUt + this.delaySeconds();
+  }
+
   /** Estimator health: `"locked"` recently observed, `"coasting"` during silence. `"degraded"` (warp-change-during-silence) is a later task. */
   confidence(): ViewClockConfidence {
     if (this.lastObservedWall === undefined) return "coasting";
