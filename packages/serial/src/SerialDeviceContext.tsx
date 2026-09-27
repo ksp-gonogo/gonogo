@@ -126,8 +126,11 @@ function computeAggregate(svc: SerialDeviceService): SerialAggregateStatus {
   let anyDisconnected = false;
   for (const d of devices) {
     const s = svc.getStatus(d.id);
-    if (s === "error") anyError = true;
-    else if (s !== "connected") anyDisconnected = true;
+    if (s === "error") {
+      anyError = true;
+      continue;
+    }
+    if (s !== "connected") anyDisconnected = true;
   }
   if (anyError) return "error";
   if (anyDisconnected) return "partial";

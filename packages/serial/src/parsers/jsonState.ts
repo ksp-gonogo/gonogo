@@ -160,7 +160,8 @@ function parseAnalog(
     if (typeof raw.val === "number") val = raw.val;
     if (typeof raw.min === "number") min = raw.min;
     if (typeof raw.max === "number") max = raw.max;
-  } else if (typeof raw === "number") {
+  }
+  if (typeof raw === "number") {
     // Short-form: `"X": 100` with no min/max, only works if the analog has been declared in a previous tick (`known` has them).
     val = raw;
   }
