@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Sitrep.Contract;
 using Sitrep.Host;
+using Sitrep.Host.Science;
 
 namespace Gonogo.KSP
 {
@@ -156,7 +158,8 @@ namespace Gonogo.KSP
         /// entry point to the same private <c>endExperiment</c>/<c>dumpData</c>
         /// path stock's transmit uses: it clears the stored data and sets the
         /// module inoperable when it is not rerunnable, so this side effect is
-        /// faithful to the stock behaviour, not a guess.
+        /// faithful to the stock behaviour, not a guess. Answers with the
+        /// <see cref="ScienceTransmission"/> the transmitter was handed.
         /// <see cref="CommandErrorCode.WrongState"/> when the part holds no data,
         /// <see cref="CommandErrorCode.NoConnection"/> when no transmitter on the
         /// craft can carry it.
@@ -210,14 +213,37 @@ namespace Gonogo.KSP
                         : "the antenna cannot transmit right now");
             }
 
+            var startedAt = Planetarium.GetUniversalTime();
             transmitter.TransmitData(new List<ScienceData>(data));
 
+            var amounts = new List<double>(data.Length);
             foreach (var stored in data)
             {
+                amounts.Add(stored.dataAmount);
                 withData.DumpData(stored);
             }
 
-            return CommandResult.Ok();
+            return CommandResult<ScienceTransmission>.Ok(new ScienceTransmission
+            {
+                SubjectId = data[0].subjectID ?? string.Empty,
+                Title = data[0].title ?? string.Empty,
+                StartedAt = startedAt,
+                StreamSeconds = StreamSeconds(transmitter, amounts),
+                DataAmount = amounts.Sum(),
+            });
+        }
+
+        /// <summary>
+        /// A stock antenna's own packet size and interval; any other transmitter
+        /// only states a rate, so it is read as one packet a second at that rate.
+        /// </summary>
+        private static double StreamSeconds(IScienceDataTransmitter transmitter, IReadOnlyList<double> amounts)
+        {
+            if (transmitter is ModuleDataTransmitter stock)
+            {
+                return ScienceTransmissionStream.Seconds(amounts, stock.packetSize, stock.packetInterval);
+            }
+            return ScienceTransmissionStream.Seconds(amounts, transmitter.DataRate, 1.0);
         }
 
         /// <summary>

@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 18.13.0
+  version: 18.14.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 79 telemetry
     channels a client subscribes to, and 55 commands it dispatches, with the payload
@@ -6602,7 +6602,21 @@ components:
           - $ref: "#/components/schemas/CommandResponse"
           - properties:
               result:
-                $ref: "#/components/schemas/CommandResult"
+                description: |-
+                  R7 Fix 1: the payload-carrying result, `CommandResult` plus a typed
+                  CommandResult.Payload. `vessel.control.stage` returns `CommandResult<int>`
+                  (the new current stage index, rather than a void fire-and-forget);
+                  `vessel.maneuver.add` returns `CommandResult<string>` (the created node's
+                  opaque id, O-6 fixed). CommandResult.Payload is default (null for reference
+                  types) when `CommandResult.success` is false.
+                allOf:
+                  - $ref: "#/components/schemas/CommandResult"
+                  - type: object
+                    properties:
+                      payload:
+                        anyOf:
+                          - $ref: "#/components/schemas/ScienceTransmission"
+                          - type: "null"
     commandResponse.settings.save:
       name: command-response
       title: Reply to settings.save
@@ -16285,6 +16299,51 @@ components:
           description: |-
             Reading differs from the threshold. The inverse of
             `ScetAlarmThresholdOp.Equal`, and inherits its caveat.
+    ScienceTransmission:
+      type: object
+      description: |-
+        A science result the craft has started sending home, as
+        `science.experiment.transmit` answers it: when the stream began at the craft
+        and how long the transmitter needs to send all of it. The result has left
+        the craft at `ScienceTransmission.startedAt` plus
+        `ScienceTransmission.streamSeconds`, and it lands one light-time after that.
+
+        Absent from the reply when the backend cannot say, as a modelling mod that
+        drains results continuously cannot. A client then has nothing to draw the
+        transmission from, which is the truth: an absent transmission is never a
+        zero-length one.
+      required:
+        - subjectId
+        - title
+        - startedAt
+        - streamSeconds
+        - dataAmount
+      properties:
+        subjectId:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The research subject's id (`ScienceSubject.id`), the same key
+            `currency.<guid>.science` credits it under.
+        title:
+          type: string
+          x-sitrep-unit: text
+          description: The result's human title, e.g. "Crew Report from Kerbin's Shores".
+        startedAt:
+          type: number
+          x-sitrep-unit: ut
+          description: Universal Time at the craft when the transmitter was handed the result.
+        streamSeconds:
+          type: number
+          x-sitrep-unit: s
+          description: |-
+            How long the transmitter takes to send every packet, from its packet size
+            and interval. A floor: a transmitter starved of charge holds between
+            packets, and one already busy sends this after what it is holding.
+        dataAmount:
+          type: number
+          x-sitrep-unit: Mit
+          description: The amount of data sent.
     SendManeuverPlanArgs:
       type: object
       description: |-

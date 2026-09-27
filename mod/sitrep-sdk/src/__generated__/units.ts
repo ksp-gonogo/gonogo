@@ -1038,6 +1038,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     vesselId: "id",
     vesselName: "text",
   },
+  "ScienceTransmission": {
+    dataAmount: "Mit",
+    startedAt: "ut",
+    streamSeconds: "s",
+    subjectId: "id",
+    title: "text",
+  },
   "SendManeuverPlanArgs": {
     composedAtViewUt: "ut",
     desiredFinalTimeUt: "ut",

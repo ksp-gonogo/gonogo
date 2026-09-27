@@ -338,6 +338,8 @@ public static class RtConfig
                 // science.instruments / science.sensors entries
                 typeof(InstrumentEntry),
                 typeof(SensorEntry),
+                // science.experiment.transmit reply payload
+                typeof(ScienceTransmission),
                 // vessel.inventory channel payload + nested value shapes: stock
                 // cargo carried on parts AND on kerbals, which share one KSP
                 // module and so share one channel.

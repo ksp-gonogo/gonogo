@@ -106,5 +106,26 @@ namespace Sitrep.Core.Tests
             var result = WriteAndDecodeResult(null);
             Assert.Equal(JsonValueKind.Null, result.ValueKind);
         }
+
+        [Fact]
+        public void AScienceTransmissionPayloadCrossesTheWireAsItsCamelCaseFields()
+        {
+            CommandResult returned = CommandResult<ScienceTransmission>.Ok(new ScienceTransmission
+            {
+                SubjectId = "crewReport@KerbinSrfLandedShores",
+                Title = "Crew Report from Kerbin's Shores",
+                StartedAt = 1000,
+                StreamSeconds = 1.05,
+                DataAmount = 5,
+            });
+
+            var payload = WriteAndDecodeResult(returned).GetProperty("payload");
+
+            Assert.Equal("crewReport@KerbinSrfLandedShores", payload.GetProperty("subjectId").GetString());
+            Assert.Equal("Crew Report from Kerbin's Shores", payload.GetProperty("title").GetString());
+            Assert.Equal(1000, payload.GetProperty("startedAt").GetDouble());
+            Assert.Equal(1.05, payload.GetProperty("streamSeconds").GetDouble());
+            Assert.Equal(5, payload.GetProperty("dataAmount").GetDouble());
+        }
     }
 }

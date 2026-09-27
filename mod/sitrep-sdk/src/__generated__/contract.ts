@@ -4715,6 +4715,38 @@ export interface ExperimentActionArgs
 	partId: string;
 }
 /**
+* A science result the craft has started sending home, as
+* `science.experiment.transmit` answers it: when the stream began at the craft
+* and how long the transmitter needs to send all of it. The result has left
+* the craft at `ScienceTransmission.startedAt` plus
+* `ScienceTransmission.streamSeconds`, and it lands one light-time after that.
+*
+* Absent from the reply when the backend cannot say, as a modelling mod that
+* drains results continuously cannot. A client then has nothing to draw the
+* transmission from, which is the truth: an absent transmission is never a
+* zero-length one.
+*/
+export interface ScienceTransmission
+{
+	/**
+	* The research subject's id (`ScienceSubject.id`), the same key
+	* `currency.<guid>.science` credits it under.
+	*/
+	subjectId: string;
+	/** The result's human title, e.g. "Crew Report from Kerbin's Shores". */
+	title: string;
+	/** Universal Time at the craft when the transmitter was handed the result. */
+	startedAt: Value<"ut">;
+	/**
+	* How long the transmitter takes to send every packet, from its packet size
+	* and interval. A floor: a transmitter starved of charge holds between
+	* packets, and one already busy sends this after what it is holding.
+	*/
+	streamSeconds: Value<"s">;
+	/** The amount of data sent. */
+	dataAmount: Value<"Mit">;
+}
+/**
 * One entry in the `science.experiments` channel payload, a single science
 * module (or a container holding stored results) on the ACTIVE vessel. The
 * channel payload is a BARE ARRAY of these (`ExperimentEntry[]`) or `null`:

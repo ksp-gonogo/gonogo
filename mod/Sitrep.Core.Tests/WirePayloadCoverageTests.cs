@@ -296,6 +296,8 @@ namespace Sitrep.Core.Tests
                 RepairRefusal.ResultFor(new RepairOutcome { Repaired = true, KitsUsed = 1, KitsFrom = "carried" }));
             SerializeThroughWire(
                 RepairRefusal.ResultFor(new RepairOutcome { Repaired = false, Refusal = RepairRefusal.NoKits }));
+            SerializeThroughWire(
+                CommandResult<ScienceTransmission>.Ok(new ScienceTransmission { SubjectId = "crewReport@KerbinSrfLandedShores", StartedAt = 1000, StreamSeconds = 1.05, DataAmount = 5 }));
         }
 
         [Fact]

@@ -44,6 +44,17 @@ namespace Sitrep.Host.Tests
             Assert.Null(actuator.LastDeployPartId);
         }
 
+        [Fact]
+        public void HandleTransmitHandsBackTheActuatorsTransmissionPayload()
+        {
+            var transmission = new ScienceTransmission { SubjectId = "crewReport@KerbinSrfLandedShores", StartedAt = 1000, StreamSeconds = 1.05 };
+            var actuator = new FakeScienceActuator { TransmitResult = CommandResult<ScienceTransmission>.Ok(transmission) };
+
+            var result = ScienceCommandProvider.HandleTransmit(actuator, new ExperimentActionArgs { PartId = "67890" });
+
+            Assert.Same(transmission, Assert.IsType<CommandResult<ScienceTransmission>>(result).Payload);
+        }
+
         [Theory]
         [InlineData("")]
         [InlineData(null)]

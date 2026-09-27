@@ -92,6 +92,9 @@ public interface IScienceBackend : ISitrepProvider
     /// <see cref="DeployExperiment"/>. A backend whose transmission is
     /// continuous rather than a one-shot send (a modelling mod may drain
     /// stored results by value over time) implements this as "flag this for sending".
+    /// A backend that knows when a one-shot send will have left the craft answers
+    /// with a <see cref="CommandResult{T}"/> of <see cref="ScienceTransmission"/>,
+    /// which is what puts the transmission on a client's delay rail.
     /// </summary>
     CommandResult TransmitExperiment(ExperimentActionArgs args);
 }

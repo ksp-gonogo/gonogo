@@ -74,6 +74,7 @@ import type {
   SaveSettingsArgs,
   ScetAlarmArmArgs,
   ScetAlarmDisarmArgs,
+  ScienceTransmission,
   SendManeuverPlanArgs,
   ServoSetEnabledArgs,
   ServoSetTargetArgs,
@@ -183,7 +184,7 @@ export interface GeneratedCommandReplyMap {
   "robotics.servo.setMotor": CommandResult;
   "robotics.servo.setTarget": CommandResult;
   "science.experiment.deploy": CommandResult;
-  "science.experiment.transmit": CommandResult;
+  "science.experiment.transmit": CommandResultOf<ScienceTransmission>;
   "settings.save": CommandResult;
   "system.bodies.statesAt": BodyStatesReply;
   "system.frame.set": CommandResult;
@@ -251,7 +252,7 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "robotics.servo.setMotor": "CommandResult",
   "robotics.servo.setTarget": "CommandResult",
   "science.experiment.deploy": "CommandResult",
-  "science.experiment.transmit": "CommandResult",
+  "science.experiment.transmit": "CommandResultOf<ScienceTransmission>",
   "settings.save": "CommandResult",
   "system.bodies.statesAt": "BodyStatesReply",
   "system.frame.set": "CommandResult",

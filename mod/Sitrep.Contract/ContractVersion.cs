@@ -1943,7 +1943,12 @@ namespace Sitrep.Contract
         /// and <see cref="CareerContractParameter.MaxAltitude"/>, the altitude band a contract
         /// objective requires. Additive, nothing removed or retyped, so an Uplink built against
         /// 18.12 is unaffected.</para>
+        ///
+        /// <para><b>Major-18 line, Bumped 13 -&gt; 14:</b> <see cref="ScienceTransmission"/>, the
+        /// payload <c>science.experiment.transmit</c> answers with: when the stream began and how
+        /// long it takes to leave the craft. Additive, and the capability seam still returns
+        /// <see cref="CommandResult"/>, so an Uplink built against 18.13 is unaffected.</para>
         /// </remarks>
-        public const int Minor = 13;
+        public const int Minor = 14;
     }
 }

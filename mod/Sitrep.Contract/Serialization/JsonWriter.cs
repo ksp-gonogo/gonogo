@@ -495,6 +495,10 @@ namespace Sitrep.Contract.Serialization
                      */
                     AppendRepairOutcome(sb, repairOutcome);
                     break;
+                case Sitrep.Contract.ScienceTransmission scienceTransmission:
+                    // science.experiment.transmit's reply payload, inside CommandResult<ScienceTransmission>.Payload.
+                    AppendScienceTransmission(sb, scienceTransmission);
+                    break;
                 case Sitrep.Contract.IsruDrillEntry isruDrillEntry:
                     // Same boundary again: isru.drills/isru.converters publish
                     // List<IsruDrillEntry>/List<IsruConverterEntry> raw, whose
@@ -1997,6 +2001,36 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "kitsFrom");
             sb.Append(':');
             AppendNullableString(sb, o.KitsFrom);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// A transmission's <c>{ subjectId, title, startedAt, streamSeconds,
+        /// dataAmount }</c>, the payload half of <c>science.experiment.transmit</c>'s reply.
+        /// </summary>
+        private static void AppendScienceTransmission(
+            StringBuilder sb, Sitrep.Contract.ScienceTransmission t)
+        {
+            sb.Append('{');
+            AppendString(sb, "subjectId");
+            sb.Append(':');
+            AppendString(sb, t.SubjectId);
+            sb.Append(',');
+            AppendString(sb, "title");
+            sb.Append(':');
+            AppendString(sb, t.Title);
+            sb.Append(',');
+            AppendString(sb, "startedAt");
+            sb.Append(':');
+            AppendNumber(sb, t.StartedAt);
+            sb.Append(',');
+            AppendString(sb, "streamSeconds");
+            sb.Append(':');
+            AppendNumber(sb, t.StreamSeconds);
+            sb.Append(',');
+            AppendString(sb, "dataAmount");
+            sb.Append(':');
+            AppendNumber(sb, t.DataAmount);
             sb.Append('}');
         }
 
