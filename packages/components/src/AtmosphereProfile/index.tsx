@@ -97,6 +97,7 @@ function AtmosphereProfileComponent({
         dashed: false,
         /* The altitude is the craft's own, so a held record marks the label. */
         reading: readingOf(flightReading, (f) => f.altitudeAsl),
+        drawsReckoning: true,
       },
     ];
   }, [currentPressure, altitude, narrow, flightReading]);

@@ -571,6 +571,42 @@ describe("LineChart threshold currency", () => {
     expect(chartName(container)).toMatch(/400 pascals @ 30 km, .+/);
   });
 
+  it("marks a current reading's label when the line stands at a figure the model carried to SCET", () => {
+    const carried: Reading<Value<"m">> = {
+      ...live,
+      reckoning: {
+        status: "available",
+        atUt: value("ut", 1_240),
+        beyondReceived: true,
+        modelled: value("m", 29_000),
+        basis: "rate-integration",
+      },
+    };
+    const container = render(
+      <LineChart
+        series={[]}
+        xDomain={[0, 70_000]}
+        yDomainPrimary={[1, 100_000]}
+        thresholds={[
+          {
+            id: "current",
+            value: 420,
+            axis: "primary",
+            label: "420 pascals @ 29 km",
+            reading: carried,
+            drawsReckoning: true,
+          },
+        ]}
+        width={400}
+        height={200}
+      />,
+    ).container;
+    expect(
+      container.querySelector("text [data-not-current-mark]"),
+    ).not.toBeNull();
+    expect(chartName(container)).toMatch(/modelled to SCET/);
+  });
+
   it("draws a current reading, or none, exactly as a bare line", () => {
     for (const reading of [live, undefined]) {
       const container = chartWith(reading);

@@ -39,6 +39,8 @@ export interface GraphThresholdConfig {
   dashed?: boolean;
   /** The reading the line was drawn from; a held one marks the label. */
   reading?: UnitValue;
+  /** The line stands at the reading's modelled figure rather than its observation. */
+  drawsReckoning?: boolean;
 }
 
 /**

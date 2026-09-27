@@ -90,6 +90,8 @@ export interface ThresholdRule {
   dashed?: boolean;
   /** When held, the label carries the held-reading mark and the chart's accessible name says so. */
   reading?: UnitValue;
+  /** The line stands at the reading's modelled figure rather than its observation, so a figure carried to SCET is marked too. */
+  drawsReckoning?: boolean;
 }
 
 export type AxisScale = "linear" | "log";
@@ -501,7 +503,9 @@ export function LineChart({
     return thresholds.map((t) => ({
       id: t.id,
       label: t.label,
-      currency: resolveCurrency(t.reading),
+      currency: resolveCurrency(t.reading, {
+        drawsReckoning: t.drawsReckoning,
+      }),
       color: t.color ?? "var(--color-text-faint)",
       dashed: t.dashed ?? true,
       y:
