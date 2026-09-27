@@ -1,5 +1,5 @@
 import { getSizeBucket } from "@ksp-gonogo/core";
-import type { CommandButtonHandle } from "@ksp-gonogo/ui-kit";
+import type { CommandButtonHandle, UnitValue } from "@ksp-gonogo/ui-kit";
 import { Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import { DetailPanel } from "./DetailPanel";
@@ -37,10 +37,47 @@ export interface TechTreeViewProps {
   allNodes: TechNode[] | null;
   sciAvailable: number | null;
   careerNotCurrent: boolean;
+  /** The science balance as drawn, held included so Unit can mark it. */
+  scienceShown: UnitValue<"science">;
   scene: string | null | undefined;
   chargesScience: boolean;
   unlockCmd: CommandButtonHandle;
   unlockBlocked: boolean;
+}
+
+/** The subtitle's science balance; it stays on screen when missing, since that is when the Unlocks refuse. */
+function ScienceBalance({
+  sciAvailable,
+  careerNotCurrent,
+  scienceShown,
+  chargesScience,
+}: {
+  sciAvailable: number | null;
+  careerNotCurrent: boolean;
+  scienceShown: UnitValue<"science">;
+  chargesScience: boolean;
+}) {
+  if (sciAvailable !== null) {
+    return (
+      <SciReadout title="Available science">
+        · {Math.round(sciAvailable)}
+        <Unit>science</Unit>
+      </SciReadout>
+    );
+  }
+  if (!chargesScience) return null;
+  if (careerNotCurrent) {
+    return (
+      <SciReadout title="Available science">
+        · <Unit value={scienceShown} decimals={0} />
+      </SciReadout>
+    );
+  }
+  return (
+    <SciReadout title="No science balance has arrived">
+      · science unknown
+    </SciReadout>
+  );
 }
 
 export function TechTreeView({
@@ -49,6 +86,7 @@ export function TechTreeView({
   allNodes,
   sciAvailable,
   careerNotCurrent,
+  scienceShown,
   scene,
   chargesScience,
   unlockCmd,
@@ -112,14 +150,16 @@ export function TechTreeView({
               {counts.researchable}
               <TinyLabel>RESEARCHABLE</TinyLabel>
             </TinyCount>
-            {sciAvailable !== null ? (
+            {sciAvailable !== null && (
               <TinySci>
                 {Math.round(sciAvailable)}
                 <Unit>science</Unit>
               </TinySci>
-            ) : (
-              /* A withheld balance spends tiny mode's one line saying so, or it looks like a save that never had one. */
-              careerNotCurrent && <TinySci>SCIENCE NOT CURRENT</TinySci>
+            )}
+            {sciAvailable === null && careerNotCurrent && (
+              <TinySci>
+                <Unit value={scienceShown} decimals={0} />
+              </TinySci>
             )}
           </Section>
         }
@@ -143,24 +183,12 @@ export function TechTreeView({
     <span role="status" aria-live="polite">
       {counts.unlocked}/{allNodes.length} unlocked · {counts.researchable}{" "}
       researchable{" "}
-      {sciAvailable !== null ? (
-        <SciReadout title="Available science">
-          · {Math.round(sciAvailable)}
-          <Unit>science</Unit>
-        </SciReadout>
-      ) : (
-        /* The balance stays on screen when it is missing, since that is when the Unlocks refuse; a save without one and a link that stopped get different words. */
-        chargesScience &&
-        (careerNotCurrent ? (
-          <SciReadout title="The science balance is no longer current">
-            · science not current
-          </SciReadout>
-        ) : (
-          <SciReadout title="No science balance has arrived">
-            · science unknown
-          </SciReadout>
-        ))
-      )}
+      <ScienceBalance
+        sciAvailable={sciAvailable}
+        careerNotCurrent={careerNotCurrent}
+        scienceShown={scienceShown}
+        chargesScience={chargesScience}
+      />
     </span>
   ) : undefined;
 

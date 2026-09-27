@@ -5,7 +5,7 @@ import {
   useGameContext,
 } from "@ksp-gonogo/core";
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
-import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
+import { readingOf, stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import { usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { magnitudeOf } from "../shared/magnitude";
 import { TechTreeView } from "./TechTreeView";
@@ -36,6 +36,11 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const careerScience =
     career.state === "observed" ? career.value.economy?.science : undefined;
   const careerNotCurrent = career.state === "stale";
+  // The balance as drawn: a held one stays on screen and Unit marks it.
+  const scienceShown = readingOf(
+    career,
+    (c) => c.economy?.science ?? undefined,
+  );
   // The game scene is a fact as well: it changes when the player walks through a door, which is an event and not a drift.
   const scene = stillTrue(
     topics.useTelemetry("spaceCenter.scene"),
@@ -59,6 +64,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
       allNodes={allNodes}
       sciAvailable={sciAvailable}
       careerNotCurrent={careerNotCurrent}
+      scienceShown={scienceShown}
       scene={scene}
       chargesScience={chargesScience}
       unlockCmd={unlockCmd}

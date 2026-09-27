@@ -28,7 +28,7 @@ function priceTooltip(
   const need = () => writeQuantity(value("science", n.scienceCost as number));
   if (sciAvailable === null) {
     if (careerNotCurrent) {
-      return `Need ${need()} (the science balance is no longer current)`;
+      return `Need ${need()} (affordability cannot be checked against a held balance)`;
     }
     return `Need ${need()} (no science balance has arrived)`;
   }

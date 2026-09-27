@@ -10,7 +10,7 @@ import {
 import { TechTreeComponent } from "./index";
 
 /**
- * When `career.status` stops being current, TechTree keeps the node list (nobody can spend down a dead link, so the tree is still the tree) and withholds the science balance, which Unlock would turn into a claim about now. The assertions that matter separate withheld from never-arrived.
+ * When `career.status` stops being current, TechTree keeps the node list (nobody can spend down a dead link, so the tree is still the tree) and keeps the science balance on screen marked held, without letting Unlock turn it into a claim about now. The assertions that matter separate held from never-arrived.
  */
 
 const CARRIED = ["career.status", "spaceCenter.scene"];
@@ -89,6 +89,7 @@ describe("TechTree when the career record is no longer current", () => {
 
     expect(screen.getByRole("button", { name: "Unlock" })).toBeEnabled();
     expect(screen.getByRole("status").textContent).toContain("5000");
+    expect(document.querySelector("[data-not-current]")).toBeNull();
   });
 
   it("keeps the tech tree browsable, because a node list cannot change unobserved", async () => {
@@ -102,14 +103,16 @@ describe("TechTree when the career record is no longer current", () => {
 
     // Not the awaiting placeholder and not an empty tree: both would misstate a catalogue we hold.
     await waitFor(() =>
-      expect(screen.getByRole("status").textContent).toContain("not current"),
+      expect(
+        screen.getByRole("status").querySelector("[data-not-current]"),
+      ).not.toBeNull(),
     );
     expect(screen.getByText("Pricey Tech")).toBeInTheDocument();
     expect(visibleText(document.body)).not.toContain("Awaiting tech telemetry");
     expect(visibleText(document.body)).not.toContain("No tech nodes loaded");
   });
 
-  it("disarms Unlock and says the balance is no longer current, not that none arrived", async () => {
+  it("disarms Unlock and says the balance is held, not that none arrived", async () => {
     const user = userEvent.setup();
     renderTree();
     emitAffordableCareer();
@@ -128,7 +131,7 @@ describe("TechTree when the career record is no longer current", () => {
     });
     // The scene is still held, so the refusal is the balance, and the button says which kind of missing it is.
     expect(unlock.getAttribute("title")).toContain(
-      "the science balance is no longer current",
+      "affordability cannot be checked against a held balance",
     );
     expect(unlock.getAttribute("title")).not.toContain(
       "no science balance has arrived",
@@ -138,7 +141,7 @@ describe("TechTree when the career record is no longer current", () => {
     );
   });
 
-  it("withholds the balance from the subtitle in words distinct from an absent one", async () => {
+  it("keeps the held balance in the subtitle, marked by Unit rather than captioned", async () => {
     renderTree();
     emitAffordableCareer();
     await waitFor(() =>
@@ -148,24 +151,32 @@ describe("TechTree when the career record is no longer current", () => {
     goNotCurrent();
 
     await waitFor(() =>
-      expect(screen.getByRole("status").textContent).toBe(
-        "0/1 unlocked · 1 researchable · science not current",
-      ),
+      expect(
+        screen
+          .getByTitle("Available science")
+          .querySelector("[data-not-current]"),
+      ).not.toBeNull(),
     );
+    const status = screen.getByRole("status").textContent ?? "";
+    expect(status).toContain("5,000");
+    expect(status).not.toContain("not current");
+    expect(status).not.toContain("science unknown");
   });
 
-  it("spends its one tiny-mode line saying the balance is withheld", async () => {
-    // A withheld balance must not reuse tiny mode's no-balance path, or a dropped link looks like a save with no science.
+  it("keeps tiny mode's balance line, marked held rather than replaced", async () => {
+    // A held balance must not reuse tiny mode's no-balance path, or a dropped link looks like a save with no science.
     const { container } = renderTree(4, 3);
     emitAffordableCareer();
     await waitFor(() => expect(visibleText(container)).toContain("5000"));
+    expect(container.querySelector("[data-not-current]")).toBeNull();
 
     goNotCurrent();
 
     await waitFor(() =>
-      expect(visibleText(container)).toContain("SCIENCE NOT CURRENT"),
+      expect(container.querySelector("[data-not-current]")).not.toBeNull(),
     );
-    expect(visibleText(container)).not.toContain("5000");
+    expect(visibleText(container)).toContain("5,000");
+    expect(visibleText(container)).not.toContain("NOT CURRENT");
   });
 
   it("says nothing about currency before anything has ever arrived", async () => {
@@ -174,6 +185,6 @@ describe("TechTree when the career record is no longer current", () => {
     await waitFor(() =>
       expect(visibleText(container)).toContain("Awaiting tech telemetry"),
     );
-    expect(visibleText(container)).not.toContain("not current");
+    expect(container.querySelector("[data-not-current]")).toBeNull();
   });
 });
