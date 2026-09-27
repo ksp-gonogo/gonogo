@@ -1,4 +1,4 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
+import { render, screen, within } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { UplinkIntegrityFailure } from "./integrity";
@@ -252,8 +252,12 @@ describe("UplinkIntegrityBanner", () => {
 
     render(<UplinkIntegrityBanner />);
 
-    const region = screen.getByRole("status", { name: "Uplink integrity" });
-    expect(region).toHaveAttribute("aria-live", "polite");
+    const note = screen.getByRole("note", { name: "Uplink integrity" });
+    const announcer = document.querySelector("[data-live-region]");
+    expect(announcer).toHaveAttribute("aria-live", "polite");
+    expect(announcer?.textContent).toContain(
+      within(note).getByText(/Widget A/).textContent ?? "missing",
+    );
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 

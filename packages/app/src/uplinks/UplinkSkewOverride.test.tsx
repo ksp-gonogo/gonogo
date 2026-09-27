@@ -8,7 +8,7 @@
  * `isOverridableIntegrityFailure` or decides for itself.
  */
 
-import { render, screen } from "@ksp-gonogo/test-utils";
+import { render, screen, within } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -106,26 +106,33 @@ describe("the control appears for skew and not for a byte mismatch", () => {
   });
 });
 
+/** The banner's own words, without the announcer's copy of them beside it. */
+function banner() {
+  return within(screen.getByRole("note", { name: "Uplink integrity" }));
+}
+
 describe("the prompt states both hashes, both parties, and what accepting does", () => {
   it("names the installed mod and the Hub index against their own hashes", () => {
     setUplinkOutcome(outcome("widget-a", SKEW));
     render(<UplinkIntegrityBanner />);
 
     expect(
-      screen.getByText(
+      banner().getByText(
         /the Hub index and the installed mod name different clients/i,
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText(`Hub index: ${INDEX_HASH}`)).toBeInTheDocument();
-    expect(screen.getByText(`installed mod: ${MOD_HASH}`)).toBeInTheDocument();
+    expect(banner().getByText(`Hub index: ${INDEX_HASH}`)).toBeInTheDocument();
+    expect(
+      banner().getByText(`installed mod: ${MOD_HASH}`),
+    ).toBeInTheDocument();
   });
 
   it("says nothing has been fetched, which is what makes it skew rather than tampering", () => {
     setUplinkOutcome(outcome("widget-a", SKEW));
     render(<UplinkIntegrityBanner />);
 
-    expect(screen.getByText(/Nothing has been fetched/)).toBeInTheDocument();
-    expect(screen.getByText(/No bytes were fetched/)).toBeInTheDocument();
+    expect(banner().getByText(/Nothing has been fetched/)).toBeInTheDocument();
+    expect(banner().getByText(/No bytes were fetched/)).toBeInTheDocument();
   });
 
   it("states that the bundle is still hashed against the index", () => {
@@ -133,7 +140,7 @@ describe("the prompt states both hashes, both parties, and what accepting does",
     render(<UplinkIntegrityBanner />);
 
     expect(
-      screen.getByText(
+      banner().getByText(
         new RegExp(`still refused unless it hashes to ${INDEX_HASH}`),
       ),
     ).toBeInTheDocument();
@@ -147,7 +154,7 @@ describe("the banner keeps the two findings apart", () => {
     render(<UplinkIntegrityBanner />);
 
     expect(
-      screen.getByText(/the bytes on the wire are not the bytes/i),
+      banner().getByText(/the bytes on the wire are not the bytes/i),
     ).toBeInTheDocument();
     // One control, for the one overridable finding.
     expect(screen.getAllByRole("button", { name: "Use anyway" })).toHaveLength(
@@ -159,14 +166,14 @@ describe("the banner keeps the two findings apart", () => {
     setUplinkOutcome(outcome("widget-a", SKEW));
     const skewOnly = render(<UplinkIntegrityBanner />);
     expect(
-      skewOnly.getByText("Hash disagreement", { exact: false }),
+      banner().getByText("Hash disagreement", { exact: false }),
     ).toBeInTheDocument();
 
     skewOnly.unmount();
     __resetUplinkOutcomes();
     setUplinkOutcome(outcome("widget-b", TAMPERED));
     render(<UplinkIntegrityBanner />);
-    expect(screen.getByText("Integrity failure")).toBeInTheDocument();
+    expect(banner().getByText("Integrity failure")).toBeInTheDocument();
   });
 });
 
