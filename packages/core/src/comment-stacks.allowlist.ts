@@ -323,7 +323,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/sitrep-client/src/context.test.tsx": 1,
   "packages/sitrep-client/src/control-stream-model.test.ts": 2,
   "packages/sitrep-client/src/currency-events.test.tsx": 2,
-  "packages/sitrep-client/src/delay-authority.test.ts": 1,
   "packages/sitrep-client/src/delayed-integration.test.tsx": 1,
   "packages/sitrep-client/src/fleet-position.test.ts": 1,
   "packages/sitrep-client/src/fleet-silence-roster.test.ts": 1,
