@@ -58,7 +58,7 @@ export function ComDatumNote({ model }: Model) {
   if (!model.usingComDatum) return null;
   return (
     <Text tone="muted" size="xs">
-      centre-of-mass altitude (lowest-point datum unavailable)
+      root-part altitude (lowest-point datum unavailable)
     </Text>
   );
 }

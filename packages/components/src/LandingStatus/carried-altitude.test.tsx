@@ -181,3 +181,64 @@ describe("the carried ASL altitude reaches the operator", () => {
     await expectNoA11yViolations(tree.container);
   });
 });
+
+describe("the carried ASL altitude under signal delay", () => {
+  let restoreResizeObserver: () => void;
+
+  beforeEach(() => {
+    for (const b of PerfBudget.getAll()) b.reset();
+    restoreResizeObserver = installSizedResizeObserver({ w: 720, h: 640 });
+    registerStockBodies();
+  });
+
+  afterEach(() => {
+    restoreResizeObserver();
+  });
+
+  /** The drag-biting descent, current on the link, with every frame arriving `owlt` seconds after the craft sent it. */
+  async function mountDelayed(owlt: number): Promise<RenderResult> {
+    const fixture = loadHandoverFixture("05-drag-biting-42km.json");
+    const stream = setupStreamFixture({
+      carriedChannels: fixture._stream.carriedChannels,
+      delaySeconds: owlt,
+      suspendFrames: true,
+    });
+    const tree = render(
+      <stream.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "carried-delay" }}>
+          <WidgetContributions Widget={LandingStatusComponent}>
+            <LandingStatusComponent id="carried-delay" w={8} h={12} />
+          </WidgetContributions>
+        </DashboardItemContext.Provider>
+      </stream.Provider>,
+    );
+    act(() => {
+      for (const emit of fixture._stream.emits) {
+        const stamped = emit.meta?.validAt;
+        const validAt = typeof stamped === "number" ? stamped : 0;
+        stream.emit(emit.channel, emit.value, {
+          ...emit.meta,
+          staleness: 0,
+          validAt,
+          deliveredAt: validAt + owlt,
+        });
+      }
+      stream.emitFrame();
+    });
+    await flushResizeObservers();
+    return tree;
+  }
+
+  it("carries a current reading across the light-time to SCET beside the observation", async () => {
+    const tree = await mountDelayed(6);
+    const text = readoutText(tree);
+    expect(text).toMatch(/42\.0/);
+    expect(text).toMatch(/38\.0/);
+    expect(tree.getByText("Carried to SCET")).toBeInTheDocument();
+  });
+
+  it("draws the observation alone when there is no light-time to carry it across", async () => {
+    const tree = await mountDelayed(0);
+    expect(tree.queryByText("Carried to SCET")).toBeNull();
+  });
+});

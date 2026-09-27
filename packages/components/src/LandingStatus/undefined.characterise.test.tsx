@@ -21,7 +21,7 @@ import { LandingStatusComponent } from "./index";
  *
  * - `vessel.flight` absent means "not descending", suppressing the body behind an empty state
  * - `comms.delay` absent means "no link", while a present but empty record means zero delay
- * - `vessel.surface` absent falls back to the centre-of-mass datum and says so, identically for a tombstone and a never-arrived channel
+ * - `vessel.surface` absent falls back to the root-part datum and says so, identically for a tombstone and a never-arrived channel
  * - `dv.summary` absent withholds the affordability verdict rather than answering "insufficient"
  *
  * Every one stops gating once a `Reading` is always truthy, so each has a test proving it fires.
@@ -253,8 +253,8 @@ describe("LandingStatus: what undefined means today", () => {
     await waitFor(() => expect(screen.getByText("LIVE")).toBeInTheDocument());
   });
 
-  it("degrades to the centre-of-mass datum WITH a note when vessel.surface never arrives", async () => {
-    // The note is the only on-screen distinction between the lowest-point datum and the centre-of-mass fallback.
+  it("degrades to the root-part datum WITH a note when vessel.surface never arrives", async () => {
+    // The note is the only on-screen distinction between the lowest-point datum and the root-part fallback.
     renderWidget();
 
     act(() => {
@@ -263,9 +263,7 @@ describe("LandingStatus: what undefined means today", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText(
-          "centre-of-mass altitude (lowest-point datum unavailable)",
-        ),
+        screen.getByText("root-part altitude (lowest-point datum unavailable)"),
       ).toBeInTheDocument(),
     );
 
@@ -276,13 +274,13 @@ describe("LandingStatus: what undefined means today", () => {
     await waitFor(() =>
       expect(
         screen.queryByText(
-          "centre-of-mass altitude (lowest-point datum unavailable)",
+          "root-part altitude (lowest-point datum unavailable)",
         ),
       ).toBeNull(),
     );
   });
 
-  it("withholds the burn cue, countdown and hot band while only the centre-of-mass datum is known", async () => {
+  it("withholds the burn cue, countdown and hot band while only the root-part datum is known", async () => {
     // A viable descent, so every burn instruction would otherwise be drawn.
     renderWidget();
     act(() => {
@@ -298,9 +296,7 @@ describe("LandingStatus: what undefined means today", () => {
       screen.getByRole("meter", { name: /altitude above terrain/i });
     await waitFor(() =>
       expect(
-        screen.getByText(
-          "centre-of-mass altitude (lowest-point datum unavailable)",
-        ),
+        screen.getByText("root-part altitude (lowest-point datum unavailable)"),
       ).toBeInTheDocument(),
     );
     const hero = screen.getByRole("status");
@@ -322,7 +318,7 @@ describe("LandingStatus: what undefined means today", () => {
     expect(visibleText()).toMatch(/ignite in/);
   });
 
-  it("shows the same centre-of-mass note for a TOMBSTONED vessel.surface as for an absent one", async () => {
+  it("shows the same root-part note for a TOMBSTONED vessel.surface as for an absent one", async () => {
     // `== null` catches both, so "no lowest-point datum" and "none arrived yet" are one state here.
     renderWidget();
 
@@ -341,9 +337,7 @@ describe("LandingStatus: what undefined means today", () => {
       ).toHaveAttribute("aria-valuenow", "4800"),
     );
     expect(
-      screen.queryByText(
-        "centre-of-mass altitude (lowest-point datum unavailable)",
-      ),
+      screen.queryByText("root-part altitude (lowest-point datum unavailable)"),
     ).toBeNull();
 
     act(() => {
@@ -352,15 +346,13 @@ describe("LandingStatus: what undefined means today", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText(
-          "centre-of-mass altitude (lowest-point datum unavailable)",
-        ),
+        screen.getByText("root-part altitude (lowest-point datum unavailable)"),
       ).toBeInTheDocument(),
     );
-    // The rail swaps to the centre-of-mass altitude off `vessel.flight`, a different measurement at the same scale, and names it.
+    // The rail swaps to the root-part altitude off `vessel.flight`, a different measurement at the same scale, and names it.
     expect(
       screen.getByRole("meter", {
-        name: /centre-of-mass altitude above terrain/i,
+        name: /root-part altitude above terrain/i,
       }),
     ).toHaveAttribute("aria-valuenow", "5000");
   });

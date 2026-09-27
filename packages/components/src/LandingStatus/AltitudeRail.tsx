@@ -9,7 +9,7 @@ import { Tape, Text, writeQuantity } from "@ksp-gonogo/ui-kit";
 export interface AltitudeRailProps {
   /** Height above terrain, of the vessel's lowest point unless `centreOfMass`. */
   agl: Reading<Value<"m">>;
-  /** The height is the centre of mass's, the lowest-point datum being unavailable: the rail draws no burn band and names no ignition. */
+  /** The height is the root part's, the lowest-point datum being unavailable: the rail draws no burn band and names no ignition. */
   centreOfMass?: boolean;
   /** AGL at which the suicide burn must begin, metres. */
   ignitionAltitude: number | null;
@@ -79,7 +79,7 @@ export function AltitudeRail({
           zones={zones}
           ariaLabel={
             centreOfMass
-              ? "Centre-of-mass altitude above terrain"
+              ? "Root-part altitude above terrain"
               : "Altitude above terrain"
           }
         />

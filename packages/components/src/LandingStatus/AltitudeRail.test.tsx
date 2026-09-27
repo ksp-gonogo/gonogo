@@ -34,11 +34,11 @@ describe("AltitudeRail", () => {
     expect(ladder).toHaveAttribute("aria-valuenow", "1200");
   });
 
-  it("names the centre-of-mass datum when the lowest point is unavailable", () => {
+  it("names the root-part datum when the lowest point is unavailable", () => {
     render(<AltitudeRail {...descending} centreOfMass />);
     expect(
       screen.getByRole("meter", {
-        name: "Centre-of-mass altitude above terrain",
+        name: "Root-part altitude above terrain",
       }),
     ).toHaveAttribute("aria-valuenow", "1200");
   });

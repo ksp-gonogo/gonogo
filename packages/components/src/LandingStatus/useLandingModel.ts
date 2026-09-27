@@ -57,7 +57,7 @@ export interface LandingModel {
   bodyName: string | null | undefined;
   atmospheric: boolean;
   targetRange: number | undefined;
-  /** The burn datum: the lowest point above terrain, else the centre of mass. */
+  /** The burn datum: the lowest point above terrain, else the root part. */
   heightFromTerrain: Value<"m"> | null | undefined;
   usingComDatum: boolean;
   aglReading: Reading<Value<"m">>;

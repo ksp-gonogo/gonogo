@@ -282,7 +282,7 @@ describe("LandingStatusComponent", () => {
     });
     await screen.findByText("2.80");
     expect(visibleText(container)).toContain("2.80 km");
-    expect(screen.getByText(/centre-of-mass/i)).toBeInTheDocument();
+    expect(screen.getByText(/root-part/i)).toBeInTheDocument();
   });
 
   it("suppresses the vacuum burn numbers on atmospheric bodies", async () => {

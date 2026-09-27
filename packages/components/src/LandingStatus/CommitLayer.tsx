@@ -46,7 +46,7 @@ export interface CommitLayerProps {
   suicideBurnCountdown: number | null;
   commitInSeconds: number | null;
   committed: boolean;
-  /** The height is the centre of mass's: the burn solve is biased by the lowest point's offset, so no burn timing is named. */
+  /** The height is the root part's: the burn solve is biased by the lowest point's offset, so no burn timing is named. */
   centreOfMass?: boolean;
   /** True once the vessel has touched down: the descent clocks are void and the hero shows LANDED. */
   landed?: boolean;

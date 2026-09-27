@@ -180,7 +180,7 @@ export const SHEETS: MeterSheet[] = [
     title: "A band on a reading that is no longer current",
     blurb:
       "A stale bar is the last real observation and is marked as one. The marks " +
-      "are the model's interval for NOW, so the gap between the bar's end and " +
+      "are the model's interval at SCET, so the gap between the bar's end and " +
       "the pair is how far the model has carried the number since.",
     width: 360,
     cases: [

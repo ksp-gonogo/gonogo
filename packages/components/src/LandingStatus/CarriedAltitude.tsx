@@ -21,24 +21,27 @@ export type FlightReading = ReckonableReading<
 /**
  * Altitude above sea level: the last measurement, where the model puts it now, and how well it claims to know that.
  *
- * ASL is the quantity `vessel.flight` has a reckoner for; AGL has none, since a fitted rate says nothing about the terrain ahead. The observation stays the headline and is marked, never replaced, and the carried figure and interval appear only while the reading is not current.
+ * ASL is the quantity `vessel.flight` has a reckoner for; AGL has none, since a fitted rate says nothing about the terrain ahead. The observation stays the headline and is marked, never replaced, and the carried figure and interval appear whenever the observation is not the craft's present: the reading is held, or a light-time behind SCET.
  */
 export function CarriedAltitude({ reading }: { reading: FlightReading }) {
   const observed = readingOf(reading, (f) => f.altitudeAsl);
   const decimals =
     "value" in observed ? altitudeDecimals(observed.value) : undefined;
-  const carrying = reading.state === "stale";
   // The field reading, which carries its own band and carried figure.
   const altitude = reading.altitudeAsl;
+  const carrying =
+    reading.state === "stale" ||
+    (altitude.reckoning.status === "available" &&
+      altitude.reckoning.beyondReceived);
   const modelled =
     carrying && altitude.reckoning.status === "available"
       ? altitude.reckoning
       : undefined;
   const carried = modelled ? modelled.modelled : null;
   const band = bandIn(modelled?.band, "m");
-  // Only while the reading is not current; on a live link the observation is now.
+  // Only while the reading is held; a current one the model declines to carry stands as the observation.
   const declined =
-    carrying && reading.reckoning.status === "declined"
+    reading.state === "stale" && reading.reckoning.status === "declined"
       ? reading.reckoning.declined
       : undefined;
   return (
@@ -54,7 +57,7 @@ export function CarriedAltitude({ reading }: { reading: FlightReading }) {
           </Text>
         )}
         {carrying && (
-          <GridCellPair label="Carried to now">
+          <GridCellPair label="Carried to SCET">
             {carried === null ? (
               NULL_DISPLAY
             ) : (
