@@ -12,7 +12,7 @@ import {
   useFleetVesselSilence,
   useOrbitTrajectory,
   useProcessor,
-  useViewUt,
+  useScetUt,
 } from "@ksp-gonogo/sitrep-client";
 import { Panel, useElementSize } from "@ksp-gonogo/ui";
 import { FramedDisplay, NULL_DISPLAY, Section } from "@ksp-gonogo/ui-kit";
@@ -120,7 +120,7 @@ function SystemViewComponent({
       ? commsNetworkReading.value
       : undefined;
   // Unwrapped at the read: the finiteness guards below answer no for a wrapped value and would silently stop drawing the arc.
-  const universalTime = useViewUt()?.magnitude;
+  const universalTime = useScetUt()?.magnitude;
   const {
     entities,
     selectedVesselId,
@@ -341,7 +341,7 @@ function SystemViewComponent({
           : null
       }
       encounterTimeSec={
-        // `encounterTimeUt` is an ABSOLUTE UT (transitionUt); the panel wants seconds-to-event, so subtract the view-UT.
+        // `encounterTimeUt` is an ABSOLUTE UT (transitionUt); the panel wants seconds-to-event, so subtract SCET.
         encounterTimeUt != null && nowUt !== null
           ? encounterTimeUt - nowUt
           : null

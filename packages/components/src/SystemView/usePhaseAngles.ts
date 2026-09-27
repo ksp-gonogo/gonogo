@@ -2,7 +2,7 @@ import { useTelemetry } from "@ksp-gonogo/core";
 import {
   canPropagate,
   deriveTrueAnomalyDeg,
-  useViewUt,
+  useScetUt,
 } from "@ksp-gonogo/sitrep-client";
 import { useMemo } from "react";
 import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
@@ -13,7 +13,7 @@ import type { CelestialBody } from "./useCelestialBodies";
  *
  * Each object's true longitude is `wrap360(lan + argPe + trueAnomaly)` and the phase angle is `wrap360(bodyLon - vesselLon)`, positive when the body is ahead prograde, matching `hohmannPhaseAngle`. That longitude is exact only for coplanar orbits, the transfer window's own assumption.
  *
- * Returns a stable empty map when there is no vessel orbit, the orbit is hyperbolic, the view UT is unknown, or the provider will not answer for the instant on screen.
+ * Returns a stable empty map when there is no vessel orbit, the orbit is hyperbolic, SCET is unknown, or the provider will not answer for it.
  */
 export function usePhaseAngles(
   bodies: readonly CelestialBody[],
@@ -32,7 +32,7 @@ export function usePhaseAngles(
         ? { ...orbitObserved, ...orbitReading.reckoning.value }
         : orbitObserved;
   // Unwrapped at the read; `magnitudeOf` already answers null for an absent or non-finite reading.
-  const ut = magnitudeOf(useViewUt());
+  const ut = magnitudeOf(useScetUt());
 
   return useMemo(() => {
     if (!orbit) return EMPTY;

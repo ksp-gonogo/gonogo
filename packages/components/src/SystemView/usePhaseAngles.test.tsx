@@ -241,3 +241,42 @@ describe("usePhaseAngles", () => {
     });
   });
 });
+
+describe("usePhaseAngles under signal delay", () => {
+  const UT_NOW = 1_000;
+
+  /** The Mun's phase angle when the vessel's elements left it `owlt` seconds before its present of `UT_NOW`. */
+  async function phaseAtLightTime(owlt: number): Promise<number | undefined> {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.orbit"],
+      delaySeconds: owlt,
+      suspendFrames: true,
+    });
+    const { result } = renderHook(
+      () =>
+        usePhaseAngles([
+          makeBody(1, "Mun", {
+            lan: 90,
+            argumentOfPeriapsis: 0,
+            trueAnomaly: 0,
+          }),
+        ]),
+      { wrapper: fixture.Provider },
+    );
+    act(() => {
+      fixture.emit("vessel.orbit", vesselAtLongitude(0), {
+        validAt: UT_NOW - owlt,
+        deliveredAt: UT_NOW,
+      });
+      fixture.emitFrame();
+    });
+    await waitFor(() => expect(result.current.get(1)).toBeDefined());
+    return result.current.get(1);
+  }
+
+  it("measures the vessel where it is at the craft's present, not at the received edge", async () => {
+    const atCraft = await phaseAtLightTime(0);
+    const delayed = await phaseAtLightTime(240);
+    expect(delayed).toBeCloseTo(atCraft ?? Number.NaN, 4);
+  });
+});

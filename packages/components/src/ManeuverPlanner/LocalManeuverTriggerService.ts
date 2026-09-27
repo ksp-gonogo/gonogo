@@ -3,12 +3,12 @@ import {
   bodyRadiusOf,
   dispatchActiveCommandTopic,
   getOrbitSolve,
+  getScetUt,
   getSystemBodies,
   getValue,
   getVesselIdentity,
   getVesselOrbit,
   getVesselTarget,
-  getViewUt,
   onActiveTimelineFrame,
   solveOrbit,
 } from "@ksp-gonogo/sitrep-client";
@@ -150,7 +150,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
     const target = getVesselTarget();
     const targetOrbit = target?.orbit;
     // The target's altitude needs the target's own reference body, not the craft's.
-    const currentUT = getViewUt();
+    const currentUT = getScetUt();
     const targetSolved =
       targetOrbit == null || currentUT === undefined
         ? undefined

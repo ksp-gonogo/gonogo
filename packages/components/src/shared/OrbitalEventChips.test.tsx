@@ -64,3 +64,60 @@ describe("OrbitalEventChips", () => {
     expect(visibleText()).toBe("");
   });
 });
+
+describe("OrbitalEventChips under signal delay", () => {
+  it("counts down to an encounter from the craft's present, not from the received edge", async () => {
+    const owlt = 240;
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.orbit"],
+      delaySeconds: owlt,
+      suspendFrames: true,
+    });
+    render(
+      <fixture.Provider>
+        <OrbitalEventChips />
+      </fixture.Provider>,
+    );
+    // The frames left the craft a light-time before its present of VIEW_UT.
+    const meta = { validAt: VIEW_UT - owlt, deliveredAt: VIEW_UT };
+    act(() => {
+      fixture.emit(
+        "system.bodies",
+        {
+          bodies: [
+            { name: "Kerbin", index: 1 },
+            { name: "Mun", index: 2 },
+          ],
+        },
+        meta,
+      );
+      fixture.emit(
+        "vessel.orbit",
+        {
+          referenceBodyIndex: 1,
+          sma: 700_000,
+          ecc: 0,
+          inc: 0,
+          lan: null,
+          argPe: null,
+          meanAnomalyAtEpoch: 0,
+          epoch: VIEW_UT - owlt,
+          mu: 3.5316e12,
+          encounter: {
+            transitionType: 2,
+            transitionUt: TRANSITION_UT,
+            bodyIndex: 2,
+          },
+          patches: [],
+        },
+        meta,
+      );
+      fixture.emitFrame();
+    });
+
+    await screen.findByText(/ENC/);
+    const text = visibleText();
+    expect(text).toMatch(/20:00|20m/);
+    expect(text).not.toMatch(/24:00|24m/);
+  });
+});

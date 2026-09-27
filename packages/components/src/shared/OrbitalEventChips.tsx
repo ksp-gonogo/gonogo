@@ -1,5 +1,5 @@
 import { useOrbitSolve, useTelemetry } from "@ksp-gonogo/core";
-import { useViewUt } from "@ksp-gonogo/sitrep-client";
+import { useScetUt } from "@ksp-gonogo/sitrep-client";
 import { Box, Cluster, Countdown } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { encounterKindOf } from "./encounterKind";
@@ -15,15 +15,15 @@ export function OrbitalEventChips() {
   const reading = useTelemetry("vessel.orbit");
   const orbit = reading.state === "observed" ? reading.value : undefined;
   const solve = useOrbitSolve();
-  const viewUt = useViewUt();
+  const scetUt = useScetUt();
   const encounter = orbit?.encounter ?? null;
 
   const encounterKind = encounterKindOf(encounter);
   const encBody = useBodyName(encounter?.bodyIndex);
   // `transitionUt` is an absolute UT, unlike `timeToNextApsis`, though both carry "s".
   const encIn =
-    encounter?.transitionUt.isFinite() === true && viewUt !== undefined
-      ? encounter.transitionUt.minus(viewUt).magnitude
+    encounter?.transitionUt.isFinite() === true && scetUt !== undefined
+      ? encounter.transitionUt.minus(scetUt).magnitude
       : undefined;
   const hasEncounter =
     encounterKind !== null &&

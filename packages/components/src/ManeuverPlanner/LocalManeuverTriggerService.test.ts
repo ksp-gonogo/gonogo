@@ -33,8 +33,10 @@ function fixture() {
   client.subscribe("system.bodies", () => {});
 
   const commands: string[] = [];
-  transport.setCommandHandler((command) => {
+  const calls: Array<{ command: string; args: unknown }> = [];
+  transport.setCommandHandler((command, args) => {
     commands.push(command);
+    calls.push({ command, args });
     return null;
   });
 
@@ -73,7 +75,7 @@ function fixture() {
     parentBodyIndex: 1,
   });
 
-  return { commands };
+  return { commands, calls };
 }
 
 /**
@@ -136,6 +138,37 @@ describe("LocalManeuverTriggerService", () => {
         inputs: FROZEN,
       });
       await vi.waitFor(() => expect(commands).toContain("vessel.maneuver.add"));
+    } finally {
+      svc.dispose();
+    }
+  });
+
+  it("plans a node from the craft's present, not from the received edge", async () => {
+    const { calls } = fixture();
+    // A light-time of 240 s: the craft is at PINNED_UT, the screen has received it up to 240 s earlier.
+    setActiveViewClockForTests({
+      viewUt: () => PINNED_UT - 240,
+      scetUt: () => PINNED_UT,
+    });
+    const svc = new LocalManeuverTriggerService();
+    try {
+      svc.arm({
+        dataKey: "vessel.orbit.sma",
+        op: ">=",
+        value: 6_000_000,
+        inputs: { ...FROZEN, preset: "circularize-apo" },
+      });
+      await vi.waitFor(() =>
+        expect(calls.map((c) => c.command)).toContain("vessel.maneuver.add"),
+      );
+      const args = calls.find((c) => c.command === "vessel.maneuver.add")?.args;
+      const ut =
+        typeof args === "object" && args !== null && "ut" in args
+          ? args.ut
+          : undefined;
+      const halfPeriod = Math.PI * Math.sqrt(6_771_000 ** 3 / 3.986e14);
+      // The craft is at periapsis at PINNED_UT, so apoapsis is half an orbit on.
+      expect(ut).toBeCloseTo(PINNED_UT + halfPeriod, 0);
     } finally {
       svc.dispose();
     }
