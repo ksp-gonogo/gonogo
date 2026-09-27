@@ -32,9 +32,9 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { rmSync } from "node:fs";
 import { join } from "node:path";
+import { makeTempDir } from "./temp-dir.mjs";
 
 const [name, version, packed] = process.argv.slice(2);
 if (!name || !version || !packed) {
@@ -68,7 +68,7 @@ const distDigest = (tarball) => {
   return digest;
 };
 
-const staging = mkdtempSync(join(tmpdir(), "gonogo-published-"));
+const staging = makeTempDir("gonogo-published-");
 try {
   try {
     execFileSync(

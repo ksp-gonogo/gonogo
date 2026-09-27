@@ -41,15 +41,9 @@
  */
 
 import { execFileSync } from "node:child_process";
-import {
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { makeTempDir } from "./temp-dir.mjs";
 
 /**
  * Manifest fields npm ignores inside `publishConfig` but pnpm applies.
@@ -78,7 +72,7 @@ if (!pkgDir || !outDir) {
   process.exit(2);
 }
 
-const staging = mkdtempSync(join(tmpdir(), "gonogo-pack-"));
+const staging = makeTempDir("gonogo-pack-");
 try {
   execFileSync("npm", ["pack", "--pack-destination", staging], {
     cwd: resolve(pkgDir),

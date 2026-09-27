@@ -43,14 +43,14 @@
  *   pnpm exec playwright install --with-deps chromium
  */
 
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   renderUplink,
   resolveUplinkPackage,
 } from "../packages/ui-kit/dist/render.js";
+import { makeTempDir } from "./temp-dir.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const target = process.argv[2] ?? "GonogoBreakingGroundUplink";
@@ -69,7 +69,7 @@ console.log(`${pkg.name} / ${engine}\n`);
  * button's starting colour and never a transition of its own.
  */
 function plantModule() {
-  const dir = mkdtempSync(join(tmpdir(), "uplink-shape-plant-"));
+  const dir = makeTempDir("uplink-shape-plant-");
   const file = join(dir, "plant.js");
   writeFileSync(
     file,
@@ -81,7 +81,7 @@ function plantModule() {
 }
 
 async function shapesOf(label, withModules = []) {
-  const outDir = mkdtempSync(join(tmpdir(), `uplink-shape-${label}-`));
+  const outDir = makeTempDir(`uplink-shape-${label}-`);
   const result = await renderUplink(pkg, {
     engine,
     outDir,

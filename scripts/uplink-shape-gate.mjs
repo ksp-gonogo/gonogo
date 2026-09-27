@@ -18,16 +18,10 @@
  */
 
 import { execFileSync } from "node:child_process";
-import {
-  existsSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { makeTempDir } from "./temp-dir.mjs";
 import { UNRECORDED_DEBT } from "./uplink-shape-debt.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -68,7 +62,7 @@ function clients() {
  * directory and fails as BLIND if it counts none.
  */
 function selfTest() {
-  const dir = mkdtempSync(join(tmpdir(), "uplink-shape-gate-"));
+  const dir = makeTempDir("uplink-shape-gate-");
   writeFileSync(join(dir, "planted--default.png"), "not really a png");
   writeFileSync(
     join(dir, "render-shape.json"),

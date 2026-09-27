@@ -41,10 +41,10 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { makeTempDir } from "./temp-dir.mjs";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PACK_PROJECT = join(
@@ -429,7 +429,7 @@ function contractVersion() {
 }
 
 function pack() {
-  const out = mkdtempSync(join(tmpdir(), "sitrep-contract-pack-"));
+  const out = makeTempDir("sitrep-contract-pack-");
   execFileSync(
     "dotnet",
     ["pack", PACK_PROJECT, "-c", "Release", "-o", out, "--nologo"],

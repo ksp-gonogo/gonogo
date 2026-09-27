@@ -25,8 +25,7 @@
  *
  * The package is packed from this tree, so this answers "could an Uplink be
  * built from what this commit would publish", never "from what nuget.org
- * serves". The temporary tree is left for the OS: it is outside the repo and
- * deleting it file by file costs more than it saves.
+ * serves". The work tree is removed on exit; `GONOGO_KEEP_TMP=1` keeps it.
  *
  * `--nupkg <file>` probes that package instead of packing one, so a release can
  * prove the very file it is about to push.
@@ -51,14 +50,13 @@ import {
   cpSync,
   existsSync,
   mkdirSync,
-  mkdtempSync,
   readdirSync,
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { makeTempDir } from "./temp-dir.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const MOD = join(ROOT, "mod");
@@ -138,7 +136,7 @@ if (selected.length === 0) {
   process.exit(1);
 }
 
-const work = mkdtempSync(join(tmpdir(), "nuget-extraction-"));
+const work = makeTempDir("nuget-extraction-");
 const feed = join(work, "feed");
 mkdirSync(feed);
 
@@ -332,5 +330,4 @@ for (const { name: uplink, root } of selected) {
   }
 }
 
-console.log(`\nwork tree: ${work}`);
 process.exit(failed > 0 ? 1 : 0);

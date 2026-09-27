@@ -63,14 +63,14 @@
  *   pnpm exec playwright install --with-deps chromium firefox webkit
  */
 
-import { mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   renderUplink,
   resolveUplinkPackage,
 } from "../packages/ui-kit/dist/render.js";
+import { makeTempDir } from "./temp-dir.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const ENGINES = ["chromium", "firefox", "webkit"];
@@ -82,7 +82,7 @@ console.log(`${pkg.name}\n`);
 const byEngine = new Map();
 const dirOf = new Map();
 for (const engine of ENGINES) {
-  const outDir = mkdtempSync(join(tmpdir(), `uplink-shape-${engine}-`));
+  const outDir = makeTempDir(`uplink-shape-${engine}-`);
   const result = await renderUplink(pkg, {
     engine,
     outDir,

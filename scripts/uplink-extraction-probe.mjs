@@ -155,15 +155,14 @@ import {
   cpSync,
   existsSync,
   mkdirSync,
-  mkdtempSync,
   readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { makeTempDir } from "./temp-dir.mjs";
 import {
   EXTRACTION_DEBT,
   RUNTIME_IMPORT_EXEMPT,
@@ -898,7 +897,7 @@ function rewriteDebt(merged) {
   return true;
 }
 
-const workRoot = mkdtempSync(join(tmpdir(), "gonogo-extraction-"));
+const workRoot = makeTempDir("gonogo-extraction-");
 let exitCode = 0;
 /**
  * Findings `--update` may not clear. It exists to accept a typecheck count that

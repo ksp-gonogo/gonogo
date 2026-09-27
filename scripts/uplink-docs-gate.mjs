@@ -56,15 +56,14 @@ import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
-  mkdtempSync,
   readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { makeTempDir } from "./temp-dir.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const report = process.argv.includes("--report");
@@ -181,7 +180,7 @@ export function missingPageReasons(clientDir) {
  * means nothing).
  */
 function selfCheck() {
-  const dir = mkdtempSync(join(tmpdir(), "uplink-docs-gate-"));
+  const dir = makeTempDir("uplink-docs-gate-");
   try {
     const tree = (name, files) => {
       const at = join(dir, name);

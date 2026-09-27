@@ -101,14 +101,13 @@ import {
   cpSync,
   existsSync,
   mkdirSync,
-  mkdtempSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { makeTempDir } from "./temp-dir.mjs";
 import {
   CSHARP_EXTRACTION_DEBT,
   MISSING_REFERENCE_OK,
@@ -425,7 +424,7 @@ function requireExemptionsNameSomething() {
   }
 }
 
-const workRoot = mkdtempSync(join(tmpdir(), "gonogo-csharp-extraction-"));
+const workRoot = makeTempDir("gonogo-csharp-extraction-");
 let exitCode = 0;
 try {
   requireReferenceSet();

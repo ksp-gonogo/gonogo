@@ -128,6 +128,7 @@ echo "(first run installs Linux deps into named volumes, slow; re-runs are fast)
 echo
 
 LOG="$(mktemp)"
+trap 'rm -f "$LOG"' EXIT
 set +e
 "$PODMAN" run --rm \
   -v "$REPO_ROOT:/work" \
@@ -141,7 +142,6 @@ set -e
 
 # ── update mode: the gate's own exit is the verdict (0 = baselines written). ──
 if [ "$UPDATE" = 1 ]; then
-  rm -f "$LOG"
   exit "$GATE_EXIT"
 fi
 
@@ -153,13 +153,11 @@ echo "════════════ VISUAL PREVIEW SUMMARY ($ENGINE) ═�
 if grep -q "✓ No visual drift." "$LOG"; then
   echo "CLEAN: no drift against the committed $ENGINE baselines."
   echo "(This is the faithfulness proof for an unchanged widget.)"
-  rm -f "$LOG"
   exit 0
 fi
 if ! grep -q "visual difference(s):" "$LOG"; then
   echo "!! The gate did not complete (install/build/other error, exit $GATE_EXIT)."
   echo "   This is a REAL failure, not drift; see the log above."
-  rm -f "$LOG"
   exit "${GATE_EXIT:-1}"
 fi
 
@@ -189,5 +187,4 @@ echo
 echo "${count} drifted render(s) with baseline/actual/diff PNGs above."
 echo "(The gate clears these at the START of the next run; Read/copy them first.)"
 echo "Review, get an OK, then re-run with --update to write committable baselines."
-rm -f "$LOG"
 exit 0

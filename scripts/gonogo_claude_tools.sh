@@ -674,6 +674,7 @@ fetch_kerbcast_sidecar() {
 
   local tmpdir
   tmpdir="$(mktemp -d)"
+  trap 'rm -rf "$tmpdir"' EXIT
   if perl -e 'alarm shift; exec @ARGV' 90 \
        gh -R jonpepler/kerbcast run download "$run_id" \
          -n kerbcast-sidecar-linux-x64-dev \
