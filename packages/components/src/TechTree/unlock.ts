@@ -8,7 +8,6 @@ export interface UnlockContext {
   unlockBlocked: boolean;
   sciAvailable: number | null;
   careerNotCurrent: boolean;
-  upgradesEnabled: boolean;
 }
 
 export interface UnlockHandlers {
@@ -51,7 +50,7 @@ export function unlockHandlersFor(
       ctx.sciAvailable >= n.scienceCost);
   // A verdict is drawn only against a current balance, since a held or absent one can say neither yes nor no.
   const moneyDecides = judged && ctx.sciAvailable !== null;
-  const canUnlock = isResearchable && canAfford && ctx.upgradesEnabled;
+  const canUnlock = isResearchable && canAfford;
   if (!canAfford) {
     return {
       isResearchable,
@@ -59,15 +58,6 @@ export function unlockHandlersFor(
       moneyDecides,
       canUnlock,
       affordTooltip: priceTooltip(n, ctx.sciAvailable, ctx.careerNotCurrent),
-    };
-  }
-  if (!ctx.upgradesEnabled) {
-    return {
-      isResearchable,
-      canAfford,
-      moneyDecides,
-      canUnlock,
-      affordTooltip: "Unlock from the Space Center scene",
     };
   }
   return { isResearchable, canAfford, moneyDecides, canUnlock };

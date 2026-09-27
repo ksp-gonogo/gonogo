@@ -11,10 +11,10 @@ import {
 import { TechTreeComponent } from "./index";
 
 /**
- * Pins what TechTree renders when its reads are `undefined`: absent nodes draw a placeholder, and an unknown scene or an unknown science balance withholds Unlock with a stated reason rather than leaving a spend control live on an absence.
+ * Pins what TechTree renders when its reads are `undefined`: absent nodes draw a placeholder, and an unknown science balance withholds Unlock with a stated reason rather than leaving a spend control live on an absence.
  */
 
-const CARRIED = ["career.status", "spaceCenter.scene"];
+const CARRIED = ["career.status"];
 
 function newFixture() {
   return setupStreamFixture({
@@ -169,14 +169,14 @@ describe("TechTree: null versus undefined", () => {
   });
 });
 
-describe("TechTree: the spaceCenter.scene absence gate", () => {
-  it("withholds Unlock while the scene is unknown, for the stated reason", async () => {
+describe("TechTree: no building-scene gate on Unlock", () => {
+  it("arms Unlock on an affordable node with no scene telemetry ever mounted", async () => {
     const user = userEvent.setup();
     const fixture = newFixture();
     renderTree(fixture);
 
     act(() => {
-      // Deliberately NO spaceCenter.scene emit.
+      // TechTree carries no scene channel at all: the backend enforces no scene, so the client checks none either.
       fixture.emit(
         "career.status",
         careerStatus([PRICEY_RESEARCHABLE], {
@@ -192,44 +192,9 @@ describe("TechTree: the spaceCenter.scene absence gate", () => {
     );
     await user.click(screen.getByText("Pricey Tech"));
 
-    // The button names the scene it wants rather than being inert without explanation.
     const unlock = screen.getByRole("button", { name: "Unlock" });
-    expect(unlock).toBeDisabled();
-    expect(unlock).toHaveAttribute(
-      "title",
-      "Unlock from the Space Center scene",
-    );
-  });
-
-  it("disables Unlock once a non-SpaceCenter scene actually arrives", async () => {
-    const user = userEvent.setup();
-    const fixture = newFixture();
-    renderTree(fixture);
-
-    act(() => {
-      fixture.emit("spaceCenter.scene", { scene: "Flight" });
-      fixture.emit(
-        "career.status",
-        careerStatus([PRICEY_RESEARCHABLE], {
-          funds: 0,
-          reputation: 0,
-          science: 5000,
-        }),
-      );
-    });
-
-    await waitFor(() =>
-      expect(screen.getByText("Pricey Tech")).toBeInTheDocument(),
-    );
-    await user.click(screen.getByText("Pricey Tech"));
-
-    // The other side of the same gate, so the test above records an absence rather than an always-live control.
-    const unlock = screen.getByRole("button", { name: "Unlock" });
-    expect(unlock).toBeDisabled();
-    expect(unlock).toHaveAttribute(
-      "title",
-      "Unlock from the Space Center scene",
-    );
+    expect(unlock).toBeEnabled();
+    expect(unlock).not.toHaveAttribute("title");
   });
 });
 
@@ -240,7 +205,6 @@ describe("TechTree: the economy.science absence gate", () => {
     renderTree(fixture);
 
     act(() => {
-      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       fixture.emit("career.status", careerStatus([PRICEY_RESEARCHABLE], null));
     });
 
@@ -264,7 +228,6 @@ describe("TechTree: the economy.science absence gate", () => {
     renderTree(fixture);
 
     act(() => {
-      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       fixture.emit(
         "career.status",
         careerStatus([PRICEY_RESEARCHABLE], {
@@ -290,7 +253,6 @@ describe("TechTree: the economy.science absence gate", () => {
     renderTree(fixture);
 
     act(() => {
-      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       fixture.emit("career.status", careerStatus([PRICEY_RESEARCHABLE], null));
     });
 
@@ -310,7 +272,6 @@ describe("TechTree: computeResearchable's own science gate", () => {
     renderTree(fixture);
 
     act(() => {
-      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       fixture.emit(
         "career.status",
         careerStatus([OWNED_ROOT, DERIVED_PRICEY], null),
@@ -331,7 +292,6 @@ describe("TechTree: computeResearchable's own science gate", () => {
     renderTree(fixture);
 
     act(() => {
-      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       fixture.emit(
         "career.status",
         careerStatus([OWNED_ROOT, DERIVED_PRICEY], {

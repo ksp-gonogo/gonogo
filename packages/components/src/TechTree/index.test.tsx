@@ -16,7 +16,7 @@ import { parseTechNodes, TechTreeComponent } from "./index";
 /**
  * TechTree off a real stream pipeline. Nodes are emitted in the explicit-`state` shape `parseTechNodes` also accepts, which lets these tests exercise the per-node `parts` rendering the real wire has no field for.
  */
-const CARRIED_CHANNELS = ["career.status", "spaceCenter.scene"];
+const CARRIED_CHANNELS = ["career.status"];
 
 const SAMPLE_NODES = [
   {
@@ -114,7 +114,6 @@ describe("TechTreeComponent", () => {
     });
     renderTree(fixture);
     act(() => {
-      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
     });
     // Default filter is "All", so every node is present on first paint.
@@ -132,7 +131,6 @@ describe("TechTreeComponent", () => {
     });
     renderTree(fixture);
     act(() => {
-      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
     });
     await waitFor(() => expect(screen.getByText("Start")).toBeInTheDocument());
@@ -153,7 +151,6 @@ describe("TechTreeComponent", () => {
     });
     renderTree(fixture);
     act(() => {
-      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
     });
     await waitFor(() =>
@@ -177,7 +174,6 @@ describe("TechTreeComponent", () => {
 
     renderTree(fixture);
     act(() => {
-      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
     });
     await waitFor(() =>
@@ -212,7 +208,6 @@ describe("TechTreeComponent", () => {
       </fixture.Provider>,
     );
     act(() => {
-      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
     });
     // Graph cards are buttons labelled with title + state + cost.
@@ -236,7 +231,6 @@ describe("TechTreeComponent", () => {
     });
     renderTree(fixture);
     act(() => {
-      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 2));
     });
     await waitFor(() =>
@@ -245,6 +239,25 @@ describe("TechTreeComponent", () => {
     await user.click(screen.getByText("Basic Rocketry"));
     const unlock = screen.getByRole("button", { name: "Unlock" });
     expect((unlock as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("arms Unlock with no game-scene signal at all, since the backend carries no scene gate", async () => {
+    const user = userEvent.setup();
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED_CHANNELS,
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+    renderTree(fixture);
+    act(() => {
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Basic Rocketry")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByText("Basic Rocketry"));
+    const unlock = screen.getByRole("button", { name: "Unlock" });
+    expect((unlock as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("exposes the per-node badges slot with no bound augment (empty is fine)", async () => {
@@ -256,7 +269,6 @@ describe("TechTreeComponent", () => {
     });
     renderTree(fixture);
     act(() => {
-      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
     });
     await waitFor(() => expect(screen.getByText("Start")).toBeInTheDocument());

@@ -15,7 +15,7 @@ describe("TechTree: real small career-detail fixture render off the stream (dela
     const mode = { name: "default-6x9", w: 6, h: 9 };
 
     const streamFixture = setupStreamFixture({
-      carriedChannels: ["career.status", "spaceCenter.scene"],
+      carriedChannels: ["career.status"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -29,9 +29,6 @@ describe("TechTree: real small career-detail fixture render off the stream (dela
     );
 
     act(() => {
-      streamFixture.emit("spaceCenter.scene", {
-        scene: smallCareerDetail["kc.scene"],
-      });
       streamFixture.emit("career.status", {
         economy: {
           funds: 0,
@@ -78,7 +75,7 @@ describe("TechTree: real small career-detail fixture render off the stream (dela
   it("shows a node's description, carried by the wire shape and not the legacy one", async () => {
     const user = userEvent.setup();
     const streamFixture = setupStreamFixture({
-      carriedChannels: ["career.status", "spaceCenter.scene"],
+      carriedChannels: ["career.status"],
       pinnedUt: 10,
     });
 
@@ -91,7 +88,6 @@ describe("TechTree: real small career-detail fixture render off the stream (dela
     );
 
     act(() => {
-      streamFixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       streamFixture.emit(
         "career.status",
         smallCareerDetail._stream.emits[1].value,

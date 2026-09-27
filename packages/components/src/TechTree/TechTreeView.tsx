@@ -39,7 +39,6 @@ export interface TechTreeViewProps {
   careerNotCurrent: boolean;
   /** The science balance as drawn, held included so Unit can mark it. */
   scienceShown: UnitValue<"science">;
-  scene: string | null | undefined;
   chargesScience: boolean;
   unlockCmd: CommandButtonHandle;
   unlockBlocked: boolean;
@@ -87,7 +86,6 @@ export function TechTreeView({
   sciAvailable,
   careerNotCurrent,
   scienceShown,
-  scene,
   chargesScience,
   unlockCmd,
   unlockBlocked,
@@ -167,16 +165,12 @@ export function TechTreeView({
     );
   }
 
-  // Unlocking spends science at the Space Center, so an unknown scene withholds the button.
-  const upgradesEnabled = scene === "SpaceCenter";
-
   const unlockContext = {
     researchable,
     chargesScience,
     unlockBlocked,
     sciAvailable,
     careerNotCurrent,
-    upgradesEnabled,
   };
 
   const subtitle = showSubtitle ? (

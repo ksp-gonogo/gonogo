@@ -13,7 +13,7 @@ import { TechTreeComponent } from "./index";
  * What the Unlock control may claim about a spend: a price that never arrived is not free, and a command the career model refuses outright (RP-1 researches through its own queue) is not a purchase the balance decides.
  */
 
-const CARRIED = ["career.status", "spaceCenter.scene", "system.uplink.gates"];
+const CARRIED = ["career.status", "system.uplink.gates"];
 
 function careerStatus(
   science: number,
@@ -69,7 +69,6 @@ describe("TechTree spend truth", () => {
   it("never arms Unlock on a price that did not arrive, and does not show it as free", async () => {
     mount();
     act(() => {
-      stream.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       stream.emit(
         "career.status",
         careerStatus(5000, { ...PRICEY, scienceCost: undefined }),
@@ -87,7 +86,6 @@ describe("TechTree spend truth", () => {
   it("draws a science verdict when money decides the unlock", async () => {
     mount();
     act(() => {
-      stream.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       stream.emit("career.status", careerStatus(10, PRICEY));
     });
     const unlock = await openNode("Pricey Tech");
@@ -102,7 +100,6 @@ describe("TechTree spend truth", () => {
   it("draws no science verdict on an unlock the career model refuses", async () => {
     mount();
     act(() => {
-      stream.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       stream.emit("career.status", careerStatus(10, PRICEY));
       stream.emit("system.uplink.gates", {
         gates: [

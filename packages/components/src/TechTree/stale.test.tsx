@@ -13,7 +13,7 @@ import { TechTreeComponent } from "./index";
  * When `career.status` stops being current, TechTree keeps the node list (nobody can spend down a dead link, so the tree is still the tree) and keeps the science balance on screen marked held, without letting Unlock turn it into a claim about now. The assertions that matter separate held from never-arrived.
  */
 
-const CARRIED = ["career.status", "spaceCenter.scene"];
+const CARRIED = ["career.status"];
 
 const PRICEY_RESEARCHABLE = {
   id: "pricey",
@@ -61,10 +61,9 @@ describe("TechTree when the career record is no longer current", () => {
     );
   }
 
-  /** A career at the Space Center with 5000 science: every gate open. */
+  /** A career with 5000 science: every gate open. */
   function emitAffordableCareer(): void {
     act(() => {
-      stream.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       stream.emit("career.status", careerStatus(5000));
     });
   }
@@ -129,15 +128,12 @@ describe("TechTree when the career record is no longer current", () => {
       expect(btn).toBeDisabled();
       return btn;
     });
-    // The scene is still held, so the refusal is the balance, and the button says which kind of missing it is.
+    // The refusal names the balance, not any other cause, since a held balance is the only thing withholding it.
     expect(unlock.getAttribute("title")).toContain(
       "affordability cannot be checked against a held balance",
     );
     expect(unlock.getAttribute("title")).not.toContain(
       "no science balance has arrived",
-    );
-    expect(unlock.getAttribute("title")).not.toContain(
-      "Unlock from the Space Center scene",
     );
   });
 

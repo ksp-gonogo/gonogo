@@ -15,12 +15,8 @@ export type { TechNode, TechNodeState, TechPart } from "./wire";
 export { parseTechNodes } from "./wire";
 
 const topics = defineTopicManifest({
-  channels: ["career.status", "spaceCenter.scene"],
-  fields: [
-    "career.status.tech.nodes",
-    "career.status.economy.science",
-    "spaceCenter.scene.scene",
-  ],
+  channels: ["career.status"],
+  fields: ["career.status.tech.nodes", "career.status.economy.science"],
 });
 
 type TechTreeConfig = Record<string, never>;
@@ -41,11 +37,6 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
     career,
     (c) => c.economy?.science ?? undefined,
   );
-  // The game scene is a fact as well: it changes when the player walks through a door, which is an event and not a drift.
-  const scene = stillTrue(
-    topics.useTelemetry("spaceCenter.scene"),
-    undefined,
-  )?.scene;
   const { chargesScience } = useGameContext();
   // An R&D-desk action with no vessel signal delay, so it dispatches at the meta-vantage.
   const unlockCmd = useCommand("career.tech.unlock", { vantage: META_VANTAGE });
@@ -65,7 +56,6 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
       sciAvailable={sciAvailable}
       careerNotCurrent={careerNotCurrent}
       scienceShown={scienceShown}
-      scene={scene}
       chargesScience={chargesScience}
       unlockCmd={unlockCmd}
       unlockBlocked={unlockBlocked}

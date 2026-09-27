@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TechTreeComponent } from "./index";
 
-/** TechTree off the real stream pipeline: science, tech nodes and scene all stream, with no legacy `DataSource`. */
+/** TechTree off the real stream pipeline: science and tech nodes stream, with no legacy `DataSource`. */
 // Reset at the start of each test, when the prior tree is already unmounted.
 beforeEach(() => {
   clearActionHandlers();
@@ -13,7 +13,7 @@ beforeEach(() => {
 describe("TechTree: genuinely runs off the stream", () => {
   it("renders the science readout derived from career.status.economy.science", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["career.status", "spaceCenter.scene"],
+      carriedChannels: ["career.status"],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -29,7 +29,6 @@ describe("TechTree: genuinely runs off the stream", () => {
     expect(fixture.transport.isSubscribed("career.status")).toBe(true);
 
     act(() => {
-      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
       // The wire shape carries `unlocked: boolean`, not a `state` string.
       fixture.emit("career.status", {
         economy: { funds: 100, reputation: 0, science: 4854 },
