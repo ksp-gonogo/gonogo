@@ -4,6 +4,7 @@ import {
   type LimitBreach,
 } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "../units";
+import type { RailTags } from "./railTags";
 
 /** One refused dispatch, as much of it as this text needs. Structurally the spine's `CommandRefusal`, so a hand-built refusal works too. */
 export interface CommandRefusalLike {
@@ -33,6 +34,19 @@ export interface CommandRefusalLike {
  */
 export interface CommandRefusalEntry extends CommandRefusalLike {
   id: string;
+}
+
+/**
+ * One refused dispatch as the rail renders it: the refusal itself, plus the two
+ * things only the registering handle knows, its stable id and the command's
+ * rail axes.
+ */
+export interface RailRefusal extends CommandRefusalEntry {
+  /**
+   * The command's three axes. Only the MARK is read: a discrete command gets
+   * its in-flight glyph tile, a continuous one its text label.
+   */
+  tags: RailTags;
 }
 
 /** A number as it is written beside its unit (`253,000f`, `16`), through `units.ts` so funds read the same everywhere. */

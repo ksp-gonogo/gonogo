@@ -29,10 +29,10 @@ import {
 export type { CommandOutputToken } from "@ksp-gonogo/sitrep-sdk";
 
 import type { CommandOutputToken } from "@ksp-gonogo/sitrep-sdk";
-import type { CommandFoundEntry } from "./CommandFoundList";
-import type { CommandLossEntry } from "./CommandLossList";
-import type { CommandUndeliveredEntry } from "./CommandUndeliveredList";
+import type { CommandFoundEntry } from "./commandFoundSentence";
+import type { CommandLossEntry } from "./commandLossSentence";
 import type { CommandRefusalEntry } from "./commandRefusalSentence";
+import type { CommandUndeliveredEntry } from "./commandUndeliveredSentence";
 
 /**
  * The single delay-output handle every command widget hands to

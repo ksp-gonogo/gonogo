@@ -1,20 +1,6 @@
-import {
-  CommandErrorCode,
-  railTagsForCommand,
-  value,
-} from "@ksp-gonogo/sitrep-sdk";
-import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
-import userEvent from "@testing-library/user-event";
+import { CommandErrorCode, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { expectNoA11yViolations } from "../expectNoA11yViolations";
-import {
-  CommandFoundList,
-  commandFoundSentence,
-  type RailFound,
-} from "./CommandFoundList";
-
-// The rail axes come from the production derivations, so the fixtures follow them rather than asserting stale literals.
-const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
+import { commandFoundSentence } from "./commandFoundSentence";
 
 describe("commandFoundSentence", () => {
   it("names the subject, the reversal, and that it RAN", () => {
@@ -105,55 +91,5 @@ describe("commandFoundSentence", () => {
     expect(commandFoundSentence({ outcome: "refused", command: "a.b" })).toBe(
       "B: found refused.",
     );
-  });
-});
-
-describe("CommandFoundList", () => {
-  const found: RailFound = {
-    id: "c0",
-    command: "vessel.control.setSas",
-    args: { enabled: true },
-    label: "",
-    outcome: "ran",
-    tags: RAIL_DISCRETE,
-  };
-
-  it("draws no box for an empty set, and keeps its live region mounted and empty", () => {
-    render(<CommandFoundList founds={[]} />);
-    expect(
-      screen.getByRole("status", { name: /answered/i }),
-    ).toBeEmptyDOMElement();
-  });
-
-  it("announces politely, never assertively", () => {
-    // A mission-state change, so polite live region; assertive is reserved for ABORT.
-    render(<CommandFoundList founds={[found]} />);
-    const list = screen.getByRole("status", { name: /answered/i });
-    expect(list.getAttribute("aria-live")).not.toBe("assertive");
-  });
-
-  it("carries no clear control when no handle can dismiss", () => {
-    render(<CommandFoundList founds={[found]} />);
-    expect(screen.queryByRole("button")).toBeNull();
-  });
-
-  it("dismisses by the dispatch's own requestId", async () => {
-    const user = userEvent.setup();
-    const cleared: string[] = [];
-    render(
-      <CommandFoundList
-        founds={[found]}
-        onDismiss={(id) => cleared.push(id)}
-      />,
-    );
-    await user.click(screen.getByRole("button", { name: /Dismiss Set Sas/i }));
-    expect(cleared).toEqual(["c0"]);
-  });
-
-  it("has no axe violations", async () => {
-    const { container } = render(
-      <CommandFoundList founds={[found]} onDismiss={() => {}} />,
-    );
-    await expectNoA11yViolations(container);
   });
 });

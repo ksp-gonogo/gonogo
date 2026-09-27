@@ -6,8 +6,8 @@ import type { CommandDelayHandle } from "../CommandDelay/CommandDelay";
 import {
   type CommandFoundLike,
   commandFoundSentence,
-} from "../CommandDelay/CommandFoundList";
-import { commandLossSentence } from "../CommandDelay/CommandLossList";
+} from "../CommandDelay/commandFoundSentence";
+import { commandLossSentence } from "../CommandDelay/commandLossSentence";
 import {
   type CommandRefusalLike,
   commandGateSentence,

@@ -3,7 +3,6 @@ import {
   commandRefusalSubject,
   type LimitBreach,
 } from "@ksp-gonogo/sitrep-sdk";
-import { CommandOutcomeList } from "./CommandOutcomeList";
 import { commandRefusalSentence } from "./commandRefusalSentence";
 import type { RailTags } from "./railTags";
 
@@ -93,51 +92,4 @@ export function commandFoundSentence(found: CommandFoundLike): string {
 function stripSubject(sentence: string): string {
   const at = sentence.indexOf(": ");
   return at === -1 ? sentence : sentence.slice(at + 2);
-}
-
-export interface CommandFoundListProps {
-  founds: readonly RailFound[];
-  /** Clear one found. Omit it and the boxes carry no clear control rather than an inert one. */
-  onDismiss?: (id: string) => void;
-  /**
-   * Announce each entry as it arrives (the default). Off only where something
-   * else already announces these outcomes, as the delay rail does.
-   */
-  live?: boolean;
-  ariaLabel?: string;
-}
-
-/**
- * The recovered dispatches under the rail's two queues. The same box as a
- * refusal and a loss, in a different tone: news about something that happened,
- * not a warning.
- *
- * `role="status"` (polite): a command turning up executed is a mission-state
- * change. An empty set draws nothing, but a live list keeps its empty region
- * mounted so the first entry is announced.
- */
-export function CommandFoundList({
-  founds,
-  onDismiss,
-  ariaLabel = "Lost commands that answered",
-  live = true,
-}: Readonly<CommandFoundListProps>) {
-  return (
-    <CommandOutcomeList
-      ariaLabel={ariaLabel}
-      onDismiss={onDismiss}
-      tone="notice"
-      live={live}
-      items={founds.map((found) => {
-        const subject = commandRefusalSubject(found);
-        return {
-          id: found.id,
-          subject: subject || found.command || "",
-          sentence: commandFoundSentence(found),
-          dismissLabel: `Dismiss ${subject || "found command"}`,
-          tags: found.tags,
-        };
-      })}
-    />
-  );
 }

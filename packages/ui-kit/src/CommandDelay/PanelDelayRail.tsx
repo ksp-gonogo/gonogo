@@ -3,24 +3,18 @@ import styled, { css } from "styled-components";
 import { focusRingInset } from "../focusRing";
 import { LiveRegion } from "../LiveRegion";
 import { CommandDelay } from "./CommandDelay";
+import { CommandList } from "./CommandList";
+import { STREAM_MIN_DELAY_SECONDS } from "./ControlDelayStream";
+import { commandFoundSentence, type RailFound } from "./commandFoundSentence";
+import { commandLossSentence, type RailLoss } from "./commandLossSentence";
 import {
-  CommandFoundList,
-  commandFoundSentence,
-  type RailFound,
-} from "./CommandFoundList";
+  commandRefusalSentence,
+  type RailRefusal,
+} from "./commandRefusalSentence";
 import {
-  CommandLossList,
-  commandLossSentence,
-  type RailLoss,
-} from "./CommandLossList";
-import { CommandRefusalList, type RailRefusal } from "./CommandRefusalList";
-import {
-  CommandUndeliveredList,
   commandUndeliveredSentence,
   type RailUndelivered,
-} from "./CommandUndeliveredList";
-import { STREAM_MIN_DELAY_SECONDS } from "./ControlDelayStream";
-import { commandRefusalSentence } from "./commandRefusalSentence";
+} from "./commandUndeliveredSentence";
 import { type CommandHandle, useActiveHandles } from "./DelayRailContext";
 import { railMark } from "./railTags";
 
@@ -236,26 +230,34 @@ export function PanelDelayRail() {
       )}
       {/* Outside the rail, so the grown lists push the panel down rather than share the rail's grid cell. */}
       {grown && refusals.length > 0 && (
-        <CommandRefusalList
-          refusals={refusals}
+        <CommandList
+          kind="refused"
+          entries={refusals}
           onDismiss={dismissRefusal}
           live={false}
         />
       )}
       {grown && losses.length > 0 && (
-        <CommandLossList losses={losses} onDismiss={dismissLoss} live={false} />
+        <CommandList
+          kind="lost"
+          entries={losses}
+          onDismiss={dismissLoss}
+          live={false}
+        />
       )}
       {grown && undelivered.length > 0 && (
-        <CommandUndeliveredList
-          undelivered={undelivered}
+        <CommandList
+          kind="undelivered"
+          entries={undelivered}
           onDismiss={dismissUndelivered}
           live={false}
         />
       )}
       {/* Last, so reading down the rail meets the silence and then its answer. */}
       {grown && founds.length > 0 && (
-        <CommandFoundList
-          founds={founds}
+        <CommandList
+          kind="found"
+          entries={founds}
           onDismiss={dismissFound}
           live={false}
         />

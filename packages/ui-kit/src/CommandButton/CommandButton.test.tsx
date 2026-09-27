@@ -2,7 +2,7 @@ import { CommandErrorCode, railTagsForCommand } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commandLossSentence } from "../CommandDelay/CommandLossList";
+import { commandLossSentence } from "../CommandDelay/commandLossSentence";
 import { expectNoA11yViolations } from "../expectNoA11yViolations";
 import { emittedStateRuleFor } from "../test/emittedRule";
 import {
