@@ -19,7 +19,7 @@ export type TextSize = "xs" | "sm" | "base" | "lg";
 export type TextWeight = "regular" | "semibold";
 
 export interface TextProps extends HTMLAttributes<HTMLSpanElement> {
-  /** Foreground colour. Defaults to `accent`. */
+  /** Foreground colour. Defaults to the primary text colour; `accent` is a deliberate choice. */
   tone?: TextTone;
   /** Adds `margin-left: 2px` so the value sits apart from a preceding label. */
   spaced?: boolean;
@@ -97,7 +97,7 @@ const SIZE_STYLES = {
  *     <Text tone="go"><Unit value={altitude} /></Text>
  */
 export function Text({
-  tone = "accent",
+  tone = "default",
   spaced = false,
   size,
   weight,

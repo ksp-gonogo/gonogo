@@ -52,4 +52,22 @@ describe("Value", () => {
     rerender(<Text data-testid="v">x</Text>);
     expect(screen.getByTestId("v")).not.toHaveStyle({ fontWeight: "600" });
   });
+
+  it("draws in the primary text colour unless a caller chooses a tone", () => {
+    render(<Text data-testid="plain">Kerbin</Text>);
+    expect(screen.getByTestId("plain")).toHaveStyle({
+      color: "var(--color-text-primary)",
+    });
+  });
+
+  it("draws in the accent only when asked", () => {
+    render(
+      <Text tone="accent" data-testid="accent">
+        Go
+      </Text>,
+    );
+    expect(screen.getByTestId("accent")).toHaveStyle({
+      color: "var(--color-accent-fg)",
+    });
+  });
 });
