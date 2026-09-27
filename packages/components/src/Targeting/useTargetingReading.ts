@@ -1,5 +1,5 @@
 import { defineTopicManifest } from "@ksp-gonogo/core";
-import { useViewUt, withoutReckoning } from "@ksp-gonogo/sitrep-client";
+import { useScetUt, withoutReckoning } from "@ksp-gonogo/sitrep-client";
 import { stillTrue, TargetKind } from "@ksp-gonogo/sitrep-sdk";
 import {
   bare,
@@ -45,10 +45,10 @@ export function useTargetingReading() {
 
   const tarName = target?.name;
   const tarKind = target?.kind;
-  // Closest approach is mod-side, off the elected propagation provider; the view-UT is "now".
+  // Closest approach is mod-side, off the elected propagation provider, and counted down from the craft's present.
   const closestApproachUT = magnitudeOf(target?.closestApproach?.time);
   // Unwrapped: the guards downstream use `typeof`/`Number.isFinite`, which answer NO for a wrapped value.
-  const universalTime = useViewUt()?.magnitude;
+  const universalTime = useScetUt()?.magnitude;
 
   const tarRelPos = target?.relativePosition && bare(target.relativePosition);
   const tarRelVelVec =
@@ -106,10 +106,10 @@ export function useTargetingReading() {
     dockReading.state === "stale" &&
     dockReading.reckoning.status !== "available" &&
     dockPairing?.relativePosition !== undefined;
-  // The separation is being carried forward, so the HUD says its geometry is modelled.
+  // The separation is being carried forward, held or across the light-time, so the HUD says its geometry is modelled.
   const modelledAlignment =
     dockReading.reckoning.status === "available" &&
-    dockReading.state === "stale"
+    (dockReading.state === "stale" || dockReading.reckoning.beyondReceived)
       ? dockReading.reckoning.basis
       : undefined;
 

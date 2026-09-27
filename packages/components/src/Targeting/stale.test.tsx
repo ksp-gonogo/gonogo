@@ -168,3 +168,97 @@ describe("Targeting: the dock channel alone stops being current", () => {
     expect(visibleText()).not.toMatch(/withheld/i);
   });
 });
+
+describe("Targeting under signal delay", () => {
+  function mountDelayed(owlt: number) {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.target", "vessel.dock"],
+      delaySeconds: owlt,
+      suspendFrames: true,
+    });
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "dtt-delay" }}>
+          <TargetingComponent id="dtt-delay" w={12} h={10} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+    // Both frames left the craft a light-time before its present of PINNED_UT.
+    const meta = { validAt: PINNED_UT - owlt, deliveredAt: PINNED_UT };
+    act(() => {
+      fixture.emit(
+        "vessel.target",
+        {
+          name: "Port Mk2",
+          kind: VESSEL_KIND,
+          relativePosition: atRange(62),
+          relativeVelocity: atRange(-0.4),
+        },
+        meta,
+      );
+      fixture.emit(
+        "vessel.dock",
+        {
+          relativePosition: { x: 2, y: -1.5, z: 40 },
+          relativeVelocity: atRange(-0.4),
+          distance: 62,
+          forwardDot: 0.9999,
+        },
+        meta,
+      );
+      fixture.emitFrame();
+    });
+  }
+
+  it("captions a current alignment carried across the light-time as reckoned", async () => {
+    mountDelayed(20);
+    await waitFor(() =>
+      expect(screen.getByText(/Alignment reckoned/)).toBeTruthy(),
+    );
+    expect(visibleText()).toContain("linear-dead-reckoning");
+  });
+
+  it("captions nothing when there is no light-time to carry it across", async () => {
+    mountDelayed(0);
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: "Docking HUD for Port Mk2" }),
+      ).toBeTruthy(),
+    );
+    expect(screen.queryByText(/Alignment reckoned/)).toBeNull();
+  });
+});
+
+describe("Targeting's time to closest approach under signal delay", () => {
+  it("counts down from the craft's present, not from the received edge", async () => {
+    const owlt = 20;
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.target"],
+      delaySeconds: owlt,
+      suspendFrames: true,
+    });
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "dtt-tca" }}>
+          <TargetingComponent id="dtt-tca" w={6} h={9} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.emit(
+        "vessel.target",
+        {
+          name: "Test Station",
+          kind: VESSEL_KIND,
+          relativePosition: atRange(1800),
+          relativeVelocity: atRange(-4.7),
+          closestApproach: { time: PINNED_UT + 100, distance: 0 },
+        },
+        { validAt: PINNED_UT - owlt, deliveredAt: PINNED_UT },
+      );
+      fixture.emitFrame();
+    });
+    await waitFor(() => expect(visibleText()).toMatch(/1min 40s/));
+    expect(visibleText()).not.toMatch(/2min/);
+  });
+});
