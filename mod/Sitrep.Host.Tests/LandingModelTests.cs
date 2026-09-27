@@ -10,6 +10,86 @@ namespace Sitrep.Host.Tests
     /// </summary>
     public class LandingModelTests
     {
+        // ── Measured height from terrain ────────────────────────────────────
+
+        [Fact]
+        public void AnAirlessBodyDescentInsideTheTerrainEnvelopeCarriesItsMeasuredHeight()
+        {
+            // Over Mun highlands: 6100 m ASL, 2400 m above the ground, a periapsis
+            // still above datum so KSP calls the situation ORBITING.
+            Assert.Equal(2400.0, LandingModel.MeasuredHeightFromTerrain(
+                loaded: true, packed: false, heightFromTerrain: 2400f, altitude: 6100));
+        }
+
+        [Fact]
+        public void TheNoRaycastHitSentinelIsAbsentNotAHeight()
+        {
+            Assert.Null(LandingModel.MeasuredHeightFromTerrain(true, false, -1f, 40000));
+        }
+
+        [Fact]
+        public void TheAslAltitudeKspSubstitutesForAMissedRayIsAbsent()
+        {
+            const double altitude = 5321.75;
+            Assert.Null(LandingModel.MeasuredHeightFromTerrain(true, false, (float)altitude, altitude));
+        }
+
+        [Fact]
+        public void APackedVesselsHeldValueIsAbsent()
+        {
+            Assert.Null(LandingModel.MeasuredHeightFromTerrain(loaded: true, packed: true, heightFromTerrain: 812f, altitude: 30000));
+        }
+
+        [Fact]
+        public void AnUnloadedVesselsHeldValueIsAbsent()
+        {
+            Assert.Null(LandingModel.MeasuredHeightFromTerrain(loaded: false, packed: true, heightFromTerrain: 812f, altitude: 30000));
+        }
+
+        [Fact]
+        public void ANonFiniteHeightIsAbsent()
+        {
+            Assert.Null(LandingModel.MeasuredHeightFromTerrain(true, false, float.NaN, 1000));
+            Assert.Null(LandingModel.MeasuredHeightFromTerrain(true, false, float.PositiveInfinity, 1000));
+        }
+
+        [Fact]
+        public void AMeasuredZeroIsAHeightNotAbsence()
+        {
+            Assert.Equal(0.0, LandingModel.MeasuredHeightFromTerrain(true, false, 0f, 612.5));
+        }
+
+        [Fact]
+        public void TheLowestPointSitsTheVesselsExtentBelowTheRootHeight()
+        {
+            // Root origin 40 m above the ground, landing legs reaching 3.5 m below it.
+            Assert.Equal(36.5, LandingModel.LowestPointHeight(40.0, new[] { -1.2, -3.5, 0.8 }));
+        }
+
+        [Fact]
+        public void GeometryEntirelyAboveTheRootRaisesTheLowestPoint()
+        {
+            Assert.Equal(41.0, LandingModel.LowestPointHeight(40.0, new[] { 1.0, 2.0 }));
+        }
+
+        [Fact]
+        public void ALowestPointReachingUnderTheGroundIsOnTheGround()
+        {
+            Assert.Equal(0.0, LandingModel.LowestPointHeight(1.5, new[] { -1.7 }));
+        }
+
+        [Fact]
+        public void NoGeometryIsNoLowestPoint()
+        {
+            Assert.Null(LandingModel.LowestPointHeight(40.0, System.Array.Empty<double>()));
+        }
+
+        [Fact]
+        public void NonFiniteGeometryIsNoLowestPoint()
+        {
+            Assert.Null(LandingModel.LowestPointHeight(40.0, new[] { -1.0, double.NaN }));
+        }
+
         // ── Relevance gate ──────────────────────────────────────────────────
 
         [Fact]

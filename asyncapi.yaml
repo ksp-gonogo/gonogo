@@ -3585,20 +3585,15 @@ channels:
     description: |-
       Carries a `VesselSurface`.
 
-      The `vessel.surface` channel payload: the landing capture-add (M3 R3): data
-      a LandingStatus widget needs that `vessel.flight` doesn't already carry.
-      `vessel.flight.AltitudeTerrain` (KSP's `radarAltitude`, measured from the
-      vessel's centre of mass) already ships: `VesselSurface.heightFromTerrain`
-      here is a DIFFERENT, additional reading (KSP's own `heightFromTerrain`,
-      which accounts for the vessel's physical extent: effectively "how far is my
-      LOWEST point from the ground," the number a landing-gear/suicide-burn widget
-      actually cares about, not the CoM-to-ground distance).
+      The `vessel.surface` channel payload: surface data a landing widget needs
+      that `vessel.flight` doesn't already carry. `vessel.flight.AltitudeTerrain`
+      is the height of the vessel's root part above the terrain;
+      `VesselSurface.heightFromTerrain` is the height of the vessel's LOWEST
+      point, the number a landing-gear or suicide-burn readout cares about. The
+      two differ by how far the vessel reaches below its root.
 
-      Whole-channel absence means "not near any surface right now", guarded on
-      `Situation.Orbiting`/ `Situation.Escaping` on the capture side
-      (`Gonogo.KSP.KspHost.BuildSurface`), never a stale/garbage AGL reading from
-      deep space (KSP keeps whatever it last computed for `heightFromTerrain` even
-      when there's no meaningful "terrain" underneath at all).
+      Whole-channel absence means the vessel has no reference body yet. The
+      channel is present in every situation, orbiting included.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -19909,20 +19904,15 @@ components:
     VesselSurface:
       type: object
       description: |-
-        The `vessel.surface` channel payload: the landing capture-add (M3 R3): data
-        a LandingStatus widget needs that `vessel.flight` doesn't already carry.
-        `vessel.flight.AltitudeTerrain` (KSP's `radarAltitude`, measured from the
-        vessel's centre of mass) already ships: `VesselSurface.heightFromTerrain`
-        here is a DIFFERENT, additional reading (KSP's own `heightFromTerrain`,
-        which accounts for the vessel's physical extent: effectively "how far is my
-        LOWEST point from the ground," the number a landing-gear/suicide-burn widget
-        actually cares about, not the CoM-to-ground distance).
+        The `vessel.surface` channel payload: surface data a landing widget needs
+        that `vessel.flight` doesn't already carry. `vessel.flight.AltitudeTerrain`
+        is the height of the vessel's root part above the terrain;
+        `VesselSurface.heightFromTerrain` is the height of the vessel's LOWEST
+        point, the number a landing-gear or suicide-burn readout cares about. The
+        two differ by how far the vessel reaches below its root.
 
-        Whole-channel absence means "not near any surface right now", guarded on
-        `Situation.Orbiting`/ `Situation.Escaping` on the capture side
-        (`Gonogo.KSP.KspHost.BuildSurface`), never a stale/garbage AGL reading from
-        deep space (KSP keeps whatever it last computed for `heightFromTerrain` even
-        when there's no meaningful "terrain" underneath at all).
+        Whole-channel absence means the vessel has no reference body yet. The
+        channel is present in every situation, orbiting included.
       required:
         - meta
       properties:
@@ -19950,9 +19940,10 @@ components:
             - "null"
           x-sitrep-unit: m
           description: |-
-            Metres: KSP's own `heightFromTerrain`, accounting for the vessel's physical
-            extent (see the class doc comment for how this differs from
-            `vessel.flight.altitudeTerrain`). Null if unavailable this tick.
+            Metres from the vessel's lowest point down to the terrain, never below 0.
+            Null whenever KSP did not measure the terrain beneath the vessel this tick:
+            its terrain raycast found nothing below, or the vessel is packed or unloaded
+            and KSP is holding an earlier value.
         meta:
           $ref: "#/components/schemas/PayloadMeta"
     VesselTarget:

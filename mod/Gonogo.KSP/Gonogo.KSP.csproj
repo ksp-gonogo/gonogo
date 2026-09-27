@@ -41,6 +41,9 @@
     <Reference Include="UnityEngine.CoreModule" Private="false">
       <HintPath>$(KspManaged)\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.PhysicsModule" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.PhysicsModule.dll</HintPath>
+    </Reference>
     <Reference Include="Assembly-CSharp" Private="false">
       <HintPath>$(KspManaged)\Assembly-CSharp.dll</HintPath>
     </Reference>

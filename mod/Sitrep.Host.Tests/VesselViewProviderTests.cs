@@ -2170,11 +2170,8 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void BuildSurfaceReturnsNullWhenGroupIsAbsentEgOrbitingOrEscaping()
+        public void BuildSurfaceReturnsNullWhenGroupIsAbsent()
         {
-            // KspHost.BuildSurface omits the "surface" group entirely while
-            // ORBITING/ESCAPING -- never a stale AGL/biome reading from deep
-            // space.
             var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid });
 
             Assert.Null(VesselViewProvider.BuildSurface(snapshot));

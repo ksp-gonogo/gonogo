@@ -1219,7 +1219,7 @@ namespace Sitrep.Host
             };
         }
 
-        /// <summary>The <c>vessel.surface</c> channel: see <see cref="VesselSurface"/>'s class doc comment. Null whenever <c>Gonogo.KSP.KspHost.BuildSurface</c> omitted the raw group (no reference body yet, or the vessel is orbiting/escaping -- not near any surface).</summary>
+        /// <summary>The <c>vessel.surface</c> channel: see <see cref="VesselSurface"/>'s class doc comment. Null whenever <c>Gonogo.KSP.KspHost.BuildSurface</c> omitted the raw group (no reference body yet).</summary>
         public static VesselSurface? BuildSurface(KspSnapshot? snapshot)
         {
             var vessel = GetVesselGroup(snapshot);

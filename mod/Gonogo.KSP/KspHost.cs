@@ -2271,25 +2271,17 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// The M3 R3 <c>vessel.surface</c> capture-add's raw group --
-        /// biome/landedAt/heightFromTerrain, for the LandingStatus widget.
-        /// Null whenever there's no reference body yet (mirrors
-        /// <see cref="BuildAttitude"/>'s guard) or the vessel is
-        /// <c>ORBITING</c>/<c>ESCAPING</c> -- KSP keeps whatever stale
-        /// <c>heightFromTerrain</c>/biome-at-last-surface-contact it last
-        /// computed even deep in space, which would otherwise read as
-        /// current AGL/biome data when it's neither.
+        /// The <c>vessel.surface</c> raw group: biome, landedAt and
+        /// heightFromTerrain, for the LandingStatus widget. Null only when there
+        /// is no reference body yet (mirrors <see cref="BuildAttitude"/>'s
+        /// guard). The height is present only when KSP measured it this frame,
+        /// whatever the situation: KSP's ORBITING is a periapsis-above-datum
+        /// test, which an airless-body descent passes while inside the terrain.
         /// </summary>
         private static Dictionary<string, object?>? BuildSurface(Vessel vessel, Orbit? orbit)
         {
             var body = orbit?.referenceBody;
             if (body == null)
-            {
-                return null;
-            }
-
-            var situation = vessel.situation;
-            if (situation == Vessel.Situations.ORBITING || situation == Vessel.Situations.ESCAPING)
             {
                 return null;
             }
@@ -2314,8 +2306,103 @@ namespace Gonogo.KSP
                 // named site" -- null it out rather than ship a wire value
                 // that's indistinguishable from "not present at all".
                 ["landedAt"] = string.IsNullOrEmpty(vessel.landedAt) ? null : vessel.landedAt,
-                ["heightFromTerrain"] = (double)vessel.heightFromTerrain,
+                ["heightFromTerrain"] = LowestPointHeightFromTerrain(vessel, MeasuredHeightFromTerrain(vessel)),
             };
+        }
+
+        /// <summary>
+        /// The single read of KSP's <c>heightFromTerrain</c>, the height of the
+        /// root part's origin; see <see cref="LandingModel.MeasuredHeightFromTerrain"/>.
+        /// </summary>
+        private static double? MeasuredHeightFromTerrain(Vessel vessel) =>
+            LandingModel.MeasuredHeightFromTerrain(vessel.loaded, vessel.packed, vessel.heightFromTerrain, vessel.altitude);
+
+        /// <summary>
+        /// The height of the vessel's lowest point above the terrain: the root
+        /// origin's measured height, lowered by how far the vessel's geometry
+        /// reaches below that origin along the local up.
+        /// </summary>
+        private static double? LowestPointHeightFromTerrain(Vessel vessel, double? rootHeight)
+        {
+            if (rootHeight == null || vessel.parts == null || vessel.vesselTransform == null)
+            {
+                return null;
+            }
+
+            var root = vessel.vesselTransform.position;
+            Vector3 up = FlightGlobals.getUpAxis(vessel.mainBody, root);
+            var offsets = new List<double>();
+            for (int i = 0; i < vessel.parts.Count; i++)
+            {
+                AddLowestOffsets(vessel.parts[i], root, up, offsets);
+            }
+
+            return LandingModel.LowestPointHeight(rootHeight.Value, offsets);
+        }
+
+        private const int KerbalsLayer = 16;
+        private const int InternalSpaceLayer = 20;
+        private const int PartTriggersLayer = 21;
+        private const int WheelCollidersIgnoreLayer = 26;
+        private const int WheelCollidersLayer = 27;
+
+        /// <summary>
+        /// Each solid piece of one part's geometry, as its lowest point's signed
+        /// offset along <paramref name="up"/> from <paramref name="root"/>.
+        /// </summary>
+        private static void AddLowestOffsets(Part part, Vector3 root, Vector3 up, List<double> offsets)
+        {
+            if (part == null)
+            {
+                return;
+            }
+
+            // A tyre reaches its radius below the visual wheel; the wheel-collider layers hold the suspension's WheelColliders, not the tyre.
+            foreach (var wheel in part.GetComponentsInChildren<VehiclePhysics.VPWheelCollider>())
+            {
+                if (!wheel.isActiveAndEnabled || wheel.wheelTransform == null || !OwnedBy(wheel.gameObject, part))
+                {
+                    continue;
+                }
+                offsets.Add(Vector3.Dot(wheel.wheelTransform.position - root, up) - wheel.radius);
+            }
+
+            var farBelow = root - up * 1000f;
+            foreach (var collider in part.GetComponentsInChildren<Collider>())
+            {
+                var layer = collider.gameObject.layer;
+                if (!collider.enabled || collider.isTrigger || !OwnedBy(collider.gameObject, part)
+                    || layer == KerbalsLayer || layer == InternalSpaceLayer || layer == PartTriggersLayer
+                    || layer == WheelCollidersIgnoreLayer || layer == WheelCollidersLayer)
+                {
+                    continue;
+                }
+                offsets.Add(LowestOffset(collider, root, up, farBelow));
+            }
+        }
+
+        /// <summary>A part's transform children can include other parts, which own their own geometry.</summary>
+        private static bool OwnedBy(GameObject gameObject, Part part) =>
+            FlightGlobals.GetPartUpwardsCached(gameObject) == part;
+
+        /// <summary>
+        /// The point of a convex collider nearest a point far below is its lowest
+        /// point along up. Physics answers that only for primitives and convex
+        /// meshes, so any other collider is bounded by its world box instead,
+        /// which can only place the lowest point lower than it is.
+        /// </summary>
+        private static double LowestOffset(Collider collider, Vector3 root, Vector3 up, Vector3 farBelow)
+        {
+            var convex = collider is BoxCollider || collider is SphereCollider || collider is CapsuleCollider
+                || (collider is MeshCollider mesh && mesh.convex);
+            if (convex)
+            {
+                return Vector3.Dot(collider.ClosestPoint(farBelow) - root, up);
+            }
+
+            var bounds = collider.bounds;
+            var reach = Mathf.Abs(up.x) * bounds.extents.x + Mathf.Abs(up.y) * bounds.extents.y + Mathf.Abs(up.z) * bounds.extents.z;
+            return Vector3.Dot(bounds.center - root, up) - reach;
         }
 
         /// <summary>
@@ -2335,12 +2422,18 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            var heightFromTerrain = (double)vessel.heightFromTerrain;
+            var rootHeight = MeasuredHeightFromTerrain(vessel);
+            var lowestPointHeight = LowestPointHeightFromTerrain(vessel, rootHeight);
+            if (rootHeight == null || lowestPointHeight == null)
+            {
+                return null;
+            }
+
             if (!LandingModel.IsRelevant(
                     body.hasSolidSurface,
                     body.pqsController != null,
                     vessel.verticalSpeed,
-                    heightFromTerrain,
+                    lowestPointHeight.Value,
                     LandingGateHorizonSeconds))
             {
                 return null;
@@ -2379,8 +2472,8 @@ namespace Gonogo.KSP
                 double vNow = vessel.srfSpeed;
                 double rhoNow = vessel.atmDensity;
 
-                // The ASL altitude of the ground beneath the lowest point.
-                double groundAlt = Math.Max(0.0, altAsl - heightFromTerrain);
+                // The ASL altitude of the ground beneath the root, whose altitude altAsl is.
+                double groundAlt = Math.Max(0.0, altAsl - rootHeight.Value);
                 double rhoGround = DensityAt(body, groundAlt);
 
                 // Density profile down the fall column for the TTI integral.

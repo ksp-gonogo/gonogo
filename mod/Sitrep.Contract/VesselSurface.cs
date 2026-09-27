@@ -5,23 +5,15 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>vessel.surface</c> channel payload: the landing capture-add
-/// (M3 R3): data a LandingStatus widget needs that
-/// <c>vessel.flight</c> doesn't already carry. <c>vessel.flight.AltitudeTerrain</c>
-/// (KSP's <c>radarAltitude</c>, measured from the vessel's centre of mass)
-/// already ships: <see cref="HeightFromTerrain"/> here is a DIFFERENT,
-/// additional reading (KSP's own <c>heightFromTerrain</c>, which accounts
-/// for the vessel's physical extent: effectively "how far is my LOWEST
-/// point from the ground," the number a landing-gear/suicide-burn widget
-/// actually cares about, not the CoM-to-ground distance).
+/// The <c>vessel.surface</c> channel payload: surface data a landing widget
+/// needs that <c>vessel.flight</c> doesn't already carry.
+/// <c>vessel.flight.AltitudeTerrain</c> is the height of the vessel's root
+/// part above the terrain; <see cref="HeightFromTerrain"/> is the height of the
+/// vessel's LOWEST point, the number a landing-gear or suicide-burn readout
+/// cares about. The two differ by how far the vessel reaches below its root.
 ///
-/// <para>Whole-channel absence means "not near any surface right now",
-/// guarded on <see cref="Sitrep.Contract.Situation.Orbiting"/>/
-/// <see cref="Sitrep.Contract.Situation.Escaping"/> on the capture side
-/// (<c>Gonogo.KSP.KspHost.BuildSurface</c>), never a stale/garbage AGL
-/// reading from deep space (KSP keeps whatever it last computed for
-/// <c>heightFromTerrain</c> even when there's no meaningful "terrain"
-/// underneath at all).</para>
+/// <para>Whole-channel absence means the vessel has no reference body yet.
+/// The channel is present in every situation, orbiting included.</para>
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -38,7 +30,17 @@ public class VesselSurface
     [SitrepUnit(Units.Text)]
     public string? LandedAt { get; set; }
 
-    /// <summary>Metres: KSP's own <c>heightFromTerrain</c>, accounting for the vessel's physical extent (see the class doc comment for how this differs from <c>vessel.flight.altitudeTerrain</c>). Null if unavailable this tick.</summary>
+    /// <summary>
+    /// Metres from the vessel's lowest point down to the terrain, never below 0.
+    /// Null whenever KSP did not measure the terrain beneath the vessel this
+    /// tick: its terrain raycast found nothing below, or the vessel is packed or
+    /// unloaded and KSP is holding an earlier value.
+    /// <internal>
+    /// KSP's heightFromTerrain is a raycast from the root part's origin;
+    /// Gonogo.KSP.KspHost lowers it by the part geometry's reach below that
+    /// origin (LandingModel.LowestPointHeight).
+    /// </internal>
+    /// </summary>
     [SitrepUnit(Units.Metres)]
     public double? HeightFromTerrain { get; set; }
 

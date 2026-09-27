@@ -23,6 +23,50 @@ namespace Sitrep.Host
     public static class LandingModel
     {
         /// <summary>
+        /// KSP's <c>Vessel.heightFromTerrain</c> when it is a raycast KSP made
+        /// against terrain this frame, otherwise null. KSP measures only a loaded,
+        /// unpacked vessel; a packed or unloaded one keeps a held value. A missed
+        /// ray leaves the <c>-1</c> sentinel, which KSP's position update can then
+        /// overwrite with the ASL altitude itself.
+        /// </summary>
+        /// <param name="heightFromTerrain">KSP's raw field, as the float it holds.</param>
+        /// <param name="altitude">m, the vessel's ASL altitude, KSP's <c>Vessel.altitude</c>.</param>
+        public static double? MeasuredHeightFromTerrain(
+            bool loaded,
+            bool packed,
+            float heightFromTerrain,
+            double altitude)
+        {
+            if (!loaded || packed)
+                return null;
+            if (float.IsNaN(heightFromTerrain) || float.IsInfinity(heightFromTerrain) || heightFromTerrain < 0f)
+                return null;
+            if (heightFromTerrain == (float)altitude)
+                return null;
+            return heightFromTerrain;
+        }
+
+        /// <summary>
+        /// Height of the vessel's lowest point above the terrain, from the height
+        /// KSP measured at the root part's origin and each piece of the vessel's
+        /// geometry's lowest point along the local up, as a signed offset from
+        /// that origin (negative below it). Null when there is no geometry to
+        /// place the lowest point from.
+        /// </summary>
+        public static double? LowestPointHeight(double rootHeight, IReadOnlyList<double> lowestOffsetsAlongUp)
+        {
+            if (lowestOffsetsAlongUp.Count == 0)
+                return null;
+            double lowest = double.PositiveInfinity;
+            for (int i = 0; i < lowestOffsetsAlongUp.Count; i++)
+                lowest = Math.Min(lowest, lowestOffsetsAlongUp[i]);
+            if (double.IsNaN(lowest) || double.IsInfinity(lowest))
+                return null;
+            // A solid vessel cannot sit below the ground: a part reaching under the root's ground point is touching down on a slope.
+            return Math.Max(0.0, rootHeight + lowest);
+        }
+
+        /// <summary>
         /// Source-side relevance gate: emit the channel only when descending
         /// toward a solid, PQS-backed surface within the closure horizon. When
         /// false the whole channel is absent ("not descending"), so the
