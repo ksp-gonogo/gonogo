@@ -21,7 +21,7 @@ import { AugmentSlot, useWidgetSegmentBound } from "./AugmentSlot";
 import { Badge } from "./Badge";
 import { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
 import { fitBox, fitMask } from "./fitBox";
-import { focusRing } from "./focusRing";
+import { focusRing, focusRingInset } from "./focusRing";
 import { LiveRegion } from "./LiveRegion";
 import { type BadgeEntry, usePanelBadgesContext } from "./PanelBadges";
 import { SECTION_FILL_ATTR, SECTION_FULL_ATTR, Section } from "./Section";
@@ -39,6 +39,7 @@ import { titleText } from "./titleText";
 import { useElementSize } from "./useElementSize";
 import { useFittedTitle } from "./useFittedTitle";
 import { PanelAsideSizeProvider, useHeaderAsideFit } from "./usePanelAsideSize";
+import { useKeyboardScrollable, useScrollerMetric } from "./useScrollerMetric";
 
 interface PanelContextValue {
   scroller: HTMLElement | null;
@@ -478,6 +479,7 @@ const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
   padding: var(--inset-panel-body);
   /* Body is the scroller, so the inset sits inside the scrolling box and never clips overflow. */
   overflow: auto;
+  ${focusRingInset}
   /* The glow shows scroll state, so the native bar is hidden. */
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -509,16 +511,20 @@ export function PanelBody({
 }) {
   const ctx = useContext(PanelCtx);
   const register = ctx?.registerScroller;
+  const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
   const ref = useCallback(
     (el: HTMLDivElement | null) => {
       register?.(el);
+      setScroller(el);
     },
     [register],
   );
+  const tabIndex = useKeyboardScrollable(scroller);
   return (
     /* `data-panel-body` is a stable targeting hook for the scroller's visible height. */
     <PanelBody__Box
       ref={ref}
+      tabIndex={tabIndex}
       data-panel-body=""
       $fitToSize={fitToSize}
       $bleed={bleed}
@@ -727,6 +733,7 @@ const ScrollAreaInner = styled.div`
   flex: 1;
   min-height: 0;
   overflow: auto;
+  ${focusRingInset}
   /* The glow indicators show scroll state, so the native bar is hidden. */
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -807,10 +814,15 @@ export const ScrollArea = forwardRef<
     sameOverflow,
     NO_OVERFLOW,
   );
+  const innerTabIndex = useKeyboardScrollable(inner);
 
   return (
     <ScrollAreaRoot {...rest}>
-      <ScrollAreaInner ref={attachInner} data-scroll-area-inner="">
+      <ScrollAreaInner
+        ref={attachInner}
+        tabIndex={innerTabIndex}
+        data-scroll-area-inner=""
+      >
         {children}
       </ScrollAreaInner>
       <ScrollOverflowGlow $position="top" $visible={overflow.top} />
@@ -1027,50 +1039,6 @@ function scrollOverflow(el: HTMLElement): ScrollOverflow {
 
 function sameOverflow(a: ScrollOverflow, b: ScrollOverflow): boolean {
   return a.top === b.top && a.bottom === b.bottom;
-}
-
-/**
- * Observe the registered scroller and derive a value from it, recomputed on
- * scroll and on any size or child-list change to the scroller. Drivable in
- * jsdom by dispatching a `scroll` event.
- */
-function useScrollerMetric<T>(
-  el: HTMLElement | null,
-  compute: (el: HTMLElement) => T,
-  isEqual: (a: T, b: T) => boolean,
-  initial: T,
-): T {
-  const [value, setValue] = useState<T>(initial);
-  // Latest closures without re-subscribing: the effect keys off `el` alone.
-  const computeRef = useRef(compute);
-  computeRef.current = compute;
-  const equalRef = useRef(isEqual);
-  equalRef.current = isEqual;
-
-  useEffect(() => {
-    if (!el) return;
-    const update = () => {
-      const next = computeRef.current(el);
-      setValue((prev) => (equalRef.current(prev, next) ? prev : next));
-    };
-    update();
-    el.addEventListener("scroll", update, { passive: true });
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    for (const child of Array.from(el.children)) ro.observe(child);
-    const mo = new MutationObserver(() => {
-      for (const child of Array.from(el.children)) ro.observe(child);
-      update();
-    });
-    mo.observe(el, { childList: true });
-    return () => {
-      el.removeEventListener("scroll", update);
-      ro.disconnect();
-      mo.disconnect();
-    };
-  }, [el]);
-
-  return value;
 }
 
 const PanelGlow__Root = styled.div`
@@ -1664,7 +1632,6 @@ function PanelRoot({
 
 export const Panel = Object.assign(PanelRoot, {
   Context: PanelContextProvider,
-  Providers: PanelProviders,
   Delay: PanelDelayRail,
   Container: PanelContainer,
   Header: PanelHeader,
@@ -1674,8 +1641,5 @@ export const Panel = Object.assign(PanelRoot, {
   Glow: PanelGlow,
   Body: PanelBody,
   Section,
-  Split: PanelSplit,
   Sidebar: PanelSidebar,
-  StatusDot: PanelStatusDot,
-  useStatusSummary,
 });

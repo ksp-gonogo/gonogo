@@ -8,7 +8,7 @@ import {
 } from "./CommandDelay/DelayRailContext";
 import type { InFlightCommandLike } from "./CommandDelay/toInFlightListItems";
 import { usePanelDelay } from "./CommandDelay/usePanelDelay";
-import { Panel, PanelProviders } from "./Panel";
+import { Panel } from "./Panel";
 
 // Rail axes from the production derivations, so a fixture cannot drift from them.
 const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
@@ -129,9 +129,8 @@ describe("Panel.Delay wiring", () => {
     expect(screen.queryByLabelText("In-flight commands")).toBeNull();
   });
 
-  it("Panel.Delay and Panel.Providers are attached to the compound component", () => {
+  it("Panel.Delay is attached to the compound component", () => {
     expect(Panel.Delay).toBeTypeOf("function");
-    expect(Panel.Providers).toBe(PanelProviders);
   });
 
   it("usePanelDelay + the rail read a DelayRailProvider provided above the Panel (the GridItemContent pattern)", () => {

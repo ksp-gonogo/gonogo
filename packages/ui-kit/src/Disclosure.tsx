@@ -1,8 +1,9 @@
 import { type ReactNode, useId, useRef, useState } from "react";
 import styled, { css } from "styled-components";
 import { GhostButton } from "./Button";
-import { focusRing } from "./focusRing";
+import { focusRing, focusRingInset } from "./focusRing";
 import { ChevronRightIcon } from "./Icons";
+import { useKeyboardScrollable } from "./useScrollerMetric";
 
 export interface DisclosureProps {
   /**
@@ -83,6 +84,8 @@ export function Disclosure({
   const [open, setOpen] = useState(defaultOpen);
   const panelId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const [panel, setPanel] = useState<HTMLDivElement | null>(null);
+  const panelTabIndex = useKeyboardScrollable(panel);
   const showChevron = variant === "inline" && chevron;
   const resolvedLabel = typeof label === "function" ? label(open) : label;
   const TriggerTag = asButton ? Disclosure__ButtonTrigger : Disclosure__Trigger;
@@ -118,8 +121,10 @@ export function Disclosure({
       </TriggerTag>
       {open && (
         <Disclosure__Panel
+          ref={setPanel}
           id={panelId}
           role="group"
+          tabIndex={panelTabIndex}
           $variant={variant}
           $panelHeight={panelHeight}
         >
@@ -231,6 +236,7 @@ const Disclosure__Panel = styled.div<{
       ? css`
           max-height: 16rem;
           overflow-y: auto;
+          ${focusRingInset}
         `
       : ""}
   padding: var(--inset-surface);
