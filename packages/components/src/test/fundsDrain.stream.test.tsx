@@ -92,34 +92,39 @@ async function textFor(
     tech: null,
   };
 
-  if (widget === "space-center-status") {
-    mount(
-      widget,
-      <fixture.Provider>
-        <SpaceCenterStatusComponent id={widget} w={6} h={7} />
-      </fixture.Provider>,
-    );
-  } else if (widget === "launch-director") {
-    mount(
-      widget,
-      <fixture.Provider>
-        <LaunchDirectorComponent id={widget} w={7} h={10} />
-      </fixture.Provider>,
-    );
-  } else if (widget === "astronaut-complex") {
-    mount(
-      widget,
-      <fixture.Provider>
-        <AstronautComplexComponent id={widget} w={6} h={8} />
-      </fixture.Provider>,
-    );
-  } else {
-    mount(
-      widget,
-      <fixture.Provider>
-        <StrategiesComponent id={widget} w={9} h={8} />
-      </fixture.Provider>,
-    );
+  switch (widget) {
+    case "space-center-status":
+      mount(
+        widget,
+        <fixture.Provider>
+          <SpaceCenterStatusComponent id={widget} w={6} h={7} />
+        </fixture.Provider>,
+      );
+      break;
+    case "launch-director":
+      mount(
+        widget,
+        <fixture.Provider>
+          <LaunchDirectorComponent id={widget} w={7} h={10} />
+        </fixture.Provider>,
+      );
+      break;
+    case "astronaut-complex":
+      mount(
+        widget,
+        <fixture.Provider>
+          <AstronautComplexComponent id={widget} w={6} h={8} />
+        </fixture.Provider>,
+      );
+      break;
+    default:
+      mount(
+        widget,
+        <fixture.Provider>
+          <StrategiesComponent id={widget} w={9} h={8} />
+        </fixture.Provider>,
+      );
+      break;
   }
 
   await act(async () => {

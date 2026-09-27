@@ -237,7 +237,9 @@ function main(): void {
       const owed = KNOWN_UNFED[key];
       if (owed === undefined) {
         regressions.push(`  ${String(count).padStart(3)}  ${key}  (new)`);
-      } else if (count !== owed) {
+        continue;
+      }
+      if (count !== owed) {
         // A count that GREW is a regression; one that shrank is progress that still has to be recorded, so both land here and both name the numbers.
         regressions.push(
           `  ${String(count).padStart(3)}  ${key}  (recorded as ${owed})`,

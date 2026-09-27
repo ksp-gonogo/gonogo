@@ -15,7 +15,9 @@ function collectComponentSources(): Array<{ file: string; text: string }> {
       if (statSync(full).isDirectory()) {
         if (entry === "__fixtures__" || entry === "node_modules") continue;
         walk(full);
-      } else if (/\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry)) {
+        continue;
+      }
+      if (/\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry)) {
         out.push({ file: full, text: readFileSync(full, "utf8") });
       }
     }

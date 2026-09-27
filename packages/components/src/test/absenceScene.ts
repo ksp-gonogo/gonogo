@@ -142,7 +142,9 @@ export function absenceSceneFailures(
           "so the scene is asserting the absence of something that was never " +
           "there",
       );
-    } else if (degraded.includes(text)) {
+      continue;
+    }
+    if (degraded.includes(text)) {
       failures.push(
         `"${text}" is still painted with "${scene.channel}" never arriving, ` +
           "so a figure with no reading behind it is on screen",

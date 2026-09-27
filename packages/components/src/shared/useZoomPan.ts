@@ -93,7 +93,9 @@ export function useZoomPan<E extends HTMLElement = HTMLDivElement>(
       lastPanPos.current = null;
       const [a, b] = [...activePointers.current.values()];
       lastPinchDist.current = Math.hypot(a.x - b.x, a.y - b.y);
-    } else if (activePointers.current.size === 1) {
+      return;
+    }
+    if (activePointers.current.size === 1) {
       lastPanPos.current = { x: e.clientX, y: e.clientY };
       lastPinchDist.current = null;
     }
@@ -145,7 +147,9 @@ export function useZoomPan<E extends HTMLElement = HTMLDivElement>(
       const [remaining] = [...activePointers.current.values()];
       lastPanPos.current = { ...remaining };
       lastPinchDist.current = null;
-    } else if (activePointers.current.size === 0) {
+      return;
+    }
+    if (activePointers.current.size === 0) {
       lastPanPos.current = null;
       lastPinchDist.current = null;
     }
