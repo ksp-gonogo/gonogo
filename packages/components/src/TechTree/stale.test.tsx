@@ -163,6 +163,28 @@ describe("TechTree when the career record is no longer current", () => {
     expect(status).not.toContain("science unknown");
   });
 
+  it("draws no affordability verdict on a node while the balance is held", async () => {
+    renderTree();
+    emitAffordableCareer();
+    await waitFor(() =>
+      expect(
+        document.querySelector("[data-afford]")?.getAttribute("data-afford"),
+      ).toBe("yes"),
+    );
+
+    goNotCurrent();
+
+    await waitFor(() =>
+      expect(
+        screen
+          .getByTitle("Available science")
+          .querySelector("[data-not-current]"),
+      ).not.toBeNull(),
+    );
+    // The last balance covered the price, but a held figure can say neither yes nor no.
+    expect(document.querySelector("[data-afford]")).toBeNull();
+  });
+
   it("keeps tiny mode's balance line, marked held rather than replaced", async () => {
     // A held balance must not reuse tiny mode's no-balance path, or a dropped link looks like a save with no science.
     const { container } = renderTree(4, 3);

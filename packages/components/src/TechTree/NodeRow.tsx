@@ -81,7 +81,7 @@ export function NodeRow({
 }: Readonly<NodeRowProps>) {
   const { tone: stateBadgeTone, label: badgeLabel } = stateBadge(display);
   // Researchable but unaffordable: grey the row and recolour the cost.
-  const unaffordable = display === "researchable" && !canAfford;
+  const unaffordable = display === "researchable" && moneyDecides && !canAfford;
 
   return (
     <NodeRowWrap $display={display} $unaffordable={unaffordable}>

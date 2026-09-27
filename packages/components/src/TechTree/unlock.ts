@@ -41,13 +41,16 @@ export function unlockHandlersFor(
   ctx: UnlockContext,
 ): UnlockHandlers {
   const isResearchable = ctx.researchable.has(n.id);
-  // Absent science reads as insufficient science; sandbox charges nothing.
-  const moneyDecides = ctx.chargesScience && !ctx.unlockBlocked;
+  // Sandbox charges nothing, so the balance gates only where science is spent.
+  const judged = ctx.chargesScience && !ctx.unlockBlocked;
+  // Fails closed: an absent or held balance arms nothing.
   const canAfford =
-    !moneyDecides ||
+    !judged ||
     (ctx.sciAvailable !== null &&
       n.scienceCost !== null &&
       ctx.sciAvailable >= n.scienceCost);
+  // A verdict is drawn only against a current balance, since a held or absent one can say neither yes nor no.
+  const moneyDecides = judged && ctx.sciAvailable !== null;
   const canUnlock = isResearchable && canAfford && ctx.upgradesEnabled;
   if (!canAfford) {
     return {
