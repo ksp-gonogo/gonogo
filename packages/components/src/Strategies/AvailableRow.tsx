@@ -111,6 +111,14 @@ export function AvailableRow({
   // Fails closed: a non-finite cost and an absent or withheld balance are all unaffordable.
   const overBudget = (cost: number, balance: number | null) =>
     !Number.isFinite(cost) || balance === null || balance < cost;
+  // The verdict a price draws: none without a current balance, since a held or absent one can say neither yes nor no.
+  const affordVerdict = (
+    cost: number,
+    balance: number | null,
+  ): "yes" | "no" | undefined => {
+    if (balance === null) return undefined;
+    return overBudget(cost, balance) ? "no" : "yes";
+  };
 
   const cantAfford =
     (s.initialCostFunds > 0 && overBudget(scaledFunds, funds)) ||
@@ -171,18 +179,25 @@ export function AvailableRow({
       {note && <BlockedNote>{note}</BlockedNote>}
       <CostRow>
         {s.initialCostFunds > 0 && (
-          <CostChip $insufficient={overBudget(scaledFunds, funds)}>
+          <CostChip
+            $insufficient={affordVerdict(scaledFunds, funds) === "no"}
+            data-afford={affordVerdict(scaledFunds, funds)}
+          >
             <Unit value={value("funds", scaledFunds)} />
           </CostChip>
         )}
         {s.initialCostScience > 0 && (
-          <CostChip $insufficient={overBudget(scaledScience, science)}>
+          <CostChip
+            $insufficient={affordVerdict(scaledScience, science) === "no"}
+            data-afford={affordVerdict(scaledScience, science)}
+          >
             <Unit value={value("science", scaledScience)} />
           </CostChip>
         )}
         {s.initialCostReputation > 0 && (
           <CostChip
-            $insufficient={overBudget(scaledRep, reputation)}
+            $insufficient={affordVerdict(scaledRep, reputation) === "no"}
+            data-afford={affordVerdict(scaledRep, reputation)}
             title={`Nominal ${writeQuantity(value("rep", s.initialCostReputation * factorScale))}; the rep curve bumps the real charge to ${writeQuantity(value("rep", scaledRep))}.`}
           >
             <Unit value={value("rep", scaledRep)} />

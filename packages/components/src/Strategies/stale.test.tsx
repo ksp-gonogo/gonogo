@@ -157,6 +157,25 @@ describe("Strategies when the career balances are no longer current", () => {
     );
   });
 
+  it("draws no affordability verdict on a price while the balance is held", async () => {
+    const fixture = newFixture();
+    renderStrategies(fixture);
+    emitCareer(fixture);
+    await waitFor(() =>
+      expect(
+        document.querySelector("[data-afford]")?.getAttribute("data-afford"),
+      ).toBe("yes"),
+    );
+
+    goStale(fixture);
+
+    await waitFor(() =>
+      expect(document.querySelector("[data-not-current]")).not.toBeNull(),
+    );
+    // The last balance covered the price, but a held figure can say neither yes nor no.
+    expect(document.querySelector("[data-afford]")).toBeNull();
+  });
+
   it("marks the tiny bucket's held balance, where 'unknown' would blame the wrong thing", async () => {
     // w=4 is the tiny bucket.
     const fixture = newFixture();
