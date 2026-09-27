@@ -48,8 +48,11 @@ export const FileInput = forwardRef<HTMLInputElement, FileInputProps>(
           id={inputId}
           ref={(node) => {
             internalRef.current = node;
-            if (typeof ref === "function") ref(node);
-            else if (ref) ref.current = node;
+            if (typeof ref === "function") {
+              ref(node);
+              return;
+            }
+            if (ref) ref.current = node;
           }}
           type="file"
           accept={accept}
