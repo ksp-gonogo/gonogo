@@ -117,7 +117,7 @@ describe("LandingStatus when the solve inputs are not current", () => {
     expect(visibleText(container)).not.toContain("Descent solve suspended");
   });
 
-  it("keeps describing the board, and SAYS which reading is no longer current", async () => {
+  it("keeps describing the board, its held figures marked by their own Units and no caption beside them", async () => {
     const { container } = renderWidget();
     emitDescent();
     await waitFor(() =>
@@ -130,10 +130,9 @@ describe("LandingStatus when the solve inputs are not current", () => {
     });
 
     await waitFor(() => {
-      expect(visibleText(container)).toContain("Described from last known");
+      expect(container.querySelector("[data-held-mark]")).not.toBeNull();
     });
-    // Named, not merely captioned: which reading went is the operator's first question.
-    expect(visibleText(container)).toContain("flight");
+    expect(visibleText(container)).not.toContain("Described from last known");
     // And the descent picture stays.
     expect(visibleText(container)).not.toContain("No landing in progress");
   });
@@ -152,7 +151,7 @@ describe("LandingStatus when the solve inputs are not current", () => {
     });
 
     await waitFor(() =>
-      expect(visibleText(container)).toContain("Described from last known"),
+      expect(container.querySelector("[data-held-mark]")).not.toBeNull(),
     );
     expect(visibleText(container)).not.toContain("No landing in progress");
   });
@@ -178,11 +177,10 @@ describe("LandingStatus when the solve inputs are not current", () => {
     expect(visibleText(container)).not.toContain("IGNITE");
   });
 
-  it("says nothing about dated readings before anything has ever arrived", async () => {
-    // A cold start is not a dated board: "described from last known" would be false with nothing ever arrived.
+  it("marks nothing held before anything has ever arrived", async () => {
     const { container } = renderWidget();
     await waitFor(() => {
-      expect(visibleText(container)).not.toContain("Described from last known");
+      expect(container.querySelector("[data-held-mark]")).toBeNull();
     });
   });
 });

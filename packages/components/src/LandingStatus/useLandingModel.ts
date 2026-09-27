@@ -52,8 +52,6 @@ export interface LandingModel {
   live: boolean;
   /** No input the burn solve rests on is held. */
   mayInstruct: boolean;
-  /** The held inputs the board is describing from. */
-  describedInputs: string[];
   bodyName: string | null | undefined;
   atmospheric: boolean;
   targetRange: number | undefined;
@@ -148,10 +146,6 @@ export function useLandingModel(): LandingModel {
    * A never-arrived input does not refuse, since `solveSuicideBurn` already answers "not-descending" when it lacks data.
    */
   const mayInstruct = datedInputs.length === 0;
-  // Target range is a description the burn does not rest on, so a held one joins the caption without refusing the instruction.
-  const describedInputs = isDated(targetReading)
-    ? [...datedInputs, "target"]
-    : datedInputs;
 
   const { exhaustVelocity, burnoutMass } = deriveActiveBurnParams(
     budget?.activeStage,
@@ -272,7 +266,6 @@ export function useLandingModel(): LandingModel {
     clocks,
     live,
     mayInstruct,
-    describedInputs,
     bodyName,
     atmospheric,
     targetRange,

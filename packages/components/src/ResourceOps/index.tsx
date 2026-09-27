@@ -81,10 +81,6 @@ function ResourceOpsComponent(
   // "None on this vessel" is a claim about the craft, so it waits for both channels to have said so.
   const bothAnswered =
     hasAnswered(drillsReading) && hasAnswered(convertersReading);
-  const staleChannels = [
-    ...(drillsNotCurrent ? ["drills"] : []),
-    ...(convertersNotCurrent ? ["converters"] : []),
-  ];
 
   // One "next" walks drills then converters, indexing the full order rather than the filtered subset.
   const total = allDrills.length + allConverters.length;
@@ -201,7 +197,6 @@ function ResourceOpsComponent(
             netEc={netEc}
             netEcNotCurrent={convertersNotCurrent}
             location={location}
-            staleChannels={staleChannels}
           />
         </Section>,
         /* No `ScrollArea` here: Panel's body is already the scroller. */

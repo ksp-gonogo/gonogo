@@ -10,7 +10,6 @@ import {
   Text,
 } from "@ksp-gonogo/ui-kit";
 import { PlotBoard } from "../Plots/PlotBoard";
-import { DescribedFromLastKnown } from "../shared/DescribedFromLastKnown";
 import { AltitudeRail } from "./AltitudeRail";
 import { CarriedAltitude } from "./CarriedAltitude";
 import { CommitLayer, REGIME_LABEL, REGIME_TONE } from "./CommitLayer";
@@ -52,7 +51,6 @@ function LandingStatusComponent({
     clocks,
     live,
     mayInstruct,
-    describedInputs,
     bodyName,
     atmospheric,
     heightFromTerrain,
@@ -171,15 +169,11 @@ function LandingStatusComponent({
             </span>
           </div>
         </Section>,
-        bodyName !== undefined || describedInputs.length > 0 ? (
+        bodyName !== undefined ? (
           <Section key="context" full>
-            {bodyName !== undefined && (
-              <Text tone="muted" size="xs">
-                {`${bodyName}${atmospheric ? " · atmospheric" : " · vacuum"}`}
-              </Text>
-            )}
-            {/* No role="status": the hero owns the live region. Shown only for dated inputs, since a cold start has nothing "last known". */}
-            <DescribedFromLastKnown readings={describedInputs} />
+            <Text tone="muted" size="xs">
+              {`${bodyName}${atmospheric ? " · atmospheric" : " · vacuum"}`}
+            </Text>
           </Section>
         ) : null,
         // The rail and its readouts take the height the captions leave.

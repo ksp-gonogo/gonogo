@@ -119,7 +119,7 @@ describe("ResourceOps when an isru channel is not current", () => {
     expect(visibleText()).toContain("0.0037");
   });
 
-  it("keeps the hardware listed and NAMES both channels as no longer current", async () => {
+  it("keeps the hardware listed, each card saying its run state is held, with no caption beside the figures", async () => {
     const { fixture } = renderWidget();
     emitBoth(fixture);
     expect(await screen.findByText("Drill-O-Matic")).toBeInTheDocument();
@@ -127,12 +127,9 @@ describe("ResourceOps when an isru channel is not current", () => {
     dropTheLink(fixture);
 
     await waitFor(() =>
-      expect(
-        screen.getByText(
-          "Rates and run state no longer current: drills, converters",
-        ),
-      ).toBeInTheDocument(),
+      expect(screen.getAllByText("run state held")).toHaveLength(4),
     );
+    expect(visibleText()).not.toMatch(/no longer current/i);
     // The rigs survive: which units are bolted on only changes on an event.
     expect(screen.getByText("Drill-O-Matic")).toBeInTheDocument();
     expect(screen.getByText("Drill-O-Matic Junior")).toBeInTheDocument();
@@ -147,7 +144,9 @@ describe("ResourceOps when an isru channel is not current", () => {
     expect(await screen.findByText("Drill-O-Matic")).toBeInTheDocument();
 
     dropTheLink(fixture);
-    await waitFor(() => expect(visibleText()).toMatch(/no longer current/i));
+    await waitFor(() =>
+      expect(screen.getAllByText("run state held")).toHaveLength(4),
+    );
 
     // "stopped" is as much a statement about now as "running".
     expect(screen.queryAllByText("running")).toHaveLength(0);
@@ -166,7 +165,9 @@ describe("ResourceOps when an isru channel is not current", () => {
     expect(await screen.findByText("Drill-O-Matic")).toBeInTheDocument();
 
     dropTheLink(fixture);
-    await waitFor(() => expect(visibleText()).toMatch(/no longer current/i));
+    await waitFor(() =>
+      expect(screen.getAllByText("run state held")).toHaveLength(4),
+    );
 
     const header = statsHeader();
     expect(within(header).queryByText("3")).not.toBeInTheDocument();
@@ -184,14 +185,16 @@ describe("ResourceOps when an isru channel is not current", () => {
     expect(await screen.findByText("Drill-O-Matic")).toBeInTheDocument();
 
     dropTheLink(fixture);
-    await waitFor(() => expect(visibleText()).toMatch(/no longer current/i));
+    await waitFor(() =>
+      expect(screen.getAllByText("run state held")).toHaveLength(4),
+    );
 
     expect(
       screen.queryByText("No drills or converters on this vessel"),
     ).not.toBeInTheDocument();
   });
 
-  it("withholds only the channel that went, and says which one", async () => {
+  it("withholds only the channel that went, and marks only its cards held", async () => {
     // Only the drills go stale, so the current converter figures must survive.
     const { fixture } = renderWidget();
     emitBoth(fixture);
@@ -203,11 +206,9 @@ describe("ResourceOps when an isru channel is not current", () => {
     });
 
     await waitFor(() =>
-      expect(
-        screen.getByText("Rates and run state no longer current: drills"),
-      ).toBeInTheDocument(),
+      expect(screen.getAllByText("run state held")).toHaveLength(2),
     );
-    expect(screen.getAllByText("run state held")).toHaveLength(2);
+    expect(visibleText()).not.toMatch(/no longer current/i);
     expect(screen.getAllByText("running")).toHaveLength(2);
     expect(screen.getByText("no output")).toBeInTheDocument();
     expect(visibleText()).toContain("0.45");

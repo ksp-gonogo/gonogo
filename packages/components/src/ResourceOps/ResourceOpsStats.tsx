@@ -16,7 +16,6 @@ export function ResourceOpsStats({
   netEc,
   netEcNotCurrent,
   location,
-  staleChannels,
 }: Readonly<{
   total: number;
   /** Withheld (`undefined`) while either channel's run flags are stale. */
@@ -25,8 +24,6 @@ export function ResourceOpsStats({
   /** Whether `netEc.net` is a held figure rather than the vessel's current draw. */
   netEcNotCurrent: boolean;
   location: string | undefined;
-  /** Which channels stopped being current, named for the operator. */
-  staleChannels: readonly string[];
 }>) {
   return (
     <Cluster
@@ -70,11 +67,6 @@ export function ResourceOpsStats({
             {location}
           </Text>
         </Inline>
-      )}
-      {staleChannels.length > 0 && (
-        <Text tone="warn" size="xs" role="status" aria-live="polite">
-          {`Rates and run state no longer current: ${staleChannels.join(", ")}`}
-        </Text>
       )}
     </Cluster>
   );
