@@ -87,6 +87,58 @@ const EXPERIMENT_COLUMNS: ReadonlyArray<DataTableColumn<ParsedExperiment>> = [
   },
 ];
 
+function localeSuffixOf(locale: string, notCurrent: boolean): string {
+  if (locale) return ` · ${locale}`;
+  // A withheld locale names itself so it does not read like a vessel that never reported a biome.
+  if (notCurrent) return " · locale no longer current";
+  return "";
+}
+
+/** The breakdown when the vessel reports one, else the raw stored results, else the empty state. */
+function AboardLedger({
+  breakdown,
+  experiments,
+  slotFilled,
+}: Readonly<{
+  breakdown: ExperimentBreakdownEntry[] | null;
+  experiments: ParsedExperiment[] | null;
+  slotFilled: boolean;
+}>) {
+  if (breakdown !== null) {
+    return (
+      <DataTable
+        caption="Science aboard the active vessel, by subject"
+        empty="No subject matches the filter."
+        columns={BREAKDOWN_COLUMNS}
+        rows={breakdown}
+        rowKey={(b) => b.subjectId}
+        rowDetail={
+          slotFilled
+            ? (b) => (
+                <AugmentSlot
+                  name="science-data.aboard-row"
+                  props={{ subjectId: b.subjectId }}
+                />
+              )
+            : undefined
+        }
+      />
+    );
+  }
+  if (experiments !== null) {
+    return (
+      <DataTable
+        caption="Science results stored aboard the active vessel"
+        empty="No result matches the filter."
+        columns={EXPERIMENT_COLUMNS}
+        rows={experiments}
+        rowKey={(e) => e.subjectId}
+      />
+    );
+  }
+  return <EmptyState>No science data aboard.</EmptyState>;
+}
+
 /** The active vessel's onboard ledger, with the situation line it was taken in. */
 export function AboardTab({
   body,
@@ -108,12 +160,7 @@ export function AboardTab({
   const shownExperiments = (experiments ?? []).filter((e) =>
     filter.matches(e.title),
   );
-  // A withheld locale names itself so it does not read like a vessel that never reported a biome.
-  const localeSuffix = situationLocale
-    ? ` · ${situationLocale}`
-    : localeNotCurrent
-      ? " · locale no longer current"
-      : "";
+  const localeSuffix = localeSuffixOf(situationLocale, localeNotCurrent);
   const hasBreakdown = breakdown !== null && breakdown.length > 0;
   const hasExperiments = experiments !== null && experiments.length > 0;
 
@@ -142,35 +189,11 @@ export function AboardTab({
         </Text>
       )}
       <ScrollArea>
-        {hasBreakdown ? (
-          <DataTable
-            caption="Science aboard the active vessel, by subject"
-            empty="No subject matches the filter."
-            columns={BREAKDOWN_COLUMNS}
-            rows={shownBreakdown}
-            rowKey={(b) => b.subjectId}
-            rowDetail={
-              slotFilled
-                ? (b) => (
-                    <AugmentSlot
-                      name="science-data.aboard-row"
-                      props={{ subjectId: b.subjectId }}
-                    />
-                  )
-                : undefined
-            }
-          />
-        ) : hasExperiments ? (
-          <DataTable
-            caption="Science results stored aboard the active vessel"
-            empty="No result matches the filter."
-            columns={EXPERIMENT_COLUMNS}
-            rows={shownExperiments}
-            rowKey={(e) => e.subjectId}
-          />
-        ) : (
-          <EmptyState>No science data aboard.</EmptyState>
-        )}
+        <AboardLedger
+          breakdown={hasBreakdown ? shownBreakdown : null}
+          experiments={hasExperiments ? shownExperiments : null}
+          slotFilled={slotFilled}
+        />
       </ScrollArea>
       {(hasBreakdown || hasExperiments) && filter.control}
     </Stack>
