@@ -1,6 +1,7 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { AutoEmptyState } from "./AutoEmptyState";
+import { emittedRuleFor } from "./test/emittedRule";
 
 describe("AutoEmptyState", () => {
   it("shows the fallback when the content area renders nothing", () => {
@@ -29,5 +30,16 @@ describe("AutoEmptyState", () => {
       </AutoEmptyState>,
     );
     expect(screen.getByLabelText("Objectives")).toBeInTheDocument();
+  });
+
+  it("is never a scroller of its own, so the panel body stays the only one", () => {
+    render(
+      <AutoEmptyState fallback={<span>none</span>} data-testid="content">
+        <span>row</span>
+      </AutoEmptyState>,
+    );
+    const rule = emittedRuleFor(screen.getByTestId("content"));
+    expect(rule).not.toMatch(/overflow/);
+    expect(rule).not.toMatch(/min-height:0/);
   });
 });

@@ -4,10 +4,7 @@ import {
   registerAugment,
   registerComponent,
 } from "@ksp-gonogo/core";
-import { EmptyState, Panel, Section } from "@ksp-gonogo/ui-kit";
-// The `:not(:empty) + sibling` fallback rule below keeps the frame agnostic of which augments rendered, and no inline style can express it.
-// biome-ignore lint/style/noRestrictedImports: :empty frame-fallback rule, no inline equivalent (see above)
-import styled from "styled-components";
+import { AutoEmptyState, EmptyState, Panel, Section } from "@ksp-gonogo/ui-kit";
 import {
   ContractsObjectiveSource,
   contractsTopics,
@@ -34,34 +31,21 @@ function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
   return (
     <Panel
       panelTitle="OBJECTIVES"
-      /* One section holding both: the fallback is hidden by an adjacent-sibling rule that a wrapper between them would break. */
       sections={
         <Section full>
-          <Sections>
+          <AutoEmptyState
+            gap="section"
+            fallback={
+              <EmptyState role="status">No active objectives</EmptyState>
+            }
+          >
             <AugmentSlot name="objectives.source" props={OBJECTIVES_SLOT} />
-          </Sections>
-          <EmptyFallbackWrap>
-            <EmptyState role="status">No active objectives</EmptyState>
-          </EmptyFallbackWrap>
+          </AutoEmptyState>
         </Section>
       }
     />
   );
 }
-
-// The sibling selector's target.
-const EmptyFallbackWrap = styled.div``;
-
-const Sections = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-section);
-
-  /* Augments that return null add no DOM, so an empty wrapper means no source rendered and the fallback shows. */
-  &:not(:empty) + ${EmptyFallbackWrap} {
-    display: none;
-  }
-`;
 
 registerComponent<ObjectivesConfig>({
   id: "objectives",

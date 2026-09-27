@@ -15,9 +15,10 @@ export interface AutoEmptyStateProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * Pairs a scrollable content region with a fallback that auto-hides once the
- * region has rendered anything. For slot composition, where the frame owns the
- * fallback but its content comes from augments it cannot introspect.
+ * Pairs a content region with a fallback that auto-hides once the region has
+ * rendered anything. For slot composition, where the frame owns the fallback
+ * but its content comes from augments it cannot introspect. It never scrolls
+ * on its own: the panel body it sits in is the one scroller.
  */
 export function AutoEmptyState({
   fallback,
@@ -39,9 +40,6 @@ const AutoEmptyState__Content = styled.div<{ $gap: GapToken }>`
   display: flex;
   flex-direction: column;
   gap: ${({ $gap }) => GAP_VAR[$gap]};
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
 `;
 
 const AutoEmptyState__Fallback = styled.div`
