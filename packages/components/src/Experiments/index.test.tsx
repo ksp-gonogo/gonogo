@@ -1,8 +1,12 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { DelayRailProvider } from "@ksp-gonogo/ui-kit";
+import {
+  expectNoA11yViolations,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
   ExperimentsComponent,
@@ -191,6 +195,84 @@ describe("ExperimentsComponent", () => {
       expect(sent).toBeDefined();
       expect(sent?.args).toEqual({ partId: "99" });
     });
+  });
+
+  it("carries a confirmed transmission home on the panel rail, and drops it on arrival", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    const user = userEvent.setup();
+    const fixture = setupStreamFixture({
+      carriedChannels: ["science.instruments", "comms.delay"],
+      suspendFrames: true,
+    });
+    // Sent at the craft from UT 0, its last packet away at 4, landing one 30 s light-time later.
+    fixture.transport.setCommandHandler((command) =>
+      command === "science.experiment.transmit"
+        ? {
+            success: true,
+            errorCode: 0,
+            payload: {
+              subjectId: "temperatureScan@KerbinSrfLandedLaunchPad",
+              title: "Temperature Scan from LaunchPad",
+              startedAt: 0,
+              streamSeconds: 4,
+              dataAmount: 8,
+            },
+          }
+        : { success: true, errorCode: 0 },
+    );
+    const { container, unmount } = render(
+      <fixture.Provider>
+        <DelayRailProvider>
+          <DashboardItemContext.Provider value={{ instanceId: "sci-off" }}>
+            <ExperimentsComponent config={{}} id="sci-off" />
+          </DashboardItemContext.Provider>
+        </DelayRailProvider>
+      </fixture.Provider>,
+    );
+    renderedTrees.push(unmount);
+    act(() => {
+      fixture.emit(
+        "comms.delay",
+        { source: 1, oneWaySeconds: 30 },
+        { validAt: 0, deliveredAt: 0 },
+      );
+      fixture.emit("science.instruments", [
+        {
+          partId: 99,
+          partTitle: "Thermometer",
+          expId: "temperatureScan",
+          deployed: true,
+          hasData: true,
+          rerunnable: true,
+          inoperable: false,
+        },
+      ]);
+    });
+
+    await user.click(await screen.findByText("Transmit"));
+    await user.click(screen.getByText(/Confirm transmit/i));
+    await user.click(
+      await screen.findByRole("button", { name: "Signal-delay detail" }),
+    );
+
+    expect(
+      await screen.findByRole("listitem", {
+        name: "Temperature Scan from LaunchPad, in-transit",
+      }),
+    ).toBeInTheDocument();
+    await expectNoA11yViolations(container);
+
+    act(() => {
+      fixture.wall.advanceBy(40);
+      vi.advanceTimersByTime(40_000);
+      fixture.emitFrame();
+    });
+    expect(
+      screen.queryByRole("listitem", {
+        name: /Temperature Scan from LaunchPad/,
+      }),
+    ).toBeNull();
+    vi.useRealTimers();
   });
 
   it("hides controls for an inoperable instrument", async () => {

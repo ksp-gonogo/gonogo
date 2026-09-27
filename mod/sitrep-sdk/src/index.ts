@@ -50,12 +50,15 @@ export type {
   PathConnectedDuring,
   PendingEntry,
   PredictedPhase,
+  RailCrossing,
 } from "./command-delay";
 export {
   classifyRetained,
   currentMode,
   deriveInFlight,
+  deriveRailEntry,
   latchForward,
+  pendingCrossing,
 } from "./command-delay";
 /*
  * The typed command vocabulary: the write-side twin of the Topic registry below.

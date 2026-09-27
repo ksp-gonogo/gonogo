@@ -14,7 +14,7 @@ import {
   type ControlStreamDatum,
   ribbonBoundaryX,
 } from "./ControlDelayStream";
-import { resetUnrepresentedRailReports } from "./railTags";
+import { type RailTags, resetUnrepresentedRailReports } from "./railTags";
 
 // The axes come from the production derivations, so the fixtures follow them rather than asserting stale literals.
 const AXIS_TAGS = railTagsForControlAxis("vessel.control.setThrottle");
@@ -683,29 +683,32 @@ describe("an entry nothing can draw", () => {
     vi.restoreAllMocks();
   });
 
-  const SCIENCE_HOME = railTagsForTelemetry("discrete");
+  // Telemetry has no reply channel, so no producer can make this one.
+  const UNDRAWN: RailTags = {
+    direction: "telemetry",
+    continuity: "continuous",
+    delivery: "acked",
+  };
 
   it("marks the gap in place of the trace, and draws no ink", () => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const { container } = render(
       <ControlDelayStream
         streams={[]}
-        ribbons={[ribbon({ id: "science.result", tags: SCIENCE_HOME })]}
+        ribbons={[ribbon({ id: "echoed.downlink", tags: UNDRAWN })]}
       />,
     );
     const mark = container.querySelector("[data-rail-unrepresented]");
     expect(mark?.getAttribute("data-rail-unrepresented")).toBe(
-      "telemetry/discrete/fire-and-forget",
+      "telemetry/continuous/acked",
     );
-    expect(mark?.getAttribute("data-rail-entry")).toBe("science.result");
+    expect(mark?.getAttribute("data-rail-entry")).toBe("echoed.downlink");
     // Zero ink, so a represented entry beside it is unaffected.
     expect(container.querySelector('[data-role="ribbon"]')).toBeNull();
     expect(mark?.children).toHaveLength(0);
     expect(errors).toHaveBeenCalledOnce();
-    expect(errors.mock.calls[0][0]).toContain(
-      "telemetry/discrete/fire-and-forget",
-    );
-    expect(errors.mock.calls[0][0]).toContain("science.result");
+    expect(errors.mock.calls[0][0]).toContain("telemetry/continuous/acked");
+    expect(errors.mock.calls[0][0]).toContain("echoed.downlink");
   });
 
   it("says it ONCE per combination, not once per frame", () => {
@@ -714,8 +717,8 @@ describe("an entry nothing can draw", () => {
       <ControlDelayStream
         streams={[]}
         ribbons={[
-          ribbon({ id: "a", tags: SCIENCE_HOME }),
-          ribbon({ id: "b", tags: SCIENCE_HOME }),
+          ribbon({ id: "a", tags: UNDRAWN }),
+          ribbon({ id: "b", tags: UNDRAWN }),
         ]}
       />,
     );
@@ -727,7 +730,7 @@ describe("an entry nothing can draw", () => {
     const { container } = render(
       <ControlDelayStream
         streams={[stream()]}
-        ribbons={[ribbon({ id: "science.result", tags: SCIENCE_HOME })]}
+        ribbons={[ribbon({ id: "echoed.downlink", tags: UNDRAWN })]}
       />,
     );
     expect(container.querySelector('[data-role="commanded"]')).not.toBeNull();

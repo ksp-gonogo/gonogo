@@ -68,6 +68,30 @@ describe("CommandDelay", () => {
     expect(screen.getByLabelText(/Launch: in flight/)).toBeInTheDocument();
   });
 
+  it("draws a transmission home in the same queue a command is drawn in", () => {
+    const handle: CommandDelayHandle = {
+      inFlight: [
+        {
+          id: "tx",
+          label: "Crew Report",
+          command: "crewReport@KerbinSrfLandedShores",
+          reachEtaSeconds: 3,
+          replyEtaSeconds: null,
+          predictedPhase: "in-transit",
+          direction: "telemetry",
+          oneWaySeconds: 4,
+        },
+      ],
+      tags: railTagsForTelemetry("discrete"),
+      effectiveDelaySeconds: 4,
+    };
+    const { container } = render(
+      <CommandDelay handle={handle} density="full" />,
+    );
+    expect(container.querySelector("[data-rail-unrepresented]")).toBeNull();
+    expect(screen.getByRole("listitem")).toHaveTextContent("↓Crew Report");
+  });
+
   it("renders the control-delay stream for a delayed stream command", () => {
     const handle: CommandDelayHandle = {
       inFlight: [],
@@ -194,18 +218,22 @@ describe("a handle nothing can draw", () => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const handle: CommandDelayHandle = {
       inFlight: IN_FLIGHT,
-      tags: railTagsForTelemetry("discrete"),
+      tags: {
+        direction: "telemetry",
+        continuity: "discrete",
+        delivery: "acked",
+      },
       effectiveDelaySeconds: 6,
-      ariaLabel: "Science result on its way home",
+      ariaLabel: "A downlink nothing answers",
     };
     const { container } = render(<CommandDelay handle={handle} />);
     expect(
       container
         .querySelector("[data-rail-unrepresented]")
         ?.getAttribute("data-rail-unrepresented"),
-    ).toBe("telemetry/discrete/fire-and-forget");
+    ).toBe("telemetry/discrete/acked");
     // It carries rows on purpose, so a fallback would have had something to draw.
     expect(screen.queryByRole("list")).toBeNull();
-    expect(errors.mock.calls[0][0]).toContain("Science result on its way home");
+    expect(errors.mock.calls[0][0]).toContain("A downlink nothing answers");
   });
 });

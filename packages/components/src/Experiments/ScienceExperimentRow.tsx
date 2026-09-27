@@ -1,4 +1,5 @@
 import type { StaleGrade } from "@ksp-gonogo/sitrep-client";
+import type { CommandReply, ScienceTransmission } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   CommandButton,
@@ -17,7 +18,11 @@ export interface ScienceExperimentRowProps {
   /** The deploy command. Omit for a read-only listing: the control is then not rendered at all, never rendered inert. */
   deployCmd?: CommandButtonHandle;
   /** The transmit command. Omit for a read-only listing. */
-  transmitCmd?: CommandButtonHandle;
+  transmitCmd?: CommandButtonHandle<
+    CommandReply<"science.experiment.transmit">
+  >;
+  /** Receives the transmission a confirmed Transmit started, when the backend said what it sent. */
+  onTransmitted?: (transmission: ScienceTransmission) => void;
   /**
    * The grade of the instrument list when it is no longer current, undefined
    * while it is. It disables the controls as well as marking the badges: a
@@ -35,6 +40,7 @@ export function ScienceExperimentRow({
   instrument,
   deployCmd,
   transmitCmd,
+  onTransmitted,
   heldGrade,
 }: Readonly<ScienceExperimentRowProps>) {
   const notCurrent = heldGrade !== undefined;
@@ -82,6 +88,9 @@ export function ScienceExperimentRow({
               label="Transmit"
               confirmLabel="Confirm transmit"
               pendingLabel="Transmitting..."
+              onConfirmed={(reply) => {
+                if (reply?.payload) onTransmitted?.(reply.payload);
+              }}
               disabled={notCurrent}
               title={notCurrent ? heldReason : undefined}
             />

@@ -12,9 +12,13 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
+  deriveRailEntry,
+  pendingCrossing,
+  type RailCrossing,
   railTagsForCommand,
   railTagsForControlAxis,
   railTagsForTelemetry,
+  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { build } from "esbuild";
 import { chromium } from "playwright";
@@ -23,7 +27,15 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "delay-rail-probe");
 const PROBE_ENTRY = join(PROBE_DIR, "delay-rail-probe-entry.tsx");
 const PROBE_HTML_TEMPLATE = join(PROBE_DIR, "delay-rail-probe.html");
-const OUT_DIR = resolve(HERE, "../../../local_docs/renders/delay-ux-v3");
+/** `--out <dir>` writes elsewhere, and `--only <prefix>` renders just the scenarios whose name starts with it. */
+function flag(name: string): string | undefined {
+  const at = process.argv.indexOf(name);
+  return at === -1 ? undefined : process.argv[at + 1];
+}
+const OUT_DIR = resolve(
+  flag("--out") ?? resolve(HERE, "../../../local_docs/renders/delay-ux-v3"),
+);
+const ONLY = flag("--only");
 const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
 
 const VIEWPORT_W = 380;
@@ -104,6 +116,37 @@ const PITCH_STREAM = {
   current: 0.5,
   tags: FBW_AXIS_TAGS,
 };
+
+/*
+ * A stock science transmission at a 30 s light-time, through the production
+ * derivation: Transmit dispatched at UT 0 reaches the craft at 30, where the
+ * stream starts; its last packet is away at 34 and lands home at 64.
+ */
+const TRANSMIT_ONE_WAY = 30;
+const TRANSMIT_TAGS = railTagsForCommand("science.experiment.transmit");
+const TRANSMISSION_TAGS = railTagsForTelemetry("discrete");
+const TRANSMIT_COMMAND = pendingCrossing({
+  id: "c0",
+  command: "science.experiment.transmit",
+  label: "Transmit Thermometer",
+  topic: "",
+  vantage: "ksc",
+  dispatchedAt: value("ut", 0),
+  oneWaySeconds: value("s", TRANSMIT_ONE_WAY),
+});
+const TRANSMISSION: RailCrossing = {
+  id: "tx0",
+  label: "Temperature Scan from LaunchPad",
+  command: "temperatureScan@KerbinSrfLandedLaunchPad",
+  topic: "",
+  tags: TRANSMISSION_TAGS,
+  sentAt: value("ut", 34),
+  oneWaySeconds: value("s", TRANSMIT_ONE_WAY),
+};
+function transmissionRows(nowUt: number) {
+  const row = deriveRailEntry(TRANSMISSION, nowUt);
+  return row ? [row] : [];
+}
 
 const SCENARIOS: ReadonlyArray<{
   name: string;
@@ -377,6 +420,45 @@ const SCENARIOS: ReadonlyArray<{
       },
     ],
   },
+  {
+    name: "10-transmit-command-in-flight",
+    panelTitle: "EXPERIMENTS",
+    // The operator presses Transmit: the command leaves, and nothing is coming home yet.
+    handles: [
+      {
+        inFlight: [deriveRailEntry(TRANSMIT_COMMAND, 12)],
+        tags: TRANSMIT_TAGS,
+        effectiveDelaySeconds: TRANSMIT_ONE_WAY,
+      },
+      { inFlight: [], tags: TRANSMISSION_TAGS, effectiveDelaySeconds: 30 },
+    ],
+  },
+  {
+    name: "11-transmission-in-flight",
+    panelTitle: "EXPERIMENTS",
+    // The ack is home, so the command has left the rail, and the result it started is on its way down.
+    handles: [
+      { inFlight: [], tags: TRANSMIT_TAGS, effectiveDelaySeconds: 30 },
+      {
+        inFlight: transmissionRows(61),
+        tags: TRANSMISSION_TAGS,
+        effectiveDelaySeconds: TRANSMIT_ONE_WAY,
+      },
+    ],
+  },
+  {
+    name: "12-transmission-arrived",
+    panelTitle: "EXPERIMENTS",
+    // Landed: nothing answers a transmission, so its row ends here rather than becoming an outcome.
+    handles: [
+      { inFlight: [], tags: TRANSMIT_TAGS, effectiveDelaySeconds: 30 },
+      {
+        inFlight: transmissionRows(65),
+        tags: TRANSMISSION_TAGS,
+        effectiveDelaySeconds: TRANSMIT_ONE_WAY,
+      },
+    ],
+  },
 ];
 
 async function main(): Promise<void> {
@@ -446,7 +528,10 @@ async function main(): Promise<void> {
       { timeout: 10_000 },
     );
 
-    for (const scenario of SCENARIOS) {
+    const chosen = SCENARIOS.filter(
+      (scenario) => ONLY === undefined || scenario.name.startsWith(ONLY),
+    );
+    for (const scenario of chosen) {
       const pxH = scenario.viewportH ?? VIEWPORT_H;
       await page.setViewportSize({ width: VIEWPORT_W, height: pxH });
       await page.evaluate(
@@ -489,7 +574,9 @@ async function main(): Promise<void> {
         console.log(`  ${pinnedName}`);
       }
     }
-    console.log(`\nRendered ${SCENARIOS.length} delay-rail shots → ${OUT_DIR}`);
+    console.log(
+      `\nRendered ${chosen.length} delay-rail scenarios → ${OUT_DIR}`,
+    );
   } finally {
     await browser.close();
   }

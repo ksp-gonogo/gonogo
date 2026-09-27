@@ -5,8 +5,16 @@ import {
   useContributions,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { readingOf, useCommand } from "@ksp-gonogo/sitrep-client";
-import { stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  readingOf,
+  useCommand,
+  useTransmissions,
+} from "@ksp-gonogo/sitrep-client";
+import {
+  type ScienceTransmission,
+  stillTrue,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   EmptyState,
   Panel,
@@ -86,6 +94,15 @@ function ExperimentsComponent({
   const transmitCmd = useCommand("science.experiment.transmit");
   usePanelDelay(deployCmd);
   usePanelDelay(transmitCmd);
+  const transmissions = useTransmissions();
+  usePanelDelay(transmissions);
+  // The result has left the craft once its last packet has, and lands one light-time later.
+  const onTransmitted = (t: ScienceTransmission) =>
+    transmissions.expect({
+      label: t.title || t.subjectId,
+      subject: t.subjectId,
+      sentAt: t.startedAt.plus(t.streamSeconds),
+    });
   const totalDataMits = sumExperimentDataAmount(experimentsRaw);
 
   const filter = useRowFilter({ placeholder: "Filter instruments..." });
@@ -150,6 +167,7 @@ function ExperimentsComponent({
               instrument={inst}
               deployCmd={deployCmd}
               transmitCmd={transmitCmd}
+              onTransmitted={onTransmitted}
               heldGrade={instrumentsHeld}
             />
             <AugmentSlot

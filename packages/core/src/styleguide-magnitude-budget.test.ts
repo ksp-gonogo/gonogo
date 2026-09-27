@@ -89,7 +89,9 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // spends two on one. That pair is a boundary rather than arithmetic:
   // `PathConnectedDuring` is a CALLER-supplied predicate over bare UT numbers,
   // so the instants shed their type where they leave for someone else's code.
-  "mod/sitrep-sdk/src/command-delay.ts": 5,
+  // The rest are the rail row itself: `InFlightCommand` is a display shape of
+  // plain seconds, and `liveOneWaySeconds` answers a bare number for the same row.
+  "mod/sitrep-sdk/src/command-delay.ts": 7,
   // 1, in `degradeRatingOf`, and this file exists so that number stays 1. The
   // link grading has to reach a consumer as a raw number, because what a
   // consumer DOES with it is arithmetic on a quality ladder (a bitrate rung, how
@@ -364,7 +366,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // check.
   "mod/sitrep-sdk/src/spine/orbit-trajectory.ts": 1,
   "mod/sitrep-sdk/src/spine/orbit-patches.ts": 14,
-  "mod/sitrep-sdk/src/spine/use-command.ts": 1,
   "packages/sitrep-client/src/use-control-stream.tsx": 2,
   "packages/ui-kit/src/Countdown.tsx": 1,
   /*

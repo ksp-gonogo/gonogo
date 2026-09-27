@@ -234,6 +234,29 @@ describe("InFlightList", () => {
   });
 });
 
+describe("InFlightList direction", () => {
+  it("points an inbound entry in transit down, and a command up", () => {
+    render(
+      <InFlightList
+        density="full"
+        items={[
+          { id: "c", label: "Stage", etaSeconds: 4, phase: "in-transit" },
+          {
+            id: "t",
+            label: "Crew Report",
+            etaSeconds: 3,
+            phase: "in-transit",
+            flow: "inbound",
+          },
+        ]}
+      />,
+    );
+    const [command, transmission] = screen.getAllByRole("listitem");
+    expect(command).toHaveTextContent("↑");
+    expect(transmission).toHaveTextContent("↓");
+  });
+});
+
 describe("signalDelayPresentation", () => {
   it("shows nothing when there is no measurable path", () => {
     expect(

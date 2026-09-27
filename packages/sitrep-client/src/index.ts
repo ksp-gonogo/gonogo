@@ -65,8 +65,11 @@ export {
   findImpactPoint,
   predictImpactPoint,
   ROTATION_PERIOD_SECONDS,
+  type SentTransmission,
   solveOrbit,
   solveSelfOrbit,
+  type UseTransmissionsResult,
+  useTransmissions,
 } from "@ksp-gonogo/sitrep-sdk/spine";
 export {
   type AutoCommandOptions,

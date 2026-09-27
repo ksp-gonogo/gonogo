@@ -11,7 +11,7 @@
  * | command   | discrete   | acked            | staging, an action group        | `in-flight-row`    |
  * | command   | continuous | acked            | fly-by-wire, ack = the readback | `continuous-strip` |
  * | telemetry | continuous | fire-and-forget  | radio voice                     | `continuous-strip` |
- * | telemetry | discrete   | fire-and-forget  | a science result sent home      | NOTHING YET        |
+ * | telemetry | discrete   | fire-and-forget  | a science result sent home      | `in-flight-row`    |
  *
  * The table names a RENDERER (a component). WHICH MARK it draws follows from
  * the data: both continuous rows share one strip, lines for a value against a
@@ -90,6 +90,7 @@ const RAIL_RENDERERS: Partial<Record<RailTagKey, RailRenderer>> = {
   "command/discrete/acked": "in-flight-row",
   "command/continuous/acked": "continuous-strip",
   "telemetry/continuous/fire-and-forget": "continuous-strip",
+  "telemetry/discrete/fire-and-forget": "in-flight-row",
 };
 
 /**

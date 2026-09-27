@@ -26,6 +26,7 @@ import {
   currentMode,
   type DelayMode,
   type InFlightCommand,
+  liveOneWaySeconds,
   type PathConnectedDuring,
   type PendingEntry,
 } from "../command-delay";
@@ -347,6 +348,7 @@ function resolveTracked(
    * shows the PREDICTED round trip, and a stub or a zero-delay path can answer
    * before the predicted reply without the window having elapsed.
    */
+  if (classified === undefined) return { kind: "resolved" };
   if (acked && classified.predictedPhase === "due") {
     return { kind: "resolved" };
   }
@@ -532,13 +534,8 @@ export function useCommand(
    * value-first way and names zero the one direction this must never fail in.
    */
   const tags = railTagsForCommand(command);
-  const rawOneWaySeconds = commsDelay?.oneWaySeconds?.magnitude;
-  const liveOneWaySeconds =
-    typeof rawOneWaySeconds === "number" && Number.isFinite(rawOneWaySeconds)
-      ? Math.max(0, rawOneWaySeconds)
-      : null;
   const isInstant = !commandDelayed(command) || vantage === META_VANTAGE;
-  const effectiveDelaySeconds = isInstant ? 0 : liveOneWaySeconds;
+  const effectiveDelaySeconds = isInstant ? 0 : liveOneWaySeconds(commsDelay);
   /*
    * The three-valued answer the package already computes, passed through rather
    * than re-derived, so a widget can SAY "no path" instead of inferring it from

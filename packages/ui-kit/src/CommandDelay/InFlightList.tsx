@@ -82,6 +82,8 @@ export interface InFlightListItem {
    * the glyph. Defaults to an abbreviation of `label`.
    */
   glyph?: string;
+  /** Which way the entry crosses: `outbound` to the craft (the default), `inbound` home from it. */
+  flow?: "outbound" | "inbound";
 }
 
 export type InFlightListMode = "live" | "staged" | "no-path";
@@ -135,6 +137,12 @@ const PHASE_ARROW: Record<InFlightListItem["phase"], string> = {
   overdue: "!",
   lost: "✕",
 };
+
+/** An inbound entry in transit is coming down, whatever the phase table says a command does. */
+function arrowOf(item: InFlightListItem): string {
+  if (item.flow === "inbound" && item.phase === "in-transit") return "↓";
+  return PHASE_ARROW[item.phase];
+}
 
 const ERROR_PHASES = new Set<InFlightListItem["phase"]>(["overdue", "lost"]);
 
@@ -420,7 +428,7 @@ function InFlightRow({
       {...($compact ? { "aria-label": spoken, title: spoken } : {})}
     >
       <InFlightList__Arrow aria-hidden="true" $pulse={!isError}>
-        {PHASE_ARROW[item.phase]}
+        {arrowOf(item)}
       </InFlightList__Arrow>
       {!$compact && <InFlightList__Label>{item.label}</InFlightList__Label>}
       <InFlightList__Phase>

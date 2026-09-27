@@ -75,6 +75,7 @@ describe("which combinations have a renderer", () => {
     ["command/discrete/acked", "in-flight-row"],
     ["command/continuous/acked", "continuous-strip"],
     ["telemetry/continuous/fire-and-forget", "continuous-strip"],
+    ["telemetry/discrete/fire-and-forget", "in-flight-row"],
   ];
 
   for (const [key, renderer] of DRAWN) {
@@ -90,17 +91,11 @@ describe("which combinations have a renderer", () => {
     });
   }
 
-  /*
-   * The five nothing draws. Four no producer can make: a command's result is
-   * always delivered, and telemetry has no reply channel. The fifth,
-   * `telemetry/discrete/fire-and-forget` (a science result sent home), is
-   * declarable today and is reported and marked rather than quietly missing.
-   */
+  // The four nothing draws, and no producer can make: a command's result is always delivered, and telemetry has no reply channel.
   const UNDRAWN: readonly RailTagKey[] = [
     "command/discrete/fire-and-forget",
     "command/continuous/fire-and-forget",
     "telemetry/discrete/acked",
-    "telemetry/discrete/fire-and-forget",
     "telemetry/continuous/acked",
   ];
 
@@ -114,13 +109,29 @@ describe("which combinations have a renderer", () => {
     expect(DRAWN.length + UNDRAWN.length).toBe(allRailTags().length);
   });
 
-  it("answers null rather than a fallback renderer for an undrawn row", () => {
+  it("draws a science result sent home in the same queue a command's row is in", () => {
     const scienceHome: RailTags = {
       direction: "telemetry",
       continuity: "discrete",
       delivery: "fire-and-forget",
     };
+    expect(railRendererFor(scienceHome)).toBe(
+      railRendererFor({
+        ...scienceHome,
+        direction: "command",
+        delivery: "acked",
+      }),
+    );
+  });
+
+  it("answers null rather than a fallback renderer for an undrawn row", () => {
     // Not `in-flight-row`: a discrete-queue fallback would look right and be wrong.
-    expect(railRendererFor(scienceHome)).toBeNull();
+    expect(
+      railRendererFor({
+        direction: "telemetry",
+        continuity: "discrete",
+        delivery: "acked",
+      }),
+    ).toBeNull();
   });
 });

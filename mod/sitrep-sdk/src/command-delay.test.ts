@@ -3,8 +3,12 @@ import {
   classifyRetained,
   currentMode,
   deriveInFlight,
+  deriveRailEntry,
   latchForward,
+  pendingCrossing,
+  type RailCrossing,
 } from "./command-delay";
+import { railTagsForTelemetry } from "./rail-tags";
 import { value } from "./unit-system/value";
 
 const entry = (over: Partial<import("./command-delay").PendingEntry> = {}) => ({
@@ -37,7 +41,7 @@ describe("currentMode", () => {
 describe("deriveInFlight phases (nowUt vs dispatchedAt+oneWay/2*oneWay)", () => {
   it("before reach = in-transit, eta counts to reach", () => {
     const [c] = deriveInFlight([entry()], 102); // reach at 104, reply at 108
-    expect(c.predictedPhase).toBe("in-transit");
+    expect(c?.predictedPhase).toBe("in-transit");
     expect(c.reachEtaSeconds).toBe(2);
     expect(c.replyEtaSeconds).toBe(6);
   });
@@ -51,6 +55,48 @@ describe("deriveInFlight phases (nowUt vs dispatchedAt+oneWay/2*oneWay)", () => 
   });
 });
 
+describe("deriveRailEntry, the one path commands and transmissions share", () => {
+  const transmission: RailCrossing = {
+    id: "tx1",
+    label: "Crew Report from Kerbin's Shores",
+    command: "crewReport@KerbinSrfLandedShores",
+    topic: "",
+    tags: railTagsForTelemetry("discrete"),
+    sentAt: value("ut", 100),
+    oneWaySeconds: value("s", 4),
+  };
+
+  it("a queued command is the acked crossing its dispatch made", () => {
+    expect(deriveInFlight([entry()], 106)).toEqual([
+      deriveRailEntry(pendingCrossing(entry()), 106),
+    ]);
+    expect(deriveInFlight([entry()], 106)[0]).toMatchObject({
+      direction: "command",
+      oneWaySeconds: 4,
+    });
+  });
+
+  it("a transmission is in transit to its arrival, with no reply leg", () => {
+    expect(deriveRailEntry(transmission, 101)).toEqual({
+      id: "tx1",
+      label: "Crew Report from Kerbin's Shores",
+      command: "crewReport@KerbinSrfLandedShores",
+      topic: "",
+      direction: "telemetry",
+      dispatchedAt: 100,
+      oneWaySeconds: 4,
+      reachEtaSeconds: 3,
+      replyEtaSeconds: null,
+      predictedPhase: "in-transit",
+    });
+  });
+
+  it("a transmission ends at arrival rather than waiting for an answer", () => {
+    expect(deriveRailEntry(transmission, 104)).toBeUndefined();
+    expect(deriveRailEntry(transmission, 200)).toBeUndefined();
+  });
+});
+
 describe("classifyRetained", () => {
   const e = entry();
 
@@ -61,7 +107,7 @@ describe("classifyRetained", () => {
       present: true,
       pathConnectedDuring: () => false,
     });
-    expect(c.predictedPhase).toBe("lost");
+    expect(c?.predictedPhase).toBe("lost");
   });
   it("past reply + margin, still nothing => overdue", () => {
     const c = classifyRetained({
@@ -71,7 +117,7 @@ describe("classifyRetained", () => {
       overdueMarginSeconds: 5,
       pathConnectedDuring: () => true,
     });
-    expect(c.predictedPhase).toBe("overdue");
+    expect(c?.predictedPhase).toBe("overdue");
   });
   it("aged out of queue but path was fine and within the margin => due", () => {
     const c = classifyRetained({
@@ -80,7 +126,7 @@ describe("classifyRetained", () => {
       present: false,
       pathConnectedDuring: () => true,
     });
-    expect(c.predictedPhase).toBe("due");
+    expect(c?.predictedPhase).toBe("due");
   });
 
   /**
@@ -98,11 +144,11 @@ describe("classifyRetained", () => {
       overdueMarginSeconds: 5,
       pathConnectedDuring: () => true,
     });
-    expect(c.predictedPhase).toBe("overdue");
+    expect(c?.predictedPhase).toBe("overdue");
   });
   it("defaults pathConnectedDuring to always-connected when omitted", () => {
     const c = classifyRetained({ entry: e, nowUt: 106, present: true });
-    expect(c.predictedPhase).toBe("awaiting-reply");
+    expect(c?.predictedPhase).toBe("awaiting-reply");
   });
 
   /**
@@ -121,7 +167,7 @@ describe("classifyRetained", () => {
         nowUt,
         present: true,
         overdueMarginSeconds: 5,
-      }).predictedPhase;
+      })?.predictedPhase;
 
     expect(overdueAt(112.9)).not.toBe("overdue");
     expect(overdueAt(113)).not.toBe("overdue");

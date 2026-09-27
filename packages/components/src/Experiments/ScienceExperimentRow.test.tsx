@@ -1,4 +1,9 @@
-import { railTagsForCommand } from "@ksp-gonogo/sitrep-sdk";
+import {
+  CommandErrorCode,
+  type CommandReply,
+  railTagsForCommand,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import type { CommandButtonHandle, CommandReplyLike } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
@@ -14,9 +19,25 @@ const OK: CommandReplyLike = { success: true };
 const TRANSMIT_TAGS = railTagsForCommand("science.experiment.transmit");
 
 /** A structural command handle, the shape `useCommand` returns. */
-function handle(send: CommandButtonHandle["send"]): CommandButtonHandle {
+function handle<R extends CommandReplyLike = CommandReplyLike>(
+  send: CommandButtonHandle<R>["send"],
+): CommandButtonHandle<R> {
   return { send, inFlight: [], tags: TRANSMIT_TAGS, effectiveDelaySeconds: 0 };
 }
+
+type TransmitReply = CommandReply<"science.experiment.transmit">;
+
+const TRANSMITTED: TransmitReply = {
+  success: true,
+  errorCode: CommandErrorCode.None,
+  payload: {
+    subjectId: "mysteryGoo@KerbinSrfLandedLaunchPad",
+    title: "Mystery Goo Observation from LaunchPad",
+    startedAt: value("ut", 1000),
+    streamSeconds: value("s", 4),
+    dataAmount: value("Mit", 10),
+  },
+};
 
 // A row is an `<li>` and needs its list parent to be valid.
 function renderRow(ui: ReactElement) {
@@ -81,11 +102,11 @@ describe("ScienceExperimentRow", () => {
 
   it("requires arm-then-confirm before dispatching transmit", async () => {
     const user = userEvent.setup();
-    const send = vi.fn(() => Promise.resolve(OK));
+    const send = vi.fn(() => Promise.resolve(TRANSMITTED));
     renderRow(
       <ScienceExperimentRow
         instrument={instrument({ partId: "99", hasData: true })}
-        transmitCmd={handle(send)}
+        transmitCmd={handle<TransmitReply>(send)}
       />,
     );
     await user.click(screen.getByRole("button", { name: "Transmit" }));
@@ -96,6 +117,21 @@ describe("ScienceExperimentRow", () => {
       { partId: "99" },
       { label: "Transmit Mystery Goo" },
     );
+  });
+
+  it("hands a confirmed transmit's transmission on, so the rail can carry it home", async () => {
+    const user = userEvent.setup();
+    const onTransmitted = vi.fn();
+    renderRow(
+      <ScienceExperimentRow
+        instrument={instrument({ partId: "99", hasData: true })}
+        transmitCmd={handle<TransmitReply>(() => Promise.resolve(TRANSMITTED))}
+        onTransmitted={onTransmitted}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Transmit" }));
+    await user.click(screen.getByRole("button", { name: /Confirm transmit/i }));
+    expect(onTransmitted).toHaveBeenCalledWith(TRANSMITTED.payload);
   });
 
   it("renders no controls at all for a read-only listing", () => {

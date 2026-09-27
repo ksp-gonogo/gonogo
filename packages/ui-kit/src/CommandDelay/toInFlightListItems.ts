@@ -1,3 +1,4 @@
+import type { RailDirection } from "@ksp-gonogo/sitrep-sdk";
 import type { InFlightListItem } from "./InFlightList";
 
 /** The structural subset of an in-flight command that this mapping reads. */
@@ -10,6 +11,10 @@ export interface InFlightCommandLike {
   predictedPhase: InFlightListItem["phase"];
   /** The issuing button's own terse glyph ("PRO", "RET"). Defaults to an abbreviation of `label`. */
   glyph?: string;
+  /** Which way the entry crosses the link. Absent reads as a command going up. */
+  direction?: RailDirection;
+  /** The one-way delay the entry was sent under, which places an entry with no reply leg. */
+  oneWaySeconds?: number;
 }
 
 /**
@@ -33,20 +38,33 @@ export const PHASE_PROGRESS: Record<InFlightListItem["phase"], number> = {
 };
 
 /**
- * A command's TRUE progress along the 3-stage delay axis (0 just sent, 1 the
+ * An entry's TRUE progress along the 3-stage delay axis (0 just sent, 1 the
  * end of the 3T span). `T = replyEta - reachEta`, which holds even once
- * `reachEta` goes negative; elapsed is `T - reachEta`. Falls back to a phase
- * anchor when either eta is absent.
+ * `reachEta` goes negative, or the sent-under delay for an entry with no reply
+ * leg; elapsed is `T - reachEta`. Falls back to a phase anchor when `T` or the
+ * reach eta is absent.
  */
 export function journeyProgress(item: InFlightCommandLike): number {
   const reach = item.reachEtaSeconds;
+  const t = oneWayOf(item);
+  if (reach === null || t === null) return PHASE_PROGRESS[item.predictedPhase];
+  const elapsed = t - reach;
+  return Math.max(0, Math.min(1, elapsed / (3 * t)));
+}
+
+/** `T` from the reply leg when there is one, else from the delay the entry was sent under. */
+function oneWayOf(item: InFlightCommandLike): number | null {
+  const reach = item.reachEtaSeconds;
   const reply = item.replyEtaSeconds;
-  if (reach !== null && reply !== null && reply > reach) {
-    const t = reply - reach;
-    const elapsed = t - reach;
-    return Math.max(0, Math.min(1, elapsed / (3 * t)));
+  if (reach !== null && reply !== null && reply > reach) return reply - reach;
+  if (
+    reply === null &&
+    item.oneWaySeconds !== undefined &&
+    item.oneWaySeconds > 0
+  ) {
+    return item.oneWaySeconds;
   }
-  return PHASE_PROGRESS[item.predictedPhase];
+  return null;
 }
 
 /**
@@ -67,5 +85,6 @@ export function toInFlightListItems(
     phase: item.predictedPhase,
     progress: journeyProgress(item),
     glyph: item.glyph ?? deriveGlyph(item.label || item.command),
+    ...(item.direction === "telemetry" ? { flow: "inbound" as const } : {}),
   }));
 }

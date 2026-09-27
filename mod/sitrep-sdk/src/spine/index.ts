@@ -121,6 +121,7 @@ export * from "./use-selected-vantage";
 export * from "./use-stream";
 export * from "./use-stream-event";
 export * from "./use-telemetry";
+export * from "./use-transmissions";
 export * from "./use-vantage-trajectory";
 export * from "./view-clock";
 export * from "./wire-payloads";

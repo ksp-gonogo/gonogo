@@ -1,3 +1,8 @@
+import {
+  type RailDirection,
+  type RailTags,
+  railTagsForCommand,
+} from "./rail-tags";
 import { LOSS_MARGIN } from "./spine/client";
 import { type Value, value } from "./unit-system";
 /**
@@ -5,8 +10,8 @@ import { type Value, value } from "./unit-system";
  * command the mod accepts is already gated by the reveal/uplink machinery,
  * so there is no "delayed vs not" command to opt into. These helpers turn
  * `system.uplink.pending` entries (each carrying its own `oneWaySeconds`,
- * frozen at dispatch) into a display-ready `InFlightCommand[]`, given the
- * caller's current view of `nowUt`.
+ * frozen at dispatch), and a transmission's crossing, into display-ready
+ * `InFlightCommand` rows, given the caller's current view of `nowUt`.
  *
  * Nothing here dispatches or fetches. Statefulness (own-dispatch memory,
  * connectivity history,
@@ -44,17 +49,44 @@ export interface CommsDelayLike {
   oneWaySeconds: Value<"s"> | null;
 }
 
+/**
+ * One row on the delay rail: anything crossing the link, a command this client
+ * sent or a transmission the craft is sending home. Produced only by
+ * {@link deriveRailEntry}, so the two cannot drift in what their rows say.
+ */
 export interface InFlightCommand {
   id: string;
   label: string;
+  /** The command id, or for a transmission the subject it carries. */
   command: string;
   topic: string;
+  /** Which way the entry crosses the link: `command` up to the craft, `telemetry` down from it. */
+  direction: RailDirection;
   dispatchedAt: number;
-  /** Seconds until the command reaches the craft; `null` when no-path. */
+  /** The one-way delay the crossing was sent under, frozen at the send. */
+  oneWaySeconds: number;
+  /** Seconds until the entry reaches the far end; `null` when no-path. */
   reachEtaSeconds: number | null;
-  /** Seconds until the reply is expected back; `null` when no-path. */
+  /** Seconds until the reply is expected back; `null` when no-path, and always for a fire-and-forget entry, which has no reply. */
   replyEtaSeconds: number | null;
   predictedPhase: PredictedPhase;
+}
+
+/**
+ * What a rail entry is made from: something sent across the link at `sentAt`
+ * under a one-way delay, arriving one delay later. An acked crossing then waits
+ * the same delay again for its reply; a fire-and-forget one ends at arrival,
+ * since nothing answers it. `tags` come from a `railTagsFor*` derivation.
+ */
+export interface RailCrossing {
+  id: string;
+  label: string;
+  /** The command id, or for a transmission the subject it carries. */
+  command: string;
+  topic: string;
+  tags: RailTags;
+  sentAt: Value<"ut">;
+  oneWaySeconds: Value<"s">;
 }
 
 const STAGED_THRESHOLD_SECONDS = 1;
@@ -71,37 +103,87 @@ export function currentMode(commsDelay: CommsDelayLike | undefined): DelayMode {
 }
 
 /**
- * Pure timing derivation: reach/reply etas and the predicted phase for each
- * pending entry, given the caller's `nowUt`. No memory, no connectivity,
- * see `classifyRetained` for the retained/failure-aware variant.
+ * The live one-way delay a `comms.delay` reading states, or `null` when it
+ * states none: no path home, a malformed or non-finite value, or no reading at
+ * all. Never 0 for those, since a 0 says the entry arrives now.
+ */
+export function liveOneWaySeconds(
+  commsDelay: CommsDelayLike | undefined,
+): number | null {
+  const raw = commsDelay?.oneWaySeconds?.magnitude;
+  return typeof raw === "number" && Number.isFinite(raw)
+    ? Math.max(0, raw)
+    : null;
+}
+
+/**
+ * The one rail-entry derivation: where a crossing is at `nowUt`. A
+ * fire-and-forget crossing is `in-transit` until it arrives and gone after,
+ * so it answers `undefined` from arrival on rather than inventing an outcome.
+ */
+export function deriveRailEntry(
+  crossing: RailCrossing,
+  nowUt: number,
+): InFlightCommand | undefined {
+  const now = value("ut", nowUt);
+  const reachUt = crossing.sentAt.plus(crossing.oneWaySeconds);
+  const row = {
+    id: crossing.id,
+    label: crossing.label,
+    command: crossing.command,
+    topic: crossing.topic,
+    direction: crossing.tags.direction,
+    dispatchedAt: crossing.sentAt.magnitude,
+    oneWaySeconds: crossing.oneWaySeconds.magnitude,
+    reachEtaSeconds: reachUt.minus(now).magnitude,
+  };
+  if (crossing.tags.delivery === "fire-and-forget") {
+    if (!now.lessThan(reachUt)) return undefined;
+    return { ...row, replyEtaSeconds: null, predictedPhase: "in-transit" };
+  }
+  const replyUt = crossing.sentAt.plus(crossing.oneWaySeconds.times(2));
+  return {
+    ...row,
+    replyEtaSeconds: replyUt.minus(now).magnitude,
+    predictedPhase: ackedPhase(now, reachUt, replyUt),
+  };
+}
+
+function ackedPhase(
+  now: Value<"ut">,
+  reachUt: Value<"ut">,
+  replyUt: Value<"ut">,
+): PredictedPhase {
+  if (now.lessThan(reachUt)) return "in-transit";
+  if (now.lessThan(replyUt)) return "awaiting-reply";
+  return "due";
+}
+
+/** A queued uplink as the crossing it is: its command, sent at dispatch. */
+export function pendingCrossing(entry: PendingEntry): RailCrossing {
+  return {
+    id: entry.id,
+    label: entry.label,
+    command: entry.command,
+    topic: entry.topic,
+    tags: railTagsForCommand(entry.command),
+    sentAt: entry.dispatchedAt,
+    oneWaySeconds: entry.oneWaySeconds,
+  };
+}
+
+/**
+ * Reach/reply etas and the predicted phase for each pending entry, given the
+ * caller's `nowUt`. No memory, no connectivity; see `classifyRetained` for the
+ * retained/failure-aware variant.
  */
 export function deriveInFlight(
   entries: PendingEntry[],
   nowUt: number,
 ): InFlightCommand[] {
-  const now = value("ut", nowUt);
-  return entries.map((e) => {
-    // Two instants, each the dispatch offset by a number of one-way legs, and
-    // two intervals between an instant and now. The algebra distinguishes the
-    // instants from the intervals; `+` and `-` on bare numbers did not.
-    const reachUt = e.dispatchedAt.plus(e.oneWaySeconds);
-    const replyUt = e.dispatchedAt.plus(e.oneWaySeconds.times(2));
-    const predictedPhase: PredictedPhase = now.lessThan(reachUt)
-      ? "in-transit"
-      : now.lessThan(replyUt)
-        ? "awaiting-reply"
-        : "due";
-    return {
-      id: e.id,
-      label: e.label,
-      command: e.command,
-      topic: e.topic,
-      dispatchedAt: e.dispatchedAt.magnitude,
-      reachEtaSeconds: reachUt.minus(now).magnitude,
-      replyEtaSeconds: replyUt.minus(now).magnitude,
-      predictedPhase,
-    };
-  });
+  return entries.flatMap(
+    (e) => deriveRailEntry(pendingCrossing(e), nowUt) ?? [],
+  );
 }
 
 /** A caller-supplied predicate: was the comms path continuously connected across [from,to] UT? */
@@ -112,7 +194,8 @@ export type PathConnectedDuring = (fromUt: number, toUt: number) => boolean;
  * overdue/lost. `present` = is the entry still in the current pending
  * queue. Defaults `pathConnectedDuring` to "always connected" when the
  * caller has no connectivity history to offer (e.g. a first render before
- * any `comms.link` sample has arrived).
+ * any `comms.link` sample has arrived). `undefined` once a command nothing
+ * answers has arrived, since it has ended.
  */
 export function classifyRetained(args: {
   entry: PendingEntry;
@@ -136,7 +219,7 @@ export function classifyRetained(args: {
   acknowledged?: boolean;
   overdueMarginSeconds?: number;
   pathConnectedDuring?: PathConnectedDuring;
-}): InFlightCommand {
+}): InFlightCommand | undefined {
   const {
     entry,
     nowUt,
@@ -145,7 +228,9 @@ export function classifyRetained(args: {
     overdueMarginSeconds = LOSS_MARGIN,
     pathConnectedDuring = () => true,
   } = args;
-  const base = deriveInFlight([entry], nowUt)[0];
+  const base = deriveRailEntry(pendingCrossing(entry), nowUt);
+  // A command nothing answers has nothing to be late for once it arrives.
+  if (base === undefined) return undefined;
   // Out and back: the dispatch instant offset by two one-way legs. An instant
   // plus a duration, so the algebra does it rather than `+` on two bare
   // numbers that happen to be seconds apart in meaning.

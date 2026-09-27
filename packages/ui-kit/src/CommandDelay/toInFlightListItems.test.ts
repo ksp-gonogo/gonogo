@@ -113,3 +113,30 @@ describe("toInFlightListItems", () => {
     });
   });
 });
+
+describe("a transmission's row", () => {
+  // Sent 1s ago under a 4s one-way delay, arriving in 3s, nothing coming back.
+  const transmission = cmd({
+    label: "Crew Report",
+    command: "crewReport@KerbinSrfLandedShores",
+    reachEtaSeconds: 3,
+    replyEtaSeconds: null,
+    oneWaySeconds: 4,
+    direction: "telemetry",
+  });
+
+  it("is drawn inbound, counting down to its arrival", () => {
+    const [item] = toInFlightListItems([transmission]);
+    expect(item.flow).toBe("inbound");
+    expect(item.etaSeconds).toBe(3);
+  });
+
+  it("is placed by the delay it was sent under, having no reply leg to measure", () => {
+    expect(journeyProgress(transmission)).toBeCloseTo(1 / 12);
+  });
+
+  it("leaves a command's row outbound and unmarked", () => {
+    const [item] = toInFlightListItems([cmd({ direction: "command" })]);
+    expect(item).not.toHaveProperty("flow");
+  });
+});

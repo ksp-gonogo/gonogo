@@ -23,7 +23,7 @@ import type {
   CommandId,
   CommandReply,
 } from "../commands";
-import type { RailTags } from "../rail-tags";
+import type { RailDirection, RailTags } from "../rail-tags";
 import type { Reading } from "../reading";
 import type { UplinkClientHandle } from "../spine/uplink-clients";
 import type {
@@ -1170,7 +1170,9 @@ export interface InFlightCommand {
   label: string;
   command: string;
   topic: string;
+  direction: RailDirection;
   dispatchedAt: number;
+  oneWaySeconds: number;
   reachEtaSeconds: number | null;
   replyEtaSeconds: number | null;
   predictedPhase: PredictedPhase;
