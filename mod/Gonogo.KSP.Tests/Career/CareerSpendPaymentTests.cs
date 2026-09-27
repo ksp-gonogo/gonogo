@@ -69,7 +69,7 @@ namespace Gonogo.KSP.Tests.Career
         /// a renamed method must fail loudly, not silently pass every assertion
         /// made about it.
         /// </summary>
-        private static string MethodBody(string fileName, string signature)
+        internal static string MethodBody(string fileName, string signature)
         {
             var path = Path.Combine(ResolveModDir(), "Gonogo.KSP", fileName);
             var source = File.ReadAllText(path);

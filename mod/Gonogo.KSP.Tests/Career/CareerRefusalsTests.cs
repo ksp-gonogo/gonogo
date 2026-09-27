@@ -96,7 +96,7 @@ namespace Gonogo.KSP.Tests.Career
         public void AnUnknownFacilityIsNotFound()
         {
             var refusal = CareerRefusals.FacilityResolutionRefusal(
-                facilityKnown: false, built: false, facilityName: "Nonesuch", sceneName: "FLIGHT");
+                facilityKnown: false, ladderKnown: false, facilityName: "Nonesuch", sceneName: "FLIGHT");
 
             Assert.NotNull(refusal);
             Assert.Equal(CommandErrorCode.NotFound, refusal!.ErrorCode);
@@ -104,15 +104,14 @@ namespace Gonogo.KSP.Tests.Career
         }
 
         /// <summary>
-        /// A facility the game KNOWS but has not instantiated is a scene fact,
-        /// never a missing facility. This is what an operator hit in flight: the
-        /// launch pad plainly exists and the refusal said it could not be found.
+        /// A facility the game knows but whose tiers cannot be read here is a
+        /// scene fact, never a missing facility.
         /// </summary>
         [Fact]
         public void AKnownFacilityWithNoLiveInstanceIsAWrongSceneRefusalThatNamesTheScene()
         {
             var refusal = CareerRefusals.FacilityResolutionRefusal(
-                facilityKnown: true, built: false, facilityName: "Launch Pad", sceneName: "FLIGHT");
+                facilityKnown: true, ladderKnown: false, facilityName: "Launch Pad", sceneName: "FLIGHT");
 
             Assert.NotNull(refusal);
             Assert.Equal(CommandErrorCode.WrongScene, refusal!.ErrorCode);
@@ -129,7 +128,7 @@ namespace Gonogo.KSP.Tests.Career
         public void AWrongSceneRefusalStillSaysWhereToGoWhenTheSceneIsUnnamed()
         {
             var refusal = CareerRefusals.FacilityResolutionRefusal(
-                facilityKnown: true, built: false, facilityName: "Launch Pad", sceneName: null);
+                facilityKnown: true, ladderKnown: false, facilityName: "Launch Pad", sceneName: null);
 
             Assert.Equal(CommandErrorCode.WrongScene, refusal!.ErrorCode);
             Assert.Contains("space centre", refusal.Detail);
@@ -148,22 +147,24 @@ namespace Gonogo.KSP.Tests.Career
         public void AWrongSceneRefusalDoesNotClaimTheSpaceCentreIsTheOnlyPlace(string? sceneName)
         {
             var refusal = CareerRefusals.FacilityResolutionRefusal(
-                facilityKnown: true, built: false, facilityName: "Launch Pad", sceneName: sceneName);
+                facilityKnown: true, ladderKnown: false, facilityName: "Launch Pad", sceneName: sceneName);
 
             Assert.DoesNotContain("only", refusal!.Detail, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
-        /// Only an absent component is refused, so the sentence says it is not
-        /// built; an inactive one is upgraded and never reaches this refusal.
+        /// The refusal is about the tiers being unreadable, never about the
+        /// building: it stands in every scene, and an absent component is
+        /// upgraded off-scene whenever its ladder is known.
         /// </summary>
         [Fact]
-        public void AWrongSceneRefusalSaysTheBuildingIsNotBuiltHere()
+        public void AWrongSceneRefusalSaysTheTiersCannotBeReadHere()
         {
             var refusal = CareerRefusals.FacilityResolutionRefusal(
-                facilityKnown: true, built: false, facilityName: "Launch Pad", sceneName: "FLIGHT");
+                facilityKnown: true, ladderKnown: false, facilityName: "Launch Pad", sceneName: "FLIGHT");
 
-            Assert.Contains("is not built in the FLIGHT scene", refusal!.Detail);
+            Assert.Contains("tiers cannot be read in the FLIGHT scene", refusal!.Detail);
+            Assert.DoesNotContain("built", refusal.Detail);
         }
 
         /// <summary>A resolved facility is not refused at all.</summary>
@@ -171,7 +172,7 @@ namespace Gonogo.KSP.Tests.Career
         public void AResolvedFacilityProceeds()
         {
             Assert.Null(CareerRefusals.FacilityResolutionRefusal(
-                facilityKnown: true, built: true, facilityName: "Launch Pad", sceneName: "SPACECENTER"));
+                facilityKnown: true, ladderKnown: true, facilityName: "Launch Pad", sceneName: "SPACECENTER"));
         }
 }
 }

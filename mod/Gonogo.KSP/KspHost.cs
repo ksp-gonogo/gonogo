@@ -3865,26 +3865,12 @@ namespace Gonogo.KSP
         /// AstronautComplex/LaunchPad/MissionControl/ResearchAndDevelopment/
         /// Runway/TrackingStation/SpaceplaneHangar/VehicleAssemblyBuilding).
         ///
-        /// <para>Read from
-        /// <c>UpgradeableFacility.FacilityLevel</c>/<c>MaxLevel</c> rather than
+        /// <para>Read from the registered component's
+        /// <c>UpgradeableFacility.FacilityLevel</c>/<c>MaxLevel</c> (0-based:
+        /// <c>MaxLevel</c> is the top tier's own index) rather than
         /// <c>ScenarioUpgradeableFacilities.GetFacilityLevel</c>, whose
-        /// fractional [0,1] reading the KSC widget cannot turn into a tier
-        /// without also knowing the tier count. Both are
-        /// confirmed via decompile as plain <c>int</c> properties on the
-        /// LIVE facility object (0-based: tier 0 is the starting/unupgraded
-        /// tier, <c>MaxLevel</c> is the top tier's own index, e.g. 2 for a
-        /// 3-tier facility). Reached the same way the
-        /// <c>upgradeCost</c> capture is -
-        /// <c>ScenarioUpgradeableFacilities.protoUpgradeables[SlashSanitize(name)]
-        /// .facilityRefs[0]</c> - so <c>currentTier</c>/<c>maxTier</c>/
-        /// <c>upgradeCost</c> share ONE gate: all three are only resolvable
-        /// while the facility's live <c>UpgradeableFacility</c> GameObject
-        /// is registered (i.e. standing in the Space Center scene;
-        /// confirmed via decompile that <c>ScenarioUpgradeableFacilities.
-        /// GetFacilityLevelCount</c> itself just proxies to this same
-        /// <c>facilityRefs[0].MaxLevel</c> read, returning the sentinel
-        /// <c>-1</c> otherwise - there never was a scene-independent tier
-        /// source).</para>
+        /// fractional [0,1] reading cannot be turned into a tier without the
+        /// tier count, which only the component has.</para>
         ///
         /// <para><b>A facility that cannot be read is left out, and a capture
         /// where none can be read is <c>null</c>.</b> The reading is gone
@@ -3893,15 +3879,12 @@ namespace Gonogo.KSP
         /// <c>NullIsUnreadable</c> so a whole-capture null goes out as
         /// silence: the client holds its last reading and dates it.</para>
         ///
-        /// <para>There is no stock way to recover the ladder off-scene. The
-        /// persisted level is NORMALISED
-        /// (<c>UpgradeableFacility.Save</c> writes <c>lvl =
-        /// FacilityLevel / MaxLevel</c>), <c>upgradeLevels</c> is a serialized
-        /// field on the scene component rather than anything the game database
-        /// loads, and every <c>GameVariables</c> entry point takes a normalised
-        /// level rather than exposing a count. So "0.5" cannot be told from
-        /// tier 1 of 3 or tier 2 of 5 without the count that only the live
-        /// object has.</para>
+        /// <para>Off-scene (the Tracking Station) the persisted level is
+        /// NORMALISED (<c>UpgradeableFacility.Save</c> writes <c>lvl =
+        /// FacilityLevel / MaxLevel</c>) and the ladder lives only on the
+        /// component, so the tier is read against the ladder
+        /// <see cref="FacilityLadder"/> remembered from a registering scene, and
+        /// left out when none has been seen.</para>
         /// </summary>
         private static Dictionary<string, object?>? BuildCareerFacilities()
         {
@@ -3917,16 +3900,22 @@ namespace Gonogo.KSP
                 var sanitizedId = ScenarioUpgradeableFacilities.SlashSanitize(facilityName);
 
                 if (!ScenarioUpgradeableFacilities.protoUpgradeables.TryGetValue(sanitizedId, out var proto) ||
-                    proto?.facilityRefs == null || proto.facilityRefs.Count == 0 ||
+                    proto == null)
+                {
+                    continue;
+                }
+
+                if (proto.facilityRefs == null || proto.facilityRefs.Count == 0 ||
                     !FacilityLiveness.IsBuilt(proto.facilityRefs[0]))
                 {
-                    // Nothing to read from here, so nothing is written. An
-                    // absent key says the same thing once, and lets the whole
-                    // channel be absent when every facility is in this state.
+                    // An absent key says "unreadable here" once, and lets the whole channel be absent when every facility is in this state.
+                    var offScene = OffSceneFacilityEntry(facility, sanitizedId, proto);
+                    if (offScene != null) result[facilityName] = offScene;
                     continue;
                 }
 
                 var live = proto.facilityRefs[0];
+                FacilityLadder.Remember(sanitizedId, live);
                 result[facilityName] = new Dictionary<string, object?>
                 {
                     // The map stays keyed by NAME: rekeying it to a number would
@@ -3941,6 +3930,32 @@ namespace Gonogo.KSP
             }
 
             return result.Count > 0 ? result : null;
+        }
+
+        /// <summary>
+        /// A facility's entry where no component is registered: the save's
+        /// persisted tier read against the ladder remembered from a registering
+        /// scene, priced as <c>GetUpgradeCost</c> prices it. Null when no ladder
+        /// has been seen this session.
+        /// </summary>
+        private static Dictionary<string, object?>? OffSceneFacilityEntry(
+            SpaceCenterFacility facility,
+            string sanitizedId,
+            ScenarioUpgradeableFacilities.ProtoUpgradeable proto)
+        {
+            if (proto.configNode == null || !FacilityLadder.TryGet(sanitizedId, out var rungs)) return null;
+            var tier = OffSceneFacilityUpgrade.PersistedTier(proto.configNode, rungs.MaxLevel);
+            var raw = FacilityLadder.NextTierCost(rungs, tier) ?? 0f;
+            var multiplier = HighLogic.LoadedSceneIsGame && HighLogic.CurrentGame != null
+                ? HighLogic.CurrentGame.Parameters.Career.FundsLossMultiplier
+                : 1f;
+            return new Dictionary<string, object?>
+            {
+                ["facilityOrdinal"] = (int)facility,
+                ["currentTier"] = tier,
+                ["maxTier"] = rungs.MaxLevel,
+                ["upgradeCost"] = raw * multiplier,
+            };
         }
 
         /// <summary>Bound on the recently-completed contracts list: the last N

@@ -81,10 +81,11 @@ public class CareerStatus
 /// each with the tier it stands at and the ladder it stands on.
 ///
 /// <para><b>It arrives only while the game can answer, and stops otherwise.</b>
-/// A facility's tier count is readable from the live building objects, which KSP
-/// instantiates at the space centre, in the editor and in flight near the KSC,
-/// and nowhere else. From the tracking station or from orbit there is no reading
-/// to take, so this channel goes SILENT rather than reporting a row of nulls.
+/// A facility's tier count and prices are readable from the building objects,
+/// which KSP registers at the space centre, in the editor and in flight. The
+/// tracking station reads the tier the save holds against the ladder last read
+/// in one of those scenes. Where no ladder has been read there is no reading to
+/// take, so this channel goes SILENT rather than reporting a row of nulls.
 /// The last reading stands, dated, through the client's ordinary staleness
 /// machinery: a whole channel can be held and said to be held, where a nullable
 /// field on a channel that keeps ticking cannot.</para>

@@ -400,6 +400,9 @@ namespace Gonogo.KSP
         /// inactive component. <c>SetLevel</c> does NOT deduct: the level increment
         /// and the fund deduction are separate steps, so an unaffordable request
         /// returns before any spend.
+        ///
+        /// <para>Where no component is registered (the Tracking Station), the same
+        /// steps run against the save instead: see <see cref="UpgradeFacilityOffScene"/>.</para>
         /// </summary>
         public CommandResult UpgradeFacility(string facilityId)
         {
@@ -415,6 +418,10 @@ namespace Gonogo.KSP
                 && proto.facilityRefs != null
                 && proto.facilityRefs.Count > 0
                 && FacilityLiveness.IsBuilt(proto.facilityRefs[0]);
+            if (known && !built)
+            {
+                return UpgradeFacilityOffScene(facilityId, sanitizedId, proto!);
+            }
             var unresolved = CareerRefusals.FacilityResolutionRefusal(
                 known, built, FacilityDisplayName(facilityId), HighLogic.LoadedScene.ToString());
             if (unresolved != null)
@@ -423,6 +430,7 @@ namespace Gonogo.KSP
             }
 
             var live = proto.facilityRefs[0];
+            FacilityLadder.Remember(sanitizedId, live);
             var maxTier = CareerRefusals.MaxTierBreach(
                 facilityId, FacilityDisplayName(facilityId), live.GetNormLevel(), live.FacilityLevel, live.MaxLevel);
             if (maxTier != null)
@@ -458,6 +466,137 @@ namespace Gonogo.KSP
             funding.AddFunds(-cost, TransactionReasons.StructureConstruction);
             FacilityLiveness.Upgrade(live, live.FacilityLevel + 1);
             return CommandResult.Ok();
+        }
+
+        /// <summary>
+        /// The upgrade where no <c>UpgradeableFacility</c> is registered: priced off
+        /// the facility's remembered ladder, written to the save's
+        /// <c>ProtoUpgradeable.configNode</c> through
+        /// <see cref="OffSceneFacilityUpgrade.Apply"/>, charged once and announced
+        /// with both of <c>SetLevel</c>'s events, which never runs here.
+        ///
+        /// <para>Obstruction is asked of the save's landed vessels
+        /// (<c>ShipConstruction.FindVesselsLandedAt</c>, the question
+        /// <c>PreFlightTests.LaunchSiteClear</c> asks), since the building whose
+        /// grounds stock sweeps is not loaded.</para>
+        /// </summary>
+        private CommandResult UpgradeFacilityOffScene(
+            string facilityId,
+            string sanitizedId,
+            ScenarioUpgradeableFacilities.ProtoUpgradeable proto)
+        {
+            var name = FacilityDisplayName(facilityId);
+            var rungs = OffSceneLadder(sanitizedId);
+            var node = proto.configNode;
+            if (rungs == null || node == null)
+            {
+                return CareerRefusals.FacilityResolutionRefusal(true, false, name, HighLogic.LoadedScene.ToString());
+            }
+
+            var tier = OffSceneFacilityUpgrade.PersistedTier(node, rungs.MaxLevel);
+            var norm = FacilityLadder.NormFromTier(tier, rungs.MaxLevel);
+            var maxTier = CareerRefusals.MaxTierBreach(facilityId, name, norm, tier, rungs.MaxLevel);
+            if (maxTier != null)
+            {
+                return CommandResult.Fail(CommandErrorCode.AlreadyAtMaximum, maxTier);
+            }
+            var rawCost = FacilityLadder.NextTierCost(rungs, tier);
+            if (rawCost == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.AlreadyAtMaximum);
+            }
+
+            var obstructed = LandedObstructionRefusal(facilityId);
+            if (obstructed != null)
+            {
+                return obstructed;
+            }
+
+            var funding = Funding.Instance;
+            if (funding == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.CareerModeRequired);
+            }
+
+            var cost = StockUpgradeCost(rawCost.Value);
+            var query = CareerAffordability.Price(
+                TransactionReasons.StructureConstruction, Currency.Funds, cost);
+            if (!CareerAffordability.CanAfford(query, Currency.Funds))
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.InsufficientFunds,
+                    CareerRefusals.ShortfallBreach(
+                        facilityId, name, norm,
+                        "funds", CareerAffordability.PriceOf(query, Currency.Funds),
+                        funding.Funds, Units.Funds));
+            }
+
+            var component = rungs.Component;
+            OffSceneFacilityUpgrade.Apply(
+                node,
+                tier + 1,
+                rungs.MaxLevel,
+                () => funding.AddFunds(-cost, TransactionReasons.StructureConstruction),
+                level => GameEvents.OnKSCFacilityUpgrading.Fire(component, level),
+                level => GameEvents.OnKSCFacilityUpgraded.Fire(component, level));
+            return CommandResult.Ok();
+        }
+
+        /// <summary>
+        /// The ladder for a facility with no registered component: the one
+        /// remembered from a registering scene, else the KSC's own component read
+        /// out of the loaded hierarchy, which holds the same serialized ladder
+        /// whether or not it is registered.
+        /// </summary>
+        private static FacilityLadder.Rungs? OffSceneLadder(string sanitizedId)
+        {
+            if (FacilityLadder.TryGet(sanitizedId, out var remembered)) return remembered;
+            try
+            {
+                UpgradeableFacility? found = null;
+                foreach (var candidate in UnityEngine.Resources.FindObjectsOfTypeAll<UpgradeableFacility>())
+                {
+                    if (candidate == null || !string.Equals(candidate.id, sanitizedId, StringComparison.Ordinal)) continue;
+                    found = candidate;
+                    if (candidate.gameObject.scene.IsValid()) break;
+                }
+                if (found == null) return null;
+                FacilityLadder.Remember(sanitizedId, found);
+                return FacilityLadder.TryGet(sanitizedId, out var read) ? read : null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary><c>UpgradeableFacility.GetUpgradeCost</c>'s arithmetic over a remembered rung.</summary>
+        private static float StockUpgradeCost(float levelCost) =>
+            HighLogic.LoadedSceneIsGame && HighLogic.CurrentGame != null
+                ? levelCost * HighLogic.CurrentGame.Parameters.Career.FundsLossMultiplier
+                : levelCost;
+
+        /// <summary>Vessels the save records as landed at this facility, which an upgrade would build over.</summary>
+        private static CommandResult? LandedObstructionRefusal(string facilityId)
+        {
+            try
+            {
+                var flightState = HighLogic.CurrentGame?.flightState;
+                if (flightState == null) return null;
+                var obstructing = new List<string>();
+                AddVesselNames(obstructing, ShipConstruction.FindVesselsLandedAt(flightState, facilityId));
+                return FacilityObstruction.Refusal(
+                    obstructing,
+                    GameWords.Sentence(
+                        "#autoLOC_6002252",
+                        "vessels are on this facility: ",
+                        FacilityDisplayName(facilityId)),
+                    GameWords.Sentence("#autoLOC_6002253", ""));
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         /// <summary>
