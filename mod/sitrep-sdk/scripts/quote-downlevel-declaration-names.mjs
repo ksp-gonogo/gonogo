@@ -42,8 +42,11 @@ function declarationFiles(dir) {
   const found = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
-    if (entry.isDirectory()) found.push(...declarationFiles(path));
-    else if (entry.name.endsWith(".d.ts")) found.push(path);
+    if (entry.isDirectory()) {
+      found.push(...declarationFiles(path));
+      continue;
+    }
+    if (entry.name.endsWith(".d.ts")) found.push(path);
   }
   return found;
 }

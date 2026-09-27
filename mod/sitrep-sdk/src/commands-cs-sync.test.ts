@@ -39,7 +39,9 @@ function collectModSources(dir: string, out: string[] = []): string[] {
         continue;
       }
       collectModSources(full, out);
-    } else if (entry.endsWith(".cs")) {
+      continue;
+    }
+    if (entry.endsWith(".cs")) {
       out.push(full);
     }
   }

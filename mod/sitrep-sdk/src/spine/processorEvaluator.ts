@@ -254,11 +254,14 @@ function collectRawTopicDeps(id: string): string[] {
       // itself as a topic and silently starve the subscription, which is the
       // failure mode `stub-transport`'s subscribed-only delivery exists to
       // surface.
-      if (isReadingDep(dep)) topics.add(dep.reading);
+      if (isReadingDep(dep)) {
+        topics.add(dep.reading);
+        continue;
+      }
       // A subject dep names no topic until a reckon resolves its subject, and a
       // processor never will: `resolveDep` throws on one. Skipped here so the
       // refusal is that throw rather than a dep object landing in a topic set.
-      else if (!isHandle(dep) && !isSubjectDep(dep)) topics.add(dep);
+      if (!isHandle(dep) && !isSubjectDep(dep)) topics.add(dep);
     }
   }
   return [...topics];

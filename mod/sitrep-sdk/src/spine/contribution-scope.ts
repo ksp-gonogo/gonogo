@@ -73,7 +73,13 @@ export function noteUndeclaredRead(seam: string, topic?: string): void {
   if (reported.has(key)) return;
   reported.add(key);
   const message = `contribution ${scope.id} read ${what} without declaring it; move it into a processor`;
-  if (process.env.NODE_ENV === "test") console.error(message);
-  else if (hasHost()) logger.warn(message);
-  else console.warn(message);
+  if (process.env.NODE_ENV === "test") {
+    console.error(message);
+    return;
+  }
+  if (hasHost()) {
+    logger.warn(message);
+    return;
+  }
+  console.warn(message);
 }

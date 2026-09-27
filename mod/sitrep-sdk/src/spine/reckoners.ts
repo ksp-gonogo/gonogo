@@ -118,8 +118,11 @@ export function registerReckoner<
      */
     const declaredInputs = new Set<string>();
     for (const dep of reckoner.deps) {
-      if (typeof dep === "string") declaredInputs.add(dep);
-      else if ("reading" in dep) declaredInputs.add(dep.reading);
+      if (typeof dep === "string") {
+        declaredInputs.add(dep);
+        continue;
+      }
+      if ("reading" in dep) declaredInputs.add(dep.reading);
     }
     for (const [basis, scoped] of Object.entries(exempt.perBasis ?? {})) {
       for (const rule of ["horizon", "band"] as const) {

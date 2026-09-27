@@ -476,26 +476,29 @@ function arcImpact(
   ) {
     return null;
   }
-  let lift: (p: TrajectoryPoint) => Vector3;
-  if (frame.kind === TrajectoryFrameKindLike.BodyCentredInertial) {
-    lift = (p) => [p.x, p.y, p.z];
-  } else if (frame.kind === TrajectoryFrameKindLike.Perifocal) {
-    const { inc, lan, argPe } = buildElements(orbit);
-    const pHat = rotatePerifocalToInertial(1, 0, inc, lan, argPe);
-    const qHat = rotatePerifocalToInertial(0, 1, inc, lan, argPe);
-    const wHat: Vector3 = [
-      pHat[1] * qHat[2] - pHat[2] * qHat[1],
-      pHat[2] * qHat[0] - pHat[0] * qHat[2],
-      pHat[0] * qHat[1] - pHat[1] * qHat[0],
-    ];
-    lift = (p) => [
-      p.x * pHat[0] + p.y * qHat[0] + p.z * wHat[0],
-      p.x * pHat[1] + p.y * qHat[1] + p.z * wHat[1],
-      p.x * pHat[2] + p.y * qHat[2] + p.z * wHat[2],
-    ];
-  } else {
+  const resolveLift = (): ((p: TrajectoryPoint) => Vector3) | null => {
+    if (frame.kind === TrajectoryFrameKindLike.BodyCentredInertial) {
+      return (p) => [p.x, p.y, p.z];
+    }
+    if (frame.kind === TrajectoryFrameKindLike.Perifocal) {
+      const { inc, lan, argPe } = buildElements(orbit);
+      const pHat = rotatePerifocalToInertial(1, 0, inc, lan, argPe);
+      const qHat = rotatePerifocalToInertial(0, 1, inc, lan, argPe);
+      const wHat: Vector3 = [
+        pHat[1] * qHat[2] - pHat[2] * qHat[1],
+        pHat[2] * qHat[0] - pHat[0] * qHat[2],
+        pHat[0] * qHat[1] - pHat[1] * qHat[0],
+      ];
+      return (p) => [
+        p.x * pHat[0] + p.y * qHat[0] + p.z * wHat[0],
+        p.x * pHat[1] + p.y * qHat[1] + p.z * wHat[1],
+        p.x * pHat[2] + p.y * qHat[2] + p.z * wHat[2],
+      ];
+    }
     return null;
-  }
+  };
+  const lift = resolveLift();
+  if (!lift) return null;
 
   const surface = bodyRadius + MIN_IMPACT_ALT_M;
   const endUt = ref.ut + walkSec;

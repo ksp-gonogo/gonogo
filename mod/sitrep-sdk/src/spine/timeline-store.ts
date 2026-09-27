@@ -1453,15 +1453,14 @@ export class TimelineStore {
       const value = def.derive(get, ut);
       if (value === undefined) continue; // not whole yet at this instant
 
-      let payload: unknown;
-      if (value === null) {
-        payload = null; // confirmed absence
-      } else if (field) {
-        if (!(field in (value as object))) continue; // unknown field name
-        payload = (value as Record<string, unknown>)[field];
-      } else {
-        payload = value;
-      }
+      if (value !== null && field && !(field in (value as object))) continue; // unknown field name
+
+      const resolvePayload = (): unknown => {
+        if (value === null) return null; // confirmed absence
+        if (field) return (value as Record<string, unknown>)[field];
+        return value;
+      };
+      const payload = resolvePayload();
 
       out.push({
         validAt: ut,

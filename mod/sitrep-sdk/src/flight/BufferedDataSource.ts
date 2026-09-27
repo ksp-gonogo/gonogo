@@ -701,7 +701,8 @@ export class BufferedDataSource extends DataSourceWrapper {
       if (value === true) {
         this.commGate = true;
         this.hasConfirmedComm = true;
-      } else if (value === false && this.hasConfirmedComm) {
+      }
+      if (value === false && this.hasConfirmedComm) {
         this.commGate = false;
       }
     }
@@ -709,7 +710,8 @@ export class BufferedDataSource extends DataSourceWrapper {
       if (value === 0 || value === 1) {
         this.pPausedGate = true;
         this.hasConfirmedPPaused = true;
-      } else if (
+      }
+      if (
         typeof value === "number" &&
         this.hasConfirmedPPaused &&
         value !== 0 &&

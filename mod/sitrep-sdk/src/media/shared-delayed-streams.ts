@@ -165,11 +165,16 @@ export class SharedDelayedStreams<R, C, K = object> {
         abort();
         produced = undefined as never;
       }
-      if (produced instanceof Promise) {
-        void produced.then(settle, abort);
-      } else if (produced !== undefined) {
-        settle(produced);
-      }
+      const dispatchProduced = (p: typeof produced): void => {
+        if (p instanceof Promise) {
+          void p.then(settle, abort);
+          return;
+        }
+        if (p !== undefined) {
+          settle(p);
+        }
+      };
+      dispatchProduced(produced);
     }
 
     return {

@@ -79,8 +79,11 @@ function emittedFiles(dir) {
   const found = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
-    if (entry.isDirectory()) found.push(...emittedFiles(path));
-    else if (/\.d\.ts$/.test(entry.name) || /\.js$/.test(entry.name))
+    if (entry.isDirectory()) {
+      found.push(...emittedFiles(path));
+      continue;
+    }
+    if (/\.d\.ts$/.test(entry.name) || /\.js$/.test(entry.name))
       found.push(path);
   }
   return found;
@@ -135,21 +138,25 @@ function specifierNodes(sourceFile) {
   const visit = (node) => {
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
       take(node.moduleSpecifier);
-    } else if (
+    }
+    if (
       ts.isImportEqualsDeclaration(node) &&
       ts.isExternalModuleReference(node.moduleReference)
     ) {
       take(node.moduleReference.expression);
-    } else if (
+    }
+    if (
       ts.isCallExpression(node) &&
       node.expression.kind === ts.SyntaxKind.ImportKeyword
     ) {
       take(node.arguments[0]);
-    } else if (ts.isImportTypeNode(node)) {
+    }
+    if (ts.isImportTypeNode(node)) {
       // `import("./x").Foo`, which is how a `.d.ts` names a type it did not
       // import by name.
       if (ts.isLiteralTypeNode(node.argument)) take(node.argument.literal);
-    } else if (ts.isModuleDeclaration(node) && ts.isStringLiteral(node.name)) {
+    }
+    if (ts.isModuleDeclaration(node) && ts.isStringLiteral(node.name)) {
       take(node.name);
     }
     ts.forEachChild(node, visit);
