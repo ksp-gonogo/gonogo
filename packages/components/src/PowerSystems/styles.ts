@@ -26,7 +26,7 @@ export const TOTALS_CELL: CSSProperties = {
   gap: "var(--gap-related)",
   padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
-  border: "1px solid var(--color-surface-raised)",
+  border: "1px solid var(--color-border-subtle)",
   borderRadius: "var(--radius-regular)",
 };
 
@@ -61,7 +61,7 @@ export const SPARKLINE_ROW: CSSProperties = {
   marginBottom: "var(--gap-related-comfortable)",
   padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
-  border: "1px solid var(--color-surface-raised)",
+  border: "1px solid var(--color-border-subtle)",
   borderRadius: "var(--radius-regular)",
 };
 
@@ -182,7 +182,7 @@ export const NET_CELL_BY_TONE: Record<NetTone, CSSProperties> = {
   },
   neutral: {
     background: "var(--color-surface-panel)",
-    border: "1px solid var(--color-surface-raised)",
+    border: "1px solid var(--color-border-subtle)",
   },
 };
 

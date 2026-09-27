@@ -111,7 +111,7 @@ const META: CSSProperties = {
   gap: "var(--gap-related)",
   padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
-  borderBottom: "1px solid var(--color-surface-raised)",
+  borderBottom: "1px solid var(--color-border-subtle)",
   fontSize: "var(--font-size-compact)",
   color: "var(--color-text-muted)",
 };

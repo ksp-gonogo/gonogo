@@ -125,7 +125,7 @@ const Dismiss = styled.button`
   border: 0;
   border-left: 1px solid var(--color-border-subtle);
   background: transparent;
-  color: var(--color-text-dim);
+  color: var(--color-text-muted);
   font-family: inherit;
   /* Off the type scale: a glyph size for the close mark, above --font-size-lg. */
   font-size: 18px;

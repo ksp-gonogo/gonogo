@@ -1,5 +1,5 @@
 import { ArrowRightIcon, CloseIcon } from "@ksp-gonogo/ui";
-import { Row, Stack } from "@ksp-gonogo/ui-kit";
+import { Button, Row, Stack } from "@ksp-gonogo/ui-kit";
 import { PRESETS } from "./presets";
 import type { ArmedTrigger } from "./triggerTypes";
 
@@ -29,14 +29,13 @@ export function ArmedTriggersList({
                 <ArrowRightIcon size={11} /> {presetLabel}
               </div>
             </div>
-            <button
+            <Button
               type="button"
-              style={CANCEL_BUTTON_STYLE}
               onClick={() => onCancel(t.id)}
               aria-label="Cancel armed trigger"
             >
               <CloseIcon size={12} />
-            </button>
+            </Button>
           </Row>
         );
       })}
@@ -81,18 +80,4 @@ const META_STYLE = {
   display: "inline-flex",
   alignItems: "center",
   gap: "var(--gap-related)",
-} as const;
-
-/** A 22px square for a 12px glyph, sized to the row rather than to a toolbar. */
-const CANCEL_BUTTON_STYLE = {
-  background: "transparent",
-  border: "1px solid var(--color-status-alert-muted)",
-  color: "var(--color-text-muted)",
-  width: "22px",
-  height: "22px",
-  borderRadius: "var(--radius-regular)",
-  cursor: "pointer",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
 } as const;

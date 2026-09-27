@@ -1,6 +1,6 @@
 import { Truncate } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import { TONE_HEX, type Tone } from "./comms";
+import { TONE_MARK, TONE_TEXT, type Tone } from "./comms";
 
 /** Decorative colour-coded link marker; its `aria-label` carries the meaning. */
 export function LinkDot({
@@ -19,7 +19,7 @@ export function LinkDot({
         width: 8,
         height: 8,
         borderRadius: "var(--radius-circle)",
-        background: TONE_HEX[tone],
+        background: TONE_MARK[tone],
       }}
     />
   );
@@ -43,8 +43,8 @@ export function CommsTag({
         fontWeight: 600,
         padding: "var(--inset-chip)",
         borderRadius: "var(--radius-regular)",
-        border: `1px solid ${TONE_HEX[tone]}`,
-        color: TONE_HEX[tone],
+        border: `1px solid ${TONE_TEXT[tone]}`,
+        color: TONE_TEXT[tone],
         whiteSpace: "nowrap",
       }}
     >

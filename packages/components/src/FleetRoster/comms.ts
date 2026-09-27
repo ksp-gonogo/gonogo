@@ -3,13 +3,19 @@ import { type CommsLink, type FleetVessel, isLinked } from "./fleet";
 
 export type Tone = "go" | "info" | "warn" | "nogo" | "neutral";
 
-// Used as a foreground colour (dot, tag border and text), so "info" reads the `-fg` token: the info `-bg` token is near-black and invisible here.
-export const TONE_HEX: Record<Tone, string> = {
-  go: "var(--color-status-go-bg)",
+/** A tone drawn as text or a chip's edge on the panel. `info` reads the `-fg` token: the info `-bg` token is near-black. */
+export const TONE_TEXT: Record<Tone, string> = {
+  go: "var(--color-status-go-fg)",
   info: "var(--color-status-info-fg)",
   warn: "var(--color-status-warning-bg)",
   nogo: "var(--color-status-nogo-bg)",
   neutral: "var(--color-text-muted)",
+};
+
+/** A tone drawn as a lone mark, where green takes its mark token rather than its text one. */
+export const TONE_MARK: Record<Tone, string> = {
+  ...TONE_TEXT,
+  go: "var(--color-status-go-mark)",
 };
 
 /** Comms tier to tone, the only per-row signal the roster has a real read for. */

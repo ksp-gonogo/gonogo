@@ -37,7 +37,7 @@ export const PadRowButton = styled.button<{ $selected: boolean }>`
     p.$selected ? "var(--color-surface-raised)" : "var(--color-surface-panel)"};
   border: 1px solid
     ${(p) =>
-      p.$selected ? "var(--color-accent-fg)" : "var(--color-surface-raised)"};
+      p.$selected ? "var(--color-accent-fg)" : "var(--color-border-subtle)"};
   border-radius: var(--radius-regular);
   cursor: pointer;
   text-align: left;
@@ -89,7 +89,7 @@ export const PadDetail = styled.div`
   flex-direction: column;
   gap: var(--gap-related);
   padding-left: var(--indent-aside);
-  border-left: 2px solid var(--color-surface-raised);
+  border-left: 2px solid var(--color-border-subtle);
 `;
 
 // One track normally, two in a letterbox once a craft is picked; `align-items: start` keeps the crew column its own height.
@@ -131,7 +131,7 @@ export const ShipRow = styled.button<{ $selected: boolean; $blocked: boolean }>`
     p.$selected ? "var(--color-surface-raised)" : "var(--color-surface-panel)"};
   border: 1px solid
     ${(p) =>
-      p.$selected ? "var(--color-accent-fg)" : "var(--color-surface-raised)"};
+      p.$selected ? "var(--color-accent-fg)" : "var(--color-border-subtle)"};
   border-radius: var(--radius-regular);
   cursor: ${(p) => (p.$blocked ? "not-allowed" : "pointer")};
   opacity: ${(p) => (p.$blocked ? 0.55 : 1)};
@@ -216,7 +216,7 @@ export const CrewChip = styled.button<{
   color: ${(p) =>
     p.$selected ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
   border: 1px solid
-    ${(p) => (p.$selected ? "transparent" : "var(--color-surface-raised)")};
+    ${(p) => (p.$selected ? "transparent" : "var(--color-border-subtle)")};
   border-radius: var(--radius-regular);
   cursor: ${(p) => (p.$disabled ? "not-allowed" : "pointer")};
   opacity: ${(p) => (p.$disabled ? 0.4 : 1)};
@@ -320,7 +320,7 @@ const armButtonBase = `
   border-radius: var(--radius-regular);
   cursor: pointer;
   font-family: inherit;
-  border: 1px solid var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
   display: inline-flex;
   align-items: center;
   gap: var(--gap-related);
@@ -343,7 +343,7 @@ export const ArmButton = styled.button<{
       ? "var(--color-status-go-fg)"
       : "var(--color-text-muted)"};
   border-color: ${(p) =>
-    p.$kind === "launch" ? "transparent" : "var(--color-surface-raised)"};
+    p.$kind === "launch" ? "transparent" : "var(--color-border-subtle)"};
 
   &:hover {
     filter: brightness(1.1);
@@ -354,7 +354,7 @@ export const TrackingStationButton = styled.button`
   ${armButtonBase}
   background: transparent;
   color: var(--color-status-info-fg);
-  border-color: var(--color-surface-raised);
+  border-color: var(--color-border-subtle);
 
   &:hover {
     filter: brightness(1.1);
@@ -380,7 +380,7 @@ export const VesselSwitchPanel = styled.div`
   gap: var(--gap-line);
   max-height: 180px;
   overflow-y: auto;
-  border: 1px solid var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   background: var(--color-surface-app);
   padding: var(--inset-switch-panel);
@@ -452,7 +452,7 @@ export const SpaceObjectToggle = styled.button`
   font-size: var(--font-size-compact);
   padding: var(--inset-control);
   border-radius: var(--radius-pill);
-  border: 1px solid var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
   background: transparent;
   color: var(--color-text-muted);
   cursor: pointer;
@@ -482,7 +482,7 @@ export const ConfirmButton = styled.button<{
   color: ${(p) =>
     p.$kind === "launch"
       ? "var(--color-status-go-fg)"
-      : "var(--color-status-nogo-fg)"};
+      : "var(--color-status-nogo-on-bg)"};
   border-color: transparent;
   /* The animation lives inside the same reduced-motion guard as its keyframes. */
   @media (prefers-reduced-motion: no-preference) {

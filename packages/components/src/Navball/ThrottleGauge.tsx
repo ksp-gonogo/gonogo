@@ -45,7 +45,7 @@ const THROTTLE_LABEL: CSSProperties = {
 const THROTTLE_BAR: CSSProperties = {
   width: "14px",
   height: "100px",
-  border: "1px solid var(--color-surface-raised)",
+  border: "1px solid var(--color-border-subtle)",
   background: "var(--color-surface-app)",
   position: "relative",
   overflow: "hidden",

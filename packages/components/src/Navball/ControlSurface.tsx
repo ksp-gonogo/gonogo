@@ -188,7 +188,7 @@ const CONTROL_WRAP: CSSProperties = {
   flexDirection: "column",
   gap: "var(--gap-related)",
   paddingTop: "var(--inset-below-rule)",
-  borderTop: "1px solid var(--color-surface-raised)",
+  borderTop: "1px solid var(--color-border-subtle)",
 };
 
 const GROUP: CSSProperties = {

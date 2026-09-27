@@ -58,8 +58,8 @@ const Banner = styled.div`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: var(--color-surface-overlay, rgba(20, 22, 26, 0.92));
-  border: 1px solid var(--color-surface-raised);
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   /* Shares --inset-pill with BannerPill: a message you read, not a control you press. */
   padding: var(--inset-pill);

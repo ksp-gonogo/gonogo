@@ -146,7 +146,7 @@ export const TierSpecs = styled.div`
   gap: var(--gap-related);
   margin-top: var(--gap-related-compact);
   padding-top: var(--inset-below-rule);
-  border-top: 1px dashed var(--color-surface-raised);
+  border-top: 1px dashed var(--color-border-subtle);
 `;
 
 export const TierBlock__Root = styled.div`
@@ -193,7 +193,7 @@ export const UpgradeButtonStyled = styled(FitLabelButton)`
   letter-spacing: 0.04em;
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
-  border: 1px solid var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
   background: transparent;
   color: var(--color-text-muted);
   cursor: pointer;

@@ -1,7 +1,7 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { CloseIcon, PencilIcon } from "@ksp-gonogo/ui";
-import { Countdown, IconButton, Unit } from "@ksp-gonogo/ui-kit";
+import { Button, Countdown, IconButton, Unit } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import { NodeEditor } from "./NodeEditor";
@@ -90,13 +90,9 @@ export function NodeRow({
           </StepButton>
         )}
         {onDelete && (
-          <DeleteButton
-            type="button"
-            onClick={onDelete}
-            aria-label="Delete node"
-          >
+          <Button type="button" onClick={onDelete} aria-label="Delete node">
             <CloseIcon size={12} />
-          </DeleteButton>
+          </Button>
         )}
       </RowActions>
       {editing && onEdit && (
@@ -129,10 +125,12 @@ const NodeLi = styled.li<{ $completed: boolean }>`
   gap: var(--gap-related);
   padding: var(--inset-surface);
   background: ${({ $completed }) =>
-    $completed ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};
+    $completed ? "var(--color-status-go-muted)" : "var(--color-surface-panel)"};
   border: 1px solid
     ${({ $completed }) =>
-      $completed ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
+      $completed
+        ? "var(--color-status-go-mark)"
+        : "var(--color-border-subtle)"};
   border-radius: var(--radius-regular);
 `;
 
@@ -177,25 +175,6 @@ const StepButton = styled(IconButton)<{ $active: boolean }>`
   align-items: center;
   justify-content: center;
   padding: 0;
-`;
-
-// `padding: 0` overrides the UA's button padding, which squashes the 12px glyph to 8px.
-const DeleteButton = styled.button`
-  background: transparent;
-  border: 1px solid var(--color-status-alert-muted);
-  color: var(--color-text-muted);
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-regular);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  &:hover {
-    background: var(--color-tag-dark-brown-bg);
-    color: var(--color-tag-red-fg);
-  }
 `;
 
 const EditPanel = styled.div`

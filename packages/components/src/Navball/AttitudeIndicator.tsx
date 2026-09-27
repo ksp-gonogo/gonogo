@@ -119,7 +119,7 @@ export function AttitudeIndicator({
             cy={cy}
             r={r}
             fill="none"
-            stroke="var(--color-surface-raised)"
+            stroke="var(--color-border-subtle)"
             strokeWidth={1}
           />
           <g>
@@ -239,7 +239,7 @@ const WRAP: CSSProperties = {
 const HEADING_STRIP: CSSProperties = {
   position: "relative",
   height: "22px",
-  border: "1px solid var(--color-surface-raised)",
+  border: "1px solid var(--color-border-subtle)",
   background: "var(--color-surface-app)",
   overflow: "hidden",
 };
@@ -289,7 +289,7 @@ const CELL: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  border: "1px solid var(--color-surface-raised)",
+  border: "1px solid var(--color-border-subtle)",
   padding: "var(--inset-line)",
 };
 

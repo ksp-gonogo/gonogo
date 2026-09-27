@@ -58,7 +58,7 @@ const LIVE_CHIP_STYLE = {
   gap: "var(--gap-line)",
   padding: "var(--inset-surface)",
   background: "rgba(0, 0, 0, 0.75)",
-  border: "1px solid var(--color-surface-raised)",
+  border: "1px solid var(--color-border-subtle)",
   borderRadius: "var(--radius-regular)",
   fontSize: "var(--font-size-compact)",
   fontVariantNumeric: "tabular-nums",

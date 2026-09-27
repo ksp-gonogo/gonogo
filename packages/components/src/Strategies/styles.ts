@@ -19,7 +19,7 @@ export const StrategyCard = styled(Block).attrs({
   padding: var(--inset-surface);
   border: 1px solid
     ${({ $active }) =>
-      $active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
+      $active ? "var(--color-status-go-mark)" : "var(--color-border-subtle)"};
   border-radius: var(--radius-regular);
   /* Deliberately very dark: the dim body text has almost no contrast headroom, so the border carries the green. */
   background: ${({ $active }) =>

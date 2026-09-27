@@ -153,7 +153,7 @@ const GroupHeader = styled.div`
 `;
 
 const KeyOptionRow = styled.div<{ $checked: boolean }>`
-  background: ${({ $checked }) => ($checked ? "var(--color-status-go-bg)" : "transparent")};
+  background: ${({ $checked }) => ($checked ? "var(--color-status-go-muted)" : "transparent")};
 
   &:hover {
     background: var(--color-surface-raised);
@@ -200,7 +200,7 @@ const ItemLabel = styled.span`
 
 const ItemUnit = styled.span`
   font-size: var(--font-size-compact);
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
   /* Margin rather than gap: the parent is not a flex box. */
   margin-left: var(--gap-trailing-mark);
 `;

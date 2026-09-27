@@ -148,7 +148,7 @@ export const ImagingChip = styled.span<{ $variant: "on" | "off" | "warn" }>`
   border: 1px solid
     ${({ $variant }) =>
       $variant === "on"
-        ? "var(--color-status-go-bg)"
+        ? "var(--color-status-go-mark)"
         : $variant === "warn"
           ? "var(--color-tag-yellow-border)"
           : "var(--color-border-subtle)"};

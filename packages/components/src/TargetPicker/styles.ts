@@ -54,7 +54,7 @@ export const FilterInput = styled.input`
   font-size: var(--font-size-value);
   padding: var(--inset-control);
   background: var(--color-surface-app);
-  border: 1px solid var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   color: var(--color-text-primary);
   &:focus-visible {
@@ -168,7 +168,7 @@ export const SpaceObjectToggle = styled.button`
   font-size: var(--font-size-compact);
   padding: var(--inset-control-small);
   border-radius: var(--radius-pill);
-  border: 1px solid var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
   background: transparent;
   color: var(--color-text-muted);
   cursor: pointer;

@@ -39,7 +39,7 @@ export const FilterBtn = styled.button<{ $active: boolean }>`
   padding: var(--inset-control);
   border-radius: var(--radius-pill);
   border: 1px solid
-    ${(p) => (p.$active ? "var(--color-accent-fg)" : "var(--color-surface-raised)")};
+    ${(p) => (p.$active ? "var(--color-accent-fg)" : "var(--color-border-subtle)")};
   background: ${(p) =>
     p.$active ? "var(--color-status-go-bg)" : "transparent"};
   color: ${(p) =>
@@ -187,7 +187,7 @@ export const NodeBody = styled.div`
   flex-direction: column;
   gap: var(--gap-section);
   padding: var(--inset-node-body);
-  border-top: 1px dashed var(--color-surface-raised);
+  border-top: 1px dashed var(--color-border-subtle);
 `;
 
 export const Description = styled.div`
@@ -347,7 +347,7 @@ export const Swatch = styled.span<{ $kind: DisplayState }>`
   border: 2px solid ${(p) => dsBorder(p.$kind)};
   background: ${(p) =>
     p.$kind === "owned"
-      ? "var(--color-status-go-bg)"
+      ? "var(--color-status-go-mark)"
       : "var(--color-surface-sunken)"};
 `;
 

@@ -145,7 +145,7 @@ export const WaitingPanel = styled.div`
   gap: var(--gap-related);
   padding: var(--inset-surface);
   background: var(--color-surface-panel);
-  border: 1px solid var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
 `;
 

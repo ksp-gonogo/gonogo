@@ -257,7 +257,7 @@ describe("SystemView selection: brighten, CommNet path colour, info panel", () =
       expect(el).not.toBeNull();
       return el as SVGLineElement;
     });
-    expect(edge.getAttribute("stroke")).toBe("var(--color-status-go-bg)");
+    expect(edge.getAttribute("stroke")).toBe("var(--color-status-go-mark)");
   });
 
   it("colours a relayed two-hop CommNet path by the selected vessel's OWN control state, not the graph's all-active heuristic", async () => {
@@ -316,7 +316,7 @@ describe("SystemView selection: brighten, CommNet path colour, info panel", () =
       expect(el).not.toBeNull();
       return el as SVGLineElement;
     });
-    expect(edge.getAttribute("stroke")).toBe("var(--color-status-go-bg)");
+    expect(edge.getAttribute("stroke")).toBe("var(--color-status-go-mark)");
     expect(screen.getByText("connected")).toBeInTheDocument();
   });
 

@@ -123,7 +123,7 @@ export function deriveCommsPath(
 
 /** Indexed by `commsControlQuality`, not the traversal `quality`; `"none"` is reachable here because a vessel with no control can still be linked to home. */
 export const COMMS_PATH_COLOUR: Readonly<Record<CommsPathQuality, string>> = {
-  full: "var(--color-status-go-bg)",
+  full: "var(--color-status-go-mark)",
   partial: "var(--color-status-warning-bg)",
   none: "var(--color-status-nogo-bg)",
 };

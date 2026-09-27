@@ -33,7 +33,7 @@ export function DisplayDash() {
       style={{
         fontSize: 22,
         fontWeight: 600,
-        color: "var(--color-border-strong)",
+        color: "var(--color-text-faint)",
       }}
     >
       {NULL_DISPLAY}

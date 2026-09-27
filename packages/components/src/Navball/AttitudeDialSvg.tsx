@@ -112,7 +112,7 @@ export function AttitudeDialSvg({
         cy={cy}
         r={r}
         fill="none"
-        stroke="var(--color-surface-raised)"
+        stroke="var(--color-border-subtle)"
         strokeWidth={1}
       />
       <g>

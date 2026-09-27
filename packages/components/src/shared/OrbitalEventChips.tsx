@@ -83,7 +83,7 @@ const CHIP_TONE: Record<
     color: "var(--color-status-warning-fg)",
   },
   neutral: {
-    border: "var(--color-surface-raised)",
+    border: "var(--color-border-subtle)",
     background: "transparent",
     color: "var(--color-text-primary)",
   },
