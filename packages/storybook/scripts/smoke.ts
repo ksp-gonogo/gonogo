@@ -1,7 +1,8 @@
 /**
  * Mounts every story in a built Storybook in Chromium and fails if any of them
- * throws: a render error, an uncaught page error, or a widget scene whose
- * fixture mount rejected.
+ * throws: a render error, an uncaught page error, a widget scene whose fixture
+ * mount rejected, or a set of scenes whose independence check (`data-check`)
+ * failed.
  *
  * Serves the built `dist/static` itself, or checks a running Storybook when
  * `--url` is given. `--only <substring>` narrows the run to matching story ids.
@@ -24,6 +25,7 @@ const PLANTS: Record<string, string> = {
   "smoke-plant--mount-rejects":
     'widget "planted-not-registered" not registered',
   "smoke-plant--extension-unexercised": "does not exercise it",
+  "smoke-plant--shared-probe-slot": "twr standard-launch-ok drew nothing",
 };
 const PLANT_IDS = Object.keys(PLANTS);
 const STORY_TIMEOUT_MS = 30_000;
@@ -154,6 +156,20 @@ async function mountStory(
       return (box?.textContent ?? "render error").trim().slice(0, 400);
     });
     if (shown) errors.push(`render error: ${shown}`);
+    // A scene set checks its scenes' independence once they have all mounted.
+    await page.waitForFunction(
+      () => document.querySelector('[data-check="pending"]') === null,
+      undefined,
+      { timeout: STORY_TIMEOUT_MS },
+    );
+    const faults = await page.evaluate(() =>
+      [...document.querySelectorAll('[data-check="fail"]')].map(
+        (el) => el.getAttribute("data-check-fault") ?? "",
+      ),
+    );
+    for (const fault of faults) {
+      errors.push(`independence check failed: ${fault}`);
+    }
   } catch (err) {
     errors.push(
       `did not settle: ${err instanceof Error ? err.message.split("\n")[0] : String(err)}`,

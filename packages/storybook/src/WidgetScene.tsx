@@ -5,8 +5,8 @@ import {
   probePayload,
 } from "../../components/scripts/probe/payload";
 import {
-  renderProbe,
-  unmountProbe,
+  mountProbe,
+  type ProbeMount,
 } from "../../components/scripts/probe/probe-entry";
 import { withholdExtensions } from "./extensions";
 
@@ -26,14 +26,14 @@ export interface WidgetSceneProps {
   withhold?: readonly string[];
   /** Providers the dashboard would put around this widget and the probe does not. */
   wrap?: (tree: ReactNode) => ReactNode;
+  /** Handed the scene's own mount once it has settled, to feed it or read it. */
+  onMounted?: (mount: ProbeMount) => void;
 }
 
 /**
  * A registered widget mounted on its fixture through the render harness's own
- * `renderProbe`, so the story is the widget the harness photographs, live.
- *
- * The probe keeps one mounted scene per page: a second `WidgetScene` on the same
- * page replaces the first.
+ * probe, so the story is the widget the harness photographs, live. Each scene
+ * is a mount of its own, so any number of them stand side by side on a page.
  */
 export function WidgetScene(props: WidgetSceneProps) {
   const host = useRef<HTMLDivElement>(null);
@@ -41,18 +41,21 @@ export function WidgetScene(props: WidgetSceneProps) {
   const [mounted, setMounted] = useState(false);
   const { widgetId, fixture, w, h, mode, profile, wrap } = props;
   const withheld = (props.withhold ?? []).join(" ");
+  const onMounted = useRef(props.onMounted);
+  onMounted.current = props.onMounted;
 
   useEffect(() => {
     const root = host.current;
     if (!root) return;
     let live = true;
+    let mount: ProbeMount | undefined;
     let restore = () => {};
     setMounted(false);
-    // Outside React's commit: the probe unmounts and creates a root of its own.
+    // Outside React's commit: the probe creates and unmounts a root of its own.
     queueMicrotask(() => {
       if (!live) return;
       restore = withholdExtensions(withheld.split(" ").filter(Boolean));
-      renderProbe(
+      const scene = mountProbe(
         root,
         probePayload({
           widgetId,
@@ -62,8 +65,14 @@ export function WidgetScene(props: WidgetSceneProps) {
           asDashboard: true,
         }),
         { wrap },
-      ).then(
-        () => live && setMounted(true),
+      );
+      mount = scene;
+      scene.ready.then(
+        () => {
+          if (!live) return;
+          setMounted(true);
+          onMounted.current?.(scene);
+        },
         (err: unknown) =>
           live &&
           setFailure(err instanceof Error ? err : new Error(String(err))),
@@ -72,7 +81,7 @@ export function WidgetScene(props: WidgetSceneProps) {
     return () => {
       live = false;
       queueMicrotask(() => {
-        unmountProbe();
+        mount?.unmount();
         restore();
       });
     };
