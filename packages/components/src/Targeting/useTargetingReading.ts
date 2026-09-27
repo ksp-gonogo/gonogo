@@ -1,10 +1,6 @@
 import { defineTopicManifest } from "@ksp-gonogo/core";
-import {
-  observedAt,
-  useViewUt,
-  withoutReckoning,
-} from "@ksp-gonogo/sitrep-client";
-import { stillTrue, TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
+import { useViewUt, withoutReckoning } from "@ksp-gonogo/sitrep-client";
+import { stillTrue, TargetKind } from "@ksp-gonogo/sitrep-sdk";
 import {
   bare,
   closingRateReading,
@@ -115,12 +111,6 @@ export function useTargetingReading() {
     dockReading.state === "stale"
       ? dockReading.reckoning.basis
       : undefined;
-  // Ages are game-time `value("s", ...)` off the frame's view-UT, clamped at zero since samples arrive out of order.
-  const dockObservedUt = observedAt(dockReading);
-  const dockAge =
-    universalTime !== undefined && dockObservedUt
-      ? value("ut", universalTime).minus(dockObservedUt).max(0)
-      : undefined;
 
   // Out of contact the headline is an observation, not a reading of now.
   const outOfContact = targetReading.state === "stale";
@@ -157,7 +147,6 @@ export function useTargetingReading() {
     dockingAvailable,
     alignmentWithheld,
     modelledAlignment,
-    dockAge,
     outOfContact,
     reckoned,
     reckonedDistance,

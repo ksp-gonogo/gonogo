@@ -1,5 +1,5 @@
 import { AugmentSlot } from "@ksp-gonogo/core";
-import type { ReckoningBasis, Value } from "@ksp-gonogo/sitrep-sdk";
+import type { ReckoningBasis } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Cluster,
@@ -27,8 +27,8 @@ interface DockingHudProps {
   y: number | undefined;
   /** Cosine of the angle between the two ports' forward vectors (1 = aligned); takes priority for the reticle tint. */
   forwardDot: number | undefined;
-  /** Present when the separation was carried forward rather than observed, with the basis and the observation's age. */
-  modelled: { basis: ReckoningBasis; age: Value<"s"> | undefined } | undefined;
+  /** Present when the separation was carried forward rather than observed, with the model's basis. */
+  modelled: { basis: ReckoningBasis } | undefined;
   showCamera: boolean;
   cameraFlightId: number | null | undefined;
   cols: number;
@@ -293,11 +293,6 @@ export function DockingHud(props: DockingHudProps) {
             {modelled && (
               <ReadoutCaption role="status">
                 Alignment reckoned ({modelled.basis})
-                {modelled.age !== undefined && (
-                  <>
-                    , last seen <Unit value={modelled.age} /> ago
-                  </>
-                )}
               </ReadoutCaption>
             )}
           </div>

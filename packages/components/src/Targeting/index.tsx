@@ -40,7 +40,6 @@ function TargetingComponent({
     dockingAvailable,
     alignmentWithheld,
     modelledAlignment,
-    dockAge,
     outOfContact,
     reckoned,
     reckonedDistance,
@@ -96,11 +95,7 @@ function TargetingComponent({
         x={dockX}
         y={dockY}
         forwardDot={dockForwardDot}
-        modelled={
-          modelledAlignment
-            ? { basis: modelledAlignment, age: dockAge }
-            : undefined
-        }
+        modelled={modelledAlignment ? { basis: modelledAlignment } : undefined}
         showCamera={hudMode === "hud-with-camera"}
         cameraFlightId={config?.cameraFlightId}
         cols={cols}
