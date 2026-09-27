@@ -32,6 +32,7 @@
         }
       },
       "style": {
+        "noUselessElse": "error",
         "noRestrictedImports": {
           "level": "error",
           "options": {
