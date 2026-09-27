@@ -524,25 +524,22 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
     press,
   } = useCommandButton({ handle, args, commandLabel, onConfirmed });
 
-  let body: ReactNode = label;
-  if (isPending) {
-    body = (
-      <>
-        <Spinner size={size === "sm" ? 10 : 12} /> {pendingLabel}
-      </>
-    );
-  } else if (isRefused) {
-    body = refusedLabel;
-  } else if (isLost) {
-    body = lostLabel;
-  } else if (isFound) {
-    body = foundLabel;
-  } else if (isShowingReason) {
+  const resolveBody = (): ReactNode => {
+    if (isPending)
+      return (
+        <>
+          <Spinner size={size === "sm" ? 10 : 12} /> {pendingLabel}
+        </>
+      );
+    if (isRefused) return refusedLabel;
+    if (isLost) return lostLabel;
+    if (isFound) return foundLabel;
     // The reason IN the control. It runs long with the numbers at the end, so it must wrap, never truncate.
-    body = refusalText;
-  } else if (isArmed) {
-    body = confirmLabel;
-  }
+    if (isShowingReason) return refusalText;
+    if (isArmed) return confirmLabel;
+    return label;
+  };
+  const body = resolveBody();
 
   return (
     <CommandButton__Body

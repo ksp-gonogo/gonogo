@@ -148,8 +148,11 @@ export const PanelTitle = forwardRef<HTMLHeadingElement, PanelTitleProps>(
         {...rest}
         ref={(node: HTMLHeadingElement | null) => {
           own.current = node;
-          if (typeof forwarded === "function") forwarded(node);
-          else if (forwarded) forwarded.current = node;
+          if (typeof forwarded === "function") {
+            forwarded(node);
+            return;
+          }
+          if (forwarded) forwarded.current = node;
         }}
         aria-label={compacted ? full : undefined}
         title={compacted ? full : undefined}

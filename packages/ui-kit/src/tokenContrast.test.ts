@@ -87,7 +87,9 @@ describe("theme contrast table", () => {
       const bg = tokens.get(e.on);
       if (!promised) {
         passing.push(`${e.token} on ${e.on} is not a named pairing`);
-      } else if (fg && bg && contrastRatio(fg, bg) >= CONTRAST_FLOOR.text) {
+        continue;
+      }
+      if (fg && bg && contrastRatio(fg, bg) >= CONTRAST_FLOOR.text) {
         passing.push(
           `${e.token} on ${e.on} is ${fmt(contrastRatio(fg, bg))}, so it is a pairing rather than an exception`,
         );

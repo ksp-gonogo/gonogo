@@ -119,18 +119,23 @@ export function ActionMenu({
       }
       if (flat.length === 0) return;
 
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setActiveIndex((i) => Math.min(i + 1, flat.length - 1));
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setActiveIndex((i) => Math.max(i - 1, 0));
-      } else if (e.key === "Home") {
-        e.preventDefault();
-        setActiveIndex(0);
-      } else if (e.key === "End") {
-        e.preventDefault();
-        setActiveIndex(flat.length - 1);
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setActiveIndex((i) => Math.min(i + 1, flat.length - 1));
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setActiveIndex((i) => Math.max(i - 1, 0));
+          break;
+        case "Home":
+          e.preventDefault();
+          setActiveIndex(0);
+          break;
+        case "End":
+          e.preventDefault();
+          setActiveIndex(flat.length - 1);
+          break;
       }
     },
     [flat.length, onDismiss],

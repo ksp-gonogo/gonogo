@@ -185,7 +185,9 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
           e.preventDefault();
           last?.focus();
         }
-      } else if (document.activeElement === last) {
+        return;
+      }
+      if (document.activeElement === last) {
         e.preventDefault();
         first?.focus();
       }

@@ -190,7 +190,7 @@ function parseSheet(
       continue;
     }
     if (c === "(") paren++;
-    else if (c === ")") paren = Math.max(0, paren - 1);
+    if (c === ")") paren = Math.max(0, paren - 1);
     if (paren > 0) continue;
     if (c === "{") {
       // A fragment slot on its own line ahead of a selector is a declaration of the enclosing rule, not part of the selector.
@@ -213,11 +213,15 @@ function parseSheet(
       blocks.push(block);
       current = block;
       start = i + 1;
-    } else if (c === "}") {
+      continue;
+    }
+    if (c === "}") {
       flush(i);
       current = current.parent ?? root;
       start = i + 1;
-    } else if (c === ";") {
+      continue;
+    }
+    if (c === ";") {
       flush(i);
       start = i + 1;
     }
@@ -231,7 +235,9 @@ function listSources(dir: string, out: string[] = []): string[] {
     const p = join(dir, e.name);
     if (e.isDirectory()) {
       if (e.name !== "__generated__" && e.name !== "test") listSources(p, out);
-    } else if (
+      continue;
+    }
+    if (
       /\.tsx?$/.test(e.name) &&
       !/\.test(-d)?\.tsx?$/.test(e.name) &&
       !e.name.endsWith(".d.ts") &&
@@ -469,8 +475,9 @@ export function scanTokenUses(srcRoot: string): TokenScan {
           ts.isJsxAttribute(parent);
         if (!isName) {
           const b = binding(n, sf);
-          if (b === "bare") {
-            if (component) {
+          const addFromBinding = () => {
+            if (b === "bare") {
+              if (!component) return;
               for (const t of propTokens(
                 sf,
                 component,
@@ -480,8 +487,9 @@ export function scanTokenUses(srcRoot: string): TokenScan {
               )) {
                 out.add(t);
               }
+              return;
             }
-          } else if (b && !ts.isTaggedTemplateExpression(b.node)) {
+            if (!b || ts.isTaggedTemplateExpression(b.node)) return;
             for (const t of tokensOf(
               b.node,
               b.sf,
@@ -491,7 +499,8 @@ export function scanTokenUses(srcRoot: string): TokenScan {
             )) {
               out.add(t);
             }
-          }
+          };
+          addFromBinding();
         }
       }
       ts.forEachChild(n, visit);
@@ -544,11 +553,15 @@ export function scanTokenUses(srcRoot: string): TokenScan {
     let rootTag: string | null = null;
     const find = (n: ts.Node) => {
       if (rootTag) return;
-      if (ts.isJsxElement(n))
+      if (ts.isJsxElement(n)) {
         rootTag = n.openingElement.tagName.getText(decl.sf);
-      else if (ts.isJsxSelfClosingElement(n))
+        return;
+      }
+      if (ts.isJsxSelfClosingElement(n)) {
         rootTag = n.tagName.getText(decl.sf);
-      else ts.forEachChild(n, find);
+        return;
+      }
+      ts.forEachChild(n, find);
     };
     find(decl.node);
     if (!rootTag) return null;

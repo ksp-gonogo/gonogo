@@ -115,18 +115,29 @@ export function DataKeyPicker({
       if (e.key === "Enter" || e.key === "ArrowDown") openPicker();
       return;
     }
-    if (e.key === "Escape") {
-      closePicker();
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setActiveIndex((i) => moveComboboxActiveIndex(i, 1, flatOptions.length));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setActiveIndex((i) => moveComboboxActiveIndex(i, -1, flatOptions.length));
-    } else if (e.key === "Enter") {
-      // Falls back to the first filtered result, so a partial label plus Enter works.
-      const opt = activeIndex >= 0 ? flatOptions[activeIndex] : flatOptions[0];
-      if (opt) selectOption(opt.key);
+    switch (e.key) {
+      case "Escape":
+        closePicker();
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        setActiveIndex((i) =>
+          moveComboboxActiveIndex(i, 1, flatOptions.length),
+        );
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setActiveIndex((i) =>
+          moveComboboxActiveIndex(i, -1, flatOptions.length),
+        );
+        break;
+      case "Enter": {
+        // Falls back to the first filtered result, so a partial label plus Enter works.
+        const opt =
+          activeIndex >= 0 ? flatOptions[activeIndex] : flatOptions[0];
+        if (opt) selectOption(opt.key);
+        break;
+      }
     }
   };
 

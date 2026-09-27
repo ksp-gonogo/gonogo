@@ -137,8 +137,11 @@ function shallowEqualValues(
 function declaredTopicsOf(def: AnyContribution): ReadonlySet<string> {
   const topics = new Set<string>();
   for (const d of def.deps ?? []) {
-    if (typeof d === "string") topics.add(d);
-    else if ("reading" in d) topics.add(d.reading);
+    if (typeof d === "string") {
+      topics.add(d);
+      continue;
+    }
+    if ("reading" in d) topics.add(d.reading);
   }
   if (def.requires) topics.add(`${def.requires}.available`);
   return topics;
@@ -170,10 +173,16 @@ function SlotAggregator({
     // A `requires` domain needs its own `.available` subscription: a transport only delivers a topic something subscribed to.
     for (const c of contribs) {
       for (const d of c.deps ?? []) {
-        if (typeof d === "string") topics.add(d as TopicId);
+        if (typeof d === "string") {
+          topics.add(d as TopicId);
+          continue;
+        }
         // A reading dep subscribes to the same wire topic a bare id does.
-        else if ("reading" in d) topics.add(d.reading as TopicId);
-        else processors.set(d.id, d);
+        if ("reading" in d) {
+          topics.add(d.reading as TopicId);
+          continue;
+        }
+        processors.set(d.id, d);
       }
       if (c.requires) topics.add(`${c.requires}.available` as TopicId);
     }
