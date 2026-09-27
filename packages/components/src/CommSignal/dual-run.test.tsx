@@ -12,7 +12,7 @@ import { CommSignalComponent } from "./index";
  */
 const CARRIED = ["vessel.comms", "comms.delay", "comms.link"];
 
-describe("CommSignal: full readout off the stream (R6 Wave 1)", () => {
+describe("CommSignal: full readout off the stream", () => {
   it("resolves strength, bars, control label, and delay off the stream for a strong direct link", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,

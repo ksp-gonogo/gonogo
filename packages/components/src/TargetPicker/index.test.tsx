@@ -472,7 +472,7 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
   });
 });
 
-describe("TargetPicker: augment slots (Uplink architecture spec §4)", () => {
+describe("TargetPicker: augment slots", () => {
   let fixture: StreamFixture;
 
   beforeEach(() => {

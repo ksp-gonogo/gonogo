@@ -26,7 +26,7 @@ beforeEach(() => {
 /** CommSignal off the real stream pipeline via `StubTransport`. */
 const FULL_CARRIED = ["vessel.comms", "comms.delay"];
 
-describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
+describe("CommSignal: genuinely runs off the stream", () => {
   it("reads connected/signalStrength off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.comms", "comms.link"],

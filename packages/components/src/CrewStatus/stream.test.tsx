@@ -5,7 +5,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { CrewStatusComponent } from "./index";
 
 /** CrewStatus renders its roster off the real stream pipeline with no legacy `DataSource` registered. */
-describe("CrewStatus, genuinely runs off the stream (M3 batch 4)", () => {
+describe("CrewStatus, genuinely runs off the stream", () => {
   it("reads v.crewCount/v.crew/v.crewCapacity off the real stream pipeline, not legacy", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.crew"],

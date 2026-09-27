@@ -87,7 +87,7 @@ afterEach(() => {
   clearAugments();
 });
 
-describe("CommSignal: augment slots (Uplink spec §4)", () => {
+describe("CommSignal: augment slots", () => {
   it("declares the slot empty by default and renders its own readout unchanged", async () => {
     expect(getAugmentsForSlot("comm-signal.sections")).toHaveLength(0);
 
