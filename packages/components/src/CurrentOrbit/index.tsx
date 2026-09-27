@@ -4,6 +4,7 @@ import {
   registerComponent,
   useActionInput,
   useOrbitSolve,
+  useOrbitSolveReading,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
@@ -19,6 +20,7 @@ import {
 import { Panel, ReadoutCaption, Section, Stack } from "@ksp-gonogo/ui-kit";
 import { useRef } from "react";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
+import { solveCountdown } from "../shared/solveCountdown";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
@@ -87,6 +89,7 @@ function CurrentOrbitComponent({
 
   // The solve is absent as a whole when the conic withdraws; `?? undefined` folds its `null` (a quantity the orbit lacks) and `undefined` (radius unresolved) into one absence.
   const solve = useOrbitSolve();
+  const solveReading = useOrbitSolveReading();
   const apoapsisR = solve?.apoapsisRadius ?? null;
   const periapsisR = solve?.periapsisRadius ?? null;
 
@@ -205,8 +208,12 @@ function CurrentOrbitComponent({
               noApsidesHere={noApsidesHere}
               apoapsisAltitude={current(solve?.apoapsisAlt)}
               periapsisAltitude={current(solve?.periapsisAlt)}
-              timeToAp={current(solve?.timeToAp)}
-              timeToPe={current(solve?.timeToPe)}
+              timeToAp={current(
+                solveCountdown(solveReading, (s) => s.timeToAp),
+              )}
+              timeToPe={current(
+                solveCountdown(solveReading, (s) => s.timeToPe),
+              )}
               inclination={orbit?.inc}
               eccentricity={eccentricity}
               period={current(solve?.period)}

@@ -1,8 +1,14 @@
-import { useOrbitSolve, useTelemetry } from "@ksp-gonogo/core";
-import { useScetUt } from "@ksp-gonogo/sitrep-client";
+import {
+  useOrbitSolve,
+  useOrbitSolveReading,
+  useTelemetry,
+} from "@ksp-gonogo/core";
+import { useViewUt } from "@ksp-gonogo/sitrep-client";
+import { deriveReading } from "@ksp-gonogo/sitrep-sdk";
 import { Box, Cluster, Countdown } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { encounterKindOf } from "./encounterKind";
+import { solveCountdown } from "./solveCountdown";
 import { useBodyName } from "./useBodyName";
 
 /**
@@ -15,31 +21,42 @@ export function OrbitalEventChips() {
   const reading = useTelemetry("vessel.orbit");
   const orbit = reading.state === "observed" ? reading.value : undefined;
   const solve = useOrbitSolve();
-  const scetUt = useScetUt();
+  const solveReading = useOrbitSolveReading();
+  const receivedUt = useViewUt();
   const encounter = orbit?.encounter ?? null;
 
   const encounterKind = encounterKindOf(encounter);
   const encBody = useBodyName(encounter?.bodyIndex);
   // `transitionUt` is an absolute UT, unlike `timeToNextApsis`, though both carry "s".
-  const encIn =
-    encounter?.transitionUt.isFinite() === true && scetUt !== undefined
-      ? encounter.transitionUt.minus(scetUt).magnitude
-      : undefined;
+  const encIn = deriveReading(
+    reading,
+    (o) =>
+      o.encounter?.transitionUt.isFinite() === true && receivedUt !== undefined
+        ? o.encounter.transitionUt.minus(receivedUt)
+        : undefined,
+    (o, atUt) =>
+      o.encounter?.transitionUt.isFinite() === true
+        ? o.encounter.transitionUt.minus(atUt)
+        : undefined,
+  );
   const hasEncounter =
     encounterKind !== null &&
     typeof encBody === "string" &&
     encBody.length > 0 &&
-    encIn !== undefined &&
-    encIn > 0;
+    encIn.value?.greaterThan(0) === true;
 
   const apsisType = orbit === undefined ? null : (solve?.nextApsisType ?? null);
+  // The model's countdown is offered only while it counts to the same apsis.
   const timeToApsis =
-    orbit === undefined ? null : (solve?.timeToNextApsis ?? null);
+    orbit === undefined
+      ? undefined
+      : solveCountdown(solveReading, (s) =>
+          s.nextApsisType === apsisType ? s.timeToNextApsis : null,
+        );
   const hasApsis =
     (apsisType === 1 || apsisType === -1) &&
-    timeToApsis !== null &&
-    Number.isFinite(timeToApsis) &&
-    timeToApsis >= 0;
+    timeToApsis?.value?.isFinite() === true &&
+    !timeToApsis.value.lessThan(0);
 
   if (!hasEncounter && !hasApsis) return null;
 
@@ -49,7 +66,7 @@ export function OrbitalEventChips() {
         <Chip variant={encounterKind === "escape" ? "warn" : "go"}>
           <ChipLabel>{encounterKind === "escape" ? "ESCAPE" : "ENC"}</ChipLabel>
           <ChipValue>
-            {encBody as string} · <Countdown value={encIn as number} />
+            {encBody as string} · <Countdown value={encIn} />
           </ChipValue>
         </Chip>
       )}
@@ -57,8 +74,7 @@ export function OrbitalEventChips() {
         <Chip variant="neutral">
           <ChipLabel>NEXT</ChipLabel>
           <ChipValue>
-            {apsisType === -1 ? "Pe" : "Ap"} ·{" "}
-            <Countdown value={timeToApsis as number} />
+            {apsisType === -1 ? "Pe" : "Ap"} · <Countdown value={timeToApsis} />
           </ChipValue>
         </Chip>
       )}

@@ -267,7 +267,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * numbers and put a `Value` into `toFixed` the moment they were not.
    */
   "packages/components/src/shared/dockAngles.ts": 3,
-  "packages/components/src/shared/OrbitalEventChips.tsx": 1,
   "packages/components/src/Strategies/StrategiesView.tsx": 1,
   "packages/components/src/SystemView/index.tsx": 15,
   // 5: the LAN and argPe coalesce, each `?.magnitude ?? 0` or `?.magnitude`

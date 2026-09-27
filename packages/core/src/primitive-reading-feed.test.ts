@@ -501,12 +501,6 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
   "packages/components/src/CommSignal/CommSignalView.tsx": 2,
   "packages/components/src/CrewStatus/CrewStatusView.tsx": 2,
   "packages/components/src/CurrentOrbit/index.tsx": 2,
-  /*
-   * Newly VISIBLE, through `Countdown` taking a reading, and the same shape as
-   * the three clocks above: the SOI countdown is a client-computed
-   * `transitionUt - viewUt`, recomputed every frame.
-   */
-  "packages/components/src/shared/OrbitalEventChips.tsx": 1,
 };
 
 describe("no primitive is fed a figure a reading's currency was dropped from", () => {

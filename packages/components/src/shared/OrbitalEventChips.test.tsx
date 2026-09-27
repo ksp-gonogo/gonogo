@@ -1,3 +1,8 @@
+import {
+  PropagationHorizonKind,
+  Quality,
+  TrajectoryKind,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
@@ -66,7 +71,7 @@ describe("OrbitalEventChips", () => {
 });
 
 describe("OrbitalEventChips under signal delay", () => {
-  it("counts down to an encounter from the craft's present, not from the received edge", async () => {
+  it("counts down from the received edge, with the conic's figure for the craft's present beside it", async () => {
     const owlt = 240;
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.orbit"],
@@ -79,7 +84,11 @@ describe("OrbitalEventChips under signal delay", () => {
       </fixture.Provider>,
     );
     // The frames left the craft a light-time before its present of VIEW_UT.
-    const meta = { validAt: VIEW_UT - owlt, deliveredAt: VIEW_UT };
+    const meta = {
+      validAt: VIEW_UT - owlt,
+      deliveredAt: VIEW_UT,
+      quality: Quality.OnRails,
+    };
     act(() => {
       fixture.emit(
         "system.bodies",
@@ -103,6 +112,10 @@ describe("OrbitalEventChips under signal delay", () => {
           meanAnomalyAtEpoch: 0,
           epoch: VIEW_UT - owlt,
           mu: 3.5316e12,
+          horizon: {
+            kind: PropagationHorizonKind.Unbounded,
+            trajectoryKind: TrajectoryKind.Analytic,
+          },
           encounter: {
             transitionType: 2,
             transitionUt: TRANSITION_UT,
@@ -116,8 +129,11 @@ describe("OrbitalEventChips under signal delay", () => {
     });
 
     await screen.findByText(/ENC/);
-    const text = visibleText();
-    expect(text).toMatch(/20:00|20m/);
-    expect(text).not.toMatch(/24:00|24m/);
+    const alongside = document.querySelectorAll("[data-modelled-alongside]");
+    expect(visibleText()).toMatch(/24m/);
+    expect(alongside[0]?.textContent).toMatch(/20m/);
+    expect(
+      alongside[0]?.querySelector("[data-not-current-mark]"),
+    ).not.toBeNull();
   });
 });

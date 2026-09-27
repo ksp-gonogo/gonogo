@@ -71,10 +71,6 @@ const DIRECT_READERS: Record<string, { count: number; why: string }> = {
     count: 1,
     why: MOVING,
   },
-  "packages/components/src/shared/OrbitalEventChips.tsx": {
-    count: 1,
-    why: MOVING,
-  },
   "mod/sitrep-sdk/src/api/host.ts": { count: 1, why: MOVING },
   "mod/sitrep-sdk/src/api/index.ts": { count: 1, why: MOVING },
   "mod/sitrep-sdk/src/testing/install-real-test-host.ts": {

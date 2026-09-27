@@ -1,4 +1,10 @@
-import { type apsidesExist, frameCaveat, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type apsidesExist,
+  frameCaveat,
+  type Reading,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Countdown,
   Grid,
@@ -50,8 +56,8 @@ export interface OrbitReadoutGridProps {
   noApsidesHere: boolean;
   apoapsisAltitude: number | undefined;
   periapsisAltitude: number | undefined;
-  timeToAp: number | undefined;
-  timeToPe: number | undefined;
+  timeToAp: Reading<Value<"s">> | undefined;
+  timeToPe: Reading<Value<"s">> | undefined;
   inclination: UnitValue | undefined;
   eccentricity: UnitValue | undefined;
   period: number | undefined;
