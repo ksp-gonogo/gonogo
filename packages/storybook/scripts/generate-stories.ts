@@ -7,6 +7,7 @@
  * and `typecheck` run, so a fixture added, renamed or deleted is reflected the
  * next time anything looks, with no committed copy to fall out of step.
  */
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,7 +18,13 @@ import type {
 import { sceneFixtures } from "../../components/scripts/widgetRenderHarness";
 import { listWidgets } from "../../components/scripts/widgets";
 import { fixtureProfiles } from "../../components/src/test/installProfile";
+import {
+  readJsonObject,
+  resolveUplinkPackage,
+} from "../../uplink-tools/src/render/context";
+import { UI_KIT_PRESETS } from "../src/uiKitPresets";
 import { EXTENSION_SCENES, EXTRA_SCENES, UNFIXTURED_WIDGETS } from "./coverage";
+import { writeUiKitStories } from "./uikit-stories";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(HERE, "../dist/stories");
@@ -203,15 +210,24 @@ async function writeUnfixturedFile(): Promise<number> {
 /** No fixture exists for this widget: it renders unfed. ${w.reason} */
 export const ${exportName(w.widgetId, taken)}: Story = {
   name: ${JSON.stringify(w.widgetId)},
-  args: { widgetId: ${JSON.stringify(w.widgetId)}, fixture: {}, w: ${w.w}, h: ${w.h} },
+  args: { widgetId: ${JSON.stringify(w.widgetId)}, fixture: {}, w: ${w.w}, h: ${w.h}${w.wrapped ? `, wrap: APP_WIDGET_WRAPS[${JSON.stringify(w.widgetId)}]` : ""} },
 };
 `,
   );
+  const registers = [
+    ...new Set(UNFIXTURED_WIDGETS.flatMap((w) => w.registers ?? [])),
+  ].map((m) => `import ${JSON.stringify(importPath(dir, resolve(REPO, m)))};`);
+  if (UNFIXTURED_WIDGETS.some((w) => w.wrapped)) {
+    registers.push(
+      `import { APP_WIDGET_WRAPS } from ${JSON.stringify(importPath(dir, resolve(SRC, "appWidgets")))};`,
+    );
+  }
   const body = [
     HEADER,
     `import type { Meta, StoryObj } from "@storybook/react-vite";`,
     `import { withGonogoFrame } from ${JSON.stringify(importPath(dir, resolve(SRC, "frame")))};`,
     `import { WidgetScene } from ${JSON.stringify(importPath(dir, resolve(SRC, "WidgetScene")))};`,
+    ...registers,
     "",
     `const meta = {
   title: "Widgets/(unfixtured)",
@@ -221,6 +237,7 @@ export const ${exportName(w.widgetId, taken)}: Story = {
   argTypes: {
     widgetId: { control: false },
     fixture: { control: false },
+    wrap: { control: false },
     w: { control: { type: "range", min: 1, max: 36, step: 1 } },
     h: { control: { type: "range", min: 1, max: 40, step: 1 } },
   },
@@ -233,6 +250,13 @@ type Story = StoryObj<typeof meta>;
   ].join("\n");
   await writeFile(file, body);
   return stories.length;
+}
+
+/** The first install profile a fixture declares, which its scene renders under. */
+function firstInstall(fixture: string): string {
+  const [first] = fixtureProfiles(readJsonObject(resolve(REPO, fixture)));
+  if (!first) throw new Error(`${fixture} declares no install profile`);
+  return first;
 }
 
 async function writeExtensionsFile(): Promise<number> {
@@ -262,7 +286,7 @@ export const ${exportName(e.id, taken)}: ExtensionStory = {
     w: ${e.w},
     h: ${e.h},
     extension: ${JSON.stringify(e.id)},
-    enabled: true,
+    enabled: true,${e.config ? `\n    mode: { config: ${JSON.stringify(e.config)} },` : ""}${e.underInstall ? `\n    profile: ${JSON.stringify(firstInstall(e.fixture))},` : ""}
   },
 };
 `,
@@ -297,10 +321,128 @@ type ExtensionStory = StoryObj<typeof meta>;
   return stories.length;
 }
 
+/** A scene's target, read off its `_scene` block. */
+function sceneTarget(raw: Record<string, unknown>): {
+  kind: "widget" | "augment" | "contribution";
+  id: string;
+} {
+  const block = raw._scene;
+  if (typeof block !== "object" || block === null) {
+    throw new Error("fixture has no _scene block");
+  }
+  for (const kind of ["widget", "augment", "contribution"] as const) {
+    const id = (block as Record<string, unknown>)[kind];
+    if (typeof id === "string") return { kind, id };
+  }
+  throw new Error("_scene names no widget, augment or contribution");
+}
+
+/** The Uplink clients under `mod/`, with the id each declares in its manifest. */
+function uplinkClients(): { dir: string; id: string; name: string }[] {
+  const mod = resolve(REPO, "mod");
+  const out: { dir: string; id: string; name: string }[] = [];
+  for (const entry of readdirSync(mod).sort()) {
+    const dir = resolve(mod, entry, "client");
+    const manifest = resolve(dir, "gonogo-uplink.json");
+    if (!existsSync(manifest)) continue;
+    const { id, name } = JSON.parse(readFileSync(manifest, "utf8"));
+    out.push({ dir, id: String(id), name: String(name) });
+  }
+  return out;
+}
+
+/** One file per Uplink target, one story per scene, mounted through the Uplink render probe. */
+async function writeUplinkFiles(
+  covered: Set<string>,
+  extensions: Set<string>,
+): Promise<number> {
+  let count = 0;
+  for (const uplink of uplinkClients()) {
+    const pkg = resolveUplinkPackage(uplink.dir);
+    const byTarget = new Map<
+      string,
+      { file: string; raw: Record<string, unknown> }[]
+    >();
+    for (const file of pkg.fixtures) {
+      const raw = readJsonObject(file);
+      const target = sceneTarget(raw);
+      const key = `${target.kind}:${target.id}`;
+      byTarget.set(key, [...(byTarget.get(key) ?? []), { file, raw }]);
+      if (target.kind === "widget") covered.add(target.id);
+      else extensions.add(target.id);
+    }
+    for (const [key, scenes] of byTarget) {
+      const targetId = key.slice(key.indexOf(":") + 1);
+      const out = resolve(
+        OUT,
+        "uplinks",
+        `${uplink.id}--${fileSlug(targetId)}.stories.tsx`,
+      );
+      const dir = dirname(out);
+      const taken = new Set<string>();
+      const imports: string[] = [];
+      const stories: string[] = [];
+      scenes.forEach(({ file, raw }, i) => {
+        imports.push(
+          `import scene${i} from ${JSON.stringify(importPath(dir, file))};`,
+        );
+        const name = basename(file, ".json");
+        const display = relative(REPO, file);
+        const block = raw._scene;
+        const caption =
+          typeof block === "object" && block !== null && "caption" in block
+            ? block.caption
+            : undefined;
+        stories.push(`
+/** ${typeof caption === "string" ? caption : name} */
+export const ${exportName(name, taken)}: Story = {
+  name: ${JSON.stringify(name)},
+  args: { fixture: scene${i}, file: ${JSON.stringify(display)} },
+};
+`);
+      });
+      count += stories.length;
+      const body = [
+        HEADER,
+        `import type { Meta, StoryObj } from "@storybook/react-vite";`,
+        `import { withGonogoFrame } from ${JSON.stringify(importPath(dir, resolve(SRC, "frame")))};`,
+        `import { UplinkScene } from ${JSON.stringify(importPath(dir, resolve(SRC, "UplinkScene")))};`,
+        // After the scene module, which installs the host the client registers through.
+        `import ${JSON.stringify(importPath(dir, pkg.entry))};`,
+        ...imports,
+        "",
+        `const meta = {
+  title: ${JSON.stringify(`Uplinks/${uplink.name}/${targetId}`)},
+  component: UplinkScene,
+  decorators: [withGonogoFrame],
+  parameters: { layout: "fullscreen" },
+  args: { uplinkId: ${JSON.stringify(uplink.id)} },
+  argTypes: {
+    uplinkId: { control: false },
+    fixture: { control: false },
+    file: { control: false },
+    w: { control: { type: "range", min: 1, max: 36, step: 1 } },
+    h: { control: { type: "range", min: 1, max: 40, step: 1 } },
+  },
+} satisfies Meta<typeof UplinkScene>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+`,
+        ...stories,
+      ].join("\n");
+      await writeFile(out, body);
+    }
+  }
+  return count;
+}
+
 async function main(): Promise<void> {
   await rm(OUT, { recursive: true, force: true });
   await mkdir(resolve(OUT, "widgets"), { recursive: true });
   await mkdir(resolve(OUT, "extensions"), { recursive: true });
+  await mkdir(resolve(OUT, "uplinks"), { recursive: true });
+  await mkdir(resolve(OUT, "ui-kit"), { recursive: true });
 
   const configs = listWidgets();
   let widgetStories = 0;
@@ -313,13 +455,48 @@ async function main(): Promise<void> {
   const unfixtured = await writeUnfixturedFile();
   for (const w of UNFIXTURED_WIDGETS) covered.add(w.widgetId);
   const extensions = await writeExtensionsFile();
+  const extensionIds = new Set(EXTENSION_SCENES.map((e) => e.id));
+  const uplinkStories = await writeUplinkFiles(covered, extensionIds);
 
+  const uiKit = await writeUiKitStories({
+    repo: REPO,
+    out: resolve(OUT, "ui-kit"),
+    src: SRC,
+    presets: Object.keys(UI_KIT_PRESETS),
+    header: HEADER,
+  });
+  await writeFile(
+    resolve(OUT, "ui-kit-coverage.json"),
+    `${JSON.stringify(uiKit, null, 2)}\n`,
+  );
+
+  const clients = uplinkClients().map((u) => resolveUplinkPackage(u.dir).entry);
+  const registerModules = [
+    // The render probe's planted Uplink, whose contributions the extension stories show.
+    "packages/components/scripts/probe/plantedUplink.ts",
+    ...new Set(UNFIXTURED_WIDGETS.flatMap((w) => w.registers ?? [])),
+  ].map((m) => resolve(REPO, m));
+  await writeFile(
+    resolve(OUT, "registrations.ts"),
+    [
+      HEADER,
+      "// Every module that registers a widget or extension the stories cover.",
+      `import ${JSON.stringify(importPath(OUT, resolve(SRC, "setup")))};`,
+      ...[...registerModules, ...clients].map(
+        (m) => `import ${JSON.stringify(importPath(OUT, m))};`,
+      ),
+      "",
+    ].join("\n"),
+  );
   await writeFile(
     resolve(OUT, "coverage.json"),
-    `${JSON.stringify({ widgets: [...covered].sort(), extensions: EXTENSION_SCENES.map((e) => e.id).sort() }, null, 2)}\n`,
+    `${JSON.stringify({ widgets: [...covered].sort(), extensions: [...extensionIds].sort() }, null, 2)}\n`,
   );
   console.log(
-    `generate-stories: ${configs.length} render configs -> ${widgetStories} widget stories over ${covered.size} widgets, ${unfixtured} unfixtured, ${extensions} extension stories`,
+    `generate-stories: ${configs.length} render configs -> ${widgetStories} widget stories, ${unfixtured} unfixtured, ${extensions} extension stories, ${uplinkStories} Uplink scene stories; ${covered.size} widgets covered`,
+  );
+  console.log(
+    `generate-stories: ui-kit ${uiKit.defaults.length} defaults, ${uiKit.presets.length} preset sets, ${uiKit.handwritten.length} hand-written, ${uiKit.uncovered.length} uncovered`,
   );
 }
 

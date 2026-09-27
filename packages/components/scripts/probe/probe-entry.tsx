@@ -298,6 +298,10 @@ export function unmountProbe(): void {
 export async function renderProbe(
   root: HTMLElement,
   payload: ProbePayload,
+  opts: {
+    /** Providers an in-page caller puts around the widget, inside the probe's own. */
+    wrap?: (tree: React.ReactNode) => React.ReactNode;
+  } = {},
 ): Promise<void> {
   unmountProbe();
   // The Processor evaluator's runtime cache (evaluated value + frame
@@ -537,6 +541,9 @@ export async function renderProbe(
     return createElement(PanelBadgesProvider, { badges }, tree);
   };
 
+  const wrapped = (): React.ReactNode =>
+    opts.wrap ? opts.wrap(buildWidgetTree()) : buildWidgetTree();
+
   if (!payload.gridCell) {
     // A cell left by an earlier render on this page would still be laying the widget out.
     root.replaceChildren();
@@ -565,13 +572,10 @@ export async function renderProbe(
                   : ProbeAugmentAvailabilityFeeder,
                 null,
               ),
-              buildWidgetTree(),
+              wrapped(),
             ),
           )
-        : wrapWithPinnedViewUt(
-            resolvePinnedUt(payload.fixture),
-            buildWidgetTree(),
-          ),
+        : wrapWithPinnedViewUt(resolvePinnedUt(payload.fixture), wrapped()),
     ),
   );
 

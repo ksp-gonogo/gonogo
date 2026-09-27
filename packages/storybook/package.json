@@ -16,6 +16,7 @@
     "@ksp-gonogo/core": "workspace:*",
     "@ksp-gonogo/sitrep-sdk": "workspace:*",
     "@ksp-gonogo/ui-kit": "workspace:*",
+    "@ksp-gonogo/uplink-tools": "workspace:*",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "styled-components": "^6.0.0"

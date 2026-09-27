@@ -1,5 +1,5 @@
 import "./setup";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   type ProbeSize,
   probePayload,
@@ -24,6 +24,8 @@ export interface WidgetSceneProps {
   profile?: string;
   /** Augment or contribution ids taken out of their registries for this mount. */
   withhold?: readonly string[];
+  /** Providers the dashboard would put around this widget and the probe does not. */
+  wrap?: (tree: ReactNode) => ReactNode;
 }
 
 /**
@@ -37,7 +39,7 @@ export function WidgetScene(props: WidgetSceneProps) {
   const host = useRef<HTMLDivElement>(null);
   const [failure, setFailure] = useState<Error | null>(null);
   const [mounted, setMounted] = useState(false);
-  const { widgetId, fixture, w, h, mode, profile } = props;
+  const { widgetId, fixture, w, h, mode, profile, wrap } = props;
   const withheld = (props.withhold ?? []).join(" ");
 
   useEffect(() => {
@@ -59,6 +61,7 @@ export function WidgetScene(props: WidgetSceneProps) {
           profile,
           asDashboard: true,
         }),
+        { wrap },
       ).then(
         () => live && setMounted(true),
         (err: unknown) =>
@@ -73,7 +76,7 @@ export function WidgetScene(props: WidgetSceneProps) {
         restore();
       });
     };
-  }, [widgetId, fixture, w, h, mode, profile, withheld]);
+  }, [widgetId, fixture, w, h, mode, profile, withheld, wrap]);
 
   if (failure) throw failure;
   return <div ref={host} data-scene={mounted ? "mounted" : "mounting"} />;

@@ -12,7 +12,13 @@ export interface UnfixturedWidget {
   w: number;
   h: number;
   reason: string;
+  /** Repo-relative module that registers it, when `@ksp-gonogo/components` does not. */
+  registers?: string;
+  /** It reads an app-shell provider: `APP_WIDGET_WRAPS` in `registers` supplies it. */
+  wrapped?: boolean;
 }
+
+const APP_WIDGETS = "packages/storybook/src/appWidgets.tsx";
 
 export const UNFIXTURED_WIDGETS: readonly UnfixturedWidget[] = [
   {
@@ -27,6 +33,29 @@ export const UNFIXTURED_WIDGETS: readonly UnfixturedWidget[] = [
     h: 8,
     reason: "It reads the page's own PerfBudget registry, not telemetry.",
   },
+  {
+    widgetId: "commcast",
+    w: 6,
+    h: 8,
+    reason: "An app widget: its scenes live in the app's own commcast probe.",
+    registers: APP_WIDGETS,
+  },
+  {
+    widgetId: "gonogo",
+    w: 4,
+    h: 4,
+    reason:
+      "An app widget fed by the PeerJS vote host, which no fixture models.",
+    registers: APP_WIDGETS,
+  },
+  {
+    widgetId: "notes",
+    w: 6,
+    h: 8,
+    reason: "An app widget fed by the notes host, seeded here with two notes.",
+    registers: APP_WIDGETS,
+    wrapped: true,
+  },
 ];
 
 /** One extension, on the host scene that exercises it, at the host's size. */
@@ -38,6 +67,10 @@ export interface ExtensionScene {
   fixture: string;
   w: number;
   h: number;
+  /** A config overlay the extension only shows under. */
+  config?: Record<string, unknown>;
+  /** It only shows under an install, so the scene renders under the first one it declares. */
+  underInstall?: boolean;
 }
 
 const COMPONENTS = "packages/components/src";
@@ -57,6 +90,7 @@ export const EXTENSION_SCENES: readonly ExtensionScene[] = [
     fixture: `${COMPONENTS}/FleetReliability/__fixtures__/broken-reaction-wheel.json`,
     w: 8,
     h: 10,
+    underInstall: true,
   },
   {
     id: "objectives-contracts",
@@ -68,7 +102,7 @@ export const EXTENSION_SCENES: readonly ExtensionScene[] = [
   {
     id: "core:comm-signal-no-signal-badge",
     widgetId: "comm-signal",
-    fixture: `${COMPONENTS}/CommSignal/__fixtures__/no-signal-occluded.json`,
+    fixture: `${COMPONENTS}/CommSignal/__fixtures__/strong-direct-ksc-stopped-arriving.json`,
     w: 8,
     h: 8,
   },
@@ -89,7 +123,7 @@ export const EXTENSION_SCENES: readonly ExtensionScene[] = [
   {
     id: "core:descent-envelope",
     widgetId: "landing-status",
-    fixture: `${COMPONENTS}/LandingStatus/__render__/descent-ignition.json`,
+    fixture: `${COMPONENTS}/LandingStatus/__render_atmospheric__/at-terminal.json`,
     w: 12,
     h: 16,
   },
@@ -127,11 +161,12 @@ export const EXTENSION_SCENES: readonly ExtensionScene[] = [
     fixture: `${COMPONENTS}/SystemView/__fixtures__/kerbin-orbit-inclined.json`,
     w: 10,
     h: 12,
+    config: { frame: "Kerbin", projection: "system-view.parent-direction.1" },
   },
   {
     id: "core:system-view-vessel-orbits",
     widgetId: "system-view",
-    fixture: `${COMPONENTS}/SystemView/__fixtures__/kerbin-orbit-inclined.json`,
+    fixture: `${COMPONENTS}/SystemView/__fixtures__/multi-vessel-orbits.json`,
     w: 10,
     h: 12,
   },

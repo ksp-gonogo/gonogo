@@ -666,6 +666,9 @@ importers:
       '@ksp-gonogo/ui-kit':
         specifier: workspace:*
         version: link:../ui-kit
+      '@ksp-gonogo/uplink-tools':
+        specifier: workspace:*
+        version: link:../uplink-tools
       react:
         specifier: ^18.0.0
         version: 18.3.1

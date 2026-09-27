@@ -18,7 +18,14 @@ import { type Browser, chromium, type Page } from "playwright";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const STATIC = resolve(HERE, "../dist/static");
-const PLANT_IDS = ["smoke-plant--render-throws", "smoke-plant--mount-rejects"];
+/** Each planted story, and the failure it must be reported with. */
+const PLANTS: Record<string, string> = {
+  "smoke-plant--render-throws": "planted: this story throws on purpose",
+  "smoke-plant--mount-rejects":
+    'widget "planted-not-registered" not registered',
+  "smoke-plant--extension-unexercised": "does not exercise it",
+};
+const PLANT_IDS = Object.keys(PLANTS);
 const STORY_TIMEOUT_MS = 30_000;
 const WORKERS = 4;
 
@@ -69,26 +76,67 @@ interface Outcome {
   errors: string[];
 }
 
+/**
+ * Runs in the page before Storybook does: records the preview's own verdict on
+ * the story, `storyRendered` once React has committed it, or the failure event.
+ * `sb-show-main` alone is set before the story's tree is in the DOM, so a scene
+ * checked on it can be missed entirely. Plain source rather than a function, so
+ * the transpiler's helpers are not serialised into a page that lacks them.
+ */
+const LISTEN_FOR_RENDER = `
+  (() => {
+    const state = { rendered: false, failed: null };
+    window.__smoke = state;
+    const attach = () => {
+      const channel = window.__STORYBOOK_ADDONS_CHANNEL__;
+      if (!channel || typeof channel.on !== "function") {
+        setTimeout(attach, 10);
+        return;
+      }
+      channel.on("storyRendered", () => { state.rendered = true; });
+      for (const event of ["storyErrored", "storyThrewException", "storyMissing"]) {
+        channel.on(event, (detail) => {
+          const text = detail instanceof Error ? detail.message : JSON.stringify(detail);
+          state.failed = event + ": " + String(text).slice(0, 300);
+        });
+      }
+    };
+    attach();
+  })();
+`;
+
 /** Mounts one story and returns what went wrong, empty when it mounted clean. */
 async function mountStory(
   page: Page,
   base: string,
   id: string,
+  args = "",
 ): Promise<Outcome> {
   const errors: string[] = [];
   const onError = (err: Error) => errors.push(`page error: ${err.message}`);
   page.on("pageerror", onError);
   try {
-    await page.goto(`${base}/iframe.html?id=${id}&viewMode=story`, {
+    await page.goto(`${base}/iframe.html?id=${id}&viewMode=story${args}`, {
       waitUntil: "domcontentloaded",
+      // A dev server compiles on first request, so the first load can be slow.
+      timeout: 120_000,
     });
     await page.waitForFunction(
-      () =>
-        document.body.classList.contains("sb-show-main") ||
-        document.body.classList.contains("sb-show-errordisplay"),
+      () => {
+        const state = Reflect.get(window, "__smoke");
+        return (
+          state?.rendered === true ||
+          state?.failed !== null ||
+          document.body.classList.contains("sb-show-errordisplay")
+        );
+      },
       undefined,
       { timeout: STORY_TIMEOUT_MS },
     );
+    const failed = await page.evaluate(
+      () => Reflect.get(window, "__smoke")?.failed ?? null,
+    );
+    if (failed) errors.push(`story failed: ${failed}`);
     // A widget scene mounts after the first render, and can fail after it.
     await page.waitForFunction(
       () =>
@@ -114,6 +162,30 @@ async function mountStory(
     page.off("pageerror", onError);
   }
   return { id, errors };
+}
+
+/** Extension stories draw their host with one extension switchable by an `enabled` arg. */
+const EXTENSION_PREFIX = "extensions--";
+
+/**
+ * Whether switching the story's extension off changes what its host draws.
+ *
+ * An extension story whose scene never exercises the extension renders the
+ * same pixels either way, and passes as coverage while showing nothing of it.
+ */
+async function extensionShows(
+  page: Page,
+  base: string,
+  id: string,
+): Promise<string[]> {
+  const on = await page.locator("[data-scene]").screenshot();
+  const off = await mountStory(page, base, id, "&args=enabled:!false");
+  if (off.errors.length > 0) return off.errors.map((e) => `with it off, ${e}`);
+  const without = await page.locator("[data-scene]").screenshot();
+  if (Buffer.compare(on, without) !== 0) return [];
+  return [
+    "the host draws the same pixels with the extension off, so this scene does not exercise it",
+  ];
 }
 
 /** The ids of every story in a Storybook's index, refusing an index of any other shape. */
@@ -150,9 +222,16 @@ async function runAll(
         viewport: { width: 1280, height: 900 },
         reducedMotion: "reduce",
       });
+      await context.addInitScript({ content: LISTEN_FOR_RENDER });
       const page = await context.newPage();
       for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
         const outcome = await mountStory(page, base, id);
+        const isExtension =
+          id.startsWith(EXTENSION_PREFIX) ||
+          id === "smoke-plant--extension-unexercised";
+        if (outcome.errors.length === 0 && isExtension) {
+          outcome.errors.push(...(await extensionShows(page, base, id)));
+        }
         outcomes.push(outcome);
         if (quiet) continue;
         const mark = outcome.errors.length === 0 ? "ok  " : "FAIL";
@@ -190,9 +269,9 @@ async function main(): Promise<void> {
       );
     }
     for (const plant of await runAll(browser, base, PLANT_IDS, true)) {
-      if (plant.errors.length === 0) {
+      if (!plant.errors.some((e) => e.includes(PLANTS[plant.id]))) {
         throw new Error(
-          `BLIND: the planted story ${plant.id} fails on purpose and was reported clean, so a clean run means nothing.`,
+          `BLIND: the planted story ${plant.id} fails on purpose and was not reported with its own failure (${plant.errors.join("; ") || "reported clean"}), so a clean run means nothing.`,
         );
       }
       console.log(`smoke: plant ${plant.id} seen (${plant.errors[0]})`);
