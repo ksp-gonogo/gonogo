@@ -142,7 +142,8 @@ const BASELINES: Record<Family, Record<string, number>> = {
    */
   spacing: {
     "packages/app/src/styles/global.css": 1,
-    "packages/components/src/FleetRoster/index.tsx": 2,
+    "packages/components/src/FleetRoster/RosterTable.tsx": 1,
+    "packages/components/src/FleetRoster/UpdatesRow.tsx": 1,
     "packages/components/src/MapView/MapPoiLayer.styles.ts": 2,
     "packages/components/src/Navball/index.tsx": 1,
     "packages/components/src/shared/RequiresGuard.tsx": 3,

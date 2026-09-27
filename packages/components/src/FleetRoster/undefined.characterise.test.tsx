@@ -72,7 +72,7 @@ const ONE_CRAFT = {
 const BODIES = { bodies: [{ index: 1, name: "Mun" }] };
 
 describe("FleetRoster: nothing has arrived at all", () => {
-  it("says fleet data is not available, renders no table at all, and still asserts a comms rollup of zero", () => {
+  it("says fleet data is not available, renders no table, and draws no comms tally", () => {
     const fixture = newFixture();
     renderRoster(fixture);
 
