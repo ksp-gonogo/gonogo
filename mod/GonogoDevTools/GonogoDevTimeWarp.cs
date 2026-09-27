@@ -178,21 +178,10 @@ namespace Gonogo.DevTools
                 }
 
                 var mode = node.GetValue("mode");
-                if (!string.IsNullOrEmpty(mode))
+                if (!string.IsNullOrEmpty(mode) && !TrySetMode(mode))
                 {
-                    if (string.Equals(mode, "rails", StringComparison.OrdinalIgnoreCase))
-                    {
-                        TimeWarp.fetch.Mode = TimeWarp.Modes.HIGH;
-                    }
-                    else if (string.Equals(mode, "physics", StringComparison.OrdinalIgnoreCase))
-                    {
-                        TimeWarp.fetch.Mode = TimeWarp.Modes.LOW;
-                    }
-                    else
-                    {
-                        WriteResult(id, ok: false, "unknown mode '" + mode + "', expected rails or physics", index, null);
-                        return;
-                    }
+                    WriteResult(id, ok: false, "unknown mode '" + mode + "', expected rails or physics", index, null);
+                    return;
                 }
 
                 var rungs = TimeWarp.fetch.Mode == TimeWarp.Modes.LOW
@@ -220,6 +209,21 @@ namespace Gonogo.DevTools
             {
                 WriteResult(id, ok: false, "exception: " + ex.Message, -1, null);
             }
+        }
+
+        private static bool TrySetMode(string mode)
+        {
+            if (string.Equals(mode, "rails", StringComparison.OrdinalIgnoreCase))
+            {
+                TimeWarp.fetch.Mode = TimeWarp.Modes.HIGH;
+                return true;
+            }
+            if (!string.Equals(mode, "physics", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+            TimeWarp.fetch.Mode = TimeWarp.Modes.LOW;
+            return true;
         }
 
         private void ReportAchieved(string id, int requestedIndex)

@@ -407,7 +407,7 @@ namespace Gonogo.DevTools
                     watch.Ok = true;
                     watch.Summary = "probe only, nothing retrieved";
                 }
-                else if (!TryRetrieve(watch, node))
+                if (mode != "probe" && !TryRetrieve(watch, node))
                 {
                     return;
                 }

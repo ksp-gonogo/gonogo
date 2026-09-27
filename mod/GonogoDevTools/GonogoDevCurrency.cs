@@ -1694,7 +1694,7 @@ namespace Gonogo.DevTools
                         {
                             probe.FailedTest = "vessel.connection.ControlPath is EMPTY: CommNet solved no route home for this craft";
                         }
-                        else if (homeHops == 0)
+                        if (hops > 0 && homeHops == 0)
                         {
                             probe.FailedTest = "the control path has hops but none of them touches a home node";
                         }
@@ -1715,7 +1715,7 @@ namespace Gonogo.DevTools
                 {
                     probe.FailedTest = Append(probe.FailedTest, "the signal-delay config could not be read: " + probe.Config.Fault);
                 }
-                else if (!probe.Config.Enabled)
+                if (probe.Config.Readable && !probe.Config.Enabled)
                 {
                     probe.FailedTest = Append(probe.FailedTest, probe.Config.CutForSimulation
                         ? "signal delay is CUT FOR A SIMULATION, so every credit reveals instantly by policy"

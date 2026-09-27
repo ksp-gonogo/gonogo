@@ -275,28 +275,31 @@ namespace Gonogo.DevTools
                 if (saveName == null)
                 {
                     saveName = trimmed;
+                    continue;
                 }
-                else if (string.Equals(trimmed, "flight", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(trimmed, "flight", StringComparison.OrdinalIgnoreCase))
                 {
                     restoreFlight = true;
+                    continue;
                 }
-                else if (string.Equals(trimmed, "newsandbox", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(trimmed, "newsandbox", StringComparison.OrdinalIgnoreCase))
                 {
                     newSandboxRequested = true;
+                    continue;
                 }
-                else if (trimmed.StartsWith("file=", StringComparison.OrdinalIgnoreCase))
+                if (!trimmed.StartsWith("file=", StringComparison.OrdinalIgnoreCase))
                 {
-                    var requested = trimmed.Substring("file=".Length).Trim();
-                    if (requested.Length == 0)
-                    {
-                        Debug.LogWarning(LogPrefix + "cfg line '" + trimmed + "' names an empty file; keeping the default '"
-                            + DefaultSfsFile + "'");
-                    }
-                    else
-                    {
-                        sfsFile = requested;
-                    }
+                    continue;
                 }
+
+                var requested = trimmed.Substring("file=".Length).Trim();
+                if (requested.Length == 0)
+                {
+                    Debug.LogWarning(LogPrefix + "cfg line '" + trimmed + "' names an empty file; keeping the default '"
+                        + DefaultSfsFile + "'");
+                    continue;
+                }
+                sfsFile = requested;
             }
 
             if (string.IsNullOrEmpty(saveName))
@@ -332,29 +335,8 @@ namespace Gonogo.DevTools
             var savesDir = KSPUtil.ApplicationRootPath + "saves/" + saveName;
             var sfsPath = savesDir + "/" + sfsFile + ".sfs";
             var saveExists = Directory.Exists(savesDir) && File.Exists(sfsPath);
-            if (saveExists)
+            if (!CanLoadOrCreate(saveExists, newSandboxRequested, sfsFile, savesDir, sfsPath))
             {
-                Debug.Log(LogPrefix + "save found: " + sfsPath);
-            }
-            else if (newSandboxRequested && string.Equals(sfsFile, DefaultSfsFile, StringComparison.Ordinal))
-            {
-                Debug.Log(LogPrefix + "save NOT found at " + sfsPath + " (saves dir exists=" + Directory.Exists(savesDir)
-                    + ") but 'newsandbox' was requested; will create a fresh SANDBOX game instead of aborting");
-            }
-            else if (newSandboxRequested)
-            {
-                // A fresh sandbox is always written as `persistent`, so honouring
-                // 'newsandbox' here would silently load something other than the
-                // named file. A missing named file is a typo, not a cue to invent
-                // an empty game in its place.
-                Debug.LogError(LogPrefix + "save NOT found at " + sfsPath
-                    + " and 'newsandbox' cannot substitute for a named file= ('" + sfsFile + "') - aborting");
-                yield break;
-            }
-            else
-            {
-                Debug.LogError(LogPrefix + "save NOT found at " + sfsPath + " (saves dir exists=" + Directory.Exists(savesDir)
-                    + ") - aborting (add a 'newsandbox' line to the cfg to create one instead)");
                 yield break;
             }
 
@@ -407,6 +389,40 @@ namespace Gonogo.DevTools
             // DontDestroyOnLoad object rather than leaving an inert
             // MonoBehaviour attached for the rest of the KSP process.
             Destroy(gameObject);
+        }
+
+        /// <summary>
+        /// Whether the named save can be loaded, or a fresh sandbox created in its
+        /// place, logging which. A fresh sandbox only ever stands in for the default
+        /// file, never for a named one.
+        /// </summary>
+        private static bool CanLoadOrCreate(bool saveExists, bool newSandboxRequested, string sfsFile, string savesDir, string sfsPath)
+        {
+            if (saveExists)
+            {
+                Debug.Log(LogPrefix + "save found: " + sfsPath);
+                return true;
+            }
+            if (!newSandboxRequested)
+            {
+                Debug.LogError(LogPrefix + "save NOT found at " + sfsPath + " (saves dir exists=" + Directory.Exists(savesDir)
+                    + ") - aborting (add a 'newsandbox' line to the cfg to create one instead)");
+                return false;
+            }
+            if (!string.Equals(sfsFile, DefaultSfsFile, StringComparison.Ordinal))
+            {
+                // A fresh sandbox is always written as `persistent`, so honouring
+                // 'newsandbox' here would silently load something other than the
+                // named file. A missing named file is a typo, not a cue to invent
+                // an empty game in its place.
+                Debug.LogError(LogPrefix + "save NOT found at " + sfsPath
+                    + " and 'newsandbox' cannot substitute for a named file= ('" + sfsFile + "') - aborting");
+                return false;
+            }
+
+            Debug.Log(LogPrefix + "save NOT found at " + sfsPath + " (saves dir exists=" + Directory.Exists(savesDir)
+                + ") but 'newsandbox' was requested; will create a fresh SANDBOX game instead of aborting");
+            return true;
         }
 
         /// <summary>

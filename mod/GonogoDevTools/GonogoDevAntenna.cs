@@ -786,8 +786,9 @@ namespace Gonogo.DevTools
                 if (!Contains(KnownKeys, name))
                 {
                     unknown.Add(name);
+                    continue;
                 }
-                else if (Contains(BoostKeys, name))
+                if (Contains(BoostKeys, name))
                 {
                     boostKeysSeen++;
                 }
@@ -1415,8 +1416,9 @@ namespace Gonogo.DevTools
                 if (hops == 0)
                 {
                     read.Fault = "vessel.connection.ControlPath is EMPTY: CommNet solved no route home";
+                    return read;
                 }
-                else if (homeHops == 0)
+                if (homeHops == 0)
                 {
                     read.Fault = "the control path has hops but none of them touches a home node";
                 }
@@ -1534,17 +1536,27 @@ namespace Gonogo.DevTools
             sb.Append("boosted ").Append(changed).Append(" of ").Append(watch.Antennas.Count)
                 .Append(" antenna(s) on ").Append(watch.VesselName);
 
+            AppendBandCoverage(sb, watch);
+            AppendRouteOutcome(sb, watch);
+            return sb.ToString();
+        }
+
+        private static void AppendBandCoverage(StringBuilder sb, WatchState watch)
+        {
             if (watch.HomeAntennasOnBand == 0)
             {
                 sb.Append("; NO ground station carries the ").Append(watch.Band)
                     .Append(" band, so no boost can ever produce a link on it");
+                return;
             }
-            else if (watch.HomeAntennasOnBand > 0)
-            {
-                sb.Append("; ").Append(watch.HomeAntennasOnBand)
-                    .Append(" home antenna(s) share the ").Append(watch.Band).Append(" band");
-            }
+            if (watch.HomeAntennasOnBand < 0) return;
 
+            sb.Append("; ").Append(watch.HomeAntennasOnBand)
+                .Append(" home antenna(s) share the ").Append(watch.Band).Append(" band");
+        }
+
+        private static void AppendRouteOutcome(StringBuilder sb, WatchState watch)
+        {
             var last = watch.Routes.Count > 0 ? watch.Routes[watch.Routes.Count - 1] : null;
             if (!double.IsNaN(watch.RouteAppearedAfterSeconds))
             {
@@ -1556,19 +1568,16 @@ namespace Gonogo.DevTools
                     sb.Append(" (now ").Append(last.HopCount).Append(" hops, ")
                         .Append(last.HomeHopCount).Append(" touching home)");
                 }
+                return;
             }
-            else if (last != null && last.Label == "after")
+            if (last != null && last.Label == "after")
             {
                 sb.Append("; NO route yet after ")
                     .Append(last.SinceApplySeconds.ToString("F1", CultureInfo.InvariantCulture))
                     .Append("s: ").Append(last.Fault.Length > 0 ? last.Fault : "control path still empty");
+                return;
             }
-            else
-            {
-                sb.Append("; waiting for CommNet to rebuild");
-            }
-
-            return sb.ToString();
+            sb.Append("; waiting for CommNet to rebuild");
         }
 
         private static string DescribeSnapshot(AntennaSnapshot s) =>

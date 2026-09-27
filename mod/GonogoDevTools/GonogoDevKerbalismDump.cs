@@ -165,19 +165,22 @@ namespace GonogoDevTools
                         {
                             var val = m.Invoke(null, new object[] { v });
                             AppendKv(sb, ref first, m.Name, val); n++;
+                            continue;
                         }
-                        else if (ps.Length == 2 && ps[0].ParameterType == typeof(Vessel) && ps[1].ParameterType == typeof(string))
+                        if (ps.Length != 2 || ps[0].ParameterType != typeof(Vessel) || ps[1].ParameterType != typeof(string))
                         {
-                            foreach (var res in CandidateResources)
+                            continue;
+                        }
+
+                        foreach (var res in CandidateResources)
+                        {
+                            try
                             {
-                                try
-                                {
-                                    var val = m.Invoke(null, new object[] { v, res });
-                                    if (val != null && !(val is double d && d == 0.0))
-                                    { AppendKv(sb, ref first, m.Name + "[" + res + "]", val); n++; }
-                                }
-                                catch { }
+                                var val = m.Invoke(null, new object[] { v, res });
+                                if (val != null && !(val is double d && d == 0.0))
+                                { AppendKv(sb, ref first, m.Name + "[" + res + "]", val); n++; }
                             }
+                            catch { }
                         }
                     }
                     catch { }

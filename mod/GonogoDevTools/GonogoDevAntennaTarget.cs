@@ -263,29 +263,7 @@ namespace Gonogo.DevTools
             watch.Parent = ReadObject(antenna, "Parent") == null ? "null" : "present";
             watch.Before = ReadLayers(antenna, vessel, "before", 0.0);
 
-            if (request.Clear)
-            {
-                // The sharpest edge in the whole surface: the setter's persistence arm
-                // calls Save on the incoming value with no null guard, so this is
-                // expected to throw for an antenna carrying a ParentSnapshot. Whether
-                // it does is the thing being measured, so it is attempted and the throw
-                // is reported rather than guarded against.
-                watch.LoadFromConfig = "SKIPPED: clear = true, assigning null instead";
-                watch.Assign = AssignTarget(antenna, null);
-            }
-            else if (!string.Equals(request.Mode, "none", StringComparison.OrdinalIgnoreCase))
-            {
-                var built = BuildTarget(request, antenna, out var buildFault);
-                watch.LoadFromConfig = buildFault.Length > 0 ? "FAILED: " + buildFault : "invoked";
-                if (built != null)
-                {
-                    watch.Assign = AssignTarget(antenna, built);
-                }
-            }
-            else
-            {
-                watch.LoadFromConfig = "SKIPPED: mode = none, this is a read-only pass";
-            }
+            ApplyTarget(watch, request, antenna);
 
             if (request.Discover) watch.DiscoverAntennas = Discover(vessel);
             if (request.Invalidate) watch.InvalidateCache = Invalidate();
@@ -295,6 +273,33 @@ namespace Gonogo.DevTools
             watch.Ok = true;
             watch.Summary = "applied";
             WriteResult(watch);
+        }
+
+        private static void ApplyTarget(Watch watch, Request request, object antenna)
+        {
+            if (request.Clear)
+            {
+                // The sharpest edge in the whole surface: the setter's persistence arm
+                // calls Save on the incoming value with no null guard, so this is
+                // expected to throw for an antenna carrying a ParentSnapshot. Whether
+                // it does is the thing being measured, so it is attempted and the throw
+                // is reported rather than guarded against.
+                watch.LoadFromConfig = "SKIPPED: clear = true, assigning null instead";
+                watch.Assign = AssignTarget(antenna, null);
+                return;
+            }
+            if (string.Equals(request.Mode, "none", StringComparison.OrdinalIgnoreCase))
+            {
+                watch.LoadFromConfig = "SKIPPED: mode = none, this is a read-only pass";
+                return;
+            }
+
+            var built = BuildTarget(request, antenna, out var buildFault);
+            watch.LoadFromConfig = buildFault.Length > 0 ? "FAILED: " + buildFault : "invoked";
+            if (built != null)
+            {
+                watch.Assign = AssignTarget(antenna, built);
+            }
         }
 
         private object? _antenna;
