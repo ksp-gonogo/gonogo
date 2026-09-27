@@ -77,3 +77,28 @@ describe("the node editor names the components the burn's own basis declares", (
     await act(async () => {});
   });
 });
+
+describe("the node editor edits through the kit's UnitInput", () => {
+  it("saves a typed component as a number, with the instant untouched", async () => {
+    const saved: unknown[] = [];
+    render(
+      <NodeRow
+        node={stockNode()}
+        currentUT={0}
+        availableDv={500}
+        onEdit={async (patch) => {
+          saved.push(patch);
+        }}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Edit node" }));
+    const prograde = labelled("Prograde");
+    await userEvent.clear(prograde);
+    await userEvent.type(prograde, "7");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(saved).toEqual([
+      expect.objectContaining({ prograde: 7, ut: stockNode().UT }),
+    ]);
+    await act(async () => {});
+  });
+});

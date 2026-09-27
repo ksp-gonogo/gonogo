@@ -239,7 +239,6 @@ export {
   DomainAvailabilityProvider,
   type DomainAvailabilityStore,
   useDomainAvailabilityStore,
-  useDomainAvailable,
 } from "./domainAvailability";
 export {
   EmptyState,
@@ -352,7 +351,6 @@ export {
   STOCK_KERBIN_CALENDAR,
   setKspCalendar,
 } from "./kspTime";
-export { LabeledInput, type LabeledInputProps } from "./LabeledInput";
 export {
   LineGraph,
   type LineGraphProps,

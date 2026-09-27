@@ -1,10 +1,10 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  LabeledInput,
   NULL_DISPLAY,
   Stack,
   ToggleButton,
   Unit,
+  UnitInput,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { PresetPicker } from "./PresetPicker";
@@ -56,11 +56,11 @@ function PresetCustomInputs({ api, telemetry }: PresetInputProps) {
   if (inputs.preset === "match-inclination") {
     return (
       <Stack style={CUSTOM_INPUTS_STYLE}>
-        <LabeledInput
+        <UnitInput
           label="Target inc"
-          value={inputs.targetInclination}
-          onChange={setTargetInclination}
-          suffix="°"
+          unit="°"
+          value={value("°", inputs.targetInclination)}
+          onChange={(next) => setTargetInclination(next.magnitude)}
         />
       </Stack>
     );
@@ -68,11 +68,11 @@ function PresetCustomInputs({ api, telemetry }: PresetInputProps) {
   if (inputs.preset === "hohmann-to-altitude") {
     return (
       <Stack style={CUSTOM_INPUTS_STYLE}>
-        <LabeledInput
+        <UnitInput
           label="Target alt"
-          value={inputs.targetAltitudeKm}
-          onChange={setTargetAltitudeKm}
-          suffix="km"
+          unit="km"
+          value={value("km", inputs.targetAltitudeKm)}
+          onChange={(next) => setTargetAltitudeKm(next.magnitude)}
         />
       </Stack>
     );
@@ -80,11 +80,11 @@ function PresetCustomInputs({ api, telemetry }: PresetInputProps) {
   if (inputs.preset === "hohmann-rendezvous-target") {
     return (
       <Stack style={CUSTOM_INPUTS_STYLE}>
-        <LabeledInput
+        <UnitInput
           label="Standoff"
-          value={inputs.standoffMeters}
-          onChange={setStandoffMeters}
-          suffix="m"
+          unit="m"
+          value={value("m", inputs.standoffMeters)}
+          onChange={(next) => setStandoffMeters(next.magnitude)}
         />
       </Stack>
     );
@@ -94,13 +94,24 @@ function PresetCustomInputs({ api, telemetry }: PresetInputProps) {
       {inputs.preset === "custom-ut" && (
         <UtModeInputs api={api} currentUT={telemetry.currentUT} />
       )}
-      <LabeledInput
+      <UnitInput
         label="Prograde"
-        value={inputs.prograde}
-        onChange={setPrograde}
+        unit="m/s"
+        value={value("m/s", inputs.prograde)}
+        onChange={(next) => setPrograde(next.magnitude)}
       />
-      <LabeledInput label="Normal" value={inputs.normal} onChange={setNormal} />
-      <LabeledInput label="Radial" value={inputs.radial} onChange={setRadial} />
+      <UnitInput
+        label="Normal"
+        unit="m/s"
+        value={value("m/s", inputs.normal)}
+        onChange={(next) => setNormal(next.magnitude)}
+      />
+      <UnitInput
+        label="Radial"
+        unit="m/s"
+        value={value("m/s", inputs.radial)}
+        onChange={(next) => setRadial(next.magnitude)}
+      />
     </Stack>
   );
 }
@@ -139,18 +150,18 @@ function UtModeInputs({ api, currentUT }: UtModeInputsProps) {
         </ToggleButton>
       </div>
       {inputs.utMode === "relative" ? (
-        <LabeledInput
+        <UnitInput
           label="Burn in"
-          value={inputs.burnInSeconds}
-          onChange={setBurnInSeconds}
-          suffix="s"
+          unit="s"
+          value={value("s", inputs.burnInSeconds)}
+          onChange={(next) => setBurnInSeconds(next.magnitude)}
         />
       ) : (
-        <LabeledInput
+        <UnitInput
           label="At UT"
-          value={inputs.burnAtUT}
-          onChange={setBurnAtUT}
-          suffix=""
+          unit="ut"
+          value={value("ut", inputs.burnAtUT)}
+          onChange={(next) => setBurnAtUT(next.magnitude)}
         />
       )}
     </>

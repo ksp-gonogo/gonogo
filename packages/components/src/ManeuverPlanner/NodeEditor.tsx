@@ -1,6 +1,6 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
-import { maneuverBasisLabels } from "@ksp-gonogo/sitrep-sdk";
-import { Countdown, LabeledInput } from "@ksp-gonogo/ui-kit";
+import { maneuverBasisLabels, value } from "@ksp-gonogo/sitrep-sdk";
+import { Countdown, UnitInput } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import type { NodeEditPatch } from "./NodeRow";
 import {
@@ -39,19 +39,34 @@ export function NodeEditor({
     prograde !== node.deltaV[2];
   return (
     <EditGrid>
-      <LabeledInput
+      <UnitInput
         label="UT"
-        value={Number(ut.toFixed(3))}
-        suffix="s"
-        onChange={setUt}
+        unit="ut"
+        value={value("ut", ut)}
+        onChange={(next) => setUt(next.magnitude)}
       />
       <EditHint>
         burn in <Countdown value={timeTo} />
       </EditHint>
       {/* Labelled from the burn's own basis: stock and Frenet put different quantities in the same slots. */}
-      <LabeledInput label={slot2} value={prograde} onChange={setProgade} />
-      <LabeledInput label={slot1} value={normal} onChange={setNormal} />
-      <LabeledInput label={slot0} value={radial} onChange={setRadial} />
+      <UnitInput
+        label={slot2}
+        unit="m/s"
+        value={value("m/s", prograde)}
+        onChange={(next) => setProgade(next.magnitude)}
+      />
+      <UnitInput
+        label={slot1}
+        unit="m/s"
+        value={value("m/s", normal)}
+        onChange={(next) => setNormal(next.magnitude)}
+      />
+      <UnitInput
+        label={slot0}
+        unit="m/s"
+        value={value("m/s", radial)}
+        onChange={(next) => setRadial(next.magnitude)}
+      />
       <EditActions>
         <SecondaryButton type="button" onClick={onCancel} disabled={saving}>
           Cancel

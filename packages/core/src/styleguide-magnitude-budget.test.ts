@@ -235,6 +235,10 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // algebra has a term for.
   "packages/components/src/LibrationPoints/LibrationPointsView.tsx": 1,
   "packages/components/src/ManeuverPlanner/LocalManeuverTriggerService.ts": 10,
+  // 4: each UnitInput's Value unwrapped into the edit patch, whose fields are the plain numbers the node-edit command carries on the wire.
+  "packages/components/src/ManeuverPlanner/NodeEditor.tsx": 4,
+  // 8: each UnitInput's Value unwrapped into the planner inputs, which planning.ts solves as numbers: a transfer or a plane change is trigonometry, not an operation the algebra has a term for.
+  "packages/components/src/ManeuverPlanner/PresetInput.tsx": 8,
   "packages/components/src/ManeuverPlanner/usePlannerTelemetry.ts": 4,
   "packages/components/src/MapView/index.tsx": 6,
   // 5: two `{ ut, lat, lon }` literals each unwrap a latitude
