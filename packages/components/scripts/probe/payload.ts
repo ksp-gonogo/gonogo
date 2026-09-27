@@ -1,0 +1,128 @@
+/** One backfill sample: `t` is unix-ms relative to now, so negative is in the past. */
+export interface ProbeSeriesSample {
+  t: number;
+  v: unknown;
+}
+
+export interface ProbePayload {
+  widgetId: string;
+  fixture: Record<string, unknown>;
+  w: number;
+  h: number;
+  pxW: number;
+  pxH: number;
+  /**
+   * Mount inside the dashboard's own cell: `#root` becomes the cell, with the
+   * drag header across its top and the widget in the clipping wrapper below
+   * it. See `renderWidgets`' `gridCell`.
+   */
+  gridCell?: boolean;
+  config?: Record<string, unknown>;
+  instanceId?: string;
+  /**
+   * Render under a declared install (`src/test/installProfile.ts`), by id: the
+   * fixture's `_stream` block is rewritten into the wire that install would put
+   * out, uplink roster included. An augment gated on an elected capability
+   * renders nothing without one, so a scene about an election has no other way
+   * to reach a PNG. Only bites on a fixture that HAS a `_stream` block, a flat
+   * legacy fixture declares no wire to rewrite.
+   */
+  profile?: string;
+  /**
+   * Optional per-key time-series to seed the BufferedDataSource's
+   * MemoryStore *before* the widget mounts. Widgets that call
+   * `useDataSeries` (sparklines, live trace dots) backfill from
+   * `queryRange` on mount: seeding the store lets those render with
+   * real history instead of always-empty arrays.
+   *
+   * Sample timestamps are unix-ms relative to `now`. The probe stamps
+   * its synthetic flight at `t=0`; sample timestamps should be within
+   * the widget's window (Twr=60s, KeplerPeriod=60s, etc.). Use
+   * positive numbers: the probe queries `[now - windowMs, now]`.
+   */
+  series?: Record<string, readonly ProbeSeriesSample[]>;
+  /**
+   * Optional synthetic clicks dispatched after the standard mount +
+   * emit + settle. Unlocks interactive states that the static render
+   * can't reach, modal opens, arm-then-confirm sequences, dropdown
+   * pickers (LaunchDirector crew picker, etc).
+   *
+   * Each entry runs sequentially: the matching DOM node is clicked
+   * via `dispatchEvent(MouseEvent("click"))`, then the probe waits
+   * `awaitMs` (or `100` if omitted) before the next click and before
+   * the final screenshot. Missing selectors throw: the driver
+   * surfaces the error so brittle fixtures get caught.
+   */
+  clicks?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
+  /**
+   * Optional synthetic POINTER entries, for a surface that only exists while
+   * the pointer is over something: a hover tooltip, a hover-revealed control.
+   *
+   * Separate from `clicks` because the two reach different states and one
+   * cannot stand in for the other: a click on a part of a ship diagram selects
+   * it, where a pointer entering the same part opens the readout beside it. The
+   * probe dispatches `pointerenter` and `pointerover` on the match, which is
+   * what React's `onPointerEnter` listens for, then leaves the pointer there
+   * for the screenshot. Missing selectors throw, the same as a click's.
+   */
+  hovers?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
+}
+
+/*
+ * The dashboard's grid: ROW_HEIGHT and margin mirror
+ * packages/app/src/components/Dashboard/layoutNormalization.ts, and the column
+ * width approximates `lg` (cols=36) at a comfortable viewport.
+ */
+const COL_WIDTH = 32;
+const ROW_HEIGHT = 25;
+const GRID_MARGIN = 8;
+
+/** The pixel box a `w` by `h` grid tile occupies. */
+export function tilePixels(w: number, h: number): { pxW: number; pxH: number } {
+  return {
+    pxW: w * COL_WIDTH + (w - 1) * GRID_MARGIN,
+    pxH: h * ROW_HEIGHT + (h - 1) * GRID_MARGIN,
+  };
+}
+
+/** The per-size part of a render: a harness `SizeMode`, or a story's args. */
+export interface ProbeSize {
+  w: number;
+  h: number;
+  config?: Record<string, unknown>;
+  clicks?: ProbePayload["clicks"];
+  hovers?: ProbePayload["hovers"];
+}
+
+/**
+ * What `renderProbe` is handed to mount one scene at one size.
+ *
+ * A fixture's `_series` block, keyed by data-source key with an array of
+ * `{t, v}` samples each, is lifted into the payload so `useDataSeries`-backed
+ * sparklines and trace dots render with seeded history.
+ */
+export function probePayload(opts: {
+  widgetId: string;
+  fixture: Record<string, unknown>;
+  size: ProbeSize;
+  profile?: string;
+  gridCell?: boolean;
+}): ProbePayload {
+  const { fixture, size } = opts;
+  const series = (
+    fixture as { _series?: Record<string, readonly ProbeSeriesSample[]> }
+  )._series;
+  return {
+    widgetId: opts.widgetId,
+    fixture,
+    w: size.w,
+    h: size.h,
+    ...tilePixels(size.w, size.h),
+    gridCell: opts.gridCell,
+    config: size.config,
+    series,
+    clicks: size.clicks,
+    hovers: size.hovers,
+    profile: opts.profile,
+  };
+}

@@ -222,7 +222,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/components/scripts/synthesize-landing-descent.ts": 1,
   "packages/components/scripts/unfed-snapshot-gate.ts": 1,
   "packages/components/scripts/visual-gate.ts": 1,
-  "packages/components/scripts/widgetRenderHarness.ts": 4,
+  "packages/components/scripts/widgetRenderHarness.ts": 3,
   "packages/components/scripts/widgets.ts": 4,
   "packages/core/scan-tests.mjs": 2,
   "packages/core/src/actionGroups.ts": 1,

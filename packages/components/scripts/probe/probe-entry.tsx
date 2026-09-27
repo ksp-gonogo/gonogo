@@ -1,32 +1,22 @@
 /**
- * Widget probe entry: bundled by esbuild for the playwright render
- * harness. Exposes `window.__renderProbe({...})` so the driver can mount
- * the same probe page many times with different fixture / size payloads
- * without reloading or re-bundling.
+ * Mounts one registered widget on one fixture scene, sized to a grid tile.
  *
- * The probe registers a MockDataSource (wrapped in BufferedDataSource so
- * late re-subscribes don't lose the seeded value) as the "data" source,
- * mounts the requested widget inside DashboardItemContext, sizes the
- * container to the requested pixel box, then synchronously emits every
- * fixture key. A second animation frame lets ResizeObserver and the
- * widget's internal layout settle before the driver screenshots.
+ * The render harness's probe page (`probe-page.tsx`) and the Storybook widget
+ * stories both mount through {@link renderProbe}, so a story is the same widget
+ * on the same fixture the harness photographs.
  *
- * A different family of widget: mod-client widgets riding the Sitrep
- * WEBSOCKET STREAM directly (`useStream`/`useStreamEvent` from
- * `@ksp-gonogo/sitrep-client`): never touches the `"data"` `DataSource`
- * registry at all, so the path above cannot drive it. A fixture for one of these widgets carries a
- * top-level `_stream` block (see `StreamFixtureBlock` below) instead of
- * (or alongside) plain data keys. When present, the probe builds a real
- * `setupStreamFixture`: the same test-adapter the widgets' own headless
- * tests use, mounts the widget inside its `Provider`, and replays the
- * fixture's `emits` through `StubTransport.emit` post-mount. This keeps the
- * harness generic: any stream-driven widget gets coverage by authoring a
- * fixture, no probe changes required.
+ * A fixture's plain keys feed a MockDataSource (wrapped in BufferedDataSource so
+ * late re-subscribes don't lose the seeded value) registered as the "data"
+ * source. A fixture's `_stream` block (see `StreamFixtureBlock` below) builds a
+ * real `setupStreamFixture` instead, the same test adapter the widgets' own
+ * headless tests use, mounts the widget inside its `Provider`, and replays the
+ * block's `emits` through `StubTransport.emit` once each topic is subscribed.
  */
-// MUST be the first import: installs the injected gonogo host before the
-// planted Uplink below registers through it (which would otherwise throw "the
-// gonogo host has not been installed" at module load). ES imports are hoisted
-// in source order.
+/*
+ * MUST be the first import: installs the injected gonogo host before the
+ * planted Uplink below registers through it, which would otherwise throw "the
+ * gonogo host has not been installed" at module load.
+ */
 import "./probe-install-host";
 import {
   ContributionsProvider,
@@ -71,10 +61,11 @@ import {
   setupStreamFixture,
 } from "../../src/test/setupStreamFixture";
 import { mountGridCell } from "./gridCell";
-// Side-effect import: the planted Uplink's contributions into built-in
-// widgets, for a fixture whose subject is a built-in widget WITH an Uplink's
-// contributions. Each requires the planted Domain, so only a fixture emitting
-// `planted.available` renders any of them.
+import type { ProbePayload } from "./payload";
+/*
+ * The planted Uplink's contributions into built-in widgets. Each requires the
+ * planted Domain, so only a fixture emitting `planted.available` renders any.
+ */
 import "./plantedUplink";
 
 // Stock-body registry needs to be populated before any widget that calls
@@ -83,11 +74,6 @@ import "./plantedUplink";
 // "unknown body" degraded state. Run once at module load, the registry
 // is idempotent and shared across all probe calls.
 registerStockBodies();
-
-export interface ProbeSeriesSample {
-  t: number;
-  v: unknown;
-}
 
 /** One `StubTransport.emit(topic, payload)` call, replayed post-mount. */
 export interface StreamEmit {
@@ -167,70 +153,6 @@ function resolveStreamBlock(
     getInstallProfile(profileId),
     raw,
   ) as StreamFixtureBlock;
-}
-
-export interface ProbePayload {
-  widgetId: string;
-  fixture: Record<string, unknown>;
-  w: number;
-  h: number;
-  pxW: number;
-  pxH: number;
-  /**
-   * Mount inside the dashboard's own cell: `#root` becomes the cell, with the
-   * drag header across its top and the widget in the clipping wrapper below
-   * it. See `renderWidgets`' `gridCell`.
-   */
-  gridCell?: boolean;
-  config?: Record<string, unknown>;
-  instanceId?: string;
-  /**
-   * Render under a declared install (`src/test/installProfile.ts`), by id: the
-   * fixture's `_stream` block is rewritten into the wire that install would put
-   * out, uplink roster included. An augment gated on an elected capability
-   * renders nothing without one, so a scene about an election has no other way
-   * to reach a PNG. Only bites on a fixture that HAS a `_stream` block, a flat
-   * legacy fixture declares no wire to rewrite.
-   */
-  profile?: string;
-  /**
-   * Optional per-key time-series to seed the BufferedDataSource's
-   * MemoryStore *before* the widget mounts. Widgets that call
-   * `useDataSeries` (sparklines, live trace dots) backfill from
-   * `queryRange` on mount: seeding the store lets those render with
-   * real history instead of always-empty arrays.
-   *
-   * Sample timestamps are unix-ms relative to `now`. The probe stamps
-   * its synthetic flight at `t=0`; sample timestamps should be within
-   * the widget's window (Twr=60s, KeplerPeriod=60s, etc.). Use
-   * positive numbers: the probe queries `[now - windowMs, now]`.
-   */
-  series?: Record<string, readonly ProbeSeriesSample[]>;
-  /**
-   * Optional synthetic clicks dispatched after the standard mount +
-   * emit + settle. Unlocks interactive states that the static render
-   * can't reach, modal opens, arm-then-confirm sequences, dropdown
-   * pickers (LaunchDirector crew picker, etc).
-   *
-   * Each entry runs sequentially: the matching DOM node is clicked
-   * via `dispatchEvent(MouseEvent("click"))`, then the probe waits
-   * `awaitMs` (or `100` if omitted) before the next click and before
-   * the final screenshot. Missing selectors throw: the driver
-   * surfaces the error so brittle fixtures get caught.
-   */
-  clicks?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
-  /**
-   * Optional synthetic POINTER entries, for a surface that only exists while
-   * the pointer is over something: a hover tooltip, a hover-revealed control.
-   *
-   * Separate from `clicks` because the two reach different states and one
-   * cannot stand in for the other: a click on a part of a ship diagram selects
-   * it, where a pointer entering the same part opens the readout beside it. The
-   * probe dispatches `pointerenter` and `pointerover` on the match, which is
-   * what React's `onPointerEnter` listens for, then leaves the pointer there
-   * for the screenshot. Missing selectors throw, the same as a click's.
-   */
-  hovers?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
 }
 
 /**
@@ -320,10 +242,8 @@ let activeSource: MockDataSource | null = null;
 let activeBuffered: BufferedDataSource | null = null;
 let activeStore: MemoryStore | null = null;
 
-async function renderProbe(payload: ProbePayload): Promise<void> {
-  const root = document.getElementById("root");
-  if (!root) throw new Error("Probe: #root element missing");
-
+/** Unmounts the widget {@link renderProbe} last mounted and drops its data source. */
+export function unmountProbe(): void {
   if (activeRoot) {
     activeRoot.unmount();
     activeRoot = null;
@@ -335,6 +255,18 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   }
   activeSource = null;
   activeStore = null;
+}
+
+/**
+ * Mounts `payload`'s widget into `root` on its fixture, replacing whatever the
+ * previous call mounted, and resolves once the fixture has landed and the
+ * layout has settled.
+ */
+export async function renderProbe(
+  root: HTMLElement,
+  payload: ProbePayload,
+): Promise<void> {
+  unmountProbe();
   // The Processor evaluator's runtime cache (evaluated value + frame
   // generation, `@ksp-gonogo/sitrep-client`'s processorEvaluator.ts) is a
   // module-global singleton keyed by Processor id, and this file's own
@@ -733,11 +665,3 @@ function settle(ms: number): Promise<void> {
     setTimeout(resolve, ms);
   });
 }
-
-declare global {
-  interface Window {
-    __renderProbe: (payload: ProbePayload) => Promise<void>;
-  }
-}
-
-window.__renderProbe = renderProbe;

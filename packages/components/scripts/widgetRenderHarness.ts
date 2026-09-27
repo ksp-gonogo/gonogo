@@ -4,7 +4,7 @@
  * shrink to a config export. Adding a widget = new config, no new driver
  * script, no new package.json entry.
  *
- * The harness bundles `scripts/probe/probe-entry.tsx` ONCE per invocation
+ * The harness bundles `scripts/probe/probe-page.tsx` ONCE per invocation
  * and reuses the same Chromium page across every widget when running
  * `--all`, so 10 widgets render in one launch instead of 10.
  */
@@ -23,6 +23,7 @@ import {
 } from "playwright";
 import { fixtureProfiles, getInstallProfile } from "../src/test/installProfile";
 import { jetbrainsMonoFontFace } from "./jetbrainsMonoFontFace";
+import { type ProbePayload, probePayload } from "./probe/payload";
 import type { ScreenProbePayload } from "./probe/screen-entry";
 
 const require = createRequire(import.meta.url);
@@ -71,7 +72,7 @@ async function installFixedClock(page: Page): Promise<void> {
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROBE_DIR = resolve(HERE, "probe");
-const PROBE_ENTRY = join(PROBE_DIR, "probe-entry.tsx");
+const PROBE_ENTRY = join(PROBE_DIR, "probe-page.tsx");
 const PROBE_HTML_TEMPLATE = join(PROBE_DIR, "probe.html");
 const SCREEN_ENTRY = join(PROBE_DIR, "screen-entry.tsx");
 const SCREEN_HTML_TEMPLATE = join(PROBE_DIR, "screen-probe.html");
@@ -116,13 +117,6 @@ const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
 /** What the app serves at its base URL: the body textures MapView asks for. */
 const PUBLIC_ASSETS = resolve(HERE, "../../app/public");
 const ARTIFACT_EXTS = new Set([".png"]);
-
-// Dashboard grid constants: mirrors packages/app/src/components/Dashboard/
-// layoutNormalization.ts (ROW_HEIGHT, margin) plus a colWidth approximating
-// `lg` (cols=36) at a comfortable viewport.
-const COL_WIDTH = 32;
-const ROW_HEIGHT = 25;
-const GRID_MARGIN = 8;
 
 export interface SizeMode {
   /** Slug used in the output filename. */
@@ -239,27 +233,6 @@ export interface ScreenRenderConfig {
   states: ScreenState[];
 }
 
-interface ProbeSeriesSample {
-  t: number;
-  v: unknown;
-}
-
-interface ProbePayload {
-  widgetId: string;
-  fixture: Record<string, unknown>;
-  w: number;
-  h: number;
-  pxW: number;
-  pxH: number;
-  /** Mount inside the dashboard's own cell; see `renderWidgets`' `gridCell`. */
-  gridCell?: boolean;
-  config?: Record<string, unknown>;
-  instanceId?: string;
-  series?: Record<string, readonly ProbeSeriesSample[]>;
-  clicks?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
-  hovers?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
-  profile?: string;
-}
 /*
  * The two entry points the probe page installs on `window`, declared so the
  * `page.evaluate` bodies below reach them by name. They are compiled here and
@@ -1754,35 +1727,17 @@ async function renderOneWidget(
       (onlyFixture === undefined || name.startsWith(`${onlyFixture}--`)),
   );
 
-  const fixtureFiles = (await readdir(fixturesDir)).filter(
-    (e) =>
-      e.endsWith(".json") &&
-      (onlyFixture === undefined || e === `${onlyFixture}.json`),
+  const fixtures = (await sceneFixtures(config)).filter(
+    (f) => onlyFixture === undefined || f.name === onlyFixture,
   );
-  if (fixtureFiles.length === 0) {
+  if (fixtures.length === 0) {
     console.error(`[${config.widgetId}] No fixtures found in ${fixturesDir}`);
     return;
-  }
-
-  const fixtures: { name: string; data: Record<string, unknown> }[] = [];
-  for (const file of fixtureFiles) {
-    const raw = await readFile(join(fixturesDir, file), "utf8");
-    fixtures.push({
-      name: file.replace(/\.json$/, ""),
-      data: fixtureObject(join(fixturesDir, file), raw),
-    });
   }
 
   console.log(`\n── ${config.widgetId} ──`);
   let count = 0;
   for (const fixture of fixtures) {
-    // Fixtures may include an `_series` block keyed by data-source key,
-    // each entry an array of {t, v} samples. The harness lifts that out
-    // of the fixture and into the probe payload so useDataSeries-backed
-    // sparklines / live trace dots render with seeded history.
-    const seriesData = (
-      fixture.data as { _series?: Record<string, readonly ProbeSeriesSample[]> }
-    )._series;
     // One render per (install × mode). A scene that declares no install
     // contributes a single `undefined` profile, so its matrix, and its output
     // filenames, are exactly what they were before installs existed.
@@ -1795,8 +1750,6 @@ async function renderOneWidget(
       if (mode.forFixtures && !mode.forFixtures.includes(fixture.name)) {
         continue;
       }
-      const pxW = mode.w * COL_WIDTH + (mode.w - 1) * GRID_MARGIN;
-      const pxH = mode.h * ROW_HEIGHT + (mode.h - 1) * GRID_MARGIN;
       /*
        * Every finding below names the install as well as the scene: two renders
        * of one fixture can disagree for no reason but the install, and a report
@@ -1805,20 +1758,13 @@ async function renderOneWidget(
       const sceneLabel = profile
         ? `${fixture.name} @ ${profile}`
         : fixture.name;
-      const payload: ProbePayload = {
+      const payload = probePayload({
         widgetId: config.widgetId,
         fixture: fixture.data,
-        w: mode.w,
-        h: mode.h,
-        pxW,
-        pxH,
-        gridCell: gridCell && !fullContent,
-        config: mode.config,
-        series: seriesData,
-        clicks: mode.clicks,
-        hovers: mode.hovers,
+        size: mode,
         profile,
-      };
+        gridCell: gridCell && !fullContent,
+      });
       try {
         await page.evaluate((p) => window.__renderProbe?.(p), payload);
       } catch (err) {
@@ -2204,6 +2150,31 @@ async function cleanArtifacts(
   if (removed > 0) {
     console.log(`Cleaned ${removed} stale artifact(s) from ${dir}`);
   }
+}
+
+/** One scene a render config renders: a fixture file and what it holds. */
+export interface SceneFixture {
+  name: string;
+  file: string;
+  data: Record<string, unknown>;
+}
+
+/** The scenes `config` renders: every top-level `.json` in its fixtures directory. */
+export async function sceneFixtures(
+  config: WidgetRenderConfig,
+): Promise<SceneFixture[]> {
+  const fixturesDir = resolve(COMPONENTS_SRC, config.fixturesPath);
+  const files = (await readdir(fixturesDir)).filter((e) => e.endsWith(".json"));
+  const fixtures: SceneFixture[] = [];
+  for (const entry of files.sort()) {
+    const file = join(fixturesDir, entry);
+    fixtures.push({
+      name: entry.replace(/\.json$/, ""),
+      file,
+      data: fixtureObject(file, await readFile(file, "utf8")),
+    });
+  }
+  return fixtures;
 }
 
 /** A fixture file's top-level object, or a failure naming the file. */
