@@ -1,4 +1,4 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Countdown,
   Grid,
@@ -16,8 +16,8 @@ interface ApproachHudProps {
   name: string;
   distance: number | undefined;
   relVel: number | undefined;
-  closestApproachUT: number | null;
-  universalTime: number | null;
+  /** Time to closest approach, with the target model's figure beside it where one reaches past the received edge. */
+  timeToClosestApproach: Reading<Value<"s">>;
   /** A pairing is selected but its geometry is not current, so the alignment is not drawn. */
   alignmentWithheld?: boolean;
   cols: number;
@@ -84,8 +84,7 @@ export function ApproachHud({
   name,
   distance,
   relVel,
-  closestApproachUT,
-  universalTime,
+  timeToClosestApproach,
   alignmentWithheld,
   cols,
   rows,
@@ -95,14 +94,6 @@ export function ApproachHud({
   const closing = relVel !== undefined && Number.isFinite(relVel) && relVel < 0;
   const closingMagnitude =
     relVel !== undefined && Number.isFinite(relVel) ? Math.abs(relVel) : null;
-
-  // NaN when no encounter is predicted.
-  const tcaSeconds =
-    closestApproachUT !== null &&
-    universalTime != null &&
-    Number.isFinite(universalTime)
-      ? closestApproachUT - universalTime
-      : null;
 
   // The smallest size cannot fit the stacked grid: distance is the headline and closing rate a subreadout; TCA is cut.
   if (rows < 5) {
@@ -184,10 +175,10 @@ export function ApproachHud({
             </ReadoutRow>
 
             <ReadoutRow label="TCA">
-              {tcaSeconds === null ? (
+              {timeToClosestApproach.value === undefined ? (
                 NULL_DISPLAY
               ) : (
-                <Countdown value={tcaSeconds} clock precise />
+                <Countdown value={timeToClosestApproach} clock precise />
               )}
             </ReadoutRow>
           </Grid>

@@ -210,12 +210,14 @@ describe("Targeting under signal delay", () => {
     });
   }
 
-  it("captions a current alignment carried across the light-time as reckoned", async () => {
+  it("draws a current alignment as observed across the light-time, never as the model's", async () => {
     mountDelayed(20);
     await waitFor(() =>
-      expect(screen.getByText(/Alignment reckoned/)).toBeTruthy(),
+      expect(
+        screen.getByRole("region", { name: "Docking HUD for Port Mk2" }),
+      ).toBeTruthy(),
     );
-    expect(visibleText()).toContain("linear-dead-reckoning");
+    expect(screen.queryByText(/Alignment reckoned/)).toBeNull();
   });
 
   it("captions nothing when there is no light-time to carry it across", async () => {
@@ -230,7 +232,7 @@ describe("Targeting under signal delay", () => {
 });
 
 describe("Targeting's time to closest approach under signal delay", () => {
-  it("counts down from the craft's present, not from the received edge", async () => {
+  it("counts down from the received edge, with the target model's figure for the craft's present beside it", async () => {
     const owlt = 20;
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.target"],
@@ -258,7 +260,9 @@ describe("Targeting's time to closest approach under signal delay", () => {
       );
       fixture.emitFrame();
     });
-    await waitFor(() => expect(visibleText()).toMatch(/1min 40s/));
-    expect(visibleText()).not.toMatch(/2min/);
+    await waitFor(() => expect(visibleText()).toMatch(/2min/));
+    const alongside = document.querySelector("[data-modelled-alongside]");
+    expect(alongside?.textContent).toMatch(/1min 40s/);
+    expect(alongside?.querySelector("[data-not-current-mark]")).not.toBeNull();
   });
 });

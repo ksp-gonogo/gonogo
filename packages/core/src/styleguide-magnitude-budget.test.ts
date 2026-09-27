@@ -271,23 +271,23 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/shared/dockAngles.ts": 3,
   "packages/components/src/Strategies/StrategiesView.tsx": 1,
   "packages/components/src/SystemView/index.tsx": 15,
-  // 5: the LAN and argPe coalesce, each `?.magnitude ?? 0` or `?.magnitude`
+  // 6: the LAN and argPe coalesce, each `?.magnitude ?? 0` or `?.magnitude`
   // behind a `Number.isFinite` guard, is expressed through `magnitudeOr` and
   // `magnitudeOf` instead and so does not count here. What is left is the five
   // elements the shared Kepler solver takes as canonical SI numbers, and the
   // reckoning's instant the same solver advances both objects to.
   "packages/components/src/SystemView/usePhaseAngles.ts": 6,
   /*
-   * THREE, and each is a boundary rather than arithmetic: the view UT the
-   * widget subtracts from, a stream field that arrives as a bare number, and a
-   * dot product handed to a reticle that draws in bare numbers.
+   * TWO, and each is a boundary rather than arithmetic: a stream field that
+   * arrives as a bare number, and a dot product handed to a reticle that draws
+   * in bare numbers.
    *
    * The age the widget shows is no longer among them. It is carried as the
    * quantity it is, from the subtraction all the way to the `<Unit>` that
    * writes it, and clamped by the algebra's own `max(0)` rather than by
    * `Math.max` on an unwrapped magnitude.
    */
-  "packages/components/src/Targeting/useTargetingReading.ts": 3,
+  "packages/components/src/Targeting/useTargetingReading.ts": 2,
   "packages/components/src/ThermalStatus/index.tsx": 9,
   "packages/components/src/ThermalStatus/readouts.tsx": 2,
   // 1: the Δv budget the reach list compares against.
@@ -523,7 +523,7 @@ const FUNNEL_BUDGET: Record<string, number> = {
   // One of these is `GoNoGoHostService` measuring liftoff against `getViewUt()`, which returns a plain number.
   "packages/app": 9,
   // Two of these are ShipMap taking the wire's wrapped throttle for the SVG engine-flame gate and the ambient temperature for its CSS colour ramp, both plain-number boundaries.
-  "packages/components": 151,
+  "packages/components": 150,
   "packages/data": 5,
   "packages/ui-kit": 8,
 };

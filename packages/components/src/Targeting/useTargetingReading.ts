@@ -1,6 +1,6 @@
 import { defineTopicManifest } from "@ksp-gonogo/core";
-import { useScetUt, withoutReckoning } from "@ksp-gonogo/sitrep-client";
-import { stillTrue, TargetKind } from "@ksp-gonogo/sitrep-sdk";
+import { useViewUt, withoutReckoning } from "@ksp-gonogo/sitrep-client";
+import { deriveReading, stillTrue, TargetKind } from "@ksp-gonogo/sitrep-sdk";
 import {
   bare,
   closingRateReading,
@@ -9,7 +9,6 @@ import {
   rangeReading,
   vecMagnitude,
 } from "../shared/dockAngles";
-import { magnitudeOf } from "../shared/magnitude";
 
 // Side-effect import: registers the `vessel.target` reckoner (stubbed, so it declines) and its processor.
 
@@ -33,10 +32,18 @@ export function useTargetingReading() {
     dockReading.state === "observed" || dockReading.state === "stale"
       ? dockReading.value
       : undefined;
+  // A current reading draws its observation; a model reaching past the received edge never replaces it.
   const currentDock = () => {
-    if (dockObserved && dockReading.reckoning.status === "available")
-      return { ...dockObserved, ...dockReading.reckoning.value };
-    if (dockReading.state === "observed") return dockReading.value;
+    const carried =
+      dockReading.reckoning.status === "available"
+        ? dockReading.reckoning
+        : undefined;
+    if (
+      dockReading.state === "observed" &&
+      (carried === undefined || carried.beyondReceived)
+    )
+      return dockReading.value;
+    if (dockObserved && carried) return { ...dockObserved, ...carried.value };
     return undefined;
   };
   const dock = currentDock();
@@ -45,10 +52,19 @@ export function useTargetingReading() {
 
   const tarName = target?.name;
   const tarKind = target?.kind;
-  // Closest approach is mod-side, off the elected propagation provider, and counted down from the craft's present.
-  const closestApproachUT = magnitudeOf(target?.closestApproach?.time);
-  // Unwrapped: the guards downstream use `typeof`/`Number.isFinite`, which answer NO for a wrapped value.
-  const universalTime = useScetUt()?.magnitude;
+  // Closest approach is mod-side, off the elected propagation provider: counted from the received edge, and from the target model's instant where one reaches past it.
+  const receivedUt = useViewUt();
+  const timeToClosestApproach = deriveReading(
+    targetReading,
+    (t) =>
+      t.closestApproach?.time.isFinite() === true && receivedUt !== undefined
+        ? t.closestApproach.time.minus(receivedUt)
+        : undefined,
+    (t, atUt) =>
+      t.closestApproach?.time.isFinite() === true
+        ? t.closestApproach.time.minus(atUt)
+        : undefined,
+  );
 
   const tarRelPos = target?.relativePosition && bare(target.relativePosition);
   const tarRelVelVec =
@@ -106,10 +122,10 @@ export function useTargetingReading() {
     dockReading.state === "stale" &&
     dockReading.reckoning.status !== "available" &&
     dockPairing?.relativePosition !== undefined;
-  // The separation is being carried forward, held or across the light-time, so the HUD says its geometry is modelled.
+  // The separation is being carried forward from a held observation, so the HUD says its geometry is modelled.
   const modelledAlignment =
     dockReading.reckoning.status === "available" &&
-    (dockReading.state === "stale" || dockReading.reckoning.beyondReceived)
+    dockReading.state === "stale"
       ? dockReading.reckoning.basis
       : undefined;
 
@@ -131,8 +147,7 @@ export function useTargetingReading() {
     targetState: targetReading.state,
     tarName,
     dockable,
-    closestApproachUT,
-    universalTime,
+    timeToClosestApproach,
     tarDistance,
     relVel,
     rangeR,

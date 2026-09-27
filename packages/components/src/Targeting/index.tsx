@@ -23,8 +23,7 @@ function TargetingComponent({
     targetState,
     tarName,
     dockable,
-    closestApproachUT,
-    universalTime,
+    timeToClosestApproach,
     tarDistance,
     relVel,
     rangeR,
@@ -110,10 +109,7 @@ function TargetingComponent({
         name={tarName}
         distance={tarDistance}
         relVel={relVel}
-        closestApproachUT={
-          typeof closestApproachUT === "number" ? closestApproachUT : null
-        }
-        universalTime={typeof universalTime === "number" ? universalTime : null}
+        timeToClosestApproach={timeToClosestApproach}
         alignmentWithheld={alignmentWithheld}
         cols={cols}
         rows={rows}
