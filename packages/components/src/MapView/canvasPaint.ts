@@ -257,20 +257,33 @@ export function paintPrediction(
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
-/** The vessel's dot and crosshair at a screen-space point. */
+/**
+ * The vessel's dot and crosshair at a screen-space point. A held position is a
+ * hollow ring on a dashed crosshair, shape rather than shade, the same
+ * treatment SystemView gives a held craft.
+ */
 export function paintVesselMarker(
   canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
+  held = false,
 ): void {
+  const accent = canvasColor(canvas, "--color-accent-fg", "#00ff88");
   ctx.beginPath();
   ctx.arc(x, y, 4, 0, Math.PI * 2);
-  ctx.fillStyle = canvasColor(canvas, "--color-accent-fg", "#00ff88");
-  ctx.fill();
+  if (held) {
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = accent;
+    ctx.fill();
+  }
 
   ctx.strokeStyle = "rgba(0,255,136,0.6)";
   ctx.lineWidth = 1;
+  ctx.setLineDash(held ? [2, 2] : []);
   const cross = 8;
   ctx.beginPath();
   ctx.moveTo(x - cross, y);
@@ -278,4 +291,5 @@ export function paintVesselMarker(
   ctx.moveTo(x, y - cross);
   ctx.lineTo(x, y + cross);
   ctx.stroke();
+  ctx.setLineDash([]);
 }

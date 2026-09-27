@@ -226,6 +226,7 @@ function MapViewComponent({
     encounterKind,
     lat,
     lon,
+    positionHeld: telemetry.positionHeld,
   });
 
   const displayName = body?.name ?? targetBodyId;
@@ -398,6 +399,10 @@ function MapViewComponent({
                     <DataCanvas
                       ref={dataRef}
                       data-vessel-marker={vesselMarked ? "" : undefined}
+                      data-vessel-position={vesselPosition(
+                        vesselMarked,
+                        telemetry.positionHeld,
+                      )}
                     />
                     {positionNotice !== undefined && (
                       <NoSignal>{positionNotice}</NoSignal>
@@ -488,3 +493,12 @@ registerComponent<MapViewConfig>({
 });
 
 export { MapViewComponent, VanillaSuppressionProbe };
+
+/** How the drawn marker's position is known, for anything reading the canvas from outside. */
+function vesselPosition(
+  marked: boolean,
+  held: boolean,
+): "held" | "current" | undefined {
+  if (!marked) return undefined;
+  return held ? "held" : "current";
+}

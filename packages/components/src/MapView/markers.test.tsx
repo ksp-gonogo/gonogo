@@ -176,3 +176,53 @@ describe("MapView's vessel marker", () => {
     expect(container.querySelector("[data-vessel-marker]")).toBeNull();
   });
 });
+
+describe("MapView's vessel marker under signal delay", () => {
+  function mountDelayed(owlt: number) {
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      delaySeconds: owlt,
+      suspendFrames: true,
+    });
+    const rendered = render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "mapview-delay" }}>
+          <MapViewComponent id="mapview-delay" w={12} h={18} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+    // The frames left the craft a light-time before its present of UT.
+    const meta = { validAt: UT - owlt, deliveredAt: UT };
+    act(() => {
+      fixture.emit("system.bodies", BODIES, meta);
+      fixture.emit("vessel.flight", FLIGHT, {
+        ...meta,
+        quality: Quality.Loaded,
+      });
+      fixture.emitFrame();
+    });
+    return rendered;
+  }
+
+  it("draws a current position a light-time behind SCET as held, since nothing carries latitude and longitude", async () => {
+    const { container } = mountDelayed(240);
+    await waitFor(() =>
+      expect(
+        container
+          .querySelector("[data-vessel-marker]")
+          ?.getAttribute("data-vessel-position"),
+      ).toBe("held"),
+    );
+  });
+
+  it("draws the same position as current when there is no light-time", async () => {
+    const { container } = mountDelayed(0);
+    await waitFor(() =>
+      expect(
+        container
+          .querySelector("[data-vessel-marker]")
+          ?.getAttribute("data-vessel-position"),
+      ).toBe("current"),
+    );
+  });
+});

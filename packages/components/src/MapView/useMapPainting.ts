@@ -39,6 +39,8 @@ interface MapPaintingInputs {
   encounterKind: EncounterKind | null;
   lat: Value<"°"> | undefined;
   lon: Value<"°"> | undefined;
+  /** The marker stands on an observation that is not the craft's present; see `MapTelemetry.positionHeld`. */
+  positionHeld: boolean;
 }
 
 /**
@@ -63,6 +65,7 @@ export function useMapPainting({
   encounterKind,
   lat,
   lon,
+  positionHeld,
 }: Readonly<MapPaintingInputs>) {
   const baseRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -204,8 +207,16 @@ export function useMapPainting({
       lon.magnitude,
     );
     const { x, y } = worldToScreen(wx, wy, camera, w, h);
-    paintVesselMarker(canvas, ctx, x, y);
-  }, [containerSize, camera, lat, lon, adjustedMap, vesselMarked]);
+    paintVesselMarker(canvas, ctx, x, y, positionHeld);
+  }, [
+    containerSize,
+    camera,
+    lat,
+    lon,
+    adjustedMap,
+    vesselMarked,
+    positionHeld,
+  ]);
 
   return {
     baseRef,
