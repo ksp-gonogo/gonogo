@@ -149,14 +149,22 @@ if (update && !only && !all) {
  */
 const WARNING =
   /not wrapped in act|testing environment is not configured to support act/i;
+/**
+ * The header vitest prints above a test's console output, naming the file every
+ * warning under it is attributed to.
+ *
+ * Every pattern here is matched against the line with its colour codes removed.
+ * Whether vitest colours a piped run depends on the environment rather than on the
+ * pipe: it colours whenever `CI` is set, and turns colour off when it detects an
+ * agent (`AI_AGENT`, `CLAUDECODE`). So the header reads plain on a laptop under an
+ * agent and painted in CI, where a raw match attributed nothing and the gate
+ * counted zero warnings in zero files on every run.
+ */
 const STDERR_HEADER = /^stderr \| (\S+)/;
 /**
- * Vitest's per-test failure line, so a crashed suite can name what broke.
- *
- * Matched against the line with its colour codes removed. Vitest paints the
- * package name as a background badge, and the `|components|` pipes a terminal
- * shows are the codes themselves: matching them found nothing in CI, where the
- * gate reads a pipe rather than a tty.
+ * Vitest's per-test failure line, so a crashed suite can name what broke. Vitest
+ * paints the package name as a background badge, and the `|components|` pipes a
+ * terminal shows are the codes themselves.
  */
 // Built from a char code rather than written as an escape: an ESC in a regex literal is a lint error, and the codes are what has to be matched.
 const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
@@ -337,27 +345,41 @@ function measure(pkg) {
   const output = `${run.stdout ?? ""}\n${run.stderr ?? ""}`;
   const failed = run.status !== 0;
 
+  const { byFile, failures } = attribute(output);
   const counts = {};
   let provoked = plant ? 0 : null;
+  for (const [file, n] of Object.entries(byFile)) {
+    if (file.includes(SELF_TEST_FILE)) continue;
+    if (file.includes(PROVOCATION_FILE)) {
+      if (provoked !== null) provoked += n;
+      continue;
+    }
+    counts[file] = n;
+  }
+  return { counts, failed, failures, provoked };
+}
+
+/**
+ * Reads a verbose vitest run into act warnings per file, keyed by the path vitest
+ * prints, and the tests that failed. A warning with no header above it is dropped,
+ * because it cannot be charged to a file.
+ */
+function attribute(output) {
+  const byFile = {};
   const failures = [];
   let current = null;
   for (const line of output.split("\n")) {
     const plain = line.replace(ANSI, "");
     if (FAILED_TEST.test(plain)) failures.push(plain.trim());
-    const header = STDERR_HEADER.exec(line);
+    const header = STDERR_HEADER.exec(plain);
     if (header) {
       current = header[1];
       continue;
     }
-    if (!WARNING.test(line) || !current) continue;
-    if (current.includes(SELF_TEST_FILE)) continue;
-    if (current.includes(PROVOCATION_FILE)) {
-      if (provoked !== null) provoked += 1;
-      continue;
-    }
-    counts[current] = (counts[current] ?? 0) + 1;
+    if (!WARNING.test(plain) || !current) continue;
+    byFile[current] = (byFile[current] ?? 0) + 1;
   }
-  return { counts, failed, failures, provoked };
+  return { byFile, failures };
 }
 
 function runSelfTest() {
@@ -379,8 +401,11 @@ function runSelfTest() {
       env: SUITE_ENV,
       maxBuffer: 256 * 1024 * 1024,
     });
-    const output = `${run.stdout ?? ""}\n${run.stderr ?? ""}`;
-    return output.split("\n").filter((l) => WARNING.test(l)).length;
+    // Counted through the same attribution the suites go through, so a counter that sees the warning but cannot charge it to a file fails here rather than reading zero in every package.
+    const { byFile } = attribute(`${run.stdout ?? ""}\n${run.stderr ?? ""}`);
+    return Object.entries(byFile)
+      .filter(([file]) => file.includes(SELF_TEST_FILE))
+      .reduce((sum, [, n]) => sum + n, 0);
   } finally {
     rmSync(path, { force: true });
   }
@@ -491,7 +516,8 @@ if (selfTestCount < 1) {
       `and a green run would be a lie.\n` +
       `Most likely a vitest reporter change: confirm by hand with\n` +
       `  pnpm --filter ${SELF_TEST_PACKAGE} exec vitest run <a react test> --reporter=verbose\n` +
-      `and check whether console output appears at all.`,
+      `and check whether console output appears at all, and whether its ` +
+      `"stderr | <file>" header still matches STDERR_HEADER once colour codes are removed.`,
   );
   process.exit(1);
 }
