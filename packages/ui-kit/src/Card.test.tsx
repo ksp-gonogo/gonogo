@@ -180,4 +180,22 @@ describe("Block and Card share one set of parts", () => {
       "background: var(--color-surface-sunken)",
     );
   });
+
+  it("dims to the muted text tier rather than fading its text under 4.5:1", () => {
+    render(
+      <Card dimmed tone="go" data-testid="card">
+        Jebediah Kerman
+      </Card>,
+    );
+    // The card's own rules, not its `::before` tab's, which does go half-strength.
+    const card = screen.getByTestId("card");
+    const own = injectedCss()
+      .split("}")
+      .filter((rule) =>
+        Array.from(card.classList).some((name) => rule.startsWith(`.${name}{`)),
+      )
+      .join("}");
+    expect(own).toContain("--color-text-primary:var(--color-text-muted)");
+    expect(own).not.toContain("opacity");
+  });
 });

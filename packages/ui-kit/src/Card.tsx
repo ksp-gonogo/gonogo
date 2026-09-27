@@ -16,8 +16,8 @@ export interface CardProps extends BlockProps {
   tone?: ReadoutTone;
   /**
    * Dims the card to signal unavailable-but-still-listed: a crew member on a
-   * mission, a part not yet unlocked. Opacity, so a dimmed card keeps its
-   * `tone` rule, just quieter.
+   * mission, a part not yet unlocked. Its text drops to the muted tier, which
+   * still reads at 4.5:1, and its `tone` rule and identity tab go half-strength.
    */
   dimmed?: boolean;
   /**
@@ -95,7 +95,17 @@ const Card__Root = styled(Block__Root)<{
     }
   `
       : ""}
-  ${({ $dimmed }) => ($dimmed ? "opacity: 0.5;" : "")}
+  ${({ $dimmed, $tone }) =>
+    $dimmed
+      ? `
+    --color-text-primary: var(--color-text-muted);
+    color: var(--color-text-muted);
+    ${$tone ? `border-left-color: color-mix(in srgb, ${TONE_COLOR[$tone]} 50%, transparent);` : ""}
+    &::before {
+      opacity: 0.5;
+    }
+  `
+      : ""}
 `;
 
 function CardRoot({
