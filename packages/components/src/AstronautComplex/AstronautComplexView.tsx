@@ -163,7 +163,6 @@ export function AstronautComplexComponent(
   const affordable =
     nextHireCost !== null &&
     (careerFunds === null || careerFunds >= nextHireCost);
-  const canHire = affordable && !rosterFull;
 
   /**
    * The lines qualifying the funds figure, composed only when there is one:
@@ -258,9 +257,6 @@ export function AstronautComplexComponent(
                 content: (
                   <ApplicantsPanel
                     applicants={applicants}
-                    affordable={affordable}
-                    canHire={canHire}
-                    rosterFull={rosterFull}
                     hireCost={nextHireCost}
                     hireCmd={hireCmd}
                   />

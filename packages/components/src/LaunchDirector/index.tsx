@@ -44,8 +44,6 @@ registerComponent<LaunchDirectorConfig>({
     "vessel.identity.name",
     "vessel.identity.launchUt",
     "vessel.flight.altitudeAsl",
-    "ksp.revertAvailability.canRevertToLaunch",
-    "ksp.revertAvailability.canRevertToEditor",
     "crash.hasRecent",
     "crash.lastCrash",
     "target.available",

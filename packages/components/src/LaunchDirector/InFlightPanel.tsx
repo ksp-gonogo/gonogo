@@ -19,9 +19,7 @@ import { VesselSwitchList } from "./VesselSwitchList";
 export function InFlightPanel({
   missionTime,
   altitudeMeters,
-  canRevertToLaunch,
-  canRevertToEditor,
-  crashBlocked,
+  crashInProgress,
   availableVessels,
   recoverCmd,
   revertLaunchCmd,
@@ -31,9 +29,7 @@ export function InFlightPanel({
 }: {
   missionTime: number | null;
   altitudeMeters: number | null;
-  canRevertToLaunch: boolean;
-  canRevertToEditor: boolean;
-  crashBlocked: boolean;
+  crashInProgress: boolean;
   availableVessels: TargetListEntry[] | undefined;
   /** The handles: each control holds its own arm and in-flight state off the one it is given. */
   recoverCmd: CommandButtonHandle;
@@ -47,10 +43,8 @@ export function InFlightPanel({
   const totalAvailable = availableVessels?.length ?? 0;
   return (
     <InFlightWrap>
-      {crashBlocked && (
-        <CrashChip role="status">
-          Crash in progress: return to Space Center to recover
-        </CrashChip>
+      {crashInProgress && (
+        <CrashChip role="status">Crash in progress</CrashChip>
       )}
       <FlightStats>
         <FlightStatRow>
@@ -71,19 +65,15 @@ export function InFlightPanel({
           label="Recover"
           confirmLabel="Confirm recover"
           pendingLabel="Recovering..."
-          disabled={crashBlocked}
         />
         <ArmedButton
           bindAs="revertToLaunch"
           kind="revert"
           handle={revertLaunchCmd}
           commandLabel="Revert to launch"
-          label={
-            canRevertToLaunch ? "Revert to launch" : "Revert to launch (n/a)"
-          }
+          label="Revert to launch"
           confirmLabel="Confirm revert to launch"
           pendingLabel="Reverting..."
-          disabled={!canRevertToLaunch}
         />
         <ArmedButton
           bindAs="revertToEditor"
@@ -91,10 +81,9 @@ export function InFlightPanel({
           handle={revertEditorCmd}
           args={{ editor: "vab" }}
           commandLabel="Revert to VAB"
-          label={canRevertToEditor ? "Revert to VAB" : "Revert to VAB (n/a)"}
+          label="Revert to VAB"
           confirmLabel="Confirm revert to VAB"
           pendingLabel="Reverting..."
-          disabled={!canRevertToEditor}
         />
         <TrackingStationControl handle={toTrackingCmd} />
         <TrackingStationButton

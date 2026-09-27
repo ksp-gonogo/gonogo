@@ -348,6 +348,15 @@ export const ArmButton = styled.button<{
   &:hover {
     filter: brightness(1.1);
   }
+
+  /* The command's gate refuses it: dark but readable, with the warn border the shared CommandButton uses. */
+  &[aria-disabled="true"] {
+    background: transparent;
+    color: var(--color-text-muted);
+    border-style: dashed;
+    border-color: var(--color-status-warning-bg);
+    cursor: help;
+  }
 `;
 
 export const TrackingStationButton = styled.button`
@@ -359,6 +368,13 @@ export const TrackingStationButton = styled.button`
   &:hover {
     filter: brightness(1.1);
     border-color: var(--color-status-info-fg);
+  }
+
+  &[aria-disabled="true"] {
+    color: var(--color-text-muted);
+    border-style: dashed;
+    border-color: var(--color-status-warning-bg);
+    cursor: help;
   }
 `;
 

@@ -7,23 +7,17 @@ import {
   Stack,
 } from "@ksp-gonogo/ui-kit";
 import { KerbalStats } from "../shared/KerbalStats";
-import { HireButton, hireRefusal } from "./CrewButtons";
+import { HireButton } from "./CrewButtons";
 import { type ApplicantRow, applicantStats } from "./roster";
 import { ASTRONAUT_COMPLEX_CREW_BADGE_SLOT } from "./slots";
 import { EMPTY_STYLE, LIST_STYLE, WHO_STYLE } from "./styles";
 
 export function ApplicantsPanel({
   applicants,
-  affordable,
-  canHire,
-  rosterFull,
   hireCost,
   hireCmd,
 }: {
   applicants: ApplicantRow[];
-  affordable: boolean;
-  canHire: boolean;
-  rosterFull: boolean;
   hireCost: number | null;
   /** The shared hire handle; each row's own `CommandButton` holds that applicant's arm and in-flight state. */
   hireCmd: CommandButtonHandle;
@@ -51,12 +45,6 @@ export function ApplicantsPanel({
                 <HireButton
                   applicantName={a.name}
                   hireCost={hireCost}
-                  enabled={canHire}
-                  disabledReason={hireRefusal({
-                    rosterFull,
-                    hireCost,
-                    affordable,
-                  })}
                   hireCmd={hireCmd}
                 />
               </Cluster>

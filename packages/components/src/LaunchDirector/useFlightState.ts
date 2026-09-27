@@ -3,7 +3,7 @@ import { useStream, useViewUt } from "@ksp-gonogo/sitrep-client";
 import { stillTrue, TargetKind } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf } from "../shared/magnitude";
 
-/** What the in-flight panel shows and gates on, for the vessel currently flying. */
+/** What the in-flight panel shows, for the vessel currently flying. */
 export function useFlightState() {
   // The craft's name changes nowhere but the editor, so the last one received still names the vessel flying.
   const identity = stillTrue(useTelemetry("vessel.identity"), undefined);
@@ -18,14 +18,6 @@ export function useFlightState() {
     return undefined;
   };
   const altitudeMeters = magnitudeOf(altitudeNow());
-  /**
-   * The revert point is a capability the game grants and withdraws on events,
-   * so a held one stands; each control is armed then confirmed anyway.
-   */
-  const revertAvailability = stillTrue(
-    useTelemetry("ksp.revertAvailability"),
-    undefined,
-  );
   // Not in the SDK's typed Topic tail, so read through `useStream`.
   const crashHasRecent = stillTrue(
     useStream<boolean>("crash.hasRecent"),
@@ -52,12 +44,11 @@ export function useFlightState() {
   );
 
   /*
-   * Recovery is crash-blocked only when the latest crash is the active
-   * vessel's, falling back to the session-wide flag before the snapshot
-   * arrives. A snapshot dated after the current UT belongs to a reverted
-   * timeline.
+   * The crash is the active vessel's own, falling back to the session-wide
+   * flag before the snapshot arrives. A snapshot dated after the current UT
+   * belongs to a reverted timeline.
    */
-  const crashBlocksRecovery = (): boolean => {
+  const activeVesselCrashed = (): boolean => {
     if (crashHasRecent !== true) return false;
     if (lastCrash == null) return true;
     const reverted =
@@ -76,9 +67,7 @@ export function useFlightState() {
     vesselName,
     missionTime: missionTime ?? null,
     altitudeMeters: altitudeMeters ?? null,
-    canRevertToLaunch: revertAvailability?.canRevertToLaunch ?? false,
-    canRevertToEditor: revertAvailability?.canRevertToEditor ?? false,
-    crashBlocked: crashBlocksRecovery(),
+    crashInProgress: activeVesselCrashed(),
     availableVessels,
   };
 }

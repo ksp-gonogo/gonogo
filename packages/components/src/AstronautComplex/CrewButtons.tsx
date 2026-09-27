@@ -9,14 +9,10 @@ import {
 export function HireButton({
   applicantName,
   hireCost,
-  enabled,
-  disabledReason,
   hireCmd,
 }: {
   applicantName: string;
   hireCost: number | null;
-  enabled: boolean;
-  disabledReason?: string;
   hireCmd: CommandButtonHandle;
 }) {
   // The cost lives in the header, so the accessible name still has to say it; words, since it never renders on screen.
@@ -35,13 +31,7 @@ export function HireButton({
       label="Hire"
       confirmLabel="Confirm"
       pendingLabel="Hiring..."
-      disabled={!enabled}
-      title={enabled ? undefined : disabledReason}
-      aria-label={
-        enabled
-          ? `Hire ${who}${costText}`
-          : `Hire ${who}${costText} (${disabledReason ?? "unavailable"})`
-      }
+      aria-label={`Hire ${who}${costText}`}
       confirmAriaLabel={`Confirm hire of ${who}${costText}`}
       pendingAriaLabel={`Hiring ${who}`}
     />
@@ -76,20 +66,4 @@ export function FireButton({
       pendingAriaLabel={`Firing ${who}`}
     />
   );
-}
-
-/** Why Hire is refused, in the order an operator would fix it: space on the roster, a quoted price, then the funds. */
-export function hireRefusal({
-  rosterFull,
-  hireCost,
-  affordable,
-}: {
-  rosterFull: boolean;
-  hireCost: number | null;
-  affordable: boolean;
-}): string | undefined {
-  if (rosterFull) return "Roster full";
-  if (hireCost === null) return "Hire price not quoted";
-  if (!affordable) return "Insufficient funds";
-  return undefined;
 }

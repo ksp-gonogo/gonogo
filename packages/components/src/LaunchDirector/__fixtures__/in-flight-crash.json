@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "in-flight-crash",
-    "notes": "Active flight with crash in progress. crash.hasRecent=true shows the crash chip. Recover button is disabled. canRevertToLaunch=false. Funds readout visible. crash.lastCrash is unset so the session-wide crash.hasRecent flag alone blocks recovery (fail-safe branch). The `_stream` block drives both snapshots.test.tsx and the probe render harness."
+    "notes": "Active flight with crash in progress. crash.hasRecent=true shows the crash chip. canRevertToLaunch=false and canRevertToEditor=false, so both reverts' own gates refuse them and the controls are dark with the game's reason. Funds readout visible. crash.lastCrash is unset so the session-wide crash.hasRecent flag alone raises the chip. The `_stream` block drives both snapshots.test.tsx and the probe render harness."
   },
   "tar.availableVessels": [],
   "_stream": {
@@ -22,7 +22,8 @@
       "vessel.propulsion",
       "ksp.revertAvailability",
       "crash.hasRecent",
-      "crash.lastCrash"
+      "crash.lastCrash",
+      "system.uplink.gates"
     ],
     "pinnedUt": 10,
     "emits": [
@@ -122,6 +123,29 @@
       {
         "channel": "crash.hasRecent",
         "value": true
+      },
+      {
+        "channel": "system.uplink.gates",
+        "value": {
+          "gates": [
+            {
+              "command": "ksp.revertToLaunch",
+              "verdict": {
+                "outcome": 1,
+                "errorCode": 15,
+                "detail": "this flight cannot be reverted to launch"
+              }
+            },
+            {
+              "command": "ksp.revertToEditor",
+              "verdict": {
+                "outcome": 1,
+                "errorCode": 15,
+                "detail": "this flight cannot be reverted to the editor"
+              }
+            }
+          ]
+        }
       }
     ]
   }

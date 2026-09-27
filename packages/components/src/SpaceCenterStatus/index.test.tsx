@@ -162,7 +162,8 @@ describe("SpaceCenterStatusComponent", () => {
     });
   });
 
-  it("disables upgrade button outside the SC scene", async () => {
+  /** The scene is the command's to declare, and `career.facility.upgrade` declares none. */
+  it("offers the upgrade outside the SC scene", async () => {
     renderWidget();
     act(() => {
       stream.emit("spaceCenter.scene", { scene: "Flight" });
@@ -186,7 +187,7 @@ describe("SpaceCenterStatusComponent", () => {
     const upgradeButtons = await screen.findAllByRole("button", {
       name: "Upgrade",
     });
-    expect((upgradeButtons[0] as HTMLButtonElement).disabled).toBe(true);
+    expect((upgradeButtons[0] as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("disables upgrade when funds insufficient", async () => {

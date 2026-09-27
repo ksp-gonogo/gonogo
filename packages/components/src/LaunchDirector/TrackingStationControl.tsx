@@ -39,7 +39,29 @@ export function TrackingStationControl({
       </TrackingStationConfirm>
     );
   }
-  const { isArmed, isRefused, isLost, refusalText } = trackingStation;
+  const {
+    isArmed,
+    isRefused,
+    isLost,
+    isBlocked,
+    isShowingReason,
+    refusalText,
+  } = trackingStation;
+  if (isBlocked) {
+    // aria-disabled, not disabled, so a press can show the command's own reason.
+    return (
+      <TrackingStationButton
+        type="button"
+        onClick={() => trackingStation.press(true)}
+        aria-disabled="true"
+        aria-label={refusalText ?? undefined}
+        title={refusalText ?? undefined}
+        data-gate="blocked"
+      >
+        {isShowingReason ? refusalText : "Tracking Station"}
+      </TrackingStationButton>
+    );
+  }
   if (isArmed || isRefused || isLost) {
     const lossText = isLost ? loss : undefined;
     return (

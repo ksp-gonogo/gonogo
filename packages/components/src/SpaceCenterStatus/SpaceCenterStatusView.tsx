@@ -34,7 +34,6 @@ export interface SpaceCenterStatusViewProps {
   padLine: string;
   tiersHeldSince: HeldSince;
   facilities: FacilityLevels;
-  upgradesEnabled: boolean;
   upgradeBlocked: boolean;
   upgradeCmd: CommandButtonHandle;
 }
@@ -51,7 +50,6 @@ export function SpaceCenterStatusView({
   padLine,
   tiersHeldSince,
   facilities,
-  upgradesEnabled,
   upgradeBlocked,
   upgradeCmd,
 }: SpaceCenterStatusViewProps) {
@@ -139,7 +137,6 @@ export function SpaceCenterStatusView({
                       f={facilities[key]}
                       tierSpecsFit={tierSpecsFit}
                       anyTierText={anyTierText}
-                      upgradesEnabled={upgradesEnabled}
                       careerFunds={careerFunds}
                       tiersHeldSince={tiersHeldSince}
                       upgradeBlocked={upgradeBlocked}

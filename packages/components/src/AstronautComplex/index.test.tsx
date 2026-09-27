@@ -8,7 +8,12 @@ import {
   registerAugment,
   registerContribution,
 } from "@ksp-gonogo/core";
-import { CrewStanding, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  CommandErrorCode,
+  CrewStanding,
+  GateOutcome,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   render as rtlRender,
@@ -48,7 +53,24 @@ const CARRIED = [
   "career.status",
   "career.crew.hire",
   "career.crew.fire",
+  "system.uplink.gates",
 ];
+
+/** The mod's standing verdict on `career.crew.hire`, as `system.uplink.gates` carries it. */
+function emitHireGate(
+  fixture: StreamFixture,
+  errorCode: CommandErrorCode,
+  detail: string,
+) {
+  fixture.emit("system.uplink.gates", {
+    gates: [
+      {
+        command: "career.crew.hire",
+        verdict: { outcome: GateOutcome.Fail, errorCode, detail },
+      },
+    ],
+  });
+}
 
 // Generous, so affordability blocks a hire only when a test lowers it.
 function emitFunds(fixture: StreamFixture, funds: number | null) {
@@ -1205,7 +1227,8 @@ describe("AstronautComplexComponent", () => {
     expect(await screen.findByText("Nobody Kerman")).toBeInTheDocument();
   });
 
-  it("disables hire when funds are short of the cost", async () => {
+  /** The hire's own gate says the price is short; the widget draws nothing of its own. */
+  it("darkens Hire with the command's own sentence when its gate refuses the price", async () => {
     renderWidget();
     act(() => {
       emitFunds(fixture, 1000); // well under the 24000 hire cost
@@ -1217,13 +1240,27 @@ describe("AstronautComplexComponent", () => {
       });
     });
 
-    const hire = await screen.findByRole("button", {
-      name: /Hire Desdin Kerman.*Insufficient funds/,
+    // Short funds alone decide nothing about the control: the command has not said no.
+    const live = await screen.findByRole("button", {
+      name: /^Hire Desdin Kerman/,
     });
-    expect(hire).toBeDisabled();
+    expect(live).not.toHaveAttribute("aria-disabled");
+
+    act(() => {
+      emitHireGate(
+        fixture,
+        CommandErrorCode.InsufficientFunds,
+        "short of funds",
+      );
+    });
+    const hire = await screen.findByRole("button", {
+      name: /Hire Desdin Kerman unavailable: short of funds/,
+    });
+    expect(hire).toHaveAttribute("aria-disabled", "true");
+    expect(hire).toHaveAttribute("data-gate", "blocked");
   });
 
-  it("marks the roster full and disables hire at the Astronaut Complex cap", async () => {
+  it("marks the roster full, and Hire takes the cap refusal from the command's gate", async () => {
     renderWidget();
     act(() => {
       emitFunds(fixture, 500000);
@@ -1233,13 +1270,18 @@ describe("AstronautComplexComponent", () => {
         crewCapacity: 5,
         nextHireCost: NEXT_HIRE_COST,
       });
+      emitHireGate(
+        fixture,
+        CommandErrorCode.LimitReached,
+        "the roster is full",
+      );
     });
 
     expect(await screen.findByText(/FULL/)).toBeInTheDocument();
-    const hire = screen.getByRole("button", {
-      name: /Hire Desdin Kerman.*Roster full/,
+    const hire = await screen.findByRole("button", {
+      name: /Hire Desdin Kerman unavailable: the roster is full/,
     });
-    expect(hire).toBeDisabled();
+    expect(hire).toHaveAttribute("aria-disabled", "true");
   });
 
   it("renders the crew cap as unlimited (never the raw int.MaxValue sentinel) and never marks the roster full", async () => {

@@ -453,7 +453,7 @@ describe("LaunchDirectorComponent", () => {
     });
   });
 
-  it("surfaces a crash chip and disables recover when the active vessel itself crashed", async () => {
+  it("surfaces a crash chip when the active vessel itself crashed, and leaves Recover to the command", async () => {
     renderWidget();
     act(() => {
       stream.emit("spaceCenter.savedShips", []);
@@ -467,11 +467,9 @@ describe("LaunchDirectorComponent", () => {
       stream.emit("crash.lastCrash", { vesselName: "Doomed Probe" });
     });
 
-    expect(
-      await screen.findByText(/Crash in progress: return to Space Center/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Crash in progress/i)).toBeInTheDocument();
     const recoverBtn = screen.getByRole("button", { name: /^Recover$/i });
-    expect(recoverBtn).toBeDisabled();
+    expect(recoverBtn).not.toHaveAttribute("aria-disabled");
   });
 
   // Tracking Station mid-flight reverts the flight (KSP cannot save there), so it needs arm-then-confirm.
@@ -578,8 +576,8 @@ describe("LaunchDirectorComponent", () => {
     });
   });
 
-  // Debris from a previous flight must not block recovery: the gate is scoped to the active vessel's name.
-  it("does not block recovery when crash.hasRecent is for a different vessel (debris)", async () => {
+  // Debris from a previous flight is not the active vessel's crash: the chip is scoped to its name.
+  it("does not chip a crash when crash.hasRecent is for a different vessel (debris)", async () => {
     renderWidget();
     act(() => {
       stream.emit("spaceCenter.savedShips", []);
@@ -597,15 +595,13 @@ describe("LaunchDirectorComponent", () => {
     await waitFor(() =>
       expect(visibleText()).toMatch(/In flight: LFV-1 Lander/i),
     );
-    expect(
-      screen.queryByText(/Crash in progress: return to Space Center/i),
-    ).toBeNull();
+    expect(screen.queryByText(/Crash in progress/i)).toBeNull();
     const recoverBtn = screen.getByRole("button", { name: /^Recover$/i });
     expect(recoverBtn).not.toBeDisabled();
   });
 
-  // A crash snapshot dated after the current UT is from a reverted timeline and must not gate recovery.
-  it("does not block recovery when the crash snapshot post-dates current UT (reverted flight)", async () => {
+  // A crash snapshot dated after the current UT is from a reverted timeline.
+  it("does not chip a crash when the crash snapshot post-dates current UT (reverted flight)", async () => {
     // Pinned so the crash-staleness comparison below has its UT.
     teardownMockDataSource(cmdFixture);
     cmdFixture = await setupMockDataSource({ keys: [] });
@@ -635,9 +631,7 @@ describe("LaunchDirectorComponent", () => {
     await waitFor(() =>
       expect(screen.getByText(/In flight: Doomed Probe/i)).toBeInTheDocument(),
     );
-    expect(
-      screen.queryByText(/Crash in progress: return to Space Center/i),
-    ).toBeNull();
+    expect(screen.queryByText(/Crash in progress/i)).toBeNull();
     const recoverBtn = screen.getByRole("button", { name: /^Recover$/i });
     expect(recoverBtn).not.toBeDisabled();
   });

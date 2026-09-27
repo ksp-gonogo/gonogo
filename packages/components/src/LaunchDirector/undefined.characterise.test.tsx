@@ -1,4 +1,5 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
+import { CommandErrorCode, GateOutcome } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
@@ -31,6 +32,7 @@ const ALL_READS = [
   "crash.hasRecent",
   "crash.lastCrash",
   "target.available",
+  "system.uplink.gates",
 ];
 
 const KERBAL_X = {
@@ -259,13 +261,13 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     ).toBeTruthy();
   });
 
-  it("does not block recovery when crash.hasRecent is absent, but does block it when only crash.lastCrash is", async () => {
+  it("chips a crash from crash.hasRecent alone, and never decides Recover's availability itself", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
       suspendFrames: true,
     });
-    mount(fixture, "ld-crash-gate");
+    mount(fixture, "ld-crash-chip");
 
     act(() => {
       fixture.emit("spaceCenter.savedShips", []);
@@ -280,24 +282,23 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       });
     });
 
-    // An absent crash channel reads as "no crash": fail-open.
+    // An absent crash channel reads as "no crash".
     const recover = await waitFor(() =>
       screen.getByRole("button", { name: /^Recover$/ }),
     );
-    expect(recover).not.toBeDisabled();
     expect(screen.queryByText(/Crash in progress/)).toBeNull();
 
-    // With hasRecent true and no snapshot to scope it, recovery is blocked for the session: the opposite default.
+    // With hasRecent true and no snapshot to scope it, the crash is chipped for the session.
     act(() => {
       fixture.emit("crash.hasRecent", true);
     });
     await waitFor(() =>
       expect(screen.getByText(/Crash in progress/)).toBeTruthy(),
     );
-    expect(screen.getByRole("button", { name: /^Recover$/ })).toBeDisabled();
+    expect(recover).not.toHaveAttribute("aria-disabled");
   });
 
-  it("labels both reverts '(n/a)' and disables them when revert availability is absent", async () => {
+  it("labels both reverts plainly and leaves them to the command's gate when revert availability is absent", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
@@ -310,27 +311,36 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       fixture.emit("spaceCenter.scene", { scene: "Flight" });
     });
 
-    // Absence renders as a positive claim that reverting is unavailable.
     const revertLaunch = await waitFor(() =>
-      screen.getByRole("button", { name: "Revert to launch (n/a)" }),
+      screen.getByRole("button", { name: "Revert to launch" }),
     );
-    expect(revertLaunch).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: "Revert to VAB (n/a)" }),
-    ).toBeDisabled();
+    expect(revertLaunch).not.toHaveAttribute("aria-disabled");
+    expect(screen.queryByText(/\(n\/a\)/)).toBeNull();
 
-    // The flags arriving flips both labels.
+    // The command's own gate is what darkens it, with the game's reason.
     act(() => {
-      fixture.emit("ksp.revertAvailability", {
-        canRevertToLaunch: true,
-        canRevertToEditor: true,
+      fixture.emit("system.uplink.gates", {
+        gates: [
+          {
+            command: "ksp.revertToLaunch",
+            verdict: {
+              outcome: GateOutcome.Fail,
+              errorCode: CommandErrorCode.NotClearToProceed,
+              detail: "this flight cannot be reverted to launch",
+            },
+          },
+        ],
       });
     });
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: "Revert to launch" }),
-      ).not.toBeDisabled(),
+    const blocked = await waitFor(() =>
+      screen.getByRole("button", {
+        name: /Revert to launch unavailable: this flight cannot be reverted to launch/,
+      }),
     );
+    expect(blocked).toHaveAttribute("aria-disabled", "true");
+    expect(
+      screen.getByRole("button", { name: "Revert to VAB" }),
+    ).not.toHaveAttribute("aria-disabled");
   });
 
   it("names the in-flight vessel '(unnamed)' and reports no other vessels in the save", async () => {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
 import earlyGame from "./__fixtures__/early-game-t1.json";
-import flightScene from "./__fixtures__/flight-scene-upgrades-disabled.json";
+import flightScene from "./__fixtures__/flight-scene-upgrades-offered.json";
 import fullyUpgraded from "./__fixtures__/fully-upgraded-t3.json";
 import lowFunds from "./__fixtures__/low-funds-expensive-upgrade.json";
 import midCareer from "./__fixtures__/mid-career-mixed.json";
@@ -17,7 +17,7 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
   "fully-upgraded-t3": fullyUpgraded,
   "sandbox-no-career": sandbox,
   "low-funds-expensive-upgrade": lowFunds,
-  "flight-scene-upgrades-disabled": flightScene,
+  "flight-scene-upgrades-offered": flightScene,
 };
 
 const config = getWidget("space-center-status");

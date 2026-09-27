@@ -160,7 +160,7 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
     expect(fundsValue).toHaveTextContent(NULL_DISPLAY);
   });
 
-  it("disables Hire on an unquoted price as 'Hire price not quoted', never as a funds shortfall", async () => {
+  it("leaves Hire to the command on an unquoted price, and says no funds shortfall", async () => {
     // Applicants present, every numeric field missing: the cap readouts show the placeholder with no "/ capacity" suffix.
     renderWidget();
     act(() => {
@@ -168,13 +168,11 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
     });
 
     const hire = await screen.findByRole("button", {
-      name: /Hire price not quoted/,
+      name: /^Hire Desdin Kerman/,
     });
-    expect(hire).toBeDisabled();
-    // No cost clause in the accessible name.
-    expect(hire).toHaveAccessibleName(
-      "Hire Desdin Kerman (Hire price not quoted)",
-    );
+    // No cost clause in the accessible name, and no availability claim of the widget's own.
+    expect(hire).toHaveAccessibleName("Hire Desdin Kerman");
+    expect(hire).not.toHaveAttribute("aria-disabled");
     expect(screen.queryByText(/Insufficient funds/)).not.toBeInTheDocument();
     // No denominator and no FULL claim without a known cap.
     const activeValue = screen.getByText("Active Kerbals").nextElementSibling;

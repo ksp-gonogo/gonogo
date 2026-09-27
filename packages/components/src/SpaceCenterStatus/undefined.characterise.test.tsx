@@ -127,14 +127,14 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     );
   });
 
-  /** An unknown scene grants no permission to spend. */
-  it("withholds the upgrade button while the scene is unknown, and offers it once SpaceCenter arrives", async () => {
+  /** Scene availability is the command's to declare, so the widget reads no scene before offering an upgrade. */
+  it("offers the upgrade button whatever the scene reads", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
       suspendFrames: true,
     });
-    mount(fixture, "scs-scene-gate", 6, 7);
+    mount(fixture, "scs-scene-free", 6, 7);
 
     act(() => {
       fixture.emit("career.facilities", {
@@ -150,31 +150,20 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
       });
     });
 
-    // No scene: the affordance is visible but inert.
     const button = await waitFor(() =>
       screen.getByRole("button", { name: "Upgrade" }),
     );
-    expect((button as HTMLButtonElement).disabled).toBe(true);
+    expect((button as HTMLButtonElement).disabled).toBe(false);
 
-    // Only the right scene grants permission: Flight leaves it disabled too.
-    act(() => {
-      fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
-    });
-    await waitFor(() =>
+    for (const scene of ["SpaceCenter", "Flight", "TrackingStation"]) {
+      act(() => {
+        fixture.emit("spaceCenter.scene", { scene });
+      });
       expect(
         (screen.getByRole("button", { name: "Upgrade" }) as HTMLButtonElement)
           .disabled,
-      ).toBe(false),
-    );
-    act(() => {
-      fixture.emit("spaceCenter.scene", { scene: "Flight" });
-    });
-    await waitFor(() =>
-      expect(
-        (screen.getByRole("button", { name: "Upgrade" }) as HTMLButtonElement)
-          .disabled,
-      ).toBe(true),
-    );
+      ).toBe(false);
+    }
   });
 
   /** An unknown balance is never a sufficient one. */

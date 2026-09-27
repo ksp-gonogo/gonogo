@@ -19,7 +19,6 @@ export function ArmedButton({
   label,
   confirmLabel,
   kind,
-  disabled,
   pendingLabel,
   bindAs,
 }: {
@@ -29,7 +28,6 @@ export function ArmedButton({
   label: string;
   confirmLabel: string;
   kind: "launch" | "recover" | "revert";
-  disabled?: boolean;
   pendingLabel?: string;
   /** The action that presses this control from a bound input. */
   bindAs?: LaunchDirectorActionId;
@@ -39,16 +37,13 @@ export function ArmedButton({
     isPending,
     isRefused,
     isLost,
+    isBlocked,
+    isShowingReason,
     refusalText,
     hasFailure,
     press,
   } = useCommandButton({ handle, args, commandLabel });
-  // Mirrors which render takes a click: pending never, refused and lost always, the rest unless disabled.
-  useBindPress(
-    bindAs,
-    press,
-    !isPending && (isRefused || isLost || disabled !== true),
-  );
+  useBindPress(bindAs, press, !isPending);
 
   if (isPending) {
     return (
@@ -87,13 +82,29 @@ export function ArmedButton({
       </ConfirmButton>
     );
   }
+  if (isBlocked) {
+    // aria-disabled, not disabled, so a press can show the command's own reason.
+    return (
+      <ArmButton
+        type="button"
+        onClick={() => press(true)}
+        $kind={kind}
+        aria-disabled="true"
+        aria-label={refusalText ?? undefined}
+        title={refusalText ?? undefined}
+        data-gate="blocked"
+        data-launch-action={`blocked-${kind}`}
+      >
+        {isShowingReason ? refusalText : label}
+      </ArmButton>
+    );
+  }
   if (isArmed) {
     return (
       <ConfirmButton
         type="button"
         onClick={() => press(true)}
         $kind={kind}
-        disabled={disabled}
         data-launch-action={`confirm-${kind}`}
       >
         {confirmLabel}
@@ -105,7 +116,6 @@ export function ArmedButton({
       type="button"
       onClick={() => press(true)}
       $kind={kind}
-      disabled={disabled}
       data-failed={hasFailure ? "true" : undefined}
       data-launch-action={`arm-${kind}`}
     >

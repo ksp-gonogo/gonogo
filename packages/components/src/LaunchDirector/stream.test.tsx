@@ -98,7 +98,7 @@ describe("LaunchDirector: genuinely runs off the stream", () => {
     );
   });
 
-  it("surfaces a crash chip and disables recover when the streamed crash is for the active vessel", async () => {
+  it("surfaces a crash chip when the streamed crash is for the active vessel, and leaves Recover to the command", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: [
         "spaceCenter.savedShips",
@@ -154,11 +154,9 @@ describe("LaunchDirector: genuinely runs off the stream", () => {
     });
 
     await waitFor(() =>
-      expect(
-        screen.getByText(/Crash in progress: return to Space Center/i),
-      ).toBeInTheDocument(),
+      expect(screen.getByText(/Crash in progress/i)).toBeInTheDocument(),
     );
     const recoverBtn = screen.getByRole("button", { name: /^Recover$/i });
-    expect(recoverBtn).toBeDisabled();
+    expect(recoverBtn).not.toHaveAttribute("aria-disabled");
   });
 });

@@ -200,9 +200,7 @@ export function LaunchDirectorComponent({
               <InFlightPanel
                 missionTime={flight.missionTime}
                 altitudeMeters={flight.altitudeMeters}
-                canRevertToLaunch={flight.canRevertToLaunch}
-                canRevertToEditor={flight.canRevertToEditor}
-                crashBlocked={flight.crashBlocked}
+                crashInProgress={flight.crashInProgress}
                 availableVessels={flight.availableVessels}
                 recoverCmd={recoverCmd}
                 revertLaunchCmd={revertLaunchCmd}

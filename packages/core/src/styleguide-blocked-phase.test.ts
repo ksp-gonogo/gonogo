@@ -90,19 +90,7 @@ const SHARED_BUTTON = "packages/ui-kit/src/CommandButton/CommandButton.tsx";
  * The value is the reason, not a count, because there is nothing to count: a
  * control either renders the phase or does not.
  */
-const BLOCKED_PHASE_DEBT: Record<string, string> = {
-  // LaunchDirector's two hand-rolled controls are a scene switch and the pad/flight verbs
-  // (launch, recover, revert), so no spend-truth claim rides on either and
-  // there is no price beside them to be wrong about. Left alone deliberately
-  // rather than overlooked. What would remove these entries: giving `ArmedButton`
-  // and the Tracking Station control the blocked phase, which is worth doing on
-  // its own merits (a revert the game will refuse currently looks pressable)
-  // and is a UX decision about warning-worded chrome, not a mechanical edit.
-  "packages/components/src/LaunchDirector/ArmedButton.tsx":
-    "Pad verbs, no price beside the control. Wants the phase anyway; the chrome question is unanswered.",
-  "packages/components/src/LaunchDirector/TrackingStationControl.tsx":
-    "Scene switch, no price beside the control. Wants the phase anyway; the chrome question is unanswered.",
-};
+const BLOCKED_PHASE_DEBT: Record<string, string> = {};
 
 /**
  * Not source under this rule:

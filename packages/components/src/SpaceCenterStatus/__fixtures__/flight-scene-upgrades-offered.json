@@ -1,7 +1,7 @@
 {
   "_meta": {
-    "notes": "Player is in Flight scene, not at Space Center. All upgrade buttons are disabled even though funds are ample. Tests the scene-guard logic. Pad is occupied with a vessel in flight.",
-    "scenario": "flight-scene-upgrades-disabled"
+    "notes": "Player is in Flight scene, not at Space Center. Upgrade buttons are offered: the command declares no scene. Pad is occupied with a vessel in flight.",
+    "scenario": "flight-scene-upgrades-offered"
   },
   "career.funds": 500000,
   "_stream": {

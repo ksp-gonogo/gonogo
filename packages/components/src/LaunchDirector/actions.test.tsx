@@ -3,6 +3,7 @@ import {
   dispatchAction,
   getComponent,
 } from "@ksp-gonogo/core";
+import { CommandErrorCode, GateOutcome } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -35,6 +36,7 @@ const CARRIED = [
   "crash.hasRecent",
   "crash.lastCrash",
   "target.available",
+  "system.uplink.gates",
 ];
 
 const ID = "ld";
@@ -120,6 +122,24 @@ describe("LaunchDirector actions", () => {
           unavailableReason: "",
         },
       ]);
+    });
+  }
+
+  /** The mod's standing refusal of one command, as `system.uplink.gates` carries it. */
+  function emitGate(command: string, detail: string) {
+    act(() => {
+      stream.emit("system.uplink.gates", {
+        gates: [
+          {
+            command,
+            verdict: {
+              outcome: GateOutcome.Fail,
+              errorCode: CommandErrorCode.NotClearToProceed,
+              detail,
+            },
+          },
+        ],
+      });
     });
   }
 
@@ -210,11 +230,13 @@ describe("LaunchDirector actions", () => {
     await act(async () => {});
   });
 
-  it("recover does nothing while the control is dark for a crash of the active vessel", async () => {
+  it("recover sends nothing while its gate refuses, and says why on the control", async () => {
     renderWidget();
-    emitFlight({ name: "Doomed Probe", crashed: true });
-    const recover = await screen.findByRole("button", { name: /^Recover$/i });
-    expect(recover).toBeDisabled();
+    emitFlight({ name: "Doomed Probe" });
+    emitGate("ksp.recover", "about to crash");
+    await screen.findByRole("button", {
+      name: /Recover unavailable: about to crash/,
+    });
 
     press("recover");
     press("recover");
@@ -222,6 +244,9 @@ describe("LaunchDirector actions", () => {
 
     expect(sent("ksp.recover")).toEqual([]);
     expect(screen.queryByText(/Confirm recover/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Recover unavailable: about to crash/),
+    ).toBeTruthy();
   });
 
   it("recover arms, then recovers the vessel in flight", async () => {
@@ -239,10 +264,13 @@ describe("LaunchDirector actions", () => {
     );
   });
 
-  it("revertToLaunch does nothing while the save cannot revert", async () => {
+  it("revertToLaunch sends nothing while its gate says the flight cannot revert", async () => {
     renderWidget();
-    emitFlight({ name: "Probe", canRevertToLaunch: false });
-    await screen.findByText(/Revert to launch \(n\/a\)/i);
+    emitFlight({ name: "Probe" });
+    emitGate("ksp.revertToLaunch", "this flight cannot be reverted to launch");
+    await screen.findByRole("button", {
+      name: /Revert to launch unavailable/,
+    });
 
     press("revertToLaunch");
     press("revertToLaunch");

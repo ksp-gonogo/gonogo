@@ -35,7 +35,6 @@ const topics = defineTopicManifest({
     "career.status.economy.subsidyPerDay",
     "career.status.economy.upkeepPerDay",
     "spaceCenter.scene.launchSite",
-    "spaceCenter.scene.scene",
     "spaceCenter.state.padOccupied",
     "spaceCenter.state.padVesselTitle",
   ],
@@ -71,8 +70,6 @@ function SpaceCenterStatusComponent({
   const sceneReading = useTelemetry("spaceCenter.scene");
   // The site changes only when a vessel launches from it, so the last one reported is still the answer.
   const launchSite = stillTrue(sceneReading, undefined)?.launchSite;
-  const scene =
-    sceneReading.state === "observed" ? sceneReading.value.scene : undefined;
   // The pad changes when a vessel rolls out or launches, so it holds like the site.
   const spaceCenterState = stillTrue(
     useStream<SpaceCenterState>("spaceCenter.state"),
@@ -101,9 +98,6 @@ function SpaceCenterStatusComponent({
       ? { asOfUt: facilitiesReading.asOfUt, grade: facilitiesReading.grade }
       : null;
 
-  // Upgrades work in the Space Center scene only; an unknown or held scene grants no permission to spend, since the player may have walked out since.
-  const upgradesEnabled = scene === "SpaceCenter";
-
   // Announced through aria-live, so "No vehicle on pad" must never be reached from two absences.
   const padLine = describePad(padOccupied, padVesselTitle, launchSite);
 
@@ -120,7 +114,6 @@ function SpaceCenterStatusComponent({
       padLine={padLine}
       tiersHeldSince={tiersHeldSince}
       facilities={facilities}
-      upgradesEnabled={upgradesEnabled}
       upgradeBlocked={upgradeBlocked}
       upgradeCmd={upgradeCmd}
     />
@@ -146,7 +139,7 @@ registerComponent<SpaceCenterStatusConfig>({
   id: "space-center-status",
   name: "Space Center Status",
   description:
-    "KSC overview: facility levels (VAB, SPH, R&D, ...), launch-pad state, and arm-then-confirm upgrade buttons per facility (only enabled in the Space Center scene; disabled when funds are short or the facility is at max).",
+    "KSC overview: facility levels (VAB, SPH, R&D, ...), launch-pad state, and arm-then-confirm upgrade buttons per facility.",
   tags: ["career", "kc"],
   defaultSize: { w: 6, h: 7 },
   minSize: { w: 2, h: 3 },

@@ -59,7 +59,6 @@ export interface FacilityGridItemProps {
   f: FacilityLevel | undefined;
   tierSpecsFit: boolean;
   anyTierText: boolean;
-  upgradesEnabled: boolean;
   careerFunds: number | null;
   tiersHeldSince: HeldSince;
   upgradeBlocked: boolean;
@@ -72,7 +71,6 @@ export function FacilityGridItem({
   f,
   tierSpecsFit,
   anyTierText,
-  upgradesEnabled,
   careerFunds,
   tiersHeldSince,
   upgradeBlocked,
@@ -88,8 +86,7 @@ export function FacilityGridItem({
     f.upgradeFunds > 0 &&
     careerFunds !== null &&
     careerFunds >= f.upgradeFunds;
-  const canUpgrade =
-    upgradesEnabled && !!f && !atMax && f.upgradeFunds > 0 && canAfford;
+  const canUpgrade = !!f && !atMax && f.upgradeFunds > 0 && canAfford;
   // A blocked command is refused for a reason the balance has no part in, and a balance that is not current answers nothing, so either way the price is a plain figure.
   const moneyDecides = !upgradeBlocked && careerFunds !== null;
   const tooltip = buildFacilityTooltip(label, f);
