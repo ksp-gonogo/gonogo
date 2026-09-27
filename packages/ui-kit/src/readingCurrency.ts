@@ -74,6 +74,44 @@ function sayCurrency(
   return at === null ? caption : `${caption}, as of ${at}`;
 }
 
+/** How a primitive reads a {@link Reading}. */
+export interface CurrencyOptions {
+  /**
+   * The consumer draws the reading's reckoning, where one is on offer, rather
+   * than its observation: a countdown, or a figure a widget solves forward.
+   * The modelled figure is then marked wherever it is not a reading of now,
+   * which under signal delay includes a current reading carried to SCET.
+   */
+  readonly drawsReckoning?: boolean;
+}
+
+/** The mark's words for a current reading whose figure the model carried across the light-time. */
+const MODELLED_TO_SCET = "modelled to SCET";
+
+/** The mark and its words for a held reading's observation. */
+function heldCurrency<U extends string>(
+  input: Reading<Value<U>>,
+): Omit<Resolved<U>, "band"> {
+  /*
+   * The mark follows the number, not the state: a held reading with no value
+   * gets no dot. Whatever is marked gets words, including the ordinary
+   * gradeless held reading a derived value produces.
+   */
+  return {
+    shown: input.value,
+    notCurrent: input.value !== undefined,
+    caption:
+      input.value === undefined
+        ? null
+        : sayCurrency(
+            input.grade === undefined
+              ? HELD_WITHOUT_GRADE
+              : formatStreamStatus(input.grade),
+            input.asOfUt,
+          ),
+  };
+}
+
 /**
  * Split what was handed in into the number and the statement about it.
  *
@@ -83,6 +121,7 @@ function sayCurrency(
  */
 export function resolveCurrency<U extends string>(
   input: UnitValue<U> | null | undefined,
+  options: CurrencyOptions = {},
 ): Resolved<U> {
   // `in` throws on a primitive, and some callers hand over a raw magnitude.
   if (typeof input !== "object" || input === null || !("state" in input)) {
@@ -93,30 +132,27 @@ export function resolveCurrency<U extends string>(
     input.reckoning.status === "available"
       ? (input.reckoning.band ?? null)
       : null;
-  if (input.state === "observed") {
-    return { shown: input.value, notCurrent: false, caption: null, band };
-  }
-  if (input.state === "stale") {
-    /*
-     * The mark follows the number, not the state: a held reading with no value
-     * gets no dot. Whatever is marked gets words, including the ordinary
-     * gradeless held reading a derived value produces.
-     */
+  if (
+    options.drawsReckoning &&
+    input.reckoning.status === "available" &&
+    (input.state === "observed" || input.state === "stale")
+  ) {
+    const shown = input.reckoning.modelled;
+    if (input.state === "stale") {
+      return { ...heldCurrency(input), shown, band };
+    }
+    const carried = input.reckoning.beyondReceived;
     return {
-      shown: input.value,
-      notCurrent: input.value !== undefined,
-      caption:
-        input.value === undefined
-          ? null
-          : sayCurrency(
-              input.grade === undefined
-                ? HELD_WITHOUT_GRADE
-                : formatStreamStatus(input.grade),
-              input.asOfUt,
-            ),
+      shown,
+      notCurrent: carried,
+      caption: carried ? MODELLED_TO_SCET : null,
       band,
     };
   }
+  if (input.state === "observed") {
+    return { shown: input.value, notCurrent: false, caption: null, band };
+  }
+  if (input.state === "stale") return { ...heldCurrency(input), band };
   // `null` rather than `undefined`, so the caller renders the null token rather than the symbol form.
   return { shown: null, notCurrent: false, caption: null, band: null };
 }
