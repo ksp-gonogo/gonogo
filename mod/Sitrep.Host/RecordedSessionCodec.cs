@@ -97,6 +97,13 @@ namespace Sitrep.Host
             AppendField(sb, "seq");
             JsonWriter.AppendInteger(sb, entry.Seq);
 
+            AppendPayload(sb, entry);
+
+            sb.Append('}');
+        }
+
+        private static void AppendPayload(StringBuilder sb, RecordedEntry entry)
+        {
             if (entry.Kind == "snapshot" && entry.Snapshot != null)
             {
                 AppendField(sb, "snapshot");
@@ -105,21 +112,19 @@ namespace Sitrep.Host
                 sb.Append(':');
                 JsonWriter.AppendValue(sb, entry.Snapshot.Values);
                 sb.Append('}');
+                return;
             }
-            else if (entry.Kind == "event" && entry.Event != null)
-            {
-                AppendField(sb, "event");
-                sb.Append('{');
-                JsonWriter.AppendString(sb, "eventKind");
-                sb.Append(':');
-                JsonWriter.AppendString(sb, entry.Event.EventKind);
-                sb.Append(',');
-                JsonWriter.AppendString(sb, "args");
-                sb.Append(':');
-                JsonWriter.AppendValue(sb, entry.Event.Args);
-                sb.Append('}');
-            }
+            if (entry.Kind != "event" || entry.Event == null) return;
 
+            AppendField(sb, "event");
+            sb.Append('{');
+            JsonWriter.AppendString(sb, "eventKind");
+            sb.Append(':');
+            JsonWriter.AppendString(sb, entry.Event.EventKind);
+            sb.Append(',');
+            JsonWriter.AppendString(sb, "args");
+            sb.Append(':');
+            JsonWriter.AppendValue(sb, entry.Event.Args);
             sb.Append('}');
         }
 

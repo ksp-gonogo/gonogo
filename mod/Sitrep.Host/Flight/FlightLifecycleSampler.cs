@@ -188,24 +188,7 @@ namespace Sitrep.Host.Flight
 
             if (isRewind)
             {
-                if (_activeVesselId != null)
-                {
-                    PublishEnded(_activeVesselId, _activeVesselName, FlightEndReason.Reverted, snapshot.Ut);
-                    _activeVesselId = null;
-                    _activeVesselName = "";
-                }
-                else if (_lastEndedVesselId != null && _lastEndedUt >= snapshot.Ut)
-                {
-                    // The most recent end (crash/recovery) happened ON the
-                    // abandoned branch this rewind erases -- retroactively
-                    // re-announce it as Reverted at the revert-target Ut, so
-                    // the operator (who may never have seen the original end
-                    // reveal at all) still learns this flight is over, and
-                    // why. See the field's own doc comment.
-                    PublishEnded(_lastEndedVesselId, _lastEndedVesselName, FlightEndReason.Reverted, snapshot.Ut);
-                    _lastEndedVesselId = null;
-                    _lastEndedVesselName = "";
-                }
+                EndRevertedFlight(snapshot.Ut);
 
                 // Resync WITHOUT further switch-detection this tick -- a
                 // rewind's loaded state can ordinarily show a DIFFERENT
@@ -223,49 +206,71 @@ namespace Sitrep.Host.Flight
                 return;
             }
 
-            if (currentId != null && _lastVesselId != null && currentId != _lastVesselId)
+            if (currentId != null)
             {
-                if (_startedUtByVesselId.ContainsKey(currentId))
-                {
-                    _activeVesselId = currentId;
-                    _activeVesselName = ReadVesselName(snapshot) ?? _activeVesselName;
-
-                    // Switching back onto a known vessel is not a new flight,
-                    // and the vesselChanged below is what tells the current
-                    // audience the focus moved: so they count as told, and
-                    // AnnounceStartedIfUnheard stays quiet for them. It still
-                    // fires for whoever subscribes after this, because an
-                    // empty audience clears this the same as any other.
-                    _announcedStartedFlightId = currentId;
-                    PublishVesselChanged(currentId, snapshot, _lastVesselId);
-                }
-                else
-                {
-                    StartNewFlight(currentId, snapshot);
-                    PublishVesselChanged(currentId, snapshot, _lastVesselId);
-                }
+                ObserveActiveVessel(currentId, snapshot);
+                _lastVesselId = currentId;
             }
-            else if (currentId != null && _lastVesselId == null)
+
+            AnnounceStartedIfUnheard();
+            PublishCurrent(snapshot, currentId);
+        }
+
+        private void EndRevertedFlight(double ut)
+        {
+            if (_activeVesselId != null)
+            {
+                PublishEnded(_activeVesselId, _activeVesselName, FlightEndReason.Reverted, ut);
+                _activeVesselId = null;
+                _activeVesselName = "";
+                return;
+            }
+            if (_lastEndedVesselId == null || !(_lastEndedUt >= ut)) return;
+
+            // The most recent end (crash/recovery) happened ON the
+            // abandoned branch this rewind erases -- retroactively
+            // re-announce it as Reverted at the revert-target Ut, so
+            // the operator (who may never have seen the original end
+            // reveal at all) still learns this flight is over, and
+            // why. See the field's own doc comment.
+            PublishEnded(_lastEndedVesselId, _lastEndedVesselName, FlightEndReason.Reverted, ut);
+            _lastEndedVesselId = null;
+            _lastEndedVesselName = "";
+        }
+
+        private void ObserveActiveVessel(string currentId, KspSnapshot snapshot)
+        {
+            if (_lastVesselId == null)
             {
                 // Cold start (first-ever observation this session).
                 if (_startedUtByVesselId.ContainsKey(currentId))
                 {
                     _activeVesselId = currentId;
                     _activeVesselName = ReadVesselName(snapshot) ?? _activeVesselName;
+                    return;
                 }
-                else
-                {
-                    StartNewFlight(currentId, snapshot);
-                }
+                StartNewFlight(currentId, snapshot);
+                return;
             }
+            if (currentId == _lastVesselId) return;
 
-            if (currentId != null)
+            if (_startedUtByVesselId.ContainsKey(currentId))
             {
-                _lastVesselId = currentId;
-            }
+                _activeVesselId = currentId;
+                _activeVesselName = ReadVesselName(snapshot) ?? _activeVesselName;
 
-            AnnounceStartedIfUnheard();
-            PublishCurrent(snapshot, currentId);
+                // Switching back onto a known vessel is not a new flight,
+                // and the vesselChanged below is what tells the current
+                // audience the focus moved: so they count as told, and
+                // AnnounceStartedIfUnheard stays quiet for them. It still
+                // fires for whoever subscribes after this, because an
+                // empty audience clears this the same as any other.
+                _announcedStartedFlightId = currentId;
+                PublishVesselChanged(currentId, snapshot, _lastVesselId);
+                return;
+            }
+            StartNewFlight(currentId, snapshot);
+            PublishVesselChanged(currentId, snapshot, _lastVesselId);
         }
 
         private void ApplyEnd(string vesselId, string vesselName, FlightEndReason reason, double ut)

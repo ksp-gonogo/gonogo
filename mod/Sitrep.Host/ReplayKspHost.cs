@@ -88,19 +88,7 @@ namespace Sitrep.Host
                 var entry = _entries[_cursor];
                 _cursor++;
 
-                if (entry.Kind == "snapshot" && entry.Snapshot != null)
-                {
-                    _latestSnapshot = entry.Snapshot;
-                }
-                else if (entry.Kind == "event" && entry.Event != null)
-                {
-                    Lifecycle.Invoke(new KspLifecycleEvent
-                    {
-                        Ut = entry.T,
-                        Kind = entry.Event.EventKind,
-                        Args = new Dictionary<string, object?>(entry.Event.Args),
-                    });
-                }
+                Apply(entry);
             }
 
             _currentUt = ut;
@@ -130,21 +118,26 @@ namespace Sitrep.Host
             _cursor++;
             _currentUt = entry.T;
 
+                Apply(entry);
+
+            return true;
+        }
+
+        private void Apply(RecordedEntry entry)
+        {
             if (entry.Kind == "snapshot" && entry.Snapshot != null)
             {
                 _latestSnapshot = entry.Snapshot;
+                return;
             }
-            else if (entry.Kind == "event" && entry.Event != null)
-            {
-                Lifecycle.Invoke(new KspLifecycleEvent
-                {
-                    Ut = entry.T,
-                    Kind = entry.Event.EventKind,
-                    Args = new Dictionary<string, object?>(entry.Event.Args),
-                });
-            }
+            if (entry.Kind != "event" || entry.Event == null) return;
 
-            return true;
+            Lifecycle.Invoke(new KspLifecycleEvent
+            {
+                Ut = entry.T,
+                Kind = entry.Event.EventKind,
+                Args = new Dictionary<string, object?>(entry.Event.Args),
+            });
         }
     }
 }

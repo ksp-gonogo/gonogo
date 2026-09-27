@@ -2695,18 +2695,7 @@ namespace Sitrep.Host
             if (homeState != _loggedHomeState)
             {
                 _loggedHomeState = homeState;
-                if (home.IsIdentified && next == home.CentreId)
-                {
-                    LogHost("home command is '" + next + "'; a connection that has not chosen a vantage starts there");
-                }
-                else if (next != CommandCentres.FreshConnectionVantage.None)
-                {
-                    LogHost("home command " + (home.IsIdentified
-                            ? "'" + home.CentreId + "' is not an active command centre"
-                            : "not identified")
-                        + " among " + ground.Count + " ground station(s); '" + next + "', the first ground station by id,"
-                        + " is marked home in its place, and a connection that has not chosen a vantage starts there");
-                }
+                LogFreshConnectionVantage(home, ground.Count, next);
             }
 
             if (next == _freshConnectionVantage)
@@ -2716,6 +2705,22 @@ namespace Sitrep.Host
 
             _freshConnectionVantage = next;
             EnqueueJob(new FreshConnectionVantageMovedJob());
+        }
+
+        private void LogFreshConnectionVantage(HomeCommand home, int groundCount, string next)
+        {
+            if (home.IsIdentified && next == home.CentreId)
+            {
+                LogHost("home command is '" + next + "'; a connection that has not chosen a vantage starts there");
+                return;
+            }
+            if (next == CommandCentres.FreshConnectionVantage.None) return;
+
+            LogHost("home command " + (home.IsIdentified
+                    ? "'" + home.CentreId + "' is not an active command centre"
+                    : "not identified")
+                + " among " + groundCount + " ground station(s); '" + next + "', the first ground station by id,"
+                + " is marked home in its place, and a connection that has not chosen a vantage starts there");
         }
 
         /// <summary>
@@ -5719,14 +5724,7 @@ namespace Sitrep.Host
             // where a Publisher/AddSampledSource-registered comms.delay never
             // reached the gate. A main-thread throw is fail-softed here, on the
             // Courier thread (the correct thread for _availability writes).
-            if (tick.SignalDelay.Error != null)
-            {
-                FailSoftSignalDelaySource(tick.SignalDelay.Error);
-            }
-            else if (tick.SignalDelay.Value != null)
-            {
-                CaptureSignalDelay(tick.SignalDelay.Value);
-            }
+            ApplySignalDelaySource(tick.SignalDelay);
 
             // Path 2: a comms.delay registered as a pull-style channel source
             // (AddChannelSource). Production does NOT use this for comms.delay,
@@ -5749,6 +5747,16 @@ namespace Sitrep.Host
 
                 CaptureSignalDelay(value);
             }
+        }
+
+        private void ApplySignalDelaySource(SignalDelayCapture capture)
+        {
+            if (capture.Error != null)
+            {
+                FailSoftSignalDelaySource(capture.Error);
+                return;
+            }
+            if (capture.Value != null) CaptureSignalDelay(capture.Value);
         }
 
         /// <summary>
@@ -6155,30 +6163,34 @@ namespace Sitrep.Host
             // after the subscriber leaves is never seen to end, so the mark
             // sticks for good, and one that carries on is seen to start again,
             // later.
-            if (!connected)
-            {
-                if (!_subjectDarkSinceUt.TryGetValue(node, out var darkSince))
-                {
-                    darkSince = ut;
-                    _subjectDarkSinceUt[node] = ut;
-                }
-                // The Courier holds the mark against the subject, so it also
-                // grades an operator who opens a dashboard mid-outage with nobody
-                // else watching: their catch-up is served inside the subscribe,
-                // before any later tick. Re-applied every disconnected tick at
-                // the ORIGINAL loss-of-signal instant, held rather than re-read so
-                // it cannot drift forward as the outage runs. Idempotent.
-                _courier.MarkSubjectLinkDown(node, darkSince);
-            }
-            else if (_subjectDarkSinceUt.Remove(node))
-            {
-                _courier.MarkSubjectLinkUp(node);
-            }
+            MarkSubjectLink(node, connected, ut);
 
             if (!wasConnected && connected)
             {
                 ReplayInBlackoutBacklog(node, ut);
             }
+        }
+
+        private void MarkSubjectLink(string node, bool connected, double ut)
+        {
+            if (connected)
+            {
+                if (_subjectDarkSinceUt.Remove(node)) _courier.MarkSubjectLinkUp(node);
+                return;
+            }
+
+            if (!_subjectDarkSinceUt.TryGetValue(node, out var darkSince))
+            {
+                darkSince = ut;
+                _subjectDarkSinceUt[node] = ut;
+            }
+            // The Courier holds the mark against the subject, so it also
+            // grades an operator who opens a dashboard mid-outage with nobody
+            // else watching: their catch-up is served inside the subscribe,
+            // before any later tick. Re-applied every disconnected tick at
+            // the ORIGINAL loss-of-signal instant, held rather than re-read so
+            // it cannot drift forward as the outage runs. Idempotent.
+            _courier.MarkSubjectLinkDown(node, darkSince);
         }
 
         /// <summary>

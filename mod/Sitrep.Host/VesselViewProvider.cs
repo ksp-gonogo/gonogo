@@ -1146,24 +1146,24 @@ namespace Sitrep.Host
             string? targetVesselId = null;
             int? targetBodyIndex = null;
             uint? targetPartId = null;
-            if (kind == TargetKind.Vessel)
+            switch (kind)
             {
-                targetVesselId = GetString(target, "targetVesselId");
-            }
-            else if (kind == TargetKind.Part)
-            {
-                // A docking port: the OWNING vessel's guid plus the port's own
-                // Part.flightID (a part id is unique only within its vessel).
-                targetVesselId = GetString(target, "targetVesselId");
-                targetPartId = (uint?)GetDouble(target, "partId");
-            }
-            else if (kind == TargetKind.Body)
-            {
-                var bodyName = GetString(target, "name");
-                if (bodyName != null)
-                {
-                    targetBodyIndex = ResolveBodyIndex(snapshot!, bodyName);
-                }
+                case TargetKind.Vessel:
+                    targetVesselId = GetString(target, "targetVesselId");
+                    break;
+                case TargetKind.Part:
+                    // A docking port: the OWNING vessel's guid plus the port's own
+                    // Part.flightID (a part id is unique only within its vessel).
+                    targetVesselId = GetString(target, "targetVesselId");
+                    targetPartId = (uint?)GetDouble(target, "partId");
+                    break;
+                case TargetKind.Body:
+                    var bodyName = GetString(target, "name");
+                    if (bodyName != null)
+                    {
+                        targetBodyIndex = ResolveBodyIndex(snapshot!, bodyName);
+                    }
+                    break;
             }
 
             return new VesselTarget
