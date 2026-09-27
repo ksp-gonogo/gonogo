@@ -94,3 +94,24 @@ describe("ReadOnlyField", () => {
     await expectNoA11yViolations(container);
   });
 });
+
+describe("ReadOnlyField over a Reading", () => {
+  it("keeps a held reading's mark and words, through Unit", () => {
+    const { container } = render(
+      <ReadOnlyField
+        label="Apoapsis"
+        value={{
+          state: "stale",
+          reckoning: { status: "none" },
+          value: value("m", 84_000),
+          asOfUt: value("ut", 12_000),
+          grade: "held-stale",
+        }}
+      />,
+    );
+    expect(container.querySelector("[data-held-mark]")).not.toBeNull();
+    expect(
+      container.querySelector("[data-unit-currency]")?.textContent,
+    ).toMatch(/STALE/i);
+  });
+});

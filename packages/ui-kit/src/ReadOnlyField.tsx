@@ -1,17 +1,23 @@
-import { isValue, type Value } from "@ksp-gonogo/sitrep-sdk";
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import { NullValue } from "./NullValue";
+import type { UnitValue } from "./readingCurrency";
 import { Unit } from "./Unit";
 
 /**
  * What a read-only field can be handed. `null`/`undefined` show a placeholder.
  *
- * Not a bare number, which has lost the unit that says how to write it: hand
- * over `value("m", 1)`, `value("count", 3)`, or `value("1", x)` for a
- * dimensionless reading. All go through {@link Unit}.
+ * A quantity, or the whole `Reading` it arrived in, goes through {@link Unit},
+ * so a held reading keeps its held mark. Not a bare number, which has lost the
+ * unit that says how to write it: hand over `value("m", 1)`,
+ * `value("count", 3)`, or `value("1", x)` for a dimensionless reading.
  */
-export type ReadOnlyFieldValue = boolean | string | Value | null | undefined;
+export type ReadOnlyFieldValue =
+  | boolean
+  | string
+  | UnitValue
+  | null
+  | undefined;
 
 export interface ReadOnlyFieldProps {
   /** What the value IS. Read first, and read every time. */
@@ -61,7 +67,7 @@ export function ReadOnlyFieldContent({
   value: ReadOnlyFieldValue;
 }): ReactNode {
   if (value === null || value === undefined) return <NullValue />;
-  if (isValue(value)) return <Unit value={value} />;
+  if (typeof value === "object") return <Unit value={value} />;
   // "On"/"Off", as the game's own settings windows say.
   if (typeof value === "boolean") return value ? "On" : "Off";
   return value;

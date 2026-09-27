@@ -7,11 +7,14 @@ import {
 import { useId, useState } from "react";
 import styled from "styled-components";
 import { focusRing } from "./focusRing";
+import { HeldHost, HeldMark } from "./HeldMark";
 import { JogWheel } from "./JogWheel";
 import { MissionDateField, partsOfUt } from "./MissionDateField";
+import { resolveCurrency, type UnitValue } from "./readingCurrency";
 import { Stack } from "./Stack";
 import { Text } from "./Text";
 import type { FormatsFor } from "./units";
+import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
  * Bounds for a POSITION slider, refused on a point-like unit: an instant can be
@@ -35,8 +38,12 @@ export interface RateControl {
 }
 
 export interface UnitInputProps<U extends string = string> {
-  /** The quantity being edited. It carries its own unit, exactly as `Unit`'s does. */
-  value: Value<NoInfer<U>> | null | undefined;
+  /**
+   * The quantity being edited, or the whole `Reading` it arrived in. It
+   * carries its own unit, exactly as `Unit`'s does; a held reading marks the
+   * field's name and says so in it.
+   */
+  value: UnitValue<NoInfer<U>> | null | undefined;
   /** The unit an emitted value carries, needed because there may be no value yet. */
   unit: U;
   /** Always a `Value`, never a number. */
@@ -95,7 +102,7 @@ function splitAcross(total: number, sizes: readonly number[]): number[] {
  * attached from the keystroke to the wire boundary.
  */
 export function UnitInput<U extends string>({
-  value: current,
+  value: input,
   unit,
   onChange,
   label,
@@ -105,6 +112,16 @@ export function UnitInput<U extends string>({
   disabled,
 }: Readonly<UnitInputProps<U>>) {
   const id = useId();
+  const { shown: current, held, caption } = resolveCurrency<U>(input);
+  const name = held ? (
+    <HeldHost title={caption ?? undefined}>
+      {label}
+      <HeldMark aria-hidden="true" data-held-mark="" />
+      <VisuallyHidden data-unit-currency="">, {caption}</VisuallyHidden>
+    </HeldHost>
+  ) : (
+    label
+  );
   const bounds = range as
     | { min: number; max: number; step?: number }
     | undefined;
@@ -141,9 +158,11 @@ export function UnitInput<U extends string>({
     // An instant is entered on the game calendar, which is its own rungs, so `rungs` is ignored here.
     return (
       <Control>
+        {/* The date fields' group carries the name for assistive tech, so the visible one is not read twice. */}
+        <GroupName aria-hidden="true">{name}</GroupName>
         <Stack gap="related-dense">
           <MissionDateField
-            label={label}
+            label={held && caption !== null ? `${label}, ${caption}` : label}
             value={Number.isFinite(magnitude) ? magnitude : null}
             disabled={disabled}
             // The rate wheel replaces the coarse nudge steps where there is one.
@@ -179,7 +198,7 @@ export function UnitInput<U extends string>({
 
     return (
       <Control>
-        <GroupName id={`${id}-label`}>{label}</GroupName>
+        <GroupName id={`${id}-label`}>{name}</GroupName>
         <RungRow role="group" aria-labelledby={`${id}-label`}>
           {rungs.map((symbol, index) => (
             <RungCell key={String(symbol)}>
@@ -209,7 +228,7 @@ export function UnitInput<U extends string>({
 
   return (
     <Control>
-      <FieldName htmlFor={id}>{label}</FieldName>
+      <FieldName htmlFor={id}>{name}</FieldName>
       <ValueRow>
         <SingleField
           id={id}

@@ -351,6 +351,19 @@ describe("UnitInput", () => {
       await expectNoA11yViolations(container);
     });
 
+    it("shows its name, as every UnitInput does, with the date fields' group named once", () => {
+      render(
+        <UnitInput
+          label="Ignition"
+          unit="ut"
+          value={value("ut", 1_000_000)}
+          onChange={() => {}}
+        />,
+      );
+      expect(screen.getByText("Ignition")).toBeVisible();
+      expect(screen.getByRole("group", { name: "Ignition" })).toBeTruthy();
+    });
+
     it("drops the coarse-step row when a rate wheel is there to nudge with", () => {
       const { rerender } = render(
         <UnitInput
@@ -448,5 +461,44 @@ describe("UnitInput", () => {
       />,
     );
     expect(screen.getByLabelText("Throttle slider")).toBeTruthy();
+  });
+});
+
+describe("UnitInput over a Reading", () => {
+  const held = {
+    state: "stale" as const,
+    reckoning: { status: "none" as const },
+    value: value("m/s", 12),
+    asOfUt: value("ut", 12_000),
+    grade: "held-stale" as const,
+  };
+
+  it("edits the reading's value and marks its name held, in words too", () => {
+    const { container } = render(
+      <UnitInput label="Tangent" unit="m/s" value={held} onChange={() => {}} />,
+    );
+    const field = screen.getByRole("spinbutton", {
+      name: /^Tangent, .*STALE/i,
+    });
+    expect(field).toHaveValue(12);
+    expect(container.querySelector("[data-held-mark]")).not.toBeNull();
+  });
+
+  it("marks nothing for a current reading", () => {
+    const { container } = render(
+      <UnitInput
+        label="Tangent"
+        unit="m/s"
+        value={{
+          state: "observed",
+          reckoning: { status: "none" },
+          value: value("m/s", 12),
+          asOfUt: value("ut", 12_000),
+        }}
+        onChange={() => {}}
+      />,
+    );
+    expect(screen.getByRole("spinbutton", { name: "Tangent" })).toHaveValue(12);
+    expect(container.querySelector("[data-held-mark]")).toBeNull();
   });
 });
