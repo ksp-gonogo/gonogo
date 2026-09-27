@@ -438,8 +438,9 @@ namespace Sitrep.Core.Tests
                     if (receiver == "this" || receiver == owner)
                     {
                         local.Add(name);
+                        continue;
                     }
-                    else if (receiver.Length > 0 && char.IsUpper(receiver[0]))
+                    if (receiver.Length > 0 && char.IsUpper(receiver[0]))
                     {
                         qualified.Add((receiver, name));
                     }
@@ -740,14 +741,17 @@ namespace Sitrep.Core.Tests
                 if (masked[i] == open)
                 {
                     depth++;
+                    continue;
                 }
-                else if (masked[i] == close)
+                if (masked[i] != close)
                 {
-                    depth--;
-                    if (depth == 0)
-                    {
-                        return i;
-                    }
+                    continue;
+                }
+
+                depth--;
+                if (depth == 0)
+                {
+                    return i;
                 }
             }
             return -1;
@@ -805,45 +809,7 @@ namespace Sitrep.Core.Tests
                     }
                 }
 
-                int start;
-                int end;
-                if (i < structure.Length && structure[i] == '{')
-                {
-                    start = i;
-                    end = MatchDelimiter(structure, i, '{', '}');
-                    if (end < 0)
-                    {
-                        continue;
-                    }
-                }
-                else if (i + 1 < structure.Length && structure[i] == '=' && structure[i + 1] == '>')
-                {
-                    start = i + 2;
-                    end = -1;
-                    var depth = 0;
-                    for (var j = start; j < structure.Length; j++)
-                    {
-                        var c = structure[j];
-                        if (c == '{' || c == '(' || c == '[')
-                        {
-                            depth++;
-                        }
-                        else if (c == '}' || c == ')' || c == ']')
-                        {
-                            depth--;
-                        }
-                        else if (c == ';' && depth == 0)
-                        {
-                            end = j;
-                            break;
-                        }
-                    }
-                    if (end < 0)
-                    {
-                        continue;
-                    }
-                }
-                else
+                if (!TryBodySpan(structure, i, out var start, out var end))
                 {
                     continue;
                 }
@@ -860,6 +826,55 @@ namespace Sitrep.Core.Tests
                     start,
                     end - start + 1);
             }
+        }
+
+        /// <summary>
+        /// The span of the method body starting at <paramref name="at"/>: a braced
+        /// block, or an expression body from past its <c>=&gt;</c> to the closing
+        /// semicolon.
+        /// </summary>
+        private static bool TryBodySpan(string structure, int at, out int start, out int end)
+        {
+            if (at < structure.Length && structure[at] == '{')
+            {
+                start = at;
+                end = MatchDelimiter(structure, at, '{', '}');
+                return end >= 0;
+            }
+            if (at + 1 >= structure.Length || structure[at] != '=' || structure[at + 1] != '>')
+            {
+                start = -1;
+                end = -1;
+                return false;
+            }
+
+            start = at + 2;
+            end = ExpressionBodyEnd(structure, start);
+            return end >= 0;
+        }
+
+        private static int ExpressionBodyEnd(string structure, int start)
+        {
+            var depth = 0;
+            for (var j = start; j < structure.Length; j++)
+            {
+                var c = structure[j];
+                if (c == '{' || c == '(' || c == '[')
+                {
+                    depth++;
+                    continue;
+                }
+                if (c == '}' || c == ')' || c == ']')
+                {
+                    depth--;
+                    continue;
+                }
+                if (c == ';' && depth == 0)
+                {
+                    return j;
+                }
+            }
+            return -1;
         }
     }
 }

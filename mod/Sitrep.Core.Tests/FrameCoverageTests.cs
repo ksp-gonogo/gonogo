@@ -496,8 +496,9 @@ namespace Sitrep.Core.Tests
                 if (!surface.TryGetValue(entry.Property, out var declared))
                 {
                     stale.Add(entry.Property + "  (no longer a Vec3 wire property)");
+                    continue;
                 }
-                else if (declared is not null)
+                if (declared is not null)
                 {
                     stale.Add(entry.Property + "  (now declares " + declared.Frame + ")");
                 }

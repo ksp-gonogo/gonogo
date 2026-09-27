@@ -345,8 +345,9 @@ namespace Sitrep.Core.Tests
                 if (!surface.TryGetValue(entry, out var annotated))
                 {
                     stale.Add(entry + "  (no longer a scalar wire property)");
+                    continue;
                 }
-                else if (annotated)
+                if (annotated)
                 {
                     stale.Add(entry + "  (now annotated)");
                 }

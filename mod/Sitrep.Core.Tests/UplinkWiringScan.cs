@@ -338,16 +338,18 @@ namespace Sitrep.Core.Tests
                     var end = EndOfLiteral(text, at);
                     stripped.Append(text, at, end - at);
                     at = end;
+                    continue;
                 }
-                else if (c == '/' && at + 1 < text.Length && text[at + 1] == '/')
+                if (c == '/' && at + 1 < text.Length && text[at + 1] == '/')
                 {
                     while (at < text.Length && text[at] != '\n')
                     {
                         stripped.Append(' ');
                         at++;
                     }
+                    continue;
                 }
-                else if (c == '/' && at + 1 < text.Length && text[at + 1] == '*')
+                if (c == '/' && at + 1 < text.Length && text[at + 1] == '*')
                 {
                     var end = text.IndexOf("*/", at + 2, StringComparison.Ordinal);
                     end = end < 0 ? text.Length : end + 2;
@@ -355,12 +357,11 @@ namespace Sitrep.Core.Tests
                     {
                         stripped.Append(text[at] == '\n' ? '\n' : ' ');
                     }
+                    continue;
                 }
-                else
-                {
-                    stripped.Append(c);
-                    at++;
-                }
+
+                stripped.Append(c);
+                at++;
             }
 
             return stripped.ToString();
@@ -396,8 +397,9 @@ namespace Sitrep.Core.Tests
                 if (text[i] == '\\')
                 {
                     i++;
+                    continue;
                 }
-                else if (text[i] == quote || text[i] == '\n')
+                if (text[i] == quote || text[i] == '\n')
                 {
                     return i + 1;
                 }
@@ -748,16 +750,18 @@ namespace Sitrep.Core.Tests
                     if (c == '<')
                     {
                         angle++;
+                        continue;
                     }
-                    else if (c == '>')
+                    if (c == '>')
                     {
                         angle--;
+                        continue;
                     }
-                    else if (c == '(' && angle == 0)
+                    if (c == '(' && angle == 0)
                     {
                         break;
                     }
-                    else if (angle == 0 && !char.IsWhiteSpace(c) && c != ',' && c != '?')
+                    if (angle == 0 && !char.IsWhiteSpace(c) && c != ',' && c != '?')
                     {
                         return null;
                     }
@@ -777,8 +781,9 @@ namespace Sitrep.Core.Tests
                     if (c is '(' or '[' or '{')
                     {
                         depth++;
+                        continue;
                     }
-                    else if (c is ')' or ']' or '}')
+                    if (c is ')' or ']' or '}')
                     {
                         if (depth == 0)
                         {
@@ -786,8 +791,9 @@ namespace Sitrep.Core.Tests
                         }
 
                         depth--;
+                        continue;
                     }
-                    else if (c == ',' && depth == 0)
+                    if (c == ',' && depth == 0)
                     {
                         return (_text.Substring(start, at - start), start);
                     }
@@ -805,14 +811,17 @@ namespace Sitrep.Core.Tests
                     if (_text[at] == '{')
                     {
                         depth++;
+                        continue;
                     }
-                    else if (_text[at] == '}')
+                    if (_text[at] != '}')
                     {
-                        depth--;
-                        if (depth == 0)
-                        {
-                            return _text.Substring(open + 1, at - open - 1);
-                        }
+                        continue;
+                    }
+
+                    depth--;
+                    if (depth == 0)
+                    {
+                        return _text.Substring(open + 1, at - open - 1);
                     }
                 }
 
