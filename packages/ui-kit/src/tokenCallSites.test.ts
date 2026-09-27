@@ -9,15 +9,14 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  CONTRAST_FLOOR,
-  contrastRatio,
-  DECORATIVE,
-  EXEMPT,
-  parseColorTokens,
-} from "@ksp-gonogo/theme";
+import { parseColorTokens } from "@ksp-gonogo/theme";
 import { afterAll, describe, expect, it } from "vitest";
-import { scanTokenUses, type TokenScan } from "./test/tokenUse";
+import {
+  type Finding,
+  judgeTokenUses,
+  scanTokenUses,
+  type TokenScan,
+} from "./test/tokenUse";
 
 /**
  * The call-site half of the contrast gate: every colour token the kit draws,
@@ -54,51 +53,7 @@ const NOT_DRAWN_TOGETHER: Readonly<Record<string, string>> = {
     "the active label is drawn over Tabs__Blob, a sibling painted in accent-bg; a sibling's paint is not a ground the scan can see",
 };
 
-interface Finding {
-  readonly key: string;
-  readonly detail: string;
-}
-
-function judge(scan: TokenScan): { findings: Finding[]; unknown: string[] } {
-  const findings = new Map<string, Finding>();
-  const unknown: string[] = [];
-  for (const u of scan.uses) {
-    if (!tokens.has(u.token) && !u.token.startsWith("marker-")) {
-      unknown.push(`${u.file}:${u.line} ${u.token}`);
-      continue;
-    }
-    if (u.role === "ground" || EXEMPT[u.token]) continue;
-    if (DECORATIVE.includes(u.token) && u.role !== "text") continue;
-    const fg = tokens.get(u.token) as string;
-    for (const ground of u.grounds) {
-      const bg = tokens.get(ground);
-      if (!bg) {
-        unknown.push(`${u.file}:${u.line} ground ${ground}`);
-        continue;
-      }
-      const ratio = contrastRatio(fg, bg);
-      const floor = CONTRAST_FLOOR[u.role];
-      const fillCarries = u.beside.some((f) => {
-        const hex = tokens.get(f);
-        return (
-          hex !== undefined &&
-          contrastRatio(hex, bg) >= CONTRAST_FLOOR["non-text"]
-        );
-      });
-      if (ratio >= floor || fillCarries) continue;
-      const key = `${u.file} ${u.site}: ${u.token} ${u.property} on ${ground}`;
-      const at = `${u.file}:${u.line}`;
-      const prior = findings.get(key);
-      findings.set(key, {
-        key,
-        detail: prior
-          ? `${prior.detail}, ${at}`
-          : `${u.site}: ${u.token} as ${u.role} (${u.property}) on ${ground}, ${ratio.toFixed(2)}:1 where ${floor}:1 is needed, at ${at}`,
-      });
-    }
-  }
-  return { findings: [...findings.values()], unknown };
-}
+const judge = (scan: TokenScan) => judgeTokenUses(scan, tokens);
 
 describe("colour tokens at their call sites", () => {
   const scan = scanTokenUses(SRC);
