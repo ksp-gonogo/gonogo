@@ -85,8 +85,11 @@ function* walk(dir) {
       continue;
     const path = join(dir, name);
     const stat = statSync(path);
-    if (stat.isDirectory()) yield* walk(path);
-    else if (/\.(tsx?|css)$/.test(name)) yield path;
+    if (stat.isDirectory()) {
+      yield* walk(path);
+      continue;
+    }
+    if (/\.(tsx?|css)$/.test(name)) yield path;
   }
 }
 
@@ -95,13 +98,15 @@ const HEX_RE =
 
 function hexToRgb(hex) {
   let h = hex.slice(1);
-  if (h.length === 3 || h.length === 4) {
+  const rawLength = h.length;
+  if (rawLength === 3 || rawLength === 4) {
     h = h
       .slice(0, 3)
       .split("")
       .map((c) => c + c)
       .join("");
-  } else if (h.length === 8) {
+  }
+  if (rawLength === 8) {
     h = h.slice(0, 6);
   }
   return [
@@ -181,6 +186,13 @@ const TAG_YELLOW_BG = new Set([]); // none in current user decisions
 // Routes for "--color-tag-dark-brown": user used flat name; split.
 const TAG_DARK_BROWN_BORDER = new Set(["#3a2800"]); // border tone
 
+/** Which flat tag-yellow variable a hex actually renders as. */
+function tagYellowTarget(hex) {
+  if (TAG_YELLOW_BORDER.has(hex)) return "--color-tag-yellow-border";
+  if (TAG_YELLOW_BG.has(hex)) return "--color-tag-yellow-bg";
+  return "--color-tag-yellow-fg";
+}
+
 function refineDecisions(rawDecisions, tokens) {
   const final = {};
   // Lowercase keys for stable lookup.
@@ -226,9 +238,7 @@ function refineDecisions(rawDecisions, tokens) {
 
       // Apply flat tag-yellow split.
       if (target === "--color-tag-yellow") {
-        if (TAG_YELLOW_BORDER.has(hex)) target = "--color-tag-yellow-border";
-        else if (TAG_YELLOW_BG.has(hex)) target = "--color-tag-yellow-bg";
-        else target = "--color-tag-yellow-fg";
+        target = tagYellowTarget(hex);
       }
 
       // Apply flat tag-dark-brown split.

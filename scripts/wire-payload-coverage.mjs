@@ -121,7 +121,8 @@ export function referencedTypes(type, into = []) {
   if (type.k === "ref") {
     into.push(type.name);
     for (const arg of type.args ?? []) referencedTypes(arg, into);
-  } else if (type.k === "array" || type.k === "map") {
+  }
+  if (type.k === "array" || type.k === "map") {
     referencedTypes(type.of, into);
   }
   return into;
@@ -142,7 +143,8 @@ export function reachableFromChannels({ contract, roots }) {
     if (!reached.has(name)) {
       reached.set(name, { via, root });
       queue.push(name);
-    } else if (root) {
+    }
+    if (root) {
       reached.get(name).root = true;
     }
   };

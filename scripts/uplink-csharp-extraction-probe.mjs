@@ -498,15 +498,17 @@ try {
         console.log(`    ${line.trim()}`);
       }
       exitCode = 1;
-    } else if (result.errors < allowed) {
+      continue;
+    }
+    if (result.errors < allowed) {
       console.log(
         `  ${uplink.id}: ${result.errors} error(s), debt allows ${allowed}. Tighten with --update --only ${uplink.id}.`,
       );
-    } else {
-      console.log(
-        `✓ ${uplink.id}: ${result.errors} error(s), at its ceiling of ${allowed}`,
-      );
+      continue;
     }
+    console.log(
+      `✓ ${uplink.id}: ${result.errors} error(s), at its ceiling of ${allowed}`,
+    );
   }
 
   if (update) {

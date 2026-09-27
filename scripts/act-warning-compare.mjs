@@ -18,8 +18,11 @@ export function compare(counts, debt, inScope) {
   const out = [];
   for (const [file, n] of Object.entries(counts)) {
     const known = debt[file];
-    if (known === undefined) out.push({ kind: "NEW", file, known: 0, n });
-    else if (n > known) out.push({ kind: "WORSE", file, known, n });
+    if (known === undefined) {
+      out.push({ kind: "NEW", file, known: 0, n });
+      continue;
+    }
+    if (n > known) out.push({ kind: "WORSE", file, known, n });
   }
   for (const [file, known] of Object.entries(debt)) {
     if (!inScope(file)) continue;

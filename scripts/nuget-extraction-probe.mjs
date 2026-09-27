@@ -297,18 +297,20 @@ for (const { name: uplink, root } of selected) {
         `BLIND ${uplink}: a plugin naming a type the package lacks built anyway, so this probe cannot see a gap`,
       );
       failed += 1;
-    } else if (!build.out.includes("NugetProbePlantedAbsentType")) {
+      continue;
+    }
+    if (!build.out.includes("NugetProbePlantedAbsentType")) {
       // Red for some other reason is not the plant being seen.
       console.log(
         `BLIND ${uplink}: the build failed, but not on the planted type`,
       );
       for (const e of errorsIn(build.out).slice(0, 4)) console.log(`    ${e}`);
       failed += 1;
-    } else {
-      console.log(
-        `✓ ${uplink}: the planted absent type failed the build, as it must`,
-      );
+      continue;
     }
+    console.log(
+      `✓ ${uplink}: the planted absent type failed the build, as it must`,
+    );
     continue;
   }
 

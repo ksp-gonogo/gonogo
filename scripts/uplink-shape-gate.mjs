@@ -126,12 +126,14 @@ for (const leg of legs) {
   if (missing.length > allowed) {
     failures.push({ leg, missing, allowed });
     console.log(`  ✖ ${label}`);
-  } else if (missing.length < allowed) {
+    continue;
+  }
+  if (missing.length < allowed) {
     drops.push({ leg, count: missing.length, allowed });
     console.log(`  ↓ ${label}`);
-  } else {
-    console.log(`  · ${label}`);
+    continue;
   }
+  console.log(`  · ${label}`);
 }
 
 if (UPDATE) {

@@ -51,8 +51,11 @@ function* walk(dir) {
       continue;
     const path = join(dir, name);
     const stat = statSync(path);
-    if (stat.isDirectory()) yield* walk(path);
-    else if (/\.(tsx?|css)$/.test(name)) yield path;
+    if (stat.isDirectory()) {
+      yield* walk(path);
+      continue;
+    }
+    if (/\.(tsx?|css)$/.test(name)) yield path;
   }
 }
 
@@ -70,13 +73,15 @@ function isInComment(line) {
 
 function hexToRgb(hex) {
   let h = hex.slice(1);
-  if (h.length === 3 || h.length === 4) {
+  const rawLength = h.length;
+  if (rawLength === 3 || rawLength === 4) {
     h = h
       .slice(0, 3)
       .split("")
       .map((c) => c + c)
       .join("");
-  } else if (h.length === 8) {
+  }
+  if (rawLength === 8) {
     h = h.slice(0, 6); // strip alpha for distance calc
   }
   return [

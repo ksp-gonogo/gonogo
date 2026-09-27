@@ -178,7 +178,9 @@ function computeIdentityRegions(buf) {
           length: 16,
           label: "CodeView PDB id",
         });
-      } else if (type === 19) {
+        continue;
+      }
+      if (type === 19) {
         // PdbChecksum: NUL-terminated algorithm name, then the raw checksum.
         const dataEnd = pointerToRawData + sizeOfData;
         let nameEnd = pointerToRawData;

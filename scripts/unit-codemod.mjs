@@ -104,8 +104,11 @@ function container(text, offset) {
   if (text[open] !== "{") return null;
   let depth = 0;
   for (let i = open; i < text.length; i++) {
-    if (text[i] === "{") depth++;
-    else if (text[i] === "}") {
+    if (text[i] === "{") {
+      depth++;
+      continue;
+    }
+    if (text[i] === "}") {
       depth--;
       if (depth === 0) {
         return { open, close: i, inner: text.slice(open + 1, i).trim() };

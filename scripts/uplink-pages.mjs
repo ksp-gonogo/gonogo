@@ -70,8 +70,11 @@ function testFiles(dir) {
     for (const entry of entries) {
       if (entry.name === "node_modules" || entry.name === "dist") continue;
       const full = join(at, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (/\.test\.tsx?$/.test(entry.name)) found.push(full);
+      if (entry.isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (/\.test\.tsx?$/.test(entry.name)) found.push(full);
     }
   };
   walk(dir);

@@ -408,7 +408,7 @@ export async function watchReception(page: Page): Promise<void> {
       }
       const on = lit();
       if (on) watch.litAt ??= Date.now();
-      else if (watch.litAt !== null) watch.darkAt ??= Date.now();
+      if (!on && watch.litAt !== null) watch.darkAt ??= Date.now();
     }, 10);
     holder.__radioWatchStop = () => clearInterval(timer);
   });

@@ -403,10 +403,8 @@ export function startReplayServer({ port = PORT, extraTopics = {} } = {}) {
       if (data.type === "subscribe" && typeof data.topic === "string") {
         subs.add(data.topic);
         sendSnapshot(data.topic);
-      } else if (
-        data.type === "unsubscribe" &&
-        typeof data.topic === "string"
-      ) {
+      }
+      if (data.type === "unsubscribe" && typeof data.topic === "string") {
         subs.delete(data.topic);
       }
     });

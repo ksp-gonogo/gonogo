@@ -117,12 +117,23 @@ function testFiles(dir) {
     for (const entry of entries) {
       if (entry.name === "node_modules" || entry.name === "dist") continue;
       const full = join(at, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (/\.test\.tsx?$/.test(entry.name)) found.push(full);
+      if (entry.isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (/\.test\.tsx?$/.test(entry.name)) found.push(full);
     }
   };
   walk(dir);
   return found;
+}
+
+/** Why `readme` fails the generated-banner check, or `null` when it passes. */
+function missingReadmeReason(readme) {
+  if (!existsSync(readme)) return "no README.md";
+  if (!readFileSync(readme, "utf8").startsWith(GENERATED_BANNER))
+    return "README.md was not generated (no generator banner on line 1)";
+  return null;
 }
 
 /**
@@ -142,12 +153,8 @@ export function missingPageReasons(clientDir) {
   ) {
     reasons.push("no test calls expectUplinkPageCurrent()");
   }
-  const readme = join(clientDir, "README.md");
-  if (!existsSync(readme)) {
-    reasons.push("no README.md");
-  } else if (!readFileSync(readme, "utf8").startsWith(GENERATED_BANNER)) {
-    reasons.push("README.md was not generated (no generator banner on line 1)");
-  }
+  const readmeReason = missingReadmeReason(join(clientDir, "README.md"));
+  if (readmeReason) reasons.push(readmeReason);
 
   if (!existsSync(join(clientDir, "gonogo-uplink.json"))) {
     reasons.push("no gonogo-uplink.json");

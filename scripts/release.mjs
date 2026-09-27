@@ -46,20 +46,12 @@ function nextVersion(current, bump) {
     console.error(`current version "${current}" is not M.m.p`);
     process.exit(1);
   }
-  let [maj, min, pat] = [Number(m[1]), Number(m[2]), Number(m[3])];
-  if (bump === "patch") pat++;
-  else if (bump === "minor") {
-    min++;
-    pat = 0;
-  } else if (bump === "major") {
-    maj++;
-    min = 0;
-    pat = 0;
-  } else {
-    console.error(`Usage: release.mjs <patch|minor|major|M.m.p>`);
-    process.exit(1);
-  }
-  return `${maj}.${min}.${pat}`;
+  const [maj, min, pat] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  if (bump === "patch") return `${maj}.${min}.${pat + 1}`;
+  if (bump === "minor") return `${maj}.${min + 1}.0`;
+  if (bump === "major") return `${maj + 1}.0.0`;
+  console.error(`Usage: release.mjs <patch|minor|major|M.m.p>`);
+  process.exit(1);
 }
 
 const bump = process.argv[2];

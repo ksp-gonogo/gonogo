@@ -333,8 +333,11 @@ export function assertProseHygiene(contract, { debt = PROSE_DEBT } = {}) {
   const under = [];
   for (const [key, count] of Object.entries(counts)) {
     const allowed = debt[key] ?? 0;
-    if (count > allowed) over.push({ key, count, allowed });
-    else if (count < allowed) under.push({ key, count, allowed });
+    if (count > allowed) {
+      over.push({ key, count, allowed });
+      continue;
+    }
+    if (count < allowed) under.push({ key, count, allowed });
   }
   const fixed = Object.keys(debt).filter((key) => !(key in counts));
 

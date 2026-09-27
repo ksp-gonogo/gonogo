@@ -78,7 +78,7 @@ export function sendCommand({
       if (message?.requestId !== requestId) return;
       seen.push(message);
       if (message.type === "command-response") finish("response");
-      else if (message.type === "error") finish("error");
+      if (message.type === "error") finish("error");
     });
   });
 }

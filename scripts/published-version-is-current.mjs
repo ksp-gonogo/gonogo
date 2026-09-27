@@ -121,8 +121,11 @@ try {
 
   const differences = [];
   for (const [member, hash] of local) {
-    if (!published.has(member)) differences.push(`+ ${member} (new)`);
-    else if (published.get(member) !== hash)
+    if (!published.has(member)) {
+      differences.push(`+ ${member} (new)`);
+      continue;
+    }
+    if (published.get(member) !== hash)
       differences.push(`~ ${member} (changed)`);
   }
   for (const member of published.keys()) {

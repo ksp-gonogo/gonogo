@@ -170,10 +170,8 @@ export function startRadioStreamServer({
       if (data.type === "subscribe" && typeof data.topic === "string") {
         client.subs.add(data.topic);
         sendTo(client, data.topic);
-      } else if (
-        data.type === "unsubscribe" &&
-        typeof data.topic === "string"
-      ) {
+      }
+      if (data.type === "unsubscribe" && typeof data.topic === "string") {
         client.subs.delete(data.topic);
       }
     });

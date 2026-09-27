@@ -293,7 +293,9 @@ function probe(clientDir, tarballs, workRoot, label) {
     for (const [name, range] of Object.entries(manifest[field] ?? {})) {
       if (tarballs[name]) {
         manifest[field][name] = `file:${tarballs[name]}`;
-      } else if (String(range).startsWith("workspace:")) {
+        continue;
+      }
+      if (String(range).startsWith("workspace:")) {
         // An unpublished workspace package. No tarball exists and none can:
         // this Uplink cannot be installed anywhere but here.
         leftovers.push(`${field}.${name}`);
@@ -729,9 +731,15 @@ function runtimeImports(specs, work) {
     const failure = importOnce(spec);
     const exemption = exemptionFor(spec);
     if (!failure) loaded += 1;
-    if (failure && !exemption) failed.push(`${spec}: ${failure}`);
-    else if (failure) exempt.push(spec);
-    else if (exemption) exemptButLoading.push(spec);
+    if (failure && !exemption) {
+      failed.push(`${spec}: ${failure}`);
+      continue;
+    }
+    if (failure) {
+      exempt.push(spec);
+      continue;
+    }
+    if (exemption) exemptButLoading.push(spec);
   }
 
   if (failed.length > 0) {
@@ -839,6 +847,29 @@ function legThatCannotBeMeasured(tarballs, workRoot) {
  * below is what actually holds: a write meant to change one number may not
  * change which exports the file declares.
  */
+/**
+ * Why this run's totals cannot be believed, or `null` when they add up.
+ *
+ * Reports neither side as `total - other`, so the sentence agrees with itself
+ * whatever the run failed to measure.
+ */
+function blindMeasurementReason(measuredCount, blocked, total) {
+  if (measuredCount + blocked !== total) {
+    return (
+      `✖ BLIND: ${measuredCount} measured + ${blocked} blocked does not account for ` +
+      `${total} Uplink(s), so this run measured something it is not reporting.`
+    );
+  }
+  if (measuredCount === 0) {
+    return (
+      `✖ BLIND: none of the ${total} Uplink(s) was installed and typechecked outside\n` +
+      "  the workspace. The zeroes above are the absence of a measurement, not the result of\n" +
+      "  one, and no debt entry can be believed against them."
+    );
+  }
+  return null;
+}
+
 function rewriteDebt(merged) {
   const current = readFileSync(DEBT_PATH, "utf8");
   const start = current.indexOf("export const EXTRACTION_DEBT");
@@ -928,15 +959,17 @@ try {
         console.log(`    ${line.trim()}`);
       }
       exitCode = 1;
-    } else if (result.errors < allowed) {
+      continue;
+    }
+    if (result.errors < allowed) {
       console.log(
         `  ${uplink.id}: ${result.errors} error(s), debt allows ${allowed}. Tighten with --update --only ${uplink.id}.`,
       );
-    } else {
-      console.log(
-        `✓ ${uplink.id}: ${result.errors} error(s), at its ceiling of ${allowed}`,
-      );
+      continue;
     }
+    console.log(
+      `✓ ${uplink.id}: ${result.errors} error(s), at its ceiling of ${allowed}`,
+    );
   }
 
   /*
@@ -951,18 +984,13 @@ try {
    * agrees with itself whatever the run failed to measure.
    */
   const measuredCount = Object.keys(measured).length;
-  if (measuredCount + blocked !== uplinks.length) {
-    console.error(
-      `✖ BLIND: ${measuredCount} measured + ${blocked} blocked does not account for ` +
-        `${uplinks.length} Uplink(s), so this run measured something it is not reporting.`,
-    );
-    hardFindings += 1;
-  } else if (measuredCount === 0) {
-    console.error(
-      `✖ BLIND: none of the ${uplinks.length} Uplink(s) was installed and typechecked outside\n` +
-        "  the workspace. The zeroes above are the absence of a measurement, not the result of\n" +
-        "  one, and no debt entry can be believed against them.",
-    );
+  const blindReason = blindMeasurementReason(
+    measuredCount,
+    blocked,
+    uplinks.length,
+  );
+  if (blindReason) {
+    console.error(blindReason);
     hardFindings += 1;
   }
   console.log(
@@ -970,19 +998,21 @@ try {
       `workspace${blocked > 0 ? `, ${blocked} could not be` : ""}.`,
   );
 
-  if (update && measuredCount === 0) {
-    console.error(
-      "✖ refusing to rewrite the debt from a run that measured no Uplink.",
-    );
-  } else if (update) {
-    const merged = { ...EXTRACTION_DEBT, ...measured };
-    for (const [id, count] of Object.entries(merged))
-      if (count === 0) delete merged[id];
-    if (rewriteDebt(merged)) {
-      console.log(`\nRewrote ${DEBT_PATH} from this run.`);
-      exitCode = 0;
+  if (update) {
+    if (measuredCount === 0) {
+      console.error(
+        "✖ refusing to rewrite the debt from a run that measured no Uplink.",
+      );
     } else {
-      hardFindings += 1;
+      const merged = { ...EXTRACTION_DEBT, ...measured };
+      for (const [id, count] of Object.entries(merged))
+        if (count === 0) delete merged[id];
+      if (rewriteDebt(merged)) {
+        console.log(`\nRewrote ${DEBT_PATH} from this run.`);
+        exitCode = 0;
+      } else {
+        hardFindings += 1;
+      }
     }
   }
 } finally {

@@ -65,13 +65,16 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a === "--json") {
       jsonOut = argv[++i];
-    } else if (a === "--exclude") {
-      excludes.push(argv[++i]);
-    } else if (a.startsWith("-")) {
-      throw new Error(`Unknown flag: ${a}`);
-    } else {
-      scanPaths.push(a);
+      continue;
     }
+    if (a === "--exclude") {
+      excludes.push(argv[++i]);
+      continue;
+    }
+    if (a.startsWith("-")) {
+      throw new Error(`Unknown flag: ${a}`);
+    }
+    scanPaths.push(a);
   }
   return { scanPaths, excludes, jsonOut };
 }
@@ -279,7 +282,8 @@ function maybeOpenBlockComment(text, ext, state, opts = {}) {
   if (SLASH_STAR_EXTS.has(ext) && text.includes("/*")) {
     opener = "/*";
     closer = "*/";
-  } else if (XML_COMMENT_EXTS.has(ext) && text.includes("<!--")) {
+  }
+  if (XML_COMMENT_EXTS.has(ext) && text.includes("<!--")) {
     opener = "<!--";
     closer = "-->";
   }

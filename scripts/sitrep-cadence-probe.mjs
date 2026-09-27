@@ -35,7 +35,9 @@ ws.on("message", (raw) => {
   if (msg.type !== "stream-data") return;
   if (msg.topic === "system.channels") {
     channelSnapshots.push({ at: Date.now(), payload: msg.payload });
-  } else if (msg.topic === UT_TOPIC) {
+    return;
+  }
+  if (msg.topic === UT_TOPIC) {
     const validAt = msg.meta?.validAt;
     if (typeof validAt === "number")
       utSamples.push({ at: Date.now(), validAt });

@@ -67,8 +67,11 @@ function csharpFiles(root, dirs) {
 function block(source, from) {
   let depth = 0;
   for (let index = from; index < source.length; index++) {
-    if (source[index] === "{") depth++;
-    else if (source[index] === "}") {
+    if (source[index] === "{") {
+      depth++;
+      continue;
+    }
+    if (source[index] === "}") {
       depth--;
       if (depth === 0) return source.slice(from + 1, index);
     }
@@ -124,8 +127,11 @@ function readConstants(root, dirs) {
       if (owner) qualified.set(`${owner.name}.${match[1]}`, match[2]);
       local.set(match[1], match[2]);
       const seen = bySimple.get(match[1]);
-      if (seen === undefined) bySimple.set(match[1], match[2]);
-      else if (seen !== match[2]) bySimple.set(match[1], null);
+      if (seen === undefined) {
+        bySimple.set(match[1], match[2]);
+        continue;
+      }
+      if (seen !== match[2]) bySimple.set(match[1], null);
     }
     byFile.set(path, local);
   }

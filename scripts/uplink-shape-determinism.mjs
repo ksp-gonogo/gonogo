@@ -109,7 +109,9 @@ for (const [file, shape] of first) {
   const again = second.get(file);
   if (again === undefined) {
     drifted.push(`${file}: the second run produced no such asset`);
-  } else if (again.hash !== shape.hash) {
+    continue;
+  }
+  if (again.hash !== shape.hash) {
     drifted.push(`${file}: ${shape.hash} then ${again.hash}`);
   }
 }

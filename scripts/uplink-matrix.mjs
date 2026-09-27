@@ -208,12 +208,18 @@ if (plantedWrong) {
 
 const uplinks = discover(MOD);
 
-const mode = process.argv[2];
-if (mode === "--github") {
-  console.log(`matrix=${JSON.stringify({ uplink: uplinks })}`);
-  console.log(`count=${uplinks.length}`);
-} else if (mode === "--ids") {
-  for (const uplink of uplinks) console.log(uplink.id);
-} else {
+/** Prints `uplinks` in the shape `mode` asks for. */
+function printMatrix(mode, uplinks) {
+  if (mode === "--github") {
+    console.log(`matrix=${JSON.stringify({ uplink: uplinks })}`);
+    console.log(`count=${uplinks.length}`);
+    return;
+  }
+  if (mode === "--ids") {
+    for (const uplink of uplinks) console.log(uplink.id);
+    return;
+  }
   console.log(JSON.stringify(uplinks, null, 2));
 }
+
+printMatrix(process.argv[2], uplinks);
