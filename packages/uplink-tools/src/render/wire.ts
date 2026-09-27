@@ -140,12 +140,19 @@ function readCommands(dir: string): WireCommand[] {
   const replies = new Map<string, string>();
   let into: Map<string, string> | null = null;
   for (const line of readFileSync(path, "utf8").split(/\r?\n/)) {
-    if (line.startsWith("export interface GeneratedCommandArgsMap"))
+    if (line.startsWith("export interface GeneratedCommandArgsMap")) {
       into = args;
-    else if (line.startsWith("export interface GeneratedCommandReplyMap"))
+      continue;
+    }
+    if (line.startsWith("export interface GeneratedCommandReplyMap")) {
       into = replies;
-    else if (line === "}") into = null;
-    else if (into) {
+      continue;
+    }
+    if (line === "}") {
+      into = null;
+      continue;
+    }
+    if (into) {
       const match = COMMAND_ENTRY.exec(line);
       if (match) into.set(match[1], match[2]);
     }

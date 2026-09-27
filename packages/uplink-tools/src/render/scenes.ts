@@ -411,21 +411,25 @@ function carriedFor(
   };
   addAvailability();
 
-  if (target.kind === "widget") {
-    const def = inventory.widgets.find((w) => w.id === target.id);
-    if (!def) throw unknownTarget(where, target, inventory);
-    for (const topic of [
-      ...def.channels,
-      ...def.optionalChannels,
-      ...def.dataRequirements,
-    ]) {
-      carried.add(topic);
+  const addTargetTopics = () => {
+    if (target.kind === "widget") {
+      const def = inventory.widgets.find((w) => w.id === target.id);
+      if (!def) throw unknownTarget(where, target, inventory);
+      for (const topic of [
+        ...def.channels,
+        ...def.optionalChannels,
+        ...def.dataRequirements,
+      ]) {
+        carried.add(topic);
+      }
+      return;
     }
-  } else if (target.kind === "augment") {
-    const def = inventory.augments.find((a) => a.id === target.id);
-    if (!def) throw unknownTarget(where, target, inventory);
-    for (const topic of def.channels) carried.add(topic);
-  } else {
+    if (target.kind === "augment") {
+      const def = inventory.augments.find((a) => a.id === target.id);
+      if (!def) throw unknownTarget(where, target, inventory);
+      for (const topic of def.channels) carried.add(topic);
+      return;
+    }
     const def = inventory.contributions.find((c) => c.id === target.id);
     if (!def) throw unknownTarget(where, target, inventory);
     for (const dep of def.deps) {
@@ -442,7 +446,8 @@ function carriedFor(
         carried.add(dep);
       }
     }
-  }
+  };
+  addTargetTopics();
   return [...carried].sort();
 }
 
@@ -524,18 +529,18 @@ function unknownTarget(
   );
 }
 
-function modesFor(
+function resolveAllModes(
   where: string,
   scene: RawScene,
   target: SceneTarget,
   inventory: UplinkInventory,
 ): InventoryMode[] {
-  let all: InventoryMode[];
   if (target.kind === "widget") {
     const def = inventory.widgets.find((w) => w.id === target.id);
     if (!def) throw unknownTarget(where, target, inventory);
-    all = def.modes;
-  } else if (scene.hostWidget) {
+    return def.modes;
+  }
+  if (scene.hostWidget) {
     const host = hostWidget(where, scene.hostWidget, inventory);
     // The host's own sizes, because the host is what is on screen. A stand-in
     // tile would render the real widget at a shape nobody ever sees it in.
@@ -547,7 +552,7 @@ function modesFor(
     // with its facility names ellipsised to "V...", a picture of a tile nobody
     // running that Uplink is using. The host still mounts and still supplies
     // the layout; only the tile it is given is the scene's.
-    all = scene.size
+    return scene.size
       ? [
           {
             ...host.modes[0],
@@ -556,10 +561,18 @@ function modesFor(
           },
         ]
       : host.modes;
-  } else {
-    const size = scene.size ?? STANDIN_SIZE;
-    all = [{ name: "default", ...size, ...gridToPixels(size.w, size.h) }];
   }
+  const size = scene.size ?? STANDIN_SIZE;
+  return [{ name: "default", ...size, ...gridToPixels(size.w, size.h) }];
+}
+
+function modesFor(
+  where: string,
+  scene: RawScene,
+  target: SceneTarget,
+  inventory: UplinkInventory,
+): InventoryMode[] {
+  const all = resolveAllModes(where, scene, target, inventory);
   if (!scene.modes) return all;
   const chosen: InventoryMode[] = [];
   for (const name of scene.modes) {

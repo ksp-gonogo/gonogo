@@ -95,11 +95,11 @@ function findFixtures(root: string): string[] {
     for (const entry of entries) {
       if (entry === "node_modules" || entry === "dist") continue;
       const full = join(dir, entry);
-      if (statSync(full).isDirectory()) walk(full);
-      else if (
-        entry.endsWith(".json") &&
-        dirname(full).endsWith("__fixtures__")
-      ) {
+      if (statSync(full).isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (entry.endsWith(".json") && dirname(full).endsWith("__fixtures__")) {
         out.push(full);
       }
     }

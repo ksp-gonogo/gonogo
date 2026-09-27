@@ -15,7 +15,12 @@ import type { UplinkPackage } from "./context";
 import { encodeGif } from "./gif";
 import { buildProbePage } from "./page";
 import { PROBE_CHROME_ATTR, RENDER_PROBE_GLOBAL } from "./probe-global";
-import { assertEveryWidgetCovered, buildScenes, type Scene } from "./scenes";
+import {
+  assertEveryWidgetCovered,
+  buildScenes,
+  type Scene,
+  type SceneAct,
+} from "./scenes";
 import {
   ADMISSIBLE_PROPERTIES,
   type AssetShape,
@@ -631,7 +636,7 @@ async function assertEveryPaintVisible(
  * before the press.
  */
 async function performActs(tab: Page, scene: Scene): Promise<void> {
-  for (const act of scene.before) {
+  const performAct = async (act: SceneAct): Promise<void> => {
     if (act.press !== undefined) {
       const control = await pressable(tab, act.press);
       if (control === null) {
@@ -643,7 +648,9 @@ async function performActs(tab: Page, scene: Scene): Promise<void> {
         );
       }
       await control.click();
-    } else if (act.hover !== undefined) {
+      return;
+    }
+    if (act.hover !== undefined) {
       const target = tab.locator(act.hover).first();
       await target.scrollIntoViewIfNeeded().catch(() => {});
       const box = await target.boundingBox().catch(() => null);
@@ -659,9 +666,13 @@ async function performActs(tab: Page, scene: Scene): Promise<void> {
       // What a hover-gate reads is where the pointer IS, so that is what this
       // sets.
       await tab.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    } else {
-      await restPointer(tab);
+      return;
     }
+    await restPointer(tab);
+  };
+
+  for (const act of scene.before) {
+    await performAct(act);
     await settle(tab);
   }
 }

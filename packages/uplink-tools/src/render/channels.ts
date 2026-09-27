@@ -85,7 +85,7 @@ function block(source: string, from: number): string {
   let depth = 0;
   for (let i = from; i < source.length; i++) {
     if (source[i] === "{") depth++;
-    else if (source[i] === "}") {
+    if (source[i] === "}") {
       depth--;
       if (depth === 0) return source.slice(from + 1, i);
     }

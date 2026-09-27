@@ -431,7 +431,8 @@ function controlCut(
   if (width < room) {
     if (style.textAlign === "right" || style.textAlign === "end") {
       left = content.right - width;
-    } else if (style.textAlign === "center") {
+    }
+    if (style.textAlign === "center") {
       left = content.left + (room - width) / 2;
     }
   }
@@ -516,8 +517,8 @@ function splitTopLevel(text: string): string[] {
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
     if (ch === "(") depth++;
-    else if (ch === ")") depth--;
-    else if (ch === "," && depth === 0) {
+    if (ch === ")") depth--;
+    if (ch === "," && depth === 0) {
       out.push(text.slice(at, i));
       at = i + 1;
     }
@@ -562,6 +563,24 @@ interface Gradient {
 }
 
 /**
+ * What a linear-gradient direction keyword or angle means for which edge the
+ * gradient line starts at, or `null` for a direction this cannot read as a
+ * vertical fade.
+ */
+function resolveGradientFrom(direction: string): "top" | "bottom" | null {
+  if (
+    /^to\s+top$/.test(direction) ||
+    /^0(deg|rad|grad|turn)$/.test(direction)
+  ) {
+    return "bottom";
+  }
+  if (/^to\s+bottom$/.test(direction) || /^180deg$/.test(direction)) {
+    return "top";
+  }
+  return null;
+}
+
+/**
  * One vertical gradient layer of a computed `background-image`, as stops of
  * alpha down the box.
  *
@@ -577,13 +596,9 @@ function readGradient(layer: string, height: number): Gradient | undefined {
   let from: "top" | "bottom" = "top";
   if (/^to\s/.test(parts[0]) || /^[-\d.]+(deg|rad|grad|turn)$/.test(parts[0])) {
     const direction = parts.shift() as string;
-    if (
-      /^to\s+top$/.test(direction) ||
-      /^0(deg|rad|grad|turn)$/.test(direction)
-    )
-      from = "bottom";
-    else if (!/^to\s+bottom$/.test(direction) && !/^180deg$/.test(direction))
-      return undefined;
+    const resolved = resolveGradientFrom(direction);
+    if (resolved === null) return undefined;
+    from = resolved;
   }
   if (parts.length < 2) return undefined;
 

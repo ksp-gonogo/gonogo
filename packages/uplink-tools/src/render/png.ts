@@ -55,9 +55,11 @@ export function decodePng(bytes: Buffer): DecodedPng {
         );
       }
       channels = colourType === 6 ? 4 : 3;
-    } else if (type === "IDAT") {
+    }
+    if (type === "IDAT") {
       idat.push(body);
-    } else if (type === "IEND") {
+    }
+    if (type === "IEND") {
       break;
     }
   }
