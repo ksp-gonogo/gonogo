@@ -64,8 +64,9 @@ function trackedSourceFiles(): string[] {
  *
  * The accessors are the sanctioned narrowings (`observedValue`, `stillTrue`,
  * `dateable`, `withoutReckoning`, `readingAge`, `notCurrent`, `hasAnswered`,
- * `readingOf`), plus an explicit branch on either discriminant, `.state` or
- * `.reckoning`, which is what a widget with its own rule writes.
+ * `readingOf`, `deriveReading`), plus an explicit branch on either discriminant,
+ * `.state` or `.reckoning`, which is what a widget with its own rule writes.
+ * `deriveReading` hands back a reading too, with the model carried through.
  *
  * `readingOf` joined the list when the scan was widened to see the bound hook, and it
  * is a narrowing of a different kind from the rest: it maps the value INSIDE a
@@ -84,7 +85,7 @@ function trackedSourceFiles(): string[] {
  * copy-pasted in thirty-nine identical definitions before it was exported.
  */
 const ACCESSORS =
-  /observedValue|stillTrue|dateable|withoutReckoning|readingAge|notCurrent|hasAnswered|readingOf/;
+  /observedValue|stillTrue|dateable|withoutReckoning|readingAge|notCurrent|hasAnswered|readingOf|deriveReading/;
 
 /**
  * A telemetry read bound to a variable, in EITHER of the two spellings the tree uses.

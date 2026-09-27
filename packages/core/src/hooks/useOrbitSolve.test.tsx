@@ -17,7 +17,7 @@ import { StubTransport, type WireOf } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
-import { useOrbitSolve } from "./useOrbitSolve";
+import { useOrbitSolve, useOrbitSolveReading } from "./useOrbitSolve";
 
 /**
  * `useOrbitSolve` reads `vessel.orbit` and solves its elements for the view
@@ -378,13 +378,16 @@ describe("useOrbitSolve under signal delay", () => {
       delaySeconds: () => owlt,
     });
     const store = new TimelineStore(clock);
-    const { result } = renderHook(() => useOrbitSolve(), {
-      wrapper: ({ children }: { children: ReactNode }) => (
-        <TelemetryProvider client={client} store={store}>
-          {children}
-        </TelemetryProvider>
-      ),
-    });
+    const { result } = renderHook(
+      () => ({ observed: useOrbitSolve(), reading: useOrbitSolveReading() }),
+      {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <TelemetryProvider client={client} store={store}>
+            {children}
+          </TelemetryProvider>
+        ),
+      },
+    );
     const meta = {
       quality: Quality.OnRails,
       validAt: UT_NOW - owlt,
@@ -394,13 +397,33 @@ describe("useOrbitSolve under signal delay", () => {
       transport.emit("vessel.orbit", ORBIT, { ...meta, source: "vessel:1" });
       transport.emit("system.bodies", BODIES, { ...meta, source: "system:1" });
     });
-    await waitFor(() => expect(result.current).not.toBeNull());
+    await waitFor(() => expect(result.current.observed).not.toBeNull());
     return result.current;
   }
 
-  it("solves at the craft's present, not at the received edge", async () => {
+  it("solves the observation at the received edge, not at the craft's present", async () => {
     const atCraft = await solvedAtLightTime(0);
     const delayed = await solvedAtLightTime(240);
-    expect(delayed?.trueAnomaly).toBeCloseTo(atCraft?.trueAnomaly ?? NaN, 6);
+    const period = atCraft.observed?.period ?? NaN;
+    const lagDeg = (240 / period) * 360;
+    const behind =
+      ((atCraft.observed?.trueAnomaly ?? NaN) -
+        (delayed.observed?.trueAnomaly ?? NaN) +
+        360) %
+      360;
+    expect(behind).toBeCloseTo(lagDeg, 3);
+  });
+
+  it("draws the craft's present only as the conic's reckoning, beyond the received edge", async () => {
+    const atCraft = await solvedAtLightTime(0);
+    const delayed = await solvedAtLightTime(240);
+    const reckoning = delayed.reading.reckoning;
+    expect(reckoning.status).toBe("available");
+    if (reckoning.status !== "available") return;
+    expect(reckoning.beyondReceived).toBe(true);
+    expect(reckoning.modelled.trueAnomaly).toBeCloseTo(
+      atCraft.observed?.trueAnomaly ?? NaN,
+      6,
+    );
   });
 });

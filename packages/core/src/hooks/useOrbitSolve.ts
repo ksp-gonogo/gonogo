@@ -1,17 +1,24 @@
 import {
   type BodyRadiusTable,
+  bodyRadiusOf,
   type OrbitalSolve,
   type SolveInstant,
+  solveOrbit,
   solveSelfOrbit,
   useCommandArrivalUt,
-  useScetUt,
   useStream,
+  useViewUt,
 } from "@ksp-gonogo/sitrep-client";
+import {
+  deriveReading,
+  type Reading,
+  type Value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useTelemetry } from "@ksp-gonogo/sitrep-sdk/spine";
 import { useMemo } from "react";
 
 /**
- * The self vessel's orbit solved at the craft's present (SCET): apsides, their
+ * The self vessel's orbit solved at the received edge: apsides, their
  * altitudes, the two apsis countdowns, true anomaly, period, orbital radius and
  * which apsis comes next. `at` moves the solve to when a command sent now
  * reaches the craft, for a surface planning a burn.
@@ -24,7 +31,7 @@ import { useMemo } from "react";
  *
  * Under physics the model refuses to ADVANCE, and a current observation is
  * still solved at its own epoch, its countdowns taken from the game's own and
- * run down to SCET; see `solveSelfOrbit`.
+ * run down to the received edge; see `solveSelfOrbit`.
  *
  * ## The model's refusal is the gate, and it is wider than "under physics"
  *
@@ -59,9 +66,9 @@ export function useOrbitSolve(at: SolveInstant = "scet"): OrbitalSolve | null {
       : bodiesReading.state === "absent"
         ? null
         : undefined;
-  const scetUt = useScetUt();
+  const receivedUt = useViewUt();
   const arrivalUt = useCommandArrivalUt();
-  const solveUt = (at === "command-arrival" ? arrivalUt : scetUt)?.magnitude;
+  const solveUt = utOf(at === "command-arrival" ? arrivalUt : receivedUt);
 
   /*
    * A stale reading still carries its elements, and they are constants of the
@@ -82,4 +89,43 @@ export function useOrbitSolve(at: SolveInstant = "scet"): OrbitalSolve | null {
     () => solveSelfOrbit(elements, reckoning, bodies, solveUt, observedAtUt),
     [elements, reckoning, bodies, solveUt, observedAtUt],
   );
+}
+
+/**
+ * The self vessel's solve as a {@link Reading}: the observation solved at the
+ * received edge, and the conic's own answer solved at the instant it reckoned
+ * to, so a figure at the craft's present is drawn only where the model carried
+ * the orbit there. Pick a figure off it with `pickReading`.
+ */
+export function useOrbitSolveReading(): Reading<OrbitalSolve> {
+  const reading = useTelemetry("vessel.orbit");
+  const bodiesReading = useStream<BodyRadiusTable>("system.bodies");
+  const bodies =
+    bodiesReading.state === "observed" || bodiesReading.state === "stale"
+      ? bodiesReading.value
+      : bodiesReading.state === "absent"
+        ? null
+        : undefined;
+  const observed = useOrbitSolve();
+  return useMemo(
+    () =>
+      deriveReading(
+        reading,
+        () => observed ?? undefined,
+        (orbit, atUt) =>
+          solveOrbit(
+            orbit,
+            utOf(atUt),
+            bodyRadiusOf(bodies, orbit.referenceBodyIndex),
+          ),
+      ),
+    [reading, observed, bodies],
+  );
+}
+
+/** The bare UT the solver takes. */
+function utOf(ut: Value<"ut">): number;
+function utOf(ut: Value<"ut"> | undefined): number | undefined;
+function utOf(ut: Value<"ut"> | undefined): number | undefined {
+  return ut?.magnitude;
 }

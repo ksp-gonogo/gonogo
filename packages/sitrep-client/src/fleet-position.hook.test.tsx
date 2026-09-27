@@ -1,8 +1,10 @@
+import { wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
+import type { VesselOrbitPayload } from "@ksp-gonogo/sitrep-sdk/spine";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
-import { useFleetVesselPosition } from "./fleet-position";
+import { propagateVesselOrbit, useFleetVesselPosition } from "./fleet-position";
 import { StubTransport } from "./stub-transport";
 
 // End-to-end regression for the seam gap #1 lived in: a RAW (un-unit-wrapped)
@@ -60,7 +62,7 @@ describe("useFleetVesselPosition under signal delay", () => {
     mu: 3.5316e12,
   };
 
-  /** The fleet vessel's x position when its elements left it `owlt` seconds before the craft's present of `UT_NOW`. */
+  /** The fleet vessel's x position when its elements, taken at `UT_NOW - owlt`, arrive at `UT_NOW`. */
   async function positionAtLightTime(owlt: number): Promise<number> {
     const t = new StubTransport();
     const client = new TelemetryClient(t);
@@ -92,9 +94,16 @@ describe("useFleetVesselPosition under signal delay", () => {
     return x;
   }
 
-  it("places the vessel at the craft's present, not at the received edge", async () => {
+  it("places the vessel at the received edge, not at the craft's present", async () => {
     const atCraft = await positionAtLightTime(0);
     const delayed = await positionAtLightTime(240);
-    expect(delayed).toBeCloseTo(atCraft, 3);
+    expect(delayed).not.toBeCloseTo(atCraft, 0);
+    expect(delayed).toBeCloseTo(
+      propagateVesselOrbit(
+        wrapTypePayload<VesselOrbitPayload>("VesselOrbit", { ...ORBIT }),
+        UT_NOW - 240,
+      )?.position[0] ?? Number.NaN,
+      3,
+    );
   });
 });

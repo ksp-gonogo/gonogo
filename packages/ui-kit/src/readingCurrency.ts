@@ -86,7 +86,7 @@ export interface CurrencyOptions {
 }
 
 /** The mark's words for a current reading whose figure the model carried across the light-time. */
-const MODELLED_TO_SCET = "modelled to SCET";
+export const MODELLED_TO_SCET = "modelled to SCET";
 
 /** The mark and its words for a held reading's observation. */
 function heldCurrency<U extends string>(

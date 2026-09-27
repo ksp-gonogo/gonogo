@@ -134,15 +134,32 @@ describe("Countdown under signal delay", () => {
     };
   }
 
-  it("marks a current reading whose figure the model carried beyond the received edge", () => {
+  it("draws the observation, and the model's figure beside it with the modelled mark", () => {
     const { container } = render(
       <Countdown value={carriedToScet(value("s", 90), value("s", 42))} />,
     );
-    expect(container.textContent).toContain("42s");
-    const host = container.querySelector("[data-held]");
-    expect(host).not.toBeNull();
-    expect(host?.querySelector("[data-held-mark]")).not.toBeNull();
-    expect(host?.getAttribute("title")).toBeTruthy();
+    expect(container.textContent).toMatch(/^1min 30s/);
+    const alongside = container.querySelector("[data-modelled-alongside]");
+    expect(alongside?.textContent).toContain("42s");
+    expect(alongside?.textContent).not.toContain("1min 30s");
+    expect(alongside?.querySelector("[data-held-mark]")).not.toBeNull();
+    expect(
+      alongside?.querySelector("[data-held]")?.getAttribute("title"),
+    ).toBeTruthy();
+  });
+
+  it("draws nothing alongside a model that stays at the received edge", () => {
+    const { container } = render(
+      <Countdown value={reckoned(value("s", 90), value("s", 42))} />,
+    );
+    expect(container.querySelector("[data-modelled-alongside]")).toBeNull();
+  });
+
+  it("has no axe violations with the modelled figure drawn", async () => {
+    const { container } = render(
+      <Countdown value={carriedToScet(value("s", 90), value("s", 42))} />,
+    );
+    await expectNoA11yViolations(container);
   });
 
   it.each([

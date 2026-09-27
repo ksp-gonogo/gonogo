@@ -1197,6 +1197,117 @@ export function readingOf<T, R>(
 }
 
 /**
+ * A figure a widget derives from a topic, as a {@link Reading} of its own: the
+ * figure as observed, and the same figure as the topic's model has it at the
+ * instant the model answered for.
+ *
+ * `observed` runs on the observation. `reckoned` runs on the observation
+ * overlaid by what the model moved, and is handed the reckoning's own instant,
+ * so a figure at the craft's present can only come from a model that answered
+ * and always arrives marked as that model's. Where the model declined, the
+ * derived reading carries the decline; where it had nothing to say, nothing.
+ *
+ * Unlike {@link readingOf}, the model survives, because the caller writes the
+ * modelled arm itself rather than handing one selector to both.
+ */
+// The ReckonableReading overload comes FIRST, for the same reason `withoutReckoning`'s does.
+export function deriveReading<T, K extends keyof T, R>(
+  source: ReckonableReading<T, K>,
+  observed: (value: T) => R | undefined,
+  reckoned: (modelled: T, atUt: Value<"ut">) => R | undefined,
+): Reading<R>;
+export function deriveReading<T, R>(
+  source: TopicCurrency<T, TopicReckoning<T>>,
+  observed: (value: T) => R | undefined,
+  reckoned: (modelled: T, atUt: Value<"ut">) => R | undefined,
+): Reading<R>;
+export function deriveReading<T, R>(
+  source: TopicCurrency<
+    T,
+    TopicReckoning<T> | DeclaredTopicReckoning<Partial<T>>
+  >,
+  observed: (value: T) => R | undefined,
+  reckoned: (modelled: T, atUt: Value<"ut">) => R | undefined,
+): Reading<R> {
+  if (source.state === "pending" || source.state === "unowned") {
+    return { state: source.state, reckoning: { status: "none" } };
+  }
+  if (source.state === "absent") {
+    return {
+      state: "absent",
+      atUt: source.atUt,
+      reckoning: { status: "none" },
+    };
+  }
+  const reckoning = derivedReckoning(source.value, source.reckoning, reckoned);
+  if (source.state === "observed") {
+    return {
+      state: "observed",
+      value: observed(source.value),
+      atUt: source.atUt,
+      reckoning,
+    };
+  }
+  return {
+    state: "stale",
+    value: observed(source.value),
+    asOfUt: source.asOfUt,
+    grade: source.grade,
+    reckoning,
+  };
+}
+
+function derivedReckoning<T, R>(
+  value: T,
+  reckoning: TopicReckoning<T> | DeclaredTopicReckoning<Partial<T>>,
+  reckoned: (modelled: T, atUt: Value<"ut">) => R | undefined,
+): Reckoning<R> {
+  if (reckoning.status === "declined") {
+    return { status: "declined", declined: reckoning.declined };
+  }
+  if (reckoning.status === "none") return { status: "none" };
+  const modelled = reckoned({ ...value, ...reckoning.value }, reckoning.atUt);
+  if (modelled === undefined) return { status: "none" };
+  return {
+    status: "available",
+    modelled,
+    atUt: reckoning.atUt,
+    beyondReceived: reckoning.beyondReceived,
+    basis: reckoning.basis,
+  };
+}
+
+/**
+ * One figure of a derived {@link Reading}, with its model carried through:
+ * `pick` runs on the observation and on the modelled value alike, which is
+ * sound only because both are the same type.
+ */
+export function pickReading<V, R>(
+  reading: Reading<V>,
+  pick: (value: V) => R | undefined,
+): Reading<R> {
+  const value = reading.value === undefined ? undefined : pick(reading.value);
+  const reckoning = pickedReckoning(reading.reckoning, pick);
+  return { ...reading, value, reckoning };
+}
+
+function pickedReckoning<V, R>(
+  reckoning: Reckoning<V>,
+  pick: (value: V) => R | undefined,
+): Reckoning<R> {
+  if (reckoning.status !== "available") return reckoning;
+  const modelled = pick(reckoning.modelled);
+  if (modelled === undefined) return { status: "none" };
+  return {
+    status: "available",
+    modelled,
+    atUt: reckoning.atUt,
+    beyondReceived: reckoning.beyondReceived,
+    basis: reckoning.basis,
+  };
+}
+
+/**
  * The {@link ModelledField} that covers `path`, or `undefined` where no entry
  * does.
  *

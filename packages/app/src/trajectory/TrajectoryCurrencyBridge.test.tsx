@@ -178,7 +178,7 @@ describe("TrajectoryCurrencyBridge: the horizon, against the instant on screen",
 });
 
 describe("TrajectoryCurrencyBridge under signal delay", () => {
-  it("asks whether the horizon reaches the craft's present, not the received edge", () => {
+  it("asks whether the horizon reaches the received edge, not the craft's present", () => {
     const owlt = 240;
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
@@ -220,8 +220,8 @@ describe("TrajectoryCurrencyBridge under signal delay", () => {
       store.beginFrame();
       clock.emitFrame();
     });
-    // The horizon reaches 100 s past the received observation and the craft is a light-time, 240 s, past it.
-    expect(summary()).toBe("warning:BEYOND INTEGRATION");
+    // The horizon reaches 100 s past the received observation; the craft is a light-time, 240 s, past it, and that is the reckoning's question.
+    expect(summary()).toBe("info:EXACT AT SAMPLE");
   });
 });
 
