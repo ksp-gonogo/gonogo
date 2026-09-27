@@ -32,7 +32,7 @@ export function comboboxOptionMatches(
   );
 }
 
-/** Filters `options` against `query` using `matches` (default: `comboboxOptionMatches`). */
+/** Filters `options` against `query` using `matches`, by default a case-insensitive substring match on the label or key. */
 export function filterComboboxOptions<T extends ComboboxOption>(
   options: readonly T[],
   query: string,

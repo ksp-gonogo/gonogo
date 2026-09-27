@@ -385,6 +385,29 @@ describe("Meter, given a reading of a fraction", () => {
     ).toMatch(/STALE/i);
   });
 
+  it("draws a caller's valueLabelNode as given, since its own Units mark themselves", () => {
+    const { container } = render(
+      <Meter
+        label="Dose"
+        valueLabel="39%"
+        valueLabelNode={<span>39 percent</span>}
+        value={{
+          state: "stale",
+          reckoning: { status: "none" },
+          value: value("ratio", 0.39),
+          asOfUt: AT,
+          grade: "held-stale",
+        }}
+      />,
+    );
+    expect(container.querySelector("[data-not-current-mark]")).toBeNull();
+    expect(
+      screen
+        .getByRole("meter", { name: "Dose" })
+        .getAttribute("aria-valuetext"),
+    ).toMatch(/^39%, .*STALE/i);
+  });
+
   it("adds nothing to a caller's valueLabel while the reading is current", () => {
     const { container } = render(
       <Meter label="Dose" valueLabel="39%" value={value("ratio", 0.39)} />,

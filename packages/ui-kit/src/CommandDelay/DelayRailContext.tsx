@@ -62,9 +62,8 @@ const NO_HANDLES_SNAPSHOT = (): readonly CommandHandle[] => NO_HANDLES;
 
 /**
  * The panel's active command handles, or `[]` when the store is empty or there
- * is no store in the tree. `useSyncExternalStore` over the nearest
- * `DelayRailStore`, so a subscriber (`Panel.Delay`) re-renders only when the
- * active handle set changes.
+ * is no store in the tree. A subscriber (`Panel.Delay`) re-renders only when
+ * the active handle set changes.
  */
 export function useActiveHandles(): readonly CommandHandle[] {
   const store = useDelayRailStore();

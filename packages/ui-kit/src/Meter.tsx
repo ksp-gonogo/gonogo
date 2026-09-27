@@ -211,13 +211,12 @@ export function Meter<U extends string = string>({
       bounds={bounds}
       endBounds={endBounds}
       display={
-        valueLabel === undefined && valueLabelNode === undefined ? (
+        valueLabelNode ??
+        (valueLabel === undefined ? (
           <Unit value={value} format={format} />
         ) : (
-          <HeldLabel caption={heldCaption(value)}>
-            {valueLabelNode ?? valueLabel}
-          </HeldLabel>
-        )
+          <HeldLabel caption={heldCaption(value)}>{valueLabel}</HeldLabel>
+        ))
       }
       spoken={withBands(
         valueLabel === undefined
@@ -244,8 +243,10 @@ function sayCaption(label: string, caption: string | null): string {
 }
 
 /**
- * A caller's own label for the figure, carrying the same held mark and words
- * `<Unit>` would have drawn, so a held meter always looks held.
+ * A caller's own string label for the figure, carrying the same held mark and
+ * words `<Unit>` would have drawn, so a held meter always looks held. A
+ * `valueLabelNode` is drawn as given: it holds its own `<Unit>`s, which mark
+ * themselves.
  */
 function HeldLabel({
   caption,
@@ -563,11 +564,11 @@ function MeterPairBar<U extends string = string>({
    * the pair carries one not-current mark at its end. Which half aged is still
    * drawn on the bar.
    */
-  const custom = valueLabelNode ?? valueLabel;
   const caption = heldCaption(value) ?? heldCaption(capacity);
   const display =
-    custom !== undefined ? (
-      <HeldLabel caption={caption}>{custom}</HeldLabel>
+    valueLabelNode ??
+    (valueLabel !== undefined ? (
+      <HeldLabel caption={caption}>{valueLabel}</HeldLabel>
     ) : bar.layout === "row" ? (
       <Meter__Pair>
         <Unit value={value} hideUnitInGroup />
@@ -583,7 +584,7 @@ function MeterPairBar<U extends string = string>({
         {" / "}
         <Unit value={capacity} />
       </>
-    );
+    ));
   const spoken =
     valueLabel === undefined
       ? `${speakQuantity(shown.figure, shared)} of ${speakQuantity(held.figure, shared)}`

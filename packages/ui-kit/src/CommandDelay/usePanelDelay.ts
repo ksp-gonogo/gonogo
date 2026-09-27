@@ -3,7 +3,7 @@ import type { CommandDelayHandle } from "./CommandDelay";
 import { useDelayRailStore } from "./DelayRailContext";
 
 /**
- * Publish a command's delay handle into the nearest `DelayRailStore` for the
+ * Publish a command's delay handle to the nearest `DelayRailProvider` for the
  * life of the calling component, so the panel's rail renders its delay UX. A
  * widget calls `useCommand(...)` and hands the result to `usePanelDelay(cmd)`.
  *
