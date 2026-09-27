@@ -51,27 +51,32 @@ namespace Gonogo.KSP.Tests
                 if (op.Value >= OpCodes.Ldc_I4_M1.Value && op.Value <= OpCodes.Ldc_I4_8.Value)
                 {
                     lastInt = op.Value - OpCodes.Ldc_I4_0.Value;
+                    continue;
                 }
-                else if (op == OpCodes.Ldc_I4_S)
+                if (op == OpCodes.Ldc_I4_S)
                 {
                     lastInt = (sbyte)il[operandAt];
+                    continue;
                 }
-                else if (op == OpCodes.Ldc_I4)
+                if (op == OpCodes.Ldc_I4)
                 {
                     lastInt = BitConverter.ToInt32(il, operandAt);
+                    continue;
                 }
-                else if (op == OpCodes.Call || op == OpCodes.Callvirt || op == OpCodes.Newobj)
+                if (op == OpCodes.Call || op == OpCodes.Callvirt || op == OpCodes.Newobj)
                 {
                     var callee = module.ResolveMethod(BitConverter.ToInt32(il, operandAt))!;
                     var step = op.Name + " " + callee.DeclaringType!.Name + "." + callee.Name;
                     if (callee.Name.StartsWith("Add", StringComparison.Ordinal)) step += " reason=" + lastInt;
                     steps.Add(step);
+                    continue;
                 }
-                else if (op == OpCodes.Sub || op == OpCodes.Neg)
+                if (op == OpCodes.Sub || op == OpCodes.Neg)
                 {
                     steps.Add(op.Name!);
+                    continue;
                 }
-                else if (op == OpCodes.Stfld || op == OpCodes.Ldfld || op == OpCodes.Ldsfld || op == OpCodes.Stsfld)
+                if (op == OpCodes.Stfld || op == OpCodes.Ldfld || op == OpCodes.Ldsfld || op == OpCodes.Stsfld)
                 {
                     var field = module.ResolveField(BitConverter.ToInt32(il, operandAt))!;
                     steps.Add(op.Name + " " + field.DeclaringType!.Name + "." + field.Name);

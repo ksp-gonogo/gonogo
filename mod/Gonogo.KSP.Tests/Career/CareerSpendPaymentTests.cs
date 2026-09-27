@@ -88,12 +88,15 @@ namespace Gonogo.KSP.Tests.Career
             var depth = 0;
             for (var i = open; i < source.Length; i++)
             {
-                if (source[i] == '{') depth++;
-                else if (source[i] == '}')
+                if (source[i] == '{')
                 {
-                    depth--;
-                    if (depth == 0) return source.Substring(open, i - open + 1);
+                    depth++;
+                    continue;
                 }
+                if (source[i] != '}') continue;
+
+                depth--;
+                if (depth == 0) return source.Substring(open, i - open + 1);
             }
 
             throw new InvalidOperationException($"{fileName}'s \"{signature}\" body never closes");

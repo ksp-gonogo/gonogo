@@ -67,8 +67,9 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
                 if (source[i] == '{')
                 {
                     depth++;
+                    continue;
                 }
-                else if (source[i] == '}' && --depth == 0)
+                if (source[i] == '}' && --depth == 0)
                 {
                     return source.Substring(open, i - open + 1);
                 }
