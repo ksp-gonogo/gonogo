@@ -107,6 +107,11 @@ import {
  */
 
 export { RENDER_PROBE_GLOBAL } from "./render/probe-global";
+export {
+  payloadFor,
+  type Scene,
+  sceneFromFixture,
+} from "./render/sceneModel";
 export type { MinFitFinding };
 export { auditMinFit };
 
@@ -925,6 +930,16 @@ async function renderScene(scene: ScenePayload): Promise<SceneReport> {
   return finishScene();
 }
 
+/** See {@link RenderProbeApi.unmountScene}. */
+async function unmountScene(): Promise<void> {
+  const finished = currentScene;
+  currentScene = null;
+  if (finished) await activeSetup.afterScene?.({ scene: finished });
+  teardown();
+  restoreWithheld();
+  closeSceneClock();
+}
+
 /**
  * Drop the link if the mounted scene stops arriving, seal the scene clock, and
  * read the render. {@link renderScene} runs it itself unless the payload holds
@@ -1377,6 +1392,12 @@ export interface RenderProbeApi {
   /** The mounted render as it stands, with nothing done to it. */
   readScene: () => SceneReport;
   stepScene: (step: SceneStep, deltaUt: number) => Promise<void>;
+  /**
+   * Unmount the scene last mounted and put back anything it took out, with the
+   * setup's `afterScene` run for it, for a page that mounts scenes one at a
+   * time and has to leave nothing behind between them.
+   */
+  unmountScene: () => Promise<void>;
   /** Whether the render just mounted fits its tile. See {@link auditMinFit}.
    *  Separate from `renderScene`'s report because the driver GROWS the mount
    *  box before it screenshots, and an audit taken after that grow is an audit
@@ -1418,6 +1439,7 @@ export async function installRenderProbe(): Promise<RenderProbeApi> {
       return readScene(el);
     },
     stepScene,
+    unmountScene,
     auditMinFit: () => {
       const el = document.getElementById("root");
       if (!el) throw new Error("render probe: no #root in the page");

@@ -142,6 +142,7 @@ function oneKitPerPage(dir: string): Record<string, string> {
     for (const [specifier, file] of [
       ["@ksp-gonogo/ui-kit", "dist/index.js"],
       ["@ksp-gonogo/ui-kit/testing", "dist/testing.js"],
+      ["@ksp-gonogo/ui-kit/grid", "dist/gridUnits.js"],
     ]) {
       const built = join(kit, file);
       if (existsSync(built)) alias[specifier] = built;

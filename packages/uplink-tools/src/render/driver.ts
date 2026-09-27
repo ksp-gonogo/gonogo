@@ -15,6 +15,7 @@ import type { UplinkPackage } from "./context";
 import { encodeGif } from "./gif";
 import { buildProbePage, type ProbePage } from "./page";
 import { PROBE_CHROME_ATTR, RENDER_PROBE_GLOBAL } from "./probe-global";
+import { payloadFor } from "./sceneModel";
 import {
   assertEveryWidgetCovered,
   buildScenes,
@@ -505,31 +506,6 @@ async function reportFit(tab: Page, scene: Scene, mode: string): Promise<void> {
       "that overflows wants a scroller. If neither is honest, raise the " +
       "widget's minSize.",
   );
-}
-
-function payloadFor(
-  scene: Scene,
-  mode: { name: string; w: number; h: number; pxW: number; pxH: number },
-  starve: boolean,
-): ScenePayload {
-  return {
-    target: scene.target,
-    fixture: scene.name,
-    pinnedUt: scene.pinnedUt,
-    carriedChannels: scene.carriedChannels,
-    emits: scene.emits,
-    stopsArriving: scene.stopsArriving,
-    config: scene.config,
-    slotProps: scene.slotProps,
-    host: scene.host,
-    dataSources: scene.dataSources,
-    w: mode.w,
-    h: mode.h,
-    pxW: mode.pxW,
-    pxH: mode.pxH,
-    starve,
-    steps: scene.steps,
-  };
 }
 
 async function mount(tab: Page, payload: ScenePayload): Promise<SceneReport> {

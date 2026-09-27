@@ -364,7 +364,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/uplink-tools/src/render/driver.ts": 3,
   "packages/uplink-tools/src/render/minFit.ts": 2,
   "packages/uplink-tools/src/render/render.test.ts": 2,
-  "packages/uplink-tools/src/render/scenes.ts": 1,
   "playwright.config.ts": 4,
   "scripts/asyncapi-doc.mjs": 1,
   "scripts/asyncapi/json-schema.mjs": 1,
