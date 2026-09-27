@@ -100,7 +100,7 @@ describe("Targeting: pending is no longer reported as a confirmed absence", () =
 });
 
 describe("Targeting: stale renders the last observation as an observation", () => {
-  it("keeps the last distance but marks it at-last-contact once the link drops", async () => {
+  it("keeps the last distance, marked held by Unit rather than captioned, once the link drops", async () => {
     const { fixture, legacyAux } = await mount("dtt-stale", 10);
 
     act(() => {
@@ -109,15 +109,18 @@ describe("Targeting: stale renders the last observation as an observation", () =
       fixture.emit("vessel.target", TARGET);
     });
     await waitFor(() => expect(visibleText()).toContain("10.0 km"));
-    // While current there is no caveat: delay is not staleness.
-    expect(visibleText()).not.toMatch(/last contact/i);
+    // While current there is no mark: delay is not staleness.
+    expect(document.querySelector("[data-not-current]")).toBeNull();
 
     act(() => {
       fixture.store.setTransportConnected(false);
       fixture.store.beginFrame();
     });
 
-    await waitFor(() => expect(visibleText()).toMatch(/last contact/i));
+    await waitFor(() =>
+      expect(document.querySelector("[data-not-current]")).not.toBeNull(),
+    );
+    expect(visibleText()).not.toMatch(/last contact/i);
     // The last real value stays reachable on the same reading.
     expect(visibleText()).toContain("10.0 km");
     // The mark is on each derived FIGURE, asserted by which carry one, since a count would pass with one reverted.
@@ -149,7 +152,9 @@ describe("Targeting: stale renders the last observation as an observation", () =
       fixture.store.setTransportConnected(false);
       fixture.store.beginFrame();
     });
-    await waitFor(() => expect(visibleText()).toMatch(/last contact/i));
+    await waitFor(() =>
+      expect(document.querySelector("[data-not-current]")).not.toBeNull(),
+    );
 
     // No model is registered for the topic, so no reckoned row: presence of the row is the statement of trust.
     expect(visibleText()).not.toMatch(/reckoned/i);
@@ -198,7 +203,7 @@ describe("Targeting: stale renders the last observation as an observation", () =
     expect(visibleText()).toContain("10.0 km");
     expect(visibleText()).toContain("12.0 km");
     expect(visibleText()).toContain("linear-dead-reckoning");
-    expect(visibleText()).toMatch(/last contact/i);
+    expect(document.querySelector("[data-not-current]")).not.toBeNull();
 
     teardownMockDataSource(legacyAux);
   });
@@ -261,7 +266,7 @@ describe("Targeting: stale renders the last observation as an observation", () =
         }),
       ).toBeNull(),
     );
-    expect(visibleText()).toMatch(/last contact/i);
+    expect(document.querySelector("[data-not-current]")).not.toBeNull();
 
     teardownMockDataSource(legacyAux);
   });

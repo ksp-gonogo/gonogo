@@ -156,7 +156,6 @@ function TargetingComponent({
       distance={tarDistance}
       rangeR={rangeR}
       closingRateR={closingRateR}
-      age={age}
       outOfContact={outOfContact}
       reckoned={reckoned}
       reckonedDistance={reckonedDistance}

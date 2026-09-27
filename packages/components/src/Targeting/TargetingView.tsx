@@ -46,7 +46,6 @@ interface TrackingViewProps {
   distance: number | undefined;
   rangeR: TargetingReading["rangeR"];
   closingRateR: TargetingReading["closingRateR"];
-  age: TargetingReading["age"];
   outOfContact: boolean;
   reckoned: TargetingReading["reckoned"];
   reckonedDistance: number | undefined;
@@ -60,7 +59,6 @@ export function TrackingView({
   distance,
   rangeR,
   closingRateR,
-  age,
   outOfContact,
   reckoned,
   reckonedDistance,
@@ -84,17 +82,6 @@ export function TrackingView({
           >
             <Unit value={rangeR} />
           </Text>
-        )}
-        {/* The caveat sits on the value, and only out of contact: under light-time delay every value is old. */}
-        {outOfContact && (
-          <ReadoutCaption role="status">
-            at last contact
-            {age !== undefined && (
-              <>
-                , <Unit value={age} /> ago
-              </>
-            )}
-          </ReadoutCaption>
         )}
         {reckoned !== undefined && reckonedDistance !== undefined && (
           <ReadoutCaption>
