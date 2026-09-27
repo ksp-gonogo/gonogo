@@ -263,6 +263,6 @@ describe("Targeting's time to closest approach under signal delay", () => {
     await waitFor(() => expect(visibleText()).toMatch(/2min/));
     const alongside = document.querySelector("[data-modelled-alongside]");
     expect(alongside?.textContent).toMatch(/1min 40s/);
-    expect(alongside?.querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(alongside?.querySelector("[data-held-mark]")).not.toBeNull();
   });
 });
