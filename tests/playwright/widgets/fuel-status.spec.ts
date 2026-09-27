@@ -67,11 +67,8 @@ test.describe("widget DOM mirror: FuelStatus", () => {
       .getByText("Total ΔV", { exact: true })
       .locator("xpath=..");
     await expect(totalDvBlock).toBeVisible();
-    await expect(
-      totalDvBlock.getByText("1311 m/s", { exact: true }),
-    ).toBeVisible({
-      timeout: 15_000,
-    });
+    await expect(totalDvBlock).toContainText("1311", { timeout: 15_000 });
+    await expect(totalDvBlock.locator('[data-unit="m/s"]')).toBeVisible();
     await expect(
       pair.main.getByText("Total burn", { exact: true }),
     ).toBeVisible();
