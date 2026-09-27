@@ -44,11 +44,13 @@ function parseElapsed(text: string): number | null {
   const parts = trimmed.split(":").map((p) => p.trim());
   if (parts.some((p) => p === "" || !/^\d+(\.\d+)?$/.test(p))) return null;
   const nums = parts.map(Number);
-  let totalSec = 0;
-  if (nums.length === 2) totalSec = nums[0] * 60 + nums[1];
-  else if (nums.length === 3)
-    totalSec = nums[0] * 3600 + nums[1] * 60 + nums[2];
-  else return null;
+  const resolveTotalSec = (): number | null => {
+    if (nums.length === 2) return nums[0] * 60 + nums[1];
+    if (nums.length === 3) return nums[0] * 3600 + nums[1] * 60 + nums[2];
+    return null;
+  };
+  const totalSec = resolveTotalSec();
+  if (totalSec === null) return null;
   return totalSec * 1000;
 }
 

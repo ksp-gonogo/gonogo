@@ -470,8 +470,11 @@ export function useDataSeries(
        */
       if (Object.is(nextV[i], nextV[i - 1])) continue;
       const gap = store.gapModel(topic, observed[i - 1], observed[i]);
-      if (gap?.carried === false) nextBreaks.push(i);
-      else if (gap?.carried) nextBridges.push({ to: i, ...plottedGap(gap) });
+      if (gap?.carried === false) {
+        nextBreaks.push(i);
+        continue;
+      }
+      if (gap?.carried) nextBridges.push({ to: i, ...plottedGap(gap) });
     }
     /*
      * Which runs of the window came off the craft's own recorder rather than
@@ -533,7 +536,9 @@ export function useDataSeries(
           open.bandLo?.push(lo);
           open.bandHi?.push(hi);
         }
-      } else if (lo !== undefined && hi !== undefined && kind !== undefined) {
+        continue;
+      }
+      if (lo !== undefined && hi !== undefined && kind !== undefined) {
         nextReckoned.push({
           from: i,
           to: i,
@@ -542,9 +547,9 @@ export function useDataSeries(
           bandHi: [hi],
           bandKind: kind,
         });
-      } else {
-        nextReckoned.push({ from: i, to: i, basis: sample.basis });
+        continue;
       }
+      nextReckoned.push({ from: i, to: i, basis: sample.basis });
     }
 
     // `sampleRange` builds a fresh filtered array (and, for a raw
