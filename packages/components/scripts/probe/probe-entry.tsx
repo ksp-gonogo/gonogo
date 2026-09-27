@@ -23,6 +23,7 @@ import {
   DashboardItemContext,
   getAugments,
   getComponent,
+  getDataSource,
   registerDataSource,
   registerStockBodies,
   unregisterDataSource,
@@ -270,24 +271,47 @@ function ProbeDomainAvailabilityWatch({
   return null;
 }
 
-let activeRoot: Root | null = null;
-let activeSource: MockDataSource | null = null;
-let activeBuffered: BufferedDataSource | null = null;
-let activeStore: MemoryStore | null = null;
+/** One widget mounted by {@link mountProbe}, torn down on its own. */
+export interface ProbeMount {
+  /** Resolves once the fixture has landed and the layout has settled; rejects with the mount's failure. */
+  ready: Promise<void>;
+  /** Emits one sample onto this scene's own stream; a scene with no `_stream` block has none, and throws. */
+  emit: (channel: string, value: unknown, meta?: Partial<Meta>) => void;
+  /** Unmounts this widget alone and drops its data source; safe before `ready` settles. */
+  unmount: () => void;
+}
+
+/** What one mount has set up so far, for its own unmount to take down. */
+interface MountState {
+  root: Root | null;
+  buffered: BufferedDataSource | null;
+  stream: StreamFixture | undefined;
+  disposed: boolean;
+  beside: boolean;
+}
+
+function teardownMount(state: MountState): void {
+  state.disposed = true;
+  state.root?.unmount();
+  state.root = null;
+  state.stream = undefined;
+  const buffered = state.buffered;
+  state.buffered = null;
+  if (!buffered) return;
+  buffered.disconnect();
+  // The "data" source is one per page, and only the mount holding it drops it.
+  if (getDataSource(buffered.id) === buffered) {
+    unregisterDataSource(buffered.id);
+  }
+}
+
+/** The mount {@link renderProbe} last made, which the next call replaces. */
+let current: ProbeMount | null = null;
 
 /** Unmounts the widget {@link renderProbe} last mounted and drops its data source. */
 export function unmountProbe(): void {
-  if (activeRoot) {
-    activeRoot.unmount();
-    activeRoot = null;
-  }
-  if (activeBuffered) {
-    activeBuffered.disconnect();
-    unregisterDataSource(activeBuffered.id);
-    activeBuffered = null;
-  }
-  activeSource = null;
-  activeStore = null;
+  current?.unmount();
+  current = null;
 }
 
 /**
@@ -298,12 +322,72 @@ export function unmountProbe(): void {
 export async function renderProbe(
   root: HTMLElement,
   payload: ProbePayload,
-  opts: {
-    /** Providers an in-page caller puts around the widget, inside the probe's own. */
-    wrap?: (tree: React.ReactNode) => React.ReactNode;
-  } = {},
+  opts: ProbeMountOptions = {},
 ): Promise<void> {
   unmountProbe();
+  current = startMount(root, payload, opts, false);
+  await current.ready;
+}
+
+export interface ProbeMountOptions {
+  /** Providers an in-page caller puts around the widget, inside the probe's own. */
+  wrap?: (tree: React.ReactNode) => React.ReactNode;
+}
+
+/**
+ * Mounts `payload`'s widget into `root` on its fixture, leaving every other
+ * mount on the page standing.
+ *
+ * The legacy "data" source is page-wide and held by the first live mount that
+ * claims it. The Processor runtime and the sdk's active timeline store are
+ * page-wide too, and the latest mount's are the ones every widget reads.
+ */
+export function mountProbe(
+  root: HTMLElement,
+  payload: ProbePayload,
+  opts: ProbeMountOptions = {},
+): ProbeMount {
+  return startMount(root, payload, opts, true);
+}
+
+/** `beside` leaves a "data" source another mount registered in place rather than replacing it. */
+function startMount(
+  root: HTMLElement,
+  payload: ProbePayload,
+  opts: ProbeMountOptions,
+  beside: boolean,
+): ProbeMount {
+  const state: MountState = {
+    root: null,
+    buffered: null,
+    stream: undefined,
+    disposed: false,
+    beside,
+  };
+  const ready = mountInto(root, payload, opts, state).catch((err: unknown) => {
+    if (state.disposed) return;
+    throw err;
+  });
+  return {
+    ready,
+    emit: (channel, value, meta) => {
+      if (!state.stream) {
+        throw new Error(
+          `Probe: "${payload.widgetId}" has no stream to emit on: its fixture carries no _stream block, or it is unmounted`,
+        );
+      }
+      state.stream.emit(channel, value, meta);
+    },
+    unmount: () => teardownMount(state),
+  };
+}
+
+async function mountInto(
+  root: HTMLElement,
+  payload: ProbePayload,
+  opts: ProbeMountOptions,
+  state: MountState,
+): Promise<void> {
   // The Processor evaluator's runtime cache (evaluated value + frame
   // generation, `@ksp-gonogo/sitrep-client`'s processorEvaluator.ts) is a
   // module-global singleton keyed by Processor id, and this file's own
@@ -332,6 +416,7 @@ export async function renderProbe(
         delaySeconds: streamBlock.delaySeconds,
       })
     : undefined;
+  state.stream = streamFixture;
 
   const fixtureKeys = Object.keys(payload.fixture).filter(
     (k) => !k.startsWith("_"),
@@ -345,17 +430,17 @@ export async function renderProbe(
   const allKeys = Array.from(
     new Set([...fixtureKeys, ...seriesKeys, ...detectorKeys]),
   );
-  activeSource = new MockDataSource({
+  const source = new MockDataSource({
     id: "data",
     keys: allKeys.map((k) => ({ key: k })),
   });
-  activeStore = new MemoryStore();
-  activeBuffered = new BufferedDataSource({
-    source: activeSource,
-    store: activeStore,
-  });
-  registerDataSource(activeBuffered);
-  await activeBuffered.connect();
+  const store = new MemoryStore();
+  const buffered = new BufferedDataSource({ source, store });
+  state.buffered = buffered;
+  if (!state.beside || !getDataSource(buffered.id)) {
+    registerDataSource(buffered);
+  }
+  await buffered.connect();
 
   // Seed the MemoryStore with backfill samples for any keys widgets
   // will call `useDataSeries(key, windowSec)` against. Has to happen
@@ -365,7 +450,7 @@ export async function renderProbe(
   // (otherwise queryRange returns empty), which we trigger by
   // emitting vessel-name + mission-time through the buffered
   // wrapper.
-  if (payload.series && activeStore) {
+  if (payload.series) {
     // Seed the flight identity from the fixture's OWN v.name / v.missionTime
     // when present. If we seeded with a fixed placeholder name while the
     // fixture carried a different v.name, the post-mount emit of the real
@@ -384,12 +469,12 @@ export async function renderProbe(
       typeof payload.fixture["v.missionTime"] === "number"
         ? (payload.fixture["v.missionTime"] as number)
         : 0;
-    activeSource.emit("v.name", seedName);
-    activeSource.emit("v.missionTime", seedMissionTime);
+    source.emit("v.name", seedName);
+    source.emit("v.missionTime", seedMissionTime);
     // Microtask lets the buffered handleSample → detector observe path land before we read the current flight.
     await Promise.resolve();
     await Promise.resolve();
-    const flight = activeBuffered.getCurrentFlight();
+    const flight = buffered.getCurrentFlight();
     if (flight) {
       // Fixture sample timestamps are RELATIVE (negative = N ms ago,
       // 0 = now). useDataSeries queries `[now - windowMs, now]` using
@@ -398,7 +483,7 @@ export async function renderProbe(
       const wallNow = Date.now();
       for (const [key, samples] of Object.entries(payload.series)) {
         for (const s of samples) {
-          await activeStore.appendSample(flight.id, key, wallNow + s.t, s.v);
+          await store.appendSample(flight.id, key, wallNow + s.t, s.v);
         }
       }
     }
@@ -550,8 +635,9 @@ export async function renderProbe(
     root.style.display = "";
     root.style.flexDirection = "";
   }
-  activeRoot = createRoot(payload.gridCell ? mountGridCell(root) : root);
-  activeRoot.render(
+  if (state.disposed) return;
+  state.root = createRoot(payload.gridCell ? mountGridCell(root) : root);
+  state.root.render(
     // ui-kit-composed widgets read design tokens off the styled-components
     // theme (e.g. `theme.space.md` in Stack): without a ThemeProvider the
     // theme is `{}` and those reads throw "reading 'md'". Match the live app's
@@ -583,7 +669,7 @@ export async function renderProbe(
   await rafTick();
 
   for (const key of fixtureKeys) {
-    activeSource.emit(key, payload.fixture[key]);
+    source.emit(key, payload.fixture[key]);
   }
   if (streamFixture && streamBlock) {
     // `StubTransport.emit` is subscription-gated (silently DROPS a sample for
@@ -631,7 +717,7 @@ export async function renderProbe(
   // to render before the next click / screenshot.
   if (payload.clicks && payload.clicks.length > 0) {
     for (const c of payload.clicks) {
-      const el = document.querySelector(c.selector);
+      const el = findIn(root, c.selector);
       if (!el) {
         throw new Error(`Probe: click selector "${c.selector}" not found`);
       }
@@ -647,7 +733,7 @@ export async function renderProbe(
   // hovered state IS what a hover mode is capturing.
   if (payload.hovers && payload.hovers.length > 0) {
     for (const h of payload.hovers) {
-      const el = document.querySelector(h.selector);
+      const el = findIn(root, h.selector);
       if (!el) {
         throw new Error(`Probe: hover selector "${h.selector}" not found`);
       }
@@ -674,6 +760,11 @@ export async function renderProbe(
     await rafTick();
     await settle(200);
   }
+}
+
+/** The first match inside this mount, then anywhere on the page, where a portal it opened draws. */
+function findIn(root: HTMLElement, selector: string): Element | null {
+  return root.querySelector(selector) ?? document.querySelector(selector);
 }
 
 function rafTick(): Promise<void> {
