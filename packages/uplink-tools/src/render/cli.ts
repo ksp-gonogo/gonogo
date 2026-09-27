@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import {
@@ -244,9 +244,24 @@ async function main(argv: readonly string[]): Promise<void> {
     return;
   }
 
-  const assetOut = args.check
-    ? await mkdtemp(join(tmpdir(), "gonogo-uplink-docs-"))
-    : resolve(pkg.dir, args.assetDir);
+  if (!args.check) {
+    await docs(pkg, args, resolve(pkg.dir, args.assetDir));
+    return;
+  }
+  const scratch = await mkdtemp(join(tmpdir(), "gonogo-uplink-docs-"));
+  try {
+    await docs(pkg, args, scratch);
+  } finally {
+    await rm(scratch, { recursive: true, force: true });
+  }
+}
+
+/** `docs` writes the page with its assets rendered into `assetOut`; `docs --check` compares against it instead. */
+async function docs(
+  pkg: UplinkPackage,
+  args: Args,
+  assetOut: string,
+): Promise<void> {
   const result = await renderUplink(pkg, {
     engine: args.engine,
     outDir: assetOut,

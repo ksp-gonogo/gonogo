@@ -23,11 +23,17 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdtempSync, readFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, onTestFinished } from "vitest";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 
@@ -82,10 +88,9 @@ describe("a baked ExpectedClientHash is the hash of the bundle this build ships"
   )("%s vouches for the bundle the app's build emits today", (uplinkId) => {
     const committed = generatedPath(uplinkId);
     // Baked into a COPY: a test that rewrites a tracked file leaves the tree dirty when it fails, which is precisely when someone needs to read it.
-    const staged = join(
-      mkdtempSync(join(tmpdir(), "gonogo-baked-hash-")),
-      "ExpectedClientHash.g.cs",
-    );
+    const scratch = mkdtempSync(join(tmpdir(), "gonogo-baked-hash-"));
+    onTestFinished(() => rmSync(scratch, { recursive: true, force: true }));
+    const staged = join(scratch, "ExpectedClientHash.g.cs");
     copyFileSync(committed, staged);
     execFileSync(
       "pnpm",

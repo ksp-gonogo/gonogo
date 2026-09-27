@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -254,6 +254,8 @@ export function generateEntry(
 export interface ProbePage {
   file: string;
   font: FontFace;
+  /** Removes the page from disk. Each page is tens of megabytes, so a caller disposes it once the tab has it. */
+  dispose(): Promise<void>;
 }
 
 export async function buildProbePage(
@@ -291,7 +293,12 @@ export async function buildProbePage(
     '<script id="probe-entry" type="module"></script>',
     () => `<script id="probe-entry" type="module">${escaped}</script>`,
   );
-  const file = join(tmpdir(), `gonogo-uplink-probe-${process.pid}.html`);
+  const dir = await mkdtemp(join(tmpdir(), "gonogo-uplink-probe-"));
+  const file = join(dir, "probe.html");
   await writeFile(file, html, "utf8");
-  return { file, font };
+  return {
+    file,
+    font,
+    dispose: () => rm(dir, { recursive: true, force: true }),
+  };
 }

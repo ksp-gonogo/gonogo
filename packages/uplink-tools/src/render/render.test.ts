@@ -11,12 +11,14 @@ import {
   readFileSync,
   rmSync,
   statSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { deflateSync } from "node:zlib";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished } from "vitest";
 import type { UplinkInventory } from "../render-probe";
 import {
   compareAssetNames,
@@ -30,7 +32,7 @@ import {
   scenesAssertingNothing,
 } from "./docs";
 import { encodeGif } from "./gif";
-import { generateEntry, oneCopyPerPage } from "./page";
+import { buildProbePage, generateEntry, oneCopyPerPage } from "./page";
 import { decodePng } from "./png";
 import { assertEveryWidgetCovered, buildScenes } from "./scenes";
 
@@ -160,9 +162,9 @@ describe("one copy per page", () => {
     // walks to the filesystem root and then to Node's global folders, so
     // "nothing is installed near this directory" is not a state a test can
     // arrange on every machine.
-    const alias = oneCopyPerPage(
-      mkdtempSync(join(tmpdir(), "gonogo-nomodules-")),
-    );
+    const empty = mkdtempSync(join(tmpdir(), "gonogo-nomodules-"));
+    onTestFinished(() => rmSync(empty, { recursive: true, force: true }));
+    const alias = oneCopyPerPage(empty);
     for (const specifier of Object.keys(alias)) {
       expect(["react", "react-dom", "styled-components"]).toContain(specifier);
     }
@@ -237,6 +239,39 @@ describe("the setup hooks the probe offers", () => {
     );
     expect(uncalled).toEqual([]);
   });
+});
+
+describe("the probe page on disk", () => {
+  it("gets a directory of its own per build, which dispose removes", async () => {
+    const dir = fakePackage({});
+    const here = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+    const linked = join(dir, "node_modules", "@ksp-gonogo");
+    mkdirSync(linked, { recursive: true });
+    symlinkSync(here, join(linked, "uplink-tools"));
+    for (const dep of [
+      "react",
+      "react-dom",
+      "styled-components",
+      "@ksp-gonogo/ui-kit",
+      "@ksp-gonogo/sitrep-sdk",
+    ]) {
+      symlinkSync(
+        join(here, "node_modules", dep),
+        join(dir, "node_modules", dep),
+      );
+    }
+    const pkg = resolveUplinkPackage(dir);
+    const [first, second] = await Promise.all([
+      buildProbePage(pkg),
+      buildProbePage(pkg),
+    ]);
+    expect(dirname(first.file)).not.toBe(dirname(second.file));
+    await first.dispose();
+    expect(existsSync(dirname(first.file))).toBe(false);
+    expect(existsSync(second.file)).toBe(true);
+    await second.dispose();
+    expect(existsSync(dirname(second.file))).toBe(false);
+  }, 60_000);
 });
 
 describe("the generated browser entry", () => {

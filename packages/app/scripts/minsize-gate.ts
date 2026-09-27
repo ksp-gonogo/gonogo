@@ -517,6 +517,7 @@ async function main(): Promise<void> {
     );
   } finally {
     await browser.close();
+    await page.dispose();
   }
 }
 

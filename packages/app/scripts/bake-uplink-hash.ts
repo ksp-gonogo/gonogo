@@ -31,7 +31,13 @@
  * two-way fallback and no obligation.
  */
 
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -100,7 +106,7 @@ const stagingDir = mkdtempSync(join(tmpdir(), "gonogo-uplink-bake-"));
 const { integrity } = await buildUplinkClientBundle({
   clientDir,
   outFile: join(stagingDir, `${target.id}.client.js`),
-});
+}).finally(() => rmSync(stagingDir, { recursive: true, force: true }));
 
 writeFileSync(
   outPath,

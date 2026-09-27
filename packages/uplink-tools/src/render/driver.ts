@@ -13,7 +13,7 @@ import type {
 } from "../render-probe";
 import type { UplinkPackage } from "./context";
 import { encodeGif } from "./gif";
-import { buildProbePage } from "./page";
+import { buildProbePage, type ProbePage } from "./page";
 import { PROBE_CHROME_ATTR, RENDER_PROBE_GLOBAL } from "./probe-global";
 import {
   assertEveryWidgetCovered,
@@ -206,13 +206,14 @@ async function withProbe<T>(
   opts: ProbeOptions,
   body: (tab: Page, read: UplinkScenes, pageErrors: string[]) => Promise<T>,
 ): Promise<T> {
-  const page = await buildProbePage(pkg, [
-    ...pkg.renderWith,
-    ...(opts.withModules ?? []),
-  ]);
   const browser = await (await engine(opts.engine)).launch();
   const pageErrors: string[] = [];
+  let page: ProbePage | undefined;
   try {
+    page = await buildProbePage(pkg, [
+      ...pkg.renderWith,
+      ...(opts.withModules ?? []),
+    ]);
     const context = await browser.newContext({
       viewport: { width: 900, height: 900 },
       deviceScaleFactor: 2,
@@ -266,6 +267,7 @@ async function withProbe<T>(
     );
   } finally {
     await browser.close();
+    await page?.dispose();
   }
 }
 
