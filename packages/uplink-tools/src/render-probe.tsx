@@ -8,6 +8,7 @@ import {
   DYNAMIC_CARRIED_TOPIC_PREFIXES,
   EXTENSION_API_VERSION,
   getComponent,
+  getDataSource,
   registerDataSource,
   registerStockBodies,
   unregisterDataSource,
@@ -681,93 +682,146 @@ function DomainWatch({
 
 // Mounting
 
-let activeRoot: Root | null = null;
-let mountedFixture: StreamFixture | null = null;
-let activeSourceIds: string[] = [];
-let currentScene: ScenePayload | null = null;
+/** One mounted scene and everything its mount set up, so it is fed, read and torn down on its own. */
+interface Mounted {
+  el: HTMLElement;
+  scene: ScenePayload;
+  /** Whether this mount owns the page's scene clock: the driver's mount does, a mount of its own never does. */
+  clocked: boolean;
+  root: Root | null;
+  fixture: StreamFixture | null;
+  sources: MockDataSource[];
+  /** What the mount found unread, for the report {@link finishScene} returns. */
+  unread: UnreadTopics;
+  /**
+   * The emits that had no subscriber when the mount stopped growing.
+   *
+   * Held rather than discarded because a press can open one: content behind a tab
+   * is not mounted until the tab is selected, and `_scene.before` runs after the
+   * feed. See {@link refeedScene}.
+   */
+  pending: SceneEmit[];
+  /** The mount's derived carried set, for {@link refeedScene}. */
+  carried: string[];
+  /** Puts back what {@link withhold} took out for this mount. */
+  restoreWithheld: () => void;
+  /** The scene's current pinned instant, moved only by an `advanceUt` step. */
+  ut: number;
+}
 
-/** What the last mount found unread, for the report {@link finishScene} returns. */
-let unreadAtMount: UnreadTopics = {
-  uncarriedTopics: [],
-  unsubscribedTopics: [],
-};
+function mountedFor(
+  el: HTMLElement,
+  scene: ScenePayload,
+  clocked: boolean,
+): Mounted {
+  return {
+    el,
+    scene,
+    clocked,
+    root: null,
+    fixture: null,
+    sources: [],
+    unread: { uncarriedTopics: [], unsubscribedTopics: [] },
+    pending: [],
+    carried: [],
+    restoreWithheld: () => {},
+    ut: scene.pinnedUt,
+  };
+}
 
-/**
- * The emits that had no subscriber when the mount stopped growing.
- *
- * Held rather than discarded because a press can open one: content behind a tab
- * is not mounted until the tab is selected, and `_scene.before` runs after the
- * feed. See {@link refeedScene}.
- */
-let pendingEmits: SceneEmit[] = [];
+/** The scene the driver mounted into the page's `#root`, which every argument-free call acts on. */
+let current: Mounted | null = null;
 
-/** The mounted scene's derived carried set, for {@link refeedScene}. */
-let carriedNow: string[] = [];
+function pageRoot(): HTMLElement {
+  const el = document.getElementById("root");
+  if (!el) throw new Error("render probe: no #root in the page");
+  return el;
+}
 
-/** What {@link withhold} took out, for {@link restoreWithheld} to put back. */
-let withheldRegistry: (() => void) | null = null;
+function currentMount(call: string): Mounted {
+  if (!current) {
+    throw new Error(`render probe: ${call} called before renderScene`);
+  }
+  return current;
+}
+
+/** How many live mounts took each augment or contribution id out of its registry. */
+const withheldIds = new Map<string, number>();
+
+/** Each registry as it stood before its first withheld id, refilled from while any id is out. */
+const unwithheld: {
+  augment?: ReturnType<typeof getAugments>;
+  contribution?: ReturnType<typeof getContributions>;
+} = {};
 
 /**
  * Take one augment or contribution out of its registry, keeping every other
- * entry in its original order.
+ * entry in its original order, and return what puts it back.
  *
  * Neither registry can drop a single id, so it is emptied and refilled. The
  * refill reuses the very definitions it read, which both registries accept as
- * a fresh registration after a clear.
+ * a fresh registration after a clear. A registry is page-wide, so a withheld id
+ * is out of every mounted scene until the last mount that took it puts it back.
  */
-function withhold(target: SceneTarget): void {
-  if (target.kind === "augment") {
-    const all = getAugments();
+function withhold(target: SceneTarget): () => void {
+  if (target.kind === "widget") return () => {};
+  const kind = target.kind;
+  if (kind === "augment") unwithheld.augment ??= getAugments();
+  if (kind === "contribution") unwithheld.contribution ??= getContributions();
+  withheldIds.set(target.id, (withheldIds.get(target.id) ?? 0) + 1);
+  refillWithheld(kind);
+  let restored = false;
+  return () => {
+    if (restored) return;
+    restored = true;
+    const left = (withheldIds.get(target.id) ?? 1) - 1;
+    if (left === 0) withheldIds.delete(target.id);
+    if (left > 0) withheldIds.set(target.id, left);
+    refillWithheld(kind);
+  };
+}
+
+function refillWithheld(kind: "augment" | "contribution"): void {
+  if (kind === "augment") {
+    const all = unwithheld.augment;
+    if (!all) return;
     clearAugments();
     for (const def of all) {
-      if (def.id !== target.id) registerAugment(def as never);
+      if (!withheldIds.has(def.id)) registerAugment(def as never);
     }
-    withheldRegistry = () => {
-      clearAugments();
-      for (const def of all) registerAugment(def as never);
-    };
+    if (!all.some((def) => withheldIds.has(def.id)))
+      unwithheld.augment = undefined;
     return;
   }
-  if (target.kind === "contribution") {
-    const all = getContributions();
-    clearContributions();
-    for (const def of all) {
-      if (def.id !== target.id) registerContribution(def as never);
-    }
-    withheldRegistry = () => {
-      clearContributions();
-      for (const def of all) registerContribution(def as never);
-    };
+  const all = unwithheld.contribution;
+  if (!all) return;
+  clearContributions();
+  for (const def of all) {
+    if (!withheldIds.has(def.id)) registerContribution(def as never);
+  }
+  if (!all.some((def) => withheldIds.has(def.id))) {
+    unwithheld.contribution = undefined;
   }
 }
 
-function restoreWithheld(): void {
-  const restore = withheldRegistry;
-  withheldRegistry = null;
-  restore?.();
-}
-
-function teardown(): void {
+function teardown(mounted: Mounted): void {
   // Media first. A `<video>` removed from the document while a `play()` is
   // still pending rejects with "the play() request was interrupted by a new
   // load request", which arrives as an uncaught page error and fails every
   // render in the run, including the ones already taken.
-  for (const video of document.querySelectorAll("video")) {
+  for (const video of mounted.el.querySelectorAll("video")) {
     video.pause();
   }
-  if (activeRoot) {
-    activeRoot.unmount();
-    activeRoot = null;
+  mounted.root?.unmount();
+  mounted.root = null;
+  for (const source of mounted.sources) {
+    // A source another mount has since registered under the same id stays.
+    if (getDataSource(source.id) === source) unregisterDataSource(source.id);
   }
-  for (const id of activeSourceIds) {
-    try {
-      unregisterDataSource(id);
-    } catch {
-      // Not registered: a scene that failed before registering leaves nothing.
-    }
-  }
-  activeSourceIds = [];
-  mountedFixture = null;
+  mounted.sources = [];
+  mounted.fixture = null;
+  mounted.restoreWithheld();
+  mounted.restoreWithheld = () => {};
 }
 
 /** A synthetic host-widget definition for an augment or contribution scene.
@@ -807,51 +861,63 @@ function hostLabelFor(slot: string): string {
   return slot.split(".")[0].replace(/[-_]/g, " ").toUpperCase();
 }
 
-async function renderScene(scene: ScenePayload): Promise<SceneReport> {
-  /*
-   * The author's half of `teardown`, for the mount that just finished.
-   *
-   * Paired with `beforeScene` by construction rather than by a caller
-   * remembering: both run in this function, so every setup that was run is
-   * unwound exactly once before the next one runs, across the starved mount and
-   * each mode's fed mount alike. The driver has no end-of-scene call to hang it
-   * on, and giving it one would put the pairing in the caller, which is where a
-   * motion scene's early `continue` would drop it. Kept inline here rather than
-   * in a helper for the same reason the gate on this file reads this function's
-   * body: a hook called from somewhere nothing reaches is the defect.
-   *
-   * It runs before `teardown` and before `closeSceneClock`, so a setup unwinding
-   * its own work still sees the page it built it on: its data source is still
-   * registered, its DOM is still mounted, and a timer it took out on the scene
-   * clock is still the scene clock's.
-   *
-   * The one mount that gets no `afterScene` is the last of a run, which is the
-   * same mount `teardown` never reaches, and the page is closed immediately
-   * after. A throw is not swallowed: a teardown that failed silently would leave
-   * its stubs standing for whatever renders next, which is the defect this call
-   * closes rather than one to reopen.
-   */
-  const finished = currentScene;
-  currentScene = scene;
-  if (finished) {
-    try {
-      await activeSetup.afterScene?.({ scene: finished });
-    } catch (cause) {
-      throw new Error(
-        `render probe: the setup's afterScene threw after scene "${finished.fixture}". ` +
-          "It runs at the start of the NEXT mount, so the scene named here is the " +
-          "one it was unwinding, not the one that was about to render.",
-        { cause },
-      );
+/**
+ * Mount `scene` and feed it until it stops growing.
+ *
+ * Without `own`, the scene goes into the page's `#root` in place of the driver's
+ * previous one, on the scene clock. With it, the scene mounts into that record's
+ * element on the page's own timers and leaves every other mount standing.
+ */
+async function renderScene(
+  scene: ScenePayload,
+  own?: Mounted,
+): Promise<SceneReport> {
+  let mounted = own;
+  if (!mounted) {
+    /*
+     * The author's half of `teardown`, for the mount that just finished.
+     *
+     * Paired with `beforeScene` by construction rather than by a caller
+     * remembering: both run in this function, so every setup that was run is
+     * unwound exactly once before the next one runs, across the starved mount and
+     * each mode's fed mount alike. The driver has no end-of-scene call to hang it
+     * on, and giving it one would put the pairing in the caller, which is where a
+     * motion scene's early `continue` would drop it. Kept inline here rather than
+     * in a helper for the same reason the gate on this file reads this function's
+     * body: a hook called from somewhere nothing reaches is the defect.
+     *
+     * It runs before `teardown` and before `closeSceneClock`, so a setup unwinding
+     * its own work still sees the page it built it on: its data source is still
+     * registered, its DOM is still mounted, and a timer it took out on the scene
+     * clock is still the scene clock's.
+     *
+     * The one mount that gets no `afterScene` is the last of a run, which is the
+     * same mount `teardown` never reaches, and the page is closed immediately
+     * after. A throw is not swallowed: a teardown that failed silently would leave
+     * its stubs standing for whatever renders next, which is the defect this call
+     * closes rather than one to reopen.
+     */
+    const finished = current;
+    current = mountedFor(pageRoot(), scene, true);
+    if (finished) {
+      try {
+        await activeSetup.afterScene?.({ scene: finished.scene });
+      } catch (cause) {
+        throw new Error(
+          `render probe: the setup's afterScene threw after scene "${finished.scene.fixture}". ` +
+            "It runs at the start of the NEXT mount, so the scene named here is the " +
+            "one it was unwinding, not the one that was about to render.",
+          { cause },
+        );
+      }
+      teardown(finished);
     }
+    // Before the mount, because a scene whose steps wait needs its widget's own timers to register on the scene clock rather than on the page's.
+    closeSceneClock();
+    if (sceneWants(scene)) openSceneClock();
+    mounted = current;
   }
-  teardown();
-  restoreWithheld();
-  // Before the mount, because a scene whose steps wait needs its widget's own timers to register on the scene clock rather than on the page's.
-  closeSceneClock();
-  if (sceneWants(scene)) openSceneClock();
-  const el = document.getElementById("root");
-  if (!el) throw new Error("render probe: no #root in the page");
+  const el = mounted.el;
   el.style.width = `${scene.pxW}px`;
   el.style.height = `${scene.pxH}px`;
 
@@ -864,12 +930,12 @@ async function renderScene(scene: ScenePayload): Promise<SceneReport> {
   const carried = [
     ...new Set([...scene.carriedChannels, ...DYNAMIC_CARRIED_TOPIC_PREFIXES]),
   ];
-  carriedNow = carried;
+  mounted.carried = carried;
   const fixture = setupStreamFixture({
     carriedChannels: carried,
     pinnedUt: scene.pinnedUt,
   });
-  mountedFixture = fixture;
+  mounted.fixture = fixture;
 
   if (!scene.starve) {
     for (const [sourceId, keys] of Object.entries(scene.dataSources)) {
@@ -877,8 +943,11 @@ async function renderScene(scene: ScenePayload): Promise<SceneReport> {
         id: sourceId,
         keys: Object.keys(keys).map((key) => ({ key })),
       });
-      registerDataSource(source);
-      activeSourceIds.push(sourceId);
+      // A mount of its own leaves a source another mount holds under this id in place.
+      if (mounted.clocked || !getDataSource(sourceId)) {
+        registerDataSource(source);
+      }
+      mounted.sources.push(source);
       await source.connect();
       for (const [key, value] of Object.entries(keys)) {
         source.emit(key, value);
@@ -890,10 +959,10 @@ async function renderScene(scene: ScenePayload): Promise<SceneReport> {
 
   const tree = buildTree(scene);
   // After the tree is built, which looks the subject up to find its slot.
-  if (scene.withhold) withhold(scene.withhold);
+  if (scene.withhold) mounted.restoreWithheld = withhold(scene.withhold);
   const wrapped = activeSetup.wrap?.(tree, { scene }) ?? tree;
-  activeRoot = createRoot(el);
-  activeRoot.render(
+  mounted.root = createRoot(el);
+  mounted.root.render(
     createElement(
       ThemeProvider,
       { theme: harnessTheme },
@@ -916,39 +985,37 @@ async function renderScene(scene: ScenePayload): Promise<SceneReport> {
   await frame();
   await frame();
 
-  const unsubscribed = await feedInRounds(fixture, scene);
+  const unsubscribed = await feedInRounds(mounted);
   const uncarried = unsubscribed.filter((t) => !isCarried(t, carried));
 
   await activeSetup.afterMount?.({ scene, starve: scene.starve });
   await frame();
 
-  unreadAtMount = {
+  mounted.unread = {
     uncarriedTopics: uncarried,
     unsubscribedTopics: unsubscribed,
   };
-  if (scene.holdDrop) return readScene(el);
-  return finishScene();
+  if (scene.holdDrop) return readScene(mounted);
+  return finishScene(mounted);
 }
 
 /** See {@link RenderProbeApi.unmountScene}. */
 async function unmountScene(): Promise<void> {
-  const finished = currentScene;
-  currentScene = null;
-  if (finished) await activeSetup.afterScene?.({ scene: finished });
-  teardown();
-  restoreWithheld();
+  const finished = current;
+  current = null;
+  if (finished) await activeSetup.afterScene?.({ scene: finished.scene });
+  if (finished) teardown(finished);
   closeSceneClock();
 }
 
 /**
- * Drop the link if the mounted scene stops arriving, seal the scene clock, and
- * read the render. {@link renderScene} runs it itself unless the payload holds
- * the drop.
+ * Drop the link if the mounted scene stops arriving, seal the scene clock when
+ * the mount owns it, and read the render. {@link renderScene} runs it itself
+ * unless the payload holds the drop.
  */
-async function finishScene(): Promise<SceneReport> {
-  const fixture = mountedFixture;
-  const el = document.getElementById("root");
-  if (!fixture || !currentScene || !el) {
+async function finishScene(mounted: Mounted): Promise<SceneReport> {
+  const fixture = mounted.fixture;
+  if (!fixture) {
     throw new Error("render probe: finishScene called before renderScene");
   }
   /* The drop goes after the setup, because that is the order an operator meets
@@ -958,7 +1025,7 @@ async function finishScene(): Promise<SceneReport> {
      `beginFrame` mints the frame that publishes the new status rather than
      waiting on the provider's own loop, so the shot does not depend on which of
      the two lands first. */
-  if (currentScene.stopsArriving) {
+  if (mounted.scene.stopsArriving) {
     fixture.store.setTransportConnected(false);
     fixture.store.beginFrame();
     await frame();
@@ -968,16 +1035,16 @@ async function finishScene(): Promise<SceneReport> {
   // The setup is done and the film starts here, so from this point the scene
   // clock owns every timer, and whatever the setup left pending is rebased onto
   // the first frame. See `sealSceneClock`.
-  sealSceneClock();
+  if (mounted.clocked) sealSceneClock();
 
-  return readScene(el);
+  return readScene(mounted);
 }
 
-function readScene(el: HTMLElement): SceneReport {
+function readScene(mounted: Mounted): SceneReport {
   return {
-    ...measure(el),
-    elements: describeElements(el),
-    ...unreadAtMount,
+    ...measure(mounted.el),
+    elements: describeElements(mounted.el),
+    ...mounted.unread,
   };
 }
 
@@ -997,12 +1064,9 @@ function readScene(el: HTMLElement): SceneReport {
  * once the tree has stopped growing is a payload that would be dropped in
  * silence, and the render is of no data.
  */
-async function feedInRounds(
-  fixture: StreamFixture,
-  scene: ScenePayload,
-): Promise<string[]> {
-  pendingEmits = [...scene.emits];
-  return feedPending(fixture, scene, pendingEmits);
+async function feedInRounds(mounted: Mounted): Promise<string[]> {
+  mounted.pending = [...mounted.scene.emits];
+  return feedPending(mounted);
 }
 
 /**
@@ -1024,22 +1088,17 @@ async function feedInRounds(
  * than against the pre-press list.</p>
  */
 async function refeedScene(): Promise<UnreadTopics> {
-  const fixture = mountedFixture;
-  if (!fixture || !currentScene) {
-    throw new Error("render probe: refeedScene called before renderScene");
-  }
-  const unsubscribed = await feedPending(fixture, currentScene, pendingEmits);
+  const mounted = currentMount("refeedScene");
+  const unsubscribed = await feedPending(mounted);
   return {
     unsubscribedTopics: unsubscribed,
-    uncarriedTopics: unsubscribed.filter((t) => !isCarried(t, carriedNow)),
+    uncarriedTopics: unsubscribed.filter((t) => !isCarried(t, mounted.carried)),
   };
 }
 
-async function feedPending(
-  fixture: StreamFixture,
-  scene: ScenePayload,
-  pending: SceneEmit[],
-): Promise<string[]> {
+async function feedPending(mounted: Mounted): Promise<string[]> {
+  const { fixture, scene, pending } = mounted;
+  if (!fixture) return pending.map((e) => e.topic);
   // Six is a budget, not a tuned number: each round is one more layer of
   // subscribe-on-what-just-arrived, and a widget nesting deeper than this is
   // better served by a clear failure than by a longer wait.
@@ -1328,9 +1387,6 @@ function hash(input: string): string {
 
 // Motion
 
-/** The scene's current pinned instant, moved only by an `advanceUt` step. */
-let currentUt = 0;
-
 /**
  * Whether this scene runs on its own clock. See `./render/sceneClock`.
  *
@@ -1347,13 +1403,14 @@ function sceneWants(scene: ScenePayload): boolean {
 /** Advance one motion step and settle. The driver screenshots between calls,
  *  so a step's frames are produced by repeated calls rather than in a loop. */
 async function stepScene(step: SceneStep, deltaUt: number): Promise<void> {
-  const fixture = mountedFixture;
-  if (!fixture || !currentScene) {
+  const mounted = currentMount("stepScene");
+  const fixture = mounted.fixture;
+  if (!fixture) {
     throw new Error("render probe: stepScene called before renderScene");
   }
   if (step.emit) {
     fixture.emit(step.emit.topic, step.emit.payload, {
-      validAt: step.emit.validAt ?? currentUt,
+      validAt: step.emit.validAt ?? mounted.ut,
     });
   }
   if (step.click) {
@@ -1361,7 +1418,7 @@ async function stepScene(step: SceneStep, deltaUt: number): Promise<void> {
     if (!el) {
       throw new Error(
         `render probe: click selector "${step.click}" matched nothing in scene ` +
-          `"${currentScene.fixture}"`,
+          `"${mounted.scene.fixture}"`,
       );
     }
     (el as HTMLElement).click();
@@ -1371,12 +1428,64 @@ async function stepScene(step: SceneStep, deltaUt: number): Promise<void> {
   }
   if (deltaUt !== 0) {
     // The clock is an INPUT, which is what separates this from a screen recording: the same fixture produces the same frames on any machine.
-    fixture.store.clock.scrubTo(currentUt + deltaUt);
-    currentUt += deltaUt;
+    fixture.store.clock.scrubTo(mounted.ut + deltaUt);
+    mounted.ut += deltaUt;
     fixture.store.beginFrame();
   }
   await frame();
   await frame();
+}
+
+/**
+ * One scene mounted into an element of its own, standing beside any number of
+ * others on the page.
+ */
+export interface SceneMount {
+  /** Resolves with the scene's report once it is fed and settled; rejects with the mount's failure. */
+  ready: Promise<SceneReport>;
+  /** Emits one sample onto this scene's own stream, stamped at its pinned instant unless `validAt` says otherwise. */
+  emit: (emit: SceneEmit) => void;
+  /** Unmounts this scene alone, after the setup's `afterScene` for it; safe before `ready` settles. */
+  unmount: () => Promise<void>;
+}
+
+/**
+ * Mount `scene` into `el`, leaving every other mount on the page standing.
+ *
+ * It runs on the page's own timers: the scene clock is page-wide and belongs to
+ * the driver's single mount, so a motion scene's steps are not replayed here.
+ * A legacy data source id is page-wide too, held by the first live mount that
+ * registers it.
+ */
+function mountScene(el: HTMLElement, scene: ScenePayload): SceneMount {
+  const mounted = mountedFor(el, scene, false);
+  const ready = renderScene(scene, mounted);
+  let unmounted: Promise<void> | undefined;
+  return {
+    ready,
+    emit: (emit) => {
+      if (!mounted.fixture) {
+        throw new Error(
+          `render probe: scene "${scene.fixture}" is not mounted, so it has no stream to emit on`,
+        );
+      }
+      mounted.fixture.emit(emit.topic, emit.payload, {
+        validAt: emit.validAt ?? mounted.ut,
+      });
+    },
+    unmount: () => {
+      unmounted ??= ready
+        .catch(() => undefined)
+        .then(async () => {
+          try {
+            await activeSetup.afterScene?.({ scene });
+          } finally {
+            teardown(mounted);
+          }
+        });
+      return unmounted;
+    },
+  };
 }
 
 // Installation
@@ -1398,6 +1507,8 @@ export interface RenderProbeApi {
    * time and has to leave nothing behind between them.
    */
   unmountScene: () => Promise<void>;
+  /** Mount a scene into an element of its own, beside the driver's and any other. See {@link mountScene}. */
+  mountScene: (el: HTMLElement, scene: ScenePayload) => SceneMount;
   /** Whether the render just mounted fits its tile. See {@link auditMinFit}.
    *  Separate from `renderScene`'s report because the driver GROWS the mount
    *  box before it screenshots, and an audit taken after that grow is an audit
@@ -1427,24 +1538,14 @@ export async function installRenderProbe(): Promise<RenderProbeApi> {
   registerStockBodies();
   const api: RenderProbeApi = {
     readInventory,
-    renderScene: async (scene) => {
-      currentUt = scene.pinnedUt;
-      return renderScene(scene);
-    },
+    renderScene: (scene) => renderScene(scene),
     refeedScene,
-    finishScene,
-    readScene: () => {
-      const el = document.getElementById("root");
-      if (!el) throw new Error("render probe: no #root in the page");
-      return readScene(el);
-    },
+    finishScene: () => finishScene(currentMount("finishScene")),
+    readScene: () => readScene(currentMount("readScene")),
     stepScene,
     unmountScene,
-    auditMinFit: () => {
-      const el = document.getElementById("root");
-      if (!el) throw new Error("render probe: no #root in the page");
-      return auditMinFit(el);
-    },
+    mountScene,
+    auditMinFit: () => auditMinFit(pageRoot()),
   };
   (globalThis as Record<string, unknown>)[RENDER_PROBE_GLOBAL] = api;
   return api;
