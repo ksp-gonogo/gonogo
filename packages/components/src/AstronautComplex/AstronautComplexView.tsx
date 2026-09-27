@@ -6,7 +6,6 @@ import {
   Badge,
   NULL_DISPLAY,
   Panel,
-  ReadoutCaption,
   Section,
   Stat,
   StatContributions,
@@ -40,8 +39,18 @@ import { astronautComplexTopics } from "./topics";
 /** KSP's `int.MaxValue`, which `GameVariables.GetActiveCrewLimit` returns for an unlimited roster; every tiered cap sits far below it. */
 const UNLIMITED_CREW_CAP = 2_147_483_647;
 
-/** Shown whenever a stale balance is withheld. Hiring stays available: the game arbitrates the purchase. */
-const FUNDS_STALE_NOTE = "Funds no longer current";
+/** A held balance's title: hiring stays available, since the game arbitrates the purchase. */
+const HELD_FUNDS_TITLE = "Affordability is not judged against a held balance";
+
+/** The balance's title: its figure in words while current, and why it is not judged while held. */
+function fundsTitle(
+  held: boolean,
+  careerFunds: number | null,
+): string | undefined {
+  if (held) return HELD_FUNDS_TITLE;
+  if (careerFunds === null) return undefined;
+  return speakQuantity(value("funds", careerFunds), { decimals: 0 });
+}
 
 /** The roster cap as written: unlimited, a figure, or nothing known. */
 function capTextOf(
@@ -70,15 +79,14 @@ export function AstronautComplexComponent(
   const complexConfirmedEmpty = complexReading.state === "absent";
   /**
    * Funds is the one judgement here: it sits beside a spend control and decides
-   * `affordable`, so a held balance is withheld, with `fundsNotCurrent` saying
-   * why it is missing.
+   * `affordable`, so a held balance is withheld from the verdict. It stays on
+   * screen as the whole field reading, marked by its Unit.
    */
   const fundsReading = astronautComplexTopics.useTelemetry("career.status");
   const careerEconomy =
     fundsReading.state === "observed" ? fundsReading.value.economy : undefined;
   const careerFunds = magnitudeOf(careerEconomy?.funds);
-  // The note explains a MISSING figure, so it is on exactly when a held figure is withheld.
-  const fundsNotCurrent = fundsReading.state === "stale";
+  const hasFunds = stillTrue(fundsReading, undefined)?.economy?.funds != null;
   // Crew are a standing cost: the rate from whichever money model won `economy`; stock reports none.
   const netFunds = netFundsPerDay(careerEconomy);
   // A kerbal is on the books until an event takes them off, so the last roster received stands.
@@ -162,21 +170,15 @@ export function AstronautComplexComponent(
    * an empty detail line would still take its height and lift the figure out of
    * line with the rest of the strip.
    */
-  const fundsDetail: ReactNode =
-    reportsFundsDrain(netFunds) || fundsNotCurrent ? (
-      <>
-        <FundsDrain funds={careerFunds} netPerDay={netFunds} />
-        {fundsNotCurrent && <ReadoutCaption>{FUNDS_STALE_NOTE}</ReadoutCaption>}
-      </>
-    ) : undefined;
+  const fundsDetail: ReactNode = reportsFundsDrain(netFunds) ? (
+    <FundsDrain funds={careerFunds} netPerDay={netFunds} />
+  ) : undefined;
 
   const fundsStat = (
     <Stat label="Funds" detail={fundsDetail}>
-      {careerFunds !== null ? (
-        <span
-          title={speakQuantity(value("funds", careerFunds), { decimals: 0 })}
-        >
-          <Unit value={value("funds", careerFunds)} />
+      {hasFunds ? (
+        <span title={fundsTitle(fundsReading.state === "stale", careerFunds)}>
+          <Unit value={fundsReading.economy.funds} />
         </span>
       ) : (
         NULL_DISPLAY

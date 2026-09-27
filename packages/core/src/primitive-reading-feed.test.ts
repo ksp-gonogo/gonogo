@@ -479,7 +479,7 @@ const DERIVED_FEED_DEBT: Record<string, number> = {
    * payload has no path for the accessor to address. Stays for the same reason
    * `StartResearch` does.
    */
-  "packages/components/src/AstronautComplex/AstronautComplexView.tsx": 2,
+  "packages/components/src/AstronautComplex/AstronautComplexView.tsx": 1,
   /*
    * Migrated on 2026-09-17 and REVERTED the same day: #337 ruled that a comms
    * figure NULLS when the link stops arriving rather than drawing held, and a

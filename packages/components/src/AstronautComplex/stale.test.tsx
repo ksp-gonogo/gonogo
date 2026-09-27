@@ -8,9 +8,18 @@ import { AstronautComplexComponent } from "./index";
 
 /**
  * When telemetry stops being current, the rosters, counts and hire price are
- * held (facts only an event changes), and the funds balance is withheld with a
- * stated reason, distinct from a balance that never arrived.
+ * held (facts only an event changes), and the funds balance stays on screen
+ * marked by its Unit, withheld from the affordability verdict, distinct from a
+ * balance that never arrived.
  */
+
+const HELD_FUNDS_TITLE = "Affordability is not judged against a held balance";
+
+/** The held balance's spoken staleness, which carries the grade and the instant it was read. */
+function heldFundsMark(): string | null {
+  const readout = screen.queryByTitle(HELD_FUNDS_TITLE);
+  return readout?.querySelector("[data-unit-currency]")?.textContent ?? null;
+}
 
 const CARRIED = [
   "spaceCenter.astronautComplex",
@@ -91,10 +100,11 @@ describe("AstronautComplex when its telemetry is no longer current", () => {
     expect(screen.getByText("Funds").nextElementSibling).not.toHaveTextContent(
       NULL_DISPLAY,
     );
-    expect(visibleText(container)).not.toContain("Funds no longer current");
+    expect(screen.queryByTitle(HELD_FUNDS_TITLE)).toBeNull();
+    expect(visibleText(container)).toContain("500,000");
   });
 
-  it("withholds the balance and SAYS why, rather than leaving a bare em dash", async () => {
+  it("keeps the held balance on screen, marked by its Unit, and says affordability is not judged against it", async () => {
     const { container } = renderWidget();
     emitCareer();
     await waitFor(() =>
@@ -103,14 +113,14 @@ describe("AstronautComplex when its telemetry is no longer current", () => {
 
     dropTheLink();
 
-    await waitFor(() =>
-      expect(visibleText(container)).toContain("Funds no longer current"),
-    );
-    // Withheld, not held: the last balance must not stay on screen as the figure about to be spent from.
-    expect(screen.getByText("Funds").nextElementSibling).toHaveTextContent(
-      NULL_DISPLAY,
-    );
-    expect(visibleText(container)).not.toContain("500,000");
+    await waitFor(() => expect(heldFundsMark()).toMatch(/as of /));
+    expect(visibleText(container)).toContain("500,000");
+    // Time is shown only through Unit, never as a caption the widget writes.
+    expect(visibleText(container)).not.toContain("not current");
+    // The game arbitrates the purchase, so a held balance never refuses a hire.
+    expect(
+      screen.getByRole("button", { name: /^Hire Desdin Kerman/ }),
+    ).toBeEnabled();
   });
 
   it("says nothing about a stale balance before one has ever arrived", async () => {
@@ -120,7 +130,10 @@ describe("AstronautComplex when its telemetry is no longer current", () => {
     await waitFor(() =>
       expect(visibleText(container)).toContain("waiting for telemetry"),
     );
-    expect(visibleText(container)).not.toContain("Funds no longer current");
+    expect(screen.queryByTitle(HELD_FUNDS_TITLE)).toBeNull();
+    expect(screen.getByText("Funds").nextElementSibling).toHaveTextContent(
+      NULL_DISPLAY,
+    );
   });
 
   it("keeps the rosters, the cap and the quoted hire price on screen", async () => {
@@ -133,9 +146,7 @@ describe("AstronautComplex when its telemetry is no longer current", () => {
 
     dropTheLink();
 
-    await waitFor(() =>
-      expect(visibleText(container)).toContain("Funds no longer current"),
-    );
+    await waitFor(() => expect(heldFundsMark()).not.toBeNull());
     expect(screen.getByText("Desdin Kerman")).toBeInTheDocument();
     expect(screen.getByText(/3 \/ 13/)).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Applicants" })).toBeInTheDocument();
@@ -160,9 +171,7 @@ describe("AstronautComplex when its telemetry is no longer current", () => {
 
     dropTheLink();
 
-    await waitFor(() =>
-      expect(visibleText(container)).toContain("Funds no longer current"),
-    );
+    await waitFor(() => expect(heldFundsMark()).not.toBeNull());
     expect(visibleText(container)).not.toContain("career mode only");
   });
 });
