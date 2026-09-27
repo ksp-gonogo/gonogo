@@ -158,7 +158,9 @@ export function useDashboardState(
       setItemsInner(next.items);
       setLayouts(next.layouts);
       setCurrentLayouts(next.layouts);
-    } else if (storageKey) {
+      return;
+    }
+    if (storageKey) {
       // Seed the new key from what's on screen now; keep showing it.
       saveState(storageKey, {
         items: itemsRef.current,

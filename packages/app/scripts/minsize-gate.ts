@@ -110,11 +110,23 @@ function parseArgs(argv: readonly string[]): Args {
       if (next === undefined) throw new Error(`${flag} needs a value`);
       return next;
     };
-    if (flag === "--report") args.report = true;
-    else if (flag === "--update") args.update = true;
-    else if (flag === "--widget") args.widget = value();
-    else if (flag === "--shots") args.shots = resolve(process.cwd(), value());
-    else throw new Error(`unknown flag "${flag}"`);
+    if (flag === "--report") {
+      args.report = true;
+      continue;
+    }
+    if (flag === "--update") {
+      args.update = true;
+      continue;
+    }
+    if (flag === "--widget") {
+      args.widget = value();
+      continue;
+    }
+    if (flag === "--shots") {
+      args.shots = resolve(process.cwd(), value());
+      continue;
+    }
+    throw new Error(`unknown flag "${flag}"`);
   }
   return args;
 }
@@ -455,8 +467,11 @@ async function main(): Promise<void> {
     const regressions: string[] = [];
     for (const [id, kinds] of found) {
       const owed = KNOWN_MISFITS[id];
-      if (owed === undefined) regressions.push(`  ${id}  ${kinds}  (new)`);
-      else if (owed !== kinds) {
+      if (owed === undefined) {
+        regressions.push(`  ${id}  ${kinds}  (new)`);
+        continue;
+      }
+      if (owed !== kinds) {
         regressions.push(`  ${id}  ${kinds}  (recorded as "${owed}")`);
       }
     }

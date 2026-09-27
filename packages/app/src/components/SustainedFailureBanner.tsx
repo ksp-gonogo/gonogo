@@ -33,7 +33,9 @@ export function SustainedFailureBanner() {
     const ok = s.status === "connected" || s.status === "reconnecting";
     if (ok) {
       sinceRef.current.delete(s.id);
-    } else if (!sinceRef.current.has(s.id)) {
+      continue;
+    }
+    if (!sinceRef.current.has(s.id)) {
       sinceRef.current.set(s.id, now);
     }
   }

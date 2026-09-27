@@ -89,14 +89,17 @@ function makeFakeClient() {
     disconnect: vi.fn(),
     /** Relay entry-point: feed a host broadcast into the client. */
     receive(msg: PeerMessage): void {
-      if (msg.type === "data") {
-        dataListeners.forEach((cb) => {
-          cb(msg.sourceId, msg.key, msg.value, msg.t ?? Date.now());
-        });
-      } else if (msg.type === "status") {
-        statusListeners.forEach((cb) => {
-          cb(msg.sourceId, msg.status);
-        });
+      switch (msg.type) {
+        case "data":
+          dataListeners.forEach((cb) => {
+            cb(msg.sourceId, msg.key, msg.value, msg.t ?? Date.now());
+          });
+          break;
+        case "status":
+          statusListeners.forEach((cb) => {
+            cb(msg.sourceId, msg.status);
+          });
+          break;
       }
     },
   };

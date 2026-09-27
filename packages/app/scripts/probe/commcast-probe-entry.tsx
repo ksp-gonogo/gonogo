@@ -336,6 +336,22 @@ async function clickWhenReady(
  * silently: a scene whose row never appeared reports it, because a screenshot
  * of an inbox where a conversation was expected reads as a design claim.
  */
+/** Opens the view `pane` asks for: a compose flow or a straight thread open. */
+async function driveOpen(el: Element, pane: Pane): Promise<boolean> {
+  if (pane.compose === true) {
+    if (!(await clickWhenReady(el, "New message"))) return false;
+    for (const name of pane.pick ?? []) {
+      if (!(await clickWhenReady(el, name, ROW))) return false;
+    }
+    if (pane.open === true && !(await clickWhenReady(el, "Open"))) return false;
+    return true;
+  }
+  if (pane.openThread !== undefined) {
+    if (!(await clickWhenReady(el, pane.openThread, ROW))) return false;
+  }
+  return true;
+}
+
 async function drivePane(
   pane: Pane,
   index: number,
@@ -343,15 +359,7 @@ async function drivePane(
 ): Promise<boolean> {
   const el = paneEl(index);
   if (!el) return false;
-  if (pane.compose === true) {
-    if (!(await clickWhenReady(el, "New message"))) return false;
-    for (const name of pane.pick ?? []) {
-      if (!(await clickWhenReady(el, name, ROW))) return false;
-    }
-    if (pane.open === true && !(await clickWhenReady(el, "Open"))) return false;
-  } else if (pane.openThread !== undefined) {
-    if (!(await clickWhenReady(el, pane.openThread, ROW))) return false;
-  }
+  if (!(await driveOpen(el, pane))) return false;
   if (pane.key !== true) return true;
   /*
    * Latch, then talk. The click is what mints the envelope and freezes the

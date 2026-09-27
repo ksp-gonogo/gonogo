@@ -804,18 +804,20 @@ async function loadOne(
     await importBundle(bytes, version.bundleUrl);
     const ms = Math.round(performance.now() - start);
 
-    let modHashNote = "";
-    if (roster?.expectedClientHash == null) {
-      modHashNote =
-        " (mod-hash arm pending: mod does not yet emit expectedClientHash)";
-    } else if (skewOverridden) {
+    const resolveModHashNote = () => {
+      if (roster?.expectedClientHash == null)
+        return " (mod-hash arm pending: mod does not yet emit expectedClientHash)";
       // Loud on the loaded row, not only in the log. An Uplink running past a
       // recorded override is a different state from one that passed clean, and
       // the operator surface reads this string.
-      modHashNote =
-        ` (loaded on an operator skew override: mod expects ${roster.expectedClientHash},` +
-        ` index offered ${version.integrity}; bytes verified against the index hash)`;
-    }
+      if (skewOverridden)
+        return (
+          ` (loaded on an operator skew override: mod expects ${roster.expectedClientHash},` +
+          ` index offered ${version.integrity}; bytes verified against the index hash)`
+        );
+      return "";
+    };
+    const modHashNote = resolveModHashNote();
     const outcome: UplinkLoadOutcome = {
       id: descriptor.id,
       name: descriptor.name,

@@ -62,25 +62,31 @@ export function attachIceDiagnostics(
   pc.addEventListener("iceconnectionstatechange", () => {
     iceLog.debug(`iceConnectionState=${pc.iceConnectionState}`, ctx);
     const state = pc.iceConnectionState;
-    if (state === "failed" || state === "closed") {
-      // Terminal: no recovery from these.
-      fireDead(`iceConnectionState=${state}`);
-    } else if (state === "disconnected") {
-      // Possibly transient (a brief network blip recovers to `connected`).
-      // Start a grace timer; only declare dead if we're still not healthy
-      // when it elapses.
-      if (!dead && graceTimer === null) {
-        graceTimer = setTimeout(() => {
-          graceTimer = null;
-          const s = pc.iceConnectionState;
-          if (s !== "connected" && s !== "completed") {
-            fireDead("iceConnectionState=disconnected (grace elapsed)");
-          }
-        }, ICE_DISCONNECT_GRACE_MS);
-      }
-    } else if (state === "connected" || state === "completed") {
-      // Recovered (or healthy): cancel any pending dead-declaration.
-      clearGrace();
+    switch (state) {
+      case "failed":
+      case "closed":
+        // Terminal: no recovery from these.
+        fireDead(`iceConnectionState=${state}`);
+        break;
+      case "disconnected":
+        // Possibly transient (a brief network blip recovers to `connected`).
+        // Start a grace timer; only declare dead if we're still not healthy
+        // when it elapses.
+        if (!dead && graceTimer === null) {
+          graceTimer = setTimeout(() => {
+            graceTimer = null;
+            const s = pc.iceConnectionState;
+            if (s !== "connected" && s !== "completed") {
+              fireDead("iceConnectionState=disconnected (grace elapsed)");
+            }
+          }, ICE_DISCONNECT_GRACE_MS);
+        }
+        break;
+      case "connected":
+      case "completed":
+        // Recovered (or healthy): cancel any pending dead-declaration.
+        clearGrace();
+        break;
     }
   });
   pc.addEventListener("icegatheringstatechange", () => {

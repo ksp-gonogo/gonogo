@@ -115,8 +115,11 @@ export function StationNameEditor({ compact = false }: { compact?: boolean }) {
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
           onKeyDown={(e) => {
-            if (e.key === "Enter") commit();
-            else if (e.key === "Escape") cancel();
+            if (e.key === "Enter") {
+              commit();
+              return;
+            }
+            if (e.key === "Escape") cancel();
           }}
           autoFocus
           maxLength={32}

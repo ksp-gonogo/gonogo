@@ -83,22 +83,28 @@ export class RetryPolicy {
     const type = isPeerJsError(err) ? (err.type ?? null) : null;
     const repeat = type !== null && type === this.lastErrorType;
 
-    if (!repeat) {
+    const logPeerError = (): void => {
       if (type === "unavailable-id") {
         logger.warn(
           `[PeerClient] station peer id is still held by the broker, retrying slowly until it releases`,
           { stationPeerId: this.deps.stationPeerId() },
         );
-      } else if (type === "peer-unavailable") {
+        return;
+      }
+      if (type === "peer-unavailable") {
         logger.info(
           `[PeerClient] host ${this.deps.hostPeerId()} unavailable: will retry`,
         );
-      } else {
-        logger.error(
-          "[PeerClient] peer error",
-          err instanceof Error ? err : new Error(String(err)),
-        );
+        return;
       }
+      logger.error(
+        "[PeerClient] peer error",
+        err instanceof Error ? err : new Error(String(err)),
+      );
+    };
+
+    if (!repeat) {
+      logPeerError();
     } else {
       debugPeer("PeerClient repeat error", {
         type,

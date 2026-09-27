@@ -56,7 +56,9 @@ export function useFocusTrap(
       if (e.shiftKey && active === first) {
         e.preventDefault();
         last?.focus();
-      } else if (!e.shiftKey && active === last) {
+        return;
+      }
+      if (!e.shiftKey && active === last) {
         e.preventDefault();
         first?.focus();
       }

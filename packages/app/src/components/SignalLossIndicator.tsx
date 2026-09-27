@@ -89,7 +89,9 @@ export function SignalLossIndicator() {
   useEffect(() => {
     if (state === "connected") {
       lostSinceRef.current = null;
-    } else if (lostSinceRef.current === null) {
+      return;
+    }
+    if (lostSinceRef.current === null) {
       lostSinceRef.current = Date.now();
     }
   }, [state]);

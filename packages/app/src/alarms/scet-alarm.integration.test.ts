@@ -520,31 +520,36 @@ function startSession(owlt: number): ModStandIn {
            client's handling of one can be exercised. */
         if (arm.vantage !== arm.subject) continue;
         const c = arm.condition;
-        if (c.kind === "time") {
-          if (!steppedDown.has(id) && ut >= c.ut - c.leadSeconds) {
-            steppedDown.add(id);
-            warpIndex = 0;
+        switch (c.kind) {
+          case "time": {
+            if (!steppedDown.has(id) && ut >= c.ut - c.leadSeconds) {
+              steppedDown.add(id);
+              warpIndex = 0;
+            }
+            if (ut < c.ut) continue;
+            break;
           }
-          if (ut < c.ut) continue;
-        } else if (c.kind === "contract-parameter") {
-          // The career is not modelled here; the verdict comes from `fireForVantage`.
-          continue;
-        } else {
-          /* The reading is the world's TRUE value, which is the whole claim:
-             nothing the client can see is consulted. Warp stops at the first
-             match and the sustain window is measured in the ticks that follow,
-             the same order the roster uses, because a window measured across
-             warped ticks would be satisfied by two samples. */
-          if (!matches(c, reading)) {
-            matchedSince.delete(id);
+          case "contract-parameter":
+            // The career is not modelled here; the verdict comes from `fireForVantage`.
             continue;
+          case "threshold": {
+            /* The reading is the world's TRUE value, which is the whole claim:
+               nothing the client can see is consulted. Warp stops at the first
+               match and the sustain window is measured in the ticks that follow,
+               the same order the roster uses, because a window measured across
+               warped ticks would be satisfied by two samples. */
+            if (!matches(c, reading)) {
+              matchedSince.delete(id);
+              continue;
+            }
+            if (!matchedSince.has(id)) {
+              matchedSince.set(id, ut);
+              warpIndex = 0;
+            }
+            if (ut - (matchedSince.get(id) as number) < c.sustainSeconds)
+              continue;
+            break;
           }
-          if (!matchedSince.has(id)) {
-            matchedSince.set(id, ut);
-            warpIndex = 0;
-          }
-          if (ut - (matchedSince.get(id) as number) < c.sustainSeconds)
-            continue;
         }
         fired.add(id);
         warpIndex = 0;

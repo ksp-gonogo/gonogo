@@ -215,21 +215,32 @@ function VantagePicker() {
     if (e.key === "Escape") {
       e.preventDefault();
       closeMenu();
-    } else if (options.length === 0) {
       return;
-    } else if (e.key === "ArrowDown") {
+    }
+    if (options.length === 0) {
+      return;
+    }
+    if (e.key === "ArrowDown") {
       e.preventDefault();
       setActiveIndex((i) => Math.min(i + 1, options.length - 1));
-    } else if (e.key === "ArrowUp") {
+      return;
+    }
+    if (e.key === "ArrowUp") {
       e.preventDefault();
       setActiveIndex((i) => Math.max(i - 1, 0));
-    } else if (e.key === "Home") {
+      return;
+    }
+    if (e.key === "Home") {
       e.preventDefault();
       setActiveIndex(0);
-    } else if (e.key === "End") {
+      return;
+    }
+    if (e.key === "End") {
       e.preventDefault();
       setActiveIndex(options.length - 1);
-    } else if (e.key === "Enter" || e.key === " ") {
+      return;
+    }
+    if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       const opt = options[activeIndex];
       if (opt) selectOption(opt.key);

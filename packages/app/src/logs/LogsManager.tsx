@@ -123,12 +123,18 @@ function readTags(): { mode: Mode; tags: Set<string> } {
   };
 }
 
+/** The value to persist for `mode`/`tags`, or `null` when the key should be cleared. */
+function storedTagsValue(mode: Mode, tags: Set<string>): string | null {
+  if (mode === "all") return "*";
+  if (mode === "none" || tags.size === 0) return null;
+  return Array.from(tags).sort().join(",");
+}
+
 function writeTags(mode: Mode, tags: Set<string>): void {
   if (typeof localStorage === "undefined") return;
-  if (mode === "all") localStorage.setItem(LOG_TAGS_KEY, "*");
-  else if (mode === "none" || tags.size === 0)
-    localStorage.removeItem(LOG_TAGS_KEY);
-  else localStorage.setItem(LOG_TAGS_KEY, Array.from(tags).sort().join(","));
+  const raw = storedTagsValue(mode, tags);
+  if (raw === null) localStorage.removeItem(LOG_TAGS_KEY);
+  else localStorage.setItem(LOG_TAGS_KEY, raw);
   if (mode === "all") tagRegistry.setTags("all");
   else tagRegistry.setTags(Array.from(tags));
 }

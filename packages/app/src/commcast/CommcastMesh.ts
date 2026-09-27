@@ -80,10 +80,17 @@ export class CommcastMesh {
     handlers: CommcastMeshHandlers,
   ): CommcastMesh {
     const mesh = new CommcastMesh((frame) => {
-      if (frame.type === "commcast-transmit")
-        client.sendCommcastMessage(frame.msg);
-      else if (frame.type === "commcast-ack") client.sendCommcastAck(frame.ack);
-      else client.sendCommcastRadio(frame.frame);
+      switch (frame.type) {
+        case "commcast-transmit":
+          client.sendCommcastMessage(frame.msg);
+          break;
+        case "commcast-ack":
+          client.sendCommcastAck(frame.ack);
+          break;
+        case "commcast-radio":
+          client.sendCommcastRadio(frame.frame);
+          break;
+      }
     });
     mesh.unsubs.push(
       client.onCommcastTransmit((msg) => {

@@ -1094,18 +1094,20 @@ export class PeerClientService {
     "uplink-bundle-response": (msg) => {
       if (msg.error) {
         this.pendingBundleFetch.reject(msg.requestId, new Error(msg.error));
-      } else if (msg.bytes) {
-        this.pendingBundleFetch.resolve(msg.requestId, msg.bytes);
-      } else {
-        // Neither `bytes` nor `error`: a malformed response the host
-        // should never actually send (handleUplinkBundleRequest always
-        // sets one or the other), but rejecting with a clear reason beats
-        // leaving the request pending until it times out.
-        this.pendingBundleFetch.reject(
-          msg.requestId,
-          new Error("uplink-bundle-response carried neither bytes nor error"),
-        );
+        return;
       }
+      if (msg.bytes) {
+        this.pendingBundleFetch.resolve(msg.requestId, msg.bytes);
+        return;
+      }
+      // Neither `bytes` nor `error`: a malformed response the host
+      // should never actually send (handleUplinkBundleRequest always
+      // sets one or the other), but rejecting with a clear reason beats
+      // leaving the request pending until it times out.
+      this.pendingBundleFetch.reject(
+        msg.requestId,
+        new Error("uplink-bundle-response carried neither bytes nor error"),
+      );
     },
     "flight-rpc-response": (msg) => {
       if (msg.error) {
