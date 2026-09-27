@@ -3,7 +3,7 @@ import {
   registerContribution,
 } from "@ksp-gonogo/sitrep-sdk/spine";
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
-import { afterEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { useContributionsBySlotId } from "./contributionsRead";
 import { ContributionsProvider } from "./contributionsRuntime";
 import {
@@ -40,7 +40,8 @@ function mount(store = createDomainAvailabilityStore()) {
   return store;
 }
 
-afterEach(() => {
+// beforeEach, never afterEach: clearing while the previous test's tree is still mounted notifies SlotAggregator's onContributionsChange subscription outside act() (vitest runs afterEach hooks in reverse registration order, so this one would fire before Testing Library's own cleanup).
+beforeEach(() => {
   clearContributions();
 });
 

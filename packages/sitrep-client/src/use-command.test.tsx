@@ -195,7 +195,7 @@ describe("useCommand", () => {
  * can't depend on `@ksp-gonogo/components`' `setupStreamFixture`, which
  * sits above it in the dependency graph).
  */
-function setupFixture() {
+function setupFixture({ suspendFrames = false } = {}) {
   const wall = createFakeWallClock();
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
@@ -204,6 +204,7 @@ function setupFixture() {
     warpRate: () => 1,
     delaySeconds: () => 0,
   });
+  if (suspendFrames) clock.suspendFrames();
   const store = new TimelineStore(clock);
   const carriedChannels = [
     "comms.link",
@@ -1408,13 +1409,28 @@ describe("useCommand delay reading", () => {
   }
 
   function renderReadout() {
-    const fixture = setupFixture();
+    // Frames suspended: every transition here is driven by an explicit `transport.emit(...)` inside `act()`, never by wall time passing, and the view clock's frame loop has no stopping condition of its own (view-clock.ts): left running it keeps ticking on real time past the test body and updates DelayReadout outside act().
+    const fixture = setupFixture({ suspendFrames: true });
     render(
       <fixture.Provider>
         <DelayReadout />
       </fixture.Provider>,
     );
     return fixture;
+  }
+
+  /**
+   * Drains the one animation frame `TelemetryProvider`'s ingest-coalescing
+   * effect always arms after a `transport.emit` (`context.tsx`'s
+   * `scheduleFrame`, real under vitest's jsdom `pretendToBeVisual`), inside
+   * `act()`. Left undrained it fires during test teardown instead, updating
+   * `DelayReadout` (a fresh `delayReading` object every `beginFrame`) outside
+   * any `act()` scope.
+   */
+  async function settleIngestFrame() {
+    await act(async () => {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    });
   }
 
   it("reports a null one-way as no-path, never as zero delay", async () => {
@@ -1431,6 +1447,7 @@ describe("useCommand delay reading", () => {
       expect(screen.getByText("mode:no-path")).toBeTruthy();
     });
     expect(screen.getByText("delay:null")).toBeTruthy();
+    await settleIngestFrame();
   });
 
   it("reports a measured zero as a live zero, which is a different answer", async () => {
@@ -1447,6 +1464,7 @@ describe("useCommand delay reading", () => {
       expect(screen.getByText("mode:live")).toBeTruthy();
     });
     expect(screen.getByText("delay:0")).toBeTruthy();
+    await settleIngestFrame();
   });
 
   it("reports a measured light-time as itself", async () => {
@@ -1463,6 +1481,7 @@ describe("useCommand delay reading", () => {
       expect(screen.getByText("mode:staged")).toBeTruthy();
     });
     expect(screen.getByText("delay:240")).toBeTruthy();
+    await settleIngestFrame();
   });
 
   /**
@@ -1509,6 +1528,7 @@ describe("useCommand delay reading", () => {
       expect(screen.getByText("mode:no-path")).toBeTruthy();
     });
     expect(screen.getByText("reading:null")).toBeTruthy();
+    await settleIngestFrame();
   });
 
   it("reports no delay reading at all as unknown, not as zero and not as no-path", () => {

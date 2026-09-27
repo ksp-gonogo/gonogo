@@ -110,6 +110,8 @@ describe("useControlStream", () => {
   });
 
   it("surfaces the channel label and the one-way delay from comms.delay", async () => {
+    // Fake timers, as every sibling test does: a non-null value makes the hook's 100ms coalescing interval (use-control-stream.tsx) dispatch a command on its first tick, and left on the real clock that tick lands after this test body returns, updating Probe outside act().
+    vi.useFakeTimers();
     const { transport } = mountProbe(0.5);
     expect(screen.getByTestId("label").textContent).toBe("Throttle");
 
@@ -117,9 +119,7 @@ describe("useControlStream", () => {
       transport.emit("comms.delay", { oneWaySeconds: 1.6 });
     });
 
-    await waitFor(() =>
-      expect(screen.getByTestId("delay").textContent).toBe("1.6"),
-    );
+    expect(screen.getByTestId("delay").textContent).toBe("1.6");
   });
 
   it("collects the readback topic field as echo samples", async () => {
