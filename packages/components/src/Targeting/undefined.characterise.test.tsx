@@ -206,8 +206,7 @@ describe("Targeting: a partial vessel.target record", () => {
     await waitFor(() =>
       expect(screen.getByText("No target set in KSP")).toBeTruthy(),
     );
-    // "confirmed", not "last seen": the arm is `observed`.
-    expect(visibleText(container)).toMatch(/confirmed/i);
+    expect(visibleText(container)).not.toMatch(/confirmed|last seen|\bago\b/i);
     // The distance the record DID carry is discarded with it.
     expect(visibleText(container)).not.toContain("1.5 km");
     expect(screen.queryByText("APPROACH")).toBeNull();

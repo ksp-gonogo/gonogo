@@ -1,6 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent } from "@ksp-gonogo/core";
-import { EmptyState, ReadoutCaption, Stack, Unit } from "@ksp-gonogo/ui-kit";
+import { EmptyState } from "@ksp-gonogo/ui-kit";
 import { ApproachHud } from "./ApproachHud";
 import type { DockingHudMode, TargetingConfig } from "./config";
 import { DockingHud } from "./DockingHud";
@@ -41,7 +41,6 @@ function TargetingComponent({
     alignmentWithheld,
     modelledAlignment,
     dockAge,
-    age,
     outOfContact,
     reckoned,
     reckonedDistance,
@@ -72,30 +71,11 @@ function TargetingComponent({
     );
   }
 
-  /*
-   * Confirmed absence: a cleared target arrives as a tombstone. `tarName ===
-   * undefined` guards a record without a name. A confirmed absence can itself
-   * go old, which the age says.
-   */
+  // A cleared target arrives as a tombstone; `tarName === undefined` guards a record without a name.
   if (targetState === "absent" || tarName === undefined) {
-    // "Confirmed" only while we are still hearing from the craft.
-    const confirmedWord =
-      targetState === "observed" || targetState === "absent"
-        ? "confirmed"
-        : "last seen";
     return (
       <TargetPanel>
-        <EmptyState>
-          {/* Stacked: as siblings the text and caption ran into one accessible string. */}
-          <Stack>
-            <span>No target set in KSP</span>
-            {age !== undefined && (
-              <ReadoutCaption>
-                {confirmedWord} <Unit value={age} /> ago
-              </ReadoutCaption>
-            )}
-          </Stack>
-        </EmptyState>
+        <EmptyState>No target set in KSP</EmptyState>
       </TargetPanel>
     );
   }

@@ -73,7 +73,7 @@ describe("Targeting: pending is no longer reported as a confirmed absence", () =
     teardownMockDataSource(legacyAux);
   });
 
-  it("says no target is set only once the wire confirms it, and says when", async () => {
+  it("says no target is set only once the wire confirms it, without dating the absence", async () => {
     const { fixture, legacyAux } = await mount("dtt-absent", 10);
 
     act(() => {
@@ -91,8 +91,8 @@ describe("Targeting: pending is no longer reported as a confirmed absence", () =
     await waitFor(() =>
       expect(screen.getByText("No target set in KSP")).toBeTruthy(),
     );
-    // A tombstone can itself go old, and the age stops the claim being asserted indefinitely.
-    expect(visibleText()).toMatch(/confirmed/i);
+    // Time is only shown through Unit, and an absence has no figure to carry it.
+    expect(visibleText()).not.toMatch(/confirmed|last seen|\bago\b/i);
     expect(screen.queryByText("10.0 km")).toBeNull();
 
     teardownMockDataSource(legacyAux);

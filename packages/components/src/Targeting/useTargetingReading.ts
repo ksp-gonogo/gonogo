@@ -122,13 +122,6 @@ export function useTargetingReading() {
       ? value("ut", universalTime).minus(dockObservedUt).max(0)
       : undefined;
 
-  // Age measured against the FRAME's view time, never `Date.now()`, so two reads in one frame agree.
-  const targetObservedUt = observedAt(targetReading);
-  const age =
-    universalTime !== undefined && targetObservedUt
-      ? value("ut", universalTime).minus(targetObservedUt).max(0)
-      : undefined;
-
   // Out of contact the headline is an observation, not a reading of now.
   const outOfContact = targetReading.state === "stale";
   // Pulled here so a modelled number reaches the screen only through code that says it is modelling.
@@ -165,7 +158,6 @@ export function useTargetingReading() {
     alignmentWithheld,
     modelledAlignment,
     dockAge,
-    age,
     outOfContact,
     reckoned,
     reckonedDistance,
