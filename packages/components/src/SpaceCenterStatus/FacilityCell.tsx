@@ -82,8 +82,8 @@ export function FacilityGridItem({
     careerFunds >= f.upgradeFunds;
   const canUpgrade =
     upgradesEnabled && !!f && !atMax && f.upgradeFunds > 0 && canAfford;
-  // A blocked command is refused for a reason the balance has no part in, so the price is a plain figure.
-  const moneyDecides = !upgradeBlocked;
+  // A blocked command is refused for a reason the balance has no part in, and a balance that is not current answers nothing, so either way the price is a plain figure.
+  const moneyDecides = !upgradeBlocked && careerFunds !== null;
   const tooltip = buildFacilityTooltip(label, f);
   // Gated on the whole grid: a cell whose own description is empty still has to say so.
   const showTierSpecs = tierSpecsFit && anyTierText && !!f;

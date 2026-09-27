@@ -140,6 +140,33 @@ describe("SpaceCenterStatus when career telemetry is no longer current", () => {
     expect(visibleText(container)).not.toContain("funds no longer current");
   });
 
+  it("draws no affordability verdict off a held balance", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: CARRIED,
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+    const container = mount(fixture, "scs-stale-verdict", 6, 7);
+    emitCareer(fixture);
+    await waitFor(() =>
+      expect(
+        container.querySelector("[data-afford]")?.getAttribute("data-afford"),
+      ).toBe("yes"),
+    );
+
+    goStale(fixture);
+
+    await waitFor(() =>
+      expect(
+        screen
+          .getByTitle("Available funds")
+          .querySelector("[data-not-current]"),
+      ).not.toBeNull(),
+    );
+    // The last balance covered the cost, but a held figure can say neither yes nor no.
+    expect(container.querySelector("[data-afford]")).toBeNull();
+  });
+
   it("disarms every upgrade without writing a held caption beside them", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: CARRIED,
