@@ -230,7 +230,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/core/src/augments.ts": 1,
   "packages/core/src/calc/transfer.ts": 1,
   "packages/core/src/chromeProviders.test.tsx": 1,
-  "packages/core/src/contributionsRuntime.test.tsx": 6,
+  "packages/core/src/contributionsRuntime.test.tsx": 5,
   "packages/core/src/fixture-gated-suites.test.ts": 1,
   "packages/core/src/hooks/gameModeTable.test.ts": 1,
   "packages/core/src/hooks/useDataStreamStatus.ts": 1,
@@ -400,5 +400,5 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
  * it exists to produce; the census is printed beside the verdict instead.
  */
 export const SCAN_FLOORS = {
-  files: 1302,
+  files: 1435,
 } as const;

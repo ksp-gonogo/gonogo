@@ -9,6 +9,10 @@ import {
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  createDomainAvailabilityStore,
+  DomainAvailabilityContext,
+} from "@ksp-gonogo/ui-kit";
 import { beforeEach, describe, expect, it } from "vitest";
 import { WidgetMetaContext } from "./contexts/WidgetMetaContext";
 import { clearContributions, registerContribution } from "./contributions";
@@ -249,19 +253,8 @@ describe("useContributions", () => {
     expect(screen.getByText("other:other one")).toBeTruthy();
   });
 
-  it("`requires` self-subscribes to `<domain>.available`, needing no OTHER subscriber for that topic", async () => {
-    // A contribution's `requires` gate reads `client.getValue
-    // ("<domain>.available")`, but a Stub/production transport alike only
-    // ever DELIVERS a sample for a topic something has subscribed to. If the
-    // aggregator subscribed to `deps` only, `requires` would silently depend
-    // on some UNRELATED widget elsewhere in the tree happening to already
-    // subscribe to that same `.available` topic (true almost always in the
-    // live app, via that widget's own RequiresGuard, false the moment a
-    // contribution's host widget is the only thing mounted), as ShipMap's
-    // Kerbalism self-contribution shows in isolation: the widget itself has
-    // no `requires` of its own, so nothing would subscribe to
-    // "kerbalism.available" and the Kerbalism contribution would silently
-    // never fire.
+  it("`requires` reads presence from the host's DomainAvailabilityStore, the one rule an augment's gate also reads (D18)", async () => {
+    // Only the host's presence store gates a contribution in; a bare wire emit of `<domain>.available` does not.
     registerContribution({
       id: "gated-contrib",
       contributes: "fixture.rows",
@@ -269,20 +262,18 @@ describe("useContributions", () => {
       compute: () => [{ id: "gated-row", label: "gated" }],
     });
 
-    const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
+    const availabilityStore = createDomainAvailabilityStore();
 
     render(
-      <TelemetryProvider client={client}>
+      <DomainAvailabilityContext.Provider value={availabilityStore}>
         <Harness slots={["fixture.rows"] as const} />
-      </TelemetryProvider>,
+      </DomainAvailabilityContext.Provider>,
     );
 
-    // Nothing else in this tree subscribes to "kerbalism.available"; if the
-    // aggregator doesn't self-subscribe, this emit is dropped and the
-    // contribution never renders.
+    expect(screen.queryByText("gated")).toBeNull();
+
     act(() => {
-      transport.emit("kerbalism.available", true);
+      availabilityStore.setAvailable("kerbalism", true);
     });
 
     await waitFor(() => expect(screen.getByText("gated")).toBeTruthy());
