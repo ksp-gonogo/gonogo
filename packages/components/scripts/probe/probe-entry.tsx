@@ -71,11 +71,10 @@ import type { ProbePayload } from "./payload";
  */
 import "./plantedUplink";
 
-// Stock-body registry needs to be populated before any widget that calls
-// getBody(v.body) tries to read it. The live app does this in main.tsx;
-// the probe needs the equivalent or every body-aware widget renders the
-// "unknown body" degraded state. Run once at module load, the registry
-// is idempotent and shared across all probe calls.
+/*
+ * Filled once at module load, as the app's main.tsx does: a body-aware widget
+ * reads the stock bodies through getBody(v.body) and draws "unknown body" without them.
+ */
 registerStockBodies();
 
 /** One `StubTransport.emit(topic, payload)` call, replayed post-mount. */
