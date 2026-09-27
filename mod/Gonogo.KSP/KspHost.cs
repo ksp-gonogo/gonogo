@@ -1380,24 +1380,17 @@ namespace Gonogo.KSP
         /// </summary>
         private static Dictionary<string, object?> BuildPhysics(Vessel vessel)
         {
-            string mode;
-            if (!vessel.loaded)
-            {
-                mode = "OnRails";
-            }
-            else if (vessel.packed)
-            {
-                mode = "Packed";
-            }
-            else
-            {
-                mode = "Unpacked";
-            }
-
             return new Dictionary<string, object?>
             {
-                ["mode"] = mode,
+                ["mode"] = PhysicsMode(vessel),
             };
+        }
+
+        private static string PhysicsMode(Vessel vessel)
+        {
+            if (!vessel.loaded) return "OnRails";
+            if (vessel.packed) return "Packed";
+            return "Unpacked";
         }
 
         /// <summary>
@@ -2889,30 +2882,7 @@ namespace Gonogo.KSP
             // FIRST. targetVesselId carries the vessel guid for a Vessel
             // target AND the owning vessel for a Part target (the parser reads
             // it for both); partId is the port's Part.flightID, Part only.
-            var targetVessel = target.GetVessel();
-            string targetType;
-            string? targetVesselId = null;
-            uint? partId = null;
-            if (target is CelestialBody)
-            {
-                targetType = "CelestialBody";
-            }
-            else if (target is PartModule partModule)
-            {
-                // A part target -- in practice a docking port.
-                targetType = "Part";
-                partId = partModule.part != null ? partModule.part.flightID : (uint?)null;
-                targetVesselId = partModule.vessel != null ? partModule.vessel.id.ToString() : null;
-            }
-            else if (targetVessel != null)
-            {
-                targetType = targetVessel.vesselType.ToString();
-                targetVesselId = targetVessel.id.ToString();
-            }
-            else
-            {
-                targetType = target.GetType().Name;
-            }
+            var (targetType, targetVesselId, partId) = ClassifyTarget(target);
 
             double[]? relativePosition = null;
             var targetTransform = target.GetTransform();
@@ -2954,6 +2924,23 @@ namespace Gonogo.KSP
             }
 
             return result;
+        }
+
+        private static (string Type, string? VesselId, uint? PartId) ClassifyTarget(ITargetable target)
+        {
+            if (target is CelestialBody) return ("CelestialBody", null, null);
+            if (target is PartModule partModule)
+            {
+                // A part target -- in practice a docking port.
+                return (
+                    "Part",
+                    partModule.vessel != null ? partModule.vessel.id.ToString() : null,
+                    partModule.part != null ? partModule.part.flightID : (uint?)null);
+            }
+
+            var targetVessel = target.GetVessel();
+            if (targetVessel != null) return (targetVessel.vesselType.ToString(), targetVessel.id.ToString(), null);
+            return (target.GetType().Name, null, null);
         }
 
         /// <summary>

@@ -145,29 +145,7 @@ namespace Gonogo.KSP
             }
             try
             {
-                var summary = backend.Summary();
-                if (ActivationFailed())
-                {
-                    // A selected provider threw during Kernel activation, so the
-                    // elected instance is the vanilla None backend and its
-                    // "no reliability model" reading is false. We are blind.
-                    //
-                    // Takes precedence over the withdrawal correction below: being
-                    // unable to read a provider is a stronger claim than knowing
-                    // one switched itself off, and the operator needs the blindness.
-                    summary.Coverage = ReliabilityCoverage.Unavailable;
-                }
-                else if (_kernel != null)
-                {
-                    // A provider was installed and WITHDREW (Kerbalism with its
-                    // reliability feature off), so the capability fell to the
-                    // vanilla backend, whose "nothing is installed that could
-                    // model reliability" reading is false. Read from the Kernel
-                    // here rather than cached at Register, because resolution runs
-                    // AFTER every uplink has registered: the notice does not exist
-                    // yet at Register time.
-                    summary = ReliabilityWithdrawal.Apply(summary, _kernel.LastNotices);
-                }
+                var summary = CorrectCoverage(backend.Summary());
                 _lastCaptureFailed = false;
                 return new ReliabilityCapture
                 {
@@ -195,6 +173,32 @@ namespace Gonogo.KSP
                     Parts = new List<ReliabilityPartEntry>(),
                 };
             }
+        }
+
+        private ReliabilitySummary CorrectCoverage(ReliabilitySummary summary)
+        {
+            if (ActivationFailed())
+            {
+                // A selected provider threw during Kernel activation, so the
+                // elected instance is the vanilla None backend and its
+                // "no reliability model" reading is false. We are blind.
+                //
+                // Takes precedence over the withdrawal correction below: being
+                // unable to read a provider is a stronger claim than knowing
+                // one switched itself off, and the operator needs the blindness.
+                summary.Coverage = ReliabilityCoverage.Unavailable;
+                return summary;
+            }
+            if (_kernel == null) return summary;
+
+            // A provider was installed and WITHDREW (Kerbalism with its
+            // reliability feature off), so the capability fell to the
+            // vanilla backend, whose "nothing is installed that could
+            // model reliability" reading is false. Read from the Kernel
+            // here rather than cached at Register, because resolution runs
+            // AFTER every uplink has registered: the notice does not exist
+            // yet at Register time.
+            return ReliabilityWithdrawal.Apply(summary, _kernel.LastNotices);
         }
 
         /// <summary>COURIER-THREAD handle: publish the captured payloads. No KSP access.</summary>

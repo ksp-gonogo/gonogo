@@ -550,22 +550,7 @@ namespace Gonogo.KSP.CurrencyDelay
                 return;
             }
 
-            KscDelay delay;
-            if (_recoveryVesselsById.ContainsKey(decision.OriginVesselId))
-            {
-                // Recovered at KSC: instant, see the funds path above.
-                delay = KscDelay.Instant;
-            }
-            else if (_deathLightTimesById.TryGetValue(decision.OriginVesselId, out var deathDelay))
-            {
-                // Captured at the moment of death, while the vessel still
-                // existed and its route could still be read. If it had no route
-                // then, the penalty blocks rather than landing free - which is
-                // the kerbal-died-out-of-contact case this whole subsystem was
-                // reopened for.
-                delay = deathDelay;
-            }
-            else
+            if (!TryReputationDelay(decision.OriginVesselId, out var delay))
             {
                 return;
             }
@@ -581,6 +566,23 @@ namespace Gonogo.KSP.CurrencyDelay
                 CurrencyKind.Reputation, decision.BaseAmount, decision.ShadowToRestore, decision.OriginVesselId,
                 delay, ut, CommsCoreUplink.SignalDelayConfig);
             EnqueueCredit(credit);
+        }
+
+        private bool TryReputationDelay(string originVesselId, out KscDelay delay)
+        {
+            if (_recoveryVesselsById.ContainsKey(originVesselId))
+            {
+                // Recovered at KSC: instant, see the funds path above.
+                delay = KscDelay.Instant;
+                return true;
+            }
+
+            // Captured at the moment of death, while the vessel still
+            // existed and its route could still be read. If it had no route
+            // then, the penalty blocks rather than landing free - which is
+            // the kerbal-died-out-of-contact case this whole subsystem was
+            // reopened for.
+            return _deathLightTimesById.TryGetValue(originVesselId, out delay);
         }
 
         private void EnqueueCredit(StockCurrencyCredit? credit)

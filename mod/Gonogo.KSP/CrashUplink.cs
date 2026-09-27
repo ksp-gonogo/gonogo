@@ -335,31 +335,36 @@ namespace Gonogo.KSP
             var lost = new List<LostPart>();
             try
             {
-                var origin = report?.origin;
-                if (origin != null)
-                {
-                    // A collision / hard splashdown names the destroyed part.
-                    lost.Add(FromPart(origin, report?.msg ?? ""));
-                }
-                else if (vessel.parts != null)
-                {
-                    // A non-collision death (burn-up): whatever remains of the
-                    // vessel at destruction (often already empty: every part
-                    // cooked off before the vessel-destroy fired).
-                    foreach (var part in vessel.parts)
-                    {
-                        if (part != null)
-                        {
-                            lost.Add(FromPart(part, ""));
-                        }
-                    }
-                }
+                AddPartsLost(lost, vessel, report);
             }
             catch (Exception)
             {
                 // A torn part read, publish whatever was gathered.
             }
             return lost;
+        }
+
+        private static void AddPartsLost(List<LostPart> lost, Vessel vessel, EventReport? report)
+        {
+            var origin = report?.origin;
+            if (origin != null)
+            {
+                // A collision / hard splashdown names the destroyed part.
+                lost.Add(FromPart(origin, report?.msg ?? ""));
+                return;
+            }
+            if (vessel.parts == null) return;
+
+            // A non-collision death (burn-up): whatever remains of the
+            // vessel at destruction (often already empty: every part
+            // cooked off before the vessel-destroy fired).
+            foreach (var part in vessel.parts)
+            {
+                if (part != null)
+                {
+                    lost.Add(FromPart(part, ""));
+                }
+            }
         }
 
         private static LostPart FromPart(Part part, string msg) => new LostPart

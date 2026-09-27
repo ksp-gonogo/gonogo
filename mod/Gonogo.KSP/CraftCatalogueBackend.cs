@@ -326,14 +326,7 @@ namespace Gonogo.KSP
 
                 if (career)
                 {
-                    if (!ResearchAndDevelopment.PartTechAvailable(available))
-                    {
-                        locked.Add(name);
-                    }
-                    else if (!ResearchAndDevelopment.PartModelPurchased(available))
-                    {
-                        unpurchased.Add(name);
-                    }
+                    WithheldList(available, locked, unpurchased)?.Add(name);
                 }
 
                 if (IsClamp(available))
@@ -355,6 +348,13 @@ namespace Gonogo.KSP
             // mass is a figure a consumer would compare against a limit, and an
             // invented one refuses a real vehicle or admits an impossible one.
             record.MassExcludingClamps = measured ? mass : (double?)null;
+        }
+
+        private static List<string>? WithheldList(AvailablePart part, List<string> locked, List<string> unpurchased)
+        {
+            if (!ResearchAndDevelopment.PartTechAvailable(part)) return locked;
+            if (!ResearchAndDevelopment.PartModelPurchased(part)) return unpurchased;
+            return null;
         }
 
         /// <summary>
