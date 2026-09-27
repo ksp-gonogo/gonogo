@@ -376,17 +376,20 @@ namespace Sitrep.Host.IntegrationTests
                 if (!explained)
                 {
                     stale.Add($"{entry.Id}: excused as {entry.Excuse} with no reason written down. Say why, or drop the excuse");
+                    continue;
                 }
-                else if (covered.Contains(entry.Id))
+                if (covered.Contains(entry.Id))
                 {
                     stale.Add($"{entry.Id}: excused as {entry.Excuse}, and a behavioural case now carries its marker. Delete the excuse");
+                    continue;
                 }
-                else if (entry.Excuse == Excuse.NoUplinkProvider && winnable.Contains(entry.Id))
+                if (entry.Excuse == Excuse.NoUplinkProvider && winnable.Contains(entry.Id))
                 {
                     stale.Add($"{entry.Id}: excused because no Uplink registers a provider, and the walk finds one. "
                         + $"Give it a case marked '{Marker} {entry.Id}', or say why it cannot have one");
+                    continue;
                 }
-                else if (entry.Excuse == Excuse.UplinkProviderWithoutCase && !winnable.Contains(entry.Id))
+                if (entry.Excuse == Excuse.UplinkProviderWithoutCase && !winnable.Contains(entry.Id))
                 {
                     stale.Add($"{entry.Id}: excused for an Uplink's provider, and the walk finds no Uplink providing it. "
                         + "The Uplink has left or stopped providing it: rewrite the excuse as NoUplinkProvider, or delete it");

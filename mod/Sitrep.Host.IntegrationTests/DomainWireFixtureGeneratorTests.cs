@@ -643,12 +643,14 @@ namespace Sitrep.Host.IntegrationTests
                 if (!sawTrue1 && connected == true)
                 {
                     sawTrue1 = true;
+                    continue;
                 }
-                else if (sawTrue1 && !sawFalse && connected == false)
+                if (sawTrue1 && !sawFalse && connected == false)
                 {
                     sawFalse = true;
+                    continue;
                 }
-                else if (sawFalse && !sawTrue2 && connected == true)
+                if (sawFalse && !sawTrue2 && connected == true)
                 {
                     sawTrue2 = true;
                 }
