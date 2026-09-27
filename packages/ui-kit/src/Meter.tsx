@@ -16,6 +16,9 @@ import { boundsStandApart } from "./instrumentCurrency";
 import { magnitudeOr } from "./magnitude";
 import { NotCurrentHost, NotCurrentMark } from "./NotCurrentMark";
 import { NullValue } from "./NullValue";
+import { resolveCurrency, type UnitValue } from "./readingCurrency";
+import type { StatTone } from "./statTone";
+import { severityDotColor } from "./status/severityDotColor";
 import { Unit } from "./Unit";
 import { UnitSharedFormat, useSharedFormat } from "./UnitSharedFormat";
 import {
@@ -23,8 +26,7 @@ import {
   type FormatsFor,
   speakQuantity,
 } from "./units";
-
-export type MeterTone = "neutral" | "go" | "warn" | "nogo" | "info";
+import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
  * How a meter's three parts are arranged.
@@ -40,23 +42,12 @@ export type MeterTone = "neutral" | "go" | "warn" | "nogo" | "info";
  */
 export type MeterLayout = "stacked" | "row";
 
-/**
- * What either half of a meter may be handed: the quantity on its own, or the
- * whole {@link Reading} it arrived in: the same pair `<Unit>` takes.
- *
- * A whole-topic reading is a type error in both slots; reach the field reading
- * off the topic (`flight.altitudeAsl`) and hand that over.
- */
-export type MeterValue<U extends string = string> =
-  | Value<U>
-  | Reading<Value<U>>;
-
 interface MeterCommonProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   /** Short label shown above the bar and used as the meter's accessible name. */
   label: string;
   /** Semantic colour of the fill. Ignored when `fillColor` is set. */
-  tone?: MeterTone;
+  tone?: StatTone;
   /**
    * Arbitrary CSS colour for the fill (e.g. `resourceColor(name)`), for meters
    * whose fill carries an identity rather than a status. Wins over `tone` for
@@ -94,7 +85,7 @@ export interface MeterProps<U extends string = string>
    * empty, and the row drops `role="meter"`, since an unreported reading is not
    * a 0% bar. A call site needs no absence gate of its own.
    */
-  value: MeterValue<U> | null;
+  value: UnitValue<U> | null;
   /**
    * The full tank: what `value` is read as a fraction of, in the same unit, so
    * a length over a volume does not typecheck.
@@ -103,7 +94,7 @@ export interface MeterProps<U extends string = string>
    * a band of its own. Omitted, `value` is already the fraction; `null` is a
    * capacity that could not be read, and draws the absent form.
    */
-  capacity?: MeterValue<U> | null;
+  capacity?: UnitValue<U> | null;
   /**
    * Pin the rung both halves are shown at, for the cases where convention
    * beats magnitude. Rarely needed: otherwise the two halves settle one rung
@@ -220,14 +211,56 @@ export function Meter<U extends string = string>({
       bounds={bounds}
       endBounds={endBounds}
       display={
-        valueLabelNode ?? valueLabel ?? <Unit value={value} format={format} />
+        valueLabel === undefined && valueLabelNode === undefined ? (
+          <Unit value={value} format={format} />
+        ) : (
+          <HeldLabel caption={heldCaption(value)}>
+            {valueLabelNode ?? valueLabel}
+          </HeldLabel>
+        )
       }
       spoken={withBands(
-        valueLabel ?? speakQuantity(shown.figure, { format }),
+        valueLabel === undefined
+          ? speakQuantity(shown.figure, { format })
+          : sayCaption(valueLabel, heldCaption(value)),
         bounds,
         endBounds,
       )}
     />
+  );
+}
+
+/** What a held reading's mark means in words, or null where the figure is current. */
+function heldCaption<U extends string>(
+  input: UnitValue<U> | null | undefined,
+): string | null {
+  const { notCurrent, caption } = resolveCurrency(input ?? null);
+  return notCurrent ? caption : null;
+}
+
+/** A caller's own words for the figure, with the held reading's words after them. */
+function sayCaption(label: string, caption: string | null): string {
+  return caption === null ? label : `${label}, ${caption}`;
+}
+
+/**
+ * A caller's own label for the figure, carrying the same held mark and words
+ * `<Unit>` would have drawn, so a held meter always looks held.
+ */
+function HeldLabel({
+  caption,
+  children,
+}: {
+  caption: string | null;
+  children: ReactNode;
+}) {
+  if (caption === null) return <>{children}</>;
+  return (
+    <NotCurrentHost title={caption}>
+      {children}
+      <NotCurrentMark aria-hidden="true" data-not-current-mark="" />
+      <VisuallyHidden data-unit-currency="">, {caption}</VisuallyHidden>
+    </NotCurrentHost>
   );
 }
 
@@ -243,7 +276,7 @@ interface Half<U extends string> {
  * primitive and untyped JavaScript can pass one.
  */
 function unwrap<U extends string>(
-  input: MeterValue<U> | null | undefined,
+  input: UnitValue<U> | null | undefined,
 ): Half<U> {
   if (typeof input !== "object" || input === null || !("state" in input)) {
     return { figure: input ?? null, reading: null };
@@ -374,7 +407,7 @@ interface MeterBarProps
   layout: MeterLayout;
   /** The fill, as the whole percent `aria-valuenow` and the track both take. */
   pct: number;
-  tone: MeterTone;
+  tone: StatTone;
   fillColor?: string;
   /** Whether the AXIS has stopped being current. See `Meter__Track`. */
   trackNotCurrent: boolean;
@@ -512,8 +545,8 @@ function MeterPairBar<U extends string = string>({
   ...bar
 }: Omit<MeterBarProps, "display" | "spoken" | "bounds"> &
   Pick<MeterProps<U>, "valueLabel" | "valueLabelNode"> & {
-    value: MeterValue<U> | null;
-    capacity: MeterValue<U> | null;
+    value: UnitValue<U> | null;
+    capacity: UnitValue<U> | null;
     shown: Half<U>;
     held: Half<U>;
     /** Where the fill ends, as the 0..1 the bounds are compared against. */
@@ -530,10 +563,12 @@ function MeterPairBar<U extends string = string>({
    * the pair carries one not-current mark at its end. Which half aged is still
    * drawn on the bar.
    */
+  const custom = valueLabelNode ?? valueLabel;
+  const caption = heldCaption(value) ?? heldCaption(capacity);
   const display =
-    valueLabelNode ??
-    valueLabel ??
-    (bar.layout === "row" ? (
+    custom !== undefined ? (
+      <HeldLabel caption={caption}>{custom}</HeldLabel>
+    ) : bar.layout === "row" ? (
       <Meter__Pair>
         <Unit value={value} hideUnitInGroup />
         {" / "}
@@ -548,10 +583,11 @@ function MeterPairBar<U extends string = string>({
         {" / "}
         <Unit value={capacity} />
       </>
-    ));
+    );
   const spoken =
-    valueLabel ??
-    `${speakQuantity(shown.figure, shared)} of ${speakQuantity(held.figure, shared)}`;
+    valueLabel === undefined
+      ? `${speakQuantity(shown.figure, shared)} of ${speakQuantity(held.figure, shared)}`
+      : sayCaption(valueLabel, caption);
   // The band's ends are written at the group's rung but never reported into it, since they are only spoken.
   const bounds = apartFrom(
     at,
@@ -835,12 +871,16 @@ const Meter__Value = styled.span<{ $row: boolean }>`
 `;
 
 /* The bar's axis, dashed where the capacity has stopped being current: colour already means the fill's status. */
+/* A held capacity dashes the track's edge in the held mark's hue, which clears 3:1 against the panel where the subtle border does not. */
 const Meter__Track = styled.div<{ $notCurrent: boolean }>`
   width: 100%;
   border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
-  border: 1px ${({ $notCurrent }) => ($notCurrent ? "dashed" : "solid")}
-    var(--color-border-subtle);
+  border: 1px
+    ${({ $notCurrent }) =>
+      $notCurrent
+        ? `dashed ${severityDotColor("warning")}`
+        : "solid var(--color-border-subtle)"};
   overflow: hidden;
   /* Positioned for the fill only: this overflow rounds the fill's ends and would clip the bound marks. */
   position: relative;
@@ -893,7 +933,7 @@ const Meter__Bound = styled.div`
 `;
 
 const Meter__Fill = styled.div<{
-  $tone: MeterTone;
+  $tone: StatTone;
   $fillColor?: string;
   $notCurrent: boolean;
 }>`

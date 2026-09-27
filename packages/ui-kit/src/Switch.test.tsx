@@ -40,4 +40,19 @@ describe("Switch", () => {
     );
     await expectNoA11yViolations(container);
   });
+
+  it("takes an id, so a label outside the switch can name it", () => {
+    render(
+      <>
+        <label htmlFor="auto">Auto-stage</label>
+        <Switch
+          id="auto"
+          checked={false}
+          onChange={() => {}}
+          aria-label="Auto-stage"
+        />
+      </>,
+    );
+    expect(screen.getByRole("checkbox")).toHaveAttribute("id", "auto");
+  });
 });

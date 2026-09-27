@@ -6,7 +6,7 @@ import type {
   TopologyPart,
 } from "@ksp-gonogo/core";
 import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
-import type { MeterTone } from "@ksp-gonogo/ui-kit";
+import type { StatTone } from "@ksp-gonogo/ui-kit";
 import { classifyPart } from "./classifyPart";
 
 /** Diagram-side categories: one per visually distinct shape. Every other KSP category is "other". */
@@ -112,7 +112,7 @@ export interface ShipMapPartMetaEntry {
   partId: string;
   /** Short label, e.g. "Water Recycler". At most one entry per (partId, label). */
   label: string;
-  tone: MeterTone;
+  tone: StatTone;
   /** "ratio": a 0..1 reading rendered as a `<Meter>`. "text": a free-form status row. */
   kind: "ratio" | "text";
   /** Present when `kind === "ratio"`. */

@@ -1,6 +1,6 @@
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import type { TopicPayload } from "@ksp-gonogo/sitrep-sdk";
-import { useCommandFailures, usePanelDelay } from "@ksp-gonogo/ui-kit";
+import { commandFailures, usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { SAS_MODES, type SasMode, sasModeOrdinal } from "./sasModes";
 
 /** The SAS and RCS arm toggles and the SAS mode command, off the last confirmed control state. */
@@ -38,7 +38,7 @@ export function useSasControls(
    * by the label `setSasMode` stamps; dismissing there or in the Panel queue
    * clears both.
    */
-  const sasFailures = useCommandFailures(sasModeCmd);
+  const sasFailures = commandFailures(sasModeCmd);
   const failedSasModes = new Map<SasMode, string>();
   for (const f of sasFailures.failed) {
     const mode = SAS_MODES.find((m) => f.label === `SAS mode: ${m}`);

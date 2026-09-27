@@ -9,6 +9,7 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { Meter } from "./Meter";
 import { NULL_DISPLAY } from "./NullValue";
+import { emittedRuleFor } from "./test/emittedRule";
 import { formatQuantity } from "./units";
 
 /**
@@ -335,7 +336,7 @@ describe("Meter, given a reading of a fraction", () => {
     expect(hover).toContain(at);
   });
 
-  it("draws no mark and says nothing where valueLabel bypasses the Unit", () => {
+  it("keeps the held mark and says it after a caller's own valueLabel", () => {
     const { container } = render(
       <Meter
         label="Dose"
@@ -350,7 +351,44 @@ describe("Meter, given a reading of a fraction", () => {
       />,
     );
 
-    // Bypassing `Unit` loses the dot and the words together, so there is never a silent dot.
+    // A caller's label replaces the figure, never its currency.
+    const mark = container.querySelector("[data-not-current-mark]");
+    expect(mark?.getAttribute("aria-hidden")).toBe("true");
+    const caption = container.querySelector("[data-unit-currency]");
+    expect(caption?.textContent).toMatch(/STALE/i);
+    expect(container.textContent).toContain("39%");
+    expect(
+      screen
+        .getByRole("meter", { name: "Dose" })
+        .getAttribute("aria-valuetext"),
+    ).toMatch(/^39%, .*STALE/i);
+  });
+
+  it("says a held capacity after a caller's own valueLabel", () => {
+    const { container } = render(
+      <Meter
+        label="Tank"
+        valueLabel="half"
+        value={value("t", 1)}
+        capacity={{
+          state: "stale",
+          reckoning: { status: "none" },
+          value: value("t", 2),
+          asOfUt: AT,
+          grade: "held-stale",
+        }}
+      />,
+    );
+    expect(container.querySelector("[data-not-current-mark]")).not.toBeNull();
+    expect(
+      container.querySelector("[data-unit-currency]")?.textContent,
+    ).toMatch(/STALE/i);
+  });
+
+  it("adds nothing to a caller's valueLabel while the reading is current", () => {
+    const { container } = render(
+      <Meter label="Dose" valueLabel="39%" value={value("ratio", 0.39)} />,
+    );
     expect(container.querySelector("[data-not-current-mark]")).toBeNull();
     expect(container.querySelector("[data-unit-currency]")).toBeNull();
   });
@@ -500,6 +538,28 @@ describe("Meter, given a capacity that is itself a reading", () => {
       />,
     );
     expect(container.querySelector("[data-track-not-current]")).not.toBeNull();
+  });
+
+  it("dashes a held track in the held mark's hue, not the 1.4:1 subtle border", () => {
+    const { container } = render(
+      <Meter
+        label="LiquidFuel"
+        value={value("units", 232)}
+        capacity={{
+          state: "stale",
+          reckoning: { status: "none" },
+          value: value("units", 400),
+          asOfUt: AT,
+          grade: "held-stale",
+        }}
+      />,
+    );
+    const track = container.querySelector(
+      "[data-track-not-current]",
+    ) as HTMLElement;
+    const rule = emittedRuleFor(track);
+    expect(rule).toContain("dashed var(--color-status-warning-bg)");
+    expect(rule).not.toContain("--color-border-subtle");
   });
 });
 

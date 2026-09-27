@@ -138,6 +138,26 @@ describe("Panel header aside expand box", () => {
     expect(dots[1]).toHaveTextContent("2");
   });
 
+  it("carries the hidden summary badge's status as a dot on the expand control", () => {
+    // The store the dashboard puts round every widget, which the summary badge and the dots both read.
+    render(
+      <PanelStatusStoreProvider>
+        <Panel panelTitle="ORBIT" panelStatus="held-stale">
+          body
+        </Panel>
+      </PanelStatusStoreProvider>,
+    );
+    const full = header().querySelector(
+      "[data-panel-aside-full]",
+    ) as HTMLElement;
+    expect(full).not.toBeEmptyDOMElement();
+    const dots = expandBox().querySelectorAll(
+      "summary [data-panel-status-dot]",
+    );
+    expect(dots).toHaveLength(1);
+    expect(dots[0]).toHaveAttribute("data-severity", "warning");
+  });
+
   it("renders no dots when the panel has no active status, but keeps the chevron affordance", () => {
     render(
       <Panel panelTitle="MAP" panelAside={<span>WIDE</span>}>

@@ -9,13 +9,8 @@ import {
   useState,
 } from "react";
 
-/**
- * The render bucket an aside is in. `full` (inline beside the title) and
- * `collapsed` (behind the dots and expand box) are the two the header drives.
- * `tiny` is reserved for an aside that stays inline but renders a compacted
- * variant; nothing emits it yet, so content that handles it degrades cleanly.
- */
-export type PanelAsideSize = "full" | "tiny" | "collapsed";
+/** The render bucket an aside is in: `full` inline beside the title, or `collapsed` behind the dots and expand box. */
+export type PanelAsideSize = "full" | "collapsed";
 
 /**
  * How much spare room the full aside needs, once collapsed, before it

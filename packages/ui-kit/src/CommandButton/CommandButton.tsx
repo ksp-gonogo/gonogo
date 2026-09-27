@@ -3,6 +3,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
 import type { CommandDelayHandle } from "../CommandDelay/CommandDelay";
+import { commandFailures } from "../CommandDelay/commandFailures";
 import {
   type CommandFoundLike,
   commandFoundSentence,
@@ -13,8 +14,8 @@ import {
   commandGateSentence,
   commandRefusalSentence,
 } from "../CommandDelay/commandRefusalSentence";
-import { useCommandFailures } from "../CommandDelay/useCommandFailures";
 import { focusRing } from "../focusRing";
+import { LiveRegion } from "../LiveRegion";
 import { Spinner } from "../Spinner";
 
 /** How long an armed control stays armed before it quietly disarms. The ONE definition. */
@@ -319,7 +320,7 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
   }, [handle, args, commandLabel, onConfirmed]);
 
   // The rail is the primary failure surface; this tint only says WHICH control issued the command that died.
-  const { hasFailure } = useCommandFailures(handle);
+  const { hasFailure } = commandFailures(handle);
 
   const press = useCallback(
     (armable: boolean) => {
@@ -541,58 +542,76 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
   };
   const body = resolveBody();
 
+  const outcome = isRefused
+    ? refusalText
+    : isLost
+      ? lossText
+      : isFound
+        ? foundText
+        : null;
+
   return (
-    <CommandButton__Body
-      type="button"
-      // `found` reverses a warning, so it does not wear the warning's colour.
-      $tone={
-        isRefused ? "warn" : isFound ? "neutral" : isArmed ? confirmTone : tone
-      }
-      $size={size}
-      $filled={active === true || isArmed || isRefused}
-      $armed={isArmed}
-      $blocked={isBlocked}
-      aria-pressed={active}
-      aria-busy={isPending || undefined}
-      // aria-disabled, not disabled, so the control keeps focus while the outcome lands on it.
-      aria-disabled={isBlocked || isPending || undefined}
-      disabled={disabled}
-      data-failed={hasFailure ? "true" : undefined}
-      data-command-phase={phase}
-      // A diagnostic hook only: an undetermined gate renders as an ordinary control.
-      data-gate={
-        isBlocked
-          ? "blocked"
-          : handle.gate?.undetermined
-            ? "undetermined"
-            : undefined
-      }
-      /*
-       * The accessible name tracks the phase: an outcome's full sentence while
-       * it stands, and for armed and pending the visible wording rather than
-       * the resting label, which describes a state the control has left.
-       */
-      aria-label={
-        isRefused
-          ? (refusalText ?? undefined)
-          : isLost
-            ? (lossText ?? undefined)
+    <>
+      <CommandButton__Body
+        type="button"
+        // `found` reverses a warning, so it does not wear the warning's colour.
+        $tone={
+          isRefused
+            ? "warn"
             : isFound
-              ? (foundText ?? ariaLabel)
-              : isBlocked
-                ? (blockedAriaLabel ?? refusalText ?? ariaLabel)
-                : isPending
-                  ? pendingAriaLabel
-                  : isArmed
-                    ? confirmAriaLabel
-                    : ariaLabel
-      }
-      title={foundText ?? refusalText ?? title}
-      onClick={() => press(confirmLabel !== undefined)}
-      {...rest}
-    >
-      {body}
-    </CommandButton__Body>
+              ? "neutral"
+              : isArmed
+                ? confirmTone
+                : tone
+        }
+        $size={size}
+        $filled={active === true || isArmed || isRefused}
+        $armed={isArmed}
+        $blocked={isBlocked}
+        aria-pressed={active}
+        aria-busy={isPending || undefined}
+        // aria-disabled, not disabled, so the control keeps focus while the outcome lands on it.
+        aria-disabled={isBlocked || isPending || undefined}
+        disabled={disabled}
+        data-failed={hasFailure ? "true" : undefined}
+        data-command-phase={phase}
+        // A diagnostic hook only: an undetermined gate renders as an ordinary control.
+        data-gate={
+          isBlocked
+            ? "blocked"
+            : handle.gate?.undetermined
+              ? "undetermined"
+              : undefined
+        }
+        /*
+         * The accessible name tracks the phase: an outcome's full sentence while
+         * it stands, and for armed and pending the visible wording rather than
+         * the resting label, which describes a state the control has left.
+         */
+        aria-label={
+          isRefused
+            ? (refusalText ?? undefined)
+            : isLost
+              ? (lossText ?? undefined)
+              : isFound
+                ? (foundText ?? ariaLabel)
+                : isBlocked
+                  ? (blockedAriaLabel ?? refusalText ?? ariaLabel)
+                  : isPending
+                    ? pendingAriaLabel
+                    : isArmed
+                      ? confirmAriaLabel
+                      : ariaLabel
+        }
+        title={foundText ?? refusalText ?? title}
+        onClick={() => press(confirmLabel !== undefined)}
+        {...rest}
+      >
+        {body}
+      </CommandButton__Body>
+      {/* Mounted with the control, so an outcome lands in a region assistive tech is already watching. */}
+      <LiveRegion visuallyHidden>{outcome}</LiveRegion>
+    </>
   );
 }
 

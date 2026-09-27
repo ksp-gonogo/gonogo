@@ -18,8 +18,8 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  * ## Why a ratchet when the types already refuse a number
  *
  * Because the types refusing it is a DECISION, and the point of a ratchet is to
- * keep a decision from being undone quietly. Widening `MeterValue` back to
- * `number | MeterValue` is one word, it makes every gate green, and nothing but
+ * keep a decision from being undone quietly. Widening `UnitValue` back to
+ * `number | UnitValue` is one word, it makes every gate green, and nothing but
  * this file would notice. That is not hypothetical: the same widening is how
  * both primitives ended up accepting a bare magnitude in the first place.
  *
@@ -214,7 +214,6 @@ function offencesIn(code: string): string[] {
 describe("A: the primitives are declared over the per-value Reading", () => {
   it.each([
     ["packages/ui-kit/src/readingCurrency.ts", "UnitValue"],
-    ["packages/ui-kit/src/Meter.tsx", "MeterValue"],
   ])("%s types %s over Reading and never TopicReading", (file, alias) => {
     const code = readFileSync(join(REPO_ROOT, file), "utf8");
     const declaration = new RegExp(
@@ -234,6 +233,15 @@ describe("A: the primitives are declared over the per-value Reading", () => {
         `are quantities with a currency. It compiles only because the proxy ` +
         `every caller goes through satisfies the shape structurally.`,
     ).not.toMatch(/TopicReading</);
+  });
+
+  it("Meter types both of its figures over that same alias", () => {
+    const code = readFileSync(
+      join(REPO_ROOT, "packages/ui-kit/src/Meter.tsx"),
+      "utf8",
+    );
+    expect(code).toMatch(/^ {2}value: UnitValue<U> \| null;$/m);
+    expect(code).toMatch(/^ {2}capacity\?: UnitValue<U> \| null;$/m);
   });
 });
 

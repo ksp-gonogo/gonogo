@@ -16,11 +16,9 @@ export interface CommandFailures {
 /**
  * A handle's FAILED dispatches plus the shared `dismiss`, so the control that
  * issued a dead command can echo the failure on itself while the Panel rail
- * stays the primary surface. A pure derivation; it calls no hooks.
+ * stays the primary surface.
  */
-export function useCommandFailures(
-  handle: CommandDelayHandle,
-): CommandFailures {
+export function commandFailures(handle: CommandDelayHandle): CommandFailures {
   const failed = handle.inFlight.filter(
     (c) => c.predictedPhase === "overdue" || c.predictedPhase === "lost",
   );

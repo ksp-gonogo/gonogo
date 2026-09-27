@@ -1,24 +1,37 @@
 import styled from "styled-components";
 
+interface SwitchBaseProps {
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  /** Renders dimmed and non-interactive; `onChange` never fires. For a toggle whose effective state is controlled elsewhere (e.g. a sub-setting inert while its parent setting is off). */
+  disabled?: boolean;
+  /** The checkbox's id, for a `<label htmlFor>` outside the switch. */
+  id?: string;
+}
+
+/**
+ * A switch always has a name: a visible `label` drawn beside it, or an
+ * `aria-label` where the row it sits in shows its own label text.
+ */
+export type SwitchProps = SwitchBaseProps &
+  (
+    | { label: string; "aria-label"?: never }
+    | { label?: never; "aria-label": string }
+  );
+
 export function Switch({
   checked,
   onChange,
   label,
   disabled,
+  id,
   "aria-label": ariaLabel,
-}: {
-  checked: boolean;
-  onChange: (value: boolean) => void;
-  label?: string;
-  /** Renders dimmed and non-interactive; `onChange` never fires. For a toggle whose effective state is controlled elsewhere (e.g. a sub-setting inert while its parent setting is off). */
-  disabled?: boolean;
-  /** Accessible name for the underlying checkbox when no VISIBLE `label` is rendered here (e.g. a settings row that shows its own label text alongside the switch, not inside it). */
-  "aria-label"?: string;
-}) {
+}: SwitchProps) {
   return (
     <SwitchLabel $disabled={disabled}>
       <SwitchInput
         type="checkbox"
+        id={id}
         checked={checked}
         disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}

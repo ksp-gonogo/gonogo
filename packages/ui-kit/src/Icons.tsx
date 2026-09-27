@@ -44,7 +44,13 @@ import {
 } from "lucide-react";
 import { forwardRef } from "react";
 
-export type IconProps = LucideProps;
+export interface IconProps extends LucideProps {
+  /**
+   * Naming the icon makes it meaningful: it renders as `role="img"` with this
+   * as its accessible name. Without one it is decorative and hidden.
+   */
+  label?: string;
+}
 
 /**
  * A `var()` resolves inside the SVG `width`/`height` presentation attribute
@@ -61,9 +67,22 @@ function makeIcon(
   Component: React.ComponentType<LucideProps>,
   extraDefaults?: LucideProps,
 ) {
-  const Wrapped = forwardRef<SVGSVGElement, IconProps>((props, ref) => (
-    <Component {...ICON_DEFAULTS} {...extraDefaults} {...props} ref={ref} />
-  ));
+  const Wrapped = forwardRef<SVGSVGElement, IconProps>(
+    ({ label, ...props }, ref) => {
+      const naming = label
+        ? { role: "img", "aria-label": label, "aria-hidden": false }
+        : {};
+      return (
+        <Component
+          {...ICON_DEFAULTS}
+          {...extraDefaults}
+          {...naming}
+          {...props}
+          ref={ref}
+        />
+      );
+    },
+  );
   Wrapped.displayName = Component.displayName ?? Component.name;
   return Wrapped;
 }
@@ -91,7 +110,6 @@ export const PlusIcon = makeIcon(Plus, { strokeWidth: 2.4 });
 export const CloseIcon = makeIcon(X);
 export const PencilIcon = makeIcon(Pencil);
 export const CheckIcon = makeIcon(Check);
-export const GearIcon = SettingsIcon;
 export const StarIcon = makeIcon(Star);
 /**
  * Reputation, close to the in-game glyph. Reputation only, so one glyph does
@@ -125,7 +143,7 @@ export const FullHeightIcon = makeIcon(RectangleVertical);
  * appears: commit what the operator composed locally. Anything that fires on
  * its own takes a different icon.
  *
- * `aria-hidden` like every icon here, so drawn alone the action must be named
+ * Decorative like every unnamed icon here, so drawn alone the action is named
  * from outside (`ComposerBar`'s `sendLabel`, `CommandGroup`'s `commitAriaLabel`).
  */
 export const SendIcon = makeIcon(CornerDownLeft);

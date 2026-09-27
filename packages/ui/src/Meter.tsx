@@ -3,6 +3,4 @@ export {
   Meter,
   type MeterProps,
   MeterStack,
-  type MeterTone,
-  type MeterValue,
 } from "@ksp-gonogo/ui-kit";

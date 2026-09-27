@@ -99,7 +99,6 @@ export {
   ComboboxListbox,
   type ComboboxListboxProps,
   type ComboboxOption,
-  comboboxOptionMatches,
   filterComboboxOptions,
   flattenComboboxGroups,
   groupComboboxOptions,
@@ -116,8 +115,6 @@ export {
   type CommandButtonTone,
   type CommandGateLike,
   type CommandReplyLike,
-  PENDING_BACKSTOP_MS,
-  REFUSAL_TIMEOUT_MS,
   type UseCommandButtonOptions,
   useCommandButton,
 } from "./CommandButton/CommandButton";
@@ -146,6 +143,7 @@ export {
   ribbonBoundaryX,
   STREAM_MIN_DELAY_SECONDS,
 } from "./CommandDelay/ControlDelayStream";
+export { commandFailures } from "./CommandDelay/commandFailures";
 export {
   type CommandFoundEntry,
   type CommandFoundLike,
@@ -176,7 +174,6 @@ export {
   createDelayRailStore,
   DelayRailContext,
   DelayRailProvider,
-  type DelayRailStore,
   useActiveHandles,
   useDelayRailStore,
 } from "./CommandDelay/DelayRailContext";
@@ -186,30 +183,19 @@ export {
   type InFlightListItem,
   type InFlightListMode,
   type InFlightListProps,
-  useCountdown,
 } from "./CommandDelay/InFlightList";
 export {
   type RailContinuity,
   type RailDelivery,
   type RailDirection,
   type RailTags,
-  railDrawsReturnLeg,
   railTagKey,
 } from "./CommandDelay/railTags";
-export {
-  type InFlightCommandLike,
-  toInFlightListItems,
-} from "./CommandDelay/toInFlightListItems";
-export {
-  type CommandFailures,
-  useCommandFailures,
-} from "./CommandDelay/useCommandFailures";
+export { toInFlightListItems } from "./CommandDelay/toInFlightListItems";
 export { usePanelDelay } from "./CommandDelay/usePanelDelay";
 export {
   WAVE_HALF_H,
   WAVE_MID_Y,
-  WAVE_VB_H,
-  waveformExtentX,
   waveformPath,
 } from "./CommandDelay/waveformPath";
 export { ComposerBar, type ComposerBarProps } from "./ComposerBar";
@@ -293,8 +279,7 @@ export {
   FramedDisplay,
   type FramedDisplayProps,
 } from "./FramedDisplay";
-export { type FillQuantity, fillFraction } from "./fillQuantity";
-export { fitBox, fitMask } from "./fitBox";
+export type { FillQuantity } from "./fillQuantity";
 // `formatDuration` is deliberately not exported: durations leave this package only through `<Unit>`, `<Countdown>` and `<MissionDate>`.
 export { Gauge, type GaugeProps, type GaugeZone } from "./Gauge";
 export {
@@ -329,7 +314,6 @@ export {
   FullscreenEnterIcon,
   FullscreenExitIcon,
   FullWidthIcon,
-  GearIcon,
   HalfHeightIcon,
   HalfWidthIcon,
   HeartIcon,
@@ -358,7 +342,6 @@ export { Inline, type InlineProps } from "./Inline";
 // A reading's currency in a form an SVG instrument can draw, matching `<Unit>`'s mark and wording.
 export { InstrumentHeldMark, sayHeld } from "./instrumentCurrency";
 export {
-  JOG_WHEEL_MIN_TARGET_PX,
   JogWheel,
   type JogWheelProps,
 } from "./JogWheel";
@@ -405,8 +388,6 @@ export {
   type MeterProps,
   MeterRowGroup,
   MeterStack,
-  type MeterTone,
-  type MeterValue,
 } from "./Meter";
 export {
   MissionDate,
@@ -417,7 +398,6 @@ export {
   MissionDateField,
   type MissionDateFieldProps,
   type MissionDateParts,
-  partsOfUt,
   utOfParts,
 } from "./MissionDateField";
 export { ModalProvider, useModal } from "./Modal";
@@ -461,7 +441,6 @@ export {
 } from "./ProgressBar";
 export {
   ReadOnlyField,
-  ReadOnlyFieldContent,
   type ReadOnlyFieldProps,
   type ReadOnlyFieldValue,
 } from "./ReadOnlyField";
@@ -473,7 +452,7 @@ export {
   StatusPill,
 } from "./Readout";
 export { Row, RowName, type RowProps } from "./Row";
-export { resolveCurrency } from "./readingCurrency";
+export { type Resolved, resolveCurrency } from "./readingCurrency";
 export { resourceColor } from "./resourceColor";
 export { Section, type SectionProps, SectionTitle } from "./Section";
 export {
@@ -503,9 +482,9 @@ export {
   SubjectHeading,
   type SubjectHeadingProps,
 } from "./SubjectHeading";
-export { Switch } from "./Switch";
+export { Switch, type SwitchProps } from "./Switch";
 export type { GapToken, InsetToken } from "./scales";
-export type { PanelStatusDotProps } from "./status/PanelStatusDot";
+export type { StatTone } from "./statTone";
 export {
   type PanelStatusStore,
   PanelStatusStoreProvider,
@@ -518,7 +497,6 @@ export {
   type Severity,
   severityFromBadgeEntryTone,
   severityFromStreamStatus,
-  severityRank,
   worstSeverity,
 } from "./status/severity";
 export { severityDotColor } from "./status/severityDotColor";
@@ -555,7 +533,7 @@ export {
 } from "./ToggleButton";
 export { Truncate } from "./Truncate";
 // `UnitValue` is the widened prop: a quantity, or a whole `Reading` of one.
-export { Unit, type UnitValue } from "./Unit";
+export { Unit, type UnitProps, type UnitValue } from "./Unit";
 export {
   type RateControl,
   type SlidableRange,
@@ -571,7 +549,6 @@ export {
   UnitSharedFormat,
   type UnitSharedFormatMixedProps,
   type UnitSharedFormatProps,
-  useSharedFormat,
 } from "./UnitSharedFormat";
 /*
  * The contract declares what a field is; these decide how to show it. The wire
@@ -616,7 +593,6 @@ export {
 export { type ElementSize, useElementSize } from "./useElementSize";
 export {
   type PanelAsideSize,
-  PanelAsideSizeProvider,
   usePanelAsideSize,
 } from "./usePanelAsideSize";
 export { usePrefersReducedMotion } from "./usePrefersReducedMotion";

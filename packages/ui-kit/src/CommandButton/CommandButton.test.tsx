@@ -272,6 +272,65 @@ describe("CommandButton: the in-flight window", () => {
   });
 });
 
+describe("CommandButton: outcomes are announced, not only relabelled", () => {
+  /** The control's own announcer: a hidden polite region beside it. */
+  function announcer(container: HTMLElement): HTMLElement {
+    return container.querySelector("[data-live-region]") as HTMLElement;
+  }
+
+  it("says a refusal in a region that was there before it", async () => {
+    const user = userEvent.setup();
+    const d = deferred();
+    const { container } = render(
+      <CommandButton
+        handle={makeHandle(() => d.promise)}
+        commandLabel="Upgrade Launch Pad"
+        label="Upgrade"
+      />,
+    );
+    const region = announcer(container);
+    expect(region).toBeEmptyDOMElement();
+    expect(region).toHaveAttribute("aria-live", "polite");
+
+    await user.click(screen.getByRole("button", { name: "Upgrade" }));
+    await act(async () => {
+      d.reject(
+        refusalError(9, {
+          command: "career.facility.upgrade",
+          label: "Upgrade Launch Pad",
+          breach: { limit: 3, actual: 3, unit: "", quantity: "tier" },
+        }),
+      );
+    });
+
+    expect(announcer(container)).toBe(region);
+    expect(region).toHaveTextContent(/Upgrade Launch Pad refused/);
+  });
+
+  it("says a loss", async () => {
+    const user = userEvent.setup();
+    const d = deferred();
+    const { container } = render(
+      <CommandButton handle={makeHandle(() => d.promise)} label="Go" />,
+    );
+    await user.click(screen.getByRole("button", { name: "Go" }));
+    await act(async () => {
+      d.reject(Object.assign(new Error("lost"), { code: "E_LOST" }));
+    });
+    expect(announcer(container)).toHaveTextContent(/no reply/i);
+  });
+
+  it("says nothing at rest", () => {
+    const { container } = render(
+      <CommandButton
+        handle={makeHandle(() => deferred().promise)}
+        label="Go"
+      />,
+    );
+    expect(announcer(container)).toBeEmptyDOMElement();
+  });
+});
+
 describe("CommandButton: the refused phase", () => {
   it("says the game refused, and why, without the caller deriving it", async () => {
     const user = userEvent.setup();

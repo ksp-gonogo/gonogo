@@ -6,7 +6,7 @@ import {
   SerialDeviceProvider,
   useSerialDeviceService,
 } from "@ksp-gonogo/serial";
-import { GearIcon, Tabs, useModal } from "@ksp-gonogo/ui";
+import { SettingsIcon, Tabs, useModal } from "@ksp-gonogo/ui";
 import { useState } from "react";
 import styled from "styled-components";
 import type { DashboardItem } from "./index";
@@ -85,7 +85,7 @@ export function GearButton({
       aria-label={`Configure ${def.name}`}
       title="Configure"
     >
-      <GearIcon size={14} />
+      <SettingsIcon size={14} />
     </GearBtn>
   );
 }

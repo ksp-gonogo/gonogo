@@ -5,12 +5,12 @@ import {
   FieldLabel,
   FieldRow,
   FormActions,
-  GearIcon,
   GhostButton,
   IconButton,
   Input,
   Placeholder,
   PrimaryButton,
+  SettingsIcon,
 } from "@ksp-gonogo/ui";
 import { useState } from "react";
 import styled, { keyframes } from "styled-components";
@@ -85,7 +85,7 @@ export function SitrepConnection() {
             aria-label={`Configure ${source.name}`}
             $active={editingConfig}
           >
-            <GearIcon size={14} />
+            <SettingsIcon size={14} />
           </ConfigButton>
         )}
       </ConnectionRow>

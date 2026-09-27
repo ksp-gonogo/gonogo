@@ -112,9 +112,9 @@ describe("ShipMap: self-contribution unify (spec §13.4)", () => {
     renderedTrees.length = 0;
   });
 
-  it("paints each resource's identity colour (resourceColor), not a shared MeterTone CSS var", async () => {
+  it("paints each resource's identity colour (resourceColor), not a shared tone CSS var", async () => {
     const { container } = await renderShipMap();
-    // The fill is the resource's own identity colour from `resourceColor`, not a shared MeterTone variable.
+    // The fill is the resource's own identity colour from `resourceColor`, not a shared tone variable.
     const fills = Array.from(container.querySelectorAll("rect")).map((r) =>
       r.getAttribute("fill"),
     );
