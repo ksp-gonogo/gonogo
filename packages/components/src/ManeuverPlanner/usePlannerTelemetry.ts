@@ -10,8 +10,8 @@ import {
   useCommandArrivalUt,
   useOrbitTrajectory,
   useProcessor,
-  useScetUt,
   useStream,
+  useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
@@ -77,7 +77,7 @@ export function usePlannerTelemetry() {
   const timeToPe = solve?.timeToPe ?? undefined;
   const argPe = magnitudeOf(orbit?.argPe) ?? undefined;
   const trueAnomaly = solve?.trueAnomaly ?? undefined;
-  const currentUT = useScetUt()?.magnitude;
+  const currentUT = useViewUt()?.magnitude;
   const orbitalSpeedReading = useTelemetry("vessel.flight").orbitalSpeed;
   // computeMu wants a number true of the craft now: modelled where on offer, else observed.
   const speedNow = () => {
@@ -115,7 +115,7 @@ export function usePlannerTelemetry() {
         );
   /*
    * What a command sent now will find when it lands: the plan is built against
-   * this, while every figure the planner shows stays at the craft's present.
+   * this, while every figure the planner shows stays at the received edge.
    */
   const arrivalSolve = useOrbitSolve("command-arrival");
   const arrivalUT = magnitudeOf(useCommandArrivalUt()) ?? undefined;

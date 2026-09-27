@@ -45,8 +45,8 @@ const DIRECT_READERS: Record<string, { count: number; why: string }> = {
     why: PENDING,
   },
   "packages/components/src/ManeuverPlanner/usePlannerTelemetry.ts": {
-    count: 2,
-    why: `${PENDING}; its display instant ${MOVING}`,
+    count: 1,
+    why: PENDING,
   },
   "packages/core/src/hooks/useOrbitSolve.ts": { count: 1, why: PENDING },
   "packages/app/src/uplinks/host.ts": { count: 1, why: MOVING },
