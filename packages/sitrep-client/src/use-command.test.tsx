@@ -1,5 +1,5 @@
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
-import { CommandErrorCode } from "@ksp-gonogo/sitrep-sdk";
+import { CommandErrorCode, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   fireEvent,
@@ -1296,6 +1296,7 @@ describe("useCommand delay reading", () => {
       <div>
         <span>delay:{String(cmd.effectiveDelaySeconds)}</span>
         <span>mode:{String(cmd.delayMode)}</span>
+        <span>reading:{String(cmd.delayReading?.state ?? null)}</span>
         <CommandDelay handle={cmd} />
       </div>
     );
@@ -1365,6 +1366,46 @@ describe("useCommand delay reading", () => {
    * `delayMode` is null here rather than `"no-path"`. What it must not do is
    * claim a zero, for the same reason the no-path case must not.
    */
+  it("hands out the measured one-way as a reading, held once comms.delay goes quiet", async () => {
+    const fixture = renderReadout();
+    act(() => {
+      fixture.transport.emit(
+        "comms.delay",
+        { source: 1, oneWaySeconds: 240 },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    await waitFor(() => {
+      expect(screen.getByText("reading:observed")).toBeTruthy();
+    });
+
+    act(() => {
+      fixture.transport.emit(
+        "comms.delay",
+        { source: 1, oneWaySeconds: 240 },
+        { validAt: 0, deliveredAt: 0, staleness: Staleness.HeldStale },
+      );
+    });
+    await waitFor(() => {
+      expect(screen.getByText("reading:stale")).toBeTruthy();
+    });
+  });
+
+  it("hands out no delay reading where there is no path to measure", async () => {
+    const fixture = renderReadout();
+    act(() => {
+      fixture.transport.emit(
+        "comms.delay",
+        { source: 0, oneWaySeconds: null },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    await waitFor(() => {
+      expect(screen.getByText("mode:no-path")).toBeTruthy();
+    });
+    expect(screen.getByText("reading:null")).toBeTruthy();
+  });
+
   it("reports no delay reading at all as unknown, not as zero and not as no-path", () => {
     renderReadout();
     expect(screen.getByText("delay:null")).toBeTruthy();

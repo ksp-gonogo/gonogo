@@ -1,8 +1,10 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { useId } from "react";
 import styled from "styled-components";
+import { InstrumentHeldMark } from "../instrumentCurrency";
 import { Unit } from "../Unit";
 import { writeQuantity } from "../units";
+import { withDelayCurrency } from "./delayCurrency";
 import {
   type RailTags,
   railDrawsReturnLeg,
@@ -93,6 +95,11 @@ export interface ControlDelayStreamProps {
    * taller graph with zone labels, a legend and a readout.
    */
   variant?: ControlDelayStreamVariant;
+  /**
+   * The one-way delay as the reading it arrived in, so the T and 2T figures
+   * draw held while `comms.delay` is quiet. Omitted, they draw as current.
+   */
+  delayReading?: Reading<Value<"s">> | null;
 }
 
 /**
@@ -535,6 +542,7 @@ export function ControlDelayStream({
   ribbons = [],
   ariaLabel = "Controls in flight",
   variant = "inline",
+  delayReading,
 }: ControlDelayStreamProps) {
   // Before the early return, so the hook runs unconditionally.
   const dividerFadeId = `cds-divfade-${useId()}`;
@@ -545,6 +553,7 @@ export function ControlDelayStream({
     return null;
 
   const span = 3 * oneWay;
+  const delayHeld = delayReading?.state === "stale";
   // Computed once and shared by the dividers and the line clips, so a line changes appearance only on a divider.
   const oneT = oneWay;
   const twoT = 2 * oneWay;
@@ -633,9 +642,11 @@ export function ControlDelayStream({
           <g data-role="hover-labels">
             <text x={divX1} y={PAD_T - 0.4} textAnchor="middle" fontSize="2">
               {writeQuantity(value("s", oneWay), { decimals: 1 })}
+              {delayHeld && <InstrumentHeldMark size={1.2} />}
             </text>
             <text x={divX2} y={PAD_T - 0.4} textAnchor="middle" fontSize="2">
               {writeQuantity(value("s", 2 * oneWay), { decimals: 1 })}
+              {delayHeld && <InstrumentHeldMark size={1.2} />}
             </text>
             <text
               x={xAt(oneWay / 2, span, padX)}
@@ -674,13 +685,22 @@ export function ControlDelayStream({
             <span>
               echo{" "}
               <b>
-                <Unit value={value("s", oneWay)} decimals={1} />
+                <Unit
+                  value={withDelayCurrency(value("s", oneWay), delayReading)}
+                  decimals={1}
+                />
               </b>
             </span>
             <span>
               confirmed{" "}
               <b>
-                <Unit value={value("s", 2 * oneWay)} decimals={1} />
+                <Unit
+                  value={withDelayCurrency(
+                    value("s", 2 * oneWay),
+                    delayReading,
+                  )}
+                  decimals={1}
+                />
               </b>
             </span>
           </ControlDelayStream__Zones>

@@ -28,7 +28,11 @@ import {
  */
 export type { CommandOutputToken } from "@ksp-gonogo/sitrep-sdk";
 
-import type { CommandOutputToken } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  CommandOutputToken,
+  Reading,
+  Value,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { CommandFoundEntry } from "./commandFoundSentence";
 import type { CommandLossEntry } from "./commandLossSentence";
 import type { CommandRefusalEntry } from "./commandRefusalSentence";
@@ -59,6 +63,12 @@ export interface CommandDelayHandle {
    * draws nothing but is not a claim of instant arrival.
    */
   effectiveDelaySeconds: number | null;
+  /**
+   * The one-way delay as the reading it arrived in (`useCommand`'s
+   * `delayReading`), so the delay figures the rail draws are held while
+   * `comms.delay` is quiet. Omitted, they draw as current.
+   */
+  delayReading?: Reading<Value<"s">> | null;
   /**
    * Stream buffers for a CONTINUOUS handle (the in-transit + confirmed-echo
    * samples `ControlDelayStream` draws). Ignored by the discrete queue.
@@ -189,6 +199,7 @@ export function CommandDelay({
       <ControlDelayStream
         streams={streamHandle.streams ?? []}
         ribbons={streamHandle.ribbons ?? []}
+        delayReading={streamHandle.delayReading}
         ariaLabel={ariaLabel ?? streamHandle.ariaLabel}
         variant={variant}
       />

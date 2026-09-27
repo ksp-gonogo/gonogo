@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import type { InFlightListItem } from "./CommandDelay/InFlightList";
@@ -168,5 +169,24 @@ describe("Console", () => {
       </Console>,
     );
     await expectNoA11yViolations(container);
+  });
+});
+
+describe("Console's delay chip over a held comms.delay", () => {
+  it("draws the one-way figure held", () => {
+    const { container } = render(
+      <Console
+        oneWaySeconds={8}
+        alwaysBadge
+        delayReading={{
+          state: "stale" as const,
+          reckoning: { status: "none" as const },
+          value: value("s", 8),
+          asOfUt: value("ut", 12_000),
+          grade: "held-stale" as const,
+        }}
+      />,
+    );
+    expect(container.querySelector("[data-held-mark]")).not.toBeNull();
   });
 });

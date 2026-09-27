@@ -1,3 +1,4 @@
+import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import {
   InFlightList,
@@ -39,6 +40,12 @@ export interface ConsoleProps extends ComponentPropsWithoutRef<"div"> {
    */
   oneWaySeconds?: number | null;
   /**
+   * The same delay as the reading it arrived in (`useCommand`'s
+   * `delayReading`), so the chip's figure draws held while `comms.delay` is
+   * quiet. Omitted, it draws as current.
+   */
+  delayReading?: Reading<Value<"s">> | null;
+  /**
    * Whether anything this console sends can sit in a queue. A read-only viewer
    * passes `false` and gets NEITHER reading at a long delay.
    */
@@ -77,6 +84,7 @@ const QUEUE_LABEL = "Uplink queue";
 export function Console({
   tone,
   oneWaySeconds = null,
+  delayReading,
   canQueue = true,
   alwaysBadge = false,
   inFlight,
@@ -101,7 +109,14 @@ export function Console({
     <ConsoleFrame
       {...(tone !== undefined ? { tone } : {})}
       {...(badgeSeconds !== null
-        ? { standing: <SignalDelayBadge oneWaySeconds={badgeSeconds} /> }
+        ? {
+            standing: (
+              <SignalDelayBadge
+                oneWaySeconds={badgeSeconds}
+                delayReading={delayReading}
+              />
+            ),
+          }
         : {})}
       {...(showStrip
         ? { queue: <InFlightList items={inFlight} ariaLabel={QUEUE_LABEL} /> }

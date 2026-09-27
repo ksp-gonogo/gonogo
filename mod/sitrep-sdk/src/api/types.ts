@@ -1226,6 +1226,10 @@ export interface UseCommandResult<TArgs = unknown, TReply = AnyCommandReply> {
    *  construction, `null` = no measurable one, never 0 for that). See the
    *  spine's `UseCommandResult.effectiveDelaySeconds`. */
   effectiveDelaySeconds: number | null;
+  /** The one-way delay as the reading it arrived in, so a delay figure drawn
+   *  through `<Unit>` draws held while `comms.delay` is quiet; `null` for an
+   *  instant command. See the spine's `UseCommandResult.delayReading`. */
+  delayReading: Reading<Value<"s">> | null;
   /** What `comms.delay` says the link is doing; `null` when no reading has
    *  arrived, which is not the same as `"no-path"`. See the spine's
    *  `UseCommandResult.delayMode`. */

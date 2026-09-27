@@ -38,6 +38,8 @@ import type {
 } from "../commands";
 import type { RailTags } from "../rail-tags";
 import { railTagsForCommand } from "../rail-tags";
+import { type Reading, readingOf, type TopicReading } from "../reading";
+import type { Value } from "../unit-system";
 import { type CommandGateStatus, selectCommandGate } from "./command-gate";
 import {
   type CommsLinkLike,
@@ -49,7 +51,7 @@ import {
 } from "./context";
 import { CommandError } from "./lifecycle";
 import { commandDelayed } from "./map-command";
-import { useLatestValue } from "./use-stream";
+import { useLatestValue, useStream } from "./use-stream";
 import { META_VANTAGE } from "./vantage";
 
 export type { UseCommandOptions };
@@ -174,6 +176,13 @@ export interface UseCommandResult<TArgs = unknown, TReply = AnyCommandReply> {
    * {@link delayMode} says which of them it is.
    */
   effectiveDelaySeconds: number | null;
+  /**
+   * The one-way delay as the reading it arrived in, for drawing a delay figure
+   * through `<Unit>`: a `comms.delay` that has gone quiet draws held. `null`
+   * for an instant command and wherever {@link effectiveDelaySeconds} is
+   * `null`.
+   */
+  delayReading: Reading<Value<"s">> | null;
   /**
    * What the link is doing, from `comms.delay` and nothing else: `"live"` under
    * the staged threshold, `"staged"` above it, `"no-path"` when the payload
@@ -512,6 +521,7 @@ export function useCommand(
 
   const connectivity = useLatestValue<CommsLinkLike>("comms.link");
   const commsDelay = useLatestValue<CommsDelayLike>("comms.delay");
+  const commsDelayReading = useStream<CommsDelayLike>("comms.delay");
 
   /*
    * The delay display + effective delay this command hands to `<CommandDelay>`.
@@ -536,6 +546,10 @@ export function useCommand(
   const tags = railTagsForCommand(command);
   const isInstant = !commandDelayed(command) || vantage === META_VANTAGE;
   const effectiveDelaySeconds = isInstant ? 0 : liveOneWaySeconds(commsDelay);
+  const delayReading =
+    isInstant || effectiveDelaySeconds === null
+      ? null
+      : oneWayReading(commsDelayReading);
   /*
    * The three-valued answer the package already computes, passed through rather
    * than re-derived, so a widget can SAY "no path" instead of inferring it from
@@ -934,9 +948,20 @@ export function useCommand(
     undelivered,
     tags,
     effectiveDelaySeconds,
+    delayReading,
     delayMode,
     dismiss,
     gate,
     _output: outputRef.current,
   };
+}
+
+/** The one-way delay off a `comms.delay` reading, with its currency; `null` where there is no finite one to draw. */
+function oneWayReading(
+  reading: TopicReading<CommsDelayLike>,
+): Reading<Value<"s">> | null {
+  if (reading.state !== "observed" && reading.state !== "stale") return null;
+  const oneWay = reading.value?.oneWaySeconds;
+  if (!oneWay?.isFinite()) return null;
+  return readingOf(reading, () => oneWay.max(0));
 }

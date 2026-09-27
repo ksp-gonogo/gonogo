@@ -1,6 +1,7 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
 import { Unit } from "../Unit";
+import { withDelayCurrency } from "./delayCurrency";
 
 /**
  * How long it takes to REACH the other end, as one small chip: the badge half
@@ -16,12 +17,15 @@ import { Unit } from "../Unit";
 export interface SignalDelayBadgeProps {
   /** One-way separation in seconds. Rendered as-is; the caller decides IF. */
   oneWaySeconds: number;
+  /** The delay as the reading it arrived in, so a quiet `comms.delay` draws the figure held. */
+  delayReading?: Reading<Value<"s">> | null;
   /** So a caller can pin or re-tone it with `styled()`. */
   className?: string;
 }
 
 export function SignalDelayBadge({
   oneWaySeconds,
+  delayReading,
   className,
 }: SignalDelayBadgeProps) {
   const oneWay = value("s", oneWaySeconds);
@@ -35,7 +39,7 @@ export function SignalDelayBadge({
       one-way ~
       {/* A delay is a READOUT, not a countdown, so under a minute it keeps a decimal the ladder would truncate. */}
       <Unit
-        value={oneWay}
+        value={withDelayCurrency(oneWay, delayReading)}
         {...(oneWay.lessThan(60)
           ? { scale: "never" as const, decimals: 1 }
           : {})}

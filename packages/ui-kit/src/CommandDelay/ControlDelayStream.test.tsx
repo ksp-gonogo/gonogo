@@ -737,3 +737,42 @@ describe("an entry nothing can draw", () => {
     expect(container.querySelector("[data-rail-unrepresented]")).not.toBeNull();
   });
 });
+
+describe("ControlDelayStream delay figures carry the delay's currency", () => {
+  const held = {
+    state: "stale" as const,
+    reckoning: { status: "none" as const },
+    value: value("s", 8),
+    asOfUt: value("ut", 12_000),
+    grade: "held-stale" as const,
+  };
+
+  it("draws the T and 2T figures held while comms.delay is quiet", () => {
+    const { container } = render(
+      <ControlDelayStream
+        streams={[stream({ oneWaySeconds: 8 })]}
+        variant="expanded"
+        delayReading={held}
+      />,
+    );
+    expect(
+      container.querySelectorAll("[data-held-mark]").length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("draws them plain while it is current", () => {
+    const { container } = render(
+      <ControlDelayStream
+        streams={[stream({ oneWaySeconds: 8 })]}
+        variant="expanded"
+        delayReading={{
+          state: "observed",
+          reckoning: { status: "none" },
+          value: value("s", 8),
+          atUt: value("ut", 12_000),
+        }}
+      />,
+    );
+    expect(container.querySelector("[data-held-mark]")).toBeNull();
+  });
+});
