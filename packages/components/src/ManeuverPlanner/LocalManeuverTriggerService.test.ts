@@ -143,7 +143,7 @@ describe("LocalManeuverTriggerService", () => {
     }
   });
 
-  it("plans a node against the orbit the command will find when it lands", async () => {
+  it("plans a node from the received edge, and sends one that lands in time", async () => {
     const { calls } = fixture();
     // A light-time of 240 s: the craft is at PINNED_UT, the screen has it from 240 s earlier, and a command lands 240 s later.
     setActiveViewClockForTests({
@@ -157,7 +157,12 @@ describe("LocalManeuverTriggerService", () => {
         dataKey: "vessel.orbit.sma",
         op: ">=",
         value: 6_000_000,
-        inputs: { ...FROZEN, preset: "custom-ut", prograde: 10 },
+        inputs: {
+          ...FROZEN,
+          preset: "custom-ut",
+          prograde: 10,
+          burnInSeconds: 1_000,
+        },
       });
       await vi.waitFor(() =>
         expect(calls.map((c) => c.command)).toContain("vessel.maneuver.add"),
@@ -167,8 +172,34 @@ describe("LocalManeuverTriggerService", () => {
         typeof args === "object" && args !== null && "ut" in args
           ? args.ut
           : undefined;
-      // "Burn in 60 s" counts from when the command lands.
-      expect(ut).toBeCloseTo(PINNED_UT + 240 + FROZEN.burnInSeconds, 0);
+      expect(ut).toBeCloseTo(PINNED_UT - 240 + 1_000, 0);
+    } finally {
+      svc.dispose();
+    }
+  });
+
+  it("sends nothing for a node that would land after its own time", () => {
+    const { calls } = fixture();
+    setActiveViewClockForTests({
+      viewUt: () => PINNED_UT - 240,
+      scetUt: () => PINNED_UT,
+      commandArrivalUt: () => PINNED_UT + 240,
+    });
+    const svc = new LocalManeuverTriggerService();
+    try {
+      svc.arm({
+        dataKey: "vessel.orbit.sma",
+        op: ">=",
+        value: 6_000_000,
+        inputs: {
+          ...FROZEN,
+          preset: "custom-ut",
+          prograde: 10,
+          burnInSeconds: 60,
+        },
+      });
+      expect(svc.snapshot().triggers).toHaveLength(0);
+      expect(calls.map((c) => c.command)).not.toContain("vessel.maneuver.add");
     } finally {
       svc.dispose();
     }

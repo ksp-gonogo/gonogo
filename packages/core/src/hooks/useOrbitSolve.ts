@@ -2,10 +2,8 @@ import {
   type BodyRadiusTable,
   bodyRadiusOf,
   type OrbitalSolve,
-  type SolveInstant,
   solveOrbit,
   solveSelfOrbit,
-  useCommandArrivalUt,
   useStream,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
@@ -20,8 +18,7 @@ import { useMemo } from "react";
 /**
  * The self vessel's orbit solved at the received edge: apsides, their
  * altitudes, the two apsis countdowns, true anomaly, period, orbital radius and
- * which apsis comes next. `at` moves the solve to when a command sent now
- * reaches the craft, for a surface planning a burn.
+ * which apsis comes next.
  *
  * `null` means there is no solve to draw, and it is the same answer for three
  * different situations on purpose: no elements have arrived, they arrived and
@@ -56,9 +53,7 @@ import { useMemo } from "react";
  * the reference body's radius cannot be resolved, which is `bodyRadiusOf`'s
  * three-way discipline reaching the drawing site intact.
  */
-export function useOrbitSolve(
-  at: SolveInstant = "received",
-): OrbitalSolve | null {
+export function useOrbitSolve(): OrbitalSolve | null {
   const reading = useTelemetry("vessel.orbit");
   const bodiesReading = useStream<BodyRadiusTable>("system.bodies");
   // The roster does not decay, and a tombstone is the one null it answers.
@@ -68,9 +63,7 @@ export function useOrbitSolve(
       : bodiesReading.state === "absent"
         ? null
         : undefined;
-  const receivedUt = useViewUt();
-  const arrivalUt = useCommandArrivalUt();
-  const solveUt = utOf(at === "command-arrival" ? arrivalUt : receivedUt);
+  const solveUt = utOf(useViewUt());
 
   /*
    * A stale reading still carries its elements, and they are constants of the

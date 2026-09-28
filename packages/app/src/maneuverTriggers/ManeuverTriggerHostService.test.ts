@@ -270,7 +270,7 @@ describe("ManeuverTriggerHostService", () => {
     expect(svc.snapshot().triggers).toHaveLength(0);
   });
 
-  it("plans a node against the orbit the command will find when it lands", async () => {
+  it("plans a node from the received edge, and sends one that lands in time", async () => {
     const svc = makeService();
     const pinnedUt = 1_000_000;
     const storeFixture = seedKerbinOrbit(pinnedUt);
@@ -284,7 +284,12 @@ describe("ManeuverTriggerHostService", () => {
       dataKey: "vessel.orbit.sma",
       op: ">=",
       value: 700_000,
-      inputs: { ...FROZEN, preset: "custom-ut", prograde: 10 },
+      inputs: {
+        ...FROZEN,
+        preset: "custom-ut",
+        prograde: 10,
+        burnInSeconds: 1_000,
+      },
     });
     await vi.advanceTimersByTimeAsync(0);
     const args = storeFixture.calls.find(
@@ -294,8 +299,34 @@ describe("ManeuverTriggerHostService", () => {
       typeof args === "object" && args !== null && "ut" in args
         ? args.ut
         : undefined;
-    // "Burn in 60 s" counts from when the command lands.
-    expect(ut).toBeCloseTo(pinnedUt + 240 + FROZEN.burnInSeconds, 0);
+    expect(ut).toBeCloseTo(pinnedUt - 240 + 1_000, 0);
+  });
+
+  it("sends nothing for a node that would land after its own time", async () => {
+    const svc = makeService();
+    const pinnedUt = 1_000_000;
+    const storeFixture = seedKerbinOrbit(pinnedUt);
+    setActiveViewClockForTests({
+      viewUt: () => pinnedUt - 240,
+      scetUt: () => pinnedUt,
+      commandArrivalUt: () => pinnedUt + 240,
+    });
+    svc.arm({
+      dataKey: "vessel.orbit.sma",
+      op: ">=",
+      value: 700_000,
+      inputs: {
+        ...FROZEN,
+        preset: "custom-ut",
+        prograde: 10,
+        burnInSeconds: 60,
+      },
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(svc.snapshot().triggers).toHaveLength(0);
+    expect(storeFixture.calls.map((c) => c.command)).not.toContain(
+      "vessel.maneuver.add",
+    );
   });
 
   it("plans a transfer around a body the stock table has never heard of", async () => {

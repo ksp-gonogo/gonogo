@@ -93,7 +93,7 @@ public class SetActionGroupArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("vessel.maneuver.add", Payload = typeof(string))]
+[SitrepCommand("vessel.maneuver.add", Payload = typeof(string), ArriveBefore = nameof(AddManeuverNodeArgs.Ut))]
 public class AddManeuverNodeArgs
 {
     [SitrepUnit(Units.UniversalTime)]
@@ -121,7 +121,7 @@ public class AddManeuverNodeArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("vessel.maneuver.update")]
+[SitrepCommand("vessel.maneuver.update", ArriveBefore = nameof(UpdateManeuverNodeArgs.Ut))]
 public class UpdateManeuverNodeArgs
 {
     [SitrepUnit(Units.Id)]

@@ -9,7 +9,7 @@ const UT_NOW = 1_000_000;
 const OWLT = 240;
 
 describe("usePlannerTelemetry under signal delay", () => {
-  it("shows its figures at the received edge and plans at command arrival", async () => {
+  it("shows and plans its figures at the received edge", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.orbit"],
       delaySeconds: OWLT,
@@ -43,6 +43,5 @@ describe("usePlannerTelemetry under signal delay", () => {
     });
     await waitFor(() => expect(result.current.currentUT).toBeDefined());
     expect(result.current.currentUT).toBeCloseTo(UT_NOW - OWLT, 0);
-    expect(result.current.planning.currentUT).toBeCloseTo(UT_NOW + OWLT, 0);
   });
 });

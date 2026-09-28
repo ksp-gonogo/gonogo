@@ -41,6 +41,12 @@ import type { RailTags } from "../rail-tags";
 import { railTagsForCommand } from "../rail-tags";
 import { type Reading, readingOf, type TopicReading } from "../reading";
 import type { Value } from "../unit-system";
+import {
+  arrivalUtOf,
+  arrivesTooLate,
+  LATE_ARRIVAL_DETAIL,
+  LATE_ARRIVAL_ERROR_CODE,
+} from "./arrival-deadline";
 import { type CommandGateStatus, selectCommandGate } from "./command-gate";
 import {
   type CommsLinkLike,
@@ -552,6 +558,8 @@ export function useCommand(
    */
   const tags = railTagsForCommand(command);
   const isInstant = !commandDelayed(command) || vantage === META_VANTAGE;
+  const isInstantRef = useRef(isInstant);
+  isInstantRef.current = isInstant;
   const effectiveDelaySeconds = isInstant ? 0 : liveOneWaySeconds(commsDelay);
   const delayReading =
     isInstant || effectiveDelaySeconds === null
@@ -595,6 +603,9 @@ export function useCommand(
   // the freshly-computed render-scope value.
   const nowUtRef = useRef(nowUt);
   nowUtRef.current = nowUt;
+  // The clock and the command's delay, for `send` to judge arrival at the moment it is called.
+  const storeRef = useRef(store);
+  storeRef.current = store;
 
   // The must-consume token, dev builds only. A stable token handed out on the
   // return value; `usePanelDelay(cmd)` flips `consumed` on mount (contributing
@@ -852,29 +863,46 @@ export function useCommand(
        * refusal carries the gate's verdict and lands where a dispatched one
        * would, so every caller, not only a button, is refused the same way.
        */
-      const standing = gateRef.current;
-      if (standing?.blocked) {
+      const refuseLocally = (
+        verdict: Pick<CommandRefusal, "errorCode" | "breach" | "detail">,
+        reason: string,
+      ): Promise<AnyCommandReply> => {
         localRefusalSeqRef.current += 1;
         const refusal: CommandRefusal = {
           id: `local-refusal:${command}:${localRefusalSeqRef.current}`,
-          errorCode: standing.errorCode,
+          errorCode: verdict.errorCode,
           command,
           args,
           label: opts?.label ?? "",
-          breach: standing.breach,
-          detail: standing.detail,
+          breach: verdict.breach,
+          detail: verdict.detail,
         };
         setRefusals((prev) => [...prev, refusal]);
         const refused = Promise.reject<AnyCommandReply>(
           new CommandError(
             COMMAND_REFUSED,
-            `command ${JSON.stringify(command)} was not dispatched: its gate refuses it`,
-            standing.errorCode,
+            `command ${JSON.stringify(command)} was not dispatched: ${reason}`,
+            verdict.errorCode,
             refusal,
           ),
         );
         refused.catch(() => undefined);
         return refused;
+      };
+      const standing = gateRef.current;
+      if (standing?.blocked) {
+        return refuseLocally(standing, "its gate refuses it");
+      }
+      // A command that acts at a UT and would land at or after it is refused before it leaves.
+      const clock = storeRef.current?.clock;
+      const arrivalUt = clock
+        ? arrivalUtOf(clock, !isInstantRef.current)
+        : undefined;
+      if (arrivesTooLate(command, args, arrivalUt)) {
+        return refuseLocally(
+          { errorCode: LATE_ARRIVAL_ERROR_CODE, detail: LATE_ARRIVAL_DETAIL },
+          LATE_ARRIVAL_DETAIL,
+        );
       }
       const { requestId: newRequestId, result } = client.dispatch(
         command,

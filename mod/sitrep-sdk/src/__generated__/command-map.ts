@@ -293,6 +293,13 @@ export interface GeneratedCommandRail {
    * off the same `[SitrepCommand(Delayed = ...)]` the host itself dispatches by.
    */
   readonly delayed: boolean;
+  /**
+   * The args field holding the UT this command acts at, off
+   * `[SitrepCommand(ArriveBefore = ...)]`. A client refuses to send the command
+   * when it would reach the craft at or after that UT. Absent for every other
+   * command.
+   */
+  readonly arriveBefore?: string;
 }
 
 /**
@@ -360,10 +367,10 @@ export const GENERATED_COMMAND_RAIL = {
   "vessel.control.setThrottle": { replies: true, delayed: true },
   "vessel.control.stage": { replies: true, delayed: true },
   "vessel.invokePartAction": { replies: true, delayed: true },
-  "vessel.maneuver.add": { replies: true, delayed: true },
+  "vessel.maneuver.add": { replies: true, delayed: true, arriveBefore: "ut" },
   "vessel.maneuver.plan.send": { replies: true, delayed: true },
   "vessel.maneuver.remove": { replies: true, delayed: true },
-  "vessel.maneuver.update": { replies: true, delayed: true },
+  "vessel.maneuver.update": { replies: true, delayed: true, arriveBefore: "ut" },
   "vessel.repair": { replies: true, delayed: true },
   "vessel.target.clear": { replies: true, delayed: true },
   "vessel.target.set": { replies: true, delayed: true },

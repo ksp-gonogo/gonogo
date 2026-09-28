@@ -43,16 +43,18 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
     PeR,
     timeToAp,
     timeToPe,
+    currentOrbit,
+    currentUT,
+    trueAnomaly,
+    targetTrueAnomaly,
   } = telemetry;
 
-  // Built against what the command will find when it lands; see `usePlannerTelemetry`.
-  const planning = telemetry.planning;
   const plan: PlanResult | null = useMemo(
     () =>
       computePlan({
         preset,
-        currentOrbit: planning.currentOrbit,
-        currentUT: planning.currentUT,
+        currentOrbit,
+        currentUT,
         mu,
         prograde,
         normal,
@@ -60,7 +62,7 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
         burnInSeconds,
         utMode,
         burnAtUT,
-        trueAnomaly: planning.trueAnomaly,
+        trueAnomaly,
         argPe,
         inclination,
         targetInclination,
@@ -72,14 +74,14 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
         targetSma,
         targetPeA,
         targetArgPe,
-        targetTrueAnomaly: planning.targetTrueAnomaly,
+        targetTrueAnomaly,
         targetPeriod,
         standoffMeters,
       }),
     [
-      planning.currentOrbit,
+      currentOrbit,
       mu,
-      planning.currentUT,
+      currentUT,
       preset,
       prograde,
       normal,
@@ -87,7 +89,7 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
       burnInSeconds,
       utMode,
       burnAtUT,
-      planning.trueAnomaly,
+      trueAnomaly,
       argPe,
       inclination,
       targetInclination,
@@ -99,7 +101,7 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
       targetSma,
       targetPeA,
       targetArgPe,
-      planning.targetTrueAnomaly,
+      targetTrueAnomaly,
       targetPeriod,
       standoffMeters,
     ],
@@ -120,20 +122,20 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
     () =>
       computeBurnTrueAnomaly({
         preset,
-        currentOrbit: planning.currentOrbit,
-        currentUT: planning.currentUT,
+        currentOrbit,
+        currentUT,
         mu,
-        trueAnomaly: planning.trueAnomaly,
+        trueAnomaly,
         utMode,
         burnAtUT,
         burnInSeconds,
       }),
     [
       preset,
-      planning.currentOrbit,
-      planning.currentUT,
+      currentOrbit,
+      currentUT,
       mu,
-      planning.trueAnomaly,
+      trueAnomaly,
       utMode,
       burnAtUT,
       burnInSeconds,
@@ -154,7 +156,7 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
     isFiniteNumber(PeR) &&
     isFiniteNumber(timeToAp) &&
     isFiniteNumber(timeToPe) &&
-    isFiniteNumber(planning.currentUT) &&
+    isFiniteNumber(currentUT) &&
     mu > 0;
 
   // An escape orbit has no apoapsis and reads as waiting, so raw ecc tells it apart from no telemetry.

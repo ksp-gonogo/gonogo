@@ -17,6 +17,7 @@ import type {
   VesselTarget,
   WarpState,
 } from "../__generated__/contract";
+import { COMMAND_REFUSED } from "../api/command-rejection";
 import { DYNAMIC_CARRIED_TOPIC_PREFIXES } from "../default-carried-topics";
 import { magnitudeOf } from "../magnitude";
 import type { TopicReading } from "../reading";
@@ -27,6 +28,12 @@ import {
 } from "../runtime-topic-registry";
 import { isValue, value } from "../unit-system/value";
 import type { Value } from "../value";
+import {
+  arrivalUtOf,
+  arrivesTooLate,
+  LATE_ARRIVAL_DETAIL,
+  LATE_ARRIVAL_ERROR_CODE,
+} from "./arrival-deadline";
 import type { TelemetryClient } from "./client";
 import {
   getContributedDerivedChannels,
@@ -39,6 +46,7 @@ import {
   dvCurrentStageResourceChannel,
   dvCurrentStageResourceMaxChannel,
 } from "./dv-stage-resources";
+import { commandDelayed } from "./map-command";
 import { resolveValueTopic } from "./map-topic";
 import { type OrbitalSolve, solveSelfOrbit } from "./orbital-solve";
 import { OwnCraftDelayGate } from "./own-craft-vantage";
@@ -686,25 +694,6 @@ export function useViewUt(): Value<"ut"> | undefined {
   return useFrameInstant(receivedEdge);
 }
 
-/**
- * Which instant an orbit is solved at: the received edge, or when a command
- * sent now would reach it, for a surface planning what that command will find.
- */
-export type SolveInstant = "received" | "command-arrival";
-
-/**
- * When a command sent now reaches the craft, as a reactive value: SCET plus the
- * one-way light-time. For a surface that plans what a command will find when it
- * lands, a burn placed against the orbit the craft is on at arrival.
- */
-export function useCommandArrivalUt(): Value<"ut"> | undefined {
-  return useFrameInstant(commandArrival);
-}
-
-function commandArrival(clock: ViewClockView, viewUt: number): number {
-  return clock.commandArrivalUt(clock.scetUt(viewUt));
-}
-
 function receivedEdge(_clock: ViewClockView, viewUt: number): number {
   return viewUt;
 }
@@ -831,17 +820,9 @@ export function getViewUt(): number | undefined {
   return ut !== undefined && Number.isFinite(ut) ? ut : undefined;
 }
 
-/** Non-React `useCommandArrivalUt()` equivalent, off the same clock `getViewUt` reads. */
-export function getCommandArrivalUt(): number | undefined {
-  noteUndeclaredRead("getCommandArrivalUt");
-  const clock = activeViewClock;
-  const ut = clock?.commandArrivalUt(clock.scetUt(clock.viewUt()));
-  return ut !== undefined && Number.isFinite(ut) ? ut : undefined;
-}
-
 /**
- * Test-only escape hatch: registers `clock` as `getViewUt()`'s and
- * `getCommandArrivalUt()`'s source directly, without mounting a `TelemetryProvider`: for
+ * Test-only escape hatch: registers `clock` as `getViewUt()`'s source, and the
+ * clock `dispatchActiveCommandTopic` judges arrival by, without mounting a `TelemetryProvider`: for
  * a host-service unit test (`AlarmHostService`, `ManeuverTriggerHostService`)
  * that drives its own fake telemetry reader and has no React tree to render at
  * all. A fake with no `scetUt` answers SCET as its view time, and one with no
@@ -1137,9 +1118,7 @@ export function getSystemBodies(): SystemBodies | undefined {
  * would, so a maneuver plan and the panel drawing the orbit it plans against
  * cannot disagree about whether there is an orbit to plan against.
  */
-export function getOrbitSolve(
-  at: SolveInstant = "received",
-): OrbitalSolve | null {
+export function getOrbitSolve(): OrbitalSolve | null {
   if (!activeTimelineStore) return null;
   const reading =
     activeTimelineStore.sampleReading<VesselOrbit>("vessel.orbit");
@@ -1154,7 +1133,7 @@ export function getOrbitSolve(
     elements,
     reading.reckoning,
     getSystemBodies(),
-    at === "command-arrival" ? getCommandArrivalUt() : getViewUt(),
+    getViewUt(),
     reading.state === "observed" ? reading.atUt : undefined,
   );
 }
@@ -1382,6 +1361,21 @@ export function dispatchActiveCommandTopic(
 ): DispatchActiveCommandResult {
   const client = activeTelemetryClient;
   if (!client) return { routed: false };
+  const clock = activeViewClock;
+  const arrivalUt = clock
+    ? arrivalUtOf(clock, commandDelayed(command))
+    : undefined;
+  if (arrivesTooLate(command, args, arrivalUt)) {
+    return {
+      routed: true,
+      settled: Promise.resolve({
+        code: COMMAND_REFUSED,
+        message: `command ${JSON.stringify(command)} was not dispatched: ${LATE_ARRIVAL_DETAIL}`,
+        errorCode: LATE_ARRIVAL_ERROR_CODE,
+        detail: LATE_ARRIVAL_DETAIL,
+      }),
+    };
+  }
   const { result } = client.dispatch(command, args);
   return {
     routed: true,

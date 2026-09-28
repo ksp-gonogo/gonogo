@@ -87,6 +87,13 @@ export interface CommandRail {
    * instant it arrives.
    */
   readonly delayed: boolean;
+
+  /**
+   * The args field holding the UT this command acts at, when it has one. The
+   * command's own deadline: `send` refuses it locally, before anything leaves,
+   * once it would reach the craft at or after that UT.
+   */
+  readonly arriveBefore?: string;
 }
 
 /**

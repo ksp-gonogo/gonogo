@@ -108,6 +108,23 @@ namespace Sitrep.Contract
         /// </summary>
         public DelayRole Delay { get; set; } = DelayRole.Delayed;
 
+        /// <summary>
+        /// The args property holding the universal time this command acts at, for
+        /// a command that is worthless once the craft's clock has passed it: a
+        /// maneuver node scheduled for an instant already gone.
+        ///
+        /// <para>A client refuses to send such a command when the send time plus
+        /// the one-way light time reaches or passes that instant, so it never
+        /// leaves the ground to arrive too late. That is the only check: any time
+        /// the craft needs to act on it after arrival is the operator's call.
+        /// Null for every command without such an instant.</para>
+        ///
+        /// <para>Must name a <c>double</c> property of the args class, which the
+        /// command-map codegen checks, and is written with <c>nameof</c> so a
+        /// rename cannot leave it naming nothing.</para>
+        /// </summary>
+        public string? ArriveBefore { get; set; }
+
         public SitrepCommandAttribute(string commandId)
         {
             CommandId = commandId;

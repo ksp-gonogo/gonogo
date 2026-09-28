@@ -1997,7 +1997,7 @@ public static class RtConfig
         var localNames = new HashSet<string>(
             target.GetTypes().Select(t => t.Name), StringComparer.Ordinal);
 
-        var rows = new List<(string Id, string Args, string Reply, bool Replies, bool Delayed)>();
+        var rows = new List<(string Id, string Args, string Reply, bool Replies, bool Delayed, string? ArriveBefore)>();
         var argsNames = new SortedSet<string>(StringComparer.Ordinal);
         var replyNames = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var type in target.GetTypes())
@@ -2025,7 +2025,7 @@ public static class RtConfig
                 // dispatches by (see SitrepCommandAttribute.Delay), which is
                 // what makes the client's delay UX a reading of the mod's answer
                 // rather than a second opinion about it.
-                rows.Add((attr.CommandId, type.Name, reply, reply != null, attr.Delay == DelayRole.Delayed));
+                rows.Add((attr.CommandId, type.Name, reply, reply != null, attr.Delay == DelayRole.Delayed, ArriveBeforeField(attr, type)));
                 argsNames.Add(type.Name);
             }
         }
@@ -2180,6 +2180,13 @@ public static class RtConfig
         sb.Append("   * off the same `[SitrepCommand(Delayed = ...)]` the host itself dispatches by.\n");
         sb.Append("   */\n");
         sb.Append("  readonly delayed: boolean;\n");
+        sb.Append("  /**\n");
+        sb.Append("   * The args field holding the UT this command acts at, off\n");
+        sb.Append("   * `[SitrepCommand(ArriveBefore = ...)]`. A client refuses to send the command\n");
+        sb.Append("   * when it would reach the craft at or after that UT. Absent for every other\n");
+        sb.Append("   * command.\n");
+        sb.Append("   */\n");
+        sb.Append("  readonly arriveBefore?: string;\n");
         sb.Append("}\n\n");
 
         sb.Append("/**\n");
@@ -2205,7 +2212,10 @@ public static class RtConfig
             sb.Append("  \"").Append(row.Id).Append("\": { replies: ")
               .Append(row.Replies ? "true" : "false")
               .Append(", delayed: ")
-              .Append(row.Delayed ? "true" : "false").Append(" },\n");
+              .Append(row.Delayed ? "true" : "false");
+            if (row.ArriveBefore != null)
+                sb.Append(", arriveBefore: \"").Append(row.ArriveBefore).Append('"');
+            sb.Append(" },\n");
         }
         sb.Append("} as const satisfies Record<string, GeneratedCommandRail>;\n\n");
 
@@ -2218,6 +2228,26 @@ public static class RtConfig
 
         File.WriteAllText(outPath, sb.ToString());
         Console.WriteLine("codegen (command-map) -> " + outPath + " (" + rows.Count + " commands)");
+    }
+
+    /// <summary>
+    /// The wire name of the args field <see cref="SitrepCommandAttribute.ArriveBefore"/>
+    /// names, or null when it names none. Stops the build when it names anything
+    /// but a <c>double</c> property of the args class, since a deadline read off
+    /// a field that is not there would never refuse anything.
+    /// </summary>
+    private static string? ArriveBeforeField(SitrepCommandAttribute attr, Type argsType)
+    {
+        if (attr.ArriveBefore == null) return null;
+        var prop = argsType.GetProperty(attr.ArriveBefore);
+        if (prop == null || prop.PropertyType != typeof(double))
+        {
+            throw new InvalidOperationException(
+                "[SitrepCommand(\"" + attr.CommandId + "\")] on " + argsType.Name +
+                " sets ArriveBefore = \"" + attr.ArriveBefore + "\", which is not a double property of " +
+                argsType.Name + ". It must name the UT the command acts at.");
+        }
+        return UnitDescriptor.CamelCase(prop.Name);
     }
 
     private static string CommandReply(

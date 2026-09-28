@@ -31,24 +31,8 @@ const SOURCE = /\.(ts|tsx)$/;
 const TEST_FILE = /\.test\.|\.test-d\./;
 const MACHINERY = "mod/sitrep-sdk/src/spine/";
 
-const PENDING = "command planning at the arrival instant, held for a ruling";
-
 /** Readers still to go, each with why it is here. Shrink-only. */
-const DIRECT_READERS: Record<string, { count: number; why: string }> = {
-  "packages/app/src/maneuverTriggers/ManeuverTriggerHostService.ts": {
-    count: 1,
-    why: PENDING,
-  },
-  "packages/components/src/ManeuverPlanner/LocalManeuverTriggerService.ts": {
-    count: 1,
-    why: PENDING,
-  },
-  "packages/components/src/ManeuverPlanner/usePlannerTelemetry.ts": {
-    count: 1,
-    why: PENDING,
-  },
-  "packages/core/src/hooks/useOrbitSolve.ts": { count: 1, why: PENDING },
-};
+const DIRECT_READERS: Record<string, { count: number; why: string }> = {};
 
 function withoutComments(source: string): string {
   return source

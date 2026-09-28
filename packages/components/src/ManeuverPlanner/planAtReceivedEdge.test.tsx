@@ -24,7 +24,7 @@ const BURN_IN_60: PlannerInputs = {
 };
 
 describe("ManeuverPlanner under signal delay", () => {
-  it("counts a relative burn from when the command lands", async () => {
+  it("counts a relative burn from the received edge, never from when the command lands", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.orbit", "system.bodies"],
       delaySeconds: OWLT,
@@ -62,6 +62,6 @@ describe("ManeuverPlanner under signal delay", () => {
     await waitFor(() => expect(result.current.plan).not.toBeNull());
     const plan = result.current.plan;
     const ut = plan && "ut" in plan ? plan.ut : undefined;
-    expect(ut).toBeCloseTo(UT_NOW + OWLT + 60, 0);
+    expect(ut).toBeCloseTo(UT_NOW - OWLT + 60, 0);
   });
 });

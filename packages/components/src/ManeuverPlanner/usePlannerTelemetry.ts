@@ -7,7 +7,6 @@ import {
   type OrbitTrajectory,
   type ReckonableReading,
   solveOrbit,
-  useCommandArrivalUt,
   useOrbitTrajectory,
   useProcessor,
   useStream,
@@ -113,33 +112,6 @@ export function usePlannerTelemetry() {
           currentUT,
           bodyRadiusOf(bodies, target.orbit.referenceBodyIndex),
         );
-  /*
-   * What a command sent now will find when it lands: the plan is built against
-   * this, while every figure the planner shows stays at the received edge.
-   */
-  const arrivalSolve = useOrbitSolve("command-arrival");
-  const arrivalUT = magnitudeOf(useCommandArrivalUt()) ?? undefined;
-  const arrivalTarget =
-    target?.orbit == null || arrivalUT === undefined
-      ? undefined
-      : solveOrbit(
-          target.orbit,
-          arrivalUT,
-          bodyRadiusOf(bodies, target.orbit.referenceBodyIndex),
-        );
-  const planning = {
-    currentUT: arrivalUT,
-    currentOrbit: buildCurrentOrbit({
-      sma,
-      ecc,
-      ApR: arrivalSolve?.apoapsisRadius ?? undefined,
-      PeR: arrivalSolve?.periapsisRadius ?? undefined,
-      timeToAp: arrivalSolve?.timeToAp ?? undefined,
-      timeToPe: arrivalSolve?.timeToPe ?? undefined,
-    }),
-    trueAnomaly: arrivalSolve?.trueAnomaly ?? undefined,
-    targetTrueAnomaly: arrivalTarget?.trueAnomaly ?? undefined,
-  };
   const targetPeA = targetSolved?.periapsisAlt ?? undefined;
   const targetTrueAnomaly = targetSolved?.trueAnomaly ?? undefined;
   const targetPeriod = targetSolved?.period ?? undefined;
@@ -212,7 +184,6 @@ export function usePlannerTelemetry() {
     body,
     mu,
     currentOrbit,
-    planning,
   };
 }
 

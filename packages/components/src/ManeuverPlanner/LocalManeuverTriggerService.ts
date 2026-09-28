@@ -2,13 +2,13 @@ import { safeRandomUuid } from "@ksp-gonogo/core";
 import {
   bodyRadiusOf,
   dispatchActiveCommandTopic,
-  getCommandArrivalUt,
   getOrbitSolve,
   getSystemBodies,
   getValue,
   getVesselIdentity,
   getVesselOrbit,
   getVesselTarget,
+  getViewUt,
   onActiveTimelineFrame,
   solveOrbit,
 } from "@ksp-gonogo/sitrep-client";
@@ -149,8 +149,8 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
     const orbit = getVesselOrbit();
     const target = getVesselTarget();
     const targetOrbit = target?.orbit;
-    // Planned against what the command will find when it lands. The target's altitude needs the target's own reference body, not the craft's.
-    const currentUT = getCommandArrivalUt();
+    // The target's altitude needs the target's own reference body, not the craft's.
+    const currentUT = getViewUt();
     const targetSolved =
       targetOrbit == null || currentUT === undefined
         ? undefined
@@ -160,7 +160,7 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
             bodyRadiusOf(getSystemBodies(), targetOrbit.referenceBodyIndex),
           );
     // The model's refusal says whether these figures exist at all, which a payload read cannot.
-    const solve = getOrbitSolve("command-arrival");
+    const solve = getOrbitSolve();
     return {
       currentOrbit: buildCurrentOrbit({
         sma: orbit?.sma?.magnitude,
