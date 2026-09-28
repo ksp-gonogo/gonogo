@@ -203,7 +203,7 @@ describe("Unit: a value renders whole", () => {
     expect(visibleText(container)).toBe("0.0 m/s");
   });
 
-  it("still renders a bare symbol from the legacy children form", () => {
+  it("renders a bare symbol from the symbol-only children form", () => {
     // A token with no value is asking for a symbol, not a missing reading.
     const { container } = render(<Unit>km</Unit>);
     expect(visibleText(container)).toBe("km");

@@ -104,12 +104,11 @@ import { DEMO_CONFIG } from "./demoConfig";
 // Screen
 // ---------------------------------------------------------------------------
 
-// Per-scene working layouts: each of the four "real" KSP scenes gets its own
-// auto-persisted dashboard slot, so edits made in one scene survive switching
-// to another and back (instead of a scene-bound load clobbering the single
-// shared dashboard). Transient/unknown scenes fall back to the shared base
-// key, which is also the legacy key, so existing dashboards load unchanged
-// with no migration step.
+/**
+ * Per-scene working layouts: each of the four "real" KSP scenes gets its own
+ * auto-persisted dashboard slot, so edits made in one scene survive switching
+ * to another and back. Transient and unknown scenes use the shared base key.
+ */
 const BASE_DASHBOARD_KEY = "gonogo:dashboard:main";
 const SCENE_SCOPED_KEYS = new Set([
   "SpaceCenter",
