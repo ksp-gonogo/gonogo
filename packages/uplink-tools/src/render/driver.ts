@@ -40,22 +40,16 @@ import {
   type StalenessVerdict,
 } from "./staleness";
 
-/**
+/*
  * The Playwright half: one browser, one page, every scene.
- *
- * Determinism carried over from the first-party harness, plus the three gaps its
- * own comment predicted. Pinned in one init script, before any module runs:
- * `Date.now`, `new Date()` with no arguments, `performance.now`, `Math.random`
- * and `crypto.randomUUID`. Doing it once in a published probe is cheaper than
- * each Uplink discovering the next one from a diff.
- *
- * That covers what the page can READ off a clock. WHEN a callback runs is the
- * other half, and it belongs to a motion scene rather than to the page: see
- * `./sceneClock`.
+ * One init script pins `Date.now`, `new Date()`, `performance.now`, `Math.random` and `crypto.randomUUID` before any module runs; when callbacks run belongs to a motion scene's own clock (`./sceneClock`).
+ */
+
+/**
+ * The browser engine a render runs in.
  *
  * @category Rendering scenes
  */
-
 export type Engine = "chromium" | "firefox" | "webkit";
 
 /**

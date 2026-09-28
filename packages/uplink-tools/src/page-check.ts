@@ -9,46 +9,16 @@ import {
 import { buildManifest, buildReadme, linkedAssets } from "./render/docs";
 import { assertEveryWidgetCovered, buildScenes } from "./render/scenes";
 
+/*
+ * The browserless half of `gonogo-uplink docs --check`: whether the generated page still matches what the registrations declare.
+ * It reads through the same `readInventory` and `buildReadme` the renderer uses, so it cannot describe a different Uplink from the pictures.
+ */
+
 /**
- * The browserless half of the page gate, for an Uplink's own test suite.
- *
- * `gonogo-uplink docs --check` does two jobs at once. Asking whether the
- * committed PNGs are current means rendering them, so it needs Chromium. Asking
- * whether the PROSE still matches what the registrations declare does not need a
- * browser at all: the facts come from a registry read, and an Uplink's test suite
- * has already loaded its own client under jsdom with a host installed. Fusing the
- * two made the cheap question cost as much as the expensive one, and put the
- * whole gate out of reach of any author whose CI has no Playwright. A gate an
- * author cannot run is a gate that rots.
- *
- * So this is the same check minus the pictures, callable from a test:
- *
- * ```ts
- * import { expectUplinkPageCurrent } from "@ksp-gonogo/uplink-tools/page-check";
- * import "../index";  // the client, so its registrations happen
- *
- * it("the generated page still describes this Uplink", () => {
- *   expectUplinkPageCurrent();
- * });
- * ```
- *
- * ONE read, not two. It calls the same `readInventory` the renderer calls and
- * the same `buildReadme` the generator calls, so this cannot start describing a
- * different Uplink from the one the pictures are of. A second implementation of
- * "what does this Uplink add" would be the drift this whole tool exists against.
- *
- * What it deliberately cannot see: whether the committed images are current, and
- * whether any of them is a render of nothing. Both need a browser, and both stay
- * with `docs --check`.
- *
- * The same read also WRITES, through {@link writeUplinkPage}: a generated file
- * whose only remedy costs a browser and a rasteriser is one people fix by
- * editing it by hand or by committing 170 re-rendered pictures, and both have
- * happened here.
+ * Where `checkUplinkPage` and `writeUplinkPage` find the Uplink.
  *
  * @category Page check
  */
-
 export interface PageCheckOptions {
   /** The Uplink client package. Defaults to the working directory. */
   root?: string;
@@ -316,7 +286,21 @@ function updateRequested(): boolean {
 }
 
 /**
- * {@link checkUplinkPage}, throwing the differences. For a test body.
+ * Fails when the Uplink's committed page or manifest no longer matches what its
+ * registrations declare, listing each difference. For an Uplink's own test
+ * suite: it needs no browser, and it cannot tell whether the committed images
+ * are current, which `gonogo-uplink docs --check` does. With `PAGE_UPDATE_ENV`
+ * set to `1`, outside CI, it rewrites the files instead of failing.
+ *
+ * @example
+ * ```ts
+ * import { expectUplinkPageCurrent } from "@ksp-gonogo/uplink-tools/page-check";
+ * import "../index"; // the client, so its registrations run
+ *
+ * it("the generated page still describes this Uplink", () => {
+ *   expectUplinkPageCurrent();
+ * });
+ * ```
  *
  * @category Page check
  */
