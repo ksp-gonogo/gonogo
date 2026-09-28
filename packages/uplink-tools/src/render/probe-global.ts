@@ -57,14 +57,18 @@ export const UNANNOUNCED_MARK = "(held, unannounced)";
 
 /**
  * Whether an element drawn held says so to a screen reader: through a
- * `data-unit-currency` caption inside it, the way `Unit` does, or through its
+ * `data-unit-currency` caption inside it, the way `Unit` does, through its
  * own accessible name, which the kit's instruments end with the caption and
- * stamp `data-currency-in-name`.
+ * stamp `data-currency-in-name`, or through the caption `ModelledAlongside`
+ * draws beside the marked figure it wraps.
  */
 export function announcesHeld(el: Element): boolean {
   return (
     el.hasAttribute("data-currency-in-name") ||
-    el.querySelector("[data-unit-currency]") !== null
+    el.querySelector("[data-unit-currency]") !== null ||
+    el
+      .closest("[data-modelled-alongside]")
+      ?.querySelector(":scope > [data-unit-currency]") != null
   );
 }
 

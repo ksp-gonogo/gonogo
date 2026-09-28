@@ -180,7 +180,26 @@ export interface ScenePayload {
   target: SceneTarget;
   /** Fixture name, for error messages. */
   fixture: string;
+  /**
+   * The instant an emit naming no `validAt` was sent, and without a delay the
+   * instant the view clock is pinned at.
+   */
   pinnedUt: number;
+  /**
+   * A one-way light time, in seconds, between the craft and the screen.
+   *
+   * <p>Each reading is sent at its `validAt` and delivered `delaySeconds`
+   * later, and the view clock is left live rather than pinned, so it sits at
+   * the received edge while the craft's present runs a light time ahead of
+   * it. The store reckons every reading to that present exactly as it does in
+   * the app, which is the only way a render can show a modelled figure beside
+   * the observed one.</p>
+   *
+   * <p>Absent, or zero, the clock is pinned at `pinnedUt` and the two instants
+   * are one. A pinned clock wins outright over the delay, so a scene has one
+   * or the other, never both.</p>
+   */
+  delaySeconds?: number;
   /** Derived from the target's registration, never written in a fixture. */
   carriedChannels: string[];
   emits: SceneEmit[];
@@ -931,10 +950,11 @@ async function renderScene(
     ...new Set([...scene.carriedChannels, ...DYNAMIC_CARRIED_TOPIC_PREFIXES]),
   ];
   mounted.carried = carried;
-  const fixture = setupStreamFixture({
-    carriedChannels: carried,
-    pinnedUt: scene.pinnedUt,
-  });
+  const fixture = setupStreamFixture(
+    scene.delaySeconds === undefined
+      ? { carriedChannels: carried, pinnedUt: scene.pinnedUt }
+      : { carriedChannels: carried, delaySeconds: scene.delaySeconds },
+  );
   mounted.fixture = fixture;
 
   if (!scene.starve) {
@@ -1065,7 +1085,15 @@ function readScene(mounted: Mounted): SceneReport {
  * silence, and the render is of no data.
  */
 async function feedInRounds(mounted: Mounted): Promise<string[]> {
-  mounted.pending = [...mounted.scene.emits];
+  const { scene } = mounted;
+  // A link delivers in the order it sent, and a delayed clock re-anchors on each delivery.
+  mounted.pending =
+    scene.delaySeconds === undefined
+      ? [...scene.emits]
+      : [...scene.emits].sort(
+          (a, b) =>
+            (a.validAt ?? scene.pinnedUt) - (b.validAt ?? scene.pinnedUt),
+        );
   return feedPending(mounted);
 }
 
@@ -1108,9 +1136,7 @@ async function feedPending(mounted: Mounted): Promise<string[]> {
       if (!fixture.transport.isSubscribed(emit.topic)) continue;
       landed.push(emit);
       if (!scene.starve) {
-        fixture.emit(emit.topic, emit.payload, {
-          validAt: emit.validAt ?? scene.pinnedUt,
-        });
+        emitOnto(fixture, scene, emit, scene.pinnedUt);
       }
     }
     if (landed.length === 0) break;
@@ -1119,6 +1145,26 @@ async function feedPending(mounted: Mounted): Promise<string[]> {
     await frame();
   }
   return pending.map((e) => e.topic);
+}
+
+/**
+ * One emit onto the scene's stream, sent at its own `validAt` or at `sentUt`,
+ * and delivered one light time later when the scene has one.
+ */
+function emitOnto(
+  fixture: StreamFixture,
+  scene: ScenePayload,
+  emit: SceneEmit,
+  sentUt: number,
+): void {
+  const validAt = emit.validAt ?? sentUt;
+  fixture.emit(
+    emit.topic,
+    emit.payload,
+    scene.delaySeconds === undefined
+      ? { validAt }
+      : { validAt, deliveredAt: validAt + scene.delaySeconds },
+  );
 }
 
 function mountWidget(id: string, scene: ScenePayload): ReactNode {
@@ -1408,11 +1454,7 @@ async function stepScene(step: SceneStep, deltaUt: number): Promise<void> {
   if (!fixture) {
     throw new Error("render probe: stepScene called before renderScene");
   }
-  if (step.emit) {
-    fixture.emit(step.emit.topic, step.emit.payload, {
-      validAt: step.emit.validAt ?? mounted.ut,
-    });
-  }
+  if (step.emit) emitOnto(fixture, mounted.scene, step.emit, mounted.ut);
   if (step.click) {
     const el = document.querySelector(step.click);
     if (!el) {
@@ -1428,7 +1470,12 @@ async function stepScene(step: SceneStep, deltaUt: number): Promise<void> {
   }
   if (deltaUt !== 0) {
     // The clock is an INPUT, which is what separates this from a screen recording: the same fixture produces the same frames on any machine.
-    fixture.store.clock.scrubTo(mounted.ut + deltaUt);
+    if (mounted.scene.delaySeconds === undefined) {
+      fixture.store.clock.scrubTo(mounted.ut + deltaUt);
+    } else {
+      // Time passing moves the craft's present; the received edge moves only when something new is delivered.
+      fixture.wall.advanceBy(deltaUt);
+    }
     mounted.ut += deltaUt;
     fixture.store.beginFrame();
   }
@@ -1469,9 +1516,7 @@ function mountScene(el: HTMLElement, scene: ScenePayload): SceneMount {
           `render probe: scene "${scene.fixture}" is not mounted, so it has no stream to emit on`,
         );
       }
-      mounted.fixture.emit(emit.topic, emit.payload, {
-        validAt: emit.validAt ?? mounted.ut,
-      });
+      emitOnto(mounted.fixture, scene, emit, mounted.ut);
     },
     unmount: () => {
       unmounted ??= ready

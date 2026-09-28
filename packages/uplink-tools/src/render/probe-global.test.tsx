@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
-import { Dial, Gauge, Tape, Unit } from "@ksp-gonogo/ui-kit";
+import { Dial, Gauge, ModelledAlongside, Tape, Unit } from "@ksp-gonogo/ui-kit";
 import { useId } from "react";
 import { describe, expect, it } from "vitest";
 import { announcesHeld, describeElements } from "./probe-global";
@@ -40,6 +40,15 @@ describe("announcesHeld, on what the kit draws", () => {
     const el = marked(container);
     expect(el.getAttribute("aria-label")).toMatch(/, [A-Z]+/);
     expect(announcesHeld(el)).toBe(true);
+  });
+
+  it("hears a modelled figure through the caption ModelledAlongside draws beside it", () => {
+    const { container } = render(
+      <ModelledAlongside>
+        <Unit value={value("rpm", 250)} />
+      </ModelledAlongside>,
+    );
+    expect(announcesHeld(marked(container))).toBe(true);
   });
 
   it("calls a held mark with neither caption nor marker silent", () => {

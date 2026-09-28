@@ -18,6 +18,47 @@ It is a **devDependency**. Nothing here ships in an Uplink's bundle.
 You will not usually import the first of these: `gonogo-uplink render` and
 `gonogo-uplink docs` forward to it, resolved from your own install.
 
+## What a fixture puts on the stream
+
+A fixture's `_stream` block is the wire its scene is fed from:
+
+```json
+{
+  "_scene": { "widget": "reactor" },
+  "_stream": {
+    "pinnedUt": 1000,
+    "delaySeconds": 60,
+    "emits": [
+      { "topic": "example.reactor", "payload": {}, "validAt": 940 },
+      { "topic": "example.reactor", "payload": {} }
+    ]
+  }
+}
+```
+
+| field | what it does |
+|---|---|
+| `emits` | replayed once the scene has subscribed, in the order written, or in the order sent under `delaySeconds`. An entry's `validAt` is the instant it was sent; with none it was sent at `pinnedUt` |
+| `pinnedUt` | the operator's view time, which the scene is drawn at when it has no `delaySeconds`. Defaults to `1000000` |
+| `stopsArriving` | drop the link once every emit has landed, so the picture is of figures that are no longer current |
+| `delaySeconds` | a one-way light time between the craft and the screen, in seconds |
+
+**`delaySeconds`** stages what an operator sees across a light time. Each
+reading sent at `validAt` is delivered `delaySeconds` later, the view time is
+the received edge (the latest `validAt` delivered, where an emit naming none
+counts as `pinnedUt`), and the craft's present runs one light time ahead of it.
+Every reading is reckoned to that present exactly as it is in the app, so a
+scene can show a modelled figure beside the observed one, drawn with the kit's
+modelled mark. Without it, or at `0`, the view time and the craft's present are
+one instant and nothing is carried across. A reckoner that fits a trend needs
+more than one reading, so give those emits a history of `validAt`s. If your
+widget reads the light time off `comms.delay`, emit that too: the delay stages
+the clock, not the topic.
+
+Under a delay an `advanceUt` step moves the craft's present and leaves the view
+time where it is until something newer is delivered, so a negative `advanceUt`
+is refused.
+
 ## Using the host widgets
 
 An Uplink's docs page shows its widgets, and some of them are an AUGMENT or a

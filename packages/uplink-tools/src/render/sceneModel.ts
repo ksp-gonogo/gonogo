@@ -128,6 +128,8 @@ export interface SceneAct {
 
 interface RawStream {
   pinnedUt?: number;
+  /** See `ScenePayload.delaySeconds`. Absent means no light time. */
+  delaySeconds?: number;
   emits?: SceneEmit[];
   /** See `ScenePayload.stopsArriving`. Absent means a live scene. */
   stopsArriving?: boolean;
@@ -145,6 +147,7 @@ export interface Scene {
   paints: string[];
   before: SceneAct[];
   pinnedUt: number;
+  delaySeconds?: number;
   emits: SceneEmit[];
   stopsArriving?: boolean;
   config: Record<string, unknown>;
@@ -276,6 +279,7 @@ function oneScene(
     paints: paintsFor(where, scene),
     before: beforeFor(where, scene),
     pinnedUt,
+    ...delayFor(where, stream, scene),
     emits,
     stopsArriving: stream.stopsArriving,
     config: scene.config ?? {},
@@ -289,6 +293,39 @@ function oneScene(
       pingPong: scene.motion?.pingPong ?? false,
     },
   };
+}
+
+/**
+ * `_stream.delaySeconds`, refused where it could not stage a light time.
+ *
+ * Zero is left out rather than carried, so a scene with no light time renders
+ * down exactly the path a scene without the key does. Under a delay the view
+ * clock only moves forward, as the received edge does, so an `advanceUt` step
+ * that runs it back is refused rather than silently ignored.
+ */
+function delayFor(
+  where: string,
+  stream: RawStream,
+  scene: RawScene,
+): { delaySeconds?: number } {
+  const delay = stream.delaySeconds;
+  if (delay === undefined) return {};
+  if (typeof delay !== "number" || !Number.isFinite(delay) || delay < 0) {
+    throw new Error(
+      `${where}: "_stream.delaySeconds" must be a one-way light time in ` +
+        `seconds, zero or more; got ${JSON.stringify(delay)}.`,
+    );
+  }
+  if (delay === 0) return {};
+  if ((scene.steps ?? []).some((step) => (step.advanceUt ?? 0) < 0)) {
+    throw new Error(
+      `${where}: a step with a negative "advanceUt" cannot run under ` +
+        '"_stream.delaySeconds": a delayed clock follows what has been ' +
+        "received, and nothing is received from the past. Drop the delay " +
+        "or make every advance forward.",
+    );
+  }
+  return { delaySeconds: delay };
 }
 
 /**
@@ -605,6 +642,9 @@ export function payloadFor(
     target: scene.target,
     fixture: scene.name,
     pinnedUt: scene.pinnedUt,
+    ...(scene.delaySeconds === undefined
+      ? {}
+      : { delaySeconds: scene.delaySeconds }),
     carriedChannels: scene.carriedChannels,
     emits: scene.emits,
     stopsArriving: scene.stopsArriving,
