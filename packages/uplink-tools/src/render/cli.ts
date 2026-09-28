@@ -56,7 +56,7 @@ const REGENERATE_REMEDY =
  *   gonogo-uplink render                    every scene, to ./renders/
  *   gonogo-uplink render --scene <name>
  *   gonogo-uplink docs                      README.md + gonogo-uplink.json + assets
- *   gonogo-uplink docs --check              CI gate: fail on drift
+ *   gonogo-uplink docs --check              fail on drift; pictures on CI only
  *   gonogo-uplink docs --no-assets          README.md + gonogo-uplink.json only
  *
  * Zero required `package.json` script lines. An Uplink that wants
@@ -171,7 +171,10 @@ const USAGE = `gonogo-uplink <render|docs> [options]
 
   render                 render every fixture to ./renders/
   docs                   write README.md, gonogo-uplink.json and docs/assets/
-  docs --check           regenerate in memory and fail on any difference
+  docs --check           regenerate in memory and fail on any difference.
+                         The pictures' shapes are compared only on CI
+                         (CI or GITHUB_ACTIONS set); elsewhere the README,
+                         the manifest and the asset names are
   docs --no-assets       write README.md and gonogo-uplink.json only, and
                          leave docs/assets/ as it is. For a change that moves
                          the prose (a scene added or removed) on a machine whose
@@ -361,20 +364,17 @@ async function docs(
     );
   }
 
-  const differences: string[] = [];
-  await compareText(readmePath, readme, differences);
-  await compareText(manifestPath, manifestJson, differences);
-  await compareAssetNames(
-    resolve(pkg.dir, args.assetDir),
-    assetOut,
-    differences,
-  );
-  const wholePage = compareCommittedShapes(
-    resolve(pkg.dir, args.assetDir),
+  const { differences, wholePage } = await compareCommittedPage({
+    readmePath,
+    readme,
+    manifestPath,
+    manifestJson,
+    committedAssets: resolve(pkg.dir, args.assetDir),
+    generatedAssets: assetOut,
     shapes,
-    args.engine,
-    differences,
-  );
+    engine: args.engine,
+    pictures: picturesComparedHere(process.env),
+  });
   if (differences.length > 0) {
     throw new Error(
       `gonogo-uplink docs --check: ${differences.length} difference(s) ` +
@@ -508,6 +508,67 @@ export async function refuseToClobberHandWrittenReadme(
 function reportFont(mode: string, advice?: string): void {
   console.log(`\n  font: ${mode}`);
   if (advice) console.warn(`  warning: ${advice}`);
+}
+
+/**
+ * Whether this run compares the committed pictures' shapes, which is only ever
+ * on CI.
+ *
+ * The committed pictures and their shape record are generated on the Linux
+ * runner, and a shape read on any other machine differs from it in ways nobody
+ * edited. So the comparison is keyed on being CI, never on the operating
+ * system: a Linux laptop is still not the machine the pictures come from.
+ */
+export function picturesComparedHere(env: NodeJS.ProcessEnv): boolean {
+  if (env.GITHUB_ACTIONS === "true") return true;
+  const ci = env.CI?.trim().toLowerCase();
+  return ci !== undefined && ci !== "" && ci !== "0" && ci !== "false";
+}
+
+export const PICTURES_ARE_CI_NOTE =
+  "docs --check: pictures and their shapes are compared in CI only; this run compared the README, the manifest and the asset names.";
+
+export interface CommittedPage {
+  readmePath: string;
+  readme: string;
+  manifestPath: string;
+  manifestJson: string;
+  committedAssets: string;
+  generatedAssets: string;
+  shapes: ReadonlyMap<string, AssetShape>;
+  engine: string;
+  /** Compare the pictures' shapes too. See {@link picturesComparedHere}. */
+  pictures: boolean;
+}
+
+/**
+ * Every difference between the committed page and what the code says today.
+ *
+ * The text and the asset names are the same on every machine and are always
+ * compared. The shapes are compared only when `pictures` is set.
+ */
+export async function compareCommittedPage(
+  page: CommittedPage,
+): Promise<{ differences: string[]; wholePage?: string }> {
+  const differences: string[] = [];
+  await compareText(page.readmePath, page.readme, differences);
+  await compareText(page.manifestPath, page.manifestJson, differences);
+  await compareAssetNames(
+    page.committedAssets,
+    page.generatedAssets,
+    differences,
+  );
+  if (!page.pictures) {
+    console.log(`\n${PICTURES_ARE_CI_NOTE}`);
+    return { differences };
+  }
+  const wholePage = compareCommittedShapes(
+    page.committedAssets,
+    page.shapes,
+    page.engine,
+    differences,
+  );
+  return { differences, wholePage };
 }
 
 async function compareText(

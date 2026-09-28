@@ -27,8 +27,10 @@
 #
 # Asset BYTES are deliberately not compared, only which assets exist:
 # rasterisation is per-engine and per-OS, so a byte comparison would fail on
-# every machine but the one that generated it. That policy lives in the CLI, not
-# here.
+# every machine but the one that generated it. The pictures' recorded shapes are
+# compared only when CI is detected (CI or GITHUB_ACTIONS), because the runner is
+# the machine that renders them; a local `--check` compares the README, the
+# manifest and the asset names. Both policies live in the CLI, not here.
 #
 # Needs chromium, and a built `@ksp-gonogo/ui-kit` dist, which
 # `pnpm --filter '@ksp-gonogo/ui-kit...' build` provides.
@@ -83,8 +85,8 @@ if [ "${#failed[@]}" -gt 0 ]; then
     done
     echo
     echo "  Regenerate and commit the result. The page is derived, so the fix is never to edit it:"
-    echo "    pnpm uplink-docs"
-    echo "    pnpm uplink-docs:prose   the prose only; uplink-docs.yml renders the images on Linux"
+    echo "    pnpm uplink-pages                                  the prose, on any machine"
+    echo "    gh workflow run uplink-docs.yml --ref <branch>     the pictures, rendered on CI"
   else
     echo "✖ ${#failed[@]} of ${#packages[@]} Uplink page(s) could not be generated:"
     for pkg in "${failed[@]}"; do
