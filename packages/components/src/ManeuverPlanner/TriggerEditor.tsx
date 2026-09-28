@@ -1,5 +1,5 @@
 import type { DataKey } from "@ksp-gonogo/core";
-import { DataKeyPicker, GhostButton, PrimaryButton } from "@ksp-gonogo/ui";
+import { Button, DataKeyPicker } from "@ksp-gonogo/ui";
 import {
   Field,
   FieldLabel,
@@ -76,10 +76,11 @@ export function TriggerEditor({
         </Field>
       </Row>
       <div style={ACTIONS_STYLE}>
-        <GhostButton type="button" onClick={onClose}>
+        <Button variant="ghost" type="button" onClick={onClose}>
           Cancel
-        </GhostButton>
-        <PrimaryButton
+        </Button>
+        <Button
+          variant="primary"
           onClick={() => {
             if (!triggerKey || !Number.isFinite(valueN)) return;
             onArm({ dataKey: triggerKey, op: triggerOp, value: valueN });
@@ -87,7 +88,7 @@ export function TriggerEditor({
           disabled={armDisabled}
         >
           Arm
-        </PrimaryButton>
+        </Button>
       </div>
     </Stack>
   );

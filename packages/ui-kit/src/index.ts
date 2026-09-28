@@ -19,11 +19,6 @@ export {
   type UiKitTheme,
 } from "@ksp-gonogo/theme";
 export {
-  ActionButton,
-  type ActionButtonProps,
-  type ActionButtonTone,
-} from "./ActionButton";
-export {
   ActionMenu,
   type ActionMenuItem,
   type ActionMenuProps,
@@ -88,9 +83,11 @@ export {
 } from "./Box";
 export {
   Button,
-  GhostButton,
+  type ButtonProps,
+  type ButtonSize,
+  type ButtonTone,
+  type ButtonVariant,
   IconButton,
-  PrimaryButton,
   TextButton,
 } from "./Button";
 // How doubt is spoken, in one place, for surfaces outside this package too.

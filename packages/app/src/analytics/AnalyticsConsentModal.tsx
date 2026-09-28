@@ -1,4 +1,4 @@
-import { Button, PrimaryButton } from "@ksp-gonogo/ui";
+import { Button } from "@ksp-gonogo/ui";
 import { useCallback, useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import styled from "styled-components";
@@ -87,9 +87,13 @@ export function AnalyticsConsentModal({
           <Button type="button" onClick={() => choose("disabled")}>
             Decline
           </Button>
-          <PrimaryButton type="button" onClick={() => choose("enabled")}>
+          <Button
+            variant="primary"
+            type="button"
+            onClick={() => choose("enabled")}
+          >
             Enable
-          </PrimaryButton>
+          </Button>
         </Actions>
       </Dialog>
     </Backdrop>,

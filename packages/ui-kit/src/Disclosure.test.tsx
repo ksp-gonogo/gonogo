@@ -90,7 +90,7 @@ describe("Disclosure", () => {
     const trigger = screen.getByRole("button", {
       name: "Show rate breakdown for Water",
     });
-    // A real GhostButton, so the trigger shares the kit's bordered button chrome.
+    // The kit's ghost Button, so the trigger shares the bordered button chrome.
     expect(trigger.tagName).toBe("BUTTON");
     expect(trigger).toHaveTextContent("Show detail");
     expect(trigger).toHaveAttribute("aria-expanded", "false");

@@ -4,9 +4,7 @@ import {
   FieldHint,
   FieldLabel,
   FormActions,
-  GhostButton,
   Input,
-  PrimaryButton,
   Select,
 } from "@ksp-gonogo/ui";
 import { useMemo, useState } from "react";
@@ -344,8 +342,12 @@ export function DeviceTypeEditor({
         ))}
 
       <FormActions>
-        <GhostButton onClick={onCancel}>Cancel</GhostButton>
-        <PrimaryButton onClick={handleSave}>Save type</PrimaryButton>
+        <Button variant="ghost" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button variant="primary" onClick={handleSave}>
+          Save type
+        </Button>
       </FormActions>
     </Wrap>
   );

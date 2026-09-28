@@ -1,12 +1,11 @@
 import { safeRandomUuid } from "@ksp-gonogo/core";
 import {
+  Button,
   Field,
   FieldHint,
   FieldLabel,
   FormActions,
-  GhostButton,
   Input,
-  PrimaryButton,
   Select,
 } from "@ksp-gonogo/ui";
 import { useState } from "react";
@@ -166,8 +165,12 @@ export function DeviceEditor({
         </Field>
       )}
       <FormActions>
-        <GhostButton onClick={onCancel}>Cancel</GhostButton>
-        <PrimaryButton onClick={handleSave}>Save device</PrimaryButton>
+        <Button variant="ghost" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button variant="primary" onClick={handleSave}>
+          Save device
+        </Button>
       </FormActions>
     </Wrap>
   );

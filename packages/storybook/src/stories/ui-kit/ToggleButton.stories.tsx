@@ -70,7 +70,6 @@ export const Tones: Story = {
     <div style={{ display: "grid", gap: "var(--gap-related)" }}>
       {(
         [
-          ["neutral", "Map view"],
           ["go", "Launch clamps"],
           ["warn", "Physics warp"],
           ["nogo", "Abort armed"],

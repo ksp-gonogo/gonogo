@@ -18,16 +18,16 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
+  Button,
   DataKeyPicker,
   Field,
   FieldHint,
   FieldLabel,
-  GhostButton,
   Input,
-  PrimaryButton,
 } from "@ksp-gonogo/ui";
 import {
   Card,
+  Cluster,
   MissionDate,
   SectionTitle,
   Stack,
@@ -557,9 +557,11 @@ export function AlarmsModal({
           onAdd={addPickerAction}
         />
 
-        <PrimaryButton onClick={handleAdd} disabled={addDisabled}>
-          Add alarm
-        </PrimaryButton>
+        <Cluster justify="end">
+          <Button variant="primary" onClick={handleAdd} disabled={addDisabled}>
+            Add alarm
+          </Button>
+        </Cluster>
         {justAddedName !== null && (
           <AddedNote role="status" aria-live="polite">
             Added “{justAddedName}”. Type another name to add a second alarm.
@@ -661,12 +663,13 @@ export function AlarmsModal({
                     <RowActions>
                       {pendingDelete ? (
                         <>
-                          <GhostButton
+                          <Button
+                            variant="ghost"
                             type="button"
                             onClick={() => setPendingDeleteId(null)}
                           >
                             Cancel
-                          </GhostButton>
+                          </Button>
                           <DangerButton
                             type="button"
                             onClick={() => {
@@ -679,7 +682,8 @@ export function AlarmsModal({
                         </>
                       ) : (
                         <>
-                          <GhostButton
+                          <Button
+                            variant="ghost"
                             type="button"
                             onClick={() => {
                               setRenamingId(a.id);
@@ -687,13 +691,14 @@ export function AlarmsModal({
                             }}
                           >
                             Rename
-                          </GhostButton>
-                          <GhostButton
+                          </Button>
+                          <Button
+                            variant="ghost"
                             type="button"
                             onClick={() => setPendingDeleteId(a.id)}
                           >
                             Delete
-                          </GhostButton>
+                          </Button>
                         </>
                       )}
                     </RowActions>
@@ -853,9 +858,13 @@ function ForeignAlarmRow({
         <RowActions>
           {confirming ? (
             <>
-              <GhostButton type="button" onClick={() => setConfirming(false)}>
+              <Button
+                variant="ghost"
+                type="button"
+                onClick={() => setConfirming(false)}
+              >
                 Cancel
-              </GhostButton>
+              </Button>
               <DangerButton
                 type="button"
                 onClick={() => {
@@ -867,13 +876,14 @@ function ForeignAlarmRow({
               </DangerButton>
             </>
           ) : (
-            <GhostButton
+            <Button
+              variant="ghost"
               type="button"
               aria-label={`Disarm ${label}`}
               onClick={() => setConfirming(true)}
             >
               Disarm
-            </GhostButton>
+            </Button>
           )}
         </RowActions>
       }
@@ -1359,9 +1369,9 @@ function OnFireEditor({
             </option>
           ))}
         </PickerSelect>
-        <GhostButton type="button" onClick={onAdd}>
+        <Button variant="ghost" type="button" onClick={onAdd}>
           + Add action
-        </GhostButton>
+        </Button>
       </PickerRow>
       <FieldHint>
         Each attached action runs in order when the alarm fires. Leave empty for

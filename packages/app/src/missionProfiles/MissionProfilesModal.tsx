@@ -1,12 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import {
-  Button,
-  FilterChip,
-  GhostButton,
-  Input,
-  PrimaryButton,
-  Switch,
-} from "@ksp-gonogo/ui";
+import { Button, FilterChip, Input, Switch } from "@ksp-gonogo/ui";
 import { SectionTitle, Stack, Unit } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import type { Layouts } from "react-grid-layout";
@@ -125,10 +118,15 @@ export function MissionProfilesModal({
     if (pendingLoad?.id === p.id) {
       return (
         <>
-          <GhostButton type="button" onClick={() => setPendingLoad(null)}>
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={() => setPendingLoad(null)}
+          >
             Cancel
-          </GhostButton>
-          <PrimaryButton
+          </Button>
+          <Button
+            variant="primary"
             type="button"
             onClick={() => {
               setPendingLoad(null);
@@ -136,16 +134,20 @@ export function MissionProfilesModal({
             }}
           >
             Confirm load
-          </PrimaryButton>
+          </Button>
         </>
       );
     }
     if (pendingDelete?.id === p.id) {
       return (
         <>
-          <GhostButton type="button" onClick={() => setPendingDelete(null)}>
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={() => setPendingDelete(null)}
+          >
             Cancel
-          </GhostButton>
+          </Button>
           <DangerButton
             type="button"
             onClick={() => {
@@ -167,19 +169,28 @@ export function MissionProfilesModal({
         >
           Load
         </Button>
-        <GhostButton
+        <Button
+          variant="ghost"
           type="button"
           onClick={() => handleOverwrite(p)}
           title="Overwrite this layout with the current dashboard"
         >
           Overwrite
-        </GhostButton>
-        <GhostButton type="button" onClick={() => handleRenameStart(p)}>
+        </Button>
+        <Button
+          variant="ghost"
+          type="button"
+          onClick={() => handleRenameStart(p)}
+        >
           Rename
-        </GhostButton>
-        <GhostButton type="button" onClick={() => setPendingDelete(p)}>
+        </Button>
+        <Button
+          variant="ghost"
+          type="button"
+          onClick={() => setPendingDelete(p)}
+        >
           Delete
-        </GhostButton>
+        </Button>
       </>
     );
   }
@@ -200,13 +211,14 @@ export function MissionProfilesModal({
               if (e.key === "Enter") handleSaveCurrent();
             }}
           />
-          <PrimaryButton
+          <Button
+            variant="primary"
             type="button"
             onClick={handleSaveCurrent}
             disabled={!newName.trim()}
           >
             Save
-          </PrimaryButton>
+          </Button>
         </SaveRow>
         <BindingsField>
           <BindingsLabel>Auto-prompt when scene is</BindingsLabel>

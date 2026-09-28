@@ -61,7 +61,7 @@ describe("ui-kit barrel never wildcard-exports an internal package", () => {
       'export * from "@ksp-gonogo/theme";',
       'export * from "@ksp-gonogo/ui-kit";',
       'export * from "@ksp-gonogo/sitrep-sdk";',
-      'export { ActionButton } from "./ActionButton";',
+      'export { ActionButton } from "./Button";',
     ].join("\n");
 
     expect(wildcardInternalExports(planted)).toEqual(["theme"]);

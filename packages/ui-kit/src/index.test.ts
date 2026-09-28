@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   ArrowLeftIcon,
   ArrowUpIcon,
+  Button,
   CheckIcon,
   ChevronDownIcon,
   ChevronRightIcon,
@@ -15,9 +16,7 @@ import {
   Field,
   FieldHint,
   FieldLabel,
-  GhostButton,
   Input,
-  PrimaryButton,
   Switch,
   Textarea,
   useElementSize,
@@ -88,8 +87,7 @@ describe("ui-kit foundation", () => {
 
     expect(typeof useModalSaveBar).toBe("function");
 
-    expect(GhostButton).toBeDefined();
-    expect(PrimaryButton).toBeDefined();
+    expect(Button).toBeDefined();
 
     expect(ArrowLeftIcon).toBeDefined();
     expect(ArrowUpIcon).toBeDefined();

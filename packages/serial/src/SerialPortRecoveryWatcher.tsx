@@ -1,4 +1,4 @@
-import { GhostButton, PrimaryButton, useModal } from "@ksp-gonogo/ui";
+import { Button, useModal } from "@ksp-gonogo/ui";
 import { useEffect, useRef } from "react";
 import styled from "styled-components";
 import { useSerialDeviceService } from "./SerialDeviceContext";
@@ -67,8 +67,12 @@ function RecoveryContent({
         app state.
       </Body>
       <Actions>
-        <GhostButton onClick={onLater}>Later</GhostButton>
-        <PrimaryButton onClick={onRefresh}>Refresh now</PrimaryButton>
+        <Button variant="ghost" onClick={onLater}>
+          Later
+        </Button>
+        <Button variant="primary" onClick={onRefresh}>
+          Refresh now
+        </Button>
       </Actions>
     </Wrap>
   );

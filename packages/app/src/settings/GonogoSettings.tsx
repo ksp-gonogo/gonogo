@@ -11,8 +11,8 @@ import {
   SettingsPersistenceState,
   type SettingsRowState,
 } from "@ksp-gonogo/sitrep-sdk";
-import { GhostButton, Switch } from "@ksp-gonogo/ui";
-import { Cluster, Notice, PrimaryButton, Stack } from "@ksp-gonogo/ui-kit";
+import { Button, Switch } from "@ksp-gonogo/ui";
+import { Cluster, Notice, Stack } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import {
@@ -160,7 +160,8 @@ export function GonogoSettings({ owner = CORE_OWNER }: { owner?: string }) {
         </FooterLine>
         {!stationOnly && (
           <Cluster gap="related-dense" justify="end">
-            <GhostButton
+            <Button
+              variant="ghost"
               type="button"
               onClick={() => {
                 setDraft({});
@@ -169,8 +170,9 @@ export function GonogoSettings({ owner = CORE_OWNER }: { owner?: string }) {
               disabled={pending === 0 || saving}
             >
               Discard
-            </GhostButton>
-            <PrimaryButton
+            </Button>
+            <Button
+              variant="primary"
               type="button"
               onClick={() => void onSave()}
               disabled={
@@ -182,7 +184,7 @@ export function GonogoSettings({ owner = CORE_OWNER }: { owner?: string }) {
                 : pending > 1
                   ? `Save ${pending} changes`
                   : "Save"}
-            </PrimaryButton>
+            </Button>
           </Cluster>
         )}
         <PersistenceLine model={model} />

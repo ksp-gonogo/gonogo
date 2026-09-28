@@ -3,7 +3,6 @@ import {
   Block,
   Button,
   Cluster,
-  GhostButton,
   Stack,
   Text,
   Unit,
@@ -56,9 +55,9 @@ export const VesselRecord: Story = {
       <>
         <Text level="muted">Kerbin · 3 crew</Text>
         <Cluster justify="end">
-          <GhostButton type="button" onClick={() => {}}>
+          <Button variant="ghost" type="button" onClick={() => {}}>
             Focus
-          </GhostButton>
+          </Button>
           <Button type="button" onClick={() => {}}>
             Plan burn
           </Button>

@@ -2,10 +2,10 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, it } from "vitest";
-import { ActionButton } from "./ActionButton";
 import { AugmentSettingsPanel } from "./AugmentSettingsPanel";
 import type { NamespacedAugmentSettings } from "./augments";
 import { Badge } from "./Badge";
+import { Button } from "./Button";
 import { Card } from "./Card";
 import { Dial } from "./Dial";
 import { EmptyState } from "./EmptyState";
@@ -19,14 +19,18 @@ import { Tabs } from "./Tabs";
 import { Tape } from "./Tape";
 
 describe("a11y smoke (jest-axe)", () => {
-  it("ActionButton (both tones) has no axe violations", async () => {
+  it("Button in its compact ghost and primary forms has no axe violations", async () => {
     const { container } = render(
       <>
-        <ActionButton>Deploy</ActionButton>
-        <ActionButton tone="go">Confirm transmit</ActionButton>
-        <ActionButton disabled aria-busy="true">
+        <Button variant="ghost" size="sm">
+          Deploy
+        </Button>
+        <Button variant="primary" size="sm">
+          Confirm transmit
+        </Button>
+        <Button variant="ghost" size="sm" disabled aria-busy="true">
           Arming
-        </ActionButton>
+        </Button>
       </>,
     );
     await expectNoA11yViolations(container);

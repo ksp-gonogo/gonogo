@@ -4,7 +4,6 @@ import {
   FieldHint,
   FieldLabel,
   FileInput,
-  PrimaryButton,
   Switch,
 } from "@ksp-gonogo/ui";
 import { SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
@@ -127,13 +126,14 @@ export function BackupManager() {
               Replace all current settings with{" "}
               <strong>{pendingFile?.name}</strong> and reload?
             </ConfirmText>
-            <PrimaryButton
+            <Button
+              variant="primary"
               type="button"
               onClick={handleConfirmImport}
               disabled={phase === "applying"}
             >
               {phase === "applying" ? "Restoring..." : "Replace & reload"}
-            </PrimaryButton>
+            </Button>
             <Button
               type="button"
               onClick={resetImport}

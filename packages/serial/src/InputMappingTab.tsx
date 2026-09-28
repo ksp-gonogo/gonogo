@@ -1,10 +1,10 @@
 import type { ActionDefinition } from "@ksp-gonogo/core";
 import {
+  Button,
   Field,
   FieldHint,
   FieldLabel,
   FieldRow,
-  GhostButton,
   Select,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
@@ -182,9 +182,9 @@ export function InputMappingTab({
     value: draft,
     saved: mappings,
     extra: onClose ? (
-      <GhostButton type="button" onClick={onClose}>
+      <Button variant="ghost" type="button" onClick={onClose}>
         Cancel
-      </GhostButton>
+      </Button>
     ) : undefined,
   });
 
@@ -251,22 +251,24 @@ export function InputMappingTab({
                     ))}
                   </Select>
                   {isListening ? (
-                    <GhostButton
+                    <Button
+                      variant="ghost"
                       type="button"
                       onClick={cancelListening}
                       aria-label={`Cancel binding for ${action.label}`}
                     >
                       Cancel
-                    </GhostButton>
+                    </Button>
                   ) : (
-                    <GhostButton
+                    <Button
+                      variant="ghost"
                       type="button"
                       onClick={() => startListening(action)}
                       disabled={otherListening || devices.length === 0}
                       aria-label={`Capture an input for ${action.label}`}
                     >
                       Bind
-                    </GhostButton>
+                    </Button>
                   )}
                 </FieldRow>
                 {isListening && (

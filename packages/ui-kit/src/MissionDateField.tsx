@@ -1,6 +1,6 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { useId, useState } from "react";
-import { ActionButton } from "./ActionButton";
+import { Button } from "./Button";
 import { Cluster } from "./Cluster";
 import { FieldLabel, Input } from "./Form";
 import { kspCalendar } from "./kspTime";
@@ -210,24 +210,28 @@ export function MissionDateField({
           </Text>
           {/* Disabled over an absent instant: a step is relative, and there is nothing to step from. */}
           {coarse.map((step) => (
-            <ActionButton
+            <Button
+              variant="ghost"
+              size="sm"
               key={`minus-${step}`}
               disabled={disabled || instant === null}
               aria-label={`${label} earlier by ${stepLabel(step)}`}
               onClick={() => instant !== null && onChange(instant - step)}
             >
               {`-${stepLabel(step)}`}
-            </ActionButton>
+            </Button>
           ))}
           {coarse.map((step) => (
-            <ActionButton
+            <Button
+              variant="ghost"
+              size="sm"
               key={`plus-${step}`}
               disabled={disabled || instant === null}
               aria-label={`${label} later by ${stepLabel(step)}`}
               onClick={() => instant !== null && onChange(instant + step)}
             >
               {`+${stepLabel(step)}`}
-            </ActionButton>
+            </Button>
           ))}
         </Cluster>
       )}

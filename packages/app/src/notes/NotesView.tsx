@@ -1,4 +1,4 @@
-import { Panel, PrimaryButton, Section } from "@ksp-gonogo/ui-kit";
+import { Button, Panel, Section } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import { NoteRow } from "./NoteRow";
 import { AddRow, Empty } from "./notesStyles";
@@ -44,13 +44,14 @@ export function NotesView({
               submit();
             }}
           />
-          <PrimaryButton
+          <Button
+            variant="primary"
             type="button"
             onClick={submit}
             disabled={!draft.trim()}
           >
             Add
-          </PrimaryButton>
+          </Button>
         </AddRow>
       }
       /* One section: the notes are one hand-ordered list, so columns would fight the order the reorder buttons set. */

@@ -8,7 +8,7 @@
 // limit: the mod vouches for this client, but a compromised mod could vouch for
 // a compromised client: mod trust comes from CKAN, not from us.
 
-import { GhostButton, PrimaryButton } from "@ksp-gonogo/ui";
+import { Button } from "@ksp-gonogo/ui";
 import { useEffect, useId, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import styled, { type DefaultTheme, ThemeProvider } from "styled-components";
@@ -130,16 +130,21 @@ function ConsentDialog({ info, onResolve }: Readonly<ConsentDialogProps>) {
           </p>
         </div>
         <div className="UplinkConsent__actions">
-          <GhostButton type="button" onClick={() => onResolve(false)}>
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={() => onResolve(false)}
+          >
             Don’t load
-          </GhostButton>
-          <PrimaryButton
+          </Button>
+          <Button
+            variant="primary"
             ref={loadRef}
             type="button"
             onClick={() => onResolve(true)}
           >
             Load
-          </PrimaryButton>
+          </Button>
         </div>
       </Dialog>
     </Backdrop>

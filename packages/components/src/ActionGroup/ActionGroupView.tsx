@@ -17,6 +17,7 @@ import {
   ToggleButton,
 } from "@ksp-gonogo/ui";
 import {
+  Button,
   Cluster,
   getSizeBucket,
   IconButton,
@@ -196,35 +197,29 @@ export function ActionGroupView({
                 />
               </Stack>
             ) : (
-              <Stack
-                as="button"
+              <Button
+                variant="text"
+                type="button"
                 onClick={startEditing}
                 aria-label={`Rename ${currentLabel}`}
                 title="Click to rename"
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  cursor: "text",
-                  textAlign: "left",
-                  background: "none",
-                  border: "none",
-                  padding: 0,
-                  font: "inherit",
-                  // A bare button takes the browser's black, not the panel's text colour.
-                  color: "var(--color-text-primary)",
-                }}
+                style={{ flex: 1, minWidth: 0, cursor: "text" }}
               >
-                <Truncate style={{ fontWeight: 600, letterSpacing: "0.05em" }}>
-                  {currentLabel}
-                </Truncate>
-                {showOfficialName &&
-                  config?.label &&
-                  config.label !== group.name && (
-                    <Text level="faint" size="xs">
-                      {group.name}
-                    </Text>
-                  )}
-              </Stack>
+                <Stack as="span" style={{ minWidth: 0 }}>
+                  <Truncate
+                    style={{ fontWeight: 600, letterSpacing: "0.05em" }}
+                  >
+                    {currentLabel}
+                  </Truncate>
+                  {showOfficialName &&
+                    config?.label &&
+                    config.label !== group.name && (
+                      <Text level="faint" size="xs">
+                        {group.name}
+                      </Text>
+                    )}
+                </Stack>
+              </Button>
             )}
             <Inline>
               {showBell && group.toggle && (

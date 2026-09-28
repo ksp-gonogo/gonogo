@@ -2,7 +2,7 @@ import { render } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { useEffect } from "react";
 import { describe, it } from "vitest";
-import { Button, GhostButton, IconButton, PrimaryButton } from "./Button";
+import { Button, IconButton } from "./Button";
 import { ModalProvider, useModal } from "./Modal";
 import { SignalLossBanner } from "./SignalLossBanner";
 import { Switch } from "./Switch";
@@ -13,8 +13,8 @@ describe("a11y smoke (jest-axe)", () => {
     const { container } = render(
       <>
         <Button>Go</Button>
-        <PrimaryButton>Primary</PrimaryButton>
-        <GhostButton>Ghost</GhostButton>
+        <Button variant="primary">Primary</Button>
+        <Button variant="ghost">Ghost</Button>
         <IconButton aria-label="close">×</IconButton>
       </>,
     );

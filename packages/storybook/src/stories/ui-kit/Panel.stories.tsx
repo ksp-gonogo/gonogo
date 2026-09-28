@@ -1,6 +1,6 @@
 import {
   Badge,
-  GhostButton,
+  Button,
   Meter,
   MeterStack,
   Panel,
@@ -199,9 +199,15 @@ export const ToolbarAndFooter: Story = {
     panelTitle: "Ship systems",
     panelToolbar: (
       <>
-        <GhostButton type="button">Power</GhostButton>
-        <GhostButton type="button">Thermal</GhostButton>
-        <GhostButton type="button">Life support</GhostButton>
+        <Button variant="ghost" type="button">
+          Power
+        </Button>
+        <Button variant="ghost" type="button">
+          Thermal
+        </Button>
+        <Button variant="ghost" type="button">
+          Life support
+        </Button>
       </>
     ),
     sections: [PROPELLANT, CREW],

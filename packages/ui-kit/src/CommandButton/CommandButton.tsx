@@ -1,7 +1,8 @@
-import { classifyCommandRejection, type Tone } from "@ksp-gonogo/sitrep-sdk";
+import { classifyCommandRejection } from "@ksp-gonogo/sitrep-sdk";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
+import { Button__Body, type ButtonTone } from "../Button";
 import type { CommandDelayHandle } from "../CommandDelay/CommandDelay";
 import { commandFailures } from "../CommandDelay/commandFailures";
 import {
@@ -14,9 +15,7 @@ import {
   commandGateSentence,
   commandRefusalSentence,
 } from "../CommandDelay/commandRefusalSentence";
-import { focusRing } from "../focusRing";
 import { LiveRegion } from "../LiveRegion";
-import { TONE_ON_STATUS, TONE_STATUS } from "../tone";
 import { InFlightFace } from "./InFlightFace";
 
 /** How long an armed control stays armed before it quietly disarms. The ONE definition. */
@@ -115,10 +114,7 @@ export type CommandButtonPhase =
   | "found"
   | "blocked";
 
-export type CommandButtonTone = Extract<
-  Tone,
-  "neutral" | "go" | "nogo" | "warn"
->;
+export type CommandButtonTone = ButtonTone;
 export type CommandButtonSize = "sm" | "md";
 
 export interface UseCommandButtonOptions<
@@ -565,22 +561,24 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
         ? foundText
         : null;
 
+  const filled = active === true || isArmed || isRefused;
+  const drawnTone = commandTone({
+    filled,
+    isRefused,
+    isFound,
+    isArmed,
+    confirmTone,
+    tone,
+  });
+
   return (
     <>
       <CommandButton__Body
         type="button"
-        // `found` reverses a warning, so it does not wear the warning's colour.
-        $tone={
-          isRefused
-            ? "warn"
-            : isFound
-              ? "neutral"
-              : isArmed
-                ? confirmTone
-                : tone
-        }
+        $tone={drawnTone}
+        $variant="ghost"
         $size={size}
-        $filled={active === true || isArmed || isRefused}
+        $pressed={filled}
         $armed={isArmed}
         $blocked={isBlocked}
         aria-pressed={active}
@@ -632,28 +630,27 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
   );
 }
 
+/** The tone a command draws in: plain at rest, then the tone of the phase it is filled for. */
+function commandTone(p: {
+  filled: boolean;
+  isRefused: boolean;
+  isFound: boolean;
+  isArmed: boolean;
+  confirmTone: CommandButtonTone;
+  tone: CommandButtonTone;
+}): CommandButtonTone {
+  if (!p.filled) return "neutral";
+  if (p.isRefused) return "warn";
+  // `found` reverses a warning, so it does not wear the warning's colour.
+  if (p.isFound) return "neutral";
+  if (p.isArmed) return p.confirmTone;
+  return p.tone;
+}
+
 const armedPulse = keyframes`
   0%, 100% { opacity: 1; }
   50% { opacity: 0.65; }
 `;
-
-/* A neutral command has no state, so its fill keeps the subtle edge rather than an edge in its own fill colour. */
-const toneFilled = (tone: CommandButtonTone) => css`
-  background: ${TONE_STATUS[tone]};
-  border-color: ${tone === "neutral" ? "var(--color-border-subtle)" : TONE_STATUS[tone]};
-  color: ${TONE_ON_STATUS[tone]};
-`;
-
-const SIZE_STYLES = {
-  sm: css`
-    font-size: var(--font-size-caption);
-    padding: var(--inset-control-small);
-  `,
-  md: css`
-    font-size: var(--font-size-compact);
-    padding: var(--inset-control);
-  `,
-} as const;
 
 const CommandButton__Face = styled.span`
   grid-area: 1 / 1;
@@ -665,34 +662,12 @@ const CommandButton__Face = styled.span`
   gap: var(--gap-glyph);
 `;
 
-const CommandButton__Body = styled.button<{
-  $tone: CommandButtonTone;
-  $size: CommandButtonSize;
-  $filled: boolean;
+/* A command at rest is the quiet ghost; in effect, armed or refused it takes the one pressed fill. */
+const CommandButton__Body = styled(Button__Body)<{
   $armed: boolean;
   $blocked: boolean;
 }>`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--gap-glyph);
-  font-family: inherit;
-  font-weight: 600;
   letter-spacing: 0.04em;
-  border-radius: var(--radius-regular);
-  cursor: pointer;
-  transition: background var(--duration-fast),
-    border-color var(--duration-fast),
-    color var(--duration-fast);
-
-  background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  color: var(--color-text-muted);
-
-  ${({ $size }) => SIZE_STYLES[$size]}
-
-  /* Filled only when active, armed or refused; at rest it stays the quiet outline. */
-  ${({ $filled, $tone }) => ($filled ? toneFilled($tone) : "")}
 
   ${({ $armed }) =>
     $armed &&
@@ -702,18 +677,8 @@ const CommandButton__Body = styled.button<{
       }
     `}
 
-  @media (hover: hover) {
-    &:hover:not(:disabled) {
-      border-color: var(--color-text-faint);
-      color: var(--color-text-primary);
-    }
-  }
-
-  ${focusRing}
-
   &:disabled {
     opacity: 0.5;
-    cursor: not-allowed;
   }
 
   /* Dimmed toward the muted text token rather than faded, so the refusal reason stays readable; the warn border says the game refused. */
@@ -755,23 +720,5 @@ const CommandButton__Body = styled.button<{
   &[aria-busy="true"] {
     opacity: 1;
     cursor: progress;
-  }
-
-  &[data-failed="true"] {
-    border-color: var(--color-warn-mark);
-    color: var(--color-warn-text);
-    background: color-mix(
-      in srgb,
-      var(--color-warn-mark) 18%,
-      var(--color-surface-raised)
-    );
-  }
-
-  @media (pointer: coarse) {
-    min-height: 44px;
-    padding: ${({ $size }) =>
-      $size === "sm"
-        ? "var(--inset-control-small-touch)"
-        : "var(--inset-control-touch)"};
   }
 `;

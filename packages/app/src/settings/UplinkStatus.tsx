@@ -2,7 +2,7 @@ import type {
   UplinkHealthEntry,
   UplinkHealthStateName,
 } from "@ksp-gonogo/sitrep-client";
-import { GhostButton } from "@ksp-gonogo/ui";
+import { Button } from "@ksp-gonogo/ui";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { Fragment } from "react";
 import styled from "styled-components";
@@ -80,7 +80,8 @@ export function UplinkClientStatus({
       {outcome.status === "quarantined" &&
         outcome.reason === "consent declined" &&
         outcome.version && (
-          <GhostButton
+          <Button
+            variant="ghost"
             type="button"
             onClick={() => {
               revokeConsent(outcome.id, outcome.version as string);
@@ -88,7 +89,7 @@ export function UplinkClientStatus({
             }}
           >
             Reconsider
-          </GhostButton>
+          </Button>
         )}
     </StatusItem>
   );

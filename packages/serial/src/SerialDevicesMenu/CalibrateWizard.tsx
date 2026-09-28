@@ -1,10 +1,9 @@
 import {
+  Button,
   Field,
   FieldHint,
   FieldLabel,
-  GhostButton,
   Input,
-  PrimaryButton,
   Select,
   Textarea,
 } from "@ksp-gonogo/ui";
@@ -298,7 +297,8 @@ export function CalibrateWizard({
               {input.kind === "analog" && source !== "paste" && (
                 <RangeRow>
                   {!isCalibrating ? (
-                    <GhostButton
+                    <Button
+                      variant="ghost"
                       type="button"
                       onClick={() => startRangeCapture(idx)}
                       disabled={
@@ -306,7 +306,7 @@ export function CalibrateWizard({
                       }
                     >
                       Capture range...
-                    </GhostButton>
+                    </Button>
                   ) : (
                     <>
                       <Capturing>
@@ -318,12 +318,13 @@ export function CalibrateWizard({
                             : "(none yet)"}
                         </SliceVal>
                       </Capturing>
-                      <PrimaryButton
+                      <Button
+                        variant="primary"
                         type="button"
                         onClick={() => finishRangeCapture(idx)}
                       >
                         Done
-                      </PrimaryButton>
+                      </Button>
                     </>
                   )}
                 </RangeRow>
@@ -361,8 +362,12 @@ export function CalibrateWizard({
       </InputsList>
 
       <Actions>
-        <GhostButton onClick={onClose}>Cancel</GhostButton>
-        <PrimaryButton onClick={() => onApply(draft)}>Apply</PrimaryButton>
+        <Button variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button variant="primary" onClick={() => onApply(draft)}>
+          Apply
+        </Button>
       </Actions>
     </Wrap>
   );

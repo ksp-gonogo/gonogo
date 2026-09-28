@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useRef } from "react";
-import { PrimaryButton } from "./Button";
+import { Button } from "./Button";
 import { configEqual } from "./configEqual";
 
 /*
@@ -68,7 +68,7 @@ export interface ModalSaveBarOptions<Draft> {
 }
 
 /**
- * Drop-in replacement for an inline `<PrimaryButton onClick={handleSave}>Save`
+ * Drop-in replacement for an inline `<Button variant="primary" onClick={handleSave}>Save`
  * at the bottom of a config form. Renders the Save button into the modal's
  * sticky footer (so it's always visible) and computes a dirty flag so the modal
  * asks before discarding unsaved edits.
@@ -96,9 +96,14 @@ export function useModalSaveBar<Draft>(
     () => (
       <>
         {extra}
-        <PrimaryButton type="button" onClick={onSave} disabled={disabled}>
+        <Button
+          variant="primary"
+          type="button"
+          onClick={onSave}
+          disabled={disabled}
+        >
           {saveLabel}
-        </PrimaryButton>
+        </Button>
       </>
     ),
     [extra, onSave, disabled, saveLabel],

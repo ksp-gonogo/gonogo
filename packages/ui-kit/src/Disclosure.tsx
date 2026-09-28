@@ -1,6 +1,6 @@
 import { type ReactNode, useId, useRef, useState } from "react";
 import styled, { css } from "styled-components";
-import { GhostButton } from "./Button";
+import { Button, type ButtonSize } from "./Button";
 import { focusRing, focusRingInset } from "./focusRing";
 import { ChevronRightIcon } from "./Icons";
 import { useKeyboardScrollable } from "./useScrollerMetric";
@@ -40,18 +40,16 @@ export interface DisclosureProps {
    */
   chevron?: boolean;
   /**
-   * Renders the trigger as a real `GhostButton` (bordered, padded chrome)
+   * Renders the trigger as the kit's ghost `Button` (bordered, padded chrome)
    * instead of a plain unstyled one, sized to its content and right-aligned.
    * Pair with `chevron={false}` and a worded `label`: a chevron-less label with
    * no chrome reads as plain text.
    */
   asButton?: boolean;
   /**
-   * Size of the `asButton` trigger. `"md"` (default) is the full `GhostButton`
-   * chrome; `"sm"` is a compact, quiet secondary control, as `ActionButton`'s
-   * "ghost" tone.
+   * Size of the `asButton` trigger, the `Button` size of the same name.
    */
-  buttonSize?: "md" | "sm";
+  buttonSize?: ButtonSize;
   /**
    * Whether the panel starts expanded. Defaults to `false`, the disclosure's
    * ordinary shape: detail on demand.
@@ -88,7 +86,24 @@ export function Disclosure({
   const panelTabIndex = useKeyboardScrollable(panel);
   const showChevron = variant === "inline" && chevron;
   const resolvedLabel = typeof label === "function" ? label(open) : label;
-  const TriggerTag = asButton ? Disclosure__ButtonTrigger : Disclosure__Trigger;
+  const triggerProps = {
+    ref: triggerRef,
+    type: "button" as const,
+    "aria-expanded": open,
+    "aria-controls": panelId,
+    "aria-label": ariaLabel,
+    onClick: () => setOpen((v) => !v),
+  };
+  const triggerBody = (
+    <>
+      {resolvedLabel}
+      {showChevron && (
+        <Disclosure__Chevron $open={open}>
+          <ChevronRightIcon size={14} />
+        </Disclosure__Chevron>
+      )}
+    </>
+  );
 
   return (
     <Disclosure__Root
@@ -101,24 +116,24 @@ export function Disclosure({
         }
       }}
     >
-      <TriggerTag
-        ref={triggerRef}
-        type="button"
-        aria-expanded={open}
-        aria-controls={panelId}
-        aria-label={ariaLabel}
-        onClick={() => setOpen((v) => !v)}
-        $variant={variant}
-        $align={variant === "inline" && !chevron ? "end" : "between"}
-        $size={buttonSize}
-      >
-        {resolvedLabel}
-        {showChevron && (
-          <Disclosure__Chevron $open={open}>
-            <ChevronRightIcon size={14} />
-          </Disclosure__Chevron>
-        )}
-      </TriggerTag>
+      {asButton ? (
+        <Disclosure__ButtonTrigger
+          {...triggerProps}
+          variant="ghost"
+          size={buttonSize}
+          $inline={variant === "inline"}
+        >
+          {triggerBody}
+        </Disclosure__ButtonTrigger>
+      ) : (
+        <Disclosure__Trigger
+          {...triggerProps}
+          $variant={variant}
+          $align={variant === "inline" && !chevron ? "end" : "between"}
+        >
+          {triggerBody}
+        </Disclosure__Trigger>
+      )}
       {open && (
         <Disclosure__Panel
           ref={setPanel}
@@ -145,8 +160,6 @@ const Disclosure__Root = styled.div<{ $variant: "popover" | "inline" }>`
 const Disclosure__Trigger = styled.button<{
   $variant: "popover" | "inline";
   $align: "between" | "end";
-  // Unused: accepted so the two triggers are interchangeable as `TriggerTag`.
-  $size: "md" | "sm";
 }>`
   display: inline-flex;
   align-items: center;
@@ -169,36 +182,12 @@ const Disclosure__Trigger = styled.button<{
   ${focusRing}
 `;
 
-/**
- * The `asButton` trigger: a real `GhostButton`, sized to its content and
- * pinned to the row's trailing edge. Under a coarse pointer it keeps a 44px
- * touch target whatever its size.
- */
-const Disclosure__ButtonTrigger = styled(GhostButton)<{
-  $variant: "popover" | "inline";
-  $align: "between" | "end";
-  $size: "md" | "sm";
-}>`
-  display: inline-flex;
-  align-items: center;
-  gap: var(--gap-glyph);
-  ${({ $variant }) =>
-    $variant === "inline" &&
+/** The `asButton` trigger: the kit's ghost `Button`, pinned to the row's trailing edge when inline. */
+const Disclosure__ButtonTrigger = styled(Button)<{ $inline: boolean }>`
+  ${({ $inline }) =>
+    $inline &&
     css`
       align-self: flex-end;
-    `}
-  ${({ $size }) =>
-    $size === "sm" &&
-    css`
-      font-size: var(--font-size-compact);
-      font-weight: 600;
-      padding: var(--inset-control-small);
-      border-radius: var(--radius-regular);
-
-      @media (pointer: coarse) {
-        min-height: 44px;
-        padding: var(--inset-control-small-touch);
-      }
     `}
 `;
 

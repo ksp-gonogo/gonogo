@@ -2,7 +2,7 @@ import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { ToggleButton } from "./ToggleButton";
-import { emittedStateRuleFor } from "./test/emittedRule";
+import { emittedRuleFor, emittedStateRuleFor } from "./test/emittedRule";
 
 describe("ToggleButton", () => {
   it("reflects active into aria-pressed", () => {
@@ -51,5 +51,30 @@ describe("ToggleButton data-failed tint", () => {
       '[data-failed="true"]',
     );
     expect(rule).toContain("var(--color-warn-text)");
+  });
+});
+
+describe("ToggleButton draws with the kit's Button", () => {
+  it("fills in its tone only while active", () => {
+    render(
+      <>
+        <ToggleButton tone="nogo" active>
+          On
+        </ToggleButton>
+        <ToggleButton tone="nogo">Off</ToggleButton>
+      </>,
+    );
+    expect(
+      emittedRuleFor(screen.getByRole("button", { name: "On" })),
+    ).toContain("background:var(--color-nogo-status)");
+    const off = emittedRuleFor(screen.getByRole("button", { name: "Off" }));
+    expect(off).not.toContain("nogo");
+  });
+
+  it("fills in go by default", () => {
+    render(<ToggleButton active>SAS</ToggleButton>);
+    expect(
+      emittedRuleFor(screen.getByRole("button", { name: "SAS" })),
+    ).toContain("background:var(--color-go-status)");
   });
 });

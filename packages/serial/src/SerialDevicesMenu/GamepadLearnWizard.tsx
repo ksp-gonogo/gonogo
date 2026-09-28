@@ -1,4 +1,4 @@
-import { FieldHint, GhostButton, PrimaryButton } from "@ksp-gonogo/ui";
+import { Button, FieldHint } from "@ksp-gonogo/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { GamepadGlyph } from "../GamepadGlyph";
@@ -189,9 +189,9 @@ export function GamepadLearnWizard({
           safe to run again, and never touches existing bindings.
         </FinishedHint>
         <Actions>
-          <PrimaryButton type="button" onClick={onClose}>
+          <Button variant="primary" type="button" onClick={onClose}>
             Done
-          </PrimaryButton>
+          </Button>
         </Actions>
       </Wrap>
     );
@@ -240,16 +240,21 @@ export function GamepadLearnWizard({
       )}
 
       <Actions>
-        <GhostButton type="button" onClick={back} disabled={roleIdx === 0}>
+        <Button
+          variant="ghost"
+          type="button"
+          onClick={back}
+          disabled={roleIdx === 0}
+        >
           Back
-        </GhostButton>
-        <GhostButton type="button" onClick={skip}>
+        </Button>
+        <Button variant="ghost" type="button" onClick={skip}>
           Skip
-        </GhostButton>
+        </Button>
         {isAxisRole && (
-          <PrimaryButton type="button" onClick={confirmAxis}>
+          <Button variant="primary" type="button" onClick={confirmAxis}>
             Confirm
-          </PrimaryButton>
+          </Button>
         )}
       </Actions>
     </Wrap>

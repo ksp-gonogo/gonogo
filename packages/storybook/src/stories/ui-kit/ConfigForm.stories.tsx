@@ -7,7 +7,6 @@ import {
   FieldRow,
   FormActions,
   Input,
-  PrimaryButton,
   Select,
   Switch,
   Textarea,
@@ -98,9 +97,9 @@ function AlarmForm({ boxed }: { boxed?: boolean }) {
         <Button type="button" onClick={() => {}}>
           Cancel
         </Button>
-        <PrimaryButton type="button" onClick={() => {}}>
+        <Button variant="primary" type="button" onClick={() => {}}>
           Save alarm
-        </PrimaryButton>
+        </Button>
       </FormActions>
     </ConfigForm>
   );
@@ -144,9 +143,9 @@ export const Connection: Story = {
           </FieldHint>
         </Field>
         <FormActions>
-          <PrimaryButton type="button" onClick={() => {}}>
+          <Button variant="primary" type="button" onClick={() => {}}>
             Connect
-          </PrimaryButton>
+          </Button>
         </FormActions>
       </ConfigForm>
     );

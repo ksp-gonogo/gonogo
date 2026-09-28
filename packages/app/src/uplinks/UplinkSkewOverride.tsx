@@ -13,7 +13,7 @@
 // appears to act immediately and does not, and it matches the "Reconsider"
 // affordance beside it in the same list.
 
-import { Cluster, GhostButton, Stack, Text } from "@ksp-gonogo/ui-kit";
+import { Button, Cluster, Stack, Text } from "@ksp-gonogo/ui-kit";
 import {
   isOverridableIntegrityFailure,
   type UplinkIntegrityFailure,
@@ -71,7 +71,8 @@ export function UplinkSkewOverride({ outcome, reload = defaultReload }: Props) {
         <Text tone="warn" size="sm">
           Override recorded for this pair. Reload to apply.
         </Text>
-        <GhostButton
+        <Button
+          variant="ghost"
           type="button"
           onClick={() => {
             revokeSkewOverride(id, version, integrity);
@@ -79,7 +80,7 @@ export function UplinkSkewOverride({ outcome, reload = defaultReload }: Props) {
           }}
         >
           Withdraw override
-        </GhostButton>
+        </Button>
       </Cluster>
     );
   }
@@ -92,7 +93,8 @@ export function UplinkSkewOverride({ outcome, reload = defaultReload }: Props) {
         covers this id, this version and this pair of hashes only.
       </Text>
       <Cluster justify="start" gap="related-dense" wrap>
-        <GhostButton
+        <Button
+          variant="ghost"
           type="button"
           onClick={() => {
             grantSkewOverride(id, version, integrity);
@@ -100,7 +102,7 @@ export function UplinkSkewOverride({ outcome, reload = defaultReload }: Props) {
           }}
         >
           Use anyway
-        </GhostButton>
+        </Button>
       </Cluster>
     </Stack>
   );

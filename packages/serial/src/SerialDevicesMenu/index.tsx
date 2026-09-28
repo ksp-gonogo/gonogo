@@ -1,4 +1,4 @@
-import { Button, GhostButton, Tabs, useModal } from "@ksp-gonogo/ui";
+import { Button, Tabs, useModal } from "@ksp-gonogo/ui";
 import { Card } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
@@ -278,25 +278,28 @@ function DeviceRow({
             </Button>
           )}
         {status === "connected" && (
-          <GhostButton
+          <Button
+            variant="ghost"
             onClick={() => {
               void svc.disconnect(device.id);
             }}
           >
             Disconnect
-          </GhostButton>
+          </Button>
         )}
         {hasRoleLessInput && (
-          <GhostButton
+          <Button
+            variant="ghost"
             type="button"
             onClick={openLearnWizard}
             title="Walk each role in turn and record which raw button/axis it lands on, restores real labels on a non-standard-mapping pad"
           >
             Learn roles...
-          </GhostButton>
+          </Button>
         )}
         {device.transport === "web-serial" && status === "error" && (
-          <GhostButton
+          <Button
+            variant="ghost"
             onClick={() => {
               if (
                 window.confirm(
@@ -309,18 +312,21 @@ function DeviceRow({
             title="Refreshes the page: only Web Serial knows how to release a stuck-open SerialPort, and only a fresh JS context lets it"
           >
             Reset connection
-          </GhostButton>
+          </Button>
         )}
         {!isKeyboard && (
           <>
-            <GhostButton onClick={onEdit}>Edit</GhostButton>
-            <GhostButton
+            <Button variant="ghost" onClick={onEdit}>
+              Edit
+            </Button>
+            <Button
+              variant="ghost"
               onClick={() => {
                 void svc.removeDevice(device.id);
               }}
             >
               Remove
-            </GhostButton>
+            </Button>
           </>
         )}
       </RowActions>
@@ -373,14 +379,17 @@ function TypesTab() {
             parser: {type.parser} · render: {type.renderStyleId ?? "none"}
           </RowMeta>
           <RowActions>
-            <GhostButton onClick={() => setEditing(type)}>Edit</GhostButton>
-            <GhostButton
+            <Button variant="ghost" onClick={() => setEditing(type)}>
+              Edit
+            </Button>
+            <Button
+              variant="ghost"
               onClick={() => {
                 void svc.removeDeviceType(type.id);
               }}
             >
               Remove
-            </GhostButton>
+            </Button>
           </RowActions>
         </DeviceCard>
       ))}

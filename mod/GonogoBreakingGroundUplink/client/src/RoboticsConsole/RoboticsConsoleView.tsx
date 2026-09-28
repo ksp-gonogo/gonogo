@@ -1,6 +1,6 @@
 import {
-  ActionButton,
   Badge,
+  Button,
   Cluster,
   Inline,
   Panel,
@@ -121,8 +121,9 @@ export function RoboticsConsoleView({
           <Cluster justify="between" wrap>
             <ReadoutCaption>Target</ReadoutCaption>
             <Inline>
-              <ActionButton
-                tone="ghost"
+              <Button
+                variant="ghost"
+                size="sm"
                 type="button"
                 aria-label={stepperLabel("Decrease target", selected.target)}
                 disabled={selected.target === null}
@@ -136,7 +137,7 @@ export function RoboticsConsoleView({
                 }
               >
                 −
-              </ActionButton>
+              </Button>
               <Text size="sm">
                 {selected.target === null ? (
                   "unknown"
@@ -147,8 +148,9 @@ export function RoboticsConsoleView({
                   </>
                 )}
               </Text>
-              <ActionButton
-                tone="ghost"
+              <Button
+                variant="ghost"
+                size="sm"
                 type="button"
                 aria-label={stepperLabel("Increase target", selected.target)}
                 disabled={selected.target === null}
@@ -162,7 +164,7 @@ export function RoboticsConsoleView({
                 }
               >
                 +
-              </ActionButton>
+              </Button>
             </Inline>
           </Cluster>
 

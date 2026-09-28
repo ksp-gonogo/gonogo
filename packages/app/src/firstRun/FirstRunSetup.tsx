@@ -1,4 +1,4 @@
-import { GhostButton, PrimaryButton, Stack } from "@ksp-gonogo/ui-kit";
+import { Button, Stack } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import { ConnectStep } from "./steps/ConnectStep";
@@ -69,13 +69,17 @@ export function FirstRunSetup({ onFinish }: Readonly<FirstRunSetupProps> = {}) {
       {step === "done" && <DoneStep />}
       <Nav>
         {index > 0 && (
-          <GhostButton type="button" onClick={() => setStep(ORDER[index - 1])}>
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={() => setStep(ORDER[index - 1])}
+          >
             Back
-          </GhostButton>
+          </Button>
         )}
-        <PrimaryButton type="button" onClick={advance}>
+        <Button variant="primary" type="button" onClick={advance}>
           {ADVANCE_LABEL[step]}
-        </PrimaryButton>
+        </Button>
       </Nav>
     </Stack>
   );

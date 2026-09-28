@@ -1,7 +1,7 @@
 import {
   BroadcastIcon,
+  Button,
   Fab,
-  GhostButton,
   StatusIndicator,
   useModal,
 } from "@ksp-gonogo/ui";
@@ -174,19 +174,23 @@ function RegenerateRow() {
   return (
     <RegenerateWrap>
       {phase === "idle" && (
-        <GhostButton type="button" onClick={() => setPhase("confirming")}>
+        <Button
+          variant="ghost"
+          type="button"
+          onClick={() => setPhase("confirming")}
+        >
           New share code
-        </GhostButton>
+        </Button>
       )}
       {phase === "confirming" && (
-        <GhostButton type="button" onClick={run}>
+        <Button variant="ghost" type="button" onClick={run}>
           Confirm: old code stops working
-        </GhostButton>
+        </Button>
       )}
       {phase === "running" && (
-        <GhostButton type="button" disabled>
+        <Button variant="ghost" type="button" disabled>
           Generating...
-        </GhostButton>
+        </Button>
       )}
       <RegenerateHint>
         Mints a fresh share code. The old code stops working, anyone who had it

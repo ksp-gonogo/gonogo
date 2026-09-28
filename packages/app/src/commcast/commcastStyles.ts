@@ -1,4 +1,4 @@
-import { GhostButton, ScrollArea } from "@ksp-gonogo/ui-kit";
+import { Button, ScrollArea } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 /** Words are informational, so this console takes the info tone where the terminal it shares parts with takes the accent. */
@@ -51,7 +51,7 @@ export const Commcast__BarRadio = styled.div`
   flex: 0 0 auto;
 `;
 
-export const Commcast__Back = styled(GhostButton)`
+export const Commcast__Back = styled(Button).attrs({ variant: "ghost" })`
   display: inline-flex;
   align-items: center;
   flex: 0 0 auto;

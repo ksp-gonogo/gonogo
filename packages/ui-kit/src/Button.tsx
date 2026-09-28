@@ -1,88 +1,230 @@
-import styled from "styled-components";
+import type { Tone } from "@ksp-gonogo/sitrep-sdk";
+import { type ButtonHTMLAttributes, forwardRef } from "react";
+import styled, { css } from "styled-components";
 import { focusRing } from "./focusRing";
+import { TONE_MARK, TONE_ON_STATUS, TONE_STATUS, TONE_TEXT } from "./tone";
 
 /**
- * Default action button: neutral dark style, sentence case. Uppercase is
+ * How much a button asks to be pressed: `default` is the ordinary raised
+ * control, `primary` the one commit action of a group, filled in its tone,
+ * `ghost` the quiet secondary one beside it, and `text` no chrome at all, for
+ * words that are themselves the control (a name that renames on click): it
+ * takes its colour and type from the text around it.
+ *
+ * @category Button
+ */
+export type ButtonVariant = "default" | "primary" | "ghost" | "text";
+
+/**
+ * The state a button's action puts things in. `nogo` is the destructive tone,
+ * `warn` an action that needs attention; `neutral` has no state.
+ *
+ * @category Button
+ */
+export type ButtonTone = Extract<Tone, "neutral" | "go" | "warn" | "nogo">;
+
+/** `sm` for dense rows; both sizes keep the kit's one control height. *
+ * @category Button
+ */
+export type ButtonSize = "sm" | "md";
+
+/**
+ * A native button's attributes, plus how prominent it is, what its action
+ * does, how large it is and, for a toggle, whether it is pressed.
+ *
+ * @category Button
+ */
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant;
+  /** Defaults to `go` for a primary button and `neutral` otherwise. */
+  tone?: ButtonTone;
+  size?: ButtonSize;
+  /**
+   * Makes the button a toggle: sets `aria-pressed` and, while true, draws the
+   * one pressed look, filled in the tone's status colour. A pressed button
+   * with no state of its own reads as on, so a neutral one fills in go.
+   */
+  pressed?: boolean;
+}
+
+/**
+ * The kit's button: one family whose `variant` says how prominent it is and
+ * whose `tone` says what its action does. Sentence case, since uppercase is
  * reserved for headings and state tokens, so case tells an instrument from a
- * control; the label text is the caller's.
+ * control; the label text is the caller's. It takes no alignment of its own:
+ * where it sits in a row is the caller's layout.
  *
  * A flex row, so an icon beside the word (`<Button><PlusIcon />New
  * message</Button>`) centres rather than sitting on the text baseline.
+ *
+ * @category Button
  */
-export const Button = styled.button`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--gap-glyph-control);
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-regular);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-compact);
-  font-weight: 600;
-  padding: var(--inset-control);
-  /* The kit's one control height, with a flush line height so type size cannot change the box height. */
-  min-height: var(--control-height);
-  line-height: var(--line-height-flush);
-  cursor: pointer;
-  transition: border-color var(--duration-fast), color var(--duration-fast);
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  function Button(
+    { variant = "default", tone, size = "md", pressed, ...rest },
+    ref,
+  ) {
+    return (
+      <Button__Body
+        ref={ref}
+        $variant={variant}
+        $tone={tone ?? (variant === "primary" ? "go" : "neutral")}
+        $size={size}
+        $pressed={pressed === true}
+        aria-pressed={pressed}
+        {...rest}
+      />
+    );
+  },
+);
 
+/** The fill a pressed button takes: its tone's status fill, and go for a neutral one. */
+function pressedTone(tone: ButtonTone): Exclude<ButtonTone, "neutral"> {
+  return tone === "neutral" ? "go" : tone;
+}
+
+/** Filled in a tone's status colour under its own text: a primary button, and every pressed one. */
+export const filledLook = (tone: ButtonTone) => css`
+  background: ${TONE_STATUS[tone]};
+  border-color: ${TONE_STATUS[tone]};
+  color: ${TONE_ON_STATUS[tone]};
+`;
+
+/** A toned outline: the tone's words on the button's own ground, edged in its mark. */
+const tonedOutline = (tone: Exclude<ButtonTone, "neutral">) => css`
+  border-color: ${TONE_MARK[tone]};
+  color: ${TONE_TEXT[tone]};
+`;
+
+const VARIANT_LOOK = {
+  default: css`
+    background: var(--color-surface-raised);
+    border-color: var(--color-border-strong);
+    color: var(--color-text-primary);
+  `,
+  ghost: css`
+    background: none;
+    border-color: var(--color-border-strong);
+    /* Clears 4.5:1 on the app background. */
+    color: var(--color-text-muted);
+  `,
+} as const;
+
+/* Words that are the control: the surrounding colour and type, with no box, so nothing but the focus ring says it is a button. */
+const TEXT_LOOK = css`
+  background: none;
+  border: none;
+  padding: 0;
+  min-height: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  justify-content: flex-start;
+`;
+
+/* Words keep their place under a coarse pointer: the touch target grows, but no inset pushes the text off its line. */
+const TEXT_TOUCH = css`
+  @media (pointer: coarse) {
+    padding: 0;
+  }
+`;
+
+function variantLook(variant: ButtonVariant, tone: ButtonTone) {
+  if (variant === "text") return TEXT_LOOK;
+  if (variant === "primary") return filledLook(tone);
+  if (tone === "neutral") return VARIANT_LOOK[variant];
+  return css`
+    ${VARIANT_LOOK[variant]}
+    ${tonedOutline(tone)}
+  `;
+}
+
+/* A filled button keeps its fill under the pointer; only an outlined one brightens its edge and words. */
+const OUTLINE_HOVER = css`
   @media (hover: hover) {
-    &:hover {
+    &:hover:not(:disabled) {
       border-color: var(--color-text-faint);
       color: var(--color-text-primary);
     }
   }
-  &:active {
-    background: var(--color-border-subtle);
-  }
+`;
+
+const SIZE_LOOK = {
+  sm: css`
+    font-size: var(--font-size-caption);
+    padding: var(--inset-control-small);
+  `,
+  md: css`
+    font-size: var(--font-size-compact);
+    padding: var(--inset-control);
+  `,
+} as const;
+
+/**
+ * The button's body, shared by every kit control that is a button:
+ * `ToggleButton` and `CommandButton` draw with it and add only their own
+ * behaviour's states.
+ */
+export const Button__Body = styled.button<{
+  $variant: ButtonVariant;
+  $tone: ButtonTone;
+  $size: ButtonSize;
+  $pressed: boolean;
+}>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-glyph-control);
+  border: 1px solid;
+  border-radius: var(--radius-regular);
+  font-family: inherit;
+  font-weight: 600;
+  /* The kit's one control height, with a flush line height so type size cannot change the box height. */
+  min-height: var(--control-height);
+  line-height: var(--line-height-flush);
+  cursor: pointer;
+  transition: background var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast);
+
+  ${({ $size }) => SIZE_LOOK[$size]}
+  ${({ $variant, $tone }) => variantLook($variant, $tone)}
+  ${({ $pressed, $tone }) => ($pressed ? filledLook(pressedTone($tone)) : "")}
+
+  ${({ $variant, $pressed }) =>
+    $variant === "primary" || $variant === "text" || $pressed
+      ? ""
+      : OUTLINE_HOVER}
   ${focusRing}
   &:disabled {
     opacity: 0.4;
     cursor: not-allowed;
   }
+
+  &[data-failed="true"] {
+    border-color: var(--color-warn-mark);
+    color: var(--color-warn-text);
+    background: color-mix(
+      in srgb,
+      var(--color-warn-mark) 18%,
+      var(--color-surface-raised)
+    );
+  }
+
   @media (pointer: coarse) {
     min-height: 44px;
-    /* Wider horizontally too: min-height only covers the vertical target. */
-    padding: var(--inset-control-touch);
+    /* Wider on both axes: min-height only covers the vertical target. */
+    padding: ${({ $size }) =>
+      $size === "sm"
+        ? "var(--inset-control-small-touch)"
+        : "var(--inset-control-touch)"};
   }
-`;
 
-/** Confirm / save: green accent */
-export const PrimaryButton = styled(Button)`
-  background: var(--color-go-status);
-  border-color: var(--color-go-status);
-  color: var(--color-accent-fg);
-  align-self: flex-end;
-
-  @media (hover: hover) {
-    &:hover {
-      background: var(--color-go-status);
-      border-color: var(--color-go-status);
-      color: var(--color-accent-fg);
-    }
-  }
-`;
-
-/** Ghost / cancel: no background */
-export const GhostButton = styled(Button)`
-  background: none;
-  border-color: var(--color-border-strong);
-  /* Clears 4.5:1 on the app background. */
-  color: var(--color-text-muted);
-
-  @media (hover: hover) {
-    &:hover {
-      border-color: var(--color-text-faint);
-      color: var(--color-text-primary);
-    }
-  }
+  ${({ $variant }) => ($variant === "text" ? TEXT_TOUCH : "")}
 `;
 
 /**
  * Inline subtle link-style button for tertiary actions inside copy (e.g.
  * "Clear all" in a list row). For a paired Cancel / Confirm row, prefer
- * GhostButton + PrimaryButton.
+ * `<Button variant="ghost">` beside `<Button variant="primary">`.
  */
 export const TextButton = styled.button`
   background: none;

@@ -1,11 +1,10 @@
 import { logger } from "@ksp-gonogo/logger";
 import {
+  Button,
   Field,
   FieldHint,
   FieldLabel,
-  GhostButton,
   Input,
-  PrimaryButton,
   Select,
 } from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
@@ -311,10 +310,12 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
             </FieldHint>
           </Field>
           <Actions>
-            <GhostButton onClick={onClose}>Cancel</GhostButton>
-            <PrimaryButton onClick={() => void startPick()}>
+            <Button variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={() => void startPick()}>
               Pick USB port...
-            </PrimaryButton>
+            </Button>
           </Actions>
         </>
       )}
@@ -335,7 +336,9 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
             know the device is talking. Cancel rolls everything back.
           </FieldHint>
           <Actions>
-            <GhostButton onClick={() => void cancel()}>Cancel</GhostButton>
+            <Button variant="ghost" onClick={() => void cancel()}>
+              Cancel
+            </Button>
           </Actions>
         </>
       )}
@@ -355,8 +358,12 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
             />
           </Field>
           <Actions>
-            <GhostButton onClick={() => void cancel()}>Cancel</GhostButton>
-            <PrimaryButton onClick={finishNaming}>Save</PrimaryButton>
+            <Button variant="ghost" onClick={() => void cancel()}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={finishNaming}>
+              Save
+            </Button>
           </Actions>
         </>
       )}
@@ -365,14 +372,15 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
         <>
           <ErrorBox role="alert">{step.message}</ErrorBox>
           <Actions>
-            <GhostButton
+            <Button
+              variant="ghost"
               onClick={async () => {
                 await step.cleanup?.();
                 onClose();
               }}
             >
               Close
-            </GhostButton>
+            </Button>
           </Actions>
         </>
       )}
@@ -390,15 +398,18 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
             device, or cancel and use the existing one as-is.
           </FieldHint>
           <Actions>
-            <GhostButton onClick={onClose}>Cancel</GhostButton>
-            <PrimaryButton
+            <Button variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
               onClick={async () => {
                 await svc.removeDevice(step.existingId);
                 setStep({ kind: "picking" });
               }}
             >
               Remove existing & retry
-            </PrimaryButton>
+            </Button>
           </Actions>
         </>
       )}

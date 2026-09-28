@@ -1,9 +1,9 @@
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import type { CrewMember } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Button,
   Cluster,
   CommandButton,
-  GhostButton,
   SelectableRow,
   Stack,
 } from "@ksp-gonogo/ui-kit";
@@ -80,7 +80,9 @@ export function RepairControl({
   if (!open) {
     return (
       <Cluster justify="start">
-        <GhostButton onClick={() => setOpen(true)}>{verb}</GhostButton>
+        <Button variant="ghost" onClick={() => setOpen(true)}>
+          {verb}
+        </Button>
       </Cluster>
     );
   }

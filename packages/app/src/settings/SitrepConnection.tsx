@@ -1,15 +1,14 @@
 import type { DataSourceStatus } from "@ksp-gonogo/core";
 import { getDataSource, useDataSources } from "@ksp-gonogo/core";
 import {
+  Button,
   ConfigForm,
   FieldLabel,
   FieldRow,
   FormActions,
-  GhostButton,
   IconButton,
   Input,
   Placeholder,
-  PrimaryButton,
   SettingsIcon,
 } from "@ksp-gonogo/ui";
 import { useState } from "react";
@@ -113,10 +112,12 @@ export function SitrepConnection() {
             );
           })}
           <FormActions>
-            <PrimaryButton onClick={saveConfig}>Save</PrimaryButton>
-            <GhostButton onClick={() => setEditingConfig(false)}>
+            <Button variant="primary" onClick={saveConfig}>
+              Save
+            </Button>
+            <Button variant="ghost" onClick={() => setEditingConfig(false)}>
               Cancel
-            </GhostButton>
+            </Button>
           </FormActions>
         </ConfigForm>
       )}
@@ -178,7 +179,7 @@ const StatusLabel = styled.span<{ $status: DataSourceStatus }>`
 /* Type one rung down from the kit's Button, and nothing else: the inset it used
    to restate was the control inset the base already carries, tightened, on a
    button whose height is pinned by --control-height either way. */
-const RetryButton = styled(GhostButton)`
+const RetryButton = styled(Button).attrs({ variant: "ghost" })`
   font-size: var(--font-size-compact);
   letter-spacing: 0.05em;
   white-space: nowrap;

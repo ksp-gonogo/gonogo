@@ -1,6 +1,6 @@
 import {
   Badge,
-  GhostButton,
+  Button,
   Inline,
   Row,
   RowName,
@@ -107,9 +107,9 @@ export const Wrap: Story = {
         <Inline>
           <Badge tone="go">Aboard</Badge>
           <Badge>Pilot</Badge>
-          <GhostButton type="button" onClick={() => {}}>
+          <Button variant="ghost" type="button" onClick={() => {}}>
             EVA
-          </GhostButton>
+          </Button>
         </Inline>
       </Row>
       <Row wrap>
@@ -117,9 +117,9 @@ export const Wrap: Story = {
         <Inline>
           <Badge tone="caution">EVA</Badge>
           <Badge>Pilot</Badge>
-          <GhostButton type="button" onClick={() => {}}>
+          <Button variant="ghost" type="button" onClick={() => {}}>
             Board
-          </GhostButton>
+          </Button>
         </Inline>
       </Row>
     </List>
@@ -136,9 +136,9 @@ export const NoWrap: Story = {
         <Inline>
           <Badge tone="go">Aboard</Badge>
           <Badge>Pilot</Badge>
-          <GhostButton type="button" onClick={() => {}}>
+          <Button variant="ghost" type="button" onClick={() => {}}>
             EVA
-          </GhostButton>
+          </Button>
         </Inline>
       </Row>
     </List>

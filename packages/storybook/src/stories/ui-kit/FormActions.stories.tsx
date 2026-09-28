@@ -1,13 +1,10 @@
 import {
-  ActionButton,
   Button,
   ConfigForm,
   Field,
   FieldLabel,
   FormActions,
-  GhostButton,
   Input,
-  PrimaryButton,
   Text,
 } from "@ksp-gonogo/ui-kit";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -62,13 +59,14 @@ export const SaveAndCancel: Story = {
           >
             Revert
           </Button>
-          <PrimaryButton
+          <Button
+            variant="primary"
             type="button"
             disabled={!dirty}
             onClick={() => setStored(name)}
           >
             Save
-          </PrimaryButton>
+          </Button>
         </FormActions>
       </ConfigForm>
     );
@@ -79,15 +77,15 @@ export const SaveAndCancel: Story = {
 export const Mixed: Story = {
   render: () => (
     <FormActions>
-      <GhostButton type="button" onClick={() => {}}>
+      <Button variant="ghost" type="button" onClick={() => {}}>
         Reset to defaults
-      </GhostButton>
+      </Button>
       <Button type="button" onClick={() => {}}>
         Cancel
       </Button>
-      <PrimaryButton type="button" onClick={() => {}}>
+      <Button variant="primary" type="button" onClick={() => {}}>
         Apply
-      </PrimaryButton>
+      </Button>
     </FormActions>
   ),
 };
@@ -96,10 +94,12 @@ export const Mixed: Story = {
 export const RowActions: Story = {
   render: () => (
     <FormActions>
-      <ActionButton onClick={() => {}}>Discard node</ActionButton>
-      <ActionButton tone="go" onClick={() => {}}>
+      <Button variant="ghost" size="sm" onClick={() => {}}>
+        Discard node
+      </Button>
+      <Button variant="ghost" size="sm" tone="go" onClick={() => {}}>
         Execute burn
-      </ActionButton>
+      </Button>
     </FormActions>
   ),
 };

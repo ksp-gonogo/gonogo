@@ -5,8 +5,8 @@ import {
   useTelemetryClientOptional,
 } from "@ksp-gonogo/sitrep-client";
 import {
-  ActionButton,
   Badge,
+  Button,
   ChevronDownIcon,
   ComboboxListbox,
   type ComboboxOption,
@@ -297,7 +297,7 @@ const Container = styled.div`
 
 /**
  * No border, no background, no chevron, nothing focusable: the picker's
- * `ActionButton` shell is exactly what must not survive here, because a control
+ * button shell is exactly what must not survive here, because a control
  * a station operator cannot work is worse than no control at all.
  */
 const VantageReadout__Root = styled.span`
@@ -306,7 +306,7 @@ const VantageReadout__Root = styled.span`
   gap: var(--gap-related);
 `;
 
-const Trigger = styled(ActionButton)`
+const Trigger = styled(Button).attrs({ variant: "ghost", size: "sm" })`
   font-size: var(--font-size-compact);
 `;
 

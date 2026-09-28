@@ -1,4 +1,4 @@
-import { PrimaryButton, Stack } from "@ksp-gonogo/ui-kit";
+import { Button, Stack } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 
 export const FeasibilityChip = styled.span<{ $ok: boolean }>`
@@ -110,7 +110,9 @@ export const EditActions = styled.div`
   padding-top: var(--gap-actions);
 `;
 
-export const CompactPrimaryButton = styled(PrimaryButton)`
+export const CompactPrimaryButton = styled(Button).attrs({
+  variant: "primary",
+})`
   align-self: auto;
   font-size: var(--font-size-compact);
   /* Not --inset-control: its vertical would make these footer buttons taller than the 22px row controls. */

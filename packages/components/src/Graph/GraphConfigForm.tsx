@@ -11,7 +11,7 @@ import {
   Select,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { GhostButton } from "@ksp-gonogo/ui-kit";
+import { Button } from "@ksp-gonogo/ui-kit";
 import { type CSSProperties, useMemo, useState } from "react";
 import { parseDomain, resolveVariantHint } from "./config";
 import { SeriesRow } from "./SeriesRow";
@@ -183,9 +183,14 @@ export function GraphConfigComponent({
             onRemove={removeSeries}
           />
         ))}
-        <GhostButton type="button" onClick={addSeries} style={ADD_BUTTON}>
+        <Button
+          variant="ghost"
+          type="button"
+          onClick={addSeries}
+          style={ADD_BUTTON}
+        >
           + Add series
-        </GhostButton>
+        </Button>
       </Field>
       <Field>
         <FieldLabel htmlFor="graph-window">Window (seconds)</FieldLabel>
@@ -260,9 +265,14 @@ export function GraphConfigComponent({
             onRemove={removeThreshold}
           />
         ))}
-        <GhostButton type="button" onClick={addThreshold} style={ADD_BUTTON}>
+        <Button
+          variant="ghost"
+          type="button"
+          onClick={addThreshold}
+          style={ADD_BUTTON}
+        >
           + Add threshold
-        </GhostButton>
+        </Button>
       </Field>
     </ConfigForm>
   );

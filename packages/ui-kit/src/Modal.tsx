@@ -11,7 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import styled from "styled-components";
-import { GhostButton, PrimaryButton } from "./Button";
+import { Button } from "./Button";
 import { focusRingInset } from "./focusRing";
 import { CloseIcon } from "./Icons";
 import { ModalChromeContext, type ModalChromeValue } from "./ModalSaveBar";
@@ -245,10 +245,15 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
                 aria-label="Discard unsaved changes?"
               >
                 <DiscardPrompt>Discard unsaved changes?</DiscardPrompt>
-                <GhostButton type="button" onClick={() => setConfirming(false)}>
+                <Button
+                  variant="ghost"
+                  type="button"
+                  onClick={() => setConfirming(false)}
+                >
                   Keep editing
-                </GhostButton>
-                <PrimaryButton
+                </Button>
+                <Button
+                  variant="primary"
                   ref={confirmRef}
                   type="button"
                   onClick={() => {
@@ -257,7 +262,7 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
                   }}
                 >
                   Discard
-                </PrimaryButton>
+                </Button>
               </DialogFooter>
             )}
           </Dialog>

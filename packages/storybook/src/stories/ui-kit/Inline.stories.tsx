@@ -2,7 +2,6 @@ import {
   Badge,
   Button,
   Cluster,
-  GhostButton,
   Inline,
   Stack,
   Text,
@@ -56,9 +55,9 @@ export const Inset: Story = {
           <Badge tone="warn">Burn in 2 min</Badge>
         </Inline>
         <Inline inset>
-          <GhostButton type="button" onClick={() => {}}>
+          <Button variant="ghost" type="button" onClick={() => {}}>
             Warp
-          </GhostButton>
+          </Button>
           <Button type="button" onClick={() => {}}>
             Focus
           </Button>

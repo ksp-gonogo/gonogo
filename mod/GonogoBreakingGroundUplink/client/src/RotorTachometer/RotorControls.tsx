@@ -1,6 +1,6 @@
 import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  ActionButton,
+  Button,
   Cluster,
   Inline,
   ReadoutCaption,
@@ -57,8 +57,9 @@ export function RotorControls({
       <Cluster justify="between" wrap>
         <ReadoutCaption>RPM cap</ReadoutCaption>
         <Inline>
-          <ActionButton
-            tone="ghost"
+          <Button
+            variant="ghost"
+            size="sm"
             type="button"
             aria-label={stepperLabel("Lower RPM cap", selected.rpmLimit)}
             disabled={selected.rpmLimit === null}
@@ -68,14 +69,15 @@ export function RotorControls({
             }
           >
             −
-          </ActionButton>
+          </Button>
           <Text size="sm">
             {selected.rpmLimit === null
               ? "RPM cap unknown"
               : Math.round(selected.rpmLimit)}
           </Text>
-          <ActionButton
-            tone="ghost"
+          <Button
+            variant="ghost"
+            size="sm"
             type="button"
             aria-label={stepperLabel("Raise RPM cap", selected.rpmLimit)}
             disabled={selected.rpmLimit === null}
@@ -85,15 +87,16 @@ export function RotorControls({
             }
           >
             +
-          </ActionButton>
+          </Button>
         </Inline>
       </Cluster>
 
       <Cluster justify="between" wrap>
         <ReadoutCaption>Torque</ReadoutCaption>
         <Inline>
-          <ActionButton
-            tone="ghost"
+          <Button
+            variant="ghost"
+            size="sm"
             type="button"
             aria-label={stepperLabel(
               "Lower torque limit",
@@ -109,7 +112,7 @@ export function RotorControls({
             }
           >
             −
-          </ActionButton>
+          </Button>
           <Text size="sm">
             {/* A worded absence, since a bare placeholder between two steppers reads as a render failure. */}
             {selected.torqueLimit === null ? (
@@ -118,8 +121,9 @@ export function RotorControls({
               <Unit value={torqueReading} decimals={0} />
             )}
           </Text>
-          <ActionButton
-            tone="ghost"
+          <Button
+            variant="ghost"
+            size="sm"
             type="button"
             aria-label={stepperLabel(
               "Raise torque limit",
@@ -135,7 +139,7 @@ export function RotorControls({
             }
           >
             +
-          </ActionButton>
+          </Button>
         </Inline>
       </Cluster>
 

@@ -3,7 +3,6 @@ import {
   Badge,
   Button,
   Cluster,
-  GhostButton,
   Stack,
   Text,
   Truncate,
@@ -64,9 +63,9 @@ export const Justify: Story = {
           </Text>
           <Outline>
             <Cluster justify={justify}>
-              <GhostButton type="button" onClick={() => {}}>
+              <Button variant="ghost" type="button" onClick={() => {}}>
                 Abort
-              </GhostButton>
+              </Button>
               <Button type="button" onClick={() => {}}>
                 Stage
               </Button>

@@ -1,7 +1,7 @@
 import type { BodyDefinition, CurrentOrbit, DataKey } from "@ksp-gonogo/core";
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Button, GhostButton } from "@ksp-gonogo/ui";
+import { Button } from "@ksp-gonogo/ui";
 import {
   Countdown,
   SectionTitle,
@@ -103,14 +103,15 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
         onArm={props.onArm}
       />
       <CommitRow>
-        <GhostButton
+        <Button
+          variant="ghost"
           type="button"
           onClick={() => props.setTriggerEditorOpen((o) => !o)}
           disabled={props.committing || !plan}
           aria-expanded={props.triggerEditorOpen}
         >
           Add Node When...
-        </GhostButton>
+        </Button>
         {/* One group, so a narrow row wraps the light time with the control it qualifies. */}
         <SendGroup>
           {props.sendDelay.oneWaySeconds !== null &&

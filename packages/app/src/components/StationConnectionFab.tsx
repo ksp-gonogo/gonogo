@@ -1,9 +1,8 @@
 import {
   BroadcastIcon,
+  Button,
   Fab,
-  GhostButton,
   Input,
-  PrimaryButton,
   StatusIndicator,
   useModal,
 } from "@ksp-gonogo/ui";
@@ -88,7 +87,8 @@ function StationConnectionPanel({
               setPending(e.target.value.toUpperCase().slice(0, 8))
             }
           />
-          <PrimaryButton
+          <Button
+            variant="primary"
             type="button"
             disabled={pending.length === 0 || pending === hostId}
             onClick={() => {
@@ -98,7 +98,7 @@ function StationConnectionPanel({
             }}
           >
             Connect
-          </PrimaryButton>
+          </Button>
         </SwitchRow>
         <Hint>
           Enter the code shown on the new host. The current connection is
@@ -107,9 +107,9 @@ function StationConnectionPanel({
       </SeparatedSection>
 
       <SeparatedSection>
-        <GhostButton type="button" onClick={onDisconnect}>
+        <Button variant="ghost" type="button" onClick={onDisconnect}>
           Disconnect
-        </GhostButton>
+        </Button>
         <Hint>
           Clears the saved host and returns to the connect screen. Saved
           dashboard layout, alarms, and coverage data stay on this device.
