@@ -9,6 +9,9 @@
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createElement, useId } from "react";
+import { flushSync } from "react-dom";
+import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   ADMISSIBLE_PROPERTIES,
@@ -105,6 +108,79 @@ describe("readShapeText", () => {
   it("leaves a short decimal alone", () => {
     mount(`<svg><path d="M2 20 L18.65 6"></path></svg>`);
     expect(read().text).toContain("18.65");
+  });
+});
+
+describe("readShapeText and React ids", () => {
+  const Labelled = ({ name }: { name: string }) => {
+    const id = useId();
+    return createElement(
+      "section",
+      { "aria-labelledby": `${id}heading`, "data-owner": id },
+      createElement("h2", { id: `${id}heading` }, name),
+    );
+  };
+  const Scene = () =>
+    createElement(
+      "div",
+      null,
+      createElement(Labelled, { name: "Programs" }),
+      createElement(Labelled, { name: "Leaders" }),
+    );
+
+  const renderIntoRoot = (element: ReturnType<typeof createElement>) => {
+    document.body.innerHTML = `<div id="root"></div>`;
+    const root = createRoot(document.getElementById("root") as HTMLElement);
+    flushSync(() => root.render(element));
+    return root;
+  };
+
+  const captureScene = () => {
+    const root = renderIntoRoot(createElement(Scene));
+    const capture = read();
+    const raw = document.body.innerHTML;
+    root.unmount();
+    return { capture, raw };
+  };
+
+  // Every scene renders in one page, so a useId counts every component mounted before it anywhere in the run.
+  it("hashes a scene the same alone and after other scenes have mounted", () => {
+    const alone = captureScene();
+    const filler = renderIntoRoot(
+      createElement(
+        "div",
+        null,
+        ...["a", "b", "c", "d", "e"].map((n) =>
+          createElement(Labelled, { key: n, name: n }),
+        ),
+      ),
+    );
+    filler.unmount();
+    const later = captureScene();
+
+    expect(later.raw).not.toBe(alone.raw);
+    expect(foldShape([later.capture]).hash).toBe(
+      foldShape([alone.capture]).hash,
+    );
+  });
+
+  it("numbers ids by first appearance, so a linked pair stays linked and two ids stay two", () => {
+    mount(
+      `<div aria-labelledby=":r7:heading" data-owner=":r7:"></div>` +
+        `<div aria-controls=":raeo:programs-panel" data-for=":R1bH2:"></div>`,
+    );
+    const { text } = read();
+    expect(text).toContain("aria-labelledby=:id0:heading");
+    expect(text).toContain("data-owner=:id0:");
+    expect(text).toContain("aria-controls=:id1:programs-panel");
+    expect(text).toContain("data-for=:id2:");
+  });
+
+  it("numbers afresh on every capture", () => {
+    mount(`<div data-owner=":r9:"></div>`);
+    read();
+    mount(`<div data-owner=":r1f:"></div>`);
+    expect(read().text).toContain("data-owner=:id0:");
   });
 });
 

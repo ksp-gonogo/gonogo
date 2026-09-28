@@ -214,6 +214,23 @@ export const readShapeText = (args: {
   // text is normalised to three before it is hashed.
   const round = (text: string): string =>
     text.replace(/\d+\.\d{4,}/g, (n) => String(Math.round(+n * 1000) / 1000));
+  /**
+   * A React `useId` is a page-wide mount counter, and every scene renders in
+   * one page, so the raw value depends on how many components mounted in the
+   * scenes before this one. Each distinct id is renamed `:id<n>:` by first
+   * appearance in this capture, which keeps a pair that references one id
+   * linked. React 18 writes `:r<n>:` on the client and `:R<tree>H<n>:` when
+   * hydrating, both in base 32.
+   */
+  const reactIds = new Map<string, string>();
+  const canonicalIds = (text: string): string =>
+    text.replace(/:(?:r[0-9a-v]+|R[0-9a-v]+(?:H[0-9a-v]+)?):/g, (id) => {
+      const seen = reactIds.get(id);
+      if (seen !== undefined) return seen;
+      const named = `:id${reactIds.size}:`;
+      reactIds.set(id, named);
+      return named;
+    });
   const lines: string[] = [];
   const texts: string[] = [];
   let elements = 0;
@@ -232,7 +249,8 @@ export const readShapeText = (args: {
     const attrs = Array.from(el.attributes)
       .filter((a) => attrRe.test(a.name))
       .map((a) => `${a.name}=${a.value}`)
-      .sort();
+      .sort()
+      .map(canonicalIds);
     const style = getComputedStyle(el);
     lines.push(
       round(
