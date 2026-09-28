@@ -1,4 +1,9 @@
-import type { CommandRefusalEntry } from "@ksp-gonogo/ui-kit";
+import type {
+  CommandFailedEntry,
+  CommandLossEntry,
+  CommandRefusalEntry,
+  CommandUndeliveredEntry,
+} from "@ksp-gonogo/ui-kit";
 import type { PresetId } from "./presets";
 
 /** An armed trigger's comparison, the same set the alarms module's `ThresholdOp` offers. */
@@ -55,9 +60,31 @@ export interface ArmedTrigger {
   /** "main" or peer id of the screen that armed it. */
   createdBy: string;
   /**
-   * The burns the command refused when this trigger fired. Present only on a
-   * fired trigger whose command said no; such a trigger never fires again and
-   * stays listed until the operator dismisses it.
+   * What went wrong when this trigger fired. Present only on a fired trigger
+   * that did not end with every burn taken; such a trigger never fires again
+   * and stays listed until the operator dismisses it.
    */
-  refusals?: readonly CommandRefusalEntry[];
+  failure?: TriggerFailure;
 }
+
+/** Why a fired trigger's plan could not be computed. */
+export type NoPlanReason =
+  | "no-orbit"
+  | "no-target"
+  | "not-computable"
+  | "error";
+
+/**
+ * A fired trigger that did not end with every burn taken: either no plan could
+ * be computed, so nothing was sent, or the plan was sent and some of its burns
+ * came back as something other than taken, each in the kit's own outcome kind.
+ */
+export type TriggerFailure =
+  | { kind: "no-plan"; reason: NoPlanReason }
+  | {
+      kind: "dispatch";
+      refused: readonly CommandRefusalEntry[];
+      lost: readonly CommandLossEntry[];
+      undelivered: readonly CommandUndeliveredEntry[];
+      failed: readonly CommandFailedEntry[];
+    };

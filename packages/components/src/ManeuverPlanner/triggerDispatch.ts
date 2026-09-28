@@ -1,59 +1,131 @@
+import { dispatchActiveCommandTopic } from "@ksp-gonogo/sitrep-client";
 import {
-  type DispatchCommandRefusal,
-  dispatchActiveCommandTopic,
-} from "@ksp-gonogo/sitrep-client";
-import type { CommandRefusalEntry } from "@ksp-gonogo/ui-kit";
-import { isSequence, type PlanResult } from "./planning";
+  COMMAND_UNDELIVERED,
+  classifyCommandRejection,
+} from "@ksp-gonogo/sitrep-sdk";
+import type {
+  CommandFailedEntry,
+  CommandLossEntry,
+  CommandRefusalEntry,
+  CommandUndeliveredEntry,
+} from "@ksp-gonogo/ui-kit";
+import {
+  computePlan,
+  isSequence,
+  type PlanInputs,
+  type PlanResult,
+} from "./planning";
+import type { PresetId } from "./presets";
+import type { NoPlanReason, TriggerFailure } from "./triggerTypes";
 
 const ADD_NODE = "vessel.maneuver.add";
 
-/** What a refusal of a trigger-fired node is called, the same words the planner's own Add node press carries. */
+/** What a trigger-fired node is called in every outcome, the same words the planner's own Add node press carries. */
 export const TRIGGER_NODE_LABEL = "Add maneuver node";
 
+const TARGET_PRESETS: ReadonlySet<PresetId> = new Set([
+  "hohmann-rendezvous-target",
+  "match-target-inclination",
+  "match-target-plane",
+]);
+
 /**
- * Sends each burn of a fired trigger's plan as its own node, and hands
- * `onRefused` every refusal once all of them have settled. It is not called
- * when every burn was taken.
+ * Computes a fired trigger's plan against the live orbit and sends each burn
+ * as its own node. `onFailure` is called once: at once when no plan could be
+ * computed, since nothing was sent, or when every burn has settled and any of
+ * them was not taken. It is not called when every burn was taken.
  */
-export function dispatchTriggerPlan(
+export function fireTriggerPlan(
   triggerId: string,
-  plan: PlanResult,
-  onRefused: (refusals: CommandRefusalEntry[]) => void,
+  inputs: PlanInputs,
+  onFailure: (failure: TriggerFailure) => void,
 ): void {
-  const burns = isSequence(plan) ? plan.burns : [plan];
-  const settled = burns.map((b, index) => {
-    // The burn's own numbers as arguments, so full precision reaches the command.
-    const args = {
-      ut: b.ut,
-      prograde: b.prograde,
-      normal: b.normal,
-      radialOut: b.radial,
-    };
-    const outcome = dispatchActiveCommandTopic(ADD_NODE, args);
-    if (!outcome.routed) return Promise.resolve(null);
-    return outcome.settled.then((refusal) =>
-      refusalEntry(`${triggerId}:${index}`, args, refusal),
-    );
-  });
-  void Promise.all(settled).then((all) => {
-    const refused = all.filter((r): r is CommandRefusalEntry => r !== null);
-    if (refused.length > 0) onRefused(refused);
-  });
+  const planned = planFor(inputs);
+  if ("reason" in planned) {
+    onFailure({ kind: "no-plan", reason: planned.reason });
+    return;
+  }
+  dispatchPlan(triggerId, planned.plan, onFailure);
 }
 
-/** A transport failure carries no typed reason, so only a refusal with one becomes an entry. */
-function refusalEntry(
-  id: string,
-  args: unknown,
-  refusal: DispatchCommandRefusal | undefined,
-): CommandRefusalEntry | null {
-  if (refusal?.errorCode === undefined) return null;
-  return {
-    id,
-    command: ADD_NODE,
-    args,
-    label: TRIGGER_NODE_LABEL,
-    errorCode: refusal.errorCode,
-    detail: refusal.detail,
-  };
+function planFor(
+  inputs: PlanInputs,
+): { plan: PlanResult } | { reason: NoPlanReason } {
+  try {
+    const plan = computePlan(inputs);
+    if (plan) return { plan };
+  } catch {
+    return { reason: "error" };
+  }
+  return { reason: noPlanReason(inputs) };
+}
+
+/** Which input was missing, as far as the inputs alone can say; anything past that is the plan's own. */
+function noPlanReason(i: PlanInputs): NoPlanReason {
+  if (!i.currentOrbit || i.currentUT === undefined || !(i.mu > 0)) {
+    return "no-orbit";
+  }
+  if (TARGET_PRESETS.has(i.preset) && i.targetInclinationLive === undefined) {
+    return "no-target";
+  }
+  return "not-computable";
+}
+
+function dispatchPlan(
+  triggerId: string,
+  plan: PlanResult,
+  onFailure: (failure: TriggerFailure) => void,
+): void {
+  const burns = isSequence(plan) ? plan.burns : [plan];
+  const refused: CommandRefusalEntry[] = [];
+  const lost: CommandLossEntry[] = [];
+  const undelivered: CommandUndeliveredEntry[] = [];
+  const failed: CommandFailedEntry[] = [];
+  const settled = burns.map((b, index) => {
+    const dispatch: CommandLossEntry = {
+      id: `${triggerId}:${index}`,
+      command: ADD_NODE,
+      // The burn's own numbers as arguments, so full precision reaches the command.
+      args: {
+        ut: b.ut,
+        prograde: b.prograde,
+        normal: b.normal,
+        radialOut: b.radial,
+      },
+      label: TRIGGER_NODE_LABEL,
+    };
+    const outcome = dispatchActiveCommandTopic(ADD_NODE, dispatch.args);
+    // No stream is mounted, so the node never left this machine.
+    if (!outcome.routed) {
+      undelivered.push(dispatch);
+      return Promise.resolve();
+    }
+    return outcome.settled.then((rejection) => {
+      if (rejection === undefined) return;
+      const classified = classifyCommandRejection(rejection);
+      if (classified.kind === "refused") {
+        refused.push({
+          ...dispatch,
+          errorCode: classified.errorCode,
+          detail: classified.detail,
+        });
+        return;
+      }
+      if (classified.kind === "lost") {
+        lost.push(dispatch);
+        return;
+      }
+      if (classified.code === COMMAND_UNDELIVERED) {
+        undelivered.push(dispatch);
+        return;
+      }
+      failed.push(dispatch);
+    });
+  });
+  void Promise.all(settled).then(() => {
+    const missed =
+      refused.length + lost.length + undelivered.length + failed.length;
+    if (missed === 0) return;
+    onFailure({ kind: "dispatch", refused, lost, undelivered, failed });
+  });
 }

@@ -9,6 +9,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { emittedRuleFor } from "../test/emittedRule";
 import { CommandList } from "./CommandList";
+import type { RailFailed } from "./commandFailedSentence";
 import type { RailFound } from "./commandFoundSentence";
 import type { RailLoss } from "./commandLossSentence";
 import {
@@ -38,6 +39,8 @@ const loss: RailLoss = {
 
 const unsent: RailUndelivered = { ...loss };
 
+const broke: RailFailed = { ...loss };
+
 const found: RailFound = { ...loss, outcome: "ran" };
 
 describe("CommandList", () => {
@@ -48,6 +51,7 @@ describe("CommandList", () => {
         <CommandList kind="lost" entries={[loss]} />
         <CommandList kind="undelivered" entries={[unsent]} />
         <CommandList kind="found" entries={[found]} />
+        <CommandList kind="failed" entries={[broke]} />
       </>,
     );
     for (const name of [
@@ -55,6 +59,7 @@ describe("CommandList", () => {
       "Commands with no reply",
       "Commands that were never sent",
       "Lost commands that answered",
+      "Commands that failed",
     ]) {
       expect(screen.getByRole("status", { name })).toBeTruthy();
     }
@@ -67,6 +72,7 @@ describe("CommandList", () => {
         <CommandList kind="lost" entries={[{ ...loss, id: "l" }]} />
         <CommandList kind="undelivered" entries={[{ ...unsent, id: "u" }]} />
         <CommandList kind="found" entries={[{ ...found, id: "f" }]} />
+        <CommandList kind="failed" entries={[{ ...broke, id: "x" }]} />
       </>,
     );
     expect(
@@ -81,6 +87,9 @@ describe("CommandList", () => {
     expect(
       screen.getByRole("status", { name: "Lost commands that answered" }),
     ).toHaveTextContent("Set Sas: found executed.");
+    expect(
+      screen.getByRole("status", { name: "Commands that failed" }),
+    ).toHaveTextContent("Set Sas: failed, with no verdict from the game.");
   });
 
   it("draws a warning kind's command identity in the colour made for text on a dark ground", () => {

@@ -11,15 +11,14 @@ import {
   onActiveTimelineFrame,
   solveOrbit,
 } from "@ksp-gonogo/sitrep-client";
-import type { CommandRefusalEntry } from "@ksp-gonogo/ui-kit";
-import { buildCurrentOrbit, computePlan } from "./planning";
-import { dispatchTriggerPlan } from "./triggerDispatch";
+import { buildCurrentOrbit } from "./planning";
+import { fireTriggerPlan } from "./triggerDispatch";
 import type {
   ArmTriggerInput,
   ManeuverTriggerService,
   TriggerSnapshot,
 } from "./triggerService";
-import type { ArmedTrigger } from "./triggerTypes";
+import type { ArmedTrigger, TriggerFailure } from "./triggerTypes";
 import { compareThreshold } from "./triggerTypes";
 
 /**
@@ -113,13 +112,14 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
         mutated = true;
         continue;
       }
-      if (this.fired.has(t.id) || t.refusals) continue;
+      if (this.fired.has(t.id) || t.failure) continue;
       const value = getValue(t.dataKey);
       if (value === undefined) continue;
       if (!compareThreshold(value, t.op, t.value)) continue;
       this.fired.add(t.id);
-      this.fire(t);
+      // Off the list before firing, since a plan that cannot be computed lists it again at once.
       this.triggers = this.triggers.filter((x) => x.id !== t.id);
+      this.fire(t);
       mutated = true;
     }
     this.pruneFired();
@@ -128,20 +128,14 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
 
   private fire(trigger: ArmedTrigger): void {
     const live = this.readLiveOrbit();
-    const planInputs = { ...trigger.inputs, ...live };
-    const plan = computePlan(planInputs);
-    if (!plan) return;
-    dispatchTriggerPlan(trigger.id, plan, (refusals) =>
-      this.recordRefusals(trigger, refusals),
+    fireTriggerPlan(trigger.id, { ...trigger.inputs, ...live }, (failure) =>
+      this.recordFailure(trigger, failure),
     );
   }
 
-  /** Lists a fired trigger again, carrying what its command refused, so the refusal stays in front of the operator. */
-  private recordRefusals(
-    trigger: ArmedTrigger,
-    refusals: readonly CommandRefusalEntry[],
-  ): void {
-    this.triggers.push({ ...trigger, refusals });
+  /** Lists a fired trigger again, carrying what went wrong, so it stays in front of the operator until it is dismissed. */
+  private recordFailure(trigger: ArmedTrigger, failure: TriggerFailure): void {
+    this.triggers.push({ ...trigger, failure });
     this.emit();
   }
 

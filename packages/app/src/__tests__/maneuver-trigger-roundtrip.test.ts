@@ -284,6 +284,46 @@ describe("Maneuver trigger peer roundtrip", () => {
     hostSvc.dispose();
   });
 
+  it("a fired trigger with no plan reaches the station, and the station's dismiss clears it", () => {
+    setActiveViewClockForTests({ viewUt: () => 1_000_000 });
+    const orbitStore = buildOrbitStoreFixture(1_000_000);
+    setActiveTimelineStoreForTests(orbitStore.store);
+    orbitStore.emitBodies({
+      bodies: [{ index: 1, name: "Kerbin", radius: 600_000 }],
+    });
+    orbitStore.emitOrbit(kerbinOrbitPayload(1_000_000));
+    const host = fakePeerHost();
+    const client = fakePeerClient();
+    host.setOnBroadcast((msg) => client.deliver(msg));
+    const hostSvc = new ManeuverTriggerHostService(asHostService(host), {
+      storage: memoryStorage(),
+    });
+    const clientSvc = new ManeuverTriggerClientService(asClientService(client));
+
+    // Already true, and a rendezvous with no target has no plan.
+    clientSvc.arm({
+      dataKey: "vessel.orbit.sma",
+      op: ">=",
+      value: 700_000,
+      inputs: { ...FROZEN, preset: "hohmann-rendezvous-target" },
+    });
+    for (const msg of client.drainOutgoing()) {
+      if (msg.type === "trigger-arm") host.feedArm("station-1", msg);
+    }
+    expect(orbitStore.calls).toEqual([]);
+    const [mirrored] = clientSvc.snapshot().triggers;
+    expect(mirrored.failure).toEqual({ kind: "no-plan", reason: "no-target" });
+
+    clientSvc.cancel(mirrored.id);
+    for (const msg of client.drainOutgoing()) {
+      if (msg.type === "trigger-cancel") host.feedCancel("station-1", msg.id);
+    }
+    expect(hostSvc.snapshot().triggers).toEqual([]);
+    expect(clientSvc.snapshot().triggers).toEqual([]);
+
+    hostSvc.dispose();
+  });
+
   it("station cancel reaches the host and clears the trigger", () => {
     const host = fakePeerHost();
     const client = fakePeerClient();

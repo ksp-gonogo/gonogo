@@ -71,8 +71,10 @@ function buildOrbitStoreFixture(pinnedUt: number) {
 
   const calls: Array<{ command: string; args: unknown }> = [];
   let answer: unknown = null;
+  let breaks = false;
   transport.setCommandHandler((command, args) => {
     calls.push({ command, args });
+    if (breaks) throw new Error("handler threw");
     return answer;
   });
 
@@ -85,6 +87,10 @@ function buildOrbitStoreFixture(pinnedUt: number) {
     /** What the mod answers every command with from here on. */
     answerWith(result: unknown): void {
       answer = result;
+    },
+    /** Every command from here on comes back as an error frame with no typed reason. */
+    breakHandler(): void {
+      breaks = true;
     },
     emitOrbit(payload: unknown): void {
       transport.emit("vessel.orbit", payload);
@@ -218,6 +224,13 @@ function strandedFiredIds(svc: ManeuverTriggerHostService): string[] {
   return [...svc["fired"]].filter((id) => !listed.includes(id));
 }
 
+/** The first listed trigger's dispatch failure. */
+function dispatchFailureOf(svc: ManeuverTriggerHostService) {
+  const failure = svc.snapshot().triggers[0]?.failure;
+  if (failure?.kind !== "dispatch") throw new Error("no dispatch failure");
+  return failure;
+}
+
 describe("ManeuverTriggerHostService", () => {
   let storage: Storage;
   /**
@@ -329,12 +342,10 @@ describe("ManeuverTriggerHostService", () => {
       },
     });
     await vi.advanceTimersByTimeAsync(0);
-    const [trigger] = svc.snapshot().triggers;
-    expect(trigger.refusals).toHaveLength(1);
-    expect(trigger.refusals?.[0].errorCode).toBe(CommandErrorCode.Range);
-    expect(trigger.refusals?.[0].detail).toMatch(
-      /at or after the time it acts at/,
-    );
+    const { refused } = dispatchFailureOf(svc);
+    expect(refused).toHaveLength(1);
+    expect(refused[0].errorCode).toBe(CommandErrorCode.Range);
+    expect(refused[0].detail).toMatch(/at or after the time it acts at/);
     expect(storeFixture.calls.map((c) => c.command)).not.toContain(
       "vessel.maneuver.add",
     );
@@ -358,14 +369,15 @@ describe("ManeuverTriggerHostService", () => {
     });
     await vi.advanceTimersByTimeAsync(0);
     const [trigger] = svc.snapshot().triggers;
-    expect(trigger.refusals?.[0].errorCode).toBe(CommandErrorCode.NoVessel);
-    expect(trigger.refusals?.[0].detail).toBe("no active vessel");
+    const { refused } = dispatchFailureOf(svc);
+    expect(refused[0].errorCode).toBe(CommandErrorCode.NoVessel);
+    expect(refused[0].detail).toBe("no active vessel");
     expect(broadcasts.at(-1)).toEqual(svc.snapshot());
 
     const sent = storeFixture.calls.length;
     svc.dispose();
     const reloaded = makeService();
-    expect(reloaded.snapshot().triggers[0].refusals?.[0].errorCode).toBe(
+    expect(dispatchFailureOf(reloaded).refused[0].errorCode).toBe(
       CommandErrorCode.NoVessel,
     );
     // Still true, and still not sent again: a refused trigger has fired.
@@ -375,6 +387,92 @@ describe("ManeuverTriggerHostService", () => {
 
     reloaded.cancel(trigger.id);
     expect(reloaded.snapshot().triggers).toEqual([]);
+  });
+
+  it("lists a fired trigger whose plan cannot be computed, on every screen and across a reload, and never sends it", async () => {
+    const svc = makeService();
+    const storeFixture = seedKerbinOrbit();
+    const broadcasts: unknown[] = [];
+    svc.subscribe((snap) => broadcasts.push(snap));
+    // A rendezvous with no target: the orbit is there, the plan is not.
+    svc.arm({
+      dataKey: "vessel.orbit.sma",
+      op: ">=",
+      value: 700_000,
+      inputs: { ...FROZEN, preset: "hohmann-rendezvous-target" },
+    });
+    const [trigger] = svc.snapshot().triggers;
+    expect(trigger.failure).toEqual({ kind: "no-plan", reason: "no-target" });
+    expect(broadcasts.at(-1)).toEqual(svc.snapshot());
+    expect(storeFixture.calls).toEqual([]);
+
+    svc.dispose();
+    const reloaded = makeService();
+    expect(reloaded.snapshot().triggers[0].failure).toEqual({
+      kind: "no-plan",
+      reason: "no-target",
+    });
+    storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(storeFixture.calls).toEqual([]);
+
+    reloaded.cancel(trigger.id);
+    expect(reloaded.snapshot().triggers).toEqual([]);
+  });
+
+  it("lists a fired trigger with no orbit to plan from", () => {
+    const svc = makeService();
+    const storeFixture = seedKerbinOrbit();
+    const { horizon: _horizon, ...unvouched } = kerbinOrbitPayload(1_000_000);
+    storeFixture.emitOrbit(unvouched);
+    svc.arm({
+      dataKey: "vessel.orbit.sma",
+      op: ">=",
+      value: 700_000,
+      inputs: FROZEN,
+    });
+    expect(svc.snapshot().triggers[0].failure).toEqual({
+      kind: "no-plan",
+      reason: "no-orbit",
+    });
+    expect(storeFixture.calls).toEqual([]);
+  });
+
+  it("lists a fired trigger whose node came back as an error frame as failed, not refused", async () => {
+    const svc = makeService();
+    const storeFixture = seedKerbinOrbit();
+    storeFixture.breakHandler();
+    svc.arm({
+      dataKey: "vessel.orbit.sma",
+      op: ">=",
+      value: 700_000,
+      inputs: { ...FROZEN, preset: "custom-ut", prograde: 10 },
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    const failure = dispatchFailureOf(svc);
+    expect(failure.failed).toHaveLength(1);
+    expect(failure.refused).toEqual([]);
+
+    const sent = storeFixture.calls.length;
+    storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(storeFixture.calls).toHaveLength(sent);
+  });
+
+  it("lists a trigger fired with no stream mounted as never sent", async () => {
+    const svc = makeService();
+    seedKerbinOrbit();
+    setActiveTelemetryClientForTests(undefined);
+    svc.arm({
+      dataKey: "vessel.orbit.sma",
+      op: ">=",
+      value: 700_000,
+      inputs: { ...FROZEN, preset: "custom-ut", prograde: 10 },
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    const failure = dispatchFailureOf(svc);
+    expect(failure.undelivered).toHaveLength(1);
+    expect(failure.failed).toEqual([]);
   });
 
   it("clears a trigger whose node was taken, and lists no refusal for it", async () => {

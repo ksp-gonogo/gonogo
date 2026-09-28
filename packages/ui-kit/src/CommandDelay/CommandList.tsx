@@ -2,6 +2,10 @@ import { commandRefusalSubject } from "@ksp-gonogo/sitrep-sdk";
 import styled, { css } from "styled-components";
 import { focusRing } from "../focusRing";
 import { LiveRegion } from "../LiveRegion";
+import {
+  commandFailedSentence,
+  type RailFailed,
+} from "./commandFailedSentence";
 import { commandFoundSentence, type RailFound } from "./commandFoundSentence";
 import { commandLossSentence, type RailLoss } from "./commandLossSentence";
 import {
@@ -22,8 +26,14 @@ import { deriveGlyph } from "./toInFlightListItems";
  * - `lost`: nothing answered, so the command may have run
  * - `undelivered`: it never left this machine, so a re-send repeats nothing
  * - `found`: a lost dispatch answered after all
+ * - `failed`: the machinery broke, so there is no verdict either way
  */
-export type CommandListKind = "refused" | "lost" | "undelivered" | "found";
+export type CommandListKind =
+  | "refused"
+  | "lost"
+  | "undelivered"
+  | "found"
+  | "failed";
 
 interface CommandListCommonProps {
   /** Clear one entry by its `id`. Omit it and the boxes carry no clear control rather than an inert one. */
@@ -51,6 +61,7 @@ export type CommandListProps = CommandListCommonProps &
     | { kind: "lost"; entries: readonly RailLoss[] }
     | { kind: "undelivered"; entries: readonly RailUndelivered[] }
     | { kind: "found"; entries: readonly RailFound[] }
+    | { kind: "failed"; entries: readonly RailFailed[] }
   );
 
 /** One box as drawn: the kind's sentence and gesture already composed. */
@@ -67,6 +78,7 @@ const DEFAULT_LABEL: Record<CommandListKind, string> = {
   lost: "Commands with no reply",
   undelivered: "Commands that were never sent",
   found: "Lost commands that answered",
+  failed: "Commands that failed",
 };
 
 /** What the clear control names when a dispatch has no subject to name. */
@@ -75,12 +87,16 @@ const FALLBACK_DISMISS: Record<CommandListKind, string> = {
   lost: "loss",
   undelivered: "unsent command",
   found: "found command",
+  failed: "failed command",
 };
 
 function sentenceOf(props: CommandListProps, index: number): string {
   if (props.kind === "refused")
     return commandRefusalSentence(props.entries[index]);
   if (props.kind === "found") return commandFoundSentence(props.entries[index]);
+  if (props.kind === "failed") {
+    return commandFailedSentence(props.entries[index]);
+  }
   if (props.kind === "undelivered") {
     return commandUndeliveredSentence(props.entries[index]);
   }
@@ -108,7 +124,7 @@ function boxesOf(props: CommandListProps): CommandListBox[] {
  * kind in the warning tone, because a found reports something that happened.
  *
  * The sentences are the kit's `commandRefusalSentence`, `commandLossSentence`,
- * `commandUndeliveredSentence` and `commandFoundSentence`, exported so a
+ * `commandUndeliveredSentence`, `commandFoundSentence` and `commandFailedSentence`, exported so a
  * surface that draws the same outcome elsewhere says it in the same words.
  */
 export function CommandList(props: Readonly<CommandListProps>) {

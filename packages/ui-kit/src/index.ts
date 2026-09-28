@@ -143,6 +143,12 @@ export {
   ribbonBoundaryX,
   STREAM_MIN_DELAY_SECONDS,
 } from "./CommandDelay/ControlDelayStream";
+export {
+  type CommandFailedEntry,
+  type CommandFailedLike,
+  commandFailedSentence,
+  type RailFailed,
+} from "./CommandDelay/commandFailedSentence";
 export { commandFailures } from "./CommandDelay/commandFailures";
 export {
   type CommandFoundEntry,

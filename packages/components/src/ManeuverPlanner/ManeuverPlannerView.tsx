@@ -94,7 +94,7 @@ export function ManeuverPlannerComponent({
     return (
       <>
         <BurnWindowsSection nodes={nodes} currentUT={currentUT} />
-        {/* Mounted while empty, so a trigger listed later, a refused one included, is announced. */}
+        {/* Mounted while empty, so a trigger listed later, a fired one that went wrong included, is announced. */}
         <div role="status" aria-live="polite" aria-atomic="false">
           {armedTriggers.length > 0 && (
             <PaddedSection>

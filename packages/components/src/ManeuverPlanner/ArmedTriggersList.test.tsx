@@ -28,19 +28,55 @@ const ARMED: ArmedTrigger = {
   createdBy: "main",
 };
 
+const NODE = {
+  command: "vessel.maneuver.add",
+  args: { ut: 1_060, prograde: 10, normal: 0, radialOut: 0 },
+  label: TRIGGER_NODE_LABEL,
+};
+
+const NO_MISSES = { refused: [], lost: [], undelivered: [], failed: [] };
+
 const REFUSED: ArmedTrigger = {
   ...ARMED,
   id: "t2",
-  refusals: [
-    {
-      id: "t2:0",
-      command: "vessel.maneuver.add",
-      args: { ut: 1_060, prograde: 10, normal: 0, radialOut: 0 },
-      label: TRIGGER_NODE_LABEL,
-      errorCode: CommandErrorCode.Range,
-      detail: "it would reach the craft at or after the time it acts at",
-    },
-  ],
+  failure: {
+    kind: "dispatch",
+    ...NO_MISSES,
+    refused: [
+      {
+        ...NODE,
+        id: "t2:0",
+        errorCode: CommandErrorCode.Range,
+        detail: "it would reach the craft at or after the time it acts at",
+      },
+    ],
+  },
+};
+
+const NO_PLAN: ArmedTrigger = {
+  ...ARMED,
+  id: "t3",
+  failure: { kind: "no-plan", reason: "no-orbit" },
+};
+
+const BROKE: ArmedTrigger = {
+  ...ARMED,
+  id: "t4",
+  failure: {
+    kind: "dispatch",
+    ...NO_MISSES,
+    failed: [{ ...NODE, id: "t4:0" }],
+  },
+};
+
+const UNSENT: ArmedTrigger = {
+  ...ARMED,
+  id: "t5",
+  failure: {
+    kind: "dispatch",
+    ...NO_MISSES,
+    undelivered: [{ ...NODE, id: "t5:0" }],
+  },
 };
 
 describe("ArmedTriggersList", () => {
@@ -54,8 +90,35 @@ describe("ArmedTriggersList", () => {
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Dismiss refused trigger" }),
+      screen.getByRole("button", { name: "Dismiss fired trigger" }),
     ).toBeInTheDocument();
+    await expectNoA11yViolations(container);
+  });
+
+  it("states a fired trigger with no plan, a failed node and an unsent node each in its own words", async () => {
+    const { container } = render(
+      <ArmedTriggersList
+        triggers={[NO_PLAN, BROKE, UNSENT]}
+        onCancel={() => {}}
+      />,
+    );
+    expect(
+      screen.getByText(
+        "Fired with no orbit it can plan from. Nothing was sent.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Add maneuver node: failed, with no verdict from the game.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Add maneuver node: never sent. Safe to re-send."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/refused/)).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: "Dismiss fired trigger" }),
+    ).toHaveLength(3);
     await expectNoA11yViolations(container);
   });
 
