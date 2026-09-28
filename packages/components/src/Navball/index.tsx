@@ -67,6 +67,12 @@ const topics = defineTopicManifest({
  */
 const FBW_DELAY_WARN_SECONDS = 1.0;
 
+const TRIM_LABELS: Record<TrimField, string> = {
+  pitchTrim: "Pitch trim",
+  yawTrim: "Yaw trim",
+  rollTrim: "Roll trim",
+};
+
 function NavballComponent({
   config,
   onConfigChange,
@@ -107,6 +113,7 @@ function NavballComponent({
     sasRaw,
     rcsRaw,
     toggleSas,
+    engageSas,
     toggleRcs,
     setSasMode,
     failedSasModes,
@@ -118,7 +125,7 @@ function NavballComponent({
   const trimCmd = useCommand("vessel.control.setAxes");
   usePanelDelay(trimCmd);
   const sendTrim = (field: TrimField, raw: number) => {
-    void trimCmd.send({ [field]: raw });
+    void trimCmd.send({ [field]: raw }, { label: TRIM_LABELS[field] });
   };
 
   /*
@@ -141,6 +148,7 @@ function NavballComponent({
     armFbw,
     disarmFbw,
     toggleSas,
+    engageSas,
     toggleRcs,
     setSasMode,
     setThrottleCmd,

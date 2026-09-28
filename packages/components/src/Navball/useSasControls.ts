@@ -22,6 +22,9 @@ export function useSasControls(
     if (typeof sasRaw !== "boolean") return;
     void sasCmd.send({ enabled: !sasRaw }, { label: "Toggle SAS" });
   };
+  const engageSas = () => {
+    void sasCmd.send({ enabled: true }, { label: "SAS on" });
+  };
   const toggleRcs = () => {
     if (typeof rcsRaw !== "boolean") return;
     void rcsCmd.send({ enabled: !rcsRaw }, { label: "Toggle RCS" });
@@ -49,6 +52,7 @@ export function useSasControls(
     sasRaw,
     rcsRaw,
     toggleSas,
+    engageSas,
     toggleRcs,
     setSasMode,
     failedSasModes,

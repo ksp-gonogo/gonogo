@@ -8,7 +8,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import type { JSX, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { NavballComponent } from "./index";
+import { NavballComponent, sasModeOrdinal } from "./index";
 
 /** Stock's ten customs, all disengaged: the named-list shape the mod now sends. */
 const STOCK_GROUPS_ALL_OFF = Array.from({ length: 10 }, (_, i) => ({
@@ -319,5 +319,23 @@ describe("Navball commands nothing it was not asked to", () => {
         value: 0.6,
       }),
     );
+  });
+
+  it("engages SAS as well as selecting Stability Assist on kill-rotation", async () => {
+    const { handler } = mountDisplayOnly("nav-kill-rot");
+    act(() => {
+      dispatchAction("nav-kill-rot", "kill-rotation", {
+        kind: "button",
+        value: true,
+      });
+    });
+    await waitFor(() =>
+      expect(handler).toHaveBeenCalledWith("vessel.control.setSas", {
+        enabled: true,
+      }),
+    );
+    expect(handler).toHaveBeenCalledWith("vessel.control.setSasMode", {
+      mode: sasModeOrdinal("StabilityAssist"),
+    });
   });
 });

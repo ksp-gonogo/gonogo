@@ -12,6 +12,7 @@ export function useNavballInputs({
   armFbw,
   disarmFbw,
   toggleSas,
+  engageSas,
   toggleRcs,
   setSasMode,
   setThrottleCmd,
@@ -23,6 +24,7 @@ export function useNavballInputs({
   armFbw: () => void;
   disarmFbw: () => void;
   toggleSas: () => void;
+  engageSas: () => void;
   toggleRcs: () => void;
   setSasMode: (mode: SasMode) => void;
   setThrottleCmd: ThrottleSetter;
@@ -57,6 +59,8 @@ export function useNavballInputs({
     },
     "kill-rotation": (payload) => {
       if (!isButtonPress(payload)) return;
+      // Selecting a mode does not engage SAS, so a kill that only picked Stability Assist would hold nothing on a craft with SAS off.
+      engageSas();
       setSasMode("StabilityAssist");
     },
     "sas-stability": (p) => isButtonPress(p) && setSasMode("StabilityAssist"),
