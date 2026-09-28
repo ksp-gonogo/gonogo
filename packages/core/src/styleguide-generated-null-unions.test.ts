@@ -225,7 +225,7 @@ describe("generated contract types can hold the null the wire sends", () => {
        same way: a refusal's own sentence, and the payload a failed command
        carries as an explicit null. */
     expect(sdk).toMatch(/\n\tactivateBlockedReason\?: string \| null;\n/);
-    expect(sdk).toMatch(/\n\tpayload\?: T \| null;\n/);
+    expect(sdk).toMatch(/\n\tpayload\?: Payload \| null;\n/);
   });
 
   it("leaves a key the wire OMITS un-nullable", () => {

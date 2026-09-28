@@ -240,8 +240,8 @@ describe("A: the primitives are declared over the per-value Reading", () => {
       join(REPO_ROOT, "packages/ui-kit/src/Meter.tsx"),
       "utf8",
     );
-    expect(code).toMatch(/^ {2}value: UnitValue<U> \| null;$/m);
-    expect(code).toMatch(/^ {2}capacity\?: UnitValue<U> \| null;$/m);
+    expect(code).toMatch(/^ {2}value: UnitValue<UnitSymbol> \| null;$/m);
+    expect(code).toMatch(/^ {2}capacity\?: UnitValue<UnitSymbol> \| null;$/m);
   });
 });
 
