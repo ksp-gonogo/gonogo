@@ -380,7 +380,7 @@ const SCENARIOS: ReadonlyArray<{
     panelTitle: "NAVBALL",
     /*
      * The Navball's TRIM press: `useCommand("vessel.control.setAxes")` handed
-     * straight to `usePanelDelay`, with a queue row and no readback stream,
+     * straight to `useRailEntry`, with a queue row and no readback stream,
      * because trim is the one fly-by-wire input with no `[SitrepControlChannel]`
      * to echo it (`Navball/index.tsx`).
      *

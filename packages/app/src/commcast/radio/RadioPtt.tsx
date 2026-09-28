@@ -3,7 +3,7 @@ import {
   BroadcastIcon,
   Text,
   ToggleButton,
-  usePanelDelay,
+  useRailEntry,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
 import { useId } from "react";
@@ -96,17 +96,16 @@ export function RadioPtt({
    * Registered only while keyed: an idle transmitter publishes nothing, so the
    * rail has no ribbon rather than an empty one.
    *
-   * **Through `usePanelDelay`, the seam the one rail reads.** The ribbon is a
-   * mark inside `ControlDelayStream` now rather than a component of its own, and
-   * that component is reached from a registered handle, so voice arrives the way
-   * every other continuous entry does. The handle is honest by OMISSION: there
-   * is nothing discrete in flight, nothing to refuse, lose or dismiss, and no
-   * must-consume token to mark, because none of those are a transmission's. What
-   * it does claim is what the transmission IS, on the three axes, and the rail
-   * picks its renderer from that.
+   * **Through `useRailEntry`, the seam the one rail reads.** The ribbon is a
+   * mark inside `ControlDelayStream`, reached from a registered entry, so voice
+   * arrives the way every other continuous entry does. The entry is honest by
+   * OMISSION: there is nothing discrete in flight and nothing to refuse, lose or
+   * dismiss, because none of those are a transmission's. What it does claim is
+   * what the transmission IS, on the three axes, and the rail picks its
+   * renderer from that.
    */
   const label = `Your transmission crossing to ${targetName ?? "the far end"}`;
-  usePanelDelay(
+  useRailEntry(
     radio.transmitting
       ? {
           inFlight: [],

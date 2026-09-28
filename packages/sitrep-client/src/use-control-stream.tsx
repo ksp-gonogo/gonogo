@@ -130,7 +130,8 @@ export function useControlStream(
 
   // Hooks are called unconditionally with a stable order. When the channel is
   // unknown, writeCommand/readTopic fall back to inert strings and nothing sends.
-  const command = useCommand(channel?.writeCommand ?? "");
+  // Off the panel rail: this hook's own `ControlDelayStream` draws the stream.
+  const command = useCommand(channel?.writeCommand ?? "", { rail: false });
   /*
    * The rail axes for this channel. Continuous because this hook is what makes
    * an axis continuous (it rolls a ring against light-time and coalesces at
@@ -211,20 +212,6 @@ export function useControlStream(
   const toArgsRef = useRef(toArgs);
   toArgsRef.current = toArgs;
   const hasChannel = toArgs !== undefined;
-
-  // Self-consume the inner command's dev-only must-consume token when this hook
-  // is in its operating state (a resolved channel: it actually dispatches AND
-  // the widget draws this hook's `ControlDelayStream`). For a stream command
-  // the delay UX IS this hook's own rendering, not a `<CommandDelay>` on the
-  // inner handle, so marking the token consumed is truthful rather than an
-  // exemption, and it is tied to operating state, never a blanket opt-out.
-  // Nothing here runs in production (`_output` is absent).
-  useEffect(() => {
-    if (process.env.NODE_ENV === "production") return;
-    if (hasChannel && command._output) {
-      command._output.consumed = true;
-    }
-  }, [hasChannel, command._output]);
 
   // Coalesced record + dispatch. One interval owns BOTH read halves: it
   // records a command sample AND a readback sample every tick (so both the

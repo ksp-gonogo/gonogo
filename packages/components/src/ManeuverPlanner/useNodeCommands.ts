@@ -1,7 +1,6 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
-import { usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { useCallback, useState } from "react";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
 import type { NodeEditPatch } from "./NodeRow";
@@ -30,9 +29,6 @@ export function useNodeCommands(
   const addNodeCmd = useCommand("vessel.maneuver.add");
   const updateNodeCmd = useCommand("vessel.maneuver.update");
   const removeNodeCmd = useCommand("vessel.maneuver.remove");
-  usePanelDelay(addNodeCmd);
-  usePanelDelay(updateNodeCmd);
-  usePanelDelay(removeNodeCmd);
 
   // Must stay referentially stable: the tracker's hold timers depend on it and would reset every sample.
   const removeNode = useCallback(

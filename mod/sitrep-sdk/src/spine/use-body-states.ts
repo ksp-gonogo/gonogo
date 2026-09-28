@@ -3,7 +3,6 @@ import type {
   BodyStatesReply,
   BodyStatesRequest,
 } from "../__generated__/contract";
-import type { UseCommandResult } from "../api/types";
 import { useCommand } from "./use-command";
 
 /** The command the engine registers for this. Not an Uplink's. */
@@ -26,17 +25,6 @@ export interface BodyStatesQuery {
    * system.
    */
   solve: (request: BodyStatesRequest) => Promise<BodyStatesReply>;
-
-  /**
-   * The dispatch handle, to hand to `usePanelDelay(handle)` in the widget body.
-   *
-   * Exposed rather than consumed here because `usePanelDelay` lives in
-   * `ui-kit`, which sits ABOVE the spine and which the spine therefore cannot
-   * import. `useCommand` asserts in dev that every dispatching handle reaches
-   * the rail and offers no opt-out, so a widget that calls `solve` without
-   * passing this on will throw and say so.
-   */
-  handle: UseCommandResult<BodyStatesRequest, BodyStatesReply>;
 }
 
 /**
@@ -62,5 +50,5 @@ export function useBodyStates(): BodyStatesQuery {
     [send],
   );
 
-  return { solve, handle: command };
+  return { solve };
 }

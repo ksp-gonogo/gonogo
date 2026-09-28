@@ -6,7 +6,6 @@ import {
   GhostButton,
   SelectableRow,
   Stack,
-  usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { type CostLine, carriedOf, mayAct, verbFor } from "./repair";
@@ -50,7 +49,6 @@ export function RepairControl({
   cost: CostLine[];
 }) {
   const repair = useCommand("vessel.repair");
-  usePanelDelay(repair);
   const [open, setOpen] = useState(false);
   const [chosen, setChosen] = useState<string | null>(null);
 

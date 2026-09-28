@@ -122,7 +122,6 @@ export {
   CommandDelay,
   type CommandDelayHandle,
   type CommandDelayProps,
-  type CommandOutputToken,
 } from "./CommandDelay/CommandDelay";
 export {
   CommandGroup,
@@ -202,7 +201,7 @@ export {
   type SignalDelayBadgeProps,
 } from "./CommandDelay/SignalDelayBadge";
 export { toInFlightListItems } from "./CommandDelay/toInFlightListItems";
-export { usePanelDelay } from "./CommandDelay/usePanelDelay";
+export { type RailEntry, useRailEntry } from "./CommandDelay/useRailEntry";
 export {
   WAVE_HALF_H,
   WAVE_MID_Y,

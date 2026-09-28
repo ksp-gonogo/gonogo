@@ -1,11 +1,12 @@
-import { useSyncExternalStore } from "react";
+import { RailRegistryContext } from "@ksp-gonogo/sitrep-sdk/spine";
+import { type ReactNode, useSyncExternalStore } from "react";
 import { createPanelStore } from "../store/createPanelStore";
 import { createStore } from "../store/createStore";
 import type { CommandDelayHandle } from "./CommandDelay";
 
 /**
  * One command's delay-output registration into the Panel-scoped rail: the
- * handle plus a stable `id` minted by `usePanelDelay`, so the registry never
+ * handle plus a stable `id` minted by its registrant, so the registry never
  * relies on object identity (a handle is a fresh literal on most renders).
  */
 export interface CommandHandle extends CommandDelayHandle {
@@ -44,13 +45,34 @@ const DelayPanelStore = createPanelStore(createDelayRailStore);
 
 /**
  * Carries only the store HANDLE, never the live registrations. `null` outside
- * a `Panel`, where `usePanelDelay` and `useActiveHandles` degrade to no-ops.
+ * a `Panel`, where `useRailEntry` and `useActiveHandles` degrade to no-ops.
  * Exported raw for a caller that owns the store's lifetime.
  */
 export const DelayRailContext = DelayPanelStore.Context;
 
-/** Mints one delay store and holds it for its whole life. */
-export const DelayRailProvider = DelayPanelStore.Provider;
+/**
+ * Mints one delay store and holds it for its whole life. It is also the
+ * `RailRegistry` every `useCommand` beneath it registers with, so each command's
+ * outcome reaches this rail with nothing wired in the widget.
+ *
+ * @category Command delay
+ */
+export function DelayRailProvider({ children }: { children?: ReactNode }) {
+  return (
+    <DelayPanelStore.Provider>
+      <CommandRailBridge>{children}</CommandRailBridge>
+    </DelayPanelStore.Provider>
+  );
+}
+
+function CommandRailBridge({ children }: { children?: ReactNode }) {
+  const store = DelayPanelStore.useStore();
+  return (
+    <RailRegistryContext.Provider value={store}>
+      {children}
+    </RailRegistryContext.Provider>
+  );
+}
 
 /** The nearest store, or `null` outside a `Panel`. Does not subscribe, so a registering widget does not re-render when a sibling registers. */
 export const useDelayRailStore = DelayPanelStore.useStore;

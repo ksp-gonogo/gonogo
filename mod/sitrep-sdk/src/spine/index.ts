@@ -88,6 +88,7 @@ export * from "./past-track";
 export * from "./processorEvaluator";
 export * from "./processors";
 export * from "./propagation";
+export * from "./rail-registry";
 export * from "./reckoners";
 export * from "./reference-frame";
 export * from "./replay-recorder";

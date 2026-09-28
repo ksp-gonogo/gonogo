@@ -2,7 +2,7 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { defineTopicManifest, registerComponent } from "@ksp-gonogo/core";
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import { readingOf, stillTrue } from "@ksp-gonogo/sitrep-sdk";
-import { useContributions, usePanelDelay } from "@ksp-gonogo/ui-kit";
+import { useContributions } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import { netFundsPerDay } from "../shared/FundsDrain";
 import { parseEffectLines, parseStrategies } from "./parsing";
@@ -69,8 +69,6 @@ function StrategiesComponent({
   const deactivateCmd = useCommand("career.strategy.deactivate", {
     vantage: META_VANTAGE,
   });
-  usePanelDelay(activateCmd);
-  usePanelDelay(deactivateCmd);
 
   const strategies = useMemo(() => parseStrategies(stratsRaw), [stratsRaw]);
 

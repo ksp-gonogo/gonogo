@@ -1,6 +1,5 @@
 import { type ActionInputPayload, useActionInput } from "@ksp-gonogo/core";
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
-import { usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { useRef } from "react";
 import type {
   LaunchDirectorActionId,
@@ -23,12 +22,6 @@ export function useLaunchCommands() {
     vantage: META_VANTAGE,
   });
   const switchCmd = useCommand("ksp.switchVessel", { vantage: META_VANTAGE });
-  usePanelDelay(launchCmd);
-  usePanelDelay(recoverCmd);
-  usePanelDelay(revertLaunchCmd);
-  usePanelDelay(revertEditorCmd);
-  usePanelDelay(toTrackingCmd);
-  usePanelDelay(switchCmd);
 
   const boundPresses = useRef(new Map<LaunchDirectorActionId, Press>()).current;
   const pressBound =

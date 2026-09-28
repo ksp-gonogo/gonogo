@@ -11,13 +11,7 @@ import {
   enumNameOf,
   SAS_MODE_NAMES,
 } from "@ksp-gonogo/sitrep-sdk";
-import {
-  Badge,
-  Countdown,
-  Panel,
-  Section,
-  usePanelDelay,
-} from "@ksp-gonogo/ui-kit";
+import { Badge, Countdown, Panel, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { AttitudeIndicator } from "./AttitudeIndicator";
@@ -123,7 +117,6 @@ function NavballComponent({
 
   // Trim has no readback to anchor a control stream, so it sends `setAxes` one field at a time, never clobbering a live axis.
   const trimCmd = useCommand("vessel.control.setAxes");
-  usePanelDelay(trimCmd);
   const sendTrim = (field: TrimField, raw: number) => {
     void trimCmd.send({ [field]: raw }, { label: TRIM_LABELS[field] });
   };

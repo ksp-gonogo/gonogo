@@ -26,7 +26,6 @@ import {
   Stack,
   Text,
   Truncate,
-  usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { useRef, useState } from "react";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
@@ -72,7 +71,6 @@ export function ActionGroupView({
 
   const toggleCommand = group ? toggleCommandFor(group) : null;
   const toggleCmd = useCommand(toggleCommand ?? "");
-  usePanelDelay(toggleCmd);
 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");

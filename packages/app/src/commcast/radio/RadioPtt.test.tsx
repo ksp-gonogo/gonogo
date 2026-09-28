@@ -200,7 +200,6 @@ describe("the voice ribbon it publishes", () => {
       delivery: "fire-and-forget",
     });
     expect(handle?.inFlight).toEqual([]);
-    expect(handle?._output).toBeUndefined();
     /* And it names its own graph, so the rail does not call the operator's
        voice "Delay detail". */
     expect(handle?.ariaLabel).toContain("Odyssey");

@@ -64,8 +64,8 @@ export function PanelContextProvider({ children }: { children?: ReactNode }) {
 
 /**
  * The per-panel providers a `Panel` mounts. `Panel.Root` renders this; a
- * hand-composed panel can too. The delay-rail store is not here: a widget calls
- * `usePanelDelay` above the `<Panel>` it returns, so that store is provided
+ * hand-composed panel can too. The delay-rail store is not here: a widget's
+ * commands register above the `<Panel>` it returns, so that store is provided
  * above the widget.
  */
 export function PanelProviders({ children }: { children?: ReactNode }) {

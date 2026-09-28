@@ -144,7 +144,6 @@ export type {
   BodyMask,
   ClientPrefSetting,
   ClientPrefSettingOf,
-  CommandOutputToken,
   CommandStatus,
   ComponentBehavior,
   ComponentDefinition,
@@ -738,12 +737,6 @@ export const clearPlanDrafts = (): void => {
  * that from the game rejecting a plan it did receive. `send` never throws; a
  * transport failure arrives as a refusal too.
  *
- * The handle's `command` is exposed so the caller can pass it to ui-kit's
- * `usePanelDelay`. That is not optional: like any other command this one
- * refuses to commit until a delay schedule is contributed, so a widget that
- * skips it gets a throw on the first press rather than a control with no delay
- * UX.
- *
  * @category Commands
  */
 export function useSendPlan(): SendPlanHandle {
@@ -783,7 +776,7 @@ export function useSendPlan(): SendPlanHandle {
     [command, viewUt],
   );
 
-  return { send, pending, outcome, command };
+  return { send, pending, outcome };
 }
 
 /**

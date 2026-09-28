@@ -6,7 +6,6 @@ import {
 } from "@ksp-gonogo/core";
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import { readingOf, stillTrue } from "@ksp-gonogo/sitrep-sdk";
-import { usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { magnitudeOf } from "../shared/magnitude";
 import { TechTreeView } from "./TechTreeView";
 import { parseTechNodes } from "./wire";
@@ -40,7 +39,6 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const { chargesScience } = useGameContext();
   // An R&D-desk action with no vessel signal delay, so it dispatches at the meta-vantage.
   const unlockCmd = useCommand("career.tech.unlock", { vantage: META_VANTAGE });
-  usePanelDelay(unlockCmd);
   // A career model that refuses `career.tech.unlock` (RP-1 researches through its own queue) refuses for a reason the balance has no part in, so no affordability verdict is drawn.
   const unlockBlocked = unlockCmd.gate?.blocked === true;
 

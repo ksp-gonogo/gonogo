@@ -12,13 +12,7 @@ import {
   type SettingsRowState,
 } from "@ksp-gonogo/sitrep-sdk";
 import { GhostButton, Switch } from "@ksp-gonogo/ui";
-import {
-  Cluster,
-  Notice,
-  PrimaryButton,
-  Stack,
-  usePanelDelay,
-} from "@ksp-gonogo/ui-kit";
+import { Cluster, Notice, PrimaryButton, Stack } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import {
@@ -62,8 +56,11 @@ export function GonogoSettings({ owner = CORE_OWNER }: { owner?: string }) {
     reading.state === "observed" || reading.state === "stale"
       ? reading.value
       : undefined;
-  const save = useCommand("settings.save", { vantage: META_VANTAGE });
-  usePanelDelay(save);
+  // Off the rail: the settings modal has none, and this form states the outcome itself.
+  const save = useCommand("settings.save", {
+    vantage: META_VANTAGE,
+    rail: false,
+  });
   const [draft, setDraft] = useState<Draft>({});
   const [saving, setSaving] = useState(false);
   const [outcome, setOutcome] = useState<string | null>(null);

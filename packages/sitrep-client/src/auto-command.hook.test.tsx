@@ -76,7 +76,6 @@ function Harness(props: {
     enabled: props.enabled,
     onSkip: props.onSkip,
   });
-  // Consume the auto-command's handle: an auto-dispatch is subject to the same must-consume invariant as a click-driven one.
   return <CommandDelay handle={status.command} />;
 }
 

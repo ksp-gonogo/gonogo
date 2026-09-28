@@ -1,9 +1,13 @@
-import { useEffect } from "react";
+import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   ControlDelayStream,
   type ControlRibbonDatum,
   type ControlStreamDatum,
 } from "./ControlDelayStream";
+import type { CommandFoundEntry } from "./commandFoundSentence";
+import type { CommandLossEntry } from "./commandLossSentence";
+import type { CommandRefusalEntry } from "./commandRefusalSentence";
+import type { CommandUndeliveredEntry } from "./commandUndeliveredSentence";
 import {
   InFlightList,
   type InFlightListDensity,
@@ -19,24 +23,6 @@ import {
   type InFlightCommandLike,
   toInFlightListItems,
 } from "./toInFlightListItems";
-
-/**
- * The dev-only must-consume token a command handle carries. `<CommandDelay>`
- * flips `consumed` on mount; `useCommand`'s `send()` asserts it was flipped,
- * so a delayed command can never be dispatched without its delay UX rendered.
- * Absent in production.
- */
-export type { CommandOutputToken } from "@ksp-gonogo/sitrep-sdk";
-
-import type {
-  CommandOutputToken,
-  Reading,
-  Value,
-} from "@ksp-gonogo/sitrep-sdk";
-import type { CommandFoundEntry } from "./commandFoundSentence";
-import type { CommandLossEntry } from "./commandLossSentence";
-import type { CommandRefusalEntry } from "./commandRefusalSentence";
-import type { CommandUndeliveredEntry } from "./commandUndeliveredSentence";
 
 /**
  * The single delay-output handle every command widget hands to
@@ -87,12 +73,6 @@ export interface CommandDelayHandle {
    */
   ariaLabel?: string;
   /**
-   * The dev-only must-consume token (absent in production). `<CommandDelay>`
-   * marks it consumed on mount so `useCommand`'s dispatch-time assertion
-   * passes. A handle from a non-`useCommand` source simply omits it.
-   */
-  _output?: CommandOutputToken;
-  /**
    * Dispatches from this command the GAME REFUSED, until dismissed. Rendered by
    * the Panel rail under both queues, never by `<CommandDelay>`: a refusal is
    * terminal and has nothing to do with delay.
@@ -130,8 +110,8 @@ export interface CommandDelayProps {
   /**
    * Several command handles rendered as one merged list, for a widget whose
    * controls fire more than one command (e.g. a maneuver planner's
-   * add/update/remove). Every handle's must-consume token is marked, and their
-   * discrete in-flight rows are concatenated into a single `InFlightList`.
+   * add/update/remove). Their discrete in-flight rows are concatenated into a
+   * single `InFlightList`.
    */
   handles?: CommandDelayHandle[];
   /**
@@ -157,9 +137,6 @@ export interface CommandDelayProps {
  * stream command, or the discrete `InFlightList` (merged across handles)
  * otherwise. A widget renders `<CommandDelay handle={cmd} />` and gets the
  * right delay UX with no per-widget branching.
- *
- * Rendering it also SATISFIES the must-consume invariant: it marks every
- * handle's `_output` token on mount (dev only), even when it draws nothing.
  */
 export function CommandDelay({
   handle,
@@ -171,14 +148,6 @@ export function CommandDelay({
   variant = "inline",
 }: Readonly<CommandDelayProps>) {
   const all = handles ?? (handle ? [handle] : []);
-
-  // Runs on every commit, so a handle added later is still marked.
-  useEffect(() => {
-    if (process.env.NODE_ENV === "production") return;
-    for (const h of all) {
-      if (h._output) h._output.consumed = true;
-    }
-  });
 
   /*
    * Which child draws a lone handle comes from the renderer table. Both

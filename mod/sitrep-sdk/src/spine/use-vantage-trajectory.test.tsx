@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { VantagePlanRequest } from "../__generated__/contract";
 import { act, render, renderHook, setupStreamFixture } from "../testing";
 import { value } from "../unit-system/value";
+import { type RailRegistry, RailRegistryContext } from "./rail-registry";
 import {
   refusalFromError,
   useVantageTrajectory,
@@ -95,13 +96,7 @@ describe("solve is safe to call from an effect", () => {
     const ONE_TOO_MANY = 5;
 
     function AsksOnMount() {
-      const { solve, handle } = useVantageTrajectory();
-      /*
-       * What `usePanelDelay(handle)` does in a widget body, done by hand: that
-       * hook lives in ui-kit, which sits above the spine, and `useCommand`
-       * throws on a dispatch whose handle never reached the delay rail.
-       */
-      if (handle._output) handle._output.consumed = true;
+      const { solve } = useVantageTrajectory();
       useEffect(() => {
         runs++;
         if (runs > ONE_TOO_MANY) {
@@ -119,9 +114,13 @@ describe("solve is safe to call from an effect", () => {
       return null;
     }
 
+    // The panel's rail lives in ui-kit, above the spine; this one only has to exist for `useCommand` to dispatch.
+    const rail: RailRegistry = { register: () => () => {}, update: () => {} };
     render(
       <stream.Provider>
-        <AsksOnMount />
+        <RailRegistryContext.Provider value={rail}>
+          <AsksOnMount />
+        </RailRegistryContext.Provider>
       </stream.Provider>,
     );
     // The solve's own `setPending` is what drives the next render, so the loop needs a settled microtask to show itself rather than a second mount.

@@ -176,26 +176,6 @@ describe("CommandDelay", () => {
     expect(container).not.toBeEmptyDOMElement();
   });
 
-  it("marks every handle's must-consume token on mount (dev)", () => {
-    const a: CommandDelayHandle = {
-      inFlight: [],
-      tags: RAIL_DISCRETE,
-      effectiveDelaySeconds: 0,
-      _output: { consumed: false },
-    };
-    const b: CommandDelayHandle = {
-      inFlight: [],
-      tags: RAIL_CONTINUOUS,
-      effectiveDelaySeconds: 0,
-      streams: [STREAM],
-      _output: { consumed: false },
-    };
-    render(<CommandDelay handles={[a, b]} />);
-    // Marked even though both render nothing (instant): no exemption path.
-    expect(a._output?.consumed).toBe(true);
-    expect(b._output?.consumed).toBe(true);
-  });
-
   it("has no accessibility violations when rendering the discrete list", async () => {
     const handle: CommandDelayHandle = {
       inFlight: IN_FLIGHT,

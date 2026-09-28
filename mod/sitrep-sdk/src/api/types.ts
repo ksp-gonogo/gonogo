@@ -1345,18 +1345,6 @@ export interface InFlightCommand {
 }
 
 /**
- * Mirrors `packages/ui-kit/src/CommandDelay`'s `CommandOutputToken`, the
- * dev-only must-consume token `useCommand` hands out: `<CommandDelay>` flips
- * `consumed` on mount so a delayed command can't be dispatched without its
- * delay UX. Absent in production. Same leaf constraint as every other type.
- *
- * @category Commands
- */
-export interface CommandOutputToken {
-  consumed: boolean;
-}
-
-/**
  * The per-call options `useCommand` takes.
  *
  * @category Commands
@@ -1369,6 +1357,12 @@ export interface UseCommandOptions {
    * so it stays instant regardless of the selected centre.
    */
   vantage?: string;
+  /**
+   * `false` keeps this handle off the panel's delay rail, for a hook that
+   * draws the command's outcome itself. Every other handle registers with the
+   * nearest rail, and a dev build throws when one dispatches with none mounted.
+   */
+  rail?: false;
 }
 
 /**
@@ -1426,8 +1420,6 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
   /** What the mod says about this command in ADVANCE, off `system.uplink.gates`;
    *  `undefined` when nothing is known. See the spine's `CommandGateStatus`. */
   gate?: CommandGateStatus;
-  /** Dev-only must-consume token (absent in production). See `CommandOutputToken`. */
-  _output?: CommandOutputToken;
 }
 
 /**

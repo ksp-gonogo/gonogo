@@ -16,7 +16,6 @@ import {
   ReadOnlyField,
   type ReadOnlyFieldValue,
   Stack,
-  usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
@@ -59,8 +58,11 @@ export function ModSettingsSection({
     reading.state === "observed" || reading.state === "stale"
       ? reading.value
       : undefined;
-  const write = useCommand("settings.mod.write", { vantage: META_VANTAGE });
-  usePanelDelay(write);
+  // Off the rail: the settings modal has none, and this section states a refused write itself.
+  const write = useCommand("settings.mod.write", {
+    vantage: META_VANTAGE,
+    rail: false,
+  });
   const [pending, setPending] = useState<Pending>({});
   const [outcome, setOutcome] = useState<string | null>(null);
 

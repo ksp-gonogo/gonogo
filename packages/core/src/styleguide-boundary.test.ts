@@ -32,10 +32,9 @@ import { describe, expect, it } from "vitest";
  *
  * This is what v1 of the panel-header redesign broke: it made
  * `sitrep-client/src/use-command.ts` import `useDelayRailStore` from
- * `@ksp-gonogo/ui-kit` (direction 2) and added the runtime dep. The reworked
- * design contributes the delay handle through a ui-kit hook instead
- * (`usePanelDelay`, the `useStatusContribution` pattern), so nothing crosses
- * the boundary. The synthetic-fixtures test below proves the detector would
+ * `@ksp-gonogo/ui-kit` (direction 2) and added the runtime dep. The spine
+ * instead owns the `RailRegistry` seam that ui-kit's `DelayRailProvider`
+ * implements, so nothing crosses the boundary. The synthetic-fixtures test below proves the detector would
  * have failed on v1's exact import and passes on the reverted form.
  */
 
@@ -157,7 +156,7 @@ describe("ui-kit <-> spine import boundary", () => {
         `ui-kit/src runtime-imports a telemetry-spine package ` +
           `(${SPINE_PACKAGES.join(", ")}). ui-kit is the vanilla design floor: ` +
           `cross-boundary data enters as a structural value passed to a hook/prop ` +
-          `(as the command handle does via usePanelDelay), never a spine import. ` +
+          `(as a rail entry does via useRailEntry), never a spine import. ` +
           `Use \`import type\` if it is type-only:\n` +
           found.map((f) => `  ${f}`).join("\n"),
       );
@@ -175,8 +174,9 @@ describe("ui-kit <-> spine import boundary", () => {
     if (found.length > 0) {
       throw new Error(
         `sitrep-client/src runtime-imports ${UI_KIT_PACKAGE}. The spine never ` +
-          `imports the design system: contribute to a ui-kit store from a ui-kit ` +
-          `hook the widget calls (usePanelDelay / useStatusContribution) instead. ` +
+          `imports the design system: declare a seam in the sdk spine that ui-kit ` +
+          `implements (RailRegistry), or a ui-kit hook the widget calls ` +
+          `(useStatusContribution), instead. ` +
           `Tests may import ui-kit (devDependency); production files may only ` +
           `\`import type\`:\n` +
           found.map((f) => `  ${f}`).join("\n"),

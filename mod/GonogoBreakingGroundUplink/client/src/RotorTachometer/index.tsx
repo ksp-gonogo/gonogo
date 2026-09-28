@@ -14,7 +14,6 @@ import {
   SelectableRow,
   Unit,
   UnitSharedFormat,
-  usePanelDelay,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
@@ -62,12 +61,6 @@ function RotorTachometerComponent({
   const motorCmd = useCommand("robotics.rotor.setMotor");
   const lockCmd = useCommand("robotics.rotor.setLock");
   const reverseCmd = useCommand("robotics.rotor.reverse");
-  usePanelDelay(rpmCmd);
-  usePanelDelay(torqueCmd);
-  usePanelDelay(brakeCmd);
-  usePanelDelay(motorCmd);
-  usePanelDelay(lockCmd);
-  usePanelDelay(reverseCmd);
 
   const rotors = parseRotors(roboticsRaw);
   const [selectedId, setSelectedId] = useState<string | null>(null);

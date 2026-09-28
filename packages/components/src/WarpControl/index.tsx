@@ -7,7 +7,6 @@ import {
 } from "@ksp-gonogo/core";
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
-import { usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import { useAlarmsLauncher, usePendingAlarms } from "../shared/AlarmsLauncher";
 import { magnitudeOf } from "../shared/magnitude";
@@ -56,8 +55,6 @@ function WarpControlComponent({
   const announceWarpIntent = useWarpIntent();
   const warpCmd = useCommand("time.setWarpIndex", { vantage: META_VANTAGE });
   const pauseCmd = useCommand("time.setPaused", { vantage: META_VANTAGE });
-  usePanelDelay(warpCmd);
-  usePanelDelay(pauseCmd);
 
   // Optimistic pause intent, so a click before the confirming push lands still sends the right state.
   const [pauseIntent, setPauseIntent] = useState<boolean | null>(null);

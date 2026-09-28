@@ -57,13 +57,7 @@ export interface AutoCommandStatus {
   skipped: boolean;
   /** The game-UT this will dispatch at: `targetUt - current one-way delay`. */
   dispatchUt: number;
-  /**
-   * The underlying command handle. The consumer MUST render
-   * `<CommandDelay handle={status.command} />` so the auto-dispatched command's
-   * signal-delay UX is shown, this hook dispatches on a schedule rather than a
-   * click, but the same must-consume invariant applies (it does not render its
-   * own delay UX, so it can't self-consume like `useControlStream`).
-   */
+  /** The underlying command handle, registered with the panel's rail like any other. */
   command: UseCommandResult;
 }
 

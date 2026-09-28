@@ -13,7 +13,7 @@ import {
   useStream,
 } from "@ksp-gonogo/sitrep-client";
 import { readingOf, stillTrue } from "@ksp-gonogo/sitrep-sdk";
-import { useContributions, usePanelDelay } from "@ksp-gonogo/ui-kit";
+import { useContributions } from "@ksp-gonogo/ui-kit";
 import { netFundsPerDay } from "../shared/FundsDrain";
 import { magnitudeOf } from "../shared/magnitude";
 import { facilityLevelsFrom } from "./facilities";
@@ -81,7 +81,6 @@ function SpaceCenterStatusComponent({
   const upgradeCmd = useCommand("career.facility.upgrade", {
     vantage: META_VANTAGE,
   });
-  usePanelDelay(upgradeCmd);
   // The gate's own refusal outranks any affordability verdict; under RP-1 a queued tier is billed as it builds, so a shortfall slows it rather than blocking it, and `undetermined` is not a block.
   const upgradeBlocked = upgradeCmd.gate?.blocked === true;
 

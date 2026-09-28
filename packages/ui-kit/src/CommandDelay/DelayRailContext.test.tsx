@@ -1,4 +1,5 @@
 import { railTagsForCommand } from "@ksp-gonogo/sitrep-sdk";
+import { useRailRegistry } from "@ksp-gonogo/sitrep-sdk/spine";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { useEffect } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -6,6 +7,7 @@ import {
   type CommandHandle,
   createDelayRailStore,
   DelayRailContext,
+  DelayRailProvider,
   useActiveHandles,
   useDelayRailStore,
 } from "./DelayRailContext";
@@ -146,5 +148,24 @@ describe("DelayRailContext + useActiveHandles", () => {
       </>,
     );
     expect(screen.getByTestId("active-ids")).toHaveTextContent("none");
+  });
+});
+
+describe("DelayRailProvider", () => {
+  it("is the command rail every useCommand beneath it registers with", () => {
+    let rail: unknown;
+    let store: unknown;
+    function Reader() {
+      rail = useRailRegistry();
+      store = useDelayRailStore();
+      return null;
+    }
+    render(
+      <DelayRailProvider>
+        <Reader />
+      </DelayRailProvider>,
+    );
+    expect(store).not.toBeNull();
+    expect(rail).toBe(store);
   });
 });

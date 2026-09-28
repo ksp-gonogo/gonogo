@@ -2,7 +2,7 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { useActionInput } from "@ksp-gonogo/core";
 import { useCommand, withoutReckoning } from "@ksp-gonogo/sitrep-client";
 import { stillTrue, type TargetListEntry } from "@ksp-gonogo/sitrep-sdk";
-import { Panel, Section, Unit, usePanelDelay } from "@ksp-gonogo/ui-kit";
+import { Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import {
   bare,
@@ -69,8 +69,6 @@ export function TargetPickerComponent({
   /** Setting or clearing the target is subject to signal delay; every kind sets through `vessel.target.set`, keyed by `entry.kind`. */
   const setTargetCmd = useCommand("vessel.target.set");
   const clearTargetCmd = useCommand("vessel.target.clear");
-  usePanelDelay(setTargetCmd);
-  usePanelDelay(clearTargetCmd);
 
   const [filter, setFilter] = useState("");
   const [showSpaceObjects, setShowSpaceObjects] = useState(false);

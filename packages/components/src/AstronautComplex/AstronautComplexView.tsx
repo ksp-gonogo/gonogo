@@ -13,7 +13,6 @@ import {
   speakQuantity,
   Tabs,
   Unit,
-  usePanelDelay,
   useSlotBound,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
@@ -103,11 +102,9 @@ export function AstronautComplexComponent(
 
   // A KSC ground action, dispatched at the meta-vantage; the handle still has to reach the delay rail.
   const hireCmd = useCommand("career.crew.hire", { vantage: META_VANTAGE });
-  usePanelDelay(hireCmd);
 
   // Firing is the same kind of KSC ground action: instant and free.
   const fireCmd = useCommand("career.crew.fire", { vantage: META_VANTAGE });
-  usePanelDelay(fireCmd);
 
   const sackableCrew = useMemo(
     () => crewRoster.filter((c) => !c.isApplicant && canBeSacked(c.standing)),

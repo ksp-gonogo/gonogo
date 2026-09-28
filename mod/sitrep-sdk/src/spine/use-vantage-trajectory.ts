@@ -3,7 +3,6 @@ import type {
   VantagePlanReply,
   VantagePlanRequest,
 } from "../__generated__/contract";
-import type { UseCommandResult } from "../api/types";
 import { useCommand } from "./use-command";
 
 /**
@@ -34,14 +33,6 @@ export interface VantageTrajectory {
 
   /** True while a solve is outstanding. */
   pending: boolean;
-
-  /**
-   * The dispatch handle, to hand to `usePanelDelay(handle)` in the widget body.
-   *
-   * In a dev build `useCommand` throws when a dispatching handle never reaches
-   * the rail, so pass this on.
-   */
-  handle: UseCommandResult<VantagePlanRequest, VantagePlanReply>;
 }
 
 /**
@@ -110,5 +101,5 @@ export function useVantageTrajectory(): VantageTrajectory {
     [send],
   );
 
-  return { solve, reply, pending, handle: command };
+  return { solve, reply, pending };
 }

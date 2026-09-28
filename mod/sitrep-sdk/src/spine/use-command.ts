@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -58,21 +59,12 @@ import {
 } from "./context";
 import { CommandError } from "./lifecycle";
 import { commandDelayed } from "./map-command";
+import { useRailRegistry } from "./rail-registry";
 import { useLatestValue, useStream } from "./use-stream";
 import { META_VANTAGE } from "./vantage";
 
 export type { UseCommandOptions };
 export { META_VANTAGE };
-
-/**
- * The dev-only must-consume token this hook hands out on every dispatch handle.
- * `<CommandDelay handle={cmd}>` flips `consumed` on mount; `send()`'s
- * post-dispatch assertion throws if it is still false. Absent in production, so
- * neither the token nor the assertion is a prod cost.
- */
-export interface CommandOutputToken {
-  consumed: boolean;
-}
 
 /** Shared constant so `getSnapshot` returns a referentially stable value when
  * no command has been dispatched yet, a fresh object literal here would
@@ -296,12 +288,6 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * dispatches nothing.
    */
   gate?: CommandGateStatus;
-  /**
-   * Dev-only must-consume token (absent in production). Set the moment a
-   * `<CommandDelay handle={cmd}>` mounts; `send()` throws if it is dispatched
-   * without one, so a delayed command can never ship without its delay UX.
-   */
-  _output?: CommandOutputToken;
 }
 
 type TrackedResolution =
@@ -604,35 +590,31 @@ export function useCommand(
   const storeRef = useRef(store);
   storeRef.current = store;
 
-  // The must-consume token, dev builds only. A stable token handed out on the
-  // return value; `usePanelDelay(cmd)` flips `consumed` on mount (contributing
-  // the handle to the panel's delay rail, the role the inline `<CommandDelay>`
-  // filled before the rail existed). `send` bumps `dispatchTick` on its FIRST
-  // dispatch to schedule the check below; once the check passes it latches
-  // `verifiedRef` so a hot dispatch loop (e.g. `useControlStream`'s 10 Hz axis
-  // send) doesn't re-render every frame just to re-assert an invariant already
-  // proven. Nothing here exists in production.
-  const outputRef = useRef<CommandOutputToken | undefined>(undefined);
-  if (process.env.NODE_ENV !== "production" && !outputRef.current) {
-    outputRef.current = { consumed: false };
-  }
-  const consumeVerifiedRef = useRef(false);
+  /*
+   * Every handle is registered with the nearest command rail, which draws its
+   * outcomes. A dispatch with no rail above it would be seen by nobody, so a
+   * dev build throws on the first one; `rail: false` is for a hook that draws
+   * the outcome itself.
+   */
+  const rail = useRailRegistry();
+  const railed = options?.rail !== false;
+  const railId = useId();
+  const railVerifiedRef = useRef(false);
   const [dispatchTick, setDispatchTick] = useState(0);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production") return;
-    if (dispatchTick === 0 || consumeVerifiedRef.current) return;
-    if (outputRef.current && !outputRef.current.consumed) {
+    if (dispatchTick === 0 || railVerifiedRef.current) return;
+    if (railed && !rail) {
       throw new Error(
-        `useCommand(${JSON.stringify(command)}).send() dispatched a command, ` +
-          "but usePanelDelay(cmd) was never called to contribute its signal-delay " +
-          "UX to the panel rail. Call usePanelDelay(cmd) in the widget body (it " +
-          "no-ops when there is no delay, and outside a Panel). There is no " +
-          "opt-out: this keeps every delayed command's delay visible.",
+        `useCommand(${JSON.stringify(command)}).send() dispatched a command ` +
+          "with no command rail mounted above it, so its outcome would reach " +
+          "nobody. Mount the widget inside a DelayRailProvider: the dashboard, " +
+          "renderWidget and the test render all do.",
       );
     }
-    consumeVerifiedRef.current = true;
-  }, [dispatchTick, command]);
+    railVerifiedRef.current = true;
+  }, [dispatchTick, command, rail, railed]);
 
   let inFlight = NO_IN_FLIGHT;
   if (dispatchedIds.length > 0) {
@@ -916,12 +898,8 @@ export function useCommand(
       setRequestId(newRequestId);
       firstSeenAtRef.current.set(newRequestId, nowUtRef.current);
       setDispatchedIds((prev) => [...prev, newRequestId]);
-      // Schedule the dev-only must-consume check on the first dispatch that
-      // hasn't yet been verified (see the effect above). A no-op in production.
-      if (
-        process.env.NODE_ENV !== "production" &&
-        !consumeVerifiedRef.current
-      ) {
+      // Schedule the dev-only rail check on the first unverified dispatch (see the effect above).
+      if (process.env.NODE_ENV !== "production" && !railVerifiedRef.current) {
         setDispatchTick((tick) => tick + 1);
       }
       // Mark the dispatch's own rejection as HANDLED without consuming it.
@@ -1005,8 +983,7 @@ export function useCommand(
     [client, command, vantage],
   );
 
-  return {
-    send,
+  const outcome = {
     status,
     inFlight,
     refusals,
@@ -1019,8 +996,22 @@ export function useCommand(
     delayMode,
     dismiss,
     gate,
-    _output: outputRef.current,
   };
+
+  // Keyed on identity only, so a moving outcome updates in place rather than re-registering.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: outcome changes are applied by the update effect below
+  useEffect(() => {
+    if (!rail || !railed) return;
+    return rail.register({ id: railId, ...outcome });
+  }, [rail, railed, railId]);
+
+  // The rail's shallow-equal guard means an outcome that did not move notifies nobody.
+  useEffect(() => {
+    if (!rail || !railed) return;
+    rail.update(railId, outcome);
+  });
+
+  return { send, ...outcome };
 }
 
 /** The one-way delay off a `comms.delay` reading, with its currency; `null` where there is no finite one to draw. */

@@ -121,10 +121,9 @@ export const GridItemContent = memo(function GridItemContent({
     // like every other contribution, not through a bespoke aside-injection as
     // the panel's single host-provided status.
     // The per-widget delay-rail store, provided ABOVE the widget exactly like
-    // the status store: a command widget calls usePanelDelay in its body, above
-    // the <Panel> it returns, so a Panel-held store would be unreachable from
-    // there. The Panel's rail (inside) reads this above-store via
-    // useActiveHandles(); usePanelDelay (in the widget body) writes to it.
+    // the status store: every useCommand in the widget body registers with it,
+    // above the <Panel> it returns, so a Panel-held store would be unreachable
+    // from there. The Panel's rail (inside) reads it via useActiveHandles().
     <DelayRailProvider>
       <PanelStatusStoreProvider>
         {/* Folds active alarms attributed to this widget's subject into the same

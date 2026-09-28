@@ -10,7 +10,6 @@ import {
   stillTrue,
   TargetKind,
 } from "@ksp-gonogo/sitrep-sdk";
-import { usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 
 /**
@@ -89,7 +88,6 @@ function toMapPoi(
       {
         id: "set-target",
         label: "Set as Target",
-        // Instant today (the command is not delayed), so `usePanelDelay` consumes the handle.
         run: () =>
           void setTargetCmd.send(
             { kind: TargetKind.Position, bodyIndex, latitude, longitude },
@@ -109,7 +107,6 @@ registerMapPoiProvider({
     // A tombstone means no POIs on this body, which must not read as waiting forever.
     const raw = stillTrue(poisReading, EMPTY_POIS);
     const setTargetCmd = useCommand("vessel.target.set");
-    usePanelDelay(setTargetCmd);
     const nameByIndex = useBodyNameByIndex();
 
     return useMemo(() => {

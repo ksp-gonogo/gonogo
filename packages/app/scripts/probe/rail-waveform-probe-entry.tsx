@@ -12,7 +12,7 @@
  * `RadioTransmitter` is keyed with a `clipMic`, every chunk is spoken, and the
  * amplitude ring the transmitter accumulates (`RadioTransmitState.amplitudes`,
  * measured chunk by chunk through `chunkAmplitude` over real PCM) is registered
- * through `usePanelDelay` as a ribbon on a stream handle, with the span
+ * through `useRailEntry` as a ribbon on a stream handle, with the span
  * `RadioPtt` would have computed. What the rail draws here is what the rail
  * draws on air.
  *
@@ -29,7 +29,7 @@ import {
   Panel,
   ribbonBoundaryX,
   STREAM_MIN_DELAY_SECONDS,
-  usePanelDelay,
+  useRailEntry,
   WAVE_HALF_H,
   WAVE_MID_Y,
   waveformPath,
@@ -234,7 +234,7 @@ function RibbonRegistrar({
     ],
     [amplitudes, spanSamples, separationSeconds],
   );
-  usePanelDelay(
+  useRailEntry(
     useMemo(
       () => ({
         inFlight: [],

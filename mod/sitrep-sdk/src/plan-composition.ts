@@ -3,7 +3,6 @@ import type {
   SendManeuverPlanArgs,
 } from "./__generated__/contract";
 import { classifyCommandRejection } from "./api/command-rejection";
-import type { UseCommandResult } from "./spine/use-command";
 import type { Value } from "./value";
 import type { WireOf } from "./wrap-units";
 
@@ -80,18 +79,6 @@ export interface SendPlanHandle {
 
   /** The most recent outcome, or null before one has been attempted. */
   outcome: SendPlanOutcome | null;
-
-  /**
-   * The underlying dispatch, for `usePanelDelay(handle.command)`.
-   *
-   * <p>Exposed because the delay rail lives in the kit and this package cannot
-   * reach it: a widget sending a plan has to contribute the schedule itself,
-   * exactly as it would for any other command. Without it the send throws on
-   * commit rather than quietly shipping a control with no delay UX, which is
-   * the guard working, but the handle has to be reachable for the caller to
-   * satisfy it.</p>
-   */
-  command: UseCommandResult;
 }
 
 /**

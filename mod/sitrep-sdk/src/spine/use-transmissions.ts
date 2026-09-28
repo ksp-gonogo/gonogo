@@ -22,9 +22,9 @@ export interface SentTransmission {
 }
 
 /**
- * The delay-rail handle for transmissions: hand it to `usePanelDelay` exactly
- * as a command handle is handed, and the rail draws each transmission as a row
- * through the same derivation a command's row comes from.
+ * The delay-rail entry for transmissions: hand it to ui-kit's `useRailEntry`
+ * and the rail draws each transmission as a row through the same derivation a
+ * command's row comes from.
  */
 export interface UseTransmissionsResult {
   inFlight: InFlightCommand[];

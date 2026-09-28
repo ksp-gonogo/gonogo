@@ -6,7 +6,7 @@ import {
 } from "@ksp-gonogo/core";
 import { usePartsLive, useTopology } from "@ksp-gonogo/data";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
-import { Box, usePanelDelay } from "@ksp-gonogo/ui-kit";
+import { Box } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 // Side-effect import: registers the built-in `ship-map.part-meters` contribution.
@@ -142,7 +142,6 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
 
   // The command handle lives at the always-mounted widget: the menu closes when an action fires, and its in-flight delay row must outlive it.
   const invokePartAction = useCommand(INVOKE_PART_ACTION_COMMAND);
-  usePanelDelay(invokePartAction);
 
   const onInvokePartAction = useCallback(
     (

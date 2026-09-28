@@ -6,7 +6,7 @@ import {
   useCommand,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
-import { EmptyState, Panel, Section, usePanelDelay } from "@ksp-gonogo/ui-kit";
+import { EmptyState, Panel, Section } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { emptyStateText } from "../robotics";
 import { BREAKING_GROUND } from "../uplink";
@@ -51,9 +51,6 @@ function RoboticsConsoleComponent({
   const targetCmd = useCommand("robotics.servo.setTarget");
   const motorCmd = useCommand("robotics.servo.setMotor");
   const lockCmd = useCommand("robotics.servo.setLock");
-  usePanelDelay(targetCmd);
-  usePanelDelay(motorCmd);
-  usePanelDelay(lockCmd);
 
   const servos =
     roboticsReading.state === "stale"

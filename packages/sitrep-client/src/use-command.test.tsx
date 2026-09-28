@@ -1,13 +1,19 @@
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { CommandErrorCode, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import {
+  type RailedCommand,
+  type RailRegistry,
+  RailRegistryContext,
+} from "@ksp-gonogo/sitrep-sdk/spine";
+import { render as bareRender } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
   act,
   fireEvent,
   render,
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
-import { CommandDelay, usePanelDelay } from "@ksp-gonogo/ui-kit";
+import { CommandDelay } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { LOSS_MARGIN, TelemetryClient } from "./client";
 import type { Clock } from "./clock";
@@ -43,9 +49,6 @@ function Deploy() {
       <span>
         eta:{cmd.status.phase === "in-flight" ? cmd.status.etaConfirm : "none"}
       </span>
-      {/* Satisfies the must-consume invariant: every dispatch handle needs a
-          mounted <CommandDelay>. Draws nothing here (no delay). */}
-      <CommandDelay handle={cmd} />
     </div>
   );
 }
@@ -829,8 +832,6 @@ describe("useCommand undelivered", () => {
   });
 });
 
-// ── must-consume invariant (dev): a dispatch needs usePanelDelay (the panel- rail path) or an inline <CommandDelay>, either of which consumes the token ──
-
 /**
  * `StubTransport` answers a command on a later microtask, so a test whose only
  * assertion is about the click itself returns before the response lands and the
@@ -841,57 +842,55 @@ async function settleDispatch() {
   await act(async () => {});
 }
 
-describe("useCommand must-consume invariant (dev)", () => {
-  function makeClient() {
+describe("useCommand registers every handle with the command rail", () => {
+  function makeClient(reply: unknown = { ok: true }) {
     const transport = new StubTransport();
-    transport.setCommandHandler((c, a) => ({ c, a }));
+    transport.setCommandHandler(() => reply);
     return new TelemetryClient(transport);
   }
 
-  function Unlock({ withDelay }: { withDelay: boolean }) {
-    const cmd = useCommand("career.tech.unlock");
-    return (
-      <div>
-        <button
-          type="button"
-          onClick={() => void cmd.send({ techId: "n" }).catch(() => {})}
-        >
-          unlock
-        </button>
-        {withDelay ? <CommandDelay handle={cmd} /> : null}
-      </div>
+  function Unlock({ rail }: { rail?: false }) {
+    const cmd = useCommand(
+      "career.tech.unlock",
+      rail === false ? { rail } : {},
     );
-  }
-
-  it("throws in dev when a command is dispatched without usePanelDelay or a CommandDelay", () => {
-    render(
-      <TelemetryProvider client={makeClient()}>
-        <Unlock withDelay={false} />
-      </TelemetryProvider>,
-    );
-    expect(() => {
-      fireEvent.click(screen.getByText("unlock"));
-    }).toThrow(/usePanelDelay/);
-  });
-
-  function UnlockViaPanelDelay() {
-    const cmd = useCommand("career.tech.unlock");
-    // The panel-rail path: usePanelDelay consumes the token even with no delay store in the tree (a headerless / no-Panel test), so a dispatch is allowed.
-    usePanelDelay(cmd);
     return (
-      <button
-        type="button"
-        onClick={() => void cmd.send({ techId: "n" }).catch(() => {})}
-      >
+      <button type="button" onClick={() => void cmd.send({ techId: "n" })}>
         unlock
       </button>
     );
   }
 
-  it("does not throw when usePanelDelay(cmd) is called (the panel-rail path)", async () => {
-    render(
+  /** A rail that records what it is handed, standing in for the panel's. */
+  function recordingRail() {
+    const entries = new Map<string, RailedCommand>();
+    const rail: RailRegistry = {
+      register(entry) {
+        entries.set(entry.id, entry);
+        return () => entries.delete(entry.id);
+      },
+      update(id, next) {
+        if (entries.has(id)) entries.set(id, { id, ...next });
+      },
+    };
+    return { rail, entries };
+  }
+
+  it("throws in dev when a command is dispatched with no rail mounted", () => {
+    bareRender(
       <TelemetryProvider client={makeClient()}>
-        <UnlockViaPanelDelay />
+        <Unlock />
+      </TelemetryProvider>,
+    );
+    expect(() => {
+      fireEvent.click(screen.getByText("unlock"));
+    }).toThrow(/no command rail/);
+  });
+
+  it("dispatches with no rail when the handle is kept off it", async () => {
+    bareRender(
+      <TelemetryProvider client={makeClient()}>
+        <Unlock rail={false} />
       </TelemetryProvider>,
     );
     expect(() => {
@@ -900,16 +899,39 @@ describe("useCommand must-consume invariant (dev)", () => {
     await settleDispatch();
   });
 
-  it("does not throw when <CommandDelay handle={cmd}> is mounted", async () => {
-    render(
-      <TelemetryProvider client={makeClient()}>
-        <Unlock withDelay={true} />
+  it("hands the rail each refusal, and leaves it on unmount", async () => {
+    const { rail, entries } = recordingRail();
+    const refusing = makeClient({
+      success: false,
+      errorCode: CommandErrorCode.NotClearToProceed,
+      detail: "no",
+    });
+    const { unmount } = bareRender(
+      <TelemetryProvider client={refusing}>
+        <RailRegistryContext.Provider value={rail}>
+          <Unlock />
+        </RailRegistryContext.Provider>
       </TelemetryProvider>,
     );
-    expect(() => {
-      fireEvent.click(screen.getByText("unlock"));
-    }).not.toThrow();
-    await settleDispatch();
+    expect(entries.size).toBe(1);
+    fireEvent.click(screen.getByText("unlock"));
+    await waitFor(() =>
+      expect([...entries.values()][0]?.refusals).toHaveLength(1),
+    );
+    unmount();
+    expect(entries.size).toBe(0);
+  });
+
+  it("keeps a handle passed rail: false off the rail", () => {
+    const { rail, entries } = recordingRail();
+    bareRender(
+      <TelemetryProvider client={makeClient()}>
+        <RailRegistryContext.Provider value={rail}>
+          <Unlock rail={false} />
+        </RailRegistryContext.Provider>
+      </TelemetryProvider>,
+    );
+    expect(entries.size).toBe(0);
   });
 });
 
@@ -987,7 +1009,6 @@ describe("useCommand dismiss", () => {
 describe("useCommand fire-and-forget refusals", () => {
   function VoidDeploy() {
     const cmd = useCommand("deploy");
-    usePanelDelay(cmd);
     return (
       <button
         type="button"
@@ -1042,7 +1063,6 @@ describe("useCommand refusals", () => {
     onDismiss?: (fn: (id: string) => void) => void;
   }) {
     const cmd = useCommand("career.crew.hire");
-    usePanelDelay(cmd);
     onDismiss?.(cmd.dismiss);
     return (
       <div>

@@ -23,7 +23,7 @@ import {
   Stack,
   Text,
   Unit,
-  usePanelDelay,
+  useRailEntry,
   useRowFilter,
 } from "@ksp-gonogo/ui-kit";
 import { Fragment } from "react";
@@ -92,10 +92,8 @@ function ExperimentsComponent({
   const instruments = parseInstruments(instrumentsRaw);
   const deployCmd = useCommand("science.experiment.deploy");
   const transmitCmd = useCommand("science.experiment.transmit");
-  usePanelDelay(deployCmd);
-  usePanelDelay(transmitCmd);
   const transmissions = useTransmissions();
-  usePanelDelay(transmissions);
+  useRailEntry(transmissions);
   // The result has left the craft once its last packet has, and lands one light-time later.
   const onTransmitted = (t: ScienceTransmission) =>
     transmissions.expect({

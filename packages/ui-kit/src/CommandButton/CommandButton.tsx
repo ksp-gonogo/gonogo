@@ -478,9 +478,6 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
  * is command-agnostic and settles even for a command with no observable
  * telemetry consequence. Pending is per RENDERED CONTROL, not per handle, so
  * one handle serving a list gives each row its own pending state.
- *
- * The caller calls `usePanelDelay(handle)` itself: a per-row control calling it
- * would enter one command into the rail once per row.
  */
 export function CommandButton<Result = CommandReplyLike, Args = unknown>({
   handle,

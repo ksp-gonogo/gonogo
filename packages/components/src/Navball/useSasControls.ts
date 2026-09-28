@@ -1,6 +1,6 @@
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import type { TopicPayload } from "@ksp-gonogo/sitrep-sdk";
-import { commandFailures, usePanelDelay } from "@ksp-gonogo/ui-kit";
+import { commandFailures } from "@ksp-gonogo/ui-kit";
 import { SAS_MODES, type SasMode, sasModeOrdinal } from "./sasModes";
 
 /** The SAS and RCS arm toggles and the SAS mode command, off the last confirmed control state. */
@@ -10,9 +10,6 @@ export function useSasControls(
   const sasCmd = useCommand("vessel.control.setSas");
   const rcsCmd = useCommand("vessel.control.setRcs");
   const sasModeCmd = useCommand("vessel.control.setSasMode");
-  usePanelDelay(sasCmd);
-  usePanelDelay(rcsCmd);
-  usePanelDelay(sasModeCmd);
 
   // Uncoerced: inverting an unread arm would be a blind guess, and an unread arm is not a confirmed OFF.
   const sasRaw = control?.sas;

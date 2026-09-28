@@ -7,7 +7,7 @@ import {
   useActiveHandles,
 } from "./CommandDelay/DelayRailContext";
 import type { InFlightCommandLike } from "./CommandDelay/toInFlightListItems";
-import { usePanelDelay } from "./CommandDelay/usePanelDelay";
+import { useRailEntry } from "./CommandDelay/useRailEntry";
 import { Panel } from "./Panel";
 
 // Rail axes from the production derivations, so a fixture cannot drift from them.
@@ -30,9 +30,9 @@ const HANDLE: CommandDelayHandle = {
   effectiveDelaySeconds: 5,
 };
 
-/** A command widget's body: contributes its delay handle with usePanelDelay, no explicit prop to the rail. */
+/** A widget body contributing a rail entry, no explicit prop to the rail. */
 function CommandBody() {
-  usePanelDelay(HANDLE);
+  useRailEntry(HANDLE);
   return <div>controls</div>;
 }
 
@@ -102,7 +102,7 @@ describe("the rail travels with the header", () => {
 
 describe("Panel.Delay wiring", () => {
   it("renders the delay rail as the first in-flow child of the body, above the header", () => {
-    // The delay store is provided above the Panel, so usePanelDelay in the widget body reaches it.
+    // The delay store is provided above the Panel, so an entry from the widget body reaches it.
     render(
       <DelayRailProvider>
         <Panel panelTitle="Nav">
@@ -133,7 +133,7 @@ describe("Panel.Delay wiring", () => {
     expect(Panel.Delay).toBeTypeOf("function");
   });
 
-  it("usePanelDelay + the rail read a DelayRailProvider provided above the Panel (the GridItemContent pattern)", () => {
+  it("an entry and the rail read a DelayRailProvider provided above the Panel (the GridItemContent pattern)", () => {
     function Probe() {
       const active = useActiveHandles();
       return <output data-testid="count">{active.length}</output>;

@@ -5,7 +5,6 @@ import {
   PerfBudget,
 } from "@ksp-gonogo/core";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
-import { DelayRailProvider } from "@ksp-gonogo/ui-kit";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { NavballComponent } from "./index";
@@ -13,8 +12,7 @@ import { NavballComponent } from "./index";
 /**
  * Navball's discrete commands carry no refusal line of their own: each handle
  * is registered on the panel's delay rail, which says what the game refused and
- * why. Mounted inside a `DelayRailProvider`, as the dashboard mounts every
- * widget.
+ * why. The test render mounts a rail, as the dashboard does around every widget.
  */
 
 beforeEach(() => {
@@ -38,16 +36,14 @@ function mountRefusing(instanceId: string) {
   }));
   render(
     <fixture.Provider>
-      <DelayRailProvider>
-        <DashboardItemContext.Provider value={{ instanceId }}>
-          <NavballComponent
-            config={{ controlMode: true }}
-            id={instanceId}
-            w={10}
-            h={20}
-          />
-        </DashboardItemContext.Provider>
-      </DelayRailProvider>
+      <DashboardItemContext.Provider value={{ instanceId }}>
+        <NavballComponent
+          config={{ controlMode: true }}
+          id={instanceId}
+          w={10}
+          h={20}
+        />
+      </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
   act(() => {

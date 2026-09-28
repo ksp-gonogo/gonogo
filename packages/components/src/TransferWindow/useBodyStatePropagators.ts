@@ -5,7 +5,6 @@ import {
   PropagationCertification,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { usePanelDelay } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import type { PorkchopAxes } from "./transferData";
 
@@ -79,9 +78,7 @@ export function useBodyStatePropagators(
   bodies: BodyRef[],
   axes: PorkchopAxes | null,
 ): BodyStatePropagators | null {
-  const { solve, handle } = useBodyStates();
-  // TrueNow and delay-free, but `useCommand` asserts every dispatching handle reaches the rail.
-  usePanelDelay(handle);
+  const { solve } = useBodyStates();
   const [resolved, setResolved] = useState<BodyStatePropagators | null>(null);
 
   const originIndex = origin?.index ?? null;

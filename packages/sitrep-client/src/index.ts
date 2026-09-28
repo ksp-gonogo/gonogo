@@ -441,7 +441,6 @@ export {
 } from "./use-body-states";
 export { useCertainty } from "./use-certainty";
 export {
-  type CommandOutputToken,
   META_VANTAGE,
   type UseCommandResult,
   useCommand,
