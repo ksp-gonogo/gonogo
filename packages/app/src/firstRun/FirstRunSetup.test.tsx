@@ -89,7 +89,6 @@ function makeSitrepStub(): DataSource {
     disconnect: () => {},
     schema: () => [],
     subscribe: () => () => {},
-    execute: async () => {},
     configSchema: (): ConfigField[] => [],
     getConfig: () => ({}),
     configure: () => {},

@@ -47,16 +47,12 @@ describe("setupMockDataSource", () => {
     unsub();
   });
 
-  it("forwards onExecute and affectedBySignalLoss to the mock source", async () => {
-    const onExecute = vi.fn();
+  it("forwards affectedBySignalLoss to the mock source", async () => {
     fixture = await setupMockDataSource({
       keys: KEYS,
       affectedBySignalLoss: true,
-      onExecute,
     });
     expect(fixture.source.affectedBySignalLoss).toBe(true);
-    await fixture.source.execute("f.ag1");
-    expect(onExecute).toHaveBeenCalledWith("f.ag1");
   });
 
   it("returns a usable fixture even when connect: false", async () => {

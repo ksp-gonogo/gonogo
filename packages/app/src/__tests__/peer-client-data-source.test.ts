@@ -114,14 +114,6 @@ describe("PeerClientDataSource", () => {
     expect(received).toEqual([]);
   });
 
-  it("rejects execute: a station executes nothing on the host's data sources", async () => {
-    const fake = makeFakeClient();
-    const source = new PeerClientDataSource("data", "Data", fake.service);
-    await expect(source.execute("toggleSAS")).rejects.toThrow(
-      /executes nothing/,
-    );
-  });
-
   it("queryRange delegates to client.sendQueryRange and passes all args through", async () => {
     const fake = makeFakeClient(async () => ({
       t: [100, 200],

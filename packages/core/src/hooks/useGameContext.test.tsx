@@ -20,7 +20,6 @@ function makeSource(id = "data") {
     connect: async () => {},
     disconnect: () => {},
     schema: () => [],
-    execute: async () => {},
     configSchema: () => [],
     configure: () => {},
     getConfig: () => ({}),

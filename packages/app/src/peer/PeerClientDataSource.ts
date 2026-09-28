@@ -162,12 +162,6 @@ export class PeerClientDataSource implements DataSource {
     return this.statusListeners.add(cb);
   }
 
-  async execute(action: string): Promise<void> {
-    throw new Error(
-      `PeerClientDataSource.execute: a station executes nothing on the host's data sources (got "${action}").`,
-    );
-  }
-
   /**
    * Tunnel a single call up to whatever handle the host's Uplink registered
    * for this source's id (via `registerUplinkHandle`: see

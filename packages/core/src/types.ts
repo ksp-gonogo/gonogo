@@ -87,7 +87,6 @@ export interface DataSource<
   schema(): DataKey[];
   subscribe(key: string, cb: (value: unknown) => void): () => void;
   onStatusChange(cb: (status: DataSourceStatus) => void): () => void;
-  execute(action: string): Promise<void>;
   configSchema(): ConfigField[];
   /** Always accepts Record<string,unknown> so the generic config form can call it without knowing TConfig. */
   configure(config: Record<string, unknown>): void;

@@ -19,7 +19,7 @@ import {
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -58,14 +58,12 @@ function emitReads(fixture: StreamFixture, state: EmitState): void {
 describe("NavballComponent", () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
-  let onExecute: ReturnType<typeof vi.fn<(action: string) => void>>;
   // Unmounted before buffered.disconnect(), whose status change would re-render a mounted tree outside act().
   const trees: Array<() => void> = [];
 
   beforeEach(async () => {
     clearRegistry();
-    onExecute = vi.fn<(action: string) => void>();
-    source = new MockDataSource({ keys: KEYS, onExecute });
+    source = new MockDataSource({ keys: KEYS });
     buffered = new BufferedDataSource({ source, store: new MemoryStore() });
     registerDataSource(buffered);
     await buffered.connect();

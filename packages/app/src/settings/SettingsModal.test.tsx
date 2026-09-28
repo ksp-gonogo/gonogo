@@ -124,7 +124,6 @@ function makeSitrepStub(
     disconnect: () => {},
     schema: () => [],
     subscribe: () => () => {},
-    execute: async () => {},
     configSchema: (): ConfigField[] => [
       { key: "host", label: "Host", type: "text", placeholder: "localhost" },
       { key: "port", label: "Port", type: "number", placeholder: "8090" },
@@ -152,7 +151,6 @@ function makeOtherSourceStub(id: string, name: string): DataSource {
     disconnect: () => {},
     schema: () => [],
     subscribe: () => () => {},
-    execute: async () => {},
     configSchema: () => [],
     getConfig: () => ({}),
     configure: () => {},
@@ -680,7 +678,6 @@ function makeThrottleSourceStub(initial = false): DataSource & {
     disconnect: () => {},
     schema: () => [],
     subscribe: () => () => {},
-    execute: async () => {},
     configSchema: () => [],
     getConfig: () => ({}),
     configure: () => {},

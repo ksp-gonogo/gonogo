@@ -119,7 +119,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/scripts/render-settings.ts": 1,
   "packages/app/src/__tests__/action-group.test.tsx": 1,
   "packages/app/src/__tests__/dashboard-mobile.test.tsx": 1,
-  "packages/app/src/__tests__/gonogo-host-service.test.ts": 1,
   "packages/app/src/__tests__/kos-execute-tunnel.test.ts": 1,
   "packages/app/src/__tests__/maneuver-trigger-roundtrip.test.ts": 2,
   "packages/app/src/__tests__/peer-broadcast-benchmark.test.ts": 3,

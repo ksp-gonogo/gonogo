@@ -233,9 +233,7 @@ describe("GoNoGoHostService", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     clearRegistry();
-    // The service dispatches its two commands through the stream, naming each
-    // one directly, so what a test can observe is the command that arrived at
-    // the transport rather than a `DataSource.execute` string.
+    // The service dispatches its two commands through the stream, so the test observes the command that arrived at the transport.
     dispatched = [];
     transport = new StubTransport();
     telemetryClient = new TelemetryClient(transport);

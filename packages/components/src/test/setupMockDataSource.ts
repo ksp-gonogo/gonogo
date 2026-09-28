@@ -19,8 +19,6 @@ export interface SetupMockOptions {
   id?: string;
   /** Mirror real telemetry for `BufferedDataSource`'s signal-gate behaviour. */
   affectedBySignalLoss?: boolean;
-  /** Spy/handler for `execute()` calls on the underlying source. */
-  onExecute?: (action: string) => void | Promise<void>;
   /** Connect the buffered layer before resolving. Defaults to `true`. */
   connect?: boolean;
   /**
@@ -66,7 +64,6 @@ export async function setupMockDataSource(
     id: opts.id,
     keys: opts.keys,
     affectedBySignalLoss: opts.affectedBySignalLoss,
-    onExecute: opts.onExecute,
   });
   const buffered = new BufferedDataSource({
     source,

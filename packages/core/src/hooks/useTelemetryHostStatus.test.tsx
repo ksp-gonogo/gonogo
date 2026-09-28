@@ -13,7 +13,6 @@ function makeSitrepFixture(status: DataSourceStatus): DataSource {
     disconnect: () => {},
     schema: () => [],
     subscribe: () => () => {},
-    execute: async () => {},
     configSchema: () => [],
     getConfig: () => ({}),
     configure: () => {},

@@ -278,7 +278,6 @@ describe("channel ownership, seen from two installs", () => {
       disconnect: () => {},
       schema: () => [],
       subscribe: () => () => {},
-      execute: async () => {},
       configSchema: () => [],
       getConfig: () => ({}),
       configure: () => {},

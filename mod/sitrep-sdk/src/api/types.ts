@@ -952,7 +952,6 @@ export interface DataSource<
   schema(): DataKey[];
   subscribe(key: string, cb: (value: unknown) => void): () => void;
   onStatusChange(cb: (status: DataSourceStatus) => void): () => void;
-  execute(action: string): Promise<void>;
   configSchema(): ConfigField[];
   configure(config: Record<string, unknown>): void;
   getConfig(): TConfig;

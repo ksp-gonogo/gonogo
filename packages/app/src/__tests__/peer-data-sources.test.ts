@@ -38,7 +38,6 @@ function makeRealSource(
       statusListeners.add(cb);
       return () => statusListeners.delete(cb);
     },
-    execute: vi.fn().mockResolvedValue(undefined),
     _emit(key, value) {
       subscribers.get(key)?.forEach((cb) => {
         cb(value);
@@ -217,7 +216,7 @@ describe("PeerBroadcastingDataSource", () => {
     );
   });
 
-  it("delegates id, name, status, schema, execute to the real source", async () => {
+  it("delegates id, name, status and schema to the real source", () => {
     const real = makeRealSource("my-id", ["v.altitude"]);
     const host = makeFakeHost();
     const wrapper = new PeerBroadcastingDataSource(real, host as never);
@@ -226,9 +225,6 @@ describe("PeerBroadcastingDataSource", () => {
     expect(wrapper.name).toBe("Test Source");
     expect(wrapper.status).toBe("connected");
     expect(wrapper.schema()).toEqual([{ key: "v.altitude" }]);
-
-    await wrapper.execute("toggle");
-    expect(real.execute).toHaveBeenCalledWith("toggle");
   });
 
   it("forwards queryRange to the real source when present", async () => {
@@ -334,12 +330,6 @@ describe("PeerClientDataSource", () => {
 
     expect(source.status).toBe("connected");
     expect(statuses).toEqual(["connected"]);
-  });
-
-  it("rejects execute rather than sending anything to the host", async () => {
-    await expect(source.execute("toggleSAS")).rejects.toThrow(
-      /executes nothing/,
-    );
   });
 
   it("unsubscribing stops delivery", () => {

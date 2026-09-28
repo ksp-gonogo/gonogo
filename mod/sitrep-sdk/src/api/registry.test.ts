@@ -32,7 +32,6 @@ const mockDataSource: DataSource = {
   schema: () => [],
   subscribe: () => () => {},
   onStatusChange: () => () => {},
-  execute: async () => {},
   configSchema: () => [],
   configure: () => {},
   getConfig: () => ({}),

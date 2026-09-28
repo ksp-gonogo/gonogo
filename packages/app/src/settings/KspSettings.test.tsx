@@ -32,7 +32,6 @@ function sitrep(status: DataSourceStatus): DataSource {
     disconnect: () => {},
     schema: () => [],
     subscribe: () => () => {},
-    execute: async () => {},
     configSchema: (): ConfigField[] => [],
     getConfig: () => ({}),
     configure: () => {},

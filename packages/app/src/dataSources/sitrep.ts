@@ -68,12 +68,6 @@ class SitrepStreamDataSource implements DataSource {
     return onSitrepTransportStatusChange(cb);
   }
 
-  async execute(action: string): Promise<void> {
-    throw new Error(
-      `SitrepStreamDataSource.execute: no actions exposed here (got "${action}").`,
-    );
-  }
-
   configSchema(): ConfigField[] {
     return [
       { key: "host", label: "Host", type: "text", placeholder: "localhost" },

@@ -91,7 +91,6 @@ function makeSyntheticSource(keyCount: number): DataSource & {
       statusListeners.add(cb);
       return () => statusListeners.delete(cb);
     },
-    execute: async () => {},
     configSchema: () => [],
     configure: () => {},
     getConfig: () => ({}),

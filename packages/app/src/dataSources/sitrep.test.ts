@@ -74,14 +74,6 @@ describe("SitrepStreamDataSource", () => {
     expect(() => unsub()).not.toThrow();
   });
 
-  it("execute() rejects: no actions exposed here", async () => {
-    const source = getDataSource("sitrep");
-    expect(source).toBeDefined();
-    if (!source) return;
-
-    await expect(source.execute("whatever")).rejects.toThrow();
-  });
-
   it("never leaks the 'Sitrep' codename onto user-visible copy", () => {
     expect(sitrepStreamSource.name).not.toMatch(/sitrep/i);
     expect(sitrepStreamSource.setupInstructions()).not.toMatch(/sitrep/i);

@@ -1,13 +1,9 @@
 import {
   clearActionHandlers,
-  clearRegistry,
   DashboardItemContext,
   dispatchAction,
   PerfBudget,
-  registerDataSource,
 } from "@ksp-gonogo/core";
-import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import type { JSX, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -151,51 +147,6 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
         { value: 0 },
       ),
     );
-  });
-
-  it("throttle ZERO button never falls back to legacy execute(): the axis has no legacy path left", async () => {
-    const fixture = setupStreamFixture({
-      pinnedUt: 0,
-      suspendFrames: true,
-    });
-    const commandHandler = vi.fn(() => ({ ok: true }));
-    fixture.transport.setCommandHandler(commandHandler);
-
-    clearRegistry();
-    const executed: string[] = [];
-    const legacySource = new MockDataSource({
-      onExecute: (action) => {
-        executed.push(action);
-      },
-    });
-    const buffered = new BufferedDataSource({
-      source: legacySource,
-      store: new MemoryStore(),
-    });
-    registerDataSource(buffered);
-    await buffered.connect();
-
-    const { unmount } = renderControlNavball(
-      "nav-cmd-thr-no-legacy",
-      fixture.Provider,
-    );
-
-    const button = await screen.findByRole("button", { name: "ZERO" });
-    act(() => {
-      button.click();
-    });
-
-    await waitFor(() =>
-      expect(commandHandler).toHaveBeenCalledWith(
-        "vessel.control.setThrottle",
-        { value: 0 },
-      ),
-    );
-    expect(executed).toEqual([]);
-
-    unmount();
-    buffered.disconnect();
-    clearRegistry();
   });
 
   it("each trim action dispatches its own named vessel.control.setAxes field", async () => {

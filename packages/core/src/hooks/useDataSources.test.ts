@@ -17,7 +17,6 @@ function makeMockSource(
     disconnect: () => {},
     schema: () => [],
     subscribe: () => () => {},
-    execute: async () => {},
     configSchema: () => [],
     configure: () => {},
     getConfig: () => ({}),

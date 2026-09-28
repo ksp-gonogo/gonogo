@@ -204,7 +204,6 @@ describe("PeerHostService.handleUplinkRelay (generic)", () => {
       schema: () => [],
       subscribe: () => () => {},
       onStatusChange: () => () => {},
-      execute: async () => {},
       configSchema: () => [],
       configure: () => {},
       getConfig: () => ({}),

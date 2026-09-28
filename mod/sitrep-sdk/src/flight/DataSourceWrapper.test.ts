@@ -31,9 +31,8 @@ describe("DataSourceWrapper", () => {
     expect(w.status).toBe("connected");
   });
 
-  it("forwards connect, disconnect, schema, and execute", async () => {
-    const onExecute = vi.fn();
-    const real = new MockDataSource({ keys: KEYS, onExecute });
+  it("forwards connect, disconnect and schema", async () => {
+    const real = new MockDataSource({ keys: KEYS });
     const connect = vi.spyOn(real, "connect");
     const disconnect = vi.spyOn(real, "disconnect");
 
@@ -41,9 +40,6 @@ describe("DataSourceWrapper", () => {
     await w.connect();
     expect(connect).toHaveBeenCalledTimes(1);
     expect(w.schema()).toEqual(KEYS);
-
-    await w.execute("a.do");
-    expect(onExecute).toHaveBeenCalledWith("a.do");
 
     w.disconnect();
     expect(disconnect).toHaveBeenCalledTimes(1);

@@ -95,8 +95,6 @@ export class MissionHistorySource implements DataSource {
     return () => {};
   }
 
-  async execute(_action: string): Promise<void> {}
-
   configSchema(): ConfigField[] {
     return [];
   }

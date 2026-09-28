@@ -72,10 +72,6 @@ export abstract class DataSourceWrapper<
     return this.real.setupInstructions?.() ?? null;
   }
 
-  execute(action: string): Promise<void> {
-    return this.real.execute(action);
-  }
-
   subscribe(key: string, cb: (value: unknown) => void): () => void {
     return this.real.subscribe(key, cb);
   }

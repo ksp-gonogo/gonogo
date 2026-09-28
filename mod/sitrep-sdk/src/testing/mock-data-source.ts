@@ -15,8 +15,6 @@ export interface MockDataSourceOptions {
    * skipped.
    */
   affectedBySignalLoss?: boolean;
-  /** Optional spy / handler for `execute()` calls. */
-  onExecute?: (action: string) => void | Promise<void>;
 }
 
 /**
@@ -37,14 +35,12 @@ export class MockDataSource implements DataSource {
   private readonly subs = new Map<string, Set<(v: unknown) => void>>();
   private readonly statusSubs = new Set<(s: DataSourceStatus) => void>();
   private readonly keys: DataKey[];
-  private readonly onExecute?: (action: string) => void | Promise<void>;
 
   constructor(options: MockDataSourceOptions = {}) {
     this.id = options.id ?? "mock";
     this.name = options.name ?? "Mock";
     this.keys = options.keys ?? [];
     this.affectedBySignalLoss = options.affectedBySignalLoss;
-    this.onExecute = options.onExecute;
   }
 
   async connect(): Promise<void> {
@@ -82,10 +78,6 @@ export class MockDataSource implements DataSource {
     return () => {
       this.statusSubs.delete(cb);
     };
-  }
-
-  async execute(action: string): Promise<void> {
-    if (this.onExecute) await this.onExecute(action);
   }
 
   configSchema(): ConfigField[] {
