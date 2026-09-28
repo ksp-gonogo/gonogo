@@ -273,7 +273,6 @@ export const CS_CAPABILITY_ELECTION_PATTERNS: readonly string[] = [
  * is therefore a fresh violation, not seed residue.
  */
 export const DOC_DEBT: Record<string, Partial<Record<Tier, number>>> = {
-  "mod/sitrep-sdk/src/api/index.ts": { T1a: 1 },
   "mod/sitrep-sdk/src/api/logger.ts": { T1a: 1 },
   "mod/sitrep-sdk/src/flight/fixtureIO.ts": { T1a: 1 },
   "mod/sitrep-sdk/src/media/shared-delayed-streams.ts": { T1a: 2 },

@@ -283,11 +283,7 @@ describe("sitrep-sdk author-facing barrel: shape gate", () => {
     installTestHost({ useTelemetry });
 
     expect(barrel.useTelemetry("kos.compute.x" as never)).toBe(42);
-    // The shim forwards both args through in a single unconditional call
-    // (see mod/sitrep-sdk/src/api/index.ts's useTelemetry doc) rather than
-    // branching on `key` before calling the host, so a one-arg canonical
-    // call still reaches the host as a two-arg call with `key` undefined.
-    expect(useTelemetry).toHaveBeenCalledWith("kos.compute.x", undefined);
+    expect(useTelemetry).toHaveBeenCalledWith("kos.compute.x");
   });
 
   it("exposes the global key the app populates at boot", () => {

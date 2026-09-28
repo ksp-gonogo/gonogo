@@ -111,10 +111,6 @@ const VIEW_UT = 1_000;
  * state is driven the way the app drives it: `vessel.identity` sampled off an
  * ingested frame, its `launchUt` measured against the view clock `VIEW_UT`
  * registers and its `situation` saying whether the craft is on the pad.
- *
- * There is deliberately no `DataSource` behind this. The service's legacy
- * fallback asks for the id `"data"`, and the app registers no source under
- * that id, so a fake one here would exercise a branch the app cannot reach.
  */
 class FakeTimelineStore {
   private met: number | null = null;

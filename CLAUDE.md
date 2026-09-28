@@ -144,7 +144,7 @@ The foundation for everything extensible:
   ```
 - **`useTelemetry(topic)`** is the universal read hook. It lives in `@ksp-gonogo/sitrep-sdk/spine` and `@ksp-gonogo/core` re-exports it, so both import sites work. Keyed by a typed `TopicId`, it returns that Topic's `Reading`, not a bare payload: reaching a value requires branching on how current it is, which is the whole point of the type. Components never call `getDataSource()` or any `DataSource` method directly.
   - **There is no `useDataValue`.** It was the historical name and it is gone: no definition, no export, no call site. `import { useDataValue } from "@ksp-gonogo/core"` is a compile error (TS2305). Roughly sixty comments across the tree still mention it, correctly, as "the retired `useDataValue` shim"; that is history, not a live API. Any doc telling you to call it is stale.
-  - A two-arg legacy form, `useTelemetry(dataSourceId, key)`, is what survives of that shim for reaching a non-Sitrep `DataSource` (kOS, camera, serial). It is a **compile error** through `@ksp-gonogo/sitrep-sdk/spine`, every production caller having migrated, and is declared only on the SDK's published root barrel for an Uplink reading a legacy flat key. It goes away with the shim at M4; do not write new code against it.
+  - It takes one argument, the `TopicId`, and nothing else. There is no `(dataSourceId, key)` form on any surface, published or internal; `styleguide-no-two-arg-telemetry.test.ts` fails if one comes back. A per-subject dynamic Topic with no `TopicId` member (`scansat.coverage.<body>.<type>`, `vessel.partActions.<flightId>`) is read with `useStream(topic)`, and a non-Sitrep source (kOS, kerbcast) through its own handle.
   - There is no write twin: `useExecuteAction` was deleted once its last two callers migrated (a ratchet in `packages/core/src/styleguide-delay-ux.test.ts` keeps it deleted), and every command goes through the delay-aware `useCommand(topic)`.
 
 ### `@ksp-gonogo/components`
@@ -160,7 +160,7 @@ Components are styled with **styled-components**. Component names and styled sub
 The Vite SPA. Key responsibilities:
 
 - **Dashboard orchestrator**: a layout engine built on [React Grid Layout](https://github.com/react-grid-layout/react-grid-layout) (`ResponsiveGridLayout`) that reads the current layout config and renders registered components by ID. It does not hardcode any component, it only knows about the registry. Positions are stored in **grid units** (column/row spans), not pixels, so layouts are resolution-independent. The serialised layout format stores a per-breakpoint map (`lg`, `md`, `sm`, etc.) so the grid reflows across screen sizes. Per-instance component config is stored alongside the layout.
-- **Sitrep telemetry client**: `SitrepTelemetryProvider` mounts a live `WebSocketTransport` to the Gonogo mod (see the Data Flow section above). Components declare the Topics they mount on the same as before; `useTelemetry` routes mapped, carried topics through the stream automatically.
+- **Sitrep telemetry client**: `SitrepTelemetryProvider` mounts a live `WebSocketTransport` to the Gonogo mod (see the Data Flow section above). Components declare the Topics they mount on the same as before; `useTelemetry` reads them off the stream.
 - **kOS integration** lives entirely in the kOS Uplink, `uplinks/kos/` in the gonogo-uplinks repository, not here, and rides the Sitrep stream: `KosDataSource.executeScript` dispatches over the `kos.run` Uplink command and correlates the `kos.run.<coreId>` result; CPU discovery comes off the `kos.processors` channel (`KosCpuDiscovery` stands up the standing subscription; `onProcessorsChanged` feeds the CPU registry). If no stream is mounted, kOS features degrade gracefully.
 - **PeerJS integration**: the main screen acts as the peer host. Stations connect as peers. The main screen distributes a serialised snapshot of data to all peers; stations can also send state back (e.g. GO/NO-GO votes).
 - **Station config**: localStorage-first. Stations can request a config from the main screen over PeerJS; the main screen can push saved configs to connecting stations.
@@ -232,7 +232,7 @@ kOS lives entirely in its own Uplink, `uplinks/kos/` in the gonogo-uplinks repos
 
 **There is no centralised kOS script registry.** `registerKosScript` / `getKosScripts`, the `shared/scriptRegistry.ts` that held them, and the `KosComputeManager` that fanned their output out as `kos.compute.<id>.<field>` keys were deleted as dead code once the feed-style widgets that were their only consumers were removed. The shared UI-authoring chrome went with them: `KosScriptFrame`, `KosCpuPicker`, the kos-cpu-registry chrome provider, `useKosScriptPayload` and `useKosScriptStatus` are all gone. So are the widgets themselves (`KosProcessors`, `KosFiles`, `KosScriptRunner`, `KosWidget`, `KosWrapperTester`). If you find a recipe anywhere that calls `registerKosScript`, it cannot be followed.
 
-The `kos.compute.<id>.<field>` namespace is still identity-mapped in `map-topic.ts` against a future compute-feed slice, but nothing produces values on it today. Reading one gets you `undefined` forever.
+Nothing produces values on the old `kos.compute.<id>.<field>` namespace and `map-topic.ts` no longer routes it; a compute feed would be a new slice.
 
 ### What actually exists
 

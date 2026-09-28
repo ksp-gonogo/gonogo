@@ -7,10 +7,8 @@
  * `unitsForTopic`/`shapesForTopic`, so a Topic an Uplink or a derived channel
  * registered at module load resolves alongside a first-party one.
  *
- * `mapTopic` survives for `sourceId === "kos"` alone. The mod publishes native
- * `kos.processors` push telemetry plus the dynamic `kos.compute.<id>.<field>`
- * namespace, so those Topics genuinely exist on the wire and the widget-facing
- * key IS the wire topic. Every other source is deliberately NOT routed: mapping
+ * `mapTopic` vouches for a key in a DYNAMIC namespace, which no generated
+ * metadata can enumerate. Every other key is deliberately NOT routed: mapping
  * one would point a read at a Topic nothing publishes.
  */
 
@@ -22,17 +20,6 @@ import {
   unitsForTopic,
   unitsForType,
 } from "../units";
-
-/**
- * `kos.compute.<id>.<field>`: the dynamic centralised-compute namespace.
- * Identity-mapped so a future compute-feed slice reads straight off the
- * stream; `.status` sub-topics and `.dispatchNow`/`.reEnable` command keys
- * are deliberately excluded (status has no producer on this table; commands
- * never route through `useDataValue`).
- */
-const KOS_COMPUTE_FIELD = /^kos\.compute\.[\w-]+\.[\w-]+$/;
-const KOS_COMPUTE_NON_VALUE =
-  /^kos\.compute\.[\w-]+\.(status|dispatchNow|reEnable)$/;
 
 /**
  * `scansat.coverage.<body>.<type>` / `scansat.mask.<body>.<type>` /
@@ -59,21 +46,11 @@ const PART_ACTIONS_DYNAMIC = /^vessel\.partActions\.\d+$/;
  * nothing left to translate. A dynamic key needs no translation and cannot be
  * enumerated, so a pattern is the only thing that can vouch for it.
  *
- * `undefined` for a kOS key that names no value: a `.status` sub-topic has no
- * producer here, and `.dispatchNow` / `.reEnable` are commands, which never
- * resolve through a read.
  */
 export function mapTopic(
   dataSourceId: string,
   key: string,
 ): string | undefined {
-  if (dataSourceId === "kos") {
-    if (key === "kos.processors") return "kos.processors";
-    if (KOS_COMPUTE_NON_VALUE.test(key)) return undefined;
-    if (KOS_COMPUTE_FIELD.test(key)) return key;
-    return undefined;
-  }
-
   if (dataSourceId !== "data") return undefined;
   if (SCANSAT_DYNAMIC.test(key)) return key;
   if (PART_ACTIONS_DYNAMIC.test(key)) return key;
@@ -182,18 +159,14 @@ export function isKnownFieldPath(path: string): boolean {
 }
 
 /**
- * The Topic a picked key reads from, for the two vocabularies that currently
- * coexist.
+ * The Topic a picked key reads from. A key in a dynamic namespace is vouched
+ * for by {@link mapTopic}; a field path IS the path it reads, so it needs no
+ * translation and only needs vouching for: the picker offers paths the contract
+ * declares, and a path it does not declare resolves to nothing rather than to a
+ * subscription no channel serves.
  *
- * A key from the retiring flat vocabulary goes through the migration table
- * above. A key from the field-path vocabulary IS the path it reads, so it needs
- * no translation and only needs vouching for: the picker offers paths the
- * contract declares, and a path it does not declare resolves to nothing rather
- * than to a subscription no channel serves.
- *
- * Both arms are here so that the two readers of a picked key (the threshold
- * evaluators and the note-tag resolver) agree on what a key means. When the flat
- * vocabulary goes, the first arm goes with it and this becomes the vouch alone.
+ * One function so that the readers of a picked key (the threshold evaluators
+ * and the note-tag resolver) agree on what a key means.
  */
 export function resolveValueTopic(
   dataSourceId: string,

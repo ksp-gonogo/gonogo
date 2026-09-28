@@ -1,5 +1,4 @@
 import {
-  mapTopic,
   type StreamStatusValue,
   useTelemetryStoreOptional,
   worstStatus,
@@ -59,16 +58,7 @@ export function useWidgetStreamStatus(
   def: WidgetTopicDeclaration | undefined,
 ): StreamStatusValue | null {
   const store = useTelemetryStoreOptional();
-  const topics = useMemo(() => {
-    /*
-     * Same resolution `alarmMatchesWidget` uses, and for the same reason: a
-     * widget part-way through the migration declares some channels in the
-     * typed vocabulary and keeps the rest as legacy keys.
-     */
-    return widgetDeclaredTopics(def).map(
-      (requirement) => mapTopic("data", requirement) ?? requirement,
-    );
-  }, [def]);
+  const topics = useMemo(() => widgetDeclaredTopics(def), [def]);
 
   const subscribe = useCallback(
     (onStoreChange: () => void) =>

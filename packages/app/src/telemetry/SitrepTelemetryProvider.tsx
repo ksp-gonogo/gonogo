@@ -156,9 +156,8 @@ export interface SitrepTelemetryProviderProps {
  * defaults. Editing the panel's Host/Port fields reconnects the live
  * transport immediately: no rebuild, no restart.
  *
- * The `useDataValue` shim (`@ksp-gonogo/core`) automatically routes any
- * MAPPED + CARRIED topic through the streaming pipeline with zero widget
- * changes. Mounted on both screens: the main screen builds its own
+ * Every `useTelemetry` read below it comes off this stream. Mounted on both
+ * screens: the main screen builds its own
  * `WebSocketTransport` here (the default, unset-`transport` path below);
  * the station screen injects a `PeerTransport`
  * (`packages/app/src/telemetry/PeerTransport.ts`) fed by `SitrepPeerRelay`'s

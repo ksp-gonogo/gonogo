@@ -8,7 +8,6 @@ import {
   classifyDeadRead,
   DEAD_READ_SETTLE_MS,
   isTopicCarried,
-  mapTopic,
   subscribeTopicRead,
   useCarriedChannelsOptional,
   useTelemetryClientOptional,
@@ -205,15 +204,13 @@ function plotValue(payload: unknown): unknown {
  * place for cheap appends, then a shallow `{ t, v }` wrapper is built at
  * snapshot time.
  *
- * **The M3 stream shim (last M3 read-side unlock).** Mirrors `@ksp-gonogo/core`'s
- * `useDataValue` shim exactly one level up, for the plotted/sparkline series
- * `GraphView`-based widgets read (`GraphSeries`, `SemiMajorAxis`, `Twr`,
- * `PowerSystems`, `KeplerPeriod`, `OrbitalAscent`, `EscapeProfile`). Same
- * `mapTopic(sourceId, key)` migration table, same carried-channels allowlist
- * gate (`isTopicCarried`): see `use-telemetry.ts`'s doc comment for the full
- * "why" on both; not reproduced here.
+ * **The stream shim.** The plotted/sparkline series `GraphView`-based widgets
+ * read (`GraphSeries`, `SemiMajorAxis`, `Twr`, `PowerSystems`, `KeplerPeriod`,
+ * `OrbitalAscent`, `EscapeProfile`) come off the stream when the key's topic is
+ * on the carried-channels allowlist (`isTopicCarried`), and off a registered
+ * `DataSource` under `sourceId` otherwise.
  *
- * The one thing genuinely different from `useDataValue`: a DERIVED topic
+ * A DERIVED topic
  * (`system.state.*`) has a live per-frame VALUE (`sample()`) but no stored
  * HISTORY: nothing ever buffers a range of computed values, only the raw
  * inputs it's computed from. `TimelineStore.sampleRange` returns `undefined`
@@ -241,7 +238,7 @@ function plotValue(payload: unknown): unknown {
  *
  * The window's upper bound is `store.currentFrame().viewUt`, the SAME
  * frozen view-time every other read in the frame uses (`useStream`'s
- * `getSnapshot`, `useDataValue`'s streamed branch). `viewUt() ===
+ * `getSnapshot`, `useTelemetry`'s). `viewUt() ===
  * confirmedEdgeUt()` while live (`ViewClock`'s
  * own doc), so this naturally reads only CONFIRMED data, consistent with the
  * SDK's delay handling: a value at a `validAt` beyond the confirmed edge
@@ -249,9 +246,8 @@ function plotValue(payload: unknown): unknown {
  * retroactively appear in the plotted history.
  *
  * Both the legacy subscription and the streamed subscription are always
- * wired up (stable hook order, same reasoning as `useDataValue`); only one
- * of the two snapshots is actually returned. Deleted at M4 alongside
- * `useDataValue`'s shim.
+ * wired up, for a stable hook order; only one of the two snapshots is
+ * actually returned.
  */
 export function useDataSeries(
   sourceId: "data",
@@ -359,8 +355,8 @@ export function useDataSeries(
   );
 
   // The shim: subscribed whenever a `TelemetryProvider` is mounted, with the
-  // carried-channels gate deciding which of the two SERIES is returned, same
-  // as `useTelemetry`'s streamed branch (`isTopicCarried`/`mapTopic`).
+  // carried-channels gate (`isTopicCarried`) deciding which of the two SERIES
+  // is returned.
   //
   // The gate picks between two live reads; it is not permission to reach the
   // stream: the subscription is unconditional, and the legacy series gets
@@ -368,15 +364,8 @@ export function useDataSeries(
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
   const carriedChannels = useCarriedChannelsOptional();
-  // `mapTopic` translates one spelling of a key and has nothing to say about
-  // the canonical one, so translating first would leave a canonical path
-  // (`vessel.orbit.sma`, what most widgets plot) resolving to `undefined` and
-  // falling through to the `"data"` `DataSource` that nothing registers in
-  // production: an empty plot, forever, with nothing failing. Passing the key
-  // through unchanged lets `isTopicCarried` answer for both spellings; a key
-  // that is neither still resolves to nothing and takes the fallback path
-  // below.
-  const topic = mapTopic(sourceId, key) ?? key;
+  // The key is the topic: a field path or a dynamic-namespace key, which `isTopicCarried` resolves as it stands.
+  const topic = key;
   const carried =
     store !== undefined &&
     carriedChannels !== undefined &&
@@ -667,7 +656,7 @@ export function useDataSeries(
   // sees the change and cancels.
   //
   // The candidate gate deliberately resolves no topic of its own. This hook's
-  // `topic` is `mapTopic(...) ?? key` and so is never `undefined`, which cannot
+  // `topic` is the key itself and so is never `undefined`, which cannot
   // answer "does this key name a channel at all", and resolving it a second way
   // here would be a second spelling of the rule the classifier already owns.
   // `!routable` is conservative instead: a routable read reached a carried
@@ -687,7 +676,7 @@ export function useDataSeries(
     if (!deadCandidate) return;
     const timer = setTimeout(() => {
       if (everObserved.current) return;
-      const cause = classifyDeadRead(sourceId, key, streamMounted, true);
+      const cause = classifyDeadRead(sourceId, key, streamMounted);
       if (cause) warnDeadRead("useDataSeries", sourceId, key, cause);
     }, DEAD_READ_SETTLE_MS);
     return () => clearTimeout(timer);

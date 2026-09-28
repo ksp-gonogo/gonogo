@@ -20,9 +20,9 @@ import {
  * every other source gets, no bespoke settings UI needed.
  *
  * IMPORTANT: this is a status/config front, not a data path. Sitrep topics
- * never route through this source's `subscribe()`: `useDataValue`'s
- * carried-channels gate reads straight from the `TelemetryClient` context
- * `SitrepTelemetryProvider` mounts on the main screen. That provider owns
+ * never route through this source's `subscribe()`: `useTelemetry` reads
+ * straight from the `TelemetryClient` context `SitrepTelemetryProvider`
+ * mounts on the main screen. That provider owns
  * and builds the actual live `WebSocketTransport`; this class only mirrors
  * its status (via `sitrepRuntime.ts`) and lets the panel change/persist its
  * host + port.

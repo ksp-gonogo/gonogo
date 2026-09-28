@@ -108,14 +108,7 @@ export function installRealTestHost(uiKit: UiKitHostPieces): () => void {
     clearAugments: uiKit.clearAugments,
     AugmentSlot: uiKit.AugmentSlot as GonogoHost["AugmentSlot"],
 
-    // A single unconditional forward of both args, never a conditional call to
-    // two different hook invocations: `useTelemetry` already branches internally
-    // on whether `key` is present while keeping every hook call unconditional.
-    useTelemetry: ((dataSourceIdOrTopic: string, key?: string) =>
-      (useTelemetry as (a: string, b?: string) => unknown)(
-        dataSourceIdOrTopic,
-        key,
-      )) as GonogoHost["useTelemetry"],
+    useTelemetry: useTelemetry as GonogoHost["useTelemetry"],
     useViewUt: () => useViewUt(),
     useCommand: ((command: string, options?: { vantage?: string }) =>
       useCommand(command, options)) as GonogoHost["useCommand"],

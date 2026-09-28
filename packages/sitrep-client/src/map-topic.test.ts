@@ -89,34 +89,9 @@ describe("mapTopic(sourceId, key): the surviving dynamic-namespace routing", () 
     });
   });
 
-  describe("kos source: native + compute stream routing", () => {
-    it("maps the static kos.processors push channel to itself", () => {
-      expect(mapTopic("kos", "kos.processors")).toBe("kos.processors");
-    });
-
-    it("identity-maps the dynamic kos.compute.<id>.<field> namespace", () => {
-      expect(mapTopic("kos", "kos.compute.foo.bar")).toBe(
-        "kos.compute.foo.bar",
-      );
-      expect(mapTopic("kos", "kos.compute.ship-map.parts")).toBe(
-        "kos.compute.ship-map.parts",
-      );
-    });
-
-    it("does NOT route status sub-topics or command keys through a read", () => {
-      expect(mapTopic("kos", "kos.compute.foo.status")).toBeUndefined();
-      expect(mapTopic("kos", "kos.compute.foo.dispatchNow")).toBeUndefined();
-      expect(mapTopic("kos", "kos.compute.foo.reEnable")).toBeUndefined();
-    });
-
-    it("returns undefined for an unrelated kos key with no stream home", () => {
-      expect(mapTopic("kos", "kos.something.else")).toBeUndefined();
-      expect(mapTopic("kos", "kos.compute.foo")).toBeUndefined();
-    });
-  });
-
   it("returns undefined for sources not wired to the stream", () => {
     expect(mapTopic("kerbcast", "kerbcast.cameras")).toBeUndefined();
+    expect(mapTopic("kos", "kos.compute.foo.bar")).toBeUndefined();
     expect(mapTopic("unknown-source", "anything")).toBeUndefined();
   });
 

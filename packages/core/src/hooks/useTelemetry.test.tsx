@@ -15,46 +15,8 @@ import {
 } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { beforeEach, describe, expect, it } from "vitest";
-import { clearRegistry, registerDataSource } from "../registry";
-import { useLegacyTelemetry } from "../test/legacyTelemetry";
-import type { DataSource, DataSourceStatus } from "../types";
+import { clearRegistry } from "../registry";
 import { useTelemetry } from "./useTelemetry";
-
-// Minimal in-memory legacy DataSource: same shape as useTelemetry.legacy-datasource.test.ts.
-function makeSource(id = "data") {
-  const dataListeners = new Map<string, Set<(v: unknown) => void>>();
-  const statusListeners = new Set<(s: DataSourceStatus) => void>();
-
-  const source: DataSource & {
-    emit: (key: string, value: unknown) => void;
-  } = {
-    id,
-    name: id,
-    status: "connected" as DataSourceStatus,
-    connect: async () => {},
-    disconnect: () => {},
-    schema: () => [],
-    execute: async () => {},
-    configSchema: () => [],
-    configure: () => {},
-    getConfig: () => ({}),
-    subscribe(key, cb) {
-      if (!dataListeners.has(key)) dataListeners.set(key, new Set());
-      dataListeners.get(key)?.add(cb);
-      return () => dataListeners.get(key)?.delete(cb);
-    },
-    onStatusChange(cb) {
-      statusListeners.add(cb);
-      return () => statusListeners.delete(cb);
-    },
-    emit(key, value) {
-      dataListeners.get(key)?.forEach((cb) => {
-        cb(value);
-      });
-    },
-  };
-  return source;
-}
 
 const ORBIT: WireOf<VesselOrbitPayload> = {
   referenceBodyIndex: 1,
@@ -117,20 +79,5 @@ describe("useTelemetry: canonical TopicId read", () => {
       state: "pending",
       reckoning: { status: "none" },
     });
-  });
-});
-
-describe("useTelemetry: legacy two-arg overload preserved", () => {
-  it("still reads from a registered DataSource when given (dataSourceId, key)", () => {
-    const source = makeSource();
-    registerDataSource(source);
-
-    const { result } = renderHook(() =>
-      useLegacyTelemetry("data", "career.funds"),
-    );
-
-    expect(result.current).toBeUndefined();
-    act(() => source.emit("career.funds", 289_848));
-    expect(result.current).toBe(289_848);
   });
 });

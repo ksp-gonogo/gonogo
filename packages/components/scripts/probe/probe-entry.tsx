@@ -157,14 +157,11 @@ function resolveStreamBlock(
 }
 
 /**
- * Fixtures authored before the `t.universalTime` client migration
- * (`useTelemetry("data", "t.universalTime")` -> `useViewUt()`) still carry a
- * `"t.universalTime"` key: harmless to leave (a migrated widget just
- * ignores the emit), but `useViewUt()` needs a mounted `TelemetryProvider`
- * to resolve to anything at all. Pin one from the fixture's own value so a
- * probe render matches what the same fixture produced off the legacy
- * `DataSource`: no per-widget probe config needed. Fixtures with no such
- * key are unaffected (`undefined`, no `TelemetryProvider` mounted).
+ * A fixture's `"t.universalTime"` key is the view instant a widget reads
+ * through `useViewUt()`, which needs a mounted `TelemetryProvider` to resolve
+ * to anything at all. Pin one from the fixture's own value so no per-widget
+ * probe config is needed. Fixtures with no such key are unaffected
+ * (`undefined`, no `TelemetryProvider` mounted).
  */
 function resolvePinnedUt(fixture: Record<string, unknown>): number | undefined {
   const raw = fixture["t.universalTime"];

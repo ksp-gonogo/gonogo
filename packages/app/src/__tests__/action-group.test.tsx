@@ -24,13 +24,11 @@ function withItemContext(instanceId: string, children: ReactNode) {
 }
 
 /**
- * ActionGroup's READ path is the canonical `vessel.control` stream now, its
- * legacy `useTelemetry("data", group.value)` shim is gone, so these
+ * ActionGroup's READ path is the canonical `vessel.control` stream, so these
  * integration tests drive the group's state through a real
  * `TelemetryProvider` + `TimelineStore` pipeline.
  *
- * The WRITE path is migrated too (command-surface-delay-audit): the toggle
- * fires `useCommand`, which dispatches straight through `TelemetryClient` to
+ * The WRITE path: the toggle fires `useCommand`, which dispatches straight through `TelemetryClient` to
  * the transport, so `stream.transport.sentCommands` is the write-path
  * assertion point.
  */

@@ -149,8 +149,7 @@ export interface Transport {
    * `./carried-channels.ts`).
    * `TelemetryClient.declaredChannels` reads this straight through;
    * `TelemetryProvider` unions it with its own explicit `carriedChannels`
-   * promotion-list prop to build the allowlist `useDataValue`'s shim
-   * consults before ever routing a mapped topic to the stream.
+   * promotion-list prop to build the carried-channels allowlist.
    *
    * Omitted (`undefined`) means "this transport doesn't declare", e.g.
    * `StubTransport`, which is test-scriptable and can `emit` on any topic a

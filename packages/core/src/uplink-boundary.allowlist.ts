@@ -305,25 +305,9 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     ],
     permanent: [
       /*
-       * The comment-stack ratchet's own inventory: a path-keyed debt list over
-       * every hand-written JS/TS file in the repo, so it names this Uplink's paths
-       * by construction and there is nowhere else for it to live. Permanent for
-       * the reason the other tokens record: a gate placed inside an Uplink is one
-       * a third-party author could not run.
-       */
-      "packages/core/src/comment-stacks.allowlist.ts",
-      /*
-       * The stale-reference ratchet's own inventory: debt keyed by the path of
-       * the file carrying a comment, so it names this Uplink's paths by
-       * construction. A gate placed inside an Uplink is one a third-party
-       * author could not run.
-       */
-      "packages/core/src/stale-references.allowlist.ts",
-      /*
        * -- DYNAMIC-NAMESPACE ROUTING: `mapTopic` identity-maps the
-       * per-body scansat namespaces and the kOS compute namespace, because both
-       * materialise their Topics per subject at runtime and so appear in no
-       * generated list. A pattern is the only thing that can vouch for such a
+       * per-body scansat namespaces, which materialise their Topics per
+       * subject at runtime and so appear in no generated list. A pattern is the only thing that can vouch for such a
        * key, and the pattern has to live where the routing does. Permanent: a
        * dynamic namespace can never be enumerated into the SDK's generated map.
        */
@@ -513,15 +497,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/sitrep-sdk/src/__generated__/contract.ts",
       /*
-       * -- DYNAMIC-NAMESPACE ROUTING: `mapTopic` identity-maps the
-       * per-body scansat namespaces and the kOS compute namespace, because both
-       * materialise their Topics per subject at runtime and so appear in no
-       * generated list. A pattern is the only thing that can vouch for such a
-       * key, and the pattern has to live where the routing does. Permanent: a
-       * dynamic namespace can never be enumerated into the SDK's generated map.
-       */
-      "mod/sitrep-sdk/src/spine/map-topic.ts",
-      /*
        * -- CATALOGUE ABSENCE INVENTORY: the pinned list of carried
        * Topics the topic-field catalogue can describe nothing about names each
        * Uplink Topic that has none, so a Topic arriving unannotated is a test
@@ -578,10 +553,9 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/app/src/__tests__/topic-cs-sync.test.ts",
       /*
-       * mod/sitrep-sdk/src/api/api-shape.gate.test.ts stays: it uses "kos" as
-       * an example dataSourceId in a generic `useTelemetry("kos", "k")`
-       * assertion, unrelated to the (since-removed) registerKosScript/SPI
-       * mirrors this file used to also guard.
+       * mod/sitrep-sdk/src/api/api-shape.gate.test.ts stays: it uses
+       * `kos.compute.x` as an example topic in a generic `useTelemetry`
+       * forwarding assertion, with no kOS coupling.
        */
       "mod/sitrep-sdk/src/api/api-shape.gate.test.ts",
       /*
@@ -1955,7 +1929,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/sitrep-sdk/src/api/api-shape.gate.test.ts",
     "mod/sitrep-sdk/src/command-delay.test.ts",
     "mod/sitrep-sdk/src/default-carried-topics.ts",
-    "mod/sitrep-sdk/src/spine/map-topic.ts",
     "mod/sitrep-sdk/src/topics.test.ts",
     "packages/app/src/__tests__/kos-execute-tunnel.test.ts",
     "packages/app/src/__tests__/sitrep-command-label-topic-tunnel.test.ts",
@@ -1977,10 +1950,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/sitrep-sdk/src/spine/map-topic.ts",
     "packages/app/src/__tests__/scansat-coverage-roundtrip.test.tsx",
     "packages/app/src/uplinks/loader.test.ts",
-    "packages/core/src/comment-stacks.allowlist.ts",
-    // A debt-list KEY: the path of a file whose comment cites a path the tree
-    // does not have. A path in an inventory, not code.
-    "packages/core/src/stale-references.allowlist.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
     "packages/data/src/schema/topicFieldCatalog.test.ts",
     "packages/sitrep-client/src/map-topic.test.ts",

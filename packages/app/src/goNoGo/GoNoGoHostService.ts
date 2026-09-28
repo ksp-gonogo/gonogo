@@ -5,7 +5,7 @@
  *   - which peers are connected
  *   - each peer's self-reported station name
  *   - each peer's current vote (go / no-go / null = no widget mounted)
- *   - launch state (derived from v.missionTime crossing 0)
+ *   - launch state (derived from the mission elapsed time crossing 0)
  *   - countdown lifecycle when all peers vote go
  *   - abort trigger + attribution when a station pushes the button post-launch
  *
@@ -13,9 +13,6 @@
  * the React UI can render via useSyncExternalStore / useState+useEffect.
  */
 
-import type { DataSource } from "@ksp-gonogo/core";
-import { getDataSource } from "@ksp-gonogo/core";
-import { logger } from "@ksp-gonogo/logger";
 import {
   dispatchActiveCommandTopic,
   getVesselIdentity,
@@ -90,14 +87,8 @@ export class GoNoGoHostService {
   private config: GoNoGoConfig = { ...DEFAULT_GONOGO_CONFIG };
   private listeners = new Set<Listener>();
   private unsubs: Array<() => void> = [];
-  private dataSource: DataSource | undefined;
 
-  constructor(
-    private host: PeerHostService,
-    dataSourceId: string = "data",
-  ) {
-    this.dataSource = getDataSource(dataSourceId);
-
+  constructor(private host: PeerHostService) {
     this.unsubs.push(
       host.onPeerConnect((peerId) => {
         this.connectedPeers.add(peerId);
@@ -185,14 +176,7 @@ export class GoNoGoHostService {
       }),
     );
 
-    // Launch state: prefers the stream, via `onActiveTimelineFrame`, a
-    // plain-class non-hook subscription (`@ksp-gonogo/sitrep-client`) that
-    // re-runs on every ingested frame. The legacy
-    // `this.dataSource.subscribe("v.missionTime", ...)` stays wired as the
-    // fallback for whenever no `TelemetryProvider` is mounted yet or the
-    // stream has not produced a liftoff instant, the same "carried -> stream,
-    // else legacy" shape the hooks apply, just without a React tree to read
-    // from (`missionElapsed()` already answers `null` in exactly those cases).
+    // Launch state comes off the stream, via `onActiveTimelineFrame`, which re-runs on every ingested frame.
     this.unsubs.push(
       onActiveTimelineFrame(() => {
         // A craft on the pad has no launch clock, so `met` is null there rather
@@ -206,24 +190,9 @@ export class GoNoGoHostService {
         if (met != null) this.handleMissionTime(met);
       }),
     );
-
-    if (this.dataSource) {
-      this.unsubs.push(
-        this.dataSource.subscribe("v.missionTime", (value) => {
-          // Ignore the legacy echo once the stream is already answering: the read above wins whenever it is live.
-          if (missionElapsed() != null) return;
-          const mt = typeof value === "number" ? value : 0;
-          this.handleMissionTime(mt);
-        }),
-      );
-    } else {
-      logger.warn(
-        `[GoNoGoHostService] no '${dataSourceId}' data source: launch/abort legacy fallback disabled`,
-      );
-    }
   }
 
-  /** Shared launch-state transition for both the stream and legacy `v.missionTime` reads. */
+  /** The launch-state transition for one mission elapsed time. */
   private handleMissionTime(missionTime: number): void {
     const wasLaunched = this.launched;
     this.launched = missionTime > 0;

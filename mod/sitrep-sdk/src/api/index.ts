@@ -474,8 +474,9 @@ export {
 // --- Hook shims (stateful → injected host) ----------------------------------
 
 /**
- * Canonical overload: keyed by TopicId, answers with a `Reading` of the Topic's
- * payload.
+ * Keyed by TopicId, answers with a `Reading` of the Topic's payload. A Topic
+ * with no `TopicId` member (a per-subject dynamic namespace such as
+ * `vessel.partActions.<flightId>`) is read with {@link useStream} instead.
  *
  * The declared return MUST stay a `Reading`, because that is what the host's
  * implementation this forwards to returns. Declaring `TopicPayload<T> |
@@ -502,38 +503,8 @@ export function useTelemetry<T extends TopicId>(
       TopicPayload<T>,
       ReckonableFields<T> & keyof TopicPayload<T>
     >
-  : TopicReading<TopicPayload<T>>;
-/**
- * Legacy two-arg overload, reading ONE field rather than a Topic's payload:
- * `dataSourceId` names a registered non-Sitrep source (`"kos"`, `"camera"`) or
- * `"data"` for the stream itself, and `key` is a field path the contract
- * declares under a Topic, e.g.
- * `useTelemetry<number>("data", "vessel.control.throttle")`.
- *
- * A bare Topic id resolves to nothing here: the resolution needs at least one
- * field segment after the Topic, so `useTelemetry("data", "comms.signal")`
- * reads `undefined` for ever rather than erroring. Read a whole Topic through
- * the one-arg form above, which answers with a {@link Reading} and is what a
- * new widget should use.
- */
-export function useTelemetry<T = unknown>(
-  dataSourceId: string,
-  key: string,
-): T | undefined;
-export function useTelemetry(dataSourceIdOrTopic: string, key?: string) {
-  // A single, unconditional call: branching here on `key` would call
-  // `getHost().useTelemetry` conditionally, which the rules-of-hooks lint
-  // (rightly) flags as unsafe even though a given call site's arity never
-  // changes across renders. The injected host's real implementation
-  // (`@ksp-gonogo/core`'s `useTelemetry`) already branches internally on
-  // whether `key` is present while keeping every hook call unconditional,
-  // this just forwards both args through to that single call, same as the
-  // core implementation's own `(dataSourceId, key?)` signature.
-  const hostUseTelemetry = getHost().useTelemetry as (
-    dataSourceIdOrTopic: string,
-    key?: string,
-  ) => unknown;
-  return hostUseTelemetry(dataSourceIdOrTopic, key);
+  : TopicReading<TopicPayload<T>> {
+  return getHost().useTelemetry(topic);
 }
 
 /**

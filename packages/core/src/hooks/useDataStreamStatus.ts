@@ -2,7 +2,6 @@ import {
   classifyDeadRead,
   DEAD_READ_SETTLE_MS,
   isTopicCarried,
-  mapTopic,
   type StreamStatusValue,
   subscribeTopicRead,
   useCarriedChannelsOptional,
@@ -41,15 +40,13 @@ function legacyToStreamStatus(status: DataSourceStatus): StreamStatusValue {
 }
 
 /**
- * The staleness/absence surface for a `(dataSourceId, key)` pair, sibling to
- * `useDataValue` (read). Same allowlist-gated, fallback contract:
+ * The staleness/absence surface for a `(dataSourceId, key)` pair, gated by the
+ * carried-channels allowlist:
  *
- * - **Mapped key + a `TelemetryProvider` is mounted + the resolved topic is
- *   CARRIED** -> the real `StreamStatusValue` off the `TimelineStore`
- *   (`store.sampleStatus`, mirroring `@ksp-gonogo/sitrep-client`'s own
- *   `useStreamStatus`: not called directly for the same "always-wired,
- *   stable hook order across a dynamic `dataSourceId`/`key`" reason
- *   `useDataValue`'s doc comment gives for mirroring `useStream`).
+ * - **A `TelemetryProvider` is mounted and the key's topic is CARRIED** -> the
+ *   real `StreamStatusValue` off the `TimelineStore` (`store.sampleStatus`,
+ *   mirroring `@ksp-gonogo/sitrep-client`'s own `useStreamStatus`, which is not
+ *   called directly so the hook order stays stable across a dynamic key).
  * - **Everything else** (unmapped key, no provider, mapped-but-not-carried)
  *   -> `legacyToStreamStatus(source.status)`, so an unmigrated widget still
  *   gets a meaningful status instead of an inert placeholder.
@@ -58,7 +55,7 @@ export function useDataStreamStatus(
   dataSourceId: string,
   key: string,
 ): StreamStatusValue {
-  // Memoized (matches `use-telemetry.ts`'s `legacySetup`): an inline
+  // Memoized: an inline
   // function here would give `useDataSourceSubscription`'s `subscribe` a new
   // identity every render, and `useSyncExternalStore` requires a stable
   // `subscribe` reference to correctly resolve the "already-connected before
@@ -97,15 +94,8 @@ export function useDataStreamStatus(
   const client = useTelemetryClientOptional();
   const store = useTelemetryStoreOptional();
   const carriedChannels = useCarriedChannelsOptional();
-  // `mapTopic` translates one spelling of a key and says nothing about the
-  // canonical one, so translating first would leave a caller passing
-  // `time.warp.warpRate` resolving to `undefined` and falling back to the
-  // `"data"` `DataSource` that nothing registers in production: no status,
-  // forever, with nothing failing. Pass an untranslated key through and let
-  // `isTopicCarried` answer for both spellings; a key that is neither still
-  // takes the fallback path below. Third hook of this shape, after
-  // `useWidgetStreamStatus` and `useDataSeries`.
-  const topic = mapTopic(dataSourceId, key) ?? key;
+  // The key is the topic: a whole Topic or a field path, which `isTopicCarried` resolves as it stands.
+  const topic = key;
   const carried =
     store !== undefined &&
     carriedChannels !== undefined &&
@@ -114,7 +104,7 @@ export function useDataStreamStatus(
   // Gated off, but with no registered source the legacy status is not a status
   // at all, it is the floor this hook prints when it has nothing. The gate
   // picks between two live reads and there is only one here, so the stream's
-  // own status is the honest answer. See `use-telemetry.ts`'s gate comment.
+  // own status is the honest answer.
   const gatedRescue =
     !routable &&
     client !== undefined &&
@@ -163,7 +153,7 @@ export function useDataStreamStatus(
     if (!deadCandidate) return;
     const timer = setTimeout(() => {
       if (everObserved.current) return;
-      const cause = classifyDeadRead(dataSourceId, key, streamMounted, true);
+      const cause = classifyDeadRead(dataSourceId, key, streamMounted);
       if (cause) warnDeadRead("useDataStreamStatus", dataSourceId, key, cause);
     }, DEAD_READ_SETTLE_MS);
     return () => clearTimeout(timer);

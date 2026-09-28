@@ -1,4 +1,5 @@
 import { clearRegistry, useTelemetry } from "@ksp-gonogo/core";
+import { useStream } from "@ksp-gonogo/sitrep-client";
 import { probeText, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { ws } from "msw";
@@ -8,30 +9,13 @@ import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import type { LinkClient } from "../test/peerFakes";
 
 /**
- * ACCEPTANCE / definition-of-done for the SCANsat dynamic-topic fix
- * (`local_docs/scansat-unified-fix-plan.md`, Task 4). A real client stack
- * (`SitrepTelemetryProvider` → live `WebSocketTransport` → `TimelineStore` →
- * carried-channels gate → `useTelemetry`) subscribes and a frame published by
- * the (MSW-simulated) mod on the ONE canonical wire string
- * `scansat.coverage.<body>.<typeBit>`: the exact string CoveragePanel reads
- * (`useTelemetry<number>("data", \`scansat.coverage.${bodyName}.${scanType}\`)`,
- * CoveragePanel/index.tsx:96-99) and the exact string the mod publishes
- * (`ScanChannels.BodyTypeSubTopic`, a scalar percent): must reach the widget.
- *
- * This is the round-trip that a per-layer unit test can't give: it catches a
- * residual STRING mismatch anywhere across subscribe / carry / resolve /
- * deliver. Nothing internal is faked, MSW intercepts only the network
- * boundary, exactly like `sitrep-stream-wire.test.tsx` (whose static-topic
- * pass proves the harness itself is sound; the control test below re-proves it
- * here).
- *
- * Red-until-fixed by design: the scansat round-trip is `it.skip` until the two
- * client fixes land (unified plan Tasks 1+2, `TimelineStore` prefix-aware
- * whole-topic resolution + the carried-gate prefix match). UNSKIP it as the
- * green gate when landing those. The mod-side gate-granularity/delivery fix
- * (Task 3) is proven separately at the host layer; here the mod is simulated
- * publishing what it really publishes, so this gate is exclusively the CLIENT
- * receive/resolve/carry half of the same canonical string.
+ * A real client stack (`SitrepTelemetryProvider` → live `WebSocketTransport` →
+ * `TimelineStore` → `useStream`) subscribes, and a frame the (MSW-simulated)
+ * mod publishes on the canonical wire string `scansat.coverage.<body>.<typeBit>`
+ * (`ScanChannels.BodyTypeSubTopic`, a scalar percent) must reach the widget.
+ * That is the exact string the SCANsat Uplink's coverage rows read, so this
+ * catches a string mismatch anywhere across subscribe / carry / resolve /
+ * deliver. Nothing internal is faked; MSW intercepts only the network boundary.
  */
 
 const SITREP_URL = "ws://localhost:8090";
@@ -64,24 +48,20 @@ function streamFrame(topic: string, payload: unknown): string {
   });
 }
 
-// The exact per-(body,type) coverage read CoveragePanel performs, scalar percent under the 4-segment canonical string.
+// The per-(body,type) coverage read the SCANsat Uplink performs: a dynamic Topic with no `TopicId` member, so `useStream`.
 function CoverageProbe() {
-  // @ts-expect-error two-arg form is type-banned; runtime shim still under test
-  const pct = useTelemetry<number>("data", "scansat.coverage.Kerbin.8");
+  const reading = useStream<number>("scansat.coverage.Kerbin.8");
+  const pct = reading.state === "observed" ? reading.value : undefined;
   return <div>coverage:{pct === undefined ? NULL_DISPLAY : String(pct)}</div>;
 }
 
-// A static mapped control that already works today (mirrors
-// sitrep-stream-wire.test.tsx: the read key `f.throttle` maps to raw topic
-// `vessel.control` field `throttle`): proves the MSW + live-transport harness
-// is sound, so a red scansat assertion is the dynamic path, never the harness.
+// A static Topic read: proves the MSW + live-transport harness is sound, so a red coverage assertion is the dynamic path, never the harness.
 function ControlProbe() {
-  // @ts-expect-error two-arg form is type-banned; runtime shim still under test
-  const throttle = useTelemetry("data", "vessel.control.throttle");
+  const reading = useTelemetry("vessel.control");
+  const throttle =
+    reading.state === "observed" ? reading.value.throttle : undefined;
   return (
-    <div>
-      throttle:{throttle === undefined ? NULL_DISPLAY : probeText(throttle)}
-    </div>
+    <div>throttle:{throttle == null ? NULL_DISPLAY : probeText(throttle)}</div>
   );
 }
 
@@ -96,7 +76,7 @@ async function connectAndCaptureClient(): Promise<LinkClient[]> {
 }
 
 describe("SCANsat coverage round-trip (canonical wire string, real client)", () => {
-  it("HARNESS CONTROL: a static topic frame surfaces on the mapped read", async () => {
+  it("HARNESS CONTROL: a static topic frame surfaces on the Topic read", async () => {
     const serverClients = await connectAndCaptureClient();
 
     const { unmount } = render(
@@ -118,12 +98,6 @@ describe("SCANsat coverage round-trip (canonical wire string, real client)", () 
     unmount();
   });
 
-  // GREEN GATE: unskip when unified-plan Tasks 1+2 land (TimelineStore
-  // prefix-aware whole-topic resolution + carried-gate prefix match). The
-  // intended wiring drives BOTH from the trailing-`.` entries in
-  // `carriedChannels` (the store's `dynamicWholeTopicPrefixes` derived from the
-  // same list): if the client fix uses a different injection, adjust the
-  // provider props here to match, keeping the assertion (value surfaces).
   it("the mod's canonical coverage string reaches the widget as a scalar percent", async () => {
     const serverClients = await connectAndCaptureClient();
 

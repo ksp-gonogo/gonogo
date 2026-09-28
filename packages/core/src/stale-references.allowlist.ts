@@ -17,7 +17,6 @@ export const STALE_REFERENCE_DEBT: Record<string, number> = {
   "mod/sitrep-sdk/src/media/worker/time-base.ts -> timeBase.test.ts": 1,
   "packages/app/src/__tests__/analytics-consent-peer.test.ts -> peer-host-service.test.ts": 1,
   "packages/app/src/__tests__/peer-broadcast-benchmark.test.ts -> peer-host-service.test.ts": 1,
-  "packages/app/src/__tests__/scansat-coverage-roundtrip.test.tsx -> CoveragePanel/index.tsx:96": 1,
   "packages/app/src/telemetry/PeerTransport.test.ts -> WebSocketTransport.test.ts": 1,
   "packages/core/src/uplink-boundary.allowlist.ts -> flag.test.ts": 3,
   "packages/core/src/uplink-boundary.allowlist.ts -> loaderState.test.ts": 1,

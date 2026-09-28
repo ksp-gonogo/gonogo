@@ -17,7 +17,8 @@
 
 import type { ComponentType } from "react";
 import type { CommandArgs, CommandId, CommandReply } from "../commands";
-import type { Reading, TopicReading } from "../reading";
+import type { Reading, ReckonableReading, TopicReading } from "../reading";
+import type { ReckonableFields, ReckonableTopic } from "../reckonability";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
 import type { UplinkAlarmRequest } from "./alarm-request";
@@ -51,26 +52,17 @@ export interface GonogoHost {
   registerAugment<S extends string>(def: AugmentDefinition<S>): void;
 
   /**
-   * Canonical Topic overload: reads a Topic's payload straight off the
-   * mounted TimelineStore (`@ksp-gonogo/core`'s `useTelemetry`, one-arg form).
+   * Reads a Topic off the mounted TimelineStore and answers with its `Reading`
+   * (`@ksp-gonogo/core`'s `useTelemetry`).
    */
-  useTelemetry<T extends TopicId>(topic: T): TopicPayload<T> | undefined;
-  /**
-   * Legacy two-arg overload: the retired `useDataValue` shim's shape,
-   * carried over onto `useTelemetry` itself (real `useTelemetry` in
-   * `@ksp-gonogo/core` has always answered both call shapes off the one
-   * function; `useDataValue` was only ever a name for this same call). Still
-   * needed by Uplinks reading a legacy flat key that has no canonical Topic
-   * yet.
-   *
-   * The key must be a FIELD PATH the contract declares under a Topic, e.g.
-   * `useTelemetry<number>("data", "vessel.control.throttle")`. A bare Topic id
-   * resolves to nothing here: `resolveValueTopic` needs at least one field
-   * segment after the Topic, so `useTelemetry("data", "comms.signal")`
-   * reads `undefined` for ever. Read a whole Topic through the canonical
-   * one-arg form instead, which is what it is for.
-   */
-  useTelemetry<T = unknown>(dataSourceId: string, key: string): T | undefined;
+  useTelemetry<T extends TopicId>(
+    topic: T,
+  ): T extends ReckonableTopic
+    ? ReckonableReading<
+        TopicPayload<T>,
+        ReckonableFields<T> & keyof TopicPayload<T>
+      >
+    : TopicReading<TopicPayload<T>>;
   /**
    * The frame's VIEW instant: the moment the screen is showing, which is not
    * necessarily now.

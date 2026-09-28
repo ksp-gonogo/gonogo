@@ -71,22 +71,7 @@ export function buildGonogoHost(): GonogoHost {
     registerAugment: (def) =>
       registerAugment(def as unknown as Parameters<typeof registerAugment>[0]),
 
-    // Overloaded on the sdk side (canonical one-arg Topic read, and the
-    // retired useDataValue's legacy two-arg flat-key read carried
-    // over onto this same name: see GonogoHost.useTelemetry's doc). Real
-    // core `useTelemetry` already branches internally on whether `key` is
-    // present while keeping every hook call unconditional (its own
-    // `(dataSourceId, key?)` implementation signature), so this is a single,
-    // unconditional forward of both args: never a conditional call to two
-    // different hook invocations, which the rules-of-hooks lint (rightly)
-    // flags even though a given call site's arity never changes across
-    // renders. The loose cast mirrors core's own internal implementation
-    // signature against the host's overloaded declared type.
-    useTelemetry: ((dataSourceIdOrTopic: string, key?: string) =>
-      (useTelemetry as (a: string, b?: string) => unknown)(
-        dataSourceIdOrTopic,
-        key,
-      )) as GonogoHost["useTelemetry"],
+    useTelemetry: useTelemetry as GonogoHost["useTelemetry"],
     useViewUt: () => useViewUt(),
     /*
      * One implementation behind two overloads, the same shape `useTelemetry`

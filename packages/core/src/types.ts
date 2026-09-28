@@ -32,9 +32,8 @@ export interface ConfigField {
  * One entry in the action-group registry (`@ksp-gonogo/core/actionGroups`).
  *
  * Deliberately carries no read key. A per-entry key would force `ActionGroup`
- * to resolve its read dynamically off this registry, which is a blind spot for
- * the `mapTopic` coverage scan and would keep a `useTelemetry("data", ...)` shim
- * read alive in the widget. The widget reads the canonical `vessel.control` /
+ * to resolve its read dynamically off this registry, which no typed Topic read
+ * can express. The widget reads the canonical `vessel.control` /
  * `vessel.structure` topics directly and resolves each group's value from the
  * payload, so the registry only has to describe WHICH group an entry is, not
  * how to read it.

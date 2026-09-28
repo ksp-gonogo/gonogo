@@ -1,4 +1,3 @@
-import { mapTopic } from "@ksp-gonogo/sitrep-client";
 import type { Severity } from "@ksp-gonogo/ui-kit";
 import { useStatusContribution } from "@ksp-gonogo/ui-kit";
 import { useAlarmSnapshotOptional } from "./AlarmHostContext";
@@ -51,11 +50,6 @@ export function alarmSubjectKey(alarm: Alarm): string | null {
 /**
  * Whether an alarm's subject is one of the widget's declared requirements.
  *
- * Both sides are resolved to a topic first (`mapTopic`, identity when the
- * string is already one), so a widget declaring a legacy key and an alarm
- * naming a modern field still meet, in either direction. That much was always
- * here.
- *
  * The containment clause is what lets a widget declare what it actually reads.
  * A widget consuming a whole payload (`useTelemetry("career.status")`,
  * `useStream("vessel.orbit")`) declares the channel, while an alarm's subject
@@ -74,12 +68,9 @@ export function alarmMatchesWidget(
 ): boolean {
   const subject = alarmSubjectKey(alarm);
   if (subject === null) return false;
-  const subjectTopic = mapTopic("data", subject) ?? subject;
   for (const requirement of declaredTopics ?? []) {
     if (requirement === subject) return true;
-    const requirementTopic = mapTopic("data", requirement) ?? requirement;
-    if (requirementTopic === subjectTopic) return true;
-    if (subjectTopic.startsWith(`${requirement}.`)) return true;
+    if (subject.startsWith(`${requirement}.`)) return true;
   }
   return false;
 }

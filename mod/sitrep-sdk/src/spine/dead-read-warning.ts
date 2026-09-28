@@ -15,9 +15,8 @@ import { isKnownTopic, resolveValueTopic } from "./map-topic";
  * needs both candidate values in hand with the streamed one present. None of
  * them can see the read that never reached a channel at all, which is the one
  * that ships silent: a key the contract does not declare resolves to no topic,
- * so `useTelemetry` short-circuits its subscribe to a no-op, and if no
- * `DataSource` is registered under the id either then nothing anywhere has been
- * asked a question.
+ * so the read's subscribe is a no-op, and if no `DataSource` is registered
+ * under the id either then nothing anywhere has been asked a question.
  *
  * ## Why the verdict is deferred and then re-derived
  *
@@ -84,26 +83,19 @@ export type DeadReadCause =
  * - a source is registered and its schema DOES declare the key: it simply has
  *   not emitted yet, which resolves itself the moment the source speaks
  *
- * `keyMayNameWholeTopic` picks which key vocabulary to resolve against, and it
- * is a property of the CALLING HOOK rather than of the moment. A value read
- * reaches a field within a Topic, so a bare Topic id is not a key it can serve
- * and `resolveValueTopic` alone is the right question. A status read and a
- * plotted window are keyed by the whole Topic and pass the key through
- * untranslated for `isTopicCarried` to answer, so on those a bare Topic id
- * reaches a real channel. Asking the narrow question there accuses the read
- * that works: `useDataStreamStatus("data", "science.experimentBreakdown")`, the
- * one such call the app ships, would be told its Topic declares no such field.
+ * The key may name a field within a Topic or the whole Topic: a status read
+ * and a plotted window are both keyed by the whole Topic and pass the key
+ * through untranslated for `isTopicCarried` to answer, so a bare Topic id
+ * reaches a real channel.
  */
 export function classifyDeadRead(
   dataSourceId: string,
   key: string,
   streamMounted: boolean,
-  keyMayNameWholeTopic = false,
 ): DeadReadCause | undefined {
-  const topic = keyMayNameWholeTopic
-    ? (resolveValueTopic(dataSourceId, key) ??
-      (isKnownTopic(key) ? key : undefined))
-    : resolveValueTopic(dataSourceId, key);
+  const topic =
+    resolveValueTopic(dataSourceId, key) ??
+    (isKnownTopic(key) ? key : undefined);
   const source = getDataSource(dataSourceId);
 
   if (topic !== undefined) {
@@ -227,9 +219,7 @@ export function deadReadMessage(
     `${unknownKey} No data source is registered under the id ` +
     `"${dataSourceId}" either, so nothing anywhere has been asked a question ` +
     `and the widget holding this read renders blank rather than failing. ` +
-    `${waited} Check the field path against the Topic that declares it, and ` +
-    `prefer the canonical one-arg useTelemetry("<topic>"), which reads the ` +
-    `whole payload and is a compile error when the Topic does not exist. If ` +
+    `${waited} Check the field path against the Topic that declares it. If ` +
     `the Topic belongs to an Uplink, check that the Uplink is installed and ` +
     `enabled and that its Register did not throw on load (the system.uplinks ` +
     `roster carries available:false and a reason).`

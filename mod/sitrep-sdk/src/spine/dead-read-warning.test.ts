@@ -135,21 +135,15 @@ describe("classifying a read that resolves to nothing", () => {
 });
 
 /**
- * Which key vocabulary the verdict is resolved against, which is a property of
- * the calling HOOK and not of the moment.
- *
- * A value read reaches a field WITHIN a Topic, so a bare Topic id is not a key
- * it can serve and the narrow question is the right one. A status read and a
- * plotted window are keyed by the whole Topic and hand the key through
- * untranslated for `isTopicCarried` to answer, so on those a bare Topic id
- * reaches a real channel. Asking the narrow question there accuses a read that
- * works, and accuses it with a false sentence about the contract.
+ * A status read and a plotted window are keyed by the whole Topic and hand the
+ * key through untranslated for `isTopicCarried` to answer, so a bare Topic id
+ * reaches a real channel and must not be accused.
  */
 describe("classifying against the whole-Topic key vocabulary", () => {
   /** `useDataStreamStatus("data", "science.experimentBreakdown")` ships today. */
   it("resolves a bare Topic id, so the verdict is about the provider", () => {
     expect(
-      classifyDeadRead("data", "science.experimentBreakdown", false, true),
+      classifyDeadRead("data", "science.experimentBreakdown", false),
     ).toEqual({
       kind: "no-provider-no-source",
       topic: "science.experimentBreakdown",
@@ -158,34 +152,21 @@ describe("classifying against the whole-Topic key vocabulary", () => {
 
   it("stands aside for that Topic entirely once a stream is mounted", () => {
     expect(
-      classifyDeadRead("data", "science.experimentBreakdown", true, true),
+      classifyDeadRead("data", "science.experimentBreakdown", true),
     ).toBeUndefined();
   });
 
-  /**
-   * The narrow vocabulary is what `useTelemetry`'s two-arg form reads with, and
-   * there a bare Topic id genuinely resolves to nothing: the hook's own
-   * `resolveValueTopic` returns `undefined`, its subscribe is a no-op and it
-   * returns `undefined` for ever. Pinned so the parameter's default cannot
-   * drift into silencing that leg.
-   */
-  it("still calls a bare Topic id dead under the field-path vocabulary", () => {
-    expect(
-      classifyDeadRead("data", "science.experimentBreakdown", true),
-    ).toEqual(NO_SOURCE);
-  });
-
-  /** Widening the vocabulary does not make a key that names nothing resolve. */
+  /** Accepting a whole Topic does not make a key that names nothing resolve. */
   it("reports a key that names neither a Topic nor a field of one", () => {
-    expect(classifyDeadRead("data", "vessel.orbit.smaa", true, true)).toEqual(
+    expect(classifyDeadRead("data", "vessel.orbit.smaa", true)).toEqual(
       NO_SOURCE,
     );
   });
 
-  /** A field path is a field path under either vocabulary. */
+  /** A field path still resolves. */
   it("still resolves a field path when a whole Topic would also be accepted", () => {
     expect(
-      classifyDeadRead("data", "vessel.control.throttle", true, true),
+      classifyDeadRead("data", "vessel.control.throttle", true),
     ).toBeUndefined();
   });
 });
@@ -193,36 +174,36 @@ describe("classifying against the whole-Topic key vocabulary", () => {
 describe("the dead-read message", () => {
   it("names the call that was written and says the wait was deliberate", () => {
     const message = deadReadMessage(
-      "useTelemetry",
+      "useDataSeries",
       "data",
       "vessel.control.thruttle",
       NO_SOURCE,
     );
 
     expect(message).toContain(
-      'useTelemetry("data", "vessel.control.thruttle")',
+      'useDataSeries("data", "vessel.control.thruttle")',
     );
     expect(message).toContain("will never resolve");
     expect(message).toContain("not a slow start");
   });
 
   /** Each arm has its own fix, and a line carrying the wrong one is worse than none. */
-  it("gives the unknown-key arm the canonical form and the Uplink check", () => {
+  it("gives the unknown-key arm the field-path check and the Uplink check", () => {
     const message = deadReadMessage(
-      "useTelemetry",
+      "useDataSeries",
       "data",
       "vessel.control.thruttle",
       NO_SOURCE,
     );
 
     expect(message).toContain("No data source is registered");
-    expect(message).toContain('useTelemetry("<topic>")');
+    expect(message).toContain("Check the field path");
     expect(message).toContain("system.uplinks");
   });
 
   it("gives the schema arm the keys the source does declare, nearest first", () => {
     const message = deadReadMessage(
-      "useTelemetry",
+      "useDataSeries",
       "legacy",
       "vessel.control.thruttle",
       {
@@ -239,7 +220,7 @@ describe("the dead-read message", () => {
   });
 
   it("gives the no-provider arm the provider to mount, not a spelling check", () => {
-    const message = deadReadMessage("useTelemetry", "data", "throttle", {
+    const message = deadReadMessage("useDataSeries", "data", "throttle", {
       kind: "no-provider-no-source",
       topic: "vessel.control.throttle",
     });
@@ -261,18 +242,18 @@ describe("warnDeadRead", () => {
   afterEach(() => uninstall());
 
   it("logs the message once, with the read and its cause as structured context", () => {
-    warnDeadRead("useTelemetry", "data", "vessel.control.thruttle", NO_SOURCE);
+    warnDeadRead("useDataSeries", "data", "vessel.control.thruttle", NO_SOURCE);
 
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledWith(
       deadReadMessage(
-        "useTelemetry",
+        "useDataSeries",
         "data",
         "vessel.control.thruttle",
         NO_SOURCE,
       ),
       {
-        hook: "useTelemetry",
+        hook: "useDataSeries",
         dataSourceId: "data",
         key: "vessel.control.thruttle",
         cause: "no-topic-no-source",
@@ -285,16 +266,16 @@ describe("warnDeadRead", () => {
    * ungated line would print thousands of times a minute and bury itself.
    */
   it("fires once per distinct read, not once per render", () => {
-    warnDeadRead("useTelemetry", "data", "vessel.control.thruttle", NO_SOURCE);
-    warnDeadRead("useTelemetry", "data", "vessel.control.thruttle", NO_SOURCE);
-    warnDeadRead("useTelemetry", "data", "vessel.control.thruttle", NO_SOURCE);
+    warnDeadRead("useDataSeries", "data", "vessel.control.thruttle", NO_SOURCE);
+    warnDeadRead("useDataSeries", "data", "vessel.control.thruttle", NO_SOURCE);
+    warnDeadRead("useDataSeries", "data", "vessel.control.thruttle", NO_SOURCE);
 
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it("still reports a second, different bad key on the same source", () => {
-    warnDeadRead("useTelemetry", "data", "vessel.control.thruttle", NO_SOURCE);
-    warnDeadRead("useTelemetry", "data", "vessel.control.pitchh", NO_SOURCE);
+    warnDeadRead("useDataSeries", "data", "vessel.control.thruttle", NO_SOURCE);
+    warnDeadRead("useDataSeries", "data", "vessel.control.pitchh", NO_SOURCE);
 
     expect(warn).toHaveBeenCalledTimes(2);
   });
@@ -309,7 +290,7 @@ describe("warnDeadRead with no host installed", () => {
   it("does not throw", () => {
     expect(() =>
       warnDeadRead(
-        "useTelemetry",
+        "useDataSeries",
         "data",
         "vessel.control.thruttle",
         NO_SOURCE,

@@ -112,7 +112,6 @@ export {
   getActiveCarriedChannels,
   getActiveTelemetryClient,
   getContractsActive,
-  getObservedValue,
   getOrbitSolve,
   getSystemBodies,
   getValue,

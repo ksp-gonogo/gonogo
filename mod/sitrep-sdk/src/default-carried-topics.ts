@@ -2,9 +2,13 @@
  * Default dev-first per-topic promotion list, feeding the carried-channels
  * gate in `carried-channels.ts`. These are the RAW wire
  * topics the mod's `VesselViewProvider`/`SystemViewProvider`/`TimeViewProvider`
- * are known to serve, the `useDataValue` shim resolves each mapped/derived
- * topic down to its raw wire inputs and only routes to the stream when EVERY
- * input is carried, so promotion is done at raw-topic granularity here.
+ * are known to serve. The gate resolves each derived topic down to its raw wire
+ * inputs and counts it carried only when EVERY input is carried, so promotion
+ * is done at raw-topic granularity here.
+ *
+ * The one-arg Topic read does not consult it. What it decides is which keys
+ * the value pickers offer, and whether a plotted series or a status read
+ * routes to the stream deliberately rather than by rescue.
  *
  * This is deliberately an explicit opt-in list rather than a hard-coded
  * transport declaration: the mod server does not yet advertise a channel list
@@ -100,10 +104,7 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // channel's noise) can key on without knowing which comms mod is installed,
   // which `comms.signal` cannot be: that field means a different
   // quantity depending on which backend the comms capability elected, and the
-  // grading here names its own rule. Must be
-  // carried or a `useTelemetry("comms.degrade")` read silently stays undefined,
-  // which a consumer is meant to read as "nobody graded this" and would here be
-  // "nobody delivered it".
+  // grading here names its own rule.
   "comms.degrade",
   // comms.commandCentre (CommsCoreUplink, TrueNow): which centre (KSC or a
   // crewed control-source vessel) the
@@ -125,9 +126,7 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // contribution subscribes directly, since `ContributionsProvider`'s
   // `SlotAggregator` bypasses this gate entirely, so listing it here is not
   // load-bearing for that path. It is listed for the same "every mod-served
-  // raw topic is catalogued" convention the rest of this list follows, and
-  // so a direct `useTelemetry("comms.network")` read does not silently fall
-  // back to legacy.
+  // raw topic is catalogued" convention the rest of this list follows.
   "comms.network",
   "system.uplink.pending",
   // system.uplink.gates: every gated command's standing verdict, read by
@@ -137,11 +136,8 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "system.uplink.gates",
   // system.channels: every declared channel's emission counters, the reading
   // that tells a Topic the engine never considered from one it considered and
-  // declined. Listed because a gate entry costs nothing on its own: it decides
-  // whether a READ routes to the stream, and nothing subscribes until something
-  // asks. Left off, a `useTelemetry("system.channels")` would fall back to the
-  // legacy source and find no such key, so the diagnostic would be reachable by
-  // a raw socket and not by the app that needs it.
+  // declined. Listed because a gate entry costs nothing on its own: nothing
+  // subscribes until something asks.
   "system.channels",
   // U3 kOS slice: native push channel for the KosProcessors widget. Static
   // raw topic, so `isTopicCarried` promotes it by simple set membership. The
@@ -193,9 +189,8 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "spaceCenter.astronautComplex",
   // Crash event stream (CrashUplink, ReliableOrdered): the crashed-vessel
   // record and its companion "a notable crash happened recently" flag. Raw
-  // wire topics; the gate promotes at raw-topic granularity, so a widget
-  // reading them through `useDataValue` reaches the stream instead of the
-  // legacy source. Delivered on the reliable lane, so every crash
+  // wire topics; the gate promotes at raw-topic granularity. Delivered on the
+  // reliable lane, so every crash
   // arrives (none coalesced); consumers that must act once per crash use
   // `useStreamEvent` rather than a sticky value read.
   "crash.lastCrash",
@@ -241,9 +236,7 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // vesselChanged (ReliableOrdered events): retires the client-side
   // FlightDetector heuristic. Raw wire topics, same promotion rule as
   // crash.*/recovery.* above. AutoRecordController/useFlight read these
-  // natively (useOptionalStreamEvent/useStream, bypassing the legacy "data"
-  // DataSource + mapTopic shim entirely), so this entry is for any future
-  // useTelemetry consumer of the flight.* topics, not those two.
+  // natively (useOptionalStreamEvent/useStream), which the gate does not touch.
   "flight.current",
   "flight.started",
   "flight.ended",

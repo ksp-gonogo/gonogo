@@ -7,7 +7,7 @@ import {
 } from "./gated-read-warning";
 
 const THROTTLE = [
-  "useTelemetry",
+  "useDataStreamStatus",
   "data",
   "vessel.control.throttle",
   "vessel.control.throttle",
@@ -20,27 +20,13 @@ describe("the gated-read warning message", () => {
   it("names the call that was written and the wire topic answering it", () => {
     const message = gatedReadMessage(...THROTTLE);
     expect(message).toContain(
-      'useTelemetry("data", "vessel.control.throttle")',
+      'useDataStreamStatus("data", "vessel.control.throttle")',
     );
     expect(message).toContain('"vessel.control"');
   });
 
-  /**
-   * The line has to be actionable by someone who does not know the shim exists:
-   * what to write instead, and the one way the replacement behaves differently.
-   */
-  it("gives useTelemetry the canonical call to write instead, and the payload difference", () => {
-    const message = gatedReadMessage(...THROTTLE);
-    expect(message).toContain('useTelemetry("vessel.control")');
-    expect(message).toContain("Reading");
-    expect(message).toContain("Values");
-  });
-
-  /**
-   * `useDataSeries` has no canonical twin, so the same remedy would be advice
-   * a reader cannot act on.
-   */
-  it("gives useDataSeries the allowlist instead, because it has no canonical twin", () => {
+  /** The line has to be actionable by someone who does not know the shim exists. */
+  it("gives the carried-channels allowlist as the remedy", () => {
     const message = gatedReadMessage(
       "useDataSeries",
       "data",
@@ -50,7 +36,6 @@ describe("the gated-read warning message", () => {
     );
     expect(message).toContain('useDataSeries("data", "vessel.orbit.sma")');
     expect(message).toContain("DEFAULT_SITREP_CARRIED_TOPICS");
-    expect(message).not.toContain("useTelemetry(");
   });
 });
 
@@ -69,7 +54,7 @@ describe("warnGatedRead", () => {
 
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledWith(gatedReadMessage(...THROTTLE), {
-      hook: "useTelemetry",
+      hook: "useDataStreamStatus",
       dataSourceId: "data",
       key: "vessel.control.throttle",
       topic: "vessel.control.throttle",
@@ -91,7 +76,7 @@ describe("warnGatedRead", () => {
   it("still reports a second, different key on the same source", () => {
     warnGatedRead(...THROTTLE);
     warnGatedRead(
-      "useTelemetry",
+      "useDataStreamStatus",
       "data",
       "vessel.control.pitch",
       "vessel.control.pitch",
@@ -100,10 +85,7 @@ describe("warnGatedRead", () => {
     expect(warn).toHaveBeenCalledTimes(2);
   });
 
-  /**
-   * Two shims read the same key through the same source, and each has its own
-   * remedy, so the once-gate is per hook as well.
-   */
+  /** Two shims read the same key through the same source, and the message names the hook, so the once-gate is per hook as well. */
   it("still reports the same key read through the other hook", () => {
     warnGatedRead(...THROTTLE);
     warnGatedRead(

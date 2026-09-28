@@ -1,35 +1,6 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { classifyRequirement, getComponents } from "@ksp-gonogo/core";
 import { describe, expect, it } from "vitest";
 import "../index";
-
-const COMPONENTS_SRC = join(dirname(fileURLToPath(import.meta.url)), "..");
-
-function collectComponentSources(): Array<{ file: string; text: string }> {
-  const out: Array<{ file: string; text: string }> = [];
-  const walk = (dir: string) => {
-    for (const entry of readdirSync(dir)) {
-      const full = join(dir, entry);
-      if (statSync(full).isDirectory()) {
-        if (entry === "__fixtures__" || entry === "node_modules") continue;
-        walk(full);
-        continue;
-      }
-      if (/\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry)) {
-        out.push({ file: full, text: readFileSync(full, "utf8") });
-      }
-    }
-  };
-  walk(COMPONENTS_SRC);
-  return out;
-}
-
-/** Comments mention the retired read form, so the scan reads code only. */
-function stripComments(text: string): string {
-  return text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
-}
 
 /**
  * Every `dataRequirements` and `fields` entry every built-in widget declares
@@ -86,23 +57,5 @@ describe("widget dataRequirements resolve to something real", () => {
     expect(classifyRequirement("spaceCenter.state")).toBe("derived-channel");
     // A retired flat-vocabulary key has nothing to resolve against.
     expect(classifyRequirement("career.funds")).toBeUndefined();
-  });
-});
-
-describe("no built-in widget reads through the retired key vocabulary", () => {
-  // What a widget reads, not declares: the two-arg `useTelemetry("data", key)` form takes an unchecked string, and for built-in widgets it is not used at all.
-  const LEGACY_READ = /useTelemetry\(\s*"data"\s*,/g;
-
-  const sources = collectComponentSources();
-
-  it("finds the sources it claims to scan, so an empty result is not a pass", () => {
-    expect(sources.length).toBeGreaterThan(50);
-  });
-
-  it("uses no two-arg useTelemetry read", () => {
-    const offenders = sources
-      .filter(({ text }) => stripComments(text).match(LEGACY_READ))
-      .map(({ file }) => file);
-    expect(offenders).toEqual([]);
   });
 });

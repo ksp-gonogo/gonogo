@@ -20,7 +20,7 @@ import type { LinkClient } from "../test/peerFakes";
  * This is the same network-boundary approach the transport's own unit test uses
  * in `@ksp-gonogo/sitrep-client`; here it additionally proves the app-layer wiring
  * (`useMemo` transport build, `TelemetryClient`, `TelemetryProvider`,
- * `useDataValue` shim, carried-channels gate) all connect the wire to the DOM.
+ * `useTelemetry`) all connect the wire to the DOM.
  */
 
 const SITREP_URL = "ws://localhost:8090";
@@ -58,12 +58,11 @@ function streamFrame(topic: string, payload: unknown): string {
 }
 
 function Throttle() {
-  // @ts-expect-error two-arg form is type-banned; runtime shim still under test
-  const throttle = useTelemetry("data", "vessel.control.throttle");
+  const reading = useTelemetry("vessel.control");
+  const throttle =
+    reading.state === "observed" ? reading.value.throttle : undefined;
   return (
-    <div>
-      throttle:{throttle === undefined ? NULL_DISPLAY : probeText(throttle)}
-    </div>
+    <div>throttle:{throttle == null ? NULL_DISPLAY : probeText(throttle)}</div>
   );
 }
 
@@ -94,7 +93,7 @@ describe("SitrepTelemetryProvider: live WebSocketTransport over MSW", () => {
     // warning this seam otherwise produces).
     expect(await screen.findByText(`throttle:${NULL_DISPLAY}`)).toBeTruthy();
 
-    // Once the provider's live transport has connected, push a frame; it must decode through the real client and surface on the mapped read.
+    // Once the provider's live transport has connected, push a frame; it must decode through the real client and surface on the Topic read.
     await waitFor(() => expect(serverClients).toHaveLength(1));
     serverClients[0].send(streamFrame("vessel.control", { throttle: 0.75 }));
 

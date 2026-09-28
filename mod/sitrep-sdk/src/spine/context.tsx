@@ -1151,12 +1151,11 @@ export function getOrbitSolve(): OrbitalSolve | null {
 }
 
 /**
- * Non-hook, Value-restricted equivalent of `useTelemetry(dataSourceId, key)`'s
- * legacy overload: for a plain-class caller (alarm/maneuver-trigger threshold
- * evaluation) that needs to read an OPERATOR-PICKED legacy key, not one of a
- * fixed set decided at call time. `key` is resolved through the same routing
- * `useTelemetry` consults, covering both a flat legacy key and a field path, and
- * the resulting Topic is sampled off the active `TimelineStore`. Answers a
+ * Non-hook, Value-restricted read of an OPERATOR-PICKED key, for a plain-class
+ * caller (alarm/maneuver-trigger threshold evaluation) whose key is not one of
+ * a fixed set decided at call time. `key` is a field path or a dynamic-namespace
+ * key, resolved through `resolveValueTopic`, and the resulting Topic is sampled
+ * off the active `TimelineStore`. Answers a
  * MAGNITUDE: the one type every threshold comparison needs, taken off the
  * `Value` a unit-carrying field arrives as, so a non-numeric or not-yet-arrived
  * read is a plain `undefined`.
@@ -1175,25 +1174,6 @@ export function getValue(
   const topic = resolveValueTopic(dataSourceId, key);
   if (topic === undefined) return undefined;
   return pickedKeyMagnitude(sampleActiveTopic<unknown>(topic));
-}
-
-/**
- * `getValue` for a caller DECIDING something rather than drawing it: the same
- * key resolution and the same unwrap, answered only while the reading is
- * `observed`. A held last payload, a topic nothing has sent yet and a
- * tombstone all answer `undefined`, because a threshold compared against a
- * number nobody can date is a decision taken on a guess.
- */
-export function getObservedValue(
-  dataSourceId: string,
-  key: string,
-): number | undefined {
-  const topic = resolveValueTopic(dataSourceId, key);
-  if (topic === undefined) return undefined;
-  const reading = sampleActiveReading<unknown>(topic);
-  return reading.state === "observed"
-    ? pickedKeyMagnitude(reading.value)
-    : undefined;
 }
 
 /**

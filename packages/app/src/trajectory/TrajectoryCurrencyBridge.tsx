@@ -1,7 +1,6 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import {
   canPropagate,
-  mapTopic,
   type PropagationRefusal,
   TrajectoryKindLike,
   useViewUt,
@@ -30,9 +29,8 @@ export function widgetReadsTrajectory(
   declaredTopics: readonly string[] | undefined,
 ): boolean {
   for (const requirement of declaredTopics ?? []) {
-    const topic = mapTopic("data", requirement) ?? requirement;
-    if (topic === TRAJECTORY_TOPIC) return true;
-    if (topic.startsWith(`${TRAJECTORY_TOPIC}.`)) return true;
+    if (requirement === TRAJECTORY_TOPIC) return true;
+    if (requirement.startsWith(`${TRAJECTORY_TOPIC}.`)) return true;
   }
   return false;
 }
